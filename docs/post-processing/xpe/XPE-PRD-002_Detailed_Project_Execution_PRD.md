@@ -1,12 +1,13 @@
 # PRD: X-Ray Image Processing Engine Detailed Project Execution
 
 **Document ID**: XPE-PRD-002  
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Date**: 2026-04-13  
-**Status**: Working Draft  
+**Status**: Working Draft (Cross-Verified)  
 **Classification**: Internal / Execution Baseline  
-**Regulatory Position**: XPE core package is currently planned as an IEC 62304 Class B package. Final software safety class and package boundaries must be confirmed by system hazard analysis and system-level decomposition.  
-**Supersedes for execution planning**: `xray-postprocessing-prd.md`  
+**Regulatory Position**: XPE core package is currently planned as an IEC 62304 Class B package. Final software safety class and package boundaries must be confirmed by system hazard analysis and system-level decomposition. **ACTION REQUIRED**: System hazard analysis must be completed and signed before Phase 1a gate (see Section 14.1).  
+**Supersedes for execution planning**: `xray-postprocessing-prd.md` (XPE-PRD-001)  
+**Cross-Verification**: XPE-XVER-001 v1.0.0 (2026-04-13) — 3-round verified  
 
 ---
 
@@ -461,6 +462,21 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 
 ## 14. Risks and Mitigations
 
+### 14.1 Cross-Verification Identified Risks (XPE-XVER-001)
+
+| ID | Risk | Severity | Mitigation | Gate |
+|----|------|----------|------------|------|
+| XVER-C1 | Safety Class C->B transition without signed hazard analysis | **CRITICAL** | System hazard analysis 수행 및 서명. SRS 안전 등급 갱신 | Phase 0 |
+| XVER-C2 | Ghost correction Tier 2/3 latency exceeds pipeline stage budget | **CRITICAL** | Pipeline-spec v1.2.0에서 stage (4) Tier별 세부 예산 명시. Tier 3는 pre-processing 500ms 재분배 | Phase 1a |
+| XVER-H1 | Body-Part/Stitching phase assignment conflict (PRD-001 Phase 2 vs PRD-002 Phase 3) | HIGH | PRD-001에 deprecation notice 추가. **Phase 3이 normative** | Phase 0 |
+| XVER-H2 | IEC 62304 formal package not synced with PRD-002/DeepSync | HIGH | Phase gate 전 SRS/SDD/RTM/VVP 동기화 | Each gate |
+| XVER-H3 | GSVG IEC 62304 package missing 6 documents (SCM/SRM/SMP/SPR/SRP/Compliance) | HIGH | Phase 2 gate 전 작성 완료 | Phase 2 |
+| XVER-H4 | RTM orphan: SRS-PERF-005, SRS-PERF-006 unmapped | HIGH | RTM에 즉시 추가 | Phase 0 |
+| XVER-M1 | PRD-001 missing DeepSync reference | MEDIUM | PRD-001에 cross-reference 추가 | Phase 0 |
+| XVER-M2 | Test coverage target definition inconsistency | MEDIUM | Statement/Branch 분리 정의를 프로젝트 표준으로 채택 (Section 9.3 참조) | Phase 0 |
+
+### 14.2 Original Risks
+
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | 공식 XPE 패키지와 실행 문서 불일치 | release blocker | phase 종료마다 문서 sync review 의무화 |
@@ -504,7 +520,17 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 
 이 PRD 승인 직후 바로 해야 할 일은 아래 순서다.
 
-1. Phase 0 backlog를 issue 단위로 분해
+### 17.1 Cross-Verification Resolution (XVER-001 대응, 최우선)
+
+1. **[CRITICAL]** System hazard analysis 수행 및 서명 → Class B 공식 확정 (XVER-C1)
+2. **[CRITICAL]** Pipeline-spec v1.2.0 작성: stage (4) Tier별 세부 예산 명시 (XVER-C2)
+3. **[HIGH]** PRD-001(xray-postprocessing-prd.md)에 deprecation notice 추가 (XVER-H1, M1, M3)
+4. **[HIGH]** XPE-RTM-001에 SRS-PERF-005/006 매핑 추가 (XVER-H4)
+5. **[MEDIUM]** quality.yaml에 Statement/Branch 분리 커버리지 기준 반영 (XVER-M2)
+
+### 17.2 Phase 0 Execution (원래 계획)
+
+1. Phase 0 backlog를 issue 단위로 분해 (XPE-PRD-003 기준)
 2. ABI header와 C# marshaling smoke test 작성
 3. preprocess golden dataset manifest 작성
 4. `ImageProcTest` 최소 shell 및 DLL loader 작성
