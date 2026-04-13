@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "xpe-common-ci",
+    "version-string": "0.1.0",
+    "description": "Lightweight vcpkg manifest for xpe_common CI builds",
+    "dependencies": [
+        { "name": "spdlog", "version>=": "1.13.0" },
+        { "name": "nlohmann-json", "version>=": "3.11.3" },
+        { "name": "fmt", "version>=": "10.0.0" }
+    ],
+    "overrides": [],
+    "builtin-baseline": "2024.09.30"
+}

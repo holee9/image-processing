@@ -6,17 +6,29 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-guard-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-repository:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate repository structure and backlog sync
         shell: pwsh
-        run: ./tools/ci/Validate-Repo.ps1
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
+
+      - name: Validate markdown links
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
 
       - name: Check whitespace and patch cleanliness
         shell: pwsh

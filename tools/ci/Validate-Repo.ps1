@@ -25,14 +25,33 @@ $requiredPaths = @(
     'README.md',
     'CMakeLists.txt',
     'CMakePresets.json',
+    'cmake/Platform.cmake',
+    'cmake/CompilerWarnings.cmake',
+    'modules/common/CMakeLists.txt',
+    'modules/common/include/xpe/common/xpe_common_api.h',
+    'modules/common/include/xpe/common/xpe_error.h',
+    'modules/common/include/xpe/common/xpe_memory.h',
+    'modules/common/include/xpe/common/xpe_types.h',
+    'modules/common/src/xpe_common.cpp',
+    'modules/common/src/xpe_memory.cpp',
+    'tests/CMakeLists.txt',
+    'tests/common_smoke/CMakeLists.txt',
+    'tests/common_smoke/test_common_smoke.cpp',
     'third_party/vcpkg.json',
+    'third_party/common/vcpkg.json',
     'docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md',
     'docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md',
     '.github/ISSUE_TEMPLATE/epic.md',
     '.github/ISSUE_TEMPLATE/backlog-item.md',
     '.github/ISSUE_TEMPLATE/docs-sync.md',
     '.github/ISSUE_TEMPLATE/config.yml',
+    '.github/dependabot.yml',
+    '.github/workflows/repository-guard.yml',
+    '.github/workflows/windows-common-build.yml',
+    '.github/workflows/delivery-bundle.yml',
+    '.github/workflows/release-bundle.yml',
     'tools/ci/Validate-Repo.ps1',
+    'tools/ci/Test-MarkdownLinks.ps1',
     'tools/ci/New-ReleaseBundle.ps1'
 )
 
@@ -44,6 +63,12 @@ $parentPrd = Get-Content 'docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_
 $backlogPrd = Get-Content 'docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md' -Raw
 $readme = Get-Content 'README.md' -Raw
 $cmakeLists = Get-Content 'CMakeLists.txt' -Raw
+$cmakePresets = Get-Content 'CMakePresets.json' -Raw
+$typesHeader = Get-Content 'modules/common/include/xpe/common/xpe_types.h' -Raw
+$guardWorkflow = Get-Content '.github/workflows/repository-guard.yml' -Raw
+$buildWorkflow = Get-Content '.github/workflows/windows-common-build.yml' -Raw
+$bundleWorkflow = Get-Content '.github/workflows/delivery-bundle.yml' -Raw
+$releaseWorkflow = Get-Content '.github/workflows/release-bundle.yml' -Raw
 
 if ($parentPrd -notmatch 'XPE-PRD-003_PRD_Decomposition_and_Backlog\.md') {
     Add-RepoError 'Parent PRD does not reference the backlog decomposition document.'
@@ -59,6 +84,62 @@ if ($readme -notmatch 'XPE-PRD-003_PRD_Decomposition_and_Backlog\.md') {
 
 if ($cmakeLists -notmatch 'function\(xpe_add_optional_subdirectory') {
     Add-RepoError 'Top-level CMakeLists.txt is missing the optional subdirectory helper.'
+}
+
+if ($cmakePresets -notmatch '"name":\s*"ci-common"') {
+    Add-RepoError 'CMakePresets.json is missing the ci-common preset.'
+}
+
+if ($cmakePresets -notmatch 'third_party/common') {
+    Add-RepoError 'CMakePresets.json does not point ci-common to the lightweight common manifest.'
+}
+
+$flagMatches = [regex]::Matches($typesHeader, '#define\s+(XPE_FLAG_[A-Z0-9_]+)\s+(0x[0-9A-Fa-f]+u)')
+if ($flagMatches.Count -lt 10) {
+    Add-RepoError 'xpe_types.h does not define the expected stable ABI flag set.'
+}
+
+$seenFlagValues = @{}
+foreach ($match in $flagMatches) {
+    $flagName = $match.Groups[1].Value
+    $flagValue = $match.Groups[2].Value.ToLowerInvariant()
+    if ($seenFlagValues.ContainsKey($flagValue)) {
+        Add-RepoError "Duplicate XPE metadata flag value detected: $flagName and $($seenFlagValues[$flagValue]) both use $flagValue"
+    } else {
+        $seenFlagValues[$flagValue] = $flagName
+    }
+}
+
+if ($guardWorkflow -notmatch 'actions/checkout@v6') {
+    Add-RepoError 'Repository Guard is not pinned to actions/checkout@v6.'
+}
+
+if ($buildWorkflow -notmatch 'actions/checkout@v6') {
+    Add-RepoError 'Windows Common Build is not pinned to actions/checkout@v6.'
+}
+
+if ($buildWorkflow -notmatch 'actions/cache@v5') {
+    Add-RepoError 'Windows Common Build is not pinned to actions/cache@v5.'
+}
+
+if ($buildWorkflow -notmatch 'actions/upload-artifact@v6') {
+    Add-RepoError 'Windows Common Build is not pinned to actions/upload-artifact@v6.'
+}
+
+if ($buildWorkflow -notmatch 'ctest --test-dir') {
+    Add-RepoError 'Windows Common Build does not run ctest smoke validation.'
+}
+
+if ($bundleWorkflow -notmatch 'actions/checkout@v6') {
+    Add-RepoError 'Delivery Bundle is not pinned to actions/checkout@v6.'
+}
+
+if ($bundleWorkflow -notmatch 'actions/upload-artifact@v6') {
+    Add-RepoError 'Delivery Bundle is not pinned to actions/upload-artifact@v6.'
+}
+
+if ($releaseWorkflow -notmatch 'gh release create' -or $releaseWorkflow -notmatch 'gh release upload') {
+    Add-RepoError 'Release Bundle workflow is missing GitHub Release publish/update logic.'
 }
 
 $backlogMatches = [regex]::Matches($backlogPrd, 'BI-\d{2}\.\d{2}\.\d{2}')

@@ -18,12 +18,19 @@ New-Item -ItemType Directory -Path $resolvedOutDir | Out-Null
 
 $bundlePaths = @(
     'README.md',
+    'CMakeLists.txt',
+    'CMakePresets.json',
+    'cmake',
+    'modules/common',
     'third_party/vcpkg.json',
+    'third_party/common',
     'docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md',
     'docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md',
     '.github/ISSUE_TEMPLATE',
     '.github/issue-drafts',
+    '.github/dependabot.yml',
     '.github/workflows',
+    'tests/common_smoke',
     'tools/ci'
 )
 

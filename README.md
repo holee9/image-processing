@@ -1,65 +1,82 @@
 # image-processing
 
-X-ray Flat Panel Detector(FPD) 기반 영상처리 엔진 문서와 실행 계획을 관리하는 저장소입니다.
+X-ray Flat Panel Detector(FPD) image-processing research, execution planning, and implementation bootstrap repository.
 
-현재 저장소는 구현 코드보다 문서가 먼저 정리되는 단계이며, 목표는 다음과 같습니다.
+This repository is currently `docs-first` and is being upgraded into a delivery-ready engineering baseline for the X-ray Image Processing Engine (`XPE`). The immediate goal is to keep product planning, regulated documentation, native module interfaces, and GitHub delivery automation synchronized from the start.
 
-- Raw detector frame를 진단 가능한 DICOM 영상으로 변환하는 X-ray Image Processing Engine(XPE) 설계
-- DLL 단위 모듈화와 C# WPF host(`ImageProcTest`) 기반 통합 테스트 구조 수립
-- Must-Have 기능과 차별화 기능을 분리한 단계적 개발
-- IEC 62304 문서 패키지와 실행형 PRD/backlog의 추적성 유지
+## Scope
 
-## Current Status
-
-- 저장소 상태: docs-first / implementation bootstrap
-- 주력 문서: 실행형 PRD, backlog decomposition, XPE package working docs
-- 제품 방향: deterministic baseline 우선, AI feature는 Phase 3 optional
+- Define the execution baseline for `XPE` from raw detector-domain input to DICOM delivery.
+- Keep `PRD`, backlog, architecture, and IEC 62304 package documents aligned.
+- Build a stable native core around `C/C++` modules with a `C#` host/orchestrator layer.
+- Enforce quality gates through GitHub Actions before implementation scale-up.
 
 ## Key Documents
 
-- 상세 실행형 PRD: [docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md)
-- PRD 세분화 / backlog: [docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md)
+- Detailed execution PRD: [docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md)
+- PRD decomposition and backlog: [docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md)
 
-## Repository Structure
+## Repository Layout
 
 ```text
-docs/
-  post-processing/xpe/       XPE PRD and execution documents
-
-.github/
-  ISSUE_TEMPLATE/            Epic / backlog / doc-sync issue templates
+docs/                       Domain research, PRDs, IEC 62304 package documents
+modules/common/             Native common ABI and memory primitives
+tests/common_smoke/         Minimal smoke tests for CI
+third_party/                vcpkg manifests
+tools/ci/                   GitHub validation and bundling scripts
+.github/workflows/          CI/CD pipelines
+.github/ISSUE_TEMPLATE/     Epic, backlog, and docs-sync templates
 ```
 
-## Development Strategy
+## Build Baseline
 
-프로젝트는 아래 순서로 진행됩니다.
+- Top-level build system: `CMake`
+- Native language baseline: `C++17`
+- Dependency manager: `vcpkg`
+- Current CI build target: `modules/common`
+- Current CI test target: `tests/common_smoke`
 
-1. Phase 0: ABI, host shell, dataset/verification contract
+Useful local commands:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
+cmake --preset ci-common
+cmake --build --preset ci-common
+ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebInfo
+```
+
+## GitHub CI/CD
+
+The repository now uses a staged GitHub pipeline:
+
+- `Repository Guard`: validates required files, backlog/PRD consistency, ABI flag uniqueness, and markdown link integrity.
+- `Windows Common Build`: restores the lightweight common manifest, builds `xpe_common`, and runs smoke tests.
+- `Delivery Bundle`: packages the current project baseline as an artifact on `main`.
+- `Release Bundle`: packages and publishes the delivery bundle to GitHub Releases on `v*` tags.
+- `Dependabot`: keeps GitHub Actions versions moving forward automatically.
+
+## Delivery Strategy
+
+Execution is phased rather than feature-dumped:
+
+1. Phase 0: ABI, dataset contract, shell, validation gates
 2. Phase 1a: detector-domain preprocess baseline
 3. Phase 1b: basic enhancement, EI baseline, display, DICOM
-4. Phase 2: clinical advanced processing
-5. Phase 3: AI worker and premium features
-6. Release Hardening: formal package sync and release evidence
+4. Phase 2: advanced deterministic clinical processing
+5. Phase 3: sandboxed AI worker and premium features
+6. Release hardening: formal package synchronization and evidence closure
 
-세부 backlog와 sprint-ready 항목은 `XPE-PRD-003`를 기준으로 관리합니다.
-
-## Issue Workflow
-
-이 저장소는 GitHub issue template를 기준으로 backlog를 발행합니다.
-
-- `Epic`: 큰 workstream 단위
-- `Backlog Item`: 실제 구현/문서/검증 단위
-- `Docs Sync`: 문서 정합성과 formal package sync 전용
-
-초기 이슈는 `PRD-003`의 `S0/S1` 우선 backlog에서 생성합니다.
+The backlog of record is `XPE-PRD-003`.
 
 ## Contribution Notes
 
-- detector-domain metric과 display-domain metric을 혼용하지 않습니다.
-- DLL 간 lateral dependency는 금지합니다.
-- `gsvg.dll`은 XPE와 독립 패키지로 유지합니다.
-- 문서 변경 시 관련 PRD/plan/spec의 정합성을 함께 확인합니다.
+- Do not mix detector-domain metrics with presentation-domain metrics.
+- Do not introduce lateral DLL dependencies.
+- Keep `gsvg.dll` independent from the `XPE` package boundary.
+- When changing regulated documents, update linked `SRS`, `SAD`, `SDD`, `RTM`, and `VVP` artifacts together.
+- Keep workflow/config changes separate from domain-document changes when possible.
 
-## License / Confidentiality
+## Confidentiality
 
-현재 저장소에는 내부 실행 문서와 의료 영상처리 설계 자료가 포함됩니다. 외부 공개 범위와 라이선스 정책은 별도 정리 전까지 보수적으로 취급합니다.
+This repository contains internal planning, compliance, and implementation baseline material for X-ray image processing. Treat all content conservatively until licensing and disclosure scope are explicitly published.

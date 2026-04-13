@@ -1,0 +1,17 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "xpe",
+    "version-string": "0.1.0",
+    "description": "X-ray Post-Processing Engine - SOUP dependencies",
+    "dependencies": [
+        { "name": "spdlog", "version>=": "1.13.0" },
+        { "name": "nlohmann-json", "version>=": "3.11.3" },
+        { "name": "fmt", "version>=": "10.0.0" },
+        { "name": "opencv4", "version>=": "4.9.0" },
+        { "name": "eigen3", "version>=": "3.4.0" },
+        { "name": "dcmtk", "version>=": "3.6.8" },
+        { "name": "gtest", "version>=": "1.14.0" }
+    ],
+    "overrides": [],
+    "builtin-baseline": "2024.09.30"
+}

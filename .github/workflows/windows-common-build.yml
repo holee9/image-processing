@@ -7,7 +7,9 @@ on:
       - CMakePresets.json
       - cmake/**
       - modules/common/**
+      - tests/**
       - third_party/vcpkg.json
+      - third_party/common/**
       - tools/ci/**
       - .github/workflows/windows-common-build.yml
   push:
@@ -18,40 +20,54 @@ on:
       - CMakePresets.json
       - cmake/**
       - modules/common/**
+      - tests/**
       - third_party/vcpkg.json
+      - third_party/common/**
       - tools/ci/**
       - .github/workflows/windows-common-build.yml
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-common-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-common:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    timeout-minutes: 45
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate repository before build
         shell: pwsh
-        run: ./tools/ci/Validate-Repo.ps1
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
+
+      - name: Validate markdown links
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
 
       - name: Cache vcpkg downloads and installed packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ env.VCPKG_ROOT }}\downloads
             ${{ env.VCPKG_ROOT }}\installed
             ${{ env.VCPKG_ROOT }}\packages
-          key: vcpkg-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/vcpkg.json') }}
+          key: vcpkg-common-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/common/vcpkg.json') }}
 
       - name: Clone vcpkg
         shell: pwsh
         run: |
           if (-not (Test-Path $env:VCPKG_ROOT)) {
-            git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
+            git clone --depth 1 https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
           }
 
       - name: Bootstrap vcpkg
@@ -62,28 +78,29 @@ jobs:
       - name: Install dependencies from manifest
         shell: pwsh
         run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party --triplet x64-windows
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
 
       - name: Configure common build
         shell: pwsh
         run: |
-          cmake -S . -B build/ci-common -G Ninja `
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_MANIFEST_DIR="$pwd\third_party" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DBUILD_TESTS=OFF `
-            -DBUILD_GSVG=OFF
+          cmake --preset ci-common
 
-      - name: Build common target
+      - name: Build common target and smoke tests
         shell: pwsh
         run: |
-          cmake --build build/ci-common --parallel
+          cmake --build --preset ci-common --parallel
+
+      - name: Run ctest smoke validation
+        shell: pwsh
+        run: |
+          ctest --test-dir build/ci-common --build-config RelWithDebInfo --output-on-failure
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: xpe-common-windows-build
+          if-no-files-found: error
+          retention-days: 14
           path: |
             build/ci-common/bin/**
             build/ci-common/lib/**
