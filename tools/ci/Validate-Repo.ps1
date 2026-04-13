@@ -163,6 +163,10 @@ if ($buildWorkflow -notmatch 'schedule:') {
     Add-RepoError 'Windows Common Build is missing scheduled cross-validation.'
 }
 
+if ($buildWorkflow -match 'if \(-not \(Test-Path \$env:VCPKG_ROOT\)\)') {
+    Add-RepoError 'Windows Common Build still checks only the vcpkg root directory instead of bootstrap-vcpkg.bat presence.'
+}
+
 if ($bundleWorkflow -notmatch 'actions/checkout@v6') {
     Add-RepoError 'Delivery Bundle is not pinned to actions/checkout@v6.'
 }
@@ -189,6 +193,10 @@ if ($codeqlWorkflow -notmatch 'security-events:\s*write') {
 
 if ($codeqlWorkflow -notmatch 'schedule:') {
     Add-RepoError 'CodeQL workflow is missing scheduled analysis.'
+}
+
+if ($codeqlWorkflow -match 'if \(-not \(Test-Path \$env:VCPKG_ROOT\)\)') {
+    Add-RepoError 'CodeQL workflow still checks only the vcpkg root directory instead of bootstrap-vcpkg.bat presence.'
 }
 
 $backlogMatches = [regex]::Matches($backlogPrd, 'BI-\d{2}\.\d{2}\.\d{2}')

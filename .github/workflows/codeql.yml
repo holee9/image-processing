@@ -82,7 +82,10 @@ jobs:
       - name: Clone vcpkg
         shell: pwsh
         run: |
-          if (-not (Test-Path $env:VCPKG_ROOT)) {
+          if (-not (Test-Path "$env:VCPKG_ROOT\bootstrap-vcpkg.bat")) {
+            if (Test-Path $env:VCPKG_ROOT) {
+              Remove-Item -LiteralPath $env:VCPKG_ROOT -Recurse -Force
+            }
             git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
           }
 
