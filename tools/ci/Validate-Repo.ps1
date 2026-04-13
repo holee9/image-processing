@@ -65,6 +65,8 @@ $readme = Get-Content 'README.md' -Raw
 $cmakeLists = Get-Content 'CMakeLists.txt' -Raw
 $cmakePresets = Get-Content 'CMakePresets.json' -Raw
 $typesHeader = Get-Content 'modules/common/include/xpe/common/xpe_types.h' -Raw
+$fullManifest = Get-Content 'third_party/vcpkg.json' -Raw
+$commonManifest = Get-Content 'third_party/common/vcpkg.json' -Raw
 $guardWorkflow = Get-Content '.github/workflows/repository-guard.yml' -Raw
 $buildWorkflow = Get-Content '.github/workflows/windows-common-build.yml' -Raw
 $bundleWorkflow = Get-Content '.github/workflows/delivery-bundle.yml' -Raw
@@ -92,6 +94,14 @@ if ($cmakePresets -notmatch '"name":\s*"ci-common"') {
 
 if ($cmakePresets -notmatch 'third_party/common') {
     Add-RepoError 'CMakePresets.json does not point ci-common to the lightweight common manifest.'
+}
+
+if ($fullManifest -notmatch '"builtin-baseline"\s*:\s*"[0-9a-fA-F]{40}"') {
+    Add-RepoError 'third_party/vcpkg.json does not pin builtin-baseline to a full 40-character commit SHA.'
+}
+
+if ($commonManifest -notmatch '"builtin-baseline"\s*:\s*"[0-9a-fA-F]{40}"') {
+    Add-RepoError 'third_party/common/vcpkg.json does not pin builtin-baseline to a full 40-character commit SHA.'
 }
 
 $flagMatches = [regex]::Matches($typesHeader, '#define\s+(XPE_FLAG_[A-Z0-9_]+)\s+(0x[0-9A-Fa-f]+u)')
@@ -128,6 +138,10 @@ if ($buildWorkflow -notmatch 'actions/upload-artifact@v6') {
 
 if ($buildWorkflow -notmatch 'ctest --test-dir') {
     Add-RepoError 'Windows Common Build does not run ctest smoke validation.'
+}
+
+if ($buildWorkflow -match 'git clone --depth 1 https://github.com/microsoft/vcpkg') {
+    Add-RepoError 'Windows Common Build uses a shallow vcpkg clone that can break builtin-baseline resolution.'
 }
 
 if ($bundleWorkflow -notmatch 'actions/checkout@v6') {

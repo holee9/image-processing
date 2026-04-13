@@ -67,7 +67,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path $env:VCPKG_ROOT)) {
-            git clone --depth 1 https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
+            git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
           }
 
       - name: Bootstrap vcpkg

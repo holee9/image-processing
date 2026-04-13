@@ -9,5 +9,5 @@
         { "name": "fmt", "version>=": "10.0.0" }
     ],
     "overrides": [],
-    "builtin-baseline": "2024.09.30"
+    "builtin-baseline": "b80e0066576f98276a53fd3a8aed379edaf945d6"
 }
