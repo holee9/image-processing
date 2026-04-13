@@ -1,17 +1,6 @@
-name: Windows Common Build
+name: CodeQL
 
 on:
-  pull_request:
-    paths:
-      - CMakeLists.txt
-      - CMakePresets.json
-      - cmake/**
-      - modules/common/**
-      - tests/**
-      - third_party/vcpkg.json
-      - third_party/common/**
-      - tools/ci/**
-      - .github/workflows/windows-common-build.yml
   push:
     branches:
       - main
@@ -19,27 +8,42 @@ on:
       - CMakeLists.txt
       - CMakePresets.json
       - cmake/**
-      - modules/common/**
+      - modules/**
       - tests/**
-      - third_party/vcpkg.json
-      - third_party/common/**
-      - tools/ci/**
-      - .github/workflows/windows-common-build.yml
+      - third_party/**
+      - .github/workflows/codeql.yml
+  pull_request:
+    paths:
+      - CMakeLists.txt
+      - CMakePresets.json
+      - cmake/**
+      - modules/**
+      - tests/**
+      - third_party/**
+      - .github/workflows/codeql.yml
   schedule:
-    - cron: '50 20 * * 0'
+    - cron: '10 21 * * 0'
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  security-events: write
 
 concurrency:
-  group: windows-common-build-${{ github.ref }}
+  group: codeql-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-common:
+  analyze:
+    name: Analyze (${{ matrix.language }})
     runs-on: windows-2025
-    timeout-minutes: 45
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - c-cpp
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
@@ -48,13 +52,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate repository before build
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Validate repository before analysis
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
 
       - name: Validate markdown links
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
+
+      - name: Validate tracked text files
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
 
       - name: Cache vcpkg downloads and installed packages
         uses: actions/cache@v5
@@ -63,7 +77,7 @@ jobs:
             ${{ env.VCPKG_ROOT }}\downloads
             ${{ env.VCPKG_ROOT }}\installed
             ${{ env.VCPKG_ROOT }}\packages
-          key: vcpkg-common-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/common/vcpkg.json') }}
+          key: codeql-vcpkg-common-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/common/vcpkg.json') }}
 
       - name: Clone vcpkg
         shell: pwsh
@@ -82,27 +96,15 @@ jobs:
         run: |
           & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
 
-      - name: Configure common build
+      - name: Configure CodeQL build
         shell: pwsh
         run: |
           cmake --preset ci-common
 
-      - name: Build common target and smoke tests
+      - name: Build for CodeQL extraction
         shell: pwsh
         run: |
           cmake --build --preset ci-common --parallel
 
-      - name: Run ctest smoke validation
-        shell: pwsh
-        run: |
-          ctest --test-dir build/ci-common --build-config RelWithDebInfo --output-on-failure
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: xpe-common-windows-build
-          if-no-files-found: error
-          retention-days: 14
-          path: |
-            build/ci-common/bin/**
-            build/ci-common/lib/**
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4

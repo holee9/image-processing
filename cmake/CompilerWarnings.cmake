@@ -1,7 +1,15 @@
 # Compiler warnings configuration
 
 if(MSVC)
-    add_compile_options(/W4 /WX- /utf-8)
+    add_compile_options(/W4 /utf-8)
+    if(XPE_WARNINGS_AS_ERRORS)
+        add_compile_options(/WX)
+    else()
+        add_compile_options(/WX-)
+    endif()
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
+    if(XPE_WARNINGS_AS_ERRORS)
+        add_compile_options(-Werror)
+    endif()
 endif()

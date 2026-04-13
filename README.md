@@ -41,6 +41,7 @@ Useful local commands:
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
 cmake --preset ci-common
 cmake --build --preset ci-common
 ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebInfo
@@ -50,11 +51,14 @@ ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebIn
 
 The repository now uses a staged GitHub pipeline:
 
-- `Repository Guard`: validates required files, backlog/PRD consistency, ABI flag uniqueness, and markdown link integrity.
-- `Windows Common Build`: restores the lightweight common manifest, builds `xpe_common`, and runs smoke tests.
+- `Repository Guard`: validates required files, backlog/PRD consistency, ABI flag uniqueness, markdown links, merge-conflict markers, and trailing whitespace in code/config files.
+- `Windows Common Build`: restores the lightweight common manifest, treats compiler warnings as errors, builds `xpe_common`, and runs smoke tests.
 - `Delivery Bundle`: packages the current project baseline as an artifact on `main`.
 - `Release Bundle`: packages and publishes the delivery bundle to GitHub Releases on `v*` tags.
+- `CodeQL`: runs static security-and-quality analysis for the C/C++ baseline and repeats on a schedule.
 - `Dependabot`: keeps GitHub Actions versions moving forward automatically.
+
+The validation workflows also run on a weekly schedule so dependency or workflow drift is caught even when the repository is quiet.
 
 ## Delivery Strategy
 

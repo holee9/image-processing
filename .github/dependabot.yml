@@ -23,3 +23,6 @@ updates:
       - dependency-name: "actions/upload-artifact"
         update-types:
           - "version-update:semver-major"
+      - dependency-name: "github/codeql-action"
+        update-types:
+          - "version-update:semver-major"

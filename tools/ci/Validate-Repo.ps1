@@ -46,12 +46,14 @@ $requiredPaths = @(
     '.github/ISSUE_TEMPLATE/docs-sync.md',
     '.github/ISSUE_TEMPLATE/config.yml',
     '.github/dependabot.yml',
+    '.github/workflows/codeql.yml',
     '.github/workflows/repository-guard.yml',
     '.github/workflows/windows-common-build.yml',
     '.github/workflows/delivery-bundle.yml',
     '.github/workflows/release-bundle.yml',
     'tools/ci/Validate-Repo.ps1',
     'tools/ci/Test-MarkdownLinks.ps1',
+    'tools/ci/Test-TrackedTextFiles.ps1',
     'tools/ci/New-ReleaseBundle.ps1'
 )
 
@@ -71,6 +73,7 @@ $guardWorkflow = Get-Content '.github/workflows/repository-guard.yml' -Raw
 $buildWorkflow = Get-Content '.github/workflows/windows-common-build.yml' -Raw
 $bundleWorkflow = Get-Content '.github/workflows/delivery-bundle.yml' -Raw
 $releaseWorkflow = Get-Content '.github/workflows/release-bundle.yml' -Raw
+$codeqlWorkflow = Get-Content '.github/workflows/codeql.yml' -Raw
 
 if ($parentPrd -notmatch 'XPE-PRD-003_PRD_Decomposition_and_Backlog\.md') {
     Add-RepoError 'Parent PRD does not reference the backlog decomposition document.'
@@ -94,6 +97,10 @@ if ($cmakePresets -notmatch '"name":\s*"ci-common"') {
 
 if ($cmakePresets -notmatch 'third_party/common') {
     Add-RepoError 'CMakePresets.json does not point ci-common to the lightweight common manifest.'
+}
+
+if ($cmakePresets -notmatch '"XPE_WARNINGS_AS_ERRORS"\s*:\s*"ON"') {
+    Add-RepoError 'ci-common preset does not promote compiler warnings to errors.'
 }
 
 if ($fullManifest -notmatch '"builtin-baseline"\s*:\s*"[0-9a-fA-F]{40}"') {
@@ -124,6 +131,14 @@ if ($guardWorkflow -notmatch 'actions/checkout@v6') {
     Add-RepoError 'Repository Guard is not pinned to actions/checkout@v6.'
 }
 
+if ($guardWorkflow -notmatch 'schedule:') {
+    Add-RepoError 'Repository Guard is missing scheduled re-validation.'
+}
+
+if ($guardWorkflow -notmatch 'Test-TrackedTextFiles\.ps1') {
+    Add-RepoError 'Repository Guard does not validate tracked text files.'
+}
+
 if ($buildWorkflow -notmatch 'actions/checkout@v6') {
     Add-RepoError 'Windows Common Build is not pinned to actions/checkout@v6.'
 }
@@ -144,6 +159,10 @@ if ($buildWorkflow -match 'git clone --depth 1 https://github.com/microsoft/vcpk
     Add-RepoError 'Windows Common Build uses a shallow vcpkg clone that can break builtin-baseline resolution.'
 }
 
+if ($buildWorkflow -notmatch 'schedule:') {
+    Add-RepoError 'Windows Common Build is missing scheduled cross-validation.'
+}
+
 if ($bundleWorkflow -notmatch 'actions/checkout@v6') {
     Add-RepoError 'Delivery Bundle is not pinned to actions/checkout@v6.'
 }
@@ -154,6 +173,22 @@ if ($bundleWorkflow -notmatch 'actions/upload-artifact@v6') {
 
 if ($releaseWorkflow -notmatch 'gh release create' -or $releaseWorkflow -notmatch 'gh release upload') {
     Add-RepoError 'Release Bundle workflow is missing GitHub Release publish/update logic.'
+}
+
+if ($codeqlWorkflow -notmatch 'github/codeql-action/init@v4') {
+    Add-RepoError 'CodeQL workflow is missing github/codeql-action/init@v4.'
+}
+
+if ($codeqlWorkflow -notmatch 'github/codeql-action/analyze@v4') {
+    Add-RepoError 'CodeQL workflow is missing github/codeql-action/analyze@v4.'
+}
+
+if ($codeqlWorkflow -notmatch 'security-events:\s*write') {
+    Add-RepoError 'CodeQL workflow is missing security-events: write permission.'
+}
+
+if ($codeqlWorkflow -notmatch 'schedule:') {
+    Add-RepoError 'CodeQL workflow is missing scheduled analysis.'
 }
 
 $backlogMatches = [regex]::Matches($backlogPrd, 'BI-\d{2}\.\d{2}\.\d{2}')

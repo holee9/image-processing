@@ -17,6 +17,7 @@ add_compile_definitions($<$<BOOL:${BUILD_SHARED_LIBS}>:XPE_DLL_EXPORT>)
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)" ON)
 option(BUILD_TESTS "Build unit and integration tests" ON)
 option(BUILD_GSVG "Build GSVG module (independent)" ON)
+option(XPE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 # Platform detection
 include(cmake/Platform.cmake)
