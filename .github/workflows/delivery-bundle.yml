@@ -35,7 +35,7 @@ jobs:
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\New-ReleaseBundle.ps1 -OutDir out/release-bundle
 
       - name: Upload delivery artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: xpe-delivery-bundle
           if-no-files-found: error

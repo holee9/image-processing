@@ -96,7 +96,7 @@ jobs:
           ctest --test-dir build/ci-common --build-config RelWithDebInfo --output-on-failure
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: xpe-common-windows-build
           if-no-files-found: error
