@@ -13,7 +13,28 @@ This repository is currently `docs-first` and is being upgraded into a delivery-
 
 ## Key Documents
 
+### Specifications and Planning
+
+- **Master SPEC**: [.moai/specs/SPEC-XPE-MASTER/spec.md](.moai/specs/SPEC-XPE-MASTER/spec.md) -- 43 SWU inventory, Phase 0-3 breakdown (v2.0.0)
+- **Algorithm Spec (DeepSync)**: [docs/project/xpe-algorithm-spec-deepsync.md](docs/project/xpe-algorithm-spec-deepsync.md) -- Normative algorithm contract (v3.0.0-ds2)
+- **Pipeline Spec**: [docs/project/pipeline-spec.md](docs/project/pipeline-spec.md) -- 17-stage canonical pipeline with dependency graph (v1.3.0)
+- **API Spec**: [docs/project/api-spec.md](docs/project/api-spec.md) -- 82 exported C ABI functions (v1.2.0)
+- **Module Reinforcement Plan**: [docs/project/XPE-Module-Reinforcement-Plan.md](docs/project/XPE-Module-Reinforcement-Plan.md) -- Pre/Post 모듈 정밀 보강 계획 + 혁신 로드맵
+
+### Deep Research Artifacts
+
+- **Pre-Processing Deep Research**: [docs/project/XPE-PreProcess-DeepResearch.json](docs/project/XPE-PreProcess-DeepResearch.json) -- 9개 전처리 스테이지 심층 분석
+- **Post-Processing Deep Research**: [docs/project/XPE-PostProcess-DeepResearch.json](docs/project/XPE-PostProcess-DeepResearch.json) -- 24개 후처리 모듈 심층 분석
+
+### Project Documents
+
 - **Implementation analysis report**: [docs/project/XPE-Implementation-Analysis-Report.md](docs/project/XPE-Implementation-Analysis-Report.md)
+- **Product definition**: [docs/project/product.md](docs/project/product.md)
+- **Architecture structure**: [docs/project/structure.md](docs/project/structure.md)
+- **Technology stack**: [docs/project/tech.md](docs/project/tech.md)
+
+### Execution and Compliance
+
 - Detailed execution PRD: [docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md)
 - PRD decomposition and backlog: [docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md)
 - CI/CD and local build runbook: [docs/development/XPE-CI-CD_LocalBuild_Runbook.md](docs/development/XPE-CI-CD_LocalBuild_Runbook.md)
