@@ -1,95 +1,150 @@
-# 프로젝트 구조
+# Project Structure
 
-## 저장소 레이아웃
+**Document ID**: XPE-STRUCTURE-001  
+**Version**: 1.2.0  
+**Date**: 2026-04-14  
+**Status**: Controlled Draft  
+**Canonical Scope**: `docs/project/`
 
-```
+---
+
+## 1. Repository Model
+
+This repository contains both:
+
+- **implemented baseline assets**: build, CI, `xpe_common`, smoke tests, governance docs
+- **planned target assets**: the remaining XPE and GSVG modules described in this document
+
+The structure document describes the target code and binary layout that all plans and specs must reference.
+
+---
+
+## 2. Current Snapshot vs Target Layout
+
+| Area | Current repository state | Target architectural state |
+|---|---|---|
+| `modules/common/` | present | foundation module |
+| `modules/preprocess/` | not yet present | Phase 1a module |
+| `modules/enhance_basic/` | not yet present | Phase 1b module |
+| `modules/enhance_advanced/` | not yet present | Phase 2 module |
+| `modules/ai/` | not yet present | Phase 3 proxy module |
+| `modules/display/` | not yet present | Phase 1b module |
+| `modules/dicom/` | not yet present | Phase 1b module |
+| `gsvg/` | not yet present in source tree | independent Phase 2 module |
+| `gui/` | not yet present in source tree | C# orchestrator and QA application |
+| `tests/common_smoke/` | present | initial native smoke test |
+| `docs/project/` | present | canonical design and plan set |
+
+---
+
+## 3. Target Repository Layout
+
+```text
 image-processing/
-├── CMakeLists.txt                 # Root CMake (C++17, Ninja)
-├── CMakePresets.json              # Debug/Release/CI presets
-├── cmake/                         # CMake helper modules
-│   ├── CompilerWarnings.cmake
-│   ├── Platform.cmake             # AVX2 detection
-│   └── DependencyRules.cmake      # lateral dep 검증
-│
-├── modules/                       # C/C++ native DLL modules (XPE)
-│   ├── common/                    → xpe_common.dll (Layer 0)
-│   ├── preprocess/                → xpe_preprocess.dll (Layer 1)
-│   ├── enhance_basic/             → xpe_enhance_basic.dll (Layer 1)
-│   ├── enhance_advanced/          → xpe_enhance_advanced.dll (Layer 1, Phase 2)
-│   ├── ai/                        → xpe_ai.dll (Layer 1, Phase 3)
-│   ├── display/                   → xpe_display.dll (Layer 1)
-│   └── dicom/                     → xpe_dicom.dll (Layer 1)
-│
-├── gsvg/                          → gsvg.dll (Layer 1-G, 독립)
-│
-├── tests/                         # Google Test (SWU ID 기반 파일명)
-│   ├── unit/                      # 단위 테스트
-│   ├── integration/               # 통합 테스트
-│   └── test_data/                 # Phantom 이미지, 보정 데이터
-│
-├── gui/                           # C# WPF (ImageProcTest)
-│   ├── ImageProcTest.sln
-│   ├── ImageProcTest/             # Main WPF application
-│   └── ImageProcTest.Tests/       # xUnit 테스트
-│
-├── third_party/
-│   └── vcpkg.json                 # SOUP 의존성 매니페스트
-│
-├── scripts/                       # 빌드/검증 스크립트
-├── data/                          # 런타임 데이터 (config, LUT, ONNX models)
-│   ├── calibration/               # 캘리브레이션 파일 (배포용)
-│   │   ├── offset_map_*.xpe_calib
-│   │   ├── gain_map_*.xpe_calib
-│   │   ├── defect_map_*.xpe_calib
-│   │   └── gsvg/grid_lut.dat
-│   │
-│   ├── models/                    # AI ONNX 모델 (배포용)
-│   │   ├── bodypart_mobilenet_v3.onnx
-│   │   ├── bone_suppression_unet.onnx
-│   │   └── denoiser/...
-│   │
-│   ├── lut/                       # 조회 테이블 (배포용)
-│   │   ├── body_part_lookup.json
-│   │   └── exposure_index_reference.json
-│   │
-│   └── config/                    # 설정 템플릿
-│       └── xpe_default_config.json
-│
-├── docs/                          # IEC 62304 규정 문서
-│   ├── ghost-correction/          # Lag/Ghost 보정 SRS/SAD/SDD
-│   ├── panel-defect-algorithm/    # 불량 픽셀 보정
-│   ├── post-processing/gsvg/      # GSVG IEC 62304 Class B 패키지
-│   ├── post-processing/xpe/       # XPE IEC 62304 Class B 패키지
-│   └── xray-fpd-research/         # 연구/캘리브레이션
-│
-├── CLAUDE.md                      # MoAI execution directive
-├── AGENTS.md                      # Repository guidelines
-└── .moai/                         # MoAI framework config
+|-- CMakeLists.txt
+|-- CMakePresets.json
+|-- cmake/
+|-- modules/
+|   |-- common/
+|   |-- preprocess/
+|   |-- enhance_basic/
+|   |-- enhance_advanced/
+|   |-- ai/
+|   |-- display/
+|   `-- dicom/
+|-- gsvg/
+|-- gui/
+|   |-- ImageProcTest/
+|   `-- ImageProcTest.Tests/
+|-- tests/
+|   |-- common_smoke/
+|   |-- unit/
+|   |-- integration/
+|   `-- test_data/
+|-- data/
+|   |-- calibration/
+|   |-- models/
+|   |-- lut/
+|   `-- config/
+`-- docs/
+    |-- project/
+    `-- post-processing/
 ```
 
-## 모듈-DLL 매핑
+---
 
-| Directory | DLL Output | Layer | Phase | SWU/SI Count |
-|-----------|-----------|-------|-------|--------------|
-| modules/common/ | xpe_common.dll | 0 | 0 | 7 (SWU-5.1~5.6, SWU-5.8) |
-| modules/preprocess/ | xpe_preprocess.dll | 1 | 1a | 9 (SWU-1.1~1.9) |
-| modules/enhance_basic/ | xpe_enhance_basic.dll | 1 | 1b | 5 (SWU-2.1~2.4, SWU-2.10 EI baseline) |
-| modules/enhance_advanced/ | xpe_enhance_advanced.dll | 1 | 2 | 4 (SWU-2.5,2.6,2.8,2.10) |
-| modules/ai/ | xpe_ai.dll | 1 | 3 | 4 (SWU-2.7,2.9,2.11,2.12) |
-| modules/display/ | xpe_display.dll | 1 | 1b | 4 (SWU-3.1~3.4) |
-| modules/dicom/ | xpe_dicom.dll | 1 | 1b | 4 (SWU-4.1~4.4) |
-| gsvg/ | gsvg.dll | 1-G | 2 | 4 (SI-001~004) |
-| gui/ | ImageProcTest.exe | 2 | 0+ | 2 (SWU-5.7 PipelineOrchestrator, SWU-6.1 QaConstancyTest) |
+## 4. Canonical Module-to-Binary Mapping
 
-**총 SWU: 38개 (C/C++ 36개 + C# 2개)** — DLL 직접 매핑 기준
-> 참고: SPEC-XPE-MASTER v2.0.0에서는 Infrastructure 포함 전체 SWU를 **43개**로 계수 (7 Infrastructure + 9 Pre-Processing + 12 Core Processing + 4 Display + 4 DICOM + 4 GSVG + 2 C# GUI + 1 QA). 본 테이블은 DLL에 직접 매핑되는 38개만 표시. 차이 5개는 xpe_common.dll Infrastructure SWU-5.1~5.6, 5.8의 내부 서브유닛입니다.
-`SWU-5.7`, `SWU-6.1`은 Layer 2 C# 구현이며, 나머지 36개만 native DLL SWU입니다.
+| Source area | Binary output | Layer | Phase | Unit count | API count |
+|---|---|:---:|:---:|---:|---:|
+| `modules/common/` | `xpe_common.dll` | 0 | 0 | 7 SWU | 18 |
+| `modules/preprocess/` | `xpe_preprocess.dll` | 1 | 1a | 9 SWU | 18 |
+| `modules/enhance_basic/` | `xpe_enhance_basic.dll` | 1 | 1b | 5 SWU | 7 |
+| `modules/enhance_advanced/` | `xpe_enhance_advanced.dll` | 1 | 2 | 3 SWU | 3 |
+| `modules/ai/` | `xpe_ai.dll` | 1 | 3 | 4 SWU | 7 |
+| `modules/display/` | `xpe_display.dll` | 1 | 1b | 4 SWU | 11 |
+| `modules/dicom/` | `xpe_dicom.dll` | 1 | 1b | 4 SWU | 10 |
+| `gsvg/` | `gsvg.dll` | 1-G | 2 | 4 SI | 8 |
+| `gui/` | `ImageProcTest.exe` | 2 | 0+ | 2 SWU | N/A |
 
-**참고**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: `gui/ImageProcTest.Tests/QaConstancyTests.cs`
+### 4.1 Canonical totals
 
-## 의존성 방향
+- **XPE SWU total**: 38
+- **GSVG SI total**: 4
+- **Executable unit total**: 42
+- **Native exported API total**: 82
 
-- Layer 1 → Layer 0 only (횡방향 의존성 없음)
-- Layer 1-G (GSVG): 완전히 독립적이고 자급자족
-- Layer 2 (C# GUI) → Layer 0 + Layer 1 + Layer 1-G via P/Invoke
-- SWU-5.7 (PipelineOrchestrator): C# Layer 2에 구현, DLL에 포함되지 않음
+---
+
+## 5. Unit Ownership Rules
+
+### 5.1 Exposure Index ownership
+
+`SWU-2.10 ExposureIndexCalc` is one logical unit and one exported function:
+
+- implemented in `xpe_enhance_basic.dll`
+- called in Phase 1b for whole-image EI baseline
+- re-invoked in Phase 2 with a collimation ROI-cropped image for ROI refinement
+
+### 5.2 AI ownership
+
+Phase 3 ownership is fixed:
+
+- `SWU-2.7 BodyPartRecognizer`
+- `SWU-2.9 ImageStitcher`
+- `SWU-2.11 BoneSuppressionEngine`
+- `SWU-2.12 DLDenoiser`
+
+`xpe_ai_worker.exe` is a deployment component, not an extra counted SWU.
+
+### 5.3 GSVG ownership
+
+GSVG remains independent:
+
+- no `xpe_common` type dependency in its exported ABI
+- no lateral dependency on other XPE DLLs
+- integration occurs only through orchestration and agreed image buffer contracts
+
+---
+
+## 6. Dependency Rules
+
+| Rule ID | Rule |
+|---|---|
+| `DEP-001` | Layer 1 XPE DLLs may depend only on `xpe_common.dll` |
+| `DEP-002` | `gsvg.dll` must remain independently buildable and independently testable |
+| `DEP-003` | `ImageProcTest.exe` is the only component that may orchestrate multiple DLLs in-process |
+| `DEP-004` | `xpe_ai.dll` may launch `xpe_ai_worker.exe` over IPC but may not create direct lateral DLL dependencies |
+| `DEP-005` | Runtime data ownership is caller-controlled through the explicit ABI in `api-spec.md` |
+
+---
+
+## 7. Implementation Priority
+
+| Order | Workstream | Why |
+|---:|---|---|
+| 1 | `modules/common/` | required by every native module |
+| 2 | `modules/preprocess/` | required for detector-corrected data and EI |
+| 3 | `modules/enhance_basic/`, `modules/display/`, `modules/dicom/` | completes release baseline |
+| 4 | `modules/enhance_advanced/` and `gsvg/` | deterministic premium layer |
+| 5 | `modules/ai/` and `gui/` advanced features | optional assistive layer |

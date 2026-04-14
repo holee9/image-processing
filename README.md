@@ -33,15 +33,20 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 |----------|:------:|------|
 | Normative 사양 | 9 | [docs/project/](docs/project/) |
 | Informational | 3 | [docs/project/](docs/project/), [docs/development/](docs/development/) |
-| XPE IEC 62304 패키지 | 22 | [docs/post-processing/xpe/](docs/post-processing/xpe/) |
-| GSVG IEC 62304 패키지 | 10 | [docs/post-processing/gsvg/](docs/post-processing/gsvg/) |
-| Ghost Correction IEC 62304 | 6 | [docs/ghost-correction/](docs/ghost-correction/) |
-| Calibration IEC 62304 패키지 | 6 | [docs/calibration/](docs/calibration/) |
-| Panel Defect 알고리즘 | 1 | [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
-| Quality Evaluation 연구 | 4 | [docs/quality-eval/](docs/quality-eval/) |
-| 외부 참고자료 | 3 | [docs/references/](docs/references/) |
+| XPE IEC 62304 패키지 (시스템 레벨) | 22 | [docs/post-processing/xpe/](docs/post-processing/xpe/) |
+| GSVG IEC 62304 패키지 | 13 | [docs/post-processing/gsvg/](docs/post-processing/gsvg/) |
+| Ghost Correction IEC 62304 | 9 | [docs/ghost-correction/](docs/ghost-correction/) |
+| Calibration IEC 62304 패키지 | 8 | [docs/calibration/](docs/calibration/) |
+| Panel Defect IEC 62304 패키지 | 9 | [docs/panel-defect/](docs/panel-defect/) |
+| Enhance Basic IEC 62304 패키지 | 9 | [docs/enhance-basic/](docs/enhance-basic/) |
+| Enhance Advanced IEC 62304 패키지 | 8 | [docs/enhance-advanced/](docs/enhance-advanced/) |
+| AI Module IEC 62304 패키지 | 6 | [docs/ai-module/](docs/ai-module/) |
+| Display IEC 62304 패키지 | 6 | [docs/display/](docs/display/) |
+| DICOM I/O IEC 62304 패키지 | 6 | [docs/dicom/](docs/dicom/) |
+| Common Infrastructure IEC 62304 패키지 | 6 | [docs/common/](docs/common/) |
+| Research (연구/전처리 알고리즘) | 11 | [docs/quality-eval/](docs/quality-eval/), [docs/references/](docs/references/), [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **68** | |
+| **합계** | **129** | [docs/README.md v3.0.0](docs/README.md) |
 
 ---
 
@@ -55,8 +60,8 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [pipeline-spec](docs/project/pipeline-spec.md) | 17단계 정규 파이프라인 및 의존성 그래프 (v1.3.0) |
 | [api-spec](docs/project/api-spec.md) | 82개 내보낸 C ABI 함수 계약, 명시적 경로 API 패턴 (v1.3.0) |
 | [xpe-algorithm-spec-deepsync](docs/project/xpe-algorithm-spec-deepsync.md) | 규범적 알고리즘 계약, DeepSync 검증 (v3.0.0-ds2) |
-| [product](docs/project/product.md) | 제품 정의 — 컴포넌트, Phase 전략, 대상 사용자 |
-| [structure](docs/project/structure.md) | 저장소 구조 — DLL 매핑, 의존성 규칙 |
+| [product](docs/project/product.md) | XPE-PRODUCT-001 v1.2.0 — Phase별 배포 경계, 필수/선택 바이너리 범위, AI 샌드박스 격리 원칙 |
+| [structure](docs/project/structure.md) | XPE-STRUCTURE-001 v1.2.0 — 정규 모듈-바이너리 매핑 (38 SWU + 4 GSVG SI), SWU 소유 규칙 |
 | [tech](docs/project/tech.md) | 기술 스택 — C++17/C#, SOUP 의존성, ABI 설계 |
 | [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.2.0) |
 | [xpe-milestone-uat-plan](docs/project/xpe-milestone-uat-plan.md) | AI Agent HITL 방법론, Gantt 차트, WBS, M1-M5 Human UAT 시나리오 (v1.0.0) |
@@ -74,12 +79,19 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 
 각 소프트웨어 항목별 전체 생명주기 문서 (SDP, SRS, SAD, SDD, STP, VVP, RTM, SHA, SOUP 등):
 
-| 소프트웨어 항목 | 문서 수 | 패키지 인덱스 |
-|----------------|:------:|--------------|
-| **XPE** (이미지 처리 엔진) | 22 | [xpe-iec62304-class-b-package](docs/post-processing/xpe/xpe-iec62304-class-b-package.md) |
-| **GSVG** (Grid Suppression Virtual Grid) | 10 | [GSVG_IEC62304_ClassB_Document_Package](docs/post-processing/gsvg/GSVG_IEC62304_ClassB_Document_Package.md) |
-| **Ghost Correction** (Lag/Ghost 보정) | 6 | [srs_ghost_correction](docs/ghost-correction/srs_ghost_correction.md) |
-| **Calibration** (전처리 보정 모듈) | 6 | [docs/calibration/](docs/calibration/) |
+| 소프트웨어 항목 | 문서 수 | IEC 62304 Coverage | 패키지 인덱스 |
+|----------------|:------:|:------------------:|--------------|
+| **XPE** (시스템 레벨) | 22 | Complete (전체 패키지) | [xpe-iec62304-class-b-package](docs/post-processing/xpe/xpe-iec62304-class-b-package.md) |
+| **GSVG** (Grid Suppression Virtual Grid) | 13 | Complete + IAP/TDS | [GSVG_IEC62304_ClassB_Document_Package](docs/post-processing/gsvg/GSVG_IEC62304_ClassB_Document_Package.md) |
+| **Ghost Correction** (Lag/Ghost 보정) | 9 | Complete + IAP/TDS/README | [README](docs/ghost-correction/README.md) |
+| **Calibration** (전처리 보정 모듈) | 8 | Complete + IAP/TDS | [docs/calibration/](docs/calibration/) |
+| **Panel Defect** (패널 불량 보정) | 9 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README+INDEX) | [docs/panel-defect/](docs/panel-defect/) |
+| **Enhance Basic** (기본 향상 모듈) | 9 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README+MANIFEST) | [docs/enhance-basic/](docs/enhance-basic/) |
+| **Enhance Advanced** (고급 향상 모듈) | 8 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README) | [docs/enhance-advanced/](docs/enhance-advanced/) |
+| **AI Module** (AI 추론 모듈) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/ai-module/](docs/ai-module/) |
+| **Display** (GSDF/LUT 표시 처리) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/display/](docs/display/) |
+| **DICOM I/O** (DCMTK 기반 DICOM 입출력) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/dicom/](docs/dicom/) |
+| **Common Infrastructure** (Layer 0 공통 ABI) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/common/](docs/common/) |
 
 ### 심층 연구 산출물 (Deep Research Artifacts)
 

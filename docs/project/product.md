@@ -1,125 +1,166 @@
-# 제품 개요: X-ray 영상 처리 엔진
+# Product Overview: X-ray Image Processing Engine (XPE)
 
-## 제품 정보
+**Document ID**: XPE-PRODUCT-001  
+**Version**: 1.2.0  
+**Date**: 2026-04-14  
+**Status**: Controlled Draft  
+**Canonical Scope**: `docs/project/`
 
-- **이름**: X-ray Image Processing Engine
-- **저장소**: https://github.com/holee9/image-processing
-- **분야**: Medical Device Software (X-ray Flat Panel Detector)
-- **규제**: IEC 62304 Class B/C, FDA 21 CFR 820.30, EU MDR 2017/745
+---
 
-## 목적
+## 1. Purpose
 
-X-ray Flat Panel Detector(FPD)에서 획득한 raw 영상 데이터를 진단 가능한 의료 영상으로 변환하는 영상처리 엔진입니다. Detector raw data의 보정(Pre-Processing)부터 영상 향상 및 DICOM 표시(Post-Processing)까지 전체 파이프라인을 포함합니다.
+XPE is a modular X-ray flat panel detector image-processing engine. It converts detector-domain raw frames into diagnostic-ready DICOM images while preserving a regulated boundary between detector correction, enhancement, presentation, and optional AI-assisted functions.
 
-## 제품 구성
+The delivery plan is staged:
 
-### 1. 네이티브 처리 모듈 (C/C++ DLLs)
+- **Phase 0**: foundation, common ABI, orchestration, QA scaffolding
+- **Phase 1a**: deterministic detector correction
+- **Phase 1b**: deterministic enhancement, display, DICOM, whole-image EI
+- **Phase 2**: deterministic premium processing and GSVG
+- **Phase 3**: assistive AI features with worker isolation
 
-각 알고리즘 모듈은 독립적인 DLL로 빌드되며, 최소 종속성 원칙에 따라 모듈화되었습니다.
+---
 
-**전처리 (Raw → Clean Image) — 9개 기술 (PRE-01~09)**
+## 2. Product Boundary
 
-| Research ID | 기술 | 분류 |
-|-------------|------|------|
-| PRE-01 | Readout Artifact Correction | 필수 (HW-only FPGA, SW는 validation) |
-| PRE-02 | Offset/Dark Correction | 필수 (SW-first → HW) |
-| PRE-03 | Gain/Flat-Field Correction | 필수 (SW-first → HW) |
-| PRE-04 | Lag Correction (LTI 기본) | 필수 (SW-only) |
-| PRE-04 | Lag Correction (NLCSC 비선형) | 차별화 — 14-50x 업계 우위 |
-| PRE-05 | Ghost/Gain Ghosting Correction | 필수 (SW-only) |
-| PRE-06 | Defective Pixel Correction (기본 보간) | 필수 (SW-first → HW) |
-| PRE-06 | Defective Pixel Correction (ML/ViT AE) | 차별화 — 14.2x NMSE 우위 |
-| PRE-07 | Temperature Compensation | 필수 (SW-first → MCU) |
-| PRE-08 | Non-linearity Correction | 필수 (SW-first → HW) |
-| PRE-09 | Pixel Binning Correction | 조건부 필수 (형광투시/CBCT 시) |
+### 2.1 Mandatory release baseline
 
-**지원 기술 — 5개 기술 (SUP-01~05)**
+The baseline product that must work without any optional modules includes:
 
-| Research ID | 기술 | SWU 매핑 | 분류 |
-|-------------|------|-----------|------|
-| SUP-01 | Calibration Parameter Management | SWU-1.5, SWU-5.6 | 필수 |
-| SUP-02 | Exposure Detection (AED) | SWU-5.8 AedEventInterface | 필수 |
-| SUP-03 | Exposure Index (IEC 62494-1) | SWU-2.10 ExposureIndexCalc | 필수 |
-| SUP-04 | DICOM Conformance | SWU-4.1~4.4 | 필수 |
-| SUP-05 | Quality Assurance / Constancy Test | SWU-6.1 QaConstancyTest (C#) | 필수 |
+- `xpe_common.dll`
+- `xpe_preprocess.dll`
+- `xpe_enhance_basic.dll`
+- `xpe_display.dll`
+- `xpe_dicom.dll`
+- `ImageProcTest.exe`
 
-**후처리 (Clean → Diagnostic-Ready Image)**
-- Log Transform, Noise Reduction, Contrast Enhancement (CLAHE), Edge Enhancement
-- Multiscale Frequency Processing, Collimation Detection, Exposure Index
-- Body-Part Recognition (CNN), Bone Suppression (U-Net), DL Denoiser
-- Grid Suppression Virtual Grid (GSVG) - 독립 모듈
-- DICOM Grayscale Display Pipeline (Modality/VOI/Presentation LUT)
+This baseline shall deliver:
 
-**인프라**
-- DICOM I/O (Reader/Writer/Network SCU)
-- Common Library (Memory Pool, Thread Pool, Logger, Config, Parameter Validator)
+- detector-domain correction,
+- whole-image Exposure Index / Deviation Index,
+- presentation LUT / GSDF-aligned display path,
+- diagnostic DICOM export,
+- graceful diagnostics and alerting.
 
-### 2. 통합 테스트 GUI (C# WPF)
+### 2.2 Optional deterministic premium scope
 
-- **이름**: ImageProcTest
-- **목적**: 알고리즘 DLL 모듈을 P/Invoke로 로드하여 통합 테스트 수행
-- **기능**: 파이프라인 빌더, DICOM 영상 뷰어, W/L 조절, 벤치마크
+Phase 2 remains optional at deployment time but deterministic in behavior:
 
-## 필수 기술 vs 차별화 기술 전략
+- `xpe_enhance_advanced.dll`
+- `gsvg.dll`
 
-출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, 2026-04-13)
+Phase 2 adds:
 
-- **필수 (Must-Have)**: 미구현 시 IEC/FDA 규제 인증 불가능. Pre-Processing 전체(PRE-01~09), Support(SUP-01~05), Post-Processing 기본 기술(POST-01~04, POST-07 기본, POST-12) 포함.
-- **차별화 (Differentiator)**: Phase 2/3에서 경쟁 우위 확보. PRE-04 NLCSC(14-50x), PRE-06 ML(14.2x), POST-05 MFP, POST-09 Bone Suppression, POST-11 Virtual Grid.
-- **HW/SW 경계**: PRE-01은 FPGA 전담(HW팀). PRE-02,03,06,08,09는 SW-first 후 FPGA 이관 가능 설계. PRE-07은 SW-first 후 MCU 이관 가능 설계. PRE-04,05는 SW-only.
+- baseline collimation detection,
+- ROI-aware EI refinement by re-invoking `xpe_calc_exposure_index`,
+- multiscale processing,
+- fractional processing,
+- grid suppression / virtual grid.
 
-## 아키텍처 원칙
+### 2.3 Optional AI assistive scope
 
-**Anti-Spaghetti 3-Layer Design**:
-- Layer 0: 공통 타입/메모리 (xpe_common.dll)
-- Layer 1: 알고리즘 DLLs (상호 의존 금지, Layer 0에만 의존)
-- Layer 1-G: GSVG (독립 IEC 62304 패키지, xpe_common 비의존)
-- Layer 2: C# GUI Orchestrator (P/Invoke로 모든 DLL 호출)
+Phase 3 is assistive only and must never block baseline image delivery:
 
-**SWU 카운팅 범위**:
-- DLL 직접 매핑 기준: 38개 (C/C++ 36개 + C# 2개)
-- SPEC-XPE-MASTER v2.0.0 전체 기준: 43개 (Infrastructure 7 + 전처리 9 + 핵심처리 12 + 디스플레이 4 + DICOM 4 + GSVG 4 + C# GUI 2 + QA 1)
-- 차이 설명: xpe_common.dll 내부 서브유닛(MemoryPool, ThreadPool, ErrorHandler, Logger, ParameterValidator, ConfigManager, AedEventInterface)은 DLL 1개로 매핑되지만 개별 SWU로 계수
+- `xpe_ai.dll`
+- `xpe_ai_worker.exe`
 
-## 대상 사용자
+Phase 3 adds:
 
-- 영상처리 엔지니어: 알고리즘 개발 및 튜닝
-- QA 엔지니어: IEC 62304 검증/확인
-- 시스템 통합자: DLL을 RadiConsole 등 프로덕션 GUI에 연동
+- body-part recognition,
+- AI collimation refinement,
+- image stitching,
+- bone suppression,
+- DL denoising.
 
-## 배포 바이너리 구성 (전체 10개)
+If AI fails, the product shall fall back to deterministic Phase 1/2 output.
 
-| 번호 | 바이너리 | 유형 | Phase | 함수 수 |
-|:---:|---|---|:---:|:---:|
-| 1 | `xpe_common.dll` | C/C++ DLL | 0 | 18 |
-| 2 | `xpe_preprocess.dll` | C/C++ DLL | 1a | 18 |
-| 3 | `xpe_enhance_basic.dll` | C/C++ DLL | 1b | 7 |
-| 4 | `xpe_display.dll` | C/C++ DLL | 1b | 11 |
-| 5 | `xpe_dicom.dll` | C/C++ DLL | 1b | 10 |
-| 6 | `xpe_enhance_advanced.dll` | C/C++ DLL | 2 | 3 |
-| 7 | `gsvg.dll` | C/C++ DLL (독립) | 2 | 8 |
-| 8 | `xpe_ai.dll` | C/C++ DLL | 3 | 7 |
-| 9 | `ImageProcTest.exe` | C# WPF GUI | 1b | — |
-| 10 | `xpe_ai_worker.exe` | C++ 프로세스 | 3 | — (IPC) |
-| — | `xpe_common_infra.lib` | 정적 공통 인프라 | 0 | 내부 |
+---
 
-**합계**: DLL 8개 + 실행파일 2개 = **10개 배포 바이너리**
+## 3. Canonical Unit Count
 
-### SWU 카운팅 (SPEC-XPE-MASTER v2.0.0 기준)
+### 3.1 Counting rule
 
-| 범주 | SWU 수 | 대표 유닛 |
-|---|:---:|---|
-| Infrastructure (xpe_common) | **7** | MemoryPool, ThreadPool, ErrorHandler, Logger, ParameterValidator, ConfigManager, AedEventInterface |
-| 전처리 (xpe_preprocess) | 9 | CalibManager, OffsetCorrector, GainCorrector, DefectCorrector, GhostCorrector, ReadoutValidator, TempCompensator, NonlinearityCorrector, BinningCorrector |
-| 핵심처리 (enhance_basic/advanced) | 12 | LogTransform, NoiseReducer, ContrastEnhancer, EdgeEnhancer, MultiscaleProcessor, FractionalProcessor, CollimationDetector, ExposureIndexCalc, BodyPartRecognizer, Stitcher, BoneSuppressor, DLDenoiser |
-| 디스플레이 (xpe_display) | 4 | ModalityLUT, VOILUT, PresentationLUT, LUTManager |
-| DICOM I/O (xpe_dicom) | 4 | DicomReader, DicomWriter, DicomNetworkSCU, DicomValidator |
-| GSVG (독립 IEC 62304) | 4 | GridDetector, GridSuppressor, VirtualGridGenerator, ScatterLUTManager |
-| C# GUI | 2 | PipelineOrchestrator, QaConstancyTest |
-| **합계** | **43** | |
+This project uses two unit types:
 
-## 개발 상태
+- **SWU**: XPE software units governed inside the XPE architecture
+- **SI**: GSVG software items governed by the independent GSVG package
 
-- IEC 62304 규정 문서: 완비 (XPE, GSVG, Ghost Correction, Panel Defect, **Calibration v1.0**)
-- 소스 코드: 스캐폴딩 단계 (xpe_common 기초 구현 중)
-- Phase 0 (Foundation) → Phase 1 (Pre/Post Basic) → Phase 2 (Clinical) → Phase 3 (AI)
+**Canonical total**: **42 executable units**
+
+- **38 XPE SWU**
+- **4 GSVG SI**
+
+The previous `43` total is retired by this revision.
+
+### 3.2 Unit summary
+
+| Category | Count | Notes |
+|---|---:|---|
+| Common infrastructure | 7 SWU | `xpe_common.dll` |
+| Pre-processing | 9 SWU | `xpe_preprocess.dll` |
+| Core processing | 12 SWU | `xpe_enhance_basic.dll`, `xpe_enhance_advanced.dll`, `xpe_ai.dll` |
+| Display | 4 SWU | `xpe_display.dll` |
+| DICOM I/O | 4 SWU | `xpe_dicom.dll` |
+| C# orchestration and QA | 2 SWU | `ImageProcTest.exe` |
+| GSVG | 4 SI | `gsvg.dll` |
+| **Total** | **42 units** | **38 SWU + 4 SI** |
+
+---
+
+## 4. Binary Deliverables
+
+| Binary | Type | Phase | Responsibility |
+|---|---|:---:|---|
+| `xpe_common.dll` | Native DLL | 0 | ABI types, lifecycle, alerts, logging, AED |
+| `xpe_preprocess.dll` | Native DLL | 1a | detector correction and calibration application |
+| `xpe_enhance_basic.dll` | Native DLL | 1b | log, noise, contrast, edge, whole-image EI |
+| `xpe_display.dll` | Native DLL | 1b | modality/VOI/presentation LUT |
+| `xpe_dicom.dll` | Native DLL | 1b | DICOM IO and network SCU |
+| `xpe_enhance_advanced.dll` | Native DLL | 2 | collimation baseline, multiscale, fractional |
+| `gsvg.dll` | Native DLL | 2 | grid suppression and virtual grid |
+| `xpe_ai.dll` | Native DLL | 3 | in-process assistive proxy |
+| `xpe_ai_worker.exe` | Native EXE | 3 | sandboxed inference worker |
+| `ImageProcTest.exe` | C# WPF EXE | 0+ | orchestration, QA, integration harness |
+
+---
+
+## 5. Key Feature Map
+
+| Research / Product ID | Canonical ownership | Delivery rule |
+|---|---|---|
+| `PRE-01` Readout validation | `SWU-1.9` | advisory only, no pixel mutation |
+| `PRE-02/03/06/07/08/09` detector correction | `SWU-1.1~1.8` | deterministic release baseline |
+| `PRE-04/05` lag and ghost correction | `SWU-1.4` | deterministic release baseline with tier downgrade |
+| `SUP-01` calibration management | `SWU-1.5`, `SWU-5.6` | release baseline |
+| `SUP-02` AED | `SWU-5.8` | release baseline infrastructure |
+| `SUP-03` Exposure Index | `SWU-2.10` | one unit reused across Phase 1b baseline and Phase 2 ROI refinement |
+| `SUP-04` DICOM conformance | `SWU-4.1~4.4` | release baseline |
+| `SUP-05` QA / constancy | `SWU-6.1` | release baseline validation surface |
+| `POST-05/07/10/11` advanced deterministic features | `SWU-2.5`, `SWU-2.8`, `SI-001~004` | optional Phase 2 |
+| `POST-06/08/09` AI features | `SWU-2.7`, `SWU-2.9`, `SWU-2.11`, `SWU-2.12` | optional Phase 3, assistive only |
+
+---
+
+## 6. Product Rules That Shall Not Change
+
+1. `SWU-2.10` is the only canonical EI unit identifier.
+2. EI/DI apply only to detector-domain, single-irradiation images.
+3. Body-part recognition and stitching are Phase 3 features, not Phase 2.
+4. `XPE_FLAG_*` values are state bits only. Error details go to alerts or diagnostic JSON.
+5. GSVG may fail open. When skipped, the pipeline records `XPE_FLAG_GSVG_SKIPPED` and a diagnostic reason, but continues with non-GSVG output.
+6. AI modules are assistive. Their failure must not block the deterministic path.
+7. `docs/project/` is the only canonical documentation tree for this architecture.
+
+---
+
+## 7. Product Success Criteria
+
+| Area | Minimum release criterion |
+|---|---|
+| Phase 1a latency | pre-processing completes within 500 ms for 3072x3072 |
+| Phase 1 total latency | deterministic baseline completes within 3000 ms |
+| Memory discipline | no unbounded frame-to-frame growth in steady-state loops |
+| Traceability | every planned SWU/SI maps to owner binary, API contract, and validation evidence |
+| Degraded operation | missing Phase 2/3 binaries degrade gracefully with explicit diagnostics |
+| Regulatory boundary | release claims stay inside deterministic enhancement and assistive AI boundaries documented in `Regulatory-Feature-Boundary-Matrix.md` |
