@@ -59,6 +59,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [structure](docs/project/structure.md) | 저장소 구조 — DLL 매핑, 의존성 규칙 |
 | [tech](docs/project/tech.md) | 기술 스택 — C++17/C#, SOUP 의존성, ABI 설계 |
 | [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.1.0) |
+| [xpe-milestone-uat-plan](docs/project/xpe-milestone-uat-plan.md) | AI Agent HITL 방법론, Gantt 차트, WBS, M1-M5 Human UAT 시나리오 (v1.0.0) |
 | [xpe-implementation-reference](docs/project/xpe-implementation-reference.md) | 개발자 참조 — Calibration 바이너리 형식, JSON 스키마 |
 
 ### Informational
