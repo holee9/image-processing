@@ -31,8 +31,8 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 
 | 카테고리 | 문서 수 | 위치 |
 |----------|:------:|------|
-| Normative 사양 | 9 | [docs/project/](docs/project/) |
-| Informational | 3 | [docs/project/](docs/project/), [docs/development/](docs/development/) |
+| Normative 사양 | 13 | [docs/project/](docs/project/) |
+| Informational | 5 | [docs/project/](docs/project/), [docs/development/](docs/development/) |
 | XPE IEC 62304 패키지 (시스템 레벨) | 22 | [docs/post-processing/xpe/](docs/post-processing/xpe/) |
 | GSVG IEC 62304 패키지 | 13 | [docs/post-processing/gsvg/](docs/post-processing/gsvg/) |
 | Ghost Correction IEC 62304 | 9 | [docs/ghost-correction/](docs/ghost-correction/) |
@@ -46,7 +46,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | Common Infrastructure IEC 62304 패키지 | 6 | [docs/common/](docs/common/) |
 | Research (연구/전처리 알고리즘) | 11 | [docs/quality-eval/](docs/quality-eval/), [docs/references/](docs/references/), [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **129** | [docs/README.md v3.0.0](docs/README.md) |
+| **합계** | **135** | [docs/README.md v3.0.0](docs/README.md) |
 
 ---
 
@@ -59,20 +59,25 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [SPEC-XPE-MASTER](docs/project/SPEC-XPE-MASTER.md) | 마스터 구현 계획 — 43 SWU 인벤토리, Phase 0-3 분해 (v2.0.0) |
 | [pipeline-spec](docs/project/pipeline-spec.md) | 17단계 정규 파이프라인 및 의존성 그래프 (v1.3.0) |
 | [api-spec](docs/project/api-spec.md) | 82개 내보낸 C ABI 함수 계약, 명시적 경로 API 패턴 (v1.3.0) |
-| [xpe-algorithm-spec-deepsync](docs/project/xpe-algorithm-spec-deepsync.md) | 규범적 알고리즘 계약, DeepSync 검증 (v3.0.0-ds2) |
+| [xpe-algorithm-spec-deepsync](docs/project/xpe-algorithm-spec-deepsync.md) | 규범적 알고리즘 계약, DeepSync 검증 (v3.1.0-ds3) |
 | [product](docs/project/product.md) | XPE-PRODUCT-001 v1.2.0 — Phase별 배포 경계, 필수/선택 바이너리 범위, AI 샌드박스 격리 원칙 |
 | [structure](docs/project/structure.md) | XPE-STRUCTURE-001 v1.2.0 — 정규 모듈-바이너리 매핑 (38 SWU + 4 GSVG SI), SWU 소유 규칙 |
 | [tech](docs/project/tech.md) | 기술 스택 — C++17/C#, SOUP 의존성, ABI 설계 |
-| [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.2.0) |
+| [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.3.0) |
 | [xpe-milestone-uat-plan](docs/project/xpe-milestone-uat-plan.md) | AI Agent HITL 방법론, Gantt 차트, WBS, M1-M5 Human UAT 시나리오 (v1.0.0) |
 | [xpe-implementation-reference](docs/project/xpe-implementation-reference.md) | 개발자 참조 — 로깅/Alert JSON, LUT 형식, GSDF, IPC, 양자화, session_id (v1.1.0) |
+| [Algorithm-Benchmark-Pack-Spec](docs/project/Algorithm-Benchmark-Pack-Spec.md) | 10개 벤치마크 패밀리 정의 — BP-01~BP-10, 매니페스트 필드, freeze/promotion 규칙 (v1.1.0) |
+| [Algorithm-Evaluation-Protocol](docs/project/Algorithm-Evaluation-Protocol.md) | 알고리즘 개정 비교·승격·보류 기준, 물리 메트릭(MTF/NPS/DQE) 평가 프로토콜 (v1.1.0) |
+| [Regulatory-Feature-Boundary-Matrix](docs/project/Regulatory-Feature-Boundary-Matrix.md) | 릴리스 경계 매트릭스 — release-safe / research-gated / regulatory-hold 분류 (v1.1.0) |
 
 ### Informational
 
 | 문서 | 설명 |
 |------|------|
-| [cross-verification-consolidated](docs/project/cross-verification-consolidated.md) | 4회 교차 검증 통합 결과 |
-| [XPE-Module-Reinforcement-Plan](docs/project/XPE-Module-Reinforcement-Plan.md) | Pre/Post 모듈 정밀 보강 계획 및 혁신 로드맵 |
+| [cross-verification-consolidated](docs/project/cross-verification-consolidated.md) | 교차검증 통합 등록부 v2.0 — 8개 항목 완료, Open 4개 잔존 이슈 추적 |
+| [XPE-Module-Reinforcement-Plan](docs/project/XPE-Module-Reinforcement-Plan.md) | Pre/Post 모듈 정밀 보강 계획, No-regret 가속자 및 Fast-track 실행 spine (v1.1.0) |
+| [XPE-Implementation-Analysis-Report](docs/project/XPE-Implementation-Analysis-Report.md) | 구현 현황 분석 — 모듈 갭, 스캐폴딩 우선순위, 실현 가능성 기술 선택 (v1.2.0) |
+| [XPE-Brainstorming-DeepSync-Execution](docs/project/XPE-Brainstorming-DeepSync-Execution.md) | 브레인스토밍 결정 매트릭스 — 14개 아이디어 채택/보류/거부 분류, 구현 불변 규칙 (v1.0.0) |
 | [XPE-CI-CD_LocalBuild_Runbook](docs/development/XPE-CI-CD_LocalBuild_Runbook.md) | CI/CD 파이프라인 및 로컬 빌드 실행 안내 |
 
 ### IEC 62304 규제 패키지
@@ -114,7 +119,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 
 ```text
 docs/                       문서 체계 (Normative/Informational/Archive + IEC 62304)
-  project/                  핵심 사양 (Normative 9개 + Informational)
+  project/                  핵심 사양 (Normative 13개 + Informational 5개)
   post-processing/xpe/      XPE IEC 62304 Class B 패키지 (21개)
   post-processing/gsvg/     GSVG IEC 62304 Class B 패키지 (10개)
   ghost-correction/         Ghost Correction IEC 62304 패키지 (6개)

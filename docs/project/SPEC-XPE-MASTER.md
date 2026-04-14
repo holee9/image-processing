@@ -6,7 +6,7 @@
 **Status**: Draft — Pending Review
 **Author**: MoAI (3-Round Deep Cross-Verification v2.0)
 **Classification**: IEC 62304 Class B
-**Source**: product.md, tech.md, structure.md, pipeline-spec.md, api-spec.md, xpe-algorithm-spec-deepsync.md, PRD-FPD-CAL-001, Ghost PRD v2, Panel Defect Plan, XPE-SRS-001, GSVG-SRS-001, XPE-SDD-001, xray_fpd_tech_classification_final.md
+**Source**: product.md, tech.md, structure.md, pipeline-spec.md, api-spec.md, xpe-algorithm-spec-deepsync.md, XPE-Brainstorming-DeepSync-Execution.md, PRD-FPD-CAL-001, Ghost PRD v2, Panel Defect Plan, XPE-SRS-001, GSVG-SRS-001, XPE-SDD-001, xray_fpd_tech_classification_final.md
 
 ---
 

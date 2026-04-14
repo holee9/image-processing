@@ -1,10 +1,10 @@
 # XPE Implementation Analysis Report
 
 **Document ID**: XPE-IMPL-ANALYSIS-001  
-**Version**: 1.1.0  
+**Version**: 1.2.0  
 **Date**: 2026-04-14  
 **Status**: Controlled Draft  
-**Source**: `SPEC-XPE-MASTER v2.0.0`, `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.1.0-ds3`
+**Source**: `SPEC-XPE-MASTER v2.0.0`, `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.1.0-ds3`, `XPE-Brainstorming-DeepSync-Execution.md v1.0.0`
 
 ---
 
@@ -97,7 +97,32 @@ This remains an open compliance task, not a code task.
 
 ---
 
-## 5. Critical Risks
+## 5. Feasibility-Maximizing Technical Choices
+
+| Choice | Why it matters |
+|---|---|
+| scalar reference for each major stage | makes correctness provable before optimization |
+| SIMD parity harness | prevents silent drift between optimized and reference paths |
+| sidecar contract for ROI / diagnostics / confidence | reduces ABI churn and module coupling |
+| benchmark manifest freeze before premium tuning | prevents non-repeatable wins |
+| small-model policy for learned features | keeps CPU inference and fallback realistic |
+| quality-state vector | turns hidden heuristics into testable outputs |
+
+### 5.1 No-regret scaffolding before full algorithms
+
+The following scaffolding unlocks the most downstream work with the least rework:
+
+1. benchmark manifest schema and hash-lock tooling,
+2. scalar detector-domain kernels for preprocess stages,
+3. timing and parity harness for scalar vs SIMD paths,
+4. sidecar structures for ROI, quality state, and diagnostics,
+5. calibration manifest/session validation logic.
+
+This is the shortest route to a repository that can absorb advanced algorithms without collapsing into undocumented behavior.
+
+---
+
+## 6. Critical Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
@@ -105,3 +130,5 @@ This remains an open compliance task, not a code task.
 | benchmark data not frozen | impossible to compare algorithm revisions fairly | lock manifest schema and dataset hashes first |
 | EI and detector metrics accidentally computed on post-presentation images | clinically misleading measurements | enforce domain separation in pipeline and tests |
 | AI features invade release claim boundary too early | regulatory expansion and unstable scope | keep boundary matrix explicit and reviewed |
+| optimized kernels diverge from reference behavior | invisible quality regressions | require scalar-reference plus parity harness |
+| metadata field overloading spreads hidden coupling | unstable integration and ABI confusion | keep ROI and diagnostics in sidecar contracts |

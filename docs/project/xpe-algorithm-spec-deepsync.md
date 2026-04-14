@@ -31,6 +31,7 @@ This revision resolves the remaining DeepSync inconsistencies by:
 - `api-spec.md`
 - `SPEC-XPE-MASTER.md`
 - `XPE-Module-Reinforcement-Plan.md`
+- `XPE-Brainstorming-DeepSync-Execution.md`
 - `Algorithm-Benchmark-Pack-Spec.md`
 - `Algorithm-Evaluation-Protocol.md`
 - `Regulatory-Feature-Boundary-Matrix.md`
@@ -41,12 +42,20 @@ This revision resolves the remaining DeepSync inconsistencies by:
 
 - DICOM PS3.14 GSDF: https://dicom.nema.org/medical/dicom/current/output/chtml/part01/sect_6.14.html
 - IEC 62494-1 EI scope: https://webstore.iec.ch/en/publication/7107
+- IEC 62220-1-1 DQE determination: https://webstore.iec.ch/en/publication/21937
+- AAPM TG-116 exposure indicator summary: https://pmc.ncbi.nlm.nih.gov/articles/PMC3908678/
+- AAPM TG-151 ongoing DR quality control: https://pubmed.ncbi.nlm.nih.gov/26520756/
 - Starman et al. NLCSC lag correction: https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/
 - Pang et al. lag vs ghosting: https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/
 - Jeon et al. defect correction CNN study: https://pmc.ncbi.nlm.nih.gov/articles/PMC7930811/
 - FixPix bad-pixel correction: https://arxiv.org/html/2310.11637v2
 - Wang 2013 heel-effect Duo-SID: https://www.math.union.edu/~wangj/papers/Wang13.Heel%20Effect%20%5BMed%20Phys%5D.pdf
+- Kwan 2006 variable flat-field correction: https://pubmed.ncbi.nlm.nih.gov/16532945/
+- Dual-gain calibration model: https://pubmed.ncbi.nlm.nih.gov/17926969/
+- Virtual-grid observer study: https://pubmed.ncbi.nlm.nih.gov/29713231/
+- Bone suppression feasibility study: https://pubmed.ncbi.nlm.nih.gov/34888191/
 - FDA GMLP principles: https://www.fda.gov/medical-devices/software-medical-device-samd/good-machine-learning-practice-medical-device-development-guiding-principles
+- FDA MLMD transparency principles: https://www.fda.gov/medical-devices/software-medical-device-samd/transparency-machine-learning-enabled-medical-devices-guiding-principles
 
 ---
 
@@ -141,6 +150,8 @@ These remain outside the current product claim boundary:
 - Nonlinearity correction must precede gain correction.
 - Gain correction is the canonical `uint16 -> float32` boundary for downstream detector processing.
 - Multi-gain calibration may be internal to gain correction and must not create a separate pipeline stage.
+- Variable flat-field or exposure-dependent correction is preferred over a single fixed flat field when detector response is measurably nonlinear across the operating range.
+- Heel-effect adaptation must be benchmarked across acquisition geometry and SID, not only on a single calibration distance.
 - Release gate: flat-field residual and linearity error must satisfy the benchmark pack thresholds.
 
 ### 6.3 Defect correction
@@ -161,12 +172,15 @@ These remain outside the current product claim boundary:
 - Whole-image EI baseline is computed after detector correction and before presentation processing.
 - Phase 2 refinement is a second invocation on an ROI crop or mask derived from collimation.
 - Stitched or multi-irradiation images are non-normative EI inputs and must be rejected or explicitly flagged.
+- EI and DI are operational detector-exposure signals and shall not be documented or marketed as direct patient-dose estimates.
+- DI action bands used in QA shall be site-configurable and derived from local practice, not hard-coded as universal acceptance thresholds.
 
 ### 6.6 GSVG and scatter handling
 
 - GSVG is optional and independent.
 - When grid suppression is unavailable or inappropriate, the system must emit a state flag and external diagnostic reason.
 - The deterministic image path must remain usable without GSVG.
+- Virtual-grid defaults shall be anatomy-aware and observer-reviewed. A visually stronger grid effect is not automatically a safer default.
 
 ### 6.7 AI worker governance
 
@@ -174,6 +188,7 @@ These remain outside the current product claim boundary:
 - `xpe_ai_worker.exe` must be sandboxed and restartable.
 - Worker crash, timeout, or model load failure must not interrupt deterministic Phase 1 and Phase 2 image delivery.
 - AI outputs must include confidence, version, and failure semantics.
+- Bone suppression and denoising remain research-gated until task-based validation demonstrates benefit without unacceptable suppression of clinically relevant findings.
 
 ---
 
@@ -196,6 +211,17 @@ Minimum benchmark families that must exist before algorithm freeze:
 - stitched and multi-irradiation exclusion cases
 - worker-failure and degraded-mode scenarios
 
+### 7.1 Physical-metric bundle
+
+Where applicable, premium detector and display claims shall be tied to a physical-metric bundle that includes some subset of:
+
+- MTF
+- NPS
+- DQE
+- EI / DI behavior
+- artifact review
+- observer review
+
 ---
 
 ## 8. Development Priority for Best-in-Class Quality
@@ -205,3 +231,13 @@ Minimum benchmark families that must exist before algorithm freeze:
 3. Add deterministic Phase 2 premium features only after detector-domain metrics stay stable.
 4. Add AI features behind explicit assistive boundaries and worker isolation.
 5. Promote research features only after evidence is strong enough to cross the regulatory boundary review.
+
+### 8.1 Implementation-feasibility rules
+
+The following rules are normative for implementation planning:
+
+- every major detector-domain stage shall have a scalar reference implementation before SIMD or multi-thread optimization,
+- optimized paths shall be checked against parity harnesses and benchmark packs, not only spot images,
+- ROI, diagnostics, confidence, and GSVG reason codes shall travel through sidecar structures or structured logs rather than generic image metadata mutation,
+- the deterministic release path shall not depend on GPU availability, cloud inference, or optional AI components,
+- learned features shall prefer bounded small-model designs with explicit disable and fallback behavior.

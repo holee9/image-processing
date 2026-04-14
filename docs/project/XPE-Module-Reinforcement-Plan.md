@@ -18,6 +18,8 @@ The roadmap is divided into:
 - **Research-gated**: promising, but not yet release claims
 - **Regulatory-hold**: do not fold into the product claim boundary in the current program
 
+This revision also absorbs the execution filter from `XPE-Brainstorming-DeepSync-Execution.md`.
+
 ---
 
 ## 2. Release-Safe Reinforcement Priorities
@@ -48,6 +50,17 @@ The strongest defensible differentiators in the current program are:
 3. assistive AI that is transparent, restartable, and never the only path to a delivered image.
 
 These are harder to market than speculative AI claims, but they create a stronger regulated product.
+
+### 3.1 No-regret implementation accelerators
+
+These items increase both image-quality ceiling and implementation feasibility:
+
+- calibration manifest chain with session identity and integrity lock,
+- scalar-reference plus SIMD parity harness for every major detector stage,
+- sidecar quality-state vector instead of metadata overloading,
+- class-aware defect router with small-model repair only for bounded cluster cases,
+- deterministic premium router that can disable advanced stages cleanly,
+- benchmark-first promotion rules before any premium stage is called complete.
 
 ---
 
@@ -83,6 +96,19 @@ These are harder to market than speculative AI claims, but they create a stronge
 4. Add assistive AI behind worker isolation.
 5. Revisit research-gated features only after evidence is strong enough for boundary review.
 
+### 6.1 Fast-track execution spine
+
+The fastest route to a strong implementation is:
+
+1. calibration manifest + detector-domain benchmark harness,
+2. scalar reference kernels for preprocess stages,
+3. SIMD parity and timing harness,
+4. quality-state sidecar contract,
+5. deterministic premium stages,
+6. assistive AI worker architecture.
+
+This order is intentionally different from “feature excitement first”. It is chosen to maximize proof, reuse, and downstream velocity.
+
 ---
 
 ## 7. Things Not To Do
@@ -91,3 +117,5 @@ These are harder to market than speculative AI claims, but they create a stronge
 - Do not describe EI or DI as patient-dose estimators.
 - Do not allow assistive AI output to overwrite the deterministic baseline silently.
 - Do not promote pathology-aware or dose-guidance concepts through the same release path as classical image processing.
+- Do not implement an optimized path before a scalar reference exists.
+- Do not store ROI, AI confidence, or GSVG diagnostics by mutating generic image metadata fields.
