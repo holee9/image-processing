@@ -53,7 +53,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 |------|------|
 | [SPEC-XPE-MASTER](docs/project/SPEC-XPE-MASTER.md) | 마스터 구현 계획 — 43 SWU 인벤토리, Phase 0-3 분해 (v2.0.0) |
 | [pipeline-spec](docs/project/pipeline-spec.md) | 17단계 정규 파이프라인 및 의존성 그래프 (v1.3.0) |
-| [api-spec](docs/project/api-spec.md) | 82개 내보낸 C ABI 함수 계약 (v1.2.0) |
+| [api-spec](docs/project/api-spec.md) | 82개 내보낸 C ABI 함수 계약, 명시적 경로 API 패턴 (v1.3.0) |
 | [xpe-algorithm-spec-deepsync](docs/project/xpe-algorithm-spec-deepsync.md) | 규범적 알고리즘 계약, DeepSync 검증 (v3.0.0-ds2) |
 | [product](docs/project/product.md) | 제품 정의 — 컴포넌트, Phase 전략, 대상 사용자 |
 | [structure](docs/project/structure.md) | 저장소 구조 — DLL 매핑, 의존성 규칙 |

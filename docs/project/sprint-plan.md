@@ -389,6 +389,12 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. Each module directory has a stub `CMakeLists.txt` with correct target name
 6. `xpe_common_api.h` includes or forward-declares all 18 API functions
 7. `dumpbin /exports xpe_common.dll` shows exactly 18 exported symbols
+8. **Image Path Management (NEW for Production Integration)**:
+   - GUI includes "Load Raw Image" button → opens `OpenFileDialog` (*.raw, *.dcm)
+   - GUI includes "Load DICOM" button → opens `OpenFileDialog` (*.dcm)
+   - GUI includes "Calibration Path Settings" UI → allows user to set directory for offset/gain/defect files
+   - GUI persists last used directories to `appsettings.json` (e.g., `"lastImageDir": "C:\\data\\images"`)
+   - P/Invoke wrapper includes `xpe_calibration_path_t` context to manage paths (offset, gain, defect map directories)
 
 **Test Cases**:
 1. Run ImageProcTest.exe -> window opens -> status bar shows XPE version from `xpe_version()`
@@ -397,6 +403,16 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. P/Invoke: `xpe_log_set_level(2)` -> `XPE_OK`
 5. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
 6. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 AED)
+7. **(NEW) File Dialog Tests**:
+   - Click "Load Raw Image" button → `OpenFileDialog` opens with filter "Raw Image (*.raw)|*.raw|DICOM (*.dcm)|*.dcm"
+   - Select `test_data/test_image.raw` → path stored in `appsettings.json` `lastImageDir`
+   - Close and relaunch ImageProcTest → "Load Raw Image" default folder should be the previously selected directory (verify via `OpenFileDialog.InitialDirectory`)
+8. **(NEW) Calibration Path Settings**:
+   - Click "Settings" menu → "Calibration Path Configuration" dialog
+   - UI shows 3 path fields: "Offset/Dark Calib Dir", "Gain/Flat-field Calib Dir", "Defect Map Calib Dir"
+   - Browse buttons for each field → `FolderBrowserDialog` opens
+   - Save → paths persisted to `appsettings.json` as `"calibOffsetDir"`, `"calibGainDir"`, `"calibDefectDir"`
+   - Verify paths are not empty strings (reject empty paths)
 
 **Definition of Done**:
 - [ ] ImageProcTest.exe launches and loads xpe_common.dll
@@ -406,6 +422,11 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] All 9 module directories scaffolded
 - [ ] xpe_common_api.h is complete and compiles as standalone header
 - [ ] Phase 0 gate checklist 100% complete
+- [ ] **Image Path Management UI Complete**:
+  - [ ] "Load Raw Image" and "Load DICOM" file dialogs functional
+  - [ ] "Calibration Path Settings" dialog with 3 path browse buttons
+  - [ ] `appsettings.json` created with schema for `lastImageDir`, `calibOffsetDir`, `calibGainDir`, `calibDefectDir`
+  - [ ] Path persistence verified: relaunch and check `OpenFileDialog.InitialDirectory`
 
 **Risk Items**:
 - P/Invoke struct alignment may differ between Debug/Release builds

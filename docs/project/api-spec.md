@@ -1,11 +1,11 @@
 # XPE API Specification — Complete Exported C ABI Reference
 
 **Document ID**: XPE-API-SPEC-001  
-**Version**: 1.2.0  
+**Version**: 1.3.0  
 **Date**: 2026-04-14  
 **Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.0.0  
-**Changelog**: v1.1.0 -> v1.2.0: (1) Added §5.16-5.18 AED functions (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status). (2) Moved xpe_calc_exposure_index from §8 (enhance_advanced) to §7.7 (enhance_basic) per SPEC-XPE-MASTER v2.0.0 §3.9 EI-0 resolution. (3) Updated §4 summary counts: xpe_common=18, enhance_basic=7, enhance_advanced=3, total=82.
-**Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md.
+**Changelog**: v1.1.0 -> v1.2.0: (1) Added §5.16-5.18 AED functions (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status). (2) Moved xpe_calc_exposure_index from §8 (enhance_advanced) to §7.7 (enhance_basic) per SPEC-XPE-MASTER v2.0.0 §3.9 EI-0 resolution. (3) Updated §4 summary counts: xpe_common=18, enhance_basic=7, enhance_advanced=3, total=82. **v1.2.0 -> v1.3.0**: (1) Added §15 "Path Management Design" documenting explicit-path API pattern and production integration. (2) Clarified that xpe_init does NOT accept calibration path parameters (caller responsibility). (3) Referenced production-integration-guide.md for ProDSW integration examples.
+**Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
 
@@ -1467,3 +1467,60 @@ xpe_dicom.dll     -> xpe_common.dll
 ```
 
 Load order: `xpe_common.dll` must be loaded before any other XPE DLL. `xpe_ai_worker.exe` is launched on demand by `xpe_ai_init`. `gsvg.dll` may be loaded at any time independently.
+
+---
+
+## 15. Appendix C — Path Management Design
+
+### Overview: Explicit-Path API Pattern
+
+XPE uses an **explicit-path API pattern**: all file and directory operations require the caller to provide complete, absolute file paths. The library does NOT maintain a global "data directory" or "calibration directory".
+
+**Design rationale**:
+- **Flexibility**: Different deployments (hospital, clinic, research lab) may organize calibration data differently
+- **No hidden paths**: Caller has complete control and visibility into file access
+- **Stateless**: No configuration side effects; each call is independent
+
+### Path Parameters Across API
+
+| Function | Path Parameter | Type | Example |
+|----------|----------------|------|---------|
+| `xpe_log_set_file` | `filePath` | output log | `"C:\\logs\\xpe_runtime.log"` |
+| `xpe_calib_load_offset` | `filePath` | input calibration | `"C:\\data\\calib\\offset_2024.xpe_calib"` |
+| `xpe_calib_load_gain` | `filePath` | input calibration | `"C:\\data\\calib\\gain_2024.xpe_calib"` |
+| `xpe_calib_load_defect_map` | `filePath` | input calibration | `"C:\\data\\calib\\defect_map.xpe_calib"` |
+| `xpe_calib_save` | `filePath` | output calibration | `"C:\\data\\calib\\offset_generated.xpe_calib"` |
+| `xpe_calib_check_expiry` | `filePath` | input calibration | `"C:\\data\\calib\\offset_2024.xpe_calib"` |
+| `xpe_dicom_read` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
+| `xpe_dicom_write` | `filePath` | output DICOM | `"C:\\processed\\patient_001_xpe.dcm"` |
+| `xpe_dicom_read_tag_string` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
+| `xpe_dicom_set_tag_string` | `filePath` | input/output DICOM | `"C:\\processed\\patient_001.dcm"` |
+| `xpe_dicom_cstore` | `filePath` | input DICOM | `"C:\\processed\\patient_001.dcm"` |
+| `xpe_dicom_write_j2k` | `filePath` | output DICOM | `"C:\\processed\\lossless.dcm"` |
+| `xpe_ai_init` | `modelDirPath` | input directory | `"C:\\data\\models\\"` |
+| `gsvg_load_scatter_lut` | `filePath` | input LUT | `"C:\\data\\calib\\gsvg\\grid_lut.dat"` |
+
+**Note**: `xpe_init` config JSON does **not** include calibration or data directory paths. These are always caller-specified at function-call time.
+
+### Recommended Directory Structure for Production Software
+
+See **production-integration-guide.md** for:
+- Standard deployment layout for medical software integrating XPE
+- C# `XpePathManager` class example
+- Path persistence patterns (appsettings.json)
+- Site-specific customization
+
+### Future Enhancement (v2.0+)
+
+A future version of `xpe_init` config JSON may include:
+
+```json
+{
+  "dataDirectories": {
+    "calibrationDir": "C:\\data\\calibration",
+    "modelDir": "C:\\data\\models"
+  }
+}
+```
+
+This would allow callers to provide default paths once at initialization, reducing boilerplate in application code. **Current version (1.x) requires explicit paths per call.**

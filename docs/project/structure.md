@@ -37,6 +37,23 @@ image-processing/
 │
 ├── scripts/                       # 빌드/검증 스크립트
 ├── data/                          # 런타임 데이터 (config, LUT, ONNX models)
+│   ├── calibration/               # 캘리브레이션 파일 (배포용)
+│   │   ├── offset_map_*.xpe_calib
+│   │   ├── gain_map_*.xpe_calib
+│   │   ├── defect_map_*.xpe_calib
+│   │   └── gsvg/grid_lut.dat
+│   │
+│   ├── models/                    # AI ONNX 모델 (배포용)
+│   │   ├── bodypart_mobilenet_v3.onnx
+│   │   ├── bone_suppression_unet.onnx
+│   │   └── denoiser/...
+│   │
+│   ├── lut/                       # 조회 테이블 (배포용)
+│   │   ├── body_part_lookup.json
+│   │   └── exposure_index_reference.json
+│   │
+│   └── config/                    # 설정 템플릿
+│       └── xpe_default_config.json
 │
 ├── docs/                          # IEC 62304 규정 문서
 │   ├── ghost-correction/          # Lag/Ghost 보정 SRS/SAD/SDD

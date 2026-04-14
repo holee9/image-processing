@@ -736,6 +736,188 @@ XpeErrorCode RunPipeline(XpeImageBuffer img, XpeImageMetadata meta) {
 
 ---
 
+## 6. GUI 경로 영속성 설계 (ImageProcTest Path Persistence)
+
+### 6.1 appsettings.json 스키마
+
+ImageProcTest GUI는 다음 경로들을 `appsettings.json`에 저장하여 사용자의 마지막 선택을 기억합니다:
+
+```json
+{
+  "paths": {
+    "lastImageDir": "C:\\clinical\\data",
+    "lastDicomDir": "C:\\clinical\\dicom",
+    "calibrationDirs": {
+      "offsetDir": "C:\\calib\\offset",
+      "gainDir": "C:\\calib\\gain",
+      "defectDir": "C:\\calib\\defect"
+    },
+    "gsvgLutDir": "C:\\calib\\gsvg"
+  },
+  "recentFiles": [
+    "C:\\clinical\\data\\patient_001.dcm",
+    "C:\\clinical\\data\\patient_002.dcm"
+  ]
+}
+```
+
+### 6.2 구현 패턴 (C#)
+
+```csharp
+using System.Text.Json;
+
+public class GuiPathSettings
+{
+    private string _settingsPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "ImageProcTest",
+        "appsettings.json"
+    );
+    
+    public class PathConfig
+    {
+        public string LastImageDir { get; set; } = "C:\\";
+        public string LastDicomDir { get; set; } = "C:\\";
+        public CalibDirs CalibrationDirs { get; set; } = new();
+        public List<string> RecentFiles { get; set; } = new();
+    }
+    
+    public class CalibDirs
+    {
+        public string OffsetDir { get; set; } = "C:\\";
+        public string GainDir { get; set; } = "C:\\";
+        public string DefectDir { get; set; } = "C:\\";
+    }
+    
+    private PathConfig _config;
+    
+    public GuiPathSettings()
+    {
+        Load();
+    }
+    
+    public void Load()
+    {
+        try
+        {
+            if (File.Exists(_settingsPath))
+            {
+                var json = File.ReadAllText(_settingsPath);
+                var root = JsonDocument.Parse(json);
+                var pathsElement = root.RootElement.GetProperty("paths");
+                
+                _config = new PathConfig
+                {
+                    LastImageDir = pathsElement.GetProperty("lastImageDir").GetString() ?? "C:\\",
+                    LastDicomDir = pathsElement.GetProperty("lastDicomDir").GetString() ?? "C:\\",
+                };
+            }
+            else
+            {
+                _config = new PathConfig();
+            }
+        }
+        catch
+        {
+            _config = new PathConfig();
+        }
+    }
+    
+    public void Save()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath));
+        
+        var config = new
+        {
+            paths = new
+            {
+                lastImageDir = _config.LastImageDir,
+                lastDicomDir = _config.LastDicomDir,
+                calibrationDirs = new
+                {
+                    offsetDir = _config.CalibrationDirs.OffsetDir,
+                    gainDir = _config.CalibrationDirs.GainDir,
+                    defectDir = _config.CalibrationDirs.DefectDir
+                }
+            },
+            recentFiles = _config.RecentFiles
+        };
+        
+        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        File.WriteAllText(_settingsPath, json);
+    }
+    
+    // 파일 다이얼로그에 사용
+    public void UpdateLastImageDir(string path)
+    {
+        _config.LastImageDir = Path.GetDirectoryName(path) ?? "C:\\";
+        Save();
+    }
+    
+    public void AddRecentFile(string path)
+    {
+        _config.RecentFiles.Remove(path);  // 중복 제거
+        _config.RecentFiles.Insert(0, path);  // 맨 앞에 추가
+        if (_config.RecentFiles.Count > 10)  // 최대 10개 유지
+            _config.RecentFiles.RemoveAt(_config.RecentFiles.Count - 1);
+        Save();
+    }
+}
+```
+
+### 6.3 WPF UI 통합
+
+```csharp
+public partial class MainWindow : Window
+{
+    private GuiPathSettings _pathSettings;
+    
+    public MainWindow()
+    {
+        InitializeComponent();
+        _pathSettings = new GuiPathSettings();
+    }
+    
+    private void LoadImageButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Load Raw X-ray Image",
+            Filter = "Raw Image (*.raw)|*.raw|DICOM (*.dcm)|*.dcm|All Files (*.*)|*.*",
+            InitialDirectory = _pathSettings.LastImageDir  // ← 마지막 경로 기억
+        };
+        
+        if (dialog.ShowDialog() == true)
+        {
+            _pathSettings.UpdateLastImageDir(dialog.FileName);  // ← 새 경로 저장
+            ProcessImage(dialog.FileName);
+        }
+    }
+    
+    private void CalibrationSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new FolderBrowserDialog
+        {
+            Description = "Select Calibration Data Directory",
+            SelectedPath = _pathSettings._config.CalibrationDirs.OffsetDir
+        };
+        
+        if (dialog.ShowDialog() == DialogResult.OK)
+        {
+            _pathSettings._config.CalibrationDirs.OffsetDir = dialog.SelectedPath;
+            _pathSettings.Save();
+            StatusLabel.Text = $"Calibration path updated: {dialog.SelectedPath}";
+        }
+    }
+}
+```
+
+---
+
 ## Appendix A: Parameter Range Quick Reference
 
 Body-part-specific parameter ranges returned by `xpe_get_param_range()`:
