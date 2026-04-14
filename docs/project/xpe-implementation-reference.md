@@ -1,10 +1,11 @@
 # XPE Implementation Reference
 
 **Document ID**: XPE-IMPL-REF-001
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Date**: 2026-04-14
 **Purpose**: Sprint 개발자가 질문 없이 구현할 수 있도록 api-spec, sprint-plan, pipeline-spec에서 누락된 상세 명세를 제공
-**Source Documents**: api-spec.md v1.2.0, sprint-plan.md v1.1.0, pipeline-spec.md v1.3.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2
+**Source Documents**: api-spec.md v1.3.0, sprint-plan.md v1.2.0, pipeline-spec.md v1.4.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2
+**Changelog**: v1.0.0→v1.1.0: (1) 추가 §9 Logging Output Format — plain-text 줄 형식 + Alert JSON 스키마. (2) 추가 §10 LUT 파일 형식 — DICOM 기반 바이너리 레이아웃. (3) 추가 §11 GSDF 컴플라이언스 검증 공식. (4) 추가 §12 AI Worker IPC 프로토콜 — Named Pipe 메시지 형식. (5) 추가 §13 DL 모델 양자화 명세. (6) 추가 §14 Calibration session_id 형식.
 
 ---
 
@@ -938,4 +939,367 @@ Note: `*` = same for all body parts. This table provides baseline defaults; impl
 
 ---
 
-*Document End -- XPE-IMPL-REF-001 v1.0.0*
+---
+
+## 9. Logging Output Format (GAP-C4)
+
+### 9.1 Log Line Format (Plain Text)
+
+모든 `xpe_log_*` 함수는 spdlog를 통해 다음 포맷으로 출력한다.
+
+```
+[YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] [TID] message
+```
+
+| 필드 | 형식 | 예 |
+|---|---|---|
+| timestamp | ISO 8601 로컬 타임, 밀리초 포함 | `2026-04-14 09:23:45.123` |
+| LEVEL | 5글자 고정폭 대문자 | `TRACE`, `DEBUG`, ` INFO`, ` WARN`, `ERROR` |
+| TID | OS 스레드 ID, 5자리 0-패딩 | `00042` |
+| message | 자유 형식 문자열, 개행 없음 | `xpe_init: config loaded OK` |
+
+예:
+```
+[2026-04-14 09:23:45.123] [ INFO] [00042] xpe_init: config loaded OK
+[2026-04-14 09:23:45.456] [ WARN] [00042] CalibManager: expiry in 3600000 ms
+[2026-04-14 09:23:46.789] [ERROR] [00099] GSVG: processing failed code=-5
+```
+
+### 9.2 Log Level 값
+
+| 정수 | 심벌 | 설명 |
+|:---:|---|---|
+| 0 | TRACE | 저수준 진단 (디버그 빌드에만 권장) |
+| 1 | DEBUG | 내부 알고리즘 상태 |
+| 2 | INFO | 정상 동작 이정표 |
+| 3 | WARN | 품질 저하 가능 (Alert 큐에도 발행) |
+| 4 | ERROR | 스테이지 스킵/실패 (Alert 큐에도 발행) |
+| 5 | OFF | 로그 비활성화 |
+
+### 9.3 Alert JSON 스키마 (GAP-D5)
+
+`xpe_get_pending_alert()`가 반환하는 `msg` 버퍼에 기록되는 JSON:
+
+```json
+{
+  "severity": 2,
+  "code": "GSVG_PROCESSING_FAILED",
+  "message": "GSVG internal error: scatter LUT not loaded",
+  "timestamp_ms": 1744588800000,
+  "stage_id": 9,
+  "stage_name": "GSVG",
+  "frame_index": 42,
+  "details": {}
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|:---:|---|
+| `severity` | int | ✓ | 0=INFO, 1=WARN, 2=ERROR, 3=CRITICAL |
+| `code` | string | ✓ | SCREAMING_SNAKE_CASE 고유 코드 |
+| `message` | string | ✓ | 사람이 읽을 수 있는 설명 |
+| `timestamp_ms` | uint64 | ✓ | UNIX epoch 밀리초 |
+| `stage_id` | int | ✓ | 파이프라인 스테이지 번호 (-1 = 파이프라인 외부) |
+| `stage_name` | string | ✓ | 스테이지 이름 |
+| `frame_index` | uint32 | ✓ | 현재 프레임 카운터 (0-based) |
+| `details` | object | — | 스테이지별 추가 진단 정보 |
+
+**정의된 Alert 코드**:
+
+| code | severity | 발생 조건 |
+|---|:---:|---|
+| `CALIB_EXPIRING_SOON` | WARN | 만료 24시간 이내 |
+| `CALIB_EXPIRED` | ERROR | 만료됨 |
+| `GHOST_TIER_DOWNGRADED` | WARN | Tier 3 목표 미달, 최선 결과 사용 |
+| `GSVG_PROCESSING_FAILED` | ERROR | GSVG SAFE-003 경로 진입 |
+| `TEMP_SENSOR_UNAVAILABLE` | WARN | 온도 보상에 공칭값 25°C 사용 |
+| `READOUT_ARTIFACT_CRITICAL` | CRITICAL | artifactScore > CRITICAL_THRESHOLD |
+| `AI_MODEL_UNAVAILABLE` | WARN | DL 모델 미로드, 스테이지 스킵 |
+| `PIPELINE_STAGE_SKIPPED` | INFO | 선택적 스테이지 바이패스 |
+| `PARAM_RANGE_CLAMPED` | INFO | 요청값이 허용 범위를 초과하여 클램핑 |
+
+### 9.4 JSON 로그 출력 (옵션)
+
+`xpe_init` config에서 `"logFormat": "json"` 설정 시 각 줄이 다음 JSON으로 출력됨:
+
+```json
+{"ts":"2026-04-14T09:23:45.123Z","lvl":"INFO","tid":42,"msg":"xpe_init: config loaded OK"}
+```
+
+---
+
+## 10. LUT 파일 형식 (.lut) (GAP-D6)
+
+디스플레이 파이프라인(스테이지 14-16)에서 사용되는 LUT 파일 형식.
+
+### 10.1 파일 확장자
+
+| 확장자 | 용도 |
+|---|---|
+| `.lut` | XPE 네이티브 LUT (이 섹션에서 정의) |
+| `.dcm` | DICOM 내장 LUT (0028,3010 VOI LUT Sequence) |
+
+### 10.2 바이너리 레이아웃 (.lut)
+
+엔디언: **little-endian**. 패킹: `#pragma pack(push, 1)`.
+
+```
+Offset  Size  Field           Type        설명
+------  ----  --------------  ----------  ----------------------------------------
+0       4     magic           char[4]     "XLUT" (0x58 0x4C 0x55 0x54)
+4       2     version         uint16_t    포맷 버전. 현재 = 1.
+6       2     lutType         uint16_t    0=Modality, 1=VOI, 2=Presentation
+8       4     numEntries      uint32_t    LUT 엔트리 수 (256, 1024, 4096, 65536)
+12      2     inputBits       uint16_t    입력 비트 깊이 (e.g., 12, 14, 16)
+14      2     outputBits      uint16_t    출력 비트 깊이 (e.g., 8, 10, 12)
+16      4     firstStored     int32_t     첫 저장 픽셀 값 (DICOM (0028,3002)[1])
+20      4     crc32           uint32_t    data[] 의 CRC-32
+24      var   data            uint16_t[]  LUT 값 배열. 크기 = numEntries * 2 bytes.
+
+총 헤더 크기: 24 bytes.
+```
+
+### 10.3 LUT 타입별 사용 스테이지
+
+| lutType | 값 | 적용 스테이지 | DICOM 태그 |
+|---|:---:|---|---|
+| Modality | 0 | (14) `xpe_modality_lut_apply` | (0028,3000) |
+| VOI | 1 | (15) `xpe_voi_lut_apply` | (0028,3010) |
+| Presentation | 2 | (16) `xpe_presentation_lut_apply` | (2050,0010) |
+
+### 10.4 검증 규칙
+
+- `numEntries` ∈ {256, 1024, 4096, 65536}; 기타 값 → `XPE_ERR_CONFIG_INVALID`
+- `data[i]` 값은 단조 비감소(monotonically non-decreasing)이어야 함
+- CRC-32 불일치 → `XPE_ERR_IO_FAILED`
+
+---
+
+## 11. GSDF 컴플라이언스 검증 공식 (GAP-D10)
+
+DICOM Part 14 GSDF(Grayscale Standard Display Function) 준수 검증 절차.
+
+### 11.1 GSDF JND 인덱스 참조값 (18 레벨)
+
+| 레벨 | JND Index | 최소 휘도 (cd/m²) | 최대 휘도 (cd/m²) |
+|:---:|:---:|:---:|:---:|
+| L0 | 1.0 | 0.05 | 0.08 |
+| L1 | 10.0 | 0.45 | 0.60 |
+| L2 | 50.0 | 2.60 | 3.20 |
+| L3 | 100.0 | 7.00 | 8.50 |
+| L4 | 200.0 | 19.0 | 23.0 |
+| L5 | 300.0 | 38.0 | 46.0 |
+| L6 | 400.0 | 65.0 | 79.0 |
+| L7 | 500.0 | 101 | 123 |
+| L8 | 600.0 | 148 | 180 |
+| L9 | 700.0 | 207 | 252 |
+| L10 | 800.0 | 281 | 342 |
+| L11 | 900.0 | 371 | 451 |
+| L12 | 1000.0 | 479 | 583 |
+| L13 | 1500.0 | 950 | 1050 |
+| L14 | 2000.0 | 1250 | 1400 |
+| L15 | 2500.0 | 1550 | 1700 |
+| L16 | 3000.0 | 1750 | 1950 |
+| L17 | 4000.0 | 2100 | 2400 |
+
+### 11.2 합격 기준
+
+합격: **모든 18개 레벨**에서 측정 휘도가 ±10% 이내:
+
+```
+|L_measured(i) - L_gsdf(i)| / L_gsdf(i) <= 0.10
+```
+
+한 레벨이라도 초과 시 불합격 → 디스플레이 캘리브레이션 필요.
+
+### 11.3 검증 절차 (QA Constancy Test)
+
+1. `xpe_display_calibrate_gsdf()` 호출하여 측광계 연결
+2. 각 JND 레벨(L0..L17)에 해당하는 픽셀값 출력
+3. 측광계로 실제 휘도(cd/m²) 측정
+4. 합격 기준 적용 → `XPE_OK` 또는 `XPE_ERR_DISPLAY_CALIBRATION_REQUIRED`
+5. 결과를 `QaConstancyTestResult` JSON으로 저장
+
+---
+
+## 12. AI Worker IPC 프로토콜 (GAP-D8)
+
+Phase 3 `xpe_ai.dll`이 별도 프로세스(`xpe_ai_worker.exe`)와 통신하는 방법.
+
+### 12.1 채널
+
+| 항목 | 값 |
+|---|---|
+| 메커니즘 | Windows Named Pipe (`\\.\pipe\xpe_ai_worker_{PID}`) |
+| 버퍼 크기 | 64 KB (제어 메시지) |
+| 이미지 데이터 | Named Shared Memory (`Local\xpe_ai_shm_{PID}_{FrameID}`) |
+| 최대 대기 | 50 ms per 메시지 왕복 |
+
+### 12.2 메시지 프레임 형식
+
+```
+[LEN: 4 bytes little-endian uint32][TYPE: 4 bytes ASCII][BODY: LEN bytes UTF-8 JSON]
+```
+
+### 12.3 메시지 타입
+
+| TYPE (4 bytes) | 방향 | 설명 |
+|---|---|---|
+| `INFT` | DLL → Worker | 추론 요청 |
+| `RSPN` | Worker → DLL | 추론 결과 |
+| `PING` | DLL → Worker | 생존 확인 |
+| `PONG` | Worker → DLL | 생존 확인 응답 |
+| `KILL` | DLL → Worker | 정상 종료 요청 |
+| `ERRO` | Worker → DLL | 오류 보고 |
+
+### 12.4 추론 요청 (INFT) JSON
+
+```json
+{
+  "frame_id": 42,
+  "task": "bone_suppression",
+  "shm_name": "Local\\xpe_ai_shm_1234_42",
+  "width": 3072,
+  "height": 3072,
+  "format": "float32",
+  "body_part": "CHEST",
+  "config": {}
+}
+```
+
+### 12.5 추론 결과 (RSPN) JSON
+
+```json
+{
+  "frame_id": 42,
+  "status": "ok",
+  "shm_name": "Local\\xpe_ai_shm_1234_42_out",
+  "latency_ms": 35,
+  "model_version": "bone_sup_v1.2.0"
+}
+```
+
+### 12.6 크래시 복구 정책
+
+1. DLL은 Worker 프로세스를 `CreateProcess()`로 생성
+2. PING/PONG으로 50 ms 간격 생존 확인
+3. PONG 없음 3회 연속 → Worker 크래시로 판단
+4. `TerminateProcess()` 후 새 Worker 프로세스 생성 (최대 3회 재시도)
+5. 재시도 실패 시 `xpe_ai.dll` 비활성화 + `AI_MODEL_UNAVAILABLE` 알림
+
+---
+
+## 13. DL 모델 양자화 명세 (GAP-D7)
+
+Phase 3 ONNX 모델의 INT8 양자화 상세 명세.
+
+### 13.1 대상 모델
+
+| 모델 | 구조 | 용도 | 파라미터 |
+|---|---|---|---|
+| BoneSuppression | U-Net (EfficientNet-B2 인코더) | 뼈 조직 억제 | ~28M FP32 / ~7M INT8 |
+| DLDenoiser | DnCNN (17-layer) | 딥러닝 노이즈 제거 | ~556K FP32 / ~139K INT8 |
+| BodyPartRecognizer | EfficientNet-B0 | 신체 부위 분류 | ~5.3M FP32 / ~1.3M INT8 |
+
+### 13.2 양자화 기법
+
+| 항목 | 값 |
+|---|---|
+| 방법 | Post-Training Quantization (PTQ) — Static |
+| 정밀도 | INT8 (Weight + Activation) |
+| 캘리브레이션 데이터셋 | 신체 부위별 200장 임상 영상 (15 카테고리 × 200 = 3,000장) |
+| 캘리브레이션 알고리즘 | MinMax + Entropy (Histogram) |
+| 도구 | ONNX Runtime Quantization Tool (`onnxruntime.quantization`) |
+
+### 13.3 합격 기준
+
+| 메트릭 | 목표 |
+|---|---|
+| PSNR 손실 (FP32 vs INT8) | < 2 dB |
+| 분류 정확도 손실 | < 1% |
+| 추론 속도 향상 | ≥ 2x (FP32 대비) |
+| 모델 크기 감소 | ≥ 70% |
+
+### 13.4 모델 파일 배포
+
+```
+data/models/
+  bone_suppression_int8.onnx      (≤ 8 MB)
+  dl_denoiser_int8.onnx           (≤ 1 MB)
+  body_part_recognizer_int8.onnx  (≤ 2 MB)
+```
+
+---
+
+## 14. Calibration session_id 형식 (GAP-C10)
+
+캘리브레이션 데이터 세션 식별자 및 검증 로직.
+
+### 14.1 session_id 형식
+
+```
+{detector_serial}_{YYYYMMDD}_{calibType}_{sha256_prefix8}
+```
+
+| 파트 | 형식 | 예 |
+|---|---|---|
+| `detector_serial` | 영문/숫자 최대 16자 | `AU1234567` |
+| `YYYYMMDD` | 캘리브레이션 수행 날짜 | `20260414` |
+| `calibType` | `offset` \| `gain` \| `defect` | `offset` |
+| `sha256_prefix8` | 데이터 SHA-256의 앞 8 hex 문자 | `a3f2b1c9` |
+
+전체 예: `AU1234567_20260414_offset_a3f2b1c9`
+
+### 14.2 생성 알고리즘
+
+```c
+// session_id 생성 (CalibManager 내부)
+void generate_session_id(
+    const char* detector_serial,
+    const uint8_t* data, size_t data_len,
+    uint8_t calib_type,
+    char* out_session_id, size_t buf_size)
+{
+    uint8_t sha256[32];
+    SHA256(data, data_len, sha256);
+
+    char date_str[9];
+    time_t now = time(NULL);
+    struct tm* t = localtime(&now);
+    strftime(date_str, sizeof(date_str), "%Y%m%d", t);
+
+    const char* type_names[] = {"offset", "gain", "defect"};
+    snprintf(out_session_id, buf_size,
+        "%.16s_%s_%s_%02x%02x%02x%02x",
+        detector_serial, date_str, type_names[calib_type],
+        sha256[0], sha256[1], sha256[2], sha256[3]);
+}
+```
+
+### 14.3 검증 규칙
+
+1. 정규식: `^[A-Za-z0-9]{1,16}_\d{8}_(offset|gain|defect)_[0-9a-f]{8}$`
+2. 날짜 유효성: YYYYMMDD가 유효한 날짜인지 확인
+3. SHA-256 일치: 파일 로드 시 데이터를 재계산하여 접두사 8자 일치 확인
+4. 만료: `expiryEpochMs` 필드와 병행 사용 (session_id는 식별 전용)
+
+### 14.4 다중 캘리브레이션 세트 관리
+
+동일 detector에 대해 여러 날짜의 세트를 보관할 때:
+
+```json
+{
+  "active_sessions": {
+    "offset": "AU1234567_20260414_offset_a3f2b1c9",
+    "gain":   "AU1234567_20260414_gain_f1e2d3c4",
+    "defect": "AU1234567_20260401_defect_b5a69871"
+  }
+}
+```
+
+- 각 calibType별 독립적으로 최신 세션 관리
+- `defect` 세션 날짜가 `offset`/`gain`보다 오래될 수 있음 (BPM은 덜 자주 갱신)
+
+---
+
+*Document End -- XPE-IMPL-REF-001 v1.1.0*

@@ -1,11 +1,11 @@
 # XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Date**: 2026-04-14
-**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.2.0, pipeline-spec.md v1.3.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2, xpe-implementation-reference.md v1.0.0
+**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.4.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2, xpe-implementation-reference.md v1.1.0
 **Total Sprints**: 28
-**Changelog**: v1.0.0 -> v1.1.0: Cross-verification corrections. SWU-2.10 (EI) removed from P2-ADV-01 scope (moved to Phase 1b). enhance_advanced API count 4->3. Total API 83->82. Added Appendix D: Cumulative Regression Test Chain, Appendix E: Test Data Dependencies, Appendix F: Sprint Rollback Strategy.
+**Changelog**: v1.0.0→v1.1.0: Cross-verification corrections. SWU-2.10 (EI) removed from P2-ADV-01 scope. enhance_advanced API count 4→3. Total API 83→82. Added Appendix D/E/F. **v1.1.0→v1.2.0**: (1) SPRINT-P0-03 acceptance criteria updated: log format pinned to §9.1 of xpe-implementation-reference.md v1.1.0. (2) SPRINT-P0-05 acceptance criteria updated: alert JSON schema pinned to §9.3. (3) Source document references updated to api-spec v1.3.0, pipeline-spec v1.4.0, xpe-implementation-reference v1.1.0.
 
 ---
 
@@ -232,9 +232,10 @@ SPRINT-P1A-01 (CalibManager)                   |
 1. `xpe_log_set_level(2)` sets minimum level to INFO; DEBUG messages are discarded
 2. `xpe_log_set_file("test.log")` redirects output from stderr to file in append mode
 3. `xpe_log_flush` forces buffered entries to disk immediately
-4. Log format: `[YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] message\n`
-5. Level values: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF
+4. Log format: `[YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] [TID] message` — per xpe-implementation-reference.md §9.1
+5. Level values: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF — per xpe-implementation-reference.md §9.2
 6. `xpe_log_set_level(6)` returns `XPE_ERR_INVALID_INPUT`
+7. JSON log mode: `xpe_init("{\"logFormat\": \"json\"}")` → each line is `{"ts":"...","lvl":"...","tid":N,"msg":"..."}` — per §9.4
 
 **Test Cases**:
 1. Set level to WARN(3), emit INFO message, read log file -> expect message NOT present
@@ -312,6 +313,8 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. `xpe_get_pending_alert_count` returns accurate count atomically
 6. `xpe_get_pending_alert(0, msg, 256, &severity)` copies first alert message
 7. `xpe_clear_alerts` empties the ring buffer
+8. Alert message format: UTF-8 JSON matching schema in xpe-implementation-reference.md §9.3 — fields: severity, code, message, timestamp_ms, stage_id, stage_name, frame_index
+9. Defined alert codes enumerated in §9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
 
 **Test Cases**:
 1. Configure AED, simulate trigger -> `xpe_aed_poll_event` returns event -> expect event data valid
@@ -320,6 +323,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. `xpe_get_pending_alert(0, buf, 5, &sev)` with too-small buffer -> `XPE_ERR_BUFFER_TOO_SMALL`
 5. `xpe_clear_alerts()` -> `xpe_get_pending_alert_count()` returns 0
 6. Enqueue 100 alerts (exceed ring buffer) -> oldest alerts overwritten, count <= 64
+7. Parse alert JSON: `severity`, `code`, `timestamp_ms`, `stage_id` fields are present and valid types
 
 **Definition of Done**:
 - [ ] 6 API functions exported (3 AED + 3 alert)

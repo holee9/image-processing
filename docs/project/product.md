@@ -87,8 +87,39 @@ X-ray Flat Panel Detector(FPD)에서 획득한 raw 영상 데이터를 진단 �
 - QA 엔지니어: IEC 62304 검증/확인
 - 시스템 통합자: DLL을 RadiConsole 등 프로덕션 GUI에 연동
 
+## 배포 바이너리 구성 (전체 10개)
+
+| 번호 | 바이너리 | 유형 | Phase | 함수 수 |
+|:---:|---|---|:---:|:---:|
+| 1 | `xpe_common.dll` | C/C++ DLL | 0 | 18 |
+| 2 | `xpe_preprocess.dll` | C/C++ DLL | 1a | 18 |
+| 3 | `xpe_enhance_basic.dll` | C/C++ DLL | 1b | 7 |
+| 4 | `xpe_display.dll` | C/C++ DLL | 1b | 11 |
+| 5 | `xpe_dicom.dll` | C/C++ DLL | 1b | 10 |
+| 6 | `xpe_enhance_advanced.dll` | C/C++ DLL | 2 | 3 |
+| 7 | `gsvg.dll` | C/C++ DLL (독립) | 2 | 8 |
+| 8 | `xpe_ai.dll` | C/C++ DLL | 3 | 7 |
+| 9 | `ImageProcTest.exe` | C# WPF GUI | 1b | — |
+| 10 | `xpe_ai_worker.exe` | C++ 프로세스 | 3 | — (IPC) |
+| — | `xpe_common_infra.lib` | 정적 공통 인프라 | 0 | 내부 |
+
+**합계**: DLL 8개 + 실행파일 2개 = **10개 배포 바이너리**
+
+### SWU 카운팅 (SPEC-XPE-MASTER v2.0.0 기준)
+
+| 범주 | SWU 수 | 대표 유닛 |
+|---|:---:|---|
+| Infrastructure (xpe_common) | **7** | MemoryPool, ThreadPool, ErrorHandler, Logger, ParameterValidator, ConfigManager, AedEventInterface |
+| 전처리 (xpe_preprocess) | 9 | CalibManager, OffsetCorrector, GainCorrector, DefectCorrector, GhostCorrector, ReadoutValidator, TempCompensator, NonlinearityCorrector, BinningCorrector |
+| 핵심처리 (enhance_basic/advanced) | 12 | LogTransform, NoiseReducer, ContrastEnhancer, EdgeEnhancer, MultiscaleProcessor, FractionalProcessor, CollimationDetector, ExposureIndexCalc, BodyPartRecognizer, Stitcher, BoneSuppressor, DLDenoiser |
+| 디스플레이 (xpe_display) | 4 | ModalityLUT, VOILUT, PresentationLUT, LUTManager |
+| DICOM I/O (xpe_dicom) | 4 | DicomReader, DicomWriter, DicomNetworkSCU, DicomValidator |
+| GSVG (독립 IEC 62304) | 4 | GridDetector, GridSuppressor, VirtualGridGenerator, ScatterLUTManager |
+| C# GUI | 2 | PipelineOrchestrator, QaConstancyTest |
+| **합계** | **43** | |
+
 ## 개발 상태
 
-- IEC 62304 규정 문서: 완비 (XPE, GSVG, Ghost Correction, Panel Defect)
-- 소스 코드: 스캐폴딩 단계
+- IEC 62304 규정 문서: 완비 (XPE, GSVG, Ghost Correction, Panel Defect, **Calibration v1.0**)
+- 소스 코드: 스캐폴딩 단계 (xpe_common 기초 구현 중)
 - Phase 0 (Foundation) → Phase 1 (Pre/Post Basic) → Phase 2 (Clinical) → Phase 3 (AI)

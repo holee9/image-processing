@@ -331,4 +331,70 @@ if (File.Exists(siteConfigFile))
 
 ---
 
-**Document End -- XPE-PROD-INT-001 v1.0.0**
+---
+
+## 8. Phase 3 AI Worker IPC 통합 (production-integration-guide v1.1.0 추가)
+
+Phase 3 (`xpe_ai.dll`) 통합 시 별도 AI Worker 프로세스와의 통신 절차입니다.  
+전체 프로토콜 명세는 **xpe-implementation-reference.md §12** 참조.
+
+### 8.1 AI Worker 배포 구조
+
+```
+InstallDir\
+  xpe_ai.dll               # xpe_ai 모듈 (IPC 클라이언트)
+  xpe_ai_worker.exe        # 별도 프로세스 (ONNX 추론 실행)
+  data\models\
+    bone_suppression_int8.onnx
+    dl_denoiser_int8.onnx
+    body_part_recognizer_int8.onnx
+```
+
+### 8.2 C# 오케스트레이터에서 AI Worker 시작
+
+```csharp
+// Phase 3 초기화 시 xpe_ai.dll이 Worker 프로세스를 자동으로 시작
+// xpe_ai_init(configJson) 내부에서 CreateProcess 호출
+var aiConfig = new
+{
+    workerExePath = Path.Combine(installDir, "xpe_ai_worker.exe"),
+    modelDir = Path.Combine(installDir, "data", "models"),
+    ipcTimeoutMs = 50,
+    maxRestartRetries = 3
+};
+int result = xpe_ai_init(JsonSerializer.Serialize(aiConfig));
+if (result != XPE_OK)
+{
+    // AI 기능 비활성화 → classical pipeline 계속 사용
+    aiEnabled = false;
+    logger.LogWarning("AI worker init failed, falling back to classical pipeline");
+}
+```
+
+### 8.3 Named Pipe 채널 명
+
+AI Worker는 시작 시 PID 기반 Named Pipe를 생성:
+```
+\\.\pipe\xpe_ai_worker_{WorkerPID}
+```
+
+`xpe_ai.dll`은 Worker PID를 `stdout`에서 읽어 파이프 연결.
+
+### 8.4 Shared Memory 이미지 전달
+
+이미지 데이터(최대 37.7MB)는 Named Pipe 대신 Shared Memory로 전달:
+```
+Local\xpe_ai_shm_{DllPID}_{FrameID}
+```
+
+### 8.5 크래시 복구 동작
+
+| 상태 | 동작 |
+|---|---|
+| Worker PONG 없음 3회 | Worker 크래시 판정 → 재시작 |
+| 재시작 3회 실패 | `xpe_ai.dll` 비활성화, `AI_MODEL_UNAVAILABLE` 알림 발행 |
+| 알림 발행 후 | classical pipeline으로 자동 폴백, GUI에 경고 표시 |
+
+---
+
+**Document End -- XPE-PROD-INT-001 v1.1.0**

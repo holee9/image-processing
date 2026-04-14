@@ -56,8 +56,8 @@
 | Document | ID | Version | Lines | Description |
 |----------|-----|---------|:-----:|-------------|
 | [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | SPEC-XPE-MASTER | v2.0.0 | 495 | 마스터 계획: 43개 SWU, Phase 0-3, 교차 검증 요약, 문서 업데이트 매트릭스 |
-| [sprint-plan.md](project/sprint-plan.md) | XPE-SPRINT-PLAN-001 | v1.1.0 | 1,410 | 28개 sprint, 종속성 그래프, sprint별 범위/API/테스트 대상, 롤백 전략 |
-| [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | XPE-IMPL-REF-001 | v1.0.0 | 759 | Calibration 바이너리 형식, JSON 설정 스키마, 신체 부위 조회 테이블, 오류 코드 |
+| [sprint-plan.md](project/sprint-plan.md) | XPE-SPRINT-PLAN-001 | v1.2.0 | 1,430 | 28개 sprint, 종속성 그래프, sprint별 범위/API/테스트 대상, 로깅/Alert 검증 기준 |
+| [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | XPE-IMPL-REF-001 | v1.1.0 | 950 | Calibration 바이너리, 로깅/Alert JSON(§9), LUT 형식(§10), GSDF(§11), IPC(§12), 양자화(§13), session_id(§14) |
 
 ---
 
@@ -84,7 +84,7 @@
 
 소프트웨어 항목별로 정리된 완전한 수명 주기 문서입니다. 각 패키지는 IEC 62304 Class B 규정 준수를 목표로 합니다.
 
-### 3.1 XPE (X-ray Processing Engine) — 21개 문서
+### 3.1 XPE (X-ray Processing Engine) — 22개 문서
 
 전처리, 향상, 표시 및 DICOM 모듈을 다루는 주요 소프트웨어 항목입니다.
 
@@ -111,6 +111,7 @@
 | 12 | Maintenance Plan | [XPE-SMP-001](post-processing/xpe/XPE-SMP-001_Software_Maintenance_Plan.md) | SMP-001 |
 | 9 | Problem Resolution | [XPE-SPR-001](post-processing/xpe/XPE-SPR-001_Problem_Resolution_Process.md) | SPR-001 |
 | — | Release Procedure | [XPE-SRP-001](post-processing/xpe/XPE-SRP-001_Software_Release_Procedure.md) | SRP-001 |
+| 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 10개 문서
 
@@ -129,7 +130,20 @@
 | 8 | SOUP Analysis | [GSVG-SOUP-001](post-processing/gsvg/GSVG-SOUP-001_SOUP_Analysis.md) | SOUP-001 |
 | 5.8 | Traceability Matrix | [GSVG-RTM-001](post-processing/gsvg/GSVG-RTM-001_Traceability.md) | RTM-001 |
 
-### 3.3 Ghost Correction (Lag/Ghost) — 6개 문서
+### 3.3 Calibration (전처리 보정 모듈) — 6개 문서
+
+PRE-02~09 Calibration 보정 알고리즘의 완전한 IEC 62304 Class B 수명 주기입니다.
+
+| IEC 62304 Clause | Document Type | Document | ID |
+|----------------:|:-------------|---------|-----|
+| — | PRD (Calibration) | [xray-detector-calibration-prd.md](calibration/xray-detector-calibration-prd.md) | PRD |
+| — | Architecture Reference | [README.md](calibration/README.md) | REF |
+| 5.2 | Requirements Specification | [SRS-CALIB-001](calibration/SRS-CALIB-001_Software_Requirements_Specification.md) | SRS-001 |
+| 5.3 | Architecture Document | [SAD-CALIB-001](calibration/SAD-CALIB-001_Software_Architecture_Document.md) | SAD-001 |
+| 7 | Hazard Analysis | [SHA-CALIB-001](calibration/SHA-CALIB-001_Software_Hazard_Analysis.md) | SHA-001 |
+| 5.8 | Traceability Matrix | [RTM-CALIB-001](calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md) | RTM-001 |
+
+### 3.4 Ghost Correction (Lag/Ghost) — 6개 문서
 
 PRE-04/05 Lag/Ghost 보정에 대한 완전한 IEC 62304 Class B 수명 주기입니다.
 
@@ -149,6 +163,8 @@ PRE-04/05 Lag/Ghost 보정에 대한 완전한 IEC 62304 Class B 수명 주기�
 도메인 연구, 방법론 연구 및 초기 단계 분석입니다. 아직 SPEC으로 공식화되지 않았습니다.
 
 ### 4.1 Calibration 모듈
+
+> IEC 62304 Class B 패키지 (§3.3)로 승격되었습니다. SRS, SAD, SHA, RTM 문서가 완성되었습니다.
 
 | Document | Lines | Description |
 |----------|:-----:|-------------|
@@ -201,22 +217,22 @@ PRE-04/05 Lag/Ghost 보정에 대한 완전한 IEC 62304 Class B 수명 주기�
 
 빠른 검색: 각 소프트웨어 항목에 대해 어느 IEC 62304 조항이 어느 문서로 다루어지는가.
 
-| IEC 62304 Clause | Description | XPE | GSVG | Ghost |
-|:-----------------:|-------------|:---:|:----:|:-----:|
-| 5.1 | Development Plan | SDP-001 | SDP-001 | — |
-| 5.2 | Requirements | SRS-001 | SRS-001 | SRS |
-| 5.3 | Architecture | SAD-001 | SAD-001 | SAD |
-| 5.4 | Detailed Design | SDD-001/002 | SDD-001 | SDD |
-| 5.5 | Unit Implementation | (code) | (code) | (code) |
-| 5.5 | Test Plan | STP-001 | — | STP/STC |
-| 5.6 | Integration | VVP-001 | SVP-001 | — |
-| 5.7 | Verification | VVP-001 | SVP-001 | — |
-| 5.8 | Traceability | RTM-001 | RTM-001 | RTM |
-| 6.1 | Configuration Mgmt | SCM-001 | — | — |
-| 7 | Risk Management | SRM-001, SHA-001 | SHA-001 | — |
-| 8 | SOUP | SOUP-001 | SOUP-001 | — |
-| 9 | Problem Resolution | SPR-001 | — | — |
-| 12 | Maintenance | SMP-001 | — | — |
+| IEC 62304 Clause | Description | XPE | GSVG | Ghost | Calibration |
+|:-----------------:|-------------|:---:|:----:|:-----:|:-----------:|
+| 5.1 | Development Plan | SDP-001 | SDP-001 | — | — |
+| 5.2 | Requirements | SRS-001 | SRS-001 | SRS | SRS-001 |
+| 5.3 | Architecture | SAD-001 | SAD-001 | SAD | SAD-001 |
+| 5.4 | Detailed Design | SDD-001/002 | SDD-001 | SDD | — |
+| 5.5 | Unit Implementation | (code) | (code) | (code) | (code) |
+| 5.5 | Test Plan | STP-001 | — | STP/STC | — |
+| 5.6 | Integration | ITP-001, VVP-001 | SVP-001 | — | — |
+| 5.7 | Verification | VVP-001 | SVP-001 | — | — |
+| 5.8 | Traceability | RTM-001 | RTM-001 | RTM | RTM-001 |
+| 6.1 | Configuration Mgmt | SCM-001 | — | — | — |
+| 7 | Risk Management | SRM-001, SHA-001 | SHA-001 | — | SHA-001 |
+| 8 | SOUP | SOUP-001 | SOUP-001 | — | — |
+| 9 | Problem Resolution | SPR-001 | — | — | — |
+| 12 | Maintenance | SMP-001 | — | — | — |
 
 ### 적용 범위 요약
 

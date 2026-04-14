@@ -33,15 +33,15 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 |----------|:------:|------|
 | Normative 사양 | 9 | [docs/project/](docs/project/) |
 | Informational | 3 | [docs/project/](docs/project/), [docs/development/](docs/development/) |
-| XPE IEC 62304 패키지 | 21 | [docs/post-processing/xpe/](docs/post-processing/xpe/) |
+| XPE IEC 62304 패키지 | 22 | [docs/post-processing/xpe/](docs/post-processing/xpe/) |
 | GSVG IEC 62304 패키지 | 10 | [docs/post-processing/gsvg/](docs/post-processing/gsvg/) |
 | Ghost Correction IEC 62304 | 6 | [docs/ghost-correction/](docs/ghost-correction/) |
-| Calibration 전처리 | 2 | [docs/calibration/](docs/calibration/) |
+| Calibration IEC 62304 패키지 | 6 | [docs/calibration/](docs/calibration/) |
 | Panel Defect 알고리즘 | 1 | [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Quality Evaluation 연구 | 4 | [docs/quality-eval/](docs/quality-eval/) |
 | 외부 참고자료 | 3 | [docs/references/](docs/references/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **63** | |
+| **합계** | **68** | |
 
 ---
 
@@ -58,9 +58,9 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [product](docs/project/product.md) | 제품 정의 — 컴포넌트, Phase 전략, 대상 사용자 |
 | [structure](docs/project/structure.md) | 저장소 구조 — DLL 매핑, 의존성 규칙 |
 | [tech](docs/project/tech.md) | 기술 스택 — C++17/C#, SOUP 의존성, ABI 설계 |
-| [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.1.0) |
+| [sprint-plan](docs/project/sprint-plan.md) | 28개 Sprint 분해 및 실행 일정 (v1.2.0) |
 | [xpe-milestone-uat-plan](docs/project/xpe-milestone-uat-plan.md) | AI Agent HITL 방법론, Gantt 차트, WBS, M1-M5 Human UAT 시나리오 (v1.0.0) |
-| [xpe-implementation-reference](docs/project/xpe-implementation-reference.md) | 개발자 참조 — Calibration 바이너리 형식, JSON 스키마 |
+| [xpe-implementation-reference](docs/project/xpe-implementation-reference.md) | 개발자 참조 — 로깅/Alert JSON, LUT 형식, GSDF, IPC, 양자화, session_id (v1.1.0) |
 
 ### Informational
 
@@ -76,9 +76,10 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 
 | 소프트웨어 항목 | 문서 수 | 패키지 인덱스 |
 |----------------|:------:|--------------|
-| **XPE** (이미지 처리 엔진) | 21 | [xpe-iec62304-class-b-package](docs/post-processing/xpe/xpe-iec62304-class-b-package.md) |
+| **XPE** (이미지 처리 엔진) | 22 | [xpe-iec62304-class-b-package](docs/post-processing/xpe/xpe-iec62304-class-b-package.md) |
 | **GSVG** (Grid Suppression Virtual Grid) | 10 | [GSVG_IEC62304_ClassB_Document_Package](docs/post-processing/gsvg/GSVG_IEC62304_ClassB_Document_Package.md) |
 | **Ghost Correction** (Lag/Ghost 보정) | 6 | [srs_ghost_correction](docs/ghost-correction/srs_ghost_correction.md) |
+| **Calibration** (전처리 보정 모듈) | 6 | [docs/calibration/](docs/calibration/) |
 
 ### 심층 연구 산출물 (Deep Research Artifacts)
 
