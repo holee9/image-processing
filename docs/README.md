@@ -114,7 +114,7 @@
 | 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
 | 5.4 | Unified Algorithm Spec | [XPE-ALG-001](post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | ALG-001 |
 
-> **XPE-ALG-001 v1.2** (IEC 62304 §5.4 Detailed Design): 3 라운드 30회 Review-Evaluate-Fix를 통해 30개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X) 전부 해소. v1.2 신규 항목: Heel Effect(§3.5), Multi-SID Gain(§3.2.5), Session Lock(§2.4), Quality State Sidecar(§13), Parity Harness(§11.4), MTF ESF(§12.6), Lag Tiering(§3.4.5), VG Anatomy Presets(§5.3), AI Worker Isolation(§8.4), Drift Monitor(§9.5).
+> **XPE-ALG-001 v1.3** (IEC 62304 §5.4 Detailed Design): 4 라운드 40회 Review-Evaluate-Fix를 통해 40개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X, GAP-Y~AH) 전부 해소. v1.3 신규 항목: Fluoroscopy IIR 필터(§14), Beam Hardening 보정(§3.9), Geometric 왜곡 보정(§3.10), Binning 모드 교정(§9.7), Memory Arena 아키텍처(§10.7), Multi-Channel Thread Safety(§10.8), Auto CNR Assessment(§12.8), Auto W/L(§6.4), Sigma-Clipping 교정(§9.8), Error Code Taxonomy(§15). 총 7,563줄.
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 13개 문서
 

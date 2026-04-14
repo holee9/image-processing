@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.1.0  
+**Package Version**: 1.2.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -76,7 +76,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백 (v1.2 기준 — 총 30건)
+### 4.1 해소된 알고리즘 공백 (v1.3 기준 — 총 40건)
 
 **v1.0 Round 1 (GAP-01~10):**
 
@@ -122,6 +122,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §5.3 | 해부 부위별 Virtual Grid 프리셋 (15개 부위) | GAP-V |
 | §8.4 | AI Worker 격리 아키텍처 (ONNX + 폴백) | GAP-W |
 | §9.5 | 교정 드리프트 모니터링 | GAP-X |
+
+**v1.3 Round 4 (GAP-Y~AH):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §14 | Fluoroscopy 시간적 재귀 IIR 필터 (AVX2 FMA, α 적응형) | GAP-Y |
+| §3.9 | Beam Hardening Correction (PMMA 팬텀, OD 도메인 다항식) | GAP-Z |
+| §3.10 | Geometric Distortion Correction (Brown-Conrady, 역 LUT) | GAP-AA |
+| §9.7 | Pixel Binning Mode 교정 보간 (gain 블록 평균, defect 전파) | GAP-AB |
+| §10.7 | Memory Arena Zero-Copy 아키텍처 (8-슬롯 링 버퍼, CAS) | GAP-AC |
+| §10.8 | Multi-Channel SPSC Thread Safety (lock-free, CPU affinity) | GAP-AD |
+| §12.8 | Automatic CNR Auto-Assessment (히스토그램 IQI) | GAP-AE |
+| §6.4 | Anatomy-Adaptive Auto Window/Level (5종 퍼센타일 테이블) | GAP-AF |
+| §9.8 | Multi-Frame Sigma-Clipping 교정 (Python NumPy, κ=3.0) | GAP-AG |
+| §15 | Error Code Taxonomy (32개 코드, xpe_error_string, C# 핸들러) | GAP-AH |
 
 ### 4.2 문서 관계
 
@@ -169,6 +184,16 @@ XPE-STP-001 (테스트 계획)
 | ONNX Model Manifest | SRS-AI-002 | xpe_ai_worker.exe |
 | Panoramic Stitch | SRS-FUNC-017 | xpe_ai.dll |
 | Bone Suppression | SRS-FUNC-018 | xpe_ai.dll |
+| Temporal IIR Filter | SRS-FLUORO-001 | xpe_preprocess.dll |
+| Beam Hardening Correction | SRS-FUNC-003b | xpe_preprocess.dll |
+| Geometric Distortion Correction | SRS-FUNC-005b | xpe_preprocess.dll |
+| Binning Mode Calibration | SRS-FUNC-002c | xpe_preprocess.dll |
+| Sigma-Clipping Calibration | SRS-CAL-001b | (offline, Python) |
+| Memory Arena Architecture | SRS-PERF-001 | xpe_common.dll |
+| Pipeline Thread Safety | SRS-PERF-002 | xpe_common.dll |
+| Auto CNR Assessment | SRS-MEAS-003 | xpe_enhance_advanced.dll |
+| Auto Window/Level (Anatomy) | SRS-FUNC-021b | xpe_display.dll |
+| Error Code Taxonomy | SRS-ERR-001 | xpe_common.dll |
 
 ---
 
@@ -212,5 +237,6 @@ XPE-STP-001 (테스트 계획)
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 1.2.0 | XPE-ALG-001 v1.3 반영. Round 4 GAP-Y~AH 해소 반영 (10건). §14 Fluoroscopy IIR, §15 Error Code Taxonomy 신설. 알고리즘 빠른 참조 테이블 확장 (40건). SRS ID 추가 (SRS-FLUORO-001, SRS-PERF-001/002, SRS-MEAS-003, SRS-ERR-001 등). |
 | 2026-04-15 | 1.1.0 | XPE-ALG-001 v1.2 반영. Round 3 GAP-O~X 해소 반영. 알고리즘 빠른 참조 테이블 확장 (30건). SRS ID 추가 (SRS-FUNC-002b, SRS-QC-002/003, SRS-AI-001/002, SRS-MEAS-002, SRS-TEST-001 등). |
 | 2026-04-15 | 1.0.0 | 신규 생성. XPE-ALG-001 v1.1 통합 반영. 23개 문서 목록 완성. |
