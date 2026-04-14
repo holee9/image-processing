@@ -1,46 +1,39 @@
-# 저장소 기여 가이드라인
+# Repository Guidelines
 
-## 프로젝트 구조 및 모듈 조직
+## Project Structure & Module Organization
+This repository is organized around image-processing research and compliance documentation rather than application source code. Use `docs/` for domain artifacts, grouped by topic such as `ghost-correction/`, `panel-defect-algorithm/`, `post-processing/gsvg/`, and `post-processing/xpe/`. Keep automation and agent configuration under `.agency/`, `.claude/`, and `.moai/`; treat those directories as framework infrastructure, not product docs.
 
-이 저장소는 응용 소스 코드보다는 이미지 처리 연구 및 규정 준수 문서를 중심으로 구성되어 있습니다. `docs/` 디렉토리를 도메인 산출물 저장소로 사용하고 `ghost-correction/`, `panel-defect-algorithm/`, `post-processing/gsvg/`, `post-processing/xpe/` 등 주제별로 그룹화합니다. 자동화 및 에이전트 구성은 `.agency/`, `.claude/`, `.moai/` 아래에 두고 이들 디렉토리를 프레임워크 인프라로 취급하며 제품 문서로는 취급하지 않습니다.
+## Build, Test, and Development Commands
+No build system or executable test suite is checked into this workspace snapshot. Common contributor commands are therefore inspection-oriented:
 
-## 빌드, 테스트 및 개발 명령어
+- `Get-ChildItem docs -Recurse` to review the documentation tree.
+- `Get-Content docs\\post-processing\\xpe\\XPE-SRS-001_Software_Requirements_Specification.md` to inspect a spec in the terminal.
+- `git diff -- docs/` to review doc-only changes before opening a PR.
 
-실행 가능한 테스트 스위트나 빌드 시스템이 이 작업 공간 스냅샷에 체크인되지 않습니다. 따라서 기여자가 일반적으로 사용할 명령어는 검사 지향적입니다.
+If code or validation scripts are added later, document their entry points in this file alongside the owning folder.
 
-- `Get-ChildItem docs -Recurse`를 사용하여 문서 구조를 검토합니다.
-- `Get-Content docs\\post-processing\\xpe\\XPE-SRS-001_Software_Requirements_Specification.md`를 사용하여 터미널에서 사양을 검사합니다.
-- `git diff -- docs/`를 사용하여 PR을 열기 전에 문서 전용 변경 사항을 검토합니다.
+## Coding Style & Naming Conventions
+Write Markdown with clear heading hierarchy, short sections, and direct language. Match the existing filename patterns already used in each area:
 
-나중에 코드나 검증 스크립트가 추가되면 이 파일에 해당 항목의 진입점을 소유 폴더와 함께 문서화합니다.
+- Formal package docs: `XPE-SRS-001_Software_Requirements_Specification.md`
+- Architecture/design docs: `GSVG-SAD-001_Architecture.md`
+- Research and working notes: lowercase kebab-case or snake_case, such as `sw_lag_correction_prd_v2.md`
 
-## 코딩 스타일 및 명명 규칙
+Preserve existing terminology for X-ray FPD, defect correction, and IEC 62304 artifacts. Prefer ASCII filenames unless the document already follows a localized naming scheme.
 
-명확한 제목 계층 구조, 짧은 섹션 및 직접적인 언어로 Markdown을 작성합니다. 각 영역에서 이미 사용 중인 기존 파일명 패턴과 일치시킵니다.
+## Testing Guidelines
+There is no repository-wide automated test harness at present. Validate contributions by checking internal consistency across linked specs, plans, and traceability documents. When updating regulated document sets, confirm related SRS, SAD, SDD, RTM, and VVP files stay synchronized.
 
-- 정식 패키지 문서: `XPE-SRS-001_Software_Requirements_Specification.md`
-- 아키텍처/설계 문서: `GSVG-SAD-001_Architecture.md`
-- 연구 및 작업 노트: `sw_lag_correction_prd_v2.md`와 같은 소문자 kebab-case 또는 snake_case
+## Moai Review Workflow
+When `.moai/plans/` or `.moai/specs/` receives a new or updated plan/specification, review it against the authoritative documents in `docs/` before treating it as source of truth.
 
-X-ray FPD, 결함 보정 및 IEC 62304 산출물의 기존 용어를 유지합니다. 문서가 이미 지역화된 명명 방식을 따르지 않는 한 ASCII 파일명을 사용합니다.
+- Report each review finding back to the user with a `codex:` prefix.
+- Treat missing referenced files, Class B/Class C conflicts, blank approvals or `TBD` governance fields, and broken SRS/SAD/SDD/RTM/VVP traceability as blocking issues until resolved.
+- If a Moai plan claims compliance completeness, verify that every referenced deliverable actually exists in the repository.
+- Keep workflow/config edits separate from domain-document edits and explain why the automation change is needed.
 
-## 테스트 지침
+## Commit & Pull Request Guidelines
+Git history is not available in this checkout, so follow the repository configuration in `.moai/config/sections/git-convention.yaml`: keep the subject line within 72 characters and use one clear change per commit. The language settings currently prefer Korean commit messages. Pull requests should include scope, affected document set, linked issue or requirement ID, and screenshots only when a rendered document or diagram changed materially.
 
-현재 저장소 전체 자동화 테스트 하네스가 없습니다. 링크된 사양, 계획 및 추적성 문서 전반에 걸쳐 내부 일관성을 확인하여 기여 사항을 검증합니다. 규제 문서 집합을 업데이트할 때 관련 SRS, SAD, SDD, RTM 및 VVP 파일이 동기화된 상태로 유지되는지 확인합니다.
-
-## Moai 검토 워크플로우
-
-`.moai/plans/` 또는 `.moai/specs/`에 새로운 또는 업데이트된 계획/사양이 들어올 때 이를 `docs/`의 권위 있는 문서에 대해 검토한 후 단일 정보원으로 취급합니다.
-
-- 각 검토 결과를 사용자에게 `codex:` 접두사로 보고합니다.
-- 누락된 참조 파일, Class B/Class C 충돌, 빈 승인 또는 `TBD` 거버넌스 필드, 그리고 끊어진 SRS/SAD/SDD/RTM/VVP 추적성을 해결될 때까지 차단 문제로 취급합니다.
-- Moai 계획이 규정 준수 완료성을 주장하는 경우 참조된 모든 산출물이 실제로 저장소에 존재하는지 확인합니다.
-- 워크플로우/구성 편집을 도메인 문서 편집과 분리하고 자동화 변경이 필요한 이유를 설명합니다.
-
-## 커밋 및 풀 요청 가이드라인
-
-이 체크아웃에서는 Git 히스토리를 사용할 수 없으므로 `.moai/config/sections/git-convention.yaml`의 저장소 구성을 따릅니다. 제목 줄을 72자 이내로 유지하고 커밋당 하나의 명확한 변경을 사용합니다. 현재 언어 설정은 한국어 커밋 메시지를 선호합니다. Pull Request에는 범위, 영향을 받는 문서 집합, 링크된 이슈 또는 요구사항 ID, 그리고 렌더링된 문서 또는 다이어그램이 크게 변경된 경우에만 스크린샷을 포함해야 합니다.
-
-## 기여자 참고사항
-
-프레임워크 구성 편집과 도메인 문서 업데이트를 같은 변경에 혼합하지 않습니다. `.agency/`, `.claude/` 또는 `.moai/`를 수정하는 경우 워크플로우 변경이 필요한 이유와 그것이 어떤 기여자 동작에 영향을 미치는지 설명합니다.
+## Contributor Notes
+Avoid mixing framework config edits with domain-document updates in the same change. If you modify `.agency/`, `.claude/`, or `.moai/`, explain why the workflow change is required and which contributor behavior it affects.
