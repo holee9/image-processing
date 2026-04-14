@@ -1,40 +1,40 @@
-# GSVG 문서 패키지 — 마스터 인덱스
+# GSVG Document Package — Master Index
 
-**프로젝트:** X-ray Grid Suppression & Virtual Grid Software  
-**안전 분류:** IEC 62304 Class B  
-**버전:** 1.0 | **작성일:** 2026-04-03  
-**적용 표준:** IEC 62304:2015, ISO 14971:2019, IEC 62366-1:2015
+**Project:** X-ray Grid Suppression & Virtual Grid Software  
+**Safety Classification:** IEC 62304 Class B  
+**Version:** 1.0 | **Date:** 2026-04-03  
+**Applicable Standards:** IEC 62304:2015, ISO 14971:2019, IEC 62366-1:2015
 
 ---
 
-## 문서 레지스트리
+## Document Registry
 
-| 문서 ID | 제목 | IEC 62304 조항 | 파일명 |
-|--------|------|-----------------|--------|
-| GSVG-SDP-001 | 소프트웨어 개발 계획 | 5.1 | `GSVG-SDP-001_Development_Plan.md` |
-| GSVG-SRS-001 | 소프트웨어 요구사항 명세 | 5.2 | `GSVG-SRS-001_Requirements.md` |
-| GSVG-SAD-001 | 소프트웨어 아키텍처 설계 | 5.3 | `GSVG-SAD-001_Architecture.md` |
-| GSVG-SDD-001 | 소프트웨어 상세 설계 | 5.4 (선택사항) | `GSVG-SDD-001_Detailed_Design.md` |
-| GSVG-SVP-001 | 소프트웨어 검증 계획 | 5.5–5.7 | `GSVG-SVP-001_Verification_Plan.md` |
-| GSVG-SOUP-001 | SOUP 분석 | 5.3.3 | `GSVG-SOUP-001_SOUP_Analysis.md` |
-| GSVG-SHA-001 | 소프트웨어 위험 분석 | 조항 7 | `GSVG-SHA-001_Hazard_Analysis.md` |
-| GSVG-RTM-001 | 요구사항 추적 매트릭스 | 5.7 | `GSVG-RTM-001_Traceability.md` |
+| Doc ID | Title | IEC 62304 Clause | File |
+|--------|-------|------------------|------|
+| GSVG-SDP-001 | Software Development Plan | 5.1 | `GSVG-SDP-001_Development_Plan.md` |
+| GSVG-SRS-001 | Software Requirements Specification | 5.2 | `GSVG-SRS-001_Requirements.md` |
+| GSVG-SAD-001 | Software Architecture Design | 5.3 | `GSVG-SAD-001_Architecture.md` |
+| GSVG-SDD-001 | Software Detailed Design | 5.4 (voluntary) | `GSVG-SDD-001_Detailed_Design.md` |
+| GSVG-SVP-001 | Software Verification Plan | 5.5–5.7 | `GSVG-SVP-001_Verification_Plan.md` |
+| GSVG-SOUP-001 | SOUP Analysis | 5.3.3 | `GSVG-SOUP-001_SOUP_Analysis.md` |
+| GSVG-SHA-001 | Software Hazard Analysis | Clause 7 | `GSVG-SHA-001_Hazard_Analysis.md` |
+| GSVG-RTM-001 | Requirements Traceability Matrix | 5.7 | `GSVG-RTM-001_Traceability.md` |
 
-## Class B 필수 vs 선택사항
+## Class B Mandatory vs Voluntary
 
 ```mermaid
 graph LR
-    subgraph "IEC 62304 Class B — 필수"
-        SDP[SDP-001<br/>개발 계획]
-        SRS[SRS-001<br/>요구사항]
-        SAD[SAD-001<br/>아키텍처]
-        SVP[SVP-001<br/>검증]
-        SOUP[SOUP-001<br/>SOUP 분석]
-        SHA[SHA-001<br/>위험 분석]
-        RTM[RTM-001<br/>추적]
+    subgraph "IEC 62304 Class B — Mandatory"
+        SDP[SDP-001<br/>Development Plan]
+        SRS[SRS-001<br/>Requirements]
+        SAD[SAD-001<br/>Architecture]
+        SVP[SVP-001<br/>Verification]
+        SOUP[SOUP-001<br/>SOUP Analysis]
+        SHA[SHA-001<br/>Hazard Analysis]
+        RTM[RTM-001<br/>Traceability]
     end
-    subgraph "Class B 선택사항"
-        SDD[SDD-001<br/>상세 설계]
+    subgraph "Voluntary for Class B"
+        SDD[SDD-001<br/>Detailed Design]
     end
     
     SDP --> SRS --> SAD --> SDD
@@ -44,8 +44,8 @@ graph LR
     SRS --> RTM
 ```
 
-## 개정 이력
+## Revision History
 
-| 버전 | 작성일 | 작성자 | 설명 |
-|------|--------|--------|------|
-| 1.0 | 2026-04-03 | — | 초기 배포 |
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | 2026-04-03 | — | Initial release |

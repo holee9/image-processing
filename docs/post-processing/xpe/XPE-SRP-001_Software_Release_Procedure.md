@@ -1,4 +1,4 @@
-# 소프트웨어 릴리스 절차
+# Software Release Procedure
 
 **Document ID:** XPE-SRP-001 v1.0  
 **IEC 62304 Clause:** 5.8.1 — 5.8.8  
@@ -9,25 +9,25 @@
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
 XPE 소프트웨어의 release 활동을 정의한다. Class B에서 5.8.1 — 5.8.8 모두 적용.
 
-## 2. 릴리스 체크리스트
+## 2. Release Checklist
 
-| 단계 | Clause | 활동 | 증거 | 승인 |
+| Step | Clause | Activity | Evidence | Sign-off |
 |:----:|--------|----------|----------|:--------:|
 | 1 | 5.8.1 | SDP에 정의된 모든 활동 완료 확인 | RTM 100% pass | ☐ |
 | 2 | 5.8.1 | SRS ↔ System Test 추적 완전성 확인 | XPE-RTM-001 | ☐ |
 | 3 | 5.8.2 | 모든 알려진 anomaly 문서화 | Known Anomalies List | ☐ |
-| 4 | 5.8.3 | 각 residual anomaly의 위험 수용성 평가 | Risk evaluation (SRM ref) | ☐ |
+| 4 | 5.8.3 | 각 residual anomaly의 risk acceptability 평가 | Risk evaluation (SRM ref) | ☐ |
 | 5 | 5.8.4 | Released SW version 문서화 | Git tag + version string | ☐ |
 | 6 | 5.8.5 | Build environment & procedure 문서화 | Dockerfile + build script | ☐ |
 | 7 | 5.8.6 | Build 재현성 검증 | Tag에서 rebuild → binary diff | ☐ |
-| 8 | 5.8.7 | Release 활동 완료 검증 | 이 체크리스트 승인 | ☐ |
-| 9 | 5.8.8 | Configuration Management 시스템에 아카이브 | Gitea tag + artifact | ☐ |
+| 8 | 5.8.7 | Release 활동 완료 검증 | This checklist sign-off | ☐ |
+| 9 | 5.8.8 | Archive to CM system | Gitea tag + artifact | ☐ |
 
-## 3. 릴리스 노트 템플릿
+## 3. Release Note Template
 
 ```
 ════════════════════════════════════════════════════
@@ -84,16 +84,16 @@ XPE 소프트웨어의 release 활동을 정의한다. Class B에서 5.8.1 — 5
    Reviewed by: ____________________ Date: ________
 ```
 
-## 4. 아카이브 요구사항 (5.8.8)
+## 4. Archive Requirements (5.8.8)
 
-| 아카이브 항목 | 위치 | 보관 기간 |
+| Archive Item | Location | Retention |
 |-------------|----------|-----------|
-| Source code (tagged) | Gitea `main` branch tag | 기기 수명 + 10년 |
-| Build artifacts (binary) | DS224+ `/volume1/backup/releases/` | 기기 수명 + 10년 |
-| SOUP libraries (locked) | vcpkg cache archive | 동일 |
-| Documents (versioned) | Gitea `/docs/` at tag | 동일 |
-| Test reports | CI artifacts (아카이브로 복사) | 동일 |
-| Dockerfile | Gitea repo at tag | 동일 |
+| Source code (tagged) | Gitea `main` branch tag | Device lifetime + 10 years |
+| Build artifacts (binary) | DS224+ `/volume1/backup/releases/` | Device lifetime + 10 years |
+| SOUP libraries (locked) | vcpkg cache archive | Same |
+| Documents (versioned) | Gitea `/docs/` at tag | Same |
+| Test reports | CI artifacts (copied to archive) | Same |
+| Dockerfile | Gitea repo at tag | Same |
 
 ---
 

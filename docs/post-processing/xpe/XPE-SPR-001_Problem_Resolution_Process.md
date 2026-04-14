@@ -9,27 +9,27 @@
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
 XPE 소프트웨어에서 발견된 문제의 보고, 조사, 평가, 해결, 검증 절차를 정의한다.
 
-## 2. 문제 감지 출처 (9.1)
+## 2. Problem Detection Sources (9.1)
 
-| 출처 | 진입점 |
+| Source | Entry Point |
 |--------|-------------|
-| Unit testing | CI 실패 → 자동 이슈 생성 |
-| Integration testing | CI 실패 → 자동 이슈 생성 |
-| System testing | 수동 이슈 생성 |
-| Code review | PR 댓글 → 이슈 변환 |
-| Field report | 고객 지원 → Gitea Issue |
-| Internal discovery | 개발자 → Gitea Issue |
-| SOUP advisory | CVE 모니터링 → Gitea Issue |
+| Unit testing | CI failure → auto issue creation |
+| Integration testing | CI failure → auto issue creation |
+| System testing | Manual issue creation |
+| Code review | PR comment → issue conversion |
+| Field report | Customer support → Gitea Issue |
+| Internal discovery | Developer → Gitea Issue |
+| SOUP advisory | CVE monitoring → Gitea Issue |
 
-## 3. 문제 보고 생성 (9.2)
+## 3. Problem Report Creation (9.2)
 
 Gitea Issue 생성 시 필수 항목:
 
-| 필드 | 설명 | 필수 |
+| Field | Description | Required |
 |-------|-------------|:--------:|
 | Title | 간결한 문제 설명 | ✓ |
 | Label | `problem-report` + severity label | ✓ |
@@ -40,44 +40,44 @@ Gitea Issue 생성 시 필수 항목:
 | Severity | Critical / Major / Minor | ✓ |
 | Attachments | Screenshot, log, test data | 해당 시 |
 
-## 4. 심각도 분류 (9.3)
+## 4. Severity Classification (9.3)
 
-| 심각도 | 정의 | 대응 시간 |
+| Severity | Definition | Response Time |
 |----------|-----------|:------------:|
-| **Critical** | 안전 관련, 환자 피해 가능성, 데이터 손실 | 조사 시작: **24h** |
-| **Major** | 기능 오작동, 임시 해결책 가능 | 조사: **5 업무일** |
-| **Minor** | 미관상, 경미한 사용성, 문서 오류 | **다음 예정된 릴리스** |
+| **Critical** | Safety-related, potential patient harm, data loss | Investigation start: **24h** |
+| **Major** | Functional failure, workaround available | Investigation: **5 business days** |
+| **Minor** | Cosmetic, minor usability, documentation error | **Next planned release** |
 
-## 5. 조사 및 영향 분석 (9.4)
+## 5. Investigation & Impact Analysis (9.4)
 
 각 problem report에 대해:
 
-### 5.1 근본 원인 분석
+### 5.1 Root Cause Analysis
 
-- 코드 검사 (해당 SW Unit 식별)
-- 재현 시도 (test environment)
-- 근본 원인 문서화 (Issue comment)
+- Code inspection (해당 SW Unit 식별)
+- Reproduction attempt (test environment)
+- Root cause 문서화 (Issue comment)
 
-### 5.2 영향 평가
+### 5.2 Impact Assessment
 
-| 평가 항목 | 방법 |
+| Assessment Item | Method |
 |----------------|--------|
-| 영향 받는 SW Items / Units | RTM 역추적 |
-| 영향 받는 요구사항 | SRS trace |
-| 안전성 영향 | XPE-SRM-001 risk matrix 재평가 |
-| 영향 받는 다른 버전 | Branch/tag comparison |
-| 규제 보고 필요 여부 | MDR Vigilance / FDA MDR criteria |
+| Affected SW Items / Units | RTM 역추적 |
+| Affected requirements | SRS trace |
+| Safety impact | XPE-SRM-001 risk matrix 재평가 |
+| Other versions affected | Branch/tag comparison |
+| Regulatory reporting 필요 | MDR Vigilance / FDA MDR criteria |
 
-## 6. 조치 방안 (9.5)
+## 6. Disposition (9.5)
 
-| 조치 방안 | 기준 | 조치 |
+| Disposition | Criteria | Action |
 |-------------|----------|--------|
-| **Fix** | 근본 원인 확인됨, 수정 가능 | Change request → Clause 5 재진입 |
-| **Defer** | 비치명적, 긴급하지 않음 | 위험 평가 + 알려진 이상 목록 + 정당성 |
-| **No action** | 재현 불가, 설계상 의도, 중복 | 정당성 문서화, 이슈 종료 |
-| **Workaround** | 수정 연기, 임시 완화책 가능 | 임시 해결책 문서화 + 사용자 통지 |
+| **Fix** | Root cause identified, fix feasible | Change request → Clause 5 re-entry |
+| **Defer** | Non-critical, fix not urgent | Risk evaluation + known anomaly list + justification |
+| **No action** | Not reproducible, by design, duplicate | Justification documented, issue closed |
+| **Workaround** | Fix deferred, interim mitigation available | Workaround documented + user notification |
 
-## 7. 변경 구현 (9.6)
+## 7. Change Implementation (9.6)
 
 Fix disposition인 경우:
 
@@ -87,33 +87,33 @@ Fix disposition인 경우:
 4. Code review + CI pass
 5. Merge
 
-## 8. 검증 (9.7)
+## 8. Verification (9.7)
 
-| 검증 | 범위 |
+| Verification | Scope |
 |-------------|-------|
 | Unit test | 해당 unit의 기존 + 신규 test pass |
 | Regression test | 영향 범위 기반 regression suite |
-| System test | 안전 관련 fix → 관련 ST-SAFE-xxx 재실행 |
+| System test | Safety-related fix → 관련 ST-SAFE-xxx 재실행 |
 
-## 9. 종료 (9.8)
+## 9. Closure (9.8)
 
-Problem report 종료 시 기록:
+Problem report closure 시 기록:
 
-| 필드 | 내용 |
+| Field | Content |
 |-------|---------|
-| Resolution | Fix 설명 또는 disposition 정당성 |
-| Fix version | Git commit SHA + 대상 릴리스 버전 |
-| Verification result | Test pass 증거 |
-| Closed by | 이름 |
-| Close date | 날짜 |
+| Resolution | Fix description 또는 disposition rationale |
+| Fix version | Git commit SHA + target release version |
+| Verification result | Test pass evidence |
+| Closed by | Name |
+| Close date | Date |
 
-## 10. 추세 분석
+## 10. Trend Analysis
 
-| 활동 | 빈도 | 내용 |
+| Activity | Frequency | Content |
 |----------|-----------|---------|
-| Problem 추세 검토 | 분기별 | 심각도 분포, 모듈 분포, 평균 해결 시간 |
-| 반복 이슈 식별 | 분기별 | 동일 module/unit 반복 이슈 → 근본 원인 조사 |
-| 프로세스 개선 | 반기별 | Problem resolution process 자체 개선 |
+| Problem trend review | Quarterly | Severity distribution, module distribution, mean resolution time |
+| Recurring issue identification | Quarterly | 동일 module/unit 반복 이슈 → 근본 원인 조사 |
+| Process improvement | Semi-annually | Problem resolution process 자체 개선 |
 
 ---
 

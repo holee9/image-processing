@@ -1,79 +1,79 @@
-# XPE 구현 참고서
+# XPE Implementation Reference
 
-**문서 ID**: XPE-IMPL-REF-001
-**버전**: 1.0.0
-**날짜**: 2026-04-14
-**목적**: 스프린트 개발자가 api-spec, sprint-plan, pipeline-spec에서 누락된 상세 사양을 참조하여 질문 없이 구현할 수 있도록 제공
-**출처 문서**: api-spec.md v1.2.0, sprint-plan.md v1.1.0, pipeline-spec.md v1.3.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2
+**Document ID**: XPE-IMPL-REF-001
+**Version**: 1.0.0
+**Date**: 2026-04-14
+**Purpose**: Sprint 개발자가 질문 없이 구현할 수 있도록 api-spec, sprint-plan, pipeline-spec에서 누락된 상세 명세를 제공
+**Source Documents**: api-spec.md v1.2.0, sprint-plan.md v1.1.0, pipeline-spec.md v1.3.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2
 
 ---
 
-## 1. 보정 파일 바이너리 포맷 (GAP G1)
+## 1. Calibration File Binary Format (GAP G1)
 
-### 1.1 파일 확장자
+### 1.1 File Extension
 
-| 확장자 | 포맷 |
+| Extension | Format |
 |-----------|--------|
-| `.xpe_calib` | XPE 기본 보정 바이너리 |
-| `.dcm` | DICOM 보정 이미지 (DCMTK를 통해 로드) |
+| `.xpe_calib` | Native XPE calibration binary |
+| `.dcm` | DICOM calibration image (load via DCMTK) |
 
-### 1.2 바이너리 레이아웃 (`.xpe_calib`)
+### 1.2 Binary Layout (`.xpe_calib`)
 
-모든 멀티바이트 필드는 **리틀엔디안**입니다. 구조체 정렬: `#pragma pack(push, 1)`.
+All multi-byte fields are **little-endian**. Struct packing: `#pragma pack(push, 1)`.
 
 ```
-Offset  Size  필드             타입         설명
+Offset  Size  Field             Type         Description
 ------  ----  ----------------  -----------  ----------------------------------------
 0       4     magic             char[4]      "XPEC" (0x58 0x50 0x45 0x43)
-4       2     version           uint16_t     포맷 버전. 현재 = 1.
-6       4     width             uint32_t     이미지 너비 (픽셀).
-10      4     height            uint32_t     이미지 높이 (픽셀).
+4       2     version           uint16_t     Format version. Current = 1.
+6       4     width             uint32_t     Image width in pixels.
+10      4     height            uint32_t     Image height in pixels.
 14      2     pixelFormat       uint16_t     0 = uint16, 1 = float32.
-16      1     calibType         uint8_t      0 = offset (어두움), 1 = gain (평탄), 2 = 결함 맵.
-17      1     reserved          uint8_t      영. 향후 사용 예약.
-18      8     expiryEpochMs     uint64_t     만료 타임스탬프 (UNIX epoch ms). 0 = 절대 만료 없음.
-26      4     crc32             uint32_t     CRC-32 of data[] 만 (헤더 제외).
-30      4     dataLength        uint32_t     data[]의 바이트 길이.
-34      var   data              uint8_t[]    픽셀 데이터. 행 주 순서, 행 간 패딩 없음.
+16      1     calibType         uint8_t      0 = offset (dark), 1 = gain (flat), 2 = defect map.
+17      1     reserved          uint8_t      Zero. Reserved for future use.
+18      8     expiryEpochMs     uint64_t     Expiry timestamp (UNIX epoch ms). 0 = never expires.
+26      4     crc32             uint32_t     CRC-32 of data[] only (header excluded).
+30      4     dataLength        uint32_t     Byte length of data[].
+34      var   data              uint8_t[]    Pixel data. Row-major, no padding between rows.
 
-전체 헤더 크기: 34 바이트.
+Total header size: 34 bytes.
 ```
 
-### 1.3 CRC-32 계산
+### 1.3 CRC-32 Computation
 
-- 알고리즘: CRC-32 (ISO 3309 / ITU-T V.42, 다항식 0xEDB88320 반사)
-- 범위: `data[]` 바이트 만. 헤더는 CRC에 포함되지 않음.
-- 검증: 로드 시, 읽은 데이터의 CRC를 계산하고 저장된 `crc32`와 비교. 불일치 → `XPE_ERR_IO_FAILED`.
+- Algorithm: CRC-32 (ISO 3309 / ITU-T V.42, polynomial 0xEDB88320 reflected)
+- Scope: `data[]` bytes only. Header is NOT included in CRC.
+- Verification: On load, compute CRC of read data and compare with stored `crc32`. Mismatch → `XPE_ERR_IO_FAILED`.
 
-### 1.4 calibType별 데이터 레이아웃
+### 1.4 Data Layout by calibType
 
-| calibType | pixelFormat | 데이터 내용 |
+| calibType | pixelFormat | data content |
 |:---------:|:-----------:|-------------|
-| 0 (offset) | 0 (uint16) | 픽셀별 어두운 오프셋 값. 검출기와 동일한 크기. |
-| 1 (gain) | 1 (float32) | 픽셀별 이득 정규화 계수. 단위 = 1.0f. |
-| 2 (defect) | 0 (uint16) | 불량 픽셀 맵. 0이 아님 = 결함 픽셀. 값은 결함 유형 인코딩: 1=죽음, 2=핫, 3=클러스터. |
+| 0 (offset) | 0 (uint16) | Per-pixel dark offset values. Same dimensions as detector. |
+| 1 (gain) | 1 (float32) | Per-pixel gain normalization factors. Unity = 1.0f. |
+| 2 (defect) | 0 (uint16) | Bad pixel map. Non-zero = defect pixel. Values encode defect type: 1=dead, 2=hot, 3=cluster. |
 
-### 1.5 만료 처리
+### 1.5 Expiry Handling
 
-- `expiryEpochMs = 0`: 보정이 절대 만료되지 않음.
-- `expiryEpochMs < current_time_ms`: 로드는 `XPE_ERR_CALIBRATION_EXPIRED` 반환.
-- `expiryEpochMs - current_time_ms < 86400000` (24시간 이내): 로드 성공하지만 경고 발행됨 (보정이 곧 만료됨).
+- `expiryEpochMs = 0`: Calibration never expires.
+- `expiryEpochMs < current_time_ms`: Load returns `XPE_ERR_CALIBRATION_EXPIRED`.
+- `expiryEpochMs - current_time_ms < 86400000` (within 24 hours): Load succeeds but alert is emitted (calibration expiring soon).
 
-### 1.6 파일 크기 검증
+### 1.6 File Size Validation
 
-로드 시, 검증: `dataLength == width * height * bytesPerPixel(pixelFormat)`.
+On load, verify: `dataLength == width * height * bytesPerPixel(pixelFormat)`.
 - uint16: `bytesPerPixel = 2`
 - float32: `bytesPerPixel = 4`
 
-불일치 시 → `XPE_ERR_IO_FAILED`.
+If mismatch → `XPE_ERR_IO_FAILED`.
 
 ---
 
-## 2. JSON 구성 스키마 (GAP G2)
+## 2. JSON Configuration Schemas (GAP G2)
 
-표시되지 않는 한 모든 JSON 필드는 선택사항입니다. 알 수 없는 키는 무음으로 무시됩니다 (상위 호환).
+All JSON fields are optional unless noted. Unknown keys are silently ignored (forward-compatible).
 
-### 2.1 xpe_init 구성
+### 2.1 xpe_init Config
 
 ```json
 {

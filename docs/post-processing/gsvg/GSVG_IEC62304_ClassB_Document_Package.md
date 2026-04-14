@@ -1,6 +1,6 @@
-# X-ray Grid Suppression & Virtual Grid 소프트웨어
+# X-ray Grid Suppression & Virtual Grid Software
 
-## IEC 62304 Class B 준수 문서 패키지
+## IEC 62304 Class B Compliant Document Package
 
 **Document ID:** GSVG-PKG-001  
 **Version:** 1.0  
@@ -10,14 +10,14 @@
 
 ---
 
-# 문서 인덱스
+# Document Index
 
-| Doc ID | 제목 | IEC 62304 조항 |
+| Doc ID | Title | IEC 62304 Clause |
 |--------|-------|------------------|
 | GSVG-SDP-001 | Software Development Plan | 5.1 |
 | GSVG-SRS-001 | Software Requirements Specification | 5.2 |
 | GSVG-SAD-001 | Software Architecture Design | 5.3 |
-| GSVG-SDD-001 | Software Detailed Design | 5.4 (Class B 선택 사항) |
+| GSVG-SDD-001 | Software Detailed Design | 5.4 (voluntary for Class B) |
 | GSVG-SVP-001 | Software Verification Plan | 5.5–5.7 |
 | GSVG-SOUP-001 | SOUP Analysis | 5.3.3 |
 | GSVG-SHA-001 | Software Hazard Analysis | 7 |
@@ -27,21 +27,21 @@
 
 # GSVG-SDP-001: Software Development Plan
 
-## 1. 목적
+## 1. Purpose
 
 본 문서는 X-ray FPD 시스템의 Grid Suppression 및 Virtual Grid 소프트웨어 모듈 개발을 위한 IEC 62304 Class B 준수 개발 계획을 정의한다.
 
-## 2. 소프트웨어 안전 분류
+## 2. Software Safety Classification
 
 **Class B** — 소프트웨어 오동작 시 non-serious injury 가능.
 
 근거:
-- Grid Suppression 실패 시: grid artifact가 잔류하여 진단 정보 일부 가려짐 → 재촬영 필요
-- Virtual Grid 실패 시: scatter 미보정으로 contrast 저하 → 미세 병변 가시성 감소
+- Grid suppression 실패 시: grid artifact가 잔류하여 진단 정보 일부 가려짐 → 재촬영 필요
+- Virtual grid 실패 시: scatter 미보정으로 contrast 저하 → 미세 병변 가시성 감소
 - 직접적 방사선 과다 노출이나 치료 영향은 없음 (영상 표시 목적)
 - 하드웨어 안전 장치 (exposure interlock)가 독립적으로 존재
 
-## 3. 생명주기 모델
+## 3. Lifecycle Model
 
 V-Model 적용 (IEC 62304 권장 구조)
 
@@ -61,32 +61,32 @@ graph LR
     D -.->|traces to| F
 ```
 
-## 4. Class B 필수 활동
+## 4. Class B Required Activities
 
 ```mermaid
 graph TD
-    subgraph "IEC 62304 Class B 요구사항"
-        P[5.1 개발 계획] --> R[5.2 요구사항 분석]
-        R --> A[5.3 아키텍처 설계]
-        A --> I[5.5 단위 구현]
-        I --> IT[5.6 통합 테스트]
-        IT --> ST[5.7 시스템 테스트]
-        ST --> REL[5.8 출시]
+    subgraph "IEC 62304 Class B Requirements"
+        P[5.1 Development Planning] --> R[5.2 Requirements Analysis]
+        R --> A[5.3 Architecture Design]
+        A --> I[5.5 Unit Implementation]
+        I --> IT[5.6 Integration Testing]
+        IT --> ST[5.7 System Testing]
+        ST --> REL[5.8 Release]
     end
     
-    subgraph "Class B 필수 산출물"
-        D1[SRS 문서]
-        D2[아키텍처 문서]
-        D3[SOUP 목록 및 분석]
-        D4[통합 테스트 기록]
-        D5[시스템 테스트 기록]
-        D6[릴리스 노트]
+    subgraph "Class B Mandatory Deliverables"
+        D1[SRS Document]
+        D2[Architecture Document]
+        D3[SOUP List & Analysis]
+        D4[Integration Test Records]
+        D5[System Test Records]
+        D6[Release Notes]
     end
     
-    subgraph "선택 사항이지만 권장"
-        D7[상세 설계 문서]
-        D8[단위 테스트 기록]
-        D9[코드 검토 기록]
+    subgraph "Voluntary but Recommended"
+        D7[Detailed Design Document]
+        D8[Unit Test Records]
+        D9[Code Review Records]
     end
     
     R --> D1
@@ -97,77 +97,77 @@ graph TD
     REL --> D6
 ```
 
-## 5. 개발 도구 & 환경
+## 5. Development Tools & Environment
 
-| 분류 | 도구 | 버전 | 목적 |
+| Category | Tool | Version | Purpose |
 |----------|------|---------|---------|
-| 언어 | C++ | C++17 | 핵심 알고리즘 구현 |
-| 언어 | Python | 3.11+ | 프로토타이핑, 테스트 자동화 |
-| 빌드 | CMake | 3.25+ | 크로스 플랫폼 빌드 |
-| VCS | Git / Gitea | Latest | 구성 관리 |
-| CI/CD | Gitea Actions | Latest | 자동화된 빌드 & 테스트 |
-| 테스트 | Google Test | 1.14+ | 단위 및 통합 테스트 |
-| 테스트 | pytest | 8.0+ | Python 테스트 자동화 |
-| 정적 분석 | cppcheck, clang-tidy | Latest | MISRA 유사 규칙 검사 |
-| 문서화 | Markdown + Mermaid | — | 모든 설계 문서 |
-| 이미지 처리 | OpenCV | 4.9+ | SOUP — 이미지 I/O, 기본 연산 |
-| FFT | FFTW3 | 3.3.10 | SOUP — 주파수 영역 연산 |
-| 수학 | Eigen | 3.4+ | SOUP — 선형 대수 |
+| Language | C++ | C++17 | Core algorithm implementation |
+| Language | Python | 3.11+ | Prototyping, test automation |
+| Build | CMake | 3.25+ | Cross-platform build |
+| VCS | Git / Gitea | Latest | Configuration management |
+| CI/CD | Gitea Actions | Latest | Automated build & test |
+| Testing | Google Test | 1.14+ | Unit & integration testing |
+| Testing | pytest | 8.0+ | Python test automation |
+| Static Analysis | cppcheck, clang-tidy | Latest | MISRA-like rule checking |
+| Documentation | Markdown + Mermaid | — | All design documents |
+| Image Processing | OpenCV | 4.9+ | SOUP — image I/O, basic ops |
+| FFT | FFTW3 | 3.3.10 | SOUP — frequency domain ops |
+| Math | Eigen | 3.4+ | SOUP — linear algebra |
 
-## 6. 구성 관리
+## 6. Configuration Management
 
-- 브랜치 전략: `main` (release) / `develop` (통합) / `feature/*` (개발)
-- Commit 메시지: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`)
-- 태그: Semantic versioning `vMAJOR.MINOR.PATCH`
-- 코드 검토: `develop`으로의 모든 merge는 1명 이상의 검토자 승인 필요
+- Branch strategy: `main` (release) / `develop` (integration) / `feature/*` (개발)
+- Commit message: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`)
+- Tag: Semantic versioning `vMAJOR.MINOR.PATCH`
+- Code review: All merge to `develop` requires 1+ reviewer approval
 - Baseline: 각 milestone에서 tag 생성 및 문서 동결
 
-## 7. 문제 해결
+## 7. Problem Resolution
 
 - Gitea Issues로 모든 anomaly/defect 추적
-- 심각도: Critical / Major / Minor / Cosmetic
-- Safety-related issue는 SHA(GSVG-SHA-001)와 상호 참조
+- Severity: Critical / Major / Minor / Cosmetic
+- Safety-related issue는 SHA(GSVG-SHA-001)와 cross-reference
 - 미해결 anomaly는 release 시 잔여 위험으로 문서화
 
-## 8. 일정
+## 8. Schedule
 
 ```mermaid
 gantt
-    title GSVG 개발 일정
+    title GSVG Development Schedule
     dateFormat  YYYY-MM-DD
     
     section Phase 1: Grid Suppression
-    SRS & 아키텍처           :p1a, 2026-04-07, 14d
-    핵심 알고리즘 (DWT+BandStop):p1b, after p1a, 21d
-    단위 및 통합 테스트      :p1c, after p1b, 14d
-    시스템 테스트 & 검증     :p1d, after p1c, 7d
+    SRS & Architecture           :p1a, 2026-04-07, 14d
+    Core Algorithm (DWT+BandStop):p1b, after p1a, 21d
+    Unit & Integration Test      :p1c, after p1b, 14d
+    System Test & Validation     :p1d, after p1c, 7d
     
     section Phase 2: Virtual Grid
-    SRS & 아키텍처           :p2a, 2026-04-14, 14d
-    Scatter 모델 구현 :p2b, after p2a, 28d
-    Laplacian Pyramid 파이프라인   :p2c, after p2b, 14d
-    단위 및 통합 테스트      :p2d, after p2c, 14d
-    시스템 테스트 & 검증     :p2e, after p2d, 7d
+    SRS & Architecture           :p2a, 2026-04-14, 14d
+    Scatter Model Implementation :p2b, after p2a, 28d
+    Laplacian Pyramid Pipeline   :p2c, after p2b, 14d
+    Unit & Integration Test      :p2d, after p2c, 14d
+    System Test & Validation     :p2e, after p2d, 7d
     
-    section Phase 3: 통합
-    통합 파이프라인            :p3a, after p2e, 14d
-    최종 시스템 테스트            :p3b, after p3a, 7d
-    출시                      :milestone, after p3b, 0d
+    section Phase 3: Integration
+    Combined Pipeline            :p3a, after p2e, 14d
+    Final System Test            :p3b, after p3a, 7d
+    Release                      :milestone, after p3b, 0d
 ```
 
 ---
 
 # GSVG-SRS-001: Software Requirements Specification
 
-## 1. 범위
+## 1. Scope
 
 X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 1. **Grid Suppression (GS)**: 물리적 anti-scatter grid 사용 영상의 grid line artifact 제거
 2. **Virtual Grid (VG)**: Grid 미사용 영상의 scatter radiation 소프트웨어 보정
 
-## 2. 기능 요구사항 — Grid Suppression
+## 2. Functional Requirements — Grid Suppression
 
-| ID | 요구사항 | 검증 |
+| ID | Requirement | Verification |
 |----|-------------|--------------|
 | GS-FR-001 | 시스템은 DICOM 헤더 및 grid specification으로부터 grid line frequency를 자동 계산해야 한다 | Test |
 | GS-FR-002 | 시스템은 2D DWT (Discrete Wavelet Transform)를 사용하여 입력 영상을 multi-scale sub-band로 분해해야 한다 | Test |
@@ -178,9 +178,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 | GS-FR-007 | 60~200 lines/inch 범위의 grid에 대해 동작해야 한다 | Test |
 | GS-FR-008 | Moiré pattern (aliasing artifact) 제거를 지원해야 한다 | Test |
 
-## 3. 기능 요구사항 — Virtual Grid
+## 3. Functional Requirements — Virtual Grid
 
-| ID | 요구사항 | 검증 |
+| ID | Requirement | Verification |
 |----|-------------|--------------|
 | VG-FR-001 | 시스템은 입력 영상과 촬영 조건(kVp, mAs, SID, field size)으로부터 body equivalent thickness를 추정해야 한다 | Test |
 | VG-FR-002 | 시스템은 추정된 thickness와 촬영 조건으로부터 Scatter-to-Primary Ratio (SPR)를 계산해야 한다 | Test |
@@ -193,18 +193,18 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 | VG-FR-009 | 10cm~30cm acrylic thickness 범위에서 동작해야 한다 | Test |
 | VG-FR-010 | 처리 후 인체 구조물에 인위적 artifact가 생성되지 않아야 한다 | Test + Review |
 
-## 4. 성능 요구사항
+## 4. Performance Requirements
 
-| ID | 요구사항 | 검증 |
+| ID | Requirement | Verification |
 |----|-------------|--------------|
 | PERF-001 | 3072×3072 16-bit 영상 처리 시간 ≤ 1.0초 (target HW: Intel i7 또는 동급) | Test |
 | PERF-002 | Peak memory usage ≤ 512MB per frame | Test |
 | PERF-003 | Batch mode에서 연속 100 frame 처리 시 memory leak 없음 | Test |
 | PERF-004 | 출력 영상 bit depth는 입력과 동일 (16-bit) | Test |
 
-## 5. 인터페이스 요구사항
+## 5. Interface Requirements
 
-| ID | 요구사항 | 검증 |
+| ID | Requirement | Verification |
 |----|-------------|--------------|
 | IF-001 | 입력: DICOM 형식 또는 Raw pixel array + metadata | Test |
 | IF-002 | 출력: 동일 format의 처리된 영상 + processing log | Test |
@@ -212,9 +212,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 | IF-004 | Processing parameters를 JSON config로 설정 가능 | Test |
 | IF-005 | API는 C++ shared library (.so/.dll) 형태로 제공 | Test |
 
-## 6. 안전 요구사항
+## 6. Safety Requirements
 
-| ID | 요구사항 | Hazard 참조 | 검증 |
+| ID | Requirement | Hazard Ref | Verification |
 |----|-------------|------------|--------------|
 | SAFE-001 | 알고리즘 실패 시 원본 영상을 훼손하지 않아야 한다 | HAZ-001 | Test |
 | SAFE-002 | 처리 영상에 "Processed" marking을 DICOM tag에 기록해야 한다 | HAZ-002 | Test |
@@ -226,21 +226,21 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 # GSVG-SAD-001: Software Architecture Design
 
-## 1. 시스템 컨텍스트
+## 1. System Context
 
 ```mermaid
 graph TB
     subgraph "X-ray FPD System"
-        ACQ[이미지 획득<br/>FPGA/Firmware] --> RAW[원본 이미지<br/>16-bit DICOM]
-        RAW --> GSVG[Grid Suppression &<br/>Virtual Grid 모듈]
-        GSVG --> PROC[처리된 이미지<br/>16-bit DICOM]
-        PROC --> CONSOLE[진단 콘솔<br/>RadiConsole™]
+        ACQ[Image Acquisition<br/>FPGA/Firmware] --> RAW[Raw Image<br/>16-bit DICOM]
+        RAW --> GSVG[Grid Suppression &<br/>Virtual Grid Module]
+        GSVG --> PROC[Processed Image<br/>16-bit DICOM]
+        PROC --> CONSOLE[Diagnostic Console<br/>RadiConsole™]
     end
     
-    subgraph "외부 입력/출력"
-        CONFIG[구성<br/>JSON] --> GSVG
-        LUT[Scatter Kernel<br/>LUT 파일] --> GSVG
-        LOG[처리 로그] --> GSVG
+    subgraph "External"
+        CONFIG[Configuration<br/>JSON] --> GSVG
+        LUT[Scatter Kernel<br/>LUT Files] --> GSVG
+        LOG[Processing Log] --> GSVG
     end
 ```
 
@@ -304,39 +304,39 @@ graph TD
     PM -.-> ERR
 ```
 
-## 3. 소프트웨어 항목 정의
+## 3. Software Items Definition
 
-| 항목 ID | 명칭 | 설명 | 안전 등급 |
+| Item ID | Name | Description | Safety Class |
 |---------|------|-------------|--------------|
-| SI-001 | 이미지 파이프라인 관리자 | 영상 입출력, 파이프라인 라우팅, 에러 처리 | B |
-| SI-002 | Grid Suppression 엔진 | DWT 기반 grid artifact 검출 및 제거 | B |
-| SI-003 | Virtual Grid 엔진 | Scatter 추정 및 명암 향상 | B |
-| SI-004 | 공통 유틸리티 | DICOM I/O, FFT, 검증, 에러 처리 | B |
+| SI-001 | Image Pipeline Manager | 영상 입출력, 파이프라인 라우팅, 에러 처리 | B |
+| SI-002 | Grid Suppression Engine | DWT 기반 grid artifact 검출 및 제거 | B |
+| SI-003 | Virtual Grid Engine | Scatter estimation 및 contrast enhancement | B |
+| SI-004 | Common Utilities | DICOM I/O, FFT, validation, error handling | B |
 
-## 4. Grid Suppression 엔진 — 데이터 흐름
+## 4. Grid Suppression Engine — Data Flow
 
 ```mermaid
 flowchart LR
-    IN[입력 이미지<br/>M×N, 16-bit] --> DWT_PROC[2D DWT<br/>Haar/Db4]
+    IN[Input Image<br/>M×N, 16-bit] --> DWT_PROC[2D DWT<br/>Haar/Db4]
     
-    DWT_PROC --> LH[LH 부대역<br/>M/2 × N/2]
-    DWT_PROC --> HL[HL 부대역<br/>M/2 × N/2]
-    DWT_PROC --> HH[HH 부대역<br/>M/2 × N/2]
-    DWT_PROC --> LL[LL 부대역<br/>M/2 × N/2]
+    DWT_PROC --> LH[LH sub-band<br/>M/2 × N/2]
+    DWT_PROC --> HL[HL sub-band<br/>M/2 × N/2]
+    DWT_PROC --> HH[HH sub-band<br/>M/2 × N/2]
+    DWT_PROC --> LL[LL sub-band<br/>M/2 × N/2]
     
-    LL -->|재귀| DWT_PROC
+    LL -->|recursive| DWT_PROC
     
-    LH --> ENERGY[에너지<br/>검출]
+    LH --> ENERGY[Energy<br/>Detection]
     HL --> ENERGY
     HH --> ENERGY
     
-    ENERGY -->|threshold 초과| FILTER[Gaussian<br/>Band-Stop<br/>필터]
-    ENERGY -->|threshold 미만| PASS[통과]
+    ENERGY -->|threshold exceeded| FILTER[Gaussian<br/>Band-Stop<br/>Filter]
+    ENERGY -->|below threshold| PASS[Pass-through]
     
-    FILTER --> RECON[역 DWT<br/>복원]
+    FILTER --> RECON[Inverse DWT<br/>Reconstruction]
     PASS --> RECON
     
-    RECON --> OUT[출력 이미지<br/>Grid 제거]
+    RECON --> OUT[Output Image<br/>Grid-free]
     
     style FILTER fill:#ff9,stroke:#333
     style ENERGY fill:#9cf,stroke:#333
@@ -344,39 +344,39 @@ flowchart LR
 
 **핵심 알고리즘 파라미터:**
 
-| 파라미터 | 값 | 출처 |
+| Parameter | Value | Source |
 |-----------|-------|--------|
 | Wavelet basis | Daubechies-4 (db4) | Tang 2015, Med Phys |
-| 최대 분해 레벨 | `log₂(min(M,N)) - 4` | 적응형 |
-| Gridline 에너지 threshold | 3σ above mean sub-band energy | Tang 2015 |
-| Band-stop 필터 대역폭 | ±2 픽셀 in frequency domain | Lin 2006 |
-| Band-stop 필터 형태 | Gaussian, σ = 1.5 pixels | 경험적 |
+| Max decomposition levels | `log₂(min(M,N)) - 4` | Adaptive |
+| Gridline energy threshold | 3σ above mean sub-band energy | Tang 2015 |
+| Band-stop filter bandwidth | ±2 pixels in frequency domain | Lin 2006 |
+| Band-stop filter shape | Gaussian, σ = 1.5 pixels | Empirical |
 
-## 5. Virtual Grid 엔진 — 데이터 흐름
+## 5. Virtual Grid Engine — Data Flow
 
 ```mermaid
 flowchart TD
-    IN[입력 이미지<br/>+ DICOM 메타데이터] --> THICK_EST[Thickness<br/>추정]
+    IN[Input Image<br/>+ DICOM metadata] --> THICK_EST[Thickness<br/>Estimation]
     
-    subgraph "Scatter 추정"
-        THICK_EST --> SPR_CALC[SPR 계산<br/>SPR = f(t, kVp, FOV)]
-        SPR_CALC --> KERNEL[Scatter Kernel<br/>LUT에서 선택]
-        KERNEL --> SCATTER_MAP[Scatter Map<br/>생성<br/>S = K ⊗ I_primary]
+    subgraph "Scatter Estimation"
+        THICK_EST --> SPR_CALC[SPR Calculation<br/>SPR = f(t, kVp, FOV)]
+        SPR_CALC --> KERNEL[Scatter Kernel<br/>Selection from LUT]
+        KERNEL --> SCATTER_MAP[Scatter Map<br/>Generation<br/>S = K ⊗ I_primary]
     end
     
-    IN --> SUBTRACT[Scatter<br/>차감<br/>I_p = I_total - S]
+    IN --> SUBTRACT[Scatter<br/>Subtraction<br/>I_p = I_total - S]
     SCATTER_MAP --> SUBTRACT
     
-    subgraph "Laplacian Pyramid 처리"
-        SUBTRACT --> LP_DEC[Laplacian Pyramid<br/>분해<br/>n 레벨]
-        LP_DEC --> LOW_BANDS[저주파 대역:<br/>Scatter 제거<br/>잔여 보정]
-        LP_DEC --> HIGH_BANDS[고주파 대역:<br/>명암 향상<br/>+ 노이즈 제거]
-        LOW_BANDS --> LP_REC[Laplacian Pyramid<br/>복원]
+    subgraph "Laplacian Pyramid Processing"
+        SUBTRACT --> LP_DEC[Laplacian Pyramid<br/>Decomposition<br/>n levels]
+        LP_DEC --> LOW_BANDS[Low-freq bands:<br/>De-scatter<br/>residual correction]
+        LP_DEC --> HIGH_BANDS[High-freq bands:<br/>Contrast enhance<br/>+ Denoise]
+        LOW_BANDS --> LP_REC[Laplacian Pyramid<br/>Reconstruction]
         HIGH_BANDS --> LP_REC
     end
     
-    LP_REC --> CLAMP[출력 범위 조정<br/>0 ~ 2¹⁶-1]
-    CLAMP --> OUT[출력 이미지]
+    LP_REC --> CLAMP[Output Clamping<br/>0 ~ 2¹⁶-1]
+    CLAMP --> OUT[Output Image]
     
     style SCATTER_MAP fill:#fcc,stroke:#333
     style LP_DEC fill:#cfc,stroke:#333
@@ -385,25 +385,25 @@ flowchart TD
 **Laplacian Pyramid 구현 (US8064676B2 기반):**
 
 ```
-분해:
-  g_{k+1}(x,y) = [g_k(x,y) * G_σ(x,y)]↓2     # Gaussian convolution + 다운샘플
-  L_k(x,y) = g_k(x,y) - [g_{k+1}(x,y)]↑2 * G_σ  # 차분 (상세) 이미지
+Decomposition:
+  g_{k+1}(x,y) = [g_k(x,y) * G_σ(x,y)]↓2     # Gaussian convolution + downsample
+  L_k(x,y) = g_k(x,y) - [g_{k+1}(x,y)]↑2 * G_σ  # Differential (detail) image
   
-  여기서: σ = 1.0, kernel = 5×5, n = log(N)/log(2) - 0.5
+  where: σ = 1.0, kernel = 5×5, n = log(N)/log(2) - 0.5
 
-처리:
-  저주파 (g_n):   g'_n = g_n × (1 + α × SPR_correction_factor)
-  고주파 (L_k):  L'_k = L_k × β_k - noise_k
+Processing:
+  Low-freq (g_n):   g'_n = g_n × (1 + α × SPR_correction_factor)
+  High-freq (L_k):  L'_k = L_k × β_k - noise_k
                      β_k = contrast_gain[grid_ratio][k]
                      noise_k = WienerFilter(L_k, σ_noise)
 
-복원:
+Reconstruction:
   g'_k = [g'_{k+1}]↑2 * G_σ + L'_k
 ```
 
 **Scatter Kernel LUT 구조:**
 
-| 축 | 범위 | 단계 | 설명 |
+| Axis | Range | Step | Description |
 |------|-------|------|-------------|
 | Thickness (t) | 5~35 cm | 1 cm | Water-equivalent thickness |
 | kVp | 40~150 kVp | 10 kVp | Tube voltage |
@@ -412,21 +412,21 @@ flowchart TD
 
 LUT 생성: GATE (Geant4) Monte Carlo simulation으로 사전 계산. 각 조건에서 scatter kernel을 4-Gaussian model로 fitting하여 저장.
 
-## 6. SOUP 인터페이스
+## 6. SOUP Interfaces
 
 ```mermaid
 graph LR
-    subgraph "GSVG 시스템"
+    subgraph "GSVG System"
         SI002[SI-002<br/>Grid Suppression]
         SI003[SI-003<br/>Virtual Grid]
-        SI004[SI-004<br/>유틸리티]
+        SI004[SI-004<br/>Utilities]
     end
     
-    subgraph "SOUP 컴포넌트"
-        OCV[OpenCV 4.9<br/>이미지 I/O, 크기 조정,<br/>기본 연산]
-        FFTW[FFTW3 3.3.10<br/>FFT 순방향/역방향]
-        EIGEN[Eigen 3.4<br/>행렬 연산]
-        DCMTK[DCMTK 3.6.8<br/>DICOM 읽기/쓰기]
+    subgraph "SOUP Components"
+        OCV[OpenCV 4.9<br/>Image I/O, resize,<br/>basic operations]
+        FFTW[FFTW3 3.3.10<br/>FFT forward/inverse]
+        EIGEN[Eigen 3.4<br/>Matrix operations]
+        DCMTK[DCMTK 3.6.8<br/>DICOM read/write]
     end
     
     SI002 --> FFTW
@@ -438,23 +438,23 @@ graph LR
     SI004 --> FFTW
 ```
 
-## 7. 에러 처리 전략
+## 7. Error Handling Strategy
 
 ```mermaid
 stateDiagram-v2
-    [*] --> 유휴
-    유휴 --> 처리: processImage()
-    처리 --> GridDetection: grid 유무 검출
-    GridDetection --> GridSuppression: grid 검출
-    GridDetection --> VirtualGrid: grid 미검출
-    GridDetection --> 에러 상태: 검출 실패
-    GridSuppression --> 성공: OK
-    GridSuppression --> 에러 상태: 알고리즘 실패
-    VirtualGrid --> 성공: OK
-    VirtualGrid --> 에러 상태: 알고리즘 실패
-    에러 상태 --> 통과: 원본 이미지 + 에러 코드 반환
-    통과 --> 유휴
-    성공 --> 유휴
+    [*] --> Idle
+    Idle --> Processing: processImage()
+    Processing --> GridDetection: detect grid presence
+    GridDetection --> GridSuppression: grid found
+    GridDetection --> VirtualGrid: no grid
+    GridDetection --> ErrorState: detection failure
+    GridSuppression --> Success: OK
+    GridSuppression --> ErrorState: algorithm failure
+    VirtualGrid --> Success: OK
+    VirtualGrid --> ErrorState: algorithm failure
+    ErrorState --> PassThrough: return original image + error code
+    PassThrough --> Idle
+    Success --> Idle
 ```
 
 **SAFE-001/003 구현**: 모든 알고리즘 진입점에서 원본 영상의 deep copy를 보관. 어떤 예외/에러 발생 시에도 원본 반환.
@@ -971,71 +971,71 @@ graph LR
 
 ## A.2 Virtual Grid — 교차검증된 알고리즘 선택 근거
 
-| 방법 | 장점 | 단점 | 참고 자료 | 선택 |
+| Approach | Pros | Cons | Reference | 선택 |
 |----------|------|------|-----------|------|
-| **라플라시안 피라미드** | **특허 공개 구현, 검증됨** | **Scatter model 별도 필요** | **US8064676B2** | **✓ 핵심 프레임워크** |
-| **Scatter Kernel LUT** | **MC 정확도, 실시간** | **LUT 생성 필요** | **Philips SkyFlow Plus** | **✓ Scatter 추정** |
-| Monte Carlo 실시간 | 가장 정확 | 임상용으로 너무 느림 | 다양함 | ✗ |
-| 딥러닝 (U-Net) | 빠르고 적응형 | 학습 데이터, 검증 부담 | Lee 2018 | ✗ (Phase 2 옵션) |
-| GAN 노이즈 감소 | 노이즈 처리 | 추가 복잡도 | Lim 2023 | ✗ (향후 옵션) |
-| Beam stopper 배열 | 직접 측정 | 추가 하드웨어 필요 | Nature 2023 | ✗ (하드웨어 방법) |
+| **Laplacian Pyramid** | **특허 공개 구현, 검증됨** | **Scatter model 별도 필요** | **US8064676B2** | **✓ Core framework** |
+| **Scatter Kernel LUT** | **MC 정확도, real-time** | **LUT 생성 필요** | **Philips SkyFlow Plus** | **✓ Scatter estimation** |
+| Monte Carlo real-time | Most accurate | Too slow for clinical | Various | ✗ |
+| Deep learning (U-Net) | Fast, adaptive | Training data, validation burden | Lee 2018 | ✗ (Phase 2 option) |
+| GAN noise reduction | Noise handling | Additional complexity | Lim 2023 | ✗ (future option) |
+| Beam stopper array | Direct measurement | Extra hardware needed | Nature 2023 | ✗ (hardware method) |
 
-**선택 근거**: 라플라시안 피라미드 + Scatter Kernel LUT 조합은 (1) US8064676B2에 완전한 구현이 공개되어 구현 위험 최소, (2) Philips SkyFlow Plus가 동일 원리로 임상 검증 완료, (3) MC 기반 LUT로 물리적 정확도 확보, (4) 실시간 처리 가능.
+**선택 근거**: Laplacian Pyramid + Scatter Kernel LUT 조합은 (1) US8064676B2에 완전한 구현이 공개되어 구현 위험 최소, (2) Philips SkyFlow Plus가 동일 원리로 임상 검증 완료, (3) MC-based LUT로 물리적 정확도 확보, (4) Real-time 처리 가능.
 
 ---
 
-# 부록 B: 핵심 방정식 빠른 참고
+# Appendix B: Key Equations Quick Reference
 
 ## B.1 Scatter-to-Primary Ratio
 
 ```
 SPR(t, kVp, FOV) = a(kVp) × t^b(kVp) × FOV^c(kVp)
 
-여기서:
+where:
   t = water-equivalent thickness [cm]
   FOV = field size [cm²]
-  a, b, c = MC LUT fitting의 경험적 계수
+  a, b, c = empirical coefficients from MC LUT fitting
   
-일반적인 값 (80 kVp, 35×43 cm):
+Typical values (80 kVp, 35×43 cm):
   10 cm → SPR ≈ 0.4
   20 cm → SPR ≈ 1.0
   30 cm → SPR ≈ 2.0
 ```
 
-## B.2 Grid 효과 에뮬레이션
+## B.2 Grid Effect Emulation
 
 ```
 I_grid_like = I_primary × (1 + α × GR / (GR + 1))
 
-여기서:
-  I_primary = I_total / (1 + SPR)    # Scatter 제거된 이미지
-  GR = 선택된 grid ratio (6, 8, 10, 12)
-  α = 명암 향상 계수 (해부학적 구조별 보정)
+where:
+  I_primary = I_total / (1 + SPR)    # Scatter subtracted image
+  GR = selected grid ratio (6, 8, 10, 12)
+  α = contrast enhancement coefficient (calibrated per anatomy)
 ```
 
-## B.3 Gaussian Band-Stop 필터
+## B.3 Gaussian Band-Stop Filter
 
 ```
 H(u,v) = 1 - exp(-((u - u_g)² + (v - v_g)²) / (2σ²))
 
-여기서:
-  (u_g, v_g) = grid artifact 주파수 위치 [cycles/pixel]
-  σ = 필터 대역폭 [cycles/pixel]
-  DWT 부대역 FFT 후 주파수 영역에서 적용됨
+where:
+  (u_g, v_g) = grid artifact frequency location [cycles/pixel]
+  σ = filter bandwidth [cycles/pixel]
+  Applied in frequency domain after DWT sub-band FFT
 ```
 
-## B.4 Wiener 노이즈 제거
+## B.4 Wiener Denoising
 
 ```
 G(u,v) = H*(u,v) / (|H(u,v)|² + σ_n² / σ_s²)
 
-여기서:
-  H(u,v) = 이미징 시스템 OTF (근사)
-  σ_n = 노이즈 표준편차 (scatter 보정 잔여에서 추정)
-  σ_s = 신호 전력 스펙트럼 밀도
+where:
+  H(u,v) = imaging system OTF (approximated)
+  σ_n = noise standard deviation (estimated from scatter correction residual)
+  σ_s = signal power spectral density
 ```
 
 ---
 
-*문서 끝*  
-*다음 조치: DwtDecomposer 및 단위 테스트로 시작하는 Grid Suppression 엔진의 Phase 1 구현.*
+*Document End*  
+*Next Action: Phase 1 implementation of Grid Suppression Engine starting with DwtDecomposer and unit tests.*

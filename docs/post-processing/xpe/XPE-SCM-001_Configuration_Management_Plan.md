@@ -1,4 +1,4 @@
-# 소프트웨어 구성 관리 계획
+# Software Configuration Management Plan
 
 **Document ID:** XPE-SCM-001 v1.0  
 **IEC 62304 Clause:** 8.1 — 8.3  
@@ -9,141 +9,141 @@
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
 XPE 소프트웨어의 configuration item 식별, 변경 제어, 상태 보고를 정의한다.
 
-## 2. 구성 항목 식별 (8.1)
+## 2. Configuration Identification (8.1)
 
 ### 2.1 Configuration Items
 
-| CI 유형 | 명명규칙 | 위치 | 형식 |
+| CI Type | Naming | Location | Format |
 |---------|--------|----------|--------|
-| 소스코드 | `src/{module}/{file}.cpp/.h` | Gitea `xpe-engine` 저장소 | C++ 17 |
-| 테스트 코드 | `test/{module}/{file}_test.cpp` | 동일 저장소 `/test/` | C++ (GTest) |
-| 문서 | `docs/{XPE-DOC-ID}.md` | 동일 저장소 `/docs/` | Markdown |
-| 빌드 스크립트 | `CMakeLists.txt`, `Dockerfile` | 저장소 루트 | CMake, Docker |
-| SOUP 잠금 파일 | `vcpkg.json`, `vcpkg-configuration.json` | 저장소 루트 | JSON |
-| 보정 스키마 | `cal/schema/{panel-type}.json` | `xpe-calibration` 저장소 | JSON |
-| 처리 사전설정 | `config/presets/{body-part}.json` | `xpe-engine` `/config/` | JSON |
-| DL 모델 | `models/{model-name}-v{X}.onnx` | `xpe-models` 저장소 (LFS) | ONNX |
+| Source code | `src/{module}/{file}.cpp/.h` | Gitea `xpe-engine` repo | C++ 17 |
+| Test code | `test/{module}/{file}_test.cpp` | Same repo `/test/` | C++ (GTest) |
+| Documents | `docs/{XPE-DOC-ID}.md` | Same repo `/docs/` | Markdown |
+| Build scripts | `CMakeLists.txt`, `Dockerfile` | Repo root | CMake, Docker |
+| SOUP lockfile | `vcpkg.json`, `vcpkg-configuration.json` | Repo root | JSON |
+| Calibration schemas | `cal/schema/{panel-type}.json` | `xpe-calibration` repo | JSON |
+| Processing presets | `config/presets/{body-part}.json` | `xpe-engine` `/config/` | JSON |
+| DL models | `models/{model-name}-v{X}.onnx` | `xpe-models` repo (LFS) | ONNX |
 
-### 2.2 SCM 도구
+### 2.2 SCM Tools
 
-| 도구 | 목적 | 버전 |
+| Tool | Purpose | Version |
 |------|---------|---------|
-| Gitea | 버전 제어, PR 검토, 이슈 추적 | 자체 호스팅 (DS224+) |
-| Docker | 빌드 환경 격리 | 24.x |
-| vcpkg | C++ 의존성 관리 | 최신 안정 버전 |
-| Gitea Actions | CI/CD 파이프라인 | 내장 |
+| Gitea | Version control, PR review, issue tracking | Self-hosted (DS224+) |
+| Docker | Build environment isolation | 24.x |
+| vcpkg | C++ dependency management | Latest stable |
+| Gitea Actions | CI/CD pipeline | Built-in |
 
-### 2.3 버전 지정 방식
+### 2.3 Versioning Scheme
 
 **Semantic Versioning:** `MAJOR.MINOR.PATCH`
 
-| 구성 | 증가 조건 |
+| Component | Increment When |
 |-----------|---------------|
-| MAJOR | Breaking API 변경, Phase 전환 릴리스 |
-| MINOR | 새 기능, 하위 호환성 유지 |
-| PATCH | 버그 수정, 하위 호환성 유지 |
+| MAJOR | Breaking API change, Phase 전환 release |
+| MINOR | New feature, backward-compatible |
+| PATCH | Bug fix, backward-compatible |
 
 **Pre-release:** `X.Y.Z-rc.N` (release candidate)
 
-## 3. 변경 관리 (8.2)
+## 3. Change Control (8.2)
 
-### 3.1 브랜치 전략 (GitFlow)
+### 3.1 Branching Strategy (GitFlow)
 
-| 브랜치 | 목적 | 병합 대상 | 보호 |
+| Branch | Purpose | Merge Target | Protection |
 |--------|---------|:------------:|:----------:|
-| `main` | 프로덕션 릴리스 | — | 보호됨 (관리자만) |
-| `develop` | 통합 브랜치 | `main` (릴리스를 통해) | PR 필수 |
-| `feature/{issue}-{desc}` | 기능 개발 | `develop` | PR + 검토 |
-| `release/{version}` | 릴리스 준비 | `main` + `develop` | PR 필수 |
-| `hotfix/{issue}` | 긴급 수정 | `main` + `develop` | PR + 검토 |
+| `main` | Production releases | — | Protected (admin only) |
+| `develop` | Integration branch | `main` (via release) | PR required |
+| `feature/{issue}-{desc}` | Feature development | `develop` | PR + review |
+| `release/{version}` | Release preparation | `main` + `develop` | PR required |
+| `hotfix/{issue}` | Critical fix | `main` + `develop` | PR + review |
 
-### 3.2 변경 요청 프로세스
+### 3.2 Change Request Process
 
 ```
 1. Gitea Issue 생성 (type: feature/bug/enhancement)
-   - 설명, 근거, 영향받는 CI
+   - Description, rationale, affected CI
    ↓
-2. 영향 분석
-   - 영향받는 SW Items / Units
-   - 테스트 범위 (unit/integration/system)
-   - 리스크 영향 (SRM 업데이트 필요 여부)
-   - 문서 업데이트 필요 여부
+2. Impact analysis
+   - Affected SW Items / Units
+   - Test scope (unit/integration/system)
+   - Risk impact (SRM update 필요 여부)
+   - Document update 필요 여부
    ↓
-3. Feature 브랜치 생성
+3. Feature branch 생성
    ↓
-4. 구현 + 유닛 테스트 (동시 제출)
+4. Implementation + unit test (동시 제출)
    ↓
 5. Pull Request
-   - 설명, Issue 참조 (Fixes #xxx)
-   - 셀프 검토 체크리스트
+   - Description, Issue reference (Fixes #xxx)
+   - Self-review checklist
    ↓
-6. 코드 검토 (≥ 1 검토자 승인)
+6. Code review (≥ 1 reviewer approval)
    ↓
-7. CI 통과 (빌드 + UT + 커버리지 + 정적 분석)
+7. CI pass (build + UT + coverage + static analysis)
    ↓
-8. develop으로 병합
+8. Merge to develop
    ↓
-9. 통합 테스트 (develop 브랜치, 야간)
+9. Integration test (develop branch, nightly)
 ```
 
-### 3.3 추적성 (8.2.4)
+### 3.3 Traceability (8.2.4)
 
-| 출발지 | 도착지 | 메커니즘 |
+| From | To | Mechanism |
 |------|----|-----------| 
-| 변경 → Issue | Gitea Issue ID | PR `Fixes #xxx` 참조 |
-| Issue → 코드 | Commit + PR | Git log + PR 히스토리 |
-| 코드 → 빌드 | CI 아티팩트 | 빌드 ID + commit SHA |
-| 빌드 → 테스트 | 테스트 보고서 | 빌드에 연결된 CI 아티팩트 |
-| 릴리스 → Issues | 릴리스 노트 | 릴리스당 이슈 목록 |
+| Change → Issue | Gitea Issue ID | PR references `Fixes #xxx` |
+| Issue → Code | Commit + PR | Git log + PR history |
+| Code → Build | CI artifact | Build ID + commit SHA |
+| Build → Test | Test report | CI artifact linked to build |
+| Release → Issues | Release note | Issue list per release |
 
-## 4. 구성 상태 회계 (8.3)
+## 4. Configuration Status Accounting (8.3)
 
-| 보고서 | 빈도 | 내용 | 대상 |
+| Report | Frequency | Content | Audience |
 |--------|-----------|---------|----------|
-| CI 빌드 보고서 | commit당 | 빌드 상태, 테스트 통과/실패, 커버리지 % | 개발팀 |
-| 야간 통합 보고서 | 일일 | 통합 테스트 결과, 회귀 | 개발팀 |
-| 릴리스 노트 | 릴리스당 | 버전, 변경사항, 이상, SOUP 버전 | 모든 이해관계자 |
-| Configuration Baseline | 릴리스당 | 완전한 CI 목록 + 버전 (Git 태그) | QA, 규제 |
+| CI Build Report | Per commit | Build status, test pass/fail, coverage % | Dev team |
+| Nightly Integration Report | Daily | Integration test results, regression | Dev team |
+| Release Note | Per release | Version, changes, anomalies, SOUP versions | All stakeholders |
+| Configuration Baseline | Per release | Complete CI list + versions (Git tag) | QA, Regulatory |
 
-### 4.1 릴리스 Baseline 내용
+### 4.1 Release Baseline Content
 
 ```
 xpe-engine vX.Y.Z  (Git tag: vX.Y.Z, SHA: {full})
-├── 소스코드 (commit SHA)
-├── SOUP 버전 (vcpkg.json 스냅샷)
+├── Source code (commit SHA)
+├── SOUP versions (vcpkg.json snapshot)
 │   ├── opencv: 4.9.x
 │   ├── dcmtk: 3.6.8
 │   ├── onnxruntime: 1.17.x
 │   └── ...
-├── 빌드 환경 (Dockerfile SHA)
+├── Build environment (Dockerfile SHA)
 │   ├── OS: Ubuntu 24.04
 │   ├── GCC: 13.2
 │   └── CMake: 3.28
-├── 처리 사전설정 (config/ SHA)
-├── DL 모델 (models/ SHA, Phase 3인 경우)
-└── 문서 (docs/ SHA)
+├── Processing presets (config/ SHA)
+├── DL models (models/ SHA, if Phase 3)
+└── Documents (docs/ SHA)
 ```
 
-## 5. 백업 & 아카이브
+## 5. Backup & Archive
 
-| 항목 | 방법 | 보관 |
+| Item | Method | Retention |
 |------|--------|-----------|
-| Gitea 저장소 | DS224+ RAID 1 + Gitea 자동 백업 (격주) | 기기 수명 + 10년 |
-| CI 아티팩트 | Gitea Actions 아티팩트 | 1년 (릴리스: 영구) |
-| 릴리스 아카이브 | DS224+ `/volume1/backup/releases/` | 기기 수명 + 10년 |
+| Gitea repositories | DS224+ RAID 1 + Gitea auto-backup (bi-weekly) | Device lifetime + 10 years |
+| CI artifacts | Gitea Actions artifacts | 1 year (releases: permanent) |
+| Release archives | DS224+ `/volume1/backup/releases/` | Device lifetime + 10 years |
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 개정판 | 날짜 | 작성자 | 설명 |
+| Rev | Date | Author | Description |
 |-----|------|--------|-------------|
-| 1.0 | 2026-04-03 | XPE Team | 초기 릴리스 |
+| 1.0 | 2026-04-03 | XPE Team | Initial release |
 
 ---
 
-*문서 끝 — XPE-SCM-001 v1.0*
+*Document End — XPE-SCM-001 v1.0*

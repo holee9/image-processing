@@ -7,22 +7,22 @@
 
 ---
 
-## 1. 검증 전략
+## 1. Verification Strategy
 
 ```mermaid
 graph BT
-    UT[단위 테스트<br/>Google Test<br/>≥90% 라인 커버리지] --> IT[통합 테스트<br/>모듈 상호작용<br/>데이터 흐름 검증]
-    IT --> ST[시스템 테스트<br/>엔드-투-엔드<br/>임상 이미지 세트]
-    ST --> REG[회귀 테스트<br/>Golden 참조<br/>CI 자동화]
+    UT[Unit Testing<br/>Google Test<br/>≥90% line coverage] --> IT[Integration Testing<br/>Module interaction<br/>Data flow validation]
+    IT --> ST[System Testing<br/>End-to-end<br/>Clinical image sets]
+    ST --> REG[Regression Testing<br/>Golden reference<br/>CI automated]
 ```
 
-| 레벨 | 도구 | 커버리지 목표 | 자동화 |
+| Level | Tool | Coverage Target | Automation |
 |-------|------|----------------|------------|
-| 단위 | Google Test + gcov | ≥90% 라인, ≥80% 브랜치 | 모든 push에서 CI |
-| 통합 | Google Test + 커스텀 harness | 모든 SI 인터페이스 | develop merge에서 CI |
-| 시스템 | pytest + 커스텀 DICOM 파이프라인 | 모든 SRS 요구사항 | 수동 트리거 + 야간 CI |
-| 정적 분석 | cppcheck, clang-tidy | 0 critical/major 경고 | 모든 push에서 CI |
-| 메모리 | Valgrind (memcheck) | 0 leaks, 0 errors | 야간 CI |
+| Unit | Google Test + gcov | ≥90% line, ≥80% branch | CI on every push |
+| Integration | Google Test + custom harness | All SI interfaces | CI on develop merge |
+| System | pytest + custom DICOM pipeline | All SRS requirements | Manual trigger + CI nightly |
+| Static Analysis | cppcheck, clang-tidy | 0 critical/major warnings | CI on every push |
+| Memory | Valgrind (memcheck) | 0 leaks, 0 errors | CI nightly |
 
 ---
 
@@ -116,20 +116,20 @@ graph BT
 
 ---
 
-## 6. 테스트 환경
+## 6. Test Environment
 
-| 항목 | 사양 |
+| Item | Specification |
 |------|--------------|
-| 빌드 OS | Ubuntu 22.04 LTS |
-| 컴파일러 | GCC 12+ or Clang 15+ |
-| 대상 HW | Intel i7-12700 또는 동급 (벤치마크 참조) |
-| 테스트 이미지 | 합성 phantoms + 익명화된 임상 DICOMs |
-| 참조 데이터 | MC 시뮬레이션 golden 참조 (GATE/Geant4) |
+| Build OS | Ubuntu 22.04 LTS |
+| Compiler | GCC 12+ or Clang 15+ |
+| Target HW | Intel i7-12700 or equivalent (benchmark reference) |
+| Test images | Synthetic phantoms + anonymized clinical DICOMs |
+| Reference data | MC simulation golden reference (GATE/Geant4) |
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 버전 | 날짜 | 작성자 | 설명 |
+| Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | 초판 |
+| 1.0 | 2026-04-03 | — | Initial release |

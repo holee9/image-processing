@@ -7,67 +7,67 @@
 
 ---
 
-## 1. 시스템 컨텍스트
+## 1. System Context
 
 ```mermaid
 graph TB
     subgraph "X-ray FPD System"
-        ACQ[이미지 획득<br/>FPGA/Firmware] --> RAW[원본 이미지<br/>16-bit DICOM]
-        RAW --> GSVG[GSVG 모듈]
-        GSVG --> PROC[처리된 이미지<br/>16-bit DICOM]
-        PROC --> CONSOLE[진단 콘솔<br/>RadiConsole™]
+        ACQ[Image Acquisition<br/>FPGA/Firmware] --> RAW[Raw Image<br/>16-bit DICOM]
+        RAW --> GSVG[GSVG Module]
+        GSVG --> PROC[Processed Image<br/>16-bit DICOM]
+        PROC --> CONSOLE[Diagnostic Console<br/>RadiConsole™]
     end
     
-    subgraph "외부 입력"
-        CONFIG[구성<br/>JSON] --> GSVG
-        LUT[Scatter Kernel<br/>LUT 파일] --> GSVG
+    subgraph "External Inputs"
+        CONFIG[Configuration<br/>JSON] --> GSVG
+        LUT[Scatter Kernel<br/>LUT Files] --> GSVG
     end
     
-    subgraph "외부 출력"
-        GSVG --> LOG[처리 로그<br/>JSON]
+    subgraph "External Outputs"
+        GSVG --> LOG[Processing Log<br/>JSON]
     end
 ```
 
 ---
 
-## 2. 최상위 아키텍처
+## 2. Top-Level Architecture
 
 ```mermaid
 graph TD
-    API[API 계층<br/>gsvg_api.h / gsvg_types.h]
+    API[API Layer<br/>gsvg_api.h / gsvg_types.h]
     
-    subgraph "SI-001: 이미지 파이프라인 관리자"
-        PM[파이프라인관리자]
+    subgraph "SI-001: Image Pipeline Manager"
+        PM[PipelineManager]
         DETECT[GridDetector]
-        CFG[처리구성]
+        CFG[ProcessingConfig]
     end
     
-    subgraph "SI-002: Grid Suppression 엔진"
-        DWT[DWT분해자]
-        GDET[Gridline검출자]
-        BSF[밴드스탑필터]
+    subgraph "SI-002: Grid Suppression Engine"
+        DWT[DwtDecomposer]
+        GDET[GridlineDetector]
+        BSF[BandStopFilter]
     end
     
-    subgraph "SI-003: Virtual Grid 엔진"
-        THICK[두께추정자]
-        SPR[SPR계산자]
-        SCAT[Scatter추정자]
-        LAP[라플라시안피라미드]
-        DENOISE[노이즈제거기]
+    subgraph "SI-003: Virtual Grid Engine"
+        THICK[ThicknessEstimator]
+        SPR[SprCalculator]
+        SCAT[ScatterEstimator]
+        LAP[LaplacianPyramid]
+        DENOISE[Denoiser]
     end
     
-    subgraph "SI-004: 공통 유틸리티"
-        DICOM_IO[DICOM I/O]
-        FFT_UTIL[FFT유틸리티]
-        IMG_BUF[이미지버퍼]
-        VALID[검증자]
-        ERR[에러핸들러]
+    subgraph "SI-004: Common Utilities"
+        DICOM_IO[DicomIO]
+        FFT_UTIL[FftUtils]
+        IMG_BUF[ImageBuffer]
+        VALID[Validator]
+        ERR[ErrorHandler]
     end
     
     API --> PM
     PM --> DETECT
-    DETECT -->|grid 검출| DWT
-    DETECT -->|grid 미검출| THICK
+    DETECT -->|grid detected| DWT
+    DETECT -->|no grid| THICK
     
     DWT --> GDET --> BSF
     THICK --> SPR --> SCAT
@@ -84,52 +84,52 @@ graph TD
 
 ---
 
-## 3. 소프트웨어 항목
+## 3. Software Items
 
-| 항목 ID | 명칭 | 설명 | 안전 등급 | SOUP 의존성 |
+| Item ID | Name | Description | Safety Class | SOUP Dependencies |
 |---------|------|-------------|--------------|-------------------|
-| SI-001 | 이미지 파이프라인 관리자 | 영상 입출력 라우팅, grid 유무 판정, 에러 처리, config 관리 | B | DCMTK, nlohmann/json |
-| SI-002 | Grid Suppression 엔진 | DWT 기반 grid artifact 검출 및 Gaussian band-stop filter 제거 | B | FFTW3, OpenCV |
-| SI-003 | Virtual Grid 엔진 | Scatter estimation(kernel LUT) + Laplacian Pyramid 명암 향상 + 노이즈 제거 | B | FFTW3, OpenCV, Eigen |
-| SI-004 | 공통 유틸리티 | DICOM I/O, FFT 래퍼, ImageBuffer(RAII), 검증, 에러 처리 | B | DCMTK, OpenCV, FFTW3 |
+| SI-001 | Image Pipeline Manager | 영상 입출력 라우팅, grid 유무 판정, 에러 처리, config 관리 | B | DCMTK, nlohmann/json |
+| SI-002 | Grid Suppression Engine | DWT 기반 grid artifact 검출 및 Gaussian band-stop filter 제거 | B | FFTW3, OpenCV |
+| SI-003 | Virtual Grid Engine | Scatter estimation(kernel LUT) + Laplacian Pyramid contrast enhancement + denoising | B | FFTW3, OpenCV, Eigen |
+| SI-004 | Common Utilities | DICOM I/O, FFT wrapper, ImageBuffer(RAII), validation, error handling | B | DCMTK, OpenCV, FFTW3 |
 
 ---
 
-## 4. SI-002: Grid Suppression 엔진 — 데이터 흐름
+## 4. SI-002: Grid Suppression Engine — Data Flow
 
 ```mermaid
 flowchart LR
-    IN[입력 이미지<br/>M×N 16-bit] --> DWT_PROC[2D DWT<br/>Db4 웨이블릿]
+    IN[Input Image<br/>M×N 16-bit] --> DWT_PROC[2D DWT<br/>Db4 wavelet]
     
-    DWT_PROC --> LL[LL<br/>근사]
-    DWT_PROC --> LH[LH<br/>수평 상세]
-    DWT_PROC --> HL[HL<br/>수직 상세]
-    DWT_PROC --> HH[HH<br/>대각 상세]
+    DWT_PROC --> LL[LL<br/>Approximation]
+    DWT_PROC --> LH[LH<br/>Horiz detail]
+    DWT_PROC --> HL[HL<br/>Vert detail]
+    DWT_PROC --> HH[HH<br/>Diag detail]
     
-    LL -->|재귀적 분해<br/>grid 검출까지| DWT_PROC
+    LL -->|recursive decomposition<br/>until grid detected| DWT_PROC
     
-    LH --> ENERGY[부대역 에너지<br/>분석]
+    LH --> ENERGY[Sub-band Energy<br/>Analysis]
     HL --> ENERGY
     HH --> ENERGY
     
-    ENERGY -->|에너지 > 3σ threshold| BSF_APPLY[Gaussian<br/>Band-Stop 필터]
-    ENERGY -->|threshold 미만| PASS[통과]
+    ENERGY -->|energy > 3σ threshold| BSF_APPLY[Gaussian<br/>Band-Stop Filter]
+    ENERGY -->|below threshold| PASS[Pass-through]
     
-    BSF_APPLY --> RECON[역 DWT<br/>복원]
+    BSF_APPLY --> RECON[Inverse DWT<br/>Reconstruction]
     PASS --> RECON
     
-    RECON --> OUT[Grid 제거 이미지]
+    RECON --> OUT[Grid-free Image]
 ```
 
-**알고리즘 파라미터 (교차검증 근거):**
+**Algorithm Parameters (교차검증 근거):**
 
-| 파라미터 | 값 | 출처 |
+| Parameter | Value | Source |
 |-----------|-------|--------|
 | Wavelet basis | Daubechies-4 (db4) | Tang 2015, Medical Physics |
-| 최대 분해 레벨 | `log₂(min(M,N)) - 4` | 이미지 크기에 적응형 |
-| Gridline 에너지 threshold | 3σ above mean sub-band energy | Tang 2015 |
-| Band-stop 필터 대역폭 | ±2 픽셀 in frequency domain | Lin 2006, J Digital Imaging |
-| Band-stop Gaussian σ | 1.5 픽셀 | 경험적 보정 |
+| Max decomposition levels | `log₂(min(M,N)) - 4` | Adaptive to image size |
+| Gridline energy threshold | 3σ above mean sub-band energy | Tang 2015 |
+| Band-stop filter bandwidth | ±2 pixels in frequency domain | Lin 2006, J Digital Imaging |
+| Band-stop Gaussian σ | 1.5 pixels | Empirical calibration |
 
 ---
 
@@ -190,17 +190,17 @@ LUT 생성: GATE (Geant4) MC simulation → 4-Gaussian kernel model fitting per 
 
 ---
 
-## 6. SOUP 인터페이스
+## 6. SOUP Interfaces
 
 ```mermaid
 graph LR
-    subgraph "GSVG 소프트웨어 항목"
+    subgraph "GSVG Software Items"
         SI002[SI-002 Grid Suppression]
         SI003[SI-003 Virtual Grid]
-        SI004[SI-004 유틸리티]
+        SI004[SI-004 Utilities]
     end
     
-    subgraph "SOUP 컴포넌트"
+    subgraph "SOUP Components"
         OCV[OpenCV 4.9<br/>Apache 2.0]
         FFTW[FFTW3 3.3.10<br/>GPL v2+]
         EIGEN[Eigen 3.4<br/>MPL 2.0]
@@ -223,32 +223,32 @@ graph LR
 
 ---
 
-## 7. 에러 처리 아키텍처
+## 7. Error Handling Architecture
 
 ```mermaid
 stateDiagram-v2
-    [*] --> 유휴
-    유휴 --> 처리: gsvg_process() 호출
+    [*] --> Idle
+    Idle --> Processing: gsvg_process() called
     
-    처리 --> 입력검증
-    입력검증 --> GridDetection: 유효
-    입력검증 --> 에러반환: 유효하지 않은 입력
+    Processing --> InputValidation
+    InputValidation --> GridDetection: valid
+    InputValidation --> ErrorReturn: invalid input
     
-    GridDetection --> 그리드억압: grid 검출
-    GridDetection --> 가상그리드: grid 미검출
-    GridDetection --> 에러반환: 검출 예외
+    GridDetection --> GridSuppression: grid found
+    GridDetection --> VirtualGrid: no grid
+    GridDetection --> ErrorReturn: detection exception
     
-    그리드억압 --> 출력검증: 성공
-    그리드억압 --> 에러반환: 알고리즘 실패
+    GridSuppression --> OutputValidation: success
+    GridSuppression --> ErrorReturn: algorithm failure
     
-    가상그리드 --> 출력검증: 성공
-    가상그리드 --> 에러반환: 알고리즘 실패
+    VirtualGrid --> OutputValidation: success
+    VirtualGrid --> ErrorReturn: algorithm failure
     
-    출력검증 --> 성공: 출력 유효
-    출력검증 --> 에러반환: 범위 초과
+    OutputValidation --> Success: output valid
+    OutputValidation --> ErrorReturn: output out of range
     
-    에러반환 --> 유휴: 원본 이미지 + 에러 코드 반환
-    성공 --> 유휴: 처리된 이미지 반환
+    ErrorReturn --> Idle: return original image + error code
+    Success --> Idle: return processed image
 ```
 
 **SAFE-001/003 구현 원칙:**
@@ -258,22 +258,22 @@ stateDiagram-v2
 
 ---
 
-## 8. 아키텍처 검증 체크리스트
+## 8. Architecture Verification Checklist
 
 IEC 62304:2015 §5.3.6 기준:
 
-| 항목 | 상태 |
+| Item | Status |
 |------|--------|
 | Software items 식별 완료 | ✓ (SI-001 ~ SI-004) |
 | Software items 간 interfaces 정의 | ✓ (Section 2 diagram) |
-| SOUP 식별 및 기능/성능 요구사항 정의 | ✓ (Section 6 + GSVG-SOUP-001) |
-| 위험 관리 조치가 아키텍처에 반영 | ✓ (Section 7 — error handling) |
-| 아키텍처가 SRS 요구사항을 완전히 커버 | ✓ (GSVG-RTM-001에서 추적) |
+| SOUP 식별 및 functional/performance requirements 정의 | ✓ (Section 6 + GSVG-SOUP-001) |
+| Risk control measures가 architecture에 반영 | ✓ (Section 7 — error handling) |
+| Architecture가 SRS requirements를 완전히 커버 | ✓ (GSVG-RTM-001에서 추적) |
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 버전 | 날짜 | 작성자 | 설명 |
+| Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | 초판 |
+| 1.0 | 2026-04-03 | — | Initial release |

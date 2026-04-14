@@ -1,17 +1,17 @@
-# PRD: X-Ray Image Processing Engine 상세 프로젝트 실행
+# PRD: X-Ray Image Processing Engine Detailed Project Execution
 
 **Document ID**: XPE-PRD-002  
 **Version**: 1.1.0  
 **Date**: 2026-04-13  
 **Status**: Working Draft (Cross-Verified)  
 **Classification**: Internal / Execution Baseline  
-**Regulatory Position**: XPE core package는 현재 IEC 62304 Class B package로 계획됩니다. 최종 소프트웨어 안전 클래스 및 패키지 경계는 시스템 위험 분석 및 시스템 수준 분해에 의해 확인되어야 합니다. **필수 조치**: 시스템 위험 분석은 Phase 1a gate 이전에 완료되고 서명되어야 합니다 (섹션 14.1 참조).  
-**실행 계획을 위해 지원됨**: `xray-postprocessing-prd.md` (XPE-PRD-001)  
-**교차 검증**: XPE-XVER-001 v1.0.0 (2026-04-13) — 3 라운드 검증됨  
+**Regulatory Position**: XPE core package is currently planned as an IEC 62304 Class B package. Final software safety class and package boundaries must be confirmed by system hazard analysis and system-level decomposition. **ACTION REQUIRED**: System hazard analysis must be completed and signed before Phase 1a gate (see Section 14.1).  
+**Supersedes for execution planning**: `xray-postprocessing-prd.md` (XPE-PRD-001)  
+**Cross-Verification**: XPE-XVER-001 v1.0.0 (2026-04-13) — 3-round verified  
 
 ---
 
-## 1. 개요
+## 1. Executive Summary
 
 본 문서는 X-Ray Image Processing Engine(XPE) 프로젝트를 실제로 추진하기 위한 상세 실행형 PRD다. 목적은 단순 요구사항 나열이 아니라, 다음 네 가지를 한 문서로 묶는 것이다.
 
@@ -53,7 +53,7 @@
 
 ---
 
-## 2. 문제 설명
+## 2. Problem Statement
 
 현재 프로젝트의 핵심 문제는 "알고리즘 연구는 많지만, 구현 우선순위와 실행 경계가 흔들린다"는 점이다.
 
@@ -74,13 +74,13 @@
 
 ---
 
-## 3. 제품 비전 및 성공 기준
+## 3. Product Vision and Success Criteria
 
-### 3.1 제품 비전
+### 3.1 Product Vision
 
 XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ray 영상처리 엔진"이어야 한다. 핵심은 화려한 AI보다 먼저, 규제와 성능을 버티는 deterministic baseline을 완성하는 것이다.
 
-### 3.2 성공 기준
+### 3.2 Success Criteria
 
 프로젝트는 아래 조건을 만족할 때 성공으로 본다.
 
@@ -93,20 +93,20 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 
 ---
 
-## 4. 사용자 및 이해관계자
+## 4. Users and Stakeholders
 
-### 4.1 주요 사용자
+### 4.1 Primary Users
 
-| 사용자 | 목적 | 성공 조건 |
+| User | 목적 | 성공 조건 |
 |------|------|-----------|
 | 영상처리 엔지니어 | 알고리즘 구현, 튜닝, benchmark | 모듈 독립 구현 가능, golden dataset 기반 회귀 가능 |
-| QA/RA 엔지니어 | 검증, 추적성, release gate 확인 | 문서-테스트-산출물 추적 가능 |
-| 시스템 통합자 | GUI/제품 소프트웨어에 DLL 연동 | ABI 안정성, 오류 처리, 예측 가능한 fallback |
+| QA/RA 엔지니어 | 검증, traceability, release gate 확인 | 문서-테스트-산출물 추적 가능 |
+| 시스템 통합자 | GUI/제품 소프트웨어에 DLL 연동 | ABI 안정성, 오류 처리, predictable fallback |
 | 응용 GUI 개발자 | `ImageProcTest`와 상용 GUI 연동 | P/Invoke 안정성, 명확한 lifecycle API |
 
-### 4.2 보조 이해관계자
+### 4.2 Secondary Stakeholders
 
-| 이해관계자 | 관심사 |
+| Stakeholder | 관심사 |
 |-------------|--------|
 | HW/FPGA 팀 | PRE-01, PRE-02/03/06/08/09의 HW offload 가능성 |
 | 임상 자문 / 도메인 전문가 | 영상 품질, ALARA, body-part별 튜닝 타당성 |
@@ -115,35 +115,35 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 
 ---
 
-## 5. 범위 정의
+## 5. Scope Definition
 
-### 5.1 포함 범위
+### 5.1 In Scope
 
 #### Detector-domain Pre-Processing
 
 - Readout validation
-- 온도 보정
+- Temperature compensation
 - Offset correction
 - Nonlinearity correction
 - Gain correction
 - Binning correction
-- 결함 보정
+- Defect correction
 - Lag correction
 - Gain ghosting correction
 
-#### 강화 및 임상 처리
+#### Enhancement and Clinical Processing
 
 - Log transform
-- 노이즈 감소
-- 명암 강화
+- Noise reduction
+- Contrast enhancement
 - Edge enhancement
-- 기본선 collimation
+- Baseline collimation
 - ROI-aware EI refinement
-- 멀티스케일 처리
-- 분수 처리
+- Multiscale processing
+- Fractional processing
 - GSVG / Virtual Grid
 
-#### 디스플레이 및 I/O
+#### Display and I/O
 
 - Modality LUT
 - VOI LUT
@@ -151,7 +151,7 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 - DICOM Reader/Writer
 - Presentation state support
 
-#### AI 및 프리미엄 기능
+#### AI and Premium Features
 
 - Body-part recognition
 - AI collimation refinement
@@ -159,7 +159,7 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 - Bone suppression
 - DL denoising
 
-#### 프로젝트 인프라
+#### Project Infrastructure
 
 - C ABI and memory ownership model
 - alert polling and diagnostics
@@ -167,7 +167,7 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 - WPF integration host
 - QA constancy test workflow
 
-### 5.2 제외 범위
+### 5.2 Out of Scope
 
 - detector firmware/FPGA implementation 자체 개발
 - acquisition control 전체 시스템
@@ -176,7 +176,7 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 - mammography, dental, tomosynthesis 전용 pipeline
 - cloud inference serving
 
-### 5.3 제약사항
+### 5.3 Constraints
 
 - DLL 간 lateral dependency 금지
 - `gsvg.dll`은 XPE 패키지와 독립 유지
@@ -186,9 +186,9 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 
 ---
 
-## 6. 제품 원칙
+## 6. Product Principles
 
-### 6.1 아키텍처 원칙
+### 6.1 Architecture Principles
 
 - 계산은 C/C++ DLL에 둔다.
 - 제어, orchestration, viewer, QA workflow는 C#에 둔다.

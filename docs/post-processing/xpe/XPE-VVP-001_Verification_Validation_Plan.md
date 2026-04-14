@@ -1,21 +1,21 @@
-# 소프트웨어 검증 & 밸리데이션 계획
+# Software Verification & Validation Plan
 
-**문서 ID:** XPE-VVP-001 v1.0  
+**Document ID:** XPE-VVP-001 v1.0  
 **IEC 62304 Clause:** 5.5.1 — 5.5.5, 5.6.1 — 5.6.7, 5.7.1 — 5.7.5  
-**안전 분류:** Class B  
-**날짜:** 2026-04-03  
-**작성자:** XPE 개발 팀  
-**승인:** __________________ 날짜: __________  
+**Safety Classification:** Class B  
+**Date:** 2026-04-03  
+**Author:** XPE Development Team  
+**Approval:** __________________ Date: __________  
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
-XPE 소프트웨어의 unit 검증, 통합 테스트, 시스템 테스트 활동을 정의한다.
+XPE 소프트웨어의 unit verification, integration testing, system testing 활동을 정의한다.
 
-## 2. Unit 검증 (5.5)
+## 2. Unit Verification (5.5)
 
-### 2.1 프로세스 (5.5.2)
+### 2.1 Process (5.5.2)
 
 | Item | Description |
 |------|-------------|

@@ -1,6 +1,6 @@
 # X-ray Flat Panel Detector Calibration Algorithm 개발 PRD
 
-**제품 요구사항 문서 (Product Requirements Document)**
+**Product Requirements Document (제품 요구사항 문서)**
 
 | 항목 | 내용 |
 |------|------|
@@ -10,13 +10,13 @@
 | 작성자 | H&abyz Engineering Team |
 | 검토자 | TBD |
 | 승인자 | TBD |
-| 분류 | 내부 기밀 |
-| 상태 | 초안 |
-| 관련 프로젝트 | HnVue Console SW, FPD 노이즈 평가 |
+| 분류 | Internal Confidential |
+| 상태 | Draft |
+| 관련 프로젝트 | HnVue Console SW, FPD Noise Evaluation |
 
 ---
 
-## 개정 이력
+## 개정 이력 (Revision History)
 
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
@@ -26,7 +26,7 @@
 
 ---
 
-## 목차
+## 목차 (Table of Contents)
 
 1. [Executive Summary](#1-executive-summary)
 2. [용어 정의 및 약어](#2-용어-정의-및-약어)
@@ -35,15 +35,15 @@
 5. [Calibration 알고리즘 상세 명세](#5-calibration-알고리즘-상세-명세)
    - 5.1 [Offset (Dark) Correction](#51-offset-dark-correction)
    - 5.2 [Gain (Flat-field) Correction](#52-gain-flat-field-correction)
-   - 5.3 [결함 픽셀 보정](#53-결함-픽셀-보정)
-   - 5.4 [잔상 (Ghosting) 보정](#54-잔상-ghosting-보정)
-   - 5.5 [산란 보정](#55-산란-보정-grid-less-imaging)
-   - 5.6 [무아레/에일리어싱 보정](#56-무아레에일리어싱-보정)
-   - 5.7 [온도 보정 (NTC)](#57-온도-보정-ntc)
-   - 5.8 [읽기 아티팩트 보정](#58-읽기-아티팩트-보정)
-   - 5.9 [비선형성 보정](#59-비선형성-보정)
-   - 5.10 [픽셀 빈닝 보정](#510-픽셀-빈닝-보정)
-6. [Calibration 데이터 관리](#6-calibration-데이터-관리)
+   - 5.3 [Defect Pixel Correction](#53-defect-pixel-correction)
+   - 5.4 [Lag (Ghosting) Correction](#54-lag-ghosting-correction)
+   - 5.5 [Scatter Correction](#55-scatter-correction-grid-less-imaging)
+   - 5.6 [Moiré/Aliasing Correction](#56-moiréaliasing-correction)
+   - 5.7 [Temperature Compensation (NTC)](#57-temperature-compensation-ntc)
+   - 5.8 [Readout Artifact Correction](#58-readout-artifact-correction)
+   - 5.9 [Non-linearity Correction](#59-non-linearity-correction)
+   - 5.10 [Pixel Binning Correction](#510-pixel-binning-correction)
+6. [Calibration Data Management](#6-calibration-data-management)
 7. [성능 요구사항](#7-성능-요구사항)
 8. [검증 계획](#8-검증-계획)
 9. [구현 아키텍처](#9-구현-아키텍처)
@@ -53,31 +53,31 @@
 
 ---
 
-## 1. 요약
+## 1. Executive Summary
 
 ### 1.1 프로젝트 개요
 
 본 문서는 H&abyz에서 개발 중인 X-ray Flat Panel Detector (FPD) 기반 의료영상 시스템의 Calibration 알고리즘 소프트웨어 개발을 위한 Product Requirements Document (PRD)이다. 기존 HnVue Console SW 및 FPD 노이즈 평가 프로젝트의 연장선에서, 벤더 중립적인 범용 calibration 엔진을 구축하여 다양한 FPD 제품군에 적용 가능한 고품질 X-ray 이미지 보정 파이프라인을 제공한다.
 
-FPD 기반 X-ray 시스템의 이미지 품질은 raw sensor 신호가 가진 다양한 물리적 결함 — 픽셀별 민감도 불균일성, 암전류 잡음, 결함 픽셀, 잔상(lag), 산란(scatter), 그리고 온도 드리프트 등 — 을 소프트웨어적으로 보정하는 calibration 알고리즘의 품질에 직접적으로 의존한다. 본 문서는 각 보정 알고리즘의 수학적 모델, 구현 요구사항, 검증 계획을 상세히 정의한다.
+FPD 기반 X-ray 시스템의 이미지 품질은 raw sensor 신호가 가진 다양한 물리적 결함 — 픽셀별 민감도 불균일성, 암전류 잡음, 결함 픽셀, 잔상(lag), 산란(scatter), 그리고 온도 드리프트 등 — 을 소프트웨어적으로 보정하는 calibration 알고리즘의 품질에 직접적으로 의존한다. 이 문서는 각 보정 알고리즘의 수학적 모델, 구현 요구사항, 검증 계획을 상세히 정의한다.
 
 ### 1.2 목적
 
 - **핵심 목적**: X-ray FPD raw 이미지에서 발생하는 체계적 오류(systematic error)와 무작위 오류(random error)를 제거하여 임상적으로 활용 가능한 고품질 이미지를 생성하는 calibration 알고리즘 소프트웨어를 개발한다.
-- **품질 목표**: IEC 62220-1-1:2015 기준 DQE (Detective Quantum Efficiency) 열화 5% 미만, 화면 균일도(Uniformity) σ/mean < 1%(80% FOV 내)를 달성한다.
-- **플랫폼 독립성**: 특정 FPD 벤더에 종속되지 않는 벤더 중립적 아키텍처를 채택하여, Varex, Teledyne, Vieworks 등 다양한 제조사의 FPD에 적용 가능하도록 한다.
-- **규제 적합성**: IEC 62304 (의료기기 소프트웨어 수명주기), ISO 14971 (리스크 관리), FDA 21 CFR 1020.31/32 등 관련 국제 표준을 준수한다.
+- **품질 목표**: IEC 62220-1-1:2015 기준 DQE(Detective Quantum Efficiency) 열화 5% 미만, 화면 균일도(Uniformity) σ/mean < 1%(80% FOV 내)를 달성한다.
+- **플랫폼 독립성**: 특정 FPD 벤더에 종속되지 않는 벤더 중립적(vendor-neutral) 아키텍처를 채택하여, Varex, Teledyne, Vieworks 등 다양한 제조사의 FPD에 적용 가능하도록 한다.
+- **규제 적합성**: IEC 62304(의료기기 소프트웨어 수명주기), ISO 14971(리스크 관리), FDA 21 CFR 1020.31/32 등 관련 국제 표준을 준수한다.
 
-### 1.3 범위
+### 1.3 범위 (Scope)
 
-**포함**:
+**포함 (In Scope)**:
 - 정적(static) 및 동적(dynamic) calibration 데이터 생성 알고리즘
 - 실시간(real-time) 이미지 보정 파이프라인 (30 fps 이상)
 - Calibration 데이터 관리 시스템 (저장, 버전 관리, 갱신)
 - 자동 품질 검증 (QA) 프레임워크
 - FPGA/Host PC/임베디드 분산 처리 지원
 
-**제외**:
+**제외 (Out of Scope)**:
 - 특정 FPD 하드웨어 펌웨어 개발
 - 임상 DICOM 워크플로우 (별도 HnVue Console SW PRD 참조)
 - AI 기반 진단 보조 알고리즘
@@ -87,16 +87,16 @@ FPD 기반 X-ray 시스템의 이미지 품질은 raw sensor 신호가 가진 �
 
 | ID | 알고리즘 | 대상 결함 | 우선순위 |
 |----|----------|-----------|----------|
-| CAL-01 | Offset (Dark) Correction | 암전류, 픽셀 오프셋 | 필수 |
-| CAL-02 | Gain (Flat-field) Correction | 픽셀 민감도 불균일 | 필수 |
-| CAL-03 | Defect Pixel Correction | Dead/hot/cluster pixel | 필수 |
-| CAL-04 | Lag (Ghosting) Correction | 잔상, charge trapping | 높음 |
-| CAL-05 | Scatter Correction | 산란선 아티팩트 | 높음 |
-| CAL-06 | Moiré/Aliasing Correction | Anti-scatter grid 간섭 | 중간 |
-| CAL-07 | Temperature Compensation | 온도 드리프트 | 높음 |
-| CAL-08 | Readout Artifact Correction | 앰프 오프셋/게인 불균일 | 높음 |
-| CAL-09 | Non-linearity Correction | 픽셀 응답 비선형성 | 중간 |
-| CAL-10 | Pixel Binning Correction | 빈닝 모드별 보정 | 중간 |
+| CAL-01 | Offset (Dark) Correction | 암전류, 픽셀 오프셋 | Critical |
+| CAL-02 | Gain (Flat-field) Correction | 픽셀 민감도 불균일 | Critical |
+| CAL-03 | Defect Pixel Correction | Dead/hot/cluster pixel | Critical |
+| CAL-04 | Lag (Ghosting) Correction | 잔상, charge trapping | High |
+| CAL-05 | Scatter Correction | 산란선 아티팩트 | High |
+| CAL-06 | Moiré/Aliasing Correction | Anti-scatter grid 간섭 | Medium |
+| CAL-07 | Temperature Compensation | 온도 드리프트 | High |
+| CAL-08 | Readout Artifact Correction | 앰프 오프셋/게인 불균일 | High |
+| CAL-09 | Non-linearity Correction | 픽셀 응답 비선형성 | Medium |
+| CAL-10 | Pixel Binning Correction | 빈닝 모드별 보정 | Medium |
 
 ### 1.5 적용 가능한 Detector 유형
 

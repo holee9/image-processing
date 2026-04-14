@@ -1,4 +1,4 @@
-# IEC 62304 Class B 준수 매트릭스
+# IEC 62304 Class B Compliance Matrix
 
 **Document ID:** XPE-62304-MAP-001 v1.0  
 **Standard:** IEC 62304:2006+AMD1:2015  
@@ -9,138 +9,138 @@
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
-IEC 62304 Class B의 모든 해당 절(clause)을 XPE 문서 체계에 매핑하고, 준수 상태를 추적한다.
+IEC 62304 Class B의 모든 해당 clause를 XPE 문서 체계에 매핑하고, 준수 상태를 추적한다.
 
-## 2. 절(Clause)-문서 매핑
+## 2. Clause-to-Document Mapping
 
-### 절(Clause) 5: 소프트웨어 개발 프로세스
+### Clause 5: Software Development Process
 
-| 절 | 제목 | Class B | 문서 | 섹션 | 상태 |
+| Clause | Title | Class B | Document | Section | Status |
 |--------|-------|:-------:|----------|---------|:------:|
-| 5.1.1 | SW 개발 계획 | ✓ | XPE-SDP-001 | §2-8 | ✓ |
-| 5.1.2 | 계획 최신 유지 | ✓ | XPE-SDP-001 | §9 | ✓ |
-| 5.1.3 | SDP 또는 계획 참조 | ✓ | XPE-SDP-001 | §3 | ✓ |
-| 5.1.4 | 표준, 방법, 도구 | — | N/A (Class C만) | — | N/A |
-| 5.1.5 | 통합 & 테스트 계획 | ✓ | XPE-SDP-001 | §4 | ✓ |
-| 5.1.6 | 검증 계획 | ✓ | XPE-SDP-001 | §5 | ✓ |
-| 5.1.7 | 리스크 관리 계획 | ✓ | XPE-SDP-001 | §6 | ✓ |
-| 5.1.8 | 문서 계획 | ✓ | XPE-SDP-001 | §7 | ✓ |
-| 5.1.9 | CM 계획 | ✓ | XPE-SDP-001 | §8 | ✓ |
-| 5.1.10 | 지원 항목 | ✓ | XPE-SDP-001 | §8.1 | ✓ |
-| 5.1.11 | 검증 전 구성 항목 | ✓ | XPE-SDP-001 | §8.2 | ✓ |
-| 5.2.1 | SW 요구사항 정의 & 문서화 | ✓ | XPE-SRS-001 | §3-11 | ✓ |
-| 5.2.2 | SW 요구사항 내용 | ✓ | XPE-SRS-001 | §2 (카테고리 a-l) | ✓ |
-| 5.2.3 | 요구사항에서의 리스크 제어 | ✓ | XPE-SRS-001 | §7 | ✓ |
-| 5.2.4 | 리스크 분석 재평가 | ✓ | XPE-SRM-001 | §5 | ✓ |
-| 5.2.5 | 요구사항 업데이트 | ✓ | XPE-SRS-001 | 개정 이력 | ✓ |
-| 5.2.6 | SW 요구사항 검증 | ✓ | XPE-SRS-001 | §12 | ✓ |
-| 5.3.1 | 요구사항을 아키텍처로 변환 | ✓ | XPE-SAD-001 | §2-3 | ✓ |
-| 5.3.2 | 인터페이스용 아키텍처 개발 | ✓ | XPE-SAD-001 | §4 | ✓ |
-| 5.3.3 | SOUP 기능/성능 요구사항 | ✓ | XPE-SOUP-001 | §3 | ✓ |
-| 5.3.4 | SOUP 시스템 HW/SW 요구사항 | ✓ | XPE-SOUP-001 | §4 | ✓ |
-| 5.3.5 | 리스크 제어를 위한 분리 | ✓ | XPE-SAD-001 | §6 | ✓ |
-| 5.3.6 | SW 아키텍처 검증 | ✓ | XPE-SAD-001 | §7 | ✓ |
-| 5.4.1 | SW 유닛으로 세분화 | ✓ | XPE-SDD-001 | §2-6 | ✓ |
-| 5.4.2 | 각 유닛에 대한 상세 설계 | — | N/A (Class C만) | — | N/A |
-| 5.4.3 | 인터페이스 상세 설계 | — | N/A (Class C만) | — | N/A |
-| 5.4.4 | 상세 설계 검증 | — | N/A (Class C만) | — | N/A |
-| 5.5.1 | SW 유닛 구현 | ✓ | XPE-VVP-001 | §2 | ✓ |
-| 5.5.2 | 유닛 검증 프로세스 | ✓ | XPE-VVP-001 | §2.1 | ✓ |
-| 5.5.3 | 유닛 승인 기준 | ✓ | XPE-VVP-001 | §2.2 | ✓ |
-| 5.5.4 | 추가 유닛 기준 | — | N/A (Class C만) | — | N/A |
-| 5.5.5 | 유닛 검증 | ✓ | XPE-VVP-001 | §2.4 | ✓ |
-| 5.6.1 | SW 유닛 통합 | ✓ | XPE-VVP-001 | §3.1 | ✓ |
-| 5.6.2 | SW 통합 검증 | ✓ | XPE-VVP-001 | §3.2 | ✓ |
-| 5.6.3 | 통합 테스트 내용 | ✓ | XPE-VVP-001 | §3.2 | ✓ |
-| 5.6.4 | 회귀 테스팅 | ✓ | XPE-VVP-001 | §3.3 | ✓ |
-| 5.6.5 | 통합 테스트 기록 | ✓ | XPE-VVP-001 | §3.4 | ✓ |
-| 5.6.6 | 문제 해결 사용 | ✓ | XPE-VVP-001 | §3.5 → XPE-SPR-001 | ✓ |
-| 5.6.7 | 테스트 절차 검증 | ✓ | XPE-VVP-001 | §3.6 | ✓ |
-| 5.7.1 | 시스템 테스트 확립 | ✓ | XPE-VVP-001 | §4.1 | ✓ |
-| 5.7.2 | 문제 해결 사용 | ✓ | XPE-VVP-001 | §4.2 → XPE-SPR-001 | ✓ |
-| 5.7.3 | 변경 후 재테스트 | ✓ | XPE-VVP-001 | §4.3 | ✓ |
-| 5.7.4 | 테스트 절차 검증 | ✓ | XPE-VVP-001 | §4.4 | ✓ |
-| 5.7.5 | 시스템 테스트 기록 | ✓ | XPE-VVP-001 | §4.5 | ✓ |
-| 5.8.1 | 완전성 보장 | ✓ | XPE-SRP-001 | §2 단계 1-2 | ✓ |
-| 5.8.2 | 알려진 이상 문서화됨 | ✓ | XPE-SRP-001 | §2 단계 3 | ✓ |
-| 5.8.3 | 잔여 이상 평가 | ✓ | XPE-SRP-001 | §2 단계 4 | ✓ |
-| 5.8.4 | 문서 버전 | ✓ | XPE-SRP-001 | §2 단계 5 | ✓ |
-| 5.8.5 | 문서 생성 절차 | ✓ | XPE-SRP-001 | §2 단계 6 | ✓ |
-| 5.8.6 | 재현 가능성 보장 | ✓ | XPE-SRP-001 | §2 단계 7 | ✓ |
-| 5.8.7 | 릴리스 검증 보장 | ✓ | XPE-SRP-001 | §2 단계 8 | ✓ |
-| 5.8.8 | 아카이브 | ✓ | XPE-SRP-001 | §2 단계 9, §4 | ✓ |
+| 5.1.1 | SW development plan | ✓ | XPE-SDP-001 | §2-8 | ✓ |
+| 5.1.2 | Keep plan updated | ✓ | XPE-SDP-001 | §9 | ✓ |
+| 5.1.3 | Reference to SDP or plans | ✓ | XPE-SDP-001 | §3 | ✓ |
+| 5.1.4 | Standards, methods, tools | — | N/A (Class C only) | — | N/A |
+| 5.1.5 | Integration & test planning | ✓ | XPE-SDP-001 | §4 | ✓ |
+| 5.1.6 | Verification planning | ✓ | XPE-SDP-001 | §5 | ✓ |
+| 5.1.7 | Risk management planning | ✓ | XPE-SDP-001 | §6 | ✓ |
+| 5.1.8 | Documentation planning | ✓ | XPE-SDP-001 | §7 | ✓ |
+| 5.1.9 | CM planning | ✓ | XPE-SDP-001 | §8 | ✓ |
+| 5.1.10 | Supporting items | ✓ | XPE-SDP-001 | §8.1 | ✓ |
+| 5.1.11 | Config items before verification | ✓ | XPE-SDP-001 | §8.2 | ✓ |
+| 5.2.1 | Define & document SW req | ✓ | XPE-SRS-001 | §3-11 | ✓ |
+| 5.2.2 | Content of SW req | ✓ | XPE-SRS-001 | §2 (categories a-l) | ✓ |
+| 5.2.3 | Risk control in requirements | ✓ | XPE-SRS-001 | §7 | ✓ |
+| 5.2.4 | Re-evaluate risk analysis | ✓ | XPE-SRM-001 | §5 | ✓ |
+| 5.2.5 | Update requirements | ✓ | XPE-SRS-001 | Rev History | ✓ |
+| 5.2.6 | Verify SW requirements | ✓ | XPE-SRS-001 | §12 | ✓ |
+| 5.3.1 | Transform req into architecture | ✓ | XPE-SAD-001 | §2-3 | ✓ |
+| 5.3.2 | Develop architecture for interfaces | ✓ | XPE-SAD-001 | §4 | ✓ |
+| 5.3.3 | SOUP functional/performance req | ✓ | XPE-SOUP-001 | §3 | ✓ |
+| 5.3.4 | SOUP system HW/SW req | ✓ | XPE-SOUP-001 | §4 | ✓ |
+| 5.3.5 | Segregation for risk control | ✓ | XPE-SAD-001 | §6 | ✓ |
+| 5.3.6 | Verify SW architecture | ✓ | XPE-SAD-001 | §7 | ✓ |
+| 5.4.1 | Subdivide into SW units | ✓ | XPE-SDD-001 | §2-6 | ✓ |
+| 5.4.2 | Detailed design for each unit | — | N/A (Class C only) | — | N/A |
+| 5.4.3 | Detailed design for interfaces | — | N/A (Class C only) | — | N/A |
+| 5.4.4 | Verify detailed design | — | N/A (Class C only) | — | N/A |
+| 5.5.1 | Implement SW unit | ✓ | XPE-VVP-001 | §2 | ✓ |
+| 5.5.2 | Unit verification process | ✓ | XPE-VVP-001 | §2.1 | ✓ |
+| 5.5.3 | Unit acceptance criteria | ✓ | XPE-VVP-001 | §2.2 | ✓ |
+| 5.5.4 | Additional unit criteria | — | N/A (Class C only) | — | N/A |
+| 5.5.5 | Unit verification | ✓ | XPE-VVP-001 | §2.4 | ✓ |
+| 5.6.1 | Integrate SW units | ✓ | XPE-VVP-001 | §3.1 | ✓ |
+| 5.6.2 | Verify SW integration | ✓ | XPE-VVP-001 | §3.2 | ✓ |
+| 5.6.3 | Integration test content | ✓ | XPE-VVP-001 | §3.2 | ✓ |
+| 5.6.4 | Regression testing | ✓ | XPE-VVP-001 | §3.3 | ✓ |
+| 5.6.5 | Integration test records | ✓ | XPE-VVP-001 | §3.4 | ✓ |
+| 5.6.6 | Use problem resolution | ✓ | XPE-VVP-001 | §3.5 → XPE-SPR-001 | ✓ |
+| 5.6.7 | Verify test procedures | ✓ | XPE-VVP-001 | §3.6 | ✓ |
+| 5.7.1 | Establish system tests | ✓ | XPE-VVP-001 | §4.1 | ✓ |
+| 5.7.2 | Use problem resolution | ✓ | XPE-VVP-001 | §4.2 → XPE-SPR-001 | ✓ |
+| 5.7.3 | Retest after change | ✓ | XPE-VVP-001 | §4.3 | ✓ |
+| 5.7.4 | Verify test procedures | ✓ | XPE-VVP-001 | §4.4 | ✓ |
+| 5.7.5 | System test records | ✓ | XPE-VVP-001 | §4.5 | ✓ |
+| 5.8.1 | Ensure completeness | ✓ | XPE-SRP-001 | §2 step 1-2 | ✓ |
+| 5.8.2 | Known anomalies documented | ✓ | XPE-SRP-001 | §2 step 3 | ✓ |
+| 5.8.3 | Evaluate residual anomalies | ✓ | XPE-SRP-001 | §2 step 4 | ✓ |
+| 5.8.4 | Document version | ✓ | XPE-SRP-001 | §2 step 5 | ✓ |
+| 5.8.5 | Document creation procedure | ✓ | XPE-SRP-001 | §2 step 6 | ✓ |
+| 5.8.6 | Ensure repeatable | ✓ | XPE-SRP-001 | §2 step 7 | ✓ |
+| 5.8.7 | Ensure release verified | ✓ | XPE-SRP-001 | §2 step 8 | ✓ |
+| 5.8.8 | Archive | ✓ | XPE-SRP-001 | §2 step 9, §4 | ✓ |
 
-### 절(Clause) 6: 소프트웨어 유지보수
+### Clause 6: Software Maintenance
 
-| 절 | 제목 | Class B | 문서 | 상태 |
+| Clause | Title | Class B | Document | Status |
 |--------|-------|:-------:|----------|:------:|
-| 6.1 | 유지보수 계획 확립 | ✓ | XPE-SMP-001 | ✓ |
-| 6.2.1 | 피드백 모니터링 | ✓ | XPE-SMP-001 §3.1 | ✓ |
-| 6.2.2 | 피드백 문서화 & 평가 | ✓ | XPE-SMP-001 §3.2 | ✓ |
-| 6.2.3 | 리스크 분석 | ✓ | XPE-SMP-001 §3.2 | ✓ |
-| 6.3 | 수정사항 구현 | ✓ | XPE-SMP-001 §3.3 | ✓ |
+| 6.1 | Establish maintenance plan | ✓ | XPE-SMP-001 | ✓ |
+| 6.2.1 | Monitor feedback | ✓ | XPE-SMP-001 §3.1 | ✓ |
+| 6.2.2 | Document & evaluate feedback | ✓ | XPE-SMP-001 §3.2 | ✓ |
+| 6.2.3 | Analyze for risk | ✓ | XPE-SMP-001 §3.2 | ✓ |
+| 6.3 | Implement modification | ✓ | XPE-SMP-001 §3.3 | ✓ |
 
-### 절(Clause) 7: 소프트웨어 리스크 관리
+### Clause 7: Software Risk Management
 
-| 절 | 제목 | Class B | 문서 | 상태 |
+| Clause | Title | Class B | Document | Status |
 |--------|-------|:-------:|----------|:------:|
-| 7.1 | 위험한 상황 식별 | ✓ | XPE-SRM-001 §3 | ✓ |
-| 7.2 | SW에 대한 리스크 제어 | ✓ | XPE-SRM-001 §4 | ✓ |
-| 7.3 | 리스크 제어 조치 검증 | ✓ | XPE-SRM-001 §6 | ✓ |
-| 7.4.1 | SOUP 리스크 식별 | ✓ | XPE-SOUP-001 §5 | ✓ |
-| 7.4.2 | SOUP 리스크 평가 | ✓ | XPE-SOUP-001 §5.2 | ✓ |
-| 7.4.3 | 이상 목록 평가 | ✓ | XPE-SOUP-001 §5.1 | ✓ |
+| 7.1 | Identify hazardous situations | ✓ | XPE-SRM-001 §3 | ✓ |
+| 7.2 | Risk control for SW | ✓ | XPE-SRM-001 §4 | ✓ |
+| 7.3 | Verify risk control measures | ✓ | XPE-SRM-001 §6 | ✓ |
+| 7.4.1 | Identify SOUP risk | ✓ | XPE-SOUP-001 §5 | ✓ |
+| 7.4.2 | Assess SOUP risk | ✓ | XPE-SOUP-001 §5.2 | ✓ |
+| 7.4.3 | Evaluate anomaly lists | ✓ | XPE-SOUP-001 §5.1 | ✓ |
 
-### 절(Clause) 8: 소프트웨어 구성 관리
+### Clause 8: Software Configuration Management
 
-| 절 | 제목 | Class B | 문서 | 상태 |
+| Clause | Title | Class B | Document | Status |
 |--------|-------|:-------:|----------|:------:|
-| 8.1 | 구성 식별 | ✓ | XPE-SCM-001 §2 | ✓ |
-| 8.2 | 변경 제어 | ✓ | XPE-SCM-001 §3 | ✓ |
-| 8.2.4 | 변경 추적성 | ✓ | XPE-SCM-001 §3.3 | ✓ |
-| 8.3 | 구성 상태 회계 | ✓ | XPE-SCM-001 §4 | ✓ |
+| 8.1 | Configuration identification | ✓ | XPE-SCM-001 §2 | ✓ |
+| 8.2 | Change control | ✓ | XPE-SCM-001 §3 | ✓ |
+| 8.2.4 | Traceability of changes | ✓ | XPE-SCM-001 §3.3 | ✓ |
+| 8.3 | Configuration status accounting | ✓ | XPE-SCM-001 §4 | ✓ |
 
-### 절(Clause) 9: 소프트웨어 문제 해결
+### Clause 9: Software Problem Resolution
 
-| 절 | 제목 | Class B | 문서 | 상태 |
+| Clause | Title | Class B | Document | Status |
 |--------|-------|:-------:|----------|:------:|
-| 9.1 | 문제 보고서 준비 | ✓ | XPE-SPR-001 §2-3 | ✓ |
-| 9.2 | 문제 조사 | ✓ | XPE-SPR-001 §5 | ✓ |
-| 9.3 | 관련 당사자에 알림 | ✓ | XPE-SPR-001 §5.2 | ✓ |
-| 9.4 | 변경 제어 사용 | ✓ | XPE-SPR-001 §7 → SCM | ✓ |
-| 9.5 | 기록 유지 | ✓ | XPE-SPR-001 §9 | ✓ |
-| 9.6 | 추세 분석 | ✓ | XPE-SPR-001 §10 | ✓ |
-| 9.7 | 해결 검증 | ✓ | XPE-SPR-001 §8 | ✓ |
-| 9.8 | 릴리스 내용 테스트 | ✓ | XPE-SPR-001 §8 → VVP | ✓ |
+| 9.1 | Prepare problem reports | ✓ | XPE-SPR-001 §2-3 | ✓ |
+| 9.2 | Investigate the problem | ✓ | XPE-SPR-001 §5 | ✓ |
+| 9.3 | Advise relevant parties | ✓ | XPE-SPR-001 §5.2 | ✓ |
+| 9.4 | Use change control | ✓ | XPE-SPR-001 §7 → SCM | ✓ |
+| 9.5 | Maintain records | ✓ | XPE-SPR-001 §9 | ✓ |
+| 9.6 | Analyze for trends | ✓ | XPE-SPR-001 §10 | ✓ |
+| 9.7 | Verify resolution | ✓ | XPE-SPR-001 §8 | ✓ |
+| 9.8 | Test content of release | ✓ | XPE-SPR-001 §8 → VVP | ✓ |
 
-## 3. 준수 요약
+## 3. Compliance Summary
 
-| 절 그룹 | 해당 총수 (Class B) | 다루어짐 | 간격 |
+| Clause Group | Total Applicable (Class B) | Addressed | Gap |
 |:------------:|:--------------------------:|:---------:|:---:|
-| 5.1 계획 | 10 | 10 | 0 |
-| 5.2 요구사항 | 6 | 6 | 0 |
-| 5.3 아키텍처 | 6 | 6 | 0 |
-| 5.4 유닛 ID | 1 | 1 | 0 |
-| 5.5 유닛 검증 | 4 | 4 | 0 |
-| 5.6 통합 테스트 | 7 | 7 | 0 |
-| 5.7 시스템 테스트 | 5 | 5 | 0 |
-| 5.8 릴리스 | 8 | 8 | 0 |
-| 6 유지보수 | 5 | 5 | 0 |
-| 7 리스크 관리 | 6 | 6 | 0 |
-| 8 구성 관리 | 4 | 4 | 0 |
-| 9 문제 해결 | 8 | 8 | 0 |
-| **총합** | **70** | **70** | **0** |
+| 5.1 Planning | 10 | 10 | 0 |
+| 5.2 Requirements | 6 | 6 | 0 |
+| 5.3 Architecture | 6 | 6 | 0 |
+| 5.4 Unit ID | 1 | 1 | 0 |
+| 5.5 Unit Verification | 4 | 4 | 0 |
+| 5.6 Integration Test | 7 | 7 | 0 |
+| 5.7 System Test | 5 | 5 | 0 |
+| 5.8 Release | 8 | 8 | 0 |
+| 6 Maintenance | 5 | 5 | 0 |
+| 7 Risk Management | 6 | 6 | 0 |
+| 8 CM | 4 | 4 | 0 |
+| 9 Problem Resolution | 8 | 8 | 0 |
+| **Total** | **70** | **70** | **0** |
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 개정판 | 날짜 | 작성자 | 설명 |
+| Rev | Date | Author | Description |
 |-----|------|--------|-------------|
-| 1.0 | 2026-04-03 | XPE Team | 초기 릴리스 |
+| 1.0 | 2026-04-03 | XPE Team | Initial release |
 
 ---
 
-*문서 끝 — XPE-62304-MAP-001 v1.0*
+*Document End — XPE-62304-MAP-001 v1.0*

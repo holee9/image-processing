@@ -10,9 +10,9 @@
 
 ---
 
-## 1. 범위 및 목표
+## 1. Scope & Goals
 
-### 1.1 본 문서가 v1.0에 추가하는 내용
+### 1.1 이 문서가 추가하는 것 (v1.0 대비)
 
 | v1.0 (방법론 설계) | v2.0 (구현 사양 추가) |
 |---|---|
@@ -24,7 +24,7 @@
 | - | **교정 파일 포맷, Configuration 관리** |
 | - | **코딩 규약, 코드 품질 기준** |
 
-### 1.2 성능 목표 (변경 사항 없음)
+### 1.2 성능 목표 (변경 없음)
 
 | 지표 | 목표 |
 |---|---|
@@ -35,7 +35,7 @@
 
 ---
 
-## 2. 소프트웨어 아키텍처
+## 2. Software Architecture
 
 ### 2.1 모듈 구조
 
@@ -89,7 +89,7 @@ graph TD
     style INFRA fill:#1a1a2e,stroke:#00b4d8,color:#fff
 ```
 
-### 2.2 파일 구조
+### 2.2 파일 레이아웃
 
 ```
 sw_correction/
@@ -141,7 +141,7 @@ sw_correction/
 
 ---
 
-## 3. 데이터 타입 및 구조
+## 3. Data Types & Structures
 
 ### 3.1 기본 타입
 
@@ -241,7 +241,7 @@ typedef struct {
 } CalibrationData;
 ```
 
-### 3.3 설정
+### 3.3 Configuration
 
 ```c
 // config.h
@@ -297,7 +297,7 @@ static const CorrectionConfig DEFAULT_CONFIG = {
 
 ---
 
-## 4. API 사양
+## 4. API Specification
 
 ### 4.1 Pipeline API
 
@@ -355,7 +355,7 @@ CorrectionError correction_set_config(
 void correction_deinit(void);
 ```
 
-### 4.2 개별 Tier API
+### 4.2 Individual Tier APIs
 
 ```c
 // tier1_offset.h
@@ -414,7 +414,7 @@ CorrectionError defect_correct(
 
 ---
 
-## 5. 알고리즘 의사코드
+## 5. Algorithm Pseudocode
 
 ### 5.1 Tier 1: Offset Correction
 
@@ -651,7 +651,7 @@ FUNCTION correction_process(raw, dark_pre, dark_post, output, result):
 
   pixel_wide_t diff = (pixel_wide_t)a - (pixel_wide_t)b;
 
-  // uint16 범위로 클램프
+  // Clamp to uint16 range
   if (diff < 0) { result = 0; underflow_count++; }
   else if (diff > 65535) { result = 65535; overflow_count++; }
   else { result = (pixel_t)diff; }
@@ -663,11 +663,11 @@ Overflow/underflow 발생 시:
     → 보정은 계속 진행 (abort 하지 않음)
 ```
 
-### 6.2 Null/누락된 데이터
+### 6.2 Null/Missing Data
 
 ```
 dark_post == NULL:
-  → Tier 2 스킵, Tier 1만 적용
+  → Tier 2 skip, Tier 1만 적용
   → result.tier_used = 1
 
 dark_pre == NULL:
@@ -681,86 +681,86 @@ exposure_history count == 0:
   → α_default 사용 (config에서 설정)
 ```
 
-### 6.3 포화 Pixel
+### 6.3 Saturation Pixels
 
 ```
-raw.data[y][x] == 65535 (ADC 포화):
+raw.data[y][x] == 65535 (ADC saturation):
   → 보정 결과도 65535로 유지 (실제 값을 알 수 없음)
-  → 포화 flag map 생성 (후처리에서 활용)
+  → saturation flag map 생성 (후처리에서 활용)
 
 raw.data[y][x] == 0 (dead pixel 또는 극저선량):
   → 0 유지, defect correction에서 처리
 ```
 
-### 6.4 범위를 벗어난 온도
+### 6.4 Temperature Out of Range
 
 ```
 temperature < 15°C 또는 > 45°C:
   → CORR_ERR_TEMPERATURE 경고 (보정은 계속)
-  → LUT 외삽(extrapolation) 대신 가장 가까운 LUT 값 사용
+  → LUT 외삽 (extrapolation) 대신 가장 가까운 LUT 값 사용
 
 temperature NaN 또는 센서 미연결:
-  → 25°C (기준 온도)로 폴백
+  → 25°C (기준 온도)로 fallback
   → 경고 로그
 ```
 
-### 6.5 고정소수점 정밀도
+### 6.5 Fixed-Point Precision
 
 ```
 Q16.16 곱셈:
   int64_t tmp = (int64_t)a * (int64_t)b;
   int32_t result = (int32_t)(tmp >> 16);
 
-  // 반올림: shift 전에 0.5 추가
+  // Rounding: add 0.5 before shift
   int32_t result = (int32_t)((tmp + 0x8000) >> 16);
 
 Q16.16 나눗셈:
   int64_t tmp = ((int64_t)a << 16) / (int64_t)b;
 
-  // 0으로 나누기 방지
+  // Division by zero 방지
   if (b == 0) { result = 0; error_flag = 1; }
 
 exp(-a) LUT:
-  256개 항목, a 범위 0~16
+  256 entries, a 범위 0~16
   Index = (a * 256) / 16 = a * 16
-  항목 사이의 선형 보간
-  a > 16: 0 반환 (exp(-16) ≈ 1.1e-7, 무시 가능)
-  a < 0:  65535 반환 (exp(0) = 1.0)
+  Linear interpolation between entries
+  a > 16: return 0 (exp(-16) ≈ 1.1e-7, 무시 가능)
+  a < 0:  return 65535 (exp(0) = 1.0)
 ```
 
 ---
 
-## 7. 교정 파일 포맷 (.gcal)
+## 7. Calibration File Format (.gcal)
 
 ```
-파일: panel_XXXXXXXX.gcal
+File: panel_XXXXXXXX.gcal
 
-헤더 (64 바이트):
+Header (64 bytes):
   [0:3]    Magic: "GCLB" (0x47434C42)
   [4:7]    Version: 0x00020000 (v2.0)
   [8:11]   Panel S/N
   [12:27]  Date: "YYYY-MM-DD\0\0\0\0\0\0"
-  [28:31]  기준 온도 × 100 (int32, 예: 2500 = 25.00°C)
-  [32:35]  데이터 오프셋: 데이터 섹션의 바이트 오프셋
-  [36:39]  데이터 크기: 총 데이터 바이트
-  [40:43]  데이터 섹션의 CRC32
-  [44:63]  예약됨 (0으로 채워짐)
+  [28:31]  Ref temperature × 100 (int32, e.g., 2500 = 25.00°C)
+  [32:35]  Data offset: byte offset to data section
+  [36:39]  Data size: total data bytes
+  [40:43]  CRC32 of data section
+  [44:63]  Reserved (zero-filled)
 
-데이터 섹션:
-  [IRF Parameters]     : 4 × (b + a + b0) + NLCSC poly/exp 계수
-  [Temperature LUT]    : 5 × 4 × 2 항목
-  [Gain Map]           : IMG_HEIGHT × IMG_WIDTH × 2 바이트 (18.9 MB)
-  [Defect Map]         : IMG_HEIGHT × IMG_WIDTH × 1 바이트 (9.4 MB)
+Data Section:
+  [IRF Parameters]     : 4 × (b + a + b0) + NLCSC poly/exp coefficients
+  [Temperature LUT]    : 5 × 4 × 2 entries
+  [Gain Map]           : IMG_HEIGHT × IMG_WIDTH × 2 bytes (18.9 MB)
+  [Defect Map]         : IMG_HEIGHT × IMG_WIDTH × 1 byte (9.4 MB)
   [Ghost Parameters]   : gamma + tau + enabled
 
-전체 파일 크기: ~28.5 MB
+Total file size: ~28.5 MB
 ```
 
 ---
 
-## 8. 테스트 케이스
+## 8. Test Cases
 
-### 8.1 단위 테스트: Tier 1
+### 8.1 Unit Test: Tier 1
 
 | Test ID | 입력 | 기대 출력 | 허용 오차 |
 |---|---|---|---|
@@ -771,7 +771,7 @@ exp(-a) LUT:
 | T1-05 | raw=dark (uniform) | 0 (all pixels) | 0 |
 | T1-06 | Synthetic ghost pattern (ROI_A=1000+50, ROI_B=1000), dark=1000 | ROI_A=50, ROI_B=0, GCR=0 | 0 |
 
-### 8.2 단위 테스트: Tier 2
+### 8.2 Unit Test: Tier 2
 
 | Test ID | 입력 | 기대 출력 | 허용 오차 |
 |---|---|---|---|
@@ -781,7 +781,7 @@ exp(-a) LUT:
 | T2-04 | α=0, any lag signal | **I_oc unchanged** | 0 |
 | T2-05 | Full saturation exposure | 보정 후 GCR < 0.1% | 측정 |
 
-### 8.3 단위 테스트: Gain Correction
+### 8.3 Unit Test: Gain Correction
 
 | Test ID | 입력 | 기대 출력 | 허용 오차 |
 |---|---|---|---|
@@ -791,7 +791,7 @@ exp(-a) LUT:
 | G-04 | pixel=60000, gain=16384 | **65535** (clamp) | 0 |
 | G-05 | gain=0 (dead pixel) | **input unchanged** | 0 |
 
-### 8.4 통합 테스트: Pipeline
+### 8.4 Integration Test: Pipeline
 
 | Test ID | 시나리오 | 판정 기준 |
 |---|---|---|
@@ -804,7 +804,7 @@ exp(-a) LUT:
 | P-07 | Processing time | < 200ms (all tiers) |
 | P-08 | Memory usage | < 100 MB (Tier 1+2) |
 
-### 8.5 고정소수점 정밀도 테스트
+### 8.5 Fixed-Point Precision Test
 
 | Test ID | 연산 | Float 결과 | Fixed 결과 | 허용 오차 |
 |---|---|---|---|---|
@@ -815,18 +815,18 @@ exp(-a) LUT:
 
 ---
 
-## 9. 코드 품질 기준
+## 9. Code Quality Standards
 
 ### 9.1 IEC 62304 Class B 준수
 
 | 항목 | 요구사항 | 구현 |
 |---|---|---|
-| SW Development Plan | 있음 | 본 PRD + 개발 일정 |
+| SW Development Plan | 있음 | 이 PRD + 개발 일정 |
 | SW Architecture | 있음 | Section 2 |
 | Detailed Design | 있음 | Section 3~6 |
 | Unit Testing | 있음 | Section 8.1~8.5 |
 | Integration Testing | 있음 | Section 8.4 |
-| Traceability | 요구→설계→테스트 추적 가능 | 각 섹션 상호 참조 |
+| Traceability | 요구→설계→테스트 추적 가능 | 각 섹션 cross-reference |
 | Risk Analysis | 있음 | PRD v1.0 Section 11 |
 | Anomaly Resolution | 있음 | Error codes + logging |
 
@@ -840,11 +840,11 @@ exp(-a) LUT:
   변수:    snake_case (pixel_count)
 
 문서화:
-  모든 공개 함수에 Doxygen 주석
+  모든 public 함수에 Doxygen 주석
   파라미터 범위, 반환값, 에러 조건 명시
 
 정적 분석:
-  MISRA C:2012 권장사항 준수 (safety-critical subset)
+  MISRA C:2012 Advisory 준수 (safety-critical subset)
   -Wall -Wextra -Werror 컴파일
   cppcheck / Coverity 정적 분석 통과
 
@@ -861,15 +861,15 @@ exp(-a) LUT:
    → defect map은 별도 패스로 분리
 
 2. 메모리 접근 패턴: row-major 순회
-   → 캐시 라인 활용 극대화
+   → cache line 활용 극대화
 
 3. SIMD 최적화 (선택적):
    → ARM NEON: 8 × uint16 동시 처리
    → 4배 속도 향상 기대
 
-4. LUT 크기: L1 캐시에 들어가는 크기 유지
-   → exp LUT: 256 × 4 바이트 = 1 KB (L1 캐시 내)
-   → α LUT: 256 × 4 바이트 = 1 KB
+4. LUT 크기: L1 cache에 들어가는 크기 유지
+   → exp LUT: 256 × 4 bytes = 1 KB (L1 cache 내)
+   → α LUT: 256 × 4 bytes = 1 KB
 
 5. Frame buffer: double buffering
    → 현재 처리 중 + 다음 취득 동시 진행
@@ -877,7 +877,7 @@ exp(-a) LUT:
 
 ---
 
-## 10. 진단 및 로깅
+## 10. Diagnostics & Logging
 
 ### 10.1 CorrectionResult 활용
 
@@ -887,7 +887,7 @@ exp(-a) LUT:
   - gcr_before / gcr_after: 보정 전후 GCR
   - processing_ms: 처리 시간
   - overflow_count / underflow_count: 비정상 pixel 수
-  - sigma_residual: 잔류 노이즈
+  - sigma_residual: 잔류 noise
 
 이 데이터를 시계열로 저장하여:
   - 교정 drift 감지 (GCR이 점진적으로 증가)
@@ -895,32 +895,32 @@ exp(-a) LUT:
   - 교정 주기 결정
 ```
 
-### 10.2 로그 레벨
+### 10.2 Log Level
 
 ```
 ERROR:   보정 실패 (NULL ptr, CRC, timeout)
 WARNING: overflow > threshold, temperature out of range, tier escalation
-INFO:    매 촬영 result 요약
+INFO:    매 촬영 result summary
 DEBUG:   pixel-level 상세 (개발 중에만)
 ```
 
 ---
 
-## 11. v1.0으로부터의 마이그레이션
+## 11. Migration from v1.0
 
 ### v1.0 → v2.0 변경 추적
 
 | 섹션 | v1.0 | v2.0 | 변경 사유 |
 |---|---|---|---|
 | 1 | 목표만 기술 | + Scope 구분 (v1 vs v2) | 문서 역할 명확화 |
-| 2 | - | **모듈 구조 + 파일 구조** | 구현 착수 가능하도록 |
+| 2 | - | **모듈 구조 + 파일 레이아웃** | 구현 착수 가능하도록 |
 | 3 | - | **데이터 구조 정의 (C struct)** | API 계약 확립 |
 | 4 | - | **API 시그니처 + Error codes** | 모듈 간 인터페이스 확정 |
-| 5 | 수식만 | **+ 의사코드 (구현 수준)** | 코드 변환 직접 가능 |
+| 5 | 수식만 | **+ Pseudocode (구현 수준)** | 코드 변환 직접 가능 |
 | 6 | - | **Edge case + Error handling** | 견고성 확보 |
 | 7 | - | **교정 파일 포맷 (.gcal)** | 데이터 호환성 |
 | 8 | 테스트 개요 | **+ 구체적 테스트 케이스** | 자동화 테스트 가능 |
 | 9 | - | **코딩 규약 + IEC 62304** | 코드 품질 기준 |
 | 10 | - | **Diagnostics + Logging** | 운용 가시성 |
 
-v1.0의 Section 2~12 (Literature Survey, 수학 모델, 교정, 시나리오, Roadmap, Risk, References)는 **그대로 유효**하며 본 문서에서 참조합니다.
+v1.0의 Section 2~12 (Literature Survey, 수학 모델, 교정, 시나리오, Roadmap, Risk, References)는 **그대로 유효**하며 이 문서에서 참조합니다.

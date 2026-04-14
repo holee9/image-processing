@@ -7,33 +7,33 @@
 
 ---
 
-## 1. 추적성 개요
+## 1. Traceability Overview
 
 ```mermaid
 graph LR
-    SRS[SRS 요구사항] --> SAD[아키텍처<br/>소프트웨어 항목]
-    SAD --> SDD[상세 설계<br/>클래스/모듈]
-    SDD --> IMPL[구현<br/>소스 파일]
-    IMPL --> UT[단위 테스트]
-    SAD --> IT[통합 테스트]
-    SRS --> ST[시스템 테스트]
-    SRS --> SHA[위험 분석]
+    SRS[SRS Requirements] --> SAD[Architecture<br/>Software Items]
+    SAD --> SDD[Detailed Design<br/>Classes/Modules]
+    SDD --> IMPL[Implementation<br/>Source Files]
+    IMPL --> UT[Unit Tests]
+    SAD --> IT[Integration Tests]
+    SRS --> ST[System Tests]
+    SRS --> SHA[Hazard Analysis]
 ```
 
 ---
 
-## 2. Grid Suppression 요구사항 추적성
+## 2. Grid Suppression Requirements Traceability
 
-| 요구사항 | 아키텍처 (SAD) | 설계 (SDD) | 단위 테스트 | 통합 테스트 | 시스템 테스트 |
+| Requirement | Architecture (SAD) | Design (SDD) | Unit Test | Integration Test | System Test |
 |-------------|-------------------|-------------|-----------|-----------------|-------------|
-| GS-FR-001 Grid freq 계산 | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003 | IT-001 | ST-001 |
-| GS-FR-002 2D DWT 분해 | SI-002: DwtDecomposer | DwtDecomposer.cpp | UT-GS-001, UT-GS-002 | IT-001 | ST-001 |
-| GS-FR-003 에너지 자동 검출 | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003, UT-GS-004, UT-GS-007 | IT-001 | ST-001 |
-| GS-FR-004 Band-stop 필터 | SI-002: BandStopFilter | BandStopFilter.cpp | UT-GS-005, UT-GS-006 | IT-001 | ST-001 |
-| GS-FR-005 Artifact 제거 | SI-002 (시스템 레벨) | — | — | IT-001 | ST-001, ST-002 |
-| GS-FR-006 MTF < 5% 손실 | SI-002 (시스템 레벨) | — | UT-GS-006 | IT-001 | ST-002 |
-| GS-FR-007 60–200 LP/inch 범위 | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003 | IT-001 | ST-001, ST-002 |
-| GS-FR-008 Moiré 제거 | SI-002: BandStopFilter | BandStopFilter.cpp | UT-GS-005 | IT-001 | ST-001 |
+| GS-FR-001 Grid freq calculation | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003 | IT-001 | ST-001 |
+| GS-FR-002 2D DWT decomposition | SI-002: DwtDecomposer | DwtDecomposer.cpp | UT-GS-001, UT-GS-002 | IT-001 | ST-001 |
+| GS-FR-003 Energy auto-detection | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003, UT-GS-004, UT-GS-007 | IT-001 | ST-001 |
+| GS-FR-004 Band-stop filter | SI-002: BandStopFilter | BandStopFilter.cpp | UT-GS-005, UT-GS-006 | IT-001 | ST-001 |
+| GS-FR-005 Artifact-free output | SI-002 (system level) | — | — | IT-001 | ST-001, ST-002 |
+| GS-FR-006 MTF < 5% loss | SI-002 (system level) | — | UT-GS-006 | IT-001 | ST-002 |
+| GS-FR-007 60–200 LP/inch range | SI-002: GridlineDetector | GridlineDetector.cpp | UT-GS-003 | IT-001 | ST-001, ST-002 |
+| GS-FR-008 Moiré removal | SI-002: BandStopFilter | BandStopFilter.cpp | UT-GS-005 | IT-001 | ST-001 |
 
 ---
 
@@ -89,30 +89,30 @@ graph LR
 
 ---
 
-## 7. 커버리지 요약
+## 7. Coverage Summary
 
 ```mermaid
-pie title 요구사항 커버리지
-    "완전히 추적됨 (FR→Arch→Design→Test)" : 22
-    "시스템 레벨만 (FR→System Test)" : 5
-    "총 요구사항" : 27
+pie title Requirements Coverage
+    "Fully Traced (FR→Arch→Design→Test)" : 22
+    "System-Level Only (FR→System Test)" : 5
+    "Total Requirements" : 27
 ```
 
-| 카테고리 | 총계 | 단위 테스트됨 | 통합 테스트됨 | 시스템 테스트됨 | 완전한 추적 |
+| Category | Total | Unit Tested | Integration Tested | System Tested | Full Trace |
 |----------|-------|-------------|-------------------|---------------|------------|
-| GS 기능 | 8 | 7 | 8 | 8 | 7 |
-| VG 기능 | 10 | 7 | 9 | 10 | 7 |
-| 성능 | 4 | 1 | 2 | 4 | 1 |
-| 인터페이스 | 5 | 2 | 4 | 2 | 2 |
-| 안전 | 5 | 5 | 2 | 3 | 5 |
-| **총계** | **32** | **22** | **25** | **27** | **22** |
+| GS Functional | 8 | 7 | 8 | 8 | 7 |
+| VG Functional | 10 | 7 | 9 | 10 | 7 |
+| Performance | 4 | 1 | 2 | 4 | 1 |
+| Interface | 5 | 2 | 4 | 2 | 2 |
+| Safety | 5 | 5 | 2 | 3 | 5 |
+| **Total** | **32** | **22** | **25** | **27** | **22** |
 
 모든 SRS 요구사항은 최소 하나의 system test로 검증됨 (IEC 62304 Class B 필수).
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 버전 | 날짜 | 작성자 | 설명 |
+| Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | 초판 |
+| 1.0 | 2026-04-03 | — | Initial release |

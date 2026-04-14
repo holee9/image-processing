@@ -1,4 +1,4 @@
-# SAD: 소프트웨어 아키텍처 문서
+# SAD: Software Architecture Document
 
 > **Document ID**: SAD-GHOST-001 | **Version**: 1.0 | **Date**: 2026-04-02
 >
@@ -6,9 +6,9 @@
 
 ---
 
-## 1. 아키텍처 개요
+## 1. Architectural Overview
 
-### 1.1 계층형 아키텍처
+### 1.1 Layered Architecture
 
 ```mermaid
 graph TD
@@ -64,7 +64,7 @@ graph TD
 
 ---
 
-## 2. 모듈 분해
+## 2. Module Decomposition
 
 ### 2.1 Layer 3: Pipeline
 
@@ -72,7 +72,7 @@ graph TD
 |---|---|---|---|
 | **CorrectionPipeline** | correction_pipeline.c/h | Tier 실행 순서 관리, 결과 수집 | TierSelector, 모든 L2 모듈 |
 | **TierSelector** | tier_selector.c/h | GCR 기반 tier 승격 결정 | GcrEstimator, Config |
-| **ExposureHistoryManager** | exposure_history.c/h | 촬영 이력 링 버퍼 관리 | 없음 |
+| **ExposureHistoryManager** | exposure_history.c/h | 촬영 이력 ring buffer 관리 | 없음 |
 
 ### 2.2 Layer 2: Processing Modules
 
@@ -86,20 +86,20 @@ graph TD
 | **DefectCorrection** | defect_correction.c/h | Defect pixel interpolation | 없음 | FR-601~604 |
 | **GcrEstimator** | gcr_estimator.c/h | Real-time GCR 추정 | 없음 | FR-702 |
 
-### 2.3 Layer 1: 인프라
+### 2.3 Layer 1: Infrastructure
 
 | 모듈 | 파일 | 책임 |
 |---|---|---|
-| **FrameBuffer** | frame_buffer.c/h | 정적 frame 메모리 관리, double buffering |
-| **MathUtils** | math_utils.c/h | Q16.16 고정소수점 연산, 안전한 곱셈/나눗셈 |
+| **FrameBuffer** | frame_buffer.c/h | Static frame 메모리 관리, double buffering |
+| **MathUtils** | math_utils.c/h | Q16.16 fixed-point 연산, 안전한 곱셈/나눗셈 |
 | **LutEngine** | lut_engine.c/h | exp(-a) LUT, α(E) LUT, bₙ(E) LUT 조회 + 보간 |
 | **CalibFileIO** | calib_file_io.c/h | .gcal 파일 읽기/쓰기, CRC 검증 |
-| **ConfigManager** | config.c/h | 런타임 설정 관리, 기본값 |
+| **ConfigManager** | config.c/h | 런타임 설정 관리, 디폴트 값 |
 | **Logger** | logger.c/h | 레벨별 로그 출력 (ERROR/WARNING/INFO/DEBUG) |
 
 ---
 
-## 3. 데이터 흐름
+## 3. Data Flow
 
 ### 3.1 정상 흐름 (FB 적용, Tier 1+2)
 
@@ -129,7 +129,7 @@ sequenceDiagram
     PIPE-->>ACQ: CorrectionResult + I_final
 ```
 
-### 3.2 Tier 승격 흐름
+### 3.2 Tier Escalation 흐름
 
 ```mermaid
 sequenceDiagram
@@ -163,9 +163,9 @@ sequenceDiagram
 
 ---
 
-## 4. 메모리 아키텍처
+## 4. Memory Architecture
 
-### 4.1 정적 할당 맵
+### 4.1 Static Allocation Map
 
 ```
 전체 메모리 예산: 100 MB (Tier 1+2), 200 MB (Tier 3 포함)
@@ -204,7 +204,7 @@ Total (Tier 3):   ~104 + 75.6 = ~180 MB
 ### 4.2 Frame Buffer 재사용 전략
 
 ```
-처리 순서에 따른 버퍼 재사용:
+Processing 순서에 따른 buffer 재사용:
 
   buf_A ← raw (입력, 처리 후 불필요)
   buf_B ← dark_pre (Tier 2까지 필요, 이후 불필요)
@@ -222,7 +222,7 @@ Total (Tier 3):   ~104 + 75.6 = ~180 MB
 
 ---
 
-## 5. 에러 처리 전략
+## 5. Error Handling Strategy
 
 ### 5.1 에러 분류
 
@@ -256,19 +256,19 @@ graph TD
 1. Fatal 에러 → 즉시 반환, output = raw 그대로
 2. Warning → 처리 계속, result에 flag 기록
 3. 하위 모듈 에러 → Pipeline으로 전파, Pipeline이 판단
-4. 여러 에러 시 → 가장 심각한 에러 코드 반환
+4. 복수 에러 시 → 가장 심각한 에러 코드 반환
 ```
 
 ---
 
-## 6. 스레드 안전성
+## 6. Thread Safety
 
 ```
-현재: 단일 스레드 (MCU 환경)
-향후: 멀티스레드 확장 고려
+현재: Single-threaded (MCU 환경)
+향후: Multi-threaded 확장 고려
 
 규칙:
-  - 모든 모듈 함수는 재진입 가능 (전역 변수 미사용, static 지역 변수 금지)
+  - 모든 모듈 함수는 reentrant (전역 변수 미사용, static 지역 변수 금지)
   - State(NLCSC state, exposure history)는 Pipeline이 소유하고 모듈에 포인터로 전달
   - Frame buffer는 Pipeline이 소유하고 모듈은 읽기/쓰기만 수행
   - Config는 읽기 전용 (수정은 correction_set_config()으로만)
@@ -276,13 +276,13 @@ graph TD
 
 ---
 
-## 7. 아키텍처 의사결정
+## 7. Architectural Decisions
 
 | 결정 | 선택 | 대안 | 근거 |
 |---|---|---|---|
-| 메모리 모델 | 정적 할당 | 동적 (malloc) | IEC 62304 Class B, 결정적 |
-| 수치 연산 | Q16.16 고정소수점 | Float32 | MCU FPU 미보장, 이식성 |
-| exp() 구현 | 256-entry LUT + 선형 보간 | Taylor series, CORDIC | L1 캐시 적합 (1KB), 충분한 정밀도 |
-| Tier 실행 | 순차 | 병렬 (pipeline) | 단일 frame 처리, 병렬화 이점 적음 |
-| Defect correction | 별도 패스 | 인라인 (각 모듈 내) | 분기 최소화, 캐시 효율 |
+| 메모리 모델 | Static allocation | Dynamic (malloc) | IEC 62304 Class B, deterministic |
+| 수치 연산 | Q16.16 fixed-point | Float32 | MCU FPU 미보장, 이식성 |
+| exp() 구현 | 256-entry LUT + 선형 보간 | Taylor series, CORDIC | L1 cache 적합 (1KB), 충분한 정밀도 |
+| Tier 실행 | Sequential | Parallel (pipeline) | 단일 frame 처리, 병렬화 이점 적음 |
+| Defect correction | 별도 패스 | Inline (각 모듈 내) | 분기 최소화, cache 효율 |
 | Calibration I/O | Binary (.gcal) | JSON/XML | 파일 크기 (28MB), 로드 속도 |

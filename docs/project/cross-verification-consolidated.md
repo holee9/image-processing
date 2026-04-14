@@ -44,9 +44,9 @@ XPE 프로젝트 문서 체계는 **근본적으로 건전**하며, **주요 아
 | XPE-SAD-001 | **Class B** | 2026-04-03 | 확인됨 |
 | Ghost Correction PRD v2 | **Class B** | 2026-04-02 | 확인됨 |
 
-**문제**: PRD-002에서 "최종 소프트웨어 안전 등급은 시스템 위험 분석으로 확인 필요"로 명시했지만, 서명된 위험 분석 문서가 존재하지 않습니다.
+**문제**: PRD-002에서 "최종 소프트웨어 안전 등급은 시스템 위험 분석으로 확인 필요"로 명시하였으나, 서명된 위험 분석 문서가 존재하지 않음.
 
-**해결 상태**: 미해결  
+**해결 상태**: OPEN  
 **필요 조치**:
 - [ ] 시스템 위험 분석 수행 및 서명
 - [ ] PRD-001에 deprecation notice 추가 (Class C → Class B 전환 사유)
@@ -56,19 +56,19 @@ XPE 프로젝트 문서 체계는 **근본적으로 건전**하며, **주요 아
 
 ---
 
-### C2. Ghost Correction 지연 시간 예산 충돌
+### C2. Ghost Correction 지연시간 예산 충돌
 
 | 출처 | Stage (4) 예산 | Tier 2 합계 | 상태 |
 |------|:---:|:---:|:---:|
-| Pipeline-spec v1.1.0 | 150ms | 190ms | 불명확 |
+| Pipeline-spec v1.1.0 | 150ms | 190ms | 미상 |
 | Ghost PRD v2 | — | < 200ms | 검증 필요 |
-| Pipeline-spec v1.3 (현재) | Tier별 명시 | ✓ 해결됨 | **해결됨** |
+| Pipeline-spec v1.3 (현재) | Tier별 명시 | ✓ 해결 | **RESOLVED** |
 
-**문제 (v1.1.0)**: Pipeline-spec은 stage (4)에 150ms 할당했지만, Ghost PRD Tier 2는 200ms 요구. 10ms 부족.
+**문제 (v1.1.0)**: Pipeline-spec은 stage (4)에 150ms 할당, Ghost PRD Tier 2는 200ms 요구. 10ms 부족.
 
-**해결 상태**: **해결됨** ✓  
+**해결 상태**: **RESOLVED** ✓  
 **해결 방식**: pipeline-spec v1.3.0에서 Tier 1 (150ms) / Tier 2 (190ms) / Tier 3 (240ms) 명시적 구분.  
-**검증**: 190ms < 200ms ✓, 500ms 전체 예산 내 조정 완료 ✓
+**검증**: 190ms < 200ms ✓, 500ms 총 예산 내 조정 완료 ✓
 
 **출처**: Round 1 (C2), Round 4 (D1)
 

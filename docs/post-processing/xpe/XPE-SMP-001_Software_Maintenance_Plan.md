@@ -1,4 +1,4 @@
-# 소프트웨어 유지보수 계획
+# Software Maintenance Plan
 
 **Document ID:** XPE-SMP-001 v1.0  
 **IEC 62304 Clause:** 6.1 — 6.3  
@@ -9,73 +9,73 @@
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
 출시 후 XPE 소프트웨어의 유지보수 활동을 정의한다.
 
-## 2. 유지보수 카테고리
+## 2. Maintenance Categories
 
-| 카테고리 | 트리거 | 프로세스 |
+| Category | Trigger | Process |
 |----------|---------|---------|
-| 수정 (Corrective) | 현장 문제 보고 | SPR → 수정 → 회귀 → 릴리스 |
-| 적응 (Adaptive) | OS 업데이트, SOUP 업데이트, HW 변경 | 영향 분석 → 수정 → V&V → 릴리스 |
-| 개선 (Perfective) | 기능 요청, 성능 개선 | SRS 업데이트 → 전체 절(Clause) 5 사이클 |
-| 예방 (Preventive) | 정기 검토 | SOUP CVE 스캔, 코드 품질 감사 |
+| Corrective | Field problem report | SPR → fix → regression → release |
+| Adaptive | OS update, SOUP update, HW change | Impact analysis → modify → V&V → release |
+| Perfective | Feature request, performance improvement | SRS update → full Clause 5 cycle |
+| Preventive | Scheduled review | SOUP CVE scan, code quality audit |
 
-## 3. 유지보수 활동 (6.1)
+## 3. Maintenance Activities (6.1)
 
-### 3.1 피드백 수집
+### 3.1 Feedback Collection
 
-| 출처 | 채널 | 담당 |
+| Source | Channel | Responsible |
 |--------|---------|-------------|
-| 현장 이슈 | 고객 지원 → Gitea Issue (레이블: `field-report`) | 지원팀 |
-| 내부 이슈 | QA/개발 → Gitea Issue (레이블: `internal`) | QA/개발팀 |
-| SOUP 공지 | CVE 데이터베이스, 공급자 메일링 리스트 | DevOps |
-| 규제 변경 | 규제 모니터링 | RA팀 |
+| Field issues | Customer support → Gitea Issue (label: `field-report`) | Support team |
+| Internal issues | QA/Dev → Gitea Issue (label: `internal`) | QA/Dev team |
+| SOUP advisories | CVE databases, vendor mailing lists | DevOps |
+| Regulatory changes | Regulatory monitoring | RA team |
 
-### 3.2 문제 보고서 분석 (6.2.3)
+### 3.2 Problem Report Analysis (6.2.3)
 
-각 시장 출시 후 문제 보고서에 대해:
+각 post-market problem report에 대해:
 
-1. **안전 영향 평가** — ISO 14971 리스크 매트릭스로 심각도/확률 재평가
+1. **Safety impact 평가** — ISO 14971 risk matrix로 severity/probability 재평가
 2. **영향 범위** — 영향받는 SW Item / Unit 식별 (RTM 역추적)
-3. **규제 보고** — 필요 여부 판단 (MDR Vigilance, FDA MDR)
+3. **Regulatory reporting** — 필요 여부 판단 (MDR Vigilance, FDA MDR)
 4. **수정 우선순위** — Critical/Major/Minor (XPE-SPR-001 기준)
-5. **회귀 범위** — 변경 영향 범위에 따라 테스트 범위 결정
+5. **Regression scope** — 변경 영향 범위에 따라 test 범위 결정
 
-### 3.3 수정사항 구현
+### 3.3 Modification Implementation
 
-변경이 필요한 경우, IEC 62304 절(Clause) 5 해당 단계부터 재진입한다:
+변경이 필요한 경우, IEC 62304 Clause 5 해당 단계부터 재진입한다:
 
-| 변경 범위 | 재진입 지점 | 필수 활동 |
+| Change Scope | Re-entry Point | Required Activities |
 |-------------|---------------|-------------------|
-| 요구사항 변경 | 5.2 (SRS 업데이트) | SRS → SAD → SDD → 구현 → UT → IT → ST |
-| 아키텍처 변경 | 5.3 (SAD 업데이트) | SAD → SDD → 구현 → UT → IT → ST |
-| 유닛 변경 (버그 수정) | 5.5 (구현) | 구현 → UT → IT (영향받는) → ST (영향받는) |
-| 설정/사전설정 변경 | 5.7 (시스템 테스트) | 설정 업데이트 → ST (영향받는) |
+| Requirement 변경 | 5.2 (SRS update) | SRS → SAD → SDD → Impl → UT → IT → ST |
+| Architecture 변경 | 5.3 (SAD update) | SAD → SDD → Impl → UT → IT → ST |
+| Unit 변경 (bug fix) | 5.5 (Implementation) | Impl → UT → IT (affected) → ST (affected) |
+| Config/preset 변경 | 5.7 (System test) | Config update → ST (affected) |
 
-## 4. 예방적 유지보수 일정
+## 4. Preventive Maintenance Schedule
 
-| 활동 | 빈도 | 범위 | 담당 |
+| Activity | Frequency | Scope | Responsible |
 |----------|-----------|-------|-------------|
-| SOUP CVE 스캔 | 분기별 | 모든 SOUP 구성요소 | DevOps |
-| SOUP 버전 검토 | 주요 SOUP 릴리스당 | 업그레이드 필요성 평가 | SW 담당자 |
-| 코드 품질 감사 | 반기별 | 정적 분석 전체 스캔 | QA |
-| 보정 데이터 검토 | 연간 | 검출기별 보정 데이터 유효성 | 현장 서비스 |
-| 규제 업데이트 검토 | 분기별 | IEC 62304, DICOM, FDA 지침 변경 | RA팀 |
+| SOUP CVE scan | Quarterly | All SOUP components | DevOps |
+| SOUP version review | Per major SOUP release | Evaluate upgrade necessity | SW Lead |
+| Code quality audit | Semi-annually | Static analysis full scan | QA |
+| Calibration data review | Annually | Detector-specific cal data validity | Field service |
+| Regulatory update review | Quarterly | IEC 62304, DICOM, FDA guidance changes | RA team |
 
-## 5. 유지보수 릴리스 프로세스
+## 5. Maintenance Release Process
 
-유지보수 릴리스도 XPE-SRP-001 릴리스 체크리스트를 준수한다. 패치 릴리스(X.Y.Z+1)의 경우 변경 범위에 한정한 V&V만 수행하되, 전체 회귀 테스트는 필수.
+Maintenance release도 XPE-SRP-001 release checklist를 준수한다. Patch release(X.Y.Z+1)의 경우 변경 범위에 한정한 V&V만 수행하되, full regression test는 필수.
 
 ---
 
-## 개정 이력
+## Revision History
 
-| 개정판 | 날짜 | 작성자 | 설명 |
+| Rev | Date | Author | Description |
 |-----|------|--------|-------------|
-| 1.0 | 2026-04-03 | XPE Team | 초기 릴리스 |
+| 1.0 | 2026-04-03 | XPE Team | Initial release |
 
 ---
 
-*문서 끝 — XPE-SMP-001 v1.0*
+*Document End — XPE-SMP-001 v1.0*

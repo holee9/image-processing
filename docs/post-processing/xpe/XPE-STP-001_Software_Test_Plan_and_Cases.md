@@ -1,16 +1,16 @@
-# STP/STC: 소프트웨어 테스트 계획 & 테스트 케이스
+# STP/STC: Software Test Plan & Test Cases
 
-> **문서 ID**: XPE-STP-001 | **버전**: 1.0 | **날짜**: 2026-04-14
+> **Document ID**: XPE-STP-001 | **Version**: 1.0 | **Date**: 2026-04-14
 >
 > **IEC 62304 Clause**: 5.5 — 5.7
 >
-> **추적 원본**: XPE-SRS-001, XPE-SDD-001, XPE-SDD-002
+> **Trace Source**: XPE-SRS-001, XPE-SDD-001, XPE-SDD-002
 
 ---
 
-## 1. 테스트 전략
+## 1. Test Strategy
 
-### 1.1 테스트 수준
+### 1.1 Test Levels
 
 ```mermaid
 graph TD

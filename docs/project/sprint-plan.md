@@ -1,24 +1,24 @@
-# XPE 스프린트 수준 분해 계획
+# XPE Sprint-Level Decomposition Plan
 
-**문서 ID**: XPE-SPRINT-PLAN-001
-**버전**: 1.1.0
-**날짜**: 2026-04-14
-**출처**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.2.0, pipeline-spec.md v1.3.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2, xpe-implementation-reference.md v1.0.0
-**총 스프린트**: 28개
-**변경 이력**: v1.0.0 → v1.1.0: 교차 검증 정정. SWU-2.10 (EI)을 P2-ADV-01 범위에서 제거 (Phase 1b로 이동). enhance_advanced API 개수 4→3. 총 API 83→82. 부록 D: 누적 회귀 테스트 체인, 부록 E: 테스트 데이터 종속성, 부록 F: 스프린트 롤백 전략 추가.
+**Document ID**: XPE-SPRINT-PLAN-001
+**Version**: 1.1.0
+**Date**: 2026-04-14
+**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.2.0, pipeline-spec.md v1.3.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2, xpe-implementation-reference.md v1.0.0
+**Total Sprints**: 28
+**Changelog**: v1.0.0 -> v1.1.0: Cross-verification corrections. SWU-2.10 (EI) removed from P2-ADV-01 scope (moved to Phase 1b). enhance_advanced API count 4->3. Total API 83->82. Added Appendix D: Cumulative Regression Test Chain, Appendix E: Test Data Dependencies, Appendix F: Sprint Rollback Strategy.
 
 ---
 
-## 실행 요약
+## Executive Summary
 
-| Phase | 스프린트 개수 | SWU 개수 | 기본 API 개수 | 복잡도 |
+| Phase | Sprint Count | SWU Count | Native API Count | Complexity |
 |-------|:-----------:|:---------:|:---------:|:----------:|
-| Phase 0: Foundation (기초) | 7 | 7 + 1 C# | 18 | 중상 |
-| Phase 1a: Pre-Processing (전처리) | 6 | 9 | 18 | 높음 |
-| Phase 1b: Enhancement + Display + DICOM (향상+표시+DICOM) | 8 | 13 + 1 C# | 28 (enhance_basic=7, display=11, dicom=10) | 중상 |
-| Phase 2: Advanced + GSVG (고급+격자) | 4 | 3 + 4 SI | 11 (enhance_advanced=3, gsvg=8) | 높음 |
-| Phase 3: AI / Intelligence (AI/지능) | 3 | 4 | 7 | 복잡 |
-| **Total (합계)** | **28** | **43** | **82** | -- |
+| Phase 0: Foundation | 7 | 7 + 1 C# | 18 | Medium-High |
+| Phase 1a: Pre-Processing | 6 | 9 | 18 | High |
+| Phase 1b: Enhancement + Display + DICOM | 8 | 13 + 1 C# | 28 (enhance_basic=7, display=11, dicom=10) | Medium-High |
+| Phase 2: Advanced + GSVG | 4 | 3 + 4 SI | 11 (enhance_advanced=3, gsvg=8) | High |
+| Phase 3: AI / Intelligence | 3 | 4 | 7 | Complex |
+| **Total** | **28** | **43** | **82** | -- |
 
 ---
 

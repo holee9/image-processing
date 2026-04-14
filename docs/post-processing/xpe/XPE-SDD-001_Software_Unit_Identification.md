@@ -1,19 +1,19 @@
-# 소프트웨어 단위 식별
+# Software Unit Identification
 
-**문서 ID:** XPE-SDD-001 v1.0  
-**IEC 62304 Clause:** 5.4.1 (Class B: unit 식별만)  
-**안전 분류:** Class B  
-**날짜:** 2026-04-03  
-**작성자:** XPE 개발 팀  
-**승인:** __________________ 날짜: __________  
+**Document ID:** XPE-SDD-001 v1.0  
+**IEC 62304 Clause:** 5.4.1 (Class B: unit identification only)  
+**Safety Classification:** Class B  
+**Date:** 2026-04-03  
+**Author:** XPE Development Team  
+**Approval:** __________________ Date: __________  
 
 ---
 
-## 1. 목적
+## 1. Purpose
 
 XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식별한다. IEC 62304 Class B에서는 unit 식별만 필수이며, 각 unit의 detailed design은 요구되지 않는다.
 
-> **참고:** IEC 62304 정의 — Software Unit: "다른 항목으로 분할되지 않는 SOFTWARE ITEM."
+> **Note:** IEC 62304 정의 — Software Unit: "SOFTWARE ITEM that is not subdivided into other items."
 
 ## 2. SWI-1: Pre-Processing Module — Units
 
