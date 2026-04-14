@@ -1,9 +1,11 @@
 # XPE API Specification — Complete Exported C ABI Reference
 
 **Document ID**: XPE-API-SPEC-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-13  
-**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h
+**Version**: 1.2.0  
+**Date**: 2026-04-14  
+**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.0.0  
+**Changelog**: v1.1.0 -> v1.2.0: (1) Added §5.16-5.18 AED functions (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status). (2) Moved xpe_calc_exposure_index from §8 (enhance_advanced) to §7.7 (enhance_basic) per SPEC-XPE-MASTER v2.0.0 §3.9 EI-0 resolution. (3) Updated §4 summary counts: xpe_common=18, enhance_basic=7, enhance_advanced=3, total=82.
+**Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md.
 
 ---
 
@@ -150,17 +152,17 @@ typedef int32_t GsvgErrorCode;
 
 ## 4. Function Count Summary
 
-| DLL | Exported Functions |
-|-----|--------------------|
-| xpe_common.dll | 15 |
-| xpe_preprocess.dll | 18 |
-| xpe_enhance_basic.dll | 6 |
-| xpe_enhance_advanced.dll | 4 |
-| xpe_ai.dll | 7 |
-| xpe_display.dll | 11 |
-| xpe_dicom.dll | 10 |
-| gsvg.dll | 8 |
-| **Total** | **79** |
+| DLL | Exported Functions | Change from v1.1.0 |
+|-----|--------------------|--------------------|
+| xpe_common.dll | 18 | +3 (AED functions §5.16-5.18) |
+| xpe_preprocess.dll | 18 | — |
+| xpe_enhance_basic.dll | 7 | +1 (xpe_calc_exposure_index moved from enhance_advanced per SPEC v2.0.0 §3.9) |
+| xpe_enhance_advanced.dll | 3 | -1 (xpe_calc_exposure_index moved to enhance_basic) |
+| xpe_ai.dll | 7 | — |
+| xpe_display.dll | 11 | — |
+| xpe_dicom.dll | 10 | — |
+| gsvg.dll | 8 | — |
+| **Total** | **82** | **+3** |
 
 ---
 
@@ -365,6 +367,59 @@ XPE_API void xpe_log_flush(void);
 **SRS**: SRS-LOG-003  
 **Thread safety**: Thread-safe.  
 **Error codes**: (void)
+
+---
+
+### 5.16 xpe_aed_configure
+
+```c
+XPE_API XpeErrorCode xpe_aed_configure(const char* configJsonOrNull);
+```
+
+**Description**: Configures the Automatic Exposure Detection (AED) subsystem with timing and threshold parameters from a UTF-8 JSON string. Pass `NULL` to accept default configuration. Must be called after `xpe_init()`. AED monitors incoming frame data for exposure events and generates events consumed via `xpe_aed_poll_event()`.  
+**SRS**: SRS-AED-001, SRS-AED-002  
+**Thread safety**: Not thread-safe — call from a single thread before acquisition begins.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_NOT_INITIALIZED`
+
+**JSON schema (default if NULL)**:
+```json
+{
+  "aed": {
+    "trigger_threshold_adu": 500,
+    "settle_time_ms": 100,
+    "min_exposure_ms": 5,
+    "max_exposure_ms": 5000
+  }
+}
+```
+
+---
+
+### 5.17 xpe_aed_poll_event
+
+```c
+XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut,
+                                         uint64_t* timestampOut,
+                                         float* signalLevelOut);
+```
+
+**Description**: Polls the AED event queue for the next pending exposure detection event. Writes the event type (0=exposure_start, 1=exposure_end, 2=exposure_trigger), timestamp (UNIX epoch ms), and detected signal level to the output parameters. Returns `XPE_OK` if an event was available, or a non-error indication if the queue is empty.  
+**SRS**: SRS-AED-003, SRS-AED-004  
+**Thread safety**: Thread-safe.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer), `XPE_ERR_NOT_INITIALIZED`
+
+---
+
+### 5.18 xpe_aed_get_status
+
+```c
+XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut);
+```
+
+**Description**: Returns the current AED state machine state. The state is one of: 0=IDLE (not configured or between exposures), 1=ARMED (configured and waiting for exposure), 2=TRIGGERED (exposure detected, event queued).  
+**SRS**: SRS-AED-005  
+**Thread safety**: Thread-safe (atomic read).  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer), `XPE_ERR_NOT_INITIALIZED`
 
 ---
 
@@ -725,13 +780,34 @@ XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img,
 
 ---
 
+### 7.7 xpe_calc_exposure_index
+
+```c
+XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
+                                              const XpeImageMetadata* meta,
+                                              float* eiOut,
+                                              float* deviationIndexOut);
+```
+
+**Description**: Calculates the IEC 62494 Exposure Index (EI) and Deviation Index (DI) for a detector-domain, pre-presentation image, writing results to `*eiOut` and `*deviationIndexOut`. Whole-image EI is always supported; when a valid collimation ROI sidecar is available, the relevant image region may be restricted to that ROI by the caller. Exam/view metadata selects the primary `EIT`; `meta->bodyPart` may refine defaults when available. Stitched or multi-irradiation images are non-normative inputs and should be rejected or explicitly flagged by the caller.
+
+**Phase assignment**: This function is implemented in xpe_enhance_basic.dll (Phase 1b). In Phase 2, the orchestrator re-invokes this function with a collimation ROI-cropped image for ROI-aware EI refinement. No separate API is needed for ROI refinement.
+
+**SRS**: SRS-ADV-030, SRS-SAFE-016, SRS-EI-001  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
+
+---
+
 ## 8. xpe_enhance_advanced.dll
 
-Provides multi-scale frequency processing, fractional calculus enhancement, collimation detection, and exposure index calculation.
+Provides multi-scale frequency processing, fractional calculus enhancement, and collimation detection.
 
 Dependencies: xpe_common.dll.
 
 Execution order (`xpe_log_transform` before advanced enhancement) is enforced by the caller/orchestrator, not by a DLL-to-DLL dependency.
+
+**Note**: xpe_calc_exposure_index was moved to xpe_enhance_basic.dll (§7.7) per SPEC-XPE-MASTER v2.0.0 §3.9. Phase 2 ROI-aware EI refinement is performed by the orchestrator re-invoking that function with a collimation ROI-cropped image.
 
 ### 8.1 xpe_multiscale_process
 
@@ -774,22 +850,6 @@ XPE_API XpeErrorCode xpe_detect_collimation(const XpeImageBuffer* img,
 
 **Description**: Detects the collimation boundary (primary beam edge) in `img` and writes the bounding rectangle to `(x0,y0)–(x1,y1)` in pixel coordinates. Non-destructive.  
 **SRS**: SRS-ADV-020, SRS-SAFE-015  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
-
----
-
-### 8.4 xpe_calc_exposure_index
-
-```c
-XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
-                                              const XpeImageMetadata* meta,
-                                              float* eiOut,
-                                              float* deviationIndexOut);
-```
-
-**Description**: Calculates the IEC 62494 Exposure Index (EI) and Deviation Index (DI) for a detector-domain, pre-presentation image, writing results to `*eiOut` and `*deviationIndexOut`. Whole-image EI is always supported; when a valid collimation ROI sidecar is available, the relevant image region may be restricted to that ROI by the caller. Exam/view metadata selects the primary `EIT`; `meta->bodyPart` may refine defaults when available. Stitched or multi-irradiation images are non-normative inputs and should be rejected or explicitly flagged by the caller.  
-**SRS**: SRS-ADV-030, SRS-SAFE-016  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
 

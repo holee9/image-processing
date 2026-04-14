@@ -56,7 +56,7 @@ image-processing/
 |-----------|-----------|-------|-------|--------------|
 | modules/common/ | xpe_common.dll | 0 | 0 | 7 (SWU-5.1~5.6, SWU-5.8) |
 | modules/preprocess/ | xpe_preprocess.dll | 1 | 1a | 9 (SWU-1.1~1.9) |
-| modules/enhance_basic/ | xpe_enhance_basic.dll | 1 | 1b | 4 (SWU-2.1~2.4) |
+| modules/enhance_basic/ | xpe_enhance_basic.dll | 1 | 1b | 5 (SWU-2.1~2.4, SWU-2.10 EI baseline) |
 | modules/enhance_advanced/ | xpe_enhance_advanced.dll | 1 | 2 | 4 (SWU-2.5,2.6,2.8,2.10) |
 | modules/ai/ | xpe_ai.dll | 1 | 3 | 4 (SWU-2.7,2.9,2.11,2.12) |
 | modules/display/ | xpe_display.dll | 1 | 1b | 4 (SWU-3.1~3.4) |
@@ -64,7 +64,8 @@ image-processing/
 | gsvg/ | gsvg.dll | 1-G | 2 | 4 (SI-001~004) |
 | gui/ | ImageProcTest.exe | 2 | 0+ | 2 (SWU-5.7 PipelineOrchestrator, SWU-6.1 QaConstancyTest) |
 
-**총 SWU: 38개 (C/C++ 36개 + C# 2개)**  
+**총 SWU: 38개 (C/C++ 36개 + C# 2개)** — DLL 직접 매핑 기준
+> Note: SPEC-XPE-MASTER v2.0.0에서는 Infrastructure 포함 전체 SWU를 **43개**로 계수 (7 Infrastructure + 9 Pre-Processing + 12 Core Processing + 4 Display + 4 DICOM + 4 GSVG + 2 C# GUI + 1 QA). 본 테이블은 DLL에 직접 매핑되는 38개만 표시. 차이 5개는 xpe_common.dll Infrastructure SWU-5.1~5.6, 5.8의 내부 서브유닛이다.
 `SWU-5.7`, `SWU-6.1`은 Layer 2 C# 구현이며, 나머지 36개만 native DLL SWU이다.
 
 **Note**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: `gui/ImageProcTest.Tests/QaConstancyTests.cs`

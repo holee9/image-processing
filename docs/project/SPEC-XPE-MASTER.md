@@ -398,7 +398,7 @@ Raw Frame
 
 | Document | Current | Required Action | Priority |
 |----------|---------|----------------|----------|
-| **api-spec.md** | v1.1.0 | **v1.2.0**: (1) §4 카운트 82로 갱신 (xpe_common=18), (2) §5.16~5.18 AED 3개 함수 문서 추가, (3) §7 xpe_enhance_basic에 xpe_calc_exposure_index 추가 (총 7 함수) | **P1** |
+| **api-spec.md** | v1.1.0 | **v1.2.0**: (1) §4 카운트 82로 갱신 (xpe_common=18, enhance_basic=7, enhance_advanced=3), (2) §5.16~5.18 AED 3개 함수 문서 추가, (3) §7.7 xpe_enhance_basic에 xpe_calc_exposure_index 추가 (총 7 함수) | **P1 (DONE)** |
 | **XPE-SDD-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추가 (5개 SWU). SWU-6.1은 별도 GUI SPEC | P2 |
 | **XPE-SRS-001** | v1.0 | **v1.1**: SRS-AED-001~003 요구사항 추가. SRS-EI-001에 Phase 1b baseline 명시 | P2 |
 | **XPE-RTM-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추적 행 추가 (SDD v1.1과 동시 릴리즈) | P2 |
@@ -419,7 +419,7 @@ Raw Frame
 | SPEC-XPE-P1B-DISP | Display Processing | 1b | xpe_display | 4 | 11 |
 | SPEC-XPE-P1B-DICOM | DICOM I/O | 1b | xpe_dicom | 4 | 10 |
 | SPEC-XPE-P1B-GUI | C# GUI Orchestrator | 1b | ImageProcTest | 1(+1 QA) | N/A |
-| SPEC-XPE-P2-ADV | Advanced Enhancement + EI ROI | 2 | xpe_enhance_advanced | **3** | 4 |
+| SPEC-XPE-P2-ADV | Advanced Enhancement + EI ROI | 2 | xpe_enhance_advanced | **3** | **3** |
 | SPEC-XPE-P2-GSVG | Grid Suppression / Virtual Grid | 2 | gsvg | 4 | 8 |
 | SPEC-XPE-P3-AI | AI Inference | 3 | xpe_ai + worker | 4 | 7 |
 
@@ -428,9 +428,9 @@ Raw Frame
 - P1B-ENH: SWU 4 -> **5** (EI 추가), API 6 -> **7**
 - P2-ADV: SWU 4 -> **3** (EI가 P1B로 이동)
 
-**API Total**: 18+18+7+11+10+4+8+7 = **83**
+**API Total**: 18+18+7+11+10+3+8+7 = **82**
 
-> Note: v1.0.0 대비 +1 (EI 함수가 enhance_basic으로 이동하면서 enhance_basic API count 증가).
+> Note: v1.0.0 total was 79 (pre-AED, pre-EI-move). v2.0.0 adds +3 AED functions to common and moves xpe_calc_exposure_index from enhance_advanced to enhance_basic (net 0 for total). Total = 79 + 3 = 82.
 
 **Execution Order** (의존성 기반):
 

@@ -1,3 +1,5 @@
+> **ARCHIVED**: This document has been superseded by [cross-verification-consolidated.md](../../project/cross-verification-consolidated.md). Kept for audit trail only.
+
 # Cross-Verification Report (Deep Research + 3 Rounds) v3.0
 
 **Date**: 2026-04-14

@@ -1,3 +1,5 @@
+> **ARCHIVED**: This document has been superseded by [cross-verification-consolidated.md](../../project/cross-verification-consolidated.md). Kept for audit trail only.
+
 # XPE Document Cross-Verification Report
 
 **Document ID**: XPE-XVER-001  

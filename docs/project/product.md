@@ -76,6 +76,11 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 - Layer 1-G: GSVG (독립 IEC 62304 패키지, xpe_common 비의존)
 - Layer 2: C# GUI Orchestrator (P/Invoke로 모든 DLL 호출)
 
+**SWU Count Scope**:
+- DLL 직접 매핑 기준: 38개 (C/C++ 36개 + C# 2개)
+- SPEC-XPE-MASTER v2.0.0 전체 기준: 43개 (Infrastructure 7 + 전처리 9 + 핵심처리 12 + 디스플레이 4 + DICOM 4 + GSVG 4 + C# GUI 2 + QA 1)
+- 차이 설명: xpe_common.dll 내부 서브유닛(MemoryPool, ThreadPool, ErrorHandler, Logger, ParameterValidator, ConfigManager, AedEventInterface)은 DLL 1개로 매핑되지만 개별 SWU로 계수
+
 ## Target Users
 
 - 영상처리 엔지니어: 알고리즘 개발 및 튜닝
