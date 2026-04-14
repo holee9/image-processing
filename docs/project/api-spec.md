@@ -1,10 +1,10 @@
-# XPE API Specification — Complete Exported C ABI Reference
+﻿# XPE API Specification: Complete Exported C ABI Reference
 
 **Document ID**: XPE-API-SPEC-001  
 **Version**: 1.3.0  
 **Date**: 2026-04-14  
-**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.0.0  
-**Changelog**: v1.1.0 -> v1.2.0: (1) Added §5.16-5.18 AED functions (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status). (2) Moved xpe_calc_exposure_index from §8 (enhance_advanced) to §7.7 (enhance_basic) per SPEC-XPE-MASTER v2.0.0 §3.9 EI-0 resolution. (3) Updated §4 summary counts: xpe_common=18, enhance_basic=7, enhance_advanced=3, total=82. **v1.2.0 -> v1.3.0**: (1) Added §15 "Path Management Design" documenting explicit-path API pattern and production integration. (2) Clarified that xpe_init does NOT accept calibration path parameters (caller responsibility). (3) Referenced production-integration-guide.md for ProDSW integration examples.
+**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.1.0  
+**Changelog**: v1.1.0 -> v1.2.0 added AED functions, moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`, and corrected exported-function totals to 82. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned.
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -14,8 +14,8 @@
 | Rule | Value |
 |------|-------|
 | Calling convention | `__cdecl` (Windows default for C) |
-| Struct packing | `#pragma pack(push, 8)` — 8-byte alignment |
-| Type universe | Pure C types only (`stdint.h`, `stddef.h`) — no STL, no RTTI |
+| Struct packing | `#pragma pack(push, 8)` for 8-byte alignment |
+| Type universe | Pure C types only (`stdint.h`, `stddef.h`); no STL and no RTTI |
 | Linkage | `extern "C"` on all exported symbols |
 | Export macro | `__declspec(dllexport)` (XPE_DLL_EXPORT defined) / `__declspec(dllimport)` (consumer) |
 | Return convention | `XpeErrorCode` (`int32_t`) for all fallible functions; `void` or `const char*` for infallible |
@@ -30,7 +30,7 @@
 - `XpeImageMetadata`: size = 96 bytes (64 + 4+4+4+4+8+4 + 4 padding). All fields blittable.
 - `XpePixelFormat`: marshal as `int` (`[MarshalAs(UnmanagedType.I4)]`).
 - `XpeAlertSeverity`: marshal as `int`.
-- Function pointers / callbacks: not used in this ABI — all async results use alert polling.
+- Function pointers / callbacks: not used in this ABI; async results use alert polling.
 - Strings returned as `const char*` are owned by the DLL (static storage); do NOT free them.
 - Output `char*` buffers (e.g., `msg` in `xpe_get_pending_alert`) must be caller-allocated.
 
@@ -54,7 +54,7 @@ typedef struct XpeImageBuffer {
     uint32_t       bitsAllocated; /* Storage bit depth (e.g., 16) */
     uint32_t       bitsStored;    /* Valid bit depth (e.g., 14) */
     XpePixelFormat format;        /* Pixel data type */
-    void*          data;          /* Pixel data — allocated via xpe_alloc_image */
+    void*          data;          /* Pixel data allocated via xpe_alloc_image */
     size_t         dataSize;      /* Byte size of data buffer; max 64 MB (4096x4096x4) */
 } XpeImageBuffer;
 
@@ -110,7 +110,7 @@ typedef int32_t XpeErrorCode;
 
 ## 3. GSVG Types
 
-Defined independently — GSVG does not depend on xpe_common types:
+Defined independently. GSVG does not depend on `xpe_common` types:
 
 ```c
 #pragma pack(push, 8)
@@ -119,7 +119,7 @@ typedef struct GsvgConfig {
     int32_t  gridFrequency_lp_per_mm; /* Anti-scatter grid line frequency */
     float    gridAngle_deg;           /* Grid orientation angle in degrees */
     int32_t  algorithmMode;           /* 0=Auto, 1=Fourier, 2=Wavelet */
-    float    suppressionStrength;     /* 0.0–1.0; suppression aggressiveness */
+    float    suppressionStrength;     /* 0.0-1.0; suppression aggressiveness */
     int32_t  enableVirtualGrid;       /* 1 = synthesise virtual grid post-suppression */
     char     reserved[64];           /* Zero-padded, for future extension */
 } GsvgConfig;
@@ -154,14 +154,14 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Change from v1.1.0 |
 |-----|--------------------|--------------------|
-| xpe_common.dll | 18 | +3 (AED functions §5.16-5.18) |
-| xpe_preprocess.dll | 18 | — |
-| xpe_enhance_basic.dll | 7 | +1 (xpe_calc_exposure_index moved from enhance_advanced per SPEC v2.0.0 §3.9) |
+| xpe_common.dll | 18 | +3 AED functions |
+| xpe_preprocess.dll | 18 | no count change |
+| xpe_enhance_basic.dll | 7 | +1 after moving `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` per SPEC v2.1.0 |
 | xpe_enhance_advanced.dll | 3 | -1 (xpe_calc_exposure_index moved to enhance_basic) |
-| xpe_ai.dll | 7 | — |
-| xpe_display.dll | 11 | — |
-| xpe_dicom.dll | 10 | — |
-| gsvg.dll | 8 | — |
+| xpe_ai.dll | 7 | no count change |
+| xpe_display.dll | 11 | no count change |
+| xpe_dicom.dll | 10 | no count change |
+| gsvg.dll | 8 | no count change |
 | **Total** | **82** | **+3** |
 
 ---
@@ -180,7 +180,7 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull);
 
 **Description**: Initialises all XPE subsystems. Must be called once before any other XPE function. Pass `NULL` to accept default configuration.  
 **SRS**: SRS-INIT-001, SRS-INIT-002  
-**Thread safety**: Not thread-safe — call from a single thread at startup.  
+**Thread safety**: Not thread-safe ;call from a single thread at startup.  
 **Error codes**: `XPE_OK`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_OUT_OF_MEMORY`
 
 ---
@@ -193,8 +193,8 @@ XPE_API void xpe_shutdown(void);
 
 **Description**: Releases all XPE subsystem resources. Must be the last XPE call; no XPE function may be called after this returns.  
 **SRS**: SRS-INIT-003  
-**Thread safety**: Not thread-safe — call from a single thread at shutdown.  
-**Error codes**: (void — no return)
+**Thread safety**: Not thread-safe ;call from a single thread at shutdown.  
+**Error codes**: none; this function returns `void`
 
 ---
 
@@ -219,7 +219,7 @@ XPE_API XpeErrorCode xpe_configure(const char* jsonConfig);
 
 **Description**: Applies a runtime configuration update from a UTF-8 JSON string. Keys not present in the JSON are left unchanged. Forward-compatible: unknown keys are silently ignored.  
 **SRS**: SRS-CFG-001, SRS-CFG-002  
-**Thread safety**: Not thread-safe — serialise configuration changes with respect to processing calls.  
+**Thread safety**: Not thread-safe; serialize configuration changes with respect to processing calls.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL), `XPE_ERR_CONFIG_INVALID`
 
 ---
@@ -339,8 +339,8 @@ XPE_API XpeErrorCode xpe_log_set_level(int32_t level);
 
 **Description**: Sets the minimum log severity level (0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF). Messages below this level are discarded.  
 **SRS**: SRS-LOG-001  
-**Thread safety**: Not thread-safe — set at startup before processing begins.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (level out of range 0–5)
+**Thread safety**: Not thread-safe; set at startup before processing begins.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (level out of range 0-5)
 
 ---
 
@@ -352,7 +352,7 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath);
 
 **Description**: Redirects log output to the file at `filePath` (UTF-8 path). Pass `NULL` to revert to stderr. File is opened in append mode.  
 **SRS**: SRS-LOG-002  
-**Thread safety**: Not thread-safe — set at startup.  
+**Thread safety**: Not thread-safe; set at startup.  
 **Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
 
 ---
@@ -378,7 +378,7 @@ XPE_API XpeErrorCode xpe_aed_configure(const char* configJsonOrNull);
 
 **Description**: Configures the Automatic Exposure Detection (AED) subsystem with timing and threshold parameters from a UTF-8 JSON string. Pass `NULL` to accept default configuration. Must be called after `xpe_init()`. AED monitors incoming frame data for exposure events and generates events consumed via `xpe_aed_poll_event()`.  
 **SRS**: SRS-AED-001, SRS-AED-002  
-**Thread safety**: Not thread-safe — call from a single thread before acquisition begins.  
+**Thread safety**: Not thread-safe; call from a single thread before acquisition begins.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_NOT_INITIALIZED`
 
 **JSON schema (default if NULL)**:
@@ -537,7 +537,7 @@ XPE_API void xpe_ghost_destroy(void* handle);
 
 **Description**: Frees all resources associated with a ghost corrector handle created by `xpe_ghost_create`. After this call `handle` is invalid.  
 **SRS**: SRS-GHOST-006  
-**Thread safety**: Not thread-safe — ensure no concurrent use of `handle` at destroy time.  
+**Thread safety**: Not thread-safe; ensure no concurrent use of `handle` at destroy time.  
 **Error codes**: (void)
 
 ---
@@ -807,7 +807,7 @@ Dependencies: xpe_common.dll.
 
 Execution order (`xpe_log_transform` before advanced enhancement) is enforced by the caller/orchestrator, not by a DLL-to-DLL dependency.
 
-**Note**: xpe_calc_exposure_index was moved to xpe_enhance_basic.dll (§7.7) per SPEC-XPE-MASTER v2.0.0 §3.9. Phase 2 ROI-aware EI refinement is performed by the orchestrator re-invoking that function with a collimation ROI-cropped image.
+**Note**: `xpe_calc_exposure_index` belongs to `xpe_enhance_basic.dll` per SPEC-XPE-MASTER v2.1.0. Phase 2 ROI-aware EI refinement is performed by the orchestrator re-invoking that function with a collimation ROI-cropped image.  
 
 ### 8.1 xpe_multiscale_process
 
@@ -832,7 +832,7 @@ XPE_API XpeErrorCode xpe_fractional_process(XpeImageBuffer* img,
                                              const char* configJsonOrNull);
 ```
 
-**Description**: Applies a fractional-order differentiation operator of degree `order` (0.0–2.0) to `img` in-place. Values near 1.0 preserve edges; values near 2.0 emphasise fine texture.  
+**Description**: Applies a fractional-order differentiation operator of degree `order` (0.0-2.0) to `img` in-place. Values near 1.0 preserve edges; values near 2.0 emphasise fine texture.  
 **SRS**: SRS-ADV-010  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (order out of range), `XPE_ERR_PROCESSING_FAILED`
@@ -848,7 +848,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(const XpeImageBuffer* img,
                                              const char* configJsonOrNull);
 ```
 
-**Description**: Detects the collimation boundary (primary beam edge) in `img` and writes the bounding rectangle to `(x0,y0)–(x1,y1)` in pixel coordinates. Non-destructive.  
+**Description**: Detects the collimation boundary (primary beam edge) in `img` and writes the bounding rectangle as `(x0, y0) - (x1, y1)` in pixel coordinates. Non-destructive.  
 **SRS**: SRS-ADV-020, SRS-SAFE-015  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
@@ -872,7 +872,7 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
 
 **Description**: Launches or attaches to the sandboxed AI worker, loads model files from `modelDirPath`, and initialises the worker-side inference runtime. Must be called before any other xpe_ai function. `configJsonOrNull` selects device (CPU/CUDA), IPC timeout, and batch settings.  
 **SRS**: SRS-AI-001, SRS-AI-002  
-**Thread safety**: Not thread-safe — call from a single thread at startup.  
+**Thread safety**: Not thread-safe ;call from a single thread at startup.  
 **Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_OUT_OF_MEMORY`
 
 ---
@@ -885,7 +885,7 @@ XPE_API void xpe_ai_shutdown(void);
 
 **Description**: Stops the sandboxed AI worker session, unloads models, and releases IPC resources. No xpe_ai function may be called after this.  
 **SRS**: SRS-AI-003  
-**Thread safety**: Not thread-safe — call from a single thread at shutdown.  
+**Thread safety**: Not thread-safe ;call from a single thread at shutdown.  
 **Error codes**: (void)
 
 ---
@@ -1104,7 +1104,7 @@ XPE_API XpeErrorCode xpe_lut_add_custom_preset(const char* name,
 
 **Description**: Registers a new custom LUT preset from a JSON definition string. The preset is persisted to the user preset store and immediately available for selection.  
 **SRS**: SRS-DISP-032  
-**Thread safety**: Not thread-safe — serialise preset modifications.  
+**Thread safety**: Not thread-safe; serialize preset modifications.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_IO_FAILED`
 
 ---
@@ -1117,7 +1117,7 @@ XPE_API XpeErrorCode xpe_lut_remove_custom_preset(const char* name);
 
 **Description**: Removes a custom LUT preset by name. Built-in presets cannot be removed (returns `XPE_ERR_INVALID_INPUT`).  
 **SRS**: SRS-DISP-033  
-**Thread safety**: Not thread-safe — serialise preset modifications.  
+**Thread safety**: Not thread-safe; serialize preset modifications.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`
 
 ---
@@ -1230,7 +1230,7 @@ XPE_API XpeErrorCode xpe_dicom_set_tag_string(const char* filePath,
 
 **Description**: Updates or inserts a string-valued DICOM tag in an existing file at `filePath`. The file is modified in-place; a backup is not created.  
 **SRS**: SRS-DICOM-005  
-**Thread safety**: Not thread-safe per file path — serialise modifications to the same file.  
+**Thread safety**: Not thread-safe per file path; serialize modifications to the same file.  
 **Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
 
 ---
@@ -1304,7 +1304,7 @@ XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* queryJson,
 
 ## 12. gsvg.dll
 
-Provides anti-scatter grid detection and virtual grid suppression. Independent module — does not depend on xpe_common types.
+Provides anti-scatter grid detection and virtual grid suppression. This independent module does not depend on `xpe_common` types.
 
 ### 12.1 gsvg_process
 
@@ -1335,7 +1335,7 @@ GSVG_API GsvgErrorCode gsvg_process_ex(uint16_t* pixels,
 ```
 
 **Description**: Extended variant of `gsvg_process` that additionally accepts image metadata for body-part-aware tuning and writes a JSON diagnostic report (detected grid parameters, suppression quality metrics) to `diagnosticJsonOut`.  
-**SRS**: SRS-GSVG-003, GSVG-SDD-001 §4.2  
+**SRS**: SRS-GSVG-003, GSVG-SDD-001 짠4.2  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`, `GSVG_ERR_PROCESSING_FAILED`, `GSVG_ERR_BUFFER_TOO_SMALL`
 
@@ -1378,8 +1378,8 @@ GSVG_API GsvgErrorCode gsvg_detect_grid(const uint16_t* pixels,
                                           float*   angleOut_deg);
 ```
 
-**Description**: Detects the anti-scatter grid line frequency and orientation angle from the image, writing results to `*freqOut_lp_per_mm` and `*angleOut_deg`. Non-destructive — use results to populate `GsvgConfig` for `gsvg_process`.  
-**SRS**: SRS-GSVG-010, GSVG-SDD-001 §3.1  
+**Description**: Detects the anti-scatter grid line frequency and orientation angle from the image, writing results to `*freqOut_lp_per_mm` and `*angleOut_deg`. Non-destructive; use results to populate `GsvgConfig` for `gsvg_process`.
+**SRS**: SRS-GSVG-010, GSVG-SDD-001 짠3.1  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`
 
@@ -1393,7 +1393,7 @@ GSVG_API GsvgErrorCode gsvg_suppress_grid(uint16_t* pixels,
                                            uint32_t  height,
                                            int32_t   freq_lp_per_mm,
                                            float     angle_deg,
-                                           float     suppressionStrength);
+    float    suppressionStrength;     /* 0.0-1.0; suppression aggressiveness */
 ```
 
 **Description**: Suppresses a known grid at the specified frequency and angle. Separated from `gsvg_process` for scenarios where grid parameters are already known (e.g., from detector metadata).  
@@ -1414,7 +1414,7 @@ GSVG_API GsvgErrorCode gsvg_virtual_grid(uint16_t* pixels,
 ```
 
 **Description**: Synthesises a virtual grid effect in `pixels` in-place after scatter suppression, improving perceived contrast for images acquired without a physical anti-scatter grid.  
-**SRS**: SRS-GSVG-020, GSVG-SDD-001 §5  
+**SRS**: SRS-GSVG-020, GSVG-SDD-001 짠5  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_CONFIG_INVALID`, `GSVG_ERR_PROCESSING_FAILED`
 
@@ -1428,12 +1428,12 @@ GSVG_API GsvgErrorCode gsvg_load_scatter_lut(const char* filePath);
 
 **Description**: Loads a scatter correction look-up table from `filePath` into module-internal storage. The LUT improves suppression quality for known detector-grid combinations. Replaces any previously loaded LUT.  
 **SRS**: SRS-GSVG-030  
-**Thread safety**: Not thread-safe — call before processing begins.  
+**Thread safety**: Not thread-safe; call before processing begins.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_LUT_LOAD_FAILED`, `GSVG_ERR_INVALID_INPUT`
 
 ---
 
-## 13. Appendix A — Error Code Cross-Reference
+## 13. Appendix A: Error Code Cross-Reference
 
 | Code | Symbol | Applicable DLLs |
 |------|--------|-----------------|
@@ -1453,11 +1453,11 @@ GSVG error codes are separate and defined in Section 3.
 
 ---
 
-## 14. Appendix B — DLL Dependency Graph
+## 14. Appendix B: DLL Dependency Graph
 
 ```
 gsvg.dll          (independent)
-xpe_common.dll    (base — no XPE dependencies)
+xpe_common.dll    (base; no XPE dependencies)
 xpe_preprocess.dll  -> xpe_common.dll
 xpe_enhance_basic.dll  -> xpe_common.dll
 xpe_enhance_advanced.dll -> xpe_common.dll
@@ -1470,7 +1470,7 @@ Load order: `xpe_common.dll` must be loaded before any other XPE DLL. `xpe_ai_wo
 
 ---
 
-## 15. Appendix C — Path Management Design
+## 15. Appendix C: Path Management Design
 
 ### Overview: Explicit-Path API Pattern
 

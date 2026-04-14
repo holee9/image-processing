@@ -1,15 +1,15 @@
-# XPE Sprint-Level Decomposition Plan
+﻿# XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
 **Version**: 1.4.0
 **Date**: 2026-04-14
-**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.1.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
+**Source**: SPEC-XPE-MASTER v2.1.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
 **Total Sprints**: 28
 **Changelog**:
 - v1.0.0 -> v1.1.0: cross-verification corrections, EI scope corrected, appendices expanded.
 - v1.1.0 -> v1.2.0: source references refreshed and canonical executable-unit total corrected from 43 to 42.
 - v1.2.0 -> v1.3.0: brainstorming deep-sync added implementation-first scaffolding and parity/sidecar rules.
-- v1.3.0 -> v1.4.0: cross-verification round 11 — P0-13 benchmark manifest gate, NLCSC Tier 3 gate, scalar reference DoD in P1A-02.
+- v1.3.0 -> v1.4.0: cross-verification round 11 added the P0-13 benchmark manifest gate, NLCSC Tier 3 gate, and scalar-reference DoD in P1A-02.
 
 ---
 
@@ -113,7 +113,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] P/Invoke smoke test passes (C# loads xpe_common.dll, calls `xpe_version`)
 - [ ] All 9 module directories exist with stub CMakeLists.txt
 - [ ] Static analysis (cppcheck) reports 0 warnings
-- [ ] Benchmark manifest schema exists at `data/benchmark/schema/` (BP-01~BP-10 패밀리 정의)
+- [ ] Benchmark manifest schema exists at `data/benchmark/schema/` and defines the required dataset families `BP-01` through `BP-10`
 
 ### Gate G1a -> G1b (Phase 1a Complete)
 
@@ -252,10 +252,10 @@ SPRINT-P1A-01 (CalibManager)                   |
 1. `xpe_log_set_level(2)` sets minimum level to INFO; DEBUG messages are discarded
 2. `xpe_log_set_file("test.log")` redirects output from stderr to file in append mode
 3. `xpe_log_flush` forces buffered entries to disk immediately
-4. Log format: `[YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] [TID] message` ??per xpe-implementation-reference.md §9.1
-5. Level values: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF ??per xpe-implementation-reference.md §9.2
+4. Log format: `[YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] [TID] message` per `xpe-implementation-reference.md` Section 9.1
+5. Level values: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF per `xpe-implementation-reference.md` Section 9.2
 6. `xpe_log_set_level(6)` returns `XPE_ERR_INVALID_INPUT`
-7. JSON log mode: `xpe_init("{\"logFormat\": \"json\"}")` ??each line is `{"ts":"...","lvl":"...","tid":N,"msg":"..."}` ??per §9.4
+7. JSON log mode: `xpe_init("{\"logFormat\": \"json\"}")`; each line is `{"ts":"...","lvl":"...","tid":N,"msg":"..."}` per Section 9.4
 
 **Test Cases**:
 1. Set level to WARN(3), emit INFO message, read log file -> expect message NOT present
@@ -333,8 +333,8 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. `xpe_get_pending_alert_count` returns accurate count atomically
 6. `xpe_get_pending_alert(0, msg, 256, &severity)` copies first alert message
 7. `xpe_clear_alerts` empties the ring buffer
-8. Alert message format: UTF-8 JSON matching schema in xpe-implementation-reference.md §9.3 ??fields: severity, code, message, timestamp_ms, stage_id, stage_name, frame_index
-9. Defined alert codes enumerated in §9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
+8. Alert message format: UTF-8 JSON matching the schema in `xpe-implementation-reference.md` Section 9.3 with fields `severity`, `code`, `message`, `timestamp_ms`, `stage_id`, `stage_name`, and `frame_index`
+9. Defined alert codes enumerated in 짠9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
 
 **Test Cases**:
 1. Configure AED, simulate trigger -> `xpe_aed_poll_event` returns event -> expect event data valid
@@ -414,9 +414,9 @@ SPRINT-P1A-01 (CalibManager)                   |
 6. `xpe_common_api.h` includes or forward-declares all 18 API functions
 7. `dumpbin /exports xpe_common.dll` shows exactly 18 exported symbols
 8. **Image Path Management (NEW for Production Integration)**:
-   - GUI includes "Load Raw Image" button ??opens `OpenFileDialog` (*.raw, *.dcm)
-   - GUI includes "Load DICOM" button ??opens `OpenFileDialog` (*.dcm)
-   - GUI includes "Calibration Path Settings" UI ??allows user to set directory for offset/gain/defect files
+   - GUI includes "Load Raw Image" button that opens `OpenFileDialog` (`*.raw`, `*.dcm`)
+   - GUI includes "Load DICOM" button that opens `OpenFileDialog` (`*.dcm`)
+   - GUI includes "Calibration Path Settings" UI that lets the user set directories for offset, gain, and defect files
    - GUI persists last used directories to `appsettings.json` (e.g., `"lastImageDir": "C:\\data\\images"`)
    - P/Invoke wrapper includes `xpe_calibration_path_t` context to manage paths (offset, gain, defect map directories)
 
@@ -428,14 +428,14 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
 6. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 AED)
 7. **(NEW) File Dialog Tests**:
-   - Click "Load Raw Image" button ??`OpenFileDialog` opens with filter "Raw Image (*.raw)|*.raw|DICOM (*.dcm)|*.dcm"
-   - Select `test_data/test_image.raw` ??path stored in `appsettings.json` `lastImageDir`
-   - Close and relaunch ImageProcTest ??"Load Raw Image" default folder should be the previously selected directory (verify via `OpenFileDialog.InitialDirectory`)
+   - Click "Load Raw Image" and verify that `OpenFileDialog` opens with the filter `Raw Image (*.raw)|*.raw|DICOM (*.dcm)|*.dcm`
+   - Select `test_data/test_image.raw` and verify that the path is stored in `appsettings.json` as `lastImageDir`
+   - Close and relaunch `ImageProcTest`; the default "Load Raw Image" folder should be the previously selected directory, verified through `OpenFileDialog.InitialDirectory`
 8. **(NEW) Calibration Path Settings**:
-   - Click "Settings" menu ??"Calibration Path Configuration" dialog
+   - Click the "Settings" menu and open the "Calibration Path Configuration" dialog
    - UI shows 3 path fields: "Offset/Dark Calib Dir", "Gain/Flat-field Calib Dir", "Defect Map Calib Dir"
-   - Browse buttons for each field ??`FolderBrowserDialog` opens
-   - Save ??paths persisted to `appsettings.json` as `"calibOffsetDir"`, `"calibGainDir"`, `"calibDefectDir"`
+   - Browse buttons for each field and verify that `FolderBrowserDialog` opens
+   - Save and verify that paths persist to `appsettings.json` as `"calibOffsetDir"`, `"calibGainDir"`, and `"calibDefectDir"`
    - Verify paths are not empty strings (reject empty paths)
 
 **Definition of Done**:
@@ -446,7 +446,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] All 9 module directories scaffolded
 - [ ] xpe_common_api.h is complete and compiles as standalone header
 - [ ] Phase 0 gate checklist 100% complete
-- [ ] **Benchmark manifest schema defined** (`data/benchmark/schema/manifest_schema.json` 존재, BP-01~BP-10 패밀리 ID 및 필수 필드 포함)
+- [ ] **Benchmark manifest schema defined** (`data/benchmark/schema/manifest_schema.json` present, with required `BP-01` through `BP-10` family identifiers and mandatory fields)
 - [ ] **Image Path Management UI Complete**:
   - [ ] "Load Raw Image" and "Load DICOM" file dialogs functional
   - [ ] "Calibration Path Settings" dialog with 3 path browse buttons
@@ -496,7 +496,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] Unit test coverage >= 85%
 
 **Risk Items**:
-- Calibration file format not yet standardized (mitigate: use simple binary with header ??see xpe-implementation-reference.md §1)
+- Calibration file format not yet standardized (mitigate: use a simple binary header format; see `xpe-implementation-reference.md` Section 1)
 
 ---
 
@@ -654,7 +654,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] BYP-SAFE-004: auto-bypass on first frame after reset
 
 **Risk Items**:
-- IRF parameter calibration requires real detector data (mitigate: use published parameters from Starman et al. ??default values in xpe-implementation-reference.md §4)
+- IRF parameter calibration requires real detector data (mitigate: use published parameters from Starman et al. and the default values documented in `xpe-implementation-reference.md` Section 4)
 - 150MB exposure history may stress memory budget (mitigate: configurable history depth)
 
 ---
@@ -776,7 +776,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] `dumpbin /exports xpe_enhance_basic.dll` shows 7 symbols
 
 **Risk Items**:
-- IEC 62494-1 EIT lookup table needs body-part-specific values (mitigate: use AAPM TG-232 values in xpe-implementation-reference.md §3)
+- IEC 62494-1 EIT lookup table needs body-part-specific values (mitigate: use AAPM TG-232 values in xpe-implementation-reference.md 짠3)
 
 ---
 
@@ -1330,7 +1330,7 @@ Each sprint must pass not only its own test cases but also all tests from previo
 
 | Sprint | Own Tests | Cumulative Regression |
 |--------|:---------:|:---------------------:|
-| P0-01 | Build system configuration | ??(first sprint) |
+| P0-01 | Build system configuration | first sprint; no prior regression chain |
 | P0-02 | Memory + Error + Param | P0-01: build still works with new source files |
 | P0-03 | Logging | P0-02: alloc/free/error_string still pass |
 | P0-04 | Config + Lifecycle | P0-03: logging still works after init/shutdown cycle |

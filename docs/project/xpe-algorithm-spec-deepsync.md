@@ -38,6 +38,27 @@ This revision (ds4) adds implementation-feasibility rules, sidecar contract guid
 
 `.moai/project/` and `.moai/specs/` are not normative for this document.
 
+### 2.3 Implementation Detail Reference
+
+This document establishes the **algorithm contract** (what each algorithm must achieve, boundary conditions, and quality gates). For the corresponding **implementation detail** (mathematics, C++ pseudocode, SIMD strategy, and calibration code), refer to:
+
+> **XPE-ALG-001** — Unified Algorithm Development Specification  
+> Path: `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md`  
+> Version: v1.1 (2026-04-15)  
+> IEC 62304 Clause: 5.4 (Software Detailed Design)  
+
+Relationship between this document and XPE-ALG-001:
+
+| Concern | This document (ALG-SPEC-001) | XPE-ALG-001 |
+|---------|------------------------------|-------------|
+| Algorithm selection rationale | Normative | Informational reference |
+| Release-safe / research-gated boundary | Normative | Follows this document |
+| Mathematical derivation | Summary level | Full derivation with LaTeX |
+| C++ implementation detail | Not provided | Full AVX2/SIMD code |
+| Python calibration code | Not provided | Complete implementations |
+| Verification criteria (unit test) | Quality gate targets | Test tables per algorithm |
+| Phase 2 algorithm detail (GSVG, NSCT, collimation) | Contract level | GAP-D/N detailed in XPE-ALG-001 |
+
 ### 2.2 External technical references
 
 - DICOM PS3.14 GSDF: https://dicom.nema.org/medical/dicom/current/output/chtml/part01/sect_6.14.html

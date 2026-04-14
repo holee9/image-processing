@@ -1,7 +1,7 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.0.0  
-**Last Updated**: 2026-04-14  
+**Version**: 3.1.0  
+**Last Updated**: 2026-04-15  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
 ---
@@ -49,7 +49,7 @@
 |----------|-----|---------|:-----:|-------------|
 | [pipeline-spec.md](project/pipeline-spec.md) | PIPE-SPEC-001 | v1.3.0 | 666 | 17단계 파이프라인 시퀀스, 전처리 종속성 그래프, 우회 정책, 데이터 흐름 |
 | [api-spec.md](project/api-spec.md) | XPE-API-SPEC-001 | v1.2.0 | 1,469 | 8개 DLL에 걸친 82개 내보낸 C ABI 함수, 일반적인 타입, P/Invoke 정렬 |
-| [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | ALG-SPEC-001 | v3.0.0-ds2 | 573 | 알고리즘 계약: DeepSync 결정, 연구 검증 모델, 품질 게이트, EI-0 해결 |
+| [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | ALG-SPEC-001 | v3.2.0-ds4 | 573 | 알고리즘 계약: DeepSync 결정, 연구 검증 모델, 품질 게이트, EI-0 해결. 상세 구현은 XPE-ALG-001 참조 |
 
 ### 1.3 구현 계획
 
@@ -84,7 +84,7 @@
 
 소프트웨어 항목별로 정리된 완전한 수명 주기 문서입니다. 각 패키지는 IEC 62304 Class B 규정 준수를 목표로 합니다.
 
-### 3.1 XPE (X-ray Processing Engine) — 22개 문서
+### 3.1 XPE (X-ray Processing Engine) — 23개 문서
 
 전처리, 향상, 표시 및 DICOM 모듈을 다루는 주요 소프트웨어 항목입니다.
 
@@ -112,6 +112,9 @@
 | 9 | Problem Resolution | [XPE-SPR-001](post-processing/xpe/XPE-SPR-001_Problem_Resolution_Process.md) | SPR-001 |
 | — | Release Procedure | [XPE-SRP-001](post-processing/xpe/XPE-SRP-001_Software_Release_Procedure.md) | SRP-001 |
 | 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
+| 5.4 | Unified Algorithm Spec | [XPE-ALG-001](post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | ALG-001 |
+
+> **XPE-ALG-001** (IEC 62304 §5.4 Detailed Design): 10개 알고리즘 공백(GAP-01~10) 해소를 위한 통합 알고리즘 명세서. GAP-D/E/F/G/H/I/J/L/M/N 보완 포함 (v1.1, 2026-04-15).
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 13개 문서
 
@@ -369,7 +372,7 @@ Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, AED, JsonCon
 |----------|:-----:|:--------------------:|
 | Normative (Section 1) | 9 | ~5,680 |
 | Informational (Section 2) | 3 | ~900 |
-| IEC 62304 XPE System (Section 3.1) | 22 | ~7,805 |
+| IEC 62304 XPE System (Section 3.1) | 23 | ~10,005 |
 | IEC 62304 GSVG (Section 3.2) | 13 | ~3,868 |
 | IEC 62304 Ghost Correction (Section 3.3) | 9 | ~4,552 |
 | IEC 62304 Calibration (Section 3.4) | 8 | ~5,200 |
@@ -382,7 +385,7 @@ Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, AED, JsonCon
 | IEC 62304 Common Infra (Section 3.11) | 6 | ~3,930 |
 | Research (Section 4) | 11 | ~14,310 |
 | Archive (Section 5) | 4 | ~1,158 |
-| **Total** | **~129** | **~64,599** |
+| **Total** | **~132** | **~67,699** |
 
 ---
 
@@ -417,6 +420,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | v3.1.0 | **XPE-ALG-001 통합 알고리즘 명세 추가** (ALG-001): GAP-D/E/F/G/H/I/J/L/M/N 해소, Readout Validation, Non-linearity Correction, AED-0, NPS/DQE/Collimation 알고리즘 추가. xpe-algorithm-spec-deepsync 버전 참조 v3.0.0-ds2 → v3.2.0-ds4 수정. `post-processing/xpe/README.md` 신규. 총 ~132개 문서, ~67,699줄 |
 | 2026-04-14 | v3.0.0 | **전체 모듈 문서 패키지 완성**: Panel Defect(9), Enhance Basic(9), Enhance Advanced(8), AI Module(6), Display(6), DICOM(6), Common(6) 추가. GSVG·Ghost·Calibration IAP/TDS/README 보강. 섹션 3.5~3.11 신규. IEC 62304 매트릭스 11개 항목으로 확장. 총 129개 문서, ~64,599줄 |
 | 2026-04-14 | v2.0.0 | Hybrid 3-Tier + IEC 62304 재편성. Archive 분리. 검증 보고서 통합. Normative Authority Table 추가 |
 | 2026-04-14 | v1.0.0 | 초기 문서 인덱스 |
