@@ -68,12 +68,12 @@
 | Document | Current | Target | Priority |
 |----------|---------|--------|----------|
 | **SPEC-XPE-MASTER** | v1.0.0 | **v2.0.0 (본 문서)** | Done |
-| **api-spec.md** | v1.1.0 | **v1.2.0** | P1 |
+| **api-spec.md** | v1.3.0 | **v1.3.0** | Done |
 | **XPE-SDD-001** | v1.0 | **v1.1** | P2 |
 | **XPE-SRS-001** | v1.0 | **v1.1** | P2 |
 | **XPE-RTM-001** | v1.0 | **v1.1** | P2 |
-| **pipeline-spec.md** | v1.1.0 | **v1.2.0** | P2 |
-| **product.md** | v1.0 | **v1.1** | P3 |
+| **pipeline-spec.md** | v1.5.0 | **v1.5.0** | Done |
+| **product.md** | v1.2.0 | **v1.2.0** | Done |
 | **Ghost SRS** | v1.0 | **v1.0.1** | P3 |
 
 ---
@@ -131,7 +131,7 @@ Raw Frame
 
 ---
 
-## 3. Complete SWU Inventory (43 Units)
+## 3. Complete Executable Unit Inventory (42 Units)
 
 ### 3.1 SWI-1: Pre-Processing Module (9 SWU) -- xpe_preprocess.dll
 
@@ -225,7 +225,7 @@ Raw Frame
 | Infrastructure | **7** | **7** | -- | -- | -- | -- |
 | GSVG | 4 | -- | -- | -- | **4** | -- |
 | C# GUI | 2 | 1 | -- | 1 | -- | -- |
-| **Total** | **43** | **8** | **9** | **14** | **7** | **4** |
+| **Total** | **42** | **8** | **9** | **14** | **7** | **4** |
 
 **v2.0 변경사항**:
 - Infrastructure: 8 → **7** (SWU-5.7은 C# GUI에 분류)
@@ -398,13 +398,13 @@ Raw Frame
 
 | Document | Current | Required Action | Priority |
 |----------|---------|----------------|----------|
-| **api-spec.md** | v1.1.0 | **v1.2.0**: (1) §4 카운트 82로 갱신 (xpe_common=18, enhance_basic=7, enhance_advanced=3), (2) §5.16~5.18 AED 3개 함수 문서 추가, (3) §7.7 xpe_enhance_basic에 xpe_calc_exposure_index 추가 (총 7 함수) | **P1 (DONE)** |
+| **api-spec.md** | v1.3.0 | **DONE**: API count = 82, AED functions documented, EI function owned by `xpe_enhance_basic.dll` | **Done** |
 | **XPE-SDD-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추가 (5개 SWU). SWU-6.1은 별도 GUI SPEC | P2 |
 | **XPE-SRS-001** | v1.0 | **v1.1**: SRS-AED-001~003 요구사항 추가. SRS-EI-001에 Phase 1b baseline 명시 | P2 |
 | **XPE-RTM-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추적 행 추가 (SDD v1.1과 동시 릴리즈) | P2 |
-| **pipeline-spec.md** | v1.1.0 | **v1.2.0**: (1) EI-0 stage의 DLL 소유권 명확화 (xpe_enhance_basic.dll), (2) AED stage 추가 | P2 |
-| **product.md** | v1.0 | **v1.1**: SWU 총수 43으로 갱신, Infrastructure=7 명시 | P3 |
-| **structure.md** | v1.0 | **v1.1**: Module-to-DLL 테이블에 xpe_enhance_basic SWU 5로 갱신 | P3 |
+| **pipeline-spec.md** | v1.5.0 | **DONE**: EI baseline stage restored, AED gate added, Phase 2/3 ownership normalized | Done |
+| **product.md** | v1.2.0 | **DONE**: canonical total fixed to 42 executable units, binary boundary clarified | Done |
+| **structure.md** | v1.2.0 | **DONE**: module-to-binary table normalized to 42 executable units and 82 native APIs | Done |
 | **Ghost SRS** | v1.0 | **v1.0.1**: FR-701에 "XPE 전체 파이프라인 순서와의 관계" 주석 추가 | P3 |
 
 ---

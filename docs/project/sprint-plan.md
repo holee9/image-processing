@@ -3,9 +3,9 @@
 **Document ID**: XPE-SPRINT-PLAN-001
 **Version**: 1.2.0
 **Date**: 2026-04-14
-**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.4.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2, xpe-implementation-reference.md v1.1.0
+**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.1.0-ds3, xpe-implementation-reference.md v1.1.0
 **Total Sprints**: 28
-**Changelog**: v1.0.0→v1.1.0: Cross-verification corrections. SWU-2.10 (EI) removed from P2-ADV-01 scope. enhance_advanced API count 4→3. Total API 83→82. Added Appendix D/E/F. **v1.1.0→v1.2.0**: (1) SPRINT-P0-03 acceptance criteria updated: log format pinned to §9.1 of xpe-implementation-reference.md v1.1.0. (2) SPRINT-P0-05 acceptance criteria updated: alert JSON schema pinned to §9.3. (3) Source document references updated to api-spec v1.3.0, pipeline-spec v1.4.0, xpe-implementation-reference v1.1.0.
+**Changelog**: v1.0.0→v1.1.0: Cross-verification corrections. SWU-2.10 (EI) removed from P2-ADV-01 scope. enhance_advanced API count 4→3. Total API 83→82. Added Appendix D/E/F. **v1.1.0→v1.2.0**: (1) SPRINT-P0-03 acceptance criteria updated: log format pinned to §9.1 of xpe-implementation-reference.md v1.1.0. (2) SPRINT-P0-05 acceptance criteria updated: alert JSON schema pinned to §9.3. (3) Source document references updated to api-spec v1.3.0, pipeline-spec v1.5.0, xpe-implementation-reference v1.1.0. (4) Canonical executable-unit total corrected from 43 to 42.
 
 ---
 
@@ -18,7 +18,7 @@
 | Phase 1b: Enhancement + Display + DICOM | 8 | 13 + 1 C# | 28 (enhance_basic=7, display=11, dicom=10) | Medium-High |
 | Phase 2: Advanced + GSVG | 4 | 3 + 4 SI | 11 (enhance_advanced=3, gsvg=8) | High |
 | Phase 3: AI / Intelligence | 3 | 4 | 7 | Complex |
-| **Total** | **28** | **43** | **82** | -- |
+| **Total** | **28** | **42** | **82** | -- |
 
 ---
 

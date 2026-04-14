@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Date**: 2026-04-14
 **Purpose**: Sprint 개발자가 질문 없이 구현할 수 있도록 api-spec, sprint-plan, pipeline-spec에서 누락된 상세 명세를 제공
-**Source Documents**: api-spec.md v1.3.0, sprint-plan.md v1.2.0, pipeline-spec.md v1.4.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.0.0-ds2
+**Source Documents**: api-spec.md v1.3.0, sprint-plan.md v1.2.0, pipeline-spec.md v1.5.0, SPEC-XPE-MASTER v2.0.0, xpe-algorithm-spec-deepsync.md v3.1.0-ds3
 **Changelog**: v1.0.0→v1.1.0: (1) 추가 §9 Logging Output Format — plain-text 줄 형식 + Alert JSON 스키마. (2) 추가 §10 LUT 파일 형식 — DICOM 기반 바이너리 레이아웃. (3) 추가 §11 GSDF 컴플라이언스 검증 공식. (4) 추가 §12 AI Worker IPC 프로토콜 — Named Pipe 메시지 형식. (5) 추가 §13 DL 모델 양자화 명세. (6) 추가 §14 Calibration session_id 형식.
 
 ---
