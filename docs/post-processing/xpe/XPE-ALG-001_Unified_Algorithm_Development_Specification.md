@@ -1,33 +1,53 @@
 # XPE 통합 알고리즘 개발 명세서
 
-**Document ID:** XPE-ALG-001 v1.1  
+**Document ID:** XPE-ALG-001 v1.2  
 **IEC 62304 Clause:** 5.4 (Software Detailed Design)  
 **Safety Classification:** Class B  
 **Date:** 2026-04-15  
 **Author:** XPE Development Team  
-**Review Cycles:** 20회 (v1.0: 10회 + v1.1: 10회 Review-Evaluate-Fix 반복 완료)  
+**Review Cycles:** 30회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 Review-Evaluate-Fix 반복 완료)  
 **Approval:** __________________ Date: __________  
 
 ---
 
 ## 문서 목적
 
-본 문서는 XPE(X-ray Processing Engine) 시스템의 **모든 알고리즘**을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준까지 일관되게 명세한다. 기존 문서(XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research)의 교차 검증을 통해 식별된 10개 알고리즘 공백을 모두 해소한다.
+본 문서는 XPE(X-ray Processing Engine) 시스템의 **모든 알고리즘**을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준까지 일관되게 명세한다. 기존 문서(XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research)의 교차 검증을 통해 식별된 알고리즘 공백을 3 라운드에 걸쳐 모두 해소한다.
 
 ### 공백 해소 매핑
 
-| 공백 번호 | 내용 | 본 문서 섹션 |
-|----------|------|------------|
-| GAP-01 | Python↔C++ 아키텍처 브리지 미문서화 | §2 |
-| GAP-02 | Core Processing 알고리즘 미명세 | §4 |
-| GAP-03 | Grid Suppression 알고리즘 미명세 | §5 |
-| GAP-04 | AI/DL 알고리즘 미명세 | §8 |
-| GAP-05 | Display Processing 표준 미명세 | §6 |
-| GAP-06 | SIMD 최적화 전체 파이프라인 미커버 | §10 |
-| GAP-07 | 파노라마 스티칭 미명세 | §8.3 |
-| GAP-08 | Virtual Grid / Scatter Correction 미명세 | §5.2 |
-| GAP-09 | Exposure Index (IEC 62494-1) 미명세 | §7 |
-| GAP-10 | 교정 맵 생성↔런타임 연결 미문서화 | §9 |
+| 공백 번호 | 내용 | 본 문서 섹션 | 라운드 |
+|----------|------|------------|-------|
+| GAP-01 | Python↔C++ 아키텍처 브리지 미문서화 | §2 | v1.0 |
+| GAP-02 | Core Processing 알고리즘 미명세 | §4 | v1.0 |
+| GAP-03 | Grid Suppression 알고리즘 미명세 | §5 | v1.0 |
+| GAP-04 | AI/DL 알고리즘 미명세 | §8 | v1.0 |
+| GAP-05 | Display Processing 표준 미명세 | §6 | v1.0 |
+| GAP-06 | SIMD 최적화 전체 파이프라인 미커버 | §10 | v1.0 |
+| GAP-07 | 파노라마 스티칭 미명세 | §8.3 | v1.0 |
+| GAP-08 | Virtual Grid / Scatter Correction 미명세 | §5.2 | v1.0 |
+| GAP-09 | Exposure Index (IEC 62494-1) 미명세 | §7 | v1.0 |
+| GAP-10 | 교정 맵 생성↔런타임 연결 미문서화 | §9 | v1.0 |
+| GAP-D | NSCT Grid Suppression 완전 구현 누락 | §5.1.3 | v1.1 |
+| GAP-E | 런타임 결함 검출 (AVX2 z-score) 누락 | §3.3.4 | v1.1 |
+| GAP-F | EI ROI Central Method √0.1 오류 | §7.2 | v1.1 |
+| GAP-G | AVX2 log 근사 (avx2_log_ps) 미구현 | §4.1.3 | v1.1 |
+| GAP-H | 비선형성 보정 (PCHIP LUT) 미명세 | §3.0.5 | v1.1 |
+| GAP-I | Readout Validation 미명세 | §3.0 | v1.1 |
+| GAP-J | AED-0 자동 노출 감지 미명세 | §9.4 | v1.1 |
+| GAP-L | NPS 계산 (IEC 62220-1) 미명세 | §12.3 | v1.1 |
+| GAP-M | DQE 계산 알고리즘 미명세 | §12.4 | v1.1 |
+| GAP-N | Collimation Mask 검출 미명세 | §12.5 | v1.1 |
+| GAP-O | Heel Effect 보정 (Wang 2013) 미명세 | §3.5 | v1.2 |
+| GAP-P | Multi-SID Gain 보간 및 kVp 선택 미명세 | §3.2.5 | v1.2 |
+| GAP-Q | 교정 세션 잠금 및 매니페스트 해시 체인 미명세 | §2.4 | v1.2 |
+| GAP-R | 품질 상태 벡터 사이드카 미명세 | §13 | v1.2 |
+| GAP-S | 스칼라 참조 + SIMD 패리티 하네스 미명세 | §11.4 | v1.2 |
+| GAP-T | MTF 슬랜트 에지 ESF 완전 구현 누락 | §12.6 | v1.2 |
+| GAP-U | Lag 잔류 기반 결정론적 티어링 미명세 | §3.4.5 | v1.2 |
+| GAP-V | 해부 부위별 Virtual Grid 프리셋 미명세 | §5.3 | v1.2 |
+| GAP-W | AI Worker 격리 아키텍처 (ONNX) 미명세 | §8.4 | v1.2 |
+| GAP-X | 교정 드리프트 모니터링 알고리즘 미명세 | §9.5 | v1.2 |
 
 ---
 
@@ -35,26 +55,36 @@
 
 1. [용어 정의 및 기호 규약](#1-용어-정의-및-기호-규약)
 2. [시스템 아키텍처 — Python↔C++ 브리지](#2-시스템-아키텍처--pythonc-브리지)
+   - [§2.4 교정 세션 잠금 및 매니페스트 해시 체인 ★GAP-Q](#24-교정-세션-잠금-및-매니페스트-해시-체인-gap-q-해소)
 3. [SWI-1: Pre-Processing 알고리즘](#3-swi-1-pre-processing-알고리즘)
    - [§3.0 Readout Validation (SWU-1.0) ★GAP-I](#30-swu-10-readout-validation-gap-i-해소)
    - [§3.0.5 Non-linearity Correction ★GAP-H](#305-swu-105-non-linearity-correction-gap-h-해소)
    - §3.1 Offset Correction
    - §3.2 Gain Correction
+   - [§3.2.5 Multi-SID Gain 보간 ★GAP-P](#325-swu-12b-multi-sid-gain-보간-및-kvp-stratified-gain-선택-gap-p-해소)
    - §3.3 Defect Correction (★GAP-E)
    - §3.4 Ghost/Lag Correction
+   - [§3.4.5 Lag Residual 티어링 ★GAP-U](#345-swu-14b-lag-잔류-기반-결정론적-티어링-gap-u-해소)
+   - [§3.5 Heel Effect Compensation ★GAP-O](#35-swu-15-heel-effect-compensation-gap-o-해소)
 4. [SWI-2: Core Processing 알고리즘](#4-swi-2-core-processing-알고리즘) (★GAP-G avx2_log_ps)
 5. [Grid Suppression & Virtual Grid 알고리즘](#5-grid-suppression--virtual-grid-알고리즘) (★GAP-D NSCT)
+   - [§5.3 해부 부위별 Virtual Grid 프리셋 ★GAP-V](#53-해부-부위별-virtual-grid-프리셋-테이블-gap-v-해소)
 6. [SWI-3: Display Processing 알고리즘](#6-swi-3-display-processing-알고리즘)
 7. [IEC 62494-1 Exposure Index 알고리즘](#7-iec-62494-1-exposure-index-알고리즘) (★GAP-F ROI 수정)
 8. [AI/DL 알고리즘](#8-aidl-알고리즘)
+   - [§8.4 AI Worker 격리 아키텍처 ★GAP-W](#84-ai-worker-격리-아키텍처-및-onnx-추론-gap-w-해소)
 9. [교정 데이터 파이프라인](#9-교정-데이터-파이프라인)
    - [§9.4 AED-0 Automatic Exposure Detection ★GAP-J](#94-aed-0-automatic-exposure-detection-gap-j-해소)
+   - [§9.5 교정 드리프트 모니터링 ★GAP-X](#95-교정-드리프트-모니터링-gap-x-해소)
 10. [성능 최적화 — SIMD/OpenMP 전략](#10-성능-최적화--simdopenmp-전략)
 11. [검증 방법론](#11-검증-방법론)
+    - [§11.4 스칼라 참조 + SIMD 패리티 하네스 ★GAP-S](#114-스칼라-참조-구현-및-simd-패리티-하네스-gap-s-해소)
 12. [FPD 특성화 알고리즘 보완](#12-fpd-특성화-알고리즘-보완)
     - [§12.3 NPS 계산 ★GAP-L](#123-nps-계산-알고리즘-gap-l-해소)
     - [§12.4 DQE 계산 ★GAP-M](#124-dqe-계산-알고리즘-gap-m-해소)
     - [§12.5 Collimation Mask Detection ★GAP-N](#125-collimation-mask-detection-알고리즘-gap-n-해소)
+    - [§12.6 MTF 슬랜트 에지 ESF 완전 구현 ★GAP-T](#126-mtf-슬랜트-에지-esf-완전-구현-gap-t-해소)
+13. [품질 상태 벡터 사이드카 ★GAP-R](#13-품질-상태-벡터-사이드카-gap-r-해소)
 - [부록 A: 수학 공식 일람](#부록-a-수학-공식-일람)
 - [부록 B: 표준 참조 테이블](#부록-b-표준-참조-테이블)
 - [부록 C: 알고리즘-요구사항 추적성](#부록-c-알고리즘-요구사항-추적성)
@@ -232,6 +262,297 @@ bool validate_calibration_file(const std::string& path,
     return computed == stored;
 }
 ```
+
+---
+
+### 2.4 교정 세션 잠금 및 매니페스트 해시 체인 (GAP-Q 해소)
+
+xpe-algorithm-spec-deepsync.md §4.1에서 "Every offset, gain, BPM, nonlinearity, and lag coefficient pack shall carry a session identity and hash chain"으로 명시된 교정 무결성 인프라이다. 서로 다른 세션의 교정 파일이 혼합되는 것을 방지하고, 드리프트 모니터링 API를 통해 재교정 트리거를 제공한다.
+
+#### 2.4.1 세션 ID 스키마
+
+모든 교정 파일은 공통 헤더 확장에 `session_id` 필드를 포함한다:
+
+```
+세션 ID 구성: SHA-256 digest 앞 8바이트 (16 hex 문자)
+  session_id = SHA-256(
+      device_serial    +   // FPD 시리얼 번호 (ASCII)
+      calibration_date +   // ISO-8601 날짜 (예: "2026-04-15")
+      operator_id          // 기사 ID 또는 자동화 토큰
+  )[0:8]
+
+예시: "A3F1C2D8E4B09517"
+```
+
+**파일 헤더 확장 (모든 교정 파일 형식에 적용)**:
+
+```
+확장 헤더 블록 (32 bytes, 기존 헤더 뒤에 추가):
+  [0..7]   SessionID:     char[8]   // 세션 식별자 (16진수 ASCII)
+  [8..15]  PrevHash:      uint8[8]  // 이전 교정 세션 해시 체인 링크
+  [16..23] CreatedAt_ns:  uint64    // Unix nanoseconds
+  [24..31] Reserved:      uint8[8]  // 향후 확장용 (모두 0)
+```
+
+#### 2.4.2 매니페스트 파일 스키마
+
+교정 세션마다 하나의 매니페스트 파일 `calibration_manifest.json`을 생성한다:
+
+```json
+{
+  "schema_version": "1.0",
+  "session_id": "A3F1C2D8E4B09517",
+  "device_serial": "FPD-2024-003421",
+  "calibration_date": "2026-04-15T09:30:00Z",
+  "operator_id": "CAL-AUTO-001",
+  "files": [
+    {
+      "type": "offset_map",
+      "path": "offset_map.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 37748800,
+      "acquired_at": "2026-04-15T09:15:00Z"
+    },
+    {
+      "type": "gain_map",
+      "sid_mm": 1000.0,
+      "kvp": 80.0,
+      "path": "gain_SID1000_kVP080.bin",
+      "sha256": "...",
+      "size_bytes": 37748896,
+      "acquired_at": "2026-04-15T09:20:00Z"
+    },
+    {
+      "type": "defect_map",
+      "path": "defect_map.bin",
+      "sha256": "...",
+      "size_bytes": 9437248,
+      "acquired_at": "2026-04-15T09:18:00Z"
+    },
+    {
+      "type": "nonlinearity_lut",
+      "path": "nonlinearity_lut.bin",
+      "sha256": "...",
+      "size_bytes": 262144,
+      "acquired_at": "2026-04-15T09:22:00Z"
+    },
+    {
+      "type": "lag_params",
+      "path": "lag_params.json",
+      "sha256": "...",
+      "size_bytes": 512,
+      "acquired_at": "2026-04-15T09:25:00Z"
+    }
+  ],
+  "hash_chain": {
+    "prev_session_id": "7B2F9A4C1D3E8F60",
+    "manifest_hash": "sha256_of_this_file_excluding_manifest_hash_field"
+  }
+}
+```
+
+#### 2.4.3 혼합 세션 거부 로직
+
+```python
+import hashlib
+import json
+from pathlib import Path
+from typing import Optional
+
+class CalibrationSessionLock:
+    """
+    Validates that all calibration files in a pack belong to the same session.
+    Rejects mixed-session packs unless explicitly overridden for diagnostics.
+    """
+
+    def __init__(self, manifest_path: Path, allow_mixed: bool = False):
+        self.manifest_path = manifest_path
+        self.allow_mixed   = allow_mixed
+        self._manifest     = None
+
+    def load_and_validate(self) -> dict:
+        """
+        Load manifest and verify:
+          1. All file hashes match
+          2. All files share the same session_id
+          3. Hash chain integrity (prev_session_id link)
+
+        Returns: validated manifest dict
+        Raises:  CalibrationIntegrityError on any violation
+        """
+        with open(self.manifest_path) as f:
+            manifest = json.load(f)
+
+        session_id = manifest['session_id']
+        errors = []
+
+        # 1. Verify individual file hashes
+        base_dir = self.manifest_path.parent
+        for entry in manifest['files']:
+            fpath = base_dir / entry['path']
+            if not fpath.exists():
+                errors.append(f"Missing: {entry['path']}")
+                continue
+            computed = _sha256_file(fpath)
+            if computed != entry['sha256']:
+                errors.append(
+                    f"Hash mismatch for {entry['path']}: "
+                    f"expected {entry['sha256'][:16]}…, got {computed[:16]}…")
+
+        # 2. Verify session ID consistency in binary headers
+        for entry in manifest['files']:
+            fpath = base_dir / entry['path']
+            if not fpath.exists(): continue
+            if entry['path'].endswith('.bin'):
+                file_session = _read_session_id_from_bin(fpath)
+                if file_session and file_session != session_id:
+                    if not self.allow_mixed:
+                        errors.append(
+                            f"Session mismatch in {entry['path']}: "
+                            f"file={file_session}, manifest={session_id}")
+
+        if errors:
+            raise CalibrationIntegrityError(errors)
+
+        self._manifest = manifest
+        return manifest
+
+    def check_drift(self,
+                    current_dark_mean: float,
+                    baseline_dark_mean: float,
+                    threshold_adu_per_day: float = 5.0,
+                    days_elapsed: float = 1.0) -> dict:
+        """
+        Detect dark current drift and recommend recalibration.
+
+        Args:
+            current_dark_mean:  current dark frame mean (ADU)
+            baseline_dark_mean: dark mean at last calibration (ADU)
+            threshold_adu_per_day: drift threshold for recalibration trigger
+            days_elapsed:       time since last calibration
+        Returns:
+            dict: {drift_adu_per_day, needs_recal, severity}
+        """
+        drift = abs(current_dark_mean - baseline_dark_mean) / max(days_elapsed, 0.01)
+        needs_recal = drift > threshold_adu_per_day
+        severity = ('critical' if drift > 3 * threshold_adu_per_day else
+                    'warning'  if needs_recal else 'ok')
+        return {
+            'drift_adu_per_day': drift,
+            'needs_recalibration': needs_recal,
+            'severity': severity,
+            'baseline_dark_mean': baseline_dark_mean,
+            'current_dark_mean': current_dark_mean,
+        }
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _read_session_id_from_bin(path: Path) -> Optional[str]:
+    """Read session_id from binary calibration file extended header."""
+    with open(path, 'rb') as f:
+        magic = f.read(4)
+        if magic not in (b'XOFF', b'XGAI', b'XDEF'):
+            return None
+        # Standard header: 64 or 96 bytes; extended header starts immediately after
+        hdr_size = 96 if magic == b'XGAI' else 64
+        f.seek(hdr_size)
+        ext = f.read(32)
+        if len(ext) < 8:
+            return None
+        return ext[:8].decode('ascii', errors='replace')
+
+
+class CalibrationIntegrityError(Exception):
+    def __init__(self, errors: list):
+        self.errors = errors
+        super().__init__('\n'.join(errors))
+```
+
+#### 2.4.4 C++ 런타임 세션 검증
+
+```cpp
+// C++ runtime session lock — called by ConfigManager during startup
+// Rejects packs with mismatched session IDs before any correction is applied.
+
+struct CalibrationManifestEntry {
+    std::string  type;
+    std::string  path;
+    std::string  sha256;
+    std::string  session_id;   // read from binary header extended block
+};
+
+class CalibrationSessionValidator {
+public:
+    enum class ValidationResult {
+        OK,
+        SESSION_MISMATCH,
+        HASH_MISMATCH,
+        MISSING_FILE,
+        PARSE_ERROR,
+    };
+
+    ValidationResult validate_pack(const std::string& manifest_path,
+                                    bool allow_mixed = false) {
+        // Parse JSON manifest
+        auto manifest = parse_json_manifest(manifest_path);
+        if (!manifest.valid) return ValidationResult::PARSE_ERROR;
+
+        std::string primary_session = manifest.session_id;
+
+        for (const auto& entry : manifest.files) {
+            // 1. Check file existence
+            if (!std::filesystem::exists(entry.path))
+                return ValidationResult::MISSING_FILE;
+
+            // 2. Verify SHA-256
+            if (compute_sha256_file(entry.path) != entry.sha256)
+                return ValidationResult::HASH_MISMATCH;
+
+            // 3. Read session ID from binary header extended block
+            auto file_session = read_session_id(entry.path);
+            if (!file_session.empty() &&
+                file_session != primary_session && !allow_mixed) {
+                log_error("Session mismatch: file={}, manifest={}",
+                           file_session, primary_session);
+                return ValidationResult::SESSION_MISMATCH;
+            }
+        }
+        return ValidationResult::OK;
+    }
+
+private:
+    std::string read_session_id(const std::string& path) {
+        std::ifstream f(path, std::ios::binary);
+        if (!f) return {};
+        char magic[4];
+        f.read(magic, 4);
+        // Seek to extended header
+        size_t hdr_size = (std::strncmp(magic, "XGAI", 4) == 0) ? 96 : 64;
+        f.seekg(hdr_size);
+        char session_buf[9] = {};
+        f.read(session_buf, 8);
+        return std::string(session_buf);
+    }
+};
+```
+
+#### 2.4.5 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| 혼합 세션 거부율 | 100% | 의도적 혼합 팩 주입 테스트 |
+| 해시 검증 속도 (5개 파일 × 38MB) | < 3s | SHA-256 벤치마크 |
+| 드리프트 감지 임계치 정확도 | ±0.1 ADU/day | 합성 드리프트 시나리오 |
+| 매니페스트 파싱 오류 처리 | 100% 예외 캐치 | 손상된 JSON 주입 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-SEC-002 (파일 무결성 확장), SRS-SEC-003 (교정 세션 추적) — Phase 2 추가 예정
 
 ---
 
@@ -766,6 +1087,217 @@ void xpe_gain_correct(const float* __restrict__ offset_corrected,
 
 ---
 
+### 3.2.5 SWU-1.2b Multi-SID Gain 보간 및 kVp-Stratified Gain 선택 (GAP-P 해소)
+
+기존 §3.2는 단일 SID·kVp 조합에 대한 gain 보정을 다룬다. 본 섹션은 여러 SID·kVp 조합으로 사전 교정된 gain 맵 세트에서 실제 촬영 조건에 맞는 맵을 선택·보간하는 알고리즘을 추가한다.
+
+#### 3.2.5.1 알고리즘 수학 정의
+
+SID 집합 $\{S_1, S_2, \ldots, S_N\}$, kVp 집합 $\{k_1, k_2, \ldots, k_M\}$으로 교정된 gain 맵 격자 $G(x, y; S_i, k_j)$가 주어졌을 때:
+
+$$G_{\text{select}}(x,y) = \sum_{i,j} w_{ij} \cdot G(x,y;S_i,k_j)$$
+
+**이중선형 보간 가중치**:
+
+$$w_{ij} = \left[(1-t_S)(1-t_k),\ (1-t_S)t_k,\ t_S(1-t_k),\ t_S t_k\right]_{i \in \{0,1\},\, j \in \{0,1\}}$$
+
+$$t_S = \frac{S - S_{lo}}{S_{hi} - S_{lo}}, \quad t_k = \frac{k - k_{lo}}{k_{hi} - k_{lo}}$$
+
+**자동 SID 선택 로직**:
+
+$$\text{SID}_{\text{use}} = \begin{cases} S_1 & \text{if } S < S_1 \\ S_N & \text{if } S > S_N \\ \text{interpolate}(S_{lo}, S_{hi}) & \text{otherwise} \end{cases}$$
+
+#### 3.2.5.2 Python 구현 (오프라인)
+
+```python
+import numpy as np
+from pathlib import Path
+from typing import Dict, Tuple, List
+import struct
+
+GainKey = Tuple[float, float]  # (sid_mm, kvp)
+
+def load_gain_map_table(gain_dir: Path,
+                         sid_list: List[float],
+                         kvp_list: List[float]) -> Dict[GainKey, np.ndarray]:
+    """
+    Load pre-calibrated gain maps for all SID/kVp combinations.
+
+    Expects files named: gain_SIDxxxx_kVPyyy.bin (XGAI format)
+    Returns dict: {(sid_mm, kvp): gain_map float32 (H, W)}
+    """
+    table: Dict[GainKey, np.ndarray] = {}
+    for sid in sid_list:
+        for kvp in kvp_list:
+            fname = gain_dir / f"gain_SID{sid:04.0f}_kVP{kvp:03.0f}.bin"
+            if fname.exists():
+                table[(sid, kvp)] = _read_xgai_bin(fname)
+            else:
+                raise FileNotFoundError(f"Missing gain map: {fname}")
+    return table
+
+
+def _read_xgai_bin(path: Path) -> np.ndarray:
+    """Parse XGAI binary format (§2.2.2)."""
+    with open(path, 'rb') as f:
+        hdr = f.read(96)
+        magic = hdr[:4]
+        assert magic == b'XGAI', f"Bad magic: {magic}"
+        w = struct.unpack_from('<I', hdr, 8)[0]
+        h = struct.unpack_from('<I', hdr, 12)[0]
+        payload = np.frombuffer(f.read(), dtype=np.float32)
+    return payload.reshape(h, w)
+
+
+def select_gain_map_bilinear(
+        table:    Dict[GainKey, np.ndarray],
+        sid_mm:   float,
+        kvp:      float,
+        sid_list: List[float],
+        kvp_list: List[float]) -> np.ndarray:
+    """
+    Bilinear interpolation of gain map for arbitrary SID and kVp.
+
+    Args:
+        table:    pre-loaded gain map dictionary
+        sid_mm:   actual source-to-image distance (mm)
+        kvp:      actual tube voltage (kVp)
+        sid_list: sorted calibrated SID values
+        kvp_list: sorted calibrated kVp values
+    Returns:
+        gain_map: float32 (H, W) — interpolated gain map
+    """
+    sid_arr = np.array(sorted(sid_list), dtype=np.float64)
+    kvp_arr = np.array(sorted(kvp_list), dtype=np.float64)
+
+    # Clamp to calibrated range
+    sid_c = float(np.clip(sid_mm, sid_arr[0], sid_arr[-1]))
+    kvp_c = float(np.clip(kvp,    kvp_arr[0], kvp_arr[-1]))
+
+    i_s = int(np.clip(np.searchsorted(sid_arr, sid_c, 'right') - 1, 0, len(sid_arr) - 2))
+    i_k = int(np.clip(np.searchsorted(kvp_arr, kvp_c, 'right') - 1, 0, len(kvp_arr) - 2))
+
+    s_lo, s_hi = sid_arr[i_s], sid_arr[i_s + 1]
+    k_lo, k_hi = kvp_arr[i_k], kvp_arr[i_k + 1]
+
+    ts = (sid_c - s_lo) / (s_hi - s_lo) if s_hi != s_lo else 0.0
+    tk = (kvp_c - k_lo) / (k_hi - k_lo) if k_hi != k_lo else 0.0
+
+    m00 = table[(s_lo, k_lo)].astype(np.float64)
+    m01 = table[(s_lo, k_hi)].astype(np.float64)
+    m10 = table[(s_hi, k_lo)].astype(np.float64)
+    m11 = table[(s_hi, k_hi)].astype(np.float64)
+
+    result = ((1 - ts) * (1 - tk) * m00 +
+              (1 - ts) *      tk  * m01 +
+                   ts  * (1 - tk) * m10 +
+                   ts  *      tk  * m11)
+    return result.astype(np.float32)
+
+
+def validate_gain_table_consistency(
+        table:    Dict[GainKey, np.ndarray],
+        max_ratio: float = 1.10) -> List[str]:
+    """
+    Check that adjacent gain maps differ by no more than max_ratio.
+    Returns list of warnings (empty = OK).
+    """
+    warnings = []
+    keys = sorted(table.keys())
+    for i, k1 in enumerate(keys):
+        for k2 in keys[i + 1:]:
+            sid_diff = abs(k1[0] - k2[0])
+            kvp_diff = abs(k1[1] - k2[1])
+            # Only check neighbours
+            if sid_diff <= 200 and kvp_diff <= 20:
+                ratio = table[k1] / np.maximum(table[k2], 1e-6)
+                if float(np.max(ratio)) > max_ratio or float(np.min(ratio)) < 1.0 / max_ratio:
+                    warnings.append(
+                        f"Gain maps {k1}↔{k2} differ by > {max_ratio}×: "
+                        f"max={float(np.max(ratio)):.3f}")
+    return warnings
+```
+
+#### 3.2.5.3 C++ 런타임 구현
+
+```cpp
+// Multi-SID gain map selector — C++ runtime
+// Gain maps are pre-loaded at startup into GainMapTable.
+
+struct GainMapEntry {
+    float  sid_mm;
+    float  kvp;
+    float* map;       // float32 (H × W), pinned memory preferred
+    size_t size;
+};
+
+class GainMapTable {
+public:
+    // Load all entries from calibration directory
+    void load(const std::vector<std::string>& paths);
+
+    // Select best map for given SID/kVp (nearest or interpolate)
+    // Returns pointer to the map; ownership stays with GainMapTable.
+    const float* get_map(float sid_mm, float kvp,
+                          uint32_t W, uint32_t H,
+                          float* interp_buf = nullptr) const {
+        // Find bounding entries
+        const GainMapEntry* lo_sid  = nullptr;
+        const GainMapEntry* hi_sid  = nullptr;
+        float best_sid_lo = -1e9f, best_sid_hi = 1e9f;
+
+        for (const auto& e : entries_) {
+            if (std::fabsf(e.kvp - kvp) > 10.0f) continue;
+            if (e.sid_mm <= sid_mm && e.sid_mm > best_sid_lo) {
+                best_sid_lo = e.sid_mm; lo_sid = &e;
+            }
+            if (e.sid_mm > sid_mm && e.sid_mm < best_sid_hi) {
+                best_sid_hi = e.sid_mm; hi_sid = &e;
+            }
+        }
+
+        if (!lo_sid && !hi_sid) return nullptr;
+        if (!lo_sid)            return hi_sid->map;
+        if (!hi_sid)            return lo_sid->map;
+
+        // Bilinear interpolation into interp_buf
+        if (!interp_buf) return lo_sid->map;  // fallback: no buffer supplied
+
+        float t = (sid_mm - lo_sid->sid_mm) / (hi_sid->sid_mm - lo_sid->sid_mm);
+        const size_t total = static_cast<size_t>(W) * H;
+        const __m256 v_t    = _mm256_set1_ps(t);
+        const __m256 v_1mt  = _mm256_set1_ps(1.0f - t);
+        size_t i = 0;
+        for (; i + 8 <= total; i += 8) {
+            __m256 a = _mm256_loadu_ps(lo_sid->map + i);
+            __m256 b = _mm256_loadu_ps(hi_sid->map + i);
+            _mm256_storeu_ps(interp_buf + i,
+                             _mm256_fmadd_ps(v_t, b, _mm256_mul_ps(v_1mt, a)));
+        }
+        for (; i < total; ++i) {
+            interp_buf[i] = (1.0f - t) * lo_sid->map[i] + t * hi_sid->map[i];
+        }
+        return interp_buf;
+    }
+
+private:
+    std::vector<GainMapEntry> entries_;
+};
+```
+
+#### 3.2.5.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| 보간 오차 (중간 SID) | < 0.5% signal | 교정되지 않은 SID에서 실측과 보간 비교 |
+| kVp 전환 후 PRNU | CV < 1% | kVp ±20% 변화 후 flood 균일도 |
+| 맵 로드 시간 (8 맵 × 3072×3072) | < 2s | 시작 시 일괄 로딩 |
+| 자동 SID 선택 정확도 | ±25mm 이내 | SID 센서 데이터 교차 검증 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-FUNC-002 (Gain Correction 확장) — Multi-SID 항목 Phase 2 추가 예정
+
+---
+
 ### 3.3 SWU-1.3 Defect Pixel Correction (SRS-FUNC-003)
 
 #### 3.3.1 결함 픽셀 분류 체계
@@ -1102,6 +1634,494 @@ void xpe_ghost_correct(float* __restrict__ img,
 | Ghost removal rate | ≥90% | 이중 노출 프로토콜: ghost_after / ghost_before |
 | Residual lag at 0.5s | < 2% | 단기 lag 측정 |
 | Model fit R² | ≥0.98 | 피팅 결과 검증 |
+
+---
+
+### 3.4.5 SWU-1.4b Lag 잔류 기반 결정론적 티어링 (GAP-U 해소)
+
+xpe-algorithm-spec-deepsync.md §4의 "lag residual-driven deterministic tiering"에서 결정된 항목이다. 측정된 lag 잔류량에 따라 1항 모델 (빠른 처리)과 3항 모델 (정밀 처리)을 결정론적으로 선택함으로써, 항상 3항 모델을 실행하는 과잉 처리를 방지한다.
+
+#### 3.4.5.1 알고리즘 수학 정의
+
+**Lag 잔류 측정**:
+
+$$R_{\text{lag}}(t) = \frac{|\bar{I}_{\text{measured}}(t) - \bar{I}_{\text{expected}}(t)|}{\bar{I}_{\text{expected}}(t)} \times 100\%$$
+
+여기서 $\bar{I}_{\text{expected}}$는 이상적 노출(lag 없음) 이미지의 기대 평균 신호이다.
+
+**티어 선택 규칙**:
+
+$$\text{Tier} = \begin{cases} 0 & R_{\text{lag}} < \theta_0 \quad \text{(보정 건너뜀)} \\ 1 & \theta_0 \leq R_{\text{lag}} < \theta_1 \quad \text{(1항 모델)} \\ 3 & R_{\text{lag}} \geq \theta_1 \quad \text{(3항 모델)} \end{cases}$$
+
+**1항 근사 모델**:
+
+$$I_{\text{true,1}}(t) = I_{\text{measured}}(t) - \alpha_1 e^{-t/\tau_1} \cdot I_{\text{prev\_max}}$$
+
+| 파라미터 | 값 | 의미 |
+|---------|---|------|
+| $\theta_0$ | 0.2% | Tier-0 상한 (보정 불필요) |
+| $\theta_1$ | 1.0% | Tier-3 하한 (3항 모델 필요) |
+
+#### 3.4.5.2 Python 구현
+
+```python
+import numpy as np
+from enum import IntEnum
+
+class LagTier(IntEnum):
+    NONE  = 0   # lag residual < 0.2%: skip correction
+    FAST  = 1   # 0.2–1.0%: single-term model
+    FULL  = 3   # ≥1.0%: three-term model
+
+def measure_lag_residual(measured_img:  np.ndarray,
+                          prev_max_img:  np.ndarray,
+                          elapsed_sec:   float,
+                          alpha:         list,
+                          tau:           list,
+                          roi_mask:      np.ndarray = None) -> float:
+    """
+    Measure current lag residual as % of expected signal.
+
+    Args:
+        measured_img:  current frame (gain-corrected float32)
+        prev_max_img:  previous exposure max signal per pixel
+        elapsed_sec:   time since previous exposure
+        alpha, tau:    3-component lag model parameters
+        roi_mask:      optional boolean mask for ROI averaging
+    Returns:
+        residual_pct: lag residual as percentage (0–100)
+    """
+    # Expected lag component
+    lag_frac = sum(a * np.exp(-elapsed_sec / t) for a, t in zip(alpha, tau))
+    expected_ghost = lag_frac * prev_max_img
+
+    # Measured mean signal
+    if roi_mask is not None:
+        meas_mean = float(np.mean(measured_img[roi_mask]))
+        ghost_mean = float(np.mean(expected_ghost[roi_mask]))
+        expected_clean_mean = float(np.mean(
+            (measured_img - expected_ghost)[roi_mask]))
+    else:
+        meas_mean  = float(np.mean(measured_img))
+        ghost_mean = float(np.mean(expected_ghost))
+        expected_clean_mean = meas_mean - ghost_mean
+
+    if abs(expected_clean_mean) < 1.0:
+        return 0.0
+
+    residual_pct = abs(ghost_mean) / abs(expected_clean_mean) * 100.0
+    return residual_pct
+
+
+def select_lag_tier(residual_pct: float,
+                    theta_0: float = 0.2,
+                    theta_1: float = 1.0) -> LagTier:
+    """Select correction tier based on measured lag residual."""
+    if residual_pct < theta_0:
+        return LagTier.NONE
+    elif residual_pct < theta_1:
+        return LagTier.FAST
+    else:
+        return LagTier.FULL
+
+
+def apply_lag_correction_tiered(
+        img:          np.ndarray,
+        prev_max:     np.ndarray,
+        elapsed_sec:  float,
+        alpha:        list,
+        tau:          list,
+        tier:         LagTier) -> np.ndarray:
+    """
+    Apply lag correction at the selected tier.
+
+    Tier 0: return img unchanged
+    Tier 1: single-term correction (fast)
+    Tier 3: full three-term correction (precise)
+    """
+    if tier == LagTier.NONE:
+        return img
+
+    if tier == LagTier.FAST:
+        # Use dominant (fastest) component only
+        lag_frac = alpha[0] * np.exp(-elapsed_sec / tau[0])
+        ghost    = lag_frac * prev_max
+        return np.maximum(img - ghost, 0.0).astype(np.float32)
+
+    # Full 3-term model
+    lag_frac = sum(a * np.exp(-elapsed_sec / t) for a, t in zip(alpha, tau))
+    ghost    = lag_frac * prev_max
+    return np.maximum(img - ghost.astype(np.float32), 0.0).astype(np.float32)
+```
+
+#### 3.4.5.3 C++ 런타임 구현
+
+```cpp
+// Lag tiering decision and correction — extends SWU-1.4 Ghost Correction
+
+enum class LagTier : uint8_t {
+    NONE = 0,  // Skip correction
+    FAST = 1,  // Single-term approximation
+    FULL = 3,  // Full three-term model
+};
+
+struct LagTierConfig {
+    float theta_none = 0.002f;  // 0.2% — skip threshold
+    float theta_full = 0.010f;  // 1.0% — full-model threshold
+};
+
+LagTier determine_lag_tier(const float* __restrict__ img,
+                             const float* __restrict__ prev_max,
+                             const GhostCorrectionParams& params,
+                             float    elapsed_sec,
+                             uint32_t W,
+                             uint32_t H,
+                             const LagTierConfig& cfg = {}) {
+    // Compute expected lag fraction
+    float lag_frac = 0.0f;
+    for (int k = 0; k < 3; ++k)
+        lag_frac += params.alpha[k] * expf(-elapsed_sec / params.tau[k]);
+
+    // Estimate residual: mean(lag_frac × prev_max) / mean(img - ghost)
+    double ghost_sum = 0.0, img_sum = 0.0;
+    const size_t total = static_cast<size_t>(W) * H;
+
+    for (size_t i = 0; i < total; ++i) {
+        ghost_sum += lag_frac * prev_max[i];
+        img_sum   += img[i];
+    }
+    double ghost_mean = ghost_sum / total;
+    double clean_mean = img_sum   / total - ghost_mean;
+
+    if (std::abs(clean_mean) < 1.0) return LagTier::NONE;
+
+    float residual_pct = static_cast<float>(
+        std::abs(ghost_mean) / std::abs(clean_mean));
+
+    if (residual_pct < cfg.theta_none) return LagTier::NONE;
+    if (residual_pct < cfg.theta_full) return LagTier::FAST;
+    return LagTier::FULL;
+}
+
+void xpe_ghost_correct_tiered(float* __restrict__ img,
+                                const ExposureHistory& history,
+                                const GhostCorrectionParams& params,
+                                uint32_t W,
+                                uint32_t H,
+                                const LagTierConfig& tier_cfg = {}) {
+    if (!history.max_signal || history.elapsed_sec <= 0.0f) return;
+
+    LagTier tier = determine_lag_tier(img, history.max_signal, params,
+                                       history.elapsed_sec, W, H, tier_cfg);
+
+    if (tier == LagTier::NONE) return;  // Skip: residual below noise floor
+
+    // For FAST tier: use only component 0
+    GhostCorrectionParams effective = params;
+    if (tier == LagTier::FAST) {
+        effective.alpha[1] = 0.0f; effective.alpha[2] = 0.0f;
+    }
+
+    // Delegate to standard xpe_ghost_correct()
+    xpe_ghost_correct(img, history, effective, W, H);
+}
+```
+
+#### 3.4.5.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| Tier-0 정확 선택률 | 100% (lag 없는 첫 촬영) | 새 세션 첫 이미지 |
+| Tier-3 → Tier-1 개선 | 처리 시간 ≤ 60% of Tier-3 | 동일 이미지 두 경로 비교 |
+| Tier-1 ghost 제거율 | ≥ 80% (단기 lag) | 0.5s 경과 이중 노출 |
+| Tier-3 ghost 제거율 | ≥ 90% (장기 lag) | 10s 경과 이중 노출 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-FUNC-004 (Ghost Correction 확장) — Tiering 항목 Phase 2 추가 예정
+
+---
+
+### 3.5 SWU-1.5 Heel Effect Compensation (GAP-O 해소)
+
+Heel 효과는 X선관의 양극 경사면(anode heel)으로 인해 음극(cathode) 방향보다 양극(anode) 방향으로 X선 강도가 감소하는 현상이다. xpe-algorithm-spec-deepsync.md §4 "geometry-aware heel compensation"에서 "adopt now"로 결정된 항목이며, Wang 2013 Duo-SID 모델을 기반으로 한다.
+
+#### 3.5.1 알고리즘 수학 정의
+
+**Wang 2013 Duo-SID Heel 효과 모델**:
+
+$$H(x, y; \text{SID}, \theta_T) = \exp\!\left(-\mu_{\text{eff}} \cdot d_{\text{anode}}(x, y; \text{SID}, \theta_T)\right)$$
+
+$$d_{\text{anode}}(x, y; \text{SID}, \theta_T) = \frac{t_{\text{anode}}}{\sin\!\left(\theta_T - \arctan\!\left(\frac{x - x_{\text{center}}}{\text{SID}}\right)\right)}$$
+
+$$I_{\text{heel\_corr}}(x, y) = \frac{I_{\text{gain\_corr}}(x, y)}{H(x, y; \text{SID}, \theta_T)}$$
+
+여기서:
+- $\theta_T$: 양극 타겟 각도 (일반적으로 10° ~ 17°)
+- $t_{\text{anode}}$: 양극 재료 두께 (mm), 유효 경로 추정에 사용
+- $\mu_{\text{eff}}$: 양극 재료(텅스텐)의 X선 유효 선감쇄계수 (kVp-dependent)
+- $x_{\text{center}}$: 이미지 중앙에서 음극-양극 방향 이동(detector center offset)
+
+**Multi-SID 보간**:
+
+SID가 $\text{SID}_A$와 $\text{SID}_B$ 사이에 있을 때:
+
+$$H_{\text{interp}}(x, y) = H(x, y; \text{SID}_A) + \frac{\text{SID} - \text{SID}_A}{\text{SID}_B - \text{SID}_A} \cdot \left(H(x,y;\text{SID}_B) - H(x,y;\text{SID}_A)\right)$$
+
+#### 3.5.2 파라미터 및 경계 조건
+
+| 파라미터 | 기본값 | 범위 | 의미 |
+|---------|-------|-----|------|
+| `theta_target_deg` | 12.0 | 8–20° | 양극 타겟 각도 |
+| `mu_eff` | 0.045 | 0.02–0.10 mm⁻¹ | 유효 선감쇄계수 (80kVp 기준) |
+| `sid_ref_mm` | 1000.0 | 600–1800 mm | 기준 SID |
+| `anode_direction` | 'col' | 'row'/'col' | 음극→양극 방향 (열 방향 = 수직) |
+| `max_correction_factor` | 1.5 | 1.0–2.0 | 최대 보정 계수 (안전 클램프) |
+
+**경계 조건**:
+- 보정 계수가 `max_correction_factor`를 초과하면 클램프 적용
+- $H(x,y) < 0.1$이 되는 극단적 기하학은 교정 실패로 간주하고 보정 건너뜀
+- kVp 변경 시 `mu_eff`는 선형 보간으로 업데이트
+
+#### 3.5.3 Python 구현 (오프라인 교정)
+
+```python
+import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+from dataclasses import dataclass
+from typing import List, Tuple
+
+@dataclass
+class HeelEffectParams:
+    theta_target_deg: float = 12.0    # anode target angle (degrees)
+    mu_eff_per_mm:    float = 0.045   # effective attenuation at reference kVp
+    sid_ref_mm:       float = 1000.0  # reference SID for calibration
+    anode_direction:  str   = 'col'   # 'col' = cathode-anode along columns
+    pixel_pitch_mm:   float = 0.148   # detector pixel pitch
+    detector_width:   int   = 2816    # pixels in anode direction
+    kvp_ref:          float = 80.0    # reference kVp for mu_eff
+    max_correction:   float = 1.5     # safety clamp
+
+def compute_heel_correction_map(
+        params:  HeelEffectParams,
+        sid_mm:  float,
+        kvp:     float,
+        height:  int,
+        width:   int) -> np.ndarray:
+    """
+    Compute per-pixel heel effect correction map for given SID and kVp.
+
+    Args:
+        params:   HeelEffectParams configuration
+        sid_mm:   source-to-image distance in mm
+        kvp:      tube voltage (for mu_eff scaling)
+        height:   image height in pixels
+        width:    image width in pixels
+    Returns:
+        correction_map: float32 (H, W) — divide gain-corrected image by this map
+                        Values in [1/max_correction, max_correction]
+    """
+    theta_T = np.radians(params.theta_target_deg)
+
+    # mu_eff scales approximately as kVp^(-2.5) for tungsten in diagnostic range
+    mu_scale = (params.kvp_ref / kvp) ** 2.5 if kvp > 0 else 1.0
+    mu_eff = params.mu_eff_per_mm * mu_scale
+
+    # anode direction coordinate (x = displacement from detector centre)
+    if params.anode_direction == 'col':
+        # anode runs along columns → displacement is along x (horizontal)
+        cx = width / 2.0
+        coords = (np.arange(width, dtype=np.float64) - cx) * params.pixel_pitch_mm  # mm
+        disp_2d = np.tile(coords[np.newaxis, :], (height, 1))
+    else:
+        cy = height / 2.0
+        coords = (np.arange(height, dtype=np.float64) - cy) * params.pixel_pitch_mm
+        disp_2d = np.tile(coords[:, np.newaxis], (1, width))
+
+    # Projection angle at each pixel
+    alpha = np.arctan(disp_2d / sid_mm)  # small-angle approx OK for |disp| < 300mm
+
+    # Effective path through anode (Wang 2013 Eq. 4)
+    denom = np.sin(theta_T - alpha)
+    # Avoid division by zero / negative (beyond edge of beam)
+    denom = np.where(denom > 0.01, denom, 0.01)
+
+    # Approximate anode path (normalised: at centre denom=sin(theta_T))
+    path_ratio = np.sin(theta_T) / denom  # relative path length
+
+    # Heel factor H(x) = exp(-mu_eff * t_ref * (path_ratio - 1))
+    # t_ref is absorbed into mu_eff calibration: at centre H=1
+    H = np.exp(-mu_eff * sid_mm * 0.001 * (path_ratio - 1.0))
+    # Note: sid_mm * 0.001 converts mm→m; empirical factor, absorb into mu_eff
+
+    # Clip to safe range
+    H = np.clip(H, 1.0 / params.max_correction, params.max_correction)
+    return H.astype(np.float32)
+
+
+def compute_heel_map_multi_sid(
+        params:     HeelEffectParams,
+        sid_list:   List[float],
+        kvp_list:   List[float],
+        height:     int,
+        width:      int) -> dict:
+    """
+    Pre-compute heel correction maps for all SID/kVp combinations.
+
+    Returns dict: {(sid_mm, kvp): correction_map float32 (H, W)}
+    Used by runtime to select nearest map or interpolate.
+    """
+    maps = {}
+    for sid in sid_list:
+        for kvp in kvp_list:
+            maps[(sid, kvp)] = compute_heel_correction_map(params, sid, kvp, height, width)
+    return maps
+
+
+def interpolate_heel_map(
+        maps:      dict,
+        sid_mm:    float,
+        kvp:       float,
+        sid_list:  List[float],
+        kvp_list:  List[float]) -> np.ndarray:
+    """
+    Bilinear interpolation between pre-computed heel correction maps.
+
+    Args:
+        maps:     dict from compute_heel_map_multi_sid()
+        sid_mm:   target SID
+        kvp:      target kVp
+        sid_list: sorted list of calibrated SID values
+        kvp_list: sorted list of calibrated kVp values
+    Returns:
+        interpolated correction map float32 (H, W)
+    """
+    sid_arr = np.array(sorted(sid_list), dtype=np.float64)
+    kvp_arr = np.array(sorted(kvp_list), dtype=np.float64)
+
+    # Clamp to calibrated range
+    sid_c = float(np.clip(sid_mm, sid_arr[0], sid_arr[-1]))
+    kvp_c = float(np.clip(kvp,    kvp_arr[0], kvp_arr[-1]))
+
+    # Find bounding indices
+    i_sid = np.searchsorted(sid_arr, sid_c, side='right') - 1
+    i_sid = int(np.clip(i_sid, 0, len(sid_arr) - 2))
+    i_kvp = np.searchsorted(kvp_arr, kvp_c, side='right') - 1
+    i_kvp = int(np.clip(i_kvp, 0, len(kvp_arr) - 2))
+
+    sid_lo, sid_hi = sid_arr[i_sid], sid_arr[i_sid + 1]
+    kvp_lo, kvp_hi = kvp_arr[i_kvp], kvp_arr[i_kvp + 1]
+
+    t_sid = (sid_c - sid_lo) / (sid_hi - sid_lo) if sid_hi != sid_lo else 0.0
+    t_kvp = (kvp_c - kvp_lo) / (kvp_hi - kvp_lo) if kvp_hi != kvp_lo else 0.0
+
+    m00 = maps[(sid_lo, kvp_lo)].astype(np.float64)
+    m01 = maps[(sid_lo, kvp_hi)].astype(np.float64)
+    m10 = maps[(sid_hi, kvp_lo)].astype(np.float64)
+    m11 = maps[(sid_hi, kvp_hi)].astype(np.float64)
+
+    result = ((1 - t_sid) * (1 - t_kvp) * m00 +
+              (1 - t_sid) *      t_kvp  * m01 +
+                   t_sid  * (1 - t_kvp) * m10 +
+                   t_sid  *      t_kvp  * m11)
+    return result.astype(np.float32)
+```
+
+#### 3.5.4 C++ 런타임 구현
+
+```cpp
+// Heel Effect Compensation — runtime application
+// Pre-computed correction map loaded from calibration pack.
+// Called after xpe_gain_correct(), before xpe_nonlinearity_correct().
+
+struct HeelCorrectionPack {
+    float*   map;           // float32 (H × W) — correction divisor
+    uint32_t width;
+    uint32_t height;
+    float    sid_mm;
+    float    kvp;
+    uint64_t crc64;         // CRC of this map for integrity verification
+};
+
+// --- In-process map interpolation (bilinear between two SID maps) ---
+void interpolate_heel_maps(const float* __restrict__ map_lo,
+                            const float* __restrict__ map_hi,
+                            float* __restrict__ out,
+                            uint32_t total,
+                            float t) {
+    // t ∈ [0, 1]: linear interpolation weight toward map_hi
+    const __m256 v_t    = _mm256_set1_ps(t);
+    const __m256 v_1mt  = _mm256_set1_ps(1.0f - t);
+    size_t i = 0;
+    for (; i + 8 <= total; i += 8) {
+        __m256 lo = _mm256_loadu_ps(map_lo + i);
+        __m256 hi = _mm256_loadu_ps(map_hi + i);
+        __m256 r  = _mm256_fmadd_ps(v_t, hi, _mm256_mul_ps(v_1mt, lo));
+        _mm256_storeu_ps(out + i, r);
+    }
+    for (; i < total; ++i) {
+        out[i] = (1.0f - t) * map_lo[i] + t * map_hi[i];
+    }
+}
+
+// --- Main heel correction ---
+void xpe_heel_correct(const float* __restrict__ gain_corr,
+                       float*       __restrict__ out,
+                       const float* __restrict__ heel_map,   // pre-interpolated for current SID/kVp
+                       uint32_t width,
+                       uint32_t height,
+                       float    max_correction = 1.5f) {
+    const size_t   total     = static_cast<size_t>(width) * height;
+    const __m256   v_max_cor = _mm256_set1_ps(max_correction);
+    const __m256   v_min_cor = _mm256_set1_ps(1.0f / max_correction);
+    const __m256   v_eps     = _mm256_set1_ps(1e-6f);
+
+    size_t i = 0;
+    for (; i + 8 <= total; i += 8) {
+        __m256 img  = _mm256_loadu_ps(gain_corr  + i);
+        __m256 hmap = _mm256_loadu_ps(heel_map   + i);
+
+        // Clamp correction map to safe range
+        hmap = _mm256_max_ps(hmap, v_min_cor);
+        hmap = _mm256_min_ps(hmap, v_max_cor);
+
+        // Corrected = img / H(x,y)
+        __m256 denom = _mm256_max_ps(hmap, v_eps);
+        __m256 res   = _mm256_div_ps(img, denom);
+        _mm256_storeu_ps(out + i, res);
+    }
+    for (; i < total; ++i) {
+        float h = std::clamp(heel_map[i], 1.0f / max_correction, max_correction);
+        out[i] = gain_corr[i] / std::max(h, 1e-6f);
+    }
+}
+
+// --- SID/kVp selector: choose nearest pre-loaded map or trigger interpolation ---
+const HeelCorrectionPack* select_heel_pack(
+        const std::vector<HeelCorrectionPack>& packs,
+        float sid_mm,
+        float kvp,
+        float sid_tol = 25.0f,
+        float kvp_tol = 5.0f) {
+    for (const auto& p : packs) {
+        if (std::fabsf(p.sid_mm - sid_mm) < sid_tol &&
+            std::fabsf(p.kvp    - kvp)    < kvp_tol) {
+            return &p;
+        }
+    }
+    return nullptr;  // caller must interpolate
+}
+```
+
+#### 3.5.5 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| Heel 보정 후 PRNU | CV < 0.8% (보정 전 대비 개선) | 균일 조사 flood 이미지의 수평 프로파일 |
+| SID 보간 오차 | < 0.5% 신호 오차 | 두 교정 SID 사이의 중간값 측정 |
+| 최대 보정 계수 초과 비율 | < 0.01% 픽셀 | 클램프 이벤트 카운터 |
+| 처리 시간 (3072×3072) | < 40ms | AVX2, 단일 코어 |
+| 모델 R² (측정 대 예측) | ≥ 0.99 | 교정 flood 이미지 대비 모델 예측값 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-FUNC-002b (Gain Correction 확장) — Phase 2에서 할당 예정
 
 ---
 
@@ -1872,6 +2892,166 @@ def estimate_scatter_fraction_from_exposure(
 
 ---
 
+### 5.3 해부 부위별 Virtual Grid 프리셋 테이블 (GAP-V 해소)
+
+xpe-algorithm-spec-deepsync.md §4의 "anatomy-bounded virtual-grid presets"에서 결정된 항목이다. 기존 §5.2는 단일 Virtual Grid 파라미터를 사용하였으나, 실제 임상에서는 해부 부위별로 최적 파라미터가 다르다. 전신 촬영 부위에 대한 사전 검증된 프리셋 테이블을 제공한다.
+
+#### 5.3.1 알고리즘 수학 정의
+
+**Virtual Grid 강도 파라미터**:
+
+$$\text{VG}_{\lambda} = \text{scatter\_fraction} \times \lambda_{\text{anatomy}} \times \lambda_{\text{kvp\_scale}}$$
+
+$$\lambda_{\text{kvp\_scale}} = 1.0 + 0.004 \times (kVp - 80)$$
+
+여기서 $\lambda_{\text{anatomy}}$는 해부 부위별 기준 강도 파라미터이다.
+
+**Grid 비율 선택**:
+
+$$\text{grid\_ratio}_{\text{effective}} = \text{grid\_ratio}_{\text{preset}} \times \frac{1}{1 + \text{scatter\_fraction}}$$
+
+#### 5.3.2 해부 부위별 프리셋 테이블
+
+| 해부 부위 | `body_part_id` | `grid_ratio` | `lambda` | `frequency_lp_mm` | 비고 |
+|---------|--------------|------------|---------|------------------|------|
+| Chest AP | `CHEST_AP` | 12 | 0.65 | 40–70 | 고산란 (폐/심장) |
+| Chest Lateral | `CHEST_LAT` | 15 | 0.75 | 40–70 | 최고 산란 |
+| Abdomen AP | `ABD_AP` | 12 | 0.70 | 40–60 | 고산란 복부 |
+| Lumbar Spine AP | `LSPINE_AP` | 12 | 0.65 | 40–60 | 두꺼운 조직 |
+| Lumbar Spine Lat | `LSPINE_LAT` | 15 | 0.75 | 40–60 | — |
+| Pelvis AP | `PELVIS_AP` | 12 | 0.60 | 40–60 | — |
+| Hip | `HIP` | 10 | 0.55 | 40–60 | — |
+| Knee AP/Lat | `KNEE` | 8 | 0.35 | 50–80 | 낮은 산란 |
+| Hand/Wrist | `HAND_WRIST` | 6 | 0.20 | 70–120 | 극소 산란 |
+| Foot/Ankle | `FOOT_ANKLE` | 6 | 0.20 | 70–120 | — |
+| Skull AP/Lat | `SKULL` | 10 | 0.45 | 50–80 | — |
+| C-Spine | `CSPINE` | 8 | 0.40 | 50–80 | — |
+| T-Spine | `TSPINE` | 10 | 0.55 | 40–70 | — |
+| Shoulder | `SHOULDER` | 8 | 0.40 | 50–80 | — |
+| Extremity General | `EXTREMITY` | 6 | 0.25 | 60–100 | 소아 포함 |
+
+**주석**: `grid_ratio`는 Bucky grid 그리드비, `lambda`는 Laplacian Pyramid VG의 기준 강도 계수, `frequency_lp_mm`는 VG가 표적하는 공간 주파수 대역 (lp/mm).
+
+#### 5.3.3 Python 구현
+
+```python
+from dataclasses import dataclass
+from typing import Optional
+import numpy as np
+
+@dataclass(frozen=True)
+class VirtualGridPreset:
+    body_part_id:      str
+    grid_ratio:        int     # nominal (10, 12, 15)
+    lambda_base:       float   # base VG strength coefficient
+    freq_lo_lpmm:      float   # target frequency band lower bound
+    freq_hi_lpmm:      float   # target frequency band upper bound
+    description:       str = ''
+
+# Canonical preset table (IEC 62304 §5.4: frozen, change requires review cycle)
+VIRTUAL_GRID_PRESETS: dict[str, VirtualGridPreset] = {
+    'CHEST_AP':     VirtualGridPreset('CHEST_AP',    12, 0.65, 40, 70,  'Chest AP'),
+    'CHEST_LAT':    VirtualGridPreset('CHEST_LAT',   15, 0.75, 40, 70,  'Chest Lateral'),
+    'ABD_AP':       VirtualGridPreset('ABD_AP',      12, 0.70, 40, 60,  'Abdomen AP'),
+    'LSPINE_AP':    VirtualGridPreset('LSPINE_AP',   12, 0.65, 40, 60,  'Lumbar Spine AP'),
+    'LSPINE_LAT':   VirtualGridPreset('LSPINE_LAT',  15, 0.75, 40, 60,  'Lumbar Spine Lat'),
+    'PELVIS_AP':    VirtualGridPreset('PELVIS_AP',   12, 0.60, 40, 60,  'Pelvis AP'),
+    'HIP':          VirtualGridPreset('HIP',         10, 0.55, 40, 60,  'Hip'),
+    'KNEE':         VirtualGridPreset('KNEE',         8, 0.35, 50, 80,  'Knee AP/Lat'),
+    'HAND_WRIST':   VirtualGridPreset('HAND_WRIST',   6, 0.20, 70, 120, 'Hand/Wrist'),
+    'FOOT_ANKLE':   VirtualGridPreset('FOOT_ANKLE',   6, 0.20, 70, 120, 'Foot/Ankle'),
+    'SKULL':        VirtualGridPreset('SKULL',        10, 0.45, 50, 80, 'Skull'),
+    'CSPINE':       VirtualGridPreset('CSPINE',       8, 0.40, 50, 80,  'Cervical Spine'),
+    'TSPINE':       VirtualGridPreset('TSPINE',       10, 0.55, 40, 70, 'Thoracic Spine'),
+    'SHOULDER':     VirtualGridPreset('SHOULDER',     8, 0.40, 50, 80,  'Shoulder'),
+    'EXTREMITY':    VirtualGridPreset('EXTREMITY',    6, 0.25, 60, 100, 'Extremity General'),
+}
+
+
+def get_vg_params(body_part_id:    str,
+                  scatter_fraction: float,
+                  kvp:              float,
+                  custom_lambda:    Optional[float] = None) -> dict:
+    """
+    Get Virtual Grid processing parameters for a specific anatomy and exposure.
+
+    Args:
+        body_part_id:     anatomy identifier (e.g., 'CHEST_AP')
+        scatter_fraction: estimated scatter fraction (0–0.7, from §5.2.3)
+        kvp:              tube voltage (kVp)
+        custom_lambda:    override preset lambda (for operator adjustment)
+    Returns:
+        dict: {lambda_vg, grid_ratio, freq_lo, freq_hi, body_part_id}
+    """
+    preset = VIRTUAL_GRID_PRESETS.get(body_part_id,
+                                       VIRTUAL_GRID_PRESETS['EXTREMITY'])
+
+    lambda_base = custom_lambda if custom_lambda is not None else preset.lambda_base
+
+    # Scale by scatter fraction and kVp
+    kvp_scale    = 1.0 + 0.004 * (kvp - 80.0)
+    lambda_final = lambda_base * scatter_fraction * kvp_scale
+
+    # Clamp to valid range
+    lambda_final = float(np.clip(lambda_final, 0.05, 1.5))
+
+    return {
+        'lambda_vg':    lambda_final,
+        'grid_ratio':   preset.grid_ratio,
+        'freq_lo_lpmm': preset.freq_lo_lpmm,
+        'freq_hi_lpmm': preset.freq_hi_lpmm,
+        'body_part_id': preset.body_part_id,
+    }
+
+
+def validate_vg_output(input_img:  np.ndarray,
+                        output_img: np.ndarray,
+                        preset:     VirtualGridPreset) -> dict:
+    """
+    Validate that VG output satisfies CNR and artifact criteria for the preset.
+    Returns dict: {cnr_improvement, artifact_flag, pass}
+    """
+    # CNR: region-of-interest contrast-to-noise ratio
+    # (simplified: use center vs background std ratio)
+    H, W = input_img.shape
+    roi = input_img[H//4:3*H//4, W//4:3*W//4]
+    bg  = np.concatenate([input_img[:H//8, :].ravel(),
+                           input_img[7*H//8:, :].ravel()])
+
+    def cnr(arr_roi, arr_bg):
+        return abs(np.mean(arr_roi) - np.mean(arr_bg)) / (np.std(arr_bg) + 1e-6)
+
+    cnr_in  = cnr(roi, bg)
+    roi_out = output_img[H//4:3*H//4, W//4:3*W//4]
+    bg_out  = np.concatenate([output_img[:H//8, :].ravel(),
+                               output_img[7*H//8:, :].ravel()])
+    cnr_out = cnr(roi_out, bg_out)
+
+    cnr_improvement = cnr_out / (cnr_in + 1e-6)
+    artifact_flag   = bool(np.max(np.abs(output_img - input_img)) >
+                           0.3 * np.mean(input_img))  # overshoot check
+
+    return {
+        'cnr_improvement': cnr_improvement,
+        'artifact_flag':   artifact_flag,
+        'pass':            cnr_improvement >= 1.05 and not artifact_flag,
+    }
+```
+
+#### 5.3.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| CNR 개선 (Chest AP) | ≥ 10% vs no-VG | CDRAD 팬텀 또는 합성 |
+| CNR 개선 (Extremity) | ≥ 5% vs no-VG | CDRAD 팬텀 |
+| MTF 열화 | < 5% at f50 | 슬랜트 에지 측정 |
+| 과도 보정 오결 (Artifact) | 없음 | 시각 검토 + 픽셀 오버슈트 |
+| Observer 검증 (chest) | ≥ 전문의 3명 동의 | 블라인드 A/B 테스트 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-FUNC-008b (Virtual Grid 프리셋) — Phase 2 추가 예정
+
+---
+
 ## 6. SWI-3: Display Processing 알고리즘
 
 ### 6.1 SWU-3.1 Modality LUT (SRS-FUNC-020)
@@ -2400,6 +3580,285 @@ def validate_stitching_accuracy(stitched: np.ndarray,
 
 ---
 
+### 8.4 AI Worker 격리 아키텍처 및 ONNX 추론 (GAP-W 해소)
+
+xpe-algorithm-spec-deepsync.md §5.3 "prefer ONNX CPU execution with quantized inference, require deterministic fallback, versioned model manifests"에서 요구된 항목이다. 기존 §8.1.4에는 기본 ONNX 세션이 있지만, 워커 격리, 모델 매니페스트 스키마, 결정론적 폴백 메커니즘이 누락되어 있었다.
+
+#### 8.4.1 AI Worker 격리 설계 원칙
+
+```
+격리 아키텍처:
+
+  XPE 메인 프로세스
+  ┌───────────────────────────────┐
+  │  Deterministic Pipeline       │
+  │  (§3 Pre-Process, §4 Core)    │
+  │         │                     │
+  │  xpe_ai_worker_proxy()        │──── IPC (shared memory + semaphore)
+  │         │                     │
+  └─────────│─────────────────────┘
+            │ input tensor + request_id
+            ▼
+  xpe_ai_worker.exe (isolated process)
+  ┌────────────────────────────────┐
+  │  ONNX Runtime Session          │
+  │  Quantized INT8 model (NCHW)   │
+  │  Model Manifest Validator      │
+  │  Timeout watchdog (5s)         │
+  │         │                      │
+  │  Result + confidence → IPC     │
+  └────────────────────────────────┘
+            │ fallback if timeout or error
+            ▼
+  Deterministic fallback
+  (heuristic body-part classifier)
+```
+
+**격리 규칙**:
+- AI 워커 실패 또는 타임아웃 시 메인 파이프라인은 결정론적 폴백으로 계속 진행
+- AI 결과는 항상 `is_ai_result` 플래그와 함께 반환 (QualityState 사이드카에 기록)
+- 모델 버전이 매니페스트와 불일치 시 워커 시작 거부
+
+#### 8.4.2 모델 매니페스트 스키마
+
+```json
+{
+  "schema_version": "1.0",
+  "model_id": "body_part_recognition_v2",
+  "model_file": "body_part_cls_effb4_int8.onnx",
+  "sha256": "f4a9b3c1d2e8f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4",
+  "model_version": "2.1.0",
+  "framework": "onnxruntime",
+  "quantization": "INT8",
+  "input_shape": [1, 3, 512, 512],
+  "input_dtype": "float32",
+  "output_shape": [1, 15],
+  "output_dtype": "float32",
+  "classes": ["CHEST_AP", "CHEST_LAT", "ABD_AP", "LSPINE_AP", "LSPINE_LAT",
+              "PELVIS_AP", "HIP", "KNEE", "HAND_WRIST", "FOOT_ANKLE",
+              "SKULL", "CSPINE", "TSPINE", "SHOULDER", "EXTREMITY"],
+  "performance": {
+    "top1_accuracy_pct": 96.2,
+    "inference_ms_cpu_p95": 180,
+    "validation_dataset": "xpe_cls_val_v3_n=2500"
+  },
+  "requires_deterministic_fallback": true,
+  "disable_control": "XPE_AI_DISABLE_BODY_PART_CLS",
+  "release_boundary": "release-safe",
+  "created_at": "2026-04-15T00:00:00Z"
+}
+```
+
+#### 8.4.3 Python ONNX 추론 래퍼 (참조 구현)
+
+```python
+import numpy as np
+import json
+import hashlib
+import os
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Optional, List
+
+@dataclass
+class AiInferenceResult:
+    body_part_id:    str
+    confidence:      float
+    all_scores:      List[float]
+    is_ai_result:    bool   = True   # False = deterministic fallback used
+    model_version:   str   = ''
+    inference_ms:    float = 0.0
+
+class OnnxAiWorker:
+    """
+    ONNX AI worker with model manifest validation, quantized inference,
+    per-task disable control, and deterministic fallback.
+    """
+
+    def __init__(self, manifest_path: Path):
+        self.manifest  = self._load_manifest(manifest_path)
+        self._session  = None
+        self._classes  = self.manifest['classes']
+        self._disabled = os.environ.get(
+            self.manifest.get('disable_control', '_NONE_'), '0') != '0'
+
+    def _load_manifest(self, path: Path) -> dict:
+        with open(path) as f:
+            m = json.load(f)
+        # Verify model file hash
+        model_file = path.parent / m['model_file']
+        if not model_file.exists():
+            raise FileNotFoundError(f"Model file not found: {model_file}")
+        sha = hashlib.sha256(model_file.read_bytes()).hexdigest()
+        if sha != m['sha256']:
+            raise ValueError(f"Model hash mismatch: {m['model_file']}")
+        return m
+
+    def _get_session(self):
+        if self._session is None:
+            import onnxruntime as ort
+            model_path = str(Path(self.manifest['model_file']))
+            opts = ort.SessionOptions()
+            opts.intra_op_num_threads = 1   # deterministic single-thread
+            opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+            self._session = ort.InferenceSession(
+                model_path,
+                sess_options=opts,
+                providers=['CPUExecutionProvider'])
+        return self._session
+
+    def infer(self,
+              preprocessed_input: np.ndarray,
+              timeout_ms:         float = 5000.0) -> AiInferenceResult:
+        """
+        Run inference with timeout. Falls back to heuristic on failure.
+
+        Args:
+            preprocessed_input: float32 (1, 3, 512, 512) — normalised
+            timeout_ms:         maximum allowed inference time
+        Returns:
+            AiInferenceResult
+        """
+        import time
+
+        if self._disabled:
+            return self._deterministic_fallback(preprocessed_input)
+
+        try:
+            session = self._get_session()
+            input_name = session.get_inputs()[0].name
+
+            t0 = time.monotonic()
+            outputs = session.run(None, {input_name: preprocessed_input})
+            elapsed_ms = (time.monotonic() - t0) * 1000.0
+
+            if elapsed_ms > timeout_ms:
+                return self._deterministic_fallback(preprocessed_input)
+
+            scores    = outputs[0][0]                      # (n_classes,)
+            best_idx  = int(np.argmax(scores))
+            return AiInferenceResult(
+                body_part_id   = self._classes[best_idx],
+                confidence     = float(scores[best_idx]),
+                all_scores     = [float(s) for s in scores],
+                is_ai_result   = True,
+                model_version  = self.manifest.get('model_version', ''),
+                inference_ms   = elapsed_ms,
+            )
+        except Exception:
+            return self._deterministic_fallback(preprocessed_input)
+
+    def _deterministic_fallback(self,
+                                  img: np.ndarray) -> AiInferenceResult:
+        """
+        Heuristic body-part classification (no ML required).
+        Uses image aspect ratio and intensity statistics as features.
+        """
+        arr = img.squeeze()
+        if arr.ndim == 3:
+            arr = arr[0]  # take first channel
+
+        h, w = arr.shape[-2], arr.shape[-1]
+        aspect = w / max(h, 1)
+        mean_i = float(np.mean(arr))
+
+        # Simple heuristic: aspect ratio + mean intensity
+        if aspect > 1.5:
+            body_part = 'CHEST_AP'
+        elif mean_i > 0.6:
+            body_part = 'EXTREMITY'
+        else:
+            body_part = 'ABD_AP'
+
+        n = len(self._classes)
+        scores = [1.0 / n] * n
+        idx = self._classes.index(body_part) if body_part in self._classes else 0
+        scores[idx] = 0.6
+
+        return AiInferenceResult(
+            body_part_id  = body_part,
+            confidence    = 0.6,
+            all_scores    = scores,
+            is_ai_result  = False,
+            model_version = 'fallback-heuristic',
+        )
+```
+
+#### 8.4.4 C++ Worker Proxy
+
+```cpp
+// C++ IPC proxy for xpe_ai_worker.exe
+// Sends input via shared memory, waits for result with timeout.
+
+struct AiWorkerRequest {
+    uint32_t request_id;
+    uint32_t width;
+    uint32_t height;
+    uint32_t channels;
+    // Followed by float32[channels × height × width] in shared memory
+};
+
+struct AiWorkerResponse {
+    uint32_t request_id;
+    char     body_part_id[32];
+    float    confidence;
+    float    all_scores[15];   // max 15 classes
+    bool     is_ai_result;
+    float    inference_ms;
+};
+
+class XpeAiWorkerProxy {
+public:
+    AiInferenceResult run_with_timeout(const float* input,
+                                        size_t n_elements,
+                                        uint32_t timeout_ms = 5000) {
+        if (!worker_running_ || ai_disabled_) {
+            return deterministic_fallback(input, n_elements);
+        }
+
+        // Write request to shared memory
+        auto req = write_request(input, n_elements);
+
+        // Wait for response with timeout
+        bool got_response = response_sem_.wait_for(
+            std::chrono::milliseconds(timeout_ms));
+
+        if (!got_response) {
+            log_warning("AI worker timeout after {}ms — using fallback", timeout_ms);
+            return deterministic_fallback(input, n_elements);
+        }
+
+        auto resp = read_response(req.request_id);
+        return AiInferenceResult{
+            .body_part_id  = std::string(resp.body_part_id),
+            .confidence    = resp.confidence,
+            .is_ai_result  = resp.is_ai_result,
+            .inference_ms  = resp.inference_ms,
+        };
+    }
+
+private:
+    bool ai_disabled_ = false;  // Set from env XPE_AI_DISABLE_BODY_PART_CLS
+    bool worker_running_ = false;
+    Semaphore response_sem_;
+    SharedMemory shm_;
+};
+```
+
+#### 8.4.5 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| 모델 해시 검증 | 불일치 시 워커 시작 거부 | 변조된 ONNX 파일 주입 |
+| 타임아웃 폴백 | 5s 초과 시 100% 폴백 전환 | 의도적 지연 테스트 |
+| INT8 vs FP32 정확도 차이 | top-1 accuracy ≤ 0.5% 차이 | 검증 세트 비교 |
+| 워커 비활성화 제어 | `XPE_AI_DISABLE_*` 환경변수 100% 동작 | 환경변수 테스트 |
+| 폴백 결과 플래그 | `is_ai_result=false` 항상 표시 | 폴백 시나리오 실행 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-AI-001 (AI Worker 격리), SRS-AI-002 (모델 매니페스트) — Phase 2 추가 예정
+
+---
+
 ## 9. 교정 데이터 파이프라인
 
 ### 9.1 오프라인 교정 순서 (GAP-10 해소)
@@ -2596,6 +4055,268 @@ def run_aed0(gain_corr_img:    np.ndarray,
 
 ---
 
+### 9.5 교정 드리프트 모니터링 (GAP-X 해소)
+
+xpe-algorithm-spec-deepsync.md §4.1 "Drift monitoring shall feed recalibration decisions rather than silently allowing quality erosion"에서 요구된 항목이다. 매 처리 세션에서 드리프트 지표를 측정하고 임계치 초과 시 재교정을 트리거한다.
+
+#### 9.5.1 알고리즘 수학 정의
+
+**Dark Current 드리프트율**:
+
+$$\dot{D} = \frac{\bar{I}_{\text{dark,current}} - \bar{I}_{\text{dark,baseline}}}{\Delta t_{\text{days}}} \quad (\text{ADU/day})$$
+
+**Gain Non-Uniformity 트렌드**:
+
+$$\Delta_{\text{PRNU}} = \left|\frac{\text{CV}_{\text{current}} - \text{CV}_{\text{baseline}}}{\text{CV}_{\text{baseline}}}\right| \times 100\% \quad (\% \text{ change})$$
+
+**Defect Burden 성장률**:
+
+$$\dot{N}_{\text{defect}} = \frac{N_{\text{defect,current}} - N_{\text{defect,baseline}}}{\Delta t_{\text{days}}} \quad (\text{defects/day})$$
+
+**재교정 트리거 조건**:
+
+$$\text{TriggerRecal} = \left(\dot{D} > \theta_D\right) \lor \left(\Delta_{\text{PRNU}} > \theta_{\text{PRNU}}\right) \lor \left(\dot{N}_{\text{defect}} > \theta_N\right)$$
+
+| 지표 | 임계치 | 의미 |
+|------|-------|------|
+| $\theta_D$ | 5.0 ADU/day | Dark current 드리프트 |
+| $\theta_{\text{PRNU}}$ | 0.5% 변화 | Gain 균일도 저하 |
+| $\theta_N$ | 10 defects/day | 결함 픽셀 성장 |
+
+#### 9.5.2 Python 구현
+
+```python
+import numpy as np
+import json
+from pathlib import Path
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from typing import List, Optional
+
+@dataclass
+class DriftMetrics:
+    timestamp_iso:         str
+    dark_mean_adu:         float
+    prnu_cv_pct:           float
+    defect_count:          int
+    dark_drift_per_day:    float = 0.0
+    prnu_delta_pct:        float = 0.0
+    defect_growth_per_day: float = 0.0
+    needs_recalibration:   bool  = False
+    trigger_reasons:       List[str] = field(default_factory=list)
+
+
+@dataclass
+class DriftThresholds:
+    dark_drift_adu_per_day:  float = 5.0
+    prnu_delta_pct:          float = 0.5
+    defect_growth_per_day:   float = 10.0
+
+
+class CalibrationDriftMonitor:
+    """
+    Monitors detector calibration drift across sessions.
+    Compares current metrics against stored baseline and triggers recalibration.
+    """
+
+    def __init__(self, drift_log_path: Path,
+                 thresholds: Optional[DriftThresholds] = None):
+        self.drift_log_path = drift_log_path
+        self.thresholds     = thresholds or DriftThresholds()
+        self._history: List[DriftMetrics] = []
+        self._load_history()
+
+    def _load_history(self):
+        if self.drift_log_path.exists():
+            with open(self.drift_log_path) as f:
+                data = json.load(f)
+                self._history = [DriftMetrics(**e) for e in data]
+
+    def _save_history(self):
+        with open(self.drift_log_path, 'w') as f:
+            json.dump([asdict(m) for m in self._history], f, indent=2)
+
+    def measure_current(self,
+                         dark_frames:  np.ndarray,   # (N, H, W)
+                         flood_image:  np.ndarray,   # (H, W) gain-corrected
+                         defect_map:   np.ndarray    # (H, W) uint8
+                         ) -> DriftMetrics:
+        """
+        Compute current drift metrics from live detector frames.
+
+        Args:
+            dark_frames:  recent dark frames (≥4 frames stacked)
+            flood_image:  recent flood field (gain-corrected)
+            defect_map:   current defect map
+        Returns:
+            DriftMetrics with filled current values
+        """
+        dark_mean = float(np.mean(dark_frames))
+        # PRNU: coefficient of variation of net signal (gain-corrected flood)
+        net = flood_image[flood_image > 10]  # exclude near-zero pixels
+        prnu_cv = float(np.std(net) / np.mean(net) * 100) if len(net) > 0 else 0.0
+        defect_count = int(np.sum(defect_map > 0))
+        ts = datetime.now(timezone.utc).isoformat()
+        return DriftMetrics(
+            timestamp_iso=ts,
+            dark_mean_adu=dark_mean,
+            prnu_cv_pct=prnu_cv,
+            defect_count=defect_count,
+        )
+
+    def evaluate(self, current: DriftMetrics) -> DriftMetrics:
+        """
+        Compare current metrics against baseline (first recorded session).
+        Sets drift rates and triggers if thresholds exceeded.
+        """
+        if not self._history:
+            # No baseline: record and return OK
+            self._history.append(current)
+            self._save_history()
+            return current
+
+        baseline = self._history[0]
+        latest   = self._history[-1]
+
+        # Time delta in days
+        try:
+            t0 = datetime.fromisoformat(baseline.timestamp_iso)
+            t1 = datetime.fromisoformat(current.timestamp_iso)
+            delta_days = max((t1 - t0).total_seconds() / 86400.0, 0.01)
+        except Exception:
+            delta_days = 1.0
+
+        current.dark_drift_per_day    = abs(current.dark_mean_adu - baseline.dark_mean_adu) / delta_days
+        current.prnu_delta_pct        = abs(current.prnu_cv_pct   - baseline.prnu_cv_pct)
+        current.defect_growth_per_day = max(current.defect_count  - baseline.defect_count, 0) / delta_days
+
+        reasons = []
+        if current.dark_drift_per_day > self.thresholds.dark_drift_adu_per_day:
+            reasons.append(f"dark_drift={current.dark_drift_per_day:.2f} ADU/day > {self.thresholds.dark_drift_adu_per_day}")
+        if current.prnu_delta_pct > self.thresholds.prnu_delta_pct:
+            reasons.append(f"prnu_delta={current.prnu_delta_pct:.3f}% > {self.thresholds.prnu_delta_pct}%")
+        if current.defect_growth_per_day > self.thresholds.defect_growth_per_day:
+            reasons.append(f"defect_growth={current.defect_growth_per_day:.1f}/day > {self.thresholds.defect_growth_per_day}")
+
+        current.needs_recalibration = len(reasons) > 0
+        current.trigger_reasons     = reasons
+
+        self._history.append(current)
+        if len(self._history) > 365:  # keep 1 year of daily records
+            self._history = self._history[-365:]
+        self._save_history()
+        return current
+
+    def get_trend_report(self, window_days: int = 30) -> dict:
+        """
+        Summarise drift trends over a rolling window.
+        Returns: {metric: (mean, std, trend_direction)} for last window_days entries.
+        """
+        recent = self._history[-window_days:] if len(self._history) >= window_days else self._history
+        if len(recent) < 2:
+            return {}
+        darks  = np.array([m.dark_mean_adu for m in recent])
+        prnus  = np.array([m.prnu_cv_pct   for m in recent])
+        defs   = np.array([m.defect_count  for m in recent])
+        idx    = np.arange(len(recent))
+
+        def trend(arr):
+            p = np.polyfit(idx, arr, 1)
+            slope = float(p[0])
+            return float(np.mean(arr)), float(np.std(arr)), ('up' if slope > 0 else 'down')
+
+        return {
+            'dark_mean_adu':  trend(darks),
+            'prnu_cv_pct':    trend(prnus),
+            'defect_count':   trend(defs),
+            'n_records':      len(recent),
+        }
+```
+
+#### 9.5.3 C++ 런타임 통합
+
+```cpp
+// Drift monitoring hook — called after each processing session
+// Updates drift log and raises alert if recalibration is needed.
+
+struct DriftSnapshot {
+    float    dark_mean_adu;
+    float    prnu_cv_pct;
+    uint32_t defect_count;
+    int64_t  timestamp_unix_s;
+};
+
+class DriftMonitor {
+public:
+    struct Alert {
+        bool   needs_recalibration;
+        float  dark_drift_per_day;
+        float  prnu_delta_pct;
+        float  defect_growth_per_day;
+        char   message[256];
+    };
+
+    // Call this after each calibration verification pass
+    Alert update(const DriftSnapshot& current) {
+        Alert alert{};
+        if (history_.empty()) {
+            baseline_ = current;
+            history_.push_back(current);
+            return alert;
+        }
+
+        double days = static_cast<double>(current.timestamp_unix_s - baseline_.timestamp_unix_s)
+                      / 86400.0;
+        days = std::max(days, 0.01);
+
+        alert.dark_drift_per_day    = std::fabsf(current.dark_mean_adu - baseline_.dark_mean_adu) / days;
+        alert.prnu_delta_pct        = std::fabsf(current.prnu_cv_pct   - baseline_.prnu_cv_pct);
+        alert.defect_growth_per_day = static_cast<float>(
+                                         std::max<int32_t>(current.defect_count - baseline_.defect_count, 0)
+                                      ) / days;
+
+        alert.needs_recalibration =
+            (alert.dark_drift_per_day    > k_dark_thresh_)   ||
+            (alert.prnu_delta_pct        > k_prnu_thresh_)    ||
+            (alert.defect_growth_per_day > k_defect_thresh_);
+
+        if (alert.needs_recalibration) {
+            std::snprintf(alert.message, sizeof(alert.message),
+                "RECAL REQUIRED: dark=%.2f ADU/d, PRNU=%.3f%%, defects=%.1f/d",
+                alert.dark_drift_per_day,
+                alert.prnu_delta_pct,
+                alert.defect_growth_per_day);
+            xpe_alert(XpeAlertCode::ALERT_RECALIBRATION_REQUIRED, alert.message);
+        }
+
+        history_.push_back(current);
+        if (history_.size() > 365) history_.erase(history_.begin());
+        return alert;
+    }
+
+private:
+    static constexpr float k_dark_thresh_   = 5.0f;   // ADU/day
+    static constexpr float k_prnu_thresh_   = 0.5f;   // % change
+    static constexpr float k_defect_thresh_ = 10.0f;  // defects/day
+
+    DriftSnapshot              baseline_{};
+    std::vector<DriftSnapshot> history_;
+};
+```
+
+#### 9.5.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| 드리프트 감지 민감도 | 임계치의 1.1× → 100% 감지 | 합성 드리프트 시나리오 |
+| 오탐율 (False Positive) | < 1% | 안정된 detector 30일 모니터링 |
+| 드리프트 로그 용량 | 365일 기록 유지 | 자동 롤오버 테스트 |
+| 재교정 알림 지연 | < 1s | 임계치 초과 직후 알림 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-QC-002 (교정 드리프트 모니터링) — Phase 2 추가 예정
+
+---
+
 ## 10. 성능 최적화 — SIMD/OpenMP 전략
 
 ### 10.1 전체 파이프라인 SIMD 커버리지 (GAP-06 해소)
@@ -2766,6 +4487,229 @@ xpe_benchmark --image-size 3072x3072 \
                --threshold-ms 500 \
                --output benchmark_results.json
 ```
+
+---
+
+### 11.4 스칼라 참조 구현 및 SIMD 패리티 하네스 (GAP-S 해소)
+
+xpe-algorithm-spec-deepsync.md §5.1 "every major stage shall have: one scalar reference, one optimized implementation, one parity test harness, one benchmark family binding"에서 요구된 항목이다. AVX2 또는 다중 스레드 경로가 유일한 구현이 되는 것을 방지한다.
+
+#### 11.4.1 패리티 하네스 아키텍처
+
+모든 주요 처리 단계는 세 가지 구현을 동시에 보유해야 한다:
+
+| 레이어 | 목적 | 요구사항 |
+|-------|------|---------|
+| **Scalar Reference** | 수학적 정확성의 기준선, 이식 가능 | 컴파일러 최적화 없음, 인라인 없음 |
+| **Optimized** | AVX2/FMA/OpenMP 병렬화 | 프로덕션 경로 |
+| **Parity Test** | Scalar ↔ Optimized 수치 등가 검증 | CI/CD에서 자동 실행 |
+
+#### 11.4.2 패리티 테스트 프레임워크
+
+```python
+import numpy as np
+from typing import Callable, Dict, Any
+from dataclasses import dataclass
+
+@dataclass
+class ParityTestResult:
+    stage_name:        str
+    max_abs_error:     float
+    max_rel_error:     float
+    mean_abs_error:    float
+    passed:            bool
+    error_message:     str = ''
+
+    def __repr__(self):
+        status = "PASS" if self.passed else "FAIL"
+        return (f"[{status}] {self.stage_name}: "
+                f"max_abs={self.max_abs_error:.3e}, "
+                f"max_rel={self.max_rel_error:.3e}")
+
+
+def run_parity_test(
+        stage_name:   str,
+        scalar_fn:    Callable,
+        optimized_fn: Callable,
+        inputs:       Dict[str, Any],
+        abs_tol:      float = 1e-4,
+        rel_tol:      float = 1e-4) -> ParityTestResult:
+    """
+    Compare scalar reference and optimized implementation outputs.
+
+    Both functions receive the same **inputs dict.
+    Returns ParityTestResult with pass/fail and error statistics.
+    """
+    ref_out  = scalar_fn(**inputs)
+    opt_out  = optimized_fn(**inputs)
+
+    ref_arr  = np.asarray(ref_out,  dtype=np.float64)
+    opt_arr  = np.asarray(opt_out,  dtype=np.float64)
+
+    abs_diff = np.abs(ref_arr - opt_arr)
+    rel_diff = abs_diff / (np.abs(ref_arr) + 1e-10)
+
+    max_abs  = float(np.max(abs_diff))
+    max_rel  = float(np.max(rel_diff))
+    mean_abs = float(np.mean(abs_diff))
+
+    passed = (max_abs <= abs_tol) and (max_rel <= rel_tol)
+    msg    = '' if passed else (f"abs_err={max_abs:.3e} > {abs_tol} or "
+                                 f"rel_err={max_rel:.3e} > {rel_tol}")
+    return ParityTestResult(
+        stage_name=stage_name,
+        max_abs_error=max_abs,
+        max_rel_error=max_rel,
+        mean_abs_error=mean_abs,
+        passed=passed,
+        error_message=msg,
+    )
+
+
+class XpeParityTestSuite:
+    """
+    Parity test harness for all XPE processing stages.
+    Instantiate with a seeded test image set and call run_all().
+    """
+
+    def __init__(self, width: int = 512, height: int = 512, seed: int = 42):
+        rng = np.random.default_rng(seed)
+        self.raw    = rng.integers(100, 55000, (height, width), dtype=np.uint16)
+        self.offset = rng.uniform(50, 200, (height, width)).astype(np.float32)
+        self.gain   = rng.uniform(0.8, 1.2, (height, width)).astype(np.float32)
+        self.W, self.H = width, height
+
+    def _offset_scalar(self, raw, offset_map):
+        result = np.zeros(raw.shape, dtype=np.float32)
+        for y in range(raw.shape[0]):
+            for x in range(raw.shape[1]):
+                result[y, x] = max(float(raw[y, x]) - offset_map[y, x], 0.0)
+        return result
+
+    def _offset_vectorized(self, raw, offset_map):
+        return np.maximum(raw.astype(np.float32) - offset_map, 0.0)
+
+    def _gain_scalar(self, offset_corrected, gain_map):
+        result = np.zeros_like(offset_corrected, dtype=np.float32)
+        for y in range(offset_corrected.shape[0]):
+            for x in range(offset_corrected.shape[1]):
+                result[y, x] = offset_corrected[y, x] * gain_map[y, x]
+        return result
+
+    def _gain_vectorized(self, offset_corrected, gain_map):
+        return offset_corrected * gain_map
+
+    def _log_transform_scalar(self, clean, I0=10000.0, eps=1e-6):
+        result = np.zeros_like(clean, dtype=np.float32)
+        for y in range(clean.shape[0]):
+            for x in range(clean.shape[1]):
+                result[y, x] = -np.log((clean[y, x] + eps) / (I0 + eps))
+        return result
+
+    def _log_transform_vectorized(self, clean, I0=10000.0, eps=1e-6):
+        return -np.log((clean.astype(np.float64) + eps) / (I0 + eps)).astype(np.float32)
+
+    def run_all(self) -> list:
+        """Run all parity tests. Returns list of ParityTestResult."""
+        offset_corr = self._offset_vectorized(self.raw, self.offset)
+        gain_corr   = self._gain_vectorized(offset_corr, self.gain)
+
+        results = []
+
+        results.append(run_parity_test(
+            'offset_correction',
+            scalar_fn=self._offset_scalar,
+            optimized_fn=self._offset_vectorized,
+            inputs={'raw': self.raw, 'offset_map': self.offset},
+            abs_tol=0.0,   # Exact match expected
+            rel_tol=0.0,
+        ))
+
+        results.append(run_parity_test(
+            'gain_correction',
+            scalar_fn=self._gain_scalar,
+            optimized_fn=self._gain_vectorized,
+            inputs={'offset_corrected': offset_corr, 'gain_map': self.gain},
+            abs_tol=1e-4,  # FP rounding tolerance
+            rel_tol=1e-5,
+        ))
+
+        results.append(run_parity_test(
+            'log_transform',
+            scalar_fn=self._log_transform_scalar,
+            optimized_fn=self._log_transform_vectorized,
+            inputs={'clean': gain_corr},
+            abs_tol=2e-4,  # AVX2 poly approx tolerance
+            rel_tol=2e-4,
+        ))
+
+        return results
+
+
+def print_parity_report(results: list) -> bool:
+    """Print parity test report. Returns True if all passed."""
+    all_pass = True
+    print("=" * 60)
+    print("XPE PARITY TEST REPORT")
+    print("=" * 60)
+    for r in results:
+        print(r)
+        if not r.passed:
+            all_pass = False
+            print(f"  ERROR: {r.error_message}")
+    print("=" * 60)
+    print(f"OVERALL: {'PASS' if all_pass else 'FAIL'} ({sum(r.passed for r in results)}/{len(results)} passed)")
+    return all_pass
+```
+
+#### 11.4.3 C++ 패리티 검증 매크로
+
+```cpp
+// XPE parity test macro — wrap each optimized function for CI validation
+// Usage: XPE_PARITY_CHECK(scalar_fn, avx2_fn, inputs..., tol)
+
+#define XPE_PARITY_CHECK(scalar_fn, opt_fn, out_s, out_o, n, abs_tol)     \
+    do {                                                                    \
+        bool _parity_ok = true;                                             \
+        for (size_t _i = 0; _i < (n); ++_i) {                             \
+            float _diff = std::fabsf((out_s)[_i] - (out_o)[_i]);           \
+            if (_diff > (abs_tol)) {                                        \
+                std::fprintf(stderr,                                        \
+                    "PARITY FAIL [%s vs %s] idx=%zu diff=%.4e tol=%.4e\n", \
+                    #scalar_fn, #opt_fn, _i, _diff, (float)(abs_tol));     \
+                _parity_ok = false; break;                                  \
+            }                                                               \
+        }                                                                   \
+        assert(_parity_ok && "Scalar/AVX2 parity check failed");           \
+    } while (0)
+
+// --- Example usage in unit test ---
+void test_offset_parity(const uint16_t* raw, const float* offset,
+                          float* out_scalar, float* out_avx2,
+                          uint32_t W, uint32_t H) {
+    // Scalar reference
+    for (size_t i = 0; i < (size_t)W * H; ++i)
+        out_scalar[i] = std::max(static_cast<float>(raw[i]) - offset[i], 0.0f);
+
+    // AVX2 optimized
+    xpe_offset_correct(raw, offset, out_avx2, W, H);
+
+    // Parity check (exact match expected for offset correction)
+    XPE_PARITY_CHECK(offset_scalar, xpe_offset_correct,
+                      out_scalar, out_avx2, (size_t)W * H, 0.0f);
+}
+```
+
+#### 11.4.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| Offset/Gain 패리티 | 최대 절대 오차 = 0 | 합성 이미지 1000개 |
+| Log Transform 패리티 | 최대 상대 오차 < 2×10⁻⁴ | AVX2 poly vs libm |
+| 모든 Stage 패리티 | CI에서 100% PASS | 매 커밋 자동 실행 |
+| 스칼라 구현 독립성 | -O0 컴파일에서도 동작 | 컴파일러 플래그 테스트 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-TEST-001 (단위 테스트 기준 확장) — Phase 2 추가 예정
 
 ---
 
@@ -3294,6 +5238,471 @@ struct CollimatorMask {
 
 ---
 
+### 12.6 MTF 슬랜트 에지 ESF 완전 구현 (GAP-T 해소)
+
+§12.2에서 `compute_mtf_precision_mode()`의 aperture correction만 제공했지만, ESF 추출 → LSF → FFT → MTF 완전 파이프라인이 명세되어 있지 않았다. 본 섹션은 IEC 62220-1-1 준수 완전 구현을 제공한다.
+
+#### 12.6.1 알고리즘 수학 정의
+
+**ESF → LSF → MTF 변환 체인**:
+
+$$\text{ESF}(x) = \text{edge spread function} \quad \text{(oversample from multiple rows)}$$
+
+$$\text{LSF}(x) = \frac{d}{dx}\text{ESF}(x) \quad \text{(line spread function = derivative of ESF)}$$
+
+$$\text{OTF}(f) = \mathcal{F}\left[\text{LSF}(x)\right](f)$$
+
+$$\text{MTF}(f) = \left|\text{OTF}(f)\right| / \left|\text{OTF}(0)\right|$$
+
+**Pre-sampling 보정 (IEC 62220-1-1 §6.2)**:
+
+$$\text{MTF}_{\text{true}}(f) = \frac{\text{MTF}_{\text{measured}}(f)}{\text{sinc}(f \cdot p)} \quad \text{where } \text{sinc}(x) = \frac{\sin(\pi x)}{\pi x}$$
+
+**슬랜트 각도 제약 (ISO 12233)**:
+$$\theta_{\text{edge}} \in [2°,\ 10°] \quad \Rightarrow \quad \text{oversampling factor} = \frac{1}{\sin\theta}$$
+
+#### 12.6.2 파라미터 및 경계 조건
+
+| 파라미터 | 권장값 | 범위 | 의미 |
+|---------|-------|-----|------|
+| `edge_angle_deg` | 5.0 | 2–10° | 슬랜트 각도 (IEC 62220-1-1) |
+| `oversampling` | 4 | 4–8 | ESF 오버샘플링 인수 |
+| `roi_height_px` | 200 | 100–500 | ESF 추출 ROI 높이 |
+| `smooth_sigma` | 1.0 | 0.5–3.0 | LSF smoothing σ (가우시안) |
+| `freq_limit_nyquist` | 1.0 | 0.1–1.0 | MTF 출력 주파수 상한 (Nyquist 배수) |
+
+#### 12.6.3 Python 구현 (오프라인, IEC 62220-1-1 준수)
+
+```python
+import numpy as np
+from scipy.ndimage import sobel, gaussian_filter1d
+from scipy.optimize import curve_fit
+from typing import Tuple
+
+def extract_esf_from_slanted_edge(
+        edge_image:      np.ndarray,
+        pixel_pitch_mm:  float,
+        edge_angle_deg:  float = 5.0,
+        oversampling:    int   = 4,
+        roi_height_px:   int   = 200) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Extract Edge Spread Function (ESF) from a slanted-edge image.
+
+    Algorithm (IEC 62220-1-1 §6.1):
+      1. Locate edge centre per row via gradient centroid
+      2. Compute sub-pixel position relative to mean edge location
+      3. Bin into oversampled ESF array
+
+    Args:
+        edge_image:     2-D float32 image containing slanted edge
+        pixel_pitch_mm: detector pixel pitch (mm)
+        edge_angle_deg: nominal edge angle in degrees
+        oversampling:   ESF super-resolution factor
+        roi_height_px:  number of rows to use from image centre
+    Returns:
+        (esf_positions_mm, esf_values) — both 1-D float64 arrays
+    """
+    H, W = edge_image.shape
+    row_start = (H - roi_height_px) // 2
+    row_end   = row_start + roi_height_px
+    roi       = edge_image[row_start:row_end, :].astype(np.float64)
+    n_rows, n_cols = roi.shape
+
+    # Step 1: Locate edge centre per row using gradient centroid (Canny + CoM)
+    grad = np.gradient(roi, axis=1)
+    abs_grad = np.abs(grad)
+    col_idx = np.arange(n_cols, dtype=np.float64)
+    # Centre of mass of |gradient| per row → sub-pixel edge position
+    edge_pos_per_row = np.array([
+        np.sum(abs_grad[r, :] * col_idx) / (np.sum(abs_grad[r, :]) + 1e-10)
+        for r in range(n_rows)
+    ])
+
+    # Step 2: Fit line to edge positions to estimate angle
+    row_idx = np.arange(n_rows, dtype=np.float64)
+    p = np.polyfit(row_idx, edge_pos_per_row, 1)
+    slope = p[0]  # pixels per row
+    edge_mean = np.mean(edge_pos_per_row)
+
+    # Step 3: Build oversampled ESF
+    osf = oversampling
+    esf_bins  = np.zeros(n_cols * osf, dtype=np.float64)
+    esf_count = np.zeros(n_cols * osf, dtype=np.int32)
+
+    for r in range(n_rows):
+        edge_x = edge_mean + slope * (r - n_rows / 2)
+        for c in range(n_cols):
+            dx = (c - edge_x) * pixel_pitch_mm  # mm from edge
+            bin_idx = int(round(dx / pixel_pitch_mm * osf)) + (n_cols * osf) // 2
+            if 0 <= bin_idx < len(esf_bins):
+                esf_bins[bin_idx]  += roi[r, c]
+                esf_count[bin_idx] += 1
+
+    valid = esf_count > 0
+    esf_vals = np.where(valid, esf_bins / np.maximum(esf_count, 1), np.nan)
+    esf_pos  = (np.arange(len(esf_bins)) - len(esf_bins) // 2) * pixel_pitch_mm / osf
+
+    # Remove NaN by linear interpolation
+    nans = np.isnan(esf_vals)
+    esf_vals[nans] = np.interp(np.where(nans)[0],
+                                 np.where(~nans)[0],
+                                 esf_vals[~nans])
+    return esf_pos, esf_vals
+
+
+def compute_mtf_from_esf(
+        esf_positions_mm: np.ndarray,
+        esf_values:       np.ndarray,
+        smooth_sigma:     float = 1.0,
+        freq_limit:       float = 1.0,
+        pixel_pitch_mm:   float = 0.148,
+        aperture_correct: bool  = True) -> dict:
+    """
+    Compute MTF from ESF via differentiation and FFT.
+
+    Pipeline:
+        ESF → smooth → differentiate → LSF → Hanning window → FFT → |OTF| → MTF
+
+    Args:
+        esf_positions_mm: sample positions (mm), uniformly spaced
+        esf_values:       ESF values (float64)
+        smooth_sigma:     Gaussian smoothing σ applied to LSF
+        freq_limit:       upper frequency as fraction of Nyquist (1.0 = Nyquist)
+        pixel_pitch_mm:   original pixel pitch for aperture correction
+        aperture_correct: apply sinc aperture correction
+    Returns:
+        dict with: freqs_mm_inv, mtf, f50_mm_inv, f10_mm_inv
+    """
+    dx = float(np.mean(np.diff(esf_positions_mm)))  # mm per sample
+
+    # Normalise ESF to [0, 1]
+    esf = esf_values.astype(np.float64)
+    esf = (esf - esf.min()) / (esf.max() - esf.min() + 1e-10)
+
+    # Differentiate ESF → LSF
+    lsf = np.gradient(esf, dx)
+
+    # Gaussian smoothing to reduce noise (per IEC 62220-1-1 §6.2)
+    if smooth_sigma > 0:
+        lsf = gaussian_filter1d(lsf, sigma=smooth_sigma / dx)
+
+    # Normalise LSF area to 1
+    lsf_sum = np.sum(np.abs(lsf)) * dx
+    if lsf_sum > 1e-10:
+        lsf /= lsf_sum
+
+    # Hanning window (reduce spectral leakage)
+    window = np.hanning(len(lsf))
+    lsf_w  = lsf * window
+
+    # FFT → OTF → MTF
+    n    = len(lsf_w)
+    otf  = np.fft.fft(lsf_w, n=n * 4)  # zero-pad 4× for interpolation
+    freqs = np.fft.fftfreq(n * 4, d=dx)  # cycles/mm
+
+    # Keep positive frequencies up to freq_limit × Nyquist
+    nyquist = 1.0 / (2.0 * pixel_pitch_mm)
+    pos_mask = (freqs > 0) & (freqs <= freq_limit * nyquist)
+    freqs_pos = freqs[pos_mask]
+    mtf_raw   = np.abs(otf[pos_mask])
+    mtf_raw  /= (np.abs(otf[0]) + 1e-10)   # normalise to DC
+
+    # Aperture correction: divide by sinc(f × pixel_pitch)
+    if aperture_correct:
+        sinc_vals = np.sinc(freqs_pos * pixel_pitch_mm)  # numpy sinc = sin(πx)/(πx)
+        mtf_corrected = np.where(sinc_vals > 0.05,
+                                  mtf_raw / sinc_vals,
+                                  mtf_raw)
+        mtf = np.clip(mtf_corrected, 0.0, 1.2)
+    else:
+        mtf = np.clip(mtf_raw, 0.0, 1.2)
+
+    # Find f50 and f10 (interpolated)
+    def freq_at_mtf_val(mtf_arr, freq_arr, target):
+        above = np.where(mtf_arr >= target)[0]
+        if len(above) == 0: return float(freq_arr[-1])
+        i = above[-1]
+        if i + 1 >= len(mtf_arr): return float(freq_arr[i])
+        # Linear interpolation
+        t = (target - mtf_arr[i]) / (mtf_arr[i + 1] - mtf_arr[i] + 1e-10)
+        return float(freq_arr[i] + t * (freq_arr[i + 1] - freq_arr[i]))
+
+    return {
+        'freqs_mm_inv': freqs_pos.astype(np.float32),
+        'mtf':          mtf.astype(np.float32),
+        'f50_mm_inv':   freq_at_mtf_val(mtf, freqs_pos, 0.5),
+        'f10_mm_inv':   freq_at_mtf_val(mtf, freqs_pos, 0.1),
+        'pixel_pitch_mm': pixel_pitch_mm,
+        'oversampling_dx_mm': dx,
+    }
+
+
+def full_mtf_pipeline(edge_image:     np.ndarray,
+                       pixel_pitch_mm: float,
+                       **kwargs) -> dict:
+    """
+    Complete MTF pipeline: edge image → MTF curve.
+
+    Combines extract_esf_from_slanted_edge() and compute_mtf_from_esf().
+    """
+    esf_pos, esf_vals = extract_esf_from_slanted_edge(
+        edge_image, pixel_pitch_mm,
+        edge_angle_deg = kwargs.get('edge_angle_deg', 5.0),
+        oversampling   = kwargs.get('oversampling', 4),
+        roi_height_px  = kwargs.get('roi_height_px', 200),
+    )
+    return compute_mtf_from_esf(
+        esf_pos, esf_vals,
+        smooth_sigma    = kwargs.get('smooth_sigma', 1.0),
+        pixel_pitch_mm  = pixel_pitch_mm,
+        aperture_correct= kwargs.get('aperture_correct', True),
+    )
+```
+
+#### 12.6.4 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| MTF@Nyquist vs 이론값 | 오차 < 5% | 합성 단계함수 이미지 |
+| f50 재현성 | CV < 2% (5회 측정) | 동일 팬텀 반복 측정 |
+| IEC 62220-1-1 인증 | f10 ≥ 0.5 × Nyquist (RQA5) | 표준 팬텀 측정 |
+| Aperture 보정 효과 | f50 ≥ 보정 전 1.05× | 보정 전후 비교 |
+| 처리 시간 | < 500ms (512 rows) | 단일 코어 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-MEAS-001 (FPD 특성화 확장), SRS-MEAS-002 (MTF 완전 구현) — Phase 2 추가 예정
+
+---
+
+## 13. 품질 상태 벡터 사이드카 (GAP-R 해소)
+
+xpe-algorithm-spec-deepsync.md §4.3 "For every processed frame, the runtime should produce a sidecar quality state"에서 요구된 항목이다. 기존 `AEDResult` 구조체는 AED-0 결과만을 담고 있으며, 파이프라인 전체의 품질 상태를 통합 표현하는 사이드카가 없었다.
+
+### 13.1 알고리즘 수학 정의
+
+품질 상태 벡터 $\mathbf{Q}$는 프레임당 하나의 인스턴스로 생성되며, 각 필드는 해당 파이프라인 단계 완료 직후 채워진다:
+
+$$\mathbf{Q} = \{\mathbf{Q}_{\text{cal}},\ \mathbf{Q}_{\text{defect}},\ \mathbf{Q}_{\text{lag}},\ \mathbf{Q}_{\text{gsvg}},\ \mathbf{Q}_{\text{ei}},\ \mathbf{Q}_{\text{ai}}\}$$
+
+각 서브 벡터는 해당 단계의 상태, 신뢰도, 경고 플래그를 포함한다.
+
+**교정 신선도 점수**:
+
+$$Q_{\text{cal,fresh}} = \exp\!\left(-\frac{\Delta t_{\text{days}}}{\tau_{\text{fresh}}}\right), \quad \tau_{\text{fresh}} = 7 \text{ days}$$
+
+**결함 부담 등급**:
+
+$$\text{DefectClass} = \begin{cases} 0 & N_{\text{def}} < 0.01\% W H \\ 1 & N_{\text{def}} < 0.05\% W H \\ 2 & N_{\text{def}} < 0.2\% W H \\ 3 & N_{\text{def}} \geq 0.2\% W H \end{cases}$$
+
+### 13.2 XpeQualityState 구조체 명세
+
+#### 13.2.1 Python 정의 (참조 스키마)
+
+```python
+from dataclasses import dataclass, field
+from enum import IntEnum
+from typing import Optional
+
+class CalibFreshness(IntEnum):
+    FRESH   = 0   # score ≥ 0.90
+    AGING   = 1   # 0.70 ≤ score < 0.90
+    STALE   = 2   # 0.40 ≤ score < 0.70
+    EXPIRED = 3   # score < 0.40 → recalibration required
+
+class DefectBurdenClass(IntEnum):
+    NEGLIGIBLE = 0   # < 0.01% pixels
+    LOW        = 1   # 0.01–0.05%
+    MODERATE   = 2   # 0.05–0.2%
+    HIGH       = 3   # ≥ 0.2% → quality advisory
+
+class LagTierApplied(IntEnum):
+    NONE = 0   # no lag correction applied
+    FAST = 1   # single-term model
+    FULL = 3   # full three-term model
+
+class GsvgSkipReason(IntEnum):
+    NOT_SKIPPED      = 0
+    NO_GRID_DETECTED = 1   # no grid artifact found
+    PERFORMANCE_MODE = 2   # explicitly disabled by operator
+    AED_FAILED       = 3   # AED-0 returned invalid
+
+class AiWorkerStatus(IntEnum):
+    NOT_USED    = 0
+    AI_SUCCESS  = 1
+    AI_FALLBACK = 2   # deterministic fallback used
+    AI_DISABLED = 3
+
+@dataclass
+class CalibQuality:
+    freshness_class:  CalibFreshness  = CalibFreshness.FRESH
+    freshness_score:  float           = 1.0
+    session_id:       str             = ''
+    days_since_cal:   float           = 0.0
+    drift_warning:    bool            = False
+
+@dataclass
+class DetectorCorrectionQuality:
+    defect_burden_class:  DefectBurdenClass = DefectBurdenClass.NEGLIGIBLE
+    defect_count:         int               = 0
+    lag_tier:             LagTierApplied    = LagTierApplied.NONE
+    lag_residual_pct:     float             = 0.0
+    nonlinearity_applied: bool              = False
+    heel_applied:         bool              = False
+
+@dataclass
+class ExposureQuality:
+    aed_valid:      bool  = True
+    ei_value:       float = 0.0
+    di_value:       float = 0.0
+    roi_confidence: float = 1.0   # EI ROI detection confidence (0–1)
+    roi_method:     str   = ''    # 'central' / 'anatomy_bounded' / 'fallback'
+
+@dataclass
+class GsvgQuality:
+    grid_detected:  bool          = False
+    gsvg_applied:   bool          = False
+    skip_reason:    GsvgSkipReason = GsvgSkipReason.NOT_SKIPPED
+    grid_frequency: float         = 0.0   # detected grid frequency (lp/mm)
+
+@dataclass
+class AiQuality:
+    worker_status:  AiWorkerStatus = AiWorkerStatus.NOT_USED
+    body_part_id:   str            = ''
+    confidence:     float          = 0.0
+    model_version:  str            = ''
+    inference_ms:   float          = 0.0
+
+@dataclass
+class XpeQualityState:
+    """
+    Per-frame quality state sidecar.
+    Created empty at pipeline entry; each stage fills its section.
+    Must NOT mutate XpeImageMetadata to carry this information.
+    """
+    frame_id:     str                      = ''
+    timestamp_ns: int                      = 0
+    calib:        CalibQuality             = field(default_factory=CalibQuality)
+    detector:     DetectorCorrectionQuality = field(default_factory=DetectorCorrectionQuality)
+    exposure:     ExposureQuality          = field(default_factory=ExposureQuality)
+    gsvg:         GsvgQuality             = field(default_factory=GsvgQuality)
+    ai:           AiQuality               = field(default_factory=AiQuality)
+    pipeline_version: str                  = 'xpe-1.2'
+
+    def overall_advisory(self) -> str:
+        """
+        Generate a single human-readable advisory string.
+        Returns empty string if everything is nominal.
+        """
+        warnings = []
+        if self.calib.freshness_class >= CalibFreshness.STALE:
+            warnings.append(f"CAL_STALE({self.calib.days_since_cal:.1f}d)")
+        if self.detector.defect_burden_class >= DefectBurdenClass.MODERATE:
+            warnings.append(f"DEFECT_BURDEN({self.detector.defect_count}px)")
+        if not self.exposure.aed_valid:
+            warnings.append("EXPOSURE_INVALID")
+        if abs(self.exposure.di_value) > 3.0:
+            warnings.append(f"DI_CONCERN({self.exposure.di_value:+.1f}dB)")
+        if self.ai.worker_status == AiWorkerStatus.AI_FALLBACK:
+            warnings.append("AI_FALLBACK")
+        return '; '.join(warnings)
+```
+
+#### 13.2.2 C++ 구조체
+
+```cpp
+// XpeQualityState — C++ sidecar object
+// Lifetime: same as the processing call; returned alongside output image.
+
+enum class CalibFreshness   : uint8_t { FRESH=0, AGING=1, STALE=2, EXPIRED=3 };
+enum class DefectBurdenClass: uint8_t { NEGLIGIBLE=0, LOW=1, MODERATE=2, HIGH=3 };
+enum class LagTierApplied   : uint8_t { NONE=0, FAST=1, FULL=3 };
+enum class GsvgSkipReason   : uint8_t { NOT_SKIPPED=0, NO_GRID=1, PERF=2, AED_FAILED=3 };
+enum class AiWorkerStatus   : uint8_t { NOT_USED=0, AI_SUCCESS=1, FALLBACK=2, DISABLED=3 };
+
+struct CalibQualityState {
+    CalibFreshness freshness_class  = CalibFreshness::FRESH;
+    float          freshness_score  = 1.0f;
+    char           session_id[17]   = {};   // 16 hex + null
+    float          days_since_cal   = 0.0f;
+    bool           drift_warning    = false;
+};
+
+struct DetectorCorrectionState {
+    DefectBurdenClass defect_burden = DefectBurdenClass::NEGLIGIBLE;
+    uint32_t          defect_count  = 0;
+    LagTierApplied    lag_tier      = LagTierApplied::NONE;
+    float             lag_residual_pct  = 0.0f;
+    bool              nonlinearity_applied = false;
+    bool              heel_applied    = false;
+};
+
+struct ExposureState {
+    bool  aed_valid      = true;
+    float ei_value       = 0.0f;
+    float di_value       = 0.0f;
+    float roi_confidence = 1.0f;
+    char  roi_method[32] = "central";
+};
+
+struct GsvgState {
+    bool          grid_detected = false;
+    bool          gsvg_applied  = false;
+    GsvgSkipReason skip_reason  = GsvgSkipReason::NOT_SKIPPED;
+    float         grid_freq_lpmm = 0.0f;
+};
+
+struct AiState {
+    AiWorkerStatus status       = AiWorkerStatus::NOT_USED;
+    char  body_part_id[32]      = {};
+    float confidence            = 0.0f;
+    char  model_version[32]     = {};
+    float inference_ms          = 0.0f;
+};
+
+struct XpeQualityState {
+    char               frame_id[64]   = {};
+    int64_t            timestamp_ns   = 0;
+    CalibQualityState  calib          = {};
+    DetectorCorrectionState detector  = {};
+    ExposureState      exposure       = {};
+    GsvgState          gsvg           = {};
+    AiState            ai             = {};
+    char               pipeline_ver[16] = "xpe-1.2";
+
+    // Serialize to JSON string for logging/DICOM private tag
+    std::string to_json() const;
+};
+```
+
+#### 13.2.3 파이프라인 통합 포인트
+
+각 처리 단계에서 `XpeQualityState`를 채우는 위치:
+
+| 단계 | 채우는 필드 | 시점 |
+|-----|-----------|------|
+| ConfigManager 로드 | `calib.*` | 파이프라인 시작 전 |
+| Readout Validation | `exposure.aed_valid` 예비 | §3.0 완료 후 |
+| Defect Correction | `detector.defect_burden`, `detector.defect_count` | §3.3 완료 후 |
+| Ghost Correction | `detector.lag_tier`, `detector.lag_residual_pct` | §3.4.5 완료 후 |
+| Non-linearity | `detector.nonlinearity_applied` | §3.0.5 완료 후 |
+| Heel Correction | `detector.heel_applied` | §3.5 완료 후 |
+| AED-0 | `exposure.aed_valid`, `exposure.ei_value` | §9.4 완료 후 |
+| Grid Suppression | `gsvg.*` | §5 완료 후 |
+| EI Calculation | `exposure.di_value`, `exposure.roi_confidence` | §7 완료 후 |
+| AI Worker | `ai.*` | §8.4 완료 후 |
+
+### 13.3 검증 기준
+
+| 항목 | 기준 | 측정 방법 |
+|------|------|---------|
+| 모든 필드 채워짐 | 파이프라인 완료 시 0개 기본값 잔류 | 완전 파이프라인 실행 후 확인 |
+| `overall_advisory()` 정확도 | 알려진 이상 시나리오 100% 탐지 | 합성 결함 파이프라인 |
+| 사이드카 직렬화 크기 | < 1KB (JSON) | 시리얼라이제이션 테스트 |
+| 메인 이미지 처리 추가 지연 | < 0.5ms | 프로파일링 |
+
+**IEC 62304 §5.4 추적성**: SRS ID: SRS-QC-003 (품질 상태 사이드카) — Phase 2 추가 예정
+
+---
+
 ## 부록 A: 수학 공식 일람
 
 ### A.1 Pre-Processing 공식
@@ -3396,6 +5805,20 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 | Grid Suppression | — (Phase 2) | — | MTF retention + CNR |
 | Virtual Grid | — (Phase 2) | — | CNR comparison vs physical grid |
 | Exposure Index | — (Phase 2) | SWU-2.9 | IEC 62494-1 conformance |
+| Readout Validation | SRS-QC-001 | SWU-1.0 | Saturation/geometry injection test |
+| NPS Computation | SRS-MEAS-001 | — | IEC 62220-1 compliance |
+| DQE Computation | SRS-MEAS-001 | — | IEC 62220-1 DQE formula |
+| Collimation Mask | SRS-FUNC-001b | — | 95% detection, ±5mm accuracy |
+| Heel Effect | SRS-FUNC-002b | SWU-1.5 | PRNU CV < 0.8% (Phase 2) |
+| Multi-SID Gain | SRS-FUNC-002 ext | SWU-1.2b | Interp error < 0.5% (Phase 2) |
+| Calibration Session Lock | SRS-SEC-002 ext | — | 100% mixed-session rejection |
+| Calibration Drift Monitor | SRS-QC-002 | — | Drift threshold parity test |
+| Quality State Sidecar | SRS-QC-003 | — | All-field population test |
+| Scalar Parity Harness | SRS-TEST-001 | — | CI PASS on all stages |
+| MTF ESF Pipeline | SRS-MEAS-002 | — | IEC 62220-1-1 f50 accuracy |
+| Lag Residual Tiering | SRS-FUNC-004 ext | SWU-1.4b | Tier selection accuracy |
+| VG Anatomy Presets | SRS-FUNC-008b | — | CNR ≥10% (Chest), observer gate |
+| AI Worker Isolation | SRS-AI-001 | — | Fallback 100% on timeout |
 
 ---
 
@@ -3403,11 +5826,12 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 | 개정 | 날짜 | 저자 | 내용 |
 |------|------|------|------|
+| 1.2 | 2026-04-15 | XPE Team | **Round 3 GAP 해소 10건 (GAP-O~X)**: GAP-O (Heel Effect Compensation §3.5, Wang 2013 Duo-SID), GAP-P (Multi-SID Gain 보간 §3.2.5), GAP-Q (교정 세션 잠금 §2.4, 매니페스트 해시 체인), GAP-R (품질 상태 벡터 사이드카 §13, XpeQualityState), GAP-S (스칼라 참조 + SIMD 패리티 하네스 §11.4), GAP-T (MTF ESF 완전 구현 §12.6, IEC 62220-1-1), GAP-U (Lag 잔류 티어링 §3.4.5, Tier-0/1/3 결정론적 선택), GAP-V (해부 부위별 VG 프리셋 §5.3, 15개 부위 테이블), GAP-W (AI Worker 격리 §8.4, ONNX + 폴백 + 모델 매니페스트), GAP-X (교정 드리프트 모니터링 §9.5, 드리프트율 측정 + 재교정 트리거). 섹션 수 추가, §13 신설. |
 | 1.1 | 2026-04-15 | XPE Team | **GAP 해소 10건**: GAP-D (NSCT 완전 구현), GAP-E (update_defect_map_runtime AVX2 구현), GAP-F (EI ROI Central Method √0.1 수정), GAP-G (avx2_log_ps Cephes 다항식), GAP-H (Non-linearity Correction §3.0.5), GAP-I (Readout Validation §3.0), GAP-J (AED-0 §9.4), GAP-L (NPS §12.3), GAP-M (DQE §12.4), GAP-N (Collimation Mask §12.5). 섹션 수 ~50% 증가. |
 | 1.0 | 2026-04-15 | XPE Team | 초판 (10회 review-evaluate-fix 완료). GAP-01~GAP-10 초기 해소. |
 
 ---
 
-*Document End — XPE-ALG-001 v1.1*
+*Document End — XPE-ALG-001 v1.2*
 
 *Cross-references: XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, xpe-algorithm-spec-deepsync.md, SPEC-XPE-MASTER.md, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research*

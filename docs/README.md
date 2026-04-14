@@ -114,7 +114,7 @@
 | 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
 | 5.4 | Unified Algorithm Spec | [XPE-ALG-001](post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | ALG-001 |
 
-> **XPE-ALG-001** (IEC 62304 §5.4 Detailed Design): 10개 알고리즘 공백(GAP-01~10) 해소를 위한 통합 알고리즘 명세서. GAP-D/E/F/G/H/I/J/L/M/N 보완 포함 (v1.1, 2026-04-15).
+> **XPE-ALG-001 v1.2** (IEC 62304 §5.4 Detailed Design): 3 라운드 30회 Review-Evaluate-Fix를 통해 30개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X) 전부 해소. v1.2 신규 항목: Heel Effect(§3.5), Multi-SID Gain(§3.2.5), Session Lock(§2.4), Quality State Sidecar(§13), Parity Harness(§11.4), MTF ESF(§12.6), Lag Tiering(§3.4.5), VG Anatomy Presets(§5.3), AI Worker Isolation(§8.4), Drift Monitor(§9.5).
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 13개 문서
 
@@ -420,6 +420,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | v3.2.0 | **XPE-ALG-001 v1.2 Round 3 완료** (GAP-O~X 해소 10건): Heel Effect, Multi-SID Gain, Session Lock, Quality State Sidecar(§13 신설), Parity Harness, MTF ESF 완전 구현, Lag Tiering, VG Anatomy Presets(15개 부위), AI Worker Isolation(ONNX), Drift Monitor. `post-processing/xpe/README.md` v1.1.0 반영. |
 | 2026-04-15 | v3.1.0 | **XPE-ALG-001 통합 알고리즘 명세 추가** (ALG-001): GAP-D/E/F/G/H/I/J/L/M/N 해소, Readout Validation, Non-linearity Correction, AED-0, NPS/DQE/Collimation 알고리즘 추가. xpe-algorithm-spec-deepsync 버전 참조 v3.0.0-ds2 → v3.2.0-ds4 수정. `post-processing/xpe/README.md` 신규. 총 ~132개 문서, ~67,699줄 |
 | 2026-04-14 | v3.0.0 | **전체 모듈 문서 패키지 완성**: Panel Defect(9), Enhance Basic(9), Enhance Advanced(8), AI Module(6), Display(6), DICOM(6), Common(6) 추가. GSVG·Ghost·Calibration IAP/TDS/README 보강. 섹션 3.5~3.11 신규. IEC 62304 매트릭스 11개 항목으로 확장. 총 129개 문서, ~64,599줄 |
 | 2026-04-14 | v2.0.0 | Hybrid 3-Tier + IEC 62304 재편성. Archive 분리. 검증 보고서 통합. Normative Authority Table 추가 |

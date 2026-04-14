@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.0.0  
+**Package Version**: 1.1.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -76,7 +76,24 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백
+### 4.1 해소된 알고리즘 공백 (v1.2 기준 — 총 30건)
+
+**v1.0 Round 1 (GAP-01~10):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §2 | Python↔C++ 아키텍처 브리지 | GAP-01 |
+| §4 | Core Processing 알고리즘 | GAP-02 |
+| §5 | Grid Suppression | GAP-03 |
+| §8 | AI/DL 알고리즘 | GAP-04 |
+| §6 | Display Processing | GAP-05 |
+| §10 | SIMD 최적화 파이프라인 | GAP-06 |
+| §8.3 | 파노라마 스티칭 | GAP-07 |
+| §5.2 | Virtual Grid / Scatter Correction | GAP-08 |
+| §7 | Exposure Index (IEC 62494-1) | GAP-09 |
+| §9 | 교정 맵 생성↔런타임 연결 | GAP-10 |
+
+**v1.1 Round 2 (GAP-D~N):**
 
 | 섹션 | 알고리즘 | 공백 |
 |------|---------|------|
@@ -90,6 +107,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §12.3 | NPS 계산 (IEC 62220-1 준수) | GAP-L |
 | §12.4 | DQE 계산 | GAP-M |
 | §12.5 | Collimation Mask Detection / CollimatorMask 클래스 | GAP-N |
+
+**v1.2 Round 3 (GAP-O~X):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §3.5 | Heel Effect Compensation (Wang 2013 Duo-SID) | GAP-O |
+| §3.2.5 | Multi-SID Gain 보간 및 kVp 선택 | GAP-P |
+| §2.4 | 교정 세션 잠금 및 매니페스트 해시 체인 | GAP-Q |
+| §13 | 품질 상태 벡터 사이드카 (XpeQualityState) | GAP-R |
+| §11.4 | 스칼라 참조 + SIMD 패리티 하네스 | GAP-S |
+| §12.6 | MTF 슬랜트 에지 ESF 완전 구현 (IEC 62220-1-1) | GAP-T |
+| §3.4.5 | Lag 잔류 기반 결정론적 티어링 | GAP-U |
+| §5.3 | 해부 부위별 Virtual Grid 프리셋 (15개 부위) | GAP-V |
+| §8.4 | AI Worker 격리 아키텍처 (ONNX + 폴백) | GAP-W |
+| §9.5 | 교정 드리프트 모니터링 | GAP-X |
 
 ### 4.2 문서 관계
 
@@ -109,21 +141,32 @@ XPE-STP-001 (테스트 계획)
 
 | 알고리즘 | SRS ID | DLL |
 |---------|--------|-----|
-| Readout Validation | SRS-QC-001 (신규) | xpe_preprocess.dll |
-| Non-linearity Correction | SRS-FUNC-001b (신규) | xpe_preprocess.dll |
+| Readout Validation | SRS-QC-001 | xpe_preprocess.dll |
+| Non-linearity Correction | SRS-FUNC-001b | xpe_preprocess.dll |
 | Offset Correction | SRS-FUNC-001 | xpe_preprocess.dll |
 | Gain Correction | SRS-FUNC-002 | xpe_preprocess.dll |
+| Multi-SID Gain Interpolation | SRS-FUNC-002 ext | xpe_preprocess.dll |
+| Heel Effect Compensation | SRS-FUNC-002b | xpe_preprocess.dll |
 | Defect Correction | SRS-FUNC-003 | xpe_preprocess.dll |
 | Ghost/Lag Correction | SRS-FUNC-004 | xpe_preprocess.dll |
+| Lag Residual Tiering | SRS-FUNC-004 ext | xpe_preprocess.dll |
+| Calibration Session Lock | SRS-SEC-002 ext | xpe_common.dll |
+| Calibration Drift Monitor | SRS-QC-002 | xpe_common.dll |
 | Log Transform | SRS-FUNC-010 | xpe_enhance_basic.dll |
 | Bilateral Filter | SRS-FUNC-011 | xpe_enhance_basic.dll |
 | CLAHE | SRS-FUNC-012 | xpe_enhance_basic.dll |
 | Edge Enhancement | SRS-FUNC-013 | xpe_enhance_advanced.dll |
 | Grid Suppression (NSCT) | Phase 2 SRS TBD | xpe_gsvg.dll |
 | Virtual Grid | Phase 2 SRS TBD | xpe_gsvg.dll |
+| VG Anatomy Presets | SRS-FUNC-008b | xpe_gsvg.dll |
 | EI / DI | SRS-FUNC-009 | xpe_enhance_advanced.dll |
-| NPS / DQE | SRS-MEAS-001 (신규) | xpe_enhance_advanced.dll |
+| NPS / DQE | SRS-MEAS-001 | xpe_enhance_advanced.dll |
+| MTF ESF Pipeline | SRS-MEAS-002 | xpe_enhance_advanced.dll |
 | Collimation Mask | Phase 2 SRS TBD | xpe_enhance_advanced.dll |
+| Quality State Sidecar | SRS-QC-003 | xpe_common.dll |
+| Scalar Parity Harness | SRS-TEST-001 | (test framework) |
+| AI Worker Isolation | SRS-AI-001 | xpe_ai.dll |
+| ONNX Model Manifest | SRS-AI-002 | xpe_ai_worker.exe |
 | Panoramic Stitch | SRS-FUNC-017 | xpe_ai.dll |
 | Bone Suppression | SRS-FUNC-018 | xpe_ai.dll |
 
@@ -169,4 +212,5 @@ XPE-STP-001 (테스트 계획)
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 1.1.0 | XPE-ALG-001 v1.2 반영. Round 3 GAP-O~X 해소 반영. 알고리즘 빠른 참조 테이블 확장 (30건). SRS ID 추가 (SRS-FUNC-002b, SRS-QC-002/003, SRS-AI-001/002, SRS-MEAS-002, SRS-TEST-001 등). |
 | 2026-04-15 | 1.0.0 | 신규 생성. XPE-ALG-001 v1.1 통합 반영. 23개 문서 목록 완성. |
