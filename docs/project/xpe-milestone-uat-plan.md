@@ -125,65 +125,58 @@ XPE는 Class B 의료 디바이스로, 다음 IEC 62304 활동을 요구합니�
 gantt
     title XPE Sprint Timeline - AI Agent Execution with Parallelization
     dateFormat YYYY-MM-DD
-    axisFormat %W
+    axisFormat W%W
 
     section Phase 0
-    P0-01 Build System           :p001, 2026-04-14, 1w
-    P0-02 Common Types+Mem+Err   :p002, after p001, 1w
-    P0-03 Logging                :p003, after p002, 1w
-    P0-04 Config+Lifecycle       :p004, after p002, 1w
-    P0-05 AED+Alert              :p005, after p004, 1w
-    P0-06 ThreadPool+TestInfra   :p006, after p004, 1w
-    P0-07 C# GUI Scaffold        :p007, after p005 p006, 1w
-    M1: Foundation Ready         :m1, after p007, 0d
+    P0-01 Build System           :p001, 2026-04-14, 7d
+    P0-02 Common Types+Mem+Err   :p002, after p001, 7d
+    P0-03 Logging                :p003, after p002, 7d
+    P0-04 Config+Lifecycle       :p004, after p002, 7d
+    P0-05 AED+Alert              :p005, after p004, 7d
+    P0-06 ThreadPool+TestInfra   :p006, after p004, 7d
+    P0-07 C# GUI Scaffold        :p007, after p005, 7d
+    M1 Foundation Gate           :milestone, m1, after p007, 1d
 
     section Phase 1a
-    P1A-01 CalibManager          :p1a01, after p007, 1w
-    P1A-02 Offset+Gain           :p1a02, after p1a01, 1w
-    P1A-03 Readout+Temp+Nonlin   :p1a03, after p1a02, 1w
-    P1A-04 Defect                :p1a04, after p1a02, 1w
-    P1A-05 Ghost T1+T2           :p1a05, after p1a02, 1w
-    P1A-06 Ghost T3+Pipeline     :p1a06, after p1a03 p1a04 p1a05, 1w
-    M2: Pre-Processing Ready     :m2, after p1a06, 0d
+    P1A-01 CalibManager          :p1a01, after p007, 7d
+    P1A-02 Offset+Gain           :p1a02, after p1a01, 7d
+    P1A-03 Readout+Temp+Nonlin   :p1a03, after p1a02, 7d
+    P1A-04 Defect                :p1a04, after p1a02, 7d
+    P1A-05 Ghost T1+T2           :p1a05, after p1a02, 7d
+    P1A-06 Ghost T3+Pipeline     :p1a06, after p1a03, 7d
+    M2 Pre-Processing Gate       :milestone, m2, after p1a06, 1d
 
-    section Phase 1b-ENH
-    P1B-ENH-01 Log+Noise         :p1benh01, after p1a06, 1w
-    P1B-ENH-02 Contrast+Edge+EI  :p1benh02, after p1benh01, 1w
-    P1B-ENH-03 P/Invoke Integ    :p1benh03, after p1benh02, 1w
+    section Phase 1b ENH
+    P1B-ENH-01 Log+Noise         :p1benh01, after p1a06, 7d
+    P1B-ENH-02 Contrast+Edge+EI  :p1benh02, after p1benh01, 7d
+    P1B-ENH-03 P/Invoke Integ    :p1benh03, after p1benh02, 7d
 
-    section Phase 1b-DISP
-    P1B-DISP-01 LUT Pipeline     :p1bdisp01, after p007, 1w
-    P1B-DISP-02 Manager+P/Invoke :p1bdisp02, after p1bdisp01, 1w
+    section Phase 1b DISP
+    P1B-DISP-01 LUT Pipeline     :p1bdisp01, after p007, 7d
+    P1B-DISP-02 LUTMgr+P/Invoke  :p1bdisp02, after p1bdisp01, 7d
 
-    section Phase 1b-DICOM
-    P1B-DICOM-01 Reader+Writer   :p1bdicom01, after p007, 1w
-    P1B-DICOM-02 GSPS+Network    :p1bdicom02, after p1bdicom01, 1w
+    section Phase 1b DICOM
+    P1B-DICOM-01 Reader+Writer   :p1bdicom01, after p007, 7d
+    P1B-DICOM-02 GSPS+Network    :p1bdicom02, after p1bdicom01, 7d
 
-    section Phase 1b-GUI
-    P1B-GUI-01 Orchestrator+QA   :p1bgui01, after p1benh03 p1bdisp02 p1bdicom02, 1w
-    M3: Full Phase 1 Ready       :m3, after p1bgui01, 0d
+    section Phase 1b GUI
+    P1B-GUI-01 Orchestrator+QA   :p1bgui01, after p1benh03, 7d
+    M3 Full Phase1 Gate          :milestone, m3, after p1bgui01, 1d
 
-    section Phase 2-ADV
-    P2-ADV-01 Collimation        :p2adv01, after p1benh02, 1w
-    P2-ADV-02 Multiscale+Frac    :p2adv02, after p2adv01, 1w
+    section Phase 2 ADV
+    P2-ADV-01 Collimation        :p2adv01, after p1benh02, 7d
+    P2-ADV-02 Multiscale+Frac    :p2adv02, after p2adv01, 7d
 
-    section Phase 2-GSVG
-    P2-GSVG-01 Grid Detect+Suppr :p2gsvg01, after p001, 1w
-    P2-GSVG-02 Virtual Grid      :p2gsvg02, after p2gsvg01, 1w
-    M4: Advanced+GSVG Ready      :m4, after p2adv02 p2gsvg02, 0d
+    section Phase 2 GSVG
+    P2-GSVG-01 Grid Detect+Suppr :p2gsvg01, after p001, 7d
+    P2-GSVG-02 Virtual Grid      :p2gsvg02, after p2gsvg01, 7d
+    M4 Advanced+GSVG Gate        :milestone, m4, after p2adv02, 1d
 
-    section Phase 3-AI
-    P3-AI-01 AI Worker+BodyPart  :p3ai01, after p007, 1w
-    P3-AI-02 Stitch+BoneSuppres  :p3ai02, after p3ai01, 1w
-    P3-AI-03 DL Denoise+AI Collim:p3ai03, after p3ai02, 1w
-    M5: Full System Ready        :m5, after p3ai03, 0d
-
-    section Milestones
-    M1 Gate                      :crit, m1, 0d
-    M2 Gate                      :crit, m2, 0d
-    M3 Gate                      :crit, m3, 0d
-    M4 Gate                      :crit, m4, 0d
-    M5 Gate (Final)              :crit, m5, 0d
+    section Phase 3 AI
+    P3-AI-01 AI Worker+BodyPart  :p3ai01, after p007, 7d
+    P3-AI-02 Stitch+BoneSuppress :p3ai02, after p3ai01, 7d
+    P3-AI-03 DL Denoise+Collim   :p3ai03, after p3ai02, 7d
+    M5 Final System Gate         :milestone, m5, after p3ai03, 1d
 ```
 
 **병렬화 효과:**
