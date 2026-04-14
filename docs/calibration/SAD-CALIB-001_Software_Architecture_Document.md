@@ -645,12 +645,16 @@ xpe_preprocess.dll/
 
 ### Project Documentation
 
-| Document | Location |
-|----------|----------|
-| Software Requirements Specification | `docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md` |
-| Calibration Module README | `docs/calibration/README.md` |
-| Algorithm Specification | `.moai/specs/xpe-algorithm-spec-deepsync.md` |
+| Document ID | Title | Location | Relevance to Architecture |
+|-------------|-------|----------|--------------------------|
+| **SRS-CALIB-001** | Software Requirements Specification | `docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md` | Primary source of architectural requirements |
+| **RTM-CALIB-001** | Requirements Traceability Matrix | `docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md` | Verifies all SWU units are traceable to requirements |
+| **SHA-CALIB-001** | Software Hazard Analysis | `docs/calibration/SHA-CALIB-001_Software_Hazard_Analysis.md` | Hazard-driven constraints on SWU-1.5, SWU-1.1, SWU-1.2 |
+| **IAP-CALIB-001** | Image Acquisition Protocol | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` | Defines the physical inputs that drive SWU-1.5 calibration data loading; Dark frame format → offsetMap, Flat-field → gainMap, BPM sequences → defect map, Lag sequences → NLCSC coefficients |
+| **TDS-CALIB-001** | Test Dataset Specification | `docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md` | Specifies test inputs for verification of all 9 SWU units; Golden Reference SSIM > 0.999 applies to SWU output validation |
+| README | Calibration Module README | `docs/calibration/README.md` | Software pipeline overview, bypass policy, API reference |
+| ALG-SPEC-001 | Algorithm Specification (normative) | `.moai/specs/xpe-algorithm-spec-deepsync.md` | Normative algorithm authority for all SWU implementation |
 
 ---
 
-*SAD-CALIB-001 v1.0 — End of Document*
+*SAD-CALIB-001 v1.1 — End of Document*

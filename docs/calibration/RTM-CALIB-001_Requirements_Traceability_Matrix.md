@@ -1,10 +1,12 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.0  
+**Document ID:** RTM-CALIB-001 v1.1  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
 **Date:** 2026-04-14  
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
+**Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
+**Acquisition Reference:** IAP-CALIB-001 (영상 취득 프로토콜) — 실제 영상 기반 테스트의 취득 조건 명세  
 
 ---
 
@@ -18,6 +20,16 @@ This document provides complete bidirectional traceability between:
 - Hazard identifications and risk controls (SHA-CALIB-001)
 
 Ensures all requirements are designed, implemented, tested, and traceable to risk controls.
+
+### Related Documents
+
+| Document | Role in Traceability |
+|----------|---------------------|
+| **SRS-CALIB-001** | Source of all functional, safety, and performance requirements |
+| **SAD-CALIB-001** | Maps requirements to SWU architectural units |
+| **SHA-CALIB-001** | Provides HAZ-CALIB-001 through HAZ-CALIB-007 risk control traceability |
+| **TDS-CALIB-001** | Defines test dataset specifications for all unit/integration test cases; test input data must conform to TDS-CALIB-001 §4–§7 |
+| **IAP-CALIB-001** | Governs acquisition of real-image test inputs; all `real/` directory data must be acquired per IAP-CALIB-001 §6 protocols |
 
 ---
 
@@ -54,6 +66,10 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 ---
 
 ## 3. Test Case Definitions (Brief)
+
+> **Test Input Data**: All test cases requiring calibration map files (`.calib`, `.raw`) must use datasets prepared according to **TDS-CALIB-001**. Synthetic datasets are defined in TDS §4–§5; real image datasets in TDS §6. Golden reference comparison uses TDS §7 criteria (SSIM > 0.999).
+>
+> **Real Image Acquisition**: Real-image test inputs (`real/` datasets) must be acquired following **IAP-CALIB-001** §6 protocols. See IAP §6.1 (Dark), §6.2 (Flat-field), §6.3 (BPM), §6.4 (Nonlinearity), §6.5 (Lag/Ghost).
 
 ### Unit Tests (UT-1.5-001 through UT-1.5-018)
 

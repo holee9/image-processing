@@ -1,12 +1,14 @@
 # Software Hazard Analysis - Calibration Module
 
-> **Document ID**: SHA-CALIB-001 | **Version**: 1.0 | **Date**: 2026-04-14
+> **Document ID**: SHA-CALIB-001 | **Version**: 1.1 | **Date**: 2026-04-14
 >
 > **IEC 62304 Clause**: 7 (ISO 14971 integration)
 >
 > **Safety Classification**: Class B
 >
-> **Trace Source**: XPE-SRS-001, SRM (Software Risk Management), SAD-001
+> **Trace Source**: XPE-SRS-001, SRM (Software Risk Management), SAD-001  
+> **Acquisition Reference**: IAP-CALIB-001 — 캘리브레이션 영상 취득 절차 (위험 통제 검증에 사용되는 실제 영상의 취득 조건 정의)  
+> **Test Verification**: TDS-CALIB-001 — 위험 통제 효과를 검증하는 테스트 케이스의 입력 데이터 명세
 
 ---
 
@@ -24,6 +26,16 @@ Hazardous situations addressed include:
 - File access race conditions
 
 This document serves as the formal hazard identification source for risk control traceability (XPE-RTM-001 §3).
+
+### Related Documents
+
+| Document | Relationship |
+|----------|-------------|
+| **SRS-CALIB-001** | Safety requirements (SRS-CALIB-SAFE-001 through SAFE-005) implement hazard risk controls identified here |
+| **SAD-CALIB-001** | Architectural units (SWU-1.5, SWU-1.1–1.4) implementing risk controls |
+| **RTM-CALIB-001** | Bidirectional traceability: HAZ-CALIB-XXX ↔ SRS-SAFE ↔ test cases |
+| **IAP-CALIB-001** | Acquisition protocol whose adherence reduces HAZ-CALIB-004 (BPM outdated) and HAZ-CALIB-005 (Nonlinearity mismatch) probability; Section 6.3 BPM protocol and §6.4 Nonlinearity protocol are preventive controls |
+| **TDS-CALIB-001** | Test datasets used to verify effectiveness of all 7 risk controls; synthetic data covers failure injection (HAZ-CALIB-001 corrupted offset, HAZ-CALIB-003 expired timestamp); real data via IAP §6 |
 
 ---
 
@@ -269,7 +281,8 @@ The XPE Calibration module (Phase 1a preprocessing) manages critical calibration
 - [ ] Hazard identification complete (all 7 identified)
 - [ ] Risk assessment matrix reviewed
 - [ ] Control measures traced to SRS-SAFE requirements
-- [ ] Test cases assigned to all controls
+- [ ] Test cases assigned to all controls (inputs per TDS-CALIB-001)
+- [ ] Real-image test data acquired per IAP-CALIB-001 protocols
 - [ ] Residual risk acceptable
 - [ ] Formal sign-off by Quality/Risk Manager
 

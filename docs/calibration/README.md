@@ -4,9 +4,65 @@
 **소유자 DLL**: `xpe_preprocess.dll`  
 **의존성**: `xpe_common.dll` (Layer 0)  
 **안전 등급**: IEC 62304 Class B  
-**문서 버전**: 1.0.0  
+**문서 버전**: 1.1.0  
 **날짜**: 2026-04-14  
 **규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
+
+---
+
+## 캘리브레이션 문서 패키지 빠른 참조
+
+이 README는 7개의 상호 연관된 캘리브레이션 문서 중 하나입니다. 역할에 따라 바로 이동하세요:
+
+| 역할 | 읽어야 할 문서 | 목적 |
+|------|--------------|------|
+| **소프트웨어 개발자** | 이 README → SRS → SAD | 파이프라인 구조, API, 알고리즘 이해 |
+| **캘리브레이션 엔지니어** | IAP-CALIB-001 | 영상 취득 절차 (Dark/Flat/BPM/Lag) |
+| **QA / 테스트 엔지니어** | TDS-CALIB-001 → RTM | 테스트 데이터 구성, 합격 기준 |
+| **안전/위험 담당자** | SHA-CALIB-001 → RTM | 위험 식별, 리스크 관리 |
+| **의료기기 규제 담당자** | SRS → RTM → SHA → SAD | IEC 62304 추적성 패키지 |
+
+### 문서 생태계 구조
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│               캘리브레이션 모듈 문서 패키지 (v1.1)                 │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │   xray-detector-calibration-prd.md  (PRD)                   │  │
+│  │   알고리즘 요구사항 원본 · 9단계 캘리브레이션 절차 · 평가 기준│  │
+│  └───────────────────┬──────────────────────────────────────────┘  │
+│                      │ 파생                                         │
+│          ┌───────────┼────────────────────┐                        │
+│          │           │                    │                        │
+│          v           v                    v                        │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐   │
+│  │SRS-CALIB-001 │ │SAD-CALIB-001 │ │SHA-CALIB-001             │   │
+│  │소프트웨어    │ │소프트웨어    │ │소프트웨어 위험 분석      │   │
+│  │요건 명세서   │ │아키텍처 문서 │ │(7개 위험, ISO 14971)     │   │
+│  └──────┬───────┘ └──────┬───────┘ └──────────┬───────────────┘   │
+│         │                │                     │                   │
+│         └────────────────┼─────────────────────┘                   │
+│                          │ 추적                                     │
+│                          v                                         │
+│                 ┌──────────────────┐                               │
+│                 │  RTM-CALIB-001   │                               │
+│                 │  요구사항 추적   │                               │
+│                 │  행렬 (SRS↔Test) │                               │
+│                 └────────┬─────────┘                               │
+│                          │ 테스트 입력                             │
+│          ┌───────────────┼──────────────────┐                     │
+│          v               v                  v                     │
+│  ┌──────────────┐ ┌──────────────┐          │                     │
+│  │IAP-CALIB-001 │ │TDS-CALIB-001 │          │                     │
+│  │영상 취득     │ │테스트 데이터 │          │                     │
+│  │프로토콜      │ │셋 명세서     │──────────┘                     │
+│  │(운영자용)    │ │(개발자/QA용) │                                 │
+│  └──────────────┘ └──────────────┘                                 │
+│                                                                     │
+│  ▶ 이 파일 (README.md) = 소프트웨어 파이프라인 기술 개요           │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -614,7 +670,30 @@ flags = 0x00000000  (원본 프레임)
 | 온도 LUT | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
 | 비선형성 곡선 | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
 
-### 8.2 캘리브레이션 데이터 생명주기
+### 8.2 캘리브레이션 영상 취득 요약
+
+> 상세 절차는 **IAP-CALIB-001** (Image Acquisition Protocol)을 참조하세요.
+
+각 캘리브레이션 데이터는 특정 촬영 프로토콜을 통해 취득된 원시 영상에서 생성됩니다:
+
+| 캘리브 데이터 | 필요 영상 유형 | 취득 조건 | IAP 섹션 |
+|-------------|-------------|---------|---------|
+| 오프셋 맵 (offsetMap) | Dark Frame — X선 OFF | 온도 6단계 × PREP 7단계 × 100프레임 | IAP §6.1 |
+| 게인 맵 (gainMap) | Flat-field — RQA-5 균일 조사 | 40~60% 포화도, Duo-SID (110/150 cm) | IAP §6.2 |
+| 불량 픽셀 맵 (BPM) | Dark + Flat-field 각 200프레임 | 온도 3단계, λ=8.0 임계값 | IAP §6.3 |
+| 비선형성 계수 | 다중 포화도 Flat-field | 5%~90% 범위 최소 5단계, 각 16프레임 | IAP §6.4 |
+| Lag/Ghost 계수 (NLCSC) | FSRF + RSRF 시퀀스 | 9개 포화도 수준, 6,030프레임 총계 | IAP §6.5 |
+
+**공장 vs. 현장 취득 비교**:
+
+| 항목 | 공장 (Factory) | 현장 (Field) |
+|------|:-------------:|:-----------:|
+| 총 프레임 수 | ~12,000 프레임 | ~500 프레임 |
+| 소요 시간 | ~8시간 | ~2시간 |
+| 온도 조건 | 6단계 (10~40°C) | 2~3단계 |
+| PREP 시간 | 7단계 (1~30초) | 3~4단계 |
+
+### 8.3 캘리브레이션 데이터 생명주기
 
 ```
 공장 캘리브레이션 ──> [offsetMap, gainMap, BPM, 온도 LUT, NL 곡선]
@@ -632,7 +711,7 @@ flags = 0x00000000  (원본 프레임)
 재캘리브레이션 ──> [완전한 공장 새로고침 또는 현장 업데이트]
 ```
 
-### 8.3 만료 및 드리프트 검출
+### 8.4 만료 및 드리프트 검출
 
 | 트리거 | 임계값 | 조치 |
 |---------|-----------|--------|
@@ -764,15 +843,38 @@ flags = 0x00000000  (원본 프레임)
 
 ### 프로젝트 문서
 
-| 문서 | 경로 |
-|----------|------|
-| 알고리즘 사양 (규범) | `.moai/specs/xpe-algorithm-spec-deepsync.md` |
-| 파이프라인 사양 | `.moai/project/pipeline-spec.md` |
-| API 사양 | `.moai/project/api-spec.md` |
-| 캘리브레이션 PRD | `docs/xray-fpd-research/xray-detector-calibration-prd.md` |
-| 고스트 보정 SRS | `docs/ghost-correction/srs_ghost_correction.md` |
-| 교차 검증 보고서 | `.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md` |
+#### IEC 62304 규제 문서 패키지
+
+| 문서 ID | 제목 | 경로 | 대상 | 설명 |
+|--------|------|------|------|------|
+| **PRD** | 캘리브레이션 PRD | `docs/calibration/xray-detector-calibration-prd.md` | 개발자 | 9단계 알고리즘 요구사항 원본 · 수식 · 절차 전체 |
+| **SRS-CALIB-001** | 소프트웨어 요건 명세서 | `docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md` | 개발자 | 25개 기능/안전/성능 요건 (IEC 62304 §5.2) |
+| **SAD-CALIB-001** | 소프트웨어 아키텍처 문서 | `docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md` | 개발자 | 9개 SWU 설계, 인터페이스, 데이터 흐름 (IEC 62304 §5.3) |
+| **SHA-CALIB-001** | 소프트웨어 위험 분석 | `docs/calibration/SHA-CALIB-001_Software_Hazard_Analysis.md` | 안전 담당자 | 7개 위험 식별 · ISO 14971 리스크 평가 · 통제 |
+| **RTM-CALIB-001** | 요건 추적 행렬 | `docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md` | QA / 개발자 | SRS ↔ 아키텍처 ↔ 테스트 ↔ 위험 양방향 추적 (IEC 62304 §5.1.1c) |
+| **IAP-CALIB-001** | **영상 취득 프로토콜** | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` | **캘리브레이션 엔지니어** | Dark/Flat-field/BPM/Lag/Nonlinearity 촬영 절차 · 합격 기준 · 장비 요건 |
+| **TDS-CALIB-001** | **테스트 데이터셋 명세서** | `docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md` | **QA / 개발자** | 알고리즘별 합성·실제 테스트 데이터 규격 · Golden Reference 관리 |
+
+#### 규범 알고리즘 사양
+
+| 문서 | 경로 | 설명 |
+|------|------|------|
+| ALG-SPEC-001 (규범) | `.moai/specs/xpe-algorithm-spec-deepsync.md` | 모든 알고리즘의 최종 권위 문서 |
+| 고스트 보정 SRS | `docs/ghost-correction/srs_ghost_correction.md` | 3단계 래그 보정 상세 요건 |
+| 교차 검증 보고서 | `.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md` | PRD ↔ SRS ↔ 구현 교차검증 |
+
+#### 문서 간 의존성 요약
+
+```
+PRD (원본)
+  └─▶ SRS-CALIB-001 (요건 명세)
+        ├─▶ SAD-CALIB-001 (아키텍처 설계)
+        ├─▶ SHA-CALIB-001 (위험 분석)
+        └─▶ RTM-CALIB-001 (추적 행렬)
+              ├─▶ IAP-CALIB-001 (취득 절차 — 테스트 입력 생성)
+              └─▶ TDS-CALIB-001 (테스트 데이터 명세 — 테스트 케이스 정의)
+```
 
 ---
 
-*캘리브레이션 모듈 README v1.0.0 끝*
+*캘리브레이션 모듈 README v1.1.0 끝*
