@@ -270,6 +270,7 @@ Raw Frame
 | **P0-10** | **xpe_common_api.h 통합 헤더 구조 확립** (모든 18 API 선언 또는 sub-header include) | -- | **Must** |
 | **P0-11** | **Logging 서브시스템 구현** (xpe_log_set_level/set_file/flush) | SWU-5.4 | **Must** |
 | **P0-12** | **AED 서브시스템 구현** (xpe_aed_configure/poll_event/get_status) | SWU-5.8 | **Must** |
+| **P0-13** | **벤치마크 매니페스트 스키마 정의** (JSON 스키마, BP-01~BP-10 패밀리, 해시 잠금 도구, `Algorithm-Benchmark-Pack-Spec.md` 준거) | -- | **Must** |
 
 **Acceptance Criteria**:
 - [ ] `cmake --preset release && cmake --build --preset release` 성공
@@ -280,6 +281,7 @@ Raw Frame
 - [ ] **모든 9개 모듈 디렉토리 존재** + 빈 CMakeLists.txt 생성
 - [ ] **Logging 함수 3개 동작 확인** (파일 출력 + 레벨 필터링)
 - [ ] **AED 함수 3개 동작 확인** (configure + poll + status)
+- [ ] **벤치마크 매니페스트 스키마 존재** (`data/benchmark/schema/manifest_schema.json`, BP-01~BP-10)
 
 ### Phase 1a: Pre-Processing (xpe_preprocess.dll)
 

@@ -1,14 +1,15 @@
 # XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.3.0
+**Version**: 1.4.0
 **Date**: 2026-04-14
-**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.1.0-ds3, xpe-implementation-reference.md v1.1.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
+**Source**: SPEC-XPE-MASTER v2.0.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.1.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
 **Total Sprints**: 28
 **Changelog**:
 - v1.0.0 -> v1.1.0: cross-verification corrections, EI scope corrected, appendices expanded.
 - v1.1.0 -> v1.2.0: source references refreshed and canonical executable-unit total corrected from 43 to 42.
 - v1.2.0 -> v1.3.0: brainstorming deep-sync added implementation-first scaffolding and parity/sidecar rules.
+- v1.3.0 -> v1.4.0: cross-verification round 11 — P0-13 benchmark manifest gate, NLCSC Tier 3 gate, scalar reference DoD in P1A-02.
 
 ---
 
@@ -112,12 +113,14 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] P/Invoke smoke test passes (C# loads xpe_common.dll, calls `xpe_version`)
 - [ ] All 9 module directories exist with stub CMakeLists.txt
 - [ ] Static analysis (cppcheck) reports 0 warnings
+- [ ] Benchmark manifest schema exists at `data/benchmark/schema/` (BP-01~BP-10 패밀리 정의)
 
 ### Gate G1a -> G1b (Phase 1a Complete)
 
 - [ ] xpe_preprocess.dll exports all 18 functions
 - [ ] Pre-processing pipeline (stages 0.5-4) completes within 500ms for 3072x3072
 - [ ] Ghost Tier 1+2 processing < 190ms
+- [ ] Ghost Tier 3 (NLCSC) processing < 240ms (optional If implemented, mandatory before G1b)
 - [ ] Calibration CRC verification works end-to-end
 - [ ] Unit test coverage >= 85% for xpe_preprocess
 - [ ] Memory leak test: 1000 frames without growth
@@ -443,6 +446,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] All 9 module directories scaffolded
 - [ ] xpe_common_api.h is complete and compiles as standalone header
 - [ ] Phase 0 gate checklist 100% complete
+- [ ] **Benchmark manifest schema defined** (`data/benchmark/schema/manifest_schema.json` 존재, BP-01~BP-10 패밀리 ID 및 필수 필드 포함)
 - [ ] **Image Path Management UI Complete**:
   - [ ] "Load Raw Image" and "Load DICOM" file dialogs functional
   - [ ] "Calibration Path Settings" dialog with 3 path browse buttons
@@ -524,12 +528,14 @@ SPRINT-P1A-01 (CalibManager)                   |
 **Definition of Done**:
 - [ ] 2 API functions exported
 - [ ] All 6 test cases pass
+- [ ] **Scalar reference implementation exists** (plain C, no intrinsics) before SIMD path
+- [ ] **Parity test**: scalar vs AVX2 outputs agree within 1e-5 relative tolerance on 1000-frame set
 - [ ] AVX2 SIMD used for inner loops (when available)
 - [ ] Format boundary: after gain, buffer is float32 (verified in test)
 - [ ] Unit test coverage >= 85%
 
 **Risk Items**:
-- SIMD optimization may introduce platform-specific behavior (mitigate: scalar fallback path)
+- SIMD optimization may introduce platform-specific behavior (mitigate: scalar reference is always the fallback)
 
 ---
 

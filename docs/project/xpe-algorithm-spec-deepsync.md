@@ -1,7 +1,7 @@
 # XPE Algorithm Specification (DeepSync)
 
 **Document ID**: ALG-SPEC-001  
-**Version**: 3.1.0-ds3  
+**Version**: 3.2.0-ds4  
 **Date**: 2026-04-14  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
@@ -12,7 +12,7 @@
 
 This document is the normative algorithm contract for XPE. It converts research findings into release-safe rules, performance targets, and fallback behavior that the codebase can implement and validate.
 
-This revision resolves the remaining DeepSync inconsistencies by:
+This revision (ds4) adds implementation-feasibility rules, sidecar contract guidance, and benchmark schema gate. Previous revision (ds3) resolved DeepSync inconsistencies by:
 
 - removing the duplicate `SWU-2.0` EI identifier,
 - aligning all normative references to `docs/project/`,
@@ -240,4 +240,17 @@ The following rules are normative for implementation planning:
 - optimized paths shall be checked against parity harnesses and benchmark packs, not only spot images,
 - ROI, diagnostics, confidence, and GSVG reason codes shall travel through sidecar structures or structured logs rather than generic image metadata mutation,
 - the deterministic release path shall not depend on GPU availability, cloud inference, or optional AI components,
-- learned features shall prefer bounded small-model designs with explicit disable and fallback behavior.
+- learned features shall prefer bounded small-model designs with explicit disable and fallback behavior,
+- benchmark manifest schema (`data/benchmark/schema/`) shall be defined and version-locked before Phase 1a feature work begins; no algorithm stage is considered production-ready without a corresponding benchmark family entry.
+
+### 8.2 Sidecar contract guidance
+
+Sidecar objects carry outputs that must not mutate `XpeImageMetadata`:
+
+| Sidecar | Minimum fields | Created by | Consumed by |
+|---|---|---|---|
+| Collimation ROI sidecar | `roi_x`, `roi_y`, `roi_w`, `roi_h`, `confidence`, `method_id` | Phase 2 collimation | Phase 2 EI refinement, GSVG |
+| Quality state vector | `calib_freshness`, `defect_burden_class`, `lag_tier`, `gsvg_state`, `ei_refinement_used`, `ai_worker_status` | Phase 1b/2 pipeline | diagnostic log, IPC to C# |
+| AI confidence sidecar | `model_id`, `model_version`, `confidence`, `failure_code`, `fallback_used` | Phase 3 AI worker | orchestrator, DICOM tag insertion |
+
+These fields are informational only in this specification. Concrete C struct definitions shall be in `xpe-implementation-reference.md`.

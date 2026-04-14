@@ -29,6 +29,20 @@ This file is a living issue register, not a historical scorecard. It tracks the 
 
 ---
 
+## 2.1 Brainstorming Resolution
+
+`XPE-Brainstorming-DeepSync-Execution.md` (v1.0.0) was added as a result of this verification pass.
+
+Key decisions formalized:
+- benchmark-first promotion rule (no premium claim without BP-01~BP-10 evidence)
+- scalar reference before SIMD (parity harness required)
+- sidecar contracts for ROI / quality-state / AI confidence (not XpeImageMetadata mutation)
+- deterministic router before assistive AI worker
+
+These decisions are now also reflected in `xpe-algorithm-spec-deepsync.md` §8.1 and `sprint-plan.md` Brainstorm-Derived Non-Negotiables.
+
+---
+
 ## 3. Open Blocking Items
 
 | ID | Severity | Blocking item | Owner class |
