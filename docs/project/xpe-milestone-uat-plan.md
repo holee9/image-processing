@@ -135,7 +135,7 @@ gantt
     P0-05 AED+Alert              :p005, after p004, 7d
     P0-06 ThreadPool+TestInfra   :p006, after p004, 7d
     P0-07 C# GUI Scaffold        :p007, after p005, 7d
-    M1 Foundation Gate           :milestone, m1, after p007, 1d
+    M1 Foundation Gate           :crit, milestone, m1, after p007, 1d
 
     section Phase 1a
     P1A-01 CalibManager          :p1a01, after p007, 7d
@@ -144,7 +144,7 @@ gantt
     P1A-04 Defect                :p1a04, after p1a02, 7d
     P1A-05 Ghost T1+T2           :p1a05, after p1a02, 7d
     P1A-06 Ghost T3+Pipeline     :p1a06, after p1a03, 7d
-    M2 Pre-Processing Gate       :milestone, m2, after p1a06, 1d
+    M2 Pre-Processing Gate       :crit, milestone, m2, after p1a06, 1d
 
     section Phase 1b ENH
     P1B-ENH-01 Log+Noise         :p1benh01, after p1a06, 7d
@@ -161,7 +161,7 @@ gantt
 
     section Phase 1b GUI
     P1B-GUI-01 Orchestrator+QA   :p1bgui01, after p1benh03, 7d
-    M3 Full Phase1 Gate          :milestone, m3, after p1bgui01, 1d
+    M3 Full Phase1 Gate          :crit, milestone, m3, after p1bgui01, 1d
 
     section Phase 2 ADV
     P2-ADV-01 Collimation        :p2adv01, after p1benh02, 7d
@@ -170,13 +170,13 @@ gantt
     section Phase 2 GSVG
     P2-GSVG-01 Grid Detect+Suppr :p2gsvg01, after p001, 7d
     P2-GSVG-02 Virtual Grid      :p2gsvg02, after p2gsvg01, 7d
-    M4 Advanced+GSVG Gate        :milestone, m4, after p2adv02, 1d
+    M4 Advanced+GSVG Gate        :crit, milestone, m4, after p2adv02, 1d
 
     section Phase 3 AI
     P3-AI-01 AI Worker+BodyPart  :p3ai01, after p007, 7d
     P3-AI-02 Stitch+BoneSuppress :p3ai02, after p3ai01, 7d
     P3-AI-03 DL Denoise+Collim   :p3ai03, after p3ai02, 7d
-    M5 Final System Gate         :milestone, m5, after p3ai03, 1d
+    M5 Final System Gate         :crit, milestone, m5, after p3ai03, 1d
 ```
 
 **병렬화 효과:**
