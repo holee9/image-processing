@@ -15,6 +15,7 @@ This repository is currently `docs-first` and is being upgraded into a delivery-
 
 - Detailed execution PRD: [docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md)
 - PRD decomposition and backlog: [docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md)
+- CI/CD and local build runbook: [docs/development/XPE-CI-CD_LocalBuild_Runbook.md](docs/development/XPE-CI-CD_LocalBuild_Runbook.md)
 
 ## Repository Layout
 
@@ -42,6 +43,7 @@ Useful local commands:
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Validate-Repo.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-MarkdownLinks.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Invoke-LocalVsCommonBuild.ps1 -Clean
 cmake --preset ci-common
 cmake --build --preset ci-common
 ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebInfo

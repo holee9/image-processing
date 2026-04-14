@@ -104,6 +104,7 @@ ehthumbs.db
 # ===========================================
 *.log
 logs/
+.cache/
 *.tmp
 *.temp
 *.bak

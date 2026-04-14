@@ -4,28 +4,28 @@
 
 static const char* XPE_VERSION_STRING = "0.1.0";
 
-XpeErrorCode xpe_init(const char* configJsonOrNull) {
+XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull) {
     (void)configJsonOrNull;
     /* TODO: Initialize logger, config manager, memory pool */
     return XPE_OK;
 }
 
-void xpe_shutdown(void) {
+XPE_API void xpe_shutdown(void) {
     /* TODO: Cleanup resources */
 }
 
-const char* xpe_version(void) {
+XPE_API const char* xpe_version(void) {
     return XPE_VERSION_STRING;
 }
 
-XpeErrorCode xpe_configure(const char* jsonConfig) {
+XPE_API XpeErrorCode xpe_configure(const char* jsonConfig) {
     if (!jsonConfig) return XPE_ERR_INVALID_INPUT;
     /* TODO: Parse JSON config via nlohmann/json */
     return XPE_OK;
 }
 
-XpeErrorCode xpe_get_param_range(const char* bodyPart, const char* paramName,
-                                  float* minVal, float* maxVal, float* defaultVal) {
+XPE_API XpeErrorCode xpe_get_param_range(const char* bodyPart, const char* paramName,
+                                         float* minVal, float* maxVal, float* defaultVal) {
     if (!bodyPart || !paramName || !minVal || !maxVal || !defaultVal)
         return XPE_ERR_INVALID_INPUT;
     /* TODO: Lookup parameter ranges from ParameterValidator */
@@ -35,7 +35,7 @@ XpeErrorCode xpe_get_param_range(const char* bodyPart, const char* paramName,
     return XPE_OK;
 }
 
-const char* xpe_error_string(XpeErrorCode code) {
+XPE_API const char* xpe_error_string(XpeErrorCode code) {
     switch (code) {
         case XPE_OK:                       return "Success";
         case XPE_ERR_INVALID_INPUT:        return "Invalid input parameter";
@@ -52,16 +52,16 @@ const char* xpe_error_string(XpeErrorCode code) {
     }
 }
 
-int32_t xpe_get_pending_alert_count(void) {
+XPE_API int32_t xpe_get_pending_alert_count(void) {
     /* TODO: Return count from alert queue */
     return 0;
 }
 
-XpeErrorCode xpe_get_pending_alert(int32_t index, char* msg, size_t msgLen, int32_t* severity) {
+XPE_API XpeErrorCode xpe_get_pending_alert(int32_t index, char* msg, size_t msgLen, int32_t* severity) {
     (void)index; (void)msg; (void)msgLen; (void)severity;
     return XPE_ERR_INVALID_INPUT; /* No alerts yet */
 }
 
-void xpe_clear_alerts(void) {
+XPE_API void xpe_clear_alerts(void) {
     /* TODO: Clear alert queue */
 }

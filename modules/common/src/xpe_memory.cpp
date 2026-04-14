@@ -2,8 +2,8 @@
 #include <cstdlib>
 #include <cstring>
 
-XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
-                              XpePixelFormat format, XpeImageBuffer* out) {
+XPE_API XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
+                                     XpePixelFormat format, XpeImageBuffer* out) {
     if (!out || width == 0 || height == 0)
         return XPE_ERR_INVALID_INPUT;
     if (width > 4096 || height > 4096)
@@ -29,7 +29,7 @@ XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
     return XPE_OK;
 }
 
-XpeErrorCode xpe_free_image(XpeImageBuffer* buf) {
+XPE_API XpeErrorCode xpe_free_image(XpeImageBuffer* buf) {
     if (!buf)
         return XPE_ERR_INVALID_INPUT;
     if (buf->data) {
@@ -40,7 +40,7 @@ XpeErrorCode xpe_free_image(XpeImageBuffer* buf) {
     return XPE_OK;
 }
 
-XpeErrorCode xpe_copy_image(const XpeImageBuffer* src, XpeImageBuffer* dst) {
+XPE_API XpeErrorCode xpe_copy_image(const XpeImageBuffer* src, XpeImageBuffer* dst) {
     if (!src || !dst || !src->data || !dst->data)
         return XPE_ERR_INVALID_INPUT;
     if (dst->dataSize < src->dataSize)
