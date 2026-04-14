@@ -13,6 +13,7 @@ This repository is currently `docs-first` and is being upgraded into a delivery-
 
 ## Key Documents
 
+- **Implementation analysis report**: [docs/project/XPE-Implementation-Analysis-Report.md](docs/project/XPE-Implementation-Analysis-Report.md)
 - Detailed execution PRD: [docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md)
 - PRD decomposition and backlog: [docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md)
 - CI/CD and local build runbook: [docs/development/XPE-CI-CD_LocalBuild_Runbook.md](docs/development/XPE-CI-CD_LocalBuild_Runbook.md)
