@@ -7,16 +7,16 @@
 
 ---
 
-## 1. SOUP Component Registry
+## 1. SOUP 컴포넌트 레지스트리
 
-| ID | Component | Version | License | Deployed | Source |
+| ID | 컴포넌트 | 버전 | 라이선스 | 배포됨 | 소스 |
 |----|-----------|---------|---------|----------|--------|
 | SOUP-001 | OpenCV | 4.9.0 | Apache 2.0 | Yes | github.com/opencv/opencv |
 | SOUP-002 | FFTW3 | 3.3.10 | GPL v2+ | Yes | fftw.org |
 | SOUP-003 | Eigen | 3.4.0 | MPL 2.0 | Yes | eigen.tuxfamily.org |
 | SOUP-004 | DCMTK | 3.6.8 | BSD-like | Yes | dicom.offis.de/dcmtk |
 | SOUP-005 | nlohmann/json | 3.11.3 | MIT | Yes | github.com/nlohmann/json |
-| SOUP-006 | Google Test | 1.14.0 | BSD-3 | No (test only) | github.com/google/googletest |
+| SOUP-006 | Google Test | 1.14.0 | BSD-3 | No (테스트만) | github.com/google/googletest |
 
 ---
 
@@ -101,17 +101,17 @@ graph TD
 
 ---
 
-## 5. SOUP Version Control Policy
+## 5. SOUP 버전 관리 정책
 
-- SOUP 버전은 `CMakeLists.txt`에 pin (exact version)
-- SOUP 업데이트 시: regression test suite 전체 실행 필수
-- 보안 취약점 발견 시: 30일 내 업데이트 또는 mitigation 문서화
+- SOUP 버전은 `CMakeLists.txt`에 pin (정확한 버전)
+- SOUP 업데이트 시: 회귀 테스트 스위트 전체 실행 필수
+- 보안 취약점 발견 시: 30일 내 업데이트 또는 완화 문서화
 - SOUP changelog 분기별 검토
 
 ---
 
-## Revision History
+## 개정 이력
 
-| Version | Date | Author | Description |
+| 버전 | 날짜 | 작성자 | 설명 |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | Initial release |
+| 1.0 | 2026-04-03 | — | 초판 |

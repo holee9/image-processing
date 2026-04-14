@@ -1,106 +1,106 @@
-# X-ray FPD Calibration Pre-Processing Module
+# X-ray FPD 캘리브레이션 전처리 모듈
 
-**Module**: `xpe_preprocess.dll` (Layer 1, Phase 1a)  
-**Owner DLL**: `xpe_preprocess.dll`  
-**Dependency**: `xpe_common.dll` (Layer 0)  
-**Safety Class**: IEC 62304 Class B  
-**Document Version**: 1.0.0  
-**Date**: 2026-04-14  
-**Normative Spec**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
-
----
-
-## Table of Contents
-
-1. [Overview](#1-overview)
-2. [Architecture](#2-architecture)
-3. [Pipeline Stages](#3-pipeline-stages)
-4. [Stage Dependency Graph](#4-stage-dependency-graph)
-5. [Data Flow and Format Transitions](#5-data-flow-and-format-transitions)
-6. [Stage Bypass (On/Off) Policy](#6-stage-bypass-onoff-policy)
-7. [Bypass Configuration](#7-bypass-configuration)
-8. [Calibration Data Management](#8-calibration-data-management)
-9. [API Reference](#9-api-reference)
-10. [Performance Budget](#10-performance-budget)
-11. [Safety Constraints](#11-safety-constraints)
-12. [References](#12-references)
+**모듈**: `xpe_preprocess.dll` (Layer 1, Phase 1a)  
+**소유자 DLL**: `xpe_preprocess.dll`  
+**의존성**: `xpe_common.dll` (Layer 0)  
+**안전 등급**: IEC 62304 Class B  
+**문서 버전**: 1.0.0  
+**날짜**: 2026-04-14  
+**규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
 
 ---
 
-## 1. Overview
+## 목차
 
-`xpe_preprocess.dll` is the calibration pre-processing engine for X-ray Flat Panel Detector (FPD) image processing. It transforms raw ADC sensor output into a clean, calibrated `float32` image by correcting physical detector artifacts: dark current, pixel sensitivity non-uniformity, dead/hot pixels, charge-trapping lag, temperature drift, and response nonlinearity.
+1. [개요](#1-개요)
+2. [아키텍처](#2-아키텍처)
+3. [파이프라인 단계](#3-파이프라인-단계)
+4. [단계 의존성 그래프](#4-단계-의존성-그래프)
+5. [데이터 흐름 및 형식 변환](#5-데이터-흐름-및-형식-변환)
+6. [단계 우회(켜짐/꺼짐) 정책](#6-단계-우회-켜짐-꺼짐-정책)
+7. [우회 구성](#7-우회-구성)
+8. [캘리브레이션 데이터 관리](#8-캘리브레이션-데이터-관리)
+9. [API 레퍼런스](#9-api-레퍼런스)
+10. [성능 예산](#10-성능-예산)
+11. [안전 제약 조건](#11-안전-제약-조건)
+12. [참고문헌](#12-참고문헌)
 
-### Key Characteristics
+---
 
-- **9 processing stages** (0 through 4, including sub-stages)
-- **18 exported C ABI functions** for correction, calibration data I/O, and ghost state management
-- **3 mandatory stages** that cannot be bypassed under any circumstance
-- **6 conditionally bypassable stages** with documented safety constraints
-- **1 critical format boundary**: `uint16` to `float32` conversion at Gain Correction (stage 2)
-- **3-tier ghost correction** with automatic escalation (LTI -> Exposure-Weighted -> NLCSC)
+## 1. 개요
 
-### Supported Detector Types
+`xpe_preprocess.dll`은 X-ray Flat Panel Detector (FPD) 이미지 처리를 위한 캘리브레이션 전처리 엔진입니다. 어두운 전류, 픽셀 감도 불균일성, 불량/핫 픽셀, 전하 갇힘 래그, 온도 드리프트, 응답 비선형성 등 물리적 검출기 아티팩트를 보정하여 원본 ADC 센서 출력을 깨끗하고 캘리브레이션된 `float32` 이미지로 변환합니다.
 
-| Detector | Conversion | Representative | Calibration Notes |
+### 주요 특성
+
+- **9개 처리 단계** (0~4, 부분 단계 포함)
+- **18개 내보낸 C ABI 함수** (보정, 캘리브레이션 데이터 I/O, 고스트 상태 관리용)
+- **3개 필수 단계** (어떤 경우에도 우회 불가)
+- **6개 조건부 우회 가능 단계** (문서화된 안전 제약 포함)
+- **1개 핵심 형식 경계**: Gain Correction (단계 2)에서의 `uint16` ~ `float32` 변환
+- **3단계 고스트 보정** (자동 에스컬레이션: LTI -> Exposure-Weighted -> NLCSC)
+
+### 지원되는 검출기 유형
+
+| 검출기 | 변환 방식 | 대표 모델 | 캘리브레이션 참고 사항 |
 |----------|-----------|---------------|-------------------|
-| a-Si TFT FPD | Indirect (CsI:Tl, GOS) | Varex XRD 4343N | Lag correction essential, high temperature sensitivity |
-| CMOS FPD | Indirect/Direct | Vieworks VIVIX-S | Low lag, high dynamic range |
-| Perovskite FPD | Direct | Research-stage | Special nonlinearity correction |
-| Se/CdTe Direct FPD | Direct | Siemens, Philips | Unique defect patterns |
+| a-Si TFT FPD | Indirect (CsI:Tl, GOS) | Varex XRD 4343N | 래그 보정 필수, 높은 온도 민감도 |
+| CMOS FPD | Indirect/Direct | Vieworks VIVIX-S | 낮은 래그, 높은 동적 범위 |
+| Perovskite FPD | Direct | 연구 단계 | 특수 비선형성 보정 |
+| Se/CdTe Direct FPD | Direct | Siemens, Philips | 고유한 결함 패턴 |
 
 ---
 
-## 2. Architecture
+## 2. 아키텍처
 
-### Layer Position
+### 레이어 위치
 
 ```
-Layer 2  ImageProcTest.exe (C# WPF)       Pipeline orchestrator
+Layer 2  ImageProcTest.exe (C# WPF)       파이프라인 오케스트레이터
            |
            | P/Invoke (C ABI)
            v
-Layer 1  xpe_preprocess.dll  <-- THIS MODULE
+Layer 1  xpe_preprocess.dll  <-- 이 모듈
            |
-           | Link dependency
+           | 링크 의존성
            v
-Layer 0  xpe_common.dll                    Types, Memory, Config, Error, Alert
+Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, 알림
 ```
 
-### Anti-Spaghetti Rule
+### 안티-스파게티 규칙
 
-- `xpe_preprocess.dll` depends ONLY on `xpe_common.dll`
-- No lateral dependencies to other Layer 1 DLLs (`xpe_enhance_basic`, `gsvg`, etc.)
-- All shared types and utilities go through `xpe_common.dll`
+- `xpe_preprocess.dll`은 `xpe_common.dll`에만 의존
+- 다른 Layer 1 DLL(`xpe_enhance_basic`, `gsvg` 등)과 횡단 의존성 없음
+- 모든 공유 타입과 유틸리티는 `xpe_common.dll`을 통해 전달
 
-### Software Units (SWU)
+### 소프트웨어 단위 (SWU)
 
-| SWU ID | Name | Stage | Description |
+| SWU ID | 이름 | 단계 | 설명 |
 |--------|------|:-----:|-------------|
-| SWU-1.1 | OffsetCorrection | (1) | Dark current subtraction with dynamic interpolation |
-| SWU-1.2 | GainCorrection | (2) | Flat-field normalization + multi-gain polynomial |
-| SWU-1.3 | DefectCorrection | (3) | Bad pixel detection and interpolation |
-| SWU-1.4 | GhostCorrection | (4) | 3-tier lag/ghosting removal |
-| SWU-1.5 | CalibDataManager | (0) | Calibration file I/O, expiry validation, versioning |
-| SWU-1.6 | ReadoutValidator | (0.5) | Raw frame integrity validation |
-| SWU-1.7 | TempCompensation | (0.7) | Temperature-dependent dark current compensation |
-| SWU-1.8 | NonlinearityCorrection | (1.5) | Detector response linearization |
-| SWU-1.9 | BinningCorrection | (2.5) | Binning mode compensation |
+| SWU-1.1 | OffsetCorrection | (1) | 동적 보간을 이용한 어두운 전류 차감 |
+| SWU-1.2 | GainCorrection | (2) | 플랫-필드 정규화 + 다중 게인 다항식 |
+| SWU-1.3 | DefectCorrection | (3) | 불량 픽셀 검출 및 보간 |
+| SWU-1.4 | GhostCorrection | (4) | 3단계 래그/고스팅 제거 |
+| SWU-1.5 | CalibDataManager | (0) | 캘리브레이션 파일 I/O, 만료 검증, 버전 관리 |
+| SWU-1.6 | ReadoutValidator | (0.5) | 원본 프레임 무결성 검증 |
+| SWU-1.7 | TempCompensation | (0.7) | 온도 의존 어두운 전류 보상 |
+| SWU-1.8 | NonlinearityCorrection | (1.5) | 검출기 응답 선형화 |
+| SWU-1.9 | BinningCorrection | (2.5) | 바이닝 모드 보상 |
 
 ---
 
-## 3. Pipeline Stages
+## 3. 파이프라인 단계
 
-### 3.1 Complete Pre-Processing Sequence
+### 3.1 완전한 전처리 시퀀스
 
 ```
-Raw Frame (uint16, 14/16-bit ADC)
+원본 프레임 (uint16, 14/16-bit ADC)
   |
   v
 +================================================================+
-|  (0) CalibManager Load                          [STARTUP ONLY] |
-|  Load offset map, gain map, BPM, NLCSC coefficients            |
-|  Budget: 200 ms (one-time)                                     |
+|  (0) CalibManager 로드                     [시작 시에만] |
+|  오프셋 맵, 게인 맵, BPM, NLCSC 계수 로드            |
+|  예산: 200 ms (일회)                                     |
 +================================================================+
   |
   v
@@ -194,25 +194,25 @@ Raw Frame (uint16, 14/16-bit ADC)
   [To Enhancement Domain: stage (5) Log Transform]
 ```
 
-### 3.2 Stage Summary Table
+### 3.2 단계 요약 테이블
 
-| # | Stage | SWU | Type | Input | Output | Calib Data | Stateful |
+| # | 단계 | SWU | 유형 | 입력 | 출력 | 캘리브 데이터 | 상태 유지 |
 |---|-------|-----|:----:|:-----:|:------:|:----------:|:--------:|
-| 0 | CalibManager Load | 1.5 | Startup | Files | Maps | All | Yes |
-| 0.5 | Readout Validation | 1.6 | Advisory | uint16 | uint16 | None | No |
-| 0.7 | Temp Compensation | 1.7 | Conditional | uint16 | uint16 | LUT/poly | No |
-| 1 | Offset Correction | 1.1 | **Mandatory** | uint16 | uint16 | offsetMap | Yes |
-| 1.5 | Nonlinearity | 1.8 | Conditional | uint16 | uint16 | LUT/poly | No |
-| 2 | Gain Correction | 1.2 | **Mandatory** | uint16 | **float32** | gainMap | Yes |
-| 2.5 | Binning Correction | 1.9 | Conditional | float32 | float32 | Config | No |
-| 3 | Defect Correction | 1.3 | Conditional | float32 | float32 | BPM | Yes |
-| 4 | Ghost Correction | 1.4 | Conditional | float32 | float32 | History+Coeff | Yes |
+| 0 | CalibManager 로드 | 1.5 | 시작 | 파일 | 맵 | 모두 | 예 |
+| 0.5 | 리드아웃 검증 | 1.6 | 권고 | uint16 | uint16 | 없음 | 아니오 |
+| 0.7 | 온도 보상 | 1.7 | 조건부 | uint16 | uint16 | LUT/poly | 아니오 |
+| 1 | 오프셋 보정 | 1.1 | **필수** | uint16 | uint16 | offsetMap | 예 |
+| 1.5 | 비선형성 | 1.8 | 조건부 | uint16 | uint16 | LUT/poly | 아니오 |
+| 2 | 게인 보정 | 1.2 | **필수** | uint16 | **float32** | gainMap | 예 |
+| 2.5 | 바이닝 보정 | 1.9 | 조건부 | float32 | float32 | 구성 | 아니오 |
+| 3 | 결함 보정 | 1.3 | 조건부 | float32 | float32 | BPM | 예 |
+| 4 | 고스트 보정 | 1.4 | 조건부 | float32 | float32 | 이력+계수 | 예 |
 
 ---
 
-## 4. Stage Dependency Graph
+## 4. 단계 의존성 그래프
 
-### 4.1 Visual Dependency Map
+### 4.1 시각적 의존성 맵
 
 ```
                     ┌──────────────────────────────────────────────────────────┐
@@ -290,9 +290,9 @@ Legend:
   FORMAT Requires float32 format from stage (2)
 ```
 
-### 4.2 Dependency Matrix
+### 4.2 의존성 매트릭스
 
-Each cell shows whether the **row** stage depends on the **column** stage, and the type of dependency.
+각 셀은 **행** 단계가 **열** 단계에 의존하는지 여부와 의존성 유형을 보여줍니다.
 
 |  | (0) Calib | (0.5) Read | (0.7) Temp | (1) Offset | (1.5) NL | (2) Gain | (2.5) Bin | (3) Defect | (4) Ghost |
 |--|:---------:|:----------:|:----------:|:----------:|:--------:|:--------:|:---------:|:----------:|:---------:|
@@ -306,108 +306,108 @@ Each cell shows whether the **row** stage depends on the **column** stage, and t
 | **(3) Defect** | `DATA` | | | | | `FMT` | | -- | |
 | **(4) Ghost** | `DATA` | | | | | `FMT` | | `ORDER` | -- |
 
-| Key | Meaning | Violation Impact |
+| 키 | 의미 | 위반 영향 |
 |-----|---------|-----------------|
-| `DATA` | Requires calibration data loaded by CalibManager | **Hard fail**: `XPE_ERR_NOT_INITIALIZED` |
-| `ORDER` | Must execute after predecessor (physical constraint) | **Silent corruption**: incorrect correction |
-| `FMT` | Requires `float32` format produced by Gain stage | **Crash**: type mismatch or buffer corruption |
+| `DATA` | CalibManager에서 로드한 캘리브레이션 데이터 필요 | **하드 실패**: `XPE_ERR_NOT_INITIALIZED` |
+| `ORDER` | 선행 단계 이후 실행 필요 (물리적 제약) | **무음 손상**: 부정확한 보정 |
+| `FMT` | Gain 단계에서 생성된 `float32` 형식 필요 | **충돌**: 타입 불일치 또는 버퍼 손상 |
 
-### 4.3 Critical Path Analysis
+### 4.3 임계 경로 분석
 
-The **minimum mandatory path** through pre-processing:
+전처리의 **최소 필수 경로**:
 
 ```
-(0) CalibManager -> (1) Offset -> (2) Gain -> [output]
+(0) CalibManager -> (1) Offset -> (2) Gain -> [출력]
 ```
 
-This path MUST always execute. It produces a minimally-corrected `float32` image. All other stages are optional enhancements that improve image quality but are not strictly required for a valid output.
+이 경로는 항상 실행되어야 합니다. 최소한으로 보정된 `float32` 이미지를 생성합니다. 다른 모든 단계는 이미지 품질을 개선하지만 유효한 출력을 위해 엄격히 필요하지 않은 선택적 개선입니다.
 
 ---
 
-## 5. Data Flow and Format Transitions
+## 5. 데이터 흐름 및 형식 변환
 
-### 5.1 Format Domains
+### 5.1 형식 도메인
 
 ```
  ┌──────────────────────────────────────────────────────────────────┐
  │                                                                  │
- │   uint16 DOMAIN                 float32 DOMAIN                   │
- │   (Raw / Integer)               (Normalized / Floating-Point)    │
+ │   uint16 도메인                float32 도메인                   │
+ │   (원본 / 정수)               (정규화 / 부동소수점)    │
  │                                                                  │
- │   (0.5) Readout      ║         (2.5) Binning                    │
- │   (0.7) Temperature  ║         (3)   Defect                     │
- │   (1)   Offset       ║         (4)   Ghost                      │
- │   (1.5) Nonlinearity ║                                          │
+ │   (0.5) 리드아웃      ║         (2.5) 바이닝                    │
+ │   (0.7) 온도         ║         (3)   결함                     │
+ │   (1)   오프셋       ║         (4)   고스트                      │
+ │   (1.5) 비선형성 ║                                          │
  │                      ║                                          │
  │              ┌═══════╩════════════┐                              │
- │              ║  (2) Gain Correct  ║                              │
- │              ║  FORMAT BOUNDARY   ║                              │
+ │              ║  (2) 게인 보정    ║                              │
+ │              ║  형식 경계      ║                              │
  │              ║  uint16 -> float32 ║                              │
  │              ╚════════════════════╝                              │
  │                                                                  │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Buffer Specifications
+### 5.2 버퍼 사양
 
-| Parameter | Value |
+| 매개변수 | 값 |
 |-----------|-------|
-| Max dimensions | 4096 x 4096 |
-| Typical dimensions | 3072 x 3072 |
-| uint16 buffer | ~18.9 MB (3072 x 3072 x 2 bytes) |
-| float32 buffer | ~37.7 MB (3072 x 3072 x 4 bytes) |
-| Calibration maps | ~60 MB (offset + gain + BPM) |
-| Ghost history (8 frames) | ~150 MB |
-| Peak memory (pre-processing) | ~190 MB |
+| 최대 크기 | 4096 x 4096 |
+| 일반 크기 | 3072 x 3072 |
+| uint16 버퍼 | ~18.9 MB (3072 x 3072 x 2 바이트) |
+| float32 버퍼 | ~37.7 MB (3072 x 3072 x 4 바이트) |
+| 캘리브레이션 맵 | ~60 MB (오프셋 + 게인 + BPM) |
+| 고스트 이력 (8 프레임) | ~150 MB |
+| 최고 메모리 (전처리) | ~190 MB |
 
-### 5.3 Metadata Flag Lifecycle
+### 5.3 메타데이터 플래그 생명주기
 
-Each stage sets its corresponding flag bit in `XpeImageMetadata.flags` upon successful execution. Bypassed stages leave their flag **unset**.
+각 단계는 성공적인 실행 시 `XpeImageMetadata.flags`의 해당 플래그 비트를 설정합니다. 우회된 단계는 플래그를 **설정하지 않습니다**.
 
 ```
-flags = 0x00000000  (raw frame)
+flags = 0x00000000  (원본 프레임)
 
-After (0.5):  flags |= XPE_FLAG_READOUT_VALIDATED       0x0010
-After (0.7):  flags |= XPE_FLAG_TEMP_COMPENSATED        0x0020
-After (1):    [no dedicated flag - always executed]
-After (1.5):  flags |= XPE_FLAG_NONLINEARITY_CORRECTED  0x0040
-After (2):    flags |= XPE_FLAG_GAIN_CORRECTED           0x0008
-After (2.5):  flags |= XPE_FLAG_BINNING_CORRECTED        0x0080
-After (3):    flags |= XPE_FLAG_DEFECT_CORRECTED         0x0004
-After (4):    flags |= XPE_FLAG_GHOST_CORRECTED          0x0001
+(0.5) 후:  flags |= XPE_FLAG_READOUT_VALIDATED       0x0010
+(0.7) 후:  flags |= XPE_FLAG_TEMP_COMPENSATED        0x0020
+(1) 후:    [전용 플래그 없음 - 항상 실행]
+(1.5) 후:  flags |= XPE_FLAG_NONLINEARITY_CORRECTED  0x0040
+(2) 후:    flags |= XPE_FLAG_GAIN_CORRECTED           0x0008
+(2.5) 후:  flags |= XPE_FLAG_BINNING_CORRECTED        0x0080
+(3) 후:    flags |= XPE_FLAG_DEFECT_CORRECTED         0x0004
+(4) 후:    flags |= XPE_FLAG_GHOST_CORRECTED          0x0001
 
-Example: full pre-processing applied, no binning
+예: 완전한 전처리 적용, 바이닝 없음
   flags = 0x007D = READOUT | TEMP | NONLIN | GAIN | DEFECT | GHOST
 
-Example: minimal (offset + gain only, raw export mode)
+예: 최소 (오프셋 + 게인만, 원본 내보내기 모드)
   flags = 0x0008 = GAIN
 ```
 
 ---
 
-## 6. Stage Bypass (On/Off) Policy
+## 6. 단계 우회(켜짐/꺼짐) 정책
 
-### 6.1 Bypass Classification
+### 6.1 우회 분류
 
-| Symbol | Category | Description |
+| 기호 | 범주 | 설명 |
 |:------:|----------|-------------|
-| `M` | **MANDATORY** | Cannot bypass. Pipeline fails without it. |
-| `C` | **CONDITIONAL** | Bypassable under documented conditions. |
-| `A` | **ADVISORY** | Non-mutating. Always safe to skip. |
+| `M` | **필수** | 우회 불가. 없으면 파이프라인 실패. |
+| `C` | **조건부** | 문서화된 조건에서 우회 가능. |
+| `A` | **권고** | 비변경. 항상 안전하게 건너뛸 수 있음. |
 
-### 6.2 Bypass Decision Table
+### 6.2 우회 결정 테이블
 
-| Stage | Cat. | Can Off? | Bypass Condition | Safety Impact | Downstream Effect |
+| 단계 | 범주 | 끌 수 있나? | 우회 조건 | 안전 영향 | 다운스트림 영향 |
 |-------|:----:|:--------:|------------------|:-------------:|-------------------|
-| **(0) CalibManager** | `M` | NO | -- | FATAL | No calibration data |
-| **(0.5) Readout** | `A` | YES | Config: `readout_validation.enabled = false` | NONE | No integrity check |
-| **(0.7) Temp** | `C` | YES | No sensor OR temp within +/-2C of nominal | LOW | Minor dark drift |
-| **(1) Offset** | `M` | NO | -- | CRITICAL | Dark bias in all pixels |
-| **(1.5) Nonlinearity** | `C` | YES | `panel.linear = true` in detector profile | LOW | Minor response curve error |
-| **(2) Gain** | `M` | NO | -- | CRITICAL | No normalization + no float32 conversion |
-| **(2.5) Binning** | `C` | YES | `binningMode == 1` (native) | NONE | Not applicable |
-| **(3) Defect** | `C` | YES | BPM empty OR diagnostic mode | MEDIUM | Defect artifacts visible |
-| **(4) Ghost** | `C` | YES | Single-shot OR first frame OR no history | MEDIUM | Lag artifacts visible |
+| **(0) CalibManager** | `M` | 아니오 | -- | 치명적 | 캘리브레이션 데이터 없음 |
+| **(0.5) Readout** | `A` | 예 | 구성: `readout_validation.enabled = false` | 없음 | 무결성 검사 없음 |
+| **(0.7) Temp** | `C` | 예 | 센서 없음 또는 공칭값의 +/-2C 내 온도 | 낮음 | 미소한 어두운 드리프트 |
+| **(1) Offset** | `M` | 아니오 | -- | 치명적 | 모든 픽셀의 어두운 바이어스 |
+| **(1.5) Nonlinearity** | `C` | 예 | 검출기 프로필에서 `panel.linear = true` | 낮음 | 미소한 응답 곡선 오류 |
+| **(2) Gain** | `M` | 아니오 | -- | 치명적 | 정규화 없음 + float32 변환 없음 |
+| **(2.5) Binning** | `C` | 예 | `binningMode == 1` (원본) | 없음 | 적용 불가 |
+| **(3) Defect** | `C` | 예 | BPM 비어있음 또는 진단 모드 | 중간 | 결함 아티팩트 표시 |
+| **(4) Ghost** | `C` | 예 | 단일 샷 또는 첫 프레임 또는 이력 없음 | 중간 | 래그 아티팩트 표시 |
 
 ### 6.3 Bypass Decision Flowchart
 
@@ -543,11 +543,11 @@ Example: minimal (offset + gain only, raw export mode)
 
 ---
 
-## 7. Bypass Configuration
+## 7. 우회 구성
 
-### 7.1 JSON Configuration Schema
+### 7.1 JSON 구성 스키마
 
-Configure bypass behavior via `xpe_configure()`:
+`xpe_configure()`를 통해 우회 동작 구성:
 
 ```json
 {
@@ -586,193 +586,193 @@ Configure bypass behavior via `xpe_configure()`:
 }
 ```
 
-### 7.2 Mode Presets
+### 7.2 모드 프리셋
 
-| Config Key | `"clinical"` | `"diagnostic"` | `"fluoro"` |
+| 구성 키 | `"clinical"` | `"diagnostic"` | `"fluoro"` |
 |------------|:------------:|:--------------:|:----------:|
-| readout_validation | ON | OFF | ON |
-| temp_compensation | ON (auto) | OFF | ON |
-| offset_correction | **ON** | **ON** | **ON** |
-| nonlinearity | ON (profile) | OFF | ON |
-| gain_correction | **ON** | **ON** | **ON** |
-| binning | ON (auto) | OFF | ON |
-| defect_correction | ON | OFF | ON |
-| ghost_correction | ON (Tier 1-3) | OFF | ON (Tier 2-3) |
+| readout_validation | 켜짐 | 꺼짐 | 켜짐 |
+| temp_compensation | 켜짐 (자동) | 꺼짐 | 켜짐 |
+| offset_correction | **켜짐** | **켜짐** | **켜짐** |
+| nonlinearity | 켜짐 (프로필) | 꺼짐 | 켜짐 |
+| gain_correction | **켜짐** | **켜짐** | **켜짐** |
+| binning | 켜짐 (자동) | 꺼짐 | 켜짐 |
+| defect_correction | 켜짐 | 꺼짐 | 켜짐 |
+| ghost_correction | 켜짐 (Tier 1-3) | 꺼짐 | 켜짐 (Tier 2-3) |
 
 ---
 
-## 8. Calibration Data Management
+## 8. 캘리브레이션 데이터 관리
 
-### 8.1 Required Calibration Files
+### 8.1 필수 캘리브레이션 파일
 
-| Data | File Format | Generated By | Load Function | Mandatory |
+| 데이터 | 파일 형식 | 생성자 | 로드 함수 | 필수 |
 |------|------------|-------------|---------------|:---------:|
-| Offset (Dark) Map | `.raw` / `.dcm` | `xpe_calib_generate_offset()` | `xpe_calib_load_offset()` | YES |
-| Gain (Flat-field) Map | `.raw` / `.dcm` | External calibration tool | `xpe_calib_load_gain()` | YES |
-| Bad Pixel Map (BPM) | `.raw` / `.dcm` | External detection tool | `xpe_calib_load_defect_map()` | YES |
-| NLCSC Coefficients | JSON config | Calibration session | `xpe_ghost_create()` config | NO |
-| Temperature LUT | JSON config | Factory calibration | `xpe_configure()` | NO |
-| Nonlinearity Curves | JSON config | Factory calibration | `xpe_configure()` | NO |
+| 오프셋 (어두운) 맵 | `.raw` / `.dcm` | `xpe_calib_generate_offset()` | `xpe_calib_load_offset()` | 예 |
+| 게인 (플랫-필드) 맵 | `.raw` / `.dcm` | 외부 캘리브레이션 도구 | `xpe_calib_load_gain()` | 예 |
+| 불량 픽셀 맵 (BPM) | `.raw` / `.dcm` | 외부 검출 도구 | `xpe_calib_load_defect_map()` | 예 |
+| NLCSC 계수 | JSON 구성 | 캘리브레이션 세션 | `xpe_ghost_create()` 구성 | 아니오 |
+| 온도 LUT | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
+| 비선형성 곡선 | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
 
-### 8.2 Calibration Data Lifecycle
+### 8.2 캘리브레이션 데이터 생명주기
 
 ```
-Factory Calibration ──> [offsetMap, gainMap, BPM, temp LUT, NL curves]
+공장 캘리브레이션 ──> [offsetMap, gainMap, BPM, 온도 LUT, NL 곡선]
        |                               |
-       |    Install at clinical site   |
+       |    임상 사이트에 설치         |
        v                               v
-Field Calibration ──> [field offset update, new BPM entries]
+현장 캘리브레이션 ──> [현장 오프셋 업데이트, 새로운 BPM 항목]
        |                               |
-       |    Periodic QA / Drift        |
+       |    주기적 QA / 드리프트        |
        v                               v
-Runtime Monitoring ──> [drift detection, expiry check, recal alert]
+런타임 모니터링 ──> [드리프트 검출, 만료 확인, 재캘리브레이션 알림]
        |                               |
-       |    Annual / Emergency         |
+       |    연간 / 긴급              |
        v                               v
-Re-calibration ──> [full factory refresh OR field update]
+재캘리브레이션 ──> [완전한 공장 새로고침 또는 현장 업데이트]
 ```
 
-### 8.3 Expiry and Drift Detection
+### 8.3 만료 및 드리프트 검출
 
-| Trigger | Threshold | Action |
+| 트리거 | 임계값 | 조치 |
 |---------|-----------|--------|
-| Calibration file expired | `xpe_calib_check_expiry()` returns `XPE_ERR_CALIBRATION_EXPIRED` | Block pipeline startup |
-| Temperature drift | `abs(current - reference) > 3.0 C` | Auto field dark update |
-| Time elapsed | `> 30 minutes` since last calibration | Auto field dark update |
-| Flat-field residual | `sigma/mean > 1.5%` | Emergency recalibration alert |
-| SNR degradation | Outside 95% confidence interval | Recalibration recommended |
+| 캘리브레이션 파일 만료됨 | `xpe_calib_check_expiry()`가 `XPE_ERR_CALIBRATION_EXPIRED` 반환 | 파이프라인 시작 차단 |
+| 온도 드리프트 | `abs(현재 - 참조) > 3.0 C` | 자동 현장 어두운 업데이트 |
+| 경과 시간 | 마지막 캘리브레이션 이후 `> 30분` | 자동 현장 어두운 업데이트 |
+| 플랫-필드 잔차 | `sigma/mean > 1.5%` | 긴급 재캘리브레이션 알림 |
+| SNR 저하 | 95% 신뢰도 구간 밖 | 재캘리브레이션 권장 |
 
 ---
 
-## 9. API Reference
+## 9. API 레퍼런스
 
-### 9.1 Correction Functions
+### 9.1 보정 함수
 
-| Function | Stage | In-Place | Thread-Safe | Mandatory |
+| 함수 | 단계 | 인플레이스 | 스레드 안전 | 필수 |
 |----------|:-----:|:--------:|:-----------:|:---------:|
-| `xpe_validate_readout_artifact()` | 0.5 | No (read-only) | Yes | No |
-| `xpe_temp_compensate()` | 0.7 | Yes | Yes | No |
-| `xpe_offset_correct()` | 1 | Yes | Yes | **Yes** |
-| `xpe_nonlinearity_correct()` | 1.5 | Yes | Yes | No |
-| `xpe_gain_correct()` | 2 | Yes | Yes | **Yes** |
-| `xpe_binning_correct()` | 2.5 | Yes | Yes | No |
-| `xpe_defect_correct()` | 3 | Yes | Yes | No |
-| `xpe_defect_detect_runtime()` | 3 | No (output map) | Yes | No |
-| `xpe_ghost_correct()` | 4 | Yes | Per-handle | No |
+| `xpe_validate_readout_artifact()` | 0.5 | 아니오 (읽기 전용) | 예 | 아니오 |
+| `xpe_temp_compensate()` | 0.7 | 예 | 예 | 아니오 |
+| `xpe_offset_correct()` | 1 | 예 | 예 | **예** |
+| `xpe_nonlinearity_correct()` | 1.5 | 예 | 예 | 아니오 |
+| `xpe_gain_correct()` | 2 | 예 | 예 | **예** |
+| `xpe_binning_correct()` | 2.5 | 예 | 예 | 아니오 |
+| `xpe_defect_correct()` | 3 | 예 | 예 | 아니오 |
+| `xpe_defect_detect_runtime()` | 3 | 아니오 (출력 맵) | 예 | 아니오 |
+| `xpe_ghost_correct()` | 4 | 예 | 핸들별 | 아니오 |
 
-### 9.2 Ghost State Management
+### 9.2 고스트 상태 관리
 
-| Function | Purpose | Call Pattern |
+| 함수 | 목적 | 호출 패턴 |
 |----------|---------|-------------|
-| `xpe_ghost_create()` | Create corrector handle | Once at startup |
-| `xpe_ghost_correct()` | Apply lag correction | Every frame |
-| `xpe_ghost_reset()` | Clear exposure history | Between patients |
-| `xpe_ghost_destroy()` | Free resources | At shutdown |
+| `xpe_ghost_create()` | 보정기 핸들 생성 | 시작 시 한 번 |
+| `xpe_ghost_correct()` | 래그 보정 적용 | 매 프레임 |
+| `xpe_ghost_reset()` | 노출 이력 초기화 | 환자 간 |
+| `xpe_ghost_destroy()` | 리소스 해제 | 종료 시 |
 
-### 9.3 Calibration I/O
+### 9.3 캘리브레이션 I/O
 
-| Function | Purpose | Returns |
+| 함수 | 목적 | 반환값 |
 |----------|---------|---------|
-| `xpe_calib_load_offset()` | Load dark map from file | `XPE_ERR_CALIBRATION_EXPIRED` if expired |
-| `xpe_calib_load_gain()` | Load gain map from file | `XPE_ERR_CALIBRATION_EXPIRED` if expired |
-| `xpe_calib_load_defect_map()` | Load BPM from file | `XPE_OK` |
-| `xpe_calib_generate_offset()` | Generate offset from dark frames | `XPE_OK` |
-| `xpe_calib_save()` | Save calibration with expiry | `XPE_OK` |
-| `xpe_calib_check_expiry()` | Validate calibration freshness | `XPE_ERR_CALIBRATION_EXPIRED` |
+| `xpe_calib_load_offset()` | 파일에서 어두운 맵 로드 | 만료됨: `XPE_ERR_CALIBRATION_EXPIRED` |
+| `xpe_calib_load_gain()` | 파일에서 게인 맵 로드 | 만료됨: `XPE_ERR_CALIBRATION_EXPIRED` |
+| `xpe_calib_load_defect_map()` | 파일에서 BPM 로드 | `XPE_OK` |
+| `xpe_calib_generate_offset()` | 어두운 프레임에서 오프셋 생성 | `XPE_OK` |
+| `xpe_calib_save()` | 만료 시간과 함께 캘리브레이션 저장 | `XPE_OK` |
+| `xpe_calib_check_expiry()` | 캘리브레이션 최신성 검증 | `XPE_ERR_CALIBRATION_EXPIRED` |
 
 ---
 
-## 10. Performance Budget
+## 10. 성능 예산
 
-### 10.1 Per-Stage Time Allocation
+### 10.1 단계별 시간 할당
 
-| Stage | Budget (ms) | Estimated (ms) | Notes |
+| 단계 | 예산 (ms) | 예상 (ms) | 참고 |
 |-------|:-----------:|:--------------:|-------|
-| (0) CalibManager | 200 | 200 | Startup only, excluded from per-frame |
-| (0.5) Readout Validation | 15 | 10 | Read-only scan |
-| (0.7) Temperature Comp | 10 | 5 | LUT lookup |
-| (1) Offset Correction | 60 | 55 | Pixel-wise subtraction |
-| (1.5) Nonlinearity | 25 | 20 | LUT/polynomial evaluation |
-| (2) Gain Correction | 60 | 55 | Pixel-wise division + format conversion |
-| (2.5) Binning Correction | 15 | 10 | Conditional multiplication |
-| (3) Defect Correction | 110 | 95 | BPM scan + interpolation |
-| (4) Ghost Tier 1 | 150 | 140 | Recursive deconvolution |
-| (4) Ghost Tier 2 | +40 | +40 | Exposure-weighted selection |
-| (4) Ghost Tier 3 | +90 | +90 | NLCSC full algorithm |
-| **Pre-processing Total** | **500** | **~390 (T1)** | Hard ceiling: 500 ms/frame |
+| (0) CalibManager | 200 | 200 | 시작 시만, 프레임별 제외 |
+| (0.5) 리드아웃 검증 | 15 | 10 | 읽기 전용 스캔 |
+| (0.7) 온도 보상 | 10 | 5 | LUT 조회 |
+| (1) 오프셋 보정 | 60 | 55 | 픽셀단위 차감 |
+| (1.5) 비선형성 | 25 | 20 | LUT/다항식 평가 |
+| (2) 게인 보정 | 60 | 55 | 픽셀단위 나눗셈 + 형식 변환 |
+| (2.5) 바이닝 보정 | 15 | 10 | 조건부 곱셈 |
+| (3) 결함 보정 | 110 | 95 | BPM 스캔 + 보간 |
+| (4) 고스트 Tier 1 | 150 | 140 | 재귀 역컨볼루션 |
+| (4) 고스트 Tier 2 | +40 | +40 | 노출 가중 선택 |
+| (4) 고스트 Tier 3 | +90 | +90 | NLCSC 전체 알고리즘 |
+| **전처리 총합** | **500** | **~390 (T1)** | 하드 상한선: 500 ms/프레임 |
 
-### 10.2 Memory Budget
+### 10.2 메모리 예산
 
-| Component | Size | Notes |
+| 구성요소 | 크기 | 참고 |
 |-----------|:----:|-------|
-| Offset map (uint16) | 18.9 MB | 3072 x 3072 |
-| Gain map (float32) | 37.7 MB | 3072 x 3072 |
+| 오프셋 맵 (uint16) | 18.9 MB | 3072 x 3072 |
+| 게인 맵 (float32) | 37.7 MB | 3072 x 3072 |
 | BPM (uint8) | 9.4 MB | 3072 x 3072 |
-| Working buffer (float32) | 37.7 MB | Output frame |
-| Ghost history (8 x float32) | 150 MB | Ring buffer |
-| **Peak Total** | **~190 MB** | Phase 1 only |
+| 작업 버퍼 (float32) | 37.7 MB | 출력 프레임 |
+| 고스트 이력 (8 x float32) | 150 MB | 링 버퍼 |
+| **최고 총합** | **~190 MB** | Phase 1만 |
 
 ---
 
-## 11. Safety Constraints
+## 11. 안전 제약 조건
 
-### 11.1 Bypass Safety Rules (BYP-SAFE)
+### 11.1 우회 안전 규칙 (BYP-SAFE)
 
-| ID | Rule | Rationale |
+| ID | 규칙 | 근거 |
 |----|------|-----------|
-| BYP-SAFE-001 | Offset (1) SHALL NOT be bypassable via config | Dark bias always present |
-| BYP-SAFE-002 | Gain (2) SHALL NOT be bypassable via config | Format conversion (uint16->float32) required by downstream |
-| BYP-SAFE-003 | Bypassed stages SHALL NOT set their `XPE_FLAG_*` bit | Downstream and QA must know what was applied |
-| BYP-SAFE-004 | Ghost bypass auto-triggers on first frame after reset | No history = garbage correction |
-| BYP-SAFE-005 | Defect bypass with non-empty BPM SHALL emit warning alert | Skipping known defects is abnormal |
-| BYP-SAFE-006 | Nonlinearity bypass requires explicit `panel.linear = true` | Silent skip risks undetected artifacts |
-| BYP-SAFE-007 | All bypass decisions logged to diagnostic JSON | IEC 62304 traceability |
-| BYP-SAFE-008 | Diagnostic mode: only (0), (1), (2) mandatory | Minimal correction for valid float32 output |
+| BYP-SAFE-001 | 오프셋 (1)은 구성으로 우회 불가 | 어두운 바이어스 항상 존재 |
+| BYP-SAFE-002 | 게인 (2)은 구성으로 우회 불가 | 다운스트림에서 필요한 형식 변환 (uint16->float32) |
+| BYP-SAFE-003 | 우회된 단계는 `XPE_FLAG_*` 비트 설정 금지 | 다운스트림과 QA는 적용된 항목을 알아야 함 |
+| BYP-SAFE-004 | 고스트 우회는 재설정 후 첫 프레임에 자동 트리거 | 이력 없음 = 쓰레기 보정 |
+| BYP-SAFE-005 | 비어있지 않은 BPM으로 결함 우회는 경고 알림 방출 | 알려진 결함 건너뛰기는 비정상 |
+| BYP-SAFE-006 | 비선형성 우회는 명시적 `panel.linear = true` 필요 | 무음 건너뛰기는 감지되지 않은 아티팩트 위험 |
+| BYP-SAFE-007 | 모든 우회 결정 진단 JSON에 로깅 | IEC 62304 추적성 |
+| BYP-SAFE-008 | 진단 모드: 필수 (0), (1), (2)만 | 유효한 float32 출력을 위한 최소 보정 |
 
-### 11.2 IEC 62304 Compliance Notes
+### 11.2 IEC 62304 준수 참고 사항
 
-- All calibration functions validate null pointers, buffer dimensions, and format before processing
-- `XPE_ERR_CALIBRATION_EXPIRED` prevents use of stale calibration data
-- Alert queue captures all anomalies without blocking image delivery
-- Deterministic output: same binary + config + input = identical output hash
-- No unbounded heap allocation in per-frame hot paths
+- 모든 캘리브레이션 함수는 처리 전에 null 포인터, 버퍼 크기, 형식 검증
+- `XPE_ERR_CALIBRATION_EXPIRED`는 오래된 캘리브레이션 데이터 사용 방지
+- 알림 큐는 이미지 전달을 차단하지 않으면서 모든 이상 상황 캡처
+- 결정론적 출력: 동일 바이너리 + 구성 + 입력 = 동일 출력 해시
+- 프레임별 핫 경로에서 무한 힙 할당 없음
 
 ---
 
-## 12. References
+## 12. 참고문헌
 
-### Standards
+### 표준
 
-| Standard | Relevance |
+| 표준 | 관련성 |
 |----------|-----------|
-| IEC 62220-1-1:2015 | DQE measurement (validates offset/gain quality) |
-| IEC 62494-1 | Exposure Index (requires detector-domain data) |
-| IEC 62304:2006+A1:2015 | Software lifecycle (safety classification) |
-| ISO 14971:2019 | Risk management |
+| IEC 62220-1-1:2015 | DQE 측정 (오프셋/게인 품질 검증) |
+| IEC 62494-1 | 노출 지수 (검출기 도메인 데이터 필요) |
+| IEC 62304:2006+A1:2015 | 소프트웨어 생명주기 (안전 분류) |
+| ISO 14971:2019 | 위험 관리 |
 
-### Research Papers
+### 연구 논문
 
-| Citation | Topic | Impact on This Module |
+| 인용 | 주제 | 이 모듈에 미치는 영향 |
 |----------|-------|----------------------|
-| [Starman et al. 2012](https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/) | NLCSC lag correction | Tier 3 ghost algorithm |
-| [Pang et al. 2006](https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/) | Lag vs ghosting model | Lag/ghost distinction |
-| [Ranger et al. 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset SNR calibration | Drift detection thresholds |
-| [Jeon et al. 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC7930811/) | DL defect correction | Advanced defect repair |
-| [FixPix 2023](https://arxiv.org/html/2310.11637v2) | MLP bad pixel correction | FixPix MLP architecture |
-| [Wang 2013](https://www.math.union.edu/~wangj/papers/Wang13.Heel%20Effect%20%5BMed%20Phys%5D.pdf) | Duo-SID heel effect | Gain map heel compensation |
-| [EP2148500A1](https://patents.google.com/patent/EP2148500A1/en) | Dynamic dark correction | Temperature/PREP time model |
+| [Starman et al. 2012](https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/) | NLCSC 래그 보정 | Tier 3 고스트 알고리즘 |
+| [Pang et al. 2006](https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/) | 래그 vs 고스팅 모델 | 래그/고스트 구별 |
+| [Ranger et al. 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | 게인/오프셋 SNR 캘리브레이션 | 드리프트 검출 임계값 |
+| [Jeon et al. 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC7930811/) | DL 결함 보정 | 고급 결함 수리 |
+| [FixPix 2023](https://arxiv.org/html/2310.11637v2) | MLP 불량 픽셀 보정 | FixPix MLP 아키텍처 |
+| [Wang 2013](https://www.math.union.edu/~wangj/papers/Wang13.Heel%20Effect%20%5BMed%20Phys%5D.pdf) | Duo-SID 힐 효과 | 게인 맵 힐 보상 |
+| [EP2148500A1](https://patents.google.com/patent/EP2148500A1/en) | 동적 어두운 보정 | 온도/PREP 시간 모델 |
 
-### Project Documents
+### 프로젝트 문서
 
-| Document | Path |
+| 문서 | 경로 |
 |----------|------|
-| Algorithm Spec (normative) | `.moai/specs/xpe-algorithm-spec-deepsync.md` |
-| Pipeline Spec | `.moai/project/pipeline-spec.md` |
-| API Spec | `.moai/project/api-spec.md` |
-| Calibration PRD | `docs/xray-fpd-research/xray-detector-calibration-prd.md` |
-| Ghost Correction SRS | `docs/ghost-correction/srs_ghost_correction.md` |
-| Cross-Verification Report | `.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md` |
+| 알고리즘 사양 (규범) | `.moai/specs/xpe-algorithm-spec-deepsync.md` |
+| 파이프라인 사양 | `.moai/project/pipeline-spec.md` |
+| API 사양 | `.moai/project/api-spec.md` |
+| 캘리브레이션 PRD | `docs/xray-fpd-research/xray-detector-calibration-prd.md` |
+| 고스트 보정 SRS | `docs/ghost-correction/srs_ghost_correction.md` |
+| 교차 검증 보고서 | `.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md` |
 
 ---
 
-*End of Calibration Module README v1.0.0*
+*캘리브레이션 모듈 README v1.0.0 끝*

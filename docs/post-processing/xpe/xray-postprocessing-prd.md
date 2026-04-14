@@ -1,11 +1,11 @@
-# PRD: Medical X-ray Post-Processing Engine (XPE)
+# PRD: 의료용 X-ray 후처리 엔진 (XPE)
 
-> **SUPERSEDED FOR EXECUTION PLANNING** (2026-04-13)  
-> This document is superseded by `XPE-PRD-002_Detailed_Project_Execution_PRD.md` for phase structure, execution planning, and runtime packaging.  
-> For normative algorithm behavior, refer to `ALG-SPEC-001` (xpe-algorithm-spec-deepsync.md v2.0.0-ds1).  
-> Safety class has been re-evaluated to **Class B** (pending hazard analysis confirmation). See XPE-PRD-002 Section 14.1.  
-> This document remains valid as the original requirements baseline and algorithm reference.  
-> Cross-Verification: XPE-XVER-001 (2026-04-13)
+> **실행 계획을 위해 지원됨** (2026-04-13)  
+> 이 문서는 단계 구조, 실행 계획 및 런타임 패키징에 대해 `XPE-PRD-002_Detailed_Project_Execution_PRD.md`로 대체됩니다.  
+> 규범적 알고리즘 동작의 경우 `ALG-SPEC-001` (xpe-algorithm-spec-deepsync.md v2.0.0-ds1)을 참조하십시오.  
+> 안전 클래스는 **Class B**로 재평가되었습니다 (위험 분석 확인 대기). XPE-PRD-002 섹션 14.1을 참조하십시오.  
+> 이 문서는 원본 요구사항 기준 및 알고리즘 참조로 유효합니다.  
+> 교차 검증: XPE-XVER-001 (2026-04-13)
 
 **Document ID:** XPE-PRD-2026-001 v1.0  
 **Date:** 2026-04-02  
@@ -14,11 +14,11 @@
 
 ---
 
-## 1. Executive Summary
+## 1. 개요
 
 본 문서는 의료용 X-ray 촬영 소프트웨어에 탑재되는 Post-Processing 엔진(XPE)의 요구사항과 개발 전략을 정의한다. FPD(Flat Panel Detector)에서 획득된 Raw 이미지로부터 진단 품질의 최종 출력까지, **3단계 개발 전략**으로 영상처리 파이프라인 전체를 구축한다.
 
-| Phase | 명칭 | 기간 | 핵심 목표 |
+| 단계 | 명칭 | 기간 | 핵심 목표 |
 |-------|------|------|-----------|
 | Phase 1 | **Foundation** | 24주 | 최소 필수 파이프라인 (Offset/Gain → W/L → DICOM 출력) |
 | Phase 2 | **Clinical** | 20주 | 멀티스케일 처리, Body-Part Adaptive, Stitching |
@@ -26,9 +26,9 @@
 
 ---
 
-## 2. System Architecture Overview
+## 2. 시스템 아키텍처 개요
 
-### 2.1 Image Processing Pipeline (DICOM Grayscale Pipeline 준수)
+### 2.1 이미지 처리 파이프라인 (DICOM Grayscale Pipeline 준수)
 
 ```
 Raw Detector Data (14-16bit)
@@ -60,16 +60,16 @@ Raw Detector Data (14-16bit)
         └─ DICOM Grayscale Softcopy Presentation State
 ```
 
-### 2.2 데이터 흐름 규격
+### 2.2 데이터 흐름 사양
 
-| Parameter | Specification |
+| 매개변수 | 사양 |
 |-----------|--------------|
 | Input Bit Depth | 14-bit (16,384 levels), 16-bit (65,536 levels) |
 | Internal Processing | 32-bit float (IEEE 754) |
 | Output Bit Depth | 12-bit (DICOM FOR PRESENTATION) / 16-bit (FOR PROCESSING) |
 | Matrix Size | 최대 4096 × 4096 (17M pixels) |
-| Pixel Pitch | 100-200 μm (detector dependent) |
-| Throughput Target | ≤ 3초 (3072×3072, Phase 1), ≤ 5초 (full pipeline) |
+| Pixel Pitch | 100-200 μm (detector 의존) |
+| Throughput Target | ≤ 3초 (3072×3072, Phase 1), ≤ 5초 (전체 파이프라인) |
 
 ---
 
@@ -88,11 +88,11 @@ Raw Detector Data (14-16bit)
 Corrected(x,y) = Raw(x,y) - Offset(x,y)
 ```
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Offset Map 생성 | N ≥ 16 dark frames 평균, outlier rejection (3σ) |
 | 갱신 주기 | 매 calibration cycle 또는 온도 변화 ≥ 2°C |
-| 연산 정밀도 | 16-bit integer saturated arithmetic (negative → 0 clamp) |
+| 연산 정밀도 | 16-bit integer saturated arithmetic (음수 → 0 clamping) |
 | 성능 | ≤ 50ms (3072×3072, FPGA offload 가능) |
 
 **참조:** Offset correction은 detector lag signal을 dark image에 포함시킬 수 있으므로, 촬영 직후가 아닌 안정화 후 수행해야 한다.
@@ -106,7 +106,7 @@ Corrected(x,y) = [Raw(x,y) - Offset(x,y)] × GainMap(x,y)
 GainMap(x,y) = MeanFlood / [Flood(x,y) - Offset(x,y)]
 ```
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Flood Image 취득 | 동일 kVp/mA 조건, N ≥ 8 frames 평균 |
 | 지원 SID | 100/110/130/180 cm (SID별 개별 gain map) |
@@ -117,15 +117,15 @@ GainMap(x,y) = MeanFlood / [Flood(x,y) - Offset(x,y)]
 
 **목적:** TFT 제조 결함 및 열화에 의한 불량 화소 보정
 
-| Defect Type | Detection Method | Correction Method |
+| 결함 유형 | 감지 방법 | 보정 방법 |
 |-------------|-----------------|-------------------|
 | Point Defect | Threshold (± 6σ from mean) | 4/8-neighbor interpolation |
 | Cluster Defect (≤ 5×5) | Connected-component labeling | Bilinear interpolation from edge pixels |
-| Line Defect (row/column) | Row/Column mean deviation | Adjacent row/column interpolation |
+| Line Defect (행/열) | 행/열 평균 편차 | 인접 행/열 보간 |
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
-| Bad Pixel Map 관리 | Factory map + runtime detection (periodic update) |
+| Bad Pixel Map 관리 | Factory map + runtime detection (주기적 갱신) |
 | 최대 허용 불량률 | Point: 0.01%, Cluster: 10개/panel, Line: 3 lines/panel |
 | 실시간 검출 | Flat-field 취득 시 자동 갱신 |
 | Edge 보존 | Template Matching Correction (TMC) 기반 알고리즘 우선 적용 |
@@ -134,15 +134,15 @@ GainMap(x,y) = MeanFlood / [Flood(x,y) - Offset(x,y)]
 
 **목적:** 이전 exposure의 잔류 신호(image lag) 제거
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 보정 방식 | Recursive temporal filtering (exponential decay model) |
 | Lag Model | Multi-exponential: `Lag(t) = Σ αᵢ × exp(-t/τᵢ)`, i=1..3 |
-| Parameter | Panel-specific (a-Si: τ₁=0.3s, τ₂=2s, τ₃=30s typical) |
-| Target | ≥ 90% ghost signal removal (1st frame after high-dose exposure) |
+| 매개변수 | Panel-specific (a-Si: τ₁=0.3s, τ₂=2s, τ₃=30s typical) |
+| 목표 | ≥ 90% ghost signal removal (고선량 노출 후 첫 프레임) |
 | Forward Bias 연동 | AFE2256 TP-β Dual Timing Profile 지원 |
 
-> **Note:** 현재 AUO R1717 + NT39565D + AFE2256GR 조합에서 Forward Bias 적용 시 ~90% ghost removal 확인됨 (ghost-correction repo 참조)
+> **참고:** 현재 AUO R1717 + NT39565D + AFE2256GR 조합에서 Forward Bias 적용 시 ~90% ghost removal 확인됨 (ghost-correction repo 참조)
 
 ### 3.2 Core Processing Module
 
@@ -154,39 +154,39 @@ GainMap(x,y) = MeanFlood / [Flood(x,y) - Offset(x,y)]
 LogImage(x,y) = -ln[Corrected(x,y) / I₀]
 ```
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | I₀ 결정 | Unattenuated region 자동 검출 또는 exposure parameter 기반 |
 | Zero/Negative 처리 | ε clamping (1e-6) before ln() |
-| 출력 범위 | [0.0, 4.0] OD equivalent, 매핑 to 16-bit |
+| 출력 범위 | [0.0, 4.0] OD equivalent, 16-bit로 매핑 |
 
 #### 3.2.2 REQ-CP-002: Noise Reduction
 
-| Algorithm | Use Case | Parameters |
+| 알고리즘 | 사용 사례 | 매개변수 |
 |-----------|----------|------------|
-| Gaussian Low-pass | Global smoothing baseline | σ = 0.5-2.0 pixels |
-| Median Filter (3×3, 5×5) | Salt-and-pepper noise | Kernel size adaptive |
-| Bilateral Filter | Edge-preserving denoising | σ_spatial=2.0, σ_range=0.1 |
-| Non-Local Means (NLM) | High-quality denoising | Patch=7×7, Search=21×21, h=auto |
+| Gaussian Low-pass | 전역 평활화 기준 | σ = 0.5-2.0 pixels |
+| Median Filter (3×3, 5×5) | Salt-and-pepper noise | 커널 크기 적응형 |
+| Bilateral Filter | Edge 보존 denoising | σ_spatial=2.0, σ_range=0.1 |
+| Non-Local Means (NLM) | 고품질 denoising | Patch=7×7, Search=21×21, h=auto |
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
-| Default | Bilateral Filter (속도-품질 균형) |
+| 기본값 | Bilateral Filter (속도-품질 균형) |
 | High-Quality Mode | NLM (throughput trade-off 허용 시) |
 | Noise Estimation | MAD (Median Absolute Deviation) 기반 자동 σ 추정 |
 | 성능 | Bilateral ≤ 200ms, NLM ≤ 800ms (3072×3072) |
 
 #### 3.2.3 REQ-CP-003: Contrast Enhancement
 
-| Algorithm | Description | Priority |
+| 알고리즘 | 설명 | 우선순위 |
 |-----------|-------------|----------|
-| Histogram Equalization | Global contrast stretch | Baseline (validation용) |
-| CLAHE | Block 단위 adaptive equalization | **Primary (Phase 1)** |
-| Unsharp Masking (USM) | High-pass + original blending | **Primary (Phase 1)** |
+| Histogram Equalization | 전역 명암 확대 | Baseline (검증용) |
+| CLAHE | Block 단위 적응형 균등화 | **Primary (Phase 1)** |
+| Unsharp Masking (USM) | High-pass + 원본 혼합 | **Primary (Phase 1)** |
 
-**CLAHE Parameters:**
+**CLAHE 매개변수:**
 
-| Parameter | Default | Range |
+| 매개변수 | 기본값 | 범위 |
 |-----------|---------|-------|
 | Block Size | 8×8 | 4×4 - 16×16 |
 | Clip Limit | 2.0 | 1.0 - 4.0 |
@@ -198,18 +198,18 @@ LogImage(x,y) = -ln[Corrected(x,y) / I₀]
 Enhanced(x,y) = Original(x,y) + k × [Original(x,y) - Blurred(x,y)]
 ```
 
-| Parameter | Default | Range |
+| 매개변수 | 기본값 | 범위 |
 |-----------|---------|-------|
 | Kernel σ | 2.0 | 0.5 - 5.0 |
 | Gain (k) | 1.5 | 0.5 - 3.0 |
-| Threshold | 10 (gray levels) | 0 - 50 |
+| Threshold | 10 (회색 레벨) | 0 - 50 |
 
 #### 3.2.4 REQ-CP-004: Edge Enhancement
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
-| Scalable Edge Enhancement | Frequency-selective sharpening (fine/medium/coarse) |
-| Overshoot Control | Gain limiting per frequency band to prevent halo artifacts |
+| 스케일 가능 Edge Enhancement | 주파수 선택적 선명화 (미세/중간/거친) |
+| Overshoot Control | 할로 artifact 방지를 위한 주파수 대역별 gain 제한 |
 | Body-Part Preset | Chest: low gain / Extremity: high gain / Spine: medium |
 
 ### 3.3 Display Processing Module (DICOM Grayscale Pipeline)
@@ -220,50 +220,50 @@ Enhanced(x,y) = Original(x,y) + k × [Original(x,y) - Blurred(x,y)]
 Output = Stored_Value × Rescale_Slope + Rescale_Intercept
 ```
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Rescale Slope/Intercept | DICOM tag (0028,1053) / (0028,1052) 준수 |
 | Pixel Representation | Unsigned (0000H) for DR |
-| Rescale Type | Unspecified (detector-dependent) |
+| Rescale Type | Unspecified (detector 의존) |
 
 #### 3.3.2 REQ-DP-002: VOI LUT (Window/Level)
 
-| Function | Formula | Use Case |
+| 함수 | 공식 | 사용 사례 |
 |----------|---------|----------|
 | LINEAR | `y = ((x - c) / w + 0.5) × (ymax - ymin) + ymin` | 기본 표시 |
 | LINEAR_EXACT | 동일 (boundary behavior 차이) | 정밀 제어 |
 | SIGMOID | `y = ymax / (1 + exp(-4(x-c)/w))` | Film-like H&D curve 시뮬레이션 |
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 사전정의 Preset | Body-part별 최소 20개 (Chest, Abdomen, Bone, Soft-tissue 등) |
 | 사용자 조정 | 실시간 W/L drag (≤ 16ms latency) |
-| Multi-VOI | DICOM multi-value W/L 지원 (alternative view) |
+| Multi-VOI | DICOM multi-value W/L 지원 (대체 보기) |
 | DICOM 저장 | Window Center (0028,1050), Window Width (0028,1051), VOI LUT Function (0028,1056) |
 
 #### 3.3.3 REQ-DP-003: Presentation LUT / GSDF
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | DICOM Part 14 | Grayscale Standard Display Function (GSDF) 준수 |
-| P-Value 출력 | Perceptually linear luminance space |
+| P-Value 출력 | 지각적으로 선형인 휘도 공간 |
 | Photometric Interpretation | MONOCHROME1 (bone=dark) / MONOCHROME2 (bone=bright) 자동 처리 |
 | Presentation LUT Shape | IDENTITY / INVERSE 지원 |
 | Calibration | Display 장치별 GSDF LUT 생성 도구 포함 |
 
-#### 3.3.4 REQ-DP-004: DICOM Compliance
+#### 3.3.4 REQ-DP-004: DICOM 준수
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | IOD | Digital X-Ray Image (DX) — SOP Class 1.2.840.10008.5.1.4.1.1.1.1 |
 | Presentation State | Grayscale Softcopy Presentation State Storage |
 | Transfer Syntax | Explicit VR Little Endian, JPEG 2000 Lossless |
-| Mandatory Tags | All Type 1/2 per DICOM PS3.3 DX IOD |
+| 필수 Tags | DICOM PS3.3 DX IOD당 모든 Type 1/2 |
 | FOR PROCESSING / FOR PRESENTATION | 양방향 지원, Presentation Intent Type (0008,0068) |
 
 ### 3.4 Look-Up Table (LUT) 관리 시스템
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Exam-Type LUT | Body-part / projection 별 최적화 LUT 세트 |
 | LUT 저장 형식 | JSON + binary (16-bit entry), DICOM LUT Sequence 호환 |
@@ -288,7 +288,7 @@ Output = Stored_Value × Rescale_Slope + Rescale_Intercept
 Image = Σ(k=0..N) Laplacian_k + Residual_N
 ```
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Decomposition Levels | 8-12 (pixel pitch에 따라 조정) |
 | Pyramid 방식 | Laplacian (Burt-Adelson) 또는 Wavelet (Haar/Daubechies) |
@@ -300,7 +300,7 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 **목적:** 급격한 밀도 전환부(bone-soft tissue boundary)에서 artifact 없는 렌더링
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Fractional Decomposition | Scale 간 intermediate fraction 분해 |
 | Transition Zone 처리 | Soft-tissue / bone boundary에서 graded processing |
@@ -309,47 +309,47 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 4.1.3 REQ-MFP-003: Auto-Optimization
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
-| Body-Part Independent | 입력 영상 자체에서 최적 parameter 자동 결정 |
-| Histogram Analysis | CNR mask 기반 relevant region 검출 |
-| Parameter 자동 조정 | Contrast / Brightness / Sharpness 3-axis |
+| Body-Part Independent | 입력 영상 자체에서 최적 매개변수 자동 결정 |
+| Histogram Analysis | CNR mask 기반 관련 영역 검출 |
+| 매개변수 자동 조정 | Contrast / Brightness / Sharpness 3-axis |
 | Fallback | Manual override 항상 가능 |
 
 ### 4.2 Body-Part Recognition & Adaptive Processing
 
 #### 4.2.1 REQ-BPR-001: Automatic Body-Part Recognition
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Classification | 최소 15 categories (Chest PA/Lat, C-spine, T-spine, L-spine, Pelvis, Hip, Knee, Ankle, Foot, Hand, Wrist, Elbow, Shoulder, Abdomen, Skull) |
 | 방법 | CNN classifier (MobileNet-v3 class) |
 | 정확도 | ≥ 95% Top-1 accuracy |
 | Fallback | DICOM Body Part Examined (0018,0015) tag 참조 |
-| 출력 | Processing parameter set 자동 선택 |
+| 출력 | Processing 매개변수 세트 자동 선택 |
 
 #### 4.2.2 REQ-BPR-002: Collimation Detection
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 검출 대상 | X-ray 조사야 경계 (lead masking / collimator edge) |
 | 방법 | Gradient-based edge detection + Hough transform |
 | 기능 | 조사야 외 영역 자동 마스킹 (black / white) |
-| 정확도 | ≥ 98% (rectangular collimation) |
+| 정확도 | ≥ 98% (직사각형 조사) |
 
 #### 4.2.3 REQ-BPR-003: Exposure Index Calculation
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 표준 | IEC 62494-1 (Exposure Index, Target EI, Deviation Index) |
-| ROI 결정 | Collimation 영역 내 relevant region 자동 검출 |
+| ROI 결정 | Collimation 영역 내 관련 영역 자동 검출 |
 | 출력 | EI, EI_target, DI (DICOM tags 포함) |
 
 ### 4.3 Image Stitching (Panoramic)
 
 #### 4.3.1 REQ-STI-001: Full-Spine Stitching
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 입력 | 2-4장 연속 촬영 (10-30% overlap) |
 | Registration | Phase correlation → sub-pixel refinement |
@@ -360,21 +360,21 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 4.3.2 REQ-STI-002: Long-Leg Stitching
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 입력 | 3장 (Hip + Knee + Ankle) |
 | Registration | Feature-based (Canny edge + bone edge alignment) |
 | HKA Angle | Stitched image에서 자동 측정 제공 |
 | 정확도 | HKA 오차 ≤ 1° |
 
-### 4.4 Measurement & Annotation Tools
+### 4.4 측정 및 주석 도구
 
-| Tool | Specification |
+| 도구 | 사양 |
 |------|--------------|
-| Distance | 2-point linear measurement (mm), calibrated by pixel pitch |
-| Angle (Cobb) | 3-point angle, auto snap to vertebral endplate |
+| Distance | 2-point linear measurement (mm), pixel pitch로 보정 |
+| Angle (Cobb) | 3-point angle, 척추 종판에 자동 snap |
 | ROI Statistics | Rectangle/Ellipse/Freehand — mean, std, min, max, area |
-| Arrow/Text | Free annotation with persistence via DICOM Presentation State |
+| Arrow/Text | DICOM Presentation State를 통한 지속성이 있는 자유 주석 |
 | Magnification | 2x, 4x, pixel-level zoom with interpolation method selection |
 
 ---
@@ -389,7 +389,7 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 5.1.1 REQ-DL-001: Virtual Dual-Energy Subtraction
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 방법 | Single-shot CXR → Virtual Soft-Tissue Image 생성 |
 | Architecture | Residual U-Net (encoder-decoder with skip connections) |
@@ -403,7 +403,7 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 5.2.1 REQ-DL-002: Low-Dose Enhancement
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | 목적 | 저선량 촬영 영상의 noise 제거 (ALARA 원칙 지원) |
 | Architecture | DnCNN 또는 Noise2Noise variant |
@@ -415,10 +415,10 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 5.3.1 REQ-DL-003: Resolution Enhancement
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
 | Scale Factor | 2× (200μm → 100μm equivalent) |
-| Architecture | SRGAN / Real-ESRGAN variant (medical domain fine-tuned) |
+| Architecture | SRGAN / Real-ESRGAN variant (의료 도메인 미세 조정) |
 | 제한 | Research / 참고 목적, 진단 primary interpretation에는 미사용 |
 | Disclaimer | "AI-enhanced resolution" 워터마크 표시 |
 
@@ -426,17 +426,17 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 #### 5.4.1 REQ-CAD-001: Plugin Architecture
 
-| Requirement | Specification |
+| 요구사항 | 사양 |
 |-------------|--------------|
-| Interface | Standardized REST API + DICOM SR output |
+| Interface | 표준화된 REST API + DICOM SR output |
 | 지원 결과 타입 | Bounding Box, Heatmap, Probability Score, Structured Report |
 | Worklist 연동 | DICOM Worklist → AI Routing → Result overlay |
 | 3rd Party | ONNX Runtime 기반 모델 로딩 (vendor-agnostic) |
 | FDA Pathway | SaMD Pre-cert 또는 510(k) per algorithm |
 
-#### 5.4.2 REQ-CAD-002: Supported AI Tasks (Plug-in)
+#### 5.4.2 REQ-CAD-002: 지원되는 AI 작업 (Plug-in)
 
-| Task | Clinical Application | Regulatory Class |
+| 작업 | 임상 응용 | 규제 등급 |
 |------|---------------------|-----------------|
 | Pneumothorax Detection | ER triage | FDA Class II (QIH) |
 | Lung Nodule Detection | Screening support | FDA Class II (QIH) |
@@ -446,11 +446,11 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 ---
 
-## 6. Non-Functional Requirements
+## 6. 비기능 요구사항
 
-### 6.1 Performance
+### 6.1 성능
 
-| Metric | Target | Measurement |
+| 메트릭 | 목표 | 측정 |
 |--------|--------|-------------|
 | Pre-Processing Latency | ≤ 500ms | 3072×3072, CPU single-thread |
 | Full Pipeline (Phase 1) | ≤ 3s | End-to-end, i7-12th gen |
@@ -459,18 +459,18 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 | W/L Interactive | ≤ 16ms | Display refresh |
 | Memory Usage | ≤ 2GB | Peak, per image processing |
 
-### 6.2 Quality Metrics
+### 6.2 품질 메트릭
 
-| Metric | Definition | Acceptance Criteria |
+| 메트릭 | 정의 | 승인 기준 |
 |--------|-----------|-------------------|
-| SNR | Signal-to-Noise Ratio | ≥ detector theoretical DQE limit의 90% 유지 |
+| SNR | Signal-to-Noise Ratio | ≥ detector 이론적 DQE limit의 90% 유지 |
 | CNR | Contrast-to-Noise Ratio | Enhancement 후 ≥ 1.5× baseline |
 | MTF Preservation | Modulation Transfer Function | ≥ 90% at Nyquist/2 after processing |
 | Artifact Freedom | Visual artifact assessment | Reader score ≥ 4/5 (5-point scale) |
 
-### 6.3 Regulatory & Standards Compliance
+### 6.3 규제 및 표준 준수
 
-| Standard | Scope |
+| 표준 | 범위 |
 |----------|-------|
 | IEC 62304:2015 | SW development lifecycle (Class C) |
 | ISO 14971:2019 | Risk management |
@@ -480,9 +480,9 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 | EU MDR 2017/745 | CE marking (Class IIa) |
 | IEC 62563-1 | Display GSDF calibration |
 
-### 6.4 Software Architecture Constraints
+### 6.4 소프트웨어 아키텍처 제약사항
 
-| Constraint | Specification |
+| 제약사항 | 사양 |
 |-----------|--------------|
 | Language | C++ 17 (engine core), C# (GUI/WPF integration) |
 | Build System | CMake 3.20+ |
@@ -496,13 +496,13 @@ Image = Σ(k=0..N) Laplacian_k + Residual_N
 
 ---
 
-## 7. Risk Analysis (Top-Level)
+## 7. 위험 분석 (상위 수준)
 
-| Risk ID | Risk | Severity | Mitigation |
+| 위험 ID | 위험 | 심각도 | 완화 |
 |---------|------|----------|------------|
-| R-001 | DL bone suppression이 pathology를 함께 제거 | Critical | Mandatory reader study (N≥30), toggle 기능 필수 |
-| R-002 | MFP parameter 오류로 진단 정보 왜곡 | High | Body-part preset validation, undo/원본 복원 필수 |
-| R-003 | Defective pixel 미검출로 진단 오류 | High | Dual-detection (factory + runtime), periodic QC |
+| R-001 | DL bone suppression이 pathology를 함께 제거 | Critical | 필수 reader study (N≥30), toggle 기능 필수 |
+| R-002 | MFP 매개변수 오류로 진단 정보 왜곡 | High | Body-part preset validation, undo/원본 복원 필수 |
+| R-003 | Defective pixel 미검출로 진단 오류 | High | Dual-detection (factory + runtime), 주기적 QC |
 | R-004 | Image stitching 정합 오류로 측정 부정확 | High | 정합 confidence score 표시, 수동 보정 UI |
 | R-005 | Ghost artifact가 병변으로 오인 | High | Forward Bias + SW correction 이중 보정 |
 | R-006 | GSDF 미준수로 미묘한 병변 비가시 | Medium | Display calibration tool 제공, 주기적 검증 |
@@ -575,11 +575,11 @@ Loss: L1 + 0.1 × Perceptual(VGG16_features) + 0.01 × SSIM
 
 ---
 
-## 9. Validation & Verification Strategy
+## 9. 검증 및 검증 전략
 
 ### 9.1 Unit Testing
 
-| Module | Coverage Target | Framework |
+| 모듈 | Coverage 목표 | Framework |
 |--------|----------------|-----------|
 | Pre-Processing | ≥ 90% | Google Test |
 | Core Processing | ≥ 85% | Google Test |
@@ -588,25 +588,25 @@ Loss: L1 + 0.1 × Perceptual(VGG16_features) + 0.01 × SSIM
 
 ### 9.2 Integration Testing
 
-| Test Case | Method |
+| 테스트 케이스 | 방법 |
 |-----------|--------|
-| Full Pipeline Regression | 50+ phantom images, automated PSNR/SSIM 비교 |
+| Full Pipeline Regression | 50+ phantom images, 자동화된 PSNR/SSIM 비교 |
 | DICOM Conformance | DVTk / dcm4che validation suite |
 | Cross-Platform | Windows 11 + Linux (Docker) build & test |
 
-### 9.3 Clinical Validation
+### 9.3 임상 검증
 
-| Phase | Validation |
+| 단계 | 검증 |
 |-------|-----------|
-| Phase 1 | Phantom study (CDRAD 2.0) + 100 clinical images reader study |
-| Phase 2 | 300 clinical images, 3 radiologists, 5-point IQ scoring |
+| Phase 1 | Phantom study (CDRAD 2.0) + 100 임상 이미지 reader study |
+| Phase 2 | 300 임상 이미지, 3 방사선과 의사, 5-point IQ 점수 |
 | Phase 3 (DL) | Multi-reader multi-case (MRMC) study, N≥30 readers, N≥300 cases |
 
 ---
 
-## 10. Development Schedule
+## 10. 개발 일정
 
-| Sprint | Weeks | Deliverables |
+| Sprint | 주 | 결과물 |
 |--------|-------|-------------|
 | **Phase 1** | | |
 | S1.1 | W1-4 | Offset/Gain/Defect Pixel Correction |
@@ -629,11 +629,11 @@ Loss: L1 + 0.1 × Perceptual(VGG16_features) + 0.01 × SSIM
 
 ---
 
-## 11. Quality Metrics & Acceptance Criteria Summary
+## 11. 품질 메트릭 및 승인 기준 요약
 
-| Criterion | Phase 1 | Phase 2 | Phase 3 |
+| 기준 | Phase 1 | Phase 2 | Phase 3 |
 |-----------|---------|---------|---------|
-| Pipeline Latency | ≤ 3s | ≤ 5s | ≤ 7s (DL incl.) |
+| Pipeline Latency | ≤ 3s | ≤ 5s | ≤ 7s (DL 포함) |
 | IQ Score (reader) | ≥ 3.5/5 | ≥ 4.0/5 | ≥ 4.2/5 |
 | DICOM Conformance | 100% Type 1/2 | + Presentation State | + SR |
 | Unit Test Coverage | ≥ 80% | ≥ 85% | ≥ 80% |

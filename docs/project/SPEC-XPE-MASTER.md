@@ -1,22 +1,22 @@
-# SPEC-XPE-MASTER: X-ray Image Processing Engine Master Implementation Plan
+# SPEC-XPE-MASTER: X-ray Image Processing Engine Master Implementation Plan (X선 이미지 처리 엔진 Master 구현 계획)
 
 **Document ID**: SPEC-XPE-MASTER
 **Version**: 2.0.0
 **Date**: 2026-04-14
-**Status**: Draft — Pending Review
+**Status**: Draft — Pending Review (검토 대기 중)
 **Author**: MoAI (3-Round Deep Cross-Verification v2.0)
 **Classification**: IEC 62304 Class B
 **Source**: product.md, tech.md, structure.md, pipeline-spec.md, api-spec.md, xpe-algorithm-spec-deepsync.md, PRD-FPD-CAL-001, Ghost PRD v2, Panel Defect Plan, XPE-SRS-001, GSVG-SRS-001, XPE-SDD-001, xray_fpd_tech_classification_final.md
 
 ---
 
-## Changelog (v1.0.0 → v2.0.0)
+## Changelog (v1.0.0 → v2.0.0) (변경 로그)
 
-| Change | Detail |
+| Change | Detail (상세) |
 |--------|--------|
-| 12 NEW issues resolved | Deep verification found 3 CRITICAL + 3 MAJOR + 4 MEDIUM + 2 LOW issues |
+| 12 NEW issues resolved | Deep verification에서 3 CRITICAL + 3 MAJOR + 4 MEDIUM + 2 LOW 이슈 발견 |
 | §1 upgraded | v2.0 교차검증 결과 전체 반영, Document Update Matrix 추가 |
-| §3.5 corrected | Infrastructure SWU = **7** (not 8). SWU-5.7은 §3.7 C# GUI에 분류 |
+| §3.5 corrected | Infrastructure SWU = **7** (8 아님). SWU-5.7은 §3.7 C# GUI에 분류 |
 | §3.8 corrected | Summary 테이블 Infrastructure 행 8→7 수정 |
 | §3.9 NEW | EI-0 Phase Assignment Resolution 추가 |
 | §4 Phase 0 enhanced | P0-09~P0-12 신규 deliverable 추가 (로깅, AED, 테스트 인프라, 모듈 스캐폴딩) |
@@ -26,32 +26,32 @@
 
 ---
 
-## 1. Cross-Verification Summary (v2.0)
+## 1. Cross-Verification Summary (v2.0) (교차검증 요약 v2.0)
 
 3회 독립 병렬 교차검증으로 발견된 문서 간 불일치와 갭을 정리. v1.0.0 대비 12건 신규 이슈 발견.
 
-### 1.1 v1.0.0 Issues Resolution Status
+### 1.1 v1.0.0 Issues Resolution Status (v1.0.0 이슈 해결 상태)
 
-| ID | Issue | Status |
+| ID | Issue (이슈) | Status (상태) |
 |----|-------|--------|
-| C1 | Pipeline 순서 충돌 | **RESOLVED** — Pipeline Spec §1.2 normative |
+| C1 | Pipeline 순서 충돌 | **RESOLVED** — Pipeline Spec §1.2 규범 |
 | C2 | SDD 6개 SWU 누락 | **OPEN** — SDD v1.1 개정 대기 |
-| C3 | Ghost PRD v2 독립 API | **RESOLVED** — XPE API normative |
+| C3 | Ghost PRD v2 독립 API | **RESOLVED** — XPE API 규범 |
 | C4 | Panel Defect Plan 독립 API | **RESOLVED** — Phase 1 basic + Phase 3 AI |
-| C5 | 성능 목표 불일치 | **RESOLVED** — Pipeline per-stage normative |
-| C6 | 메모리 목표 불일치 | **RESOLVED** — Pipeline phase별 예산 normative |
+| C5 | 성능 목표 불일치 | **RESOLVED** — Pipeline per-stage 규범 |
+| C6 | 메모리 목표 불일치 | **RESOLVED** — Pipeline phase별 예산 규범 |
 
-### 1.2 v2.0 NEW Critical Issues
+### 1.2 v2.0 NEW Critical Issues (v2.0 신규 Critical 이슈)
 
-| ID | Severity | Issue | Resolution |
+| ID | Severity (심각도) | Issue (이슈) | Resolution (해결안) |
 |----|----------|-------|-----------|
 | **N4** | CRITICAL | AED 3개 함수 헤더 미선언 + 미구현 | Phase 0 구현 시 xpe_common_api.h에 선언 추가. api-spec.md v1.2.0에 §5.16~5.18 추가 |
 | **N5** | CRITICAL | Logging 3개 함수 헤더 미선언 | Phase 0 구현 시 xpe_common_api.h (또는 xpe_log.h)에 선언 추가 |
 | **N11** | CRITICAL | EI-0 (Whole-image EI baseline) Phase 1b에 SWU 미할당 | **본 SPEC §3.9에서 해결**: xpe_calc_exposure_index를 xpe_enhance_basic.dll Phase 1b로 이동. Phase 2에서는 ROI-aware refinement 기능 추가 호출 |
 
-### 1.3 v2.0 NEW Major/Medium Issues
+### 1.3 v2.0 NEW Major/Medium Issues (v2.0 신규 Major/Medium 이슈)
 
-| ID | Severity | Issue | Resolution |
+| ID | Severity (심각도) | Issue (이슈) | Resolution (해결안) |
 |----|----------|-------|-----------|
 | N1 | MAJOR | api-spec.md 함수 카운트 79→82 미갱신 | api-spec.md v1.2.0 개정 |
 | N12 | MAJOR | SPEC §3.8 Infrastructure 카운트 8→7 오류 | **본 SPEC §3.8에서 수정** |
@@ -63,9 +63,9 @@
 | N8 | MEDIUM | api-spec.md §4 카운트 테이블 미갱신 | api-spec.md v1.2.0 |
 | N9 | MEDIUM | 모듈 디렉토리 스캐폴딩 미완 | **Phase 0 deliverable P0-09 추가** |
 
-### 1.4 Document Update Matrix
+### 1.4 Document Update Matrix (문서 갱신 매트릭스)
 
-| Document | Current | Target | Priority |
+| Document | Current | Target | Priority (우선순위) |
 |----------|---------|--------|----------|
 | **SPEC-XPE-MASTER** | v1.0.0 | **v2.0.0 (본 문서)** | Done |
 | **api-spec.md** | v1.1.0 | **v1.2.0** | P1 |
@@ -78,9 +78,9 @@
 
 ---
 
-## 2. Architecture Confirmation
+## 2. Architecture Confirmation (아키텍처 확인)
 
-### 2.1 Anti-Spaghetti 3-Layer Design (Confirmed)
+### 2.1 Anti-Spaghetti 3-Layer Design (Confirmed) (Anti-Spaghetti 3-계층 설계 (확인됨))
 
 ```
 Layer 0: xpe_common.dll          -- Types, Memory, Config, Logger, Alert, AED
@@ -96,7 +96,7 @@ Layer 2: ImageProcTest.exe (C#)  -- SWU-5.7 PipelineOrchestrator, SWU-6.1 QA
 
 **v2.0 변경**: xpe_enhance_basic.dll에 EI baseline 기능 추가 (§3.9 해결안 반영).
 
-### 2.2 Canonical Pipeline (Normative)
+### 2.2 Canonical Pipeline (Normative) (표준 파이프라인 (규범))
 
 ```
 Raw Frame
@@ -131,9 +131,9 @@ Raw Frame
 
 ---
 
-## 3. Complete SWU Inventory (43 Units)
+## 3. Complete SWU Inventory (43 Units) (전체 SWU 인벤토리 (43 Units))
 
-### 3.1 SWI-1: Pre-Processing Module (9 SWU) -- xpe_preprocess.dll
+### 3.1 SWI-1: Pre-Processing Module (9 SWU) -- xpe_preprocess.dll (전처리 모듈)
 
 | Unit ID | Unit Name | Research ID | API Function(s) | Phase |
 |---------|-----------|-------------|-----------------|:-----:|
@@ -141,13 +141,13 @@ Raw Frame
 | SWU-1.2 | GainCorrector | PRE-03 | `xpe_gain_correct` | 1a |
 | SWU-1.3 | DefectPixelCorrector | PRE-06 (basic) | `xpe_defect_correct`, `xpe_defect_detect_runtime` | 1a |
 | SWU-1.4 | GhostCorrector | PRE-04, PRE-05 | `xpe_ghost_create/correct/reset/destroy` | 1a |
-| SWU-1.5 | CalibrationManager | SUP-01 | `xpe_calib_*` (6 functions) | 1a |
+| SWU-1.5 | CalibrationManager | SUP-01 | `xpe_calib_*` (6개 함수) | 1a |
 | SWU-1.6 | TempCompensator | PRE-07 | `xpe_temp_compensate` | 1a |
 | SWU-1.7 | NonlinearityCorrector | PRE-08 | `xpe_nonlinearity_correct` | 1a |
 | SWU-1.8 | BinningCorrector | PRE-09 | `xpe_binning_correct` | 1a |
 | SWU-1.9 | ReadoutArtifactValidator | PRE-01 | `xpe_validate_readout_artifact` | 1a |
 
-### 3.2 SWI-2: Core Processing Module (12 SWU)
+### 3.2 SWI-2: Core Processing Module (12 SWU) (핵심 처리 모듈)
 
 | Unit ID | Unit Name | Research ID | API Function(s) | DLL | Phase |
 |---------|-----------|-------------|-----------------|-----|:-----:|
@@ -214,7 +214,7 @@ Raw Frame
 | SWU-5.7 | PipelineOrchestrator | C# WPF, P/Invoke | 0+ |
 | SWU-6.1 | QaConstancyTest | C# WPF | 1b+ |
 
-### 3.8 Summary (v2.0 CORRECTED)
+### 3.8 Summary (v2.0 CORRECTED) (요약 (v2.0 수정됨))
 
 | Category | SWU Count | Phase 0 | Phase 1a | Phase 1b | Phase 2 | Phase 3 |
 |----------|:---------:|:-------:|:--------:|:--------:|:-------:|:-------:|
@@ -233,7 +233,7 @@ Raw Frame
 - Phase 1b Core Processing: 4 → **5** (SWU-2.10 EI baseline 추가)
 - Phase 2 Core Processing: 4 → **3** (SWU-2.10 Phase 1b로 이동, Collimation/Multiscale/Fractional 유지)
 
-### 3.9 EI-0 Phase Assignment Resolution (NEW in v2.0)
+### 3.9 EI-0 Phase Assignment Resolution (NEW in v2.0) (EI-0 단계 할당 해결 (v2.0에서 신규))
 
 **Problem**: Pipeline stage (EI-0) "Whole-image EI baseline"은 Phase 1b에 실행되지만, SWU-2.10 ExposureIndexCalc은 Phase 2 (xpe_enhance_advanced.dll)에만 할당.
 
@@ -248,15 +248,15 @@ Raw Frame
 
 ---
 
-## 4. Implementation Phase Plan
+## 4. Implementation Phase Plan (구현 단계 계획)
 
-### Phase 0: Foundation (xpe_common.dll + Build Infrastructure)
+### Phase 0: Foundation (xpe_common.dll + Build Infrastructure) (재단 (xpe_common.dll + 빌드 인프라))
 
 **Goal**: 빌드 시스템 구축, 공통 라이브러리 완성, C# GUI 스캐폴딩
 
-**Deliverables**:
+**Deliverables** (전달물):
 
-| ID | Deliverable | SWU | Priority |
+| ID | Deliverable (전달물) | SWU | Priority (우선순위) |
 |----|------------|-----|----------|
 | P0-01 | CMake 빌드 시스템 (root + modules/ + gsvg/ + tests/) | -- | Must |
 | P0-02 | CMakePresets.json (Debug/Release/CI) | -- | Must |
@@ -445,7 +445,7 @@ Phase 1b의 4개 Sub-SPEC은 병렬 실행 가능 (xpe_common.dll에만 의존).
 
 ---
 
-## 7. Quality Gates per Phase (v2.0 Enhanced)
+## 7. Quality Gates per Phase (v2.0 Enhanced) (단계별 품질 게이트 (v2.0 강화))
 
 | Gate | Phase 0 | Phase 1a | Phase 1b | Phase 2 | Phase 3 |
 |------|---------|----------|----------|---------|---------|
@@ -468,9 +468,9 @@ Phase 1b의 4개 Sub-SPEC은 병렬 실행 가능 (xpe_common.dll에만 의존).
 
 ---
 
-## 8. Risk Summary (v2.0 Extended)
+## 8. Risk Summary (v2.0 Extended) (리스크 요약 (v2.0 확장))
 
-| Risk | Impact | Likelihood | Mitigation |
+| Risk | Impact (영향) | Likelihood (가능성) | Mitigation (완화) |
 |------|--------|-----------|------------|
 | Ghost PRD v2의 fixed-point 알고리즘이 XPE float32 파이프라인과 불일치 | High | Medium | Phase 1a에서 float32 구현 후 fixed-point 최적화는 FPGA 이관 시 수행 |
 | GSVG FFTW3 GPL 라이선스 오염 | High | Low | Dynamic linking 유지, GSVG를 독립 DLL로 분리 (현재 설계 유지) |

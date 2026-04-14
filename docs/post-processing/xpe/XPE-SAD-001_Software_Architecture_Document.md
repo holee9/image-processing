@@ -1,19 +1,19 @@
-# Software Architecture Document
+# 소프트웨어 아키텍처 문서
 
-**Document ID:** XPE-SAD-001 v1.0  
+**문서 ID:** XPE-SAD-001 v1.0  
 **IEC 62304 Clause:** 5.3.1 — 5.3.6  
-**Safety Classification:** Class B  
-**Date:** 2026-04-03  
-**Author:** XPE Development Team  
-**Approval:** __________________ Date: __________  
+**안전 분류:** Class B  
+**날짜:** 2026-04-03  
+**작성자:** XPE 개발 팀  
+**승인:** __________________ 날짜: __________  
 
 ---
 
-## 1. Purpose
+## 1. 목적
 
 XPE 소프트웨어 시스템의 아키텍처를 정의한다. SW requirements(XPE-SRS-001)를 software items로 분해하고, 인터페이스, SOUP 요구사항, risk control을 위한 segregation을 명시한다.
 
-## 2. Architecture Overview (5.3.1)
+## 2. 아키텍처 개요 (5.3.1)
 
 XPE는 **Pipeline Architecture** 패턴을 사용한다. 논리적 software item은 IEC 62304 관점의 SWI 기준으로 유지하되, 물리 배포는 DLL 단위로 분리한다. 특히 SWI-2 Core Processing은 `xpe_enhance_basic.dll`, `xpe_enhance_advanced.dll`, `xpe_ai.dll`의 3개 구현 파티션으로 분할되며, `xpe_ai.dll`은 sandbox worker process(`xpe_ai_worker.exe`)에 대한 IPC proxy 역할만 수행한다.
 

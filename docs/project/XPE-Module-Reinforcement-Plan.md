@@ -1,56 +1,56 @@
-# XPE Module Reinforcement Plan: World-Class Engine Design
+# XPE 모듈 보강 계획: 세계 수준의 엔진 설계
 
-**Document ID**: XPE-REINFORCE-001
-**Version**: 1.0.0
-**Date**: 2026-04-14
-**Status**: Draft -- Pending Review
-**Author**: MoAI (DeepResearch + DeepThink + Brainstorming)
-**Classification**: Planning Document (Non-normative)
-**Scope**: Pre-Processing (9 SWU) + Post-Processing (24 SWU) + Innovation Roadmap
-**Reference**: ALG-SPEC-001 v3.0.0-ds2, PIPE-SPEC-001 v1.3.0, SPEC-XPE-MASTER v2.0.0
+**문서 ID**: XPE-REINFORCE-001
+**버전**: 1.0.0
+**날짜**: 2026-04-14
+**상태**: 초안 -- 검토 대기 중
+**작성자**: MoAI (DeepResearch + DeepThink + 브레인스토밍)
+**분류**: 계획 문서 (규범적 아님)
+**범위**: 전처리 (9 SWU) + 후처리 (24 SWU) + 혁신 로드맵
+**참고**: ALG-SPEC-001 v3.0.0-ds2, PIPE-SPEC-001 v1.3.0, SPEC-XPE-MASTER v2.0.0
 
 ---
 
-## Executive Summary
+## 실행 요약
 
-3개 병렬 분석(전처리 딥리서치, 후처리 딥리서치, 혁신 브레인스토밍)의 결과를 통합한 극강 엔진 설계 보강 계획. 총 **23개 전처리 개선**, **35개 후처리 개선**, **78개 혁신 아이디어**에서 도출된 핵심 보강 항목.
+3개 병렬 분석(전처리 심층 연구, 후처리 심층 연구, 혁신 브레인스토밍)의 결과를 통합한 극강 엔진 설계 보강 계획. 총 **23개 전처리 개선**, **35개 후처리 개선**, **78개 혁신 아이디어**에서 도출된 핵심 보강 항목.
 
-### Key Findings
+### 주요 발견 사항
 
 | 영역 | 현재 수준 | 목표 수준 | 핵심 갭 |
 |------|----------|----------|---------|
-| Pre-Processing | 양호 (NLCSC, FixPix 업계 선도) | 극강 (SIMD 2x, 자가 캘리브레이션) | 성능 최적화, 캘리브레이션 자동화 |
-| Post-Processing | 기본 설계 완료 | Agfa MUSICA Xpert급 | 통합 멀티스케일, AI 적응형 처리 |
-| AI Module | 아키텍처 정의됨 | 실시간 해부학 인지 처리 | 모델 학습 데이터, INT8 양자화 |
-| GSVG | DWT 기반 설계 | 물리 그리드 대체 수준 | DL 산란 추정, CNR 향상 |
-| Display/DICOM | 표준 준수 설계 | HDR + SR + 클라우드 통합 | GSDF 자동화, DICOMweb |
+| 전처리 (Pre-Processing) | 양호 (NLCSC, FixPix 업계 선도) | 극강 (SIMD 2배 성능, 자동 캘리브레이션) | 성능 최적화, 캘리브레이션 자동화 |
+| 후처리 (Post-Processing) | 기본 설계 완료 | Agfa MUSICA Xpert급 | 통합 멀티스케일, AI 적응형 처리 |
+| AI 모듈 (AI Module) | 아키텍처 정의됨 | 실시간 해부학 인식 처리 | 모델 학습 데이터, INT8 양자화 |
+| 격자 억제 (GSVG) | DWT 기반 설계 | 물리 그리드 대체 수준 | DL 산란 추정, CNR 향상 |
+| 표시/DICOM (Display/DICOM) | 표준 준수 설계 | HDR + 초해상도 + 클라우드 통합 | GSDF 자동화, DICOMweb |
 
 ---
 
-## Part I: Pre-Processing Module Reinforcement (xpe_preprocess.dll)
+## Part I: 전처리 모듈 보강 (xpe_preprocess.dll)
 
-### 1. CalibManager (SWU-1.5) -- Stage 0
+### 1. 보정 관리자 (CalibManager) (SWU-1.5) -- Stage 0
 
 #### 현재 스펙 vs 보강 목표
 
 | 항목 | 현재 | 보강 목표 |
 |------|------|----------|
-| 로딩 시간 | 200ms 전체 | < 80ms (필수 맵) + < 150ms (비동기 지연 로딩) |
-| 무결성 검증 | CRC-32 | SHA-256 해시 체인 (offset+gain+BPM 세션 그룹핑) |
-| 캐싱 전략 | 미정의 | 3-tier: DRAM L1 -> NVMe L2 -> 네트워크 L3 |
-| 세션 검증 | 미정의 | 동일 캘리브레이션 세션 검증 (session_id 매칭) |
+| 로딩 시간 | 전체 200ms | < 80ms (필수 맵) + < 150ms (비동기 지연 로딩) |
+| 무결성 검증 | CRC-32 | SHA-256 해시 체인 (offset+gain+BPM 세션 그룹화) |
+| 캐싱 전략 | 정의되지 않음 | 3-계층: DRAM L1 -> NVMe L2 -> 네트워크 L3 |
+| 세션 검증 | 정의되지 않음 | 동일 캘리브레이션 세션 검증 (session_id 매칭) |
 | 드리프트 감지 | 시간+온도 임계값 | 복합 점수 (age*w1 + temp_delta*w2 + usage_frames*w3) |
 
 #### 세분화된 서브 모듈
 
 ```
 calib_registry_init        -> 파일 레지스트리 초기화
-calib_map_locate           -> 타입+시리얼 기반 파일 위치 검색
+calib_map_locate           -> 유형+시리얼 기반 파일 위치 검색
 calib_integrity_verify     -> SHA-256 + CRC 검증 (병렬 처리 가능)
 calib_header_parse         -> 메타데이터 헤더 파싱
 calib_session_validate     -> offset/gain/BPM 세션 일치 확인
 calib_expiry_check         -> 만료 + 드리프트 점수 + 사용량 확인
-calib_map_deserialize      -> 바이너리 역직렬화 (memory-mapped I/O)
+calib_map_deserialize      -> 바이너리 역직렬화 (메모리 매핑 I/O)
 calib_hot_cache_insert     -> DRAM L1 캐시 삽입 (LRU)
 calib_deferred_loader      -> NLCSC, 비선형 LUT 비동기 로딩
 ```
@@ -306,14 +306,14 @@ defect_auto_promote        -> N회 연속 감지된 일시적 결함을 정적 B
 
 ---
 
-## Part II: Post-Processing Module Reinforcement
+## Part II: 후처리 모듈 보강
 
-### 10. Enhancement Pipeline 혁신: 통합 멀티해상도 프레임워크
+### 10. 향상 파이프라인 혁신: 통합 멀티해상도 프레임워크
 
 #### 핵심 개념: 단일 Laplacian 피라미드 공유
 
 현재: 4개 스테이지가 순차적으로 독립 실행 (Log -> Noise -> Contrast -> Edge)
-보강: **단일 Laplacian 피라미드 분해**를 4개 처리에 공유
+보강: **단일 Laplacian 피라미드 분해**를 4개 처리에서 공유
 
 ```
 Input float32 image
@@ -335,16 +335,16 @@ Output enhanced image
 ```
 
 **장점**:
-- 1회 분해로 4개 처리 수행 (3x 계산 절감)
+- 1회 분해로 4개 처리 수행 (3배 계산 절감)
 - 스테이지 간 아티팩트 누적 제거
 - 자연스러운 주파수 대역별 노이즈 게이팅
-- 통합 파라미터 모델: 레벨당 gain 벡터 하나로 모든 처리 제어
+- 통합 파라미터 모델: 레벨당 이득(gain) 벡터 하나로 모든 처리 제어
 
-**성능 추정**: 통합 다중해상도 < 250ms (현재 순차 체인: 170+120+80 = 370ms)
+**성능 추정**: 통합 멀티해상도 < 250ms (현재 순차 체인: 170+120+80 = 370ms)
 
 #### 구현 로드맵
 
-| Phase | 접근 방식 |
+| Phase | 접근 방법 |
 |:-----:|----------|
 | 1b | 공간 도메인 처리 (bilateral, CLAHE, USM) -- 단순, 신뢰, 검증됨 |
 | 2 | 통합 Laplacian 피라미드로 전환 (multiscale + fractional과 통합) |
@@ -520,19 +520,19 @@ Tier 3: AI Refinement (Phase 3)
 
 ---
 
-## Part III: Innovation Roadmap -- Killer Features
+## Part III: 혁신 로드맵 -- 킬러 기능
 
 ### 19. 7대 킬러 기능
 
-| # | 기능명 | 핵심 가치 | Phase | Impact |
+| # | 기능명 | 핵심 가치 | Phase | 영향도 |
 |---|--------|----------|:-----:|:------:|
-| K1 | **OneClick** | 촬영 버튼 하나로 최적 영상 완성 | 3 | 5/5 |
-| K2 | **InstaQC** | 촬영 직후 1초 이내 진단 적합성 자동 판정 | 2 | 5/5 |
-| K3 | **NanoGrid** | 소프트웨어 가상 그리드로 물리 그리드 대체 (선량 30% 절감) | 2 | 5/5 |
-| K4 | **UniversalLook** | 검출기 무관 일관된 진단 화질 보장 | 2 | 5/5 |
-| K5 | **DoseGuard** | 선량 최적화 자동 파일럿 (ALARA) | 3 | 5/5 |
-| K6 | **DetectorIQ** | 검출기 지능형 자가진단 + 예측적 유지보수 | 3 | 4/5 |
-| K7 | **Audit Trail** | 완전한 처리 파이프라인 추적성 (IEC 62304) | 1 | 5/5 |
+| K1 | **OneClick** (원클릭) | 촬영 버튼 하나로 최적 영상 완성 | 3 | 5/5 |
+| K2 | **InstaQC** (즉시 QC) | 촬영 직후 1초 이내 진단 적합성 자동 판정 | 2 | 5/5 |
+| K3 | **NanoGrid** (나노그리드) | 소프트웨어 가상 격자로 물리 격자 대체 (선량 30% 절감) | 2 | 5/5 |
+| K4 | **UniversalLook** (범용 화질) | 검출기 무관 일관된 진단 화질 보장 | 2 | 5/5 |
+| K5 | **DoseGuard** (선량 보호) | 선량 최적화 자동 파일럿 (ALARA) | 3 | 5/5 |
+| K6 | **DetectorIQ** (검출기 지능형) | 검출기 지능형 자가진단 + 예측적 유지보수 | 3 | 4/5 |
+| K7 | **Audit Trail** (감사 기록) | 완전한 처리 파이프라인 추적성 (IEC 62304) | 1 | 5/5 |
 
 ---
 
@@ -641,11 +641,11 @@ Tier 3: AI Refinement (Phase 3)
 
 이 비전을 실현하기 위한 5대 설계 철학:
 
-1. **Zero Configuration**: 설치 후 설정 없이 최적 화질. Body Part Recognition + Dose-Aware + Detector Normalization이 결합되어 "Just Works"
-2. **Invisible Complexity**: 17-stage 파이프라인의 복잡성은 완전히 숨기고, 사용자에게는 "촬영 -> 최적 영상" 단일 인터페이스만 노출
-3. **Continuous Improvement**: 매 프레임에서 학습하는 자가 캘리브레이션 + 예측적 유지보수
-4. **Transparency**: Processing Audit Trail로 모든 처리 과정이 완전 추적 가능
-5. **Safety First**: 결정론적 폴백이 항상 사용 가능. AI는 보조적이며 안전하게 열화 가능
+1. **Zero Configuration** (제로 설정): 설치 후 설정 없이 최적 화질. Body Part Recognition + Dose-Aware + Detector Normalization이 결합되어 "즉작 동작"
+2. **Invisible Complexity** (숨겨진 복잡성): 17-스테이지 파이프라인의 복잡성은 완전히 숨기고, 사용자에게는 "촬영 -> 최적 영상" 단일 인터페이스만 노출
+3. **Continuous Improvement** (지속적 개선): 매 프레임에서 학습하는 자동 캘리브레이션 + 예측적 유지보수
+4. **Transparency** (투명성): 처리 감사 기록으로 모든 처리 과정이 완전 추적 가능
+5. **Safety First** (안전 최우선): 결정론적 폴백이 항상 사용 가능. AI는 보조적이며 안전하게 기능 저하 가능
 
 ---
 

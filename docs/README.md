@@ -6,87 +6,87 @@
 
 ---
 
-## How to Use This Index
+## 이 인덱스 사용 방법
 
-- **Normative** documents are the Single Source of Truth (SSoT). When information conflicts, normative documents win.
-- **Informational** documents provide context, analysis, or implementation guidance. They reference normative documents but never override them.
-- **Archive** documents are superseded or historical. Kept for audit trail only.
-- **IEC 62304** packages are regulatory deliverables organized by software item (XPE, GSVG, Ghost Correction).
+- **Normative** 문서는 단일 정보 출처(SSoT)입니다. 정보가 충돌할 때는 정규 문서가 우선합니다.
+- **Informational** 문서는 맥락, 분석 또는 구현 지침을 제공합니다. 정규 문서를 참고하지만 절대 이를 무시하지 않습니다.
+- **Archive** 문서는 대체되었거나 역사적입니다. 감시 추적을 위해서만 보관됩니다.
+- **IEC 62304** 패키지는 소프트웨어 항목(XPE, GSVG, Ghost Correction)별로 정리된 규제 전달물입니다.
 
-### Normative Authority Table
+### 정규 권한 테이블
 
 | Topic | Normative Document | Scope |
 |-------|-------------------|-------|
-| Product definition, components, phases | [product.md](project/product.md) | WHAT we build |
-| Repository structure, DLL mapping | [structure.md](project/structure.md) | WHERE code lives |
-| Technology stack, dependencies, ABI | [tech.md](project/tech.md) | WITH WHAT we build |
-| Pipeline stage ordering, bypass rules | [pipeline-spec.md](project/pipeline-spec.md) | HOW stages execute |
-| C ABI function signatures | [api-spec.md](project/api-spec.md) | API contract |
-| Algorithm behavior, quality gates | [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | Algorithm contract |
-| SWU counts, Phase assignments | [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | Master implementation plan |
-| Sprint decomposition | [sprint-plan.md](project/sprint-plan.md) | Execution schedule |
-| Implementation details (binary format, JSON schema) | [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | Developer reference |
+| 제품 정의, 컴포넌트, Phase | [product.md](project/product.md) | 우리가 무엇을 만드는가 |
+| 저장소 구조, DLL 매핑 | [structure.md](project/structure.md) | 코드가 어디에 있는가 |
+| 기술 스택, 종속성, ABI | [tech.md](project/tech.md) | 무엇으로 만드는가 |
+| 파이프라인 단계 순서, 우회 규칙 | [pipeline-spec.md](project/pipeline-spec.md) | 단계가 어떻게 실행되는가 |
+| C ABI 함수 서명 | [api-spec.md](project/api-spec.md) | API 계약 |
+| 알고리즘 동작, 품질 게이트 | [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | 알고리즘 계약 |
+| SWU 카운트, Phase 할당 | [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | 마스터 구현 계획 |
+| Sprint 분해 | [sprint-plan.md](project/sprint-plan.md) | 실행 일정 |
+| 구현 세부 사항 (바이너리 형식, JSON 스키마) | [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | 개발자 참조 |
 
-> When you find conflicting information across documents, the Normative Document listed above is authoritative.
-
----
-
-## 1. Normative Documents (Single Source of Truth)
-
-Core specifications that define the project. Changes to these documents trigger downstream updates.
-
-### 1.1 Product Foundation
-
-| Document | ID | Version | Lines | Description |
-|----------|-----|---------|:-----:|-------------|
-| [product.md](project/product.md) | — | v1.0 | 94 | Product identity, components (Pre/Post/Support), Must-Have vs Differentiator strategy, target users |
-| [structure.md](project/structure.md) | — | v1.0 | 78 | Repository layout, Module-to-DLL mapping (38 native SWU), dependency direction rules |
-| [tech.md](project/tech.md) | — | v1.0 | 136 | C++17/C#/.NET 8 stack, SOUP dependencies (8 XPE + 5 GSVG), platform targets, C ABI design, HW/SW strategy |
-
-### 1.2 Technical Specifications
-
-| Document | ID | Version | Lines | Description |
-|----------|-----|---------|:-----:|-------------|
-| [pipeline-spec.md](project/pipeline-spec.md) | PIPE-SPEC-001 | v1.3.0 | 666 | 17-stage pipeline sequence, pre-processing dependency graph, bypass policy, data flow |
-| [api-spec.md](project/api-spec.md) | XPE-API-SPEC-001 | v1.2.0 | 1,469 | 82 exported C ABI functions across 8 DLLs, common types, P/Invoke alignment |
-| [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | ALG-SPEC-001 | v3.0.0-ds2 | 573 | Algorithm contract: DeepSync decisions, research-validated models, quality gates, EI-0 resolution |
-
-### 1.3 Implementation Planning
-
-| Document | ID | Version | Lines | Description |
-|----------|-----|---------|:-----:|-------------|
-| [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | SPEC-XPE-MASTER | v2.0.0 | 495 | Master plan: 43 SWU, Phase 0-3, cross-verification summary, document update matrix |
-| [sprint-plan.md](project/sprint-plan.md) | XPE-SPRINT-PLAN-001 | v1.1.0 | 1,410 | 28 sprints, dependency graph, per-sprint scope/API/test targets, rollback strategy |
-| [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | XPE-IMPL-REF-001 | v1.0.0 | 759 | Calibration binary format, JSON config schemas, body-part lookup tables, error codes |
+> 문서 간의 정보가 충돌할 때는 위의 정규 문서가 권위를 갖습니다.
 
 ---
 
-## 2. Informational Documents (Context & Guidance)
+## 1. 정규 문서 (단일 정보 출처)
 
-Reference material that supports development. Not authoritative — always defer to normative documents.
+프로젝트를 정의하는 핵심 명세입니다. 이 문서의 변경사항은 다운스트림 업데이트를 촉발합니다.
 
-### 2.1 Verification & Analysis
-
-| Document | ID | Version | Lines | Description |
-|----------|-----|---------|:-----:|-------------|
-| [cross-verification-consolidated.md](project/cross-verification-consolidated.md) | XPE-XVER-CONSOLIDATED-001 | v1.0.0 | — | **Consolidated** findings from 4 rounds of cross-verification. Merged from 3 separate reports |
-| [XPE-Module-Reinforcement-Plan.md](project/XPE-Module-Reinforcement-Plan.md) | XPE-REINFORCE-001 | v1.0.0 | 685 | Non-normative R&D roadmap: 23 pre-processing + 35 post-processing improvements, innovation ideas |
-
-### 2.2 Operations
+### 1.1 제품 기초
 
 | Document | ID | Version | Lines | Description |
 |----------|-----|---------|:-----:|-------------|
-| [XPE-CI-CD_LocalBuild_Runbook.md](development/XPE-CI-CD_LocalBuild_Runbook.md) | — | v1.0 | 215 | CI/CD pipeline and local build execution guide |
+| [product.md](project/product.md) | — | v1.0 | 94 | 제품 정체성, 컴포넌트(Pre/Post/Support), Must-Have 대 Differentiator 전략, 대상 사용자 |
+| [structure.md](project/structure.md) | — | v1.0 | 78 | 저장소 레이아웃, Module-to-DLL 매핑(38개 native SWU), 종속성 방향 규칙 |
+| [tech.md](project/tech.md) | — | v1.0 | 136 | C++17/C#/.NET 8 스택, SOUP 종속성(8개 XPE + 5개 GSVG), 플랫폼 대상, C ABI 설계, HW/SW 전략 |
+
+### 1.2 기술 명세
+
+| Document | ID | Version | Lines | Description |
+|----------|-----|---------|:-----:|-------------|
+| [pipeline-spec.md](project/pipeline-spec.md) | PIPE-SPEC-001 | v1.3.0 | 666 | 17단계 파이프라인 시퀀스, 전처리 종속성 그래프, 우회 정책, 데이터 흐름 |
+| [api-spec.md](project/api-spec.md) | XPE-API-SPEC-001 | v1.2.0 | 1,469 | 8개 DLL에 걸친 82개 내보낸 C ABI 함수, 일반적인 타입, P/Invoke 정렬 |
+| [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | ALG-SPEC-001 | v3.0.0-ds2 | 573 | 알고리즘 계약: DeepSync 결정, 연구 검증 모델, 품질 게이트, EI-0 해결 |
+
+### 1.3 구현 계획
+
+| Document | ID | Version | Lines | Description |
+|----------|-----|---------|:-----:|-------------|
+| [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | SPEC-XPE-MASTER | v2.0.0 | 495 | 마스터 계획: 43개 SWU, Phase 0-3, 교차 검증 요약, 문서 업데이트 매트릭스 |
+| [sprint-plan.md](project/sprint-plan.md) | XPE-SPRINT-PLAN-001 | v1.1.0 | 1,410 | 28개 sprint, 종속성 그래프, sprint별 범위/API/테스트 대상, 롤백 전략 |
+| [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | XPE-IMPL-REF-001 | v1.0.0 | 759 | Calibration 바이너리 형식, JSON 설정 스키마, 신체 부위 조회 테이블, 오류 코드 |
 
 ---
 
-## 3. IEC 62304 Regulatory Packages
+## 2. 정보성 문서 (맥락 및 지침)
 
-Complete lifecycle documentation organized by software item. Each package targets IEC 62304 Class B compliance.
+개발을 지원하는 참고 자료입니다. 권위가 없으므로 항상 정규 문서를 우선합니다.
 
-### 3.1 XPE (X-ray Processing Engine) — 21 Documents
+### 2.1 검증 및 분석
 
-Primary software item covering pre-processing, enhancement, display, and DICOM modules.
+| Document | ID | Version | Lines | Description |
+|----------|-----|---------|:-----:|-------------|
+| [cross-verification-consolidated.md](project/cross-verification-consolidated.md) | XPE-XVER-CONSOLIDATED-001 | v1.0.0 | — | 4라운드 교차 검증의 **통합** 결과. 3개 별도 보고서로부터 병합 |
+| [XPE-Module-Reinforcement-Plan.md](project/XPE-Module-Reinforcement-Plan.md) | XPE-REINFORCE-001 | v1.0.0 | 685 | 비정규 R&D 로드맵: 23개 전처리 + 35개 후처리 개선, 혁신 아이디어 |
+
+### 2.2 운영
+
+| Document | ID | Version | Lines | Description |
+|----------|-----|---------|:-----:|-------------|
+| [XPE-CI-CD_LocalBuild_Runbook.md](development/XPE-CI-CD_LocalBuild_Runbook.md) | — | v1.0 | 215 | CI/CD 파이프라인 및 로컬 빌드 실행 가이드 |
+
+---
+
+## 3. IEC 62304 규제 패키지
+
+소프트웨어 항목별로 정리된 완전한 수명 주기 문서입니다. 각 패키지는 IEC 62304 Class B 규정 준수를 목표로 합니다.
+
+### 3.1 XPE (X-ray Processing Engine) — 21개 문서
+
+전처리, 향상, 표시 및 DICOM 모듈을 다루는 주요 소프트웨어 항목입니다.
 
 | IEC 62304 Clause | Document Type | Document | ID |
 |----------------:|:-------------|---------|-----|
@@ -112,9 +112,9 @@ Primary software item covering pre-processing, enhancement, display, and DICOM m
 | 9 | Problem Resolution | [XPE-SPR-001](post-processing/xpe/XPE-SPR-001_Problem_Resolution_Process.md) | SPR-001 |
 | — | Release Procedure | [XPE-SRP-001](post-processing/xpe/XPE-SRP-001_Software_Release_Procedure.md) | SRP-001 |
 
-### 3.2 GSVG (Grid Suppression Virtual Grid) — 10 Documents
+### 3.2 GSVG (Grid Suppression Virtual Grid) — 10개 문서
 
-Independent software item with complete IEC 62304 Class B package.
+완전한 IEC 62304 Class B 패키지를 갖춘 독립 소프트웨어 항목입니다.
 
 | IEC 62304 Clause | Document Type | Document | ID |
 |----------------:|:-------------|---------|-----|
@@ -129,9 +129,9 @@ Independent software item with complete IEC 62304 Class B package.
 | 8 | SOUP Analysis | [GSVG-SOUP-001](post-processing/gsvg/GSVG-SOUP-001_SOUP_Analysis.md) | SOUP-001 |
 | 5.8 | Traceability Matrix | [GSVG-RTM-001](post-processing/gsvg/GSVG-RTM-001_Traceability.md) | RTM-001 |
 
-### 3.3 Ghost Correction (Lag/Ghost) — 6 Documents
+### 3.3 Ghost Correction (Lag/Ghost) — 6개 문서
 
-Complete IEC 62304 Class B lifecycle for PRE-04/05 Lag/Ghost correction.
+PRE-04/05 Lag/Ghost 보정에 대한 완전한 IEC 62304 Class B 수명 주기입니다.
 
 | IEC 62304 Clause | Document Type | Document |
 |----------------:|:-------------|---------|
@@ -144,62 +144,62 @@ Complete IEC 62304 Class B lifecycle for PRE-04/05 Lag/Ghost correction.
 
 ---
 
-## 4. Research & Pre-Development
+## 4. 연구 및 사전 개발
 
-Domain research, methodology studies, and early-stage analysis. Not yet formalized into SPECs.
+도메인 연구, 방법론 연구 및 초기 단계 분석입니다. 아직 SPEC으로 공식화되지 않았습니다.
 
-### 4.1 Calibration Module
-
-| Document | Lines | Description |
-|----------|:-----:|-------------|
-| [README.md](calibration/README.md) | 778 | xpe_preprocess.dll architecture — 9-stage pipeline, 18 C ABI functions |
-| [xray-detector-calibration-prd.md](calibration/xray-detector-calibration-prd.md) | 3,588 | Calibration algorithm requirements (offset, gain, defect, lag, scatter) |
-
-### 4.2 Panel Defect Algorithm
+### 4.1 Calibration 모듈
 
 | Document | Lines | Description |
 |----------|:-----:|-------------|
-| [plan.md](panel-defect-algorithm/plan.md) | 542 | Bad pixel/cluster detection, line defects, 3 correction profiles |
+| [README.md](calibration/README.md) | 778 | xpe_preprocess.dll 아키텍처 — 9단계 파이프라인, 18개 C ABI 함수 |
+| [xray-detector-calibration-prd.md](calibration/xray-detector-calibration-prd.md) | 3,588 | Calibration 알고리즘 요구사항(offset, gain, defect, lag, scatter) |
 
-### 4.3 Quality Evaluation Module (Proposed)
+### 4.2 Panel Defect 알고리즘
 
-Three-layer measurement-analysis-management architecture for `xpe_quality_eval.dll`.
+| Document | Lines | Description |
+|----------|:-----:|-------------|
+| [plan.md](panel-defect-algorithm/plan.md) | 542 | 나쁜 픽셀/클러스터 감지, 선 결함, 3가지 보정 프로필 |
+
+### 4.3 품질 평가 모듈 (제안)
+
+`xpe_quality_eval.dll`을 위한 3계층 측정-분석-관리 아키텍처입니다.
 
 | Document | Layer | Lines | Description |
 |----------|-------|:-----:|-------------|
-| [01_Noise_...pplx.md](quality-eval/01_Noise_평가_방법론_종합보고서.pplx.md) | WHY | 2,056 | IEC 62220-1 noise evaluation, 12 metrics (DQE/MTF/NPS/NEQ/SNR) |
-| [02_양산라인_...pplx.md](quality-eval/02_양산라인_계측방법론_가이드.pplx.md) | HOW | 2,051 | Production line testing, 12 items, 5-level hierarchy |
-| [03_측정_...pplx.md](quality-eval/03_측정_알고리즘_명세서.pplx.md) | WHAT | 4,084 | NPS/MTF/DQE/Defect Python implementation specs |
-| [05_체계적_...pplx.md](quality-eval/05_체계적_관리방안_문서.pplx.md) | WHERE/WHEN | 1,800 | SPC, KPI (Cpk>=1.33), CAPA framework |
+| [01_Noise_...pplx.md](quality-eval/01_Noise_평가_방법론_종합보고서.pplx.md) | WHY | 2,056 | IEC 62220-1 노이즈 평가, 12개 메트릭(DQE/MTF/NPS/NEQ/SNR) |
+| [02_양산라인_...pplx.md](quality-eval/02_양산라인_계측방법론_가이드.pplx.md) | HOW | 2,051 | 생산 라인 테스트, 12개 항목, 5단계 계층 |
+| [03_측정_...pplx.md](quality-eval/03_측정_알고리즘_명세서.pplx.md) | WHAT | 4,084 | NPS/MTF/DQE/Defect Python 구현 명세 |
+| [05_체계적_...pplx.md](quality-eval/05_체계적_관리방안_문서.pplx.md) | WHERE/WHEN | 1,800 | SPC, KPI(Cpk>=1.33), CAPA 프레임워크 |
 
-> Status: Awaiting SPEC creation (`/moai plan`) for formal development kickoff.
+> 상태: 공식 개발 시작을 위한 SPEC 생성 대기(`/moai plan`).
 
-### 4.4 External References
+### 4.4 외부 참고 자료
 
 | Document | Lines | Description |
 |----------|:-----:|-------------|
-| [xray_fpd_tech_classification_final.md](references/xray_fpd_tech_classification_final.md) | 661 | 50+ papers, 30+ patents, 12 vendors — Must-Have vs Differentiator classification |
-| [04_분석SW_Tool_비교_추천보고서.pplx.md](references/04_분석SW_Tool_비교_추천보고서.pplx.md) | 2,679 | Open-source/commercial analysis tool comparison |
-| [xray_grid_suppression_virtual_grid_research.md](references/xray_grid_suppression_virtual_grid_research.md) | 268 | Grid artifact removal algorithm background |
+| [xray_fpd_tech_classification_final.md](references/xray_fpd_tech_classification_final.md) | 661 | 50개 이상의 논문, 30개 이상의 특허, 12개 공급업체 — Must-Have 대 Differentiator 분류 |
+| [04_분석SW_Tool_비교_추천보고서.pplx.md](references/04_분석SW_Tool_비교_추천보고서.pplx.md) | 2,679 | 오픈소스/상용 분석 도구 비교 |
+| [xray_grid_suppression_virtual_grid_research.md](references/xray_grid_suppression_virtual_grid_research.md) | 268 | Grid 아티팩트 제거 알고리즘 배경 |
 
 ---
 
-## 5. Archive (Superseded / Historical)
+## 5. Archive (대체됨 / 역사적)
 
-Documents moved here have been superseded by consolidated or updated versions. Kept for audit trail.
+여기로 이동된 문서는 통합 또는 업데이트된 버전으로 대체되었습니다. 감시 추적을 위해서만 보관됩니다.
 
 | Document | Superseded By | Reason |
 |----------|--------------|--------|
-| [cross-verification-report-2026-04-13.md](archive/verification-history/cross-verification-report-2026-04-13.md) | cross-verification-consolidated.md | Round 1 findings merged into consolidated report |
-| [SPEC-XPE-MASTER-verification.md](archive/verification-history/SPEC-XPE-MASTER-verification.md) | cross-verification-consolidated.md | Round 2-3 findings merged into consolidated report |
-| [DEEP-QUANTITATIVE-CROSS-VERIFICATION-ROUND-4.md](archive/verification-history/DEEP-QUANTITATIVE-CROSS-VERIFICATION-ROUND-4.md) | cross-verification-consolidated.md | Round 4 findings merged into consolidated report |
-| [XPE-Implementation-Analysis-Report.md](archive/superseded/XPE-Implementation-Analysis-Report.md) | product.md + pipeline-spec.md + SPEC-XPE-MASTER.md | Derivative document — content duplicated from normative sources |
+| [cross-verification-report-2026-04-13.md](archive/verification-history/cross-verification-report-2026-04-13.md) | cross-verification-consolidated.md | Round 1 결과가 통합 보고서로 병합 |
+| [SPEC-XPE-MASTER-verification.md](archive/verification-history/SPEC-XPE-MASTER-verification.md) | cross-verification-consolidated.md | Round 2-3 결과가 통합 보고서로 병합 |
+| [DEEP-QUANTITATIVE-CROSS-VERIFICATION-ROUND-4.md](archive/verification-history/DEEP-QUANTITATIVE-CROSS-VERIFICATION-ROUND-4.md) | cross-verification-consolidated.md | Round 4 결과가 통합 보고서로 병합 |
+| [XPE-Implementation-Analysis-Report.md](archive/superseded/XPE-Implementation-Analysis-Report.md) | product.md + pipeline-spec.md + SPEC-XPE-MASTER.md | 파생 문서 — 정규 출처로부터 중복된 내용 |
 
 ---
 
-## 6. IEC 62304 Traceability Matrix (Cross-Reference)
+## 6. IEC 62304 추적성 매트릭스 (교차 참고)
 
-Quick lookup: Which IEC 62304 clause is covered by which document, for each software item.
+빠른 검색: 각 소프트웨어 항목에 대해 어느 IEC 62304 조항이 어느 문서로 다루어지는가.
 
 | IEC 62304 Clause | Description | XPE | GSVG | Ghost |
 |:-----------------:|-------------|:---:|:----:|:-----:|
@@ -218,7 +218,7 @@ Quick lookup: Which IEC 62304 clause is covered by which document, for each soft
 | 9 | Problem Resolution | SPR-001 | — | — |
 | 12 | Maintenance | SMP-001 | — | — |
 
-### Coverage Summary
+### 적용 범위 요약
 
 | Software Item | Documents | IEC 62304 Coverage |
 |--------------|:---------:|:------------------:|
@@ -231,7 +231,7 @@ Quick lookup: Which IEC 62304 clause is covered by which document, for each soft
 
 ---
 
-## 7. Document Statistics
+## 7. 문서 통계
 
 | Category | Count | Total Lines |
 |----------|:-----:|:-----------:|
@@ -246,7 +246,7 @@ Quick lookup: Which IEC 62304 clause is covered by which document, for each soft
 
 ---
 
-## 8. For AI Agents
+## 8. AI 에이전트용
 
 AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서:
 
@@ -263,7 +263,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 ---
 
-## 9. Document Versioning Convention
+## 9. 문서 버전 관리 규칙
 
 | Pattern | Example | Meaning |
 |---------|---------|---------|
@@ -278,4 +278,4 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-04-14 | v2.0.0 | Hybrid 3-Tier + IEC 62304 재편성. Archive 분리. 검증 보고서 통합. Normative Authority Table 추가 |
-| 2026-04-14 | v1.0.0 | Initial documentation index |
+| 2026-04-14 | v1.0.0 | 초기 문서 인덱스 |

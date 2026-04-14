@@ -1,6 +1,6 @@
-# Project Structure
+# 프로젝트 구조
 
-## Repository Layout
+## 저장소 레이아웃
 
 ```
 image-processing/
@@ -38,7 +38,7 @@ image-processing/
 ├── scripts/                       # 빌드/검증 스크립트
 ├── data/                          # 런타임 데이터 (config, LUT, ONNX models)
 │
-├── docs/                          # IEC 62304 규정 문서 (기존)
+├── docs/                          # IEC 62304 규정 문서
 │   ├── ghost-correction/          # Lag/Ghost 보정 SRS/SAD/SDD
 │   ├── panel-defect-algorithm/    # 불량 픽셀 보정
 │   ├── post-processing/gsvg/      # GSVG IEC 62304 Class B 패키지
@@ -50,7 +50,7 @@ image-processing/
 └── .moai/                         # MoAI framework config
 ```
 
-## Module-to-DLL Mapping
+## 모듈-DLL 매핑
 
 | Directory | DLL Output | Layer | Phase | SWU/SI Count |
 |-----------|-----------|-------|-------|--------------|
@@ -65,14 +65,14 @@ image-processing/
 | gui/ | ImageProcTest.exe | 2 | 0+ | 2 (SWU-5.7 PipelineOrchestrator, SWU-6.1 QaConstancyTest) |
 
 **총 SWU: 38개 (C/C++ 36개 + C# 2개)** — DLL 직접 매핑 기준
-> Note: SPEC-XPE-MASTER v2.0.0에서는 Infrastructure 포함 전체 SWU를 **43개**로 계수 (7 Infrastructure + 9 Pre-Processing + 12 Core Processing + 4 Display + 4 DICOM + 4 GSVG + 2 C# GUI + 1 QA). 본 테이블은 DLL에 직접 매핑되는 38개만 표시. 차이 5개는 xpe_common.dll Infrastructure SWU-5.1~5.6, 5.8의 내부 서브유닛이다.
-`SWU-5.7`, `SWU-6.1`은 Layer 2 C# 구현이며, 나머지 36개만 native DLL SWU이다.
+> 참고: SPEC-XPE-MASTER v2.0.0에서는 Infrastructure 포함 전체 SWU를 **43개**로 계수 (7 Infrastructure + 9 Pre-Processing + 12 Core Processing + 4 Display + 4 DICOM + 4 GSVG + 2 C# GUI + 1 QA). 본 테이블은 DLL에 직접 매핑되는 38개만 표시. 차이 5개는 xpe_common.dll Infrastructure SWU-5.1~5.6, 5.8의 내부 서브유닛입니다.
+`SWU-5.7`, `SWU-6.1`은 Layer 2 C# 구현이며, 나머지 36개만 native DLL SWU입니다.
 
-**Note**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: `gui/ImageProcTest.Tests/QaConstancyTests.cs`
+**참고**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: `gui/ImageProcTest.Tests/QaConstancyTests.cs`
 
-## Dependency Direction
+## 의존성 방향
 
-- Layer 1 → Layer 0 only (no lateral dependencies)
-- Layer 1-G (GSVG): completely independent, self-contained
+- Layer 1 → Layer 0 only (횡방향 의존성 없음)
+- Layer 1-G (GSVG): 완전히 독립적이고 자급자족
 - Layer 2 (C# GUI) → Layer 0 + Layer 1 + Layer 1-G via P/Invoke
-- SWU-5.7 (PipelineOrchestrator): implemented in C# Layer 2, not in any DLL
+- SWU-5.7 (PipelineOrchestrator): C# Layer 2에 구현, DLL에 포함되지 않음

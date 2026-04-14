@@ -1,21 +1,21 @@
-# Software Detailed Design
+# 소프트웨어 상세 설계
 
-> **Document ID**: XPE-SDD-002 | **Version**: 1.0 | **Date**: 2026-04-14
+> **문서 ID**: XPE-SDD-002 | **버전**: 1.0 | **날짜**: 2026-04-14
 >
-> **IEC 62304 Clause**: 5.4 (Class B: voluntary detailed design)
+> **IEC 62304 Clause**: 5.4 (Class B: 자발적 상세 설계)
 >
-> **Safety Classification**: Class B
+> **안전 분류**: Class B
 >
-> **Trace Source**: XPE-SDD-001, XPE-SAD-001, XPE-SRS-001, ALG-SPEC-001
+> **추적 원본**: XPE-SDD-001, XPE-SAD-001, XPE-SRS-001, ALG-SPEC-001
 
 ---
 
-## 1. Purpose & Scope
+## 1. 목적 & 범위
 
 XPE-SDD-001에서 식별된 32개 Software Unit(SWU)에 대한 상세 설계를 정의한다.
 각 unit에 대해 C++ 내부 설계, DLL export C ABI 시그니처, 알고리즘 의사코드, edge case를 명시한다.
 
-> **Note**: IEC 62304 Class B는 unit-level detailed design을 필수로 요구하지 않으나,
+> **참고**: IEC 62304 Class B는 unit-level 상세 설계를 필수로 요구하지 않으나,
 > 구현 정확성 확보 및 검증 용이성을 위해 자발적으로 작성한다.
 
 ### 표기 규칙

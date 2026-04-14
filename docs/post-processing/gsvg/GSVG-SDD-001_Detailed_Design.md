@@ -2,12 +2,12 @@
 
 **Document ID:** GSVG-SDD-001  
 **Version:** 1.0 | **Date:** 2026-04-03  
-**IEC 62304 Clause:** 5.4 (Class B voluntary, applied for code quality)  
+**IEC 62304 Clause:** 5.4 (Class B 선택 사항, 코드 품질을 위해 적용)  
 **Safety Classification:** Class B
 
 ---
 
-## 1. Module Structure
+## 1. 모듈 구조
 
 ```
 gsvg/
@@ -42,7 +42,7 @@ gsvg/
 
 ---
 
-## 2. Public API (gsvg_api.h)
+## 2. 공개 API (gsvg_api.h)
 
 ```cpp
 #pragma once
@@ -108,7 +108,7 @@ typedef struct {
 
 ---
 
-## 3. ImageBuffer (RAII Container)
+## 3. ImageBuffer (RAII 컨테이너)
 
 ```cpp
 namespace gsvg {
@@ -279,32 +279,32 @@ private:
 
 ---
 
-## 7. Key Equations Implementation
+## 7. 핵심 방정식 구현
 
-### 7.1 SPR Calculation
+### 7.1 SPR 계산
 
 ```
 SPR(t, kVp, FOV) = a(kVp) × t^b(kVp) × FOV^c(kVp)
 
-Clamping (SAFE-004): SPR = min(SPR, MAX_SPR=3.0)
+범위 조정 (SAFE-004): SPR = min(SPR, MAX_SPR=3.0)
 ```
 
-### 7.2 Scatter Subtraction with Clamping
+### 7.2 범위 조정을 포함한 Scatter 차감
 
 ```
 I_primary(x,y) = max(0, I_total(x,y) - S(x,y))
 I_primary(x,y) = min(I_primary(x,y), 65535)    // SAFE-005
 ```
 
-### 7.3 Gaussian Band-Stop Filter
+### 7.3 Gaussian Band-Stop 필터
 
 ```
 H(u,v) = 1 - exp(-((u-u_g)² + (v-v_g)²) / (2σ_f²))
 
-where (u_g, v_g) = detected grid frequency, σ_f = 1.5 px
+여기서 (u_g, v_g) = 검출된 grid 주파수, σ_f = 1.5 px
 ```
 
-### 7.4 Wiener Denoising
+### 7.4 Wiener 노이즈 제거
 
 ```
 G(u,v) = |H(u,v)|² / (|H(u,v)|² + σ_n²/σ_s²)
@@ -312,17 +312,17 @@ G(u,v) = |H(u,v)|² / (|H(u,v)|² + σ_n²/σ_s²)
 
 ---
 
-## 8. Thread Safety
+## 8. 스레드 안전성
 
-- `gsvg_process()`는 서로 다른 input에 대해 동시 호출 가능 (reentrant)
+- `gsvg_process()`는 서로 다른 input에 대해 동시 호출 가능 (재진입 가능)
 - 각 호출은 독립적인 `ImageBuffer` 인스턴스 사용
-- Scatter kernel LUT는 read-only로 공유 (immutable after load)
+- Scatter kernel LUT는 read-only로 공유 (로드 후 불변)
 - FFTW3 plan은 thread-local로 생성 (`fftw_make_planner_thread_safe()`)
 
 ---
 
-## Revision History
+## 개정 이력
 
-| Version | Date | Author | Description |
+| 버전 | 날짜 | 작성자 | 설명 |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | Initial release |
+| 1.0 | 2026-04-03 | — | 초판 |

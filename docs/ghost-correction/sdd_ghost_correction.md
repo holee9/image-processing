@@ -1,4 +1,4 @@
-# SDD: Software Detailed Design
+# SDD: 소프트웨어 상세 설계
 
 > **Document ID**: SDD-GHOST-001 | **Version**: 1.0 | **Date**: 2026-04-02
 >
@@ -6,13 +6,13 @@
 
 ---
 
-## 1. Module: Tier1_Offset
+## 1. 모듈: Tier1_Offset
 
 ### 1.1 설계 목적
 
 Raw frame에서 dark frame을 pixel별로 차감. Trace: FR-101~105
 
-### 1.2 함수 상세
+### 1.2 함수 상세 정보
 
 ```c
 /**
@@ -34,11 +34,11 @@ CorrectionError tier1_offset_correct(
 void tier1_get_stats(uint32_t* overflow_count, uint32_t* underflow_count);
 ```
 
-### 1.3 알고리즘 상세
+### 1.3 알고리즘 상세 정보
 
 ```
-INPUT:  raw[H][W], dark[H][W]  (uint16)
-OUTPUT: out[H][W]              (uint16)
+입력:  raw[H][W], dark[H][W]  (uint16)
+출력: out[H][W]              (uint16)
 
 overflow_count = 0
 underflow_count = 0
@@ -58,31 +58,31 @@ FOR y = 0 TO H-1:
 SIMD 최적화 (ARM NEON):
   - 8 pixels × uint16 동시 로드 (vld1q_u16)
   - vsubl_u16 → int32×4 차분
-  - vmax → 0 clamp
-  - vmin → 65535 clamp
+  - vmax → 0 클램프
+  - vmin → 65535 클램프
   - vst1q_u16 → 저장
   - 루프 당 8 pixels, ~1.2M iterations for 9.4M pixels
 ```
 
-### 1.4 Edge Case
+### 1.4 경계 케이스
 
 | 케이스 | 입력 | 동작 | 근거 |
 |---|---|---|---|
-| Normal | raw=1000, dark=300 | 700 | 정상 |
-| Underflow | raw=100, dark=300 | 0 + count++ | FR-102 |
-| Max value | raw=65535, dark=0 | 65535 | 정상 |
-| Zero both | raw=0, dark=0 | 0 | 정상 |
+| 정상 | raw=1000, dark=300 | 700 | 정상 |
+| 언더플로우 | raw=100, dark=300 | 0 + count++ | FR-102 |
+| 최대값 | raw=65535, dark=0 | 65535 | 정상 |
+| 둘 다 0 | raw=0, dark=0 | 0 | 정상 |
 | NULL raw | raw=NULL | CORR_ERR_NULL_PTR | FR-105 |
 
 ---
 
-## 2. Module: Tier2_Lag
+## 2. 모듈: Tier2_Lag
 
 ### 2.1 설계 목적
 
 Post-exposure dark frame과 pre-exposure dark의 차분으로 lag를 추정하고 보정. Trace: FR-201~205
 
-### 2.2 함수 상세
+### 2.2 함수 상세 정보
 
 ```c
 /**
@@ -108,18 +108,18 @@ CorrectionError tier2_lag_correct(
     Frame* output);
 ```
 
-### 2.3 알고리즘 상세
+### 2.3 알고리즘 상세 정보
 
 ```
-INPUT:  I_oc[H][W], D_post[H][W], D_pre[H][W], α(E), temperature
-OUTPUT: out[H][W]
+입력:  I_oc[H][W], D_post[H][W], D_pre[H][W], α(E), temperature
+출력: out[H][W]
 
 // Step 1: α(E) 결정
 E = history[last].exposure_level
 alpha = lut_lookup_alpha(E, irf, temperature)
-  // α는 Q16.16 fixed-point
+  // α는 Q16.16 고정소수점
   // 온도 보정: alpha *= temp_scale(temperature)
-  // E 범위 외: clamp to nearest calibrated level
+  // E 범위 외: 가장 가까운 교정 수준으로 클램프
 
 // Step 2: 잔류 lag 맵 계산 + 보정
 FOR y = 0 TO H-1:
@@ -127,17 +127,17 @@ FOR y = 0 TO H-1:
     // Lag signal = D_post - D_pre
     lag_raw = (int32_t)D_post[y][x] - (int32_t)D_pre[y][x]
 
-    // Negative lag clamp (noise)
+    // 음수 lag 클램프 (노이즈)
     IF lag_raw < 0: lag_raw = 0
 
-    // Lag estimate in X-ray frame
+    // X-ray frame의 lag 추정값
     lag_est = fixed_mul_q1616(alpha, lag_raw)
       // Q16.16 × int32 → int32 (>>16)
 
-    // Subtract from offset-corrected image
+    // offset-corrected image에서 뺄셈
     corrected = (int32_t)I_oc[y][x] - lag_est
 
-    // Clamp
+    // 클램프
     out[y][x] = CLAMP(corrected, 0, 65535)
 ```
 
@@ -146,8 +146,8 @@ FOR y = 0 TO H-1:
 ```
 LUT 구조:
   uint8_t num_entries;  // 9 (교정 exposure 수준 수)
-  uint32_t E_levels[9]; // exposure levels (ascending)
-  q1616_t  alpha[9];    // corresponding α values
+  uint32_t E_levels[9]; // exposure 수준 (오름차순)
+  q1616_t  alpha[9];    // 해당 α 값
 
 조회:
   E가 E_levels[i]와 E_levels[i+1] 사이이면:
@@ -162,27 +162,27 @@ LUT 구조:
 
 ---
 
-## 3. Module: Tier3_Nlcsc
+## 3. 모듈: Tier3_Nlcsc
 
 ### 3.1 설계 목적
 
 Exposure-dependent NLCSC로 최고 정밀도 lag 보정. Trace: FR-301~305
 
-### 3.2 State Management
+### 3.2 상태 관리
 
 ```
-Persistent state (frame 간 유지):
+지속적 상태 (frame 간 유지):
   pixel_wide_t state[N_EXP_TERMS][IMG_HEIGHT][IMG_WIDTH]
-  // 4 × 3072 × 3072 × 4 bytes = 75.6 MB
+  // 4 × 3072 × 3072 × 4 바이트 = 75.6 MB
 
-State lifecycle:
+상태 수명 주기:
   - correction_init() 시 0으로 초기화
   - 매 frame 처리 후 업데이트
   - 30분 이상 idle 시 0으로 reset (deep trap 감쇠 완료)
   - config 변경 시 0으로 reset
 ```
 
-### 3.3 알고리즘 상세
+### 3.3 알고리즘 상세 정보
 
 ```
 FOR each pixel (y, x):

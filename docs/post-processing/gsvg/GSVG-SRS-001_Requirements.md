@@ -1,13 +1,13 @@
-# GSVG-SRS-001: Software Requirements Specification
+# GSVG-SRS-001: 소프트웨어 요구사항 명세
 
-**Document ID:** GSVG-SRS-001  
-**Version:** 1.0 | **Date:** 2026-04-03  
-**IEC 62304 Clause:** 5.2  
-**Safety Classification:** Class B
+**문서 ID:** GSVG-SRS-001  
+**버전:** 1.0 | **작성일:** 2026-04-03  
+**IEC 62304 조항:** 5.2  
+**안전 분류:** Class B
 
 ---
 
-## 1. Scope
+## 1. 범위
 
 X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
@@ -16,9 +16,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## 2. Functional Requirements — Grid Suppression
+## 2. Grid Suppression 기능 요구사항
 
-| ID | Requirement | Rationale | Verification |
+| ID | 요구사항 | 근거 | 검증 |
 |----|-------------|-----------|--------------|
 | GS-FR-001 | DICOM 헤더 및 grid specification으로부터 grid line frequency를 자동 계산해야 한다 | Grid frequency는 detector pixel pitch와 grid line density의 aliasing으로 결정됨 (Lin 2006) | Test |
 | GS-FR-002 | 2D DWT (Discrete Wavelet Transform)를 사용하여 입력 영상을 multi-scale sub-band로 분해해야 한다 | DWT는 spatial-frequency 동시 분석이 가능하여 grid signal과 anatomy 분리에 최적 (Tang 2015) | Test |
@@ -31,11 +31,11 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## 3. Functional Requirements — Virtual Grid
+## 3. Virtual Grid 기능 요구사항
 
-| ID | Requirement | Rationale | Verification |
+| ID | 요구사항 | 근거 | 검증 |
 |----|-------------|-----------|--------------|
-| VG-FR-001 | 입력 영상과 촬영 조건(kVp, mAs, SID, field size)으로부터 body equivalent thickness를 추정해야 한다 | Thickness는 SPR의 primary determinant (Kyriakou 2007) | Test |
+| VG-FR-001 | 입력 영상과 촬영 조건(kVp, mAs, SID, field size)으로부터 body equivalent thickness를 추정해야 한다 | Thickness는 SPR의 주요 결정 요소 (Kyriakou 2007) | Test |
 | VG-FR-002 | 추정된 thickness와 촬영 조건으로부터 Scatter-to-Primary Ratio (SPR)를 계산해야 한다 | SPR은 scatter correction 강도를 결정하는 핵심 파라미터 | Test |
 | VG-FR-003 | 사전 계산된 scatter kernel LUT를 사용하여 scatter distribution을 추정해야 한다 | MC-based LUT는 real-time 가능하면서 물리적 정확도 확보 (Philips SkyFlow Plus 방식) | Test |
 | VG-FR-004 | 추정된 scatter를 원본 영상에서 차감하여 primary-only 영상을 생성해야 한다 | `I_primary = I_total - I_scatter` | Test |
@@ -48,9 +48,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## 4. Performance Requirements
+## 4. 성능 요구사항
 
-| ID | Requirement | Rationale | Verification |
+| ID | 요구사항 | 근거 | 검증 |
 |----|-------------|-----------|--------------|
 | PERF-001 | 3072×3072 16-bit 영상 처리 시간 ≤ 1.0초 (Intel i7 또는 동급) | 임상 워크플로우 지연 최소화 (HAZ-006) | Test |
 | PERF-002 | Peak memory usage ≤ 512MB per frame | Console PC 메모리 제약 | Test |
@@ -59,9 +59,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## 5. Interface Requirements
+## 5. 인터페이스 요구사항
 
-| ID | Requirement | Verification |
+| ID | 요구사항 | 검증 |
 |----|-------------|--------------|
 | IF-001 | 입력: DICOM Part 10 파일 또는 Raw pixel array + metadata struct | Test |
 | IF-002 | 출력: 동일 format의 처리된 영상 + processing log (JSON) | Test |
@@ -71,9 +71,9 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## 6. Safety Requirements
+## 6. 안전 요구사항
 
-| ID | Requirement | Hazard Ref | Rationale | Verification |
+| ID | 요구사항 | 위험 참조 | 근거 | 검증 |
 |----|-------------|------------|-----------|--------------|
 | SAFE-001 | 알고리즘 실패 시 원본 영상을 훼손하지 않아야 한다 | HAZ-001 | 원본 데이터 무결성 보호 | Test |
 | SAFE-002 | 처리 영상에 "Processed" marking을 DICOM tag에 기록해야 한다 | HAZ-002 | 처리/미처리 영상 식별 보장 | Test |
@@ -83,8 +83,8 @@ X-ray flat panel detector 시스템 영상에 대한 두 가지 독립 기능:
 
 ---
 
-## Revision History
+## 개정 이력
 
-| Version | Date | Author | Description |
+| 버전 | 작성일 | 작성자 | 설명 |
 |---------|------|--------|-------------|
-| 1.0 | 2026-04-03 | — | Initial release |
+| 1.0 | 2026-04-03 | — | 초기 배포 |

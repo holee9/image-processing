@@ -1,4 +1,4 @@
-# Requirements Traceability Matrix
+# 요구사항 추적성 매트릭스
 
 **Document ID:** XPE-RTM-001 v1.1  
 **IEC 62304 Clause:** 5.1.1c, 5.3.6, 7.3.3  
@@ -9,13 +9,13 @@
 
 ---
 
-## 1. Purpose
+## 1. 목적
 
 시스템 요구사항 → 소프트웨어 요구사항 → 아키텍처 → 소프트웨어 유닛 → 테스트 → 리스크 제어 간의 양방향 추적성을 제공한다.
 
-## 2. Forward Traceability (SRS → Test)
+## 2. 전방향 추적성 (SRS → Test)
 
-| SRS Req ID | Arch (SAD) | Unit (SDD-001) | Design Detail (SDD-002) | Unit Test (STP-001) | Integration Test | System Test | Risk Ref | HAZ (SHA-001) |
+| SRS 요구사항 ID | 아키텍처 (SAD) | 유닛 (SDD-001) | 설계 세부사항 (SDD-002) | 유닛 테스트 (STP-001) | 통합 테스트 | 시스템 테스트 | 리스크 참조 | 해저드 (SHA-001) |
 |-----------|:----------:|:----------:|:----------:|:---------:|:---------------:|:-----------:|:--------:|:--------:|
 | SRS-FUNC-001 | SWI-1 | SWU-1.1 | SDD-002 §2.1 | UT-1.1-001..005 | IT-001 | ST-001 | — | — |
 | SRS-FUNC-002 | SWI-1 | SWU-1.2 | SDD-002 §2.2 | UT-1.2-001..006 | IT-001 | ST-002 | — | — |
@@ -51,40 +51,40 @@
 | SRS-PERF-003 | SWI-3 | SWU-3.2 | SDD-002 §4.2 | UT-3.2-interactive | IT-004 | ST-PERF-003 | — | — |
 | SRS-PERF-004 | SWI-5 | SWU-5.1 | SDD-002 §6.1 | UT-5.1-002 | IT-006 | ST-PERF-004 | — | — |
 
-## 3. Risk Control Traceability (7.3.3)
+## 3. 리스크 제어 추적성 (7.3.3)
 
-| Hazard ID | Risk Control (SRM) | SRS-SAFE Req | Architecture | Unit | Verification Test |
+| 해저드 ID | 리스크 제어 (SRM) | SRS-SAFE 요구사항 | 아키텍처 | 유닛 | 검증 테스트 |
 |-----------|-------------------|:------------:|:------------:|:----:|:-----------------:|
-| HAZ-001 | Non-destructive processing | SRS-SAFE-001 | SWI-1,5 segregation | SWU-5.1 | ST-SAFE-001 |
-| HAZ-002 | Validated presets | SRS-SAFE-002 | SWI-5 ParameterValidator | SWU-5.5 | ST-SAFE-002 |
-| HAZ-003 | Defect correction failure alert | SRS-SAFE-003 | SWI-1,5 ErrorHandler | SWU-1.3,5.3 | ST-SAFE-003 |
-| HAZ-004 | Ghost correction DICOM tag | SRS-SAFE-004 | SWI-1,4 metadata | SWU-1.4,4.2 | ST-004 |
-| HAZ-005 | Enhancement gain limiting | SRS-SAFE-005 | SWI-2,5 validator | SWU-2.4,5.5 | ST-013 |
-| HAZ-006 | W/L range warning | SRS-SAFE-006 | SWI-3,5 ErrorHandler | SWU-3.2,5.3 | ST-SAFE-006 |
-| HAZ-007 | GSDF compliance warning | SRS-SAFE-007 | SWI-3,5 ErrorHandler | SWU-3.3,5.3 | ST-SAFE-007 |
-| HAZ-008 | AI-processed label | SRS-SAFE-008 | SWI-2,3 overlay | SWU-2.11,3.3 | ST-SAFE-008 |
-| HAZ-009 | Original/processed toggle | SRS-SAFE-009 | SWI-3,5 orchestrator | SWU-3.3,5.7 | ST-SAFE-009 |
+| HAZ-001 | 비파괴 처리 | SRS-SAFE-001 | SWI-1,5 분리 | SWU-5.1 | ST-SAFE-001 |
+| HAZ-002 | 검증된 사전설정 | SRS-SAFE-002 | SWI-5 ParameterValidator | SWU-5.5 | ST-SAFE-002 |
+| HAZ-003 | 결함 보정 실패 알림 | SRS-SAFE-003 | SWI-1,5 ErrorHandler | SWU-1.3,5.3 | ST-SAFE-003 |
+| HAZ-004 | 고스트 보정 DICOM 태그 | SRS-SAFE-004 | SWI-1,4 메타데이터 | SWU-1.4,4.2 | ST-004 |
+| HAZ-005 | 향상 게인 제한 | SRS-SAFE-005 | SWI-2,5 검증자 | SWU-2.4,5.5 | ST-013 |
+| HAZ-006 | W/L 범위 경고 | SRS-SAFE-006 | SWI-3,5 ErrorHandler | SWU-3.2,5.3 | ST-SAFE-006 |
+| HAZ-007 | GSDF 준수 경고 | SRS-SAFE-007 | SWI-3,5 ErrorHandler | SWU-3.3,5.3 | ST-SAFE-007 |
+| HAZ-008 | AI 처리 레이블 | SRS-SAFE-008 | SWI-2,3 오버레이 | SWU-2.11,3.3 | ST-SAFE-008 |
+| HAZ-009 | 원본/처리 토글 | SRS-SAFE-009 | SWI-3,5 오케스트레이터 | SWU-3.3,5.7 | ST-SAFE-009 |
 
-## 4. Coverage Summary
+## 4. 추적성 요약
 
-| Direction | Total Items | Traced | Coverage |
+| 방향 | 총 항목 | 추적됨 | 추적성 |
 |-----------|:-----------:|:------:|:--------:|
-| SRS → Architecture (SAD) | 35 | 35 | 100% |
-| SRS → Unit ID (SDD-001) | 35 | 35 | 100% |
-| SRS → Detailed Design (SDD-002) | 35 | 35 | 100% |
-| SRS → Unit Test (STP-001) | 35 | 35 | 100% |
-| SRS → System Test | 35 | 35 | 100% |
-| Hazard (SHA-001) → Risk Control → Test | 9 | 9 | 100% |
+| SRS → 아키텍처 (SAD) | 35 | 35 | 100% |
+| SRS → 유닛 ID (SDD-001) | 35 | 35 | 100% |
+| SRS → 상세 설계 (SDD-002) | 35 | 35 | 100% |
+| SRS → 유닛 테스트 (STP-001) | 35 | 35 | 100% |
+| SRS → 시스템 테스트 | 35 | 35 | 100% |
+| 해저드 (SHA-001) → 리스크 제어 → 테스트 | 9 | 9 | 100% |
 
 ---
 
-## Revision History
+## 개정 이력
 
-| Rev | Date | Author | Description |
+| 개정판 | 날짜 | 작성자 | 설명 |
 |-----|------|--------|-------------|
-| 1.0 | 2026-04-03 | XPE Team | Initial release |
-| 1.1 | 2026-04-14 | XPE Team | SDD-002 section refs, SHA-001 hazard refs, STP-001 test ID updates added |
+| 1.0 | 2026-04-03 | XPE Team | 초기 릴리스 |
+| 1.1 | 2026-04-14 | XPE Team | SDD-002 섹션 참조, SHA-001 해저드 참조, STP-001 테스트 ID 업데이트 추가됨 |
 
 ---
 
-*Document End — XPE-RTM-001 v1.0*
+*문서 끝 — XPE-RTM-001 v1.0*

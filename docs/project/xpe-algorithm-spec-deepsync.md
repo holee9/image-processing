@@ -1,81 +1,81 @@
-# XPE Algorithm Specification (DeepSync Upgrade v2)
+# XPE Algorithm Specification (DeepSync Upgrade v2) (XPE 알고리즘 사양 (DeepSync 업그레이드 v2))
 
 **Document ID**: ALG-SPEC-001  
 **Version**: 3.0.0-ds2  
 **Date**: 2026-04-14  
 **Status**: Working Draft  
 **Project**: ImageProcTest - X-Ray Image Processing Engine (XPE)  
-**Upgrade**: Deep Research + Cross-Verification + DeepSync Integration
+**Upgrade**: 심층 연구 + 교차검증 + DeepSync 통합
 
 ---
 
-## Changelog (v2.0.0-ds1 -> v3.0.0-ds2)
+## Changelog (v2.0.0-ds1 -> v3.0.0-ds2) (변경 로그)
 
-| Change | Detail |
+| Change | Detail (상세) |
 |--------|--------|
-| Calibration deep research | Integrated 15+ peer-reviewed papers, IEC standards, and patent references for calibration algorithm validation |
-| Cross-verification v2.0 | Addressed all 20 issues from 3-round cross-verification report |
-| Section 5 rewritten | Detector-domain corrections upgraded with research-validated mathematical models, performance targets, and quality gates |
-| Section 5.3 NEW | Calibration data management lifecycle specification added |
-| Section 5.4 NEW | Calibration drift detection and recalibration strategy |
-| Section 5.5 NEW | Multi-gain and nonlinearity correction integration model |
-| Section 9 NEW | Research-backed improvement roadmap with gap analysis |
-| Section 6A NEW | Pre-processing stage dependency matrix and bypass (on/off) contract with 8 safety constraints |
-| EI-0 resolution | Adopted Resolution B: SWU-2.0 EI_Baseline added to Phase 1b (xpe_enhance_basic.dll) |
-| Pipeline order validated | Research-validated optimal ordering confirmed: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost |
+| Calibration deep research | Calibration 알고리즘 검증을 위해 15개 이상의 동료 검증 논문, IEC 표준, 특허 참고 통합 |
+| Cross-verification v2.0 | 3회차 교차검증 보고서의 20개 이슈 모두 해결 |
+| Section 5 rewritten | Detector 도메인 보정이 연구 검증된 수학적 모델, 성능 목표, 품질 게이트로 업그레이드됨 |
+| Section 5.3 NEW | Calibration 데이터 관리 lifecycle 사양 추가 |
+| Section 5.4 NEW | Calibration drift 감지 및 recalibration 전략 |
+| Section 5.5 NEW | Multi-gain 및 nonlinearity 보정 통합 모델 |
+| Section 9 NEW | Gap 분석을 포함한 연구 기반 개선 로드맵 |
+| Section 6A NEW | 8개 안전 제약을 포함한 전처리 단계 종속성 매트릭스 및 우회(on/off) 계약 |
+| EI-0 resolution | Resolution B 채택: SWU-2.0 EI_Baseline을 Phase 1b (xpe_enhance_basic.dll)에 추가 |
+| Pipeline order validated | 연구 검증된 최적 순서 확인: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost |
 
 ---
 
-## 1. Purpose
+## 1. Purpose (목적)
 
-This specification is the normative algorithm contract for the XPE pre-processing calibration pipeline. It integrates:
+이 사양은 XPE 전처리 calibration 파이프라인의 규범적 알고리즘 계약입니다. 다음을 통합합니다:
 
-- Local design documents (PRD-FPD-CAL-001, Ghost PRD v2, Panel Defect Plan)
-- Cross-verification findings (XPE-XVER-001 v1.0.0, SPEC-XPE-MASTER cross-verification v2.0.0)
-- Deep research against peer-reviewed literature and IEC/AAPM standards
-- DeepSync conflict resolution decisions
+- Local 설계 문서 (PRD-FPD-CAL-001, Ghost PRD v2, Panel Defect Plan)
+- 교차검증 결과 (XPE-XVER-001 v1.0.0, SPEC-XPE-MASTER 교차검증 v2.0.0)
+- 동료 검증 문헌 및 IEC/AAPM 표준에 대한 심층 연구
+- DeepSync 충돌 해결 결정
 
-This document supersedes ALG-SPEC-001 v2.0.0-ds1 for all algorithm behavior, quality gates, and phase ownership.
+이 문서는 모든 알고리즘 행동, 품질 게이트, 단계 소유권에 대해 ALG-SPEC-001 v2.0.0-ds1을 대체합니다.
 
 ---
 
-## 2. DeepSync Decisions (Carried Forward + New)
+## 2. DeepSync Decisions (Carried Forward + New) (DeepSync 결정 (인계 + 신규))
 
-### 2.1 Carried Forward (from v2.0.0-ds1)
+### 2.1 Carried Forward (from v2.0.0-ds1) (인계 (v2.0.0-ds1에서))
 
-| Topic | Decision |
+| Topic | Decision (결정) |
 |-------|----------|
-| Phase ownership | Phase 2 limited to deterministic classical algorithms. Phase 3 owns xpe_ai.dll and xpe_ai_worker.exe. |
-| Collimation output | ROI stored in orchestration sidecar, not in XpeImageMetadata. |
-| Metadata flags | XPE_FLAG_* is state-only. Failure details go through alert queue or diagnostic JSON. |
-| Exposure Index | EI/DI computed from detector-domain, pre-presentation data only. |
-| EI applicability | IEC 62494-1 applies to single irradiation event images only. |
-| Detector QC metrics | MTF, NPS, DQE measured on detector-domain images only. |
-| AI safety | AI modules assistive and degradable. Pipeline never blocks on AI worker. |
+| Phase ownership | Phase 2는 결정론적 classical 알고리즘으로 제한됨. Phase 3은 xpe_ai.dll 및 xpe_ai_worker.exe를 소유합니다. |
+| Collimation output | ROI은 orchestration sidecar에 저장됨, XpeImageMetadata에는 아님. |
+| Metadata flags | XPE_FLAG_*는 state 전용입니다. 실패 상세는 alert queue 또는 진단 JSON을 통해 전달됩니다. |
+| Exposure Index | EI/DI는 detector 도메인, presentation 전 데이터에서만 계산됨. |
+| EI applicability | IEC 62494-1은 단일 irradiation 이벤트 이미지에만 적용됨. |
+| Detector QC metrics | MTF, NPS, DQE는 detector 도메인 이미지에서만 측정됨. |
+| AI safety | AI 모듈은 보조적이고 성능 저하 가능합니다. 파이프라인은 AI worker에서 절대 차단되지 않습니다. |
 
-### 2.2 New Decisions (v3.0.0-ds2)
+### 2.2 New Decisions (v3.0.0-ds2) (신규 결정)
 
-| Topic | Decision | Research Basis |
+| Topic | Decision (결정) | Research Basis (연구 기반) |
 |-------|----------|---------------|
-| Pipeline order | Nonlinearity correction BEFORE gain (stage 1.5), not after. Linearize pixel response before flat-field normalization. | Physical correctness: gain normalization assumes linear detector response. PRD Section 4.1 order (after gain) is superseded by pipeline-spec Section 1.2. |
-| Multi-gain model | Multi-gain polynomial correction integrated INTO gain correction stage (2), not as separate stage. Gain map selection by exposure level is internal to xpe_gain_correct(). | Varex multi-gain calibration (6-10 signal levels), PRD-FPD-CAL-001 Section 5.2.4. |
-| Defect correction strategy | Baseline: edge-aware bilinear interpolation. Advanced: MLP (FixPix architecture, 1425 parameters, FPGA-friendly). Research path only: CNN/ViT for cluster defects. | FixPix (2023): 14.2x NMSE improvement over linear interpolation. Concatenated CNN (PMC7930811): MSE 91.80 vs traditional TMC 243.6. Simple ANN achieves near-optimal with 18x fewer parameters. |
-| Lag model selection | NLCSC with N=4 multi-exponential IRF as advanced tier. LTI deconvolution as baseline. Only 2 longest time constants treated as exposure-dependent for computational efficiency. | Starman et al. 2012 (PMC3465354): NLCSC achieves <0.29% first-frame, <0.0052% 50th-frame lag. 88% reduction over uncorrected. |
-| Lag vs ghosting distinction | Lag = residual signal in subsequent frames (charge trap release). Ghosting = detector sensitivity change from prior exposures. Both corrected in stage (4) but via different mechanisms. | PMC5722609: For indirect-conversion FPD, lag (~1-4%) dominates over ghosting (~0.1%) at clinical doses. |
-| Heel effect compensation | Duo-SID projection method (Wang 2013) adopted for arbitrary-SID gain map reconstruction from 2 reference calibrations. | Wang 2013: ~80% RMSE reduction vs single-SID, ~70% vs interpolation. |
-| Temperature compensation model | Exponential dark current model: I_dark(T) = I_0 * exp(-E_g / 2*k_B*T). Dynamic dark map interpolation with PREP time and temperature. | EP2148500A1 patent. 23-month stability study showing 0.5% (1 SD) with dynamic correction. |
-| Calibration drift strategy | Drift-aware recalibration with automatic scheduling based on temperature delta, elapsed time, and flat-field residual monitoring. | Kwan et al. 2006, Wenz et al. 2023: One-time factory constants insufficient for long-term clinical use. |
-| EI-0 Phase assignment | NEW SWU-2.0 EI_Baseline in Phase 1b (xpe_enhance_basic.dll). Phase 2 adds ROI-aware refinement via SWU-2.10. | Resolves CRITICAL issue N11 from cross-verification v2.0. |
+| Pipeline order | Nonlinearity 보정이 gain (stage 1.5) 전, 후가 아님. Flat-field normalization 전 픽셀 응답을 선형화합니다. | Physical correctness: gain normalization은 선형 검출기 응답을 가정합니다. PRD Section 4.1 순서(gain 후)는 pipeline-spec Section 1.2로 대체됩니다. |
+| Multi-gain model | Multi-gain 다항식 보정이 gain 보정 stage (2)에 통합됨, 별도 단계가 아님. 노출 수준별 이득 맵 선택은 xpe_gain_correct() 내부입니다. | Varex multi-gain calibration (6-10 신호 수준), PRD-FPD-CAL-001 Section 5.2.4. |
+| Defect correction strategy | Baseline: edge-aware bilinear 보간. Advanced: MLP (FixPix 아키텍처, 1425 파라미터, FPGA 친화적). 연구 경로만: 클러스터 결함용 CNN/ViT. | FixPix (2023): 선형 보간 대비 14.2배 NMSE 개선. Concatenated CNN (PMC7930811): traditional TMC 243.6 대비 MSE 91.80. Simple ANN은 18배 적은 파라미터(1425 vs 26891)로 거의 최적 달성. |
+| Lag model selection | N=4 multi-exponential IRF를 갖춘 NLCSC를 advanced 계층으로. LTI deconvolution을 baseline으로. 계산 효율을 위해 2개 가장 긴 시간 상수만 노출 의존적으로 처리. | Starman et al. 2012 (PMC3465354): NLCSC는 <0.29% first-frame, <0.0052% 50th-frame lag 달성. 미보정 대비 88% 감소. |
+| Lag vs ghosting distinction | Lag = 후속 프레임의 residual 신호 (charge trap 방출). Ghosting = 이전 노출로 인한 검출기 민감도 변화. 둘 다 stage (4)에서 보정되지만 다른 메커니즘을 통해. | PMC5722609: Indirect-conversion FPD의 경우, 임상 용량에서 lag (~1-4%)이 ghosting (~0.1%)을 지배합니다. |
+| Heel effect compensation | 2개 reference calibration에서 arbitrary-SID gain map 재구성을 위해 Duo-SID projection 방법(Wang 2013) 채택. | Wang 2013: single-SID 대비 ~80% RMSE 감소, 보간 대비 ~70%. |
+| Temperature compensation model | Exponential dark current 모델: I_dark(T) = I_0 * exp(-E_g / 2*k_B*T). PREP time 및 온도를 이용한 dynamic dark map 보간. | EP2148500A1 특허. 23개월 안정성 연구로 dynamic 보정을 이용한 0.5% (1 SD) 표시. |
+| Calibration drift strategy | Temperature delta, 경과 시간, flat-field residual 모니터링에 기반한 자동 스케줄링을 갖춘 drift-aware recalibration. | Kwan et al. 2006, Wenz et al. 2023: 일회성 factory 상수는 장기 임상 사용에 불충분. |
+| EI-0 Phase assignment | NEW SWU-2.0 EI_Baseline in Phase 1b (xpe_enhance_basic.dll). Phase 2는 SWU-2.10을 통해 ROI-aware refinement 추가. | Cross-verification v2.0에서 CRITICAL 이슈 N11 해결. |
 
 ---
 
-## 3. Source Base
+## 3. Source Base (출처 기반)
 
-### 3.1 Local Sources
+### 3.1 Local Sources (Local 출처)
 
 - `.moai/plans/memoized-conjuring-aurora.md`
-- `.moai/project/pipeline-spec.md` (v1.1.0, normative for pipeline order)
-- `.moai/project/api-spec.md` (v1.1.0, target v1.2.0)
+- `.moai/project/pipeline-spec.md` (v1.1.0, 파이프라인 순서의 규범)
+- `.moai/project/api-spec.md` (v1.1.0, 목표 v1.2.0)
 - `docs/xray_fpd_tech_classification_final.md`
 - `docs/ghost-correction/srs_ghost_correction.md`
 - `docs/ghost-correction/sad_ghost_correction.md`
@@ -86,25 +86,25 @@ This document supersedes ALG-SPEC-001 v2.0.0-ds1 for all algorithm behavior, qua
 - `.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md` (v2.0.0)
 - `docs/cross-verification-report-2026-04-13.md` (XPE-XVER-001 v1.0.0)
 
-### 3.2 Public Technical Sources (Research-Validated)
+### 3.2 Public Technical Sources (Research-Validated) (공개 기술 출처 (연구 검증))
 
-| Domain | Source | Use in this spec | Validation Status |
+| Domain | Source | Use in this spec (이 사양에서의 사용) | Validation Status (검증 상태) |
 |--------|--------|-----------------|-------------------|
-| Lag correction (NLCSC) | Starman et al., Med Phys 2012, [PMC3465354](https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/) | Tiered lag design: LTI baseline + NLCSC advanced. N=4 multi-exponential IRF with signal-dependent coefficients. | **VERIFIED** - Full algorithm extracted, performance metrics confirmed |
-| Lag vs ghosting model | Pang et al., Med Phys 2006, [PMC5722609](https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/) | Dual-exponential lag model. Lag (1-4%) dominates over ghosting (0.1%) for indirect-conversion FPD. | **VERIFIED** - Parameters and clinical significance confirmed |
-| Gain/offset calibration SNR | Ranger et al., J Digit Imaging 2014, [PMC3965338](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset calibration reduces SNR variation. Recalibration indicated when SNR falls outside 95% CI. | **VERIFIED** - Quantitative SNR improvement data confirmed |
-| Deep learning defect correction | Jeon et al., Phys Med 2021, [PMC7930811](https://pmc.ncbi.nlm.nih.gov/articles/PMC7930811/) | Concatenated CNN best MSE (91.80 for 5x5 defect vs TMC 243.6). Simple ANN nearly as good (94.67) with 18x fewer parameters (1425 vs 26891). | **VERIFIED** - Architecture and performance metrics confirmed |
-| FixPix bad pixel correction | Schirrmacher et al., 2023, [arXiv:2310.11637](https://arxiv.org/html/2310.11637v2) | MLP-based correction with 14.2x NMSE improvement. Confidence-calibrated segmentation for detection. ViT auto-encoder for high corruption rates. | **VERIFIED** - Network architecture and FPGA feasibility confirmed |
-| Unrolled dual-domain correction | 2026, [arXiv:2601.20995](https://arxiv.org/html/2601.20995) | Synthetic data training for low-performing pixel correction. Outperforms state-of-art for 1-2% detector defects. | **NEW** - Latest research, evaluation pending |
-| Flat-field / recalibration drift | Kwan et al., 2006, [PubMed 16532945](https://pubmed.ncbi.nlm.nih.gov/16532945/) | Improved flat-field correction for multi-point calibration. | **VERIFIED** |
-| Calibration drift management | Wenz et al., 2023, [PubMed 36897395](https://pubmed.ncbi.nlm.nih.gov/36897395/) | Drift handling and recalibration scheduling for clinical use. | **VERIFIED** |
-| Heel effect (Duo-SID) | Wang, Med Phys 2013, [PDF](https://www.math.union.edu/~wangj/papers/Wang13.Heel%20Effect%20%5BMed%20Phys%5D.pdf) | Duo-SID projection for arbitrary-SID gain map from 2 references. 80% RMSE reduction. | **VERIFIED** |
-| Dynamic dark correction | EP2148500A1, [Patent](https://patents.google.com/patent/EP2148500A1/en) | Offset adjustment maps for PREP time and temperature compensation. Portable detector power-mode handling. | **VERIFIED** |
-| NUC algorithm | Multiple sources via [Science.gov](https://www.science.gov/topicpages/n/non-uniformity+correction+algorithm) | Two-point calibration (TPC) as baseline. Piecewise linear or polynomial for nonlinearity. | **VERIFIED** |
-| Display calibration | DICOM PS3.14 GSDF | Presentation path preserves GSDF-consistent grayscale. Separate from detector-domain processing. | **VERIFIED** |
-| Exposure Index | IEC 62494-1, AAPM TG-232 | EI/DI tied to detector-domain data. DI = 10 * log10(EI / EIT). | **VERIFIED** |
-| DQE standard | IEC 62220-1-1:2015, [UMich PDF](https://websites.umich.edu/~ners580/ners-bioe_481/lectures/pdfs/2003-10-IEC_62220-DQE.pdf) | DQE(f) = MTF^2(f) / (NPS(f) * q). Calibration quality directly affects DQE measurement accuracy. | **VERIFIED** |
-| Scatter / virtual grid | Lisson et al., 2020, Virtual Grid study 2022 | Phase-gated premium features requiring clinical image-quality validation. | **VERIFIED** |
+| Lag correction (NLCSC) | Starman et al., Med Phys 2012, [PMC3465354](https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/) | Tiered lag 설계: LTI baseline + NLCSC advanced. N=4 multi-exponential IRF with signal-dependent 계수. | **VERIFIED** - 전체 알고리즘 추출, 성능 지표 확인 |
+| Lag vs ghosting model | Pang et al., Med Phys 2006, [PMC5722609](https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/) | Dual-exponential lag 모델. Lag (1-4%)이 indirect-conversion FPD의 ghosting (0.1%)을 지배합니다. | **VERIFIED** - 파라미터 및 임상 의의 확인 |
+| Gain/offset calibration SNR | Ranger et al., J Digit Imaging 2014, [PMC3965338](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset calibration은 SNR 변동을 감소시킵니다. SNR이 95% CI 외에 떨어질 때 recalibration 지시됨. | **VERIFIED** - 정량적 SNR 개선 데이터 확인 |
+| Deep learning defect correction | Jeon et al., Phys Med 2021, [PMC7930811](https://pmc.ncbi.nlm.nih.gov/articles/PMC7930811/) | Concatenated CNN 최고 MSE (5x5 결함의 경우 traditional TMC 243.6 대비 91.80). Simple ANN이 거의 동일(94.67) while 18배 적은 파라미터(1425 vs 26891). | **VERIFIED** - 아키텍처 및 성능 지표 확인 |
+| FixPix bad pixel correction | Schirrmacher et al., 2023, [arXiv:2310.11637](https://arxiv.org/html/2310.11637v2) | MLP 기반 보정 14.2배 NMSE 개선. 감지를 위한 confidence-calibrated 분할. 높은 손상률의 경우 ViT auto-encoder. | **VERIFIED** - 네트워크 아키텍처 및 FPGA 실현성 확인 |
+| Unrolled dual-domain correction | 2026, [arXiv:2601.20995](https://arxiv.org/html/2601.20995) | 낮은 성능 픽셀 보정을 위한 합성 데이터 학습. 1-2% 검출기 결함의 경우 state-of-art 우월. | **NEW** - 최신 연구, 평가 대기 중 |
+| Flat-field / recalibration drift | Kwan et al., 2006, [PubMed 16532945](https://pubmed.ncbi.nlm.nih.gov/16532945/) | 다중 포인트 calibration의 개선된 flat-field 보정. | **VERIFIED** |
+| Calibration drift management | Wenz et al., 2023, [PubMed 36897395](https://pubmed.ncbi.nlm.nih.gov/36897395/) | 임상 사용을 위한 drift 처리 및 recalibration 스케줄링. | **VERIFIED** |
+| Heel effect (Duo-SID) | Wang, Med Phys 2013, [PDF](https://www.math.union.edu/~wangj/papers/Wang13.Heel%20Effect%20%5BMed%20Phys%5D.pdf) | 2개 참고에서 arbitrary-SID gain map의 Duo-SID projection. 80% RMSE 감소. | **VERIFIED** |
+| Dynamic dark correction | EP2148500A1, [Patent](https://patents.google.com/patent/EP2148500A1/en) | PREP time 및 온도 보정을 위한 offset 조정 맵. Portable 검출기 power-mode 처리. | **VERIFIED** |
+| NUC algorithm | Multiple 출처 via [Science.gov](https://www.science.gov/topicpages/n/non-uniformity+correction+algorithm) | Two-point calibration (TPC)을 baseline으로. Nonlinearity를 위한 piecewise linear 또는 다항식. | **VERIFIED** |
+| Display calibration | DICOM PS3.14 GSDF | Presentation 경로는 GSDF-consistent 그레이스케일을 보존합니다. Detector 도메인 처리와 분리. | **VERIFIED** |
+| Exposure Index | IEC 62494-1, AAPM TG-232 | EI/DI는 detector 도메인 데이터와 연결됩니다. DI = 10 * log10(EI / EIT). | **VERIFIED** |
+| DQE standard | IEC 62220-1-1:2015, [UMich PDF](https://websites.umich.edu/~ners580/ners-bioe_481/lectures/pdfs/2003-10-IEC_62220-DQE.pdf) | DQE(f) = MTF^2(f) / (NPS(f) * q). Calibration 품질은 DQE 측정 정확도에 직접 영향을 줍니다. | **VERIFIED** |
+| Scatter / virtual grid | Lisson et al., 2020, Virtual Grid 연구 2022 | 임상 이미지 품질 검증이 필요한 phase-gated premium 기능. | **VERIFIED** |
 
 ---
 

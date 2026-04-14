@@ -1,60 +1,60 @@
-# Technology Stack
+# 기술 스택
 
-## Languages
+## 언어
 
-| Language | Usage | Standard |
+| 언어 | 용도 | 표준 |
 |----------|-------|----------|
-| C/C++ | Native DLL modules (image processing algorithms) | C++17 |
-| C# | Integration test GUI (ImageProcTest) | .NET 8, WPF |
-| C | DLL ABI boundary (P/Invoke compatible exports) | C11 |
+| C/C++ | Native DLL 모듈 (영상 처리 알고리즘) | C++17 |
+| C# | 통합 테스트 GUI (ImageProcTest) | .NET 8, WPF |
+| C | DLL ABI 경계 (P/Invoke 호환 export) | C11 |
 
-## Build System
+## 빌드 시스템
 
-| Tool | Version | Purpose |
+| 도구 | 버전 | 목적 |
 |------|---------|---------|
-| CMake | >= 3.25 | C/C++ build system |
-| Ninja | latest | Build generator (via CMakePresets) |
-| vcpkg | manifest mode | SOUP dependency management (pinned versions) |
-| MSBuild | VS 2022 | C# project build |
+| CMake | >= 3.25 | C/C++ 빌드 시스템 |
+| Ninja | latest | 빌드 생성기 (via CMakePresets) |
+| vcpkg | manifest mode | SOUP 의존성 관리 (고정 버전) |
+| MSBuild | VS 2022 | C# 프로젝트 빌드 |
 
-## SOUP Dependencies (XPE)
+## SOUP 의존성 (XPE)
 
-| Component | Version | License | Used By | Purpose |
+| 컴포넌트 | 버전 | 라이선스 | 사용처 | 목적 |
 |-----------|---------|---------|---------|---------|
 | OpenCV | 4.9.x | Apache 2.0 | preprocess, enhance_basic | Bilateral filter, CLAHE, image ops |
 | DCMTK | 3.6.8 | BSD-3 | dicom | DICOM file/network I/O |
 | Eigen | 3.4.x | MPL-2.0 | enhance_advanced | Matrix ops, FFT |
-| ONNX Runtime | 1.17.x | MIT | ai | DL model inference (U-Net, MobileNet-v3) |
-| spdlog | 1.13.x | MIT | common | Async logging |
-| nlohmann/json | 3.11.x | MIT | common | JSON config parsing |
-| fmt | 10.x | MIT | common | String formatting |
-| Google Test | 1.14.x | BSD-3 | tests | Unit testing framework |
+| ONNX Runtime | 1.17.x | MIT | ai | DL 모델 추론 (U-Net, MobileNet-v3) |
+| spdlog | 1.13.x | MIT | common | 비동기 로깅 |
+| nlohmann/json | 3.11.x | MIT | common | JSON 구성 파싱 |
+| fmt | 10.x | MIT | common | 문자열 포맷팅 |
+| Google Test | 1.14.x | BSD-3 | tests | 단위 테스트 프레임워크 |
 
-## SOUP Dependencies (GSVG, independent)
+## SOUP 의존성 (GSVG, 독립)
 
-| Component | Version | License | Purpose |
+| 컴포넌트 | 버전 | 라이선스 | 목적 |
 |-----------|---------|---------|---------|
-| FFTW3 | 3.3.10 | GPL v2+ | DWT decomposition (dynamic linking required) |
-| OpenCV | 4.9.x | Apache 2.0 | Image operations |
-| Eigen | 3.4.x | MPL-2.0 | Matrix operations |
-| DCMTK | 3.6.8 | BSD-3 | DICOM metadata reading |
-| nlohmann/json | 3.11.x | MIT | Configuration |
+| FFTW3 | 3.3.10 | GPL v2+ | DWT 분해 (동적 링크 필요) |
+| OpenCV | 4.9.x | Apache 2.0 | 영상 처리 |
+| Eigen | 3.4.x | MPL-2.0 | 행렬 연산 |
+| DCMTK | 3.6.8 | BSD-3 | DICOM 메타데이터 읽기 |
+| nlohmann/json | 3.11.x | MIT | 구성 |
 
-## Transitive Dependencies
+## 전이적 의존성
 
-| Component | Via | License | Notes |
+| 컴포넌트 | 경유 | 라이선스 | 참고 |
 |-----------|-----|---------|-------|
-| OpenSSL | DCMTK | Apache 2.0 | TLS for DICOM network (C-STORE/C-FIND) |
+| OpenSSL | DCMTK | Apache 2.0 | DICOM 네트워크 TLS (C-STORE/C-FIND) |
 
-## Target Platform
+## 대상 플랫폼
 
-| OS | Architecture | SIMD |
+| OS | 아키텍처 | SIMD |
 |----|-------------|------|
-| Windows 11 (primary) | x86-64 | AVX2 |
-| Ubuntu 24.04 (deferred) | x86-64 | AVX2 |
-| ARM64 (deferred) | aarch64 | NEON |
+| Windows 11 (주요) | x86-64 | AVX2 |
+| Ubuntu 24.04 (보류) | x86-64 | AVX2 |
+| ARM64 (보류) | aarch64 | NEON |
 
-## HW/SW Development Strategy
+## HW/SW 개발 전략
 
 출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, Section 1.2)
 
@@ -71,7 +71,7 @@
 - 알고리즘 로직 순수 함수(stateless) 선호 → FPGA 포팅 용이
 - `#pragma pack(push, 8)` / Pack=8 레이아웃 유지 → FPGA DMA 호환
 
-## Must-Have vs Differentiator
+## 필수 기술 vs 차별화 기술
 
 출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, Section 2)
 
@@ -86,13 +86,13 @@ Phase별 기술 우선순위:
 **Phase 3 — Intelligence**:
 - POST-09 DL Bone Suppression (폐결절 민감도 16.8% 향상), POST-02 DL Denoising
 
-## C ABI Design
+## C ABI 설계
 
 - Struct packing: `#pragma pack(push, 8)` / `[StructLayout(Pack = 8)]`
-- Memory ownership: Caller allocates via xpe_common, caller frees
-- Configuration: JSON string (`const char*`) at boundary
-- Error handling: `int32_t` return codes + `char*` error buffer
-- Thread safety: All exported functions reentrant with independent buffers
+- 메모리 소유권: Caller가 xpe_common을 통해 할당, caller가 해제
+- Configuration: JSON 문자열 (`const char*`) at boundary
+- 오류 처리: `int32_t` 반환 코드 + `char*` 오류 버퍼
+- 스레드 안전성: 모든 export 함수는 독립 버퍼로 재진입 가능
 
 ### XpeImageMetadata Flags (확장)
 
@@ -113,23 +113,23 @@ Phase별 기술 우선순위:
 #define XPE_FLAG_GSVG_SKIPPED            0x00001000u  // GSVG SAFE-003 fallback 발생
 ```
 
-## Testing
+## 테스팅
 
-| Framework | Language | Scope |
+| 프레임워크 | 언어 | 범위 |
 |-----------|---------|-------|
-| Google Test + CTest | C++ | Unit tests (SWU-level), integration tests |
-| xUnit | C# | ImageProcTest GUI tests |
+| Google Test + CTest | C++ | 단위 테스트 (SWU 레벨), 통합 테스트 |
+| xUnit | C# | ImageProcTest GUI 테스트 |
 
-## Quality Framework
+## 품질 프레임워크
 
-- IEC 62304 Class B compliance
+- IEC 62304 Class B 규정 준수
 - TRUST 5: Tested (85%+), Readable, Unified, Secured, Trackable
-- TDD methodology (RED-GREEN-REFACTOR)
-- SWU-to-DLL-to-test traceability (IEC 62304 5.4.1)
+- TDD 방법론 (RED-GREEN-REFACTOR)
+- SWU-DLL-테스트 추적성 (IEC 62304 5.4.1)
 
-## License Risks
+## 라이선스 위험
 
-| Risk | Component | Mitigation |
+| 위험 | 컴포넌트 | 완화 방법 |
 |------|-----------|------------|
-| GPL contamination | FFTW3 (GSVG only) | Dynamic linking only, GSVG as separate DLL |
-| OpenSSL export restrictions | DCMTK transitive | Review per-jurisdiction requirements |
+| GPL 오염 | FFTW3 (GSVG only) | 동적 링크만 사용, GSVG를 별도 DLL로 분리 |
+| OpenSSL 수출 제한 | DCMTK 전이적 | 관할권별 요구사항 검토 |

@@ -1,19 +1,19 @@
-# Software Requirements Specification
+# 소프트웨어 요구사항 명세
 
-**Document ID:** XPE-SRS-001 v1.0  
+**문서 ID:** XPE-SRS-001 v1.0  
 **IEC 62304 Clause:** 5.2.1 — 5.2.6  
-**Safety Classification:** Class B  
-**Date:** 2026-04-03  
-**Author:** XPE Development Team  
-**Approval:** __________________ Date: __________  
+**안전 분류:** Class B  
+**날짜:** 2026-04-03  
+**작성자:** XPE 개발 팀  
+**승인:** __________________ 날짜: __________  
 
 ---
 
-## 1. Purpose
+## 1. 목적
 
 XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요구사항을 정의한다. 모든 요구사항은 testable, traceable, unique, consistent 해야 한다.
 
-## 2. Requirements Content Categories (5.2.2)
+## 2. 요구사항 내용 카테고리 (5.2.2)
 
 - **(a)** Functional and capability requirements
 - **(b)** Inputs and outputs

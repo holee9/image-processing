@@ -1,4 +1,4 @@
-# Software Risk Management File
+# 소프트웨어 리스크 관리 파일
 
 **Document ID:** XPE-SRM-001 v1.0  
 **IEC 62304 Clause:** 7.1 — 7.4  
@@ -10,100 +10,100 @@
 
 ---
 
-## 1. Purpose
+## 1. 목적
 
 XPE 소프트웨어의 hazardous situation 식별, risk control, verification 및 SOUP risk를 관리한다.
 
-## 2. Risk Acceptability Criteria
+## 2. 리스크 수용 기준
 
-ISO 14971 Annex C 기반 risk matrix:
+ISO 14971 Annex C 기반 리스크 매트릭스:
 
-| | Negligible | Minor | Serious | Critical | Catastrophic |
+| | 무시할 수 있음 | 경미 | 심각 | 심각함 | 재앙적 |
 |---|:-:|:-:|:-:|:-:|:-:|
-| **Frequent** | Low | Medium | **High** | **Unacceptable** | **Unacceptable** |
-| **Probable** | Low | Medium | **High** | **High** | **Unacceptable** |
-| **Occasional** | Low | Low | Medium | **High** | **High** |
-| **Remote** | Low | Low | Low | Medium | **High** |
-| **Improbable** | Low | Low | Low | Low | Medium |
+| **빈번함** | 낮음 | 중간 | **높음** | **수용 불가** | **수용 불가** |
+| **가능성 높음** | 낮음 | 중간 | **높음** | **높음** | **수용 불가** |
+| **가끔** | 낮음 | 낮음 | 중간 | **높음** | **높음** |
+| **원격** | 낮음 | 낮음 | 낮음 | 중간 | **높음** |
+| **불가능** | 낮음 | 낮음 | 낮음 | 낮음 | 중간 |
 
-- **Unacceptable:** 절대 출시 불가
-- **High:** Risk control 필수, ALARP 원칙 적용
-- **Medium:** Risk control 권장, benefit-risk 평가
-- **Low:** Acceptable, 모니터링
+- **수용 불가:** 절대 출시 불가
+- **높음:** Risk control 필수, ALARP 원칙 적용
+- **중간:** Risk control 권장, benefit-risk 평가
+- **낮음:** 수용 가능, 모니터링
 
-## 3. Hazard Identification (7.1)
+## 3. 해저드 식별 (7.1)
 
-| HAZ ID | Hazardous Situation | Sequence of Events | Severity | Pre-control Prob | Pre-control Risk |
+| 해저드 ID | 위험한 상황 | 사건의 순서 | 심각도 | 제어 전 확률 | 제어 전 리스크 |
 |--------|-------------------|-------------------|:--------:|:----------------:|:----------------:|
-| HAZ-001 | 원본 영상 손실 → 재촬영(추가 피폭) | Processing이 원본 overwrite → 재처리 불가 → 재촬영 필요 | Minor | Occasional | **Medium** |
-| HAZ-002 | 부적절한 processing으로 진단 정보 손실 | Default preset 오류 → 과도한/부족한 처리 → 미묘한 병변 비가시 | Serious | Occasional | **Medium** |
-| HAZ-003 | 미보정 bad pixel → 병변 오인 | Bad pixel map 미갱신 → 밝은/어두운 점 잔존 → 의사가 병변으로 오진 | Serious | Remote | **Low** |
-| HAZ-004 | Ghost artifact → 병변 오인 | Lag correction 미적용 → 이전 이미지 잔상 → 허위 구조물 | Serious | Occasional | **Medium** |
-| HAZ-005 | 과도한 edge enhancement → 허위 구조물 | Gain 과다 → overshoot halo → 미세 골절/결절로 오인 | Serious | Occasional | **Medium** |
-| HAZ-006 | 부적절한 W/L → 병변 비가시 | W/L preset 오류 또는 사용자 실수 → 진단 영역 밖 window | Serious | Probable | **High** |
-| HAZ-007 | GSDF 미준수 display → contrast 왜곡 | 비보정 모니터 → GSDF 미적용 → 미묘한 density 차이 비가시 | Minor | Occasional | **Low** |
-| HAZ-008 | AI가 병변 제거 또는 허위 생성 | DL bone suppression이 nodule 함께 제거, 또는 artifact 생성 | Serious | Occasional | **Medium** |
-| HAZ-009 | Processing 상태 혼동 | 원본 vs 처리 영상 구분 불가 → AI 결과를 원본으로 오인 | Minor | Probable | **Medium** |
+| HAZ-001 | 원본 영상 손실 → 재촬영(추가 피폭) | 처리가 원본을 덮어씀 → 재처리 불가 → 재촬영 필요 | 경미 | 가끔 | **중간** |
+| HAZ-002 | 부적절한 처리로 진단 정보 손실 | 기본 사전설정 오류 → 과도한/부족한 처리 → 미묘한 병변 비가시 | 심각 | 가끔 | **중간** |
+| HAZ-003 | 미보정 bad pixel → 병변 오인 | Bad pixel 맵 미갱신 → 밝은/어두운 점 잔존 → 의사가 병변으로 오진 | 심각 | 원격 | **낮음** |
+| HAZ-004 | Ghost artifact → 병변 오인 | Lag correction 미적용 → 이전 이미지 잔상 → 허위 구조물 | 심각 | 가끔 | **중간** |
+| HAZ-005 | 과도한 edge enhancement → 허위 구조물 | Gain 과다 → overshoot halo → 미세 골절/결절로 오인 | 심각 | 가끔 | **중간** |
+| HAZ-006 | 부적절한 W/L → 병변 비가시 | W/L 사전설정 오류 또는 사용자 실수 → 진단 영역 밖 window | 심각 | 가능성 높음 | **높음** |
+| HAZ-007 | GSDF 미준수 디스플레이 → contrast 왜곡 | 비보정 모니터 → GSDF 미적용 → 미묘한 density 차이 비가시 | 경미 | 가끔 | **낮음** |
+| HAZ-008 | AI가 병변 제거 또는 허위 생성 | DL bone suppression이 nodule 함께 제거, 또는 artifact 생성 | 심각 | 가끔 | **중간** |
+| HAZ-009 | 처리 상태 혼동 | 원본 vs 처리 영상 구분 불가 → AI 결과를 원본으로 오인 | 경미 | 가능성 높음 | **중간** |
 
-## 4. Risk Control Measures (7.2)
+## 4. 리스크 제어 조치 (7.2)
 
-| HAZ ID | Risk Control | Type | Implementation | SRS Req |
+| 해저드 ID | 리스크 제어 | 유형 | 구현 | SRS 요구사항 |
 |--------|-------------|------|---------------|---------|
-| HAZ-001 | Non-destructive processing (원본 보존) | Inherent safety | Read-only input buffer, separate output allocation | SRS-SAFE-001 |
-| HAZ-002 | Validated body-part preset 자동 적용 | Inherent safety | ParameterValidator + auto-selection | SRS-SAFE-002 |
-| HAZ-003 | Defect correction 실패 시 시각적 경고 | Protective measure | ErrorHandler → UI overlay + alert | SRS-SAFE-003 |
-| HAZ-004 | Ghost correction 적용 여부 DICOM 기록 | Information for safety | Metadata tag in DICOM output | SRS-SAFE-004 |
-| HAZ-005 | Enhancement gain safe-range 제한 | Inherent safety | ParameterValidator max cap per body-part | SRS-SAFE-005 |
-| HAZ-006 | W/L 유효 범위 초과 경고 | Protective measure | Range check + UI warning | SRS-SAFE-006 |
-| HAZ-007 | GSDF 미보정 display 경고 | Information for safety | Startup GSDF compliance check | SRS-SAFE-007 |
-| HAZ-008 | AI-processed label + toggle | Information for safety | "AI-processed" overlay + original 전환 | SRS-SAFE-008, 009 |
-| HAZ-009 | Processing state indicator + toggle | Protective measure | UI state display + 1-click toggle | SRS-SAFE-009 |
+| HAZ-001 | 비파괴 처리 (원본 보존) | Inherent safety | Read-only 입력 버퍼, 별도 출력 할당 | SRS-SAFE-001 |
+| HAZ-002 | 검증된 신체 부위 사전설정 자동 적용 | Inherent safety | ParameterValidator + auto-selection | SRS-SAFE-002 |
+| HAZ-003 | 결함 보정 실패 시 시각적 경고 | Protective measure | ErrorHandler → UI overlay + alert | SRS-SAFE-003 |
+| HAZ-004 | Ghost correction 적용 여부 DICOM 기록 | Information for safety | DICOM 출력의 메타데이터 태그 | SRS-SAFE-004 |
+| HAZ-005 | Enhancement gain 안전 범위 제한 | Inherent safety | ParameterValidator 신체부위당 최대 상한 | SRS-SAFE-005 |
+| HAZ-006 | W/L 유효 범위 초과 경고 | Protective measure | 범위 확인 + UI 경고 | SRS-SAFE-006 |
+| HAZ-007 | GSDF 미보정 디스플레이 경고 | Information for safety | 시작 시 GSDF 준수 확인 | SRS-SAFE-007 |
+| HAZ-008 | AI 처리 레이블 + 토글 | Information for safety | "AI-processed" overlay + 원본 전환 | SRS-SAFE-008, 009 |
+| HAZ-009 | 처리 상태 표시기 + 토글 | Protective measure | UI 상태 표시 + 원클릭 토글 | SRS-SAFE-009 |
 
-## 5. Post-Control Risk Evaluation
+## 5. 제어 후 리스크 평가
 
-| HAZ ID | Post-control Severity | Post-control Prob | Post-control Risk | Acceptable? |
+| 해저드 ID | 제어 후 심각도 | 제어 후 확률 | 제어 후 리스크 | 수용 가능? |
 |--------|:--------------------:|:-----------------:|:-----------------:|:-----------:|
-| HAZ-001 | Minor | Improbable | **Low** | ✓ |
-| HAZ-002 | Serious | Remote | **Low** | ✓ |
-| HAZ-003 | Minor (경고로 인식) | Remote | **Low** | ✓ |
-| HAZ-004 | Minor (기록으로 추적) | Remote | **Low** | ✓ |
-| HAZ-005 | Minor (gain 제한됨) | Remote | **Low** | ✓ |
-| HAZ-006 | Minor (경고로 인식) | Occasional | **Low** | ✓ |
-| HAZ-007 | Negligible | Occasional | **Low** | ✓ |
-| HAZ-008 | Minor (label + toggle) | Occasional | **Low** | ✓ |
-| HAZ-009 | Negligible | Remote | **Low** | ✓ |
+| HAZ-001 | 경미 | 불가능 | **낮음** | ✓ |
+| HAZ-002 | 심각 | 원격 | **낮음** | ✓ |
+| HAZ-003 | 경미 (경고로 인식) | 원격 | **낮음** | ✓ |
+| HAZ-004 | 경미 (기록으로 추적) | 원격 | **낮음** | ✓ |
+| HAZ-005 | 경미 (gain 제한됨) | 원격 | **낮음** | ✓ |
+| HAZ-006 | 경미 (경고로 인식) | 가끔 | **낮음** | ✓ |
+| HAZ-007 | 무시할 수 있음 | 가끔 | **낮음** | ✓ |
+| HAZ-008 | 경미 (label + toggle) | 가끔 | **낮음** | ✓ |
+| HAZ-009 | 무시할 수 있음 | 원격 | **낮음** | ✓ |
 
-## 6. Risk Control Verification (7.3)
+## 6. 리스크 제어 검증 (7.3)
 
-| HAZ ID | Verification Method | Test ID | Expected Result | Status |
+| 해저드 ID | 검증 방법 | 테스트 ID | 예상 결과 | 상태 |
 |--------|-------------------|---------|-----------------|:------:|
-| HAZ-001 | Raw byte comparison after processing | ST-SAFE-001 | Byte-identical | Planned |
-| HAZ-002 | All body-part preset validation | ST-SAFE-002 | All within safe range | Planned |
-| HAZ-003 | Forced defect correction failure | ST-SAFE-003 | Warning within 2s | Planned |
-| HAZ-004 | DICOM tag presence check | ST-004 | Tag present & correct | Planned |
-| HAZ-005 | Max gain visual artifact check | ST-013 | No overshoot > 5% | Planned |
-| HAZ-006 | W/L out-of-range injection | ST-SAFE-006 | Warning displayed | Planned |
-| HAZ-007 | Non-GSDF display simulation | ST-SAFE-007 | Warning displayed | Planned |
-| HAZ-008 | AI label presence test | ST-SAFE-008 | Label visible | Planned |
-| HAZ-009 | Toggle function timing | ST-SAFE-009 | Switch < 100ms | Planned |
+| HAZ-001 | 처리 후 원본 byte 비교 | ST-SAFE-001 | Byte 동일 | 계획됨 |
+| HAZ-002 | 모든 신체부위 사전설정 검증 | ST-SAFE-002 | 모두 안전 범위 내 | 계획됨 |
+| HAZ-003 | 결함 보정 실패 강제 실행 | ST-SAFE-003 | 2초 내 경고 | 계획됨 |
+| HAZ-004 | DICOM 태그 존재 확인 | ST-004 | 태그 존재 & 정확함 | 계획됨 |
+| HAZ-005 | 최대 gain 시각적 artifact 확인 | ST-013 | overshoot > 5% 없음 | 계획됨 |
+| HAZ-006 | W/L 범위 초과 주입 | ST-SAFE-006 | 경고 표시됨 | 계획됨 |
+| HAZ-007 | 비GSDF 디스플레이 시뮬레이션 | ST-SAFE-007 | 경고 표시됨 | 계획됨 |
+| HAZ-008 | AI 레이블 존재 테스트 | ST-SAFE-008 | 레이블 표시됨 | 계획됨 |
+| HAZ-009 | 토글 함수 타이밍 | ST-SAFE-009 | 전환 < 100ms | 계획됨 |
 
-## 7. SOUP Risk Management (7.4)
+## 7. SOUP 리스크 관리 (7.4)
 
-| SOUP ID | Name | Potential Failure Mode | Impact | Mitigation | Verification |
+| SOUP ID | 이름 | 잠재적 실패 모드 | 영향 | 완화 | 검증 |
 |---------|------|----------------------|--------|-----------|-------------|
-| SOUP-001 | OpenCV | Filter incorrect output | Image quality degradation | Output PSNR check vs reference | IT-008 |
-| SOUP-002 | dcmtk | DICOM tag mishandling | Non-conformant output | DVTk conformance in CI | ST-030 |
-| SOUP-003 | ONNX Runtime | Inference NaN/Inf/crash | AI module failure | Output validation + fallback | IT-005 |
-| SOUP-008 | Eigen | Numerical instability | MFP artifact | Condition number check | UT-2.5-008 |
+| SOUP-001 | OpenCV | 필터 잘못된 출력 | 이미지 품질 저하 | 참조 기준 PSNR 확인 | IT-008 |
+| SOUP-002 | dcmtk | DICOM 태그 오류 처리 | 비준수 출력 | CI의 DVTk 준수 | ST-030 |
+| SOUP-003 | ONNX Runtime | 추론 NaN/Inf/충돌 | AI 모듈 실패 | 출력 검증 + fallback | IT-005 |
+| SOUP-008 | Eigen | 수치적 불안정성 | MFP artifact | 조건 수 확인 | UT-2.5-008 |
 
 ---
 
-## Revision History
+## 개정 이력
 
-| Rev | Date | Author | Description |
+| 개정판 | 날짜 | 작성자 | 설명 |
 |-----|------|--------|-------------|
-| 1.0 | 2026-04-03 | XPE Team | Initial release |
+| 1.0 | 2026-04-03 | XPE Team | 초기 릴리스 |
 
 ---
 
-*Document End — XPE-SRM-001 v1.0*
+*문서 끝 — XPE-SRM-001 v1.0*
