@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.5.0  
+**Package Version**: 1.6.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -50,7 +50,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | SAD-001 | [XPE-SAD-001_Software_Architecture_Document.md](XPE-SAD-001_Software_Architecture_Document.md) | 5.3 |
 | SDD-001 | [XPE-SDD-001_Software_Unit_Identification.md](XPE-SDD-001_Software_Unit_Identification.md) | 5.4 |
 | SDD-002 | [XPE-SDD-002_Software_Detailed_Design.md](XPE-SDD-002_Software_Detailed_Design.md) | 5.4 |
-| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.6 |
+| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.7 |
 | ITP-001 | [XPE-ITP-001_Integration_Test_Plan.md](XPE-ITP-001_Integration_Test_Plan.md) | 5.6 |
 | STP-001 | [XPE-STP-001_Software_Test_Plan_and_Cases.md](XPE-STP-001_Software_Test_Plan_and_Cases.md) | 5.5 |
 | VVP-001 | [XPE-VVP-001_Verification_Validation_Plan.md](XPE-VVP-001_Verification_Validation_Plan.md) | 5.7 |
@@ -76,7 +76,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백 (v1.6 기준 — 총 70건)
+### 4.1 해소된 알고리즘 공백 (v1.7 기준 — 총 80건)
 
 **v1.0 Round 1 (GAP-01~10):**
 
@@ -183,6 +183,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §12.11 | 자동 QA 팬텀 인식 알고리즘 (Leeds/CDRAD/CIRS) | GAP-BK |
 | §9.13 | 교정 전달 함수 (Cross-FPD 패널 정규화) | GAP-BL |
 
+**v1.7 Round 8 (GAP-BM~BV):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §6.5 | DICOM GSDF 그레이스케일 표준 디스플레이 함수 (PS 3.14, JND 보정) | GAP-BM |
+| §6.6 | Multi-Scale Retinex 로컬 톤 매핑 (σ={15,80,250}px) | GAP-BN |
+| §8.5 | U-Net 폐 영역 자동 분할 (IoU≥0.92, Non-SaMD) | GAP-BO |
+| §8.6 | DLIR CNN 저선량 화질 복원 (RDN 16블록, PSNR≥38dB) | GAP-BP |
+| §8.7 | 흉부 늑골 억제 (Hessian Frangi 능선 척도, 억제 지수≥80%) | GAP-BQ |
+| §8.8 | 자동 해부학적 부위 인식 CNN (MobileNetV3, 10클래스, 정확도≥95%) | GAP-BR |
+| §14.3 | 피라미달 Lucas-Kanade 광학 흐름 (3레벨, AVX2, <5ms/프레임) | GAP-BS |
+| §3.16 | 통합 시간 선형성 보정 (a-Si:H TFT, 16-노드 PWL, ε<0.1%) | GAP-BT |
+| §20 | TV-최소화 반복적 영상 복원 (ADMM, FFT 가속, PSNR+3dB) | GAP-BU |
+| §20.1 | 골밀도 정량화 DXA-proxy (DES 기반, r²>0.85, Non-SaMD) | GAP-BV |
+
 ### 4.2 문서 관계
 
 ```
@@ -269,6 +284,16 @@ XPE-STP-001 (테스트 계획)
 | GPU CUDA Pipeline Acceleration | SRS-PERF-003 | xpe_preprocess.dll (CUDA) |
 | Auto QA Phantom Recognition | SRS-QA-002 | xpe_enhance_advanced.dll |
 | Cross-FPD Calibration Transfer | SRS-CAL-002 | xpe_preprocess.dll |
+| DICOM GSDF Display Calibration | SRS-DISP-005 | xpe_display.dll |
+| Multi-Scale Retinex Local Tone Mapping | SRS-DISP-004 | xpe_display.dll |
+| U-Net Lung Field Segmentation | SRS-SEG-001 | xpe_ai_worker.dll |
+| DLIR CNN Low-Dose Denoising | SRS-DLIR-001 | xpe_ai_worker.dll |
+| Rib Suppression (Hessian) | SRS-RIB-001 | xpe_ai_worker.dll |
+| Body Part Recognition CNN | SRS-ANAT-001 | xpe_ai_worker.dll |
+| Lucas-Kanade Optical Flow | SRS-FLUORO-003 | xpe_fluoroscopy.dll |
+| Integration Nonlinearity Correction | SRS-FUNC-001f | xpe_preprocess.dll |
+| TV-ADMM Iterative Denoising | SRS-ITER-001 | xpe_enhance_advanced.dll |
+| BMD DXA-proxy Estimation | SRS-BMD-001 | xpe_enhance_advanced.dll |
 
 ---
 

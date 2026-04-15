@@ -1,11 +1,11 @@
 # XPE 통합 알고리즘 개발 명세서
 
-**Document ID:** XPE-ALG-001 v1.6  
+**Document ID:** XPE-ALG-001 v1.7  
 **IEC 62304 Clause:** 5.4 (Software Detailed Design)  
 **Safety Classification:** Class B  
 **Date:** 2026-04-15  
 **Author:** XPE Development Team  
-**Review Cycles:** 70회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 + v1.5: 10회 + v1.6: 10회 Review-Evaluate-Fix 반복 완료)  
+**Review Cycles:** 80회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 + v1.5: 10회 + v1.6: 10회 + v1.7: 10회 Review-Evaluate-Fix 반복 완료)  
 **Approval:** __________________ Date: __________  
 
 ---
@@ -88,6 +88,16 @@
 | GAP-BJ | GPU CUDA 파이프라인 가속 아키텍처 미명세 | §10.9 | v1.6 |
 | GAP-BK | 자동 QA 팬텀 인식 알고리즘 (Leeds/CDRAD/CIRS) 미명세 | §12.11 | v1.6 |
 | GAP-BL | 교정 전달 함수 (Cross-FPD 패널 정규화) 미명세 | §9.13 | v1.6 |
+| GAP-BM | DICOM 그레이스케일 표준 디스플레이 함수 (GSDF, PS 3.14) 미명세 | §6.5 | v1.7 |
+| GAP-BN | 로컬 톤 매핑 (Multi-Scale Retinex 기반 지역 대비 향상) 미명세 | §6.6 | v1.7 |
+| GAP-BO | 폐 영역 자동 분할 (U-Net Lung Field Segmentation) 미명세 | §8.5 | v1.7 |
+| GAP-BP | 딥러닝 기반 저선량 화질 복원 (DLIR, CNN Denoising) 미명세 | §8.6 | v1.7 |
+| GAP-BQ | 흉부 늑골 억제 알고리즘 (Rib Suppression, Hessian) 미명세 | §8.7 | v1.7 |
+| GAP-BR | 자동 해부학적 부위 인식 CNN (Body Part Recognition) 미명세 | §8.8 | v1.7 |
+| GAP-BS | 형광투시 피라미달 Lucas-Kanade 광학 흐름 추정 미명세 | §14.3 | v1.7 |
+| GAP-BT | 통합 시간 선형성 보정 (Integration Nonlinearity Correction) 미명세 | §3.16 | v1.7 |
+| GAP-BU | 전체 변분 반복적 영상 복원 (TV-Minimization ADMM) 미명세 | §20 | v1.7 |
+| GAP-BV | 골밀도 정량화 알고리즘 (Bone Mineral Density DXA-proxy) 미명세 | §20.1 | v1.7 |
 
 ---
 
@@ -166,6 +176,16 @@
     - [§10.9 GPU CUDA 가속 ★GAP-BJ](#109-swu-109-gpu-cuda-파이프라인-가속-아키텍처-gap-bj-해소)
     - [§12.11 자동 팬텀 인식 ★GAP-BK](#1211-swu-1211-자동-qa-팬텀-인식-알고리즘-gap-bk-해소)
     - [§9.13 Cross-FPD 정규화 ★GAP-BL](#913-swu-913-교정-전달-함수-cross-fpd-패널-정규화-gap-bl-해소)
+    - [§3.16 통합 시간 선형성 보정 ★GAP-BT](#316-swu-116-통합-시간-선형성-보정-integration-nonlinearity-correction-gap-bt-해소)
+    - [§6.5 DICOM GSDF 표준 디스플레이 ★GAP-BM](#65-swu-65-dicom-gsdf-그레이스케일-표준-디스플레이-함수-gap-bm-해소)
+    - [§6.6 로컬 톤 매핑 (Retinex) ★GAP-BN](#66-swu-66-로컬-톤-매핑-multi-scale-retinex-gap-bn-해소)
+    - [§8.5 U-Net 폐 분할 ★GAP-BO](#85-swu-85-폐-영역-자동-분할-u-net-lung-field-segmentation-gap-bo-해소)
+    - [§8.6 DLIR CNN 저선량 복원 ★GAP-BP](#86-swu-86-딥러닝-기반-저선량-화질-복원-dlir-gap-bp-해소)
+    - [§8.7 늑골 억제 (Hessian) ★GAP-BQ](#87-swu-87-흉부-늑골-억제-알고리즘-rib-suppression-gap-bq-해소)
+    - [§8.8 신체 부위 인식 CNN ★GAP-BR](#88-swu-88-자동-해부학적-부위-인식-cnn-body-part-recognition-gap-br-해소)
+    - [§14.3 Lucas-Kanade 광학 흐름 ★GAP-BS](#143-swu-143-형광투시-lucas-kanade-광학-흐름-추정-gap-bs-해소)
+20. [전체 변분 반복적 영상 복원 (TV-Minimization ADMM) ★GAP-BU](#20-전체-변분-반복적-영상-복원-tv-minimization-admm-gap-bu-해소)
+    - [§20.1 골밀도 정량화 (BMD DXA-proxy) ★GAP-BV](#201-swu-201-골밀도-정량화-알고리즘-bmd-dxa-proxy-gap-bv-해소)
 - [부록 A: 수학 공식 일람](#부록-a-수학-공식-일람)
 - [부록 B: 표준 참조 테이블](#부록-b-표준-참조-테이블)
 - [부록 C: 알고리즘-요구사항 추적성](#부록-c-알고리즘-요구사항-추적성)
@@ -218,6 +238,16 @@
 | `N_proj` | 토모합성 투영 수 | dimensionless |
 | `G_l` | 가우시안 피라미드 l번째 레벨 | ADU |
 | `L_l` | 라플라시안 피라미드 l번째 레벨 | ADU |
+| `J` | GSDF JND-index (Just-Noticeable Difference) | dimensionless |
+| `L` | Display luminance | cd/m² |
+| `R(x,y)` | Multi-Scale Retinex log reflectance | dimensionless |
+| `λ_1, λ_2` | Hessian matrix eigenvalues | ADU/pixel² |
+| `B(x,y)` | Bone probability map (rib suppression) | dimensionless |
+| `v_x, v_y` | Optical flow displacement field | pixels/frame |
+| `TV(u)` | Total variation of image u | ADU |
+| `ρ_BMD` | BMD proxy density | g/cm² |
+| `T_score` | T-score (bone density z-score) | dimensionless |
+| `t_int` | Detector integration time | ms |
 
 ### 1.2 좌표 규약
 
@@ -3961,6 +3991,293 @@ private:
 
 ---
 
+### 8.5 SWU-8.5 폐 영역 자동 분할 (U-Net Lung Field Segmentation) ★GAP-BO 해소
+
+**참고**: Ronneberger et al., "U-Net: Convolutional Networks for Biomedical Image Segmentation," MICCAI 2015.  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-SEG-001 | SWU-8.5 | xpe_ai_worker.dll | Class B |
+
+#### 아키텍처 개요
+
+```
+입력: 512×512 float32 (uint16 → float, normalize /65535)
+인코더: 5 레벨 × [64, 128, 256, 512, 512] 채널
+         각 레벨: 3×3 Conv → BN → ReLU → 3×3 Conv → BN → ReLU → 2×2 MaxPool
+보틀넥: 1024 채널, 3×3 Conv × 2
+디코더: 5 레벨 바이리니어 업샘플 + 스킵 concat + Conv×2
+출력: 1채널 sigmoid → 이진 마스크 (폐=1, 배경=0)
+모델: models/xpe_lung_seg_unet_v1.onnx  (≤ 25 MB int8 양자화)
+```
+
+#### 후처리
+
+```
+1. sigmoid > 0.5 → binary mask
+2. 형태학적 fill: 반경 15px flood-fill (폐 내부 기관지 holes 제거)
+3. 연결 영역 분석: 상위 2개 영역만 보존 (좌폐/우폐)
+4. 신뢰도: iou_confidence = predicted_area / expected_area_range
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeLungMask {
+    uint8_t* mask;            // W×H binary mask (1=lung)
+    uint32_t W, H;
+    float    iou_confidence;  // [0,1] 예측 신뢰도
+};
+
+XpeStatus xpe_seg_lung_field(
+    const uint16_t* I_in,
+    uint32_t        W,
+    uint32_t        H,
+    XpeLungMask*    out,
+    OrtSession*     session   // ONNX Runtime session (may be null → skip)
+);
+```
+
+#### 안전 고려사항
+
+- `iou_confidence < 0.70` → 마스크 결과 무효화, 폴백: 전체 이미지 마스크
+- `clinical_decision_blocked = true`: AI 분할 결과는 보조적 정보만 제공
+- Non-SaMD 분류 (XPE-AI-REG-001 §4 참조)
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| CPU 추론 | < 200 ms |
+| GPU 추론 | < 50 ms |
+| 모델 로딩 | 1회 초기화 후 세션 재사용 |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| IoU | ≥ 0.92 (Montgomery 데이터셋 50장 서브셋) |
+| Dice 계수 | ≥ 0.95 |
+| 미탐지 (iou_confidence < 0.5 비율) | < 5% |
+
+---
+
+### 8.6 SWU-8.6 딥러닝 기반 저선량 화질 복원 (DLIR — CNN Denoising) ★GAP-BP 해소
+
+**참고**: Zhang et al., "Residual Dense Network for Image Super-Resolution," CVPR 2018 (adapted for denoising).  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-DLIR-001 | SWU-8.6 | xpe_ai_worker.dll | Class B |
+
+#### 아키텍처 개요
+
+Residual Dense Network (RDN) — 잔류 학습으로 노이즈 성분만 예측:
+
+```
+입력: 256×256 패치 (stride 128, cosine-window 블렌딩으로 경계 제거)
+정규화: (I − I_mean) / I_std  per patch (float32)
+RDB × 16: 각 블록 내 6 Dense Conv(3×3, 64ch) + Local Feature Fusion
+글로벌 잔류: I_out = I_in + F(I_in)  ← 노이즈 잔류 학습
+출력: float32 → uint16 역정규화 → saturate_cast
+모델: models/xpe_dlir_rdn_v1.onnx  (≤ 50 MB int8 양자화)
+```
+
+패치 블렌딩:
+
+```
+w(x) = sin²(πx / patch_size)  (cosine window)
+I_out_assembled = Σ_patch (w_patch × I_out_patch) / Σ_patch w_patch
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeDlirParams {
+    int   patch_size;    // default 256
+    int   stride;        // default 128
+    float blend_sigma;   // cosine window (0 = use default)
+    bool  use_gpu;       // use CUDA EP if available
+};
+
+XpeStatus xpe_dlir_denoise(
+    const uint16_t*   I_in,
+    uint16_t*         I_out,
+    uint32_t          W,
+    uint32_t          H,
+    const XpeDlirParams* params,
+    OrtSession*       session
+);
+```
+
+#### 안전 고려사항
+
+- 처리 전/후 이미지 비교 QA: PSNR(I_in, I_out) 범위 확인 (< 50 dB → 경고)
+- 구조 환각 검사: FSIM(I_in, I_out) ≥ 0.97 강제 (미충족 시 I_in 원본 반환)
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| CPU 처리 | < 500 ms / 3K×3K |
+| GPU 처리 | < 150 ms / 3K×3K |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| PSNR (50% 선량 대비 전선량) | ≥ 38 dB |
+| SSIM | ≥ 0.96 |
+| FSIM (구조 보존) | ≥ 0.97 |
+| 선량 의존 잡음 감소 | σ_out / σ_in ≤ 0.35 (50% 선량 기준) |
+
+---
+
+### 8.7 SWU-8.7 흉부 늑골 억제 알고리즘 (Rib Suppression — Hessian) ★GAP-BQ 해소
+
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-RIB-001 | SWU-8.7 | xpe_ai_worker.dll | Class B |
+
+#### 수학적 정의
+
+Hessian 행렬 (σ = 3 px Gaussian 스케일):
+
+```
+H(x,y) = [ Hxx  Hxy ]   where Hxx = d²I/dx², Hxy = d²I/dxdy, Hyy = d²I/dy²
+          [ Hxy  Hyy ]
+
+고유값 분해: λ₁ ≥ λ₂  (λ₁ = major, λ₂ = minor curvature)
+
+능선 척도 (Frangi 1998):
+  R_s(x,y) = exp(−λ₂² / (2β²))  where β = 0.5·max|λ₂|
+
+골 확률 맵:
+  B(x,y) = R_s · (1 − exp(−|λ₂|² / 2c²)) · lung_mask(x,y)
+  c = 0.05 × max|λ₂| (vessel suppression threshold)
+
+연조직 영상:
+  I_soft(x,y) = I_log(x,y) − w_b · B(x,y) · (I_log(x,y) − μ_bg)
+  w_b ∈ [0, 1], default = 0.85
+  μ_bg = 폐 마스크 외부 배경 평균
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeRibParams {
+    float hessian_sigma;    // Gaussian scale for Hessian (default 3.0 px)
+    float beta_ridgeness;   // Frangi β (default 0.5)
+    float bone_weight;      // w_b (default 0.85, range [0,1])
+};
+
+XpeStatus xpe_rib_suppress(
+    const uint16_t*   I_in,
+    const XpeLungMask* mask,
+    uint16_t*         I_soft,
+    uint32_t          W,
+    uint32_t          H,
+    const XpeRibParams* params
+);
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 50 ms / 3K×3K (SIMD Hessian 미분) |
+| 의존성 | §8.5 XpeLungMask 사전 계산 필요 |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 늑골 억제 지수 | ≥ 80% (늑골 신호 대비 처리 전/후 비율) |
+| 폐 결절 CNR 보존 | ≥ 95% (합성 10 mm 결절 기준) |
+| 폐 마스크 외 변화 | < 0.1 ADU RMS (마스크 바깥 영역) |
+
+---
+
+### 8.8 SWU-8.8 자동 해부학적 부위 인식 CNN (Body Part Recognition) ★GAP-BR 해소
+
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-ANAT-001 | SWU-8.8 | xpe_ai_worker.dll | Class B |
+
+#### 분류 클래스 (10종)
+
+```cpp
+enum XpeBodyPart {
+    XPE_CHEST_PA        = 0,
+    XPE_CHEST_LAT       = 1,
+    XPE_ABDOMEN         = 2,
+    XPE_PELVIS          = 3,
+    XPE_SPINE_AP        = 4,
+    XPE_SPINE_LAT       = 5,
+    XPE_EXTREMITY_UPPER = 6,
+    XPE_EXTREMITY_LOWER = 7,
+    XPE_SKULL           = 8,
+    XPE_UNKNOWN         = 9
+};
+```
+
+#### 아키텍처 개요
+
+```
+모델: MobileNetV3-Small (3.4M 파라미터)
+입력: 224×224 float32  (바이큐빅 리사이즈, μ=0.5, σ=0.25 정규화)
+출력: softmax 10-class 확률 벡터
+수락 임계값: p_max ≥ 0.85 → 해당 클래스; else → XPE_UNKNOWN
+모델 파일: models/xpe_bodypart_mobilenetv3_v1.onnx  (≤ 8 MB int8)
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeBodyPartResult {
+    XpeBodyPart part;         // predicted class
+    float       confidence;   // max probability
+    float       probs[10];    // full softmax distribution
+};
+
+XpeStatus xpe_classify_body_part(
+    const uint16_t*     I_in,
+    uint32_t            W,
+    uint32_t            H,
+    XpeBodyPartResult*  result,
+    OrtSession*         session
+);
+```
+
+#### 통합
+
+- §6.4 Anatomy-Adaptive W/L: `result.part`를 해부 부위 인덱스로 사용
+- §5.3 Virtual Grid 프리셋: `CHEST_PA/LAT, SPINE_AP/LAT` 자동 선택
+- §20.1 BMD 추정: `SPINE_AP` 클래스 확인 후 ROI 활성화
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| CPU 추론 | < 50 ms |
+| GPU 추론 | < 15 ms |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 10-class 정확도 | ≥ 95% (100 × 10클래스 합성 데이터셋) |
+| UNKNOWN 오분류 | < 3% (알려진 클래스를 UNKNOWN으로 분류) |
+| 신뢰도 보정 | Expected Calibration Error (ECE) < 0.05 |
+
+---
+
 ## 9. 교정 데이터 파이프라인
 
 ### 9.1 오프라인 교정 순서 (GAP-10 해소)
@@ -6541,6 +6858,160 @@ private:
 | **SWU** | SWU-3.4b |
 | **IEC 62304 §** | 5.4.2 |
 | **검증 방법** | 각 해부 부위별 팬텀 이미지로 W/L 범위 임상 검증; 콜리메이터 제외 단위 테스트 |
+
+---
+
+### 6.5 SWU-6.5 DICOM GSDF 그레이스케일 표준 디스플레이 함수 ★GAP-BM 해소
+
+**표준**: DICOM PS 3.14 (NEMA GSDF — Grayscale Standard Display Function)  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-DISP-005 | SWU-6.5 | xpe_display.dll | Class B |
+
+#### 배경
+
+DICOM PS 3.14는 **인간 시각 시스템의 JND(Just-Noticeable Difference) 특성**에 따라 디스플레이 구동 레벨 p를 휘도 L로 매핑하는 표준 함수를 정의한다. XPE는 소프트카피 뷰어에서 진단 일관성을 보장하기 위해 GSDF 보정을 구현해야 한다.
+
+#### 수학적 정의
+
+GSDF JND-index j → 휘도 L(j) (cd/m²):
+
+```
+log₁₀[L(j)] = −2.525 + 0.2021·j − 0.04054·j²/J_max + ...
+(PS 3.14 §B.2 다항식 근사, j ∈ [1, 1023])
+```
+
+모니터 특성화 (N=18 구동 레벨 측정):
+
+```
+p_k ∈ {0, 17, 34, ..., 255} → L_k 측정 (cd/m²)
+최소 제곱 피팅: minimize Σ (J_fit(L_k) - J_target(p_k))²
+보정 LUT: p_cal[j] (j = 0..1023) precomputed
+```
+
+런타임 변환:
+
+```
+j_target = J_min + (J_max - J_min) × I_disp / 65535
+p_out    = p_cal[ round(j_target) ]
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeGsdfCalib {
+    float    a, b, c;           // GSDF polynomial coefficients
+    uint16_t lut[1024];         // driving level LUT: p_cal[j]
+    float    L_min, L_max;      // monitor luminance range (cd/m²)
+    float    J_min, J_max;      // JND-index range
+    bool     calibrated;        // false = use default GSDF
+};
+
+// Characterize display from luminance measurements
+XpeStatus xpe_display_gsdf_calibrate(
+    XpeGsdfCalib* cal,
+    const float*  L_measured,   // 18 luminance values
+    int           n_levels      // = 18
+);
+
+// Apply GSDF LUT to display image
+XpeStatus xpe_display_gsdf_apply(
+    const uint16_t* I_in,
+    uint16_t*       I_out,
+    uint32_t        W,
+    uint32_t        H,
+    const XpeGsdfCalib* cal
+);
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 1 ms / 3K×3K (SSE2 LUT gather) |
+| 교정 주기 | 매월 1회 휘도계 측정 권고 |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 휘도 오차 | `|L_output − L_target| < 1%` of L_range at 18 test points |
+| JND 균일성 | `ΔJ_max < 0.5` (인접 구동 레벨 간 최대 JND 편차) |
+| LUT 단조성 | `p_cal[j]` 엄격 단조 증가 |
+| 미교정 폴백 | `calibrated=false` 시 선형 패스스루 |
+
+---
+
+### 6.6 SWU-6.6 로컬 톤 매핑 (Multi-Scale Retinex) ★GAP-BN 해소
+
+**참고**: Jobson et al., "A Multiscale Retinex for Bridging the Gap Between Color Images and the Human Observation of Scenes," IEEE TIP 1997.  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-DISP-004 | SWU-6.6 | xpe_display.dll | Class B |
+
+#### 수학적 정의
+
+Multi-Scale Retinex (MSR) — 로그 반사율 추정:
+
+```
+R(x,y) = Σ_{k=1}^{3} w_k · { log[I(x,y) + ε] − log[F_k * I(x,y) + ε] }
+
+F_k(x,y) = (1/2πσ_k²) · exp(−(x²+y²)/2σ_k²)
+σ_k ∈ {15, 80, 250} pixels,  w_k = 1/3
+
+출력: I_ltm = clamp( α · R(x,y) + β, 0, 65535 )
+       α = 128,  β = 32768 (기본값)
+```
+
+FFT 기반 Gaussian 컨볼루션 (MKL DFT):
+
+```
+F̂_k(u,v) = exp(−2π²σ_k²(u² + v²) / N²)
+F_k * I  = IFFT( FFT(I) · F̂_k )
+```
+
+CLAHE 후처리 (`clip_limit=2.0`, `tile=64×64`): 국소 히스토그램 평활화로 잔류 불균일 제거.
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeRetinexParams {
+    float sigma[3];       // {15.0f, 80.0f, 250.0f}
+    float weights[3];     // {1/3, 1/3, 1/3}
+    float alpha;          // contrast gain (default 128)
+    float beta;           // brightness offset (default 32768)
+    int   clahe_clip;     // CLAHE clip limit (default 2)
+    int   tile_size;      // CLAHE tile size (default 64)
+};
+
+XpeStatus xpe_display_retinex(
+    const uint16_t*        I_in,
+    uint16_t*              I_out,
+    uint32_t               W,
+    uint32_t               H,
+    const XpeRetinexParams* params
+);
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 30 ms / 3K×3K (3× MKL FFT + CLAHE) |
+| 메모리 | 3× float32 임시 버퍼 (3K×3K × 12 byte = 108 MB) |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 국소 대비 향상 | 저대비 영역 대비비 ≥ 1.5× (히스토그램 분산 기준) |
+| 헤일로 아티팩트 | 기울기 반전 픽셀 비율 < 5% |
+| 밝기 보존 | 전체 평균 밝기 편차 < 5% |
+| 파라미터 범위 | `sigma[k] ∈ [5, 500]`, `alpha ∈ [50, 500]` 클램핑 |
 
 ---
 
@@ -9724,6 +10195,82 @@ void xpe_warp_apply(
 
 ---
 
+### 14.3 SWU-14.3 형광투시 Lucas-Kanade 광학 흐름 추정 ★GAP-BS 해소
+
+**참고**: Bouguet J.Y., "Pyramidal Implementation of the Lucas-Kanade Feature Tracker," Intel Technical Report, 2000.  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-FLUORO-003 | SWU-14.3 | xpe_fluoroscopy.dll | Class B |
+
+#### 수학적 정의
+
+피라미달 Lucas-Kanade (L=3 레벨, σ_pyr=1.0 Gaussian):
+
+각 레벨 l에서 5×5 통합 윈도우 `Ω`:
+
+```
+A = Σ_{Ω} [ Ix²   IxIy ]    b = −Σ_{Ω} [ Ix·It ]
+           [ IxIy  Iy²  ]               [ Iy·It ]
+
+[vx; vy] = A⁻¹ · b   (10회 Newton-Raphson 반복)
+```
+
+여기서 `Ix, Iy` = 공간 기울기 (Scharr 필터), `It` = 시간 차분.
+
+업샘플링: 각 레벨 흐름 × 2 + 미세 조정 (coarse-to-fine).
+
+호흡 운동 ROI: 이미지 높이 50%~80% 밴드 (횡격막 영역).
+
+심장 게이팅:
+
+```
+motion_mag(t) = mean|v(t)|²  (전체 이미지)
+주파수 추정: FFT(motion_mag), 0.8~2.5 Hz 대역 피크 검출
+심박 위상: 피크 감지 → R-wave 게이팅
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeOptFlowResult {
+    float*  vx;                  // W×H float displacement x (pixels/frame)
+    float*  vy;                  // W×H float displacement y (pixels/frame)
+    uint32_t W, H;
+    float   mean_motion_px;      // mean motion magnitude
+    float   dominant_freq_hz;    // estimated cardiac/respiratory frequency
+};
+
+XpeStatus xpe_fluoro_optical_flow(
+    const uint16_t*  I_prev,
+    const uint16_t*  I_curr,
+    uint32_t         W,
+    uint32_t         H,
+    XpeOptFlowResult* result
+);
+
+// Release allocated vx/vy buffers
+void xpe_fluoro_optical_flow_free(XpeOptFlowResult* result);
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 5 ms / 3K×3K / 프레임 (AVX2 + 3레벨 피라미드) |
+| 실시간 형광투시 | 30 fps 지원 (33 ms 프레임 버짓) |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 흐름 RMS 오차 | < 0.5 px (10 px 진폭 1 Hz 정현파 변위 합성 테스트) |
+| 주파수 추정 오차 | < 0.05 Hz (1 Hz 기준 심장 운동 신호) |
+| 제로 모션 누출 | vx, vy RMS < 0.1 px (정지 이미지 쌍) |
+
+---
+
 ### 17.2 SWU-17.2 DICOM 구조화 보고서 (SR) — CAD 소견 출력 ★GAP-BA 해소
 
 **SRS ID**: SRS-DICOM-002 | **SWU**: SWU-17.2 | **IEC 62304 §**: 5.4.2
@@ -10143,6 +10690,92 @@ XpeMetalArtifactMap xpe_generate_metal_artifact_map(
 | **SWU** | SWU-1.15 |
 | **검증 방법** | 합성 고밀도 객체 10개 케이스; 마스크 커버리지 ≥ 95%; 오탐 < 2%; clinical_use_blocked 플래그 상태 단위 테스트 |
 | **안전 분류** | Class B |
+
+---
+
+### 3.16 SWU-1.16 통합 시간 선형성 보정 (Integration Nonlinearity Correction) ★GAP-BT 해소
+
+**표준**: 내부 교정 프로토콜 (a-Si:H TFT 게이트-소스 결합 비선형성)  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-FUNC-001f | SWU-1.16 | xpe_preprocess.dll | Class B |
+
+#### 물리적 원인
+
+a-Si:H 박막 트랜지스터(TFT) 기반 검출기는 짧은 통합 시간(< 10 ms)에서 게이트-소스 기생 커패시턴스에 의한 전하 결합 효과로 **비선형 응답**이 발생한다. 이상 응답 대비 실측 편차 `ε_k`는 최대 ±2%에 달한다.
+
+#### 수학적 정의
+
+N = 16 통합 시간 노드 `t_k ∈ {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000 ms, ...}`:
+
+```
+이상 응답:  S_ideal(t) = S_0 × (t / t_ref),   t_ref = 100 ms
+비선형 오차: ε_k = (S_k − S_ideal(t_k)) / S_ideal(t_k) × 100 %
+보정 계수:  C_nl[k] = S_ideal(t_k) / S_k  (측정값의 역수)
+런타임:     I_corr = I_raw × C_nl_interp(t_current)
+```
+
+`C_nl_interp`는 인접 노드 간 선형 보간.
+
+#### C++ 구조체 및 API
+
+```cpp
+// Integration linearity calibration data
+struct XpeIntegLin {
+    float  t_nodes_ms[16];   // integration time nodes
+    float  c_nodes[16];      // correction multipliers C_nl[k]
+    int    n;                // number of nodes (≤ 16)
+    float  t_ref_ms;         // reference time (default 100ms)
+};
+
+// Apply integration nonlinearity correction in-place
+// t_ms: actual integration time used for this acquisition
+XpeStatus xpe_integ_linearity_correct(
+    uint16_t*         I_inout,
+    uint32_t          W,
+    uint32_t          H,
+    float             t_ms,
+    const XpeIntegLin* cal
+);
+```
+
+#### 알고리즘 의사코드
+
+```cpp
+// Find adjacent nodes by binary search
+int idx = upper_bound(cal->t_nodes_ms, cal->t_nodes_ms + cal->n, t_ms) - 1;
+idx = clamp(idx, 0, cal->n - 2);
+float t0 = cal->t_nodes_ms[idx], t1 = cal->t_nodes_ms[idx+1];
+float alpha = (t_ms - t0) / (t1 - t0);
+float c = lerp(cal->c_nodes[idx], cal->c_nodes[idx+1], alpha);
+
+// Apply correction (AVX2 broadcast multiply)
+for (uint32_t i = 0; i < W * H; i += 16) {
+    __m256i v = _mm256_loadu_si256((__m256i*)(I_inout + i));
+    // 16-bit saturated multiply by c (Q15 fixed-point)
+    __m256i result = xpe_avx2_u16_scale(v, c);
+    _mm256_storeu_si256((__m256i*)(I_inout + i), result);
+}
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 0.5 ms / 3K×3K |
+| SIMD 가속 | AVX2 16-bit multiply |
+| 메모리 | In-place, 추가 버퍼 없음 |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 보정 후 비선형성 잔류 `ε_k` | < 0.1% for all `t_k` |
+| 회귀 계수 R² | > 0.9999 (16-point linearity curve) |
+| 단조성 | `C_nl[k]` 단조 감소 (짧은 t에서 보정 강함) |
+| 엣지 케이스 | `t_ms < t_nodes[0]` → extrapolate; clip to [0.5, 2.0] |
 
 ---
 
@@ -10658,6 +11291,166 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 ---
 
+## 20. 전체 변분 반복적 영상 복원 (TV-Minimization ADMM) ★GAP-BU 해소
+
+**참고**: Boyd et al., "Distributed Optimization and Statistical Learning via the Alternating Direction Method of Multipliers," Foundations & Trends in ML, 2011.  
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-ITER-001 | SWU-20.0 | xpe_enhance_advanced.dll | Class B |
+
+### 배경
+
+X-선 저선량 획득 시 양자 잡음이 증가하여 영상 품질이 저하된다. **전체 변분(Total Variation) 최소화**는 에지를 보존하면서 잡음을 제거하는 볼록 최적화 기법으로, ADMM(Alternating Direction Method of Multipliers)로 효율적으로 풀 수 있다.
+
+### 최적화 문제
+
+```
+최소화: ½||u − I||²₂ + λ·TV(u)
+
+TV(u) = Σ_{x,y} √((∂u/∂x)² + (∂u/∂y)² + ε²)   (등방성 TV, ε=1e-6)
+
+λ = λ₀ · σ̂_noise,   λ₀ = 0.1 (기본값)
+σ̂_noise = MAD(HighPassFilter(I)) / 0.6745  (Robust 잡음 추정)
+```
+
+### ADMM 반복 알고리즘
+
+ADMM splitting: `z = ∇u` (기울기 벡터), `ν` = dual variable
+
+```
+u-update (FFT 가속):
+  û = (Î + ρ·D̂ᵀ·(ẑ − ν̂)) / (1 + ρ·|D̂|²)
+  여기서 D̂(u,v) = 기울기 연산자 FFT (수평/수직 차분)
+
+z-update (요소별 proximal 연산):
+  z = prox_{λ/ρ·||·||₁,₂}(∇u + ν)
+  proximal: z_i = max(0, 1 − λ/(ρ·||∇u_i + ν_i||₂)) · (∇u_i + ν_i)
+
+ν-update:
+  ν = ν + ∇u − z
+
+수렴 판정: ||u_{k+1} − u_k||₂ / ||u_k||₂ < tol (= 1e-4)
+최대 반복: max_iter = 50
+```
+
+### C++ 구조체 및 API
+
+```cpp
+struct XpeTvAdmmParams {
+    float lambda_0;       // regularization base (default 0.1)
+    int   max_iter;       // maximum ADMM iterations (default 50)
+    float rho;            // ADMM penalty parameter (default 1.0)
+    float tol;            // convergence tolerance (default 1e-4)
+    bool  use_fft_accel;  // FFT-based u-update (default true)
+};
+
+XpeStatus xpe_tv_admm_denoise(
+    const uint16_t*       I_in,
+    uint16_t*             I_out,
+    uint32_t              W,
+    uint32_t              H,
+    const XpeTvAdmmParams* params
+);
+```
+
+### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 200 ms / 3K×3K (FFT 가속, 50회 반복) |
+| 메모리 | 5× float32 버퍼 (u, z, ν, D̂, 임시) |
+| 실시간 전처리 | 선택적 (진단 워크플로우 후처리로 사용) |
+
+### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| PSNR 향상 | ≥ 3 dB vs 입력 (σ=20 ADU 합성 잡음) |
+| SSIM | ≥ 0.95 (전처리 후) |
+| 엣지 보존 MTF f₅₀ 손실 | < 10% (슬랜트 에지 측정) |
+| 수렴 반복 수 | 평균 < 30회 (3K×3K 단일 채널) |
+| 과잉 평활화 지표 | TV(I_out) / TV(I_in) ≥ 0.60 (엣지 보존 확인) |
+
+---
+
+### 20.1 SWU-20.1 골밀도 정량화 알고리즘 (BMD DXA-proxy) ★GAP-BV 해소
+
+**IEC 62304 추적성**
+
+| SRS ID | SWU | DLL | 안전 등급 |
+|--------|-----|-----|---------|
+| SRS-BMD-001 | SWU-20.1 | xpe_enhance_advanced.dll | Class B |
+
+#### 중요 안전 고지
+
+> **[SAFETY] Non-SaMD 보조 알고리즘**: 본 알고리즘은 DXA 기기의 대체가 아니며, 임상 진단 결정에 직접 사용할 수 없다. 출력은 추세 모니터링 목적의 참고 정보이다. `clinical_decision_blocked = true` 강제 적용.
+
+#### 수학적 정의
+
+이중 에너지 차감(§16) 출력 `I_bone(x,y)` 활용:
+
+```
+단계 1: ROI — §8.8에서 SPINE_AP 확인 후 L2~L4 추정 경계 박스
+         y_L2 = 0.30 × H, y_L4 = 0.55 × H (정규화 좌표 기준 근사)
+
+단계 2: 평균 뼈 신호
+         B_mean = mean(I_bone(x,y) within ROI)
+
+단계 3: 피질골 참조
+         R_cortex = 95-퍼센타일(I_bone within ROI)  (고밀도 뼈 기준점)
+
+단계 4: BMD proxy
+         ρ_BMD = k_bmd × (B_mean / R_cortex) × (kVp_high / kVp_low)^n_bmd
+         k_bmd : 알루미늄 스텝 웨지 팬텀 교정 계수
+         n_bmd : 경험적 지수 ≈ 0.3 (Al 계단 기울기 피팅)
+
+단계 5: T-score proxy
+         T = (ρ_BMD − ρ_ref) / σ_ref
+         ρ_ref, σ_ref : 연령/성별 정규 분포 파라미터 (내장 룩업 테이블)
+```
+
+#### C++ 구조체 및 API
+
+```cpp
+struct XpeBmdResult {
+    float bmd_proxy_g_cm2;  // estimated BMD proxy value
+    float t_score;          // T-score proxy (informational only)
+    float roi_mean;         // B_mean from ROI
+    float cortex_ref;       // R_cortex (95th percentile)
+    bool  valid;            // false if anatomy != SPINE_AP or SPINE_LAT
+    bool  clinical_decision_blocked;  // always true
+};
+
+XpeStatus xpe_bmd_estimate(
+    const uint16_t*          I_bone,
+    const uint16_t*          I_soft,
+    uint32_t                 W,
+    uint32_t                 H,
+    const XpeBodyPartResult* anatomy,
+    XpeBmdResult*            result
+);
+```
+
+#### 성능 목표
+
+| 항목 | 목표 |
+|------|------|
+| 처리 시간 | < 10 ms / 이미지 (CPU, ROI 통계 연산) |
+| 의존성 | §16 DES, §8.8 Body Part Recognition 필요 |
+
+#### 검증 기준
+
+| 검증 항목 | 기준 |
+|----------|------|
+| 알루미늄 단계 상관 | `ρ_proxy vs 중량 밀도 r² > 0.85` (5단계 스텝 웨지) |
+| T-score 방향 정확도 | ≥ 90% (낮은/보통/높은 밀도 3범주 분류) |
+| Non-SPINE 이미지 | `valid = false`, BMD 계산 건너뜀 |
+| 안전 플래그 | `clinical_decision_blocked` 항상 `true` 검증 |
+
+---
+
 ## 부록 C: 알고리즘-요구사항 추적성
 
 | 알고리즘 | SRS Req ID | SDD SWU | 검증 방법 |
@@ -10735,6 +11528,16 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 | GPU CUDA Pipeline Acceleration (GAP-BJ) | SRS-PERF-003 | SWU-10.9 | CPU vs. GPU output ±0.01 ADU; total pipeline < 10ms; fallback 100% CPU confirmed |
 | Auto QA Phantom Recognition (GAP-BK) | SRS-QA-002 | SWU-12.11 | Leeds/CDRAD/CIRS 5 samples each; recognition accuracy ≥ 90%; UNKNOWN misclassification < 5% |
 | Cross-FPD Calibration Transfer (GAP-BL) | SRS-CAL-002 | SWU-9.13 | 5 panel models; post-normalization CV ≤ 0.5%; R² > 0.9999 |
+| DICOM GSDF Display Calibration (GAP-BM) | SRS-DISP-005 | SWU-6.5 | 18-level luminance measurement; JND uniformity ΔJ < 0.5; p_cal LUT monotonicity |
+| Multi-Scale Retinex Local Tone Mapping (GAP-BN) | SRS-DISP-004 | SWU-6.6 | 3-scale MSR; local contrast ≥1.5×; halo gradient reversal < 5% |
+| U-Net Lung Field Segmentation (GAP-BO) | SRS-SEG-001 | SWU-8.5 | Montgomery 50-image subset; IoU ≥ 0.92; Dice ≥ 0.95 |
+| DLIR CNN Low-Dose Denoising (GAP-BP) | SRS-DLIR-001 | SWU-8.6 | PSNR ≥ 38dB, SSIM ≥ 0.96 at 50% dose; FSIM ≥ 0.97 structural integrity |
+| Rib Suppression Hessian (GAP-BQ) | SRS-RIB-001 | SWU-8.7 | 10 rib phantoms; suppression index ≥ 80%; nodule CNR preservation ≥ 95% |
+| Body Part Recognition CNN (GAP-BR) | SRS-ANAT-001 | SWU-8.8 | 100×10-class accuracy ≥ 95%; UNKNOWN false-negative < 3%; ECE < 0.05 |
+| Lucas-Kanade Optical Flow (GAP-BS) | SRS-FLUORO-003 | SWU-14.3 | 10px/1Hz synthetic; RMS < 0.5px; frequency estimate < 0.05Hz |
+| Integration Nonlinearity Correction (GAP-BT) | SRS-FUNC-001f | SWU-1.16 | 16-node linearity curve; residual ε < 0.1%; R² > 0.9999 |
+| TV-ADMM Iterative Denoising (GAP-BU) | SRS-ITER-001 | SWU-20.0 | PSNR ≥ +3dB; SSIM ≥ 0.95; MTF f50 loss < 10%; convergence < 30 iter |
+| BMD DXA-proxy Estimation (GAP-BV) | SRS-BMD-001 | SWU-20.1 | Al step-wedge r² > 0.85; T-score direction accuracy ≥ 90%; clinical_decision_blocked=true |
 
 ---
 
@@ -10742,6 +11545,7 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 | 개정 | 날짜 | 저자 | 내용 |
 |------|------|------|------|
+| 1.7 | 2026-04-15 | XPE Team | **Round 8 GAP 해소 10건 (GAP-BM~BV)**: GAP-BM (DICOM GSDF §6.5 — NEMA PS 3.14 JND 보정, LUT 1024엔트리, ΔJ<0.5), GAP-BN (Multi-Scale Retinex §6.6 — σ={15,80,250}px, MKL FFT 가속, 국소 대비 1.5× 향상), GAP-BO (U-Net 폐 분할 §8.5 — 25MB int8 ONNX, IoU≥0.92/Dice≥0.95, Non-SaMD), GAP-BP (DLIR CNN §8.6 — RDN 16블록 패치 블렌딩, PSNR≥38dB, FSIM≥0.97), GAP-BQ (늑골 억제 §8.7 — Hessian Frangi 능선 척도, 억제 지수≥80%), GAP-BR (Body Part CNN §8.8 — MobileNetV3 10클래스, 정확도≥95%, §6.4/§5.3 통합), GAP-BS (Lucas-Kanade 광학 흐름 §14.3 — 3레벨 피라미드, AVX2, <5ms/프레임, 심박 주파수 추정), GAP-BT (통합 비선형성 §3.16 — 16-노드 PWL 교정, 잔류 ε<0.1%, a-Si:H TFT), GAP-BU (TV-ADMM §20 신설 — FFT 가속 50회 반복, PSNR+3dB, MTF 손실<10%), GAP-BV (BMD proxy §20.1 — DES 기반, r²>0.85 vs Al 스텝 웨지, Non-SaMD). §20 신설. 부록 C 10건 추가. |
 | 1.6 | 2026-04-15 | XPE Team | **Round 7 GAP 해소 10건 (GAP-BC~BL)**: GAP-BC (DAP/KERMA 누적 추적 §9.12 — IEC 60601-2-54, k_fact 교정, 세션 누적, 임계 알림), GAP-BD (JPEG2000 압축 §17.3 — OpenJPEG 2.5, 무손실/1.5:1 근손실, PSNR ≥ 50dB), GAP-BE (모션 블러 위너 역필터 §3.14 — Radon PSF 추정, K_WF=0.01, PSNR ≥ 30dB 복원), GAP-BF (금속 아티팩트 마스크 §3.15 — 임계값+형태 연산, 스트리크 방사형 감지, clinical_use_blocked), GAP-BG (선형 토모합성 §19 — FBP 램프 필터/SAA 시프트합산, ±15°/N=11, 슬라이스 FWHM ≤ 1.5mm), GAP-BH (RANSAC ORB 스티칭 §8.3.2 — ORB 500특징, RANSAC H행렬, Cobb 오차 ≤ 1.5°, 폴백 전략), GAP-BI (라플라시안 피라미드 §4.9 — Burt-Adelson 5-탭, 5레벨, 재구성 오류 < 0.001 ADU), GAP-BJ (GPU CUDA 가속 §10.9 — Pinned Memory, 2스트림, CPU 대비 ≥ 3×, 폴백 자동 전환), GAP-BK (자동 팬텀 인식 §12.11 — Hough원, Leeds/CDRAD/CIRS 분류, ≥ 90% 정확도), GAP-BL (Cross-FPD 전달 함수 §9.13 — LM 피팅 a·I^γ+b, R²>0.9999, CV ≤ 0.5%). §19 신설. 부록 C 10건 추가. |
 | 1.5 | 2026-04-15 | XPE Team | **Round 6 GAP 해소 10건 (GAP-AS~BB)**: GAP-AS (지각적 화질 지표 §18 — PSNR/SSIM/MS-SSIM/FSIM 통합, 임계값 체계화), GAP-AT (온도 보상 이득 보정 §3.12 — α_T=0.0015/°C, ΔT≥5°C 트리거, 교정 매니페스트 연동), GAP-AU (2D FFT 노치 필터 §3.13 — MKL FFT, Gaussian 노치 D=3px, <2ms/3Kx3K), GAP-AV (AEC 피드백 루프 §9.10 — DI→mAs 10^(-DI/10), ±10kVp 조정, 안전 클램프), GAP-AW (SPC 교정 관리 §9.11 — Shewhart UCL/LCL, CUSUM k=0.5σ h=4σ/5σ), GAP-AX (서브픽셀 ECC 정합 §14.2 — Evangelidis-Psarakis 2008, <0.5pixel RMS, <5ms/프레임), GAP-AY (양자 잡음 모델 §11.5 — Poisson+Gaussian σ²=αI+β, Anscombe 변환, Makitalo-Foi 역변환), GAP-AZ (무아레 검출 §5.5 — 행 방향 PSD 피크, Gaussian 대역 제거, >95% 검출률), GAP-BA (DICOM SR §17.2 — TID 1500/4100, XpeSRReport API, xpe_dicom.dll 통합), GAP-BB (IEC 61223 인수 시험 §12.10 — T1~T6 자동화, 일일/주간/월간 일정, XpeAcceptanceResult). §18 신설, §12.10 신설, §17.2 신설. 부록 C 10건 추가. |
 | 1.4 | 2026-04-15 | XPE Team | **Round 5 GAP 해소 10건 (GAP-AI~AR)**: GAP-AI (Real-Time GCR Estimator §3.4.6, 슬라이딩 윈도우 EMA, 0.2% 임계값 조건부 Lag 활성화, <0.1ms/프레임), GAP-AJ (NLCSC State Machine §3.4.7, 비선형 전하 누적 4차 다항식 보정, kVp 에너지 의존 계수, 유휴 상태 리셋), GAP-AK (Row/Column FPN Correction §3.11, 3패스 반복 분해, AVX2 행 중앙값, <0.5ms/3Kx3K), GAP-AL (Allan Variance 장기 안정성 §12.9, 잡음 유형 3분류, σ_A(τ=300s)>2 ADU 재교정 트리거), GAP-AM (선량 의존 동적 결함 검출 §3.3.5, 4선량 z-score, R²<0.95 비선형 플래그, 정적 결함 맵 union), GAP-AN (다중 지수 Lag 피팅 §9.9, LM 최소제곱, 이중 노출 프로토콜, scipy.optimize, R²>0.999 검증), GAP-AO (Scatter SPR Boone-Seibert §5.4, Beer-Lambert 두께 역산, 픽셀별 산란 보정 1/(1+SPR)), GAP-AP (Wavelet BayesShrink §4.8, db4 3레벨, MAD σ_n 추정, AVX2 소프트 임계값, 해부 부위별 λ 블렌딩), GAP-AQ (Dual-Energy Subtraction §16, 로그 차감, 위상 상관 모션 보정, xpe_enhance_advanced.dll 익스포트), GAP-AR (DICOM IOD 적합성 검증 §17, Type 1/2/3 속성 검사, 픽셀 수치 일관성, xpe_dicom.dll 쓰기 경로 통합). §16/§17 신설. 부록 C 10건 추가. |
@@ -10752,6 +11556,6 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 ---
 
-*Document End — XPE-ALG-001 v1.6*
+*Document End — XPE-ALG-001 v1.7*
 
 *Cross-references: XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, xpe-algorithm-spec-deepsync.md, SPEC-XPE-MASTER.md, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research*

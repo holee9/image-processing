@@ -1,6 +1,6 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.3.0  
+**Version**: 3.4.0  
 **Last Updated**: 2026-04-15  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
@@ -114,7 +114,7 @@
 | 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
 | 5.4 | Unified Algorithm Spec | [XPE-ALG-001](post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | ALG-001 |
 
-> **XPE-ALG-001 v1.6** (IEC 62304 §5.4 Detailed Design): 7 라운드 70회 Review-Evaluate-Fix를 통해 70개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X, GAP-Y~AH, GAP-AI~AR, GAP-AS~BB, GAP-BC~BL) 전부 해소. v1.6 신규: DAP/KERMA 추적(§9.12), JPEG2000 압축(§17.3), 모션 블러 위너(§3.14), 금속 마스크(§3.15), 선형 토모합성 §19 신설, RANSAC 스티칭(§8.3.2), 라플라시안 피라미드(§4.9), GPU CUDA 가속(§10.9), 팬텀 인식(§12.11), Cross-FPD 정규화(§9.13). 총 10,757줄.
+> **XPE-ALG-001 v1.7** (IEC 62304 §5.4 Detailed Design): 8 라운드 80회 Review-Evaluate-Fix를 통해 80개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X, GAP-Y~AH, GAP-AI~AR, GAP-AS~BB, GAP-BC~BL, GAP-BM~BV) 전부 해소. v1.7 신규: DICOM GSDF(§6.5), Multi-Scale Retinex(§6.6), U-Net 폐 분할(§8.5), DLIR CNN(§8.6), 늑골 억제(§8.7), Body Part CNN(§8.8), Lucas-Kanade 광학 흐름(§14.3), 통합 비선형성(§3.16), TV-ADMM §20 신설, BMD proxy(§20.1). 총 11,561줄.
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 13개 문서
 
@@ -420,6 +420,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 3.4.0 | XPE-ALG-001 v1.7 반영 (80건 GAP 해소). GAP-BM~BV: DICOM GSDF, Multi-Scale Retinex, U-Net 폐 분할, DLIR CNN, 늑골 억제, Body Part CNN, Lucas-Kanade 광학 흐름, 통합 비선형성, TV-ADMM §20 신설, BMD proxy. |
 | 2026-04-15 | 3.3.0 | XPE-ALG-001 v1.6 반영 (70건 GAP 해소). GAP-BC~BL: DAP/KERMA, JPEG2000, 모션블러 위너, 금속 마스크, 토모합성 FBP/SAA, RANSAC 스티칭, 라플라시안 피라미드, GPU CUDA, 팬텀 인식, Cross-FPD 정규화 신설. |
 | 2026-04-15 | 3.2.0 | XPE-ALG-001 v1.5 반영 (60건 GAP 해소). GAP-AS~BB: 지각적 IQM, 온도 보상, FFT 노치, AEC 피드백, SPC, ECC 정합, 양자 잡음 모델, 무아레 제거, DICOM SR, IEC61223 인수 시험 신설. |
 | 2026-04-15 | v3.2.0 (old) | **XPE-ALG-001 v1.2 Round 3 완료** (GAP-O~X 해소 10건): Heel Effect, Multi-SID Gain, Session Lock, Quality State Sidecar(§13 신설), Parity Harness, MTF ESF 완전 구현, Lag Tiering, VG Anatomy Presets(15개 부위), AI Worker Isolation(ONNX), Drift Monitor. `post-processing/xpe/README.md` v1.1.0 반영. |
