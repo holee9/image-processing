@@ -1,8 +1,8 @@
 # XPE Brainstorming DeepSync Execution Plan
 
 **Document ID**: XPE-BRAINSTORM-001  
-**Version**: 1.0.0  
-**Date**: 2026-04-14  
+**Version**: 1.1.0  
+**Date**: 2026-04-15  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -66,23 +66,66 @@ External anchors remain the same as the canonical set:
 
 ---
 
-## 4. Highest-Value No-Regret Moves
+## 4. Score-Lift Brainstorming: 66 to 85
+
+The current planning assumption is:
+
+- **66 / 100** for first implementation complete at `Phase 1b deterministic baseline`,
+- **85 / 100** as the next meaningful target where the product becomes both strong and defensible.
+
+The relevant question is therefore not ?�what sounds most advanced???but ?�what raises score, quality, and release credibility together???
+### 4.1 Candidate uplift moves
+
+| Move | Expected uplift | Why it is efficient | Decision |
+|---|---:|---|---|
+| scalar-reference plus SIMD parity for preprocess | +5 | improves correctness and keeps optimization safe | adopt now |
+| benchmark manifest freeze plus automated result replay | +3 | turns quality into reproducible evidence | adopt now |
+| complete deterministic Phase 1b delivery path | +4 | unlocks actual baseline product value | adopt now |
+| baseline collimation plus ROI-aware EI refinement | +3 | adds premium value without AI boundary expansion | adopt now |
+| regulated IEC package sync for baseline scope | +3 | closes major release-readiness debt | adopt now |
+| reject-analysis and DI drift telemetry end-to-end | +2 | improves field readiness and operational score | adopt now |
+| GSVG full inclusion before baseline is stable | +1 at best | upside exists, but timing risk is high too early | delay until Phase 1 stable |
+| assistive AI before benchmark freeze | 0 or negative | increases novelty, but not reliable completion score | do not do first |
+| pathology-aware enhancement early | negative | boundary risk too high | reject for current target |
+
+### 4.2 Fastest credible 85-point bundle
+
+The most credible bundle to move from **66** to **85** is:
+
+1. finish `xpe_preprocess` with reference kernels and parity harness,
+2. finish `xpe_enhance_basic`, `xpe_display`, and `xpe_dicom`,
+3. freeze `BP-01` through `BP-10` manifests and automate replay,
+4. synchronize baseline IEC package documents,
+5. add baseline collimation and ROI-aware EI refinement as the first premium increment,
+6. wire reject-analysis and DI drift telemetry through the host and evidence bundle.
+
+This bundle is preferred over early AI because it raises:
+
+- correctness,
+- measured performance,
+- release readiness,
+- auditability,
+- customer-visible premium value.
+
+---
+
+## 5. Highest-Value No-Regret Moves
 
 These moves improve both quality and implementation feasibility.
 
-### 4.1 Calibration integrity as first-class infrastructure
+### 5.1 Calibration integrity as first-class infrastructure
 
 - Every offset, gain, BPM, nonlinearity, and lag coefficient pack shall carry a session identity and hash chain.
 - Runtime shall reject mixed-session packs unless explicitly overridden for service diagnostics.
 - Drift monitoring shall feed recalibration decisions rather than silently allowing quality erosion.
 
-### 4.2 Detector-domain correctness before visual enhancement
+### 5.2 Detector-domain correctness before visual enhancement
 
 - EI, DI, linearity, residual nonuniformity, lag residual, and defect burden are detector-domain quantities.
 - Presentation tuning must never be allowed to hide detector-domain regression.
 - Phase promotion must require detector-domain stability before display-side improvement claims.
 
-### 4.3 Quality state vector instead of silent heuristics
+### 5.3 Quality state vector instead of silent heuristics
 
 For every processed frame, the runtime should produce a sidecar quality state with at least:
 
@@ -96,7 +139,7 @@ For every processed frame, the runtime should produce a sidecar quality state wi
 
 This should be a sidecar object or structured diagnostic log, not a set of overloaded image flags.
 
-### 4.4 Deterministic router before premium logic
+### 5.4 Deterministic router before premium logic
 
 The strongest practical architecture is:
 
@@ -109,9 +152,9 @@ This architecture is stronger than chasing the strongest-looking output on a sin
 
 ---
 
-## 5. Implementability-Maximizing Architecture Rules
+## 6. Implementability-Maximizing Architecture Rules
 
-### 5.1 Reference-first implementation
+### 6.1 Reference-first implementation
 
 Every major stage shall have:
 
@@ -122,7 +165,7 @@ Every major stage shall have:
 
 No AVX2, multithreaded, or AI path may become the only implementation.
 
-### 5.2 Sidecar contracts over metadata mutation
+### 6.2 Sidecar contracts over metadata mutation
 
 The following outputs should travel as sidecars, not through `XpeImageMetadata` mutation:
 
@@ -134,7 +177,7 @@ The following outputs should travel as sidecars, not through `XpeImageMetadata` 
 
 This keeps ABI stable and reduces cross-module ambiguity.
 
-### 5.3 Small-model policy for premium assistive logic
+### 6.3 Small-model policy for premium assistive logic
 
 Where learned logic is allowed:
 
@@ -144,9 +187,9 @@ Where learned logic is allowed:
 - require versioned model manifests,
 - require per-task disable controls.
 
-### 5.4 Benchmark-first promotion
+### 6.4 Benchmark-first promotion
 
-A feature is not “implemented” for planning purposes until:
+A feature is not treated as implemented for planning purposes until:
 
 1. the code path exists,
 2. the benchmark pack exists,
@@ -154,7 +197,7 @@ A feature is not “implemented” for planning purposes until:
 4. the degraded mode exists,
 5. the release boundary is explicitly assigned.
 
-### 5.5 Memory and compute discipline
+### 6.5 Memory and compute discipline
 
 - Keep detector-domain stages tile-friendly and cache-aware.
 - Reuse buffers across adjacent deterministic stages.
@@ -163,19 +206,19 @@ A feature is not “implemented” for planning purposes until:
 
 ---
 
-## 6. Brainstormed Upgrades Worth Synchronizing Immediately
+## 7. Brainstormed Upgrades Worth Synchronizing Immediately
 
 | Area | Immediate deep-sync action |
 |---|---|
 | algorithm spec | add implementation-feasibility rules and quality-state sidecar rules |
-| reinforcement plan | promote “no-regret” priorities and explicit anti-patterns |
+| reinforcement plan | promote no-regret priorities and explicit anti-patterns |
 | implementation analysis | identify scaffolding that unlocks the most downstream work |
 | sprint plan | insert non-negotiable scaffolding before Phase 1 feature expansion |
 | master spec | reference this synthesis as planning input |
 
 ---
 
-## 7. Anti-Patterns to Avoid
+## 8. Anti-Patterns to Avoid
 
 - Do not let display-side improvement hide detector-side regression.
 - Do not introduce premium AI before scalar-reference and SIMD parity harnesses exist.
@@ -185,9 +228,9 @@ A feature is not “implemented” for planning purposes until:
 
 ---
 
-## 8. Definition of “Earth-Class” for This Program
+## 9. Definition of Earth-Class for This Program
 
-For this repository, “earth-class” does not mean the most exotic algorithm list.
+For this repository, earth-class does not mean the most exotic algorithm list.
 
 It means the product can prove:
 

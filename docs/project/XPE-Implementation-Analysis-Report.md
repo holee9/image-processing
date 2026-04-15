@@ -1,10 +1,10 @@
 # XPE Implementation Analysis Report
 
 **Document ID**: XPE-IMPL-ANALYSIS-001  
-**Version**: 1.2.1  
-**Date**: 2026-04-14  
+**Version**: 1.3.0  
+**Date**: 2026-04-15  
 **Status**: Controlled Draft  
-**Source**: `SPEC-XPE-MASTER v2.1.0`, `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-Brainstorming-DeepSync-Execution.md v1.0.0`
+**Source**: `SPEC-XPE-MASTER v2.2.0`, `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-Brainstorming-DeepSync-Execution.md v1.1.0`
 
 ---
 
@@ -39,6 +39,38 @@ The repository is in an early implementation state.
 | Executable units | 42 |
 | Native exported APIs | 82 |
 | Delivery binaries | 10 |
+
+---
+
+### 1.4 Expected first-implementation score
+
+For this document, **first implementation complete** means:
+
+- `Phase 0`, `Phase 1a`, and `Phase 1b` are implemented,
+- deterministic baseline image delivery works end-to-end,
+- `Phase 2` and `Phase 3` remain unfinished or optional.
+
+Under that assumption, the expected completion score is:
+
+- **overall program score**: **66 / 100**
+- **baseline product score**: **87 / 100**
+
+#### 1.4.1 Score breakdown
+
+| Category | Weight | Expected score | Rationale |
+|---|---:|---:|---|
+| functional scope | 35 | 26 | baseline modules implemented, but premium and AI still open |
+| performance and memory | 15 | 12 | Phase 1 budgets are reachable, but not yet proven on full premium paths |
+| algorithm quality and evidence | 20 | 11 | detector baseline can be strong, but benchmark freeze and task-based evidence remain incomplete |
+| regulatory and document readiness | 15 | 9 | `docs/project` is strong, but regulated IEC package sync is still open |
+| operational readiness | 15 | 8 | reject-analysis, DI drift, and field telemetry structures exist, but field evidence does not |
+| **Total** | **100** | **66** | **expected first-implementation overall score** |
+
+#### 1.4.2 What the 66 means
+
+- It is a strong deterministic baseline, not a finished premium product.
+- It implies good first-release feasibility for a controlled baseline deployment.
+- It does not imply readiness for earth-class premium differentiation yet.
 
 ---
 
@@ -94,6 +126,45 @@ This remains an open compliance task, not a code task.
 | 4 | add benchmark pack manifests and automated evaluation harness | prevents unprovable quality claims |
 | 5 | add Phase 2 deterministic premium features | only after Phase 1 metrics stabilize |
 | 6 | add AI worker and assistive models | only after deterministic path is production-grade |
+
+---
+
+### 4.1 Score-lift path from 66 to 85
+
+The most efficient path to **85 / 100** is not to start with AI. It is to close proof, determinism, and premium deterministic value first.
+
+| Workstream | Expected point gain | Why it moves the score |
+|---|---:|---|
+| complete `xpe_common` ABI, alert, sidecar, and ownership rules | +2 | reduces integration and diagnostic debt |
+| implement `xpe_preprocess` with scalar reference plus parity harness | +5 | closes the detector-domain core where most quality risk lives |
+| implement `xpe_enhance_basic`, `xpe_display`, and `xpe_dicom` with end-to-end tests | +4 | turns architecture into a usable deterministic product |
+| freeze benchmark manifests, dataset hashes, and evaluation automation | +3 | converts quality claims into reproducible evidence |
+| synchronize `docs/post-processing/xpe/` SRS, SDD, RTM, and VVP | +3 | removes the biggest remaining compliance debt |
+| implement selected Phase 2 deterministic premium features with graceful fallback | +4 | raises quality ceiling without breaking claim boundary |
+| implement reject-analysis and DI drift telemetry schema end-to-end | +2 | improves operational readiness and field-quality score |
+| extend CI to parity, performance-budget, and release-bundle evidence checks | +2 | turns one-time quality into enforced quality |
+| **Total uplift** | **+25** | **66 -> 91 possible if fully executed** |
+
+To reach **85**, the minimum practical subset is:
+
+1. `xpe_preprocess` plus parity harness,
+2. `xpe_enhance_basic` plus display and DICOM,
+3. benchmark freeze and evaluation automation,
+4. IEC package synchronization,
+5. one bounded deterministic premium increment such as baseline collimation plus ROI EI refinement.
+
+That subset is estimated to contribute **+19 points**, yielding **85 / 100**.
+
+### 4.2 85-point milestone definition
+
+The project may be treated as having reached **85 / 100** when all of the following are true:
+
+- deterministic Phase 1 path is implemented and measured against its budgets,
+- benchmark packs `BP-01` through `BP-10` are frozen at manifest level,
+- scalar reference and parity harness exist for major detector stages,
+- DICOM and GSDF conformance evidence exists,
+- regulated package synchronization debt is closed for baseline scope,
+- at least one Phase 2 deterministic premium path is implemented with verified degrade-open behavior.
 
 ---
 

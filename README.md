@@ -4,6 +4,28 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
+## 프로젝트 완성도 현황 (2026-04-15)
+
+두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
+
+| 프레임워크 | 기준 | 현재 | Phase 1b 완료 시 | 목표 |
+|-----------|------|:----:|:---------------:|:----:|
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **61 / 100** | ~76 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~50 | **66 / 100** | **85** |
+
+### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
+
+| 단계 | 행동 | 예상 기여 |
+|:----:|------|:---------:|
+| 1 | `xpe_preprocess` scalar 레퍼런스 + SIMD parity harness | +5 |
+| 2 | benchmark pack BP-01~10 동결 + 자동 재현 | +3 |
+| 3 | deterministic Phase 1b 완전 납품 (측정값 포함) | +4 |
+| 4 | IEC 패키지 sync (SRS, SDD, RTM, VVP) | +3 |
+| 5 | baseline collimation + ROI-aware EI 재호출 | +3 |
+| 6 | reject-analysis + DI drift telemetry end-to-end | +2 |
+
+> **핵심 원칙**: AI 조기 투입보다 deterministic baseline 완성 → benchmark freeze → IEC sync → premium 순서가 가장 빠른 경로. 상세 계획: [`.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md`](.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md)
+
 ## 범위 (Scope)
 
 - 원본 감지기 도메인 입력부터 DICOM 배포까지 `XPE`의 실행 기준을 정의합니다.
@@ -76,9 +98,9 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | 문서 | 설명 |
 |------|------|
 | [cross-verification-consolidated](docs/project/cross-verification-consolidated.md) | 교차검증 통합 등록부 v2.0 — 8개 항목 완료, Open 4개 잔존 이슈 추적 |
-| [XPE-Module-Reinforcement-Plan](docs/project/XPE-Module-Reinforcement-Plan.md) | Pre/Post 모듈 정밀 보강 계획, No-regret 가속자 및 Fast-track 실행 spine (v1.1.0) |
-| [XPE-Implementation-Analysis-Report](docs/project/XPE-Implementation-Analysis-Report.md) | 구현 현황 분석 — 모듈 갭, 스캐폴딩 우선순위, 실현 가능성 기술 선택 (v1.2.0) |
-| [XPE-Brainstorming-DeepSync-Execution](docs/project/XPE-Brainstorming-DeepSync-Execution.md) | 브레인스토밍 결정 매트릭스 — 14개 아이디어 채택/보류/거부 분류, 구현 불변 규칙 (v1.0.0) |
+| [XPE-Module-Reinforcement-Plan](docs/project/XPE-Module-Reinforcement-Plan.md) | Pre/Post 모듈 정밀 보강 계획, Score-lift roadmap to 85 (§6.2), No-regret 가속자 (v1.3.0) |
+| [XPE-Implementation-Analysis-Report](docs/project/XPE-Implementation-Analysis-Report.md) | 구현 현황 분석 — 66/100 배점 분해, 85점 달성 조건, 스캐폴딩 우선순위 (v1.3.0) |
+| [XPE-Brainstorming-DeepSync-Execution](docs/project/XPE-Brainstorming-DeepSync-Execution.md) | 브레인스토밍 결정 매트릭스 — 14개 아이디어 채택/보류/거부, 66→85 uplift 번들 (v1.1.0) |
 | [XPE-CI-CD_LocalBuild_Runbook](docs/development/XPE-CI-CD_LocalBuild_Runbook.md) | CI/CD 파이프라인 및 로컬 빌드 실행 안내 |
 
 ### IEC 62304 규제 패키지

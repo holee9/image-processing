@@ -311,12 +311,64 @@ Phase 1b, 2, 3의 상세 스프린트 내용은 Sprint Roadmap v1.0.0과 동일�
 
 ---
 
+## 11. Completion Score Tracking (SCORE-PLAN-001 v2.0)
+
+**Reference**: `.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md`
+**Cross-reference**: `docs/project/XPE-Implementation-Analysis-Report.md` (Framework B)
+
+### 11.1 Dual-Framework Baseline (2026-04-15)
+
+| Framework | Basis | Current | At Phase 1b | Target |
+|-----------|-------|:-------:|:-----------:|:------:|
+| **A** (Process/Compliance) | EARS, IEC 62304, Cross-Validation | **61** | ~76 | **85** |
+| **B** (Product/Delivery) | Functional scope, benchmark evidence | ~50 | **66** | **85** |
+
+Framework A 영역별 현황:
+
+| Area | Score | Max |
+|------|:-----:|:---:|
+| Requirements Completeness | 13 | 25 |
+| Documentation Quality | 17 | 20 |
+| Architecture Design | 17 | 20 |
+| Implementation Progress | 6 | 20 |
+| Quality Assurance | 8 | 15 |
+| **TOTAL** | **61** | **100** |
+
+### 11.2 Sprint-to-Score Mapping (Codex + Cross-Validation 통합)
+
+| Sprint / Action | Framework A | Framework B | Cumulative (A) |
+|----------------|:-----------:|:-----------:|:--------------:|
+| 블로커 해소 (api-spec v1.2, AED fix, error code) | +2 | +0 | 63 |
+| S0-A 완료 (GTest + 스캐폴딩 + CI + Coverage) | +5 | +1 | 68 |
+| S0-B 완료 (xpe_common 18/18 + 45 tests) | +5 | +1 | 73 |
+| S0-C 완료 (WPF skeleton + P/Invoke) | +2 | +0.5 | 75 |
+| SPEC-P1A + S1-A 구현 (xpe_preprocess 9 SWU) | +4 | +5 | 79 |
+| S1-B 완료 (enhance_basic + display + dicom) | +3 | +8 | 82 → **66 (Fw B)** |
+| Benchmark freeze BP-01~10 + SIMD parity | +2 | +5 | 84 → 71 (Fw B) |
+| IEC sync (SRS/SDD/RTM/VVP) | +2 | +3 | 86 → 74 (Fw B) |
+| Baseline collimation + ROI-aware EI | +1 | +3 | 87 → 77 (Fw B) |
+| Reject-analysis + DI drift telemetry | +1 | +2 | **88 → 79** |
+| **(Fw B 85 도달: collimation+EI+reject 완료)** | | **+8** | | **85 (Fw B)** |
+
+### 11.3 85점 달성 핵심 원칙
+
+`docs/project/XPE-Module-Reinforcement-Plan.md §6.3` 발췌:
+
+- benchmark freeze 없는 AI 조기 투입 → 비효율 (0점 또는 음수)
+- parity harness 없는 optimized 커널 → 침묵 회귀 위험
+- reference 없는 premium path → correctness 증명 불가
+- display-side 개선으로 detector-side 회귀를 숨기는 것 → 점수 하락
+
+---
+
 ## Revision History
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-14 | MoAI | Initial sprint roadmap |
 | **2.0.0** | **2026-04-14** | **MoAI** | **8-round cross-validation integration. EARS gating. AED signature fix. Coverage harmonization. Pre-sprint checklists.** |
+| **2.1.0** | **2026-04-15** | **MoAI** | **Section 11 추가: 완성도 점수 추적 (61→85 개선 계획 연동). SCORE-PLAN-001 참조.** |
+| **2.2.0** | **2026-04-15** | **MoAI** | **Section 11 전면 갱신: Codex 분석 3문서(XPE-IMPL-ANALYSIS, BRAINSTORM, REINFORCE) 통합. 이중 프레임워크(A:61, B:66) + 85점 경로 정렬.** |
 
 ---
 

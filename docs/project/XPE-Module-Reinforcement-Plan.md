@@ -1,8 +1,8 @@
 # XPE Module Reinforcement Plan
 
 **Document ID**: XPE-REINFORCE-001  
-**Version**: 1.2.0  
-**Date**: 2026-04-14  
+**Version**: 1.3.0  
+**Date**: 2026-04-15  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -18,7 +18,7 @@ The roadmap is divided into:
 - **Research-gated**: promising, but not yet release claims
 - **Regulatory-hold**: do not fold into the product claim boundary in the current program
 
-This revision also absorbs the execution filter from `XPE-Brainstorming-DeepSync-Execution.md`.
+This revision also absorbs the score-lift path recorded in `XPE-Brainstorming-DeepSync-Execution.md`.
 
 ---
 
@@ -35,7 +35,7 @@ This revision also absorbs the execution filter from `XPE-Brainstorming-DeepSync
 
 ### 2.1 Research-backed design notes
 
-- Virtual-grid settings must be anatomy-aware and bounded. Published chest and pelvic studies show that overly aggressive software grid ratios can damage useful anatomy even when average image-quality scores improve.
+- Virtual-grid settings must be anatomy-aware and bounded.
 - EI and DI should be used as detector-exposure management signals, not as patient-dose proxies.
 - Ongoing QC is not a one-time acceptance event; artifact, reject, and exposure monitoring must remain in the operating loop.
 
@@ -107,7 +107,35 @@ The fastest route to a strong implementation is:
 5. deterministic premium stages,
 6. assistive AI worker architecture.
 
-This order is intentionally different from “feature excitement first”. It is chosen to maximize proof, reuse, and downstream velocity.
+This order is intentionally different from feature-excitement-first planning. It is chosen to maximize proof, reuse, and downstream velocity.
+
+### 6.2 Score-lift roadmap to 85 / 100
+
+Assuming the project sits at **66 / 100** when `Phase 1b deterministic baseline` is first implemented, the preferred route to **85 / 100** is:
+
+| Order | Reinforcement move | Expected uplift | Why it matters |
+|---:|---|---:|---|
+| 1 | preprocess reference kernels plus SIMD parity | +5 | closes the highest detector-quality risk safely |
+| 2 | benchmark freeze and automated replay | +3 | turns quality wins into repeatable evidence |
+| 3 | deterministic Phase 1b completion with measured budgets | +4 | converts architecture into a usable product |
+| 4 | IEC package sync for baseline scope | +3 | removes the largest release-readiness debt |
+| 5 | baseline collimation plus ROI-aware EI refinement | +3 | adds premium value without AI boundary expansion |
+| 6 | reject-analysis and DI drift telemetry | +2 | improves operational maturity and field-quality readiness |
+| 7 | selected deterministic premium refinement | +2 | raises image-quality ceiling without destabilizing the baseline |
+| **Total** |  | **+22** | **66 -> 88 possible** |
+
+The minimum practical subset to reach **85** is the first six items.
+
+### 6.3 What not to substitute for the 85-point path
+
+The following are not efficient substitutes for reaching 85:
+
+- early assistive AI implementation without benchmark freeze,
+- pathology-aware or dose-guidance features,
+- visually aggressive virtual-grid defaults without observer review,
+- optimized kernels without reference parity.
+
+These can increase apparent sophistication while lowering actual delivery confidence.
 
 ---
 
