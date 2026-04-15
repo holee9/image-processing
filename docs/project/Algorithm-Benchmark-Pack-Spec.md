@@ -1,8 +1,8 @@
 # Algorithm Benchmark Pack Specification
 
 **Document ID**: XPE-BENCHMARK-PACK-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-14  
+**Version**: 1.3.0  
+**Date**: 2026-04-15  
 **Status**: Controlled Draft
 
 ---
@@ -21,7 +21,9 @@ This benchmark structure is aligned to:
 - DICOM PS3.14 GSDF for presentation-path verification
 - AAPM TG-151 for ongoing artifact and QC workflows
 - AAPM TG-232 for site-specific EI/DI operational review
+- AAPM TG-305 for vendor-neutral reject-analysis workflows
 - published virtual-grid and detector-correction studies for anatomy-aware evaluation
+- task-based image-quality literature for nonlinear or suppressive processing
 
 ---
 
@@ -39,6 +41,9 @@ This benchmark structure is aligned to:
 | `BP-08` | single-irradiation EI reference | EI / DI validation |
 | `BP-09` | stitched and multi-irradiation exclusion | EI rejection logic |
 | `BP-10` | degraded-mode stress | missing optional binaries, worker failure, timeout recovery |
+| `BP-11` | task-based and observer-centered assessment | virtual grid, bone suppression, DL denoise, other nonlinear processing |
+| `BP-12` | operational QC and reject-analysis telemetry | DI drift review, repeat/reject schema, field-quality monitoring |
+| `BP-13` | new modality and compliance packs for Round 9 algorithms | PCD spectral binning, ring artifact correction, CS-Tomo sparse-view, RDSR compliance |
 
 ---
 
@@ -61,6 +66,8 @@ Each benchmark item shall include:
 - `grid_state`
 - `benchmark_owner`
 - `reference_measurement_available`
+- `reject_reason_schema_version`
+- `site_qc_applicable`
 
 ---
 
@@ -106,6 +113,9 @@ AI packs shall include:
 | `BP-08` | single-irradiation reference cases with approved EI target values |
 | `BP-09` | stitched and multi-irradiation cases that must be rejected or flagged |
 | `BP-10` | missing DLL, missing model, worker crash, timeout, corrupted config |
+| `BP-11` | anatomy-specific task sets, observer cohorts or expert review plans, suppressive-feature comparisons |
+| `BP-12` | reject, repeat, override, DI drift, and skip-reason telemetry examples |
+| `BP-13` | PCD energy-bin calibration targets (Cu-Ka, Mo-Ka fluorescence); ring artifact injection (3 radii × 3 amplitudes); CS-Tomo CIRS phantom sparse-view (N=5) vs standard (N=11); RDSR IHE REM conformance test sequences |
 
 ---
 

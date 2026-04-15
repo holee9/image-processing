@@ -1,135 +1,155 @@
-# 기술 스택
+# Technical Stack
 
-## 언어
+**Document ID**: XPE-TECH-001  
+**Version**: 1.1.0  
+**Date**: 2026-04-15  
+**Status**: Controlled Draft  
+**Canonical Scope**: `docs/project/`
 
-| 언어 | 용도 | 표준 |
-|----------|-------|----------|
-| C/C++ | Native DLL 모듈 (영상 처리 알고리즘) | C++17 |
-| C# | 통합 테스트 GUI (ImageProcTest) | .NET 8, WPF |
-| C | DLL ABI 경계 (P/Invoke 호환 export) | C11 |
+---
 
-## 빌드 시스템
+## 1. Purpose
 
-| 도구 | 버전 | 목적 |
-|------|---------|---------|
-| CMake | >= 3.25 | C/C++ 빌드 시스템 |
-| Ninja | latest | 빌드 생성기 (via CMakePresets) |
-| vcpkg | manifest mode | SOUP 의존성 관리 (고정 버전) |
-| MSBuild | VS 2022 | C# 프로젝트 빌드 |
+This document defines the implementation stack and engineering rules for XPE.
 
-## SOUP 의존성 (XPE)
+It answers:
 
-| 컴포넌트 | 버전 | 라이선스 | 사용처 | 목적 |
-|-----------|---------|---------|---------|---------|
-| OpenCV | 4.9.x | Apache 2.0 | preprocess, enhance_basic | Bilateral filter, CLAHE, image ops |
-| DCMTK | 3.6.8 | BSD-3 | dicom | DICOM file/network I/O |
-| Eigen | 3.4.x | MPL-2.0 | enhance_advanced | Matrix ops, FFT |
-| ONNX Runtime | 1.17.x | MIT | ai | DL 모델 추론 (U-Net, MobileNet-v3) |
-| spdlog | 1.13.x | MIT | common | 비동기 로깅 |
-| nlohmann/json | 3.11.x | MIT | common | JSON 구성 파싱 |
-| fmt | 10.x | MIT | common | 문자열 포맷팅 |
-| Google Test | 1.14.x | BSD-3 | tests | 단위 테스트 프레임워크 |
+- which languages and runtimes are used,
+- which third-party components are allowed,
+- which platform assumptions are fixed,
+- which engineering rules exist to keep image quality, determinism, and integration quality high.
 
-## SOUP 의존성 (GSVG, 독립)
+---
 
-| 컴포넌트 | 버전 | 라이선스 | 목적 |
-|-----------|---------|---------|---------|
-| FFTW3 | 3.3.10 | GPL v2+ | DWT 분해 (동적 링크 필요) |
-| OpenCV | 4.9.x | Apache 2.0 | 영상 처리 |
-| Eigen | 3.4.x | MPL-2.0 | 행렬 연산 |
-| DCMTK | 3.6.8 | BSD-3 | DICOM 메타데이터 읽기 |
-| nlohmann/json | 3.11.x | MIT | 구성 |
+## 2. Language and Runtime Split
 
-## 전이적 의존성
+| Technology | Role | Notes |
+|---|---|---|
+| C++17 | native algorithm implementation | primary language for detector correction, enhancement, display, DICOM, and AI proxy layers |
+| C11 ABI surface | exported DLL contract | stable boundary for host integration and P/Invoke |
+| C# / .NET 8 / WPF | orchestration and QA host | `ImageProcTest.exe`, integration harness, QA workflows |
 
-| 컴포넌트 | 경유 | 라이선스 | 참고 |
-|-----------|-----|---------|-------|
-| OpenSSL | DCMTK | Apache 2.0 | DICOM 네트워크 TLS (C-STORE/C-FIND) |
+The project rule remains:
 
-## 대상 플랫폼
+- compute-heavy and latency-sensitive logic in native code,
+- orchestration, tooling, and QA workflows in C#,
+- no algorithm contract that exists only in the host layer.
 
-| OS | 아키텍처 | SIMD |
-|----|-------------|------|
-| Windows 11 (주요) | x86-64 | AVX2 |
-| Ubuntu 24.04 (보류) | x86-64 | AVX2 |
-| ARM64 (보류) | aarch64 | NEON |
+---
 
-## HW/SW 개발 전략
+## 3. Build and Packaging Stack
 
-출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, Section 1.2)
+| Component | Role |
+|---|---|
+| CMake | native project generation |
+| Ninja | preferred native build generator |
+| vcpkg manifest mode | third-party dependency pinning |
+| Visual Studio 2022 toolchain | primary Windows native compiler environment |
+| MSBuild / dotnet | managed host build |
+| GitHub Actions | CI validation and delivery bundles |
 
-| 전략 | Research ID | 해당 SWU | 구현 방침 |
-|------|-------------|----------|-----------|
-| HW-only (FPGA) | PRE-01 | SWU-1.9 ReadoutArtifactValidator | FPGA 구현은 HW팀 담당. SW는 post-readout validation만 수행 |
-| SW-first → FPGA | PRE-02, PRE-03, PRE-06, PRE-08, PRE-09 | SWU-1.1, 1.2, 1.3, 1.7, 1.8 | Host PC 우선 개발. Fluoroscopy 고프레임 시 FPGA 이관 가능 구조 유지 |
-| SW-first → MCU | PRE-07 | SWU-1.6 TempCompensator | 온도 센서 LUT 보간. 임베디드 MCU 이관 가능 구조로 구현 |
-| SW-only | PRE-04, PRE-05 | SWU-1.4 GhostCorrector | 복잡한 NLCSC 비선형 모델. Host PC 전용 |
+---
 
-### FPGA 이관 설계 규칙 (SW-first → HW SWUs)
+## 4. Approved Third-Party Components
 
-- `xpe_preprocess_configure()` JSON 스키마에 `"hw_mode"` 필드 예비 (미래 FPGA bypass용)
-- 알고리즘 로직 순수 함수(stateless) 선호 → FPGA 포팅 용이
-- `#pragma pack(push, 8)` / Pack=8 레이아웃 유지 → FPGA DMA 호환
+### 4.1 XPE
 
-## 필수 기술 vs 차별화 기술
+| Component | Role |
+|---|---|
+| OpenCV | image operations, filters, utility transforms |
+| DCMTK | DICOM file and network handling |
+| Eigen | matrix and numeric support |
+| ONNX Runtime | assistive AI worker inference runtime |
+| spdlog | logging |
+| nlohmann/json | JSON configuration and diagnostics |
+| fmt | formatting support |
+| Google Test | native unit and smoke tests |
 
-출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, Section 2)
+### 4.2 GSVG
 
-Phase별 기술 우선순위:
+| Component | Role |
+|---|---|
+| FFTW3 | transform support where licensed and packaged appropriately |
+| OpenCV | image operations |
+| Eigen | matrix support |
+| DCMTK | DICOM metadata handling |
+| nlohmann/json | configuration |
 
-**Phase 1 — Foundation (필수 기술)**:
-- 전처리 전체(PRE-01~09), Display LUT(POST-12), 기본 후처리(POST-01~04), 기본 Collimation/ROI 기반 워크플로우(POST-07 기본 tier), DICOM(SUP-04), Support 전체(SUP-01~05)
+---
 
-**Phase 2 — Differentiator**:
-- PRE-04 NLCSC Lag Correction (14-50x 업계 우위), PRE-06 ML Defect (14.2x NMSE), POST-05 MFP/FMP (MUSICA-class), POST-07 AI Collimation, POST-11 Virtual Grid (CNR 2-3x)
+## 5. Platform Assumptions
 
-**Phase 3 — Intelligence**:
-- POST-09 DL Bone Suppression (폐결절 민감도 16.8% 향상), POST-02 DL Denoising
+| Platform | Status | Notes |
+|---|---|---|
+| Windows x86-64 | primary | AVX2-capable target assumed |
+| Linux x86-64 | secondary / optional | not the primary deployment assumption |
+| ARM64 | future / optional | requires explicit SIMD and packaging review |
 
-## C ABI 설계
+---
 
-- Struct packing: `#pragma pack(push, 8)` / `[StructLayout(Pack = 8)]`
-- 메모리 소유권: Caller가 xpe_common을 통해 할당, caller가 해제
-- Configuration: JSON 문자열 (`const char*`) at boundary
-- 오류 처리: `int32_t` 반환 코드 + `char*` 오류 버퍼
-- 스레드 안전성: 모든 export 함수는 독립 버퍼로 재진입 가능
+## 6. Engineering Rules
 
-### XpeImageMetadata Flags (확장)
+### 6.1 Determinism before optimization
 
-```c
-// XpeImageMetadata.flags 비트 정의
-#define XPE_FLAG_GHOST_CORRECTED         0x00000001u  // PRE-04/05 완료
-#define XPE_FLAG_AI_PROCESSED            0x00000002u  // AI 모듈 처리 완료
-#define XPE_FLAG_DEFECT_CORRECTED        0x00000004u  // PRE-06 defect correction 완료
-#define XPE_FLAG_GAIN_CORRECTED          0x00000008u  // PRE-03 gain correction 완료
-#define XPE_FLAG_READOUT_VALIDATED       0x00000010u  // PRE-01 readout artifact validation 완료
-#define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  // PRE-07 온도 보정 완료
-#define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  // PRE-08 비선형성 보정 완료
-#define XPE_FLAG_BINNING_CORRECTED       0x00000080u  // PRE-09 binning correction 완료
-#define XPE_FLAG_AED_TRIGGERED           0x00000100u  // SUP-02 AED 이벤트로 획득
-#define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  // POST-07 ROI 검출 완료
-#define XPE_FLAG_STITCHED                0x00000400u  // POST-08 stitching 완료
-#define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  // POST-09 bone suppression 완료
-#define XPE_FLAG_GSVG_SKIPPED            0x00001000u  // GSVG SAFE-003 fallback 발생
-```
+Every major detector or enhancement stage shall have:
 
-## 테스팅
+- a scalar or reference implementation,
+- a parity check against optimized implementations,
+- explicit numerical tolerances,
+- performance evidence tied to the reference behavior.
 
-| 프레임워크 | 언어 | 범위 |
-|-----------|---------|-------|
-| Google Test + CTest | C++ | 단위 테스트 (SWU 레벨), 통합 테스트 |
-| xUnit | C# | ImageProcTest GUI 테스트 |
+### 6.2 ABI stability
 
-## 품질 프레임워크
+The exported DLL boundary shall remain:
 
-- IEC 62304 Class B 규정 준수
-- TRUST 5: Tested (85%+), Readable, Unified, Secured, Trackable
-- TDD 방법론 (RED-GREEN-REFACTOR)
-- SWU-DLL-테스트 추적성 (IEC 62304 5.4.1)
+- C-compatible,
+- pack-stable,
+- explicit about ownership and lifetime,
+- independent of C++ exceptions or STL types.
 
-## 라이선스 위험
+### 6.3 Sidecar over metadata overloading
 
-| 위험 | 컴포넌트 | 완화 방법 |
-|------|-----------|------------|
-| GPL 오염 | FFTW3 (GSVG only) | 동적 링크만 사용, GSVG를 별도 DLL로 분리 |
-| OpenSSL 수출 제한 | DCMTK 전이적 | 관할권별 요구사항 검토 |
+ROI masks, AI confidence, reject-analysis records, and premium-stage diagnostics shall be carried in explicit sidecar or diagnostic structures, not squeezed into generic image metadata fields.
+
+### 6.4 Worker isolation for AI
+
+Inference shall not run as opaque logic inside the deterministic baseline DLL chain. The worker model remains:
+
+- `xpe_ai.dll` as proxy,
+- `xpe_ai_worker.exe` as isolated runtime,
+- explicit restart and timeout handling.
+
+### 6.5 Integrity and reproducibility
+
+Configuration, calibration manifests, benchmark manifests, and AI model artifacts shall be integrity-checked before use. Release evidence shall remain reproducible against frozen manifest versions and hashes.
+
+---
+
+## 7. Hardware and Software Partitioning
+
+The current implementation posture remains software-first:
+
+- detector correction and enhancement are implemented on the host,
+- future hardware offload may be added only if the software contract remains stable,
+- FPGA or MCU offload shall not change the normative pipeline order or quality gates.
+
+This means any future hardware acceleration must preserve:
+
+- canonical stage ordering,
+- benchmark comparability,
+- the same degraded-mode behavior,
+- the same exported ABI and diagnostics contract.
+
+---
+
+## 8. Quality-Driven Technical Priorities
+
+The current technical priorities are:
+
+1. detector-domain correctness,
+2. benchmark reproducibility,
+3. SIMD acceleration with parity proof,
+4. safe optional premium processing,
+5. transparent and degradable assistive AI.
+
+This order is intentional. It maximizes implementation feasibility while preserving the highest-value image-quality gains.

@@ -17,10 +17,10 @@ This matrix separates features that may ship inside the current product claim bo
 
 | Feature group | Classification | Claim style | Deployment rule |
 |---|---|---|---|
-| detector correction, EI baseline, display LUT, DICOM export | release-safe | deterministic image processing | part of deterministic baseline |
+| detector correction, EI baseline, display LUT, DICOM export, benchmark and QC telemetry export | release-safe | deterministic image processing and auditable telemetry | part of deterministic baseline |
 | baseline collimation, ROI EI refinement, GSVG, multiscale, fractional | release-safe if benchmarked | deterministic premium processing | optional deterministic premium |
 | body-part recognition, AI collimation refinement, bone suppression, DL denoise | research-gated assistive | assistive / advisory only | optional, clearly labelled, degradable |
-| pathology-aware enhancement, ALARA advisor, repeat/reject analytics, one-click automatic optimization, diagnosis-oriented outputs | regulatory-hold | diagnostic, dose-guidance, or workflow-optimization claim | do not claim or ship in current release boundary |
+| pathology-aware enhancement, ALARA advisor, repeat/reject optimization claims, one-click automatic optimization, diagnosis-oriented outputs | regulatory-hold | diagnostic, dose-guidance, or workflow-optimization claim | do not claim or ship in current release boundary |
 
 ---
 

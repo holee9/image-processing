@@ -1,12 +1,12 @@
 # SPEC-XPE-MASTER: X-ray Image Processing Engine Master Specification
 
 **Document ID**: SPEC-XPE-MASTER  
-**Version**: 2.1.0  
+**Version**: 2.3.0  
 **Date**: 2026-04-15  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
-**Source Set**: `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-ALG-001 v1.1`, `XPE-Module-Reinforcement-Plan.md`, `XPE-Brainstorming-DeepSync-Execution.md`, `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`
+**Source Set**: `product.md v1.2.0`, `structure.md v1.2.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-MRD-001 v1.1.0`, `XPE-PRD-SYSTEM-001 v1.1.0`, `XPE-SVVP-001 v1.1.0`, `XPE-AI-REG-001 v1.1.0`, `XPE-Module-Reinforcement-Plan.md`, `Algorithm-Benchmark-Pack-Spec.md v1.3.0`, `Algorithm-Evaluation-Protocol.md v1.3.0`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-ALG-001 v1.8`
 
 ---
 
@@ -14,17 +14,17 @@
 
 This document is the master tie-breaker for the XPE project document set.
 
-It does not replace the detailed specs. Instead, it fixes the canonical answers for:
+If two project documents disagree, this document wins until the lower-level documents are synchronized.
 
+It fixes the canonical answers for:
+
+- document authority,
 - product boundary,
-- executable-unit counts,
-- binary ownership,
-- pipeline order,
-- exported API totals,
+- executable-unit totals,
+- phase ownership,
+- pipeline invariants,
 - algorithm promotion rules,
 - remaining synchronization debt.
-
-If two project documents disagree, this document wins until both lower-level documents are updated.
 
 ---
 
@@ -62,16 +62,21 @@ Use the following order when reconciling project documents:
 3. `structure.md`
 4. `pipeline-spec.md`
 5. `api-spec.md`
-6. `xpe-algorithm-spec-deepsync.md` — algorithm contract (high-level, normative)
-7. `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md` — algorithm implementation detail (IEC 62304 §5.4, subordinate to item 6)
-8. `sprint-plan.md`
-9. analysis, reinforcement, benchmark, and review logs
+6. `xpe-algorithm-spec-deepsync.md`
+7. `XPE-MRD-001_Market_Requirements_Document.md`
+8. `XPE-PRD-SYSTEM-001_System_Product_Requirements.md`
+9. `XPE-SVVP-001_System_Verification_Validation_Plan.md`
+10. `XPE-AI-REG-001_AI_Regulatory_Strategy.md`
+11. `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md` as detailed design reference only
+12. `sprint-plan.md`
+13. analysis, reinforcement, benchmark, and review logs
 
 Notes on XPE-ALG-001 authority:
-- XPE-ALG-001 is the detailed design artifact for all XPE algorithms.
-- It is subordinate to `xpe-algorithm-spec-deepsync.md` for contractual decisions.
-- Where XPE-ALG-001 provides more specific implementation detail not contradicted by items 1–6, it governs the C++ and Python implementation.
-- XPE-ALG-001 does NOT override normative decisions in `SPEC-XPE-MASTER.md` or `product.md`.
+
+- XPE-ALG-001 is a detailed design reference for implementation work.
+- It is subordinate to the normative decisions in items 1 through 10 above.
+- It may guide implementation detail only when it does not contradict higher-priority canonical documents.
+- It does not override the master specification, product boundary, system PRD, or system V and V plan.
 
 Raw JSON research transcripts and `.moai/` working copies are not normative.
 
@@ -120,7 +125,7 @@ Phase 3 is assistive only:
 - `xpe_ai.dll`
 - `xpe_ai_worker.exe`
 
-Phase 3 adds:
+Phase 3 may add:
 
 - body-part recognition,
 - AI collimation refinement,
@@ -128,205 +133,83 @@ Phase 3 adds:
 - bone suppression,
 - DL denoising.
 
-If Phase 3 fails, the system shall still deliver the deterministic Phase 1 or Phase 2 image path.
+If Phase 3 fails, the deterministic baseline remains the delivery path.
 
 ---
 
-## 5. Canonical Architecture
+## 5. Canonical Phase Semantics
 
-### 5.1 Layer model
+### 5.1 Phase 1a
 
-```text
-Layer 0  xpe_common.dll
-Layer 1  xpe_preprocess.dll
-         xpe_enhance_basic.dll
-         xpe_enhance_advanced.dll
-         xpe_display.dll
-         xpe_dicom.dll
-         xpe_ai.dll
-Layer 1G gsvg.dll
-Layer 2  ImageProcTest.exe
-```
+Detector-domain correction only:
 
-### 5.2 Dependency rules
+- readout validation,
+- temperature compensation,
+- offset,
+- nonlinearity,
+- gain,
+- binning correction,
+- defect correction,
+- lag and ghost correction.
 
-| Rule ID | Rule |
-|---|---|
-| `DEP-001` | Layer 1 XPE DLLs may depend only on `xpe_common.dll` |
-| `DEP-002` | `gsvg.dll` remains independently buildable and independently testable |
-| `DEP-003` | `ImageProcTest.exe` is the only in-process multi-DLL orchestrator |
-| `DEP-004` | `xpe_ai.dll` may use `xpe_ai_worker.exe` only through IPC |
-| `DEP-005` | caller-owned ABI buffers remain the canonical runtime ownership model |
+### 5.2 Phase 1b
 
----
+Deterministic enhancement and delivery:
 
-## 6. Binary and Unit Inventory
+- whole-image EI baseline,
+- log,
+- noise reduction,
+- contrast enhancement,
+- edge enhancement,
+- display LUT path,
+- DICOM export.
 
-| Binary | Phase | Unit count | Exported API count | Notes |
-|---|:---:|---:|---:|---|
-| `xpe_common.dll` | 0 | 7 SWU | 18 | lifecycle, memory, logging, config, alerts, AED |
-| `xpe_preprocess.dll` | 1a | 9 SWU | 18 | detector correction and calibration application |
-| `xpe_enhance_basic.dll` | 1b | 5 SWU | 7 | log, noise, contrast, edge, whole-image EI |
-| `xpe_enhance_advanced.dll` | 2 | 3 SWU | 3 | collimation baseline, multiscale, fractional |
-| `xpe_ai.dll` | 3 | 4 SWU | 7 | assistive proxy API |
-| `xpe_display.dll` | 1b | 4 SWU | 11 | modality, VOI, presentation LUT |
-| `xpe_dicom.dll` | 1b | 4 SWU | 10 | DICOM I/O and network SCU |
-| `gsvg.dll` | 2 | 4 SI | 8 | independent GSVG package |
-| `ImageProcTest.exe` | 0+ | 2 SWU | N/A | orchestration and QA |
+### 5.3 Phase 2
 
-### 6.1 Special ownership rules
+Deterministic premium functions:
 
-- `SWU-2.10 ExposureIndexCalc` is one logical unit and one exported function.
-- `SWU-2.10` runs first in Phase 1b on the whole detector-domain image.
-- Phase 2 refinement reuses the same API on an ROI-cropped detector-domain image.
-- `xpe_ai_worker.exe` is a deployment component, not an extra counted SWU.
-- `SWU-5.7` and `SWU-6.1` are the only C# SWU.
+- baseline collimation,
+- ROI-aware EI refinement,
+- multiscale processing,
+- fractional processing,
+- GSVG.
+
+### 5.4 Phase 3
+
+Assistive AI only:
+
+- body-part recognition,
+- AI collimation refinement,
+- stitching,
+- bone suppression,
+- DL denoising.
 
 ---
 
-## 7. Canonical Pipeline
+## 6. Algorithm and Promotion Rules
 
-### 7.1 Startup and acquisition gates
-
-| Label | Stage | Owner | Mandatory |
-|---|---|---|:---:|
-| `BOOT-0` | calibration manifest load | `xpe_preprocess.dll` | yes |
-| `AED-0` | acquisition event capture | `xpe_common.dll` | yes |
-
-### 7.2 Per-frame order
-
-| Label | Stage | Owner | Phase | Input domain |
-|---|---|---|:---:|---|
-| `(0.5)` | readout artifact validation | preprocess | 1a | detector |
-| `(0.7)` | temperature compensation | preprocess | 1a | detector |
-| `(1)` | offset correction | preprocess | 1a | detector |
-| `(1.5)` | nonlinearity correction | preprocess | 1a | detector |
-| `(2)` | gain correction | preprocess | 1a | detector |
-| `(2.5)` | binning correction | preprocess | 1a | detector float |
-| `(3)` | defect correction | preprocess | 1a | detector float |
-| `(4)` | lag and ghost correction | preprocess | 1a | detector float |
-| `(EI-0)` | whole-image EI and DI | enhance_basic | 1b | detector float |
-| `(5)` | log transform | enhance_basic | 1b | enhancement |
-| `(5b)` | baseline collimation detection | enhance_advanced | 2 | detector side copy |
-| `(EI-1)` | ROI-aware EI refinement | orchestrator + enhance_basic API | 2 | detector ROI crop |
-| `(6)` | noise reduction | enhance_basic | 1b | enhancement |
-| `(7)` | contrast enhancement | enhance_basic | 1b | enhancement |
-| `(8)` | edge enhancement | enhance_basic | 1b | enhancement |
-| `(9)` | GSVG / virtual grid | gsvg | 2 | enhancement |
-| `(10)` | multiscale processing | enhance_advanced | 2 | enhancement |
-| `(11)` | fractional processing | enhance_advanced | 2 | enhancement |
-| `(5a)` | body-part recognition advisory branch | ai | 3 | preview copy |
-| `(5c)` | AI collimation refinement advisory branch | ai | 3 | preview copy |
-| `(12)` | image stitching | ai | 3 | multi-frame set |
-| `(13)` | bone suppression | ai | 3 | enhancement |
-| `(13b)` | DL denoising | ai | 3 | enhancement |
-| `(14)` | modality LUT | display | 1b | presentation |
-| `(15)` | VOI LUT | display | 1b | presentation |
-| `(16)` | presentation LUT / GSDF | display | 1b | presentation |
-| `(17)` | DICOM write / export | dicom | 1b | presentation |
-
-### 7.3 Non-negotiable pipeline rules
-
-- Detector-domain metrics are computed before presentation processing.
-- Presentation-domain images must not be fed back into EI, detector QA, or lag validation.
-- GSVG is optional; failure degrades to a valid non-GSVG output.
-- AI branches are non-blocking and cannot silently overwrite the deterministic baseline.
+1. Detector-domain correctness has priority over display-oriented visual appeal.
+2. Premium features do not become release-safe merely because they look better on sample images.
+3. Nonlinear or suppressive algorithms require task-based or observer-centered evidence when clinically relevant.
+4. AI cannot be promoted without degraded-mode proof, labeling, and transparency.
+5. Benchmark manifests and hashes must be frozen before release claims are accepted.
+6. Reject-analysis telemetry export is release-safe; reject-workflow optimization claims are not.
+7. EI and DI are operational detector-exposure signals, not patient-dose estimates.
 
 ---
 
-## 8. Release and Promotion Rules
+## 7. Remaining Synchronization Debt
 
-### 8.1 Release-safe now
+The following still require downstream synchronization outside this document:
 
-- dynamic dark and temperature-aware correction
-- nonlinearity plus gain correction
-- deterministic defect correction
-- tiered lag and ghost correction
-- whole-image EI and DI
-- deterministic enhancement and LUT stack
-- deterministic Phase 2 premium features if benchmarked
+- `docs/post-processing/xpe/` IEC package documents,
+- detailed algorithm design references under `docs/post-processing/xpe/`,
+- implementation status documents if code ownership or progress changes materially.
 
-### 8.2 Research-gated
+**v1.8 sync debt (added 2026-04-15)**:
 
-- AI collimation refinement
-- body-part recognition guided presets
-- DL denoising
-- bone suppression
-- advanced defect correction beyond deterministic bounded aids
-- learned scatter estimation
+- §21 PCD Spectral Binning (GAP-BW) and §22 CS-Tomo Sparse-View Reconstruction (GAP-CB) require new SWU entries in XPE-SDD-001 and SRS entries in XPE-SRS-001.
+- BP-13 benchmark family (PCD spectral binning, ring correction, CS-Tomo, RDSR compliance) requires formal definition in Algorithm-Benchmark-Pack-Spec.md.
+- xpe-algorithm-spec-deepsync.md requires sync for §21, §22, §9.14, §4.10, §3.17, §8.9, §12.12, §10.10, §17.4, §11.6 new entries.
 
-### 8.3 Regulatory-hold
-
-- pathology-aware enhancement claims
-- dose recommendation or ALARA advice
-- repeat or reject workflow claims
-- diagnostic triage or diagnosis-oriented confidence
-
-Promotion from research-gated to releasable requires:
-
-1. benchmark-pack coverage,
-2. evaluation-protocol metrics,
-3. regulatory-boundary approval,
-4. deterministic fallback.
-
----
-
-## 9. Phase Exit Gates
-
-| Gate | Mandatory outcome |
-|---|---|
-| `G0 -> G1a` | common ABI, build, CI, orchestration scaffolding, benchmark schema |
-| `G1a -> G1b` | full detector correction under 500 ms and validated calibration behavior |
-| `G1b -> G2` | deterministic end-to-end Phase 1 image path, EI/DI, display, DICOM |
-| `G2 -> G3` | deterministic premium processing and GSVG under Phase 2 budgets |
-| `G3` | AI isolation, confidence reporting, deterministic fallback, bounded performance |
-
-The sprint plan carries the operational checklist for each gate. This document fixes only the gate intent.
-
----
-
-## 10. Document Synchronization Status
-
-### 10.1 Closed project-document debt
-
-The following project-document issues are treated as closed by this revision:
-
-- corrupted legacy text removed from the master spec,
-- canonical total fixed to 42 executable units,
-- `SWU-2.10` EI ownership fixed,
-- Phase 3 ownership for body-part recognition and stitching fixed,
-- state-only flag policy fixed,
-- deterministic versus assistive feature boundary fixed.
-
-### 10.2 Remaining external synchronization debt
-
-The following items remain outside `docs/project/` and still require a follow-on sync pass:
-
-- `docs/post-processing/xpe/XPE-SRS-001`
-- `docs/post-processing/xpe/XPE-SDD-001`
-- `docs/post-processing/xpe/XPE-RTM-001`
-- `docs/post-processing/xpe/XPE-VVP-001`
-
-### 10.3 Archive policy
-
-- `.moai/project/` and `.moai/specs/` are working copies only.
-- `XPE-PreProcess-DeepResearch.json` and `XPE-PostProcess-DeepResearch.json` are archival transcripts only.
-- normative project decisions must be reflected in Markdown under `docs/project/`.
-
----
-
-## 11. Implementation Focus
-
-The next implementation focus remains unchanged:
-
-1. complete `modules/common/` parity with the documented ABI,
-2. implement `xpe_preprocess.dll`,
-3. implement `xpe_enhance_basic.dll`, `xpe_display.dll`, and `xpe_dicom.dll`,
-4. freeze benchmark manifests and evaluation harnesses,
-5. promote only benchmarked premium features.
-
-This is the shortest path to a high-quality, high-confidence release baseline without collapsing the regulated boundary.
-
----
-
-*Document End -- SPEC-XPE-MASTER v2.1.0*
+Until those documents are synchronized, this master document defines the canonical answer.

@@ -1335,7 +1335,7 @@ GSVG_API GsvgErrorCode gsvg_process_ex(uint16_t* pixels,
 ```
 
 **Description**: Extended variant of `gsvg_process` that additionally accepts image metadata for body-part-aware tuning and writes a JSON diagnostic report (detected grid parameters, suppression quality metrics) to `diagnosticJsonOut`.  
-**SRS**: SRS-GSVG-003, GSVG-SDD-001 짠4.2  
+**SRS**: SRS-GSVG-003, GSVG-SDD-001 Section 4.2  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`, `GSVG_ERR_PROCESSING_FAILED`, `GSVG_ERR_BUFFER_TOO_SMALL`
 
@@ -1379,7 +1379,7 @@ GSVG_API GsvgErrorCode gsvg_detect_grid(const uint16_t* pixels,
 ```
 
 **Description**: Detects the anti-scatter grid line frequency and orientation angle from the image, writing results to `*freqOut_lp_per_mm` and `*angleOut_deg`. Non-destructive; use results to populate `GsvgConfig` for `gsvg_process`.
-**SRS**: SRS-GSVG-010, GSVG-SDD-001 짠3.1  
+**SRS**: SRS-GSVG-010, GSVG-SDD-001 Section 3.1  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`
 
@@ -1414,7 +1414,7 @@ GSVG_API GsvgErrorCode gsvg_virtual_grid(uint16_t* pixels,
 ```
 
 **Description**: Synthesises a virtual grid effect in `pixels` in-place after scatter suppression, improving perceived contrast for images acquired without a physical anti-scatter grid.  
-**SRS**: SRS-GSVG-020, GSVG-SDD-001 짠5  
+**SRS**: SRS-GSVG-020, GSVG-SDD-001 Section 5  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_CONFIG_INVALID`, `GSVG_ERR_PROCESSING_FAILED`
 

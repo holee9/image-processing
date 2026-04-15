@@ -334,7 +334,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 6. `xpe_get_pending_alert(0, msg, 256, &severity)` copies first alert message
 7. `xpe_clear_alerts` empties the ring buffer
 8. Alert message format: UTF-8 JSON matching the schema in `xpe-implementation-reference.md` Section 9.3 with fields `severity`, `code`, `message`, `timestamp_ms`, `stage_id`, `stage_name`, and `frame_index`
-9. Defined alert codes enumerated in 짠9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
+9. Defined alert codes enumerated in Section 9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
 
 **Test Cases**:
 1. Configure AED, simulate trigger -> `xpe_aed_poll_event` returns event -> expect event data valid
@@ -776,7 +776,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] `dumpbin /exports xpe_enhance_basic.dll` shows 7 symbols
 
 **Risk Items**:
-- IEC 62494-1 EIT lookup table needs body-part-specific values (mitigate: use AAPM TG-232 values in xpe-implementation-reference.md 짠3)
+- IEC 62494-1 EIT lookup table needs body-part-specific values (mitigate: use AAPM TG-232 values in xpe-implementation-reference.md Section 3)
 
 ---
 

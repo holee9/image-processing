@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.6.0  
+**Package Version**: 1.7.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -50,7 +50,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | SAD-001 | [XPE-SAD-001_Software_Architecture_Document.md](XPE-SAD-001_Software_Architecture_Document.md) | 5.3 |
 | SDD-001 | [XPE-SDD-001_Software_Unit_Identification.md](XPE-SDD-001_Software_Unit_Identification.md) | 5.4 |
 | SDD-002 | [XPE-SDD-002_Software_Detailed_Design.md](XPE-SDD-002_Software_Detailed_Design.md) | 5.4 |
-| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.7 |
+| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.8 |
 | ITP-001 | [XPE-ITP-001_Integration_Test_Plan.md](XPE-ITP-001_Integration_Test_Plan.md) | 5.6 |
 | STP-001 | [XPE-STP-001_Software_Test_Plan_and_Cases.md](XPE-STP-001_Software_Test_Plan_and_Cases.md) | 5.5 |
 | VVP-001 | [XPE-VVP-001_Verification_Validation_Plan.md](XPE-VVP-001_Verification_Validation_Plan.md) | 5.7 |
@@ -76,7 +76,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백 (v1.7 기준 — 총 80건)
+### 4.1 해소된 알고리즘 공백 (v1.8 기준 — 총 90건)
 
 **v1.0 Round 1 (GAP-01~10):**
 
@@ -198,6 +198,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §20 | TV-최소화 반복적 영상 복원 (ADMM, FFT 가속, PSNR+3dB) | GAP-BU |
 | §20.1 | 골밀도 정량화 DXA-proxy (DES 기반, r²>0.85, Non-SaMD) | GAP-BV |
 
+**v1.8 Round 9 (GAP-BW~CF):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §21 | 포톤 계수 검출기(PCD) 스펙트럼 빈닝 (에너지 임계값 T1/T2, 전하 공유 보정, 형광 교정) | GAP-BW |
+| §9.14 | 지능형 교정 수명 주기 관리 (Bayesian 드리프트 예측, 신선도 점수 F) | GAP-BX |
+| §4.10 | NPS 기반 잡음 최적 구조 필터링 (위너 필터 + 구조 텐서 적응 블렌딩, PSNR≥36dB) | GAP-BY |
+| §3.17 | 극좌표 도메인 링 아티팩트 보정 (극좌표 변환, 행 방향 PSD, 3σ 링 감지) | GAP-BZ |
+| §8.9 | 해부 기반 인스턴스 분할 (EfficientDet-D1 13클래스, mAP≥0.72, Non-SaMD) | GAP-CA |
+| §22 | 압축 센싱 희소 뷰 토모합성 (TV+웨이블릿 ADMM, 5뷰 50% 선량 절감, FWHM≤1.2mm) | GAP-CB |
+| §12.12 | 임상 영상 품질 감사 엔진 (EWMA α=0.1, IHE IQI JSON, §9.11 CUSUM 통합) | GAP-CC |
+| §10.10 | 이기종 컴퓨팅 파이프라인 스케줄러 (DAG 배낭 분할, 열 스로틀링, SLA≥99.9%) | GAP-CD |
+| §17.4 | DICOM RDSR 생성 (IHE REM TID 10011, MPPS, PS3.15 익명화) | GAP-CE |
+| §11.6 | 신호 검출 이론 프레임워크 (d', ROC AUC, JAFROC FOM, d'_task) | GAP-CF |
+
 ### 4.2 문서 관계
 
 ```
@@ -294,6 +309,16 @@ XPE-STP-001 (테스트 계획)
 | Integration Nonlinearity Correction | SRS-FUNC-001f | xpe_preprocess.dll |
 | TV-ADMM Iterative Denoising | SRS-ITER-001 | xpe_enhance_advanced.dll |
 | BMD DXA-proxy Estimation | SRS-BMD-001 | xpe_enhance_advanced.dll |
+| PCD Spectral Binning | SRS-SPEC-001 | xpe_preprocess.dll |
+| Intelligent Calibration Lifecycle Management | SRS-QC-005 | xpe_common.dll |
+| NPS-Optimal Structure Filter (NOSF) | SRS-FUNC-011d | xpe_enhance_basic.dll |
+| Polar-Domain Ring Artifact Correction | SRS-FUNC-001g | xpe_preprocess.dll |
+| Anatomy-Guided Instance Segmentation (AGIS) | SRS-SEG-002 | xpe_ai_worker.exe |
+| Compressed Sensing Sparse-View Tomosynthesis | SRS-TOMO-002 | xpe_enhance_advanced.dll |
+| Automated Clinical Image Quality Audit (ACIQ) | SRS-QA-003 | xpe_enhance_advanced.dll |
+| Heterogeneous Computing Pipeline Scheduler (HCPS) | SRS-PERF-004 | xpe_common.dll |
+| DICOM RDSR Generation | SRS-DOSE-002 | xpe_dicom.dll |
+| Signal Detection Theory Framework (SDT) | SRS-MEAS-005 | xpe_enhance_advanced.dll |
 
 ---
 
@@ -337,6 +362,8 @@ XPE-STP-001 (테스트 계획)
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 1.7.0 | XPE-ALG-001 v1.8 반영. Round 9 GAP-BW~CF 해소 반영 (10건). §21 PCD 스펙트럼 빈닝, §22 CS 토모합성 신설. §9.14 ICLM, §4.10 NOSF, §3.17 극좌표 링 보정, §8.9 AGIS, §12.12 ACIQ, §10.10 HCPS, §17.4 RDSR, §11.6 SDT 추가. 알고리즘 빠른 참조 테이블 확장 (90건). SRS ID 추가 (SRS-SPEC-001, SRS-QC-005, SRS-FUNC-011d/001g, SRS-SEG-002, SRS-TOMO-002, SRS-QA-003, SRS-PERF-004, SRS-DOSE-002, SRS-MEAS-005). |
+| 2026-04-15 | 1.6.0 | XPE-ALG-001 v1.7 반영. Round 8 GAP-BM~BV 해소 반영 (10건). §20 TV-ADMM, §20.1 BMD 신설, §6.5 GSDF, §6.6 Retinex, §8.5~8.8 AI 4종, §14.3 광학 흐름, §3.16 통합 비선형성 추가. 알고리즘 빠른 참조 테이블 확장 (80건). |
 | 2026-04-15 | 1.5.0 | XPE-ALG-001 v1.6 반영. Round 7 GAP-BC~BL 해소 반영 (10건). §19 토모합성 신설, §17.3 JPEG2000, §10.9 GPU CUDA, §12.11 팬텀 인식 등 추가. 알고리즘 빠른 참조 테이블 확장 (70건). SRS ID 추가 (SRS-DOSE-001, SRS-DICOM-003, SRS-FUNC-001d/e, SRS-TOMO-001, SRS-FUNC-017b/014b, SRS-PERF-003, SRS-QA-002, SRS-CAL-002). |
 | 2026-04-15 | 1.4.0 | XPE-ALG-001 v1.5 반영. Round 6 GAP-AS~BB 해소 반영 (10건). §18 지각적 IQM, §12.10 IEC61223 인수 시험, §17.2 DICOM SR 신설. 알고리즘 빠른 참조 테이블 확장 (60건). SRS ID 추가 (SRS-MEAS-004, SRS-FUNC-002d/001c/009b/011c/008c, SRS-QC-004, SRS-FLUORO-002, SRS-DICOM-002, SRS-QA-001). |
 | 2026-04-15 | 1.3.0 | XPE-ALG-001 v1.4 반영. Round 5 GAP-AI~AR 해소 반영 (10건). §16 DES, §17 DICOM IOD 신설. 알고리즘 빠른 참조 테이블 확장 (50건). SRS ID 추가 (SRS-FUNC-019, SRS-DICOM-001, SRS-FUNC-001/003/004/008/011b ext, SRS-QC-002 ext 등). |

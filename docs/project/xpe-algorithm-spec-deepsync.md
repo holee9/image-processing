@@ -42,7 +42,7 @@ This revision (ds4) adds implementation-feasibility rules, sidecar contract guid
 
 This document establishes the **algorithm contract** (what each algorithm must achieve, boundary conditions, and quality gates). For the corresponding **implementation detail** (mathematics, C++ pseudocode, SIMD strategy, and calibration code), refer to:
 
-> **XPE-ALG-001** — Unified Algorithm Development Specification  
+> **XPE-ALG-001** Unified Algorithm Development Specification  
 > Path: `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md`  
 > Version: v1.1 (2026-04-15)  
 > IEC 62304 Clause: 5.4 (Software Detailed Design)  
