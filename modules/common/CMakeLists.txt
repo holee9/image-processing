@@ -1,6 +1,10 @@
-add_library(xpe_common
+add_library(xpe_common SHARED
     src/xpe_common.cpp
     src/xpe_memory.cpp
+)
+
+target_compile_definitions(xpe_common
+    PRIVATE XPE_DLL_EXPORT
 )
 
 target_include_directories(xpe_common
@@ -17,4 +21,6 @@ target_link_libraries(xpe_common
 set_target_properties(xpe_common PROPERTIES
     OUTPUT_NAME "xpe_common"
     VERSION ${PROJECT_VERSION}
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
 )

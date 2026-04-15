@@ -1,8 +1,8 @@
 # XPE Project Score Improvement Plan: 61 → 66 → 85
 
 **Document ID**: SCORE-PLAN-001
-**Version**: 2.0.0
-**Date**: 2026-04-15
+**Version**: 2.1.0
+**Date**: 2026-04-17
 **Status**: Active
 **Sources**:
 - `docs/project/XPE-Implementation-Analysis-Report.md` (v1.3.0) — primary score model
@@ -21,14 +21,18 @@
 
 IEC 62304, EARS 추적성, 문서 완전성, 교차검증 이슈 해소를 중심으로 평가.
 
-| 영역 | 배점 | 현재 (2026-04-15) | 비고 |
+| 영역 | 배점 | 현재 (2026-04-17) | 비고 |
 |------|:----:|:-----------------:|------|
 | 요구사항 완전성 (EARS) | 25 | **13** | P0만 완성, P1~P3 미작성 |
 | 문서 품질 (IEC 62304) | 20 | **17** | 풀 패키지 존재, api-spec v1.2 미출판 |
 | 아키텍처 설계 | 20 | **17** | 파이프라인 물리 정확성 확인, Binning-Gain 미문서화 |
-| 구현 진행도 | 20 | **6** | xpe_common 부분, 나머지 0% |
-| 품질 보증 | 15 | **8** | 스모크 테스트만, CI 미자동화 |
-| **합계** | **100** | **61** | 현재 상태 |
+| 구현 진행도 | 20 | **8** | xpe_common /WX 빌드 성공, 전체 모듈 스텁 빌드 |
+| 품질 보증 | 15 | **10** | unit tests 86/86 통과, Google Test 구성 완료 |
+| **합계** | **100** | **63** | 2026-04-17 기준 |
+
+**변경 이력 (v2.0.0 → v2.1.0)**:
+- 구현 진행도 6→8: xpe_common.cpp 버그 5건 수정, /WX 빌드 통과, 전체 7개 DLL 스텁 빌드 성공
+- 품질 보증 8→10: Google Test vcpkg 구성, unit test 86/86 통과 (기존 스모크 전용에서 unit 포함으로 확장)
 
 ### 1.2 Framework B — Product/Delivery Score (Codex 분석 기반)
 

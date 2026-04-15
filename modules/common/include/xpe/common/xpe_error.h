@@ -10,6 +10,7 @@ extern "C" {
 typedef int32_t XpeErrorCode;
 
 #define XPE_OK                       0
+#define XPE_STATUS_NO_EVENT          1  /* Non-error: AED poll returned no pending event (R8-02) */
 #define XPE_ERR_INVALID_INPUT       -1
 #define XPE_ERR_OUT_OF_MEMORY       -2
 #define XPE_ERR_PROCESSING_FAILED   -3
