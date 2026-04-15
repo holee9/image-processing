@@ -60,7 +60,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [pipeline-spec](docs/project/pipeline-spec.md) | 17단계 정규 파이프라인 및 의존성 그래프 (v1.3.0) |
 | [api-spec](docs/project/api-spec.md) | 82개 내보낸 C ABI 함수 계약, 명시적 경로 API 패턴 (v1.3.0) |
 | [xpe-algorithm-spec-deepsync](docs/project/xpe-algorithm-spec-deepsync.md) | 규범적 알고리즘 계약, DeepSync 검증 + 사이드카 계약 지침 (v3.2.0-ds4) |
-| [XPE-ALG-001](docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | **통합 알고리즘 개발 명세 v1.4** — IEC 62304 §5.4 Detailed Design. 5 라운드 50회 완료, 50개 GAP 완전 해소. 수식·Python 보정 코드·C++ AVX2 런타임·검증 기준 포함. v1.4 신규(교차검증): GCR·NLCSC·DoseDependentDefect·FPN·WaveletBayes·SPR·LagFit·Allan·DES·DICOM-IOD (9,280줄) |
+| [XPE-ALG-001](docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | **통합 알고리즘 개발 명세 v1.7** — IEC 62304 §5.4 Detailed Design. 8 라운드 80회 완료, 전체 GAP 완전 해소 (GAP-A~BV). 수식·Python 보정 코드·C++ AVX2 런타임·검증 기준 포함. v1.5~v1.7 신규: 30개 GAP(GAP-AS~BV) 추가 해소 (11,561줄) |
 | [product](docs/project/product.md) | XPE-PRODUCT-001 v1.2.0 — Phase별 배포 경계, 필수/선택 바이너리 범위, AI 샌드박스 격리 원칙 |
 | [structure](docs/project/structure.md) | XPE-STRUCTURE-001 v1.2.0 — 정규 모듈-바이너리 매핑 (38 SWU + 4 GSVG SI), SWU 소유 규칙 |
 | [tech](docs/project/tech.md) | 기술 스택 — C++17/C#, SOUP 의존성, ABI 설계 |
