@@ -187,3 +187,89 @@ graph LR
 | CON-03 | Floating-point 사용 최소화 (교정 시에만) | MCU에 FPU 없을 수 있음 |
 | CON-04 | 외부 라이브러리 의존 금지 (math.h의 exp 제외, LUT로 대체) | 이식성 |
 | CON-05 | Frame 처리 중 blocking I/O 금지 | 실시간성 |
+
+---
+
+## 6. Algorithm Reference Equations
+
+이 섹션은 FR에서 참조하는 핵심 수식을 명시적으로 정의한다. SDD-GHOST-001 구현자가 수식을 모호성 없이 구현할 수 있도록 한다.
+
+### 6.1 Tier 2 Lag 보정 수식 (FR-201~205)
+
+**잔류 lag 추정** (Siewerdsen & Jaffray 1999):
+
+```
+L_est[x,y] = α(E) × max(0, D_post[x,y] - D_pre[x,y])
+
+보정 출력:
+I_lc[x,y] = clamp(I_oc[x,y] - L_est[x,y], 0, 65535)
+```
+
+**α(E) 온도 보정** (FR-203):
+
+```
+α_adj(E, T) = α_nominal(E) × (1 + β × (T - T_ref))
+
+여기서:
+  α_nominal(E): 교정 LUT에서 E 수준에 해당하는 값 (Q16.16)
+  β ≈ 0.02 / °C (IrfParams.beta_temp)
+  T_ref = 25.0°C (IrfParams.T_ref)
+  T: 현재 패널 온도 (°C)
+```
+
+### 6.2 Tier 3 NLCSC 상태 방정식 (FR-301~305)
+
+**상태 업데이트** (프레임 k에서):
+
+```
+S_n[k][x,y] = decay_n(Δt) × S_n[k-1][x,y] + bₙ(E[k-1]) × x̂[k-1][x,y]
+
+여기서:
+  decay_n(Δt) = exp(-Δt / τ_n)   // 256-entry LUT + 선형 보간 (FR-304)
+  Δt = t[k] - t[k-1]             // 프레임 간 경과 시간 (초)
+  bₙ(E) = Qₙ(E) / E              // 4차 다항식 / E (FR-303)
+  τ_n: n번 지수 항의 시정수 (IrfParams.tau_nominal[n])
+```
+
+**보정 신호 추출**:
+
+```
+lag_sum[x,y] = Σ(n=0..3) S_n[k][x,y]
+
+b₀ = 1 - Σ(n=1..3) bₙ(E)         // 에너지 보존 제약 (물리 모델 요구사항)
+
+x̂[k][x,y] = clamp((y_k[x,y] - lag_sum[x,y]) / b₀, 0, 65535)
+```
+
+**수치 안정성 조건**:
+- `b₀ > 0` 이 보장되어야 함 (교정 시 검증). `b₀ ≤ 0`이면 `CORR_ERR_INVALID_PARAM` 반환.
+- `Σbₙ < 1.0` 이 교정 제약 (물리적 의미: 총 lag 비율 < 100%)
+
+### 6.3 GCR 추정 수식 (FR-702)
+
+```
+GCR = σ_block / μ_global
+
+계산:
+  1. 이미지를 N_b × N_b 블록 분할 (권장: N_b = 16)
+  2. 각 블록의 mean 계산 → M_i (i = 1...(H/N_b) × (W/N_b))
+  3. μ_global = mean(M_i)
+  4. σ_block = std(M_i)
+  5. GCR = σ_block / μ_global
+
+빠른 추정 (서브샘플링):
+  4×4 서브샘플링 사용 → 1/16 픽셀로 추정
+  정밀도 차이: < 0.01% (실험적 검증)
+```
+
+### 6.4 관련 문서 Cross-Reference
+
+| 섹션 | 상세 설계 | 아키텍처 |
+|------|-----------|---------|
+| FR-100 (Tier 1) | SDD-GHOST-001 §1 | SAD-GHOST-001 §2.2 |
+| FR-200 (Tier 2) | SDD-GHOST-001 §2 | SAD-GHOST-001 §2.2 |
+| FR-300 (Tier 3) | SDD-GHOST-001 §3 + §3.4 (SIMD) | SAD-GHOST-001 §2.2 |
+| FR-400 (Gain) | SDD-GHOST-001 §4 | SAD-GHOST-001 §2.2 |
+| FR-600 (Defect) | SDD-GHOST-001 §5 | SAD-GHOST-001 §2.2 |
+| 에러 코드 | SDD-GHOST-001 §9.1 | README.md §10.2 |
+| 교정 데이터 | SDD-GHOST-001 §8 | README.md §7 |

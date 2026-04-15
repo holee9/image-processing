@@ -212,7 +212,147 @@ FOR each pixel (y, x):
   x_hat_prev[y][x] = x_hat
 ```
 
-### 3.4 Polynomial Evaluation (bₙ(E))
+### 3.4 SIMD Optimization (ARM NEON / x86 SSE4.2)
+
+Tier 3 processes 9.4M pixels × 4 state terms = 37.7M iterations.
+SIMD vectorization is mandatory to meet the <500ms NFR-103 budget.
+
+#### 3.4.1 Memory Layout for SIMD Access
+
+```
+Scalar layout (cache-unfriendly for SIMD per-term access):
+  state[n][y][x]  → iterate n=0..3 for each pixel → 4 non-contiguous loads
+
+Recommended SIMD layout (AoS → SoA, interleaved 4-term):
+  For each pixel (y, x), store all 4 terms contiguously:
+  state_aos[y][x][0..3]  → 4 × 4 = 16 bytes = one cache line
+
+  This allows vld4q_s32 (ARM NEON) to load all 4 terms in one instruction.
+```
+
+#### 3.4.2 ARM NEON Vectorization Pseudocode
+
+Process 4 pixels simultaneously (4-wide SIMD lane × int32):
+
+```c
+/**
+ * @brief  SIMD-optimized NLCSC inner loop (ARM NEON)
+ * @note   Processes 4 pixels per iteration using int32x4 lanes.
+ *         Loop stride: 4 pixels/iter → 9.4M / 4 = 2.35M iterations
+ *         Expected speedup: ~3.5x over scalar (measured on Cortex-A57)
+ *
+ * SRS Trace: FR-301 (NLCSC), FR-304 (LUT-based exp), NFR-103 (timing)
+ */
+
+/*
+ * ARM NEON pseudocode (actual intrinsics; compile with -mfpu=neon):
+ *
+ * PRECONDITION: state_aos[pixel_idx][0..3] is 16-byte aligned
+ *               decay_vec[n] = precomputed exp_lut(-dt/tau_n) × 4 lanes
+ *               bn_vec[n]    = precomputed bn(E_prev) × 4 lanes
+ *               x_hat_prev4  = x_hat from previous frame × 4 lanes
+ *
+ * for pixel = 0; pixel < H*W; pixel += 4:
+ *
+ *   // Load 4 pixels × 4 state terms: vld4q_s32
+ *   // state_aos layout: [s0,s1,s2,s3] per pixel
+ *   int32x4x4_t s = vld4q_s32(state_aos + pixel * 4);
+ *   // s.val[n] = state term n for pixels [0..3]
+ *
+ *   int32x4_t x_prev = vld1q_s32(x_hat_prev + pixel);  // 4 x_hat values
+ *
+ *   // Update each of 4 state terms:
+ *   FOR n = 0 TO 3:
+ *     // decay × state (Q16.16 fixed-point multiply, shift right 16)
+ *     int64x2_t tmp_lo = vmull_s32(vget_low_s32(s.val[n]),
+ *                                  vget_low_s32(decay_vec[n]));
+ *     int64x2_t tmp_hi = vmull_s32(vget_high_s32(s.val[n]),
+ *                                  vget_high_s32(decay_vec[n]));
+ *     int32x4_t decayed = vcombine_s32(vshrn_n_s64(tmp_lo, 16),
+ *                                      vshrn_n_s64(tmp_hi, 16));
+ *
+ *     // bn × x_hat_prev (Q16.16 multiply)
+ *     int64x2_t inp_lo = vmull_s32(vget_low_s32(x_prev),
+ *                                   vget_low_s32(bn_vec[n]));
+ *     int64x2_t inp_hi = vmull_s32(vget_high_s32(x_prev),
+ *                                   vget_high_s32(bn_vec[n]));
+ *     int32x4_t bn_input = vcombine_s32(vshrn_n_s64(inp_lo, 16),
+ *                                       vshrn_n_s64(inp_hi, 16));
+ *
+ *     s.val[n] = vaddq_s32(decayed, bn_input);  // state updated
+ *   END FOR
+ *
+ *   // lag_sum = s[0] + s[1] + s[2] + s[3]
+ *   int32x4_t lag_sum = vaddq_s32(vaddq_s32(s.val[0], s.val[1]),
+ *                                   vaddq_s32(s.val[2], s.val[3]));
+ *
+ *   // Load y_k (raw input) and compute x_hat = (y_k - lag_sum) / b0
+ *   int32x4_t y_k4 = vmovl_u16(vld1_u16(raw_input + pixel));
+ *   int32x4_t numerator = vsubq_s32(y_k4, lag_sum);
+ *
+ *   // Division by b0 (Q16.16): multiply by (1/b0) precomputed as Q16.16
+ *   int64x2_t div_lo = vmull_s32(vget_low_s32(numerator), inv_b0_q1616);
+ *   int64x2_t div_hi = vmull_s32(vget_high_s32(numerator), inv_b0_q1616);
+ *   int32x4_t x_hat4 = vcombine_s32(vshrn_n_s64(div_lo, 16),
+ *                                    vshrn_n_s64(div_hi, 16));
+ *
+ *   // Clamp to [0, 65535]
+ *   x_hat4 = vmaxq_s32(x_hat4, vdupq_n_s32(0));
+ *   x_hat4 = vminq_s32(x_hat4, vdupq_n_s32(65535));
+ *
+ *   // Store updated states and x_hat
+ *   vst4q_s32(state_aos + pixel * 4, s);
+ *   vst1q_s32(x_hat_prev + pixel, x_hat4);
+ *   vst1q_s32(output + pixel, x_hat4);
+ *
+ * END for
+ */
+```
+
+#### 3.4.3 x86 SSE4.2 Alternative
+
+For x86 platforms without AVX2:
+
+```c
+/*
+ * x86 SSE4.2 (4 × int32) equivalent pattern:
+ * - Use _mm_mullo_epi32 for 32-bit multiply (SSE4.1 required)
+ * - Simulate int64 multiply via _mm_mul_epi32 + manual shift
+ * - _mm_srai_epi32 for arithmetic right shift (>>16)
+ *
+ * Performance expectation: ~2.8x over scalar on Core i7
+ * (vs 3.5x on NEON due to x86 latency on 32-bit multiply)
+ */
+```
+
+#### 3.4.4 Watchdog Timer for Tier 3 Timeout
+
+```c
+/**
+ * @brief  Watchdog mechanism to prevent Tier 3 runaway (NFR-103: <500ms)
+ *
+ * Implementation:
+ *   1. Record start_time = get_timestamp_us()
+ *   2. After each SIMD block (4 pixels), check elapsed:
+ *      if (elapsed_ms > TIER3_TIMEOUT_MS) {
+ *          // Fallback: copy processed pixels to output, skip rest
+ *          memcpy(output + pixel, raw_input + pixel,
+ *                 (total_pixels - pixel) * sizeof(uint16_t));
+ *          result->flags |= CORR_FLAG_TIER3_TIMEOUT;
+ *          LOG_WARN("Tier 3 timeout at pixel %u/%u (%.1f%% processed)",
+ *                   pixel, total_pixels, 100.0*pixel/total_pixels);
+ *          return CORR_WARN_TIER3_TIMEOUT;
+ *      }
+ *   3. TIER3_TIMEOUT_MS = 450 (leaves 50ms margin for NFR-103)
+ *
+ * Note: Timeout causes graceful degradation (partially corrected output)
+ * rather than pipeline abort. The unprocessed portion retains Tier 2 output.
+ */
+#define TIER3_TIMEOUT_MS  450U
+#define TIER3_BLOCK_SIZE  1024U  // Check timer every 1024 pixels (4 SIMD iters)
+```
+
+### 3.5 Polynomial Evaluation (bₙ(E))
 
 ```
 Qₙ(E) = c₀ + c₁E + c₂E² + c₃E³ + c₄E⁴  (4th-order polynomial)
@@ -423,3 +563,91 @@ Function: calib_save(const char* filepath, const CalibrationData* data)
 
 파일 무결성: write 후 재읽기하여 CRC 재검증
 ```
+
+---
+
+## 9. Error Code Definitions
+
+### 9.1 CorrectionError Enum
+
+SRS-GHOST-001 Trace: FR-105, FR-204, NFR-302, NFR-304
+
+```c
+/**
+ * @brief  Correction module error codes
+ * @note   Negative values = fatal (pipeline aborts, raw output)
+ *         Zero = success
+ *         Positive values = warning (pipeline continues, result flagged)
+ *
+ * IMPORTANT: These codes are used ONLY within the ghost/lag correction
+ * module (srs_ghost_correction.md, sad_ghost_correction.md). The
+ * higher-level xpe_preprocess.dll uses XpeErrorCode (XPE_ERR_*).
+ * The pipeline layer (CorrectionPipeline) maps CorrectionError →
+ * XpeErrorCode before returning to the C# orchestrator.
+ */
+typedef enum {
+    /* Fatal errors (pipeline abort, output = raw frame) */
+    CORR_ERR_NULL_PTR         = -1,  ///< NULL input pointer
+    CORR_ERR_CALIB_CRC        = -2,  ///< Calibration file CRC32 mismatch
+    CORR_ERR_CALIB_VERSION    = -3,  ///< Calibration file version incompatible
+    CORR_ERR_MEMORY           = -4,  ///< Static buffer allocation failure
+    CORR_ERR_INVALID_PARAM    = -5,  ///< Parameter out of valid range
+
+    /* Success */
+    CORR_OK                   =  0,
+
+    /* Warnings (pipeline continues, result.flags bit set) */
+    CORR_WARN_OVERFLOW        =  1,  ///< Pixel overflow/underflow > 0.1%
+    CORR_WARN_TEMPERATURE     =  2,  ///< Panel temperature out of calibrated range
+    CORR_WARN_TIER_ESCALATED  =  3,  ///< Tier escalation triggered (GCR > threshold)
+    CORR_WARN_DARK_POST_NONE  =  4,  ///< dark_post NULL, Tier 2 skipped
+    CORR_WARN_CALIB_EXPIRED   =  5,  ///< Calibration file older than recalibration interval
+} CorrectionError;
+```
+
+### 9.2 Error-to-XpeErrorCode Mapping
+
+The pipeline layer maps internal CorrectionError codes to the
+xpe_preprocess.dll ABI (XpeErrorCode) before returning to the C# host:
+
+| CorrectionError          | XpeErrorCode                  | Notes                        |
+|--------------------------|-------------------------------|------------------------------|
+| CORR_ERR_NULL_PTR        | XPE_ERR_INVALID_PARAM (-5)    | NULL treated as invalid param |
+| CORR_ERR_CALIB_CRC       | XPE_ERR_IO_FAILED (-3)        | File integrity failure        |
+| CORR_ERR_CALIB_VERSION   | XPE_ERR_INVALID_CALIB_DATA (-4)| Version mismatch             |
+| CORR_ERR_MEMORY          | XPE_ERR_NOT_INITIALIZED (-1)  | Cannot allocate state         |
+| CORR_ERR_INVALID_PARAM   | XPE_ERR_INVALID_PARAM (-5)    | Direct mapping                |
+| CORR_OK                  | XPE_OK (0)                    | Success                       |
+| CORR_WARN_* (≥ 1)        | XPE_OK + flags set            | Warning propagated via flags  |
+
+### 9.3 α(E) LUT Alignment with SRS FR-203
+
+The α LUT structure referenced in SDD Section 2.4 is defined here for
+cross-document consistency with SRS-GHOST-001 FR-203 and FR-304:
+
+```c
+/**
+ * @brief  Exposure-dependent α coefficient LUT
+ *         Stored in CalibrationData.irf (IrfParams struct)
+ *
+ * SRS Trace: FR-203 (α(E) LUT lookup), FR-304 (exp(-a) LUT)
+ */
+typedef struct {
+    uint8_t   num_entries;        ///< Number of calibration exposure levels (max 16)
+    uint32_t  E_levels[16];       ///< Exposure levels in ascending order (ADU)
+    q1616_t   alpha_nominal[16];  ///< α at T_ref=25°C, Q16.16 fixed-point
+    float     beta_temp;          ///< Temperature sensitivity coefficient (≈0.02/°C)
+    float     T_ref;              ///< Reference temperature (25.0°C)
+
+    /* bₙ(E) polynomial coefficients for Tier 3 NLCSC (Section 3.4) */
+    uint8_t   nlcsc_n_terms;      ///< Number of exponential terms N (=4)
+    float     poly_coeff[4][5];   ///< Horner coefficients c₀..c₄ per term n
+    float     tau_nominal[4];     ///< τ_n at T_ref (seconds)
+    float     tau_temp_coeff[4];  ///< Temperature coefficient for τ_n
+} IrfParams;
+```
+
+**Key constraint**: `alpha_nominal[i]` must satisfy 0 < α ≤ 1.0 for all i.
+Out-of-range values are clamped during calibration file load (calib_load).
+If `E_levels` is not strictly ascending, `calib_load` returns
+`CORR_ERR_CALIB_VERSION`.

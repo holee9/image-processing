@@ -66,6 +66,19 @@
 | **FR-203** | 최종 결함 맵은 Static BPM과 Dynamic Defect Map의 합집합이어야 함. | 필수 | Integration test: 결함 맵 통합 정확도 |
 | **FR-204** | 검출 속도: < 20 ms/frame (3072×3072). | 성능 | Performance test: 처리 시간 측정 |
 
+### FR-250: 시간적 일관성 검사 (Temporal Consistency Check)
+
+FR-200 동적 결함 검출을 보완하는 시간적 검증 메커니즘. 단일 프레임 검출에서 놓친 간헐적 결함을 식별한다.
+
+| Req ID | 요구사항 | 우선순위 | 검증 방법 |
+|--------|---------|---------|---------|
+| **FR-251** | 시스템은 Rolling Window Buffer (N_window = 5 프레임)를 유지하여 각 픽셀의 시간 이력을 추적해야 함. 버퍼 형식: Circular buffer of float32 frames, 크기: 5 × 3072 × 3072 × 4 bytes = ~180 MB (선택 활성화 시에만 할당). | 시간 이력 없이는 간헐적 결함(깜박임 픽셀)을 단일 프레임에서 검출 불가. 5 프레임 윈도우는 임상 시퀀스에서 일반적인 깜박임 주기(2-5 프레임)를 포괄. | Unit test: Buffer 관리, 순환 인덱스 정확도 |
+| **FR-252** | 시스템은 Temporal Z-Score를 계산하여 픽셀의 시간적 불안정성을 정량화해야 함. 공식: `TZ(i,j) = |I_k(i,j) - μ_T(i,j)| / σ_T(i,j)` 여기서 μ_T, σ_T는 N_window 프레임의 평균 및 표준편차. 임계값: TZ > k_temporal (기본값: k_temporal = 5.0). | Temporal Z-Score는 공간 잔차보다 깜박임에 민감. 공간 균일 영역에서 시간적으로 불안정한 픽셀을 식별. k_temporal=5.0은 오탐율 < 1%를 달성 (Gaussian noise 가정). | Unit test: 시뮬레이션된 깜박임 픽셀 검출율 > 90% |
+| **FR-253** | 시스템은 Temporal Consistency Ratio (TCR)를 계산하여 결함 픽셀을 분류해야 함. TCR = (결함으로 검출된 프레임 수) / N_window. 분류 기준: (1) TCR < 0.2: 일시적 노이즈 → 무시; (2) 0.2 ≤ TCR < 0.6: 간헐적 결함 → 부드러운 보간; (3) TCR ≥ 0.6: 지속적 결함 → Static BPM 업데이트 제안. | TCR은 결함의 지속성을 정량화. 낮은 TCR은 오탐을 방지하고, 높은 TCR은 새로운 영구 결함을 식별. 분류된 처리는 불필요한 보간을 줄임. | Unit test: TCR 계산, 각 분류 범주 동작 검증 |
+| **FR-254** | 시스템은 지속적 결함 (TCR ≥ 0.6, 연속 10 프레임 이상)을 감지하면 진단 경고를 발행해야 함: "Persistent defect detected at pixel (x,y): TCR={TCR:.2f}. Recommend BPM update." 경고는 `XPE_DefectStats.new_persistent_defects` 카운터에 집계. 자동 BPM 업데이트는 비활성 (서비스 엔지니어만 수동 승인). | 자동 BPM 업데이트는 잘못된 교정으로 이어질 수 있어 수동 승인 필수. 경고 발행은 서비스 엔지니어에게 재교정 필요성을 알림 (IEC 62304 §8.1 요건). | Integration test: 경고 발행 조건, 카운터 집계 |
+| **FR-255** | 시간적 일관성 검사의 처리 시간: < 10 ms/frame (N_window=5, 3072×3072). 메모리 활성화는 `config.temporal_check_enabled = true`로 명시적 활성화 시에만 수행 (기본값: false, 메모리 절약). | 180 MB 추가 메모리 및 시간 비용은 기본 임상 워크플로우에서 불필요. 선택적 활성화로 경량 워크플로우와 고품질 QA 모드를 모두 지원. | Performance test: 활성/비활성 모드 처리 시간, 메모리 사용량 |
+| **FR-256** | 시스템은 연속 N_consec = 3개 이상의 결함 픽셀이 동일 행/열에 나타나면 라인 결함 씨앗(Line Defect Seed)으로 표시해야 함. 씨앗은 FR-400 라인 결함 보정 단계에서 우선 처리. 씨앗 표시는 Dynamic Defect Map에 별도 비트 (bit 7)로 기록. | 라인 결함 초기 발생 단계에서 조기 감지하면 보정 효과가 높음. 씨앗 표시는 FR-400 처리 우선순위를 결정하는 힌트로 사용. | Unit test: 라인 씨앗 감지 정확도, 비트 마킹 검증 |
+
 ### FR-300: Cluster Correction (3×3, 5×5)
 
 | Req ID | 요구사항 | 우선순위 | 검증 방법 |

@@ -4,8 +4,9 @@
 **소유자 DLL**: `xpe_enhance_advanced.dll`  
 **의존성**: `xpe_enhance_basic.dll` (선행 처리), `xpe_common.dll` (Layer 0)  
 **안전 등급**: IEC 62304 Class B  
-**문서 버전**: 1.0.0  
-**날짜**: 2026-04-14  
+**문서 버전**: 2.0  
+**날짜**: 2026-04-15  
+**최종 갱신**: 2026-04-15 (5차 교차검증, Wiener 필터/PSNR·SSIM/OpenMP 요구사항 추가)
 **규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
 
 ---
@@ -595,4 +596,15 @@ int xpe_sidecar_read(
 
 ---
 
-*고급 개선 모듈 README v1.0.0 끝*
+*고급 개선 모듈 README v2.0 끝*
+
+---
+
+### v2.0 변경 내역 (2026-04-15)
+
+**SRS-ENHANCE-ADV-001 주요 개선 사항** (5차 교차검증 결과):
+
+- **Wiener 필터 추가** (FR-050): 주파수 도메인 최적 선형 필터, Research 모드 전용, NSR 자동 계산
+- **PSNR/SSIM 품질 게이트** (FR-1900): 3 dB ≤ ΔPSNR ≤ 15 dB, SSIM ≥ 0.95 기준, Fast 모드 제외
+- **OpenMP 병렬화 요구사항** (FR-2000): NLM (행 레벨), Wavelet (서브밴드), Bilateral (블록 레벨), 최대 8 스레드
+- **컴파일 요구사항**: OpenMP 필수, 미사용 시 단일 스레드 폴백 모드 컴파일 경고

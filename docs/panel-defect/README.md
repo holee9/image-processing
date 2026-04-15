@@ -4,8 +4,9 @@
 **Owner**: XPE Panel Defect Development Team  
 **Dependencies**: `xpe_common.dll` (Layer 0)  
 **Safety Classification**: IEC 62304 Class B  
-**Document Version**: 1.0  
-**Date**: 2026-04-14  
+**Document Version**: 2.0  
+**Date**: 2026-04-15  
+**Last Updated**: 2026-04-15 (5차 교차검증, 시간적 일관성 검사 알고리즘 추가)
 **Specification Reference**: [xray-panel-defect-prd.md](xray-panel-defect-prd.md)
 
 ---
@@ -518,4 +519,14 @@ Release all allocated memory.
 - [IAP-DEFECT-001](IAP-DEFECT-001_Image_Acquisition_Protocol.md) - Calibration Protocol
 - [TDS-DEFECT-001](TDS-DEFECT-001_Test_Dataset_Specification.md) - Test Data
 
-**Last Updated**: 2026-04-14
+**Last Updated**: 2026-04-15
+
+---
+
+### v2.0 변경 내역 (2026-04-15)
+
+**SRS-DEFECT-001 주요 개선 사항** (5차 교차검증 결과):
+
+- **시간적 일관성 검사 추가** (FR-251~FR-256): Rolling Window Buffer (5프레임), Temporal Z-Score, TCR 분류 기준 (일시/간헐/지속적 결함), 라인 결함 씨앗 감지
+- **동적 결함 검출 강화**: 단일 프레임 검출로 놓친 깜박임 픽셀을 시간 이력으로 추가 식별
+- **메모리 관리**: 시간적 검사는 `config.temporal_check_enabled` 명시적 활성화로만 180MB 추가 할당

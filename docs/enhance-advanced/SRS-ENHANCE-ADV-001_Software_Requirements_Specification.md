@@ -311,7 +311,45 @@ int xpe_sidecar_read(const char *image_path, XpeROI *roi_out);
 
 ---
 
-## 6. Traceability
+## 6. Additional Requirements — Wiener Filter, PSNR/SSIM, and Parallelization
+
+### 6.1 Tier 0: Wiener Filter (Optional, Research Mode)
+
+#### FR-050: Wiener Filter (Optimal Linear Denoising)
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|------------|-----------|--------------|
+| **FR-050.1** | System shall optionally implement frequency-domain Wiener filter when mode=="Research". Filter formula: `W(u,v) = H*(u,v) / (|H(u,v)|² + NSR(u,v))` where `H(u,v)` is the known blur transfer function (from MTF calibration) and `NSR(u,v) = NNPS(u,v) / MTF²(u,v)` is the noise-to-signal ratio. | Wiener filter is the optimal linear filter (MMSE criterion) when noise and signal statistics are known. Provides reference quality bound for comparing Tiers 1-4. | Test: Compare output PSNR vs. Tiers 1-4 on synthetic phantom with known ground truth |
+| **FR-050.2** | Wiener filter implementation shall use 2D FFT (numpy.fft.fft2). Input and output shall be float32. Frequency-domain computation: `I_wiener = IFFT2(W × FFT2(I_noisy))`. Periodicity artifacts shall be suppressed by Hanning window pre-multiplication. | FFT-based Wiener is O(N log N) vs. O(N²) for spatial-domain convolution. Hanning window prevents spectral leakage at image boundaries. | Test: Timing vs. reference, boundary artifact inspection |
+| **FR-050.3** | NSR estimation shall use calibrated NNPS and MTF from `SRS-CALIB-FUNC-006` calibration data. If calibration data is unavailable, NSR shall default to 0.01 (flat spectrum, Tikhonov regularization). | Pre-calibrated NSR enables optimal performance on known detector models. Fallback to constant NSR ensures robustness when data is missing. | Test: Verify NSR loading from calibration file, fallback behavior |
+| **FR-050.4** | Wiener filter shall NOT be available in clinical modes (Fast, Standard, Premium, Ultra). It is restricted to mode=="Research" to prevent clinical use without physics characterization. | Wiener filter requires accurate NSR calibration; incorrect NSR worsens image quality. Research mode restricts clinical exposure to validated algorithms only. | Test: Mode validation, error on clinical mode selection |
+
+### 6.2 Image Quality Evaluation Metrics (PSNR/SSIM)
+
+#### FR-1900: PSNR and SSIM Quality Gate
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|------------|-----------|--------------|
+| **FR-1900.1** | System shall compute PSNR (Peak Signal-to-Noise Ratio) before and after noise reduction: `PSNR = 10 × log₁₀(MAX²/ MSE)` where MAX=65535 (uint16 range) and MSE is mean squared error between input and output. PSNR shall be reported in diagnostic log. | PSNR provides objective measure of noise reduction vs. signal preservation. Excessively high PSNR improvement (>15 dB) indicates over-smoothing. | Test: PSNR computation on synthetic phantom with known noise level |
+| **FR-1900.2** | System shall compute SSIM (Structural Similarity Index) between input and denoised output using 11×11 Gaussian window: `SSIM(x,y) = (2μₓμᵧ + C₁)(2σₓᵧ + C₂) / ((μₓ² + μᵧ² + C₁)(σₓ² + σᵧ² + C₂))` where C₁=(0.01×L)², C₂=(0.03×L)², L=65535. SSIM shall be reported as mean value over non-border pixels. | SSIM correlates with human perception of image quality better than PSNR. Low SSIM (<0.95) indicates structure distortion. | Test: SSIM computation vs. reference implementation (skimage.metrics.structural_similarity) |
+| **FR-1900.3** | Quality gate thresholds for denoising acceptance (logged as warning if violated): (1) PSNR improvement: 3 dB ≤ ΔPSNR ≤ 15 dB; (2) SSIM preservation: SSIM ≥ 0.95; (3) MTF at Nyquist ≥ 0.95 (FR-600.1). If any threshold is violated, system shall log: "Quality gate [PSNR/SSIM/MTF] warning at Tier {N}: value={v:.2f}, threshold={t:.2f}". | Thresholds prevent both under-denoising (ΔPSNR < 3 dB, no benefit) and over-denoising (ΔPSNR > 15 dB, SSIM < 0.95, structure damage). | Test: Quality gate triggering at calibrated noise levels, log verification |
+| **FR-1900.4** | PSNR and SSIM computation shall be optional (controlled by `config.quality_metrics_enabled` flag). Default: enabled in Standard and above modes; disabled in Fast mode (fluoroscopy). Computation overhead: ≤ 5 ms per frame for 3072×3072 image. | Metric computation adds overhead. Fluoroscopy (Fast mode) requires <50ms total; SSIM computation is prohibited in this mode. Standard mode can afford the quality check. | Test: Mode-dependent enable/disable, timing validation |
+
+### 6.3 OpenMP Parallelization Requirements
+
+#### FR-2000: OpenMP Multi-Core Acceleration
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|------------|-----------|--------------|
+| **FR-2000.1** | Tier 3 (NLM, FR-300) shall support OpenMP parallelization via `#pragma omp parallel for` over image rows. Thread count shall be configurable: `config.omp_threads` (default: auto-detect via `omp_get_max_threads()`). Maximum thread count shall be capped at 8 to prevent memory bandwidth saturation on typical workstations. | NLM is O(N²) with patch search; row-level parallelism is trivially correct (no row dependencies) and provides near-linear speedup on multi-core CPUs. Without OpenMP, 3072×3072 NLM exceeds 150ms budget (FR-300.4). | Test: Single-thread vs. 4-thread timing on Intel Core i7; verify output determinism |
+| **FR-2000.2** | Tier 4 (Wavelet, FR-400) shall support OpenMP parallelization over wavelet subbands. Each decomposition level's {H, V, D} detail subbands shall be thresholded in parallel. Thread count: same as FR-2000.1. | Subband thresholding is independent across subbands; parallelism is trivially correct. 3-4 decomposition levels × 3 subbands = 9-12 independent tasks. | Test: Parallel subband output matches serial reference |
+| **FR-2000.3** | Thread safety: All OpenMP-parallelized functions shall use thread-local storage for intermediate buffers (patch buffers in NLM, coefficient arrays in Wavelet). Global/static state shall not be modified in parallel sections. | Global state modification in parallel sections causes race conditions and incorrect output. Thread-local buffers prevent data races. | Test: Concurrent frame processing test (2 parallel frame pipelines), no data corruption |
+| **FR-2000.4** | Compilation requirement: OpenMP support is required (`-fopenmp` for GCC/Clang, `/openmp` for MSVC). Build system shall detect OpenMP availability. If OpenMP is unavailable at compile time, Tier 3 and Tier 4 shall compile in single-threaded fallback mode with a compile-time warning: `#warning "OpenMP not found; Tier 3/4 will use single-threaded fallback (performance degraded)"`. | Medical device builds must be reproducible regardless of toolchain. Fallback prevents build failure on embedded/constrained platforms. | Test: Build with and without OpenMP; verify fallback mode correctness |
+| **FR-2000.5** | Tier 2 (Bilateral, FR-200) shall be parallelized over 8×8 pixel blocks using OpenMP `#pragma omp parallel for collapse(2)` over block grid. Block-level parallelism avoids race conditions that arise from pixel-level parallelism with overlapping filter windows. | Bilateral filter uses overlapping windows (σ_s = 5 pixels); block-level parallelism with guard bands eliminates boundary races without complex synchronization. | Test: Block-level output correctness on region boundaries |
+
+---
+
+## 7. Traceability
 
 All requirements in this SRS trace to:
 - **SAD-ENHANCE-ADV-001**: Software Architecture Document (SWU decomposition)

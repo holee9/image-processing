@@ -4,8 +4,9 @@
 **소유자 DLL**: `xpe_preprocess.dll`  
 **의존성**: `xpe_common.dll` (Layer 0)  
 **안전 등급**: IEC 62304 Class B  
-**문서 버전**: 1.1.0  
-**날짜**: 2026-04-14  
+**문서 버전**: 2.0  
+**날짜**: 2026-04-15  
+**최종 갱신**: 2026-04-15 (5차 교차검증, 비선형성 보정 알고리즘 확장)
 **규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
 
 ---
@@ -877,4 +878,14 @@ PRD (원본)
 
 ---
 
-*캘리브레이션 모듈 README v1.1.0 끝*
+*캘리브레이션 모듈 README v2.0 끝*
+
+---
+
+### v2.0 변경 내역 (2026-04-15)
+
+**SRS-CALIB-001 주요 개선 사항** (5차 교차검증 결과):
+
+- **비선형성 보정 알고리즘 확장** (SRS-CALIB-FUNC-006-EXT): LUT 생성 절차 (Fritsch-Carlson 단조 스플라인), 다항식 피팅 (Horner 방법, deg ≤ 5), LUT vs 다항식 정밀도 비교표 추가
+- **정밀도 기준 강화**: 비선형성 보정 최대 잔차 ≤ 0.3% ADC 전범위 (기존 미정의)
+- **플랫폼별 선택 로직**: CPU 대상 = LUT, MCU/FPGA 대상 = 다항식 (panel.target_platform 기반)

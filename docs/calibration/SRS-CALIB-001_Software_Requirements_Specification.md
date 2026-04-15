@@ -39,7 +39,58 @@ This document specifies requirements for calibration data management, correction
 |--------|------------|-----------|--------------|
 | **SRS-CALIB-FUNC-004** | System shall apply offset (dark current) correction: `I_corr(x,y) = I_raw(x,y) - I_dark(x,y)`. Negative results after offset subtraction shall be clamped to 0 (uint16 domain). Dynamic offset interpolation via bilinear temperature/PREP-time-dependent lookup shall be supported. | Dark current is primary readout artifact; offset correction must precede all other corrections. Clamping prevents wraparound. Dynamic compensation models time/temperature drift (exponential model: `I_dark(T) = I0 * exp(-Eg/2kB*T)`). | Test: Offset arithmetic, clamp verification |
 | **SRS-CALIB-FUNC-005** | System shall apply gain (flat-field) correction: `I_norm(x,y) = I_corr(x,y) / G(x,y)`. Output shall be converted to float32 format. Gain values shall be validated to be non-zero; division by zero shall return `XPE_ERR_INVALID_CALIB_DATA`. Multi-gain mode with energy-dependent polynomial `G(x,y,E) = Σ(c_k × E^k)` shall be supported for SID-specific gain maps. Heel effect correction (Wang 2013 projection model) shall be supported. | Gain correction normalizes across detector's FPN and SID-dependent intensity falloff. Float32 conversion at this stage is mandatory (format boundary). Multi-gain supports clinical applications using multiple source positions. | Test: Gain arithmetic, format conversion |
-| **SRS-CALIB-FUNC-006** | System shall apply nonlinearity correction using lookup table (LUT) or monotonic polynomial fitting before gain correction. Correction model: `I_lin(x,y) = f_nonlin(I_raw(x,y))` where `f_nonlin` is detector-specific and stored in calibration profile. LUT shall have minimum 256 entries; polynomial degree ≤ 5. | Detector response is non-linear due to charge trapping and fill factor effects. Correction must precede gain normalization (linearize before normalize). Detector profile governs enable/disable via field `panel.linear = true/false`. | Test: LUT lookup, polynomial evaluation |
+| **SRS-CALIB-FUNC-006** | System shall apply nonlinearity correction using lookup table (LUT) or monotonic polynomial fitting before gain correction. Correction model: `I_lin(x,y) = f_nonlin(I_raw(x,y))` where `f_nonlin` is detector-specific and stored in calibration profile. LUT shall have minimum 256 entries; polynomial degree ≤ 5. Detailed algorithm specification in SRS-CALIB-FUNC-006-EXT below. | Detector response is non-linear due to charge trapping and fill factor effects. Correction must precede gain normalization (linearize before normalize). Detector profile governs enable/disable via field `panel.linear = true/false`. | Test: LUT lookup, polynomial evaluation, max residual ≤ 0.3% ADU |
+
+**SRS-CALIB-FUNC-006-EXT: Nonlinearity Correction Algorithm Extension**
+
+**6a. LUT Method (preferred for production)**
+
+The nonlinearity LUT maps raw ADU values to linearized ADU values:
+
+- LUT size: 4096 entries (covers 12-bit ADC range) or 65536 entries (16-bit full range)
+- LUT data type: uint16 (output values in ADU)
+- Lookup: `I_lin = LUT[I_raw]` (direct index, O(1))
+- LUT generation (factory calibration procedure):
+  1. Acquire flat-field images at N ≥ 10 dose levels spanning 5% to 95% ADC full scale
+  2. For each dose level, record mean signal `S_meas` and reference dose `D_ref`
+  3. Fit ideal linear response: `S_ideal(D) = G_nominal × D` where `G_nominal` is mean gain
+  4. Compute correction: `LUT[S_meas] = S_ideal`
+  5. Interpolate LUT entries between measured points using monotone cubic spline (Fritsch-Carlson 1980)
+  6. Boundary conditions: `LUT[0] = 0`, `LUT[ADC_max] = ADC_max` (identity at extremes)
+- Maximum interpolation error requirement: ≤ 0.3% of ADC full scale at any input value
+- Monotonicity check: `LUT[i] ≤ LUT[i+1]` for all i (enforced; non-monotone LUT = `XPE_ERR_INVALID_CALIB_DATA`)
+
+**6b. Polynomial Method (for embedded/FPGA use)**
+
+The polynomial model uses a 4th-degree global polynomial fit:
+
+```
+I_lin(x,y) = c₀ + c₁ × I_raw + c₂ × I_raw² + c₃ × I_raw³ + c₄ × I_raw⁴
+```
+
+Evaluated using Horner's method to minimize arithmetic operations:
+
+```
+I_lin = c₀ + I_raw × (c₁ + I_raw × (c₂ + I_raw × (c₃ + I_raw × c₄)))
+```
+
+Polynomial fitting procedure:
+1. Use the same N ≥ 10 dose-level flat-field dataset as LUT method
+2. Fit via least-squares regression (numpy.polyfit or scipy.optimize.curve_fit)
+3. Validate: maximum residual ≤ 0.5% ADC full scale across all measurement points
+4. Enforce monotonicity in [0, ADC_max] by checking derivative root locations
+5. If polynomial is non-monotone in operational range, reject and fallback to LUT method
+
+**6c. Precision Comparison (LUT vs Polynomial)**
+
+| Method | Interpolation error | Memory | Execution time | Platform |
+|--------|-------------------|--------|----------------|----------|
+| LUT (4096) | ≤ 0.30% | 8 KB | ~5 ns (cache hit) | CPU/FPGA |
+| LUT (65536) | ≤ 0.01% | 128 KB | ~5 ns (L1 miss risk) | CPU only |
+| Polynomial (deg 4) | ≤ 0.50% | <100 bytes | ~30 ns (5 MACs) | CPU/MCU/FPGA |
+| Polynomial (deg 2) | ≤ 1.00% | <50 bytes | ~15 ns | MCU/FPGA |
+
+Selection logic: If `panel.nonlinearity_mode == "LUT"` use 6a; if `"POLY"` use 6b; if `"AUTO"` select LUT for CPU targets, polynomial for MCU/FPGA targets (detected via `panel.target_platform` field in calibration profile).
 | **SRS-CALIB-FUNC-007** | System shall apply defect pixel correction in three modes selectable via configuration: (a) neighbor averaging (4-neighbor or 8-neighbor), (b) bilinear interpolation from surrounding pixels, (c) median filter from neighborhood. Output shall replace defective pixels with interpolated values. Defect detection shall use Robust Mask Maker (RMM) with lambda=8.0 for runtime detection. | Defects manifest as dead pixels (no signal), hot pixels (excessive signal), and noisy pixels. Three interpolation modes provide trade-offs between speed and quality. RMM is robust to non-Gaussian noise. | Test: Interpolation correctness |
 | **SRS-CALIB-FUNC-008** | System shall apply temperature compensation to dark current using exponential model: `I_dark_compensated(T) = I_dark(T_ref) × exp(-(E_g/2kB) × (1/T - 1/T_ref))`. Temperature input shall be from NTC thermistor sensor (0-50°C range). Compensation shall be bypassed if sensor unavailable or if |T - T_ref| ≤ 2°C (within tolerance). Reference temperature T_ref = 25°C (nominal). | Dark current doubles approximately every 6-8°C (intrinsic semiconductor physics). Temperature compensation prevents image drift between dark and clinical exposures. 2°C tolerance prevents false triggers. | Test: Exponential model accuracy, sensor integration |
 | **SRS-CALIB-FUNC-009** | System shall check calibration expiry by comparing file timestamp (expiryEpochMs from header) against current time. If `current_time_ms > expiryEpochMs`, function shall return error `XPE_ERR_CALIBRATION_EXPIRED` and halt pipeline. Expiry date field shall be loaded from calibration file header (offset 8-11, uint32, milliseconds since 2000-01-01). | Expired calibration data introduces systematic bias in corrected images. Hard block prevents clinical use of stale calibration. Expiry mechanism enables IEC 62304 traceability and regulatory compliance (21 CFR Part 11). | Test: Date comparison logic |

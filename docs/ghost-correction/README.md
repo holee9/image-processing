@@ -4,8 +4,9 @@
 **소유자**: 래그/고스팅 보정 팀  
 **의존성**: `xpe_common.dll` (Layer 0)  
 **안전 등급**: IEC 62304 Class B  
-**문서 버전**: 1.0.0  
-**날짜**: 2026-04-14  
+**문서 버전**: 2.0  
+**날짜**: 2026-04-15  
+**최종 갱신**: 2026-04-15 (5차 교차검증: 에러 코드 일관성, SIMD 최적화, 알고리즘 수식 명세)
 **규범 사양**: [ALG-SPEC-001 v3.0.0](../../.moai/specs/xpe-algorithm-spec-deepsync.md), [PRD v2.0](sw_lag_correction_prd_v2.md)
 
 ---
@@ -670,16 +671,58 @@ void xpe_ghost_destroy(void);
 
 ### 10.2 에러 코드
 
+이 모듈은 **2단계 에러 코드 시스템**을 사용합니다:
+
+**Level 1 (내부)**: `CorrectionError` — ghost/lag 보정 모듈 내부에서만 사용
+
 ```c
+/* SDD-GHOST-001 Section 9.1 정의 (전체 목록) */
 typedef enum {
-    XPE_OK                  = 0,
-    XPE_ERR_NULL_PTR        = -1,
-    XPE_ERR_CALIB_INVALID   = -2,
-    XPE_ERR_MEMORY          = -7,
-    XPE_WARN_OVERFLOW       = 1,
-    XPE_WARN_TEMPERATURE    = 2,
+    /* Fatal 에러 (파이프라인 중단, 원본 프레임 출력) */
+    CORR_ERR_NULL_PTR         = -1,   // NULL 입력 포인터
+    CORR_ERR_CALIB_CRC        = -2,   // 교정 파일 CRC32 불일치
+    CORR_ERR_CALIB_VERSION    = -3,   // 교정 파일 버전 비호환
+    CORR_ERR_MEMORY           = -4,   // 정적 버퍼 할당 실패
+    CORR_ERR_INVALID_PARAM    = -5,   // 파라미터 범위 오류
+
+    /* 성공 */
+    CORR_OK                   =  0,
+
+    /* 경고 (파이프라인 계속, result.flags 비트 설정) */
+    CORR_WARN_OVERFLOW        =  1,   // 픽셀 포화 > 0.1%
+    CORR_WARN_TEMPERATURE     =  2,   // 온도 교정 범위 초과
+    CORR_WARN_TIER_ESCALATED  =  3,   // Tier 승격 발생
+    CORR_WARN_DARK_POST_NONE  =  4,   // dark_post NULL, Tier 2 건너뜀
+    CORR_WARN_CALIB_EXPIRED   =  5,   // 교정 파일 만료 임박
 } CorrectionError;
 ```
+
+**Level 2 (외부 ABI)**: `XpeErrorCode` — C# 오케스트레이터에 반환되는 코드
+
+```c
+/* xpe_preprocess.dll ABI (SRS-CALIB-001 Section 5.4 정의) */
+typedef enum {
+    XPE_OK                      =  0,
+    XPE_ERR_NOT_INITIALIZED     = -1,   // CORR_ERR_MEMORY 매핑
+    XPE_ERR_CALIBRATION_EXPIRED = -2,   // CORR_WARN_CALIB_EXPIRED (에스컬레이션)
+    XPE_ERR_IO_FAILED           = -3,   // CORR_ERR_CALIB_CRC 매핑
+    XPE_ERR_INVALID_CALIB_DATA  = -4,   // CORR_ERR_CALIB_VERSION 매핑
+    XPE_ERR_INVALID_PARAM       = -5,   // CORR_ERR_NULL_PTR, CORR_ERR_INVALID_PARAM 매핑
+} XpeErrorCode;
+/* 경고(CORR_WARN_*): XPE_OK 반환 + XpeImageMetadata.flags 비트 설정 */
+```
+
+**에러 매핑 규칙 (CorrectionPipeline → xpe_preprocess ABI)**:
+
+| CorrectionError | XpeErrorCode | C# 동작 |
+|-----------------|-------------|---------|
+| CORR_OK | XPE_OK | 정상 처리 계속 |
+| CORR_ERR_NULL_PTR | XPE_ERR_INVALID_PARAM | 파이프라인 중단, 사용자 알림 |
+| CORR_ERR_CALIB_CRC | XPE_ERR_IO_FAILED | 교정 파일 재로드 요청 |
+| CORR_ERR_CALIB_VERSION | XPE_ERR_INVALID_CALIB_DATA | 교정 갱신 요청 |
+| CORR_ERR_MEMORY | XPE_ERR_NOT_INITIALIZED | 재초기화 요청 |
+| CORR_ERR_INVALID_PARAM | XPE_ERR_INVALID_PARAM | 설정 검토 요청 |
+| CORR_WARN_* (≥1) | XPE_OK + flags 비트 | 경고 로그, 처리 계속 |
 
 ---
 
@@ -745,8 +788,19 @@ typedef enum {
 **문서 끝**
 
 **승인**: [성명]  
-**날짜**: 2026-04-14  
-**버전**: 1.0.0 (최종)
+**날짜**: 2026-04-15  
+**버전**: 2.0 (5차 교차검증)
+
+---
+
+### v2.0 변경 내역 (2026-04-15)
+
+**SDD-GHOST-001 / SRS-GHOST-001 주요 개선 사항** (5차 교차검증 결과):
+
+- **에러 코드 시스템 정립** (SDD §9, README §10.2): `CorrectionError` 전체 목록 정의 및 `XpeErrorCode` 매핑 테이블 추가. 2단계 에러 코드 시스템 명확화
+- **Tier 3 SIMD 최적화** (SDD §3.4): ARM NEON `vld4q_s32` 기반 4-픽셀 병렬 처리 의사코드, x86 SSE4.2 대안, Watchdog Timer (450ms) 추가
+- **α(E) LUT 구조 정의** (SDD §9.3): `IrfParams` 구조체 명세로 SRS FR-203/FR-304와 일치
+- **알고리즘 수식 명세** (SRS §6): Tier 2 α 온도 보정 공식, Tier 3 상태 방정식, GCR 추정 수식, 문서 cross-reference 테이블 추가
 
 ---
 
