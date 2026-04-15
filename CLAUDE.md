@@ -564,6 +564,25 @@ Large PDFs (>10 pages) return a lightweight reference when @-mentioned. Always s
 
 ---
 
+---
+
+## 18. 하네스: XPE 이미지 처리 엔진
+
+**목표:** X-ray FPD 이미지 처리 엔진(C++ DLL) 모듈 구현, 알고리즘 최적화, Google Test, IEC 62304 문서화를 에이전트 팀으로 자동화
+
+**트리거:** XPE 모듈 구현, 알고리즘, 테스트, IEC 62304 문서 관련 요청 시 `xpe-orchestrator` 스킬을 사용하라. 단순 코드 질문은 직접 응답 가능.
+
+**에이전트:** `.claude/agents/xpe/` — architect, implementer, algorithm, qa, docs (5명)
+
+**스킬:** xpe-orchestrator(파이프라인), xpe-module-impl(C++ ABI), xpe-algorithm(Ghost/Gain/CLAHE), xpe-testing(Google Test), xpe-iec62304(IEC 문서)
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-04-15 | 초기 구성 | 전체 | XPE 하네스 신규 구축 |
+
+---
+
 Version: 14.0.0 (Agency v3.2 + Harness Design Integration)
 Last Updated: 2026-04-03
 Language: English

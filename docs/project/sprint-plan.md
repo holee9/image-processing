@@ -1,15 +1,16 @@
 ﻿# XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.4.0
-**Date**: 2026-04-14
+**Version**: 1.5.0
+**Date**: 2026-04-15
 **Source**: SPEC-XPE-MASTER v2.1.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
-**Total Sprints**: 28
+**Total Sprints**: 29
 **Changelog**:
 - v1.0.0 -> v1.1.0: cross-verification corrections, EI scope corrected, appendices expanded.
 - v1.1.0 -> v1.2.0: source references refreshed and canonical executable-unit total corrected from 43 to 42.
 - v1.2.0 -> v1.3.0: brainstorming deep-sync added implementation-first scaffolding and parity/sidecar rules.
 - v1.3.0 -> v1.4.0: cross-verification round 11 added the P0-13 benchmark manifest gate, NLCSC Tier 3 gate, and scalar-reference DoD in P1A-02.
+- v1.4.0 -> v1.5.0: GUI-First restructure — SPRINT-GUI-S0 added (sprint 0, no C++ dependency), P0-07 scoped to IXpeBackend adapter + P/Invoke only (DICOM ownership stays in Phase 1b), Gates G2/G3 upgraded to dual-gate (benchmark/task-based evidence + GUI demo), GUI verification reclassified as required demo evidence (non-blocking for C++ merge).
 
 ---
 
@@ -17,12 +18,13 @@
 
 | Phase | Sprint Count | SWU Count | Native API Count | Complexity |
 |-------|:-----------:|:---------:|:---------:|:----------:|
+| **Phase -1: GUI Skeleton** | **1** | 1 C# (mock) | 0 (stub only) | Medium |
 | Phase 0: Foundation | 7 | 7 + 1 C# | 18 | Medium-High |
 | Phase 1a: Pre-Processing | 6 | 9 | 18 | High |
 | Phase 1b: Enhancement + Display + DICOM | 8 | 13 + 1 C# | 28 (enhance_basic=7, display=11, dicom=10) | Medium-High |
 | Phase 2: Advanced + GSVG | 4 | 3 + 4 SI | 11 (enhance_advanced=3, gsvg=8) | High |
 | Phase 3: AI / Intelligence | 3 | 4 | 7 | Complex |
-| **Total** | **28** | **42** | **82** | -- |
+| **Total** | **29** | **42 + 2 C#** | **82** | -- |
 
 ---
 
@@ -34,7 +36,10 @@ The following rules are now mandatory across the sprint plan:
 2. parity and timing harnesses must exist before a stage is considered complete,
 3. ROI, diagnostics, and confidence outputs must use sidecar contracts rather than generic metadata mutation,
 4. benchmark manifests must freeze before premium tuning starts,
-5. assistive AI cannot start before deterministic fallback behavior is testable.
+5. assistive AI cannot start before deterministic fallback behavior is testable,
+6. GUI-S0 scope is fixed: Raw image viewer + settings UI + IXpeBackend mock + log/alert panel only. Real DICOM read/write is owned exclusively by xpe_dicom.dll (Phase 1b) and must not be duplicated in C# code (refs: product.md §2.1, structure.md §4.2),
+7. GUI verification is **required demo evidence** at each sprint review but is **not a C++ merge-blocking gate**. Blocking gates remain: scalar reference pass, parity test, benchmark budget, performance target, and unit test coverage. GUI and C++ blocking gates are independent,
+8. Phase 2 and Phase 3 quality gates require a **dual-gate**: (a) quantitative benchmark / task-based / observer evidence per Algorithm-Evaluation-Protocol.md §4.1 and §5.1, AND (b) GUI demo evidence. GUI Before/After alone is insufficient to pass Gate G2 or G3.
 
 These rules are intended to maximize implementation feasibility, not to slow the project down.
 
@@ -43,25 +48,26 @@ These rules are intended to maximize implementation feasibility, not to slow the
 ## Sprint Dependency Graph
 
 ```
-SPRINT-P0-01 (Build System)
+SPRINT-GUI-S0 (C# WPF Skeleton + IXpeBackend Mock)   <- no C++ dependency, starts immediately
     |
+    |   [PARALLEL] SPRINT-P0-01 (Build System)
+    |                   |
+    |               SPRINT-P0-02 (Common Types + Memory + Error)
+    |                   |
+    |                   +---> SPRINT-P0-03 (Logging Subsystem)
+    |                   |         |
+    |                   |         v
+    |                   +---> SPRINT-P0-04 (Config + Lifecycle + Param)
+    |                   |         |
+    |                   |         v
+    |                   +---> SPRINT-P0-05 (AED + Alert Subsystem)
+    |                   |
+    |               SPRINT-P0-06 (Thread Pool + Test Infra + CI)
+    |                   |
+    +-------------------+
     v
-SPRINT-P0-02 (Common Types + Memory + Error)
-    |
-    +---> SPRINT-P0-03 (Logging Subsystem)
-    |         |
-    |         v
-    +---> SPRINT-P0-04 (Config + Lifecycle + Param)
-    |         |
-    |         v
-    +---> SPRINT-P0-05 (AED + Alert Subsystem)
-    |
-    v
-SPRINT-P0-06 (Thread Pool + Test Infra + CI)
-    |
-    v
-SPRINT-P0-07 (C# GUI Scaffolding + Module Dirs + Integration)
-    |
+SPRINT-P0-07 (IXpeBackend.Real + Module Dirs + Full P/Invoke)
+    |   [GUI-S0 Mock -> Real swap happens here]
     +==========================================+
     |                                          |
     v                                          |
@@ -92,12 +98,12 @@ SPRINT-P1A-01 (CalibManager)                   |
     +---------+---------+
     |                   |
     v                   v
-  P2-ADV (2 spr)    P2-GSVG (2 spr)
+  P2-ADV (2 spr)    P2-GSVG (2 spr)   [DUAL GATE: benchmark + GUI demo]
     |                   |
     +-------------------+
               |
               v
-         P3-AI (3 spr)
+         P3-AI (3 spr)                         [DUAL GATE: task-based evidence + GUI demo]
 ```
 
 ---
@@ -139,6 +145,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 ### Gate G2 -> G3 (Phase 2 Complete)
 
+**Quantitative gates (blocking — must pass before merge to main):**
 - [ ] GSVG: Grid artifact visually imperceptible, MTF degradation <= 5%
 - [ ] Virtual Grid: CNR >= 90% vs 6:1 physical grid
 - [ ] EI ROI refinement operational with collimation ROI
@@ -146,13 +153,90 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] Phase 2 peak memory <= 440MB
 - [ ] Unit test coverage >= 85%
 
+**Dual-gate: task-based / observer evidence (blocking — per Algorithm-Evaluation-Protocol.md §4.1):**
+- [ ] Virtual Grid: observer or expert review completed (anatomy preservation confirmed)
+- [ ] Virtual Grid: objective image-quality score measured and documented
+- [ ] Virtual Grid: anatomy-specific artifact review (no promotable degradation)
+- [ ] Virtual Grid: parameter-sensitivity sweep completed (default settings are not brittle)
+
+**Required demo evidence (non-blocking for C++ merge, required for sprint review sign-off):**
+- [ ] GUI Before/After comparison shown for grid suppression and virtual grid
+
 ### Gate G3 (Phase 3 Complete)
 
+**Quantitative gates (blocking — must pass before merge to main):**
 - [ ] AI worker process isolation (crash does not take down host)
 - [ ] Body Part Recognition >= 15 categories, >= 95% accuracy
 - [ ] Bone Suppression PSNR >= 33dB, SSIM >= 0.97
 - [ ] Deterministic fallback path works when AI unavailable
 - [ ] Phase 3 total <= 3000ms, peak memory <= 740MB
+
+**Dual-gate: task-based / observer evidence (blocking — per Algorithm-Evaluation-Protocol.md §5.1):**
+- [ ] Bone Suppression: task-based detectability figure of merit documented
+- [ ] Bone Suppression: observer / expert review confirms anatomy preservation
+- [ ] Bone Suppression: sensitivity to parameter sweep completed
+- [ ] Bone Suppression: baseline-versus-assisted comparison documented (no information hiding)
+- [ ] DL Denoise: task-based detectability figure of merit documented (if clinical-use intent)
+- [ ] DL Denoise: observer / expert review confirms anatomy preservation
+- [ ] Degraded-mode proof: all Phase 3 features gracefully degrade when AI models absent
+
+**Required demo evidence (non-blocking for C++ merge, required for sprint review sign-off):**
+- [ ] GUI Before/After shown for bone suppression and DL denoise
+
+---
+
+## Phase -1: GUI Skeleton
+
+---
+
+### SPRINT-GUI-S0: C# WPF Test Application Skeleton + IXpeBackend Mock
+
+**Sprint ID**: SPRINT-GUI-S0
+**Sprint Goal**: Create the standalone C# WPF test application with IXpeBackend adapter interface and MockXpeBackend implementation. No C++ DLL required. Runs fully from sprint day one.
+**SWU Scope**: SWU-5.7 (PipelineOrchestrator — stub scaffolding only)
+**API Functions**: None (mock interface; real P/Invoke connected in SPRINT-P0-07)
+**Dependencies**: None (independent of all C++ sprints — first sprint overall)
+**Estimated Complexity**: Medium
+
+**Scope Boundary [HARD]**:
+- INCLUDED: Raw binary image loading (`.raw` only), stub metadata display, calibration path settings UI, log panel, alert panel, IXpeBackend mock
+- EXCLUDED: Real DICOM file loading or writing — DICOM I/O is owned exclusively by `xpe_dicom.dll` (SPRINT-P1B-DICOM-01). No C# DICOM logic here.
+
+**Acceptance Criteria**:
+1. `ImageProcTest.csproj` targets .NET 8, WPF framework, x64 platform
+2. `IXpeBackend` interface declared in `src/gui/backend/IXpeBackend.cs` with methods: `Initialize()`, `GetVersion()`, `LoadRawImage(path, out width, out height)`, `GetAlertCount()`, `GetAlert(index)`
+3. `MockXpeBackend : IXpeBackend` returns deterministic synthetic data for all methods
+4. Application startup: detects `xpe_common.dll` presence; if absent, activates `MockXpeBackend` automatically (hot-swap preparation)
+5. Main window shows: image canvas (WriteableBitmap), status bar with backend version, log panel, alert panel
+6. "Load Raw Image" button: opens `OpenFileDialog` filter `*.raw` only (no `*.dcm`) and displays uint16 image as normalized grayscale
+7. "Calibration Path Settings" dialog: 3 path fields (Offset dir, Gain dir, Defect dir) with `FolderBrowserDialog` buttons
+8. Paths persist to `appsettings.json` keys: `lastRawDir`, `calibOffsetDir`, `calibGainDir`, `calibDefectDir`
+9. Log panel: displays timestamped messages from active `IXpeBackend` implementation
+10. Alert panel: displays alerts with severity color coding (INFO=gray, WARN=yellow, ERROR=red)
+
+**Test Cases**:
+1. Launch with no DLLs present → window opens, MockXpeBackend activates, status bar shows "v0.0.0-mock"
+2. Load `test_data/synthetic_1024x1024.raw` (uint16 generated by test script) → image renders in canvas
+3. Open Calibration Settings, set 3 paths, Save → `appsettings.json` updated with all 4 keys
+4. Relaunch app → calibration path fields pre-populated from persisted `appsettings.json`
+5. Log panel: MockXpeBackend emits 5 log lines → all 5 displayed with `[HH:MM:SS.mmm]` format
+6. Alert panel: MockXpeBackend queues 3 alerts (1 INFO, 1 WARN, 1 ERROR) → color coding correct
+7. `IXpeBackend.GetVersion()` on MockXpeBackend → returns non-empty string (no exception)
+
+**Definition of Done**:
+- [ ] `IXpeBackend` interface and `MockXpeBackend` in `src/gui/backend/`
+- [ ] Application launches with zero unhandled exceptions on clean machine (no C++ DLLs)
+- [ ] All 7 test cases pass (manual checklist or C# UI automation)
+- [ ] Raw image display: uint16 → normalized [0,255] grayscale renders correctly for 3072×3072
+- [ ] `appsettings.json` schema documented with all 4 keys
+- [ ] **No DICOM code**: no references to DCMTK, DicomFile, or `.dcm` parsing in C# project
+
+**GUI Demo Evidence** (non-blocking — required at sprint review):
+- [ ] Live demo: launch app, load raw image, open calibration settings, show log/alert panels
+
+**Risk Items**:
+- WriteableBitmap performance for 3072×3072: use pixel-stride copy, avoid per-pixel loops
+- appsettings.json read/write on WPF startup: use UI dispatcher, single writer
 
 ---
 
@@ -396,65 +480,52 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 ---
 
-### SPRINT-P0-07: C# GUI Scaffolding, Module Directories, and Integration Test
+### SPRINT-P0-07: RealXpeBackend Adapter + Module Directories + Full P/Invoke Integration
 
 **Sprint ID**: SPRINT-P0-07
-**Sprint Goal**: Create the C# WPF project, scaffold all module directories, establish xpe_common_api.h header, and validate P/Invoke integration.
-**SWU Scope**: SWU-5.7 (PipelineOrchestrator scaffolding)
+**Sprint Goal**: Implement `RealXpeBackend : IXpeBackend` backed by real `xpe_common.dll` P/Invoke calls, establish `xpe_common_api.h` header, scaffold all module directories, and validate all 18 P/Invoke signatures. This sprint connects GUI-S0's mock layer to the live DLL.
+**SWU Scope**: SWU-5.7 (PipelineOrchestrator — real backend integration)
 **API Functions**: All 18 xpe_common APIs via P/Invoke
-**Dependencies**: SPRINT-P0-05, SPRINT-P0-06 (all xpe_common.dll functionality complete)
+**Dependencies**: SPRINT-GUI-S0 (IXpeBackend interface defined), SPRINT-P0-05, SPRINT-P0-06 (xpe_common.dll complete)
 **Estimated Complexity**: Medium
 
 **Acceptance Criteria**:
-1. `ImageProcTest.csproj` targets .NET 8, WPF framework, x64 platform
-2. P/Invoke wrapper class declares all 18 xpe_common.dll functions
-3. C# can call `xpe_init(null)`, `xpe_version()`, `xpe_alloc_image(...)`, `xpe_free_image(...)` successfully
-4. All 9 module directories created: `modules/preprocess/`, `modules/enhance_basic/`, `modules/enhance_advanced/`, `modules/display/`, `modules/dicom/`, `modules/ai/`, `modules/gsvg/`, `modules/common/`, `tests/`
-5. Each module directory has a stub `CMakeLists.txt` with correct target name
-6. `xpe_common_api.h` includes or forward-declares all 18 API functions
-7. `dumpbin /exports xpe_common.dll` shows exactly 18 exported symbols
-8. **Image Path Management (NEW for Production Integration)**:
-   - GUI includes "Load Raw Image" button that opens `OpenFileDialog` (`*.raw`, `*.dcm`)
-   - GUI includes "Load DICOM" button that opens `OpenFileDialog` (`*.dcm`)
-   - GUI includes "Calibration Path Settings" UI that lets the user set directories for offset, gain, and defect files
-   - GUI persists last used directories to `appsettings.json` (e.g., `"lastImageDir": "C:\\data\\images"`)
-   - P/Invoke wrapper includes `xpe_calibration_path_t` context to manage paths (offset, gain, defect map directories)
+1. `RealXpeBackend : IXpeBackend` implemented in `src/gui/backend/RealXpeBackend.cs` using P/Invoke to xpe_common.dll
+2. Application startup hot-swap: when `xpe_common.dll` is present, `RealXpeBackend` activates automatically; when absent, `MockXpeBackend` remains active (no code change required)
+3. P/Invoke wrapper class (`XpeNative.cs`) declares all 18 xpe_common.dll functions with correct `DllImport` and `MarshalAs` attributes
+4. C# can call `xpe_init(null)`, `xpe_version()`, `xpe_alloc_image(...)`, `xpe_free_image(...)` successfully via `RealXpeBackend`
+5. Status bar shows real `xpe_version()` string from DLL when `RealXpeBackend` is active
+6. All 9 module directories created: `modules/preprocess/`, `modules/enhance_basic/`, `modules/enhance_advanced/`, `modules/display/`, `modules/dicom/`, `modules/ai/`, `modules/gsvg/`, `modules/common/`, `tests/`
+7. Each module directory has a stub `CMakeLists.txt` with correct target name
+8. `xpe_common_api.h` includes all 18 API functions and compiles as standalone header
+9. `dumpbin /exports xpe_common.dll` shows exactly 18 exported symbols
 
 **Test Cases**:
-1. Run ImageProcTest.exe -> window opens -> status bar shows XPE version from `xpe_version()`
-2. P/Invoke: `xpe_alloc_image(1024, 1024, XPE_PIXEL_UINT16, out buf)` -> `XPE_OK`, `buf.dataSize == 2097152`
-3. P/Invoke: `xpe_init(null)` then `xpe_shutdown()` -> no crash, no leak
-4. P/Invoke: `xpe_log_set_level(2)` -> `XPE_OK`
-5. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
-6. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 AED)
-7. **(NEW) File Dialog Tests**:
-   - Click "Load Raw Image" and verify that `OpenFileDialog` opens with the filter `Raw Image (*.raw)|*.raw|DICOM (*.dcm)|*.dcm`
-   - Select `test_data/test_image.raw` and verify that the path is stored in `appsettings.json` as `lastImageDir`
-   - Close and relaunch `ImageProcTest`; the default "Load Raw Image" folder should be the previously selected directory, verified through `OpenFileDialog.InitialDirectory`
-8. **(NEW) Calibration Path Settings**:
-   - Click the "Settings" menu and open the "Calibration Path Configuration" dialog
-   - UI shows 3 path fields: "Offset/Dark Calib Dir", "Gain/Flat-field Calib Dir", "Defect Map Calib Dir"
-   - Browse buttons for each field and verify that `FolderBrowserDialog` opens
-   - Save and verify that paths persist to `appsettings.json` as `"calibOffsetDir"`, `"calibGainDir"`, and `"calibDefectDir"`
-   - Verify paths are not empty strings (reject empty paths)
+1. Launch with `xpe_common.dll` present → status bar shows real version string (matches `xpe_version()` output, format `X.Y.Z`)
+2. Launch without `xpe_common.dll` → MockXpeBackend activates, status bar shows "v0.0.0-mock" (no crash)
+3. P/Invoke: `xpe_alloc_image(1024, 1024, XPE_PIXEL_UINT16, out buf)` → `XPE_OK`, `buf.dataSize == 2097152`
+4. P/Invoke: `xpe_init(null)` then `xpe_shutdown()` → no crash, no leak
+5. P/Invoke: `xpe_log_set_level(2)` → `XPE_OK`; log panel shows DLL log output
+6. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
+7. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 AED)
+8. `Marshal.SizeOf<XpeImageBuffer>()` == 40; `Marshal.SizeOf<XpeImageMetadata>()` == 96
 
 **Definition of Done**:
-- [ ] ImageProcTest.exe launches and loads xpe_common.dll
-- [ ] All 18 P/Invoke signatures verified (marshal attributes correct)
-- [ ] XpeImageBuffer C# struct size == 40 bytes (verified via Marshal.SizeOf)
-- [ ] XpeImageMetadata C# struct size == 96 bytes
+- [ ] `RealXpeBackend` in `src/gui/backend/RealXpeBackend.cs` connects to live DLL
+- [ ] IXpeBackend hot-swap verified: mock active without DLL, real active with DLL
+- [ ] All 18 P/Invoke signatures verified (`marshal attributes correct`)
+- [ ] `XpeImageBuffer` C# struct size == 40 bytes (Marshal.SizeOf)
+- [ ] `XpeImageMetadata` C# struct size == 96 bytes
 - [ ] All 9 module directories scaffolded
-- [ ] xpe_common_api.h is complete and compiles as standalone header
+- [ ] `xpe_common_api.h` is complete and compiles as standalone header
 - [ ] Phase 0 gate checklist 100% complete
 - [ ] **Benchmark manifest schema defined** (`data/benchmark/schema/manifest_schema.json` present, with required `BP-01` through `BP-10` family identifiers and mandatory fields)
-- [ ] **Image Path Management UI Complete**:
-  - [ ] "Load Raw Image" and "Load DICOM" file dialogs functional
-  - [ ] "Calibration Path Settings" dialog with 3 path browse buttons
-  - [ ] `appsettings.json` created with schema for `lastImageDir`, `calibOffsetDir`, `calibGainDir`, `calibDefectDir`
-  - [ ] Path persistence verified: relaunch and check `OpenFileDialog.InitialDirectory`
+
+**GUI Demo Evidence** (non-blocking — required at sprint review):
+- [ ] Live demo: launch with DLL → real version in status bar; remove DLL → mock fallback activates
 
 **Risk Items**:
-- P/Invoke struct alignment may differ between Debug/Release builds
+- P/Invoke struct alignment may differ between Debug/Release builds (mitigate: test with Marshal.SizeOf in both configurations)
 - WPF on .NET 8 requires Windows Desktop SDK
 
 ---
@@ -1272,13 +1343,14 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 | Sprint ID | Phase | SWU | API Count | Complexity | Dependencies |
 |-----------|:-----:|-----|:---------:|:----------:|:------------:|
+| **SPRINT-GUI-S0** | **-1** | **5.7 (stub)** | **0 (mock)** | **Medium** | **None** |
 | SPRINT-P0-01 | 0 | -- | 0 | Medium | None |
 | SPRINT-P0-02 | 0 | 5.1, 5.3, 5.5 | 5 | Medium | P0-01 |
 | SPRINT-P0-03 | 0 | 5.4 | 3 | Simple | P0-02 |
 | SPRINT-P0-04 | 0 | 5.6 | 4 | Medium | P0-02, P0-03 |
 | SPRINT-P0-05 | 0 | 5.8 | 6 | Medium | P0-04 |
 | SPRINT-P0-06 | 0 | 5.2 | 0 | Medium | P0-04 |
-| SPRINT-P0-07 | 0 | 5.7 | 18 (P/Invoke) | Medium | P0-05, P0-06 |
+| SPRINT-P0-07 | 0 | 5.7 (real) | 18 (P/Invoke) | Medium | GUI-S0, P0-05, P0-06 |
 | SPRINT-P1A-01 | 1a | 1.5 | 6 | Medium | P0-07 |
 | SPRINT-P1A-02 | 1a | 1.1, 1.2 | 2 | Medium | P1A-01 |
 | SPRINT-P1A-03 | 1a | 1.6-1.9 | 4 | Medium | P1A-02 |
