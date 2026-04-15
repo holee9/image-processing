@@ -55,7 +55,9 @@ image-processing/
 |-- gsvg/
 |-- gui/
 |   |-- ImageProcTest/
-|   `-- ImageProcTest.Tests/
+|   |   `-- fixtures/
+|   |-- ImageProcTest.SelfCheck/
+|   `-- ImageProcTest.E2E/
 |-- tests/
 |   |-- common_smoke/
 |   |-- unit/

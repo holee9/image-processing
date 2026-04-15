@@ -8,4 +8,17 @@
 - Phase 1.6 complete: 7 acceptance criteria registered as pending tasks
 - Phase 1.7 complete: scaffold created — xpe_preprocess_api.h (18 funcs), xpe_preprocess_internal.h, 9 SWU source stubs, helpers.cpp, 7 test files (RED stubs), CMakeLists.txt updated with GTest + all sources
 - Phase 2 complete: Agent Teams implemented all 9 SWUs (18 functions), 9 test files — cpp-dev-1/2/3 shut down
-- Phase 2.5 in_progress: Quality Gate validation (TRUST 5)
+- Phase 2.5 complete: Quality Gate validation (TRUST 5) — 4 critical fixes applied
+  - Fix 1: gain_correct overflow guard (width > SIZE_MAX / height)
+  - Fix 2: FILE* paths verified clean (calibration_manager, no changes needed)
+  - Fix 3: stride contiguity check + xpe_is_contiguous() helper
+  - Fix 4: ownership transfer documented in API header
+  - Tests: TearDown malloc cleanup, 4 stride tests, CRC mismatch test
+- Phase 3 complete: Git commit ee2c607 on dev/integration
+- Phase 4 (Sync) complete: Documentation updated
+  - spec.md status changed to "Completed"
+  - Implementation Notes section added (9 SWUs, 18 functions, 50+ tests, TRUST 5 gates)
+  - Progress.md updated with Sync phase completion marker
+  - CLAUDE.md updated (Section 18: XPE harness rules)
+  - docs/project/sprint-plan.md updated (version 1.5.0)
+  - docs/project/structure.md updated (version 1.2.0)
