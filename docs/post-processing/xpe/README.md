@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.2.0  
+**Package Version**: 1.3.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -50,7 +50,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | SAD-001 | [XPE-SAD-001_Software_Architecture_Document.md](XPE-SAD-001_Software_Architecture_Document.md) | 5.3 |
 | SDD-001 | [XPE-SDD-001_Software_Unit_Identification.md](XPE-SDD-001_Software_Unit_Identification.md) | 5.4 |
 | SDD-002 | [XPE-SDD-002_Software_Detailed_Design.md](XPE-SDD-002_Software_Detailed_Design.md) | 5.4 |
-| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |
+| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.4 |
 | ITP-001 | [XPE-ITP-001_Integration_Test_Plan.md](XPE-ITP-001_Integration_Test_Plan.md) | 5.6 |
 | STP-001 | [XPE-STP-001_Software_Test_Plan_and_Cases.md](XPE-STP-001_Software_Test_Plan_and_Cases.md) | 5.5 |
 | VVP-001 | [XPE-VVP-001_Verification_Validation_Plan.md](XPE-VVP-001_Verification_Validation_Plan.md) | 5.7 |
@@ -76,7 +76,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백 (v1.3 기준 — 총 40건)
+### 4.1 해소된 알고리즘 공백 (v1.4 기준 — 총 50건)
 
 **v1.0 Round 1 (GAP-01~10):**
 
@@ -138,6 +138,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §9.8 | Multi-Frame Sigma-Clipping 교정 (Python NumPy, κ=3.0) | GAP-AG |
 | §15 | Error Code Taxonomy (32개 코드, xpe_error_string, C# 핸들러) | GAP-AH |
 
+**v1.4 Round 5 (GAP-AI~AR):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §3.4.6 | Real-Time GCR Estimator (슬라이딩 윈도우 EMA, 0.2% 임계값) | GAP-AI |
+| §3.4.7 | NLCSC State Machine (비선형 전하 누적 4차 다항식, kVp 의존) | GAP-AJ |
+| §3.3.5 | Dose-Dependent Dynamic Defect Detection (4선량 z-score, R²) | GAP-AM |
+| §3.11 | Row/Column FPN Correction (3패스 반복, AVX2 중앙값) | GAP-AK |
+| §4.8 | Wavelet BayesShrink Denoising (db4 3레벨, MAD σ_n) | GAP-AP |
+| §5.4 | Scatter SPR Boone-Seibert Model (Beer-Lambert 두께 역산) | GAP-AO |
+| §9.9 | Multi-Exponential Lag Parameter Fitting (LM 최소제곱, Python) | GAP-AN |
+| §12.9 | Allan Variance Stability Characterization (잡음 유형 분류) | GAP-AL |
+| §16 | Dual-Energy Subtraction (위상 상관 모션 보정, 로그 차감) | GAP-AQ |
+| §17 | DICOM IOD Conformance Validation (Type 1/2/3 + 픽셀 수치) | GAP-AR |
+
 ### 4.2 문서 관계
 
 ```
@@ -194,6 +209,16 @@ XPE-STP-001 (테스트 계획)
 | Auto CNR Assessment | SRS-MEAS-003 | xpe_enhance_advanced.dll |
 | Auto Window/Level (Anatomy) | SRS-FUNC-021b | xpe_display.dll |
 | Error Code Taxonomy | SRS-ERR-001 | xpe_common.dll |
+| GCR Estimator | SRS-FUNC-004 ext | xpe_preprocess.dll |
+| NLCSC State Machine | SRS-FUNC-004 ext | xpe_preprocess.dll |
+| Row/Column FPN Correction | SRS-FUNC-001 ext | xpe_preprocess.dll |
+| Allan Variance Stability | SRS-QC-002 ext | (offline, Python) |
+| Dose-Dependent Defect Detection | SRS-FUNC-003 ext | (offline, Python) |
+| Multi-Exponential Lag Fitting | SRS-FUNC-004 | (offline, Python) |
+| Scatter SPR Model | SRS-FUNC-008 | xpe_gsvg.dll |
+| Wavelet BayesShrink Denoising | SRS-FUNC-011b | xpe_enhance_advanced.dll |
+| Dual-Energy Subtraction | SRS-FUNC-019 | xpe_enhance_advanced.dll |
+| DICOM IOD Conformance Validation | SRS-DICOM-001 | xpe_dicom.dll |
 
 ---
 
@@ -237,6 +262,7 @@ XPE-STP-001 (테스트 계획)
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 1.3.0 | XPE-ALG-001 v1.4 반영. Round 5 GAP-AI~AR 해소 반영 (10건). §16 DES, §17 DICOM IOD 신설. 알고리즘 빠른 참조 테이블 확장 (50건). SRS ID 추가 (SRS-FUNC-019, SRS-DICOM-001, SRS-FUNC-001/003/004/008/011b ext, SRS-QC-002 ext 등). |
 | 2026-04-15 | 1.2.0 | XPE-ALG-001 v1.3 반영. Round 4 GAP-Y~AH 해소 반영 (10건). §14 Fluoroscopy IIR, §15 Error Code Taxonomy 신설. 알고리즘 빠른 참조 테이블 확장 (40건). SRS ID 추가 (SRS-FLUORO-001, SRS-PERF-001/002, SRS-MEAS-003, SRS-ERR-001 등). |
 | 2026-04-15 | 1.1.0 | XPE-ALG-001 v1.2 반영. Round 3 GAP-O~X 해소 반영. 알고리즘 빠른 참조 테이블 확장 (30건). SRS ID 추가 (SRS-FUNC-002b, SRS-QC-002/003, SRS-AI-001/002, SRS-MEAS-002, SRS-TEST-001 등). |
 | 2026-04-15 | 1.0.0 | 신규 생성. XPE-ALG-001 v1.1 통합 반영. 23개 문서 목록 완성. |

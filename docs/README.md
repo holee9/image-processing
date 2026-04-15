@@ -114,7 +114,7 @@
 | 5.6 | Integration Test Plan | [XPE-ITP-001](post-processing/xpe/XPE-ITP-001_Integration_Test_Plan.md) | ITP-001 |
 | 5.4 | Unified Algorithm Spec | [XPE-ALG-001](post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md) | ALG-001 |
 
-> **XPE-ALG-001 v1.3** (IEC 62304 §5.4 Detailed Design): 4 라운드 40회 Review-Evaluate-Fix를 통해 40개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X, GAP-Y~AH) 전부 해소. v1.3 신규 항목: Fluoroscopy IIR 필터(§14), Beam Hardening 보정(§3.9), Geometric 왜곡 보정(§3.10), Binning 모드 교정(§9.7), Memory Arena 아키텍처(§10.7), Multi-Channel Thread Safety(§10.8), Auto CNR Assessment(§12.8), Auto W/L(§6.4), Sigma-Clipping 교정(§9.8), Error Code Taxonomy(§15). 총 7,563줄.
+> **XPE-ALG-001 v1.4** (IEC 62304 §5.4 Detailed Design): 5 라운드 50회 Review-Evaluate-Fix를 통해 50개 알고리즘 공백(GAP-01~10, GAP-D~N, GAP-O~X, GAP-Y~AH, GAP-AI~AR) 전부 해소. v1.4 신규(교차검증 발굴): GCR Estimator(§3.4.6), NLCSC State Machine(§3.4.7), 선량의존 결함(§3.3.5), FPN Row/Col(§3.11), Wavelet BayesShrink(§4.8), Scatter SPR Boone-Seibert(§5.4), Lag LM피팅(§9.9), Allan Variance(§12.9), DES(§16), DICOM IOD 검증(§17). 총 9,280줄.
 
 ### 3.2 GSVG (Grid Suppression Virtual Grid) — 13개 문서
 
