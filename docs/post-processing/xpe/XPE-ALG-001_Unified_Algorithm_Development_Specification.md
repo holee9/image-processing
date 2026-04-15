@@ -1,11 +1,11 @@
 # XPE 통합 알고리즘 개발 명세서
 
-**Document ID:** XPE-ALG-001 v1.4  
+**Document ID:** XPE-ALG-001 v1.5  
 **IEC 62304 Clause:** 5.4 (Software Detailed Design)  
 **Safety Classification:** Class B  
 **Date:** 2026-04-15  
 **Author:** XPE Development Team  
-**Review Cycles:** 50회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 Review-Evaluate-Fix 반복 완료)  
+**Review Cycles:** 60회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 + v1.5: 10회 Review-Evaluate-Fix 반복 완료)  
 **Approval:** __________________ Date: __________  
 
 ---
@@ -68,6 +68,16 @@
 | GAP-AP | Wavelet 다중 스케일 적응형 노이즈 제거(BayesShrink) 미명세 | §4.8 | v1.4 |
 | GAP-AQ | 이중 에너지 차감(DES) 분해 알고리즘 미명세 | §16 | v1.4 |
 | GAP-AR | DICOM IOD 적합성 검증 파이프라인 미명세 | §17 | v1.4 |
+| GAP-AS | 지각적 화질 품질 지표 (PSNR/SSIM/MS-SSIM/FSIM) 미명세 | §18 | v1.5 |
+| GAP-AT | 온도 보상 이득 보정 (a-Si:H TFT 온도 계수) 미명세 | §3.12 | v1.5 |
+| GAP-AU | 2D FFT 노치 필터 (주기적 구조 잡음 제거) 미명세 | §3.13 | v1.5 |
+| GAP-AV | AEC 피드백 루프 (EI/DI → kVp/mAs 조정) 미명세 | §9.10 | v1.5 |
+| GAP-AW | 교정 통계적 공정 관리 (Shewhart/CUSUM SPC) 미명세 | §9.11 | v1.5 |
+| GAP-AX | 서브픽셀 영상 정합 (ECC 알고리즘, DSA용) 미명세 | §14.2 | v1.5 |
+| GAP-AY | 신호 의존 양자 잡음 모델 (Poisson+Gaussian, Anscombe) 미명세 | §11.5 | v1.5 |
+| GAP-AZ | 무아레 아티팩트 검출 및 방향성 대역 제거 미명세 | §5.5 | v1.5 |
+| GAP-BA | DICOM 구조화 보고서 (SR, TID 1500/4100) CAD 소견 출력 미명세 | §17.2 | v1.5 |
+| GAP-BB | IEC 61223-3-5 인수 시험 자동화 (T1~T6) 미명세 | §12.10 | v1.5 |
 
 ---
 
@@ -125,6 +135,16 @@
     - [§12.9 Allan Variance Stability Characterization ★GAP-AL](#129-swu-129-allan-variance-stability-characterization-gap-al-해소)
 16. [Dual-Energy Subtraction (DES) Algorithm ★GAP-AQ](#16-dual-energy-subtraction-des-algorithm-gap-aq-해소)
 17. [DICOM IOD Conformance Validation ★GAP-AR](#17-dicom-iod-conformance-validation-gap-ar-해소)
+18. [지각적 화질 품질 지표 (IQM) ★GAP-AS](#18-지각적-화질-품질-지표-perceptual-iqm-gap-as-해소)
+    - [§3.12 온도 보상 이득 보정 ★GAP-AT](#312-swu-112-온도-보상-이득-보정-temperature-compensated-gain-correction-gap-at-해소)
+    - [§3.13 2D FFT 노치 필터 ★GAP-AU](#313-swu-113-주기적-구조-노이즈-제거-2d-fft-notch-filter-gap-au-해소)
+    - [§9.10 AEC 피드백 루프 ★GAP-AV](#910-swu-910-aec-피드백-루프-eidi--kvpmas-조정-gap-av-해소)
+    - [§9.11 SPC 교정 관리 ★GAP-AW](#911-swu-911-교정-통계적-공정-관리-spc-gap-aw-해소)
+    - [§14.2 서브픽셀 영상 정합 (ECC) ★GAP-AX](#142-swu-142-서브픽셀-영상-정합-ecc-알고리즘-gap-ax-해소)
+    - [§11.5 양자 잡음 모델 ★GAP-AY](#115-swu-115-신호-의존-양자-잡음-모델-poissongaussian-gap-ay-해소)
+    - [§5.5 무아레 아티팩트 제거 ★GAP-AZ](#55-swu-55-무아레-아티팩트-검출-및-제거-gap-az-해소)
+    - [§17.2 DICOM SR CAD 소견 ★GAP-BA](#172-swu-172-dicom-구조화-보고서-sr--cad-소견-출력-gap-ba-해소)
+    - [§12.10 IEC 61223 인수 시험 ★GAP-BB](#1210-swu-1210-iec-61223-인수-시험-자동화-gap-bb-해소)
 - [부록 A: 수학 공식 일람](#부록-a-수학-공식-일람)
 - [부록 B: 표준 참조 테이블](#부록-b-표준-참조-테이블)
 - [부록 C: 알고리즘-요구사항 추적성](#부록-c-알고리즘-요구사항-추적성)
@@ -156,6 +176,18 @@
 | `DI` | Deviation Index | dB |
 | `W(u,v)` | Window function (Hanning) | dimensionless |
 | `ε` | Numerical floor (= 1×10⁻⁶) | ADU or OD |
+| `α_T` | Gain temperature coefficient (a-Si:H TFT) | 1/°C |
+| `T_ref` | Calibration reference temperature | °C |
+| `f_moire` | Moiré artifact spatial frequency | lp/mm |
+| `f_grid` | Anti-scatter grid line frequency | lp/mm |
+| `S+_t` | CUSUM upper cumulative sum | dimensionless |
+| `S-_t` | CUSUM lower cumulative sum | dimensionless |
+| `σ_total(x,y)` | Signal-dependent total noise map | ADU |
+| `PSNR` | Peak Signal-to-Noise Ratio | dB |
+| `SSIM` | Structural Similarity Index | dimensionless |
+| `MS-SSIM` | Multi-Scale SSIM | dimensionless |
+| `FSIM` | Feature Similarity Index | dimensionless |
+| `PC_m(x)` | Phase Congruency mask (FSIM) | dimensionless |
 
 ### 1.2 좌표 규약
 
@@ -9124,6 +9156,705 @@ int XpeDicomWriter::write(DcmDataset* dataset,
 
 ---
 
+### 3.12 SWU-1.12 온도 보상 이득 보정 (Temperature-Compensated Gain Correction) ★GAP-AT 해소
+
+**SRS ID**: SRS-FUNC-002d | **SWU**: SWU-1.12 | **IEC 62304 §**: 5.4.2
+
+#### 3.12.1 배경
+
+a-Si:H FPD의 TFT 누설 전류는 온도에 비례하여 이득(Gain)이 변화한다. 교정 시점(T_calib)과 촬영 시점(T_current) 사이의 온도 차이가 5°C를 초과하면 이득 오차가 임상적으로 유의미해진다.
+
+#### 3.12.2 온도 이득 모델
+
+$$G(x,y,T) = G(x,y,T_{\text{ref}}) \cdot \left(1 + \alpha_T \cdot (T - T_{\text{ref}})\right)$$
+
+파라미터:
+- α_T: 온도 계수 ≈ 0.0015/°C (a-Si:H TFT 표준값)
+- T_ref: 교정 기준 온도 (보통 25°C)
+- T_current: 현재 보드 온도 (센서 또는 DICOM (0018,1164) 태그)
+- 유효 범위: 15–35°C (IEC 60601-1 운영 환경)
+
+#### 3.12.3 런타임 보정 알고리즘
+
+```cpp
+float scale_T = 1.0f + alpha_T * (T_current - T_calib);
+// scale_T 범위 클램프: [0.90, 1.10]
+scale_T = std::clamp(scale_T, 0.90f, 1.10f);
+
+for (int i = 0; i < N_pixels; i++) {
+    gain_map_runtime[i] = gain_map_calib[i] * scale_T;
+}
+```
+
+활성화 조건: |T_current − T_calib| > ΔT_threshold (기본값: 5°C)
+
+#### 3.12.4 교정 세션 온도 기록
+
+교정 세션 잠금 시(§2.4) `calib_manifest.json`에 온도 기록:
+
+```json
+{
+  "session_id": "CALIB-20260415-001",
+  "T_calib_celsius": 24.3,
+  "alpha_T": 0.0015
+}
+```
+
+#### 3.12.5 검증 기준
+
+| 조건 | 허용 오차 |
+|------|---------|
+| ΔT = 5°C 적용 | 균일성 PRNU CV < 0.5% |
+| ΔT = 10°C 적용 | 균일성 PRNU CV < 1.0% |
+| scale_T 계산 정확도 | ± 0.0001 (단정밀도 기준) |
+
+#### 3.12.6 DLL 할당
+
+`xpe_preprocess.dll` — 이득 보정 파이프라인(§3.2) 내 통합
+
+#### 3.12.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-002d |
+| **SWU** | SWU-1.12 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 온도 시뮬레이션 (ΔT = 5, 10°C); PRNU CV 측정; scale_T 수식 단위 테스트 |
+| **안전 분류** | Class B |
+
+---
+
+### 3.13 SWU-1.13 주기적 구조 노이즈 제거 (2D FFT Notch Filter) ★GAP-AU 해소
+
+**SRS ID**: SRS-FUNC-001c | **SWU**: SWU-1.13 | **IEC 62304 §**: 5.4.2
+
+#### 3.13.1 배경
+
+행/열 FPN(§3.11)은 1D 고정 패턴을 처리하지만, 스위칭 전원, 모터 드라이브, 그리드 공명에 의한 2D 주기 간섭 패턴(주파수 도메인 스파이크)은 별도의 노치 필터가 필요하다.
+
+#### 3.13.2 알고리즘
+
+```cpp
+// 1. 2D DFT
+FFT2D(I_fpn_corrected) → F(u,v)   // Intel MKL fftwf_plan
+
+// 2. 전력 스펙트럼
+P(u,v) = |F(u,v)|²
+
+// 3. 피크 검출 (DC/Nyquist 제외)
+threshold = mean_P + 5.0f * std_P;
+peaks = detect_peaks(P, threshold, exclude_dc=true, exclude_nyquist=true);
+
+// 4. Gaussian 노치 필터 생성
+for each peak (u0, v0):
+    N(u,v) *= 1.0f - expf(-((u-u0)² + (v-v0)²) / (2 * D_notch²));
+// D_notch = 3 pixels (주파수 도메인)
+
+// 5. 적용 및 역변환
+F_notch = F * N;
+I_clean = IFFT2D(F_notch);  // 실수부만 취함
+```
+
+#### 3.13.3 파라미터
+
+| 파라미터 | 기본값 | 설명 |
+|---------|-------|------|
+| D_notch | 3 pixels | 노치 대역폭 (주파수 도메인) |
+| threshold_sigma | 5.0 | 피크 검출 임계값 (σ 배수) |
+| max_notches | 8 | 최대 노치 수 |
+
+#### 3.13.4 성능
+
+| 항목 | 값 |
+|------|---|
+| 처리 시간 | < 2 ms/3Kx3K (Intel MKL FFT) |
+| 메모리 오버헤드 | 2 × float32 이미지 크기 (FFT 버퍼) |
+
+#### 3.13.5 DLL 할당
+
+`xpe_preprocess.dll` — FPN 보정(§3.11) 이후 단계
+
+#### 3.13.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-001c |
+| **SWU** | SWU-1.13 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 주기 패턴 주입; IFFT 후 잔류 전력 < -30 dB; MTF 저하 < 3%; 처리 시간 < 2ms |
+| **안전 분류** | Class B |
+
+---
+
+### 5.5 SWU-5.5 무아레 아티팩트 검출 및 제거 ★GAP-AZ 해소
+
+**SRS ID**: SRS-FUNC-008c | **SWU**: SWU-5.5 | **IEC 62304 §**: 5.4.2
+
+#### 5.5.1 배경
+
+산란 방지 그리드의 선 간격(보통 60–80 lp/cm)이 검출기 픽셀 피치와 에일리어싱을 일으킬 때 가시적 무아레 띠 무늬(banding)가 발생한다. §5.1 NSCT는 그리드 억제를 다루지만 무아레 특이적 검출은 미명세였다.
+
+#### 5.5.2 무아레 주파수 계산
+
+$$f_{\text{moire}} = |f_{\text{grid}} - n \cdot f_{\text{detector}}|, \quad n = 1, 2, 3$$
+
+- f_grid: 그리드 라인 주파수 [lp/mm]
+- f_detector = 1/pixelPitch_mm [lp/mm]
+- 유효 범위: f_moire ∈ [0.1, 0.4] × f_Nyquist
+
+#### 5.5.3 검출 알고리즘
+
+```cpp
+// 1. 행 방향 1D PSD 계산
+float* psd_row = compute_row_psd(I_grid_suppressed, width, height);
+
+// 2. 피크 검출
+float threshold = mean_psd + 3.0f * std_psd;
+std::vector<float> moire_freqs = detect_peaks_above_threshold(psd_row, threshold);
+
+// 3. 예상 무아레 범위 검증
+for (float f : moire_freqs) {
+    if (f >= 0.1f * f_nyquist && f <= 0.4f * f_nyquist) {
+        moire_detected = true;
+    }
+}
+```
+
+#### 5.5.4 방향성 대역 제거 필터
+
+```cpp
+// 검출된 무아레 주파수에서 Gaussian 대역 제거
+for (float f_moire : detected_freqs) {
+    float bandwidth = 1.0f / (grid_pitch_px * 2.0f);
+    apply_directional_bandstop(F_2d, f_moire, bandwidth, direction=VERTICAL);
+}
+```
+
+#### 5.5.5 성능
+
+| 항목 | 값 |
+|------|---|
+| 처리 시간 | < 3 ms/3Kx3K |
+| 검출 정확도 | > 95% (합성 무아레 패턴) |
+| 잔류 무아레 | < 10% 원본 진폭 |
+
+#### 5.5.6 DLL 할당
+
+`xpe_gsvg.dll` — Grid Suppression 파이프라인(§5.1) 이후 단계
+
+#### 5.5.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-008c |
+| **SWU** | SWU-5.5 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 무아레 패턴(f = 0.15, 0.25, 0.35 × f_N) 주입; 검출률 > 95%; 억제 후 잔류 < 10%; MTF 저하 < 3% |
+| **안전 분류** | Class B |
+
+---
+
+### 9.10 SWU-9.10 AEC 피드백 루프 (EI/DI → kVp/mAs 조정) ★GAP-AV 해소
+
+**SRS ID**: SRS-FUNC-009b | **SWU**: SWU-9.10 | **IEC 62304 §**: 5.4.2
+
+#### 9.10.1 배경
+
+EI/DI는 §7에서 계산되지만, 다음 촬영에서 자동으로 촬영 기법을 조정하는 AEC 피드백 루프 알고리즘이 미명세였다.
+
+#### 9.10.2 알고리즘
+
+```cpp
+struct XpeAECRecommendation {
+    float delta_kvp;      // 권장 kVp 변화량
+    float delta_mas_ratio;// 권장 mAs 배율 (1.0 = 변화없음)
+    float confidence;     // [0,1]
+    XpeAECAction action;  // NONE, ADJUST_MAS, ADJUST_KVP, BOTH
+};
+
+XpeAECRecommendation xpe_aec_feedback(float DI_dB, XpeAECConfig cfg) {
+    XpeAECRecommendation rec = {0, 1.0f, 1.0f, NONE};
+
+    // 데드밴드: |DI| <= 1 dB → 조정 없음
+    if (fabsf(DI_dB) <= cfg.deadband_dB) return rec;
+
+    // mAs 조정: 10^(-DI/10)
+    rec.delta_mas_ratio = powf(10.0f, -DI_dB / 10.0f);
+    rec.delta_mas_ratio = std::clamp(rec.delta_mas_ratio, 0.5f, 2.0f);
+
+    // kVp 조정: DI > +5 dB 과다 노출 시 kVp 감소
+    if (DI_dB > 5.0f) {
+        rec.delta_kvp = -5.0f;  // 5 kVp 감소
+    } else if (DI_dB < -5.0f) {
+        rec.delta_kvp = +5.0f;  // 5 kVp 증가
+    }
+
+    // 안전 클램프
+    rec.delta_kvp = std::clamp(rec.delta_kvp, -10.0f, 10.0f);
+    rec.confidence = 1.0f - fabsf(DI_dB) / 20.0f;
+    rec.action = (fabsf(rec.delta_kvp) > 0) ? ADJUST_KVP : ADJUST_MAS;
+    return rec;
+}
+```
+
+#### 9.10.3 안전 제약
+
+| 파라미터 | 범위 |
+|---------|------|
+| kVp 절대 범위 | [40, 150] kVp |
+| mAs 절대 범위 | [0.1, 500] mAs |
+| 최대 단계 변화 | ΔkVp ≤ 10 kVp/스텝, ΔmAs ≤ 50%/스텝 |
+| 데드밴드 | ±1 dB (권장 조정 없음) |
+
+#### 9.10.4 DLL 할당
+
+`xpe_enhance_advanced.dll` — EI 계산(§7) 결과 소비
+
+#### 9.10.5 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-009b |
+| **SWU** | SWU-9.10 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | DI = −6, −3, 0, +3, +6, +10 dB 주입; 각 케이스에서 delta_mas_ratio 및 delta_kvp 계산값 검증; 안전 클램프 경계 테스트 |
+| **안전 분류** | Class B |
+
+---
+
+### 9.11 SWU-9.11 교정 통계적 공정 관리 (SPC) ★GAP-AW 해소
+
+**SRS ID**: SRS-QC-004 | **SWU**: SWU-9.11 | **IEC 62304 §**: 5.4.2
+
+#### 9.11.1 배경
+
+드리프트 모니터(§9.5)는 순간 드리프트를 감지하지만 장기 추세 분석이 없다. Shewhart 제어 차트와 CUSUM 알고리즘으로 교정 품질의 장기 추세를 관리한다.
+
+#### 9.11.2 Shewhart X-bar 제어 차트
+
+$$\text{UCL} = \bar{x} + 3\sigma, \quad \text{LCL} = \bar{x} - 3\sigma$$
+
+Western Electric 규칙:
+- Rule 1: 1점이 UCL/LCL 초과 → 경고
+- Rule 2: 연속 9점이 중심선 동일 측 → 경향 감지
+- Rule 3: 연속 6점이 증가/감소 → 드리프트 감지
+
+#### 9.11.3 CUSUM (누적합) 알고리즘
+
+$$S_t^+ = \max(0, S_{t-1}^+ + (x_t - \mu_0 - k))$$
+$$S_t^- = \max(0, S_{t-1}^- - (x_t - \mu_0 + k))$$
+
+파라미터:
+- k = 0.5σ (여유값, slack value)
+- h_warn = 4σ (경고 임계값)
+- h_recal = 5σ (재교정 트리거)
+- 입력 x_t: §12.1 균일성 CV, §9.5 평균 드리프트
+
+#### 9.11.4 C++ 데이터 구조
+
+```cpp
+struct XpeSPCState {
+    float shewhart_ucl, shewhart_lcl;
+    float cusum_pos, cusum_neg;
+    XpeSPCStatus status;  // NORMAL, WARNING, RECALIBRATE
+    XpeSPCTrend  trend;   // STABLE, DRIFT_UP, DRIFT_DOWN
+    char  recommended_action[64];
+};
+
+XpeSPCState xpe_spc_update(XpeSPCState prev, float x_new);
+```
+
+#### 9.11.5 DLL 할당
+
+`xpe_common.dll` — 교정 파이프라인(§9) 품질 감시 모듈
+
+#### 9.11.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-QC-004 |
+| **SWU** | SWU-9.11 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 드리프트 신호(선형, 단계, 주기); Shewhart 규칙별 감지 확인; CUSUM h_recal 트리거 시점 검증 |
+| **안전 분류** | Class B |
+
+---
+
+### 11.5 SWU-11.5 신호 의존 양자 잡음 모델 (Poisson+Gaussian) ★GAP-AY 해소
+
+**SRS ID**: SRS-FUNC-011c | **SWU**: SWU-11.5 | **IEC 62304 §**: 5.4.2
+
+#### 11.5.1 배경
+
+BayesShrink(§4.8)는 경험적 MAD 추정으로 σ_n을 계산하지만, 신호 의존 Poisson 잡음(양자 잡음)과 독립적 전자 잡음(읽기 잡음)을 분리하지 못한다. 위치 의존 σ_n(x,y) 맵이 필요하다.
+
+#### 11.5.2 잡음 모델
+
+$$\sigma_{\text{total}}^2(x,y) = \underbrace{\alpha \cdot I(x,y)}_{\text{Poisson (quantum)}} + \underbrace{\beta}_{\text{Gaussian (electronic)}}$$
+
+파라미터 추정:
+- α = 1/G² (G: 이득 [e⁻/ADU], 이득 맵에서 획득)
+- β = σ²_dark (다중 프레임 다크 획득 §9.8에서 계산)
+
+#### 11.5.3 Anscombe 분산 안정화 변환
+
+$$f(I) = 2\sqrt{I + \frac{3}{8}} \quad \xrightarrow{\text{변환 후}} \quad \text{분산} \approx 1$$
+
+근사 역변환 (Makitalo & Foi 2011):
+$$f^{-1}(x) = \frac{1}{4}x^2 - \frac{3}{8} + \frac{1}{4}\sqrt{\frac{3}{2}}\cdot x^{-1} - \frac{11}{8}x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\cdot x^{-3}$$
+
+#### 11.5.4 BayesShrink 통합
+
+```cpp
+// 위치 의존 σ_n 맵 계산
+for (int i = 0; i < N_pixels; i++) {
+    float alpha = 1.0f / (gain_map[i] * gain_map[i]);
+    float beta  = dark_variance_map[i];
+    sigma_n_map[i] = sqrtf(alpha * I_input[i] + beta);
+}
+
+// Anscombe 변환 적용
+float* I_anscombe = anscombe_transform(I_input, N_pixels);
+
+// Gaussian 도메인에서 BayesShrink 적용
+float* I_denoised_anscombe = bayesshrink_denoise(I_anscombe, N_pixels, sigma_n=1.0f);
+
+// 역변환
+float* I_denoised = anscombe_inverse(I_denoised_anscombe, N_pixels);
+```
+
+#### 11.5.5 DLL 할당
+
+`xpe_enhance_advanced.dll` — BayesShrink(§4.8) 잡음 추정 강화 모듈
+
+#### 11.5.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-011c |
+| **SWU** | SWU-11.5 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 Poisson 잡음 영상; α, β 파라미터 역산 오류 < 5%; Anscombe 변환 후 분산 균일성 검증 (CV < 0.1) |
+| **안전 분류** | Class B |
+
+---
+
+### 12.10 SWU-12.10 IEC 61223 인수 시험 자동화 ★GAP-BB 해소
+
+**SRS ID**: SRS-QA-001 | **SWU**: SWU-12.10 | **IEC 62304 §**: 5.4.2
+
+#### 12.10.1 배경
+
+특성화 스위트(§12)는 MTF, NPS, DQE, CNR을 개별적으로 다루지만, IEC 61223-3-5(디지털 방사선 촬영 시스템 인수 시험)에 따른 자동화된 인수/상수성 시험 워크플로우가 미명세였다.
+
+#### 12.10.2 IEC 61223-3-5 시험 매트릭스
+
+| 시험 | 허용 기준 | 알고리즘 참조 |
+|------|---------|------------|
+| T1: 균일성 | PRNU CV ≤ 10% | §12.1 |
+| T2: 신호 응답 선형성 | R² ≥ 0.995 | §9.1 (선형 회귀) |
+| T3: 한계 공간 해상도 | f50 ≥ 요구값 | §12.2 MTF |
+| T4: 대비 해상도 | CNR ≥ 기준값 | §12.8 |
+| T5: EI 정확도 | DI ∈ ±1 dB | §7.4 |
+| T6: 암전류 드리프트 | < 2 ADU/s | §9.5 |
+
+#### 12.10.3 C++ 자동화 API
+
+```cpp
+enum class XpeAcceptanceTestType { FULL, DAILY, WEEKLY, MONTHLY };
+
+struct XpeAcceptanceResult {
+    bool t1_pass, t2_pass, t3_pass, t4_pass, t5_pass, t6_pass;
+    float t1_cv_pct;   // PRNU CV (%)
+    float t2_r2;       // 선형성 R²
+    float t3_f50;      // MTF f50 (lp/mm)
+    float t4_cnr;      // 대비 해상도 CNR
+    float t5_di_db;    // 편차 지수 DI (dB)
+    float t6_drift_adu_s; // 암전류 드리프트 (ADU/s)
+    bool overall_pass;
+    char report_json[4096];
+};
+
+XpeAcceptanceResult xpe_acceptance_test(
+    const XpePhantomImages& phantom,
+    XpeAcceptanceTestType type
+);
+```
+
+#### 12.10.4 주기적 상수성 시험 일정
+
+| 주기 | 시험 항목 |
+|------|---------|
+| 일일 | T4 (CNR), T5 (EI 정확도) |
+| 주간 | T1 (균일성), T6 (암전류) |
+| 월간 | T1–T6 전체 + MTF/DQE 전체 |
+
+#### 12.10.5 PASS/FAIL 판정 로직
+
+```cpp
+bool overall_pass = t1_pass && t2_pass && t3_pass && t4_pass && t5_pass && t6_pass;
+
+// 경고: 임계값의 80% 이내
+bool t1_warn = (cv_pct > 0.8f * 10.0f) && t1_pass;
+
+if (!overall_pass) {
+    log_maintenance_alert("Acceptance test FAILED — immediate service required");
+}
+```
+
+#### 12.10.6 DLL 할당
+
+`xpe_enhance_advanced.dll` — FPD 특성화 스위트(§12) 확장 모듈
+
+#### 12.10.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-QA-001 |
+| **SWU** | SWU-12.10 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | PMMA/알루미늄 팬텀 영상으로 T1~T6 전체 실행; 합격 기준 각각 검증; 불합격 케이스에서 유지보수 알림 확인 |
+| **안전 분류** | Class B |
+
+---
+
+### 14.2 SWU-14.2 서브픽셀 영상 정합 (ECC 알고리즘) ★GAP-AX 해소
+
+**SRS ID**: SRS-FLUORO-002 | **SWU**: SWU-14.2 | **IEC 62304 §**: 5.4.2
+
+#### 14.2.1 배경
+
+Fluoroscopy 시간적 IIR 필터(§14.1)는 정적 환자를 가정한다. 디지털 차감 혈관조영술(DSA)과 조영증강 연구에서는 마스크 프레임과 라이브 프레임 간의 강성 정합(rigid registration)이 필요하다.
+
+#### 14.2.2 ECC (Enhanced Correlation Coefficient) 알고리즘
+
+Evangelidis & Psarakis (2008) 방법:
+
+**워핑 파라미터**: p = [tx, ty, θ] (이동 2DoF + 회전 1DoF)
+
+**반복 업데이트**:
+$$\Delta\mathbf{p} = (\mathbf{J}^T \mathbf{J})^{-1} \mathbf{J}^T \mathbf{e}$$
+
+- J: 워핑 야코비안 (2Mx3 행렬, M = 픽셀 수)
+- e: 정규화 오류 벡터 e = T/|T| − W/|W|
+- 수렴 조건: ||Δp|| < ε = 0.01 pixel, max_iter = 50
+
+**위상 상관 사전 정렬**:
+$$\hat{p}_{\text{init}} = \text{PhaseCorr}(I_{\text{mask}}, I_{\text{live}})$$
+
+서브픽셀 정밀도: 위상 상관 피크의 2차 보간 (Parabolic fitting)
+
+#### 14.2.3 C++ 구현
+
+```cpp
+struct XpeWarpMatrix2x3 {
+    float m[2][3];  // 어파인 변환 행렬 [tx, ty, θ]
+    float ecc_score;   // 최종 ECC 상관 점수 [0,1]
+    int   iterations;  // 실제 반복 횟수
+};
+
+XpeWarpMatrix2x3 xpe_image_register(
+    const float* mask,   // 마스크 프레임 (참조)
+    const float* live,   // 라이브 프레임 (정합 대상)
+    int width, int height,
+    XpeRegistrationConfig cfg  // max_iter, epsilon, downsample_factor
+);
+
+// 정합 후 보간 적용
+void xpe_warp_apply(
+    const float* src, float* dst,
+    int width, int height,
+    const XpeWarpMatrix2x3& warp,
+    XpeInterpolation interp  // BILINEAR, BICUBIC
+);
+```
+
+#### 14.2.4 성능
+
+| 항목 | 값 |
+|------|---|
+| 처리 시간 | < 5 ms/3Kx3K (OpenCV ECC 백엔드) |
+| 정밀도 | 서브픽셀 (< 0.5 pixel RMS 오차) |
+| 최대 이동 범위 | ±50 pixels (tx, ty) |
+| 최대 회전 범위 | ±5° |
+
+#### 14.2.5 DLL 할당
+
+`xpe_preprocess.dll` — Fluoroscopy 파이프라인(§14) 확장 모듈
+
+#### 14.2.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FLUORO-002 |
+| **SWU** | SWU-14.2 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 변위 테스트 (tx=10, ty=20 pixel; θ=2°); 등록 오류 RMS < 0.5 pixel; ECC 점수 > 0.95 |
+| **안전 분류** | Class B |
+
+---
+
+### 17.2 SWU-17.2 DICOM 구조화 보고서 (SR) — CAD 소견 출력 ★GAP-BA 해소
+
+**SRS ID**: SRS-DICOM-002 | **SWU**: SWU-17.2 | **IEC 62304 §**: 5.4.2
+
+#### 17.2.1 배경
+
+DICOM IOD 적합성 검증기(§17.1 GAP-AR)는 영상 IOD를 처리하지만 AI/CAD 소견을 DICOM SR IOD로 출력하는 파이프라인이 미명세였다.
+
+#### 17.2.2 SR 템플릿
+
+| 사용 사례 | DICOM TID |
+|---------|-----------|
+| 일반 CAD 소견 | TID 4100 (Chest CAD) |
+| 기본 진단 영상 보고서 | TID 1500 |
+| 해부 부위 측정 | TID 1400 (측정값 포함) |
+
+#### 17.2.3 C++ SR 생성 API
+
+```cpp
+class XpeSRReport {
+public:
+    // 소견 추가 (AI 출력 연동)
+    void AddFinding(
+        const XpeDicomCode& finding_concept,  // (코드값, 코딩체계, 의미)
+        float confidence_score,               // [0.0, 1.0]
+        const XpeROI2D& geometry              // 경계 상자 또는 점 집합
+    );
+
+    // 측정값 추가 (파노라마 스티칭 각도 등)
+    void AddMeasurement(
+        const XpeDicomCode& concept,
+        float value, const char* unit   // 예: "Cobb angle", 12.5f, "deg"
+    );
+
+    // DICOM SR 파일 쓰기
+    XpeStatus Write(const char* filepath, const XpeDicomStudyContext& ctx);
+};
+```
+
+#### 17.2.4 필수 콘텐츠 항목 (TID 1500)
+
+| 항목 | 유형 | 설명 |
+|------|------|------|
+| Patient context | CONTAINER | (0010,0020) Patient ID |
+| Study context | CONTAINER | (0020,000D) Study UID |
+| Procedure | CODE | (41367002, SCT, "Radiography") |
+| Finding | CODE + SCOORD | 소견 코드 + ROI 기하 |
+| Confidence | NUM | (C25347, NCIt) confidence score |
+
+#### 17.2.5 검증 기준
+
+| 테스트 | 기준 |
+|--------|------|
+| TID 1500 필수 콘텐츠 충족 | 모든 Type 1 항목 존재 |
+| ROI 좌표 일관성 | 영상 크기 범위 내 |
+| Confidence 범위 | [0.0, 1.0] 범위 내 |
+| 파일 쓰기 성공 | XPE_OK 반환 |
+
+#### 17.2.6 DLL 할당
+
+`xpe_dicom.dll` — DICOM IOD 검증기(§17) 확장, AI 출력 연동
+
+#### 17.2.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-DICOM-002 |
+| **SWU** | SWU-17.2 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | TID 1500/4100 구조 적합성 검사; DCMTK DcmSRDocument 파싱 성공; 5개 소견 유형 × 3개 해부 부위 테스트 |
+| **안전 분류** | Class B |
+
+---
+
+## 18. 지각적 화질 품질 지표 (Perceptual IQM) ★GAP-AS 해소
+
+**SRS ID**: SRS-MEAS-004 | **SWU**: SWU-18.0 | **IEC 62304 §**: 5.4.2
+
+### 18.1 목적 및 배경
+
+영상 향상 알고리즘(§4 Bilateral, §4.8 BayesShrink, §6 Display)의 객관적 벤치마킹을 위해 표준화된 지각적 화질 지표가 필요하다. 기존 문서에서 PSNR/SSIM은 개별 검증 기준으로 언급되었으나, 통합 지표 파이프라인은 미명세였다.
+
+### 18.2 PSNR (Peak Signal-to-Noise Ratio)
+
+$$\text{PSNR} = 20 \cdot \log_{10}\left(\frac{\text{MAX}_I}{\sqrt{\text{MSE}}}\right) \quad \text{[dB]}$$
+
+- MAX_I = 4095 (12-bit), 65535 (16-bit)
+- MSE = (1/MN) Σ (I_ref(x,y) − I_test(x,y))²
+- 임계값: PSNR ≥ 35 dB (BayesShrink §4.8 기준)
+
+### 18.3 SSIM (Structural Similarity Index)
+
+$$\text{SSIM}(x,y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}$$
+
+파라미터:
+- 윈도우: 11×11 Gaussian, σ_G = 1.5
+- C₁ = (0.01·L)², C₂ = (0.03·L)², L = MAX_I
+- SSIM 범위: [−1, 1], 임계값 ≥ 0.95
+
+전역 SSIM: 슬라이딩 윈도우 평균으로 계산
+
+### 18.4 MS-SSIM (Multi-Scale SSIM)
+
+$$\text{MS-SSIM}(x,y) = [l_M(x,y)]^{\alpha_M} \cdot \prod_{j=1}^{M} [c_j(x,y)]^{\beta_j} [s_j(x,y)]^{\gamma_j}$$
+
+- M = 5 스케일, 가중치: {0.0448, 0.2856, 0.3001, 0.2363, 0.1333}
+- 다운샘플: 저역통과 필터 후 2× 서브샘플
+- 임계값: MS-SSIM ≥ 0.98 (AI 알고리즘 검증)
+
+### 18.5 FSIM (Feature Similarity)
+
+$$\text{FSIM} = \frac{\sum_{x \in \Omega} S_L(x) \cdot PC_m(x)}{\sum_{x \in \Omega} PC_m(x)}$$
+
+- PC_m(x) = max(PC_1(x), PC_2(x)): 위상 일관성(Phase Congruency) 마스크
+- S_L(x) = S_{PC}(x) · S_G(x): PC 유사도 × 그래디언트 크기 유사도
+
+### 18.6 C++ 구현 요약
+
+```cpp
+struct XpeIQMResult {
+    float psnr_db;          // Peak SNR (dB)
+    float ssim;             // SSIM [0,1]
+    float ms_ssim;          // MS-SSIM [0,1]
+    float fsim;             // FSIM [0,1]
+    bool  psnr_pass;        // psnr_db >= threshold
+    bool  ssim_pass;        // ssim >= 0.95
+};
+
+XpeIQMResult xpe_compute_iqm(
+    const float* ref,   // 참조 영상 (ground truth)
+    const float* test,  // 평가 영상
+    int width, int height,
+    XpeIQMConfig cfg    // 임계값, 스케일 수
+);
+```
+
+### 18.7 검증 기준
+
+| 지표 | 임계값 | 테스트 케이스 |
+|------|--------|-------------|
+| PSNR | ≥ 35 dB | σ=20 ADU 합성 잡음 영상 |
+| SSIM | ≥ 0.95 | Bilateral 필터 전후 비교 |
+| MS-SSIM | ≥ 0.98 | BayesShrink 전후 비교 |
+| FSIM | ≥ 0.90 | Edge Enhancement 전후 비교 |
+
+### 18.8 DLL 할당
+
+`xpe_enhance_advanced.dll` — 알고리즘 벤치마크 및 자동 회귀 검증 모듈
+
+### 18.9 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-MEAS-004 (Perceptual IQM — 신규) |
+| **SWU** | SWU-18.0 |
+| **IEC 62304 §** | 5.4.2 |
+| **검증 방법** | 합성 잡음 영상(σ=10,20,30 ADU)에서 각 지표 계산; PSNR ≥ 35 dB, SSIM ≥ 0.95 확인 |
+| **안전 분류** | Class B |
+
+---
+
 ## 부록 A: 수학 공식 일람
 
 ### A.1 Pre-Processing 공식
@@ -9260,6 +9991,16 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 | Wavelet BayesShrink Denoising (GAP-AP) | SRS-FUNC-011b | SWU-2.8 | PSNR ≥ 35 dB (σ=20 ADU); MTF degradation < 5% |
 | Dual-Energy Subtraction (GAP-AQ) | SRS-FUNC-019 | SWU-16.0 | CIRS chest phantom; bone CNR < 1.0 in soft image; motion correction < 0.5 px |
 | DICOM IOD Conformance Validation (GAP-AR) | SRS-DICOM-001 | SWU-17.0 | 32 non-conformant injection tests; XPE_OK on valid files |
+| Perceptual IQM — PSNR/SSIM/MS-SSIM/FSIM (GAP-AS) | SRS-MEAS-004 | SWU-18.0 | σ=10/20/30 ADU noise; PSNR ≥ 35 dB, SSIM ≥ 0.95 verified |
+| Temperature-Compensated Gain (GAP-AT) | SRS-FUNC-002d | SWU-1.12 | ΔT=5/10°C simulated; PRNU CV < 0.5%/1.0% |
+| 2D FFT Notch Filter (GAP-AU) | SRS-FUNC-001c | SWU-1.13 | Injected periodic pattern; residual < −30 dB; MTF loss < 3% |
+| AEC Feedback Loop (GAP-AV) | SRS-FUNC-009b | SWU-9.10 | DI = −6/−3/0/+3/+6/+10 dB; delta_mas_ratio and delta_kvp verified |
+| SPC Calibration Control (GAP-AW) | SRS-QC-004 | SWU-9.11 | Synthetic drift signals; Shewhart/CUSUM trigger points validated |
+| Sub-pixel ECC Registration (GAP-AX) | SRS-FLUORO-002 | SWU-14.2 | tx=10, ty=20, θ=2° synthetic displacement; RMS < 0.5 pixel |
+| Quantum Noise Model — Anscombe (GAP-AY) | SRS-FUNC-011c | SWU-11.5 | Synthetic Poisson images; α, β parameter error < 5%; Anscombe CV < 0.1 |
+| Moiré Artifact Suppression (GAP-AZ) | SRS-FUNC-008c | SWU-5.5 | Injected Moiré (f=0.15/0.25/0.35×fN); detection rate > 95%; residual < 10% |
+| DICOM SR for CAD Findings (GAP-BA) | SRS-DICOM-002 | SWU-17.2 | TID 1500/4100 conformance; 5 finding types × 3 anatomy regions |
+| IEC 61223 Acceptance Testing (GAP-BB) | SRS-QA-001 | SWU-12.10 | T1–T6 with phantom images; fail-case maintenance alert triggered |
 
 ---
 
@@ -9267,6 +10008,7 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 | 개정 | 날짜 | 저자 | 내용 |
 |------|------|------|------|
+| 1.5 | 2026-04-15 | XPE Team | **Round 6 GAP 해소 10건 (GAP-AS~BB)**: GAP-AS (지각적 화질 지표 §18 — PSNR/SSIM/MS-SSIM/FSIM 통합, 임계값 체계화), GAP-AT (온도 보상 이득 보정 §3.12 — α_T=0.0015/°C, ΔT≥5°C 트리거, 교정 매니페스트 연동), GAP-AU (2D FFT 노치 필터 §3.13 — MKL FFT, Gaussian 노치 D=3px, <2ms/3Kx3K), GAP-AV (AEC 피드백 루프 §9.10 — DI→mAs 10^(-DI/10), ±10kVp 조정, 안전 클램프), GAP-AW (SPC 교정 관리 §9.11 — Shewhart UCL/LCL, CUSUM k=0.5σ h=4σ/5σ), GAP-AX (서브픽셀 ECC 정합 §14.2 — Evangelidis-Psarakis 2008, <0.5pixel RMS, <5ms/프레임), GAP-AY (양자 잡음 모델 §11.5 — Poisson+Gaussian σ²=αI+β, Anscombe 변환, Makitalo-Foi 역변환), GAP-AZ (무아레 검출 §5.5 — 행 방향 PSD 피크, Gaussian 대역 제거, >95% 검출률), GAP-BA (DICOM SR §17.2 — TID 1500/4100, XpeSRReport API, xpe_dicom.dll 통합), GAP-BB (IEC 61223 인수 시험 §12.10 — T1~T6 자동화, 일일/주간/월간 일정, XpeAcceptanceResult). §18 신설, §12.10 신설, §17.2 신설. 부록 C 10건 추가. |
 | 1.4 | 2026-04-15 | XPE Team | **Round 5 GAP 해소 10건 (GAP-AI~AR)**: GAP-AI (Real-Time GCR Estimator §3.4.6, 슬라이딩 윈도우 EMA, 0.2% 임계값 조건부 Lag 활성화, <0.1ms/프레임), GAP-AJ (NLCSC State Machine §3.4.7, 비선형 전하 누적 4차 다항식 보정, kVp 에너지 의존 계수, 유휴 상태 리셋), GAP-AK (Row/Column FPN Correction §3.11, 3패스 반복 분해, AVX2 행 중앙값, <0.5ms/3Kx3K), GAP-AL (Allan Variance 장기 안정성 §12.9, 잡음 유형 3분류, σ_A(τ=300s)>2 ADU 재교정 트리거), GAP-AM (선량 의존 동적 결함 검출 §3.3.5, 4선량 z-score, R²<0.95 비선형 플래그, 정적 결함 맵 union), GAP-AN (다중 지수 Lag 피팅 §9.9, LM 최소제곱, 이중 노출 프로토콜, scipy.optimize, R²>0.999 검증), GAP-AO (Scatter SPR Boone-Seibert §5.4, Beer-Lambert 두께 역산, 픽셀별 산란 보정 1/(1+SPR)), GAP-AP (Wavelet BayesShrink §4.8, db4 3레벨, MAD σ_n 추정, AVX2 소프트 임계값, 해부 부위별 λ 블렌딩), GAP-AQ (Dual-Energy Subtraction §16, 로그 차감, 위상 상관 모션 보정, xpe_enhance_advanced.dll 익스포트), GAP-AR (DICOM IOD 적합성 검증 §17, Type 1/2/3 속성 검사, 픽셀 수치 일관성, xpe_dicom.dll 쓰기 경로 통합). §16/§17 신설. 부록 C 10건 추가. |
 | 1.3 | 2026-04-15 | XPE Team | **Round 4 GAP 해소 10건 (GAP-Y~AH)**: GAP-Y (Fluoroscopy 시간적 IIR 필터 §14, AVX2 FMA α 적응형, <0.3ms/3Kx3K), GAP-Z (Beam Hardening Correction §3.9, PMMA 팬텀 다항식 보정, BHC LUT 65536-entry), GAP-AA (Geometric Distortion Correction §3.10, Brown-Conrady 방사형+접선 모델, 역 LUT 바이리니어 보간), GAP-AB (Pixel Binning Mode 교정 보간 §9.7, gain 블록 평균, defect OR 전파, lag τ 선형 스케일), GAP-AC (Memory Arena Zero-Copy §10.7, 8-슬롯 링 버퍼, CAS 상태 기계, 런타임 힙 할당 0), GAP-AD (Multi-Channel SPSC Thread Safety §10.8, lock-free 링 버퍼, CPU affinity, 백프레셔 드롭), GAP-AE (Automatic CNR Auto-Assessment §12.8, 히스토그램 퍼센타일 배경 검출, SDNR 계산, XpeQualityState 연동), GAP-AF (Anatomy-Adaptive Auto W/L §6.4, 5종 해부 부위별 퍼센타일 테이블, 콜리메이터 마스크 적용), GAP-AG (Multi-Frame Sigma-Clipping §9.8, 반복적 κ=3.0 클리핑, Python NumPy 구현, min_frames 결함 마킹), GAP-AH (Error Code Taxonomy §15, 32개 코드 5범주, xpe_error_string, C# 핸들러 패턴). 섹션 수 대폭 추가, §14/§15 신설. |
 | 1.2 | 2026-04-15 | XPE Team | **Round 3 GAP 해소 10건 (GAP-O~X)**: GAP-O (Heel Effect Compensation §3.5, Wang 2013 Duo-SID), GAP-P (Multi-SID Gain 보간 §3.2.5), GAP-Q (교정 세션 잠금 §2.4, 매니페스트 해시 체인), GAP-R (품질 상태 벡터 사이드카 §13, XpeQualityState), GAP-S (스칼라 참조 + SIMD 패리티 하네스 §11.4), GAP-T (MTF ESF 완전 구현 §12.6, IEC 62220-1-1), GAP-U (Lag 잔류 티어링 §3.4.5, Tier-0/1/3 결정론적 선택), GAP-V (해부 부위별 VG 프리셋 §5.3, 15개 부위 테이블), GAP-W (AI Worker 격리 §8.4, ONNX + 폴백 + 모델 매니페스트), GAP-X (교정 드리프트 모니터링 §9.5, 드리프트율 측정 + 재교정 트리거). 섹션 수 추가, §13 신설. |
@@ -9275,6 +10017,6 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 ---
 
-*Document End — XPE-ALG-001 v1.4*
+*Document End — XPE-ALG-001 v1.5*
 
 *Cross-references: XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, xpe-algorithm-spec-deepsync.md, SPEC-XPE-MASTER.md, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research*

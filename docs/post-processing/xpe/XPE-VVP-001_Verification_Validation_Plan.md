@@ -1,11 +1,18 @@
 # Software Verification & Validation Plan
 
-**Document ID:** XPE-VVP-001 v1.0  
+**Document ID:** XPE-VVP-001 v1.1  
 **IEC 62304 Clause:** 5.5.1 — 5.5.5, 5.6.1 — 5.6.7, 5.7.1 — 5.7.5  
 **Safety Classification:** Class B  
-**Date:** 2026-04-03  
+**Date:** 2026-04-15  
 **Author:** XPE Development Team  
-**Approval:** __________________ Date: __________  
+**Approval:** __________________ Date: __________
+
+> **Parent System Document**: XPE-SVVP-001 v1.0.0 — System Verification & Validation Plan
+> (`docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md`)
+>
+> **Scope within hierarchy**: XPE-VVP-001 covers Level 1 (Unit Verification), Level 2 (Integration Verification),
+> and Level 3 (System Verification) as defined in XPE-SVVP-001 §2. Multi-package (Level 4), Clinical (Level 5),
+> and Field (Level 6) validation activities are governed exclusively by XPE-SVVP-001.  
 
 ---
 
@@ -141,6 +148,23 @@ Integration test procedure 자체를 formal review로 검증한다. Reviewer는 
 | SRS-PERF-003 | ST-PERF-003 | W/L interactive timing | ≤ 16ms |
 | SRS-PERF-004 | ST-PERF-004 | Peak memory | ≤ 2GB |
 
+### 4.1.1 Algorithm V&V References — XPE-ALG-001 v1.5 GAP-AS~BB
+
+아래 알고리즘들은 XPE-ALG-001 v1.5에서 명세된 SWU이며, 각 SWU의 상세 검증 기준은 ALG 문서의 해당 섹션을 참조한다.
+
+| SWU | Algorithm | ALG Section | Acceptance Criterion |
+|-----|-----------|-------------|---------------------|
+| SWU-18.0 | Perceptual IQM (PSNR/SSIM/MS-SSIM/FSIM) | §18 | PSNR ≥ 35 dB; SSIM ≥ 0.95; MS-SSIM ≥ 0.98; FSIM ≥ 0.90 |
+| SWU-1.12 | Temperature-Compensated Gain | §3.12 | PRNU CV < 0.5% (ΔT=5°C); CV < 1.0% (ΔT=10°C) |
+| SWU-1.13 | 2D FFT Notch Filter | §3.13 | Residual < −30 dB; MTF loss < 3%; time < 2ms |
+| SWU-9.10 | AEC Feedback Loop | §9.10 | delta_mas_ratio and delta_kvp verified; safety clamp tested |
+| SWU-9.11 | SPC Calibration Control | §9.11 | Shewhart rules trigger confirmed; CUSUM h_recal validated |
+| SWU-14.2 | Sub-pixel ECC Registration | §14.2 | RMS < 0.5 pixel; ECC score > 0.95 |
+| SWU-11.5 | Quantum Noise Model (Anscombe) | §11.5 | α, β error < 5%; Anscombe CV < 0.1 |
+| SWU-5.5 | Moiré Artifact Suppression | §5.5 | Detection rate > 95%; residual < 10% |
+| SWU-17.2 | DICOM SR for CAD Findings | §17.2 | TID 1500/4100 conformance; DCMTK parse success |
+| SWU-12.10 | IEC 61223 Acceptance Testing | §12.10 | T1–T6 pass criteria; fail-case maintenance alert |
+
 ### 4.2 Problem Resolution (5.7.2)
 
 System test 실패 시 XPE-SPR-001 절차에 따라 처리한다.
@@ -173,7 +197,8 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-03 | XPE Team | Initial release |
+| 1.1 | 2026-04-15 | XPE Team | §4.1.1 Algorithm V&V References 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건). SWU-18.0/1.12/1.13/9.10/9.11/14.2/11.5/5.5/17.2/12.10 검증 기준 참조. |
 
 ---
 
-*Document End — XPE-VVP-001 v1.0*
+*Document End — XPE-VVP-001 v1.1*

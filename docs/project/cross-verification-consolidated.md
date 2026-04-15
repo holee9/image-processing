@@ -1,8 +1,8 @@
 # XPE Cross-Verification Consolidated Register
 
 **Document ID**: XPE-XVER-CONSOLIDATED-001  
-**Version**: 2.0.0  
-**Date**: 2026-04-14  
+**Version**: 4.0.0  
+**Date**: 2026-04-15  
 **Status**: Living register  
 **Canonical Scope**: `docs/project/`
 
@@ -43,11 +43,65 @@ These decisions are now also reflected in `xpe-algorithm-spec-deepsync.md` §8.1
 
 ---
 
+## 2.2 Cross-Verification Round 5 (2026-04-15) Resolutions
+
+**Scope**: SPEC-DOC-001 implementation — MRD, System PRD, System V&V Plan creation.
+
+### Closed by Round 5
+
+| ID | Item | Resolution |
+|---|---|---|
+| `CV-002` | Safety Class B/C 미확정 | **CLOSED** — Class B confirmed in XPE-PRD-SYSTEM-001 §3. Working assumption pending ISO 14971 Hazard Analysis signature. |
+| `CV-005` | Ghost latency budget conflict (Pipeline-spec 150ms vs Ghost PRD 200ms) | **CLOSED** — Tier-based budget normative in XPE-PRD-SYSTEM-001 §7: Tier 1 ≤100ms, Tier 2 ≤200ms, Tier 3 ≤400ms (extended mode). |
+
+### New documents created (2026-04-15)
+
+| Document | Path | Purpose |
+|---|---|---|
+| XPE-MRD-001 v1.0.0 | `docs/project/XPE-MRD-001_Market_Requirements_Document.md` | Market requirements (top of hierarchy) |
+| XPE-PRD-SYSTEM-001 v1.0.0 | `docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md` | System PRD, integrates product.md |
+| XPE-SVVP-001 v1.0.0 | `docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md` | System V&V Plan (6-level hierarchy) |
+
+---
+
+## 2.3 Cross-Verification Round 6 (2026-04-15 continued) Resolutions
+
+**Scope**: SPEC-DOC-002 partial — OPEN-001/004/005 close-out via document updates.
+
+### Closed by Round 6
+
+| ID | Item | Resolution |
+|---|---|---|
+| `OPEN-004` | AI regulatory boundary decisions not formalized | **CLOSED** — XPE-AI-REG-001 v1.0.0 created at `docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md`. Defines: AI feature classification (assistive/Non-SaMD justification), PICOS per AI function, training data provenance requirements, labeling claim statements, FDA/EU MDR/MFDS regulatory pathways, PMS plan. 4 residual open items tracked within XPE-AI-REG-001 §9. |
+| `OPEN-005` | ISO 14971 System Hazard Analysis signature missing; HAZ-010/011/012 absent | **CLOSED (document)** — XPE-SHA-001 updated to v2.0 (2026-04-15): HAZ-010 (AI confidence misuse), HAZ-011 (multi-package cascade failure), HAZ-012 (clinical misread scenario) added. All sections (§4~§8) updated for 12 hazards. §9 ISO 14971 formal approval sign-off block added with 4 signature lines. **Signature action still required** before Phase 1a gate — see §9 ACTION REQUIRED. |
+
+### Partially Closed by Round 5+6
+
+| ID | Item | Status |
+|---|---|---|
+| `OPEN-001` | IEC 62304 package sync | **PARTIALLY CLOSED** — RTM v1.2: §5 MR→PR backward traceability (28 rows) added. SHA v2.0: HAZ-010/011/012 and sign-off block added. VVP v1.1: parent reference to XPE-SVVP-001 added. **Remaining**: SRS/SDD full synchronization with XPE-PRD-SYSTEM-001 (tracked as SPEC-DOC-002). |
+
+### New documents created (2026-04-15, Round 6)
+
+| Document | Path | Purpose |
+|---|---|---|
+| XPE-AI-REG-001 v1.0.0 | `docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md` | AI regulatory strategy — closes OPEN-004 |
+
+### Updated documents (2026-04-15, Round 6)
+
+| Document | Version | Change Summary |
+|---|---|---|
+| XPE-SHA-001 | 1.0 → 2.0 | HAZ-010/011/012 added; ISO 14971 sign-off block added |
+| XPE-VVP-001 | 1.0 → 1.1 | Parent reference to XPE-SVVP-001 added in header |
+| XPE-RTM-001 | 1.1 → 1.2 | §5 MR→PR backward traceability (28 rows) added |
+
+---
+
 ## 3. Open Blocking Items
 
 | ID | Severity | Blocking item | Owner class |
 |---|---|---|---|
-| `OPEN-001` | Critical | `docs/post-processing/xpe/` IEC package still needs SRS, SDD, RTM, and VVP synchronization with the current canonical architecture | documentation |
+| `OPEN-001` | High | SRS and SDD full synchronization with XPE-PRD-SYSTEM-001 canonical architecture. RTM/SHA/VVP partially fixed (see §2.3). Track as SPEC-DOC-002. | documentation |
 | `OPEN-002` | High | benchmark pack manifests and dataset hashes are not yet frozen in code or data | algorithm / QA |
 | `OPEN-003` | High | source modules beyond `modules/common/` are not yet implemented | engineering |
-| `OPEN-004` | Medium | regulatory boundary decisions for assistive AI must be adopted by release management and labels | regulatory |
+| `OPEN-005-ACTION` | Critical | ISO 14971 formal signature of XPE-SHA-001 §9 required before Phase 1a gate. Document is complete (v2.0); 4 human signatures pending. | regulatory / QA |
