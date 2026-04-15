@@ -1,11 +1,11 @@
 # XPE 통합 알고리즘 개발 명세서
 
-**Document ID:** XPE-ALG-001 v1.5  
+**Document ID:** XPE-ALG-001 v1.6  
 **IEC 62304 Clause:** 5.4 (Software Detailed Design)  
 **Safety Classification:** Class B  
 **Date:** 2026-04-15  
 **Author:** XPE Development Team  
-**Review Cycles:** 60회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 + v1.5: 10회 Review-Evaluate-Fix 반복 완료)  
+**Review Cycles:** 70회 (v1.0: 10회 + v1.1: 10회 + v1.2: 10회 + v1.3: 10회 + v1.4: 10회 + v1.5: 10회 + v1.6: 10회 Review-Evaluate-Fix 반복 완료)  
 **Approval:** __________________ Date: __________  
 
 ---
@@ -78,6 +78,16 @@
 | GAP-AZ | 무아레 아티팩트 검출 및 방향성 대역 제거 미명세 | §5.5 | v1.5 |
 | GAP-BA | DICOM 구조화 보고서 (SR, TID 1500/4100) CAD 소견 출력 미명세 | §17.2 | v1.5 |
 | GAP-BB | IEC 61223-3-5 인수 시험 자동화 (T1~T6) 미명세 | §12.10 | v1.5 |
+| GAP-BC | 방사선량-면적곱(DAP) 및 KERMA 누적 추적 알고리즘 미명세 | §9.12 | v1.6 |
+| GAP-BD | JPEG 2000 (ISO 15444) 무손실/근손실 압축 파이프라인 미명세 | §17.3 | v1.6 |
+| GAP-BE | 모션 블러 PSF 추정 및 위너(Wiener) 역필터 미명세 | §3.14 | v1.6 |
+| GAP-BF | 금속 고밀도 아티팩트 마스크 생성 알고리즘 미명세 | §3.15 | v1.6 |
+| GAP-BG | 선형 토모합성 z-축 재구성 (FBP/SAA) 미명세 | §19 | v1.6 |
+| GAP-BH | RANSAC+ORB 키포인트 기반 파노라마 스티칭 개선 미명세 | §8.3.2 | v1.6 |
+| GAP-BI | 가우시안/라플라시안 다중 해상도 피라미드 미명세 | §4.9 | v1.6 |
+| GAP-BJ | GPU CUDA 파이프라인 가속 아키텍처 미명세 | §10.9 | v1.6 |
+| GAP-BK | 자동 QA 팬텀 인식 알고리즘 (Leeds/CDRAD/CIRS) 미명세 | §12.11 | v1.6 |
+| GAP-BL | 교정 전달 함수 (Cross-FPD 패널 정규화) 미명세 | §9.13 | v1.6 |
 
 ---
 
@@ -137,6 +147,7 @@
 17. [DICOM IOD Conformance Validation ★GAP-AR](#17-dicom-iod-conformance-validation-gap-ar-해소)
 18. [지각적 화질 품질 지표 (IQM) ★GAP-AS](#18-지각적-화질-품질-지표-perceptual-iqm-gap-as-해소)
     - [§3.12 온도 보상 이득 보정 ★GAP-AT](#312-swu-112-온도-보상-이득-보정-temperature-compensated-gain-correction-gap-at-해소)
+19. [선형 토모합성 재구성 (FBP/SAA) ★GAP-BG](#19-선형-토모합성-재구성-fbpsaa-gap-bg-해소)
     - [§3.13 2D FFT 노치 필터 ★GAP-AU](#313-swu-113-주기적-구조-노이즈-제거-2d-fft-notch-filter-gap-au-해소)
     - [§9.10 AEC 피드백 루프 ★GAP-AV](#910-swu-910-aec-피드백-루프-eidi--kvpmas-조정-gap-av-해소)
     - [§9.11 SPC 교정 관리 ★GAP-AW](#911-swu-911-교정-통계적-공정-관리-spc-gap-aw-해소)
@@ -145,6 +156,16 @@
     - [§5.5 무아레 아티팩트 제거 ★GAP-AZ](#55-swu-55-무아레-아티팩트-검출-및-제거-gap-az-해소)
     - [§17.2 DICOM SR CAD 소견 ★GAP-BA](#172-swu-172-dicom-구조화-보고서-sr--cad-소견-출력-gap-ba-해소)
     - [§12.10 IEC 61223 인수 시험 ★GAP-BB](#1210-swu-1210-iec-61223-인수-시험-자동화-gap-bb-해소)
+    - [§9.12 DAP/KERMA 추적 ★GAP-BC](#912-swu-912-방사선량-면적곱dap-및-kerma-누적-추적-gap-bc-해소)
+    - [§17.3 JPEG 2000 압축 ★GAP-BD](#173-swu-173-jpeg-2000-무손실근손실-압축-gap-bd-해소)
+    - [§3.14 모션 블러 위너 필터 ★GAP-BE](#314-swu-114-모션-블러-psf-추정-및-위너-역필터-gap-be-해소)
+    - [§3.15 금속 아티팩트 마스크 ★GAP-BF](#315-swu-115-금속-고밀도-아티팩트-마스크-생성-gap-bf-해소)
+    - [§19 토모합성 FBP/SAA ★GAP-BG](#19-선형-토모합성-재구성-fbpsaa-gap-bg-해소)
+    - [§8.3.2 RANSAC 스티칭 ★GAP-BH](#832-swu-8-3-2-ransacorb-키포인트-파노라마-스티칭-gap-bh-해소)
+    - [§4.9 라플라시안 피라미드 ★GAP-BI](#49-swu-29-가우시안라플라시안-다중-해상도-피라미드-gap-bi-해소)
+    - [§10.9 GPU CUDA 가속 ★GAP-BJ](#109-swu-109-gpu-cuda-파이프라인-가속-아키텍처-gap-bj-해소)
+    - [§12.11 자동 팬텀 인식 ★GAP-BK](#1211-swu-1211-자동-qa-팬텀-인식-알고리즘-gap-bk-해소)
+    - [§9.13 Cross-FPD 정규화 ★GAP-BL](#913-swu-913-교정-전달-함수-cross-fpd-패널-정규화-gap-bl-해소)
 - [부록 A: 수학 공식 일람](#부록-a-수학-공식-일람)
 - [부록 B: 표준 참조 테이블](#부록-b-표준-참조-테이블)
 - [부록 C: 알고리즘-요구사항 추적성](#부록-c-알고리즘-요구사항-추적성)
@@ -188,6 +209,15 @@
 | `MS-SSIM` | Multi-Scale SSIM | dimensionless |
 | `FSIM` | Feature Similarity Index | dimensionless |
 | `PC_m(x)` | Phase Congruency mask (FSIM) | dimensionless |
+| `DAP` | Dose-Area Product (방사선량-면적곱) | Gy·cm² |
+| `K_air` | Air KERMA (공기 커마) | Gy |
+| `k_fact` | 장치별 DAP 교정 계수 | Gy·cm²·cm²/(mAs·kVp^n) |
+| `n_kVp` | kVp 지수 (W/Al 필터 빔 ≈ 2.5) | dimensionless |
+| `L_px` | 모션 블러 길이 | pixels |
+| `θ_i` | 토모합성 i번째 투영 각도 | degrees |
+| `N_proj` | 토모합성 투영 수 | dimensionless |
+| `G_l` | 가우시안 피라미드 l번째 레벨 | ADU |
+| `L_l` | 라플라시안 피라미드 l번째 레벨 | ADU |
 
 ### 1.2 좌표 규약
 
@@ -9855,6 +9885,700 @@ XpeIQMResult xpe_compute_iqm(
 
 ---
 
+---
+
+### 9.12 SWU-9.12 방사선량-면적곱(DAP) 및 KERMA 누적 추적 ★GAP-BC 해소
+
+**SRS ID**: SRS-DOSE-001 | **SWU**: SWU-9.12 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_common.dll
+
+#### 9.12.1 배경
+
+IEC 60601-2-54 방사선 촬영 장비 표준은 방사선량-면적곱(DAP, Gy·cm²)과 공기 KERMA의 누적 추적을 의무화한다. XPE는 EI(§7)를 계산하지만 DAP/KERMA 누적 알고리즘은 미명세였다.
+
+#### 9.12.2 DAP 계산 모델
+
+$$\text{DAP} = K_{\text{air}} \times A_{\text{beam}} \quad [\text{Gy·cm}^2]$$
+
+$$K_{\text{air}} = k_{\text{fact}} \times \frac{\text{mAs} \times \text{kVp}^{n_{\text{kVp}}}}{d_{\text{SID}}^2}$$
+
+파라미터:
+- k_fact: 장치별 교정 계수 (Gy·cm²·cm²/(mAs·kVp^n))
+- n_kVp: kVp 지수 ≈ 2.5 (W/Al 필터 빔)
+- d_SID: 선원-영상수신체 거리 (cm)
+- A_beam: FOV_width_cm × FOV_height_cm (콜리메이터 마스크 §12.5에서)
+
+#### 9.12.3 누적 추적 알고리즘
+
+```cpp
+struct XpeDoseState {
+    float dap_current_Gy_cm2;       // 현재 촬영 DAP
+    float dap_cumulative_Gy_cm2;    // 세션 누적 DAP
+    float kerma_air_uGy;            // 공기 KERMA (μGy)
+    float effective_dose_est_mSv;   // 유효 선량 추정 (mSv)
+    bool  alert_triggered;          // 누적 임계 초과
+};
+
+XpeDoseState xpe_compute_dap(
+    float kvp, float mas, float sid_cm,
+    float fov_w_cm, float fov_h_cm,
+    float k_fact,
+    XpeDoseState prev_state  // 누적 상태
+);
+```
+
+유효 선량 추정: E_est = DAP × DLP_conversion_factor (해부 부위별, ICRP 102)
+
+알림 임계: cumulative_DAP > alert_threshold_Gy_cm2 → XpeQualityState.dose_alert = true
+
+#### 9.12.4 검증 기준
+
+| 조건 | 허용 오차 |
+|------|---------|
+| PMMA 팬텀 실측 DAP vs. 계산 | ± 10% |
+| 누적 DAP 정확도 (10회 촬영) | ± 5% |
+| IEC 60601-2-54 §29.201 준수 | 통과 |
+
+#### 9.12.5 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-DOSE-001 |
+| **SWU** | SWU-9.12 |
+| **검증 방법** | PMMA 팬텀 5개 kVp/mAs 조합; 계산 DAP vs. 이온 챔버 실측; 누적 카운터 정확성 10회 반복 |
+| **안전 분류** | Class B |
+
+---
+
+### 17.3 SWU-17.3 JPEG 2000 (ISO 15444) 무손실/근손실 압축 ★GAP-BD 해소
+
+**SRS ID**: SRS-DICOM-003 | **SWU**: SWU-17.3 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_dicom.dll
+
+#### 17.3.1 배경
+
+§17(GAP-AR)은 DICOM IOD 적합성을 검증하지만 PACS 저장을 위한 JPEG 2000 압축 코덱 통합은 미명세였다.
+
+#### 17.3.2 압축 사양
+
+| 모드 | DICOM 전송 구문 | 코덱 |
+|------|--------------|------|
+| 무손실 | 1.2.840.10008.1.2.4.90 | JPEG2000 Part1 Lossless (9-7 가역) |
+| 근손실 1.5:1 | 1.2.840.10008.1.2.4.91 | JPEG2000 Part1 Lossy (9-7 비가역) |
+
+라이브러리: OpenJPEG 2.5 (SOUP 등록 필요) | 타일: 256×256 픽셀
+
+#### 17.3.3 C++ API
+
+```cpp
+struct XpeJ2KParams {
+    bool  lossless;           // true = 무손실, false = 근손실
+    float max_compression_ratio;  // 최대 압축비 (근손실 시: 3.0)
+    int   tile_width, tile_height; // 기본값: 256
+    int   n_resolution_levels;    // 기본값: 5
+};
+
+XpeStatus xpe_compress_jpeg2000(
+    const uint16_t* I_in, int width, int height,
+    uint8_t** compressed_out, size_t* compressed_size_out,
+    XpeJ2KParams params
+);
+
+XpeStatus xpe_decompress_jpeg2000(
+    const uint8_t* compressed, size_t compressed_size,
+    uint16_t** I_out, int* width_out, int* height_out
+);
+```
+
+#### 17.3.4 품질 제약
+
+| 모드 | 제약 조건 |
+|------|---------|
+| 무손실 | 복원 후 원본과 픽셀 단위 동일 (비트 완전) |
+| 근손실 1.5:1 | PSNR ≥ 50 dB; SSIM ≥ 0.999 |
+| 최대 압축비 | 3:1 (임상 품질 보장 한계) |
+
+#### 17.3.5 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-DICOM-003 |
+| **SWU** | SWU-17.3 |
+| **검증 방법** | 무손실: 3Kx3K 영상 압축-복원 후 픽셀 동일성 확인; 근손실 1.5:1: PSNR ≥ 50 dB; 압축 시간 < 100ms |
+| **안전 분류** | Class B |
+
+---
+
+### 3.14 SWU-1.14 모션 블러 PSF 추정 및 위너(Wiener) 역필터 ★GAP-BE 해소
+
+**SRS ID**: SRS-FUNC-001d | **SWU**: SWU-1.14 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_preprocess.dll
+
+#### 3.14.1 배경
+
+환자 움직임이나 장비 진동에 의해 방사선 영상에 모션 블러가 발생한다. 이를 검출하고 위너 역필터로 복원하는 알고리즘이 미명세였다.
+
+#### 3.14.2 블러 감지
+
+블러 지표: MTF f50 < 0.7 × f50_ref (§12.2) → 블러 감지
+
+블러 방향/길이 추정:
+1. Radon 변환으로 블러 방향 θ 추정 (0–180°)
+2. 주파수 도메인 영점(zero) 위치에서 블러 길이 L 추정:
+   $$H(u) = \frac{\sin(\pi u L)}{\pi u L} \quad \Rightarrow \quad L = \frac{1}{u_{\text{zero}}}$$
+
+#### 3.14.3 균일 직선 모션 PSF
+
+$$H(u,v) = \frac{\sin(\pi (u\cos\theta + v\sin\theta) L)}{\pi (u\cos\theta + v\sin\theta) L} \cdot e^{-j\pi (u\cos\theta + v\sin\theta)(L-1)}$$
+
+#### 3.14.4 위너(Wiener) 역필터
+
+$$\hat{I}(u,v) = \frac{H^*(u,v)}{|H(u,v)|^2 + K_{\text{WF}}} \cdot G(u,v)$$
+
+- G(u,v): 블러된 영상의 DFT
+- K_WF = σ_n²/σ_s² (잡음/신호 전력 비율, 기본값: 0.01)
+- H*: PSF의 켤레 복소수
+
+#### 3.14.5 C++ 구현
+
+```cpp
+struct XpeMotionBlurParams {
+    float angle_deg;    // 블러 방향 (0–180°)
+    float length_px;    // 블러 길이 (픽셀)
+    float K_wiener;     // 정규화 파라미터 (기본값: 0.01)
+    bool  blur_detected;
+};
+
+XpeMotionBlurParams xpe_estimate_motion_blur(
+    const float* image, int w, int h
+);
+
+XpeStatus xpe_wiener_deblur(
+    const float* blurred, float* sharp,
+    int w, int h,
+    const XpeMotionBlurParams& params
+);
+```
+
+#### 3.14.6 검증 기준
+
+| 테스트 | 기준 |
+|--------|------|
+| 합성 블러 L=5,10,20px; θ=0,45,90° | 복원 PSNR ≥ 30 dB |
+| MTF f50 회복률 | ≥ 80% 원본 대비 |
+| 블러 미감지 영상 통과 | 원본 영상 변형 없음 |
+| 처리 시간 (3Kx3K) | < 5 ms (cuFFT 또는 Intel MKL) |
+
+#### 3.14.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-001d |
+| **SWU** | SWU-1.14 |
+| **검증 방법** | 합성 모션 블러 6개 케이스; PSNR ≥ 30 dB; MTF f50 회복 ≥ 80%; 정상 영상 패스스루 확인 |
+| **안전 분류** | Class B |
+
+---
+
+### 3.15 SWU-1.15 금속 고밀도 아티팩트 마스크 생성 ★GAP-BF 해소
+
+**SRS ID**: SRS-FUNC-001e | **SWU**: SWU-1.15 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_preprocess.dll
+
+#### 3.15.1 배경
+
+인공관절, 임플란트 등 금속 고밀도 물체는 X선 영상에서 포화(saturation) 및 방사형 스트리크 아티팩트를 유발한다. AI 전처리 및 아티팩트 저감을 위해 금속 마스크가 필요하다.
+
+#### 3.15.2 금속 마스크 생성
+
+```cpp
+// 1단계: 임계값 기반 금속 픽셀 감지
+float threshold = global_mean + 5.0f * global_std;
+for (int i = 0; i < N; i++)
+    metal_mask_raw[i] = (I_raw[i] > threshold) ? 1 : 0;
+
+// 2단계: 형태 연산 (팽창 → 구멍 채우기 → 침식)
+morphological_dilate(metal_mask_raw, 3);   // 3×3 구조 요소
+fill_holes(metal_mask_raw);
+morphological_erode(metal_mask_raw, 2);    // 2×2 구조 요소
+
+// 3단계: 연결 요소 분석 (면적 필터링)
+remove_small_components(metal_mask_raw, min_area_px2=50);
+```
+
+#### 3.15.3 스트리크 마스크 생성
+
+금속 중심에서 방사형 라인 프로파일 분석:
+- 8방향 방사형 프로파일 (0°, 45°, 90°, 135° × 양방향)
+- 프로파일 표준 편차 > streak_threshold → 스트리크 픽셀 마킹
+
+#### 3.15.4 C++ 구조
+
+```cpp
+struct XpeMetalArtifactMap {
+    uint8_t* metal_mask;       // 금속 픽셀 이진 맵
+    uint8_t* streak_mask;      // 스트리크 영역 이진 맵
+    int   num_metal_objects;   // 감지된 금속 객체 수
+    float max_metal_area_px2;  // 최대 금속 영역 (픽셀²)
+    bool  clinical_use_blocked; // 임상 직접 적용 금지 플래그 (항상 true)
+};
+
+XpeMetalArtifactMap xpe_generate_metal_artifact_map(
+    const uint16_t* I_raw, int w, int h,
+    XpeMetalConfig cfg
+);
+```
+
+**안전 주의**: clinical_use_blocked 플래그는 항상 true. 이 마스크는 AI 전처리 입력 조건화에만 사용하며, 임상 진단 영상에 직접 적용은 금지.
+
+#### 3.15.5 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| 합성 금속 객체 (100–5000 px²) | 마스크 커버리지 ≥ 95% |
+| 스트리크 아티팩트 감지율 | ≥ 85% |
+| 비금속 영역 오탐률 | < 2% |
+
+#### 3.15.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-001e |
+| **SWU** | SWU-1.15 |
+| **검증 방법** | 합성 고밀도 객체 10개 케이스; 마스크 커버리지 ≥ 95%; 오탐 < 2%; clinical_use_blocked 플래그 상태 단위 테스트 |
+| **안전 분류** | Class B |
+
+---
+
+## 19. 선형 토모합성 재구성 (FBP/SAA) ★GAP-BG 해소
+
+**SRS ID**: SRS-TOMO-001 | **SWU**: SWU-19.0 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_enhance_advanced.dll
+
+### 19.1 배경
+
+선형 토모합성은 평면 X선 장비에서 제한 각도 투영을 이용해 선택적 깊이 슬라이스를 재구성하는 기법이다. FBP(Filtered Back Projection)와 SAA(Shift-and-Add) 두 가지 재구성 방법을 지원한다.
+
+### 19.2 투영 기하
+
+```
+선원 선형 스윕:  ±θ_max = ±15°, N_proj = 11 (기본), 21 (고해상도)
+SDD:             1000 mm (조정 가능)
+재구성 평면:      z = 0 ~ H_max mm (1mm 간격)
+픽셀 피치:        det_pitch_mm = 0.14 mm (a-Si FPD 기준)
+```
+
+### 19.3 Shift-and-Add (SAA) 알고리즘
+
+빠른 근사 재구성:
+
+$$I_{\text{slab}}(x, y, z) = \frac{1}{N_{\text{proj}}} \sum_{i=1}^{N_{\text{proj}}} P_i\!\left(x + \Delta x_i(z),\ y\right)$$
+
+깊이 의존 시프트:
+$$\Delta x_i(z) = \frac{z \cdot \tan(\theta_i)}{\text{pixelPitch\_mm}}$$
+
+### 19.4 FBP (Filtered Back Projection) 알고리즘
+
+램프 필터 적용 역투영:
+
+$$\hat{f}(x, y, z) = \sum_{i=1}^{N_{\text{proj}}} \int_{-\infty}^{\infty} P_i(t) \cdot h_{\text{ramp}}(x_i(z) - t)\, dt$$
+
+램프 필터: $|ω|$ 응답에 Hanning 윈도우 적용:
+$$H_{\text{ramp}}(\omega) = |\omega| \cdot W_{\text{Hanning}}(\omega)$$
+
+### 19.5 C++ API
+
+```cpp
+enum class XpeTomoMethod { SAA, FBP };
+
+struct XpeTomoConfig {
+    int   n_projections;       // 11 또는 21
+    float angle_range_deg;     // ±각도 (기본: 15.0)
+    float sdd_mm;              // 1000.0
+    float pixel_pitch_mm;      // 0.14
+    float slice_spacing_mm;    // 1.0
+    int   n_slices;            // 재구성 슬라이스 수
+    XpeTomoMethod method;      // SAA 또는 FBP
+};
+
+XpeStatus xpe_tomo_reconstruct(
+    const float** projections,  // [n_projections][W×H] 입력 투영
+    float** slices,             // [n_slices][W×H] 출력 슬라이스
+    XpeTomoConfig cfg
+);
+```
+
+### 19.6 검증 기준
+
+| 항목 | 기준 |
+|------|------|
+| 슬라이스 두께 FWHM | ≤ 1.5 mm (CIRS 팬텀) |
+| 면내 해상도 | ≥ 3 lp/mm (SAA), ≥ 4 lp/mm (FBP) |
+| 재구성 시간 (3Kx3K, N=11) | < 200 ms (CPU) |
+| SAA vs. FBP CNR 차이 | FBP ≥ SAA × 1.2 |
+
+### 19.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-TOMO-001 (신규) |
+| **SWU** | SWU-19.0 |
+| **검증 방법** | CIRS Model 014 팬텀; 슬라이스 두께 FWHM ≤ 1.5mm; 면내 해상도 ≥ 3 lp/mm |
+| **안전 분류** | Class B |
+
+---
+
+### 8.3.2 SWU-8.3.2 RANSAC+ORB 키포인트 기반 파노라마 스티칭 ★GAP-BH 해소
+
+**SRS ID**: SRS-FUNC-017b | **SWU**: SWU-8.3.2 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_ai.dll
+
+#### 8.3.2.1 배경
+
+기존 §8.3 파노라마 스티칭은 위상 상관(phase correlation)에 의존하나, 긴 척추/하지 영상에서 국소 비선형 변형이 있을 경우 정확도가 저하된다. RANSAC 기반 키포인트 매칭으로 강건성을 향상시킨다.
+
+#### 8.3.2.2 알고리즘
+
+**1단계: ORB 특징점 검출**
+- ORB(Oriented FAST + Rotated BRIEF): n_features=500, scale_factor=1.2, n_levels=8
+- 각 프레임에서 독립적으로 검출
+
+**2단계: Brute-Force 매칭 + Hamming 거리**
+```cpp
+BFMatcher matcher(NORM_HAMMING);
+matcher.knnMatch(desc1, desc2, matches, k=2);
+// Lowe's ratio test: ratio < 0.75 유지
+```
+
+**3단계: RANSAC 단응변환 추정**
+- 최소 매칭 쌍: 4
+- 인라이어 임계값: 5 pixels
+- max_iter = 2000
+- 결과: 3×3 Homography 행렬 H
+
+**4단계: 원근 워핑 + Laplacian 피라미드 블렌딩**
+```cpp
+warpPerspective(src, dst, H, panorama_size);
+// α-블렌딩: 중첩 영역에서 선형 그래디언트
+```
+
+#### 8.3.2.3 폴백 전략
+
+ORB 특징 매칭 실패 (인라이어 < 8) → 자동으로 §8.3 위상 상관 방법으로 전환
+
+#### 8.3.2.4 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| 인공 척추 팬텀 | Cobb 각도 오차 ≤ 1.5° |
+| 위상 상관 대비 정밀도 | ≥ 30% 개선 |
+| 저질감 영상 폴백 | 100% 위상 상관으로 전환 |
+
+#### 8.3.2.5 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-017b |
+| **SWU** | SWU-8.3.2 |
+| **검증 방법** | 합성 척추 팬텀 5개 케이스; Cobb 오차 ≤ 1.5°; 폴백 시나리오 테스트 |
+| **안전 분류** | Class B |
+
+---
+
+### 4.9 SWU-2.9 가우시안/라플라시안 다중 해상도 피라미드 ★GAP-BI 해소
+
+**SRS ID**: SRS-FUNC-014b | **SWU**: SWU-2.9 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_enhance_advanced.dll
+
+#### 4.9.1 배경
+
+SRS-FUNC-014(Laplacian Pyramid)가 요구사항에 존재하지만 완전한 다중 해상도 피라미드 분해/재구성 알고리즘 명세가 없었다. DNN 전처리 및 다중 스케일 에지 강조에 활용된다.
+
+#### 4.9.2 가우시안 피라미드 생성
+
+$$G_{l+1}(x,y) = \sum_{m=-2}^{2}\sum_{n=-2}^{2} w(m,n)\, G_l(2x+m,\; 2y+n)$$
+
+- w: 5×5 가우시안 커널 (σ=1.0), Burt-Adelson 5-탭: {0.0625, 0.25, 0.375, 0.25, 0.0625}
+- 레벨 수: L = min(floor(log₂(min(W,H))) − 1, 5)
+
+#### 4.9.3 라플라시안 피라미드 생성
+
+$$L_l = G_l - \text{EXPAND}(G_{l+1})$$
+
+EXPAND 연산: 업샘플 2× + 가우시안 보간 (0 삽입 후 × 4 스케일)
+
+#### 4.9.4 피라미드 재구성
+
+$$G_l = L_l + \text{EXPAND}(G_{l+1})$$
+
+재구성 오류: < 0.001 ADU RMS (부동소수점 정밀도)
+
+#### 4.9.5 C++ 구조
+
+```cpp
+struct XpePyramidLevels {
+    std::vector<XpeImageF32> gaussian;  // L+1개 레벨
+    std::vector<XpeImageF32> laplacian; // L개 레벨
+    int n_levels;
+    int base_width, base_height;
+};
+
+XpePyramidLevels xpe_build_pyramid(
+    const float* image, int w, int h, int n_levels
+);
+
+void xpe_reconstruct_from_pyramid(
+    const XpePyramidLevels& pyr, float* output
+);
+
+// 다중 스케일 에지 강조 (각 라플라시안 레벨에 게인 적용)
+void xpe_pyramid_edge_enhance(
+    XpePyramidLevels& pyr,
+    const float* gains,  // [n_levels] 레벨별 게인
+    float* output
+);
+```
+
+#### 4.9.6 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| 재구성 오류 | < 0.001 ADU RMS |
+| 라플라시안 에너지 분포 | 고주파 에너지 레벨 0 > 레벨 1 > ... (단조 감소) |
+| 처리 시간 (3Kx3K, L=5) | < 5 ms (AVX2) |
+
+#### 4.9.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-FUNC-014b |
+| **SWU** | SWU-2.9 |
+| **검증 방법** | 피라미드 구성-재구성 왕복 오류 < 0.001 ADU RMS; 에너지 단조성 검증; 처리 시간 < 5ms |
+| **안전 분류** | Class B |
+
+---
+
+### 10.9 SWU-10.9 GPU CUDA 파이프라인 가속 아키텍처 ★GAP-BJ 해소
+
+**SRS ID**: SRS-PERF-003 | **SWU**: SWU-10.9 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_preprocess.dll (CUDA 확장)
+
+#### 10.9.1 배경
+
+CPU SIMD(AVX2/OpenMP) 최적화(§10.1~10.8)를 보완하는 GPU CUDA 가속 아키텍처. 연산 집약적 단계(Bilateral Filter, FFT Notch, Wavelet)를 GPU로 오프로드한다.
+
+#### 10.9.2 GPU 오프로드 대상 단계
+
+| 파이프라인 단계 | CPU 시간 | GPU 예상 시간 | 가속 비율 |
+|--------------|---------|------------|---------|
+| Gain Correction (§3.2) | 2 ms | 0.3 ms | 6× |
+| Bilateral Filter (§4.2) | 15 ms | 2 ms | 7× |
+| 2D FFT Notch (§3.13) | 2 ms | 0.4 ms | 5× (cuFFT) |
+| Wavelet BayesShrink (§4.8) | 8 ms | 1.5 ms | 5× |
+
+#### 10.9.3 CUDA 메모리 아키텍처
+
+```
+호스트 (CPU)              GPU
+Pinned Memory ←──── cudaMemcpyAsync ───→ Global Memory
+                                          ↓
+                                     CUDA 커널 실행
+                                          ↓
+Pinned Memory ←──── cudaMemcpyAsync ───  Global Memory (결과)
+```
+
+- Pinned Memory: `cudaHostAlloc(flag=cudaHostAllocDefault)` → DMA 전송 가속
+- 스트림: 2개 CUDA 스트림으로 전송/연산 오버랩
+
+#### 10.9.4 CUDA 커널 예시 (Gain Correction)
+
+```cuda
+__global__ void gain_correction_kernel(
+    const uint16_t* __restrict__ raw,
+    const float*   __restrict__ gain_map,
+    const float*   __restrict__ offset_map,
+    float*         __restrict__ corrected,
+    int N_pixels)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N_pixels) {
+        float val = (float)raw[idx] - offset_map[idx];
+        corrected[idx] = val * gain_map[idx];
+    }
+}
+// 실행: <<<(N+255)/256, 256>>> (32 warps per block)
+```
+
+#### 10.9.5 폴백 전략 (CPU 자동 전환)
+
+```cpp
+XpeStatus xpe_pipeline_set_backend(XpeExecutionBackend backend) {
+    if (backend == XpeExecutionBackend::CUDA_AUTO) {
+        int device_count = 0;
+        cudaGetDeviceCount(&device_count);
+        active_backend = (device_count > 0) ?
+            XpeExecutionBackend::CUDA_AUTO :
+            XpeExecutionBackend::CPU;
+    }
+}
+```
+
+조건: 드라이버 없음, 메모리 부족, CUDA 오류 → 자동 CPU 경로 활성화
+
+#### 10.9.6 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| CPU/GPU 출력 동일성 | ± 0.01 ADU (부동소수점 차이 허용) |
+| 전처리 파이프라인 총 시간 (3Kx3K, GPU) | < 10 ms (RTX 3060 기준) |
+| CPU 대비 가속 비율 | ≥ 3× |
+| 폴백 시나리오 (CUDA 없음) | 100% CPU 전환 확인 |
+
+#### 10.9.7 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-PERF-003 |
+| **SWU** | SWU-10.9 |
+| **검증 방법** | CPU vs. GPU 결과 비교 (±0.01 ADU); 총 파이프라인 시간 < 10ms; 폴백 단위 테스트 (CUDA 비활성화 시나리오) |
+| **안전 분류** | Class B |
+
+---
+
+### 12.11 SWU-12.11 자동 QA 팬텀 인식 알고리즘 ★GAP-BK 해소
+
+**SRS ID**: SRS-QA-002 | **SWU**: SWU-12.11 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_enhance_advanced.dll
+
+#### 12.11.1 배경
+
+IEC 61223 인수 시험(§12.10)은 팬텀 유형에 따라 다른 프로토콜을 적용한다. 팬텀 유형을 자동으로 인식하면 운영자 오류를 방지하고 워크플로우를 자동화할 수 있다.
+
+#### 12.11.2 지원 팬텀 유형
+
+| 팬텀 | 특징 구조 | 검출 알고리즘 |
+|------|---------|------------|
+| Leeds TOR 18FG | 18개 원형 인서트 (3행 6열) | 원형 Hough + 격자 패턴 매칭 |
+| CDRAD 2.0 | 15×15 사각 배열 구멍 (225개) | Blob 검출 + 격자 분석 |
+| CIRS Model 17-150 | 5개 동심 원형 영역 | 동심원 Hough 변환 |
+| 기타/불명 | — | UNKNOWN 반환 |
+
+#### 12.11.3 인식 알고리즘
+
+```cpp
+// 1단계: 원형 구조 검출 (Hough Circle Transform)
+std::vector<XpeCircle> circles = hough_circles(
+    image, w, h,
+    min_radius_px=5, max_radius_px=50,
+    min_dist_px=10
+);
+
+// 2단계: 패턴 분류
+XpePhantomType classify_phantom(const std::vector<XpeCircle>& circles) {
+    if (matches_leeds_pattern(circles))    return LEEDS_TOR_18FG;
+    if (matches_cdrad_pattern(circles))    return CDRAD_2;
+    if (matches_cirs_pattern(circles))     return CIRS_17150;
+    return UNKNOWN;
+}
+```
+
+#### 12.11.4 C++ API
+
+```cpp
+enum class XpePhantomType {
+    UNKNOWN, LEEDS_TOR_18FG, CDRAD_2, CIRS_17150
+};
+
+XpePhantomType xpe_identify_phantom(
+    const float* image, int w, int h,
+    float* confidence_out    // 신뢰도 [0,1]
+);
+
+// 인식 후 해당 팬텀 프로토콜 자동 실행
+XpeAcceptanceResult xpe_run_auto_phantom_test(
+    const float* image, int w, int h
+);
+```
+
+#### 12.11.5 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| 각 팬텀 유형 5개 샘플 | 인식 정확도 ≥ 90% |
+| UNKNOWN 오분류율 | < 5% |
+| 인식 처리 시간 | < 50 ms (3Kx3K) |
+
+#### 12.11.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-QA-002 |
+| **SWU** | SWU-12.11 |
+| **검증 방법** | Leeds/CDRAD/CIRS 각 5개 팬텀 영상; 인식 정확도 ≥ 90%; UNKNOWN 오분류 < 5% |
+| **안전 분류** | Class B |
+
+---
+
+### 9.13 SWU-9.13 교정 전달 함수 (Cross-FPD 패널 정규화) ★GAP-BL 해소
+
+**SRS ID**: SRS-CAL-002 | **SWU**: SWU-9.13 | **IEC 62304 §**: 5.4.2 | **DLL**: xpe_preprocess.dll
+
+#### 9.13.1 배경
+
+동일 제품 라인에서도 FPD 패널 간 픽셀 피치, 비트 심도, 응답 곡선 차이가 존재한다. 다른 패널에서 수집된 영상을 공통 기준 응답으로 정규화하는 전달 함수가 필요하다.
+
+#### 9.13.2 전달 함수 모델
+
+$$I_{\text{norm}}(x,y) = a \cdot I_{\text{raw}}(x,y)^{\gamma} + b$$
+
+파라미터:
+- a: 스케일 계수 (선량 응답 스케일링)
+- γ: 감마 지수 (a-Si vs. a-Se 응답 비선형성)
+- b: 오프셋 (영점 보정)
+
+#### 9.13.3 파라미터 추정 (오프라인 교정)
+
+기준 PMMA 계단 쐐기 (5단계 두께: 10, 20, 30, 40, 50 mm) 촬영:
+- 기준 패널 응답: `{dose_i → pixel_ref_i}` (LUT 테이블)
+- 대상 패널 응답: `{dose_i → pixel_src_i}`
+- Levenberg-Marquardt 피팅: `pixel_src_i ≈ a × pixel_ref_i^γ + b`
+- 수렴 기준: R² > 0.9999
+
+#### 9.13.4 C++ 구현
+
+```cpp
+struct XpeCTF {               // Calibration Transfer Function
+    float a, gamma, b;        // 전달 함수 파라미터
+    float r_squared;          // 피팅 R² (검증용)
+    char  ref_panel_id[32];   // 기준 패널 ID
+    char  src_panel_id[32];   // 대상 패널 ID
+};
+
+// 전달 함수 파라미터 추정 (오프라인 Python 또는 C++)
+XpeCTF xpe_estimate_ctf(
+    const float* dose_values,      // [N] 기준 선량 레벨
+    const float* pixel_ref_values, // [N] 기준 패널 픽셀
+    const float* pixel_src_values, // [N] 대상 패널 픽셀
+    int N
+);
+
+// 런타임 정규화 적용
+void xpe_apply_ctf(
+    const float* I_src, float* I_norm,
+    int N_pixels, const XpeCTF& ctf
+);
+```
+
+#### 9.13.5 검증 기준
+
+| 조건 | 기준 |
+|------|------|
+| 5개 패널 모델 간 교차 정규화 | 정규화 후 균일성 CV ≤ 0.5% |
+| 전달 함수 피팅 R² | > 0.9999 |
+| 런타임 적용 처리 시간 | < 1 ms/3Kx3K |
+
+#### 9.13.6 IEC 62304 추적성
+
+| 항목 | 내용 |
+|------|------|
+| **SRS ID** | SRS-CAL-002 |
+| **SWU** | SWU-9.13 |
+| **검증 방법** | 5개 패널 모델 PMMA 쐐기 응답; 교차 정규화 후 CV ≤ 0.5%; R² > 0.9999 |
+| **안전 분류** | Class B |
+
+---
+
 ## 부록 A: 수학 공식 일람
 
 ### A.1 Pre-Processing 공식
@@ -10001,6 +10725,16 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 | Moiré Artifact Suppression (GAP-AZ) | SRS-FUNC-008c | SWU-5.5 | Injected Moiré (f=0.15/0.25/0.35×fN); detection rate > 95%; residual < 10% |
 | DICOM SR for CAD Findings (GAP-BA) | SRS-DICOM-002 | SWU-17.2 | TID 1500/4100 conformance; 5 finding types × 3 anatomy regions |
 | IEC 61223 Acceptance Testing (GAP-BB) | SRS-QA-001 | SWU-12.10 | T1–T6 with phantom images; fail-case maintenance alert triggered |
+| DAP/KERMA Dose Tracking (GAP-BC) | SRS-DOSE-001 | SWU-9.12 | PMMA phantom 5 kVp/mAs combos; computed vs. measured DAP ±10%; IEC 60601-2-54 §29.201 |
+| JPEG 2000 Compression (GAP-BD) | SRS-DICOM-003 | SWU-17.3 | Lossless pixel-exact roundtrip; 1.5:1 lossy PSNR ≥ 50 dB; compress time < 100ms |
+| Motion Blur Wiener Deblur (GAP-BE) | SRS-FUNC-001d | SWU-1.14 | 6 synthetic blur cases (L=5/10/20px, θ=0/45/90°); PSNR ≥ 30 dB; MTF f50 recovery ≥ 80% |
+| Metal Artifact Mask (GAP-BF) | SRS-FUNC-001e | SWU-1.15 | 10 synthetic metal objects; coverage ≥ 95%; false-positive < 2%; clinical_use_blocked flag test |
+| Linear Tomosynthesis FBP/SAA (GAP-BG) | SRS-TOMO-001 | SWU-19.0 | CIRS phantom; slice FWHM ≤ 1.5mm; in-plane resolution ≥ 3 lp/mm |
+| RANSAC+ORB Panoramic Stitch (GAP-BH) | SRS-FUNC-017b | SWU-8.3.2 | Spine phantom 5 cases; Cobb angle error ≤ 1.5°; fallback to phase-corr on low-texture |
+| Gaussian/Laplacian Pyramid (GAP-BI) | SRS-FUNC-014b | SWU-2.9 | Reconstruct error < 0.001 ADU RMS; energy monotonicity check; < 5ms/3Kx3K |
+| GPU CUDA Pipeline Acceleration (GAP-BJ) | SRS-PERF-003 | SWU-10.9 | CPU vs. GPU output ±0.01 ADU; total pipeline < 10ms; fallback 100% CPU confirmed |
+| Auto QA Phantom Recognition (GAP-BK) | SRS-QA-002 | SWU-12.11 | Leeds/CDRAD/CIRS 5 samples each; recognition accuracy ≥ 90%; UNKNOWN misclassification < 5% |
+| Cross-FPD Calibration Transfer (GAP-BL) | SRS-CAL-002 | SWU-9.13 | 5 panel models; post-normalization CV ≤ 0.5%; R² > 0.9999 |
 
 ---
 
@@ -10008,6 +10742,7 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 | 개정 | 날짜 | 저자 | 내용 |
 |------|------|------|------|
+| 1.6 | 2026-04-15 | XPE Team | **Round 7 GAP 해소 10건 (GAP-BC~BL)**: GAP-BC (DAP/KERMA 누적 추적 §9.12 — IEC 60601-2-54, k_fact 교정, 세션 누적, 임계 알림), GAP-BD (JPEG2000 압축 §17.3 — OpenJPEG 2.5, 무손실/1.5:1 근손실, PSNR ≥ 50dB), GAP-BE (모션 블러 위너 역필터 §3.14 — Radon PSF 추정, K_WF=0.01, PSNR ≥ 30dB 복원), GAP-BF (금속 아티팩트 마스크 §3.15 — 임계값+형태 연산, 스트리크 방사형 감지, clinical_use_blocked), GAP-BG (선형 토모합성 §19 — FBP 램프 필터/SAA 시프트합산, ±15°/N=11, 슬라이스 FWHM ≤ 1.5mm), GAP-BH (RANSAC ORB 스티칭 §8.3.2 — ORB 500특징, RANSAC H행렬, Cobb 오차 ≤ 1.5°, 폴백 전략), GAP-BI (라플라시안 피라미드 §4.9 — Burt-Adelson 5-탭, 5레벨, 재구성 오류 < 0.001 ADU), GAP-BJ (GPU CUDA 가속 §10.9 — Pinned Memory, 2스트림, CPU 대비 ≥ 3×, 폴백 자동 전환), GAP-BK (자동 팬텀 인식 §12.11 — Hough원, Leeds/CDRAD/CIRS 분류, ≥ 90% 정확도), GAP-BL (Cross-FPD 전달 함수 §9.13 — LM 피팅 a·I^γ+b, R²>0.9999, CV ≤ 0.5%). §19 신설. 부록 C 10건 추가. |
 | 1.5 | 2026-04-15 | XPE Team | **Round 6 GAP 해소 10건 (GAP-AS~BB)**: GAP-AS (지각적 화질 지표 §18 — PSNR/SSIM/MS-SSIM/FSIM 통합, 임계값 체계화), GAP-AT (온도 보상 이득 보정 §3.12 — α_T=0.0015/°C, ΔT≥5°C 트리거, 교정 매니페스트 연동), GAP-AU (2D FFT 노치 필터 §3.13 — MKL FFT, Gaussian 노치 D=3px, <2ms/3Kx3K), GAP-AV (AEC 피드백 루프 §9.10 — DI→mAs 10^(-DI/10), ±10kVp 조정, 안전 클램프), GAP-AW (SPC 교정 관리 §9.11 — Shewhart UCL/LCL, CUSUM k=0.5σ h=4σ/5σ), GAP-AX (서브픽셀 ECC 정합 §14.2 — Evangelidis-Psarakis 2008, <0.5pixel RMS, <5ms/프레임), GAP-AY (양자 잡음 모델 §11.5 — Poisson+Gaussian σ²=αI+β, Anscombe 변환, Makitalo-Foi 역변환), GAP-AZ (무아레 검출 §5.5 — 행 방향 PSD 피크, Gaussian 대역 제거, >95% 검출률), GAP-BA (DICOM SR §17.2 — TID 1500/4100, XpeSRReport API, xpe_dicom.dll 통합), GAP-BB (IEC 61223 인수 시험 §12.10 — T1~T6 자동화, 일일/주간/월간 일정, XpeAcceptanceResult). §18 신설, §12.10 신설, §17.2 신설. 부록 C 10건 추가. |
 | 1.4 | 2026-04-15 | XPE Team | **Round 5 GAP 해소 10건 (GAP-AI~AR)**: GAP-AI (Real-Time GCR Estimator §3.4.6, 슬라이딩 윈도우 EMA, 0.2% 임계값 조건부 Lag 활성화, <0.1ms/프레임), GAP-AJ (NLCSC State Machine §3.4.7, 비선형 전하 누적 4차 다항식 보정, kVp 에너지 의존 계수, 유휴 상태 리셋), GAP-AK (Row/Column FPN Correction §3.11, 3패스 반복 분해, AVX2 행 중앙값, <0.5ms/3Kx3K), GAP-AL (Allan Variance 장기 안정성 §12.9, 잡음 유형 3분류, σ_A(τ=300s)>2 ADU 재교정 트리거), GAP-AM (선량 의존 동적 결함 검출 §3.3.5, 4선량 z-score, R²<0.95 비선형 플래그, 정적 결함 맵 union), GAP-AN (다중 지수 Lag 피팅 §9.9, LM 최소제곱, 이중 노출 프로토콜, scipy.optimize, R²>0.999 검증), GAP-AO (Scatter SPR Boone-Seibert §5.4, Beer-Lambert 두께 역산, 픽셀별 산란 보정 1/(1+SPR)), GAP-AP (Wavelet BayesShrink §4.8, db4 3레벨, MAD σ_n 추정, AVX2 소프트 임계값, 해부 부위별 λ 블렌딩), GAP-AQ (Dual-Energy Subtraction §16, 로그 차감, 위상 상관 모션 보정, xpe_enhance_advanced.dll 익스포트), GAP-AR (DICOM IOD 적합성 검증 §17, Type 1/2/3 속성 검사, 픽셀 수치 일관성, xpe_dicom.dll 쓰기 경로 통합). §16/§17 신설. 부록 C 10건 추가. |
 | 1.3 | 2026-04-15 | XPE Team | **Round 4 GAP 해소 10건 (GAP-Y~AH)**: GAP-Y (Fluoroscopy 시간적 IIR 필터 §14, AVX2 FMA α 적응형, <0.3ms/3Kx3K), GAP-Z (Beam Hardening Correction §3.9, PMMA 팬텀 다항식 보정, BHC LUT 65536-entry), GAP-AA (Geometric Distortion Correction §3.10, Brown-Conrady 방사형+접선 모델, 역 LUT 바이리니어 보간), GAP-AB (Pixel Binning Mode 교정 보간 §9.7, gain 블록 평균, defect OR 전파, lag τ 선형 스케일), GAP-AC (Memory Arena Zero-Copy §10.7, 8-슬롯 링 버퍼, CAS 상태 기계, 런타임 힙 할당 0), GAP-AD (Multi-Channel SPSC Thread Safety §10.8, lock-free 링 버퍼, CPU affinity, 백프레셔 드롭), GAP-AE (Automatic CNR Auto-Assessment §12.8, 히스토그램 퍼센타일 배경 검출, SDNR 계산, XpeQualityState 연동), GAP-AF (Anatomy-Adaptive Auto W/L §6.4, 5종 해부 부위별 퍼센타일 테이블, 콜리메이터 마스크 적용), GAP-AG (Multi-Frame Sigma-Clipping §9.8, 반복적 κ=3.0 클리핑, Python NumPy 구현, min_frames 결함 마킹), GAP-AH (Error Code Taxonomy §15, 32개 코드 5범주, xpe_error_string, C# 핸들러 패턴). 섹션 수 대폭 추가, §14/§15 신설. |
@@ -10017,6 +10752,6 @@ $$\sigma_A^2(\tau) = \frac{1}{2}\langle(\bar{x}_{k+1} - \bar{x}_k)^2\rangle$$
 
 ---
 
-*Document End — XPE-ALG-001 v1.5*
+*Document End — XPE-ALG-001 v1.6*
 
 *Cross-references: XPE-SRS-001, XPE-SAD-001, XPE-SDD-002, xpe-algorithm-spec-deepsync.md, SPEC-XPE-MASTER.md, 03_측정_알고리즘_명세서, xray_grid_suppression_virtual_grid_research*

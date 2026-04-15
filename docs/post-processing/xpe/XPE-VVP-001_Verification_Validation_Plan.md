@@ -165,6 +165,23 @@ Integration test procedure 자체를 formal review로 검증한다. Reviewer는 
 | SWU-17.2 | DICOM SR for CAD Findings | §17.2 | TID 1500/4100 conformance; DCMTK parse success |
 | SWU-12.10 | IEC 61223 Acceptance Testing | §12.10 | T1–T6 pass criteria; fail-case maintenance alert |
 
+### 4.1.2 Algorithm V&V References — XPE-ALG-001 v1.6 GAP-BC~BL
+
+아래 알고리즘들은 XPE-ALG-001 v1.6에서 명세된 SWU이며, 각 SWU의 상세 검증 기준은 ALG 문서의 해당 섹션을 참조한다.
+
+| SWU | Algorithm | ALG Section | Acceptance Criterion |
+|-----|-----------|-------------|---------------------|
+| SWU-9.12 | DAP/KERMA Dose Tracking | §9.12 | Computed vs. measured DAP ±10%; IEC 60601-2-54 §29.201 pass |
+| SWU-17.3 | JPEG 2000 Lossless/Lossy Compression | §17.3 | Lossless pixel-exact; 1.5:1 lossy PSNR ≥ 50 dB; time < 100ms |
+| SWU-1.14 | Motion Blur Wiener Deblur | §3.14 | PSNR ≥ 30 dB (6 cases); MTF f50 recovery ≥ 80% |
+| SWU-1.15 | Metal Artifact Mask | §3.15 | Coverage ≥ 95%; false-positive < 2%; clinical_use_blocked=true |
+| SWU-19.0 | Linear Tomosynthesis FBP/SAA | §19 | FWHM ≤ 1.5mm; in-plane resolution ≥ 3 lp/mm (CIRS phantom) |
+| SWU-8.3.2 | RANSAC+ORB Panoramic Stitch | §8.3.2 | Cobb angle error ≤ 1.5°; fallback to phase-corr confirmed |
+| SWU-2.9 | Gaussian/Laplacian Pyramid | §4.9 | Reconstruct error < 0.001 ADU RMS; energy monotonicity |
+| SWU-10.9 | GPU CUDA Pipeline Acceleration | §10.9 | CPU/GPU diff ±0.01 ADU; pipeline < 10ms; fallback 100% CPU |
+| SWU-12.11 | Auto QA Phantom Recognition | §12.11 | Recognition accuracy ≥ 90%; UNKNOWN misclassification < 5% |
+| SWU-9.13 | Cross-FPD Calibration Transfer | §9.13 | Post-normalization CV ≤ 0.5%; R² > 0.9999 |
+
 ### 4.2 Problem Resolution (5.7.2)
 
 System test 실패 시 XPE-SPR-001 절차에 따라 처리한다.
@@ -198,6 +215,7 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-03 | XPE Team | Initial release |
 | 1.1 | 2026-04-15 | XPE Team | §4.1.1 Algorithm V&V References 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건). SWU-18.0/1.12/1.13/9.10/9.11/14.2/11.5/5.5/17.2/12.10 검증 기준 참조. |
+| 1.2 | 2026-04-15 | XPE Team | §4.1.2 Algorithm V&V References 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건). SWU-9.12/17.3/1.14/1.15/19.0/8.3.2/2.9/10.9/12.11/9.13 검증 기준 참조. |
 
 ---
 

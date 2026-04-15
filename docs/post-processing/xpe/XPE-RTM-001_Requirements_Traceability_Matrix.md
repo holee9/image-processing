@@ -133,6 +133,21 @@
 | SRS-DICOM-002 | DICOM SR for CAD Findings (TID 1500/4100) | SWU-17.2 | xpe_dicom.dll | §17.2 |
 | SRS-QA-001 | IEC 61223-3-5 Acceptance Testing Automation | SWU-12.10 | xpe_enhance_advanced.dll | §12.10 |
 
+## 7. Algorithm SRS IDs — v1.6 GAP-BC~BL 추가 (XPE-ALG-001 v1.6)
+
+| SRS Req ID | Algorithm | SWU | DLL | ALG Section |
+|-----------|-----------|-----|-----|-------------|
+| SRS-DOSE-001 | DAP/KERMA Cumulative Dose Tracking (IEC 60601-2-54) | SWU-9.12 | xpe_common.dll | §9.12 |
+| SRS-DICOM-003 | JPEG 2000 Lossless/Lossy Compression (ISO 15444) | SWU-17.3 | xpe_dicom.dll | §17.3 |
+| SRS-FUNC-001d | Motion Blur PSF Estimation & Wiener Deblur | SWU-1.14 | xpe_preprocess.dll | §3.14 |
+| SRS-FUNC-001e | Metal High-Density Artifact Mask Generation | SWU-1.15 | xpe_preprocess.dll | §3.15 |
+| SRS-TOMO-001 | Linear Tomosynthesis Reconstruction (FBP/SAA) | SWU-19.0 | xpe_enhance_advanced.dll | §19 |
+| SRS-FUNC-017b | RANSAC+ORB Keypoint Panoramic Stitching | SWU-8.3.2 | xpe_ai.dll | §8.3.2 |
+| SRS-FUNC-014b | Gaussian/Laplacian Multi-Resolution Pyramid | SWU-2.9 | xpe_enhance_advanced.dll | §4.9 |
+| SRS-PERF-003 | GPU CUDA Pipeline Acceleration Architecture | SWU-10.9 | xpe_preprocess.dll | §10.9 |
+| SRS-QA-002 | Auto QA Phantom Recognition (Leeds/CDRAD/CIRS) | SWU-12.11 | xpe_enhance_advanced.dll | §12.11 |
+| SRS-CAL-002 | Cross-FPD Calibration Transfer Function | SWU-9.13 | xpe_preprocess.dll | §9.13 |
+
 ---
 
 ## Revision History
@@ -143,6 +158,7 @@
 | 1.1 | 2026-04-14 | XPE Team | SDD-002 section refs, SHA-001 hazard refs, STP-001 test ID updates added |
 | 1.2 | 2026-04-15 | MoAI (SPEC-DOC-001) | §5 MR→PR Backward Traceability 추가 (OPEN-001 해소). Coverage summary 갱신 (HAZ 9→12). |
 | 1.3 | 2026-04-15 | XPE Team | §6 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건): SRS-MEAS-004, SRS-FUNC-002d/001c/009b/011c/008c, SRS-QC-004, SRS-FLUORO-002, SRS-DICOM-002, SRS-QA-001. |
+| 1.4 | 2026-04-15 | XPE Team | §7 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건): SRS-DOSE-001, SRS-DICOM-003, SRS-FUNC-001d/e, SRS-TOMO-001, SRS-FUNC-017b/014b, SRS-PERF-003, SRS-QA-002, SRS-CAL-002. |
 
 ---
 

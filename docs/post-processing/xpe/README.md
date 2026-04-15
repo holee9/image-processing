@@ -1,6 +1,6 @@
 # XPE (X-ray Processing Engine) — 모듈 개요
 
-**Package Version**: 1.4.0  
+**Package Version**: 1.5.0  
 **IEC 62304 Classification**: Class B  
 **Last Updated**: 2026-04-15  
 **Document Count**: 23개  
@@ -50,7 +50,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | SAD-001 | [XPE-SAD-001_Software_Architecture_Document.md](XPE-SAD-001_Software_Architecture_Document.md) | 5.3 |
 | SDD-001 | [XPE-SDD-001_Software_Unit_Identification.md](XPE-SDD-001_Software_Unit_Identification.md) | 5.4 |
 | SDD-002 | [XPE-SDD-002_Software_Detailed_Design.md](XPE-SDD-002_Software_Detailed_Design.md) | 5.4 |
-| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.5 |
+| **ALG-001** | **[XPE-ALG-001_Unified_Algorithm_Development_Specification.md](XPE-ALG-001_Unified_Algorithm_Development_Specification.md)** | **5.4** |  v1.6 |
 | ITP-001 | [XPE-ITP-001_Integration_Test_Plan.md](XPE-ITP-001_Integration_Test_Plan.md) | 5.6 |
 | STP-001 | [XPE-STP-001_Software_Test_Plan_and_Cases.md](XPE-STP-001_Software_Test_Plan_and_Cases.md) | 5.5 |
 | VVP-001 | [XPE-VVP-001_Verification_Validation_Plan.md](XPE-VVP-001_Verification_Validation_Plan.md) | 5.7 |
@@ -76,7 +76,7 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 
 `XPE-ALG-001`은 IEC 62304 §5.4 Detailed Design 문서이며, 시스템의 모든 알고리즘을 수학적 공식, C++ 의사코드, SIMD 최적화 전략, 검증 기준으로 명세한다.
 
-### 4.1 해소된 알고리즘 공백 (v1.5 기준 — 총 60건)
+### 4.1 해소된 알고리즘 공백 (v1.6 기준 — 총 70건)
 
 **v1.0 Round 1 (GAP-01~10):**
 
@@ -168,6 +168,21 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §17.2 | DICOM SR CAD 소견 출력 (TID 1500/4100) | GAP-BA |
 | §12.10 | IEC 61223-3-5 인수 시험 자동화 (T1~T6) | GAP-BB |
 
+**v1.6 Round 7 (GAP-BC~BL):**
+
+| 섹션 | 알고리즘 | 공백 |
+|------|---------|------|
+| §9.12 | 방사선량-면적곱(DAP) 및 KERMA 누적 추적 (IEC 60601-2-54) | GAP-BC |
+| §17.3 | JPEG 2000 무손실/근손실 압축 (OpenJPEG 2.5) | GAP-BD |
+| §3.14 | 모션 블러 PSF 추정 및 위너 역필터 | GAP-BE |
+| §3.15 | 금속 고밀도 아티팩트 마스크 생성 | GAP-BF |
+| §19 | 선형 토모합성 FBP/SAA 재구성 | GAP-BG |
+| §8.3.2 | RANSAC+ORB 키포인트 파노라마 스티칭 개선 | GAP-BH |
+| §4.9 | 가우시안/라플라시안 다중 해상도 피라미드 | GAP-BI |
+| §10.9 | GPU CUDA 파이프라인 가속 아키텍처 | GAP-BJ |
+| §12.11 | 자동 QA 팬텀 인식 알고리즘 (Leeds/CDRAD/CIRS) | GAP-BK |
+| §9.13 | 교정 전달 함수 (Cross-FPD 패널 정규화) | GAP-BL |
+
 ### 4.2 문서 관계
 
 ```
@@ -244,6 +259,16 @@ XPE-STP-001 (테스트 계획)
 | Moiré Artifact Suppression | SRS-FUNC-008c | xpe_gsvg.dll |
 | DICOM SR for CAD Findings | SRS-DICOM-002 | xpe_dicom.dll |
 | IEC 61223 Acceptance Testing | SRS-QA-001 | xpe_enhance_advanced.dll |
+| DAP/KERMA Dose Tracking | SRS-DOSE-001 | xpe_common.dll |
+| JPEG 2000 Compression | SRS-DICOM-003 | xpe_dicom.dll |
+| Motion Blur Wiener Deblur | SRS-FUNC-001d | xpe_preprocess.dll |
+| Metal Artifact Mask | SRS-FUNC-001e | xpe_preprocess.dll |
+| Linear Tomosynthesis FBP/SAA | SRS-TOMO-001 | xpe_enhance_advanced.dll |
+| RANSAC+ORB Panoramic Stitch | SRS-FUNC-017b | xpe_ai.dll |
+| Gaussian/Laplacian Pyramid | SRS-FUNC-014b | xpe_enhance_advanced.dll |
+| GPU CUDA Pipeline Acceleration | SRS-PERF-003 | xpe_preprocess.dll (CUDA) |
+| Auto QA Phantom Recognition | SRS-QA-002 | xpe_enhance_advanced.dll |
+| Cross-FPD Calibration Transfer | SRS-CAL-002 | xpe_preprocess.dll |
 
 ---
 
@@ -287,6 +312,7 @@ XPE-STP-001 (테스트 계획)
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-15 | 1.5.0 | XPE-ALG-001 v1.6 반영. Round 7 GAP-BC~BL 해소 반영 (10건). §19 토모합성 신설, §17.3 JPEG2000, §10.9 GPU CUDA, §12.11 팬텀 인식 등 추가. 알고리즘 빠른 참조 테이블 확장 (70건). SRS ID 추가 (SRS-DOSE-001, SRS-DICOM-003, SRS-FUNC-001d/e, SRS-TOMO-001, SRS-FUNC-017b/014b, SRS-PERF-003, SRS-QA-002, SRS-CAL-002). |
 | 2026-04-15 | 1.4.0 | XPE-ALG-001 v1.5 반영. Round 6 GAP-AS~BB 해소 반영 (10건). §18 지각적 IQM, §12.10 IEC61223 인수 시험, §17.2 DICOM SR 신설. 알고리즘 빠른 참조 테이블 확장 (60건). SRS ID 추가 (SRS-MEAS-004, SRS-FUNC-002d/001c/009b/011c/008c, SRS-QC-004, SRS-FLUORO-002, SRS-DICOM-002, SRS-QA-001). |
 | 2026-04-15 | 1.3.0 | XPE-ALG-001 v1.4 반영. Round 5 GAP-AI~AR 해소 반영 (10건). §16 DES, §17 DICOM IOD 신설. 알고리즘 빠른 참조 테이블 확장 (50건). SRS ID 추가 (SRS-FUNC-019, SRS-DICOM-001, SRS-FUNC-001/003/004/008/011b ext, SRS-QC-002 ext 등). |
 | 2026-04-15 | 1.2.0 | XPE-ALG-001 v1.3 반영. Round 4 GAP-Y~AH 해소 반영 (10건). §14 Fluoroscopy IIR, §15 Error Code Taxonomy 신설. 알고리즘 빠른 참조 테이블 확장 (40건). SRS ID 추가 (SRS-FLUORO-001, SRS-PERF-001/002, SRS-MEAS-003, SRS-ERR-001 등). |
