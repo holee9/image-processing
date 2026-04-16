@@ -226,8 +226,12 @@ Testing/
 # ===========================================
 gui/**/bin/
 gui/**/obj/
+clients/**/bin/
+clients/**/obj/
+clients/**/*.user
 gui/**/*.user
 !gui/**/*.sln
+.dotnet-cli/
 
 # ===========================================
 # ONNX Models (use git-lfs or CI fetch)

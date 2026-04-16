@@ -1,7 +1,7 @@
 <Window x:Class="ImageProcTest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="XPE Image Processing Test" Height="560" Width="900"
+        Title="XPE Image Processing Test" Height="680" Width="960"
         Loaded="Window_Loaded" Closed="Window_Closed">
     <Grid>
         <Grid.RowDefinitions>
@@ -22,6 +22,15 @@
                     <Button Content="Refresh" Width="90" DockPanel.Dock="Right" Click="RefreshButton_Click"/>
                 </DockPanel>
 
+                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Why this screen exists" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="This is an integration safety dashboard, not an image-processing feature screen. It verifies that the GUI can safely load and call xpe_common.dll before preprocess, display, DICOM, GSVG, or AI modules are connected." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,6"/>
+                        <TextBlock Text="How to read it" FontSize="14" FontWeight="SemiBold" Margin="0,4,0,4"/>
+                        <TextBlock Text="Ready means the native common DLL loaded and basic ABI calls succeeded. Unavailable means the GUI is running safely without native common. Entry point mismatch means the DLL and C# P/Invoke contract disagree. Image-processing modules remain gated until their own readiness checks pass." TextWrapping="Wrap" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+
                 <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
                     <StackPanel>
                         <TextBlock x:Name="NativePathText" Text="DLL: Not checked" FontSize="13" Margin="0,0,0,5"/>
@@ -30,6 +39,8 @@
                         <TextBlock x:Name="ParamRangeText" Text="Param range: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="DetailsText" Text="Details: Waiting for health check." FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>

@@ -149,7 +149,7 @@ namespace ImageProcTest
         #region Logging Functions
 
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern void xpe_log_set_level(int level);
+        public static extern XpeErrorCode xpe_log_set_level(int level);
 
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern XpeErrorCode xpe_log_set_file([MarshalAs(UnmanagedType.LPStr)] string filePath);
