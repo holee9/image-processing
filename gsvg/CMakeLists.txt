@@ -1,7 +1,7 @@
 # GSVG Module
 # Grid Suppression / Virtual Grid (Independent DLL)
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 
 # Module name
 set(MODULE_NAME gsvg)

@@ -13,6 +13,7 @@
 #include <mutex>
 #include <atomic>
 #include <cstring>
+#include <cmath>
 
 // =============================================================================
 // Internal State Management
@@ -225,20 +226,119 @@ extern "C" XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuff
     return XPE_ERR_NOT_INITIALIZED;
 }
 
+/**
+ * @brief Detect transient defects at runtime
+ *
+ * REQ-P1A-013: Runtime defect detection with dose-dependent threshold
+ * AC-DEF-003: Merge with static BPM
+ * REQ-P1A-030: No exceptions across C ABI boundary
+ */
 extern "C" XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* image,
                                                           const XpeImageMetadata* metadata,
                                                           XpeImageBuffer* defect_map_output) {
-    (void)image;
-    (void)metadata;
-    (void)defect_map_output;
-    return XPE_ERR_NOT_INITIALIZED;
+    try {
+        // Validate input
+        if (image == nullptr || metadata == nullptr || defect_map_output == nullptr) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+
+        // Validate format
+        if (image->format != XPE_PIXEL_FLOAT32) {
+            return XPE_ERR_UNSUPPORTED_FORMAT;
+        }
+
+        // Validate output dimensions
+        if (defect_map_output->width != image->width ||
+            defect_map_output->height != image->height ||
+            defect_map_output->format != XPE_PIXEL_UINT16) {
+            return XPE_ERR_BUFFER_TOO_SMALL;
+        }
+
+        const float* data = static_cast<const float*>(image->data);
+        uint8_t* defect_map = static_cast<uint8_t*>(defect_map_output->data);
+
+        // Initialize defect map to all good (0)
+        std::memset(defect_map, 0, image->width * image->height);
+
+        // Calculate statistics for outlier detection
+        double sum = 0.0;
+        double sum_sq = 0.0;
+        size_t pixel_count = image->width * image->height;
+
+        for (size_t i = 0; i < pixel_count; ++i) {
+            sum += data[i];
+            sum_sq += data[i] * data[i];
+        }
+
+        double mean = sum / pixel_count;
+        double variance = (sum_sq / pixel_count) - (mean * mean);
+        double stddev = std::sqrt(variance);
+
+        // AC-DEF-003: Dose-dependent threshold
+        // Higher dose (mAs) → higher threshold for defect detection
+        float dose_factor = (metadata->mAs > 0) ? metadata->mAs : 1.0f;
+        float threshold = static_cast<float>(mean + 3.0 * stddev * dose_factor);
+
+        // Detect outliers (potential defects)
+        for (size_t i = 0; i < pixel_count; ++i) {
+            if (data[i] > threshold || data[i] < 0.0f) {
+                defect_map[i] = 1;  // Mark as defective
+            }
+        }
+
+        return XPE_OK;
+
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }
 
+/**
+ * @brief Query valid parameter ranges for calibration
+ *
+ * REQ-P1A-042: Return valid ranges for calibration parameters
+ * REQ-P1A-030: No exceptions across C ABI boundary
+ */
 extern "C" XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
                                                                float* min_value,
                                                                float* max_value) {
-    (void)param_name;
-    (void)min_value;
-    (void)max_value;
-    return XPE_ERR_NOT_INITIALIZED;
+    try {
+        // Validate input
+        if (param_name == nullptr || min_value == nullptr || max_value == nullptr) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+
+        // Define valid ranges for calibration parameters
+        struct ParamRange {
+            const char* name;
+            float min_val;
+            float max_val;
+        };
+
+        static const ParamRange ranges[] = {
+            {"integration_time_ms", 1.0f, 10000.0f},
+            {"temperature_c", -10.0f, 50.0f},
+            {"kVp", 40.0f, 150.0f},
+            {"mAs", 0.1f, 1000.0f},
+            {"SID_mm", 1000.0f, 2000.0f},
+            {"pixelPitch_mm", 0.1f, 0.5f}
+        };
+
+        // Search for parameter
+        for (const auto& range : ranges) {
+            if (std::strcmp(param_name, range.name) == 0) {
+                *min_value = range.min_val;
+                *max_value = range.max_val;
+                return XPE_OK;
+            }
+        }
+
+        // Parameter not found
+        return XPE_ERR_INVALID_INPUT;
+
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

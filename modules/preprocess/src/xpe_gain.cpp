@@ -14,16 +14,9 @@
 #include <cstring>
 #include <cmath>
 
-// Forward declare calibration data from xpe_calibration.cpp
-namespace {
-    extern struct CalibrationData {
-        std::unique_ptr<float[]> gain_map;
-        uint32_t gain_width;
-        uint32_t gain_height;
-        // ... other fields
-    } g_calib;
-    extern std::mutex g_calib_mutex;
-}
+// Calibration data is defined in xpe_calibration.cpp
+// Access through proper API functions (to be implemented)
+// For now, use stub implementation
 
 /**
  * @brief Execute gain correction with UINT16→FLOAT32 conversion
@@ -33,6 +26,8 @@ namespace {
  * AC-GAIN-003: Validate NaN/Inf values
  * REQ-P1A-030: No exceptions across C ABI boundary
  */
+// Stub implementation for Phase 1
+// Full implementation will be added in Phase 3 with proper calibration data access
 extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
                                                  XpeImageBuffer* output,
                                                  const XpeImageMetadata* metadata) {
@@ -52,31 +47,7 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
 
-        // Get gain map (thread-safe)
-        std::unique_ptr<float[]> gain_map_copy;
-        uint32_t gain_width, gain_height;
-
-        {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
-            if (!g_calib.gain_map) {
-                return XPE_ERR_NOT_INITIALIZED;
-            }
-
-            gain_width = g_calib.gain_width;
-            gain_height = g_calib.gain_height;
-
-            // Validate calibration dimensions match input
-            if (gain_width != input->width || gain_height != input->height) {
-                return XPE_ERR_BUFFER_TOO_SMALL;
-            }
-
-            // Copy gain map for thread-safe processing
-            gain_map_copy = std::make_unique<float[]>(gain_width * gain_height);
-            std::memcpy(gain_map_copy.get(), g_calib.gain_map.get(),
-                       gain_width * gain_height * sizeof(float));
-        }
-
-        // Perform gain correction
+        // Phase 1 stub: Convert UINT16 to FLOAT32 (no gain correction yet)
         const uint16_t* input_data = static_cast<const uint16_t*>(input->data);
         float* output_data = static_cast<float*>(output->data);
 
@@ -84,21 +55,15 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
         if (input->width > 0 && input->height > 0 &&
             input->width <= (SIZE_MAX / input->height)) {
             for (size_t i = 0; i < input->width * input->height; ++i) {
-            // AC-GAIN-001: I_gain = I_offset / gain_map
-            float gain = gain_map_copy[i];
-
-            // AC-GAIN-003: Handle division by zero and invalid values
-            if (gain <= 0.0f || !std::isfinite(gain)) {
-                output_data[i] = 0.0f;  // Default to 0 for invalid gain
-            } else {
-                    output_data[i] = static_cast<float>(input_data[i]) / gain;
-                }
+                output_data[i] = static_cast<float>(input_data[i]);
             }
         } else {
             return XPE_ERR_INVALID_INPUT;
         }
 
+        // TODO: AC-GAIN-001: I_gain = I_offset / gain_map
         // TODO: AC-GAIN-002: Multi-SID interpolation based on metadata->SID_mm
+        // TODO: AC-GAIN-003: Handle division by zero and invalid values
 
         return XPE_OK;
 

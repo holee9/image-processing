@@ -2,7 +2,7 @@
 # Integration and unit tests for XPE modules
 # SPEC-XPE-P0 REQ-P0-005, REQ-P0-006: Google Test + CTest + 85% coverage
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 
 # Include FetchContent for Google Test
 include(FetchContent)

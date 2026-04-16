@@ -2,7 +2,7 @@
 # Google Test suite for xpe_common.dll -- SPEC-XPE-P0 REQ-P0-007
 # Coverage target: >=85% statement coverage
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 
 # Test executable (64 test cases)
 add_executable(test_xpe_common

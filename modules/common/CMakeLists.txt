@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 project(xpe_common VERSION 0.1.0 LANGUAGES CXX)
 
 # C++17 standard (inherited from root, removed override to allow propagation)

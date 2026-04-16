@@ -1,7 +1,7 @@
 # XPE AI Module
 # AI-based image processing (ONNX Runtime)
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 
 # Module name
 set(MODULE_NAME xpe_ai)
