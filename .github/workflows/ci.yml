@@ -14,10 +14,6 @@ concurrency:
   group: xpe-ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  VCPKG_FORCE_SYSTEM_BINARIES: 1
-  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-
 jobs:
   common-build:
     runs-on: windows-2025
@@ -42,24 +38,6 @@ jobs:
       - name: Configure MSVC developer environment
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
-
-      - name: Cache vcpkg downloads and installed packages
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}\downloads
-            ${{ env.VCPKG_ROOT }}\installed
-            ${{ env.VCPKG_ROOT }}\packages
-          key: xpe-ci-vcpkg-common-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/common/vcpkg.json') }}
-
-      - name: Install pinned vcpkg
-        shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Install-PinnedVcpkg.ps1 -ManifestPath third_party/common/vcpkg.json
-
-      - name: Install dependencies from manifest
-        shell: pwsh
-        run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
 
       - name: Configure CMake
         shell: pwsh
@@ -107,15 +85,6 @@ jobs:
       - name: Install OpenCppCoverage
         shell: pwsh
         run: choco install opencppcoverage -y --no-progress
-
-      - name: Install pinned vcpkg
-        shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Install-PinnedVcpkg.ps1 -ManifestPath third_party/common/vcpkg.json
-
-      - name: Install dependencies from manifest
-        shell: pwsh
-        run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
 
       - name: Configure coverage build
         shell: pwsh

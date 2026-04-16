@@ -53,7 +53,6 @@ $requiredPaths = @(
     '.github/workflows/delivery-bundle.yml',
     '.github/workflows/release-bundle.yml',
     'tools/ci/Validate-Repo.ps1',
-    'tools/ci/Install-PinnedVcpkg.ps1',
     'tools/ci/Test-MarkdownLinks.ps1',
     'tools/ci/Test-TrackedTextFiles.ps1',
     'tools/ci/Use-MsvcDevShell.ps1',
@@ -146,10 +145,6 @@ if ($buildWorkflow -notmatch 'actions/checkout@v6') {
     Add-RepoError 'Windows Common Build is not pinned to actions/checkout@v6.'
 }
 
-if ($buildWorkflow -notmatch 'actions/cache@v5') {
-    Add-RepoError 'Windows Common Build is not pinned to actions/cache@v5.'
-}
-
 if ($buildWorkflow -notmatch 'actions/upload-artifact@v6') {
     Add-RepoError 'Windows Common Build is not pinned to actions/upload-artifact@v6.'
 }
@@ -158,16 +153,8 @@ if ($buildWorkflow -notmatch 'ctest --test-dir') {
     Add-RepoError 'Windows Common Build does not run ctest smoke validation.'
 }
 
-if ($buildWorkflow -notmatch 'Install-PinnedVcpkg\.ps1') {
-    Add-RepoError 'Windows Common Build does not pin vcpkg via Install-PinnedVcpkg.ps1.'
-}
-
 if ($buildWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
     Add-RepoError 'Windows Common Build does not configure the MSVC developer shell explicitly.'
-}
-
-if ($buildWorkflow -notmatch 'VCPKG_FORCE_SYSTEM_BINARIES') {
-    Add-RepoError 'Windows Common Build does not force vcpkg to use runner-provided system build tools.'
 }
 
 if ($buildWorkflow -match 'git clone --depth 1 https://github.com/microsoft/vcpkg') {
@@ -210,16 +197,8 @@ if ($codeqlWorkflow -notmatch 'schedule:') {
     Add-RepoError 'CodeQL workflow is missing scheduled analysis.'
 }
 
-if ($codeqlWorkflow -notmatch 'Install-PinnedVcpkg\.ps1') {
-    Add-RepoError 'CodeQL workflow does not pin vcpkg via Install-PinnedVcpkg.ps1.'
-}
-
 if ($codeqlWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
     Add-RepoError 'CodeQL workflow does not configure the MSVC developer shell explicitly.'
-}
-
-if ($codeqlWorkflow -notmatch 'VCPKG_FORCE_SYSTEM_BINARIES') {
-    Add-RepoError 'CodeQL workflow does not force vcpkg to use runner-provided system build tools.'
 }
 
 if ($codeqlWorkflow -match 'if \(-not \(Test-Path \$env:VCPKG_ROOT\)\)') {

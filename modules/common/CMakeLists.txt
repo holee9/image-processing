@@ -12,33 +12,33 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build tests" ON)
 option(XPE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
-# Include FetchContent module
-include(FetchContent)
+# Fetch dependencies only when this module is configured standalone.
+if(NOT TARGET spdlog::spdlog OR NOT TARGET nlohmann_json::nlohmann_json OR NOT TARGET fmt::fmt)
+    include(FetchContent)
 
-# Fetch dependencies using FetchContent
-FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.14.1
-    GIT_SHALLOW TRUE
-)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.14.1
+        GIT_SHALLOW TRUE
+    )
 
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    GIT_SHALLOW TRUE
-)
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+        GIT_SHALLOW TRUE
+    )
 
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 11.0.2
-    GIT_SHALLOW TRUE
-)
+    FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 11.0.2
+        GIT_SHALLOW TRUE
+    )
 
-# Make dependencies available
-FetchContent_MakeAvailable(spdlog nlohmann_json fmt)
+    FetchContent_MakeAvailable(spdlog nlohmann_json fmt)
+endif()
 
 # Build xpe_common library
 add_library(xpe_common
@@ -74,7 +74,7 @@ else()
 endif()
 
 # Testing
-if(BUILD_TESTING)
+if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
     enable_testing()
 
     FetchContent_Declare(

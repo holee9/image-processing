@@ -16,8 +16,10 @@ target_link_libraries(test_xpe_common
         xpe_common
 )
 
-# Find Google Test (from parent CMakeLists.txt FetchContent)
-find_package(GTest REQUIRED)
+# Find Google Test only if the parent FetchContent setup did not create targets.
+if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gtest_main)
+    find_package(GTest REQUIRED)
+endif()
 
 # Link Google Test
 target_link_libraries(test_xpe_common

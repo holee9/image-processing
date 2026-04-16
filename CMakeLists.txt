@@ -22,6 +22,7 @@ option(XPE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 # Platform detection
 include(cmake/Platform.cmake)
 include(cmake/CompilerWarnings.cmake)
+include(FetchContent)
 
 function(xpe_add_optional_subdirectory relative_dir)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${relative_dir}/CMakeLists.txt")
@@ -31,10 +32,36 @@ function(xpe_add_optional_subdirectory relative_dir)
     endif()
 endfunction()
 
-# Find dependencies via vcpkg
-find_package(spdlog CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
+# Find dependencies via vcpkg when available; otherwise use pinned FetchContent
+# sources so CI is not coupled to vcpkg's tool acquisition path.
+find_package(spdlog CONFIG QUIET)
+find_package(nlohmann_json CONFIG QUIET)
+find_package(fmt CONFIG QUIET)
+
+if(NOT spdlog_FOUND OR NOT nlohmann_json_FOUND OR NOT fmt_FOUND)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.14.1
+        GIT_SHALLOW TRUE
+    )
+
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+        GIT_SHALLOW TRUE
+    )
+
+    FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 11.0.2
+        GIT_SHALLOW TRUE
+    )
+
+    FetchContent_MakeAvailable(spdlog nlohmann_json fmt)
+endif()
 
 # XPE modules (Layer 0 + Layer 1)
 add_subdirectory(modules/common)
