@@ -24,6 +24,11 @@
                           AutomationProperties.AutomationId="OpenRawMenuItem"
                           Header="_Open Raw..."
                           Command="{Binding LoadImageCommand}" />
+                <MenuItem x:Name="OpenRecentMenuItem"
+                          AutomationProperties.AutomationId="OpenRecentMenuItem"
+                          Header="Open _Recent"
+                          IsEnabled="False"
+                          ToolTip="Enabled when recent file history is persisted." />
                 <MenuItem x:Name="OpenDicomMenuItem"
                           AutomationProperties.AutomationId="OpenDicomMenuItem"
                           Header="Open _DICOM... (Phase 1b)"
@@ -38,6 +43,11 @@
                           AutomationProperties.AutomationId="ExportAutomationReportMenuItem"
                           Header="Export _Automation Report"
                           Command="{Binding ExportAutomationReportCommand}" />
+                <MenuItem x:Name="ExportEvidenceBundleMenuItem"
+                          AutomationProperties.AutomationId="ExportEvidenceBundleMenuItem"
+                          Header="Export Evidence _Bundle (Phase 1a+)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when deterministic run artifacts can be packaged as a review bundle." />
                 <Separator />
                 <MenuItem x:Name="ExitMenuItem"
                           AutomationProperties.AutomationId="ExitMenuItem"
@@ -77,6 +87,11 @@
                           AutomationProperties.AutomationId="NativeDllDiagnosticsMenuItem"
                           Header="Native DLL _Diagnostics"
                           Command="{Binding ShowNativeDiagnosticsCommand}" />
+                <MenuItem x:Name="OpenRuntimeLogsMenuItem"
+                          AutomationProperties.AutomationId="OpenRuntimeLogsMenuItem"
+                          Header="Open Runtime _Logs (Phase 1a+)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when persistent runtime log export is available." />
                 <MenuItem x:Name="PInvokeSmokeTestMenuItem"
                           AutomationProperties.AutomationId="PInvokeSmokeTestMenuItem"
                           Header="Run P/_Invoke Smoke Test (SPRINT-P0-07)"
@@ -102,6 +117,11 @@
                           Header="Calibration Paths Panel"
                           IsCheckable="True"
                           IsChecked="{Binding ShowCalibrationPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowDisplaySettingsPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowDisplaySettingsPanelMenuItem"
+                          Header="Display Settings Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding Settings.ShowDisplayPanel, Mode=TwoWay}" />
                 <MenuItem x:Name="ShowImageSummaryPanelMenuItem"
                           AutomationProperties.AutomationId="ShowImageSummaryPanelMenuItem"
                           Header="Image Summary Panel"
@@ -123,6 +143,15 @@
                           IsCheckable="True"
                           IsChecked="{Binding ShowAlertsPanel, Mode=TwoWay}" />
                 <Separator />
+                <MenuItem x:Name="ClearLogsMenuItem"
+                          AutomationProperties.AutomationId="ClearLogsMenuItem"
+                          Header="Clear _Logs"
+                          Command="{Binding ClearLogsCommand}" />
+                <MenuItem x:Name="ClearAlertsMenuItem"
+                          AutomationProperties.AutomationId="ClearAlertsMenuItem"
+                          Header="Clear _Alerts"
+                          Command="{Binding ClearAlertsCommand}" />
+                <Separator />
                 <MenuItem x:Name="ResetLayoutMenuItem"
                           AutomationProperties.AutomationId="ResetLayoutMenuItem"
                           Header="_Reset Layout"
@@ -143,6 +172,11 @@
             <MenuItem x:Name="PipelineMenu"
                       AutomationProperties.AutomationId="PipelineMenu"
                       Header="_Pipeline">
+                <MenuItem x:Name="ApplyDisplayPipelineMenuItem"
+                          AutomationProperties.AutomationId="ApplyDisplayPipelineMenuItem"
+                          Header="Apply _Display Pipeline"
+                          Command="{Binding ApplyDisplayPipelineCommand}" />
+                <Separator />
                 <MenuItem x:Name="RunPreprocessingMenuItem"
                           AutomationProperties.AutomationId="RunPreprocessingMenuItem"
                           Header="Run _Preprocessing (Phase 1a)"
@@ -169,6 +203,11 @@
                           Header="Stage _Timing"
                           IsEnabled="False"
                           ToolTip="Enabled when real pipeline timing evidence is available." />
+                <MenuItem x:Name="OpenPipelineDiagnosticsMenuItem"
+                          AutomationProperties.AutomationId="OpenPipelineDiagnosticsMenuItem"
+                          Header="Open Pipeline _Diagnostics (Phase 1a+)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when pipeline execution traces and timing diagnostics exist." />
             </MenuItem>
 
             <MenuItem x:Name="ToolsMenu"
@@ -186,6 +225,11 @@
                           AutomationProperties.AutomationId="ExportEvidenceSnapshotMenuItem"
                           Header="Export _Evidence Snapshot"
                           Command="{Binding ExportAutomationReportCommand}" />
+                <MenuItem x:Name="OpenEvidenceFolderMenuItem"
+                          AutomationProperties.AutomationId="OpenEvidenceFolderMenuItem"
+                          Header="Open Evidence _Folder (Phase 1a+)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when the evidence artifact directory is managed by the app." />
                 <Separator />
                 <MenuItem x:Name="RunSelfCheckMenuItem"
                           AutomationProperties.AutomationId="RunSelfCheckMenuItem"
@@ -207,6 +251,11 @@
                           Header="_QA Constancy (Phase 1b+)"
                           IsEnabled="False"
                           ToolTip="Requires QA workflow implementation." />
+                <MenuItem x:Name="GsdfCalibrateMenuItem"
+                          AutomationProperties.AutomationId="GsdfCalibrateMenuItem"
+                          Header="_GSDF Calibrate... (Phase 1b+)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when validated DICOM PS3.14 luminance calibration workflow exists." />
             </MenuItem>
 
             <MenuItem x:Name="HelpMenu"
@@ -224,6 +273,11 @@
                           AutomationProperties.AutomationId="OpenScopeHelpMenuItem"
                           Header="_Scope and Limitations"
                           Click="OpenScopeHelpMenuItem_OnClick" />
+                <MenuItem x:Name="OpenCurrentWorkflowHelpMenuItem"
+                          AutomationProperties.AutomationId="OpenCurrentWorkflowHelpMenuItem"
+                          Header="_Current Workflow Help"
+                          ToolTip="Opens help for the current GUI-S0 workflow."
+                          Click="OpenCurrentWorkflowHelpMenuItem_OnClick" />
                 <Separator />
                 <MenuItem x:Name="OpenApiReferenceMenuItem"
                           AutomationProperties.AutomationId="OpenApiReferenceMenuItem"
@@ -281,9 +335,10 @@
 
         <Grid Margin="12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="360" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="380" />
+                <ColumnDefinition Width="360" MinWidth="320" />
+                <ColumnDefinition Width="*" MinWidth="520" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="480" MinWidth="320" />
             </Grid.ColumnDefinitions>
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
@@ -321,6 +376,18 @@
 
                             <TextBlock FontWeight="Bold" Text="Native DLL Path" />
                             <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RuntimeInfo.NativeDllPath}" />
+
+                            <TextBlock FontWeight="Bold" Margin="0,8,0,0" Text="Display Version" />
+                            <TextBlock x:Name="DisplayVersionText"
+                                       AutomationProperties.AutomationId="DisplayVersionText"
+                                       Margin="0,4,0,8"
+                                       Text="{Binding RuntimeInfo.DisplayVersion}" />
+
+                            <TextBlock FontWeight="Bold" Text="Display DLL Detected" />
+                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.DisplayDllDetected}" />
+
+                            <TextBlock FontWeight="Bold" Text="Display DLL Path" />
+                            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RuntimeInfo.DisplayDllPath}" />
                         </StackPanel>
                     </GroupBox>
 
@@ -386,6 +453,75 @@
                         </Grid>
                     </GroupBox>
 
+                    <GroupBox x:Name="DisplaySettingsGroup"
+                              AutomationProperties.AutomationId="DisplaySettingsGroup"
+                              Header="Display Settings"
+                              Margin="0,0,0,12"
+                              Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Margin="10">
+                            <TextBlock FontWeight="Bold" Text="VOI Mode" />
+                            <ComboBox x:Name="VoiLutModeComboBox"
+                                      AutomationProperties.AutomationId="VoiLutModeComboBox"
+                                      ItemsSource="{Binding VoiLutModeOptions}"
+                                      SelectedItem="{Binding Settings.VoiLutMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="0,4,0,8" />
+
+                            <TextBlock FontWeight="Bold" Text="Window Center" />
+                            <TextBox x:Name="VoiWindowCenterTextBox"
+                                     AutomationProperties.AutomationId="VoiWindowCenterTextBox"
+                                     Margin="0,4,0,8"
+                                     Text="{Binding Settings.VoiWindowCenter, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Window Width" />
+                            <TextBox x:Name="VoiWindowWidthTextBox"
+                                     AutomationProperties.AutomationId="VoiWindowWidthTextBox"
+                                     Margin="0,4,0,8"
+                                     Text="{Binding Settings.VoiWindowWidth, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Body Part Preset" />
+                            <ComboBox x:Name="BodyPartPresetComboBox"
+                                      AutomationProperties.AutomationId="BodyPartPresetComboBox"
+                                      ItemsSource="{Binding BodyPartOptions}"
+                                      SelectedItem="{Binding Settings.SelectedBodyPart, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="0,4,0,8" />
+
+                            <Button x:Name="ApplyBodyPartPresetButton"
+                                    AutomationProperties.AutomationId="ApplyBodyPartPresetButton"
+                                    Command="{Binding ApplyBodyPartPresetCommand}"
+                                    Content="Apply Body Part Preset"
+                                    Margin="0,0,0,8" />
+
+                            <CheckBox x:Name="GsdfEnabledCheckBox"
+                                      AutomationProperties.AutomationId="GsdfEnabledCheckBox"
+                                      Content="GSDF Enabled (validation pending)"
+                                      IsChecked="{Binding Settings.GsdfEnabled, Mode=TwoWay}"
+                                      Margin="0,0,0,8" />
+
+                            <TextBlock FontWeight="Bold" Text="Modality Rescale Slope" />
+                            <TextBox x:Name="ModalityRescaleSlopeTextBox"
+                                     AutomationProperties.AutomationId="ModalityRescaleSlopeTextBox"
+                                     Margin="0,4,0,8"
+                                     Text="{Binding Settings.ModalityRescaleSlope, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Modality Rescale Intercept" />
+                            <TextBox x:Name="ModalityRescaleInterceptTextBox"
+                                     AutomationProperties.AutomationId="ModalityRescaleInterceptTextBox"
+                                     Margin="0,4,0,8"
+                                     Text="{Binding Settings.ModalityRescaleIntercept, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <Button x:Name="ApplyDisplayPipelineButton"
+                                    AutomationProperties.AutomationId="ApplyDisplayPipelineButton"
+                                    Command="{Binding ApplyDisplayPipelineCommand}"
+                                    Content="Apply Display Pipeline"
+                                    Margin="0,0,0,8" />
+
+                            <TextBlock x:Name="DisplayPipelineSummaryText"
+                                       AutomationProperties.AutomationId="DisplayPipelineSummaryText"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding DisplayPipelineSummary}" />
+                        </StackPanel>
+                    </GroupBox>
+
                     <GroupBox x:Name="ImageSummaryGroup"
                               AutomationProperties.AutomationId="ImageSummaryGroup"
                               Header="Image Summary"
@@ -399,7 +535,7 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <Grid Grid.Column="1" Margin="0,0,12,0">
+            <Grid Grid.Column="1" Margin="0,0,8,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
@@ -443,16 +579,29 @@
                 </GroupBox>
             </Grid>
 
-            <Grid Grid.Column="2">
+            <GridSplitter x:Name="DiagnosticsColumnSplitter"
+                          Grid.Column="2"
+                          AutomationProperties.AutomationId="DiagnosticsColumnSplitter"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="#2D3748"
+                          ResizeBehavior="PreviousAndNext"
+                          ResizeDirection="Columns"
+                          ShowsPreview="True"
+                          ToolTip="Drag to resize image preview and Logs/Alerts panels." />
+
+            <Grid Grid.Column="3" Margin="8,0,0,0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" MinHeight="140" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="*" MinHeight="140" />
                 </Grid.RowDefinitions>
 
                 <GroupBox x:Name="LogsGroup"
                           AutomationProperties.AutomationId="LogsGroup"
                           Header="Logs"
-                          Margin="0,0,0,12"
+                          Margin="0,0,0,8"
                           Visibility="{Binding ShowLogsPanel, Converter={StaticResource BoolToVisibility}}">
                     <ListBox x:Name="LogsListBox"
                              AutomationProperties.AutomationId="LogsListBox"
@@ -462,9 +611,21 @@
                              FontSize="12" />
                 </GroupBox>
 
+                <GridSplitter x:Name="LogsAlertsSplitter"
+                              Grid.Row="1"
+                              AutomationProperties.AutomationId="LogsAlertsSplitter"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Background="#2D3748"
+                              ResizeBehavior="PreviousAndNext"
+                              ResizeDirection="Rows"
+                              ShowsPreview="True"
+                              ToolTip="Drag to resize Logs and Alerts panels." />
+
                 <GroupBox x:Name="AlertsGroup"
                           AutomationProperties.AutomationId="AlertsGroup"
-                          Grid.Row="1"
+                          Grid.Row="2"
                           Header="Alerts"
                           Visibility="{Binding ShowAlertsPanel, Converter={StaticResource BoolToVisibility}}">
                     <ListBox x:Name="AlertsListBox"
@@ -492,7 +653,9 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock TextWrapping="Wrap" Text="{Binding}" />
+                                    <TextBlock Foreground="#F8FAFC"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding}" />
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

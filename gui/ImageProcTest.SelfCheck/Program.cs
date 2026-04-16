@@ -48,6 +48,13 @@ Assert(loadedSettings.BackendMode == manifest.BackendMode, "BackendMode should p
 Assert(loadedSettings.RawWidth == manifest.RawSample.Width, "RawWidth should persist.");
 Assert(loadedSettings.RawHeight == manifest.RawSample.Height, "RawHeight should persist.");
 Assert(loadedSettings.RawPixelFormat == manifest.RawSample.PixelFormat, "RawPixelFormat should persist.");
+Assert(loadedSettings.VoiWindowCenter == 40.0f, "VOI window center should default to Abdomen preset.");
+Assert(loadedSettings.VoiWindowWidth == 400.0f, "VOI window width should default to Abdomen preset.");
+Assert(loadedSettings.VoiLutMode == "Linear", "VOI LUT mode should default to Linear.");
+Assert(loadedSettings.SelectedBodyPart == "Abdomen", "Selected body part should default to Abdomen.");
+Assert(!loadedSettings.GsdfEnabled, "GSDF should default to disabled until PS3.14 validation is complete.");
+Assert(loadedSettings.ModalityRescaleSlope == 1.0f, "Modality slope should default to 1.0.");
+Assert(loadedSettings.ModalityRescaleIntercept == -1024.0f, "Modality intercept should default to -1024.");
 Assert(
     loadedSettings.OffsetCalibrationDirectory == GuiFixtureManifestService.ResolveFixturePath(fixtureRoot, manifest.CalibrationDirectories.Offset),
     "Offset path should persist.");
@@ -59,13 +66,19 @@ Assert(
     "Defect path should persist.");
 Assert(loadedSettings.LastRawDirectory == rawDirectory, "LastRawDirectory should persist.");
 
-var backend = new MockXpeBackend(new RawImageLoader(), Path.Combine(AppContext.BaseDirectory, "xpe_common.dll"), false);
+var backend = new MockXpeBackend(
+    new RawImageLoader(),
+    Path.Combine(AppContext.BaseDirectory, "xpe_common.dll"),
+    false,
+    Path.Combine(AppContext.BaseDirectory, "xpe_display.dll"),
+    false);
 var runtime = backend.Initialize(loadedSettings);
 
 Assert(runtime.Version == manifest.ExpectedTelemetry.BackendVersion, "Mock version should match.");
 Assert(!string.IsNullOrWhiteSpace(backend.GetVersion()), "GetVersion should be non-empty.");
 Assert(backend.GetLogCount() == manifest.ExpectedTelemetry.InitialLogCount, "Mock backend log count should match fixture manifest.");
 Assert(backend.GetAlertCount() == manifest.ExpectedTelemetry.InitialAlertCount, "Mock backend alert count should match fixture manifest.");
+Assert(backend.GetDisplayVersion() == "v0.0.0-mock-display", "Mock display version should match.");
 Assert(backend.GetAlert(0)?.Severity == "INFO", "First alert should be INFO.");
 Assert(backend.GetAlert(1)?.Severity == "WARN", "Second alert should be WARN.");
 Assert(backend.GetAlert(2)?.Severity == "ERROR", "Third alert should be ERROR.");
@@ -74,6 +87,15 @@ var frame = backend.LoadRawImage(rawPath, loadedSettings);
 Assert(frame.Preview.PixelWidth == manifest.RawSample.Width, "Preview width should match fixture.");
 Assert(frame.Preview.PixelHeight == manifest.RawSample.Height, "Preview height should match fixture.");
 Assert(frame.Summary.Contains($"RAW {manifest.RawSample.Width}x{manifest.RawSample.Height}"), "Summary should include fixture dimensions.");
+Assert(frame.RawPixels?.Length == manifest.RawSample.Width * manifest.RawSample.Height, "Raw pixel payload should be retained for display integration.");
+
+var preset = backend.CreateVoiPreset(ImageProcTest.Models.XpeBodyPartEnum.Abdomen);
+Assert(preset.Center == 40.0f && preset.Width == 400.0f, "Abdomen VOI preset should match display integration guide.");
+
+var displayFrame = backend.ApplyDisplayPipeline(frame, loadedSettings);
+Assert(displayFrame.DisplayPipelineApplied, "Mock display pipeline should mark the frame as applied.");
+Assert(displayFrame.ProcessedPreview is not null, "Mock display pipeline should provide a processed preview.");
+Assert(displayFrame.DisplayPipelineSummary.Contains("VOI", StringComparison.Ordinal), "Display summary should include VOI settings.");
 
 Console.WriteLine("GUI-S0 self-check passed.");
 Console.WriteLine($"Fixture manifest: {manifestPath}");

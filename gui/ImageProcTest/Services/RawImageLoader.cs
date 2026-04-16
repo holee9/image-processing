@@ -34,11 +34,13 @@ public sealed class RawImageLoader
 
         ushort minValue = ushort.MaxValue;
         ushort maxValue = ushort.MinValue;
+        var rawPixels = new ushort[settings.RawWidth * settings.RawHeight];
         var grayscale = new byte[settings.RawWidth * settings.RawHeight];
 
         for (var i = 0; i < grayscale.Length; i++)
         {
             var sample = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(i * 2, 2));
+            rawPixels[i] = sample;
             if (sample < minValue)
             {
                 minValue = sample;
@@ -71,6 +73,7 @@ public sealed class RawImageLoader
         return new LoadedImageFrame
         {
             Preview = preview,
+            ProcessedPreview = preview,
             Summary = $"RAW {settings.RawWidth}x{settings.RawHeight}, min={minValue}, max={maxValue}, bytes={data.Length}",
             MetadataText =
                 $"Source: {path}{Environment.NewLine}" +
@@ -80,7 +83,11 @@ public sealed class RawImageLoader
                 $"Min/Max: {minValue}/{maxValue}{Environment.NewLine}" +
                 $"Offset calibration dir: {settings.OffsetCalibrationDirectory}{Environment.NewLine}" +
                 $"Gain calibration dir: {settings.GainCalibrationDirectory}{Environment.NewLine}" +
-                $"Defect calibration dir: {settings.DefectCalibrationDirectory}"
+                $"Defect calibration dir: {settings.DefectCalibrationDirectory}",
+            RawPixels = rawPixels,
+            Width = settings.RawWidth,
+            Height = settings.RawHeight,
+            BitsStored = 16
         };
     }
 
@@ -110,11 +117,15 @@ public sealed class RawImageLoader
         return new LoadedImageFrame
         {
             Preview = preview,
+            ProcessedPreview = preview,
             Summary = $"Unsupported extension '{Path.GetExtension(path)}'. Showing placeholder preview only.",
             MetadataText =
                 $"Source: {path}{Environment.NewLine}" +
                 "GUI-S0 scope accepts raw binary image inputs only (*.raw)." + Environment.NewLine +
-                "Real DICOM read/write remains owned by xpe_dicom.dll in Phase 1b."
+                "Real DICOM read/write remains owned by xpe_dicom.dll in Phase 1b.",
+            Width = size,
+            Height = size,
+            BitsStored = 8
         };
     }
 }

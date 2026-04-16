@@ -24,6 +24,21 @@ public interface IXpeBackend
     LoadedImageFrame LoadRawImage(string path, AppSettings settings);
 
     /// <summary>
+    /// Applies the display pipeline to a loaded raw frame and returns an updated frame.
+    /// </summary>
+    LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings);
+
+    /// <summary>
+    /// Returns the display module version string shown in the runtime panel.
+    /// </summary>
+    string GetDisplayVersion();
+
+    /// <summary>
+    /// Creates clinically validated VOI parameters for a supported body part.
+    /// </summary>
+    VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart);
+
+    /// <summary>
     /// Returns the number of queued alerts available for the GUI alert panel.
     /// </summary>
     int GetAlertCount();

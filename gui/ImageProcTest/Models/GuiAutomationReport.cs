@@ -40,6 +40,22 @@ public sealed class GuiAutomationReport
 
     public bool CanonicalMenuGroupsDetected { get; set; }
 
+    public bool PlannedMenuPlaceholdersDetected { get; set; }
+
+    public bool ToolbarMenuCommandParity { get; set; }
+
+    public bool ResizableDiagnosticsLayoutDetected { get; set; }
+
+    public bool DisplayPipelineApplied { get; set; }
+
+    public string DisplayPipelineSummary { get; set; } = string.Empty;
+
+    public bool DisplayPanelVisible { get; set; }
+
+    public string DisplayVersion { get; set; } = string.Empty;
+
+    public bool VoiPresetApplied { get; set; }
+
     public int DisabledFutureCommandCount { get; set; }
 
     public bool MenuCommandReportCreated { get; set; }

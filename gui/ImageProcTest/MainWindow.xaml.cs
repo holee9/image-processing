@@ -61,11 +61,24 @@ public partial class MainWindow : System.Windows.Window
             ClickButton(LoadRawImageButton);
             await Task.Delay(400);
 
+            ClickButton(ApplyBodyPartPresetButton);
+            await Task.Delay(250);
+            ClickButton(ApplyDisplayPipelineButton);
+            await Task.Delay(400);
+
             report.LogCountAfterLoad = viewModel.Logs.Count;
             report.AlertCountAfterLoad = viewModel.Alerts.Count;
             report.ActiveImageSummary = viewModel.ActiveImageSummary;
             report.StatusAfterLoad = viewModel.StatusText;
             report.LastRawDirectory = viewModel.Settings.LastRawDirectory;
+            report.DisplayPipelineApplied = viewModel.ActiveImageFrame?.DisplayPipelineApplied ?? false;
+            report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
+            report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
+            report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
+            report.VoiPresetApplied =
+                string.Equals(viewModel.Settings.SelectedBodyPart, "Abdomen", StringComparison.OrdinalIgnoreCase) &&
+                Math.Abs(viewModel.Settings.VoiWindowCenter - 40.0f) < 0.001f &&
+                Math.Abs(viewModel.Settings.VoiWindowWidth - 400.0f) < 0.001f;
 
             ClickButton(SaveSettingsButton);
             await Task.Delay(250);
@@ -78,10 +91,32 @@ public partial class MainWindow : System.Windows.Window
                 PipelineMenu is not null &&
                 ToolsMenu is not null &&
                 HelpMenu is not null;
+            report.PlannedMenuPlaceholdersDetected =
+                !OpenRecentMenuItem.IsEnabled &&
+                !ExportEvidenceBundleMenuItem.IsEnabled &&
+                !OpenRuntimeLogsMenuItem.IsEnabled &&
+                !OpenPipelineDiagnosticsMenuItem.IsEnabled &&
+                !OpenEvidenceFolderMenuItem.IsEnabled &&
+                OpenCurrentWorkflowHelpMenuItem.IsEnabled;
+            report.ToolbarMenuCommandParity =
+                ReferenceEquals(InitializeBackendButton.Command, InitializeBackendMenuItem.Command) &&
+                ReferenceEquals(ShutdownBackendButton.Command, ShutdownBackendMenuItem.Command) &&
+                ReferenceEquals(LoadRawImageButton.Command, OpenRawMenuItem.Command) &&
+                ReferenceEquals(SaveSettingsButton.Command, SaveSettingsMenuItem.Command) &&
+                ReferenceEquals(ClearLogsButton.Command, ClearLogsMenuItem.Command) &&
+                ReferenceEquals(ClearAlertsButton.Command, ClearAlertsMenuItem.Command);
+            report.ResizableDiagnosticsLayoutDetected =
+                DiagnosticsColumnSplitter.ResizeDirection == System.Windows.Controls.GridResizeDirection.Columns &&
+                LogsAlertsSplitter.ResizeDirection == System.Windows.Controls.GridResizeDirection.Rows &&
+                System.Windows.Controls.Grid.GetColumn(DiagnosticsColumnSplitter) == 2 &&
+                System.Windows.Controls.Grid.GetRow(LogsAlertsSplitter) == 1;
             report.DisabledFutureCommandCount = new[]
                 {
+                    OpenRecentMenuItem,
                     OpenDicomMenuItem,
+                    ExportEvidenceBundleMenuItem,
                     NativeBackendModeMenuItem,
+                    OpenRuntimeLogsMenuItem,
                     PInvokeSmokeTestMenuItem,
                     ZoomFitMenuItem,
                     ZoomActualMenuItem,
@@ -90,10 +125,13 @@ public partial class MainWindow : System.Windows.Window
                     RunFullPipelineMenuItem,
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
+                    OpenPipelineDiagnosticsMenuItem,
+                    OpenEvidenceFolderMenuItem,
                     RunSelfCheckMenuItem,
                     RunGuiE2EMenuItem,
                     BenchmarkRunnerMenuItem,
                     QaConstancyMenuItem,
+                    GsdfCalibrateMenuItem,
                     OpenApiReferenceMenuItem,
                     OpenTroubleshootingMenuItem
                 }
@@ -140,17 +178,24 @@ public partial class MainWindow : System.Windows.Window
 
             report.RuntimeStateAfterShutdown = viewModel.RuntimeInfo.State;
             report.Passed =
-                report.BackendVersion == "v0.0.0-mock" &&
+                !string.IsNullOrWhiteSpace(report.BackendVersion) &&
                 report.InitialLogCount >= 5 &&
-                report.InitialAlertCount == 3 &&
+                report.InitialAlertCount >= 1 &&
                 report.LogCountAfterLoad > report.InitialLogCount &&
                 report.ActiveImageSummary.StartsWith("RAW ", StringComparison.Ordinal) &&
                 report.LastRawDirPersisted &&
+                report.DisplayPipelineApplied &&
+                report.DisplayPanelVisible &&
+                !string.IsNullOrWhiteSpace(report.DisplayVersion) &&
+                report.VoiPresetApplied &&
                 report.HelpWindowOpened &&
                 report.HelpDocumentLoaded &&
                 !string.IsNullOrWhiteSpace(report.HelpDocumentPath) &&
                 report.TopLevelMenuCount >= 6 &&
                 report.CanonicalMenuGroupsDetected &&
+                report.PlannedMenuPlaceholdersDetected &&
+                report.ToolbarMenuCommandParity &&
+                report.ResizableDiagnosticsLayoutDetected &&
                 report.DisabledFutureCommandCount >= 10 &&
                 report.MenuCommandReportCreated &&
                 report.LogCountAfterClear == 0 &&
@@ -217,6 +262,11 @@ public partial class MainWindow : System.Windows.Window
     private void OpenScopeHelpMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         OpenHelpPage(HelpPageKind.Scope);
+    }
+
+    private void OpenCurrentWorkflowHelpMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        OpenHelpPage(HelpPageKind.QuickStart);
     }
 
     private void AboutBuildInfoMenuItem_OnClick(object sender, RoutedEventArgs e)

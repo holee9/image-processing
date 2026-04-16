@@ -13,4 +13,10 @@ public sealed class BackendRuntimeInfo
     public bool NativeDllDetected { get; init; }
 
     public string NativeDllPath { get; init; } = string.Empty;
+
+    public string DisplayVersion { get; init; } = string.Empty;
+
+    public bool DisplayDllDetected { get; init; }
+
+    public string DisplayDllPath { get; init; } = string.Empty;
 }

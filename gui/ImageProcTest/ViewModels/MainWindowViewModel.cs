@@ -17,9 +17,13 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _statusText = "Ready";
     private string _activeImageSummary = "No raw image loaded.";
     private string _metadataText = "GUI-S0 accepts raw binary frames only. Real DICOM remains owned by xpe_dicom.dll in Phase 1b.";
+    private string _displayPipelineSummary = "Display pipeline has not run.";
     private System.Windows.Media.ImageSource? _sourceImage;
     private System.Windows.Media.ImageSource? _processedImage;
     private BackendRuntimeInfo _runtimeInfo = new();
+    private LoadedImageFrame? _activeImageFrame;
+    private int _drainedBackendLogCount;
+    private int _drainedBackendAlertCount;
     private bool _showRuntimePanel = true;
     private bool _showRawSettingsPanel = true;
     private bool _showCalibrationPanel = true;
@@ -41,10 +45,14 @@ public sealed class MainWindowViewModel : ObservableObject
         Logs = new ObservableCollection<string>();
         Alerts = new ObservableCollection<AlertEntry>();
         BackendModeOptions = new[] { "Mock", "Native" };
+        VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
+        BodyPartOptions = Enum.GetNames<XpeBodyPartEnum>();
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
+        ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
+        ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         SaveSettingsCommand = new RelayCommand(SaveSettings);
         BrowseOffsetCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Offset));
         BrowseGainCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Gain));
@@ -65,6 +73,10 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string[] BackendModeOptions { get; }
 
+    public string[] VoiLutModeOptions { get; }
+
+    public string[] BodyPartOptions { get; }
+
     public ObservableCollection<string> Logs { get; }
 
     public ObservableCollection<AlertEntry> Alerts { get; }
@@ -74,6 +86,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ShutdownBackendCommand { get; }
 
     public RelayCommand LoadImageCommand { get; }
+
+    public RelayCommand ApplyDisplayPipelineCommand { get; }
+
+    public RelayCommand ApplyBodyPartPresetCommand { get; }
 
     public RelayCommand SaveSettingsCommand { get; }
 
@@ -115,6 +131,12 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _metadataText, value);
     }
 
+    public string DisplayPipelineSummary
+    {
+        get => _displayPipelineSummary;
+        private set => SetProperty(ref _displayPipelineSummary, value);
+    }
+
     public System.Windows.Media.ImageSource? SourceImage
     {
         get => _sourceImage;
@@ -131,6 +153,12 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _runtimeInfo;
         private set => SetProperty(ref _runtimeInfo, value);
+    }
+
+    public LoadedImageFrame? ActiveImageFrame
+    {
+        get => _activeImageFrame;
+        private set => SetProperty(ref _activeImageFrame, value);
     }
 
     public bool ShowRuntimePanel
@@ -190,6 +218,8 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             Alerts.Clear();
             Logs.Clear();
+            _drainedBackendLogCount = 0;
+            _drainedBackendAlertCount = 0;
 
             _backend = _backendFactory(Settings);
             RuntimeInfo = _backend.Initialize(Settings);
@@ -221,17 +251,18 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowMetadataPanel = true;
         ShowLogsPanel = true;
         ShowAlertsPanel = true;
+        Settings.ShowDisplayPanel = true;
         StatusText = "Layout reset.";
         Log("Menu command: layout reset.");
     }
 
     private void ShowNativeDiagnostics()
     {
-        StatusText = RuntimeInfo.NativeDllDetected
-            ? $"Native DLL detected at '{RuntimeInfo.NativeDllPath}'."
-            : "Native DLL not detected; mock backend remains active.";
+        StatusText = RuntimeInfo.DisplayDllDetected
+            ? $"Display DLL detected at '{RuntimeInfo.DisplayDllPath}' ({RuntimeInfo.DisplayVersion})."
+            : "Display DLL not detected; mock display pipeline remains active.";
 
-        Log($"Native diagnostics: backend={RuntimeInfo.BackendName}, version={RuntimeInfo.Version}, state={RuntimeInfo.State}, nativeDetected={RuntimeInfo.NativeDllDetected}, nativePath='{RuntimeInfo.NativeDllPath}'.");
+        Log($"Native diagnostics: backend={RuntimeInfo.BackendName}, version={RuntimeInfo.Version}, state={RuntimeInfo.State}, commonDetected={RuntimeInfo.NativeDllDetected}, commonPath='{RuntimeInfo.NativeDllPath}', displayDetected={RuntimeInfo.DisplayDllDetected}, displayPath='{RuntimeInfo.DisplayDllPath}', displayVersion='{RuntimeInfo.DisplayVersion}'.");
     }
 
     private void ShowCalibrationSettings()
@@ -265,10 +296,22 @@ public sealed class MainWindowViewModel : ObservableObject
                 runtime = ShowRuntimePanel,
                 rawSettings = ShowRawSettingsPanel,
                 calibration = ShowCalibrationPanel,
+                display = Settings.ShowDisplayPanel,
                 imageSummary = ShowImageSummaryPanel,
                 metadata = ShowMetadataPanel,
                 logs = ShowLogsPanel,
                 alerts = ShowAlertsPanel
+            },
+            displayPipeline = new
+            {
+                applied = ActiveImageFrame?.DisplayPipelineApplied ?? false,
+                summary = DisplayPipelineSummary,
+                version = RuntimeInfo.DisplayVersion,
+                mode = Settings.VoiLutMode,
+                center = Settings.VoiWindowCenter,
+                width = Settings.VoiWindowWidth,
+                bodyPart = Settings.SelectedBodyPart,
+                gsdf = Settings.GsdfEnabled
             },
             logCount = Logs.Count,
             alertCount = Alerts.Count
@@ -315,36 +358,36 @@ public sealed class MainWindowViewModel : ObservableObject
         Log($"{kind} calibration directory set to '{dialog.SelectedPath}'.");
     }
 
-    private void LoadImage()
+    private async void LoadImage()
     {
-        if (!string.IsNullOrWhiteSpace(App.AutomationRawPath) && File.Exists(App.AutomationRawPath))
-        {
-            LoadImageFromPath(App.AutomationRawPath, "automation raw image");
-            return;
-        }
-
-        var automationPath = Environment.GetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH");
-        if (!string.IsNullOrWhiteSpace(automationPath) && File.Exists(automationPath))
-        {
-            LoadImageFromPath(automationPath, "automation raw image");
-            return;
-        }
-
-        var dialog = new Win32OpenFileDialog
-        {
-            Title = "Load Raw Image",
-            Filter = "Raw Files (*.raw)|*.raw|All Files (*.*)|*.*",
-            CheckFileExists = true
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
         try
         {
-            LoadImageFromPath(dialog.FileName, "raw image");
+            if (!string.IsNullOrWhiteSpace(App.AutomationRawPath) && File.Exists(App.AutomationRawPath))
+            {
+                await LoadImageFromPathAsync(App.AutomationRawPath, "automation raw image");
+                return;
+            }
+
+            var automationPath = Environment.GetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH");
+            if (!string.IsNullOrWhiteSpace(automationPath) && File.Exists(automationPath))
+            {
+                await LoadImageFromPathAsync(automationPath, "automation raw image");
+                return;
+            }
+
+            var dialog = new Win32OpenFileDialog
+            {
+                Title = "Load Raw Image",
+                Filter = "Raw Files (*.raw)|*.raw|All Files (*.*)|*.*",
+                CheckFileExists = true
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            await LoadImageFromPathAsync(dialog.FileName, "raw image");
         }
         catch (Exception ex)
         {
@@ -360,23 +403,108 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void LoadImageFromPath(string path, string sourceLabel)
+    private async Task LoadImageFromPathAsync(string path, string sourceLabel)
     {
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
         var loadedFrame = _backend.LoadRawImage(path, Settings);
         DrainBackendTelemetry();
 
         SourceImage = loadedFrame.Preview;
-        ProcessedImage = loadedFrame.Preview;
+        ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
+        ActiveImageFrame = loadedFrame;
         ActiveImageSummary = loadedFrame.Summary;
         MetadataText = loadedFrame.MetadataText;
         StatusText = $"Loaded {sourceLabel} '{path}'.";
         Log($"Loaded {sourceLabel} '{path}'.");
+        await ApplyDisplayPipelineAsync();
+    }
+
+    private async Task ApplyDisplayPipelineAsync()
+    {
+        if (ActiveImageFrame is null)
+        {
+            StatusText = "Display pipeline requires a loaded raw image.";
+            Log(StatusText);
+            Alerts.Insert(0, new AlertEntry
+            {
+                Severity = "WARN",
+                Code = "DISPLAY_NO_IMAGE",
+                Message = StatusText,
+                Timestamp = DateTimeOffset.Now
+            });
+            return;
+        }
+
+        StatusText = "Applying display pipeline...";
+        Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}.");
+
+        try
+        {
+            var sourceFrame = ActiveImageFrame;
+            var processedFrame = await Task.Run(() => _backend.ApplyDisplayPipeline(sourceFrame, Settings));
+            DrainBackendTelemetry();
+
+            ActiveImageFrame = processedFrame;
+            ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            MetadataText = processedFrame.MetadataText;
+            DisplayPipelineSummary = processedFrame.DisplayPipelineSummary;
+            ActiveImageSummary = processedFrame.DisplayPipelineApplied
+                ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
+                : processedFrame.Summary;
+            StatusText = processedFrame.DisplayPipelineSummary;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Display pipeline failed: {ex.Message}";
+            Log(StatusText);
+            Alerts.Insert(0, new AlertEntry
+            {
+                Severity = "ERROR",
+                Code = "DISPLAY_PIPELINE_FAILED",
+                Message = ex.Message,
+                Timestamp = DateTimeOffset.Now
+            });
+        }
+    }
+
+    private void ApplyBodyPartPreset()
+    {
+        if (!Enum.TryParse<XpeBodyPartEnum>(Settings.SelectedBodyPart, ignoreCase: true, out var bodyPart))
+        {
+            bodyPart = XpeBodyPartEnum.Abdomen;
+            Settings.SelectedBodyPart = nameof(XpeBodyPartEnum.Abdomen);
+        }
+
+        try
+        {
+            var preset = _backend.CreateVoiPreset(bodyPart);
+            Settings.VoiWindowCenter = preset.Center;
+            Settings.VoiWindowWidth = preset.Width;
+            Settings.VoiLutMode = preset.Mode;
+            DrainBackendTelemetry();
+
+            StatusText = $"Applied {bodyPart} VOI preset: C={preset.Center:0.###}, W={preset.Width:0.###}.";
+            Log(StatusText);
+            _ = ApplyDisplayPipelineAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"VOI preset failed: {ex.Message}";
+            Log(StatusText);
+            Alerts.Insert(0, new AlertEntry
+            {
+                Severity = "ERROR",
+                Code = "VOI_PRESET_FAILED",
+                Message = ex.Message,
+                Timestamp = DateTimeOffset.Now
+            });
+        }
     }
 
     private void DrainBackendTelemetry()
     {
-        for (var i = 0; i < _backend.GetLogCount(); i++)
+        var logCount = _backend.GetLogCount();
+        for (var i = _drainedBackendLogCount; i < logCount; i++)
         {
             var log = _backend.GetLog(i);
             if (!string.IsNullOrWhiteSpace(log))
@@ -384,8 +512,10 @@ public sealed class MainWindowViewModel : ObservableObject
                 Logs.Insert(0, log);
             }
         }
+        _drainedBackendLogCount = logCount;
 
-        for (var i = 0; i < _backend.GetAlertCount(); i++)
+        var alertCount = _backend.GetAlertCount();
+        for (var i = _drainedBackendAlertCount; i < alertCount; i++)
         {
             var alert = _backend.GetAlert(i);
             if (alert is not null)
@@ -393,6 +523,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 Alerts.Insert(0, alert);
             }
         }
+        _drainedBackendAlertCount = alertCount;
     }
 
     private void Log(string message)

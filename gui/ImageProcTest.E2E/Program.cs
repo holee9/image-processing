@@ -89,21 +89,40 @@ static void RunWpfE2E()
         var helpMenu = GetControl<MenuItem>(window, "HelpMenu");
         var mainMenu = GetControl<Menu>(window, "MainMenu");
         var openRawMenuItem = GetControl<MenuItem>(window, "OpenRawMenuItem");
+        var openRecentMenuItem = GetControl<MenuItem>(window, "OpenRecentMenuItem");
         var saveSettingsMenuItem = GetControl<MenuItem>(window, "SaveSettingsMenuItem");
+        var exportEvidenceBundleMenuItem = GetControl<MenuItem>(window, "ExportEvidenceBundleMenuItem");
         var openDicomMenuItem = GetControl<MenuItem>(window, "OpenDicomMenuItem");
         var nativeModeMenuItem = GetControl<MenuItem>(window, "NativeBackendModeMenuItem");
+        var openRuntimeLogsMenuItem = GetControl<MenuItem>(window, "OpenRuntimeLogsMenuItem");
         var pInvokeSmokeMenuItem = GetControl<MenuItem>(window, "PInvokeSmokeTestMenuItem");
+        var applyDisplayPipelineMenuItem = GetControl<MenuItem>(window, "ApplyDisplayPipelineMenuItem");
         var runPreprocessingMenuItem = GetControl<MenuItem>(window, "RunPreprocessingMenuItem");
         var runDeterministicBaselineMenuItem = GetControl<MenuItem>(window, "RunDeterministicBaselineMenuItem");
         var runFullPipelineMenuItem = GetControl<MenuItem>(window, "RunFullPipelineMenuItem");
+        var openPipelineDiagnosticsMenuItem = GetControl<MenuItem>(window, "OpenPipelineDiagnosticsMenuItem");
+        var openEvidenceFolderMenuItem = GetControl<MenuItem>(window, "OpenEvidenceFolderMenuItem");
         var showRuntimePanelMenuItem = GetControl<MenuItem>(window, "ShowRuntimePanelMenuItem");
+        var showDisplaySettingsPanelMenuItem = GetControl<MenuItem>(window, "ShowDisplaySettingsPanelMenuItem");
         var showLogsPanelMenuItem = GetControl<MenuItem>(window, "ShowLogsPanelMenuItem");
+        var clearLogsMenuItem = GetControl<MenuItem>(window, "ClearLogsMenuItem");
+        var clearAlertsMenuItem = GetControl<MenuItem>(window, "ClearAlertsMenuItem");
         var helpHomeMenuItem = GetControl<MenuItem>(window, "OpenHelpIndexMenuItem");
         var quickStartMenuItem = GetControl<MenuItem>(window, "OpenQuickStartHelpMenuItem");
         var scopeMenuItem = GetControl<MenuItem>(window, "OpenScopeHelpMenuItem");
+        var currentWorkflowHelpMenuItem = GetControl<MenuItem>(window, "OpenCurrentWorkflowHelpMenuItem");
         var versionText = GetControl<TextBlock>(window, "BackendVersionText");
         var logsList = GetControl<ListBox>(window, "LogsListBox");
         var alertsList = GetControl<ListBox>(window, "AlertsListBox");
+        var diagnosticsColumnSplitter = GetControl<GridSplitter>(window, "DiagnosticsColumnSplitter");
+        var logsAlertsSplitter = GetControl<GridSplitter>(window, "LogsAlertsSplitter");
+        var displayVersionText = GetControl<TextBlock>(window, "DisplayVersionText");
+        var displaySettingsGroup = GetControl<GroupBox>(window, "DisplaySettingsGroup");
+        var voiLutModeComboBox = GetControl<ComboBox>(window, "VoiLutModeComboBox");
+        var bodyPartPresetComboBox = GetControl<ComboBox>(window, "BodyPartPresetComboBox");
+        var applyBodyPartPresetButton = GetControl<Button>(window, "ApplyBodyPartPresetButton");
+        var applyDisplayPipelineButton = GetControl<Button>(window, "ApplyDisplayPipelineButton");
+        var displayPipelineSummaryText = GetControl<TextBlock>(window, "DisplayPipelineSummaryText");
 
         Assert(initializeButton.Command is not null, "Initialize button command missing.");
         Assert(shutdownButton.Command is not null, "Shutdown button command missing.");
@@ -115,19 +134,45 @@ static void RunWpfE2E()
         Assert(viewMenu.Header.ToString()?.Contains("View", StringComparison.OrdinalIgnoreCase) == true, "View menu missing.");
         Assert(pipelineMenu.Header.ToString()?.Contains("Pipeline", StringComparison.OrdinalIgnoreCase) == true, "Pipeline menu missing.");
         Assert(toolsMenu.Header.ToString()?.Contains("Tools", StringComparison.OrdinalIgnoreCase) == true, "Tools menu missing.");
-        Assert(helpMenu.Items.Count >= 6, "Help menu should expose active and planned help entries.");
+        Assert(helpMenu.Items.Count >= 7, "Help menu should expose active and planned help entries.");
         Assert(openRawMenuItem.Command is not null, "Open Raw menu command missing.");
         Assert(saveSettingsMenuItem.Command is not null, "Save Settings menu command missing.");
+        Assert(applyDisplayPipelineMenuItem.Command is not null, "Apply Display Pipeline menu command missing.");
+        Assert(clearLogsMenuItem.Command is not null, "Clear Logs menu command missing.");
+        Assert(clearAlertsMenuItem.Command is not null, "Clear Alerts menu command missing.");
+        Assert(ReferenceEquals(initializeButton.Command, GetControl<MenuItem>(window, "InitializeBackendMenuItem").Command), "Initialize toolbar/menu command mismatch.");
+        Assert(ReferenceEquals(shutdownButton.Command, GetControl<MenuItem>(window, "ShutdownBackendMenuItem").Command), "Shutdown toolbar/menu command mismatch.");
+        Assert(ReferenceEquals(loadButton.Command, openRawMenuItem.Command), "Load Raw toolbar/menu command mismatch.");
+        Assert(ReferenceEquals(saveButton.Command, saveSettingsMenuItem.Command), "Save Settings toolbar/menu command mismatch.");
+        Assert(ReferenceEquals(clearLogsButton.Command, clearLogsMenuItem.Command), "Clear Logs toolbar/menu command mismatch.");
+        Assert(ReferenceEquals(clearAlertsButton.Command, clearAlertsMenuItem.Command), "Clear Alerts toolbar/menu command mismatch.");
         Assert(showRuntimePanelMenuItem.IsCheckable, "Runtime view menu item should be checkable.");
+        Assert(showDisplaySettingsPanelMenuItem.IsCheckable, "Display settings view menu item should be checkable.");
         Assert(showLogsPanelMenuItem.IsCheckable, "Logs view menu item should be checkable.");
+        Assert(!openRecentMenuItem.IsEnabled, "Open Recent must be disabled until recent-file history is implemented.");
         Assert(!openDicomMenuItem.IsEnabled, "Open DICOM must be disabled in GUI-S0.");
+        Assert(!exportEvidenceBundleMenuItem.IsEnabled, "Evidence bundle export must be disabled until deterministic artifacts exist.");
         Assert(!nativeModeMenuItem.IsEnabled, "Native backend mode must be disabled in GUI-S0.");
+        Assert(!openRuntimeLogsMenuItem.IsEnabled, "Runtime logs menu must be disabled until persistent runtime log export exists.");
         Assert(!pInvokeSmokeMenuItem.IsEnabled, "P/Invoke smoke menu must be disabled until SPRINT-P0-07.");
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
         Assert(!runDeterministicBaselineMenuItem.IsEnabled, "Deterministic baseline menu must be disabled until Phase 1b.");
         Assert(!runFullPipelineMenuItem.IsEnabled, "Full pipeline menu must be disabled until Phase 2/3.");
+        Assert(!openPipelineDiagnosticsMenuItem.IsEnabled, "Pipeline diagnostics must be disabled until pipeline traces exist.");
+        Assert(!openEvidenceFolderMenuItem.IsEnabled, "Open Evidence Folder must be disabled until evidence folder management exists.");
+        Assert(diagnosticsColumnSplitter.ResizeDirection == GridResizeDirection.Columns, "Diagnostics splitter should resize columns.");
+        Assert(Grid.GetColumn(diagnosticsColumnSplitter) == 2, "Diagnostics splitter should sit between preview and diagnostics columns.");
+        Assert(logsAlertsSplitter.ResizeDirection == GridResizeDirection.Rows, "Logs/Alerts splitter should resize rows.");
+        Assert(Grid.GetRow(logsAlertsSplitter) == 1, "Logs/Alerts splitter should sit between Logs and Alerts rows.");
+        Assert(displaySettingsGroup.Visibility == Visibility.Visible, "Display settings panel should be visible by default.");
+        Assert(voiLutModeComboBox.Items.Count >= 3, "VOI mode selector should expose Linear, LinearExact, and Sigmoid.");
+        Assert(bodyPartPresetComboBox.Items.Count >= 4, "Body part selector should expose four native presets.");
+        Assert(applyBodyPartPresetButton.Command is not null, "Apply Body Part Preset command missing.");
+        Assert(applyDisplayPipelineButton.Command is not null, "Apply Display Pipeline button command missing.");
 
         Assert(versionText.Text == "v0.0.0-mock", "Mock version text mismatch.");
+        Assert(displayVersionText.Text == "v0.0.0-mock-display", "Mock display version text mismatch.");
+        Assert(displayPipelineSummaryText.Text.Contains("not run", StringComparison.OrdinalIgnoreCase), "Display summary should start in not-run state.");
         Assert(logsList.Items.Count >= 5, "Logs list should have at least 5 items.");
         Assert(alertsList.Items.Count == 3, "Alerts list should have 3 items.");
 
@@ -161,8 +206,22 @@ static void RunWpfE2E()
         helpWindow.Close();
         DoEvents();
 
-        ExecuteCommand(clearLogsButton.Command, "Clear logs button command missing.");
-        ExecuteCommand(clearAlertsButton.Command, "Clear alerts button command missing.");
+        ExecuteMenuItem(currentWorkflowHelpMenuItem);
+        DoEvents();
+
+        helpWindow = application.Windows.OfType<HelpWindow>().FirstOrDefault();
+        if (helpWindow is null)
+        {
+            throw new InvalidOperationException("Current Workflow help window should open.");
+        }
+
+        Assert(helpWindow.HelpTitle.Contains("Quick Start", StringComparison.Ordinal), "Current Workflow help should route to Quick Start in GUI-S0.");
+        Assert(helpWindow.DocumentLoaded, "Current Workflow help document should load.");
+        helpWindow.Close();
+        DoEvents();
+
+        ExecuteCommand(clearLogsMenuItem.Command, "Clear logs menu command missing.");
+        ExecuteCommand(clearAlertsMenuItem.Command, "Clear alerts menu command missing.");
         DoEvents();
 
         Assert(logsList.Items.Count == 0, "Logs list should be cleared.");

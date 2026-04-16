@@ -16,6 +16,14 @@ public sealed class AppSettings : ObservableObject
     private string _gainCalibrationDirectory = "data/calibration/gain";
     private string _defectCalibrationDirectory = "data/calibration/defect";
     private string _lastOpenedPath = string.Empty;
+    private float _voiWindowCenter = 40.0f;
+    private float _voiWindowWidth = 400.0f;
+    private string _voiLutMode = "Linear";
+    private string _selectedBodyPart = "Abdomen";
+    private bool _gsdfEnabled;
+    private float _modalityRescaleSlope = 1.0f;
+    private float _modalityRescaleIntercept = -1024.0f;
+    private bool _showDisplayPanel = true;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -95,5 +103,85 @@ public sealed class AppSettings : ObservableObject
     {
         get => _lastOpenedPath;
         set => SetProperty(ref _lastOpenedPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the VOI LUT window center used by the display pipeline.
+    /// </summary>
+    [JsonPropertyName("voiWindowCenter")]
+    public float VoiWindowCenter
+    {
+        get => _voiWindowCenter;
+        set => SetProperty(ref _voiWindowCenter, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the VOI LUT window width used by the display pipeline.
+    /// </summary>
+    [JsonPropertyName("voiWindowWidth")]
+    public float VoiWindowWidth
+    {
+        get => _voiWindowWidth;
+        set => SetProperty(ref _voiWindowWidth, Math.Max(1.0f, value));
+    }
+
+    /// <summary>
+    /// Gets or sets the VOI LUT mode: Linear, LinearExact, or Sigmoid.
+    /// </summary>
+    [JsonPropertyName("voiLutMode")]
+    public string VoiLutMode
+    {
+        get => _voiLutMode;
+        set => SetProperty(ref _voiLutMode, string.IsNullOrWhiteSpace(value) ? "Linear" : value);
+    }
+
+    /// <summary>
+    /// Gets or sets the selected body part preset for VOI LUT initialization.
+    /// </summary>
+    [JsonPropertyName("selectedBodyPart")]
+    public string SelectedBodyPart
+    {
+        get => _selectedBodyPart;
+        set => SetProperty(ref _selectedBodyPart, string.IsNullOrWhiteSpace(value) ? "Abdomen" : value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether GSDF presentation LUT calibration is requested.
+    /// </summary>
+    [JsonPropertyName("gsdfEnabled")]
+    public bool GsdfEnabled
+    {
+        get => _gsdfEnabled;
+        set => SetProperty(ref _gsdfEnabled, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the modality LUT rescale slope.
+    /// </summary>
+    [JsonPropertyName("modalityRescaleSlope")]
+    public float ModalityRescaleSlope
+    {
+        get => _modalityRescaleSlope;
+        set => SetProperty(ref _modalityRescaleSlope, value == 0.0f ? 1.0f : value);
+    }
+
+    /// <summary>
+    /// Gets or sets the modality LUT rescale intercept.
+    /// </summary>
+    [JsonPropertyName("modalityRescaleIntercept")]
+    public float ModalityRescaleIntercept
+    {
+        get => _modalityRescaleIntercept;
+        set => SetProperty(ref _modalityRescaleIntercept, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the display settings panel is visible.
+    /// </summary>
+    [JsonPropertyName("showDisplayPanel")]
+    public bool ShowDisplayPanel
+    {
+        get => _showDisplayPanel;
+        set => SetProperty(ref _showDisplayPanel, value);
     }
 }
