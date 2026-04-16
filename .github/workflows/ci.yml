@@ -1,0 +1,80 @@
+name: XPE CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  configure:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          
+      - name: Configure CMake
+        run: |
+          cmake --preset ci-common -S . -B build
+
+  build:
+    needs: configure
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          
+      - name: Build
+        run: |
+          cmake --build --preset ci-common
+
+  test:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          
+      - name: Run Tests
+        run: |
+          cmake --preset ci-common
+          ctest --preset default --output-on-failure
+          
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/ci-common/Testing/
+
+  coverage:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install OpenCPPCoverage
+        run: choco install opencppcoverage -y
+        
+      - name: Run Coverage
+        run: |
+          cmake --preset coverage -DENABLE_COVERAGE=ON
+          cmake --build --preset coverage
+          
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage/coverage.xml

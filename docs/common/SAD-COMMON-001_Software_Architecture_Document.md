@@ -37,7 +37,7 @@
 │  │  SWU-5.1: MemoryPool                          │ │
 │  │  SWU-5.2: TypeDefinitions (Pack=8)            │ │
 │  │  SWU-5.3: ErrorHandler (스레드-로컬)          │ │
-│  │  SWU-5.4: NotificationSystem (AED)            │ │
+│  │  SWU-5.4: NotificationSystem (XPE Event System)            │ │
 │  │  SWU-5.5: JsonConfig (핫-리로드)              │ │
 │  │  SWU-5.6: ParameterValidator                  │ │
 │  │  SWU-5.7: PipelineOrchestrator (C# 브리지)   │ │
@@ -249,14 +249,14 @@ void xpe_clear_error(void);
 | 설정 | 160~169 | CONFIG_LOAD_FAILED, CONFIG_INVALID |
 | 매개변수 | 170~179 | PARAM_OUT_OF_RANGE |
 | I/O | 180~189 | FILE_NOT_FOUND, FILE_READ_ERROR |
-| AED | 190~199 | AED_QUEUE_FULL, AED_CALLBACK_FAILED |
+| Event System | 190~199 | EVENT_QUEUE_FULL, EVENT_CALLBACK_FAILED |
 
 ---
 
 ### 3.4 SWU-5.4: NotificationSystem (비동기 알림)
 
 #### 책임
-- 비동기 이벤트 디스패칭 (AED)
+- 비동기 이벤트 디스패칭 (XPE Event System)
 - 스레드 안전한 알림 큐
 - 콜백 기반 알림 전달
 
@@ -265,7 +265,7 @@ void xpe_clear_error(void);
 ```
 Producer (모든 DLL)           Consumer (알림 스레드)
   │                            │
-  ├─ xpe_aed_emit_alert()      ├─ poll queue
+  ├─ xpe_event_emit_alert()      ├─ poll queue
   │  (큐에 추가, 논블로킹)      ├─ deserialize alert
   │  │                         ├─ call registered callbacks
   │  v                         │
@@ -308,7 +308,7 @@ static uint32_t g_callback_count = 0;
 #### 알림 발송 흐름
 
 ```c
-xpe_aed_emit_alert(XPE_ALERT_WARNING, "Temperature drift detected")
+xpe_event_emit_alert(XPE_ALERT_WARNING, "Temperature drift detected")
   ├─ lock queue
   ├─ if (count < 256)
   │   ├─ alerts[write_index] = {type, timestamp, msg}
@@ -321,13 +321,13 @@ xpe_aed_emit_alert(XPE_ALERT_WARNING, "Temperature drift detected")
   │   ├─ count remains 256
   │   └─ discarded_count++
   ├─ unlock queue
-  └─ return XPE_OK or XPE_ERR_AED_QUEUE_FULL
+  └─ return XPE_OK or XPE_ERR_EVENT_QUEUE_FULL
 ```
 
 #### 콜백 호출 (알림 스레드)
 
 ```c
-void* xpe_aed_thread_main(void* arg) {
+void* xpe_event_thread_main(void* arg) {
     while (!should_stop) {
         lock queue
         if (count > 0) {
@@ -515,7 +515,7 @@ public static class XpeCommon {
     public delegate void AlertCallback([MarshalAs(UnmanagedType.LPStr)] string json, IntPtr userdata);
     
     [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-    public static extern int xpe_aed_register_callback(AlertCallback cb, IntPtr userdata);
+    public static extern int xpe_event_register_callback(AlertCallback cb, IntPtr userdata);
 }
 
 // Pack=8 struct 정의
@@ -554,7 +554,7 @@ if (result < 0) {
 
 // 3. 콜백 등록
 var callback = new XpeCommon.AlertCallback(OnAlert);
-XpeCommon.xpe_aed_register_callback(callback, IntPtr.Zero);
+XpeCommon.xpe_event_register_callback(callback, IntPtr.Zero);
 
 // 4. UI 로드
 Application.Current.MainWindow = new MainWindow();
@@ -606,12 +606,12 @@ void xpe_clear_error(void);
 ```c
 typedef void (*XpeAlertCallback)(const char* alert_json, void* userdata);
 
-XpeError xpe_aed_init(void);
-XpeError xpe_aed_register_callback(XpeAlertCallback callback, void* userdata);
-XpeError xpe_aed_emit_alert(AlertType type, const char* message);
-const char* xpe_aed_get_queue_stats(void);  // JSON
-XpeError xpe_aed_flush(void);
-void xpe_aed_finalize(void);
+XpeError xpe_event_init(void);
+XpeError xpe_event_register_callback(XpeAlertCallback callback, void* userdata);
+XpeError xpe_event_emit_alert(AlertType type, const char* message);
+const char* xpe_event_get_queue_stats(void);  // JSON
+XpeError xpe_event_flush(void);
+void xpe_event_finalize(void);
 ```
 
 ### 4.5 매개변수 검증 인터페이스
@@ -685,7 +685,7 @@ C# 코드:
 ```
 xpe_preprocess_stage1() (임의의 DLL)
   ├─ 온도 드리프트 감지
-  ├─ xpe_aed_emit_alert(XPE_ALERT_WARNING, "Temperature drift 2.5C detected")
+  ├─ xpe_event_emit_alert(XPE_ALERT_WARNING, "Temperature drift 2.5C detected")
   ├─ 내부: lock queue
   ├─ 내부: alerts[write_index++] = {...}
   ├─ 내부: pthread_cond_signal() ← 알림 스레드 깨우기
@@ -743,7 +743,7 @@ C# 콜백:
 | 부분 업데이트 | 검증 중 설정 변경 | 임시 구조체 검증 후 원자적 복사 |
 | 손상된 설정 | JSON 파싱 오류 | 스키마 검증 + 이전 설정 보유 |
 
-### 6.4 AED 알림 위험
+### 6.4 Event/Alert 알림 위험
 
 | 위험 | 원인 | 제어 |
 |------|------|------|
@@ -763,7 +763,7 @@ C# 콜백:
 | 메모리 해제 | O(1) | < 1 ms |
 | 설정 로드 | O(n) (JSON 크기) | < 20 ms |
 | 매개변수 검증 | O(1) | < 5 ms |
-| AED 발송 | O(1) | < 0.5 ms |
+| Event 발송 | O(1) | < 0.5 ms |
 
 ### 7.2 공간 복잡도
 
@@ -772,7 +772,7 @@ C# 콜백:
 | 메모리 풀 | 226.4 MB |
 | 설정 메모리 | < 1 MB |
 | 에러 컨텍스트 (TLS) | ~1 KB / 스레드 |
-| AED 큐 | ~2 KB (고정) |
+| Event Queue | ~2 KB (고정) |
 
 ---
 

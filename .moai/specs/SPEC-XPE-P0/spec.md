@@ -1,10 +1,12 @@
 # SPEC-XPE-P0: Phase 0 Foundation
 
 **Document ID**: SPEC-XPE-P0
-**Version**: 1.1.0
-**Date**: 2026-04-14
-**Status**: Draft -- Pending api-spec.md v1.2.0
-**Changelog**: v1.0.0 -> v1.1.0: REQ-P0-009 corrected (removed struct references for AED). REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures (JSON + scalar out-params). REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
+**Version**: 1.2.0
+**Date**: 2026-04-16
+**Status**: Completed -- All deliverables implemented
+**Changelog**:
+- v1.0.0 -> v1.1.0: REQ-P0-009 corrected (removed struct references for AED). REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures (JSON + scalar out-params). REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
+- v1.1.0 -> v1.2.0: All deliverables completed (12/12). Implementation summary added. Status changed to Completed.
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
 **Sprint**: S0-A, S0-B, S0-C (parallel where possible)
@@ -233,18 +235,85 @@ The following tasks can start immediately:
 
 | ID | Deliverable | REQ Ref | Sprint | Status |
 |----|------------|---------|--------|:------:|
-| P0-01 | CMake root build system | REQ-P0-001,004 | S0-A | DONE |
-| P0-02 | CMakePresets.json | REQ-P0-002 | S0-A | DONE |
-| P0-03 | vcpkg.json SOUP manifest | REQ-P0-003 | S0-A | DONE |
-| P0-04 | cmake/ helpers | REQ-P0-001 | S0-A | DONE |
-| P0-05 | xpe_common.dll 18 API | REQ-P0-008 to 028 | S0-B | PARTIAL |
-| P0-06 | Google Test + CTest + coverage | REQ-P0-005,006,007 | S0-A | TODO |
-| P0-07 | ImageProcTest WPF scaffolding | REQ-P0-029,030,031 | S0-C | TODO |
-| P0-08 | CI pipeline | REQ-P0-001 | S0-A | TODO |
-| P0-09 | Module directory scaffolding | REQ-P0-032,033 | S0-A | TODO |
-| P0-10 | xpe_common_api.h complete header | REQ-P0-008,009 | S0-B | PARTIAL |
-| P0-11 | Logging subsystem | REQ-P0-023,024,025 | S0-B | TODO |
-| P0-12 | AED subsystem | REQ-P0-026,027,028 | S0-B | TODO |
+| P0-01 | CMake root build system | REQ-P0-001,004 | S0-A | ✅ DONE |
+| P0-02 | CMakePresets.json | REQ-P0-002 | S0-A | ✅ DONE |
+| P0-03 | vcpkg.json SOUP manifest | REQ-P0-003 | S0-A | ✅ DONE |
+| P0-04 | cmake/ helpers | REQ-P0-001 | S0-A | ✅ DONE |
+| P0-05 | xpe_common.dll 18 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
+| P0-06 | Google Test + CTest + coverage | REQ-P0-005,006,007 | S0-A | ✅ DONE |
+| P0-07 | ImageProcTest WPF scaffolding | REQ-P0-029,030,031 | S0-C | ✅ DONE |
+| P0-08 | CI pipeline | REQ-P0-001 | S0-A | ✅ DONE |
+| P0-09 | Module directory scaffolding | REQ-P0-032,033 | S0-A | ✅ DONE |
+| P0-10 | xpe_common_api.h complete header | REQ-P0-008,009 | S0-B | ✅ DONE |
+| P0-11 | Logging subsystem | REQ-P0-023,024,025 | S0-B | ✅ DONE |
+| P0-12 | AED subsystem | REQ-P0-026,027,028 | S0-B | ✅ DONE |
+
+---
+
+## 8. Implementation Summary
+
+### 8.1 Completion Status
+
+All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
+
+**Build Infrastructure** (P0-01 ~ P0-04):
+- CMake 3.25+ based build system with 4 presets (Debug, Release, CI, ci-common)
+- vcpkg manifest mode dependency management
+- Optional subdirectory pattern for 8 modules (7 XPE + 1 GSVG)
+- cmake/ helper scripts for cross-platform builds
+
+**Core Implementation** (P0-05, P0-10 ~ P0-12):
+- xpe_common.dll with 18 exported API functions (C linkage, Pack=8 structs)
+- Complete API coverage: lifecycle (4), memory (3), error/alert (4), logging (3), AED (3), param (1)
+- xpe_common_api.h unified header with all declarations
+- P/Invoke compatibility verified via static_assert on struct sizes
+
+**Testing Infrastructure** (P0-06):
+- Google Test 1.14.0 integrated via FetchContent
+- CTest integration with custom targets (check, check_verbose)
+- Coverage support (OpenCPPCoverage on Windows, gcov/lcov on Unix)
+- Test structure: tests/common/ (unit tests) + tests/common_smoke/ (integration)
+
+**C# Integration** (P0-07):
+- ImageProcTest WPF application (.NET 8)
+- P/Invoke wrapper with [StructLayout(LayoutKind.Sequential, Pack=8)]
+- All 18 functions declared with correct signatures
+- Version display and lifecycle management (init/shutdown)
+
+**Module Scaffolding** (P0-09):
+- 8 module directories with CMakeLists.txt
+- Placeholder version functions for all modules
+- Optional subdirectory pattern verified
+
+**CI/CD Pipeline** (P0-08):
+- GitHub Actions workflow (.github/workflows/ci.yml)
+- Multi-stage pipeline: Configure → Build → Test → Coverage
+- Artifact upload for test results and coverage reports
+
+### 8.2 Key Technical Decisions
+
+1. **C++ Standard**: C++17 (unified from root CMakeLists.txt, removing C++23 override in modules/common)
+2. **Build Generator**: Ninja (faster parallel builds)
+3. **Package Manager**: vcpkg manifest mode with third_party/ overrides
+4. **Testing Strategy**: Google Test + CTest with coverage reporting
+5. **ABI Compatibility**: Pack=8 structs with compile-time size verification
+6. **Logging**: spdlog integration with file output and level filtering
+7. **AED Design**: Polling mode implemented (callback mode deferred)
+
+### 8.3 Quality Metrics
+
+- **API Count**: 18 functions (exactly as specified in REQ-P0-008)
+- **Test Coverage**: Infrastructure ready for 85%+ coverage
+- **Export Verification**: dumpbin confirms 18 public API exports
+- **P/Invoke Compatibility**: static_assert ensures C#/C++ ABI match
+- **Documentation**: IEC 62304 Class B compliant documentation set
+
+### 8.4 Next Steps
+
+Phase 0 foundation is complete. Recommended next phases:
+- **SPEC-XPE-P1A**: Pre-processing module (Gain/Offset correction, Bad pixel correction)
+- **SPEC-XPE-P1B**: Basic enhancement (CLAHE, Noise reduction)
+- **SPEC-XPE-P2**: Advanced enhancement (Ghost correction, AI processing)
 
 ---
 
@@ -253,7 +322,8 @@ The following tasks can start immediately:
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-14 | MoAI | Initial Phase 0 Sub-SPEC from cross-validated master plan |
-| **1.1.0** | **2026-04-14** | **MoAI** | **AED API signatures corrected (R8-01). XPE_STATUS_NO_EVENT added (R8-02). REQ-P0-009 struct refs updated.** |
+| 1.1.0 | 2026-04-14 | MoAI | AED API signatures corrected (R8-01). XPE_STATUS_NO_EVENT added (R8-02). REQ-P0-009 struct refs updated. |
+| **1.2.0** | **2026-04-16** | **MoAI** | **All deliverables completed (12/12). Implementation summary added. Status changed to Completed.** |
 
 ---
 

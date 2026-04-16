@@ -4,7 +4,7 @@
 **Version**: 1.3.0  
 **Date**: 2026-04-14  
 **Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.1.0  
-**Changelog**: v1.1.0 -> v1.2.0 added AED functions, moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`, and corrected exported-function totals to 82. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned.
+**Changelog**: v1.1.0 -> v1.2.0 added Auto Exposure Detection (AED) functions, moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`, and corrected exported-function totals to 82. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.3.1 reserves `AED` for Auto Exposure Detection and moves common event/alert terminology to XPE Event System / Alert Queue.
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -154,7 +154,7 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Change from v1.1.0 |
 |-----|--------------------|--------------------|
-| xpe_common.dll | 18 | +3 AED functions |
+| xpe_common.dll | 18 | +3 Auto Exposure Detection (AED) functions |
 | xpe_preprocess.dll | 18 | no count change |
 | xpe_enhance_basic.dll | 7 | +1 after moving `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` per SPEC v2.1.0 |
 | xpe_enhance_advanced.dll | 3 | -1 (xpe_calc_exposure_index moved to enhance_basic) |
@@ -403,7 +403,7 @@ XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut,
                                          float* signalLevelOut);
 ```
 
-**Description**: Polls the AED event queue for the next pending exposure detection event. Writes the event type (0=exposure_start, 1=exposure_end, 2=exposure_trigger), timestamp (UNIX epoch ms), and detected signal level to the output parameters. Returns `XPE_OK` if an event was available, or a non-error indication if the queue is empty.  
+**Description**: Polls the Auto Exposure Detection (AED) event queue for the next pending exposure detection event. Writes the event type (0=exposure_start, 1=exposure_end, 2=exposure_trigger), timestamp (UNIX epoch ms), and detected signal level to the output parameters. Returns `XPE_OK` if an event was available, or a non-error indication if the queue is empty.  
 **SRS**: SRS-AED-003, SRS-AED-004  
 **Thread safety**: Thread-safe.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer), `XPE_ERR_NOT_INITIALIZED`
@@ -416,7 +416,7 @@ XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut,
 XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut);
 ```
 
-**Description**: Returns the current AED state machine state. The state is one of: 0=IDLE (not configured or between exposures), 1=ARMED (configured and waiting for exposure), 2=TRIGGERED (exposure detected, event queued).  
+**Description**: Returns the current Auto Exposure Detection (AED) state machine state. The state is one of: 0=IDLE (not configured or between exposures), 1=ARMED (configured and waiting for exposure), 2=TRIGGERED (exposure detected, event queued).  
 **SRS**: SRS-AED-005  
 **Thread safety**: Thread-safe (atomic read).  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer), `XPE_ERR_NOT_INITIALIZED`

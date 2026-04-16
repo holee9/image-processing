@@ -400,7 +400,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 ---
 
-### SPRINT-P0-05: AED and Alert Subsystem
+### SPRINT-P0-05: Auto Exposure Detection Event Interface and Alert Subsystem
 
 **Sprint ID**: SPRINT-P0-05
 **Sprint Goal**: Implement Automatic Exposure Detection event interface and the alert ring buffer.
@@ -410,9 +410,9 @@ SPRINT-P1A-01 (CalibManager)                   |
 **Estimated Complexity**: Medium
 
 **Acceptance Criteria**:
-1. `xpe_aed_configure` accepts JSON with AED timing parameters and returns `XPE_OK`
+1. `xpe_aed_configure` accepts JSON with Auto Exposure Detection timing parameters and returns `XPE_OK`
 2. `xpe_aed_poll_event` returns exposure detection events from internal queue
-3. `xpe_aed_get_status` returns current AED state (idle/armed/triggered)
+3. `xpe_aed_get_status` returns current Auto Exposure Detection state (idle/armed/triggered)
 4. Alert ring buffer holds at least 64 entries
 5. `xpe_get_pending_alert_count` returns accurate count atomically
 6. `xpe_get_pending_alert(0, msg, 256, &severity)` copies first alert message
@@ -421,7 +421,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 9. Defined alert codes enumerated in Section 9.3 (CALIB_EXPIRING_SOON, GSVG_PROCESSING_FAILED, etc.)
 
 **Test Cases**:
-1. Configure AED, simulate trigger -> `xpe_aed_poll_event` returns event -> expect event data valid
+1. Configure Auto Exposure Detection, simulate trigger -> `xpe_aed_poll_event` returns event -> expect event data valid
 2. `xpe_aed_get_status` before configure -> expect idle/not-configured state
 3. Enqueue 10 alerts -> `xpe_get_pending_alert_count()` returns 10
 4. `xpe_get_pending_alert(0, buf, 5, &sev)` with too-small buffer -> `XPE_ERR_BUFFER_TOO_SMALL`
@@ -430,14 +430,14 @@ SPRINT-P1A-01 (CalibManager)                   |
 7. Parse alert JSON: `severity`, `code`, `timestamp_ms`, `stage_id` fields are present and valid types
 
 **Definition of Done**:
-- [ ] 6 API functions exported (3 AED + 3 alert)
+- [ ] 6 API functions exported (3 Auto Exposure Detection + 3 alert)
 - [ ] All 6 test cases pass
 - [ ] Ring buffer is lock-free for single-producer/single-consumer scenario
 - [ ] `xpe_get_pending_alert_count` is thread-safe (atomic read)
-- [ ] AED state machine: IDLE -> ARMED -> TRIGGERED -> IDLE transitions correct
+- [ ] Auto Exposure Detection state machine: IDLE -> ARMED -> TRIGGERED -> IDLE transitions correct
 
 **Risk Items**:
-- AED hardware interface details may not be fully specified yet (mitigate: use abstract event interface)
+- Auto Exposure Detection hardware interface details may not be fully specified yet (mitigate: use abstract event interface)
 - Ring buffer overflow policy needs documentation (currently: overwrite oldest)
 
 ---

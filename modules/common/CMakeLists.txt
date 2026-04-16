@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 project(xpe_common VERSION 0.1.0 LANGUAGES CXX)
 
-# C++23 standard
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# C++17 standard (inherited from root, removed override to allow propagation)
+# Note: Root CMakeLists.txt sets C++17, this module inherits that setting
+# set(CMAKE_CXX_STANDARD 23)  # REMOVED: SPEC-XPE-P0 requires C++17
 
 # Export compile commands for IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

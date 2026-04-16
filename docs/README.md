@@ -255,7 +255,7 @@ Phase 1b `xpe_dicom.dll` (DICOM Reader/Writer, J2K, GSPS, 네트워크 SCU)의 �
 
 ### 3.11 Common Infrastructure (공통 인프라 모듈) — 6개 문서 ✨ NEW
 
-Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, AED, JsonConfig, ParameterValidator)의 완전한 IEC 62304 Class B 패키지입니다.
+Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, XPE Event System, JsonConfig, ParameterValidator)의 완전한 IEC 62304 Class B 패키지입니다. `AED` 약어는 detector Auto Exposure Detection 용도로만 예약합니다.
 
 | IEC 62304 Clause | Document Type | Document | ID |
 |----------------:|:-------------|---------|-----|

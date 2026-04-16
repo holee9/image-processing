@@ -153,6 +153,9 @@ XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut) {
 }
 
 // Test support functions (white-box testing)
+// @MX:TEST: [AUTO] xpe_test_inject_aed_event - Test-only function for AED event injection
+// Usage: Google Test fixtures to inject AED events for state machine testing
+// NOT for production use - ABI may change between versions
 XPE_API void xpe_test_inject_aed_event(int32_t eventType, float signalLevel) {
     std::lock_guard<std::mutex> lock(g_aedMutex);
 

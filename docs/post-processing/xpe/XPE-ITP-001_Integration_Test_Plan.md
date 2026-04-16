@@ -61,6 +61,21 @@ Level 5: Full Pipeline E2E
 | **4** | SWI-3, SWI-4 + all below | Level 3 | Display + DICOM output |
 | **5** | Full system | All levels | E2E image pipeline |
 
+### 2.3 Test GUI Native Module Readiness Gate
+
+Before any native DLL is enabled in Test GUI execution controls, the module shall pass the readiness gates defined in:
+
+- `docs/project/XPE-GUI-NATIVE-INT-READINESS-001_GUI_Native_Module_Integration_Readiness.md`
+
+Integration test entry rules:
+
+- Level 1 may use `R1` modules for version and health checks only.
+- Level 2 requires `R3` for synthetic preprocessing execution.
+- Level 5 real fixture E2E requires `R4`.
+- User-facing GUI validation requires `R5`.
+
+Preprocessing is the first preferred image-transforming native module, but it shall remain disabled or mock-backed until `GUI-PRE-GATE-001` through `GUI-PRE-GATE-010` are satisfied.
+
 ---
 
 ## 3. Integration Test Cases
@@ -532,4 +547,3 @@ Level 5: Full Pipeline E2E
 **Document End**
 
 *This document consolidates integration testing previously scattered across XPE-STP-001 and XPE-VVP-001 into a dedicated Integration Test Plan per IEC 62304 §5.6.*
-

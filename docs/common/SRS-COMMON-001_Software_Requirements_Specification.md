@@ -79,7 +79,7 @@
 
 **FR-CMN-300**: XpeError 열거형
 - 50개 이상의 에러 코드 정의
-- 범주별 분류: 입력(100~109), 메모리(110~119), 초기화(120~129), 캘리브(130~149), 파이프라인(150~159), 설정(160~169), 매개변수(170~179), I/O(180~189), AED(190~199)
+- 범주별 분류: 입력(100~109), 메모리(110~119), 초기화(120~129), 캘리브(130~149), 파이프라인(150~159), 설정(160~169), 매개변수(170~179), I/O(180~189), Event System(190~199)
 - 성공: `XPE_OK = 0`
 
 **FR-CMN-301**: 스레드-로컬 에러 컨텍스트
@@ -106,28 +106,28 @@
 **FR-CMN-400**: AlertType 열거형
 - INFO = 0, WARNING = 1, ERROR = 2, CALIBRATION_NEEDED = 3, AI_UNAVAILABLE = 4
 
-**FR-CMN-401**: 비동기 이벤트 디스패처 (AED) 초기화
+**FR-CMN-401**: XPE Event System 초기화
 - 원형 버퍼 (circular buffer) 크기: 256 알림
 - 전용 알림 스레드 생성
 - 스레드 안전: mutex로 보호된 큐
 
-**FR-CMN-402**: 콜백 등록 함수 (`xpe_aed_register_callback`)
+**FR-CMN-402**: 콜백 등록 함수 (`xpe_event_register_callback`)
 - 입력: 함수 포인터, 사용자 데이터
 - 저장: 최대 8개 콜백 동시 등록 (또는 제한 없음)
 - 반환: 콜백 ID 또는 성공 코드
 
-**FR-CMN-403**: 알림 발송 함수 (`xpe_aed_emit_alert`)
+**FR-CMN-403**: 알림 발송 함수 (`xpe_event_emit_alert`)
 - 입력: AlertType, 메시지 문자열
 - 동작: 큐에 추가 (논블로킹)
 - 반환: 즉시 (큐 추가 성공/실패)
-- 실패: `XPE_ERR_AED_QUEUE_FULL`
+- 실패: `XPE_ERR_EVENT_QUEUE_FULL`
 
 **FR-CMN-404**: 큐 오버플로우 처리
 - 256개 이상의 알림 시: 가장 오래된 항목 제거 (FIFO 대체)
 - 삭제 카운트 메트릭 기록
 - C#에 경고 알림 발송
 
-**FR-CMN-405**: AED 통계 조회 (`xpe_aed_get_queue_stats`)
+**FR-CMN-405**: Event System 통계 조회 (`xpe_event_get_queue_stats`)
 - 반환: JSON, `{"pending": 5, "max_capacity": 256, "discarded": 2}`
 
 ### 2.5 JSON 설정 (SWU-5.5)
@@ -199,7 +199,7 @@
 
 **FR-CMN-702**: 콜백 마샬링
 - C# delegate 정의
-- `xpe_aed_register_callback`에 전달
+- `xpe_event_register_callback`에 전달
 - 호출 규약: Cdecl
 
 ---
@@ -231,14 +231,14 @@
 - 검증 실패 시: 이전 설정 유지 (원자적 교체)
 - 경합 조건 방지: mutex 사용
 
-**SAF-CMN-150**: AED 큐 오버플로우 처리
+**SAF-CMN-150**: Event Queue 오버플로우 처리
 - 256개 이상 시: 가장 오래된 항목 제거
 - 안전한 메모리 해제 (메모리 누수 금지)
 - C#에 경고 알림 발송
 
 **SAF-CMN-160**: 스레드 안전성
 - 에러 컨텍스트: 스레드-로컬
-- AED 큐: mutex로 보호
+- Event Queue: mutex로 보호
 - 설정 접근: rwlock 또는 원자적 포인터
 
 ---
@@ -265,7 +265,7 @@
 - 목표: < 5 ms
 - 구현: 간단한 범위 검사 (조건문)
 
-**PERF-CMN-130**: AED 알림 발송 (xpe_aed_emit_alert)
+**PERF-CMN-130**: Event/Alert 알림 발송 (xpe_event_emit_alert)
 - 목표: < 1 ms
 - 동작: 큐 쓰기만 (논블로킹)
 - 콜백 호출은 별도 스레드에서 비동기 수행
@@ -290,7 +290,7 @@
 | FR-CMN-101 | 5.1 | 할당 함수 | ACTIVE | Unit test |
 | FR-CMN-200 | 5.2 | XpeImage 구조체 | ACTIVE | static_assert |
 | FR-CMN-300 | 5.3 | XpeError 열거형 | ACTIVE | Header check |
-| FR-CMN-400 | 5.4 | AED 초기화 | ACTIVE | Unit test |
+| FR-CMN-400 | 5.4 | Event System 초기화 | ACTIVE | Unit test |
 | FR-CMN-500 | 5.5 | 설정 로드 | ACTIVE | Unit test |
 | FR-CMN-600 | 5.6 | 매개변수 검증 | ACTIVE | Unit test |
 | FR-CMN-700 | 5.7 | P/Invoke 호환성 | ACTIVE | P/Invoke test |

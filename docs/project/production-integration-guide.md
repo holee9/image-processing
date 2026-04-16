@@ -1,8 +1,8 @@
 # XPE Production Integration Guide
 
 **Document ID**: XPE-PROD-INT-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-15  
+**Version**: 1.2.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Purpose**: Define the production-host integration contract for XPE, with emphasis on explicit path ownership, deployment layout, initialization order, and degraded-mode handling.  
 **Audience**: medical-device software integrators using XPE from a host application such as `RadiConsole`
@@ -141,6 +141,22 @@ Recommended startup order:
 
 Missing optional components must not block the deterministic baseline.
 
+### 4.3 Test GUI native integration readiness
+
+The Test GUI shall not bind execution controls to a native module only because a DLL exists. Native GUI integration must satisfy the staged readiness gates in:
+
+- `XPE-GUI-NATIVE-INT-READINESS-001_GUI_Native_Module_Integration_Readiness.md`
+
+Minimum rule:
+
+- `R1` allows version/health display only.
+- `R2` allows dry-run ABI checks.
+- `R3` allows synthetic native execution.
+- `R4` allows local real fixture execution.
+- `R5` allows user-facing GUI validation.
+
+Preprocessing is the first preferred image-transforming native target, but it must pass `GUI-PRE-GATE-001` through `GUI-PRE-GATE-010` before real fixture validation is enabled in the Test GUI.
+
 ---
 
 ## 5. Calibration Discovery Policy
@@ -260,9 +276,11 @@ Use the companion documents for detail:
 
 - `api-spec.md` for exported ABI
 - `pipeline-spec.md` for canonical stage order
+- `XPE-GUI-NATIVE-INT-READINESS-001_GUI_Native_Module_Integration_Readiness.md` for Test GUI native module readiness gates
+- `Preprocessing-E2E-Automated-Evaluation-Protocol.md` for preprocessing fixture metrics and gates
 - `xpe-implementation-reference.md` for file formats, logging, alerts, and AI worker IPC
 - `sprint-plan.md` for delivery sequencing
 
 ---
 
-*Document End -- XPE-PROD-INT-001 v1.1.0*
+*Document End -- XPE-PROD-INT-001 v1.2.0*

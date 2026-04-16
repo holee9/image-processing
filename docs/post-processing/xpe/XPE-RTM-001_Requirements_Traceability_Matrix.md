@@ -91,7 +91,7 @@
 | MR-FUNC-004 | DICOM 파일/네트워크 | PR-FUNC-030, 031, 032 | SRS-FUNC-030, 031, 032 |
 | MR-FUNC-005 | 교정 파라미터 관리 | PR-FUNC-040 | SRS-FUNC-040 (TBD Phase 1a) |
 | MR-FUNC-006 | EI / DI 계산 | PR-FUNC-041 | SRS-FUNC-016 (EI baseline) |
-| MR-FUNC-007 | AED 이벤트 처리 | PR-FUNC-042 | SRS-FUNC-042 (TBD Phase 0) |
+| MR-FUNC-007 | Auto Exposure Detection 이벤트 처리 | PR-FUNC-042 | SRS-FUNC-042 (TBD Phase 0) |
 | MR-FUNC-008 | Multiscale 처리 | PR-FUNC-014, 015 | SRS-FUNC-014, 015 |
 | MR-FUNC-009 | Grid Suppression/Virtual Grid | PR-FUNC-050 | GSVG-SRS-001 (별도 패키지) |
 | MR-FUNC-010 | CNN 신체 부위 인식 | PR-FUNC-016 | SRS-FUNC-016 |

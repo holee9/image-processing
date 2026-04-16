@@ -9,7 +9,7 @@
 
 **Changelog**:
 
-- `v1.3.0 -> v1.5.0`: fixed canonical phase ownership, added AED acquisition gate, reinstated EI baseline stage in the normative body, removed internal Phase 2/Phase 3 contradictions, and normalized GSVG fallback semantics
+- `v1.3.0 -> v1.5.0`: fixed canonical phase ownership, added Auto Exposure Detection (AED) acquisition gate, reinstated EI baseline stage in the normative body, removed internal Phase 2/Phase 3 contradictions, and normalized GSVG fallback semantics
 
 ---
 
@@ -43,7 +43,7 @@ Normative algorithm detail is carried by `xpe-algorithm-spec-deepsync.md`. Norma
 
 | Domain | Typical stages | Allowed outputs |
 |---|---|---|
-| Detector domain | AED, readout validation, temperature, offset, nonlinearity, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
+| Detector domain | Auto Exposure Detection (AED), readout validation, temperature, offset, nonlinearity, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
 | Enhancement domain | log, noise, contrast, edge, multiscale, fractional, GSVG, AI enhancement | enhanced float image, AI advisory outputs |
 | Presentation domain | modality LUT, VOI LUT, presentation LUT, DICOM write | display-ready image, exported DICOM |
 

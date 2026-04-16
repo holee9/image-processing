@@ -52,12 +52,12 @@ SRS 안전 요구사항
 | FR-CMN-302 | 에러 조회 함수 | 5.3 | ErrorHandler::get_last_error() | test_error_get | — | ✓ TRACED |
 | FR-CMN-303 | 에러 상세 정보 함수 | 5.3 | ErrorHandler::get_last_error_detail() | test_error_detail | — | ✓ TRACED |
 | FR-CMN-304 | 에러 문자열 변환 | 5.3 | ErrorHandler::error_to_string() | test_error_string | — | ✓ TRACED |
-| FR-CMN-400 | AlertType 열거형 | 5.4 | aed.h | test_alert_type_enum | — | ✓ TRACED |
-| FR-CMN-401 | AED 초기화 | 5.4 | AED::init() | test_aed_init | HAZ-006 | ✓ TRACED |
-| FR-CMN-402 | 콜백 등록 함수 | 5.4 | AED::register_callback() | test_aed_callback_register | HAZ-007 | ✓ TRACED |
-| FR-CMN-403 | 알림 발송 함수 | 5.4 | AED::emit_alert() | test_aed_emit | HAZ-006 | ✓ TRACED |
-| FR-CMN-404 | 큐 오버플로우 처리 | 5.4 | AED::emit_alert() | test_aed_overflow | HAZ-006 | ✓ TRACED |
-| FR-CMN-405 | AED 통계 조회 | 5.4 | AED::get_queue_stats() | test_aed_stats | — | ✓ TRACED |
+| FR-CMN-400 | AlertType 열거형 | 5.4 | event_system.h | test_alert_type_enum | — | ✓ TRACED |
+| FR-CMN-401 | Event System 초기화 | 5.4 | EventSystem::init() | test_event_init | HAZ-006 | ✓ TRACED |
+| FR-CMN-402 | 콜백 등록 함수 | 5.4 | EventSystem::register_callback() | test_event_callback_register | HAZ-007 | ✓ TRACED |
+| FR-CMN-403 | 알림 발송 함수 | 5.4 | EventSystem::emit_alert() | test_event_emit | HAZ-006 | ✓ TRACED |
+| FR-CMN-404 | 큐 오버플로우 처리 | 5.4 | EventSystem::emit_alert() | test_event_overflow | HAZ-006 | ✓ TRACED |
+| FR-CMN-405 | Event System 통계 조회 | 5.4 | EventSystem::get_queue_stats() | test_event_stats | — | ✓ TRACED |
 | FR-CMN-500 | 설정 로드 함수 | 5.5 | JsonConfig::load() | test_config_load | HAZ-004 | ✓ TRACED |
 | FR-CMN-501 | 기본 경로 우선순위 | 5.5 | JsonConfig::load() | test_config_path_priority | — | ✓ TRACED |
 | FR-CMN-502 | 설정 스키마 검증 | 5.5 | JsonConfig::validate_schema() | test_config_schema | HAZ-004 | ✓ TRACED |
@@ -86,7 +86,7 @@ SRS 안전 요구사항
 | SAF-CMN-120 | XPE_FLAG 사용 규칙 | HAZ-005 | 플래그 설정 규칙 (SAD §3.2) | test_flag_lifecycle | ✓ CONTROLLED |
 | SAF-CMN-130 | Null 포인터 방지 | — | 모든 함수 입력 검증 (SAD §3.*) | test_null_ptr_checks | ✓ CONTROLLED |
 | SAF-CMN-140 | 설정 핫-리로드 안전성 | HAZ-004 | 원자적 교체 (SAD §3.5) | test_config_atomic_reload | ✓ CONTROLLED |
-| SAF-CMN-150 | AED 큐 오버플로우 처리 | HAZ-006 | FIFO 대체 (SAD §3.4) | test_aed_queue_overflow | ✓ CONTROLLED |
+| SAF-CMN-150 | Event Queue 오버플로우 처리 | HAZ-006 | FIFO 대체 (SAD §3.4) | test_event_queue_overflow | ✓ CONTROLLED |
 | SAF-CMN-160 | 스레드 안전성 | — | mutex, rwlock, TLS (SAD §3.*) | test_thread_safety | ✓ CONTROLLED |
 
 ---
@@ -100,7 +100,7 @@ SRS 안전 요구사항
 | PERF-CMN-110 | 설정 로드 시간 | 5.5 | < 20 ms | benchmark_config_load | ≤ 20ms | ✓ |
 | PERF-CMN-111 | 핫-리로드 시간 | 5.5 | < 50 ms | benchmark_config_reload | ≤ 50ms | ✓ |
 | PERF-CMN-120 | 매개변수 검증 | 5.6 | < 5 ms | benchmark_param_validate | ≤ 5ms | ✓ |
-| PERF-CMN-130 | AED 발송 시간 | 5.4 | < 1 ms | benchmark_aed_emit | ≤ 1ms | ✓ |
+| PERF-CMN-130 | Event 발송 시간 | 5.4 | < 1 ms | benchmark_event_emit | ≤ 1ms | ✓ |
 | PERF-CMN-140 | 에러 조회 시간 | 5.3 | < 0.1 ms | benchmark_error_get | ≤ 0.1ms | ✓ |
 | PERF-CMN-150 | 메모리 제한 | 5.1 | ≤ 226.4 MB | test_mempool_size | ≤ 226.4MB | ✓ |
 
@@ -177,19 +177,19 @@ SRS 안전 요구사항
 
 | 테스트 ID | 이름 | 검증 | SRS 추적 |
 |----------|------|------|---------|
-| UT-AED-001 | test_aed_init | AED 초기화 | FR-CMN-401 |
-| UT-AED-002 | test_aed_register_callback | 콜백 등록 | FR-CMN-402 |
-| UT-AED-003 | test_aed_emit_alert | 알림 발송 (논블로킹) | FR-CMN-403 |
-| UT-AED-004 | test_aed_queue_capacity | 256개 용량 확인 | FR-CMN-403 |
-| UT-AED-005 | test_aed_overflow | 오버플로우 처리 | FR-CMN-404 |
-| UT-AED-006 | test_aed_stats | 통계 JSON 반환 | FR-CMN-405 |
+| UT-EVT-001 | test_event_init | Event System 초기화 | FR-CMN-401 |
+| UT-EVT-002 | test_event_register_callback | 콜백 등록 | FR-CMN-402 |
+| UT-EVT-003 | test_event_emit_alert | 알림 발송 (논블로킹) | FR-CMN-403 |
+| UT-EVT-004 | test_event_queue_capacity | 256개 용량 확인 | FR-CMN-403 |
+| UT-EVT-005 | test_event_overflow | 오버플로우 처리 | FR-CMN-404 |
+| UT-EVT-006 | test_event_stats | 통계 JSON 반환 | FR-CMN-405 |
 
 #### 통합 테스트
 
 | 테스트 ID | 이름 | 검증 | SRS 추적 |
 |----------|------|------|---------|
-| IT-AED-001 | test_aed_callback_delivery | 콜백 호출 검증 | FR-CMN-402 |
-| IT-AED-002 | test_aed_multithread | 다중 생산자 + 소비자 | SAF-CMN-160 |
+| IT-EVT-001 | test_event_callback_delivery | 콜백 호출 검증 | FR-CMN-402 |
+| IT-EVT-002 | test_event_multithread | 다중 생산자 + 소비자 | SAF-CMN-160 |
 
 ### 5.5 SWU-5.5: JsonConfig
 
@@ -251,8 +251,8 @@ SRS 안전 요구사항
 | HAZ-003 | test_mempool_exhausted, IT-MEM-003 | 흐름 제어 | ✓ |
 | HAZ-004 | test_config_atomic_reload, test_config_schema | 핫-리로드 안전 | ✓ |
 | HAZ-005 | test_flag_lifecycle, test_flag_bitwise_ops | 플래그 규칙 | ✓ |
-| HAZ-006 | test_aed_overflow, IT-AED-002 | 큐 오버플로우 | ✓ |
-| HAZ-007 | test_pinvoke_callback, IT-AED-001 | 콜백 안전 | ✓ |
+| HAZ-006 | test_event_overflow, IT-EVT-002 | 큐 오버플로우 | ✓ |
+| HAZ-007 | test_pinvoke_callback, IT-EVT-001 | 콜백 안전 | ✓ |
 
 ---
 
@@ -282,7 +282,7 @@ SRS 안전 요구사항
 | FR-CMN-100~106 (MemoryPool) | UT-MEM-001~010, IT-MEM-001~003 | ✓ COVERED |
 | FR-CMN-200~204 (TypeDef) | UT-TYPE-001~006, IT-TYPE-001~002 | ✓ COVERED |
 | FR-CMN-300~304 (ErrorHandler) | UT-ERR-001~005, IT-ERR-001 | ✓ COVERED |
-| FR-CMN-400~405 (AED) | UT-AED-001~006, IT-AED-001~002 | ✓ COVERED |
+| FR-CMN-400~405 (XPE Event System) | UT-EVT-001~006, IT-EVT-001~002 | ✓ COVERED |
 | FR-CMN-500~505 (JsonConfig) | UT-CFG-001~008, IT-CFG-001~002 | ✓ COVERED |
 | FR-CMN-600~606 (ParamValidator) | UT-VAL-001~009 | ✓ COVERED |
 | FR-CMN-700~702 (P/Invoke) | IT-PINVOKE-001~004 | ✓ COVERED |

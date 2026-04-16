@@ -274,7 +274,7 @@ void check_mempool_health() {
     
     if (allocated == 4 && available == 0) {
         // 경고: 모든 슬롯이 사용 중
-        xpe_aed_emit_alert(XPE_ALERT_WARNING, "All memory pool slots allocated");
+        xpe_event_emit_alert(XPE_ALERT_WARNING, "All memory pool slots allocated");
     }
 }
 
@@ -282,12 +282,12 @@ void check_mempool_health() {
 timer.Elapsed += (s, e) => check_mempool_health();
 ```
 
-**3차 제어: AED 알림 및 대기 (Tertiary)**
+**3차 제어: Event/Alert 알림 및 대기 (Tertiary)**
 
 ```c
 // 할당 실패 시 자동 알림
 if (xpe_mempool_alloc(...) == XPE_ERR_POOL_EXHAUSTED) {
-    xpe_aed_emit_alert(XPE_ALERT_ERROR, "Memory pool exhausted, waiting for slot...");
+    xpe_event_emit_alert(XPE_ALERT_ERROR, "Memory pool exhausted, waiting for slot...");
     
     // 일정 시간 대기 후 재시도 (backoff)
     sleep(100);  // 100ms 대기
@@ -379,7 +379,7 @@ static XpeConfig g_default_config = {
 
 // 로드 실패 처리
 if (xpe_config_load(path) != XPE_OK) {
-    xpe_aed_emit_alert(XPE_ALERT_WARNING, "Config load failed, using defaults");
+    xpe_event_emit_alert(XPE_ALERT_WARNING, "Config load failed, using defaults");
     memcpy(&g_config, &g_default_config, sizeof(XpeConfig));
     return XPE_OK;  // 기본값으로 계속 진행
 }
@@ -412,7 +412,7 @@ fi
 #### 예상 결과
 - 설정 파일 존재 + 유효 → **성공적 로드**
 - 파일 부재/손상 → **기본값 사용, 경고 알림**
-- 런타임 오류 → **AED 통해 사용자 알림**
+- 런타임 오류 → **Event System 통해 사용자 알림**
 
 ---
 
@@ -516,10 +516,10 @@ XpeError xpe_enhance_clahe(XpeImage* image);
 
 ---
 
-### HAZ-CMN-006: AED 큐 오버플로우로 인한 알림 손실
+### HAZ-CMN-006: Event Queue 오버플로우로 인한 알림 손실
 
 #### 위험 설명
-여러 DLL에서 동시에 `xpe_aed_emit_alert()`를 호출하면 256개 원형 버퍼가 가득 찰 수 있다. 새로운 알림은 가장 오래된 알림을 제거하여 자리를 만드는데, 중요한 경고가 손실될 수 있다.
+여러 DLL에서 동시에 `xpe_event_emit_alert()`를 호출하면 256개 원형 버퍼가 가득 찰 수 있다. 새로운 알림은 가장 오래된 알림을 제거하여 자리를 만드는데, 중요한 경고가 손실될 수 있다.
 
 #### 위험 경로
 
@@ -559,7 +559,7 @@ XpeError xpe_enhance_clahe(XpeImage* image);
 // - 256 > 200 → 충분함
 
 // 그래도 안전을 위해 1024로 확대 가능
-#define XPE_AED_QUEUE_SIZE 1024
+#define XPE_EVENT_QUEUE_SIZE 1024
 ```
 
 **2차 제어: 우선순위 기반 대체 (Secondary)**
@@ -593,7 +593,7 @@ if (queue_overflow) {
     // 무한 루프 방지: 5초마다 1회만 발송
     if (time_since_last_overflow_warning > 5000ms) {
         // 내부적으로 새 알림을 발송 (별도 큐 사용 또는 콘솔 로그)
-        fprintf(stderr, "AED Queue Overflow: %lu alerts discarded\n", g_aed_discarded_count);
+fprintf(stderr, "Event Queue Overflow: %lu alerts discarded\n", g_event_discarded_count);
     }
 }
 ```
@@ -613,7 +613,7 @@ AED가 C# 콜백을 호출할 때 콜백 함수가 예외를 발생시키거나 
 #### 위험 경로
 
 ```
-C++의 AED 스레드:
+C++의 Event System 스레드:
   └─ for (callback in callbacks) {
         result = callback(json_str, userdata)  ← C# 콜백 호출
         if (crash here) → ?
@@ -665,8 +665,8 @@ XpeError safe_invoke_callback(
     __except (EXCEPTION_EXECUTE_HANDLER) {
         // 예외 발생 시
         fprintf(stderr, "Callback exception: %d\n", GetExceptionCode());
-        xpe_aed_emit_alert(XPE_ALERT_ERROR, "Callback crashed, continuing");
-        return XPE_ERR_AED_CALLBACK_FAILED;
+        xpe_event_emit_alert(XPE_ALERT_ERROR, "Callback crashed, continuing");
+        return XPE_ERR_EVENT_CALLBACK_FAILED;
     }
 }
 
@@ -676,10 +676,10 @@ try {
     return XPE_OK;
 } catch (const std::exception& e) {
     fprintf(stderr, "Callback exception: %s\n", e.what());
-    return XPE_ERR_AED_CALLBACK_FAILED;
+    return XPE_ERR_EVENT_CALLBACK_FAILED;
 } catch (...) {
     fprintf(stderr, "Callback unknown exception\n");
-    return XPE_ERR_AED_CALLBACK_FAILED;
+    return XPE_ERR_EVENT_CALLBACK_FAILED;
 }
 ```
 
@@ -724,7 +724,7 @@ private void OnAlert(string json, IntPtr userdata) {
 }
 
 // 등록
-XpeCommon.xpe_aed_register_callback(OnAlert, IntPtr.Zero);
+XpeCommon.xpe_event_register_callback(OnAlert, IntPtr.Zero);
 ```
 
 **3차 제어: 콜백 타임아웃 (Tertiary)**
@@ -775,7 +775,7 @@ XpeError invoke_callback_with_timeout(
     if (!task.completed) {
         fprintf(stderr, "Callback timeout, cancelling thread\n");
         pthread_cancel(thread);  // 스레드 강제 종료 (주의: unsafe)
-        return XPE_ERR_AED_CALLBACK_FAILED;
+        return XPE_ERR_EVENT_CALLBACK_FAILED;
     }
     
     pthread_join(thread, NULL);
@@ -786,7 +786,7 @@ XpeError invoke_callback_with_timeout(
 #### 예상 결과
 - C# 콜백 예외 → **C++ 래퍼에서 안전하게 포착**
 - 예외 처리 → **DLL 계속 작동**
-- 콜백 오류 → **AED 로그, DLL 안정성 유지**
+- 콜백 오류 → **Event System 로그, DLL 안정성 유지**
 
 ---
 
@@ -799,7 +799,7 @@ XpeError invoke_callback_with_timeout(
 | HAZ-CMN-003 | 메모리 풀 고갈 | 중간 | 중간 | **MEDIUM** | CONTROLLED |
 | HAZ-CMN-004 | JSON 설정 손상 | 중간 | 낮음 | **LOW** | CONTROLLED |
 | HAZ-CMN-005 | XPE_FLAG 오류 | 높음 | 낮음 | **MEDIUM** | CONTROLLED |
-| HAZ-CMN-006 | AED 큐 오버플로우 | 중간 | 낮음 | **LOW** | CONTROLLED |
+| HAZ-CMN-006 | Event Queue 오버플로우 | 중간 | 낮음 | **LOW** | CONTROLLED |
 | HAZ-CMN-007 | C# 콜백 크래시 | 높음 | 중간 | **MEDIUM** | CONTROLLED |
 
 **결론**: 모든 위험은 식별되었고 위험 제어 방법이 적용되어 있다. 클래스 B 안전 수준 달성.

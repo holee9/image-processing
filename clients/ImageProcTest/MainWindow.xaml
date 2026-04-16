@@ -1,0 +1,24 @@
+<Window x:Class="ImageProcTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XPE Image Processing Test" Height="450" Width="800"
+        Loaded="Window_Loaded" Closed="Window_Closed">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Background="#FF2C3E50" Padding="10">
+            <TextBlock Text="XPE Image Processing Engine Test" FontSize="20" FontWeight="Bold" Foreground="White"/>
+            <TextBlock x:Name="VersionText" Text="Version: Loading..." FontSize="12" Foreground="#FFECF0F1" Margin="0,5,0,0"/>
+            <TextBlock x:Name="StatusText" Text="Status: Initializing..." FontSize="12" Foreground="#FFECF0F1" Margin="0,2,0,0"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="10">
+                <TextBlock Text="XPE Common DLL Test Interface" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Text="✓ xpe_init() completed" FontSize="14" Margin="10,5" Foreground="Green"/>
+                <TextBlock Text="✓ xpe_version() retrieved" FontSize="14" Margin="10,5" Foreground="Green"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

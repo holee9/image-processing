@@ -25,7 +25,7 @@
 5. [XpeImage 구조 설계](#xpeimage-구조-설계)
 6. [메모리 풀 설계](#메모리-풀-설계)
 7. [에러 처리 전략](#에러-처리-전략)
-8. [알림 시스템 (AED)](#알림-시스템-aed)
+8. [알림 시스템 (XPE Event System)](#알림-시스템-xpe-event-system)
 9. [설정 관리 (JsonConfig)](#설정-관리-jsonconfig)
 10. [매개변수 검증](#매개변수-검증)
 11. [P/Invoke 브리지 (C# 상호작용)](#pinvoke-브리지-c-상호작용)
@@ -43,7 +43,7 @@
 - **메모리 관리**: 제로카피 이미지 전송을 위한 메모리 풀 할당
 - **공유 데이터 타입**: Pack=8 정렬된 `XpeImage`, `XpeImageMetadata`, `XpeRect`, `PixelFormat` 정의
 - **에러 처리**: 구조화된 에러 전파 및 JSON 진단
-- **비동기 알림**: 스레드 안전한 이벤트 디스패처 (AED)
+- **비동기 알림**: 스레드 안전한 이벤트 디스패처 (XPE Event System)
 - **설정 관리**: JSON 기반 매개변수 로딩 및 핫-리로드
 - **매개변수 검증**: 파이프라인 실행 전 안전 범위 검사
 - **C# 오케스트레이션**: P/Invoke를 통한 WPF GUI 통합
@@ -85,7 +85,7 @@ Layer 0:   ┌──────────────────────
            │ - 메모리 풀                                           │
            │ - 공유 타입 정의                                       │
            │ - 에러 처리 서비스                                     │
-           │ - 비동기 알림 디스패처 (AED)                          │
+           │ - XPE Event System                          │
            │ - JSON 설정 로더                                      │
            │ - 매개변수 검증기                                      │
            │ - C# P/Invoke 브리지                                  │
@@ -297,8 +297,8 @@ typedef enum {
     XPE_ERR_FILE_WRITE_ERROR = 182,        // 파일 쓰기 오류
     
     // 알림 시스템 (190~199)
-    XPE_ERR_AED_QUEUE_FULL = 190,          // 알림 큐 오버플로우
-    XPE_ERR_AED_CALLBACK_FAILED = 191,     // 콜백 함수 실행 실패
+    XPE_ERR_EVENT_QUEUE_FULL = 190,          // 알림 큐 오버플로우
+    XPE_ERR_EVENT_CALLBACK_FAILED = 191,     // 콜백 함수 실행 실패
     
     // 알려지지 않은 에러 (999)
     XPE_ERR_UNKNOWN = 999
@@ -356,7 +356,7 @@ typedef enum {
 } AlertType;
 ```
 
-#### Asynchronous Event Dispatcher (AED)
+#### XPE Event System
 
 **설계**:
 - **큐 기반**: 원형 버퍼 (circular buffer) 256 알림 용량
@@ -378,10 +378,10 @@ typedef void (*XpeAlertCallback)(const char* alert_json, void* userdata);
 
 | 함수 | 입력 | 설명 |
 |------|------|------|
-| `xpe_aed_register_callback(callback, userdata)` | 함수 포인터, 사용자 데이터 | C# 또는 다른 DLL에서 콜백 등록 |
-| `xpe_aed_emit_alert(type, message)` | AlertType, 문자열 | 알림 큐에 추가 (논블로킹) |
-| `xpe_aed_get_queue_stats()` | — | JSON: 대기 중/최대 용량 |
-| `xpe_aed_flush()` | — | 모든 대기 알림 처리 (블로킹) |
+| `xpe_event_register_callback(callback, userdata)` | 함수 포인터, 사용자 데이터 | C# 또는 다른 DLL에서 콜백 등록 |
+| `xpe_event_emit_alert(type, message)` | AlertType, 문자열 | 알림 큐에 추가 (논블로킹) |
+| `xpe_event_get_queue_stats()` | — | JSON: 대기 중/최대 용량 |
+| `xpe_event_flush()` | — | 모든 대기 알림 처리 (블로킹) |
 
 #### 큐 오버플로우 처리
 
@@ -528,7 +528,7 @@ public struct XpeImage
 
 1. `xpe_config_load("./config/xpe_config.json")`
 2. `xpe_mempool_init()`
-3. `xpe_aed_register_callback(OnAlert, nullptr)`
+3. `xpe_event_register_callback(OnAlert, nullptr)`
 4. UI 로드, 파이프라인 시작
 
 ---
@@ -674,19 +674,19 @@ Frame A arrives
 |------|------|------|
 | **입력 검증** | 범위 초과, NULL 포인터 | 즉시 거부, 경고 |
 | **초기화** | 캘리브레이션 미로드 | 파이프라인 시작 차단 |
-| **리소스** | 메모리 풀 고갈 | 흐름 제어, AED 알림 |
+| **리소스** | 메모리 풀 고갈 | 흐름 제어, Event/Alert 알림 |
 | **설정** | JSON 스키마 오류 | 기본값 사용 또는 거부 |
 
 ---
 
-## 알림 시스템 (AED)
+## 알림 시스템 (XPE Event System)
 
 ### 큐 메커니즘
 
 ```
 ┌──────────────────────────────────┐
 │    Alert Emission (Fast Path)    │  ← 모든 XPE DLL에서 호출 (논블로킹)
-│  xpe_aed_emit_alert()            │
+│  xpe_event_emit_alert()            │
 │  (Circular Buffer에 추가, 반환)  │
 └──────────────────┬───────────────┘
                    ↓
@@ -811,11 +811,11 @@ public delegate void XpeAlertCallback([MarshalAs(UnmanagedType.LPStr)] string js
 
 // C++ 함수
 [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
-public static extern int xpe_aed_register_callback(XpeAlertCallback callback, IntPtr userdata);
+public static extern int xpe_event_register_callback(XpeAlertCallback callback, IntPtr userdata);
 
 // 사용
 var callback = new XpeAlertCallback(OnAlert);
-xpe_aed_register_callback(callback, IntPtr.Zero);
+xpe_event_register_callback(callback, IntPtr.Zero);
 ```
 
 ---
@@ -830,8 +830,8 @@ xpe_aed_register_callback(callback, IntPtr.Zero);
 | 설정 로드 | 10 | JSON 파싱 |
 | 매개변수 검증 | 5 | 범위 검사 |
 | 에러 조회 | <1 | 스레드-로컬 조회 |
-| AED 알림 발송 | <1 | 큐 쓰기 (논블로킹) |
-| AED 콜백 호출 | ~1 | 알림 스레드 |
+| Event/Alert 알림 발송 | <1 | 큐 쓰기 (논블로킹) |
+| Event System 콜백 호출 | ~1 | 알림 스레드 |
 
 ### 메모리 할당
 
@@ -866,7 +866,7 @@ xpe_aed_register_callback(callback, IntPtr.Zero);
 - **xpe_preprocess.dll**: MemoryPool, XpeImage, ErrorHandler 사용
 - **xpe_enhance_basic.dll**: 모든 SWU 사용
 - **xpe_enhance_advanced.dll**: 모든 SWU 사용
-- **xpe_ai.dll**: MemoryPool, XpeImage, AED 사용
+- **xpe_ai.dll**: MemoryPool, XpeImage, Event System 사용
 - **xpe_display.dll**: XpeImage, ErrorHandler 사용
 - **xpe_dicom.dll**: XpeImage, JsonConfig 사용
 - **ImageProcTest.exe (C#)**: P/Invoke를 통해 모든 SWU 사용

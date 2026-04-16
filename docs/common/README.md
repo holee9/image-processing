@@ -17,7 +17,7 @@
 4. [xpe_common.dll 아키텍처](#xpe_commondll-아키텍처)
 5. [XpeImage 구조체 설계](#xpeimage-구조체-설계)
 6. [메모리 풀 구조 및 생명주기](#메모리-풀-구조-및-생명주기)
-7. [AED (비동기 이벤트 디스패처) 흐름](#aed-비동기-이벤트-디스패처-흐름)
+7. [XPE Event System (비동기 이벤트/알림 디스패처) 흐름](#xpe-event-system-비동기-이벤트알림-디스패처-흐름)
 8. [P/Invoke 브리지 (C# 상호작용)](#pinvoke-브리지-c-상호작용)
 9. [7개 소프트웨어 단위 (SWU) 요약](#7개-소프트웨어-단위-swu-요약)
 10. [XPE_FLAG_* 비트마스크 참조](#xpe_flag-비트마스크-참조)
@@ -42,7 +42,7 @@ xpe_common.dll 문서 패키지 (IEC 62304 Class B)
 │     · SWU-5.1 MemoryPool
 │     · SWU-5.2 TypeDefinitions (Pack=8)
 │     · SWU-5.3 ErrorHandler
-│     · SWU-5.4 NotificationSystem (AED)
+│     · SWU-5.4 NotificationSystem (XPE Event System)
 │     · SWU-5.5 JsonConfig
 │     · SWU-5.6 ParameterValidator
 │     · SWU-5.7 PipelineOrchestrator (C# 브리지)
@@ -200,7 +200,7 @@ RTM-COMMON-001.md (추적성)
 │  │  • 스레드-로컬 컨텍스트                  │   │
 │  │  • JSON 진단 정보                         │   │
 │  │                                            │   │
-│  │ SWU-5.4: NotificationSystem (AED)         │   │
+│  │ SWU-5.4: NotificationSystem (XPE Event System)         │   │
 │  │  • 비동기 이벤트 디스패처                │   │
 │  │  • 256-deep 원형 버퍼                     │   │
 │  │  • 콜백 기반 알림 전달                   │   │
@@ -371,14 +371,14 @@ Slot 상태 전이:
 
 ---
 
-## AED (비동기 이벤트 디스패처) 흐름
+## XPE Event System (비동기 이벤트/알림 디스패처) 흐름
 
 ### 큐 기반 아키텍처
 
 ```
-생산자 (모든 XPE DLL)    소비자 (AED 스레드)
+생산자 (모든 XPE DLL)    소비자 (Event System 스레드)
     │                          │
-    ├─ xpe_aed_emit_alert()   │
+    ├─ xpe_event_emit_alert()   │
     │  (큐에 추가, 논블로킹)   │
     │  ├─ lock queue          │
     │  ├─ add to buffer       │
@@ -399,12 +399,12 @@ write_ptr read_ptr
 
 ```c
 1. 생산자 (DLL)
-   ├─ xpe_aed_emit_alert(XPE_ALERT_WARNING, "온도 드리프트 감지")
+   ├─ xpe_event_emit_alert(XPE_ALERT_WARNING, "온도 드리프트 감지")
    ├─ 내부: queue[write_index] = {type, timestamp, msg}
    ├─ 내부: write_index++ (범위: 0~255)
    └─ 반환: XPE_OK (즉시)
 
-2. AED 스레드 (백그라운드)
+2. Event System 스레드 (백그라운드)
    ├─ 10ms마다 조사
    ├─ queue[read_index] 읽기
    ├─ read_index++ (범위: 0~255)
@@ -466,9 +466,9 @@ XPE_API const char* xpe_config_get_string(const char* key);
 XPE_API XpeError xpe_get_last_error(void);
 XPE_API const XpeErrorDetail* xpe_get_last_error_detail(void);
 
-// AED
-XPE_API XpeError xpe_aed_register_callback(XpeAlertCallback cb, void* userdata);
-XPE_API XpeError xpe_aed_emit_alert(AlertType type, const char* msg);
+// XPE Event System
+XPE_API XpeError xpe_event_register_callback(XpeAlertCallback cb, void* userdata);
+XPE_API XpeError xpe_event_emit_alert(AlertType type, const char* msg);
 ```
 
 ### C# 선언 (P/Invoke)
@@ -492,7 +492,7 @@ public static class XpeCommon {
     public delegate void AlertCallback([MarshalAs(UnmanagedType.LPStr)] string json, IntPtr userdata);
     
     [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-    public static extern int xpe_aed_register_callback(AlertCallback cb, IntPtr userdata);
+    public static extern int xpe_event_register_callback(AlertCallback cb, IntPtr userdata);
 }
 
 // Pack=8 struct 정의
@@ -532,7 +532,7 @@ CallingConvention: Cdecl ───┤
 | **5.1** | **MemoryPool** | 메모리 슬롯 할당 (226.4 MB) | `xpe_mempool_alloc`, `free`, `get_stats` | 3 |
 | **5.2** | **TypeDefinitions** | 공유 타입 (Pack=8) | `XpeImage`, `XpeImageMetadata`, `XpeRect` | 40+ |
 | **5.3** | **ErrorHandler** | 에러 처리 (스레드-로컬) | `xpe_get_last_error`, `get_detail`, `error_to_string` | 4 |
-| **5.4** | **NotificationSystem** | 비동기 알림 (AED) | `xpe_aed_emit_alert`, `register_callback`, `get_stats` | 5 |
+| **5.4** | **NotificationSystem** | 비동기 알림 (XPE Event System) | `xpe_event_emit_alert`, `register_callback`, `get_stats` | 5 |
 | **5.5** | **JsonConfig** | 설정 관리 (핫-리로드) | `xpe_config_load`, `get_*`, `set_*`, `reload` | 6 |
 | **5.6** | **ParameterValidator** | 매개변수 범위 검증 | `xpe_validate_image_params`, `validate_pipeline_config` | 2 |
 | **5.7** | **PipelineOrchestrator** | C# P/Invoke 브리지 | extern "C" declarations | — |
@@ -659,7 +659,7 @@ endif()
 | 메모리 할당 | 1 | 0.5 | 50% | ✓ OK |
 | 설정 로드 | 20 | 15 | 25% | ✓ OK |
 | 매개변수 검증 | 5 | 3 | 40% | ✓ OK |
-| AED 발송 | 1 | 0.3 | 70% | ✓ OK |
+| Event 발송 | 1 | 0.3 | 70% | ✓ OK |
 | 에러 조회 | 0.1 | 0.05 | 50% | ✓ OK |
 
 ### 메모리 할당 (MB, 피크)
@@ -670,7 +670,7 @@ endif()
 | uint16 풀 (4 슬롯) | 75.6 | 시작 | 프로세스 종료 | ✓ 고정 |
 | 설정 메모리 | < 1 | 로드 | 언로드 | ✓ 제한 |
 | 에러 컨텍스트 (TLS) | ~1 / 스레드 | 스레드 생성 | 스레드 종료 | ✓ 스케일 가능 |
-| AED 큐 | ~2 | 시작 | 프로세스 종료 | ✓ 고정 |
+| Event Queue | ~2 | 시작 | 프로세스 종료 | ✓ 고정 |
 | **총 피크** | **~226.4** | 시작 | 프로세스 종료 | ✓ OK |
 
 ---
@@ -686,7 +686,7 @@ endif()
 | HAZ-003 | 메모리 풀 고갈 | 중간 | **MEDIUM** | 흐름 제어 (동기식 파이프라인) |
 | HAZ-004 | JSON 설정 손상 | 중간 | **LOW** | 스키마 검증 + 기본값 폴백 |
 | HAZ-005 | XPE_FLAG 오류 | 높음 | **MEDIUM** | 플래그 설정 규칙 + 의존성 검증 |
-| HAZ-006 | AED 큐 오버플로우 | 중간 | **LOW** | FIFO 대체 + 우선도 기반 선택 |
+| HAZ-006 | Event Queue 오버플로우 | 중간 | **LOW** | FIFO 대체 + 우선도 기반 선택 |
 | HAZ-007 | C# 콜백 크래시 | 높음 | **MEDIUM** | 예외 처리 래퍼 (SEH/try-catch) |
 
 ### 위험 제어 검증
@@ -731,7 +731,7 @@ $ vi xpe_error.cpp
 
 #### 단계 4: 기타 모듈 구현 (SWU-5.4~7)
 ```bash
-$ vi xpe_aed.cpp xpe_config.cpp xpe_params.cpp
+$ vi xpe_event.cpp xpe_config.cpp xpe_params.cpp
 ```
 
 #### 단계 5: P/Invoke 브리지 (SWU-5.7)
@@ -776,7 +776,7 @@ xpe_preprocess.dll:
   ├─ XpeImage 사용 (Pack=8 호환) ✓
   ├─ xpe_mempool_alloc 호출 ✓
   ├─ xpe_get_last_error 호출 ✓
-  └─ xpe_aed_emit_alert 호출 ✓
+  └─ xpe_event_emit_alert 호출 ✓
 
 → 모든 호출이 Layer 0에만 의존 ✓
 ```

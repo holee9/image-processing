@@ -165,6 +165,9 @@ XPE_API void xpe_clear_alerts(void) {
 }
 
 /* Test support functions (white-box testing) */
+// @MX:TEST: [AUTO] xpe_test_inject_alert - Test-only function for alert injection
+// Usage: Google Test fixtures to inject alerts for queue testing
+// NOT for production use - ABI may change between versions
 XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity) {
     std::lock_guard<std::mutex> lock(g_alertMutex);
     AlertEntry entry;
