@@ -1,7 +1,7 @@
 <Window x:Class="ImageProcTest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="XPE Image Processing Test" Height="680" Width="960"
+        Title="XPE Image Processing Test" Height="860" Width="1240"
         Loaded="Window_Loaded" Closed="Window_Closed">
     <Grid>
         <Grid.RowDefinitions>
@@ -47,6 +47,105 @@
 
                 <TextBlock Text="Integration policy" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,4"/>
                 <TextBlock Text="This screen only verifies xpe_common native health. Preprocess and display image-processing controls must remain disabled until their DLL readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+
+                <Separator Margin="0,16,0,12"/>
+
+                <DockPanel Margin="0,0,0,8">
+                    <TextBlock Text="Raw Fixture Browser" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <Button Content="Refresh Fixtures" Width="120" Margin="0,0,8,0" Click="RefreshFixturesButton_Click"/>
+                        <Button Content="Open Raw File..." Width="120" Click="OpenRawFileButton_Click"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                    <TextBlock Text="This browser is a GUI and E2E scaffold. It proves that local fixture data can be selected, hashed, dimension-checked, previewed, zoomed, and panned before native preprocessing is enabled. Native correction remains disabled until preprocess readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+                </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="330"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <StackPanel>
+                            <TextBlock Text="Calibration cases" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ComboBox x:Name="FixtureCaseComboBox"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="FixtureCaseComboBox_SelectionChanged"
+                                      Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox x:Name="ImageFilesListBox"
+                                     DisplayMemberPath="DisplayName"
+                                     Height="150"
+                                     SelectionChanged="ImageFilesListBox_SelectionChanged"/>
+
+                            <TextBlock Text="Calibration files" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <ListBox x:Name="CalibrationFilesListBox"
+                                     DisplayMemberPath="DisplayName"
+                                     Height="150"/>
+
+                            <Button Content="Load Selected Raw"
+                                    Margin="0,12,0,0"
+                                    Height="30"
+                                    Click="LoadSelectedRawButton_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0">
+                                <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="RawPreviewInfoText" Text="Select a fixture image or open a raw file." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <DockPanel Grid.Row="1" Margin="0,10,0,8">
+                                <TextBlock Text="Zoom" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="ZoomValueText" Text="100%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                                <Slider x:Name="RawZoomSlider"
+                                        Minimum="0.1"
+                                        Maximum="8"
+                                        Value="1"
+                                        TickFrequency="0.1"
+                                        IsSnapToTickEnabled="False"
+                                        ValueChanged="RawZoomSlider_ValueChanged"/>
+                            </DockPanel>
+
+                            <Border Grid.Row="2" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
+                                <ScrollViewer x:Name="RawImageScrollViewer"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Auto">
+                                    <Image x:Name="RawPreviewImage"
+                                           Stretch="None"
+                                           SnapsToDevicePixels="True"
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor">
+                                        <Image.RenderTransform>
+                                            <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
+                                        </Image.RenderTransform>
+                                    </Image>
+                                </ScrollViewer>
+                            </Border>
+
+                            <TextBlock Grid.Row="3"
+                                       x:Name="ProcessingScaffoldText"
+                                       Text="Processing scaffold: native preprocess is disabled. Before/After comparison will use this viewer after GUI-PRE-GATE-001~005 pass."
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,0"/>
+                        </Grid>
+                    </Border>
+                </Grid>
             </StackPanel>
         </ScrollViewer>
     </Grid>
