@@ -30,11 +30,9 @@ target_link_libraries(test_xpe_common
 
 # Enable CTest discovery (REQ-P0-005)
 include(GoogleTest)
-gtest_discover_tests(test_xpe_common)
-
-# Set test properties
-set_tests_properties(test_xpe_common PROPERTIES
-    LABELS "unit;common;xpe_common"
+gtest_discover_tests(test_xpe_common
+    PROPERTIES
+    LABELS "unit;common;xpe_common;REQ-P0-007"
     TIMEOUT 300
 )
 
@@ -74,12 +72,7 @@ endif()
 # Test Labels for CTest
 # ============================================================================
 
-# Add test labels for better organization
-set_property(TEST test_xpe_common PROPERTY LABELS "unit;common;xpe_common;REQ-P0-007")
-
-# ============================================================================
 # Memory Sanitizer Support (Optional)
-# ============================================================================
 
 option(ENABLE_ASAN "Enable AddressSanitizer for memory leak detection" OFF)
 
