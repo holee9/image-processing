@@ -1,0 +1,188 @@
+# Doxyfile — XPE Native C/C++ API Reference
+# Generated for: XPE X-ray Processing Engine
+# Doxygen minimum version: 1.12.0
+#
+# Usage:
+#   cd docs/help/doxygen
+#   git clone https://github.com/jothepro/doxygen-awesome-css doxygen-awesome
+#   doxygen Doxyfile
+#
+# Output: docs/help/generated/doxygen/html/index.html
+# XML output (for DocFX cross-reference): docs/help/generated/doxygen/xml/
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+
+PROJECT_NAME           = "XPE — X-ray Processing Engine"
+PROJECT_NUMBER         = 1.0.0
+PROJECT_BRIEF          = "IEC 62304 Class B C/C++ API Reference"
+PROJECT_LOGO           =
+OUTPUT_DIRECTORY       = ../generated/doxygen
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+
+INPUT                  = ../../modules/common/include \
+                         ../../modules/preprocess/include \
+                         ../../modules/enhance_basic/include \
+                         ../../modules/display/include \
+                         ../../modules/dicom/include \
+                         ../../modules/enhance_advanced/include \
+                         ../../modules/gsvg/include
+
+FILE_PATTERNS          = *.h
+RECURSIVE              = YES
+
+# Exclude internal implementation detail headers
+EXCLUDE_PATTERNS       = *internal* \
+                         *_impl* \
+                         *_detail* \
+                         *_private*
+
+EXCLUDE_SYMLINKS       = NO
+USE_MDFILE_AS_MAINPAGE =
+
+#---------------------------------------------------------------------------
+# Output formats
+#---------------------------------------------------------------------------
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_DOCBOOK       = NO
+
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = YES
+XML_NS_MEMB_FILE_SCOPE = NO
+
+#---------------------------------------------------------------------------
+# HTML theme — doxygen-awesome-css
+# Clone: git clone https://github.com/jothepro/doxygen-awesome-css doxygen-awesome
+#---------------------------------------------------------------------------
+
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_EXTRA_STYLESHEET  = doxygen-awesome/doxygen-awesome.css
+HTML_EXTRA_FILES       = doxygen-awesome/doxygen-awesome-sidebar-only.js \
+                         doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
+                         doxygen-awesome/doxygen-awesome-interactive-toc.js
+HTML_COLORSTYLE        = LIGHT
+HTML_COLORSTYLE_HUE    = 209
+HTML_COLORSTYLE_SAT    = 255
+HTML_COLORSTYLE_GAMMA  = 113
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 280
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_INDEX_NUM_ENTRIES = 100
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+
+#---------------------------------------------------------------------------
+# Quality gates — WARN_AS_ERROR ensures CI fails on undocumented public API
+#---------------------------------------------------------------------------
+
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LINE_FORMAT       = "at line $line of file $file"
+
+#---------------------------------------------------------------------------
+# Extraction — public API only (no private, no static internals)
+#---------------------------------------------------------------------------
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_PRIV_VIRTUAL   = NO
+EXTRACT_PACKAGE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_LOCAL_METHODS  = NO
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+HIDE_IN_BODY_DOCS      = NO
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+
+#---------------------------------------------------------------------------
+# Source browsing
+#---------------------------------------------------------------------------
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+REFERENCES_LINK_SOURCE = YES
+VERBATIM_HEADERS       = YES
+
+#---------------------------------------------------------------------------
+# Preprocessing — expand macros so XPE_API, __cdecl, __declspec are invisible
+#---------------------------------------------------------------------------
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           =
+INCLUDE_FILE_PATTERNS  =
+PREDEFINED             = XPE_API= \
+                         __cdecl= \
+                         "__declspec(x)=" \
+                         XPE_DLL_EXPORT=
+
+SKIP_FUNCTION_MACROS   = YES
+
+#---------------------------------------------------------------------------
+# Grouping
+#---------------------------------------------------------------------------
+
+DISTRIBUTE_GROUP_DOC   = YES
+GROUP_GRAPHS           = YES
+SUBGROUPING            = YES
+
+#---------------------------------------------------------------------------
+# Diagrams — disabled (no Graphviz/dot dependency in CI)
+# Enable locally if dot is available: set HAVE_DOT = YES
+#---------------------------------------------------------------------------
+
+HAVE_DOT               = NO
+DOT_NUM_THREADS        = 0
+CLASS_GRAPH            = NO
+COLLABORATION_GRAPH    = NO
+GROUP_GRAPHS           = NO
+INCLUDE_GRAPH          = NO
+INCLUDED_BY_GRAPH      = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+GRAPHICAL_HIERARCHY    = NO
+DIRECTORY_GRAPH        = NO
+
+#---------------------------------------------------------------------------
+# Miscellaneous
+#---------------------------------------------------------------------------
+
+OPTIMIZE_OUTPUT_FOR_C  = YES
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 5
+AUTOLINK_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = NO
+CPP_CLI_SUPPORT        = NO
+TYPEDEF_HIDES_STRUCT   = YES
+LOOKUP_CACHE_SIZE      = 0
+NUM_PROC_THREADS       = 1
+TIMESTAMP              = NO

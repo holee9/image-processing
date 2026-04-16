@@ -1,7 +1,7 @@
 # Documentation and Help Strategy
 
 **Document ID**: XPE-DOC-HELP-001  
-**Version**: 1.0.0  
+**Version**: 2.0.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Execution Baseline  
@@ -228,3 +228,115 @@ The selected approach is grounded in the following primary sources:
 Inference statement:
 
 DocFX does not replace Doxygen for native public headers in this mixed-language program. Therefore XPE adopts a hybrid stack: DocFX for conceptual plus managed documentation, Doxygen for native exported API reference, and a version-matched packaged Help entry point in the host application.
+
+---
+
+## 10. Toolchain Specification
+
+### 10.1 Native API Reference — Doxygen + doxygen-awesome-css
+
+| Item | Value |
+|---|---|
+| Tool | Doxygen 1.12 or later |
+| Theme | doxygen-awesome-css v2.3 or later (jothepro/doxygen-awesome-css) |
+| Config | docs/help/doxygen/Doxyfile |
+| Input headers | modules/*/include/**/*.h (public only; internal/ excluded) |
+| Output | docs/help/generated/doxygen/ |
+| Key theme settings | GENERATE_TREEVIEW=YES, HTML_EXTRA_STYLESHEET=doxygen-awesome.css, HTML_EXTRA_FILES=doxygen-awesome-darkmode-toggle.js |
+| Doxygen warning gate | CI fails if Doxygen reports any warning for exported public headers |
+
+doxygen-awesome-css provides: responsive layout, dark-mode toggle, collapsible sidebar, search, improved code syntax highlighting.
+
+### 10.2 Conceptual and Managed API Portal — DocFX v2
+
+| Item | Value |
+|---|---|
+| Tool | DocFX v2.74 or later |
+| Config | docs/help/docfx/docfx.json |
+| Conceptual source | docs/project/ (Markdown), docs/help/content/ (operator pages) |
+| Managed API source | gui/**/*.csproj (GenerateDocumentationFile=true) |
+| Output | docs/help/generated/docfx/ |
+| Theme | DocFX default v2 (Material-based, responsive) |
+
+### 10.3 In-App Help — WPF WebView2
+
+Entry point: `ImageProcTest.exe` Help menu item calls HelpWindowService.Open().
+
+Host mapping pattern (C#):
+```csharp
+// Register offline help bundle as virtual host (one-time at startup)
+webView2.CoreWebView2.SetVirtualHostNameToFolderMapping(
+    "xpe-help.local",
+    helpBundlePath,            // absolute path to packaged help/
+    CoreWebView2HostResourceAccessKind.Allow);
+
+// Navigate to help index or context page
+webView2.CoreWebView2.Navigate("https://xpe-help.local/index.html");
+```
+
+`helpBundlePath` is resolved from `AppContext.BaseDirectory + "help\\"` and must exist in the packaged output. Version metadata is embedded in index.html at build time.
+
+### 10.4 Repository Layout
+
+```
+docs/help/
+  doxygen/
+    Doxyfile                  # Doxygen configuration for native headers
+    doxygen-awesome/          # doxygen-awesome-css submodule or vendored copy
+  docfx/
+    docfx.json                # DocFX v2 configuration
+  content/
+    index.md                  # Help portal landing page
+    quickstart.md             # Operator quick-start guide
+    scope-and-limits.md       # Release-safe vs research-gated feature boundary
+    troubleshooting.md        # Alert codes and common operator tasks
+    about.md                  # Version and bundle metadata page
+  generated/                  # CI output only — gitignored
+    doxygen/
+    docfx/
+```
+
+### 10.5 Version Binding
+
+The help bundle must carry the same version as the host application build.
+
+Version injection:
+- CMakeLists.txt defines `XPE_VERSION_MAJOR`, `XPE_VERSION_MINOR`, `XPE_VERSION_PATCH`
+- Doxygen `PROJECT_NUMBER` is set to `@XPE_VERSION@` via CMake configure_file
+- DocFX `metadata.version` is set from the same source
+- index.html includes a version badge generated at CI time
+
+### 10.6 CI Pipeline (GitHub Actions)
+
+Workflow file: `.github/workflows/docs-generate.yml`
+
+Trigger: push to main or dev/integration, and release tags.
+
+Steps:
+1. Install Doxygen (ssciwr/doxygen-install action)
+2. Clone doxygen-awesome-css (or use vendored copy in docs/help/doxygen/doxygen-awesome/)
+3. Run `doxygen docs/help/doxygen/Doxyfile`
+4. Install DocFX v2 (`dotnet tool install -g docfx`)
+5. Run `docfx docs/help/docfx/docfx.json`
+6. Upload both outputs as artifacts
+7. (On release tag) package both into help.zip alongside the release bundle
+
+CI gate rules:
+- Doxygen warnings on exported public headers: **zero tolerance** (fail build)
+- DocFX broken links: **fail build**
+- Missing help bundle in release package: **fail release**
+
+---
+
+## 11. Rollout Status by Phase
+
+| Phase | Module | Header Doxygen | C# XML Docs | Help Content | CI Gate | Status |
+|---|---|---|---|---|---|---|
+| Phase 0 | xpe_common | ✅ xpe_common_api.h complete | not applicable | index + quickstart placeholder | Doxyfile defined | Doxyfile pending |
+| Phase 0 | xpe_types.h + xpe_error.h | ❌ → target: apply in SPEC-XPE-DOC-002 | — | — | — | Planned |
+| Phase 1a | xpe_preprocess | ✅ xpe_preprocess_api.h complete | not applicable | calibration + fixture guidance | warning gate | Doxyfile pending |
+| Phase 1b-ENH | xpe_enhance_basic | ✅ enhance_basic_api.h complete | not applicable | enhancement algorithm page | warning gate | Doxyfile pending |
+| Phase 1b-DISP | xpe_display | target: add during implementation | not applicable | display + DICOM page | warning gate | Planned |
+| Phase 1b-DICOM | xpe_dicom | target: add during implementation | not applicable | display + DICOM page | warning gate | Planned |
+| Phase 1b-GUI | ImageProcTest | — | ✅ target: XML docs during GUI sprint | WebView2 Help entry point | XML doc gate | Planned |
+| Phase 2+ | xpe_enhance_advanced, gsvg | during implementation | — | premium-feature pages | warning gate | Planned |

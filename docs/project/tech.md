@@ -77,12 +77,19 @@ The project rule remains:
 
 ### 4.3 Documentation and Help Toolchain
 
-| Component | Role |
-|---|---|
-| C# XML documentation comments | structured managed API comments and IntelliSense source |
-| Doxygen | generated native ABI reference from exported C/C++ headers |
-| DocFX | conceptual documentation site and managed API publication surface |
-| WebView2 | packaged offline Help viewer inside the WPF host using local virtual-host mapping |
+| Component | Version | Role |
+|---|---|---|
+| C# XML documentation comments | — | Structured managed API comments and IntelliSense source |
+| Doxygen | 1.12+ | Native C/C++ API reference generation from exported headers; `WARN_AS_ERROR = FAIL_ON_WARNINGS` enforces full coverage |
+| doxygen-awesome-css | latest | Modern responsive theme for Doxygen HTML output — dark mode, collapsible sidebar, interactive TOC, full-text search |
+| DocFX | v2.74+ | Managed API reference + conceptual documentation portal (C#); integrates with Doxygen XML output for cross-reference |
+| WebView2 | — | In-app offline help viewer inside the WPF host using local virtual-host mapping |
+
+Documentation generation is automated via `.github/workflows/docs-generate.yml`:
+
+- Doxygen job runs on every push to `main` / `dev/integration` that touches a public header.
+- DocFX job generates the managed API + conceptual site in parallel.
+- On release: both artifacts are bundled into a versioned `help-bundle-{version}.zip` and attached to the GitHub Release.
 
 ---
 

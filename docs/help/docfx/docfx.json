@@ -1,0 +1,43 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": ["**/*.csproj"],
+          "src": "../../gui"
+        }
+      ],
+      "dest": "api",
+      "globalNamespaceId": "Global",
+      "allowCompilationErrors": true
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["**/*.md"],
+        "src": "../content",
+        "dest": "content"
+      },
+      {
+        "files": ["api/**.yml", "api/index.md"]
+      }
+    ],
+    "resource": [
+      {
+        "files": ["images/**"]
+      }
+    ],
+    "output": "../generated/docfx",
+    "globalMetadata": {
+      "_appTitle": "XPE Documentation",
+      "_appName": "X-ray Processing Engine",
+      "_appFooter": "© XPE — IEC 62304 Class B",
+      "_enableSearch": true
+    },
+    "template": ["default", "modern"],
+    "sitemap": {
+      "baseUrl": "https://xpe-help.local"
+    }
+  }
+}
