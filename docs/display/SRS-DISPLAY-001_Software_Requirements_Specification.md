@@ -4,8 +4,8 @@
 **IEC 62304 절**: 5.2 소프트웨어 요구사항  
 **안전 분류**: Class B  
 **모듈**: `xpe_display.dll`  
-**버전**: 1.0  
-**날짜**: 2026-04-14  
+**버전**: 1.1  
+**날짜**: 2026-04-16  
 **작성자**: XPE 디스플레이팀  
 **승인**: __________________ 날짜: __________
 
@@ -217,6 +217,7 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-14 | XPE Display Team | Initial release |
+| 1.1 | 2026-04-16 | MoAI | Added GUI Comparison Interface requirements (IF-GUI-301~304). Implemented in XPE-GUI-COMPARE-001 v0.2.0. |
 
 ---
 

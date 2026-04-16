@@ -4,8 +4,8 @@
 **IEC 62304 절**: 5.1.1c 추적성  
 **안전 분류**: Class B  
 **모듈**: `xpe_display.dll`  
-**버전**: 1.0  
-**날짜**: 2026-04-14  
+**버전**: 1.2  
+**날짜**: 2026-04-16  
 **작성자**: XPE QA팀  
 **승인**: __________________ 날짜: __________
 
@@ -110,12 +110,13 @@ SRS(Software Requirements Specification), SAD(Software Architecture), 테스트,
 
 | GUI ID | 요구사항 | SAD 설계 | 시험 ID | 상태 |
 |--------|---------|---------|---------|------|
-| IF-GUI-301 | 원본/처리 레이어 분리 | SAD §6.4 | VER-GUI-001 | Planned |
-| IF-GUI-302 | 동기화 viewport | SAD §6.4 | VER-GUI-001 | Planned |
-| IF-GUI-303 | 비교 상태 증거화 | SAD §6.4 | VER-GUI-001 | Planned |
-| IF-GUI-304 | 대용량 영상 경계 | SAD §6.4 | VER-GUI-001 | Planned |
+| IF-GUI-301 | 원본/처리 레이어 분리 | SAD §6.4 | VER-GUI-001 | ✓ Implemented |
+| IF-GUI-302 | 동기화 viewport | SAD §6.4 | VER-GUI-001 | ✓ Implemented |
+| IF-GUI-303 | 비교 상태 증거화 | SAD §6.4 | VER-GUI-001 | ✓ Implemented |
+| IF-GUI-304 | 대용량 영상 경계 | SAD §6.4 | VER-GUI-001 | ✓ Implemented |
 
-**검증 상태**: 4/4 GUI comparison 요구사항 추적 가능
+**검증 상태**: 4/4 GUI comparison 요구사항 추적 가능, 구현 완료 ✓
+**참고**: XPE-GUI-COMPARE-001 v0.2.0 (Implemented / Verification Passed, 2026-04-16)
 
 ---
 
@@ -246,6 +247,7 @@ Risk 추적성: 7/7 위험 → 설계 + 시험 = 100%
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-14 | XPE QA Team | Initial release |
 | 1.1 | 2026-04-16 | Codex | Added GUI comparison viewport traceability for Issue #8. |
+| 1.2 | 2026-04-16 | MoAI | Updated GUI comparison interface status to Implemented. XPE-GUI-COMPARE-001 v0.2.0 verification passed. |
 
 ---
 

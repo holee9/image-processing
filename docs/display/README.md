@@ -1,10 +1,10 @@
 # X-ray FPD 디스플레이 처리 모듈 (xpe_display.dll)
 
-**모듈**: `xpe_display.dll` (Layer 1, Phase 1b)  
-**안전 등급**: IEC 62304 Class B  
-**버전**: 1.0  
-**날짜**: 2026-04-14  
-**규범 사양**: [SPEC-XPE-MASTER v2.0.0](../../.moai/specs/SPEC-XPE-MASTER.md)
+**모듈**: `xpe_display.dll` (Layer 1, Phase 1b)
+**안전 등급**: IEC 62304 Class B
+**버전**: 1.1
+**날짜**: 2026-04-16
+**규범 사양**: [SPEC-XPE-MASTER v2.5.0](../../.moai/specs/SPEC-XPE-MASTER.md)
 
 ---
 
@@ -473,6 +473,7 @@ LUT Manager 기능(프리셋 CRUD, 자동 선택, 보간 등)은 Phase 1b에 구
 | 버전 | 날짜 | 저자 | 설명 |
 |------|------|------|------|
 | 1.0 | 2026-04-14 | XPE 디스플레이팀 | 초기 배포 |
+| 1.1 | 2026-04-16 | MoAI | GUI 통합 완료 반영. XPE-GUI-COMPARE-001 v0.2.0 구현 완료. SPEC-XPE-MASTER v2.5.0 동기화. |
 
 ---
 
