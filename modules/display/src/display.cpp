@@ -1,7 +1,11 @@
-// TODO: Implement xpe_display module (windowing, pseudo-color, VOI LUT, display pipeline).
+/**
+ * @file display.cpp
+ * @brief xpe_display module entry point and version.
+ * SPEC: SPEC-XPE-P1B-DISP
+ */
 
 #include "xpe/display/display_api.h"
 
-const char* xpe_display_version() {
-    return "0.1.0";
+extern "C" const char* xpe_display_version() {
+    return "1.0.0";
 }
