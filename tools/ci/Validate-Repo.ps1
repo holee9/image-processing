@@ -166,6 +166,10 @@ if ($buildWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
     Add-RepoError 'Windows Common Build does not configure the MSVC developer shell explicitly.'
 }
 
+if ($buildWorkflow -notmatch 'VCPKG_FORCE_SYSTEM_BINARIES') {
+    Add-RepoError 'Windows Common Build does not force vcpkg to use runner-provided system build tools.'
+}
+
 if ($buildWorkflow -match 'git clone --depth 1 https://github.com/microsoft/vcpkg') {
     Add-RepoError 'Windows Common Build uses a shallow vcpkg clone that can break builtin-baseline resolution.'
 }
@@ -212,6 +216,10 @@ if ($codeqlWorkflow -notmatch 'Install-PinnedVcpkg\.ps1') {
 
 if ($codeqlWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
     Add-RepoError 'CodeQL workflow does not configure the MSVC developer shell explicitly.'
+}
+
+if ($codeqlWorkflow -notmatch 'VCPKG_FORCE_SYSTEM_BINARIES') {
+    Add-RepoError 'CodeQL workflow does not force vcpkg to use runner-provided system build tools.'
 }
 
 if ($codeqlWorkflow -match 'if \(-not \(Test-Path \$env:VCPKG_ROOT\)\)') {

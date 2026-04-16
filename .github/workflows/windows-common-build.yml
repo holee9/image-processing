@@ -42,6 +42,7 @@ jobs:
     timeout-minutes: 45
 
     env:
+      VCPKG_FORCE_SYSTEM_BINARIES: 1
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
 
     steps:

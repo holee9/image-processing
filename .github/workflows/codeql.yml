@@ -46,6 +46,7 @@ jobs:
           - c-cpp
 
     env:
+      VCPKG_FORCE_SYSTEM_BINARIES: 1
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
 
     steps:
