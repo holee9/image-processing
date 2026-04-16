@@ -709,6 +709,8 @@ TEST_F(XpeCommonTest, ConcurrentAlertQueueAccess) {
     producer.join();
     consumer.join();
 
+    EXPECT_EQ(xpe_get_pending_alert_count(), numAlerts);
+    xpe_clear_alerts();
     EXPECT_EQ(xpe_get_pending_alert_count(), 0);
 }
 
