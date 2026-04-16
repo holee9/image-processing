@@ -13,6 +13,10 @@ namespace ImageProcTest
             new RealXpeCommonBackend(),
             new MockXpeBackend());
 
+        private RawPreviewResult? currentPreview;
+        private BackendHealthResult? lastBackendHealth;
+        private string? lastReadinessReportPath;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -101,10 +105,48 @@ namespace ImageProcTest
             ZoomValueText.Text = $"{scale * 100:0}%";
         }
 
+        private void CompareSwipeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            UpdateComparisonClip();
+        }
+
+        private void ComparisonCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateComparisonClip();
+        }
+
+        private void SaveE2eReportButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedCase = FixtureCaseComboBox.SelectedItem as FixtureCaseInfo;
+                var selectedRaw = ImageFilesListBox.SelectedItem as RawFileDescriptor;
+                if (selectedRaw is null && currentPreview is not null)
+                {
+                    selectedRaw = new RawFileDescriptor(currentPreview.FilePath);
+                }
+
+                var report = GuiE2eReportService.WriteReport(
+                    selectedCase,
+                    selectedRaw,
+                    currentPreview,
+                    lastBackendHealth,
+                    lastReadinessReportPath,
+                    GetStageModes());
+
+                E2eReportText.Text = $"E2E report: {report.JsonPath}";
+            }
+            catch (Exception ex)
+            {
+                E2eReportText.Text = $"E2E report failed: {ex.Message}";
+            }
+        }
+
         private void RefreshNativeHealth()
         {
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
             var result = backend.CheckHealth();
+            lastBackendHealth = result;
             VersionText.Text = $"Version: {result.Version}";
             NativePathText.Text = $"DLL: {result.DllPath}";
             InitText.Text = $"Init: {result.Init}";
@@ -120,6 +162,7 @@ namespace ImageProcTest
             try
             {
                 var report = NativeReadinessProbe.WriteReport(result);
+                lastReadinessReportPath = report.ReportPath;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
                 ReportText.Text = $"Readiness report: {report.ReportPath}";
             }
@@ -127,6 +170,7 @@ namespace ImageProcTest
             {
                 DisplayHealthText.Text = "Display health: Report generation skipped";
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
+                lastReadinessReportPath = null;
             }
         }
 
@@ -166,24 +210,73 @@ namespace ImageProcTest
                 RawPreviewTitleText.Text = $"Raw preview: {Path.GetFileName(path)}";
                 RawPreviewInfoText.Text = "Loading preview and SHA-256...";
                 RawPreviewHashText.Text = "SHA-256: calculating";
-                RawPreviewImage.Source = null;
+                BeforePreviewImage.Source = null;
+                AfterPreviewImage.Source = null;
+                currentPreview = null;
                 RawZoomSlider.Value = 1;
+                CompareSwipeSlider.Value = 0.5;
 
                 var preview = RawPreviewService.LoadUInt16Preview(path);
-                RawPreviewImage.Source = preview.Bitmap;
+                currentPreview = preview;
+                ComparisonCanvas.Width = preview.PreviewWidth;
+                ComparisonCanvas.Height = preview.PreviewHeight;
+                BeforePreviewImage.Source = preview.Bitmap;
+                AfterPreviewImage.Source = preview.Bitmap;
                 RawPreviewInfoText.Text =
                     $"Source={preview.Width}x{preview.Height} uint16, file={RawFileDescriptor.FormatBytes(preview.FileSizeBytes)}, " +
                     $"preview={preview.PreviewWidth}x{preview.PreviewHeight}, stride={preview.SampleStride}, " +
                     $"min={preview.MinValue}, max={preview.MaxValue}";
                 RawPreviewHashText.Text = $"SHA-256: {preview.Sha256}";
-                ProcessingScaffoldText.Text = "Processing scaffold: loaded original buffer preview only. Native correction is still disabled until preprocess readiness gates pass.";
+                ProcessingScaffoldText.Text = "Processing scaffold: Before=original, After=identity mock. Native correction is still disabled until preprocess readiness gates pass.";
+                UpdateComparisonClip();
             }
             catch (Exception ex)
             {
-                RawPreviewImage.Source = null;
+                BeforePreviewImage.Source = null;
+                AfterPreviewImage.Source = null;
+                currentPreview = null;
                 RawPreviewInfoText.Text = $"Raw preview failed: {ex.Message}";
                 RawPreviewHashText.Text = "SHA-256: unavailable";
             }
+        }
+
+        private IReadOnlyList<StageModeSnapshot> GetStageModes()
+        {
+            const string reason = "Native preprocess/display execution is disabled until readiness gates pass.";
+            return
+            [
+                new StageModeSnapshot("Offset", OffsetOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
+                new StageModeSnapshot("Gain", GainOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
+                new StageModeSnapshot("Defect", DefectOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
+                new StageModeSnapshot("Display", DisplayOffRadio.IsChecked == true ? "Off" : "Unknown", reason)
+            ];
+        }
+
+        private void UpdateComparisonClip()
+        {
+            if (AfterPreviewClip is null || SwipeLine is null || SwipeValueText is null || ComparisonCanvas is null)
+            {
+                return;
+            }
+
+            var width = !double.IsNaN(ComparisonCanvas.Width) && ComparisonCanvas.Width > 0
+                ? ComparisonCanvas.Width
+                : ComparisonCanvas.ActualWidth;
+            var height = !double.IsNaN(ComparisonCanvas.Height) && ComparisonCanvas.Height > 0
+                ? ComparisonCanvas.Height
+                : ComparisonCanvas.ActualHeight;
+
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            var fraction = CompareSwipeSlider is null ? 0.5 : Math.Clamp(CompareSwipeSlider.Value, 0, 1);
+            var x = width * fraction;
+            AfterPreviewClip.Rect = new Rect(0, 0, x, height);
+            SwipeLine.Height = height;
+            SwipeLine.Margin = new Thickness(Math.Max(0, x - 1), 0, 0, 0);
+            SwipeValueText.Text = $"{fraction * 100:0}%";
         }
 
         private void SetStatus(string message, Brush brush)

@@ -92,12 +92,55 @@
                                     Margin="0,12,0,0"
                                     Height="30"
                                     Click="LoadSelectedRawButton_Click"/>
+
+                            <Separator Margin="0,14,0,10"/>
+
+                            <TextBlock Text="Stage modes" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Native preprocess is not ready, so executable stages stay disabled. Off is recorded for traceability." TextWrapping="Wrap" FontSize="11" Foreground="#FF57606A" Margin="0,0,0,8"/>
+
+                            <TextBlock Text="Offset" FontSize="12" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                <RadioButton x:Name="OffsetOffRadio" Content="Off" GroupName="OffsetMode" IsChecked="True" Margin="0,0,10,0"/>
+                                <RadioButton Content="On" GroupName="OffsetMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                <RadioButton Content="Auto" GroupName="OffsetMode" IsEnabled="False"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Gain" FontSize="12" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                <RadioButton x:Name="GainOffRadio" Content="Off" GroupName="GainMode" IsChecked="True" Margin="0,0,10,0"/>
+                                <RadioButton Content="On" GroupName="GainMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                <RadioButton Content="Auto" GroupName="GainMode" IsEnabled="False"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Defect" FontSize="12" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                <RadioButton x:Name="DefectOffRadio" Content="Off" GroupName="DefectMode" IsChecked="True" Margin="0,0,10,0"/>
+                                <RadioButton Content="On" GroupName="DefectMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                <RadioButton Content="Auto" GroupName="DefectMode" IsEnabled="False"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Display" FontSize="12" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
+                                <RadioButton x:Name="DisplayOffRadio" Content="Off" GroupName="DisplayMode" IsChecked="True" Margin="0,0,10,0"/>
+                                <RadioButton Content="On" GroupName="DisplayMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                <RadioButton Content="Auto" GroupName="DisplayMode" IsEnabled="False"/>
+                            </StackPanel>
+
+                            <Button Content="Save E2E Report"
+                                    Height="30"
+                                    Click="SaveE2eReportButton_Click"/>
+                            <TextBlock x:Name="E2eReportText"
+                                       Text="E2E report: not saved"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Column="2" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
@@ -122,24 +165,67 @@
                                         ValueChanged="RawZoomSlider_ValueChanged"/>
                             </DockPanel>
 
-                            <Border Grid.Row="2" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
+                            <DockPanel Grid.Row="2" Margin="0,0,0,8">
+                                <TextBlock Text="Swipe" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="SwipeValueText" Text="50%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                                <Slider x:Name="CompareSwipeSlider"
+                                        Minimum="0"
+                                        Maximum="1"
+                                        Value="0.5"
+                                        TickFrequency="0.01"
+                                        IsSnapToTickEnabled="False"
+                                        ValueChanged="CompareSwipeSlider_ValueChanged"/>
+                            </DockPanel>
+
+                            <Border Grid.Row="3" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
                                 <ScrollViewer x:Name="RawImageScrollViewer"
                                               HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Auto">
-                                    <Image x:Name="RawPreviewImage"
-                                           Stretch="None"
-                                           SnapsToDevicePixels="True"
-                                           RenderOptions.BitmapScalingMode="NearestNeighbor">
-                                        <Image.RenderTransform>
+                                    <Grid x:Name="ComparisonCanvas"
+                                          Background="#FF101820"
+                                          SizeChanged="ComparisonCanvas_SizeChanged">
+                                        <Grid.RenderTransform>
                                             <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
-                                        </Image.RenderTransform>
-                                    </Image>
+                                        </Grid.RenderTransform>
+
+                                        <Image x:Name="BeforePreviewImage"
+                                               Stretch="None"
+                                               SnapsToDevicePixels="True"
+                                               RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        <Image x:Name="AfterPreviewImage"
+                                               Stretch="None"
+                                               SnapsToDevicePixels="True"
+                                               RenderOptions.BitmapScalingMode="NearestNeighbor">
+                                            <Image.Clip>
+                                                <RectangleGeometry x:Name="AfterPreviewClip"/>
+                                            </Image.Clip>
+                                        </Image>
+                                        <Border x:Name="SwipeLine"
+                                                HorizontalAlignment="Left"
+                                                Width="2"
+                                                Background="#FFFFD166"
+                                                Opacity="0.9"/>
+                                        <TextBlock Text="Original"
+                                                   HorizontalAlignment="Left"
+                                                   VerticalAlignment="Top"
+                                                   Foreground="White"
+                                                   Background="#99000000"
+                                                   Padding="6,3"
+                                                   Margin="8"/>
+                                        <TextBlock Text="Mock identity after"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Top"
+                                                   Foreground="White"
+                                                   Background="#99000000"
+                                                   Padding="6,3"
+                                                   Margin="8"/>
+                                    </Grid>
                                 </ScrollViewer>
                             </Border>
 
-                            <TextBlock Grid.Row="3"
+                            <TextBlock Grid.Row="4"
                                        x:Name="ProcessingScaffoldText"
-                                       Text="Processing scaffold: native preprocess is disabled. Before/After comparison will use this viewer after GUI-PRE-GATE-001~005 pass."
+                                       Text="Processing scaffold: native preprocess is disabled. Before/After comparison currently uses an identity mock output."
                                        FontSize="12"
                                        TextWrapping="Wrap"
                                        Margin="0,8,0,0"/>
