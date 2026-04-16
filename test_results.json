@@ -1,0 +1,522 @@
+{
+  "tests": 42,
+  "failures": 2,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-04-16T16:10:03Z",
+  "time": "0.138s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "DicomReaderTest",
+      "tests": 16,
+      "failures": 1,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-04-16T16:10:03Z",
+      "time": "0.023s",
+      "testsuite": [
+        {
+          "name": "OpenValid_ReturnsOkAndNonNullHandle",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 82,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.001s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "OpenMissingFile_ReturnsIOFailed",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 92,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "OpenInvalidDicom_ReturnsDicomInvalid",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 102,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.003s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "ReadExplicitLE_Succeeds",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 112,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "ReadJ2KLossless_Succeeds",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 128,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.007s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "UnsupportedTS_ReturnsUnsupportedFormat",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 141,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp:142\nImplicit LE test file not created yet\n"
+            }
+          ]
+        },
+        {
+          "name": "ReadImage_PixelDimensionsMatch",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 151,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "ReadJ2KDecompress_ProducesUint16",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 168,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.006s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "GetMetadata_FieldsPopulated",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 182,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.001s",
+          "classname": "DicomReaderTest",
+          "failures": [
+            {
+              "failure": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp:189\nThe difference between 2.5f and meta.mAs is 2.5, which exceeds 0.001f, where\n2.5f evaluates to 2.5,\nmeta.mAs evaluates to 0, and\n0.001f evaluates to 0.0010000000474974513.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "GetMetadata_MissingTagsDefault",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 198,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "CloseValid_NoLeak",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 212,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "CloseNull_NoOp",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 221,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "NullFilePath_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 228,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "NullOutHandle_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 233,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "ReadImageNullHandle_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 238,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        },
+        {
+          "name": "GetMetadataNullHandle_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_reader.cpp",
+          "line": 243,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomReaderTest"
+        }
+      ]
+    },
+    {
+      "name": "DicomWriterTest",
+      "tests": 10,
+      "failures": 1,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-04-16T16:10:03Z",
+      "time": "0.063s",
+      "testsuite": [
+        {
+          "name": "WriteBasic_CreatesFile",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 48,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.002s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteRoundTrip_PixelExact",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 58,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.009s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteMetadata_Preserved",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 83,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.009s",
+          "classname": "DicomWriterTest",
+          "failures": [
+            {
+              "failure": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp:94\nThe difference between 2.5f and readMeta.mAs is 2.5, which exceeds 0.001f, where\n2.5f evaluates to 2.5,\nreadMeta.mAs evaluates to 0, and\n0.001f evaluates to 0.0010000000474974513.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "WriteIOError_ReturnsIOFailed",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 103,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.001s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteNullPath_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 111,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteNullImg_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 115,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteNullMeta_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 121,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteJ2KRoundTrip_PixelExact",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 130,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.025s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "RescaleDefaults_OneAndZero",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 154,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.01s",
+          "classname": "DicomWriterTest"
+        },
+        {
+          "name": "WriteJ2KNullImg_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_writer.cpp",
+          "line": 167,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.001s",
+          "classname": "DicomWriterTest"
+        }
+      ]
+    },
+    {
+      "name": "DicomValidatorTest",
+      "tests": 7,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-04-16T16:10:03Z",
+      "time": "0.008s",
+      "testsuite": [
+        {
+          "name": "ValidateConformant_ReturnsValid",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 62,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.007s",
+          "classname": "DicomValidatorTest"
+        },
+        {
+          "name": "ValidateMissingPatientID_ReportsError",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 74,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp:75\nMissing tag test file not created yet\n"
+            }
+          ]
+        },
+        {
+          "name": "ValidateNotDicom_ReturnsDicomInvalid",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 90,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest"
+        },
+        {
+          "name": "BufferTooSmall_ReturnsBufferTooSmall",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 103,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest"
+        },
+        {
+          "name": "NullFilePath_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 116,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest"
+        },
+        {
+          "name": "NullOutBuf_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 121,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest"
+        },
+        {
+          "name": "ValidateBadUID_ReportsWarning",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp",
+          "line": 129,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomValidatorTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_validator.cpp:131\nBad UID test file not yet created\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DicomNetworkTest",
+      "tests": 9,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-04-16T16:10:03Z",
+      "time": "0.009s",
+      "testsuite": [
+        {
+          "name": "CStoreSuccess_ReturnsOK",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 66,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp:67\nDCMTK storescp not available\n"
+            }
+          ]
+        },
+        {
+          "name": "CStoreTimeout_ReturnsNetworkFailed",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 76,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0.008s",
+          "classname": "DicomNetworkTest"
+        },
+        {
+          "name": "CFindResults_ReturnsJsonArray",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 86,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp:87\nDCMTK wlmscpfs not available\n"
+            }
+          ]
+        },
+        {
+          "name": "CFindEmpty_ReturnsEmptyArray",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 101,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp:102\nDCMTK wlmscpfs not available\n"
+            }
+          ]
+        },
+        {
+          "name": "CFindTimeout_ReturnsNetworkFailed",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 114,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest"
+        },
+        {
+          "name": "CancelCStore_TerminatesOperation",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 125,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest",
+          "skipped": [
+            {
+              "message": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp:126\nDCMTK storescp not available\n"
+            }
+          ]
+        },
+        {
+          "name": "CancelNoOp_WhenIdle",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 146,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest"
+        },
+        {
+          "name": "CStoreNullHost_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 154,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest"
+        },
+        {
+          "name": "CFindNullQueryJson_ReturnsInvalidInput",
+          "file": "D:\\workspace-github\\image-processing\\modules\\dicom\\tests\\test_dicom_network_scu.cpp",
+          "line": 159,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-04-16T16:10:03Z",
+          "time": "0s",
+          "classname": "DicomNetworkTest"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # XPE Display Module
 # Display processing (Modality/VOI/Presentation LUT)
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.20)
 
 # Module name
 set(MODULE_NAME xpe_display)
