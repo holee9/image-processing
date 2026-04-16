@@ -1,10 +1,12 @@
 # SPEC-XPE-P0: Phase 0 Foundation
 
 **Document ID**: SPEC-XPE-P0
-**Version**: 1.1.0
-**Date**: 2026-04-14
-**Status**: Draft -- Pending api-spec.md v1.2.0
-**Changelog**: v1.0.0 -> v1.1.0: REQ-P0-009 corrected (removed struct references for AED). REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures (JSON + scalar out-params). REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
+**Version**: 1.2.0
+**Date**: 2026-04-16
+**Status**: Ready for Implementation
+**Changelog**:
+- v1.0.0 -> v1.1.0: REQ-P0-009 corrected (removed struct references for AED). REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures (JSON + scalar out-params). REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
+- v1.1.0 -> v1.2.0: api-spec.md v1.3.0 확인 (AED + Logging 함수 완전 포함), xpe_common_api.h 완성 확인 (18 함수 전체 선언). BLOCKER 섹션 해제. 구현 준비 완료.
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
 **Sprint**: S0-A, S0-B, S0-C (parallel where possible)
@@ -149,37 +151,30 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ## 4. Implementation Dependencies
 
-### 4.1 BLOCKER: api-spec.md v1.2.0
+### 4.1 RESOLVED: api-spec.md v1.3.0 + xpe_common_api.h 완성
 
-Before implementing REQ-P0-023 through REQ-P0-028 (Logging + AED), the following must be published:
+모든 선행 조건 충족됨:
 
-1. **api-spec.md v1.2.0** with:
-   - Section 5.13-5.15: Logging function signatures and behavior (already exists)
-   - Sections 5.16-5.18: AED function signatures, XpeAedConfig struct, XpeAedEvent struct
-   - Section 4: Updated function count (xpe_common = 18)
-   - Correct Total = 82 (not 79)
+1. **api-spec.md v1.3.0** 확인 완료:
+   - Section 5.13-5.15: Logging 함수 서명 완전 (xpe_log_set_level, xpe_log_set_file, xpe_log_flush)
+   - Section 5.16-5.18: AED 함수 서명 완전 (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status)
+   - Section 4: 함수 카운트 업데이트 (xpe_common = 18, 전체 = 82)
 
-2. **xpe_common_api.h** must declare:
-   - Existing 12 functions (already present)
-   - 3 Logging functions (already present: xpe_log_set_level, xpe_log_set_file, xpe_log_flush)
-   - 3 AED functions (MISSING: xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status)
+2. **xpe_common_api.h** 완성 확인:
+   - 12개 기존 함수 (lifecycle, config, error)
+   - 3개 Logging 함수 (완전 선언)
+   - 3개 AED 함수 (완전 선언)
+   - 총 18개 함수 모두 헤더에 선언 완료
 
-### 4.2 Parallel Work (No Blockers)
+### 4.2 구현 가능 작업 (No Blockers)
 
-The following tasks can start immediately:
+다음 작업 즉시 시작 가능:
 
-- S0A-05: Google Test + CTest integration
-- S0A-06: Module directory scaffolding
-- S0A-07: CI pipeline
-- S0C-01~04: C# WPF scaffolding
-
-### 4.3 Blocked Work (Awaiting api-spec v1.2.0)
-
-- S0B-01: Complete xpe_common_api.h (18 declarations)
-- S0B-02: Logging subsystem implementation
-- S0B-03: AED subsystem implementation
-- S0B-07: Full unit tests for all 18 APIs
-- S0B-08: P/Invoke compatibility test
+- S0B-01: Logging 서브시스템 구현 (REQ-P0-023~025)
+- S0B-02: AED 서브시스템 구현 (REQ-P0-026~028)
+- S0B-03: xpe_common.dll 전체 유닛 테스트 작성
+- S0B-04: P/Invoke 호환성 테스트
+- S0B-05: TRUST 5 품질 게이트 검증
 
 ---
 

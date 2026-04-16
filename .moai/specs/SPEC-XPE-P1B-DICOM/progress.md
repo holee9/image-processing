@@ -20,4 +20,4 @@
 - [x] Phase 2.3 (M3): DicomValidator GREEN — xpe_dicom_validate 구현
 - [x] Phase 2.4 (M4): DicomNetworkSCU GREEN — cstore/cfind_mwl/cancel 구현
 - [x] Phase 2.5: REFACTOR + MX 태그 정리 — @MX:ANCHOR/WARN 추가, @MX:TODO 제거, DCM_ExposureInmAs 수정
-- [ ] Phase 3: 품질 검증 (TRUST 5) + Git 커밋
+- [x] Phase 3: 품질 검증 (TRUST 5) + Git 커밋 — cdb5b66
