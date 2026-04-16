@@ -296,7 +296,6 @@ TEST_F(XpeCommonTest, AedPollEventRetrievesInjectedEvent) {
  * ============================================================================ */
 
 TEST_F(XpeCommonTest, AllocImageWithNullPtrReturnsInvalid) {
-    XpeImageBuffer buf;
     EXPECT_EQ(xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
@@ -344,6 +343,7 @@ TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf);
 
     void* dataPtr = buf.data;
+    EXPECT_NE(dataPtr, nullptr);
     EXPECT_EQ(xpe_free_image(&buf), XPE_OK);
     EXPECT_EQ(buf.data, nullptr);
     EXPECT_EQ(buf.dataSize, 0);
@@ -437,7 +437,11 @@ TEST_F(XpeCommonTest, VersionFormatSemanticVersioning) {
 
     // Verify format X.Y.Z (semantic versioning)
     int major = 0, minor = 0, patch = 0;
+#ifdef _MSC_VER
+    int parsed = sscanf_s(ver, "%d.%d.%d", &major, &minor, &patch);
+#else
     int parsed = sscanf(ver, "%d.%d.%d", &major, &minor, &patch);
+#endif
     EXPECT_EQ(parsed, 3);
     EXPECT_GE(major, 0);
     EXPECT_GE(minor, 0);
