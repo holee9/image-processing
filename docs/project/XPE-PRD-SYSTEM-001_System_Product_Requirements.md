@@ -1,14 +1,14 @@
 # System Product Requirements Document
 
 **Document ID**: XPE-PRD-SYSTEM-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-15  
+**Version**: 1.2.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Execution Baseline  
 **Author**: XPE Program Management  
 **Safety Classification**: IEC 62304 Class B  
 **Canonical Scope**: `docs/project/`  
-**Parent**: `XPE-MRD-001_Market_Requirements_Document.md` v1.1.0  
+**Parent**: `XPE-MRD-001_Market_Requirements_Document.md` v1.2.0  
 **System Tie-Breaker**: `SPEC-XPE-MASTER.md`  
 **Cross-checked with**: `product.md`, `pipeline-spec.md`, `api-spec.md`, `xpe-algorithm-spec-deepsync.md`
 
@@ -98,6 +98,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-FUNC-006` | The system shall support optional deterministic premium processing, including baseline collimation, multiscale, fractional processing, and GSVG, without changing the deterministic baseline contract. | `MR-IMG-005`, `MR-MKT-003` |
 | `PR-FUNC-007` | The system shall support QA and constancy workflows through a host-facing orchestration and test harness. | `MR-OPS-002` |
 | `PR-FUNC-008` | The system shall emit standardized event and metadata records sufficient for site-level reject-analysis and repeat-rate review. | `MR-OPS-001` |
+| `PR-FUNC-009` | The host application shall expose a Help entry point that opens version-matched offline documentation for the current workflow, screen, or troubleshooting context. | `MR-MKT-005` |
 
 ### 4.2 Safety and degraded-mode requirements
 
@@ -144,10 +145,19 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-OPS-002` | The product shall support site-configurable DI review bands and DI drift monitoring. | `MR-OPS-002` |
 | `PR-OPS-003` | Reject-analysis records shall use a stable schema suitable for vendor-neutral aggregation. | `MR-OPS-001` |
 | `PR-OPS-004` | The product shall separate release-safe, research-gated, and regulatory-hold features in documentation, deployment, and verification artifacts. | `MR-REG-003` |
+| `PR-OPS-005` | Public managed contracts and exported native ABI headers shall carry structured documentation comments from which API reference can be generated automatically. | `MR-OPS-004`, `MR-MKT-002` |
+| `PR-OPS-006` | CI and release packaging shall generate and preserve a version-matched offline help bundle that includes conceptual guidance, API reference entry points, and build-version metadata. | `MR-MKT-005`, `MR-OPS-004` |
 
 ---
 
 ## 5. Phase Exit Gates
+
+### 5.0 Phase 0 exit
+
+- host application launches with diagnostics and an offline Help entry point,
+- managed XML documentation generation and native API documentation generation paths are defined,
+- version-matched quick-start help bundle is available offline for the current build,
+- `PR-FUNC-009`, `PR-OPS-005`, and `PR-OPS-006` have implementation and verification plans.
 
 ### 5.1 Phase 1a exit
 
@@ -160,6 +170,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 - deterministic baseline image delivery complete,
 - EI baseline complete,
 - GSDF-aligned presentation and DICOM export complete,
+- workflow help pages and troubleshooting entry points are synchronized with the deterministic baseline release,
 - `PR-FUNC-001`, `PR-FUNC-003`, `PR-FUNC-005`, `PR-PERF-002` satisfied.
 
 ### 5.3 Phase 2 exit

@@ -129,19 +129,19 @@
 
 ## 4. Definition of Done
 
-- [ ] All 7 API functions implemented and exported from xpe_enhance_basic.dll
-- [ ] 3 parameter structs (XpeNoiseReduceParams, XpeClaheParams, XpeUsmParams) defined in header
-- [ ] 6 test files + 1 integration test file created with total >= 50 test cases
-- [ ] All 30 EARS requirements (REQ-ENH-001..030) traceable to at least one test
-- [ ] All 5 cross-cutting requirements (REQ-ENH-CC-001..005) verified
-- [ ] Performance budgets met (individual + total pipeline)
-- [ ] No compiler warnings at /W4 level (MSVC)
-- [ ] ASan clean (1000-iteration cycle, zero leaks)
-- [ ] TSan clean (concurrent execution test, zero data races)
-- [ ] Coverage >= 85% statement, >= 70% branch
-- [ ] CMakeLists.txt builds xpe_enhance_basic as SHARED library linking xpe_common
-- [ ] EI/DI computation matches IEC 62494-1 reference within 0.1%
-- [ ] P/Invoke round-trip test passes for all 7 functions and 3 structs
+- [x] All 7 API functions implemented and exported from xpe_enhance_basic.dll
+- [x] 3 parameter structs (XpeNoiseReduceParams, XpeClaheParams, XpeUsmParams) defined in header
+- [x] 6 test files + 1 integration test file created with total >= 50 test cases
+- [x] All 30 EARS requirements (REQ-ENH-001..030) traceable to at least one test
+- [x] All 5 cross-cutting requirements (REQ-ENH-CC-001..005) verified
+- [x] Performance budgets met (individual + total pipeline)
+- [x] No compiler warnings at /W4 level (MSVC)
+- [x] ASan clean (1000-iteration cycle, zero leaks)
+- [x] TSan clean (concurrent execution test, zero data races)
+- [x] Coverage >= 85% statement, >= 70% branch
+- [x] CMakeLists.txt builds xpe_enhance_basic as SHARED library linking xpe_common
+- [x] EI/DI computation matches IEC 62494-1 reference within 0.1%
+- [x] P/Invoke round-trip test passes for all 7 functions and 3 structs
 
 ---
 
@@ -149,31 +149,31 @@
 
 ### Gate 1: Log Transform + EI Baseline
 
-- [ ] SWU-2.10 and SWU-2.1 implemented
-- [ ] test_log_transform.cpp and test_exposure_index.cpp passing
-- [ ] Log round-trip fidelity within 1e-4
-- [ ] EI/DI matches reference within 0.1%
+- [x] SWU-2.10 and SWU-2.1 implemented
+- [x] test_log_transform.cpp and test_exposure_index.cpp passing
+- [x] Log round-trip fidelity within 1e-4
+- [x] EI/DI matches reference within 0.1%
 
 ### Gate 2: Noise Reduction
 
-- [ ] SWU-2.2 implemented (bilateral + NLM + sigma estimation)
-- [ ] test_noise_reduce.cpp passing
-- [ ] SNR improvement >= 3 dB (bilateral)
-- [ ] Processing time <= 100ms
+- [x] SWU-2.2 implemented (bilateral + NLM + sigma estimation)
+- [x] test_noise_reduce.cpp passing
+- [x] SNR improvement >= 3 dB (bilateral)
+- [x] Processing time <= 100ms
 
 ### Gate 3: Contrast + Edge Enhancement
 
-- [ ] SWU-2.3 and SWU-2.4 implemented
-- [ ] test_contrast_enhance.cpp and test_edge_enhance.cpp passing
-- [ ] CLAHE contrast improvement >= 20%
-- [ ] USM overshoot within clamp bounds
+- [x] SWU-2.3 and SWU-2.4 implemented
+- [x] test_contrast_enhance.cpp and test_edge_enhance.cpp passing
+- [x] CLAHE contrast improvement >= 20%
+- [x] USM overshoot within clamp bounds
 
 ### Gate 4: Integration + Quality
 
-- [ ] test_enhance_integration.cpp passing
-- [ ] Total pipeline <= 200ms
-- [ ] ASan + TSan clean
-- [ ] Coverage gates met
-- [ ] P/Invoke compatibility verified
+- [x] test_enhance_integration.cpp passing
+- [x] Total pipeline <= 200ms
+- [x] ASan + TSan clean
+- [x] Coverage gates met
+- [x] P/Invoke compatibility verified
 
 ---

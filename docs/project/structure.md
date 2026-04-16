@@ -1,8 +1,8 @@
 # Project Structure
 
 **Document ID**: XPE-STRUCTURE-001  
-**Version**: 1.2.0  
-**Date**: 2026-04-14  
+**Version**: 1.3.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -62,7 +62,7 @@ image-processing/
 |   |-- common_smoke/
 |   |-- unit/
 |   |-- integration/
-|   `-- test_data/
+|   `-- benchmark_data/
 |-- data/
 |   |-- calibration/
 |   |-- models/

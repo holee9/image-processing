@@ -1,14 +1,14 @@
 # System Verification and Validation Plan
 
 **Document ID**: XPE-SVVP-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-15  
+**Version**: 1.2.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / IEC 62304 Compliance  
 **Author**: XPE QA Team  
 **Safety Classification**: IEC 62304 Class B  
 **Canonical Scope**: `docs/project/`  
-**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.1.0  
+**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.2.0  
 **Cross-reference**: `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`
 
 ---
@@ -35,7 +35,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | L2 | integration verification | API contract tests, binary loading, sidecar and alert flows |
 | L3 | system verification | end-to-end deterministic pipeline, DICOM, performance, degraded mode |
 | L4 | premium and assistive feature verification | Phase 2 and Phase 3 option-gating, benchmark evidence, observer or task-based evidence where required |
-| L5 | validation and usability | operator-visible behavior, labeling, fallback comprehension, intended-use validation |
+| L5 | validation and usability | operator-visible behavior, labeling, fallback comprehension, help discoverability, intended-use validation |
 | L6 | field performance and maintenance | DI drift review, reject-analysis telemetry, cyber maintenance, regression reproducibility |
 
 ---
@@ -47,6 +47,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 3. Optional features shall be validated both in enabled mode and in absent or failed mode.
 4. Frozen benchmark manifests and hashes are required for release claims.
 5. AI evidence is incomplete unless degraded-mode and transparency checks also pass.
+6. Offline help and generated API documentation shall be version-matched to the build under test.
 
 ---
 
@@ -62,6 +63,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-FUNC-006` | L4 premium-option tests | `BP-06`, premium feature regression bundle |
 | `PR-FUNC-007` | L3 and L5 QA workflow tests | orchestration and constancy workflow evidence |
 | `PR-FUNC-008` | L3 plus L6 operational telemetry tests | reject-event schema validation and sample exports |
+| `PR-FUNC-009` | L5 usability and navigation tests | Help menu access, workflow-to-help link evidence, offline open behavior |
 | `PR-SAFE-001` | L2 raw-preservation test | byte-identical raw reference evidence |
 | `PR-SAFE-002` | L3 degraded-mode tests | missing-binary and worker-failure scenarios |
 | `PR-SAFE-003` | L2 / L3 alert and diagnostic tests | flags plus external reason capture |
@@ -83,6 +85,8 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-OPS-002` | L6 operational review | DI distribution and drift dashboards |
 | `PR-OPS-003` | L6 telemetry validation | standardized reject-analysis schema checks |
 | `PR-OPS-004` | document review | release-safe / research-gated / hold separation confirmed |
+| `PR-OPS-005` | L2 documentation-generation audit | XML-doc output, Doxygen warning report, API reference completeness check |
+| `PR-OPS-006` | L2 plus L6 packaging audit | offline help bundle, build-version metadata, broken-link and open-path checks |
 
 ---
 
@@ -140,7 +144,19 @@ Minimum evidence bundle:
 
 ---
 
-## 7. AI Validation Requirements
+## 7.1 Help and documentation verification
+
+The following checks are mandatory once the host application exposes Help:
+
+- Help opens without network dependency,
+- the displayed help bundle version matches the application build version,
+- current workflow or screen can navigate to the intended help page within one entry point,
+- broken-link scan passes for packaged conceptual documentation,
+- public C# and native API reference entry points are reachable from the packaged help index.
+
+---
+
+## 8. AI Validation Requirements
 
 ### 7.1 Required AI tests
 
@@ -162,7 +178,7 @@ AI outputs shall not be treated as release-complete unless both of the following
 
 ---
 
-## 8. Cybersecurity and Supply-Chain Verification
+## 9. Cybersecurity and Supply-Chain Verification
 
 The following checks are part of system verification:
 
@@ -176,7 +192,7 @@ These checks do not replace a dedicated security program, but they are required 
 
 ---
 
-## 9. Field Performance Validation
+## 10. Field Performance Validation
 
 Post-release validation shall monitor:
 
@@ -195,7 +211,7 @@ Field monitoring may trigger:
 
 ---
 
-## 10. Entry and Exit Criteria
+## 11. Entry and Exit Criteria
 
 ### 10.1 Entry criteria
 
@@ -209,4 +225,5 @@ Field monitoring may trigger:
 - all release-safe requirements have passing evidence,
 - all open deviations are dispositioned,
 - research-gated and regulatory-hold items are not misrepresented as release claims,
-- benchmark manifests and result bundles are archived and reproducible.
+- benchmark manifests and result bundles are archived and reproducible,
+- offline help bundles and generated API reference outputs are archived with the tested build.

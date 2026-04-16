@@ -1,8 +1,8 @@
 # Technical Stack
 
 **Document ID**: XPE-TECH-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-15  
+**Version**: 1.2.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -75,6 +75,15 @@ The project rule remains:
 | DCMTK | DICOM metadata handling |
 | nlohmann/json | configuration |
 
+### 4.3 Documentation and Help Toolchain
+
+| Component | Role |
+|---|---|
+| C# XML documentation comments | structured managed API comments and IntelliSense source |
+| Doxygen | generated native ABI reference from exported C/C++ headers |
+| DocFX | conceptual documentation site and managed API publication surface |
+| WebView2 | packaged offline Help viewer inside the WPF host using local virtual-host mapping |
+
 ---
 
 ## 5. Platform Assumptions
@@ -123,6 +132,21 @@ Inference shall not run as opaque logic inside the deterministic baseline DLL ch
 
 Configuration, calibration manifests, benchmark manifests, and AI model artifacts shall be integrity-checked before use. Release evidence shall remain reproducible against frozen manifest versions and hashes.
 
+### 6.6 Documentation as code
+
+Public and operator-facing documentation shall be treated as build artifacts, not detached side files:
+
+- public C# contracts use `///` XML documentation comments and XML output generation,
+- exported native ABI headers use Doxygen-style comments in headers,
+- conceptual documentation remains in version-controlled Markdown under `docs/project/`,
+- generated Help output is version-matched to the build and packaged for offline use.
+
+Comment rules are intentionally narrow:
+
+- comment public contracts, invariants, units, threading, safety assumptions, and degraded-mode behavior,
+- do not narrate obvious line-by-line implementation steps,
+- keep algorithm rationale in comments only where the code would otherwise be ambiguous or safety-relevant.
+
 ---
 
 ## 7. Hardware and Software Partitioning
@@ -150,6 +174,7 @@ The current technical priorities are:
 2. benchmark reproducibility,
 3. SIMD acceleration with parity proof,
 4. safe optional premium processing,
-5. transparent and degradable assistive AI.
+5. transparent and degradable assistive AI,
+6. documentation and Help that stay synchronized with the shipped build.
 
 This order is intentional. It maximizes implementation feasibility while preserving the highest-value image-quality gains.

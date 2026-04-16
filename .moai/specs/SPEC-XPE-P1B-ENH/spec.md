@@ -3,7 +3,7 @@
 **Document ID**: SPEC-XPE-P1B-ENH
 **Version**: 1.0.0
 **Date**: 2026-04-16
-**Status**: Draft
+**Status**: Implemented
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
 **Sprint**: S1-B (xpe_enhance_basic.dll)
@@ -18,6 +18,7 @@
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 and ALG-SPEC-001 v3.0.0-ds2 |
+| 1.1.0 | 2026-04-16 | MoAI (sync) | Implementation complete — 67/67 tests passing, all 5 SWUs delivered |
 
 ---
 

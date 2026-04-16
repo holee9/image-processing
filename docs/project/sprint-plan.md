@@ -1,9 +1,9 @@
 ﻿# XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.5.0
-**Date**: 2026-04-15
-**Source**: SPEC-XPE-MASTER v2.1.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
+**Version**: 1.6.0
+**Date**: 2026-04-16
+**Source**: SPEC-XPE-MASTER v2.4.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0, XPE-DOC-HELP-001 v1.0.0
 **Total Sprints**: 29
 **Changelog**:
 - v1.0.0 -> v1.1.0: cross-verification corrections, EI scope corrected, appendices expanded.
@@ -11,6 +11,7 @@
 - v1.2.0 -> v1.3.0: brainstorming deep-sync added implementation-first scaffolding and parity/sidecar rules.
 - v1.3.0 -> v1.4.0: cross-verification round 11 added the P0-13 benchmark manifest gate, NLCSC Tier 3 gate, and scalar-reference DoD in P1A-02.
 - v1.4.0 -> v1.5.0: GUI-First restructure — SPRINT-GUI-S0 added (sprint 0, no C++ dependency), P0-07 scoped to IXpeBackend adapter + P/Invoke only (DICOM ownership stays in Phase 1b), Gates G2/G3 upgraded to dual-gate (benchmark/task-based evidence + GUI demo), GUI verification reclassified as required demo evidence (non-blocking for C++ merge).
+- v1.5.0 -> v1.6.0: documentation-as-code and in-app Help adopted — XML docs + Doxygen + packaged offline Help added as cross-cutting requirements from GUI-S0 onward.
 
 ---
 
@@ -40,6 +41,8 @@ The following rules are now mandatory across the sprint plan:
 6. GUI-S0 scope is fixed: Raw image viewer + settings UI + IXpeBackend mock + log/alert panel only. Real DICOM read/write is owned exclusively by xpe_dicom.dll (Phase 1b) and must not be duplicated in C# code (refs: product.md §2.1, structure.md §4.2),
 7. GUI verification is **required demo evidence** at each sprint review but is **not a C++ merge-blocking gate**. Blocking gates remain: scalar reference pass, parity test, benchmark budget, performance target, and unit test coverage. GUI and C++ blocking gates are independent,
 8. Phase 2 and Phase 3 quality gates require a **dual-gate**: (a) quantitative benchmark / task-based / observer evidence per Algorithm-Evaluation-Protocol.md §4.1 and §5.1, AND (b) GUI demo evidence. GUI Before/After alone is insufficient to pass Gate G2 or G3.
+9. Public C# contracts shall use XML documentation comments; exported native ABI headers shall use Doxygen-style comments. Generated help and API reference are part of the deliverable, not optional side work.
+10. `ImageProcTest.exe` shall expose an offline Help entry point from the earliest GUI sprint. The Help bundle must stay version-matched to the build and open without network dependency.
 
 These rules are intended to maximize implementation feasibility, not to slow the project down.
 
@@ -120,6 +123,8 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] All 9 module directories exist with stub CMakeLists.txt
 - [ ] Static analysis (cppcheck) reports 0 warnings
 - [ ] Benchmark manifest schema exists at `data/benchmark/schema/` and defines the required dataset families `BP-01` through `BP-10`
+- [ ] XML documentation generation enabled for managed public contracts and Doxygen config defined for exported native headers
+- [ ] GUI host exposes an offline quick-start Help entry point for the current build
 
 ### Gate G1a -> G1b (Phase 1a Complete)
 
@@ -142,6 +147,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] Phase 1 peak memory <= 190MB
 - [ ] Integration test: Raw DICOM -> Pre -> Post -> EI -> Display -> DICOM Write
 - [ ] Unit test coverage >= 85% across all Phase 1b DLLs
+- [ ] Offline Help bundle includes deterministic baseline workflow and troubleshooting pages matched to the shipped build
 
 ### Gate G2 -> G3 (Phase 2 Complete)
 
@@ -213,6 +219,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 8. Paths persist to `appsettings.json` keys: `lastRawDir`, `calibOffsetDir`, `calibGainDir`, `calibDefectDir`
 9. Log panel: displays timestamped messages from active `IXpeBackend` implementation
 10. Alert panel: displays alerts with severity color coding (INFO=gray, WARN=yellow, ERROR=red)
+11. Main window exposes a `Help` entry point that opens a packaged local quick-start and scope page without network dependency
 
 **Test Cases**:
 1. Launch with no DLLs present → window opens, MockXpeBackend activates, status bar shows "v0.0.0-mock"
@@ -222,13 +229,15 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. Log panel: MockXpeBackend emits 5 log lines → all 5 displayed with `[HH:MM:SS.mmm]` format
 6. Alert panel: MockXpeBackend queues 3 alerts (1 INFO, 1 WARN, 1 ERROR) → color coding correct
 7. `IXpeBackend.GetVersion()` on MockXpeBackend → returns non-empty string (no exception)
+8. `Help` entry opens the packaged quick-start page and shows the current build scope without network access
 
 **Definition of Done**:
 - [ ] `IXpeBackend` interface and `MockXpeBackend` in `src/gui/backend/`
 - [ ] Application launches with zero unhandled exceptions on clean machine (no C++ DLLs)
-- [ ] All 7 test cases pass (manual checklist or C# UI automation)
+- [ ] All 8 test cases pass (manual checklist or C# UI automation)
 - [ ] Raw image display: uint16 → normalized [0,255] grayscale renders correctly for 3072×3072
 - [ ] `appsettings.json` schema documented with all 4 keys
+- [ ] Quick-start Help bundle packaged with the build output and reachable from the UI
 - [ ] **No DICOM code**: no references to DCMTK, DicomFile, or `.dcm` parsing in C# project
 
 **GUI Demo Evidence** (non-blocking — required at sprint review):
@@ -1341,37 +1350,37 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 ## Appendix: Sprint Summary Table
 
-| Sprint ID | Phase | SWU | API Count | Complexity | Dependencies |
-|-----------|:-----:|-----|:---------:|:----------:|:------------:|
-| **SPRINT-GUI-S0** | **-1** | **5.7 (stub)** | **0 (mock)** | **Medium** | **None** |
-| SPRINT-P0-01 | 0 | -- | 0 | Medium | None |
-| SPRINT-P0-02 | 0 | 5.1, 5.3, 5.5 | 5 | Medium | P0-01 |
-| SPRINT-P0-03 | 0 | 5.4 | 3 | Simple | P0-02 |
-| SPRINT-P0-04 | 0 | 5.6 | 4 | Medium | P0-02, P0-03 |
-| SPRINT-P0-05 | 0 | 5.8 | 6 | Medium | P0-04 |
-| SPRINT-P0-06 | 0 | 5.2 | 0 | Medium | P0-04 |
-| SPRINT-P0-07 | 0 | 5.7 (real) | 18 (P/Invoke) | Medium | GUI-S0, P0-05, P0-06 |
-| SPRINT-P1A-01 | 1a | 1.5 | 6 | Medium | P0-07 |
-| SPRINT-P1A-02 | 1a | 1.1, 1.2 | 2 | Medium | P1A-01 |
-| SPRINT-P1A-03 | 1a | 1.6-1.9 | 4 | Medium | P1A-02 |
-| SPRINT-P1A-04 | 1a | 1.3 | 2 | Complex | P1A-02 |
-| SPRINT-P1A-05 | 1a | 1.4 (partial) | 4 | Complex | P1A-02 |
-| SPRINT-P1A-06 | 1a | 1.4 (complete) | 0 | Complex | P1A-03-05 |
-| SPRINT-P1B-ENH-01 | 1b | 2.1, 2.2 | 4 | Medium | P1A-06 |
-| SPRINT-P1B-ENH-02 | 1b | 2.3, 2.4, 2.10 | 3 | Medium | P1B-ENH-01 |
-| SPRINT-P1B-ENH-03 | 1b | -- | 7 (P/Invoke) | Simple | P1B-ENH-02 |
-| SPRINT-P1B-DISP-01 | 1b | 3.1-3.3 | 6 | Medium | P0-07 |
-| SPRINT-P1B-DISP-02 | 1b | 3.4 | 5 | Simple | P1B-DISP-01 |
-| SPRINT-P1B-DICOM-01 | 1b | 4.1, 4.2 | 6 | Medium | P0-07 |
-| SPRINT-P1B-DICOM-02 | 1b | 4.3, 4.4 | 4 | Medium | P1B-DICOM-01 |
-| SPRINT-P1B-GUI-01 | 1b | 5.7, 6.1 | N/A | Medium | All P1B DLLs |
-| SPRINT-P2-ADV-01 | 2 | 2.8 | 1 | Complex | P1B-ENH-02 |
-| SPRINT-P2-ADV-02 | 2 | 2.5, 2.6 | 2 | Complex | P2-ADV-01 |
-| SPRINT-P2-GSVG-01 | 2 | SI-001, SI-002 | 6 | Complex | P0-01 |
-| SPRINT-P2-GSVG-02 | 2 | SI-003, SI-004 | 2 | Medium | P2-GSVG-01 |
-| SPRINT-P3-AI-01 | 3 | 2.7 | 3 | Complex | P0-07 |
-| SPRINT-P3-AI-02 | 3 | 2.9, 2.11 | 3 | Complex | P3-AI-01 |
-| SPRINT-P3-AI-03 | 3 | 2.12, 2.8 ext | 1 | Complex | P3-AI-01-02 |
+| Sprint ID | Phase | SWU | API Count | Complexity | Dependencies | Status |
+|-----------|:-----:|-----|:---------:|:----------:|:------------:|:------:|
+| **SPRINT-GUI-S0** | **-1** | **5.7 (stub)** | **0 (mock)** | **Medium** | **None** | Planned |
+| SPRINT-P0-01 | 0 | -- | 0 | Medium | None | Planned |
+| SPRINT-P0-02 | 0 | 5.1, 5.3, 5.5 | 5 | Medium | P0-01 | Planned |
+| SPRINT-P0-03 | 0 | 5.4 | 3 | Simple | P0-02 | Planned |
+| SPRINT-P0-04 | 0 | 5.6 | 4 | Medium | P0-02, P0-03 | Planned |
+| SPRINT-P0-05 | 0 | 5.8 | 6 | Medium | P0-04 | Planned |
+| SPRINT-P0-06 | 0 | 5.2 | 0 | Medium | P0-04 | Planned |
+| SPRINT-P0-07 | 0 | 5.7 (real) | 18 (P/Invoke) | Medium | GUI-S0, P0-05, P0-06 | Planned |
+| SPRINT-P1A-01 | 1a | 1.5 | 6 | Medium | P0-07 | Planned |
+| SPRINT-P1A-02 | 1a | 1.1, 1.2 | 2 | Medium | P1A-01 | Planned |
+| SPRINT-P1A-03 | 1a | 1.6-1.9 | 4 | Medium | P1A-02 | Planned |
+| SPRINT-P1A-04 | 1a | 1.3 | 2 | Complex | P1A-02 | Planned |
+| SPRINT-P1A-05 | 1a | 1.4 (partial) | 4 | Complex | P1A-02 | Planned |
+| SPRINT-P1A-06 | 1a | 1.4 (complete) | 0 | Complex | P1A-03-05 | Planned |
+| SPRINT-P1B-ENH-01 | 1b | 2.1, 2.2 | 4 | Medium | P1A-06 | ✅ Completed |
+| SPRINT-P1B-ENH-02 | 1b | 2.3, 2.4, 2.10 | 3 | Medium | P1B-ENH-01 | ✅ Completed |
+| SPRINT-P1B-ENH-03 | 1b | -- | 7 (P/Invoke) | Simple | P1B-ENH-02 | ✅ Completed |
+| SPRINT-P1B-DISP-01 | 1b | 3.1-3.3 | 6 | Medium | P0-07 | Planned |
+| SPRINT-P1B-DISP-02 | 1b | 3.4 | 5 | Simple | P1B-DISP-01 | Planned |
+| SPRINT-P1B-DICOM-01 | 1b | 4.1, 4.2 | 6 | Medium | P0-07 | Planned |
+| SPRINT-P1B-DICOM-02 | 1b | 4.3, 4.4 | 4 | Medium | P1B-DICOM-01 | Planned |
+| SPRINT-P1B-GUI-01 | 1b | 5.7, 6.1 | N/A | Medium | All P1B DLLs | Planned |
+| SPRINT-P2-ADV-01 | 2 | 2.8 | 1 | Complex | P1B-ENH-02 | Planned |
+| SPRINT-P2-ADV-02 | 2 | 2.5, 2.6 | 2 | Complex | P2-ADV-01 | Planned |
+| SPRINT-P2-GSVG-01 | 2 | SI-001, SI-002 | 6 | Complex | P0-01 | Planned |
+| SPRINT-P2-GSVG-02 | 2 | SI-003, SI-004 | 2 | Medium | P2-GSVG-01 | Planned |
+| SPRINT-P3-AI-01 | 3 | 2.7 | 3 | Complex | P0-07 | Planned |
+| SPRINT-P3-AI-02 | 3 | 2.9, 2.11 | 3 | Complex | P3-AI-01 | Planned |
+| SPRINT-P3-AI-03 | 3 | 2.12, 2.8 ext | 1 | Complex | P3-AI-01-02 | Planned |
 
 ---
 
@@ -1527,4 +1536,4 @@ Sprint fails validation
 
 ---
 
-*Document End -- XPE-SPRINT-PLAN-001 v1.1.0*
+*Document End -- XPE-SPRINT-PLAN-001 v1.6.0*
