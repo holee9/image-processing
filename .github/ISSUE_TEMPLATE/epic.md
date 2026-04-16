@@ -1,6 +1,6 @@
 ---
 name: Epic
-about: Create a project epic mapped to the XPE execution PRD
+about: XPE 실행 PRD와 연결되는 project epic을 등록합니다.
 title: "[EP-xx] "
 labels: ["epic"]
 assignees: []
@@ -17,7 +17,7 @@ assignees: []
 
 ## Objective
 
-이 epic이 해결해야 하는 상위 목표를 적습니다.
+이 epic이 달성해야 하는 상위 목표를 적습니다.
 
 ## Scope
 
@@ -41,6 +41,7 @@ assignees: []
 - [ ] tests
 - [ ] benchmark/report
 - [ ] docs sync note
+- [ ] issue progress comments
 
 ## Definition of Done
 
@@ -48,6 +49,7 @@ assignees: []
 - [ ] phase ownership이 확정됨
 - [ ] evidence 종류가 정의됨
 - [ ] release gate 연결이 명시됨
+- [ ] 진행 이력이 issue 댓글에 남음
 
 ## Notes
 

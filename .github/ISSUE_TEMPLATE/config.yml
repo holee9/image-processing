@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: XPE Execution PRD
     url: https://github.com/holee9/image-processing/blob/main/docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md
-    about: 상세 실행형 PRD 기준 문서
+    about: 상세 실행 PRD 기준 문서
   - name: XPE PRD Decomposition
     url: https://github.com/holee9/image-processing/blob/main/docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md
     about: backlog 분해 기준 문서
