@@ -1,8 +1,8 @@
 # Product Overview: X-ray Image Processing Engine (XPE)
 
 **Document ID**: XPE-PRODUCT-001  
-**Version**: 1.2.0  
-**Date**: 2026-04-14  
+**Version**: 1.3.0
+**Date**: 2026-04-17
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -125,7 +125,27 @@ The previous `43` total is retired by this revision.
 
 ---
 
-## 5. Key Feature Map
+## 5. ImageProcTest Product Role
+
+`ImageProcTest.exe` is the release validation console for the XPE pipeline. Its early implementation may expose health and readiness prominently, but the release-level application shall be workflow-first.
+
+The final application shall support:
+
+- raw/calibration fixture selection;
+- stage Off/On/Auto control;
+- before/after comparison with swipe, zoom, pan, and pixel inspection;
+- module-specific metrics and pass/fail gates;
+- JSON/Markdown E2E report generation;
+- embedded help/manual content;
+- a diagnostics area for DLL readiness, ABI, version, export, fallback, and alert triage.
+
+The diagnostics area is a permanent support feature, not a temporary feature. It shall be demoted from the primary screen once module workflows are mature, but it shall remain available for release validation and field troubleshooting.
+
+The final Test GUI shall not present mock, fallback, identity, or version-only health output as native image-processing output.
+
+---
+
+## 6. Key Feature Map
 
 | Research / Product ID | Canonical ownership | Delivery rule |
 |---|---|---|
@@ -142,7 +162,7 @@ The previous `43` total is retired by this revision.
 
 ---
 
-## 6. Product Rules That Shall Not Change
+## 7. Product Rules That Shall Not Change
 
 1. `SWU-2.10` is the only canonical EI unit identifier.
 2. EI/DI apply only to detector-domain, single-irradiation images.
@@ -151,10 +171,11 @@ The previous `43` total is retired by this revision.
 5. GSVG may fail open. When skipped, the pipeline records `XPE_FLAG_GSVG_SKIPPED` and a diagnostic reason, but continues with non-GSVG output.
 6. AI modules are assistive. Their failure must not block the deterministic path.
 7. `docs/project/` is the only canonical documentation tree for this architecture.
+8. `ImageProcTest.exe` shall evolve from diagnostic-first to workflow-first; diagnostics remain available but shall not dominate the release validation flow.
 
 ---
 
-## 7. Product Success Criteria
+## 8. Product Success Criteria
 
 | Area | Minimum release criterion |
 |---|---|
@@ -164,3 +185,4 @@ The previous `43` total is retired by this revision.
 | Traceability | every planned SWU/SI maps to owner binary, API contract, and validation evidence |
 | Degraded operation | missing Phase 2/3 binaries degrade gracefully with explicit diagnostics |
 | Regulatory boundary | release claims stay inside deterministic enhancement and assistive AI boundaries documented in `Regulatory-Feature-Boundary-Matrix.md` |
+| Test GUI usability | release validation starts from workflow, metrics, reports, and help; diagnostics are accessible but secondary |

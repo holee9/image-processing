@@ -11,6 +11,7 @@
 - v1.2.0 -> v1.3.0: brainstorming deep-sync added implementation-first scaffolding and parity/sidecar rules.
 - v1.3.0 -> v1.4.0: cross-verification round 11 added the P0-13 benchmark manifest gate, NLCSC Tier 3 gate, and scalar-reference DoD in P1A-02.
 - v1.4.0 -> v1.5.0: GUI-First restructure — SPRINT-GUI-S0 added (sprint 0, no C++ dependency), P0-07 scoped to IXpeBackend adapter + P/Invoke only (DICOM ownership stays in Phase 1b), Gates G2/G3 upgraded to dual-gate (benchmark/task-based evidence + GUI demo), GUI verification reclassified as required demo evidence (non-blocking for C++ merge).
+- v1.5.0 -> v1.6.0: Test GUI evolution policy added. Early diagnostic-first health panels are transitional; release-level ImageProcTest shall be workflow-first with Diagnostics, Metrics, Reports, and Help as dedicated areas.
 
 ---
 
@@ -40,6 +41,7 @@ The following rules are now mandatory across the sprint plan:
 6. GUI-S0 scope is fixed: Raw image viewer + settings UI + IXpeBackend mock + log/alert panel only. Real DICOM read/write is owned exclusively by xpe_dicom.dll (Phase 1b) and must not be duplicated in C# code (refs: product.md §2.1, structure.md §4.2),
 7. GUI verification is **required demo evidence** at each sprint review but is **not a C++ merge-blocking gate**. Blocking gates remain: scalar reference pass, parity test, benchmark budget, performance target, and unit test coverage. GUI and C++ blocking gates are independent,
 8. Phase 2 and Phase 3 quality gates require a **dual-gate**: (a) quantitative benchmark / task-based / observer evidence per Algorithm-Evaluation-Protocol.md §4.1 and §5.1, AND (b) GUI demo evidence. GUI Before/After alone is insufficient to pass Gate G2 or G3.
+9. Test GUI health/readiness panels are a transitional integration aid. They shall move to a Diagnostics area as soon as the first image-processing module reaches `R3`; by release-candidate validation, Workflow, Metrics, Reports, and Help shall be the primary user-facing areas.
 
 These rules are intended to maximize implementation feasibility, not to slow the project down.
 
@@ -202,6 +204,10 @@ SPRINT-P1A-01 (CalibManager)                   |
 - INCLUDED: Raw binary image loading (`.raw` only), stub metadata display, calibration path settings UI, log panel, alert panel, IXpeBackend mock
 - EXCLUDED: Real DICOM file loading or writing — DICOM I/O is owned exclusively by `xpe_dicom.dll` (SPRINT-P1B-DICOM-01). No C# DICOM logic here.
 
+**UI Evolution Note**:
+- Diagnostic health/readiness may be visually prominent in this sprint because the goal is ABI and fallback safety.
+- This layout is not the final release layout. It must evolve toward the release information architecture defined in `XPE-GUI-NATIVE-INT-READINESS-001` Section 8.
+
 **Acceptance Criteria**:
 1. `ImageProcTest.csproj` targets .NET 8, WPF framework, x64 platform
 2. `IXpeBackend` interface declared in `src/gui/backend/IXpeBackend.cs` with methods: `Initialize()`, `GetVersion()`, `LoadRawImage(path, out width, out height)`, `GetAlertCount()`, `GetAlert(index)`
@@ -233,6 +239,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 **GUI Demo Evidence** (non-blocking — required at sprint review):
 - [ ] Live demo: launch app, load raw image, open calibration settings, show log/alert panels
+- [ ] Explain which visible panels are transitional diagnostics and which are part of the final workflow.
 
 **Risk Items**:
 - WriteableBitmap performance for 3072×3072: use pixel-stride copy, avoid per-pixel loops
@@ -1052,6 +1059,10 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. QA constancy test: measures SNR, uniformity, defect count on calibration phantom
 5. Pipeline timing < 3000ms for 3072x3072 end-to-end
 6. Memory peak <= 190MB during pipeline execution
+7. GUI default screen is workflow-first: fixture/load, calibration, stage controls, run controls, before/after comparison
+8. Health/readiness panels are accessible through Diagnostics, not dominant on the default workflow screen
+9. Metrics and Reports areas expose pass/fail gates, latency, memory, SHA-256, module mode, and report artifact paths
+10. Help area explains workflow steps, Off/On/Auto stage modes, fixture rules, report interpretation, and diagnostics meaning
 
 **Test Cases**:
 1. Load all Phase 1 DLLs -> no errors; Phase 2/3 not found -> logged, pipeline continues
