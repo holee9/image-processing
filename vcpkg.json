@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "xpe",
+  "version-string": "0.1.0",
+  "description": "X-ray FPD Image Processing Engine",
+  "dependencies": [
+    {
+      "name": "spdlog",
+      "features": ["wchar"]
+    },
+    "nlohmann-json",
+    "fmt",
+    {
+      "name": "gtest",
+      "host": true
+    }
+  ],
+  "builtin-baseline": "2026-04-01"
+}

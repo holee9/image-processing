@@ -209,6 +209,7 @@ dist-ssr/
 # C/C++ Build (XPE Native Modules)
 # ===========================================
 cmake-build-*/
+build_test/
 CMakeCache.txt
 CMakeFiles/
 *.obj
@@ -238,6 +239,8 @@ data/models/*.onnx
 # ===========================================
 tests/test_data/*.raw
 tests/test_data/*.dcm
+tests/test_data/**/*.raw
+tests/test_data/**/*.dcm
 
 # ===========================================
 # MoAI Runtime (keep config, ignore runtime)

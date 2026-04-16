@@ -87,6 +87,19 @@ Example: UT-1.1-001  (OffsetCorrector, test case 001)
 | IT-007 | Thread safety | 2 concurrent pipelines | Both complete | No race, no crash |
 | IT-008 | SOUP interface | OpenCV CLAHE call | Correct output | Pixel-exact vs reference |
 
+### 3.2.1 Preprocessing Raw/Calibration E2E Verification Addendum (2026-04-16)
+
+The preprocessing integration suite shall execute the protocol defined in `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`.
+
+| Test ID | Description | Input | Expected | Pass Criteria |
+|---------|-------------|-------|----------|---------------|
+| IT-PRE-E2E-001 | Fixture scan and Git policy | `tests/test_data/calibration_cases` | Case inventory, file size, SHA-256, and `.raw` ignore status captured | All local raw files ignored by Git; every copied raw file has expected size/dimensions or explicit exception |
+| IT-PRE-E2E-002 | Synthetic oracle preprocessing | generated offset/gain/nonlinearity/defect/lag micro-cases | deterministic expected outputs | RMSE within oracle tolerance; no NaN/Inf; input SHA preserved |
+| IT-PRE-E2E-003 | Real fixture calibration effect | local raw image and matching calibration folder | measurable before/after detector-domain improvement | Dark/gain/defect metrics pass XPE-PRE-E2E-001 gates or are marked `degraded_evidence=true` with reason |
+| IT-PRE-E2E-004 | Reference-output comparison | fixture image with known output such as `*_oc.raw` | golden/reference comparison | RMSE/PSNR gate passes after reference semantics are confirmed |
+| IT-PRE-E2E-005 | Calibration mismatch negative test | image and calibration data from different cases | hard failure or visible warning | no silent correction with wrong calibration context |
+| IT-PRE-E2E-006 | GUI/native preprocessing E2E | Test GUI or backend automation using local fixture paths | JSON and Markdown report generated | same gates as native E2E; GUI displays pass/fail summary and metric details |
+
 ### 3.3 Regression Testing (5.6.4)
 
 - 모든 IT는 regression suite에 자동 포함

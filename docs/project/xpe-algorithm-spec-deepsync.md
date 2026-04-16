@@ -1,8 +1,8 @@
 # XPE Algorithm Specification (DeepSync)
 
 **Document ID**: ALG-SPEC-001  
-**Version**: 3.2.0-ds4  
-**Date**: 2026-04-14  
+**Version**: 3.3.0-ds5  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -12,7 +12,7 @@
 
 This document is the normative algorithm contract for XPE. It converts research findings into release-safe rules, performance targets, and fallback behavior that the codebase can implement and validate.
 
-This revision (ds4) adds implementation-feasibility rules, sidecar contract guidance, and benchmark schema gate. Previous revision (ds3) resolved DeepSync inconsistencies by:
+This revision (ds5) adds preprocessing E2E proof contracts, detector-domain automatic evaluation formulas, local raw/calibration fixture gates, and Calibration Effect Score promotion rules. Previous revision (ds4) added implementation-feasibility rules, sidecar contract guidance, and benchmark schema gate. Previous revision (ds3) resolved DeepSync inconsistencies by:
 
 - removing the duplicate `SWU-2.0` EI identifier,
 - aligning all normative references to `docs/project/`,
@@ -34,6 +34,7 @@ This revision (ds4) adds implementation-feasibility rules, sidecar contract guid
 - `XPE-Brainstorming-DeepSync-Execution.md`
 - `Algorithm-Benchmark-Pack-Spec.md`
 - `Algorithm-Evaluation-Protocol.md`
+- `Preprocessing-E2E-Automated-Evaluation-Protocol.md`
 - `Regulatory-Feature-Boundary-Matrix.md`
 
 `.moai/project/` and `.moai/specs/` are not normative for this document.
@@ -62,6 +63,7 @@ Relationship between this document and XPE-ALG-001:
 ### 2.2 External technical references
 
 - DICOM PS3.14 GSDF: https://dicom.nema.org/medical/dicom/current/output/chtml/part01/sect_6.14.html
+- EMVA 1288 sensor characterization: https://www.emva.org/standards-technology/emva-1288/
 - IEC 62494-1 EI scope: https://webstore.iec.ch/en/publication/7107
 - IEC 62220-1-1 DQE determination: https://webstore.iec.ch/en/publication/21937
 - AAPM TG-116 exposure indicator summary: https://pmc.ncbi.nlm.nih.gov/articles/PMC3908678/
@@ -186,6 +188,33 @@ These remain outside the current product claim boundary:
 - Lag and ghosting remain one stage with separate internal mechanisms.
 - Tier escalation must be deterministic and time-budgeted.
 - First-frame or empty-history operation must degrade cleanly to bypass or a lower tier.
+
+### 6.4.1 Preprocessing E2E proof contract
+
+Every preprocessing algorithm change must pass the automated proof bundle in `Preprocessing-E2E-Automated-Evaluation-Protocol.md` before it can be promoted beyond implementation-in-progress.
+
+The required proof bundle is:
+
+- `PRE-E2E-0` fixture scan for file size, SHA-256, raw/calibration pairing, and Git ignore enforcement.
+- `PRE-E2E-1` synthetic oracle for exact offset, gain, nonlinearity, defect, binning, and lag micro-cases.
+- `PRE-E2E-2` real fixture calibration-effect evaluation using local cases under `tests/test_data/calibration_cases`.
+- `PRE-E2E-3` reference-output comparison when a known output such as `*_oc.raw` is semantically confirmed.
+- `PRE-E2E-4` GUI/native E2E execution for user-facing validation.
+- `PRE-E2E-5` mismatch negative test to prove wrong calibration contexts are detected.
+
+Release-safe preprocessing gates are:
+
+- raw input SHA-256 must be preserved before and after processing;
+- no NaN or Inf output is permitted;
+- gain semantics must be known before release promotion;
+- dark correction must satisfy `abs(DarkBias) <= 5 ADU` or `DarkReduction_dB >= 10 dB`;
+- flat-field correction must satisfy `FlatResidualPct <= 1.0%` for Phase 1 and target `<= 0.5%` for release hardening;
+- synthetic BPM tests must reach 100% defect recall with false-positive rate below 0.001%;
+- lag benchmark sequences with measurable lag must reach at least 90% ghost removal;
+- 3072 x 3072 preprocessing must remain within the 500 ms timing budget;
+- Calibration Effect Score must be at least 85 for Phase 1 completeness and target at least 92 for release hardening.
+
+The CES is an engineering readiness score only. It must not be used as a clinical diagnostic-performance claim.
 
 ### 6.5 Exposure Index
 

@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-15)
+## 프로젝트 완성도 현황 (2026-04-16)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -12,6 +12,13 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 |-----------|------|:----:|:---------------:|:----:|
 | **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **61 / 100** | ~76 | **85** |
 | **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~50 | **66 / 100** | **85** |
+
+**최근 진행 상황** (2026-04-16):
+- ✅ Sprint S0-A (Build Infrastructure) 75% 완료
+- 🔄 xpe_common.dll 구현 진행 중 (30% 완료)
+- 🆕 modules/enhance_basic/, modules/preprocess/ 스캐폴딩 생성
+- 🆕 vcpkg.json 의존성 관리 추가
+- 🆕 AED/Logging 소스 파일 추가 (xpe_aed.cpp, xpe_logging.cpp)
 
 ### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
 

@@ -112,6 +112,22 @@ Selection logic: If `panel.nonlinearity_mode == "LUT"` use 6a; if `"POLY"` use 6
 
 ---
 
+### 2.5 Best-in-Class Preprocessing Reinforcement and E2E Verifiability Addendum (2026-04-16)
+
+The following requirements bind preprocessing algorithm quality to automated evidence defined in `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`.
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|------------|-----------|--------------|
+| **SRS-CALIB-FUNC-015** | System shall emit a preprocessing E2E metric report for every automated raw/calibration validation run using schema `xpe-pre-e2e-report-v1`. The report shall include raw SHA-256 before/after, calibration file SHA-256, inferred dimensions, applied stages, stage timings, detector-domain metrics, and pass/fail gates. | Preprocessing quality must be reproducible and reviewable without relying on screenshots or subjective visual inspection. | Test: PRE-E2E-0, report schema validation |
+| **SRS-CALIB-FUNC-016** | System shall compute detector-domain dark/offset metrics: `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, and `ClampRate`. Phase 1 acceptance shall require `abs(DarkBias) <= 5 ADU` or `DarkReduction_dB >= 10 dB` on applicable fixtures. | Offset correction is the first safety-critical calibration stage; dark residuals are objective indicators of drift or calibration mismatch. | Test: PRE-E2E-1 synthetic oracle, PRE-E2E-2 real fixture |
+| **SRS-CALIB-FUNC-017** | System shall compute gain/flat-field metrics: `PRNU_CV`, `FlatResidualPct`, `FPN_Reduction_dB`, and `LineArtifactScore`. Phase 1 acceptance shall require `FlatResidualPct <= 1.0%` and target `<= 0.5%` for release-hardening fixtures where gain semantics are known. | Flat-field correction must reduce fixed-pattern noise while avoiding row/column artifact amplification. | Test: PRE-E2E-1 synthetic oracle, PRE-E2E-2 real fixture |
+| **SRS-CALIB-FUNC-018** | System shall record calibration gain semantics as `normalized_gain`, `reciprocal_gain`, or `unknown`. Unknown semantics may run exploratory validation but shall not pass release gates. | Real legacy calibration files often encode gain differently; silent interpretation errors can create severe over/under-correction. | Test: calibration manifest parser, mismatch negative tests |
+| **SRS-CALIB-FUNC-019** | System shall compute defect-correction metrics: `DefectRecall`, `DefectFPR`, `DefectResidualADU`, and `GoodPixelDeltaP99`. Synthetic BPM oracle cases shall require 100% defect recall and false-positive rate below 0.001%. | Defect correction must repair known bad pixels without altering good pixels or suppressing clinically relevant structures. | Test: PRE-E2E-1 defect synthetic oracle |
+| **SRS-CALIB-FUNC-020** | System shall compute lag/ghost metrics: `LagResidualPct`, `GhostRemovalPct`, history length, tier selection, and bypass reason. Benchmark sequences with measurable lag shall require at least 90% ghost removal. | Lag and ghost correction is stateful; tier and bypass traceability is required to prevent hidden temporal contamination. | Test: PRE-E2E-1 synthetic lag, PRE-E2E-2 real lag fixtures when available |
+| **SRS-CALIB-FUNC-021** | System shall compute a Calibration Effect Score (CES) from dark, flat, defect, nonlinearity, lag/ghost, reference, preservation, and performance subscores. Phase 1 implementation completeness shall require `CES >= 85`; release-hardening target shall be `CES >= 92`. Any raw preservation failure, NaN/Inf output, or unknown gain semantics shall cap the score as defined by XPE-PRE-E2E-001. | A single dashboard score helps sprint tracking, but blocking safety gates prevent high aggregate scores from hiding critical defects. | Test: PRE-E2E report score calculation |
+
+---
+
 ## 3. Safety Requirements
 
 ### 3.1 Mandatory Correction Policy (SRS-CALIB-SAFE-001 through SRS-CALIB-SAFE-003)
@@ -248,7 +264,7 @@ All functions return `XpeErrorCode` enum with following semantics:
 
 | Category | Verification Method | Examples |
 |----------|-------------------|----------|
-| **Functional Correctness** | Unit test + reference image comparison | SRS-CALIB-FUNC-001 to SRS-CALIB-FUNC-014: Compare corrected output to known-good reference using PSNR ≥ 40 dB |
+| **Functional Correctness** | Unit test + reference image comparison + automated detector-domain E2E metrics | SRS-CALIB-FUNC-001 to SRS-CALIB-FUNC-021: compare corrected output to synthetic/golden reference where available and compute PRE-E2E dark, flat, defect, lag, preservation, and performance gates |
 | **Safety** | Code review + threat modeling | SRS-CALIB-SAFE-001 to SRS-CALIB-SAFE-005: Verify abort conditions, buffer overflow prevention, expiry enforcement |
 | **Performance** | Profiling + benchmark suite | SRS-CALIB-PERF-001 to SRS-CALIB-PERF-003: Measure wall-clock time and memory usage on reference hardware |
 | **Interface** | Integration test + API contract verification | SRS-CALIB-IF-001 to SRS-CALIB-IF-008: Test C ABI function signatures and return codes |
@@ -263,6 +279,8 @@ All requirements shall have traceability to corresponding test cases in:
 - `tests/calib/test_ghost_correction.cpp`
 - `tests/calib/test_calib_file_io.cpp`
 - `tests/calib/test_safety_expiry.cpp`
+- `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`
+- `tests/test_data/calibration_cases/README.md`
 - `tests/calib/perf_benchmark.cpp`
 
 ---

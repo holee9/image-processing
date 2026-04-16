@@ -1180,6 +1180,54 @@ QA Sign-Off: __________________ Date: __________
 
 ---
 
+## 9.3 Local Raw/Calibration E2E Fixture Addendum (2026-04-16)
+
+This addendum links the local fixture staging area to the automated preprocessing proof protocol.
+
+Normative protocol:
+
+- `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`
+
+Local fixture root:
+
+- `tests/test_data/calibration_cases`
+
+Current local cases:
+
+| Case ID | Purpose | Required automated checks |
+|---|---|---|
+| `aed_shock_had1717mc` | AED/shock and dark-calibration workflow checks | fixture scan, calibration pairing, raw preservation, exploratory dark/gain effect |
+| `auradr_release_line_trg` | line-trigger calibration and image pairing | fixture scan, calibration pairing, gain semantics classification, mismatch negative test |
+| `corner_blemish_17a06b1` | defect/blemish comparison | fixture scan, BPM/defect metric extraction, before/after ROI comparison |
+
+Required E2E modes:
+
+| Mode | Dataset source | Expected evidence |
+|---|---|---|
+| `PRE-E2E-0` | all local cases | file size, SHA-256, inferred dimensions, Git ignore proof |
+| `PRE-E2E-1` | generated synthetic cases | exact oracle output for offset/gain/nonlinearity/defect/lag |
+| `PRE-E2E-2` | local real cases | detector-domain calibration-effect metrics |
+| `PRE-E2E-3` | cases with known outputs such as `*_oc.raw` | RMSE/PSNR reference comparison after semantics confirmation |
+| `PRE-E2E-4` | Test GUI or backend driver | same report schema as native E2E run |
+| `PRE-E2E-5` | intentionally mismatched image/calibration cases | hard failure or visible warning; no silent correction |
+
+Minimum report metrics:
+
+- `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, `ClampRate`
+- `PRNU_CV`, `FlatResidualPct`, `FPN_Reduction_dB`, `LineArtifactScore`
+- `DefectRecall`, `DefectFPR`, `DefectResidualADU`, `GoodPixelDeltaP99`
+- `LagResidualPct`, `GhostRemovalPct`
+- `InputPreserved`, `NaNInfCount`, `PipelineTimeMs`, `PeakMemoryMB`
+- `Calibration Effect Score`
+
+Raw payload policy:
+
+- `.raw` and `.dcm` payloads under `tests/test_data` remain local-only.
+- Git may track fixture README, `.gitignore`, manifests, report schemas, and expected-output hashes.
+- CI artifacts may include JSON/Markdown metric summaries, but must not upload protected patient or raw detector payloads unless explicitly anonymized and approved.
+
+---
+
 ## 10. 참고문헌
 
 ### 표준 및 규제

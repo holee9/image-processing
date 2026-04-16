@@ -1,8 +1,8 @@
 # Algorithm Evaluation Protocol
 
 **Document ID**: XPE-EVAL-001  
-**Version**: 1.3.0  
-**Date**: 2026-04-15  
+**Version**: 1.4.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft
 
 ---
@@ -17,6 +17,8 @@ This document defines how XPE algorithm revisions are compared, promoted, or hel
 
 This protocol is aligned to:
 
+- EMVA 1288 DSNU/PRNU terminology for detector uniformity measurement
+- IEC 62220-1-1 detector image-quality and DQE context
 - IEC 62494-1 and supporting EI literature for detector-domain exposure metrics
 - DICOM PS3.14 GSDF for presentation-path conformance
 - AAPM TG-151 for ongoing QC logic and artifact tracking
@@ -49,6 +51,36 @@ Detector-domain metrics shall be computed before presentation LUT application an
 - EI shall not be used as a patient-dose surrogate.
 - DI should target a site mean near `0.0`.
 - Operational action bands should be derived from site data, with tighter review around `±1` and escalation around `±2` standard deviations of local DI behavior.
+
+### 3.3 Preprocessing E2E automatic evaluation formula pack
+
+The normative preprocessing formula pack is `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`.
+
+Minimum detector-domain preprocessing metrics:
+
+| Metric | Formula or source | Use |
+|---|---|---|
+| `MAE` | `mean(abs(Y - Ref))` | reference-output comparison |
+| `RMSE` | `sqrt(mean((Y - Ref)^2))` | reference-output comparison |
+| `PSNR` | `20 * log10(65535 / max(RMSE, epsilon))` | synthetic/golden output gate |
+| `DarkBias` | `mean(Y_dark_roi)` | offset residual |
+| `DSNU_ADU` | `std(Y_dark_roi)` | dark spatial non-uniformity |
+| `PRNU_CV` | `std(Y_flat_roi) / mean(Y_flat_roi)` | flat-field residual |
+| `FPN_Reduction_dB` | `20 * log10(std(R_flat_roi) / std(Y_flat_roi))` | before/after fixed-pattern improvement |
+| `DefectRecall` | `TP / (TP + FN)` | BPM oracle detection/correction |
+| `DefectFPR` | `FP / (FP + TN)` | good-pixel preservation |
+| `LagResidualPct` | `100 * abs(mean(Y_blank_k) - DarkRef) / ExposureSignal` | lag/ghost residual |
+| `InputPreserved` | `sha256(raw_before) == sha256(raw_after)` | safety and audit preservation |
+| `Calibration Effect Score` | weighted dark/flat/defect/nonlinearity/lag/reference/preservation/performance score | sprint dashboard |
+
+Promotion gates:
+
+- `PRE-E2E-0` fixture scan, `PRE-E2E-1` synthetic oracle, and `PRE-E2E-2` real fixture calibration-effect checks are mandatory for Phase 1 preprocessing.
+- `PRE-E2E-3` reference-output comparison is mandatory when a semantically confirmed reference output exists.
+- `PRE-E2E-4` GUI/native execution is mandatory before a user-facing GUI validation claim.
+- `PRE-E2E-5` mismatch negative testing is mandatory before calibration auto-selection is considered safe.
+- `CES >= 85` is the Phase 1 completeness target; `CES >= 92` is the release-hardening target.
+- Any raw mutation, NaN/Inf output, or unknown gain semantics is a blocking safety issue regardless of aggregate score.
 
 ---
 
