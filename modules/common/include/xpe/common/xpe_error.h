@@ -56,6 +56,8 @@ typedef int32_t XpeErrorCode;
 #define XPE_ERR_BUFFER_TOO_SMALL    -8   /**< Caller-supplied output buffer is smaller than required */
 #define XPE_ERR_IO_FAILED           -9   /**< File read or write failure */
 #define XPE_ERR_NETWORK_FAILED      -10  /**< Network communication failure (DICOM send/receive) */
+#define XPE_ERR_DICOM_INVALID       -11  /**< DICOM file is malformed, truncated, or not a valid DICOM file */
+#define XPE_ERR_DICOM_CONFORMANCE   -12  /**< DICOM conformance violation: unsupported SOP class, transfer syntax, or mandatory attribute missing */
 /** @} */
 
 /**

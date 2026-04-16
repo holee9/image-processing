@@ -268,6 +268,8 @@ XPE_API const char* xpe_error_string(XpeErrorCode code)
         case XPE_ERR_BUFFER_TOO_SMALL:     return "Buffer too small";
         case XPE_ERR_IO_FAILED:            return "I/O operation failed";
         case XPE_ERR_NETWORK_FAILED:       return "Network operation failed";
+        case XPE_ERR_DICOM_INVALID:        return "Invalid or malformed DICOM file";
+        case XPE_ERR_DICOM_CONFORMANCE:    return "DICOM conformance validation failed";
         default:                           return "Unknown error";
     }
 }
