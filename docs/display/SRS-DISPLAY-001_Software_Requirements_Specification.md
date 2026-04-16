@@ -212,12 +212,41 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 
 ---
 
+## 7.1 Body-Part/View Preset Scope Addendum (2026-04-16)
+
+The current four GUI body-part presets are Phase 1b quick presets only. They are sufficient for validating `xpe_voi_preset_create()` command wiring, P/Invoke stability, and display pipeline smoke tests, but they are not a complete DR preset taxonomy.
+
+Normative and operational basis:
+
+- DICOM PS3.16 Annex L defines many Body Part Examined / anatomic region terms beyond Bone, Lung, Abdomen, and Head.
+- DICOM PS3.3 CR/DX modules separate Body Part Examined / Anatomic Region from View Position and positioning attributes.
+- ACR DIR DR anatomical-view grouping and RadLex Playbook exam concepts describe radiography context as anatomy plus view/projection, not as a four-value preset list.
+
+Requirement addendum for SWU-3.4 LUT Manager:
+
+- The four Phase 1b presets shall remain compatibility quick presets for `xpe_voi_preset_create()`.
+- The product LUT Manager shall provide an extended factory preset library keyed by `bodyPart`, `viewPosition`, `laterality` when applicable, `patientGroup`, and `displayIntent`.
+- The deferred factory library shall include at least 15 body-part/view profiles before product-level DR preset completeness is claimed.
+- Minimum deferred groups: chest, abdomen/KUB, pelvis/hip, cervical/thoracic/lumbar spine, upper extremity, lower extremity, skull/head, pediatric low-dose, and fluoroscopy/realtime.
+- Each extended preset shall document its source mapping to DICOM Body Part Examined or Anatomic Region, View Position when applicable, and RadLex/Playbook-style exam naming when available.
+- GUI evidence shall distinguish the Phase 1b quick preset from the resolved extended SWU-3.4 preset ID once the LUT Manager library exists.
+
+References:
+
+- DICOM PS3.16 Annex L: https://dicom.nema.org/medical/dicom/current/output/chtml/part16/chapter_l.html
+- DICOM PS3.3 CR/DX modules and positioning attributes: https://dicom.nema.org/medical/Dicom/2023e/output/chtml/part03/sect_C.8.html
+- RadLex Playbook: https://playbook.radlex.org/
+- ACR DIR DR: https://nrdrsupport.acr.org/support/solutions/articles/11000065405-dir-digital-radiography-dr-
+
+---
+
 ## Revision History
 
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-14 | XPE Display Team | Initial release |
 | 1.1 | 2026-04-16 | MoAI | Added GUI Comparison Interface requirements (IF-GUI-301~304). Implemented in XPE-GUI-COMPARE-001 v0.2.0. |
+| 1.2 | 2026-04-16 | Codex | Added body-part/view preset scope addendum for SWU-3.4 LUT Manager. |
 
 ---
 

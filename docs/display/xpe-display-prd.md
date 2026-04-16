@@ -517,6 +517,34 @@ XpeErrorCode xpe_lut_interpolate(
 
 ---
 
+### 6.7 Body-Part/View Preset Expansion Backlog (2026-04-16)
+
+The current Phase 1b GUI and `xpe_voi_preset_create()` path use four quick presets only: Bone, Lung, Abdomen, and Head. These values are retained for early display-pipeline validation and native ABI compatibility, but they shall not be treated as the final DR body-part preset library.
+
+Research conclusion:
+
+- DICOM PS3.16 Annex L enumerates many body-part/anatomic-region concepts used by radiography.
+- DICOM PS3.3 CR/DX image modules distinguish Body Part Examined / Anatomic Region from View Position and positioning metadata.
+- ACR DIR DR and RadLex Playbook-style exam naming both require anatomy plus view/projection context for reliable preset selection.
+
+Product backlog requirement for SWU-3.4 LUT Manager:
+
+- Add an extended table-driven preset library keyed by `bodyPart`, `viewPosition`, `laterality`, `patientGroup`, and `displayIntent`.
+- Keep the four Phase 1b quick presets as smoke-test and compatibility presets.
+- Provide at least 15 factory body-part/view profiles before claiming product-level DR preset completeness.
+- Minimum profiles shall cover chest PA/AP portable/lateral, abdomen AP/upright/KUB, pelvis/hip, C/T/L spine, upper extremity, lower extremity, skull/head, pediatric low-dose, and fluoroscopy/realtime.
+- Persist mapping metadata so each preset can be traced to DICOM Body Part Examined or Anatomic Region, View Position when applicable, and RadLex/Playbook-style exam labels when available.
+- GUI evaluation evidence shall record the selected quick preset now and the resolved extended preset ID after SWU-3.4 implementation.
+
+References:
+
+- DICOM PS3.16 Annex L: https://dicom.nema.org/medical/dicom/current/output/chtml/part16/chapter_l.html
+- DICOM PS3.3 CR/DX modules: https://dicom.nema.org/medical/Dicom/2023e/output/chtml/part03/sect_C.8.html
+- RadLex Playbook: https://playbook.radlex.org/
+- ACR DIR DR: https://nrdrsupport.acr.org/support/solutions/articles/11000065405-dir-digital-radiography-dr-
+
+---
+
 ## 7. 통합 처리 파이프라인
 
 ### 7.1 완전한 처리 흐름

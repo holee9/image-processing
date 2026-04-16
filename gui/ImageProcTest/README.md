@@ -6,7 +6,7 @@
 - `IXpeBackend` mock and native display backend contracts
 - `RealXpeBackend` P/Invoke wrapper for `xpe_common.dll` and `xpe_display.dll`
 - display pipeline command path: Modality LUT -> VOI LUT -> Presentation LUT
-- calibration evaluation controls for preprocessing stages using `Off`, `On`, and `Auto`
+- one-click calibration evaluation radio controls for preprocessing stages using `Off`, `On`, and `Auto`
 - display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale
 - source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detached viewer
 - settings UI, log panel, alert panel
@@ -59,7 +59,7 @@ The E2E runner:
 - verifies the main window and required controls
 - verifies mock version text and initial log/alert population
 - verifies the display settings panel and display version text
-- verifies calibration evaluation `Off`/`On`/`Auto` selectors and live summary updates
+- verifies calibration evaluation `Off`/`On`/`Auto` radio groups and live summary updates
 - verifies `Apply Body Part Preset` and `Apply Display Pipeline` command wiring
 - verifies comparison mode controls, zoom commands, and viewport presence
 - verifies menu/toolbar parity and resizable diagnostics splitters
@@ -187,6 +187,7 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 
 - Real DICOM read/write remains owned by `xpe_dicom.dll` in Phase 1b.
 - Calibration `Off`/`On`/`Auto` controls are evaluation-only Test GUI controls. Product-mode mandatory offset/gain policy remains owned by `xpe_preprocess.dll`.
-- SWU-3.4 LUT Manager remains deferred; the GUI uses the four native presets from `xpe_voi_preset_create`.
+- SWU-3.4 LUT Manager remains deferred; the GUI uses the four native quick presets from `xpe_voi_preset_create` only for Phase 1b display-pipeline validation.
+- The final DR preset library must not be limited to Bone/Lung/Abdomen/Head. It is tracked as a body-part/view-aware SWU-3.4 backlog item keyed by body part, view/projection, laterality when applicable, patient group, and display intent.
 - GSDF defaults to off until DICOM PS3.14 validation vectors are accepted.
 - Tile-backed rendering for images larger than 4096x4096 remains a planned extension before larger-size release claims.

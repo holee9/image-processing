@@ -70,6 +70,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 6. GSVG failure may degrade open, but the skip state and reason must be recorded explicitly.
 7. AI features are assistive and shall never block deterministic image delivery.
 8. The host comparison viewer is a QA and integration review aid; it shall preserve the source frame and shall not silently replace the deterministic baseline output.
+9. The four Phase 1b body-part presets are quick display smoke presets only; the full preset library shall be body-part and view-aware and belongs to SWU-3.4 LUT Manager.
 
 ---
 
@@ -102,6 +103,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-FUNC-009` | The host application shall expose a Help entry point that opens version-matched offline documentation for the current workflow, screen, or troubleshooting context. | `MR-MKT-005` |
 | `PR-FUNC-010` | The host application shall expose a top-level menu bar that organizes commands into File, Backend, View, Pipeline, Tools, and Help groups while keeping unsupported phase commands disabled or absent until their owner module is available. | `MR-MKT-005`, `MR-OPS-002` |
 | `PR-FUNC-011` | The host Test GUI shall expose calibration/preprocessing stage controls using `Off`, `On`, and `Auto` modes for evaluation-only A/B testing, independent of the product-mode mandatory correction policy. | `MR-OPS-006`, `MR-IMG-001` |
+| `PR-FUNC-012` | The display/LUT subsystem shall define an extended preset library keyed by body part, view/projection, laterality when applicable, patient group, and display intent. | `MR-IMG-007`, `MR-OPS-005` |
 | `PR-GUI-001` | The host application shall provide a synchronized source-vs-processed comparison viewport with swipe, split, overlay, difference, source-only, processed-only, zoom, pan, and optional detach modes. | `MR-IMG-006`, `MR-OPS-005` |
 
 ### 4.2 Safety and degraded-mode requirements
@@ -154,6 +156,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-OPS-006` | CI and release packaging shall generate and preserve a version-matched offline help bundle that includes conceptual guidance, API reference entry points, and build-version metadata. | `MR-MKT-005`, `MR-OPS-004` |
 | `PR-GUI-003` | Evidence export shall record comparison viewport state, including comparison mode, zoom, pan, divider position, source image identity, and processed image identity. | `MR-OPS-005` |
 | `PR-GUI-004` | Evidence export shall record the calibration evaluation mode for each controllable preprocessing stage: offset, gain, defect, ghost, temperature compensation, nonlinearity, and binning. | `MR-OPS-006` |
+| `PR-GUI-005` | The Test GUI shall label the current four body-part presets as quick presets and shall track the future extended body-part/view preset library as deferred SWU-3.4 scope. | `MR-IMG-007` |
 
 ---
 

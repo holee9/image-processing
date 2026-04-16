@@ -100,6 +100,7 @@ These customers need:
 | `MR-IMG-004` | Nonlinear or suppressive algorithms shall not be promoted using only scalar fidelity metrics; task-based or observer-centered evidence shall be required where clinically relevant. | Published imaging literature shows scalar metrics alone are not enough for nonlinear processing decisions. |
 | `MR-IMG-005` | Premium deterministic features such as virtual grid, ROI-aware EI refinement, and advanced enhancement shall degrade safely when absent or bypassed. | Optional modules must not create unusable systems. |
 | `MR-IMG-006` | XPE shall provide a practical source-vs-processed visual comparison workflow for large detector images. | Operators and reviewers need fast visual evidence that a processing change improved the image without hiding source-context artifacts. |
+| `MR-IMG-007` | XPE shall support a body-part and view-aware display preset taxonomy beyond the four Phase 1b quick presets. | DR workflows are not adequately represented by Bone/Lung/Abdomen/Head alone; DICOM Body Part Examined, Anatomic Region, and View Position metadata require an extensible preset library for reliable evaluation and later product use. |
 
 ### 4.3 Operational quality-control requirements
 

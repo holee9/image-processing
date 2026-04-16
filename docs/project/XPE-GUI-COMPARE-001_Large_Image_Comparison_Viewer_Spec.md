@@ -82,7 +82,7 @@ Rationale:
 | `GUI-CMP-FR-005` | The viewer shall expose source only, processed only, split locked, overlay opacity, and difference heatmap modes. | Mode switching does not reload source data. |
 | `GUI-CMP-FR-006` | The viewer shall preserve the original source frame or source frame reference while processed outputs are updated. | Re-running a pipeline never overwrites the source layer. |
 | `GUI-CMP-FR-007` | The viewer shall expose image metadata, current zoom, pan, divider position, pixel coordinate, and sampled source/processed values for evidence capture. | Evidence export contains viewer state and image identifiers. |
-| `GUI-CMP-FR-008` | The Test GUI shall expose calibration stage modes for offset, gain, defect, ghost, temperature, nonlinearity, and binning using `Off`, `On`, and `Auto`. | User can switch each stage independently before re-running the pipeline. |
+| `GUI-CMP-FR-008` | The Test GUI shall expose one-click calibration stage radio controls for offset, gain, defect, ghost, temperature, nonlinearity, and binning using `Off`, `On`, and `Auto`. | User can switch each stage independently before re-running the pipeline without opening a dropdown. |
 | `GUI-CMP-FR-009` | The Test GUI shall label and record stage bypass/force decisions as evaluation-only behavior. | Automation report contains the selected stage mode for each controllable stage. |
 
 ---

@@ -947,11 +947,12 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 **Acceptance Criteria**:
 1. Built-in presets include at least: "DEFAULT", "CHEST", "BONE", "SOFT_TISSUE"
-2. `xpe_lut_get_preset_count` returns >= 4 (built-in presets)
-3. Add custom preset -> count increases by 1
-4. Remove custom preset -> count decreases; removing built-in returns error
-5. Auto-select for bodyPart="CHEST" returns appropriate LUT preset name
-6. P/Invoke: all 11 xpe_display functions callable from C#
+2. Phase 1b GUI body-part presets remain quick presets only; SWU-3.4 shall track an extended body-part/view preset library with at least 15 profiles before product-level DR preset completeness is claimed
+3. `xpe_lut_get_preset_count` returns >= 4 (built-in presets)
+4. Add custom preset -> count increases by 1
+5. Remove custom preset -> count decreases; removing built-in returns error
+6. Auto-select for bodyPart="CHEST" returns appropriate LUT preset name; future extended auto-select shall use bodyPart + viewPosition when available
+7. P/Invoke: all 11 xpe_display functions callable from C#
 
 **Test Cases**:
 1. `xpe_lut_get_preset_count()` >= 4
@@ -959,13 +960,15 @@ SPRINT-P1A-01 (CalibManager)                   |
 3. Add "MY_CUSTOM" preset -> count increases by 1 -> remove -> count back to original
 4. Remove "DEFAULT" (built-in) -> `XPE_ERR_INVALID_INPUT`
 5. Auto-select for "CHEST" metadata -> returns non-empty preset name
-6. C# P/Invoke calls all 11 functions -> all succeed
+6. Extended preset backlog trace exists for chest PA/AP portable/lateral, abdomen/KUB, pelvis/hip, spine, extremity, skull/head, pediatric, and fluoroscopy profiles
+7. C# P/Invoke calls all 11 functions -> all succeed
 
 **Definition of Done**:
 - [ ] 5 additional API functions exported (total 11 for xpe_display.dll)
-- [ ] All 6 test cases pass
+- [ ] All 7 test cases pass
 - [ ] Preset persistence to JSON file
 - [ ] P/Invoke integration complete
+- [ ] SWU-3.4 backlog explicitly records that the four GUI body-part presets are not the final DR preset taxonomy
 - [ ] Unit test coverage >= 85%
 
 **Risk Items**:

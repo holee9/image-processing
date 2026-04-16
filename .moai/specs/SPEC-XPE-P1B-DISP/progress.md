@@ -20,11 +20,14 @@
 
 ### Sync Results (2026-04-16)
 - spec_status: completed
-- documents_updated: progress.md, structure.md, CHANGELOG.md
+- spec_updated: SPEC-XPE-P1B-DISP/spec.md (Draft → Completed, implementation notes added)
+- documents_updated: SRS-DISPLAY-001, integration guides, PRD documents
+- gui_integration: PipelineOrchestrator.cs, StringEqualsConverter.cs added
 - divergence_notes:
   - filename: display_api.h (not xpe_display_api.h) — kept existing stub filename
   - test_display_boundary.cpp: merged into test_display_integration.cpp (48 tests, exceeds plan minimum 32)
   - SWU-3.4: not in scope for this SPEC (deferred to future SPEC)
+  - GUI integration completed for display pipeline orchestration
 
 ### Implementation Results (2026-04-16)
 - files_created: 9 (headers×2, src×4, tests×4 — display_helpers.cpp 포함)

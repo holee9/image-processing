@@ -466,6 +466,50 @@ Note: These 4 presets are what `xpe_voi_preset_create()` supports. The extended 
 
 ---
 
+### 10.1 Body-Part Preset Scope Finding (2026-04-16)
+
+The four presets above are **not** the complete DR body-part preset taxonomy. They are Phase 1b quick presets used to validate the display P/Invoke path, VOI parameter propagation, and GUI command wiring.
+
+Cross-check basis:
+
+- DICOM PS3.16 Annex L maps many Body Part Examined defined terms to coded anatomic regions, including chest, abdomen, pelvis, skull, cervical/thoracic/lumbar spine, shoulder, humerus, elbow, forearm, wrist, hand, knee, ankle, foot, ribs, and combined regions.
+- DICOM PS3.3 CR/DX modules separate Body Part Examined / Anatomic Region from View Position and positioning metadata. A display preset selected only by body part is incomplete for projection radiography.
+- ACR DIR DR anatomical-view grouping and RadLex Playbook concepts both treat radiography exams as anatomy plus view/projection/context rather than a four-category body-part list.
+
+Design implication:
+
+- Keep `XpeBodyPartEnum` with four values for Phase 1b `xpe_voi_preset_create()` compatibility.
+- Do not expand the four-value enum ad hoc in the GUI without the native LUT Manager contract.
+- Track the full solution under SWU-3.4 LUT Manager as a table-driven preset library keyed by `bodyPart`, `viewPosition`, `laterality`, `patientGroup`, and `displayIntent`.
+
+Minimum deferred factory library:
+
+| Group | Required body/view profiles |
+|---|---|
+| Chest | chest_pa, chest_ap_portable, chest_lateral |
+| Abdomen | abdomen_ap, abdomen_upright, kub |
+| Pelvis/Hip | pelvis_ap, hip_ap, hip_lateral |
+| Spine | cspine_ap_lateral, tspine_ap_lateral, lspine_ap_lateral |
+| Upper extremity | shoulder, humerus, elbow, forearm, wrist, hand |
+| Lower extremity | knee, tibia_fibula, ankle, foot |
+| Head/skull | skull, sinus, facial_bone |
+| Special groups | pediatric_low_dose, fluoroscopy_realtime |
+
+Deferred SWU-3.4 acceptance:
+
+- factory preset count shall be at least 15 body-part/view profiles,
+- each preset shall carry source-standard mapping notes: DICOM Body Part Examined or Anatomic Region, View Position when applicable, and RadLex/Playbook-style exam label when available,
+- GUI evidence shall record both the quick preset and the resolved extended preset ID once SWU-3.4 is implemented.
+
+References:
+
+- DICOM PS3.16 Annex L: https://dicom.nema.org/medical/dicom/current/output/chtml/part16/chapter_l.html
+- DICOM PS3.3 CR/DX image modules and positioning attributes: https://dicom.nema.org/medical/Dicom/2023e/output/chtml/part03/sect_C.8.html
+- RadLex Playbook: https://playbook.radlex.org/
+- ACR DIR DR: https://nrdrsupport.acr.org/support/solutions/articles/11000065405-dir-digital-radiography-dr-
+
+---
+
 ## 11. SWU-3.4 LUT Manager — Deferred Scope
 
 Per `SPEC-XPE-P1B-DISP v1.0.0 Section 1.2`:

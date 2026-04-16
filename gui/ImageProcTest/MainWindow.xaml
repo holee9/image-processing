@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ImageProcTest.Controls"
+        xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -12,6 +13,7 @@
         MinWidth="1280">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <viewModels:StringEqualsConverter x:Key="StringEquals" />
     </Window.Resources>
 
     <DockPanel>
@@ -493,58 +495,58 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="145" />
+                                    <ColumnDefinition Width="115" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Offset" />
-                                <ComboBox x:Name="OffsetCorrectionModeComboBox"
-                                          Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="OffsetCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="0" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="OffsetModeAutoRadioButton" AutomationProperties.AutomationId="OffsetModeAutoRadioButton" Content="Auto" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="OffsetModeOnRadioButton" AutomationProperties.AutomationId="OffsetModeOnRadioButton" Content="On" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="OffsetModeOffRadioButton" AutomationProperties.AutomationId="OffsetModeOffRadioButton" Content="Off" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Gain" />
-                                <ComboBox x:Name="GainCorrectionModeComboBox"
-                                          Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="GainCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.GainCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="1" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="GainModeAutoRadioButton" AutomationProperties.AutomationId="GainModeAutoRadioButton" Content="Auto" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="GainModeOnRadioButton" AutomationProperties.AutomationId="GainModeOnRadioButton" Content="On" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="GainModeOffRadioButton" AutomationProperties.AutomationId="GainModeOffRadioButton" Content="Off" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Defect" />
-                                <ComboBox x:Name="DefectCorrectionModeComboBox"
-                                          Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="DefectCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="2" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="DefectModeAutoRadioButton" AutomationProperties.AutomationId="DefectModeAutoRadioButton" Content="Auto" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="DefectModeOnRadioButton" AutomationProperties.AutomationId="DefectModeOnRadioButton" Content="On" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="DefectModeOffRadioButton" AutomationProperties.AutomationId="DefectModeOffRadioButton" Content="Off" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Ghost/Lag" />
-                                <ComboBox x:Name="GhostCorrectionModeComboBox"
-                                          Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="GhostCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="3" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="GhostModeAutoRadioButton" AutomationProperties.AutomationId="GhostModeAutoRadioButton" Content="Auto" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="GhostModeOnRadioButton" AutomationProperties.AutomationId="GhostModeOnRadioButton" Content="On" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="GhostModeOffRadioButton" AutomationProperties.AutomationId="GhostModeOffRadioButton" Content="Off" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Temperature" />
-                                <ComboBox x:Name="TemperatureCompensationModeComboBox"
-                                          Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="TemperatureCompensationModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="4" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="TemperatureModeAutoRadioButton" AutomationProperties.AutomationId="TemperatureModeAutoRadioButton" Content="Auto" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="TemperatureModeOnRadioButton" AutomationProperties.AutomationId="TemperatureModeOnRadioButton" Content="On" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="TemperatureModeOffRadioButton" AutomationProperties.AutomationId="TemperatureModeOffRadioButton" Content="Off" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Nonlinearity" />
-                                <ComboBox x:Name="NonlinearityCorrectionModeComboBox"
-                                          Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
-                                          AutomationProperties.AutomationId="NonlinearityCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="5" Grid.Column="1" Columns="3" Margin="0,0,0,8">
+                                    <RadioButton x:Name="NonlinearityModeAutoRadioButton" AutomationProperties.AutomationId="NonlinearityModeAutoRadioButton" Content="Auto" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="NonlinearityModeOnRadioButton" AutomationProperties.AutomationId="NonlinearityModeOnRadioButton" Content="On" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="NonlinearityModeOffRadioButton" AutomationProperties.AutomationId="NonlinearityModeOffRadioButton" Content="Off" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
 
                                 <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Binning" />
-                                <ComboBox x:Name="BinningCorrectionModeComboBox"
-                                          Grid.Row="6" Grid.Column="1"
-                                          AutomationProperties.AutomationId="BinningCorrectionModeComboBox"
-                                          ItemsSource="{Binding CalibrationStageModeOptions}"
-                                          SelectedItem="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <UniformGrid Grid.Row="6" Grid.Column="1" Columns="3">
+                                    <RadioButton x:Name="BinningModeAutoRadioButton" AutomationProperties.AutomationId="BinningModeAutoRadioButton" Content="Auto" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
+                                    <RadioButton x:Name="BinningModeOnRadioButton" AutomationProperties.AutomationId="BinningModeOnRadioButton" Content="On" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
+                                    <RadioButton x:Name="BinningModeOffRadioButton" AutomationProperties.AutomationId="BinningModeOffRadioButton" Content="Off" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
+                                </UniformGrid>
                             </Grid>
 
                             <TextBlock x:Name="CalibrationEvaluationSummaryText"
