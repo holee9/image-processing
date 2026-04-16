@@ -42,6 +42,12 @@
                 "BUILD_SHARED_LIBS": "ON",
                 "BUILD_TESTS": "ON",
                 "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "OFF",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "OFF",
                 "XPE_WARNINGS_AS_ERRORS": "ON",
                 "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
             }
@@ -57,6 +63,12 @@
                 "BUILD_SHARED_LIBS": "ON",
                 "BUILD_TESTS": "ON",
                 "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "OFF",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "OFF",
                 "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
             }
         }

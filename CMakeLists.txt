@@ -17,6 +17,12 @@ add_compile_definitions($<$<BOOL:${BUILD_SHARED_LIBS}>:XPE_DLL_EXPORT>)
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)" ON)
 option(BUILD_TESTS "Build unit and integration tests" ON)
 option(BUILD_GSVG "Build GSVG module (independent)" ON)
+option(BUILD_PREPROCESS "Build preprocess module" ON)
+option(BUILD_ENHANCE_BASIC "Build basic enhancement module" ON)
+option(BUILD_ENHANCE_ADVANCED "Build advanced enhancement module" ON)
+option(BUILD_AI "Build AI module" ON)
+option(BUILD_DISPLAY "Build display module" ON)
+option(BUILD_DICOM "Build DICOM module" ON)
 option(XPE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 # Platform detection
@@ -65,12 +71,30 @@ endif()
 
 # XPE modules (Layer 0 + Layer 1)
 add_subdirectory(modules/common)
-xpe_add_optional_subdirectory(modules/preprocess)
-xpe_add_optional_subdirectory(modules/enhance_basic)
-xpe_add_optional_subdirectory(modules/enhance_advanced)
-xpe_add_optional_subdirectory(modules/ai)
-xpe_add_optional_subdirectory(modules/display)
-xpe_add_optional_subdirectory(modules/dicom)
+
+if(BUILD_PREPROCESS)
+    xpe_add_optional_subdirectory(modules/preprocess)
+endif()
+
+if(BUILD_ENHANCE_BASIC)
+    xpe_add_optional_subdirectory(modules/enhance_basic)
+endif()
+
+if(BUILD_ENHANCE_ADVANCED)
+    xpe_add_optional_subdirectory(modules/enhance_advanced)
+endif()
+
+if(BUILD_AI)
+    xpe_add_optional_subdirectory(modules/ai)
+endif()
+
+if(BUILD_DISPLAY)
+    xpe_add_optional_subdirectory(modules/display)
+endif()
+
+if(BUILD_DICOM)
+    xpe_add_optional_subdirectory(modules/dicom)
+endif()
 
 # GSVG module (Layer 1-G, independent)
 if(BUILD_GSVG)
