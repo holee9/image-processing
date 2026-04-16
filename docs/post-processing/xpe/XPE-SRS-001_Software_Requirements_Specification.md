@@ -61,6 +61,7 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-FUNC-021 | 시스템은 VOI LUT (LINEAR, LINEAR_EXACT, SIGMOID)를 지원해야 한다. Body-part별 ≥20 preset 사전정의. 실시간 W/L drag(≤16ms). | Must | HAZ-006 |
 | SRS-FUNC-022 | 시스템은 DICOM PS3.14 GSDF에 따른 Presentation LUT를 적용해야 한다. P-Value 출력. | Must | HAZ-007 |
 | SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다. | Must | — |
+| SRS-FUNC-024 | 시스템 GUI는 원본/처리 영상을 하나의 동기화된 비교 viewport에서 표시해야 하며 swipe, split, overlay, difference, source-only, processed-only 모드를 제공해야 한다. | Must | HAZ-009 |
 
 ### 3.4 DICOM I/O
 
@@ -115,6 +116,7 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-SAFE-007 | 시스템은 GSDF 미보정 display에서 경고를 표시해야 한다 | HAZ-007 | Alert |
 | SRS-SAFE-008 | 시스템은 DL 처리 결과에 "AI-processed" label을 표시해야 한다 | HAZ-008 | Alert |
 | SRS-SAFE-009 | 시스템은 원본/처리 영상 간 즉시 전환 기능을 제공해야 한다 | HAZ-009 | Design |
+| SRS-SAFE-013 | 시스템은 처리 영상을 갱신하더라도 원본 영상 또는 원본 참조를 덮어쓰지 않아야 한다 | HAZ-009 | Design |
 
 ## 8. Performance Requirements
 
@@ -126,6 +128,8 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-PERF-004 | Peak memory per image | ≤ 2 GB |
 | SRS-PERF-005 | DICOM write time | ≤ 1s (uncompressed), ≤ 3s (J2K) |
 | SRS-PERF-006 | Concurrent processing | ≥ 2 images simultaneously |
+| SRS-PERF-007 | GUI comparison viewport comfort envelope | 4096×4096 UInt16 source + processed in one synchronized viewport |
+| SRS-PERF-008 | GUI comparison interaction | zoom/pan/swipe without full pipeline reprocessing |
 
 ## 9. Security Requirements (e)
 
@@ -142,6 +146,8 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-USE-001 | W/L 조정은 마우스 드래그로 가능해야 한다 | IEC 62366-1 |
 | SRS-USE-002 | Processing preset 전환은 1 click 이내여야 한다 | IEC 62366-1 |
 | SRS-USE-003 | 원본/처리 전환은 1 click 또는 keyboard shortcut | IEC 62366-1 |
+| SRS-USE-004 | 원본/처리 비교는 기본적으로 swipe/wiper slider 방식으로 제공되어야 한다 | IEC 62366-1 |
+| SRS-USE-005 | 대용량 영상 검토를 위해 zoom fit, 100%, zoom in/out, pan, optional detach viewer를 제공해야 한다 | IEC 62366-1 |
 
 ## 11. Regulatory Requirements (l)
 

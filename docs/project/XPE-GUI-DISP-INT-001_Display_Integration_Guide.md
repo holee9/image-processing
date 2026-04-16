@@ -585,12 +585,32 @@ Remaining work:
 
 ---
 
-## 16. Revision History
+## 16. Large Image Comparison Viewer Requirement - 2026-04-16 Codex
+
+The next GUI display-integration work package shall replace the temporary two-pane source/processed preview pattern with the approval-gated design in `XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md`.
+
+Required direction:
+
+- default comparison UX: one in-app `ImageComparisonViewport`,
+- default mode: vertical swipe/wiper slider,
+- supported modes: swipe, split locked, overlay opacity, difference heatmap, source only, processed only,
+- interaction: synchronized zoom fit, 100%, zoom in/out, mouse-wheel zoom, pan, cursor pixel readout,
+- data safety: processed layer updates shall not overwrite the source layer,
+- large image target: 4096x4096 UInt16 source + processed comparison in Phase 1b,
+- extension path: tile-backed rendering and LRU cache before claiming larger-than-4096 support,
+- optional detached viewer: allowed, but it must reuse the same viewport state model.
+
+No implementation shall begin until the user approves this comparison viewer work package.
+
+---
+
+## 17. Revision History
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI | Initial cross-validation: GUI-S0 vs SPEC-XPE-P1B-DISP. 5 gaps identified, integration guide created. |
 | 1.1.0 | 2026-04-16 | Codex | Recorded GUI Phase 1b display integration implementation, verification, and native ABI fallback status. |
+| 1.2.0 | 2026-04-16 | Codex | Added approval-gated large image comparison viewer requirement reference. |
 
 ---
 

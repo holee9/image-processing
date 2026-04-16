@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ImageProcTest;
+using ImageProcTest.Controls;
 using ImageProcTest.ViewModels;
 
 RunSelfCheck();
@@ -123,6 +124,15 @@ static void RunWpfE2E()
         var applyBodyPartPresetButton = GetControl<Button>(window, "ApplyBodyPartPresetButton");
         var applyDisplayPipelineButton = GetControl<Button>(window, "ApplyDisplayPipelineButton");
         var displayPipelineSummaryText = GetControl<TextBlock>(window, "DisplayPipelineSummaryText");
+        var comparisonModeComboBox = GetControl<ComboBox>(window, "ComparisonModeComboBox");
+        var comparisonOverlayOpacitySlider = GetControl<Slider>(window, "ComparisonOverlayOpacitySlider");
+        var comparisonViewport = GetControl<ImageComparisonViewport>(window, "ImageComparisonViewport");
+        var zoomFitMenuItem = GetControl<MenuItem>(window, "ZoomFitMenuItem");
+        var zoomActualMenuItem = GetControl<MenuItem>(window, "ZoomActualMenuItem");
+        var zoomInButton = GetControl<Button>(window, "ZoomInButton");
+        var zoomOutButton = GetControl<Button>(window, "ZoomOutButton");
+        var detachComparisonViewerButton = GetControl<Button>(window, "DetachComparisonViewerButton");
+        var comparisonStatusText = GetControl<TextBlock>(window, "ComparisonStatusText");
 
         Assert(initializeButton.Command is not null, "Initialize button command missing.");
         Assert(shutdownButton.Command is not null, "Shutdown button command missing.");
@@ -169,6 +179,15 @@ static void RunWpfE2E()
         Assert(bodyPartPresetComboBox.Items.Count >= 4, "Body part selector should expose four native presets.");
         Assert(applyBodyPartPresetButton.Command is not null, "Apply Body Part Preset command missing.");
         Assert(applyDisplayPipelineButton.Command is not null, "Apply Display Pipeline button command missing.");
+        Assert(comparisonModeComboBox.Items.Count == 7, "Comparison mode selector should expose all approved modes.");
+        Assert(Math.Abs(comparisonOverlayOpacitySlider.Value - 0.5) < 0.001, "Overlay opacity should default to 50%.");
+        Assert(comparisonViewport.CompareMode == "SwipeVertical", "Comparison viewport should default to vertical swipe.");
+        Assert(zoomFitMenuItem.Command is not null, "Zoom Fit menu command missing.");
+        Assert(zoomActualMenuItem.Command is not null, "Zoom 100% menu command missing.");
+        Assert(zoomInButton.Command is not null, "Zoom In button command missing.");
+        Assert(zoomOutButton.Command is not null, "Zoom Out button command missing.");
+        Assert(detachComparisonViewerButton.Command is not null, "Detach Comparison Viewer command missing.");
+        Assert(comparisonStatusText.Text.Contains("SwipeVertical", StringComparison.Ordinal), "Comparison status should include the current mode.");
 
         Assert(versionText.Text == "v0.0.0-mock", "Mock version text mismatch.");
         Assert(displayVersionText.Text == "v0.0.0-mock-display", "Mock display version text mismatch.");
@@ -231,6 +250,13 @@ static void RunWpfE2E()
         {
             throw new InvalidOperationException("Main window DataContext should be MainWindowViewModel.");
         }
+
+        ExecuteCommand(zoomActualMenuItem.Command, "Zoom 100% command missing.");
+        DoEvents();
+        Assert(Math.Abs(viewModel.Settings.ComparisonZoomScale - 1.0) < 0.001, "Zoom 100% command should set absolute scale.");
+        ExecuteCommand(zoomFitMenuItem.Command, "Zoom Fit command missing.");
+        DoEvents();
+        Assert(Math.Abs(viewModel.Settings.ComparisonZoomScale) < 0.001, "Zoom Fit command should restore fit mode.");
 
         ExecuteCommand(shutdownButton.Command, "Shutdown button command missing before shutdown invoke.");
         DoEvents();

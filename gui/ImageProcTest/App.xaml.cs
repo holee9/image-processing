@@ -8,6 +8,10 @@ public partial class App : System.Windows.Application
 
     public static string? AutomationReportPath { get; private set; }
 
+    public static int? AutomationRawWidth { get; private set; }
+
+    public static int? AutomationRawHeight { get; private set; }
+
     public static bool IsAutomationMode =>
         !string.IsNullOrWhiteSpace(AutomationRawPath) &&
         !string.IsNullOrWhiteSpace(AutomationReportPath);
@@ -45,6 +49,24 @@ public partial class App : System.Windows.Application
                 i + 1 < args.Length)
             {
                 AutomationReportPath = Path.GetFullPath(args[i + 1]);
+                i++;
+                continue;
+            }
+
+            if (string.Equals(args[i], "--automation-width", StringComparison.OrdinalIgnoreCase) &&
+                i + 1 < args.Length &&
+                int.TryParse(args[i + 1], out var width))
+            {
+                AutomationRawWidth = width;
+                i++;
+                continue;
+            }
+
+            if (string.Equals(args[i], "--automation-height", StringComparison.OrdinalIgnoreCase) &&
+                i + 1 < args.Length &&
+                int.TryParse(args[i + 1], out var height))
+            {
+                AutomationRawHeight = height;
                 i++;
             }
         }

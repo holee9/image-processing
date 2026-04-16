@@ -24,6 +24,12 @@ public sealed class AppSettings : ObservableObject
     private float _modalityRescaleSlope = 1.0f;
     private float _modalityRescaleIntercept = -1024.0f;
     private bool _showDisplayPanel = true;
+    private string _comparisonMode = "SwipeVertical";
+    private double _comparisonZoomScale;
+    private double _comparisonPanX;
+    private double _comparisonPanY;
+    private double _comparisonSwipePosition = 0.5;
+    private double _comparisonOverlayOpacity = 0.5;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -183,5 +189,65 @@ public sealed class AppSettings : ObservableObject
     {
         get => _showDisplayPanel;
         set => SetProperty(ref _showDisplayPanel, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the active source-vs-processed comparison mode.
+    /// </summary>
+    [JsonPropertyName("comparisonMode")]
+    public string ComparisonMode
+    {
+        get => _comparisonMode;
+        set => SetProperty(ref _comparisonMode, string.IsNullOrWhiteSpace(value) ? "SwipeVertical" : value);
+    }
+
+    /// <summary>
+    /// Gets or sets the absolute viewport zoom scale. A value of 0 means fit-to-view.
+    /// </summary>
+    [JsonPropertyName("comparisonZoomScale")]
+    public double ComparisonZoomScale
+    {
+        get => _comparisonZoomScale;
+        set => SetProperty(ref _comparisonZoomScale, Math.Clamp(value, 0.0, 16.0));
+    }
+
+    /// <summary>
+    /// Gets or sets the comparison viewport horizontal pan offset in device-independent pixels.
+    /// </summary>
+    [JsonPropertyName("comparisonPanX")]
+    public double ComparisonPanX
+    {
+        get => _comparisonPanX;
+        set => SetProperty(ref _comparisonPanX, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the comparison viewport vertical pan offset in device-independent pixels.
+    /// </summary>
+    [JsonPropertyName("comparisonPanY")]
+    public double ComparisonPanY
+    {
+        get => _comparisonPanY;
+        set => SetProperty(ref _comparisonPanY, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the swipe divider position as a normalized 0..1 fraction.
+    /// </summary>
+    [JsonPropertyName("comparisonSwipePosition")]
+    public double ComparisonSwipePosition
+    {
+        get => _comparisonSwipePosition;
+        set => SetProperty(ref _comparisonSwipePosition, Math.Clamp(value, 0.0, 1.0));
+    }
+
+    /// <summary>
+    /// Gets or sets the processed-layer opacity used by overlay mode.
+    /// </summary>
+    [JsonPropertyName("comparisonOverlayOpacity")]
+    public double ComparisonOverlayOpacity
+    {
+        get => _comparisonOverlayOpacity;
+        set => SetProperty(ref _comparisonOverlayOpacity, Math.Clamp(value, 0.0, 1.0));
     }
 }

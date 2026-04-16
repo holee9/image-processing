@@ -557,6 +557,8 @@ Consumer: xpe_dicom.dll (DICOM 인코딩) / GUI (렌더링)
 Data: XpeImageBuffer (uint16, 표시 도메인) + XpeImageMetadata
 ```
 
+GUI 렌더링 소비자는 `ImageComparisonViewport`의 processed layer에 display output을 연결해야 한다. Source layer는 raw 또는 pre-display reference를 보존하며, processed layer 갱신은 source layer를 덮어쓰지 않는다.
+
 ### 6.3 IF-DISPLAY-003: 보조 인터페이스
 
 ```
@@ -567,6 +569,18 @@ Services:
   · Logger (audit trail)
   · ParameterValidator (range checking)
 ```
+
+### 6.4 IF-DISPLAY-004: GUI Comparison Viewport
+
+```
+Consumer: ImageProcTest.exe
+Source layer: immutable raw/pre-display preview or tile provider
+Processed layer: display pipeline output preview or tile provider
+Viewport state: compare mode, zoom, pan, swipe divider, cursor pixel
+Evidence: source ID, processed ID, viewport state, display pipeline summary
+```
+
+Phase 1b shall support a WPF `BitmapSource` / `WriteableBitmap` rendering path for 4096x4096 UInt16 validation. Larger images require a tile-backed renderer and LRU cache before release claims are expanded.
 
 ---
 
@@ -579,6 +593,8 @@ Services:
 | GSDF LUT 캐시 | 1024-entry 고정 크기로 메모리 효율적 |
 | LUT JSON 저장 | 텍스트 기반, 사람이 읽을 수 있는 형식 |
 | SWU-3.4 분리 | Preset 관리를 별도 단위로 모듈화 (재사용성) |
+| 단일 comparison viewport | 원본/처리 영상의 zoom, pan, cursor, W/L 상태를 동기화해 대용량 영상 비교 오류를 줄임 |
+| detached viewer optional | 멀티모니터 검토는 허용하되 기본 UX는 하나의 동기화 viewport로 유지 |
 
 ---
 

@@ -106,6 +106,19 @@ SRS(Software Requirements Specification), SAD(Software Architecture), 테스트,
 
 ---
 
+## 3.1 GUI Comparison Interface 추적
+
+| GUI ID | 요구사항 | SAD 설계 | 시험 ID | 상태 |
+|--------|---------|---------|---------|------|
+| IF-GUI-301 | 원본/처리 레이어 분리 | SAD §6.4 | VER-GUI-001 | Planned |
+| IF-GUI-302 | 동기화 viewport | SAD §6.4 | VER-GUI-001 | Planned |
+| IF-GUI-303 | 비교 상태 증거화 | SAD §6.4 | VER-GUI-001 | Planned |
+| IF-GUI-304 | 대용량 영상 경계 | SAD §6.4 | VER-GUI-001 | Planned |
+
+**검증 상태**: 4/4 GUI comparison 요구사항 추적 가능
+
+---
+
 ## 4. 안전 요구사항 추적
 
 | SAFE ID | 요구사항 | SAD 설계 | 시험 ID | Risk ID | 상태 |
@@ -210,6 +223,7 @@ Risk 추적성: 7/7 위험 → 설계 + 시험 = 100%
 | SAD-DISPLAY-001 | v1.0 | 2026-04-14 |
 | SHA-DISPLAY-001 | v1.0 | 2026-04-14 |
 | RTM-DISPLAY-001 | v1.0 | 2026-04-14 |
+| XPE-GUI-COMPARE-001 | v0.1.0 | 2026-04-16 |
 | TDS-DISPLAY-001 | (미작성) | — |
 
 ---
@@ -231,6 +245,7 @@ Risk 추적성: 7/7 위험 → 설계 + 시험 = 100%
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-14 | XPE QA Team | Initial release |
+| 1.1 | 2026-04-16 | Codex | Added GUI comparison viewport traceability for Issue #8. |
 
 ---
 

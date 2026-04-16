@@ -1,4 +1,6 @@
 using ImageProcTest.Models;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace ImageProcTest.Services;
 
@@ -94,11 +96,12 @@ public sealed class MockXpeBackend : IXpeBackend
     {
         var summary = $"MOCK Display: Modality({settings.ModalityRescaleSlope:0.###}/{settings.ModalityRescaleIntercept:0.###}) -> VOI({settings.VoiLutMode}, C={settings.VoiWindowCenter:0.###}, W={settings.VoiWindowWidth:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
         AddLog(summary);
+        var processedPreview = CreateDisplayPreview(rawFrame, settings);
 
         return new LoadedImageFrame
         {
             Preview = rawFrame.Preview,
-            ProcessedPreview = rawFrame.ProcessedPreview ?? rawFrame.Preview,
+            ProcessedPreview = processedPreview,
             Summary = rawFrame.Summary,
             MetadataText = rawFrame.MetadataText + Environment.NewLine + summary,
             RawPixels = rawFrame.RawPixels,
@@ -108,6 +111,53 @@ public sealed class MockXpeBackend : IXpeBackend
             DisplayPipelineApplied = true,
             DisplayPipelineSummary = summary
         };
+    }
+
+    private static BitmapSource CreateDisplayPreview(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        {
+            return rawFrame.ProcessedPreview ?? rawFrame.Preview;
+        }
+
+        var count = checked(rawFrame.Width * rawFrame.Height);
+        var output = new byte[count];
+        var width = Math.Max(1.0, settings.VoiWindowWidth);
+        var center = settings.VoiWindowCenter;
+        var lower = center - (width / 2.0);
+        var upper = center + (width / 2.0);
+        var range = Math.Max(1.0, upper - lower);
+
+        for (var i = 0; i < count; i++)
+        {
+            var modality = (rawFrame.RawPixels[i] * settings.ModalityRescaleSlope) + settings.ModalityRescaleIntercept;
+            var normalized = NormalizeVoi(modality, lower, range, settings.VoiLutMode);
+            output[i] = (byte)Math.Clamp((int)Math.Round(normalized * 255.0), 0, 255);
+        }
+
+        var preview = BitmapSource.Create(
+            rawFrame.Width,
+            rawFrame.Height,
+            96,
+            96,
+            PixelFormats.Gray8,
+            null,
+            output,
+            rawFrame.Width);
+        preview.Freeze();
+        return preview;
+    }
+
+    private static double NormalizeVoi(double value, double lower, double range, string mode)
+    {
+        if (string.Equals(mode, "Sigmoid", StringComparison.OrdinalIgnoreCase))
+        {
+            var center = lower + (range / 2.0);
+            var steepness = 4.0 / Math.Max(1.0, range);
+            return 1.0 / (1.0 + Math.Exp(-steepness * (value - center)));
+        }
+
+        return Math.Clamp((value - lower) / range, 0.0, 1.0);
     }
 
     public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart) => bodyPart switch

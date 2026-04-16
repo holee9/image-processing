@@ -1,15 +1,15 @@
 # System Verification and Validation Plan
 
 **Document ID**: XPE-SVVP-001  
-**Version**: 1.3.0  
+**Version**: 1.4.0
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / IEC 62304 Compliance  
 **Author**: XPE QA Team  
 **Safety Classification**: IEC 62304 Class B  
 **Canonical Scope**: `docs/project/`  
-**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.3.0  
-**Cross-reference**: `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-GUI-MENU-001_Menu_and_Command_Strategy.md`
+**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.4.0
+**Cross-reference**: `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-GUI-MENU-001_Menu_and_Command_Strategy.md`, `XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md`
 
 ---
 
@@ -48,6 +48,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 4. Frozen benchmark manifests and hashes are required for release claims.
 5. AI evidence is incomplete unless degraded-mode and transparency checks also pass.
 6. Offline help and generated API documentation shall be version-matched to the build under test.
+7. Visual comparison evidence shall preserve synchronized source and processed viewport state, not only screenshot pixels.
 
 ---
 
@@ -65,6 +66,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-FUNC-008` | L3 plus L6 operational telemetry tests | reject-event schema validation and sample exports |
 | `PR-FUNC-009` | L5 usability and navigation tests | Help menu access, workflow-to-help link evidence, offline open behavior |
 | `PR-FUNC-010` | L5 menu and command usability tests | top-level menu presence, disabled-state reason checks, toolbar/menu command parity |
+| `PR-GUI-001` | L5 large-image comparison workflow tests | swipe/split/overlay/diff mode evidence, synchronized zoom/pan evidence |
 | `PR-SAFE-001` | L2 raw-preservation test | byte-identical raw reference evidence |
 | `PR-SAFE-002` | L3 degraded-mode tests | missing-binary and worker-failure scenarios |
 | `PR-SAFE-003` | L2 / L3 alert and diagnostic tests | flags plus external reason capture |
@@ -75,6 +77,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-PERF-002` | L3 performance test | full deterministic latency measurement |
 | `PR-PERF-003` | L3 memory test | peak-memory and steady-state profiling |
 | `PR-PERF-004` | L4 option-cost profiling | incremental Phase 2 and Phase 3 timing |
+| `PR-GUI-002` | L3/L5 viewer resource and interaction test | 4096x4096 16-bit comparison E2E report and memory log |
 | `PR-AI-001` | L2 / L4 worker-isolation tests | launch, crash, restart, timeout evidence |
 | `PR-AI-002` | L4 and L5 reporting tests | model version, confidence, fallback visibility |
 | `PR-AI-003` | L5 usability and labeling tests | assistive labeling and operator override evidence |
@@ -88,6 +91,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-OPS-004` | document review | release-safe / research-gated / hold separation confirmed |
 | `PR-OPS-005` | L2 documentation-generation audit | XML-doc output, Doxygen warning report, API reference completeness check |
 | `PR-OPS-006` | L2 plus L6 packaging audit | offline help bundle, build-version metadata, broken-link and open-path checks |
+| `PR-GUI-003` | L5 evidence-export audit | comparison mode, zoom, pan, divider, source ID, processed ID recorded |
 
 ---
 
@@ -154,6 +158,17 @@ The following checks are mandatory once the host application exposes Help:
 - current workflow or screen can navigate to the intended help page within one entry point,
 - broken-link scan passes for packaged conceptual documentation,
 - public C# and native API reference entry points are reachable from the packaged help index.
+
+## 7.2 Large-image comparison viewer verification
+
+The following checks are mandatory once the host application exposes source-vs-processed comparison:
+
+- 4096x4096 UInt16 RAW source and processed image can be displayed in one synchronized viewport,
+- swipe divider movement does not trigger pipeline reprocessing,
+- zoom fit, 100%, zoom in/out, mouse-wheel zoom, and pan preserve source/processed coordinate alignment,
+- split, overlay opacity, difference heatmap, source-only, and processed-only modes can be switched without reloading source data,
+- detached viewer window reuses the same comparison state model when implemented,
+- evidence export records viewport state and image identity.
 
 ---
 
@@ -227,4 +242,5 @@ Field monitoring may trigger:
 - all open deviations are dispositioned,
 - research-gated and regulatory-hold items are not misrepresented as release claims,
 - benchmark manifests and result bundles are archived and reproducible,
-- offline help bundles and generated API reference outputs are archived with the tested build.
+- offline help bundles and generated API reference outputs are archived with the tested build,
+- comparison viewer evidence is archived for release-relevant visual review claims.

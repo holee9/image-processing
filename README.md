@@ -20,6 +20,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | `xpe_common` 빌드 (`/WX` 경고→오류) | ✅ 통과 | 버그 5건 수정 |
 | `xpe_common` unit tests | ✅ 86 / 86 통과 | Google Test 구성 완료 |
 | `xpe_dicom`, `xpe_preprocess` 외 6개 DLL | ✅ 빌드 성공 | 스텁 구현 포함 |
+| `ImageProcTest` GUI 비교 뷰어 | ✅ 구현/검증 | `wrist_lat_3072x3072.raw` fixture, swipe/overlay/diff/zoom/pan/detach, E2E 통과 |
 
 ### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
 
@@ -100,6 +101,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | [Algorithm-Benchmark-Pack-Spec](docs/project/Algorithm-Benchmark-Pack-Spec.md) | 13개 벤치마크 패밀리 정의 — BP-01~BP-13, 매니페스트 필드, freeze/promotion 규칙 (v1.3.0) |
 | [Algorithm-Evaluation-Protocol](docs/project/Algorithm-Evaluation-Protocol.md) | 알고리즘 개정 비교·승격·보류 기준, 물리 메트릭(MTF/NPS/DQE) 평가 프로토콜, SDT d'/ROC/JAFROC 프레임워크 (v1.3.0) |
 | [Regulatory-Feature-Boundary-Matrix](docs/project/Regulatory-Feature-Boundary-Matrix.md) | 릴리스 경계 매트릭스 — release-safe / research-gated / regulatory-hold 분류 (v1.1.0) |
+| [XPE-GUI-COMPARE-001](docs/project/XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md) | 대용량 원본/처리 영상 비교 뷰어 명세 — 단일 동기화 viewport, swipe/overlay/diff/zoom/pan/detach, 3072 wrist fixture 및 4096 자동화 검증 |
 
 ### Informational
 
@@ -160,6 +162,7 @@ docs/                       문서 체계 (Normative/Informational/Archive + IEC
   archive/                  대체된 문서 (감사 추적용)
   development/              CI/CD 및 빌드 운영 가이드
 modules/common/             네이티브 공통 ABI 및 메모리 기초 요소
+gui/ImageProcTest/          WPF GUI-first 검증 앱, 비교 뷰어, Help, E2E fixture
 tests/common_smoke/         CI용 최소 스모크 테스트
 third_party/                vcpkg 매니페스트
 tools/ci/                   GitHub 검증 및 번들링 스크립트

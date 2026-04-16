@@ -35,12 +35,29 @@ public partial class MainWindow : System.Windows.Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (!App.IsAutomationMode)
+        if (App.IsAutomationMode)
         {
+            await RunAutomationScenarioAsync();
             return;
         }
 
-        await RunAutomationScenarioAsync();
+        if (!string.IsNullOrWhiteSpace(App.AutomationRawPath))
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                if (App.AutomationRawWidth is > 0)
+                {
+                    viewModel.Settings.RawWidth = App.AutomationRawWidth.Value;
+                }
+
+                if (App.AutomationRawHeight is > 0)
+                {
+                    viewModel.Settings.RawHeight = App.AutomationRawHeight.Value;
+                }
+            }
+
+            ClickButton(LoadRawImageButton);
+        }
     }
 
     private async Task RunAutomationScenarioAsync()
@@ -58,13 +75,23 @@ public partial class MainWindow : System.Windows.Window
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 
+            if (App.AutomationRawWidth is > 0)
+            {
+                viewModel.Settings.RawWidth = App.AutomationRawWidth.Value;
+            }
+
+            if (App.AutomationRawHeight is > 0)
+            {
+                viewModel.Settings.RawHeight = App.AutomationRawHeight.Value;
+            }
+
             ClickButton(LoadRawImageButton);
-            await Task.Delay(400);
+            await Task.Delay(1500);
 
             ClickButton(ApplyBodyPartPresetButton);
             await Task.Delay(250);
             ClickButton(ApplyDisplayPipelineButton);
-            await Task.Delay(400);
+            await Task.Delay(1500);
 
             report.LogCountAfterLoad = viewModel.Logs.Count;
             report.AlertCountAfterLoad = viewModel.Alerts.Count;
@@ -75,10 +102,23 @@ public partial class MainWindow : System.Windows.Window
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
             report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
+            report.ComparisonViewportDetected = ImageComparisonViewport is not null;
+            report.ComparisonMode = viewModel.Settings.ComparisonMode;
+            report.ComparisonZoomScale = viewModel.Settings.ComparisonZoomScale;
+            report.ComparisonSwipePosition = viewModel.Settings.ComparisonSwipePosition;
+            report.ComparisonSourcePreserved =
+                viewModel.ActiveImageFrame?.Preview is not null &&
+                ReferenceEquals(viewModel.SourceImage, viewModel.ActiveImageFrame.Preview);
             report.VoiPresetApplied =
                 string.Equals(viewModel.Settings.SelectedBodyPart, "Abdomen", StringComparison.OrdinalIgnoreCase) &&
                 Math.Abs(viewModel.Settings.VoiWindowCenter - 40.0f) < 0.001f &&
                 Math.Abs(viewModel.Settings.VoiWindowWidth - 400.0f) < 0.001f;
+
+            ClickMenuItem(ZoomActualMenuItem);
+            await Task.Delay(100);
+            report.ComparisonZoomScale = viewModel.Settings.ComparisonZoomScale;
+            ClickMenuItem(ZoomFitMenuItem);
+            await Task.Delay(100);
 
             ClickButton(SaveSettingsButton);
             await Task.Delay(250);
@@ -139,7 +179,11 @@ public partial class MainWindow : System.Windows.Window
 
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
-            report.MenuCommandReportCreated = File.Exists(Path.Combine(AppContext.BaseDirectory, "menu-command-report.json"));
+            var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+            report.MenuCommandReportCreated = File.Exists(menuCommandReportPath);
+            report.ComparisonEvidenceExported =
+                report.MenuCommandReportCreated &&
+                File.ReadAllText(menuCommandReportPath).Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
 
             var settingsFile = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             if (File.Exists(settingsFile))
@@ -187,6 +231,12 @@ public partial class MainWindow : System.Windows.Window
                 report.DisplayPipelineApplied &&
                 report.DisplayPanelVisible &&
                 !string.IsNullOrWhiteSpace(report.DisplayVersion) &&
+                report.ComparisonViewportDetected &&
+                report.ComparisonSourcePreserved &&
+                report.ComparisonEvidenceExported &&
+                report.ComparisonZoomScale > 0.0 &&
+                string.Equals(report.ComparisonMode, "SwipeVertical", StringComparison.Ordinal) &&
+                Math.Abs(report.ComparisonSwipePosition - 0.5) < 0.001 &&
                 report.VoiPresetApplied &&
                 report.HelpWindowOpened &&
                 report.HelpDocumentLoaded &&

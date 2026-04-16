@@ -55,6 +55,10 @@ Assert(loadedSettings.SelectedBodyPart == "Abdomen", "Selected body part should 
 Assert(!loadedSettings.GsdfEnabled, "GSDF should default to disabled until PS3.14 validation is complete.");
 Assert(loadedSettings.ModalityRescaleSlope == 1.0f, "Modality slope should default to 1.0.");
 Assert(loadedSettings.ModalityRescaleIntercept == -1024.0f, "Modality intercept should default to -1024.");
+Assert(loadedSettings.ComparisonMode == "SwipeVertical", "Comparison mode should default to vertical swipe.");
+Assert(Math.Abs(loadedSettings.ComparisonZoomScale) < 0.001, "Comparison zoom should default to fit mode.");
+Assert(Math.Abs(loadedSettings.ComparisonSwipePosition - 0.5) < 0.001, "Comparison swipe should default to center.");
+Assert(Math.Abs(loadedSettings.ComparisonOverlayOpacity - 0.5) < 0.001, "Comparison overlay opacity should default to 50%.");
 Assert(
     loadedSettings.OffsetCalibrationDirectory == GuiFixtureManifestService.ResolveFixturePath(fixtureRoot, manifest.CalibrationDirectories.Offset),
     "Offset path should persist.");
@@ -95,6 +99,7 @@ Assert(preset.Center == 40.0f && preset.Width == 400.0f, "Abdomen VOI preset sho
 var displayFrame = backend.ApplyDisplayPipeline(frame, loadedSettings);
 Assert(displayFrame.DisplayPipelineApplied, "Mock display pipeline should mark the frame as applied.");
 Assert(displayFrame.ProcessedPreview is not null, "Mock display pipeline should provide a processed preview.");
+Assert(!ReferenceEquals(displayFrame.Preview, displayFrame.ProcessedPreview), "Mock display pipeline should provide a distinct processed preview for comparison.");
 Assert(displayFrame.DisplayPipelineSummary.Contains("VOI", StringComparison.Ordinal), "Display summary should include VOI settings.");
 
 Console.WriteLine("GUI-S0 self-check passed.");

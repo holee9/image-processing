@@ -1,13 +1,13 @@
 {
   "fixtureId": "gui-s0",
-  "fixtureVersion": "1.0.0",
+  "fixtureVersion": "1.1.0",
   "backendMode": "Mock",
   "rawSample": {
-    "relativePath": "raw/synthetic_1024x1024.raw",
-    "width": 1024,
-    "height": 1024,
+    "relativePath": "raw/wrist_lat_3072x3072.raw",
+    "width": 3072,
+    "height": 3072,
     "pixelFormat": "UInt16LE",
-    "sha256": "FDD18DAF1D49C6691791D3CF410F4EA37241FAF9026CA2E48FF06FA0CF9D1F04"
+    "sha256": "C823233F2196A217F4512BFEC47E62A17F003CC894EF7947E1F40DD0B59A3D70"
   },
   "runtime": {
     "settingsTemplateRelativePath": "appsettings.template.json",

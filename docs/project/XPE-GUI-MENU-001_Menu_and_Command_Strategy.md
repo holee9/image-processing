@@ -49,7 +49,7 @@ Research basis:
 |---|---|---|
 | `File` | input/output, recent files, settings persistence, exit | planned shell |
 | `Backend` | mock/native backend lifecycle, DLL diagnostics, P/Invoke smoke checks | planned shell |
-| `View` | panel visibility, image zoom, layout reset, theme/display aids | planned shell |
+| `View` | panel visibility, image zoom, comparison modes, layout reset, theme/display aids | planned shell |
 | `Pipeline` | staged processing commands from Phase 1a onward | future disabled shell |
 | `Tools` | calibration, fixture, benchmark, QA, and evidence tools | planned shell |
 | `Help` | offline help, quick start, workflow help, API reference, about/build info | active from GUI-S0 |
@@ -104,11 +104,17 @@ Initial and planned commands:
 - `Reset Layout`
 - `Zoom Fit`
 - `Zoom 100%`
+- `Zoom In`
+- `Zoom Out`
+- `Pan`
+- `Compare Mode: Swipe / Split / Overlay / Difference / Source Only / Processed Only`
+- `Detach Viewer`
 
 Rules:
 
 - View commands shall not mutate image data.
 - View commands may be implemented before native DLL integration.
+- Comparison commands shall operate on one synchronized viewport state and must not create unsynchronized source/processed image windows by default.
 
 ### 4.4 Pipeline
 
@@ -199,4 +205,4 @@ Toolbar buttons are shortcuts for high-frequency menu commands, not separate beh
 | Move Help into toolbar only | Rejected | Help is a stable top-level category and should remain discoverable as the menu bar expands |
 | Put all current commands only in toolbar | Rejected | Scales poorly once file, backend, view, tools, and pipeline commands are added |
 | Implement all menus immediately | Rejected | Would create false affordances before owner modules exist |
-
+| Default to two independent source/processed windows | Rejected | Large images make dual-window synchronization expensive and error-prone; a single comparison viewport keeps zoom, pan, cursor, and W/L state aligned |

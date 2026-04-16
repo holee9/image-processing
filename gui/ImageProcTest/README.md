@@ -7,6 +7,7 @@
 - `RealXpeBackend` P/Invoke wrapper for `xpe_common.dll` and `xpe_display.dll`
 - display pipeline command path: Modality LUT -> VOI LUT -> Presentation LUT
 - display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale
+- source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detached viewer
 - settings UI, log panel, alert panel
 - offline packaged Help window with quick-start and scope pages
 - top-level menu bar: File, Backend, View, Pipeline, Tools, Help
@@ -30,14 +31,15 @@ The self-check validates the precreated fixture pack under `gui/ImageProcTest/fi
 
 - `fixture-manifest.json`
 - `appsettings.template.json`
-- `raw/synthetic_1024x1024.raw`
+- `raw/wrist_lat_3072x3072.raw`
 - `calibration/offset|gain|defect/`
 - settings save/load round-trip
 - raw fixture SHA-256 integrity
 - mock backend version plus expected log/alert counts
-- raw image loading and preview creation
+- wrist lateral 3072x3072 raw image loading and preview creation
 - display settings defaults
 - mock display pipeline application
+- comparison viewport defaults, source preservation, and processed preview separation
 - VOI body-part preset values
 
 ## E2E
@@ -56,6 +58,7 @@ The E2E runner:
 - verifies mock version text and initial log/alert population
 - verifies the display settings panel and display version text
 - verifies `Apply Body Part Preset` and `Apply Display Pipeline` command wiring
+- verifies comparison mode controls, zoom commands, and viewport presence
 - verifies menu/toolbar parity and resizable diagnostics splitters
 - clicks `Clear Logs` and `Clear Alerts`
 - verifies both lists are emptied
@@ -90,6 +93,23 @@ The emitted report includes:
 - `DisplayVersion`
 - `VoiPresetApplied`
 - `ResizableDiagnosticsLayoutDetected`
+- `ComparisonViewportDetected`
+- `ComparisonSourcePreserved`
+- `ComparisonEvidenceExported`
+
+## Large-image comparison check
+
+The built-in automation mode can validate the 4096x4096 UInt16 comfort envelope without adding large binary fixtures to git:
+
+```powershell
+.\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.exe `
+  --automation-raw "$env:TEMP\imageproc_synthetic_4096x4096.raw" `
+  --automation-report "$env:TEMP\imageproc_4096_automation_report.json" `
+  --automation-width 4096 `
+  --automation-height 4096
+```
+
+The report must show `Passed=true`, `ActiveImageSummary` beginning with `RAW 4096x4096`, and `ComparisonSourcePreserved=true`.
 
 ## Native display backend
 
@@ -145,9 +165,16 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 - `modalityRescaleSlope`
 - `modalityRescaleIntercept`
 - `showDisplayPanel`
+- `comparisonMode`
+- `comparisonZoomScale`
+- `comparisonPanX`
+- `comparisonPanY`
+- `comparisonSwipePosition`
+- `comparisonOverlayOpacity`
 
 ## Scope boundary
 
 - Real DICOM read/write remains owned by `xpe_dicom.dll` in Phase 1b.
 - SWU-3.4 LUT Manager remains deferred; the GUI uses the four native presets from `xpe_voi_preset_create`.
 - GSDF defaults to off until DICOM PS3.14 validation vectors are accepted.
+- Tile-backed rendering for images larger than 4096x4096 remains a planned extension before larger-size release claims.

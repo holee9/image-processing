@@ -19,16 +19,20 @@
         <li>Launch <strong>ImageProcTest.exe</strong>.</li>
         <li>Confirm the status bar and runtime panel show the mock backend version <code>v0.0.0-mock</code>.</li>
         <li>Select <strong>Load Raw Image</strong> and open the packaged fixture under <code>fixtures/gui-s0/raw/</code>.</li>
-        <li>Review the source preview, processed preview, image summary, logs, and alerts.</li>
-        <li>Open calibration directories or adjust raw settings if needed.</li>
-        <li>Select <strong>Save Settings</strong> to persist the current GUI-S0 paths to <code>appsettings.json</code>.</li>
+        <li>Review the <strong>Source vs Processed Comparison</strong> viewport, image summary, logs, and alerts.</li>
+        <li>Select a comparison mode such as <strong>SwipeVertical</strong>, <strong>OverlayOpacity</strong>, or <strong>DifferenceHeatmap</strong>.</li>
+        <li>Use mouse wheel zoom, right-drag pan, and left-drag swipe movement to inspect large images in one synchronized viewport.</li>
+        <li>Open calibration directories or adjust raw and display settings if needed.</li>
+        <li>Select <strong>Save Settings</strong> to persist the current GUI-S0 paths and comparison viewport state to <code>appsettings.json</code>.</li>
       </ol>
     </section>
 
     <section class="section">
       <h2>Expected Visible Results</h2>
       <ul>
-        <li>The image summary begins with <code>RAW 1024x1024</code>.</li>
+        <li>The image summary begins with <code>RAW 1024x1024</code> for the packaged fixture, or the selected raw dimensions for automation inputs.</li>
+        <li>The comparison viewport defaults to <code>SwipeVertical</code> with the source layer on the left and processed layer on the right.</li>
+        <li>The detached comparison viewer opens from the display settings panel when a larger review surface is needed.</li>
         <li>Logs increase after a successful raw load.</li>
         <li>Alerts are present and severity-colored.</li>
         <li>The last raw directory persists after saving settings.</li>

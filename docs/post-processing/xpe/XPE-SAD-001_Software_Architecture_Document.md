@@ -155,6 +155,20 @@ struct ImageMetadata {
 | IF-EXT-003 | GUI | C ABI DLL | Exception → error code return |
 | IF-EXT-004 | CAD Plugin | REST + ONNX | Timeout → fallback (non-AI) |
 
+### 4.4 Host Comparison Viewer Architecture
+
+`ImageProcTest.exe` shall implement source-vs-processed review through a single synchronized comparison viewport rather than two independent image windows.
+
+The viewport architecture is:
+
+- `SourceImageLayer`: immutable source preview or source tile provider,
+- `ProcessedImageLayer`: latest processed display preview or processed tile provider,
+- `ComparisonViewportState`: zoom, pan, comparison mode, swipe divider, cursor pixel,
+- `ComparisonRenderer`: applies one transform to both layers and clips/draws according to the active mode,
+- `EvidenceExporter`: records image identifiers and viewport state.
+
+Phase 1b may implement this with WPF `BitmapSource` / `WriteableBitmap` plus clipping. Larger-than-4096 workflows shall introduce a tile-backed renderer before release claims are expanded.
+
 ## 5. SOUP Requirements (5.3.3, 5.3.4)
 
 상세 내용은 XPE-SOUP-001 참조. 요약:

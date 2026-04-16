@@ -1,8 +1,13 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Controls;
+using System.Windows.Data;
+using ImageProcTest.Controls;
 using ImageProcTest.Models;
 using ImageProcTest.Services;
+using DataBinding = System.Windows.Data.Binding;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using FormsDialogResult = System.Windows.Forms.DialogResult;
 using FormsFolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
@@ -47,12 +52,29 @@ public sealed class MainWindowViewModel : ObservableObject
         BackendModeOptions = new[] { "Mock", "Native" };
         VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
         BodyPartOptions = Enum.GetNames<XpeBodyPartEnum>();
+        CompareModeOptions = new[]
+        {
+            "SwipeVertical",
+            "SwipeHorizontal",
+            "SplitLocked",
+            "OverlayOpacity",
+            "DifferenceHeatmap",
+            "SourceOnly",
+            "ProcessedOnly"
+        };
+        Settings.PropertyChanged += OnSettingsPropertyChanged;
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
+        ZoomFitCommand = new RelayCommand(ZoomFit);
+        ZoomActualCommand = new RelayCommand(ZoomActual);
+        ZoomInCommand = new RelayCommand(ZoomIn);
+        ZoomOutCommand = new RelayCommand(ZoomOut);
+        ResetComparisonViewCommand = new RelayCommand(ResetComparisonView);
+        DetachComparisonViewerCommand = new RelayCommand(OpenDetachedComparisonViewer);
         SaveSettingsCommand = new RelayCommand(SaveSettings);
         BrowseOffsetCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Offset));
         BrowseGainCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Gain));
@@ -77,6 +99,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string[] BodyPartOptions { get; }
 
+    public string[] CompareModeOptions { get; }
+
     public ObservableCollection<string> Logs { get; }
 
     public ObservableCollection<AlertEntry> Alerts { get; }
@@ -90,6 +114,18 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ApplyDisplayPipelineCommand { get; }
 
     public RelayCommand ApplyBodyPartPresetCommand { get; }
+
+    public RelayCommand ZoomFitCommand { get; }
+
+    public RelayCommand ZoomActualCommand { get; }
+
+    public RelayCommand ZoomInCommand { get; }
+
+    public RelayCommand ZoomOutCommand { get; }
+
+    public RelayCommand ResetComparisonViewCommand { get; }
+
+    public RelayCommand DetachComparisonViewerCommand { get; }
 
     public RelayCommand SaveSettingsCommand { get; }
 
@@ -136,6 +172,10 @@ public sealed class MainWindowViewModel : ObservableObject
         get => _displayPipelineSummary;
         private set => SetProperty(ref _displayPipelineSummary, value);
     }
+
+    public string ComparisonStatus =>
+        $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
+        $"Pan=({Settings.ComparisonPanX:0},{Settings.ComparisonPanY:0}), Swipe={Settings.ComparisonSwipePosition:P0}, Overlay={Settings.ComparisonOverlayOpacity:P0}";
 
     public System.Windows.Media.ImageSource? SourceImage
     {
@@ -252,6 +292,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowLogsPanel = true;
         ShowAlertsPanel = true;
         Settings.ShowDisplayPanel = true;
+        ResetComparisonView();
         StatusText = "Layout reset.";
         Log("Menu command: layout reset.");
     }
@@ -312,6 +353,18 @@ public sealed class MainWindowViewModel : ObservableObject
                 width = Settings.VoiWindowWidth,
                 bodyPart = Settings.SelectedBodyPart,
                 gsdf = Settings.GsdfEnabled
+            },
+            comparison = new
+            {
+                mode = Settings.ComparisonMode,
+                zoomScale = Settings.ComparisonZoomScale,
+                panX = Settings.ComparisonPanX,
+                panY = Settings.ComparisonPanY,
+                swipePosition = Settings.ComparisonSwipePosition,
+                overlayOpacity = Settings.ComparisonOverlayOpacity,
+                sourceLayerPresent = SourceImage is not null,
+                processedLayerPresent = ProcessedImage is not null,
+                sourcePreserved = ActiveImageFrame?.Preview is not null && ReferenceEquals(SourceImage, ActiveImageFrame.Preview)
             },
             logCount = Logs.Count,
             alertCount = Alerts.Count
@@ -412,6 +465,7 @@ public sealed class MainWindowViewModel : ObservableObject
         SourceImage = loadedFrame.Preview;
         ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
         ActiveImageFrame = loadedFrame;
+        ResetComparisonView();
         ActiveImageSummary = loadedFrame.Summary;
         MetadataText = loadedFrame.MetadataText;
         StatusText = $"Loaded {sourceLabel} '{path}'.";
@@ -498,6 +552,131 @@ public sealed class MainWindowViewModel : ObservableObject
                 Message = ex.Message,
                 Timestamp = DateTimeOffset.Now
             });
+        }
+    }
+
+    private void ZoomFit()
+    {
+        Settings.ComparisonZoomScale = 0.0;
+        Settings.ComparisonPanX = 0.0;
+        Settings.ComparisonPanY = 0.0;
+        RefreshComparisonStatus("Comparison viewport reset to fit.");
+    }
+
+    private void ZoomActual()
+    {
+        Settings.ComparisonZoomScale = 1.0;
+        Settings.ComparisonPanX = 0.0;
+        Settings.ComparisonPanY = 0.0;
+        RefreshComparisonStatus("Comparison viewport set to 100%.");
+    }
+
+    private void ZoomIn()
+    {
+        var current = Settings.ComparisonZoomScale <= 0.0 ? 1.0 : Settings.ComparisonZoomScale;
+        Settings.ComparisonZoomScale = Math.Min(16.0, current * 1.25);
+        RefreshComparisonStatus("Comparison viewport zoomed in.");
+    }
+
+    private void ZoomOut()
+    {
+        var current = Settings.ComparisonZoomScale <= 0.0 ? 1.0 : Settings.ComparisonZoomScale;
+        Settings.ComparisonZoomScale = Math.Max(0.05, current / 1.25);
+        RefreshComparisonStatus("Comparison viewport zoomed out.");
+    }
+
+    private void ResetComparisonView()
+    {
+        Settings.ComparisonMode = "SwipeVertical";
+        Settings.ComparisonZoomScale = 0.0;
+        Settings.ComparisonPanX = 0.0;
+        Settings.ComparisonPanY = 0.0;
+        Settings.ComparisonSwipePosition = 0.5;
+        Settings.ComparisonOverlayOpacity = 0.5;
+        OnPropertyChanged(nameof(ComparisonStatus));
+    }
+
+    private void OpenDetachedComparisonViewer()
+    {
+        var viewport = new ImageComparisonViewport
+        {
+            Margin = new System.Windows.Thickness(12),
+            MinWidth = 640,
+            MinHeight = 480
+        };
+        BindDetachedViewport(viewport, ImageComparisonViewport.SourceImageProperty, nameof(SourceImage));
+        BindDetachedViewport(viewport, ImageComparisonViewport.ProcessedImageProperty, nameof(ProcessedImage));
+        BindDetachedViewport(viewport, ImageComparisonViewport.CompareModeProperty, "Settings.ComparisonMode");
+        BindDetachedViewport(viewport, ImageComparisonViewport.ZoomScaleProperty, "Settings.ComparisonZoomScale");
+        BindDetachedViewport(viewport, ImageComparisonViewport.PanXProperty, "Settings.ComparisonPanX");
+        BindDetachedViewport(viewport, ImageComparisonViewport.PanYProperty, "Settings.ComparisonPanY");
+        BindDetachedViewport(viewport, ImageComparisonViewport.SwipePositionProperty, "Settings.ComparisonSwipePosition");
+        BindDetachedViewport(viewport, ImageComparisonViewport.OverlayOpacityProperty, "Settings.ComparisonOverlayOpacity");
+
+        var status = new TextBlock
+        {
+            Margin = new System.Windows.Thickness(12, 0, 12, 12),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+        status.SetBinding(TextBlock.TextProperty, new DataBinding(nameof(ComparisonStatus)) { Source = this });
+
+        var grid = new Grid
+        {
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42))
+        };
+        grid.RowDefinitions.Add(new RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = System.Windows.GridLength.Auto });
+        grid.Children.Add(viewport);
+        Grid.SetRow(status, 1);
+        grid.Children.Add(status);
+
+        var window = new System.Windows.Window
+        {
+            Title = "ImageProcTest Comparison Viewer",
+            Width = 1280,
+            Height = 820,
+            MinWidth = 900,
+            MinHeight = 620,
+            Content = grid
+        };
+
+        var owner = System.Windows.Application.Current.Windows.OfType<System.Windows.Window>().FirstOrDefault(w => w.IsActive);
+        if (owner is not null && !ReferenceEquals(owner, window))
+        {
+            window.Owner = owner;
+        }
+
+        window.Show();
+        RefreshComparisonStatus("Detached comparison viewer opened.");
+    }
+
+    private void BindDetachedViewport(System.Windows.DependencyObject target, System.Windows.DependencyProperty property, string path)
+    {
+        BindingOperations.SetBinding(target, property, new DataBinding(path)
+        {
+            Source = this,
+            Mode = BindingMode.TwoWay,
+            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+        });
+    }
+
+    private void RefreshComparisonStatus(string message)
+    {
+        OnPropertyChanged(nameof(ComparisonStatus));
+        StatusText = message;
+        Log($"{message} {ComparisonStatus}");
+    }
+
+    private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AppSettings.ComparisonMode)
+            or nameof(AppSettings.ComparisonZoomScale)
+            or nameof(AppSettings.ComparisonPanX)
+            or nameof(AppSettings.ComparisonPanY)
+            or nameof(AppSettings.ComparisonSwipePosition)
+            or nameof(AppSettings.ComparisonOverlayOpacity))
+        {
+            OnPropertyChanged(nameof(ComparisonStatus));
         }
     }
 

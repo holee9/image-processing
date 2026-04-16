@@ -1,16 +1,16 @@
 # System Product Requirements Document
 
 **Document ID**: XPE-PRD-SYSTEM-001  
-**Version**: 1.3.0  
+**Version**: 1.4.0
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Execution Baseline  
 **Author**: XPE Program Management  
 **Safety Classification**: IEC 62304 Class B  
 **Canonical Scope**: `docs/project/`  
-**Parent**: `XPE-MRD-001_Market_Requirements_Document.md` v1.2.0  
+**Parent**: `XPE-MRD-001_Market_Requirements_Document.md` v1.3.0
 **System Tie-Breaker**: `SPEC-XPE-MASTER.md`  
-**Cross-checked with**: `product.md`, `pipeline-spec.md`, `api-spec.md`, `xpe-algorithm-spec-deepsync.md`
+**Cross-checked with**: `product.md`, `pipeline-spec.md`, `api-spec.md`, `xpe-algorithm-spec-deepsync.md`, `XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md`
 
 ---
 
@@ -69,6 +69,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 5. `XPE_FLAG_*` values are state bits only. Error details go to alerts or diagnostic JSON.
 6. GSVG failure may degrade open, but the skip state and reason must be recorded explicitly.
 7. AI features are assistive and shall never block deterministic image delivery.
+8. The host comparison viewer is a QA and integration review aid; it shall preserve the source frame and shall not silently replace the deterministic baseline output.
 
 ---
 
@@ -100,6 +101,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-FUNC-008` | The system shall emit standardized event and metadata records sufficient for site-level reject-analysis and repeat-rate review. | `MR-OPS-001` |
 | `PR-FUNC-009` | The host application shall expose a Help entry point that opens version-matched offline documentation for the current workflow, screen, or troubleshooting context. | `MR-MKT-005` |
 | `PR-FUNC-010` | The host application shall expose a top-level menu bar that organizes commands into File, Backend, View, Pipeline, Tools, and Help groups while keeping unsupported phase commands disabled or absent until their owner module is available. | `MR-MKT-005`, `MR-OPS-002` |
+| `PR-GUI-001` | The host application shall provide a synchronized source-vs-processed comparison viewport with swipe, split, overlay, difference, source-only, processed-only, zoom, pan, and optional detach modes. | `MR-IMG-006`, `MR-OPS-005` |
 
 ### 4.2 Safety and degraded-mode requirements
 
@@ -120,6 +122,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-PERF-002` | Full deterministic Phase 1 output shall complete within 3000 ms. | `MR-MKT-001`, `MR-IMG-002` |
 | `PR-PERF-003` | Peak memory shall remain inside the phase budgets defined by the pipeline specification. | `MR-MKT-003` |
 | `PR-PERF-004` | Optional premium and AI stages shall expose bounded incremental latency and must not create unbounded steady-state growth. | `MR-IMG-005`, `MR-AI-001` |
+| `PR-GUI-002` | The host comparison viewer shall support 4096x4096 16-bit source and processed images in one synchronized viewport and shall define a tile/cache extension path before claiming larger-image support. | `MR-IMG-006`, `MR-OPS-005` |
 
 ### 4.4 AI and transparency requirements
 
@@ -148,6 +151,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-OPS-004` | The product shall separate release-safe, research-gated, and regulatory-hold features in documentation, deployment, and verification artifacts. | `MR-REG-003` |
 | `PR-OPS-005` | Public managed contracts and exported native ABI headers shall carry structured documentation comments from which API reference can be generated automatically. | `MR-OPS-004`, `MR-MKT-002` |
 | `PR-OPS-006` | CI and release packaging shall generate and preserve a version-matched offline help bundle that includes conceptual guidance, API reference entry points, and build-version metadata. | `MR-MKT-005`, `MR-OPS-004` |
+| `PR-GUI-003` | Evidence export shall record comparison viewport state, including comparison mode, zoom, pan, divider position, source image identity, and processed image identity. | `MR-OPS-005` |
 
 ---
 
@@ -172,8 +176,9 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 - deterministic baseline image delivery complete,
 - EI baseline complete,
 - GSDF-aligned presentation and DICOM export complete,
+- source-vs-processed comparison viewport supports 4096x4096 16-bit review with synchronized zoom, pan, and swipe comparison,
 - workflow help pages and troubleshooting entry points are synchronized with the deterministic baseline release,
-- `PR-FUNC-001`, `PR-FUNC-003`, `PR-FUNC-005`, `PR-PERF-002` satisfied.
+- `PR-FUNC-001`, `PR-FUNC-003`, `PR-FUNC-005`, `PR-GUI-001`, `PR-PERF-002`, `PR-GUI-002` satisfied.
 
 ### 5.3 Phase 2 exit
 

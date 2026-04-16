@@ -12,12 +12,19 @@
 
 `xpe_display.dll`은 X-ray Flat Panel Detector (FPD) 이미지 처리 엔진의 **표시 처리 모듈**입니다. 강화 도메인 float32 이미지를 입력받아 **DICOM Grayscale Standard Display Function (GSDF)** 파이프라인을 통해 표시 준비 완료된 uint16 출력으로 변환합니다.
 
-### 핵심 특징
+### 핵심 특징 (Phase 1b 구현 범위)
 
-✓ **4개 소프트웨어 단위** (SWU-3.1 ~ SWU-3.4)  
+> ⚠️ **구현 상태 공지 (2026-04-14)**
+> Phase 1b (`SPEC-XPE-P1B-DISP`)에서 **SWU-3.1 ~ SWU-3.3이 구현 완료**되었습니다.
+> **SWU-3.4 LUTManager는 Phase 1b 범위 외(OUT OF SCOPE)**이며 후속 릴리스에서 구현 예정입니다.
+> GUI 통합 참조: [`docs/project/XPE-GUI-DISP-INT-001_Display_Integration_Guide.md`](../project/XPE-GUI-DISP-INT-001_Display_Integration_Guide.md)
+> 대용량 비교 뷰어 참조: [`docs/project/XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md`](../project/XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md)
+
+✓ **3개 소프트웨어 단위 구현됨** (SWU-3.1 ~ SWU-3.3)
+⏸ **SWU-3.4 LUTManager** — 연기됨 (deferred), 후속 릴리스 예정
 ✓ **3개 의무 처리 단계**: Modality LUT → VOI LUT → Presentation LUT  
 ✓ **1개 핵심 형식 경계**: float32 → uint16 (Presentation LUT)  
-✓ **7개 LUT 프리셋**: 신체 부위별 자동 선택  
+✓ **4개 신체 부위 프리셋** (BONE/LUNG/ABDOMEN/HEAD) — `xpe_voi_preset_create()` 제공
 ✓ **DICOM PS3.14 GSDF 준수**: JND 기반 광도 매핑  
 ✓ **의료 display 호환**: 0.05 ~ 4000 cd/m² 범위  
 
@@ -124,13 +131,12 @@
 │  └──────────────────────────────────────┘                │
 │    ▼                                                       │
 │  ┌──────────────────────────────────────┐                │
-│  │  SWU-3.4 LUTManager                  │                │
+│  │  SWU-3.4 LUTManager [⏸ DEFERRED]       │                │
 │  │  · 프리셋 CRUD 관리                  │                │
 │  │  · 자동 선택 (body_part 기반)        │                │
 │  │  · 보간 (Cubic spline)                │                │
 │  │  · 저장: JSON (~/.xpe/luts/)         │                │
-│  │  · 시간: ~1-5ms                      │                │
-│  │  · 인터페이스: xpe_lut_*()           │                │
+│  │  · Phase 1b 범위 외, 후속 릴리스     │                │
 │  └──────────────────────────────────────┘                │
 │    ▼                                                       │
 │  출력: uint16 표시 도메인                                │
@@ -269,54 +275,53 @@ fluoroscopy_realtime
 
 ## API 레퍼런스
 
-### Core Processing Functions
+> 아래는 **Phase 1b에 실제 구현된** `display_api.h` 기준 시그니처입니다.
+> PRD/SAD의 시그니처와 일부 다를 수 있음에 유의하세요.
+
+### Phase 1b 구현 완료 함수 (SWU-3.1 ~ SWU-3.3)
 
 ```c
-// ModalityLUT
-XpeErrorCode xpe_modality_lut_apply(
-    XpeImageBuffer* image,           // 입력
-    float slope,                     // Rescale Slope
-    float intercept,                 // Rescale Intercept
-    XpeImageBuffer* output           // 출력
+// 버전 조회
+const char* xpe_display_version(void);
+
+// SWU-3.1 ModalityLUT: float32 → float32 (in-place)
+XpeErrorCode xpe_apply_modality_lut(
+    XpeImageBuffer* img,              // 입출력 버퍼 (in-place)
+    const XpeModalityLutParams* params // slope/intercept 또는 LUT 테이블
 );
 
-// VoiLUT
-XpeErrorCode xpe_voi_lut_apply_linear(
-    XpeImageBuffer* image,
-    float wc,                        // Window Center
-    float ww,                        // Window Width
-    XpeImageBuffer* output
+// SWU-3.2 VoiLUT: float32 → float32 (in-place)
+// mode: XPE_VOI_LINEAR / XPE_VOI_LINEAR_EXACT / XPE_VOI_SIGMOID
+XpeErrorCode xpe_apply_voi_lut(
+    XpeImageBuffer* img,
+    const XpeVoiLutParams* params      // center, width, minOut, maxOut
 );
 
-XpeErrorCode xpe_voi_lut_apply_sigmoid(
-    XpeImageBuffer* image,
-    float wc,
-    float ww,
-    XpeImageBuffer* output
+// SWU-3.2 VoiLUT 프리셋 생성 (신체 부위 기반)
+// bodyPart: XPE_BODY_BONE(0) / XPE_BODY_LUNG(1) / XPE_BODY_ABDOMEN(2) / XPE_BODY_HEAD(3)
+XpeErrorCode xpe_voi_preset_create(
+    XpeVoiLutParams* params,           // 출력: 채워진 프리셋
+    XpeBodyPart bodyPart
 );
 
-// Presentation LUT
-XpeErrorCode xpe_presentation_lut_apply(
-    XpeImageBuffer* image,
-    float* gsdf_lut,                 // GSDF 테이블
-    XpeImageBuffer* output           // uint16 출력
+// SWU-3.3 PresentationLUT: float32 → uint16 (in-place)
+XpeErrorCode xpe_apply_presentation_lut(
+    XpeImageBuffer* img,
+    const XpePresentationLutParams* params // lutData[1024] + gsdfEnabled
+);
+
+// SWU-3.3 GSDF 보정: luminance 측정값으로 GSDF LUT 생성
+XpeErrorCode xpe_gsdf_calibrate(
+    const float* luminanceValues,      // 측정 광도 배열
+    uint32_t count,                    // 배열 크기
+    XpePresentationLutParams* outParams // 출력: GSDF LUT
 );
 ```
 
-### LUT Manager Functions
+### SWU-3.4 LUTManager (⏸ Phase 1b 범위 외 — 연기됨)
 
-```c
-// CRUD
-XpeErrorCode xpe_lut_add_preset(const XpeLutPreset* preset, const char* lut_id);
-XpeErrorCode xpe_lut_get_preset(const char* lut_id, XpeLutPreset* output);
-XpeErrorCode xpe_lut_remove_preset(const char* lut_id);
-
-// 자동 선택
-XpeErrorCode xpe_lut_auto_select(const char* body_part, char* output_lut_id);
-
-// 리스트
-XpeErrorCode xpe_lut_list_presets(XpeLutPresetInfo* list, uint32_t* count);
-```
+LUT Manager 기능(프리셋 CRUD, 자동 선택, 보간 등)은 Phase 1b에 구현되지 않았습니다.
+현재 Phase 1b에서 프리셋은 `xpe_voi_preset_create()` 단일 함수로 제공됩니다.
 
 ---
 
@@ -324,14 +329,13 @@ XpeErrorCode xpe_lut_list_presets(XpeLutPresetInfo* list, uint32_t* count);
 
 ### 처리 시간 (3072 × 3072 이미지)
 
-| 단계 | 모드 | 예산 | 예상 | 고속화 |
-|------|------|------|------|-------|
-| ModalityLUT | 기본 | 10ms | 5ms | — |
-| VoiLUT | 선형 | 15ms | 10ms | 미리 계산된 LUT |
-| VoiLUT | 시그모이드 | 30ms | 25ms | — |
-| PresentationLUT | GSDF | 10ms | 5ms | LUT 캐시 |
-| LUTManager | 선택 | 5ms | 1ms | 메모리 캐시 |
-| **합계** | | **40ms** | **21-37ms** | Multi-threaded |
+| 단계 | 모드 | SPEC 예산 | 비고 |
+|------|------|----------|------|
+| ModalityLUT | 기본 | ≤ 20ms | SWU-3.1 구현됨 |
+| VoiLUT | 선형/시그모이드 | ≤ 16ms | SWU-3.2 구현됨 |
+| PresentationLUT | GSDF | ≤ 25ms | SWU-3.3 구현됨 |
+| LUTManager | 선택 | — | ⏸ 연기됨 |
+| **전체 파이프라인** | | **≤ 65ms** | SWU-3.1+3.2+3.3 합계 |
 
 ### 메모리 사용
 
@@ -446,11 +450,13 @@ XpeErrorCode xpe_lut_list_presets(XpeLutPresetInfo* list, uint32_t* count);
 
 | 문서 | 경로 | 설명 |
 |------|------|------|
-| PRD | xpe-display-prd.md | 알고리즘 요구사항 |
+| PRD | xpe-display-prd.md | 알고리즘 요구사항 (SWU-3.4 포함 전체 설계) |
 | SRS | SRS-DISPLAY-001.md | 소프트웨어 요건 |
 | SAD | SAD-DISPLAY-001.md | 아키텍처 설계 |
 | SHA | SHA-DISPLAY-001.md | 위험 분석 (7개 위험) |
 | RTM | RTM-DISPLAY-001.md | 추적성 (100% 커버) |
+| **GUI 통합 가이드** | **../project/XPE-GUI-DISP-INT-001_Display_Integration_Guide.md** | **Phase 1b → GUI 연동 교차검증 및 구현 명세** |
+| **GUI 비교 뷰어 사양** | **../project/XPE-GUI-COMPARE-001_Large_Image_Comparison_Viewer_Spec.md** | **4096x4096 16-bit 원본/처리 비교, swipe/zoom/pan 설계** |
 
 ---
 

@@ -70,7 +70,7 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | SWU-5.4 | Logger | spdlog wrapper, audit trail, log level control | SRS-SEC-003 |
 | SWU-5.5 | ParameterValidator | Safe-range enforcement per body-part/algorithm | SRS-SAFE-002, 005 |
 | SWU-5.6 | ConfigManager | JSON config read/write, checksum validation | SRS-SEC-002 |
-| SWU-5.7 | PipelineOrchestrator | Processing stage sequencing, data flow control | SRS-PERF-002 |
+| SWU-5.7 | PipelineOrchestrator / Host Review State | Processing stage sequencing, data flow control, source-vs-processed comparison state handoff | SRS-PERF-002, SRS-FUNC-024, SRS-SAFE-013, SRS-PERF-007, SRS-PERF-008 |
 
 ## 7. Unit Count Summary
 

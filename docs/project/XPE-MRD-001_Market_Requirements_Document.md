@@ -1,7 +1,7 @@
 # Market Requirements Document
 
 **Document ID**: XPE-MRD-001  
-**Version**: 1.2.0  
+**Version**: 1.3.0
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Confidential  
@@ -99,6 +99,7 @@ These customers need:
 | `MR-IMG-003` | XPE shall support Exposure Index / Deviation Index for detector-exposure management, while explicitly avoiding patient-dose claims. | EI/DI are operationally valuable but are not dose surrogates. |
 | `MR-IMG-004` | Nonlinear or suppressive algorithms shall not be promoted using only scalar fidelity metrics; task-based or observer-centered evidence shall be required where clinically relevant. | Published imaging literature shows scalar metrics alone are not enough for nonlinear processing decisions. |
 | `MR-IMG-005` | Premium deterministic features such as virtual grid, ROI-aware EI refinement, and advanced enhancement shall degrade safely when absent or bypassed. | Optional modules must not create unusable systems. |
+| `MR-IMG-006` | XPE shall provide a practical source-vs-processed visual comparison workflow for large detector images. | Operators and reviewers need fast visual evidence that a processing change improved the image without hiding source-context artifacts. |
 
 ### 4.3 Operational quality-control requirements
 
@@ -108,6 +109,7 @@ These customers need:
 | `MR-OPS-002` | XPE shall support DI trend monitoring and site-configurable operational review bands. | Exposure management is a field-operations requirement, not just a lab metric. |
 | `MR-OPS-003` | XPE shall preserve benchmark-pack manifests and content hashes for repeatable release comparison. | Customers need reproducible evidence, not one-off tuning. |
 | `MR-OPS-004` | XPE developer and user documentation shall be generated from version-controlled Markdown and structured code comments so that help stays synchronized with the shipped build. | Manually maintained side documents drift too easily for regulated and integration-heavy programs. |
+| `MR-OPS-005` | XPE shall capture reviewer-visible comparison state, including source/processed layer identity, zoom, pan, and comparison mode, when evidence is exported. | Visual review must be reproducible and auditable, especially when large images cannot be assessed in one native-size view. |
 
 ### 4.4 AI transparency and human-factors requirements
 
@@ -156,6 +158,7 @@ These may be researched, but they are outside the current market claim boundary.
 | OEM adoption | baseline integration into a host system without requiring Phase 2 or Phase 3 binaries |
 | delivery speed | meaningful reduction in time-to-market versus custom, from-scratch image-processing development |
 | image quality | stable detector correction across temperature, gain, and lag-history benchmark families |
+| visual review | source and processed images can be compared in one synchronized viewport for 4096x4096 16-bit frames |
 | field quality | DI trend review and reject-analysis data available for site QA workflows |
 | trust | explicit AI labeling, fallback, and transparency in operator-facing workflows |
 | usability | offline help and integration guidance accessible from the host UI and matched to the shipped version |

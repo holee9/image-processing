@@ -56,6 +56,18 @@ public sealed class GuiAutomationReport
 
     public bool VoiPresetApplied { get; set; }
 
+    public bool ComparisonViewportDetected { get; set; }
+
+    public string ComparisonMode { get; set; } = string.Empty;
+
+    public double ComparisonZoomScale { get; set; }
+
+    public double ComparisonSwipePosition { get; set; }
+
+    public bool ComparisonSourcePreserved { get; set; }
+
+    public bool ComparisonEvidenceExported { get; set; }
+
     public int DisabledFutureCommandCount { get; set; }
 
     public bool MenuCommandReportCreated { get; set; }

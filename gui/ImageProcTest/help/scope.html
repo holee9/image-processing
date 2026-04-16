@@ -20,6 +20,7 @@
         <ul>
           <li>Mock backend initialization and shutdown</li>
           <li>Raw binary image loading and preview rendering</li>
+          <li>Source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detach</li>
           <li>Calibration path settings</li>
           <li>Logs, alerts, and fixture-first automation</li>
           <li>Offline packaged help pages</li>
@@ -31,7 +32,8 @@
           <li>Real native P/Invoke backend</li>
           <li>Real DICOM read/write</li>
           <li>Phase 1a preprocessing controls</li>
-          <li>Phase 1b display, EI, and DICOM workflow controls</li>
+          <li>Full Phase 1b EI and DICOM workflow controls</li>
+          <li>Tile-backed rendering for images beyond the 4096x4096 comfort envelope</li>
           <li>Phase 2 and Phase 3 premium or assistive features</li>
         </ul>
       </article>
@@ -39,7 +41,7 @@
 
     <section class="section">
       <h2>Ownership Boundary</h2>
-      <p>Real DICOM behavior remains owned by <code>xpe_dicom.dll</code>. Real runtime activation remains owned by the native integration sprint. This GUI build is the operator shell and mock-driven verification surface only.</p>
+      <p>Real DICOM behavior remains owned by <code>xpe_dicom.dll</code>. Real runtime activation remains owned by the native integration sprint. The comparison viewport is a host review surface: it preserves the source frame, displays processed output as a separate layer, and records viewport state for evidence.</p>
     </section>
 
     <section class="section">
