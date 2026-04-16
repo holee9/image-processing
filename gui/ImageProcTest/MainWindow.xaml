@@ -1,0 +1,504 @@
+<Window x:Class="ImageProcTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="ImageProcTest GUI-S0"
+        Height="920"
+        Width="1560"
+        MinHeight="720"
+        MinWidth="1280">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </Window.Resources>
+
+    <DockPanel>
+        <Menu x:Name="MainMenu"
+              AutomationProperties.AutomationId="MainMenu"
+              DockPanel.Dock="Top">
+            <MenuItem x:Name="FileMenu"
+                      AutomationProperties.AutomationId="FileMenu"
+                      Header="_File">
+                <MenuItem x:Name="OpenRawMenuItem"
+                          AutomationProperties.AutomationId="OpenRawMenuItem"
+                          Header="_Open Raw..."
+                          Command="{Binding LoadImageCommand}" />
+                <MenuItem x:Name="OpenDicomMenuItem"
+                          AutomationProperties.AutomationId="OpenDicomMenuItem"
+                          Header="Open _DICOM... (Phase 1b)"
+                          IsEnabled="False"
+                          ToolTip="Real DICOM read/write is owned by xpe_dicom.dll in Phase 1b." />
+                <Separator />
+                <MenuItem x:Name="SaveSettingsMenuItem"
+                          AutomationProperties.AutomationId="SaveSettingsMenuItem"
+                          Header="_Save Settings"
+                          Command="{Binding SaveSettingsCommand}" />
+                <MenuItem x:Name="ExportAutomationReportMenuItem"
+                          AutomationProperties.AutomationId="ExportAutomationReportMenuItem"
+                          Header="Export _Automation Report"
+                          Command="{Binding ExportAutomationReportCommand}" />
+                <Separator />
+                <MenuItem x:Name="ExitMenuItem"
+                          AutomationProperties.AutomationId="ExitMenuItem"
+                          Header="E_xit"
+                          Click="ExitMenuItem_OnClick" />
+            </MenuItem>
+
+            <MenuItem x:Name="BackendMenu"
+                      AutomationProperties.AutomationId="BackendMenu"
+                      Header="_Backend">
+                <MenuItem x:Name="InitializeBackendMenuItem"
+                          AutomationProperties.AutomationId="InitializeBackendMenuItem"
+                          Header="_Initialize Backend"
+                          Command="{Binding InitializeBackendCommand}" />
+                <MenuItem x:Name="ShutdownBackendMenuItem"
+                          AutomationProperties.AutomationId="ShutdownBackendMenuItem"
+                          Header="_Shutdown Backend"
+                          Command="{Binding ShutdownBackendCommand}" />
+                <Separator />
+                <MenuItem x:Name="BackendModeMenuItem"
+                          AutomationProperties.AutomationId="BackendModeMenuItem"
+                          Header="Backend _Mode">
+                    <MenuItem x:Name="MockBackendModeMenuItem"
+                              AutomationProperties.AutomationId="MockBackendModeMenuItem"
+                              Header="_Mock"
+                              IsCheckable="True"
+                              IsChecked="True" />
+                    <MenuItem x:Name="NativeBackendModeMenuItem"
+                              AutomationProperties.AutomationId="NativeBackendModeMenuItem"
+                              Header="_Native (SPRINT-P0-07)"
+                              IsCheckable="True"
+                              IsEnabled="False"
+                              ToolTip="Native backend activation starts after RealXpeBackend and P/Invoke integration." />
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="NativeDllDiagnosticsMenuItem"
+                          AutomationProperties.AutomationId="NativeDllDiagnosticsMenuItem"
+                          Header="Native DLL _Diagnostics"
+                          Command="{Binding ShowNativeDiagnosticsCommand}" />
+                <MenuItem x:Name="PInvokeSmokeTestMenuItem"
+                          AutomationProperties.AutomationId="PInvokeSmokeTestMenuItem"
+                          Header="Run P/_Invoke Smoke Test (SPRINT-P0-07)"
+                          IsEnabled="False"
+                          ToolTip="Requires xpe_common.dll and RealXpeBackend integration." />
+            </MenuItem>
+
+            <MenuItem x:Name="ViewMenu"
+                      AutomationProperties.AutomationId="ViewMenu"
+                      Header="_View">
+                <MenuItem x:Name="ShowRuntimePanelMenuItem"
+                          AutomationProperties.AutomationId="ShowRuntimePanelMenuItem"
+                          Header="Runtime Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowRuntimePanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowRawSettingsPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowRawSettingsPanelMenuItem"
+                          Header="Raw Settings Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowRawSettingsPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowCalibrationPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowCalibrationPanelMenuItem"
+                          Header="Calibration Paths Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowCalibrationPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowImageSummaryPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowImageSummaryPanelMenuItem"
+                          Header="Image Summary Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowImageSummaryPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowMetadataPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowMetadataPanelMenuItem"
+                          Header="Metadata / Notes Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowMetadataPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowLogsPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowLogsPanelMenuItem"
+                          Header="Logs Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowLogsPanel, Mode=TwoWay}" />
+                <MenuItem x:Name="ShowAlertsPanelMenuItem"
+                          AutomationProperties.AutomationId="ShowAlertsPanelMenuItem"
+                          Header="Alerts Panel"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowAlertsPanel, Mode=TwoWay}" />
+                <Separator />
+                <MenuItem x:Name="ResetLayoutMenuItem"
+                          AutomationProperties.AutomationId="ResetLayoutMenuItem"
+                          Header="_Reset Layout"
+                          Command="{Binding ResetLayoutCommand}" />
+                <Separator />
+                <MenuItem x:Name="ZoomFitMenuItem"
+                          AutomationProperties.AutomationId="ZoomFitMenuItem"
+                          Header="Zoom _Fit (Phase 1b)"
+                          IsEnabled="False"
+                          ToolTip="Zoom controls are enabled with the display workflow." />
+                <MenuItem x:Name="ZoomActualMenuItem"
+                          AutomationProperties.AutomationId="ZoomActualMenuItem"
+                          Header="Zoom _100% (Phase 1b)"
+                          IsEnabled="False"
+                          ToolTip="Zoom controls are enabled with the display workflow." />
+            </MenuItem>
+
+            <MenuItem x:Name="PipelineMenu"
+                      AutomationProperties.AutomationId="PipelineMenu"
+                      Header="_Pipeline">
+                <MenuItem x:Name="RunPreprocessingMenuItem"
+                          AutomationProperties.AutomationId="RunPreprocessingMenuItem"
+                          Header="Run _Preprocessing (Phase 1a)"
+                          IsEnabled="False"
+                          ToolTip="Requires xpe_preprocess.dll." />
+                <MenuItem x:Name="RunDeterministicBaselineMenuItem"
+                          AutomationProperties.AutomationId="RunDeterministicBaselineMenuItem"
+                          Header="Run _Deterministic Baseline (Phase 1b)"
+                          IsEnabled="False"
+                          ToolTip="Requires preprocess, enhance_basic, display, and dicom modules." />
+                <MenuItem x:Name="RunFullPipelineMenuItem"
+                          AutomationProperties.AutomationId="RunFullPipelineMenuItem"
+                          Header="Run _Full Pipeline (Phase 2/3)"
+                          IsEnabled="False"
+                          ToolTip="Requires optional premium and assistive modules." />
+                <MenuItem x:Name="StopProcessingMenuItem"
+                          AutomationProperties.AutomationId="StopProcessingMenuItem"
+                          Header="_Stop Processing"
+                          IsEnabled="False"
+                          ToolTip="Enabled after a real processing run command exists." />
+                <Separator />
+                <MenuItem x:Name="StageTimingMenuItem"
+                          AutomationProperties.AutomationId="StageTimingMenuItem"
+                          Header="Stage _Timing"
+                          IsEnabled="False"
+                          ToolTip="Enabled when real pipeline timing evidence is available." />
+            </MenuItem>
+
+            <MenuItem x:Name="ToolsMenu"
+                      AutomationProperties.AutomationId="ToolsMenu"
+                      Header="_Tools">
+                <MenuItem x:Name="CalibrationSettingsMenuItem"
+                          AutomationProperties.AutomationId="CalibrationSettingsMenuItem"
+                          Header="_Calibration Settings"
+                          Command="{Binding ShowCalibrationSettingsCommand}" />
+                <MenuItem x:Name="FixtureManagerMenuItem"
+                          AutomationProperties.AutomationId="FixtureManagerMenuItem"
+                          Header="_Fixture Manager"
+                          Command="{Binding ShowFixtureManagerCommand}" />
+                <MenuItem x:Name="ExportEvidenceSnapshotMenuItem"
+                          AutomationProperties.AutomationId="ExportEvidenceSnapshotMenuItem"
+                          Header="Export _Evidence Snapshot"
+                          Command="{Binding ExportAutomationReportCommand}" />
+                <Separator />
+                <MenuItem x:Name="RunSelfCheckMenuItem"
+                          AutomationProperties.AutomationId="RunSelfCheckMenuItem"
+                          Header="Run _Self-Check"
+                          IsEnabled="False"
+                          ToolTip="Available through the current test runner; in-app launch is a later tools command." />
+                <MenuItem x:Name="RunGuiE2EMenuItem"
+                          AutomationProperties.AutomationId="RunGuiE2EMenuItem"
+                          Header="Run GUI _E2E"
+                          IsEnabled="False"
+                          ToolTip="Available through the current test runner; in-app launch is a later tools command." />
+                <MenuItem x:Name="BenchmarkRunnerMenuItem"
+                          AutomationProperties.AutomationId="BenchmarkRunnerMenuItem"
+                          Header="_Benchmark Runner (Phase 1a+)"
+                          IsEnabled="False"
+                          ToolTip="Requires benchmark manifests and native module execution." />
+                <MenuItem x:Name="QaConstancyMenuItem"
+                          AutomationProperties.AutomationId="QaConstancyMenuItem"
+                          Header="_QA Constancy (Phase 1b+)"
+                          IsEnabled="False"
+                          ToolTip="Requires QA workflow implementation." />
+            </MenuItem>
+
+            <MenuItem x:Name="HelpMenu"
+                      AutomationProperties.AutomationId="HelpMenu"
+                      Header="_Help">
+                <MenuItem x:Name="OpenHelpIndexMenuItem"
+                          AutomationProperties.AutomationId="OpenHelpIndexMenuItem"
+                          Header="_Help Home"
+                          Click="OpenHelpIndexMenuItem_OnClick" />
+                <MenuItem x:Name="OpenQuickStartHelpMenuItem"
+                          AutomationProperties.AutomationId="OpenQuickStartHelpMenuItem"
+                          Header="_Quick Start"
+                          Click="OpenQuickStartHelpMenuItem_OnClick" />
+                <MenuItem x:Name="OpenScopeHelpMenuItem"
+                          AutomationProperties.AutomationId="OpenScopeHelpMenuItem"
+                          Header="_Scope and Limitations"
+                          Click="OpenScopeHelpMenuItem_OnClick" />
+                <Separator />
+                <MenuItem x:Name="OpenApiReferenceMenuItem"
+                          AutomationProperties.AutomationId="OpenApiReferenceMenuItem"
+                          Header="_API Reference (DocFX/Doxygen)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when generated API reference is packaged." />
+                <MenuItem x:Name="OpenTroubleshootingMenuItem"
+                          AutomationProperties.AutomationId="OpenTroubleshootingMenuItem"
+                          Header="_Troubleshooting (Phase 1b)"
+                          IsEnabled="False"
+                          ToolTip="Enabled when deterministic baseline troubleshooting pages are packaged." />
+                <Separator />
+                <MenuItem x:Name="AboutBuildInfoMenuItem"
+                          AutomationProperties.AutomationId="AboutBuildInfoMenuItem"
+                          Header="_About / Build Info"
+                          Click="AboutBuildInfoMenuItem_OnClick" />
+            </MenuItem>
+        </Menu>
+
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
+                           Content="{Binding StatusText}" />
+        </StatusBar>
+
+        <ToolBarTray DockPanel.Dock="Top">
+            <ToolBar>
+                <Button x:Name="InitializeBackendButton"
+                        AutomationProperties.AutomationId="InitializeBackendButton"
+                        Command="{Binding InitializeBackendCommand}"
+                        Content="Initialize Backend" />
+                <Button x:Name="ShutdownBackendButton"
+                        AutomationProperties.AutomationId="ShutdownBackendButton"
+                        Command="{Binding ShutdownBackendCommand}"
+                        Content="Shutdown Backend" />
+                <Separator />
+                <Button x:Name="LoadRawImageButton"
+                        AutomationProperties.AutomationId="LoadRawImageButton"
+                        Command="{Binding LoadImageCommand}"
+                        Content="Load Raw Image" />
+                <Button x:Name="SaveSettingsButton"
+                        AutomationProperties.AutomationId="SaveSettingsButton"
+                        Command="{Binding SaveSettingsCommand}"
+                        Content="Save Settings" />
+                <Separator />
+                <Button x:Name="ClearLogsButton"
+                        AutomationProperties.AutomationId="ClearLogsButton"
+                        Command="{Binding ClearLogsCommand}"
+                        Content="Clear Logs" />
+                <Button x:Name="ClearAlertsButton"
+                        AutomationProperties.AutomationId="ClearAlertsButton"
+                        Command="{Binding ClearAlertsCommand}"
+                        Content="Clear Alerts" />
+            </ToolBar>
+        </ToolBarTray>
+
+        <Grid Margin="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="380" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+                <StackPanel>
+                    <GroupBox x:Name="RuntimeGroup"
+                              AutomationProperties.AutomationId="RuntimeGroup"
+                              Header="Runtime"
+                              Margin="0,0,0,12"
+                              Visibility="{Binding ShowRuntimePanel, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Margin="10">
+                            <TextBlock FontWeight="Bold" Text="Requested Backend Mode" />
+                            <ComboBox x:Name="BackendModeComboBox"
+                                      AutomationProperties.AutomationId="BackendModeComboBox"
+                                      ItemsSource="{Binding BackendModeOptions}"
+                                      SelectedItem="{Binding Settings.BackendMode, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="0,4,0,8" />
+
+                            <TextBlock FontWeight="Bold" Text="Backend Name" />
+                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.BackendName}" />
+
+                            <TextBlock FontWeight="Bold" Text="Version" />
+                            <TextBlock x:Name="BackendVersionText"
+                                       AutomationProperties.AutomationId="BackendVersionText"
+                                       Margin="0,4,0,8"
+                                       Text="{Binding RuntimeInfo.Version}" />
+
+                            <TextBlock FontWeight="Bold" Text="State" />
+                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.State}" />
+
+                            <TextBlock FontWeight="Bold" Text="Supports Native Runtime" />
+                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.SupportsNativeRuntime}" />
+
+                            <TextBlock FontWeight="Bold" Text="Native DLL Detected" />
+                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.NativeDllDetected}" />
+
+                            <TextBlock FontWeight="Bold" Text="Native DLL Path" />
+                            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RuntimeInfo.NativeDllPath}" />
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox x:Name="RawImageSettingsGroup"
+                              AutomationProperties.AutomationId="RawImageSettingsGroup"
+                              Header="Raw Image Settings"
+                              Margin="0,0,0,12"
+                              Visibility="{Binding ShowRawSettingsPanel, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Margin="10">
+                            <TextBlock FontWeight="Bold" Text="Raw Width" />
+                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawWidth, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Raw Height" />
+                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawHeight, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Raw Pixel Format" />
+                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawPixelFormat, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock FontWeight="Bold" Text="Last Raw Directory" />
+                            <TextBox Margin="0,4,0,0" Text="{Binding Settings.LastRawDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox x:Name="CalibrationPathsGroup"
+                              AutomationProperties.AutomationId="CalibrationPathsGroup"
+                              Header="Calibration Paths"
+                              Margin="0,0,0,12"
+                              Visibility="{Binding ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}">
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="88" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Row="0" Grid.Column="0" Margin="0,0,8,8"
+                                     AutomationProperties.AutomationId="OffsetCalibrationPathTextBox"
+                                     Text="{Binding Settings.OffsetCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                                    AutomationProperties.AutomationId="BrowseOffsetCalibrationDirectoryButton"
+                                    Command="{Binding BrowseOffsetCalibrationDirectoryCommand}"
+                                    Content="Browse" />
+
+                            <TextBox Grid.Row="1" Grid.Column="0" Margin="0,0,8,8"
+                                     AutomationProperties.AutomationId="GainCalibrationPathTextBox"
+                                     Text="{Binding Settings.GainCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
+                                    AutomationProperties.AutomationId="BrowseGainCalibrationDirectoryButton"
+                                    Command="{Binding BrowseGainCalibrationDirectoryCommand}"
+                                    Content="Browse" />
+
+                            <TextBox Grid.Row="2" Grid.Column="0"
+                                     AutomationProperties.AutomationId="DefectCalibrationPathTextBox"
+                                     Text="{Binding Settings.DefectCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Grid.Row="2" Grid.Column="1"
+                                    AutomationProperties.AutomationId="BrowseDefectCalibrationDirectoryButton"
+                                    Command="{Binding BrowseDefectCalibrationDirectoryCommand}"
+                                    Content="Browse" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox x:Name="ImageSummaryGroup"
+                              AutomationProperties.AutomationId="ImageSummaryGroup"
+                              Header="Image Summary"
+                              Visibility="{Binding ShowImageSummaryPanel, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock x:Name="ImageSummaryText"
+                                   AutomationProperties.AutomationId="ImageSummaryText"
+                                   Margin="10"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding ActiveImageSummary}" />
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Column="1" Margin="0,0,12,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="180" />
+                </Grid.RowDefinitions>
+
+                <GroupBox x:Name="SourceRawImageGroup"
+                          AutomationProperties.AutomationId="SourceRawImageGroup"
+                          Header="Source Raw Image"
+                          Margin="0,0,0,12">
+                    <Border Margin="10" BorderBrush="#444" BorderThickness="1" Background="#111">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Image Stretch="None" Source="{Binding SourceImage}" />
+                        </ScrollViewer>
+                    </Border>
+                </GroupBox>
+
+                <GroupBox x:Name="ProcessedPreviewGroup"
+                          AutomationProperties.AutomationId="ProcessedPreviewGroup"
+                          Grid.Row="1"
+                          Header="Processed Preview (Same Frame In GUI-S0)"
+                          Margin="0,0,0,12">
+                    <Border Margin="10" BorderBrush="#444" BorderThickness="1" Background="#111">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Image Stretch="None" Source="{Binding ProcessedImage}" />
+                        </ScrollViewer>
+                    </Border>
+                </GroupBox>
+
+                <GroupBox x:Name="MetadataNotesGroup"
+                          AutomationProperties.AutomationId="MetadataNotesGroup"
+                          Grid.Row="2"
+                          Header="Metadata / Notes"
+                          Visibility="{Binding ShowMetadataPanel, Converter={StaticResource BoolToVisibility}}">
+                    <ScrollViewer Margin="10" VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="MetadataTextBlock"
+                                   AutomationProperties.AutomationId="MetadataTextBlock"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding MetadataText}" />
+                    </ScrollViewer>
+                </GroupBox>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <GroupBox x:Name="LogsGroup"
+                          AutomationProperties.AutomationId="LogsGroup"
+                          Header="Logs"
+                          Margin="0,0,0,12"
+                          Visibility="{Binding ShowLogsPanel, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox x:Name="LogsListBox"
+                             AutomationProperties.AutomationId="LogsListBox"
+                             Margin="10"
+                             ItemsSource="{Binding Logs}"
+                             FontFamily="Consolas"
+                             FontSize="12" />
+                </GroupBox>
+
+                <GroupBox x:Name="AlertsGroup"
+                          AutomationProperties.AutomationId="AlertsGroup"
+                          Grid.Row="1"
+                          Header="Alerts"
+                          Visibility="{Binding ShowAlertsPanel, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox x:Name="AlertsListBox"
+                             AutomationProperties.AutomationId="AlertsListBox"
+                             Margin="10"
+                             ItemsSource="{Binding Alerts}"
+                             FontFamily="Consolas"
+                             FontSize="12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="6" Margin="0,0,0,6" CornerRadius="4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#223040" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Severity}" Value="INFO">
+                                                    <Setter Property="Background" Value="#1F3344" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Severity}" Value="WARN">
+                                                    <Setter Property="Background" Value="#4D3A18" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Severity}" Value="ERROR">
+                                                    <Setter Property="Background" Value="#4A1F24" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock TextWrapping="Wrap" Text="{Binding}" />
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </GroupBox>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,9 +1,9 @@
 ﻿# XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.6.0
+**Version**: 1.7.0
 **Date**: 2026-04-16
-**Source**: SPEC-XPE-MASTER v2.4.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0, XPE-DOC-HELP-001 v1.0.0
+**Source**: SPEC-XPE-MASTER v2.5.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0, XPE-DOC-HELP-001 v2.1.0, XPE-GUI-MENU-001 v1.0.0
 **Total Sprints**: 29
 **Changelog**:
 - v1.0.0 -> v1.1.0: cross-verification corrections, EI scope corrected, appendices expanded.
@@ -12,6 +12,7 @@
 - v1.3.0 -> v1.4.0: cross-verification round 11 added the P0-13 benchmark manifest gate, NLCSC Tier 3 gate, and scalar-reference DoD in P1A-02.
 - v1.4.0 -> v1.5.0: GUI-First restructure — SPRINT-GUI-S0 added (sprint 0, no C++ dependency), P0-07 scoped to IXpeBackend adapter + P/Invoke only (DICOM ownership stays in Phase 1b), Gates G2/G3 upgraded to dual-gate (benchmark/task-based evidence + GUI demo), GUI verification reclassified as required demo evidence (non-blocking for C++ merge).
 - v1.5.0 -> v1.6.0: documentation-as-code and in-app Help adopted — XML docs + Doxygen + packaged offline Help added as cross-cutting requirements from GUI-S0 onward.
+- v1.6.0 -> v1.7.0: top-level menu bar retained as the long-term command taxonomy; File, Backend, View, Pipeline, Tools, and Help groups adopted, with toolbar retained as shortcut surface.
 
 ---
 
@@ -43,6 +44,7 @@ The following rules are now mandatory across the sprint plan:
 8. Phase 2 and Phase 3 quality gates require a **dual-gate**: (a) quantitative benchmark / task-based / observer evidence per Algorithm-Evaluation-Protocol.md §4.1 and §5.1, AND (b) GUI demo evidence. GUI Before/After alone is insufficient to pass Gate G2 or G3.
 9. Public C# contracts shall use XML documentation comments; exported native ABI headers shall use Doxygen-style comments. Generated help and API reference are part of the deliverable, not optional side work.
 10. `ImageProcTest.exe` shall expose an offline Help entry point from the earliest GUI sprint. The Help bundle must stay version-matched to the build and open without network dependency.
+11. `ImageProcTest.exe` shall keep a top-level menu bar. The canonical menu groups are `File`, `Backend`, `View`, `Pipeline`, `Tools`, and `Help`; toolbar buttons are shortcuts for frequent commands, not separate behavior.
 
 These rules are intended to maximize implementation feasibility, not to slow the project down.
 
@@ -125,6 +127,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] Benchmark manifest schema exists at `data/benchmark/schema/` and defines the required dataset families `BP-01` through `BP-10`
 - [ ] XML documentation generation enabled for managed public contracts and Doxygen config defined for exported native headers
 - [ ] GUI host exposes an offline quick-start Help entry point for the current build
+- [ ] GUI host exposes the canonical top-level menu groups, with unsupported phase commands disabled or absent
 
 ### Gate G1a -> G1b (Phase 1a Complete)
 
@@ -220,6 +223,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 9. Log panel: displays timestamped messages from active `IXpeBackend` implementation
 10. Alert panel: displays alerts with severity color coding (INFO=gray, WARN=yellow, ERROR=red)
 11. Main window exposes a `Help` entry point that opens a packaged local quick-start and scope page without network dependency
+12. Main window retains a top-level menu bar with at least `File`, `Backend`, `View`, `Tools`, and `Help`; `Pipeline` may appear disabled until owner DLLs exist
 
 **Test Cases**:
 1. Launch with no DLLs present → window opens, MockXpeBackend activates, status bar shows "v0.0.0-mock"
@@ -230,6 +234,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 6. Alert panel: MockXpeBackend queues 3 alerts (1 INFO, 1 WARN, 1 ERROR) → color coding correct
 7. `IXpeBackend.GetVersion()` on MockXpeBackend → returns non-empty string (no exception)
 8. `Help` entry opens the packaged quick-start page and shows the current build scope without network access
+9. Menu bar exposes the canonical menu groups; unsupported commands are disabled or absent and do not imply DICOM/native behavior exists
 
 **Definition of Done**:
 - [ ] `IXpeBackend` interface and `MockXpeBackend` in `src/gui/backend/`
@@ -238,6 +243,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [ ] Raw image display: uint16 → normalized [0,255] grayscale renders correctly for 3072×3072
 - [ ] `appsettings.json` schema documented with all 4 keys
 - [ ] Quick-start Help bundle packaged with the build output and reachable from the UI
+- [ ] Menu bar follows `XPE-GUI-MENU-001`: menu groups provide command taxonomy, toolbar provides high-frequency shortcuts
 - [ ] **No DICOM code**: no references to DCMTK, DicomFile, or `.dcm` parsing in C# project
 
 **GUI Demo Evidence** (non-blocking — required at sprint review):

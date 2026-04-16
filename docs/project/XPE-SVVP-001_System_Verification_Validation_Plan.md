@@ -1,15 +1,15 @@
 # System Verification and Validation Plan
 
 **Document ID**: XPE-SVVP-001  
-**Version**: 1.2.0  
+**Version**: 1.3.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / IEC 62304 Compliance  
 **Author**: XPE QA Team  
 **Safety Classification**: IEC 62304 Class B  
 **Canonical Scope**: `docs/project/`  
-**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.2.0  
-**Cross-reference**: `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`
+**Parent**: `XPE-PRD-SYSTEM-001_System_Product_Requirements.md` v1.3.0  
+**Cross-reference**: `Algorithm-Benchmark-Pack-Spec.md`, `Algorithm-Evaluation-Protocol.md`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-GUI-MENU-001_Menu_and_Command_Strategy.md`
 
 ---
 
@@ -64,6 +64,7 @@ The goal is to prove not only that the system was built correctly, but that it r
 | `PR-FUNC-007` | L3 and L5 QA workflow tests | orchestration and constancy workflow evidence |
 | `PR-FUNC-008` | L3 plus L6 operational telemetry tests | reject-event schema validation and sample exports |
 | `PR-FUNC-009` | L5 usability and navigation tests | Help menu access, workflow-to-help link evidence, offline open behavior |
+| `PR-FUNC-010` | L5 menu and command usability tests | top-level menu presence, disabled-state reason checks, toolbar/menu command parity |
 | `PR-SAFE-001` | L2 raw-preservation test | byte-identical raw reference evidence |
 | `PR-SAFE-002` | L3 degraded-mode tests | missing-binary and worker-failure scenarios |
 | `PR-SAFE-003` | L2 / L3 alert and diagnostic tests | flags plus external reason capture |

@@ -1,7 +1,7 @@
 # Technical Stack
 
 **Document ID**: XPE-TECH-001  
-**Version**: 1.2.0  
+**Version**: 1.3.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
@@ -83,13 +83,28 @@ The project rule remains:
 | Doxygen | 1.12+ | Native C/C++ API reference generation from exported headers; `WARN_AS_ERROR = FAIL_ON_WARNINGS` enforces full coverage |
 | doxygen-awesome-css | latest | Modern responsive theme for Doxygen HTML output — dark mode, collapsible sidebar, interactive TOC, full-text search |
 | DocFX | v2.74+ | Managed API reference + conceptual documentation portal (C#); integrates with Doxygen XML output for cross-reference |
-| WebView2 | — | In-app offline help viewer inside the WPF host using local virtual-host mapping |
+| WebView2 | current Evergreen runtime where available | In-app offline help viewer inside the WPF host using local virtual-host mapping |
 
 Documentation generation is automated via `.github/workflows/docs-generate.yml`:
 
 - Doxygen job runs on every push to `main` / `dev/integration` that touches a public header.
 - DocFX job generates the managed API + conceptual site in parallel.
 - On release: both artifacts are bundled into a versioned `help-bundle-{version}.zip` and attached to the GitHub Release.
+
+### 4.4 GUI Menu and Commanding Stack
+
+| Component | Role |
+|---|---|
+| WPF `Menu` | stable top-level command taxonomy for File, Backend, View, Pipeline, Tools, and Help |
+| WPF `ToolBarTray` | high-frequency shortcut surface for sprint demo and common operations |
+| WPF command pattern | shared command semantics across menu items, toolbar buttons, keyboard shortcuts, automation, and later context surfaces |
+
+The GUI rule is:
+
+- top-level menu groups organize capabilities,
+- toolbar buttons duplicate only frequent commands,
+- disabled or absent menu items must not imply unsupported native, DICOM, premium, or AI behavior exists,
+- every menu command must have an owner sprint, automation ID, help target, and verification path.
 
 ---
 

@@ -1,7 +1,7 @@
 # Product Overview: X-ray Image Processing Engine (XPE)
 
 **Document ID**: XPE-PRODUCT-001  
-**Version**: 1.3.0  
+**Version**: 1.4.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
@@ -42,7 +42,8 @@ This baseline shall deliver:
 - presentation LUT / GSDF-aligned display path,
 - diagnostic DICOM export,
 - graceful diagnostics and alerting,
-- a version-matched offline Help entry point for the host application.
+- a version-matched offline Help entry point for the host application,
+- a scalable top-level menu bar for File, Backend, View, Pipeline, Tools, and Help commands.
 
 ### 2.2 Optional deterministic premium scope
 
@@ -153,6 +154,7 @@ The previous `43` total is retired by this revision.
 6. AI modules are assistive. Their failure must not block the deterministic path.
 7. `docs/project/` is the only canonical documentation tree for this architecture.
 8. Operator help and API reference shall be version-matched to the shipped build and accessible from the host application.
+9. The GUI shall keep a top-level menu bar as the long-term command taxonomy; toolbar buttons are shortcuts for frequent commands, not separate behavior.
 
 ---
 
@@ -167,3 +169,4 @@ The previous `43` total is retired by this revision.
 | Degraded operation | missing Phase 2/3 binaries degrade gracefully with explicit diagnostics |
 | Regulatory boundary | release claims stay inside deterministic enhancement and assistive AI boundaries documented in `Regulatory-Feature-Boundary-Matrix.md` |
 | Help and onboarding | offline help opens from the host UI and matches the shipped build version |
+| GUI command model | top-level menu bar groups File, Backend, View, Pipeline, Tools, and Help without implying unsupported module availability |

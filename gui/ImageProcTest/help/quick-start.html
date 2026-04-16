@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ImageProcTest Quick Start</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Quick Start</p>
+      <h1>Validate the GUI-S0 Shell</h1>
+      <p class="lede">Use this procedure to verify the current GUI shell exactly the way the packaged fixture and E2E path expect.</p>
+    </header>
+
+    <section class="section">
+      <ol class="steps">
+        <li>Launch <strong>ImageProcTest.exe</strong>.</li>
+        <li>Confirm the status bar and runtime panel show the mock backend version <code>v0.0.0-mock</code>.</li>
+        <li>Select <strong>Load Raw Image</strong> and open the packaged fixture under <code>fixtures/gui-s0/raw/</code>.</li>
+        <li>Review the source preview, processed preview, image summary, logs, and alerts.</li>
+        <li>Open calibration directories or adjust raw settings if needed.</li>
+        <li>Select <strong>Save Settings</strong> to persist the current GUI-S0 paths to <code>appsettings.json</code>.</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2>Expected Visible Results</h2>
+      <ul>
+        <li>The image summary begins with <code>RAW 1024x1024</code>.</li>
+        <li>Logs increase after a successful raw load.</li>
+        <li>Alerts are present and severity-colored.</li>
+        <li>The last raw directory persists after saving settings.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Related Pages</h2>
+      <p><a href="scope.html">Open the scope and limitations page</a></p>
+      <p><a href="index.html">Return to the help landing page</a></p>
+    </section>
+  </main>
+</body>
+</html>

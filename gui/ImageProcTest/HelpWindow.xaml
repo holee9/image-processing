@@ -1,0 +1,49 @@
+<Window x:Class="ImageProcTest.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ImageProcTest Help"
+        Height="720"
+        Width="1100"
+        MinHeight="520"
+        MinWidth="840">
+    <DockPanel>
+        <Border DockPanel.Dock="Top"
+                Background="#18222f"
+                Padding="12">
+            <StackPanel>
+                <TextBlock FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           Text="{Binding HelpTitle}" />
+                <TextBlock x:Name="HelpPathTextBlock"
+                           AutomationProperties.AutomationId="HelpPathTextBlock"
+                           Margin="0,6,0,0"
+                           Foreground="#d5dfeb"
+                           Text="{Binding CurrentDocumentPath}" />
+            </StackPanel>
+        </Border>
+
+        <Grid>
+            <WebBrowser x:Name="HelpBrowser"
+                        AutomationProperties.AutomationId="HelpBrowser" />
+
+            <Border x:Name="HelpErrorOverlay"
+                    Background="#CC111111"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            MaxWidth="640">
+                    <TextBlock FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               Text="Help page could not be opened." />
+                    <TextBlock x:Name="HelpErrorTextBlock"
+                               AutomationProperties.AutomationId="HelpErrorTextBlock"
+                               Margin="0,12,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="#f2d6d8" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

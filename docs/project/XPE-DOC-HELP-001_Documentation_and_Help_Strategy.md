@@ -1,13 +1,13 @@
 # Documentation and Help Strategy
 
 **Document ID**: XPE-DOC-HELP-001  
-**Version**: 2.0.0  
+**Version**: 2.1.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Execution Baseline  
 **Canonical Scope**: `docs/project/`  
 **Parent**: `SPEC-XPE-MASTER.md`  
-**Cross-checked with**: `XPE-MRD-001_Market_Requirements_Document.md`, `XPE-PRD-SYSTEM-001_System_Product_Requirements.md`, `XPE-SVVP-001_System_Verification_Validation_Plan.md`, `tech.md`, `sprint-plan.md`
+**Cross-checked with**: `XPE-MRD-001_Market_Requirements_Document.md`, `XPE-PRD-SYSTEM-001_System_Product_Requirements.md`, `XPE-SVVP-001_System_Verification_Validation_Plan.md`, `XPE-GUI-MENU-001_Menu_and_Command_Strategy.md`, `tech.md`, `sprint-plan.md`
 
 ---
 
@@ -35,6 +35,7 @@ It fixes:
 | Native API reference generation | Doxygen generates native API reference from public headers |
 | In-app Help | `ImageProcTest.exe` exposes a Help entry point that opens packaged offline documentation |
 | Help viewer technology | WPF host uses WebView2 local content mapping when available; external browser fallback is allowed |
+| Help menu placement | Help remains a top-level menu group in the GUI menu bar; toolbar entries are shortcuts only |
 | Version binding | help bundle version must match the application build version and commit metadata |
 | Release packaging | offline help bundle and API reference entry points are packaged with the build or release bundle |
 
@@ -141,7 +142,7 @@ The help bundle shall be copied to a deterministic path in the application outpu
 
 `ImageProcTest.exe` shall provide:
 
-- a top-level `Help` entry point,
+- a top-level `Help` menu in the application menu bar,
 - a quick-start page,
 - a scope and limitations page,
 - fixture and configuration guidance,

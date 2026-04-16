@@ -1,12 +1,12 @@
 # SPEC-XPE-MASTER: X-ray Image Processing Engine Master Specification
 
 **Document ID**: SPEC-XPE-MASTER  
-**Version**: 2.4.0  
+**Version**: 2.5.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
-**Source Set**: `product.md v1.3.0`, `structure.md v1.3.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-MRD-001 v1.2.0`, `XPE-PRD-SYSTEM-001 v1.2.0`, `XPE-SVVP-001 v1.2.0`, `XPE-AI-REG-001 v1.1.0`, `XPE-DOC-HELP-001 v1.0.0`, `XPE-Module-Reinforcement-Plan.md`, `Algorithm-Benchmark-Pack-Spec.md v1.3.0`, `Algorithm-Evaluation-Protocol.md v1.3.0`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-ALG-001 v1.8`
+**Source Set**: `product.md v1.4.0`, `structure.md v1.3.0`, `pipeline-spec.md v1.5.0`, `api-spec.md v1.3.0`, `xpe-algorithm-spec-deepsync.md v3.2.0-ds4`, `XPE-MRD-001 v1.2.0`, `XPE-PRD-SYSTEM-001 v1.3.0`, `XPE-SVVP-001 v1.3.0`, `XPE-AI-REG-001 v1.1.0`, `XPE-DOC-HELP-001 v2.1.0`, `XPE-GUI-MENU-001 v1.0.0`, `XPE-Module-Reinforcement-Plan.md`, `Algorithm-Benchmark-Pack-Spec.md v1.3.0`, `Algorithm-Evaluation-Protocol.md v1.3.0`, `Regulatory-Feature-Boundary-Matrix.md`, `XPE-ALG-001 v1.8`
 
 ---
 
@@ -52,6 +52,7 @@ It fixes the canonical answers for:
 | AI dependency model | `xpe_ai.dll` proxy plus `xpe_ai_worker.exe` sandboxed worker |
 | Documentation generation model | DocFX for conceptual plus managed API docs, Doxygen for native exported headers |
 | In-app help model | version-matched offline Help entry point from the host application, with packaged local bundle |
+| GUI menu model | top-level menu bar with `File`, `Backend`, `View`, `Pipeline`, `Tools`, and `Help`; toolbar remains shortcut surface |
 
 ---
 
@@ -70,9 +71,10 @@ Use the following order when reconciling project documents:
 9. `XPE-SVVP-001_System_Verification_Validation_Plan.md`
 10. `XPE-AI-REG-001_AI_Regulatory_Strategy.md`
 11. `XPE-DOC-HELP-001_Documentation_and_Help_Strategy.md`
-12. `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md` as detailed design reference only
-13. `sprint-plan.md`
-14. analysis, reinforcement, benchmark, and review logs
+12. `XPE-GUI-MENU-001_Menu_and_Command_Strategy.md`
+13. `docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md` as detailed design reference only
+14. `sprint-plan.md`
+15. analysis, reinforcement, benchmark, and review logs
 
 Notes on XPE-ALG-001 authority:
 

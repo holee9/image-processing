@@ -1,7 +1,7 @@
 # System Product Requirements Document
 
 **Document ID**: XPE-PRD-SYSTEM-001  
-**Version**: 1.2.0  
+**Version**: 1.3.0  
 **Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Execution Baseline  
@@ -99,6 +99,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-FUNC-007` | The system shall support QA and constancy workflows through a host-facing orchestration and test harness. | `MR-OPS-002` |
 | `PR-FUNC-008` | The system shall emit standardized event and metadata records sufficient for site-level reject-analysis and repeat-rate review. | `MR-OPS-001` |
 | `PR-FUNC-009` | The host application shall expose a Help entry point that opens version-matched offline documentation for the current workflow, screen, or troubleshooting context. | `MR-MKT-005` |
+| `PR-FUNC-010` | The host application shall expose a top-level menu bar that organizes commands into File, Backend, View, Pipeline, Tools, and Help groups while keeping unsupported phase commands disabled or absent until their owner module is available. | `MR-MKT-005`, `MR-OPS-002` |
 
 ### 4.2 Safety and degraded-mode requirements
 
@@ -155,9 +156,10 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 ### 5.0 Phase 0 exit
 
 - host application launches with diagnostics and an offline Help entry point,
+- host application exposes the canonical top-level menu groups with only supported commands enabled,
 - managed XML documentation generation and native API documentation generation paths are defined,
 - version-matched quick-start help bundle is available offline for the current build,
-- `PR-FUNC-009`, `PR-OPS-005`, and `PR-OPS-006` have implementation and verification plans.
+- `PR-FUNC-009`, `PR-FUNC-010`, `PR-OPS-005`, and `PR-OPS-006` have implementation and verification plans.
 
 ### 5.1 Phase 1a exit
 
