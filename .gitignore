@@ -219,6 +219,11 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
+build_test/
+
+# Module test directories
+modules/*/tests/
+modules/*/build/
 
 # ===========================================
 # C# / .NET (ImageProcTest GUI)
@@ -227,6 +232,30 @@ gui/**/bin/
 gui/**/obj/
 gui/**/*.user
 !gui/**/*.sln
+gui/**/artifacts/
+gui/**/test_data/
+
+# ===========================================
+# .NET CLI
+# ===========================================
+.dotnet-cli/
+
+# ===========================================
+# Test Results
+# ===========================================
+test_results.json
+*.trx
+TestResults/
+
+# ===========================================
+# MCP Configuration
+# ===========================================
+.mcp.json
+
+# ===========================================
+# Claude Code Runtime
+# ===========================================
+.claude/scheduled_tasks.lock
 
 # ===========================================
 # ONNX Models (use git-lfs or CI fetch)
