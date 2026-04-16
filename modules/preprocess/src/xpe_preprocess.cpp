@@ -14,6 +14,7 @@
 #include <atomic>
 #include <cstring>
 #include <cmath>
+#include <nlohmann/json.hpp>
 
 // =============================================================================
 // Internal State Management
@@ -69,29 +70,31 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* config) {
         if (config == nullptr) {
             // Use default settings
             std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
+            g_state.mode[sizeof(g_state.mode) - 1] = '\0';  // Ensure null-termination
             g_state.log_level = 0;
         }
-        // AC-LC-002: Parse JSON configuration
+        // AC-LC-002: Parse JSON configuration with proper JSON parser
         else {
-            // Simple JSON parsing for {"mode":"clinical"}
-            // For MVP, we only support mode parameter
-            if (std::strstr(config, "\"mode\"") != nullptr &&
-                std::strstr(config, "\"clinical\"") != nullptr) {
-                std::strncpy(g_state.mode, "clinical", sizeof(g_state.mode) - 1);
-            } else if (std::strstr(config, "\"mode\"") != nullptr &&
-                       std::strstr(config, "\"research\"") != nullptr) {
-                std::strncpy(g_state.mode, "research", sizeof(g_state.mode) - 1);
-            } else {
-                std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
-            }
+            try {
+                // Parse JSON safely using nlohmann/json
+                nlohmann::json config_json = nlohmann::json::parse(config);
 
-            // Extract log_level if present
-            const char* log_level_str = std::strstr(config, "\"log_level\"");
-            if (log_level_str != nullptr) {
-                int level = 0;
-                if (std::sscanf(log_level_str, "\"log_level\"%*[: ] %d", &level) == 1) {
-                    g_state.log_level = level;
+                // Extract mode parameter
+                if (config_json.contains("mode") && config_json["mode"].is_string()) {
+                    std::string mode = config_json["mode"];
+                    std::strncpy(g_state.mode, mode.c_str(), sizeof(g_state.mode) - 1);
+                } else {
+                    std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
                 }
+
+                // Extract log_level parameter
+                if (config_json.contains("log_level") && config_json["log_level"].is_number()) {
+                    g_state.log_level = config_json["log_level"];
+                }
+            } catch (const nlohmann::json::parse_error& e) {
+                // Invalid JSON, use defaults
+                std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
+                g_state.log_level = 0;
             }
         }
 
@@ -141,90 +144,12 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void) {
 }
 
 // =============================================================================
-// Phase 2-5: Stub Implementations (to be implemented in TDD cycles)
+// Note: Phase 2-5 functions are implemented in dedicated files:
+// - Calibration: xpe_calibration.cpp (load/generate/save/check expiry)
+// - Offset correction: xpe_offset.cpp
+// - Gain correction: xpe_gain.cpp
+// - Defect correction: xpe_defect.cpp
 // ============================================================================
-
-extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
-    (void)filepath;  // Suppress unused parameter warning
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
-    (void)filepath;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {
-    (void)filepath;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
-                                                   XpeImageBuffer* output,
-                                                   const XpeImageMetadata* metadata) {
-    (void)input;
-    (void)output;
-    (void)metadata;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
-                                                 XpeImageBuffer* output,
-                                                 const XpeImageMetadata* metadata) {
-    (void)input;
-    (void)output;
-    (void)metadata;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
-                                                   XpeImageBuffer* output,
-                                                   const XpeImageMetadata* metadata) {
-    (void)input;
-    (void)output;
-    (void)metadata;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
-                                                          int32_t num_frames,
-                                                          float integration_time_ms,
-                                                          float temperature_c,
-                                                          const char* output_path) {
-    (void)dark_frames;
-    (void)num_frames;
-    (void)integration_time_ms;
-    (void)temperature_c;
-    (void)output_path;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
-                                                       bool* is_expired,
-                                                       int32_t* remaining_days) {
-    (void)filepath;
-    (void)is_expired;
-    (void)remaining_days;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
-                                               const char* calib_type) {
-    (void)filepath;
-    (void)calib_type;
-    return XPE_ERR_NOT_INITIALIZED;
-}
-
-extern "C" XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
-                                                             const XpeImageMetadata* metadata,
-                                                             bool* has_dropped_columns,
-                                                             bool* has_nonuniform_gain) {
-    (void)image;
-    (void)metadata;
-    (void)has_dropped_columns;
-    (void)has_nonuniform_gain;
-    return XPE_ERR_NOT_INITIALIZED;
-}
 
 /**
  * @brief Detect transient defects at runtime

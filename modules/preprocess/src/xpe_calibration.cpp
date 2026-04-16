@@ -12,109 +12,62 @@
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_memory.h"
+#include "xpe_preprocess_internal.h"
 #include <mutex>
 #include <cstring>
 #include <fstream>
 #include <memory>
+#include <ctime>  // For std::time
 
 // =============================================================================
 // Internal Calibration State
 // =============================================================================
 
-namespace {
+// Global calibration data and mutex definitions
+CalibrationData g_calib;
+std::mutex g_calib_mutex;
 
-/**
- * @brief Global calibration data storage
- *
- * REQ-P1A-014~016: Thread-safe calibration storage
- * REQ-P1A-031: RAII for automatic cleanup
- */
-struct CalibrationData {
-    // Offset calibration map
-    std::unique_ptr<float[]> offset_map;
-    uint32_t offset_width = 0;
-    uint32_t offset_height = 0;
+// @MX:ANCHOR: [AUTO] Global calibration data shared across preprocessing algorithms
 
-    // Gain calibration map
-    std::unique_ptr<float[]> gain_map;
-    uint32_t gain_width = 0;
-    uint32_t gain_height = 0;
-
-    // Defect map (BPM format)
-    std::unique_ptr<uint8_t[]> defect_map;
-    uint32_t defect_width = 0;
-    uint32_t defect_height = 0;
-
-    // Metadata
-    char offset_session_id[64] = {0};
-    char gain_session_id[64] = {0};
-    int64_t offset_timestamp = 0;
-    int64_t gain_timestamp = 0;
-
-} g_calib;
-
-std::mutex g_calib_mutex;  // Protects all calibration data
-
-/**
- * @brief XCal file format header
- *
- * XCal Format Specification:
- * - Magic: "XCAL" (4 bytes)
- * - Version: uint32_t (currently 1)
- * - Type: uint32_t (0=offset, 1=gain, 2=defect)
- * - Width: uint32_t
- * - Height: uint32_t
- * - Timestamp: int64_t
- * - SessionID: char[64]
- * - DataSize: uint64_t
- * - SHA256: uint8_t[32]
- * - Data follows
- */
-#pragma pack(push, 8)
-struct XCalHeader {
-    char     magic[4];       // "XCAL"
-    uint32_t version;
-    uint32_t type;           // 0=offset, 1=gain, 2=defect
-    uint32_t width;
-    uint32_t height;
-    int64_t  timestamp;
-    char     session_id[64];
-    uint64_t data_size;
-    uint8_t  sha256[32];
-};
-#pragma pack(pop)
-
-static_assert(sizeof(XCalHeader) == 132, "XCalHeader must be 132 bytes");
+// =============================================================================
+// Internal Helper Functions
+// =============================================================================
 
 /**
  * @brief Validate XCal file header
+ *
+ * @param header XCal header to validate
+ * @param expected_type Expected calibration type (0=offset, 1=gain, 2=defect)
+ * @return true if header is valid, false otherwise
  */
-bool validate_xcal_header(const XCalHeader& header, uint32_t expected_type) {
-    // Check magic
-    if (std::memcmp(header.magic, "XCAL", 4) != 0) {
+static bool validate_xcal_header(const XCalHeader& header, int32_t expected_type) {
+    // Check magic signature
+    if (std::strncmp(header.magic, "XCAL", 4) != 0) {
         return false;
     }
 
-    // Check version
+    // Check version compatibility
     if (header.version != 1) {
         return false;
     }
 
-    // Check type
+    // Check calibration type matches expected
     if (header.type != expected_type) {
         return false;
     }
 
-    // Check dimensions
-    if (header.width == 0 || header.height == 0 ||
-        header.width > 4096 || header.height > 4096) {
+    // Validate dimensions
+    if (header.width == 0 || header.height == 0) {
+        return false;
+    }
+
+    // Validate data_size is reasonable
+    if (header.data_size == 0 || header.data_size > (1024 * 1024 * 1024)) {  // Max 1GB
         return false;
     }
 
     return true;
 }
-
-} // anonymous namespace
 
 // =============================================================================
 // Phase 2: Calibration Loading Functions
