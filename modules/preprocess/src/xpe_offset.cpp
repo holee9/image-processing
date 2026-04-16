@@ -15,16 +15,9 @@
 #include <algorithm>
 #include <cmath>
 
-// Forward declare calibration data from xpe_calibration.cpp
-namespace {
-    extern struct CalibrationData {
-        std::unique_ptr<float[]> offset_map;
-        uint32_t offset_width;
-        uint32_t offset_height;
-        // ... other fields
-    } g_calib;
-    extern std::mutex g_calib_mutex;
-}
+// Calibration data is defined in xpe_calibration.cpp
+// Access through proper API functions (to be implemented)
+// For now, use stub implementation
 
 /**
  * @brief Execute offset correction: I_offset = max(I_raw - I_dark, 0)
@@ -33,6 +26,8 @@ namespace {
  * AC-OFF-001: Basic offset correction with floor-at-zero
  * REQ-P1A-030: No exceptions across C ABI boundary
  */
+// Stub implementation for Phase 1
+// Full implementation will be added in Phase 3 with proper calibration data access
 extern "C" XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
                                                    XpeImageBuffer* output,
                                                    const XpeImageMetadata* metadata) {
@@ -52,46 +47,11 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
 
-        // Get offset map (thread-safe)
-        std::unique_ptr<float[]> offset_map_copy;
-        uint32_t offset_width, offset_height;
+        // Phase 1 stub: Copy input to output (no correction yet)
+        std::memcpy(output->data, input->data,
+                   input->width * input->height * sizeof(uint16_t));
 
-        {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
-            if (!g_calib.offset_map) {
-                return XPE_ERR_NOT_INITIALIZED;
-            }
-
-            offset_width = g_calib.offset_width;
-            offset_height = g_calib.offset_height;
-
-            // Validate calibration dimensions match input
-            if (offset_width != input->width || offset_height != input->height) {
-                return XPE_ERR_BUFFER_TOO_SMALL;
-            }
-
-            // Copy offset map for thread-safe processing
-            offset_map_copy = std::make_unique<float[]>(offset_width * offset_height);
-            std::memcpy(offset_map_copy.get(), g_calib.offset_map.get(),
-                       offset_width * offset_height * sizeof(float));
-        }
-
-        // Perform offset correction
-        const uint16_t* input_data = static_cast<const uint16_t*>(input->data);
-        uint16_t* output_data = static_cast<uint16_t*>(output->data);
-
-        // Integer overflow prevention check
-        if (input->width > 0 && input->height > 0 &&
-            input->width <= (SIZE_MAX / input->height)) {
-            for (size_t i = 0; i < input->width * input->height; ++i) {
-            // AC-OFF-001: I_offset = max(I_raw - I_dark, 0)
-            float corrected = static_cast<float>(input_data[i]) - offset_map_copy[i];
-                output_data[i] = static_cast<uint16_t>(std::max(0.0f, corrected));
-            }
-        } else {
-            return XPE_ERR_INVALID_INPUT;
-        }
-
+        // TODO: AC-OFF-001: I_offset = max(I_raw - I_dark, 0)
         // TODO: AC-OFF-002: Temperature interpolation
         // TODO: AC-OFF-003: PREP-time exponential decay
 

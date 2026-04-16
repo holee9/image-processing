@@ -60,7 +60,7 @@ SPRINT-GUI-S0 (C# WPF Skeleton + IXpeBackend Mock)   <- no C++ dependency, start
     |                   +---> SPRINT-P0-04 (Config + Lifecycle + Param)
     |                   |         |
     |                   |         v
-    |                   +---> SPRINT-P0-05 (AED + Alert Subsystem)
+    |                   +---> SPRINT-P0-05 (Auto Exposure Detection + Alert Subsystem)
     |                   |
     |               SPRINT-P0-06 (Thread Pool + Test Infra + CI)
     |                   |
@@ -409,6 +409,8 @@ SPRINT-P1A-01 (CalibManager)                   |
 **Dependencies**: SPRINT-P0-04 (lifecycle/config)
 **Estimated Complexity**: Medium
 
+**Terminology Note**: `AED` in the legacy `xpe_aed_*` ABI names means Auto Exposure Detection only. Common alert/event dispatch shall use Alert Queue / XPE Event System terminology and must not reuse `AED`.
+
 **Acceptance Criteria**:
 1. `xpe_aed_configure` accepts JSON with Auto Exposure Detection timing parameters and returns `XPE_OK`
 2. `xpe_aed_poll_event` returns exposure detection events from internal queue
@@ -507,7 +509,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. P/Invoke: `xpe_init(null)` then `xpe_shutdown()` → no crash, no leak
 5. P/Invoke: `xpe_log_set_level(2)` → `XPE_OK`; log panel shows DLL log output
 6. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
-7. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 AED)
+7. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 18 (15 base + 3 Auto Exposure Detection)
 8. `Marshal.SizeOf<XpeImageBuffer>()` == 40; `Marshal.SizeOf<XpeImageMetadata>()` == 96
 
 **Definition of Done**:
@@ -1406,7 +1408,7 @@ Each sprint must pass not only its own test cases but also all tests from previo
 | P0-02 | Memory + Error + Param | P0-01: build still works with new source files |
 | P0-03 | Logging | P0-02: alloc/free/error_string still pass |
 | P0-04 | Config + Lifecycle | P0-03: logging still works after init/shutdown cycle |
-| P0-05 | AED + Alert | P0-04: init/shutdown cycle includes AED cleanup |
+| P0-05 | Auto Exposure Detection + Alert | P0-04: init/shutdown cycle includes Auto Exposure Detection cleanup |
 | P0-06 | Thread Pool + Test Infra | P0-05: all previous tests via CTest framework |
 | P0-07 | C# P/Invoke + Scaffolding | P0-06: all native tests + new P/Invoke smoke tests |
 

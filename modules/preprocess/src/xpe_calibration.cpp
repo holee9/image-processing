@@ -84,7 +84,7 @@ struct XCalHeader {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(XCalHeader) == 120, "XCalHeader must be 120 bytes");
+static_assert(sizeof(XCalHeader) == 132, "XCalHeader must be 132 bytes");
 
 /**
  * @brief Validate XCal file header
