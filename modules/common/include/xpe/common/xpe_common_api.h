@@ -1,3 +1,16 @@
+/**
+ * @file xpe_common_api.h
+ * @brief xpe_common.dll public C API — lifecycle, configuration, logging, and AED.
+ *
+ * Aggregates the xpe_common module's 15 directly-declared exported functions
+ * (the remaining 3 — xpe_alloc_image, xpe_free_image, xpe_copy_image — are
+ * declared in xpe_memory.h and the 4 alert functions in xpe_error.h).
+ *
+ * Call order: xpe_init() → use API → xpe_shutdown(). No XPE function may be
+ * invoked before xpe_init() or after xpe_shutdown().
+ *
+ * @ingroup xpe_common
+ */
 #ifndef XPE_COMMON_API_H
 #define XPE_COMMON_API_H
 
