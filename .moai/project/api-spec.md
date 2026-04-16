@@ -1,9 +1,11 @@
 # XPE API Specification — Complete Exported C ABI Reference
 
 **Document ID**: XPE-API-SPEC-001  
-**Version**: 1.1.0  
+**Version**: 1.2.0  
 **Date**: 2026-04-13  
 **Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h
+
+**Total Functions**: 18 exported functions (xpe_common.dll: 18, xpe_preprocess.dll: 31, xpe_enhance_basic.dll: 10, xpe_enhance_advanced.dll: 12, xpe_ai.dll: 8, xpe_display.dll: 3, xpe_dicom.dll: 2, gsvg.dll: 6) **Grand Total: 82**
 
 ---
 
@@ -365,6 +367,45 @@ XPE_API void xpe_log_flush(void);
 **SRS**: SRS-LOG-003  
 **Thread safety**: Thread-safe.  
 **Error codes**: (void)
+
+---
+
+## 5.16 xpe_aed_configure
+
+```c
+XPE_API XpeErrorCode xpe_aed_configure(const char* configJsonOrNull);
+```
+
+**Description**: Configures the Automatic Exposure Detection subsystem via a UTF-8 JSON configuration string. Passing NULL accepts default configuration. The JSON schema supports: enable/disable flag, dose threshold, cooldown period, and callback mode selection. Must be called after `xpe_init()`. Returns `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, or `XPE_ERR_NOT_INITIALIZED`.  
+**SRS**: SRS-AED-001  
+**Thread safety**: Not thread-safe — serialise configuration changes with respect to processing calls.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL), `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_NOT_INITIALIZED`
+
+---
+
+## 5.17 xpe_aed_poll_event
+
+```c
+XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut, uint64_t* timestampOut, float* signalLevelOut);
+```
+
+**Description**: Checks for pending AED events via scalar out-parameters: `eventTypeOut` (event type), `timestampOut` (UNIX epoch ms), `signalLevelOut` (normalized signal). Returns `XPE_OK` if an event was retrieved, `XPE_STATUS_NO_EVENT` (= 1, positive non-error) if no events pending.  
+**SRS**: SRS-AED-002, SRS-AED-003  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_STATUS_NO_EVENT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT` (NULL out-params)
+
+---
+
+## 5.18 xpe_aed_get_status
+
+```c
+XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut);
+```
+
+**Description**: Returns the current AED state machine state via `stateOut`. State values: 0=IDLE (not configured), 1=ARMED (waiting for exposure), 2=TRIGGERED (exposure detected).  
+**SRS**: SRS-AED-004  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT` (NULL stateOut)
 
 ---
 

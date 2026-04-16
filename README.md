@@ -10,15 +10,17 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | 프레임워크 | 기준 | 현재 | Phase 1b 완료 시 | 목표 |
 |-----------|------|:----:|:---------------:|:----:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **61 / 100** | ~76 | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **68 / 100** | ~76 | **85** |
 | **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~50 | **66 / 100** | **85** |
 
 **최근 진행 상황** (2026-04-16):
-- ✅ Sprint S0-A (Build Infrastructure) 75% 완료
-- 🔄 xpe_common.dll 구현 진행 중 (30% 완료)
-- 🆕 modules/enhance_basic/, modules/preprocess/ 스캐폴딩 생성
-- 🆕 vcpkg.json 의존성 관리 추가
-- 🆕 AED/Logging 소스 파일 추가 (xpe_aed.cpp, xpe_logging.cpp)
+- ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (12/12 deliverables 완료)
+- ✅ Sprint S0-A (Build Infrastructure) 100% 완료
+- ✅ xpe_common.dll 18 API 함수 구현 완료
+- ✅ Google Test + CTest + 커버리지 테스트 인프라 구축
+- ✅ ImageProcTest WPF GUI 스태빌딩 구현 완료
+- ✅ 8개 모듈 디렉터리 스캐폴딩 (preprocess, enhance_basic, enhance_advanced, ai, display, dicom, gsvg, common)
+- ✅ CI/CD 파이프라인 (GitHub Actions) 완료
 
 ### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
 
