@@ -16,6 +16,7 @@ namespace ImageProcTest
         private RawPreviewResult? currentPreview;
         private BackendHealthResult? lastBackendHealth;
         private string? lastReadinessReportPath;
+        private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
 
         public MainWindow()
         {
@@ -26,6 +27,7 @@ namespace ImageProcTest
         {
             RefreshNativeHealth();
             LoadFixtureCases();
+            RefreshModuleReadiness();
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -36,6 +38,11 @@ namespace ImageProcTest
         private void RefreshFixturesButton_Click(object sender, RoutedEventArgs e)
         {
             LoadFixtureCases();
+        }
+
+        private void RefreshModulesButton_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshModuleReadiness();
         }
 
         private void FixtureCaseComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -132,7 +139,8 @@ namespace ImageProcTest
                     currentPreview,
                     lastBackendHealth,
                     lastReadinessReportPath,
-                    GetStageModes());
+                    GetStageModes(),
+                    currentModuleReadiness);
 
                 E2eReportText.Text = $"E2E report: {report.JsonPath}";
             }
@@ -172,6 +180,8 @@ namespace ImageProcTest
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
                 lastReadinessReportPath = null;
             }
+
+            RefreshModuleReadiness();
         }
 
         private void Window_Closed(object? sender, System.EventArgs e)
@@ -250,6 +260,21 @@ namespace ImageProcTest
                 new StageModeSnapshot("Defect", DefectOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
                 new StageModeSnapshot("Display", DisplayOffRadio.IsChecked == true ? "Off" : "Unknown", reason)
             ];
+        }
+
+        private void RefreshModuleReadiness()
+        {
+            currentModuleReadiness = ModuleReadinessService.Evaluate(lastBackendHealth);
+            ModuleReadinessGrid.ItemsSource = currentModuleReadiness;
+
+            var enabledCount = currentModuleReadiness.Count(module => module.ProcessingEnabled);
+            var nativeBlocked = string.Join(", ", currentModuleReadiness
+                .Where(module => !module.ProcessingEnabled && module.ModuleName != "xpe_common")
+                .Select(module => $"{module.ModuleName}:{module.Level}"));
+
+            ModuleReadinessSummaryText.Text =
+                $"Executable modules={enabledCount}; blocked modules={nativeBlocked}. " +
+                "Native image processing remains disabled until module-specific readiness gates pass.";
         }
 
         private void UpdateComparisonClip()

@@ -51,6 +51,39 @@
                 <Separator Margin="0,16,0,12"/>
 
                 <DockPanel Margin="0,0,0,8">
+                    <TextBlock Text="Module Readiness Matrix" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                    <Button Content="Refresh Modules" Width="120" DockPanel.Dock="Right" Click="RefreshModulesButton_Click"/>
+                </DockPanel>
+
+                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means ABI smoke ready, R3+ requires module exports, oracle tests, and fixture E2E. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
+                        <DataGrid x:Name="ModuleReadinessGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  Height="210">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="130"/>
+                                <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
+                                <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
+                                <DataGridTextColumn Header="Next action" Binding="{Binding NextAction}" Width="260"/>
+                                <DataGridCheckBoxColumn Header="Exec" Binding="{Binding ProcessingEnabled}" Width="60"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="ModuleReadinessSummaryText"
+                                   Text="Module readiness: not checked"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Separator Margin="0,16,0,12"/>
+
+                <DockPanel Margin="0,0,0,8">
                     <TextBlock Text="Raw Fixture Browser" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                         <Button Content="Refresh Fixtures" Width="120" Margin="0,0,8,0" Click="RefreshFixturesButton_Click"/>

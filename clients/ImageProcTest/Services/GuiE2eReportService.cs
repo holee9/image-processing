@@ -19,7 +19,8 @@ namespace ImageProcTest
             RawPreviewResult? preview,
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
-            IReadOnlyList<StageModeSnapshot> stageModes)
+            IReadOnlyList<StageModeSnapshot> stageModes,
+            IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness)
         {
             var timestamp = DateTimeOffset.UtcNow;
             var report = new
@@ -60,6 +61,7 @@ namespace ImageProcTest
                 },
                 backendHealth,
                 readinessReportPath,
+                moduleReadiness,
                 stageModes,
                 beforeAfter = new
                 {
@@ -77,7 +79,7 @@ namespace ImageProcTest
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
             File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, stageModes, timestamp));
+            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, stageModes, moduleReadiness, timestamp));
 
             return new GuiE2eReportWriteResult(jsonPath, markdownPath);
         }
@@ -89,6 +91,7 @@ namespace ImageProcTest
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
             IReadOnlyList<StageModeSnapshot> stageModes,
+            IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
             DateTimeOffset timestamp)
         {
             var builder = new StringBuilder();
@@ -114,6 +117,15 @@ namespace ImageProcTest
                 builder.AppendLine($"- Preview: `{preview.PreviewWidth}x{preview.PreviewHeight}`, stride `{preview.SampleStride}`");
                 builder.AppendLine($"- Min/Max: `{preview.MinValue}` / `{preview.MaxValue}`");
                 builder.AppendLine($"- SHA-256: `{preview.Sha256}`");
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("## Module Readiness Matrix");
+            foreach (var module in moduleReadiness)
+            {
+                builder.AppendLine($"- `{module.ModuleName}`: `{module.Level}` / `{module.Status}` / exec=`{module.ProcessingEnabled}`");
+                builder.AppendLine($"  Evidence: {module.Evidence}");
+                builder.AppendLine($"  Next: {module.NextAction}");
             }
 
             builder.AppendLine();
