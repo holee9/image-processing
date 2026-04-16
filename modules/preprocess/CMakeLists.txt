@@ -52,6 +52,7 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
     # Find Google Test
     find_package(GTest REQUIRED)
 
+    # Main test suite (all tests)
     add_executable(test_xpe_preprocess
         tests/test_xpe_preprocess.cpp
     )
@@ -65,6 +66,48 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
 
     include(GoogleTest)
     gtest_discover_tests(test_xpe_preprocess)
+
+    # Lifecycle tests
+    add_executable(test_xpe_preprocess_init
+        tests/test_xpe_preprocess_init.cpp
+    )
+
+    target_link_libraries(test_xpe_preprocess_init
+        PRIVATE
+            xpe_preprocess
+            GTest::gtest
+            GTest::gtest_main
+    )
+
+    gtest_discover_tests(test_xpe_preprocess_init)
+
+    # Correction tests
+    add_executable(test_xpe_preprocess_correction
+        tests/test_xpe_preprocess_correction.cpp
+    )
+
+    target_link_libraries(test_xpe_preprocess_correction
+        PRIVATE
+            xpe_preprocess
+            GTest::gtest
+            GTest::gtest_main
+    )
+
+    gtest_discover_tests(test_xpe_preprocess_correction)
+
+    # Calibration tests
+    add_executable(test_xpe_preprocess_calibration
+        tests/test_xpe_preprocess_calibration.cpp
+    )
+
+    target_link_libraries(test_xpe_preprocess_calibration
+        PRIVATE
+            xpe_preprocess
+            GTest::gtest
+            GTest::gtest_main
+    )
+
+    gtest_discover_tests(test_xpe_preprocess_calibration)
 endif()
 
 # Installation
