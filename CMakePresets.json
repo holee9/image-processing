@@ -50,7 +50,9 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "ENABLE_COVERAGE": "ON",
-                "BUILD_TESTS": "ON"
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "OFF",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
             }
         }
     ],

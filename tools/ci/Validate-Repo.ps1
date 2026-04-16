@@ -46,14 +46,17 @@ $requiredPaths = @(
     '.github/ISSUE_TEMPLATE/docs-sync.md',
     '.github/ISSUE_TEMPLATE/config.yml',
     '.github/dependabot.yml',
+    '.github/workflows/ci.yml',
     '.github/workflows/codeql.yml',
     '.github/workflows/repository-guard.yml',
     '.github/workflows/windows-common-build.yml',
     '.github/workflows/delivery-bundle.yml',
     '.github/workflows/release-bundle.yml',
     'tools/ci/Validate-Repo.ps1',
+    'tools/ci/Install-PinnedVcpkg.ps1',
     'tools/ci/Test-MarkdownLinks.ps1',
     'tools/ci/Test-TrackedTextFiles.ps1',
+    'tools/ci/Use-MsvcDevShell.ps1',
     'tools/ci/New-ReleaseBundle.ps1'
 )
 
@@ -155,6 +158,14 @@ if ($buildWorkflow -notmatch 'ctest --test-dir') {
     Add-RepoError 'Windows Common Build does not run ctest smoke validation.'
 }
 
+if ($buildWorkflow -notmatch 'Install-PinnedVcpkg\.ps1') {
+    Add-RepoError 'Windows Common Build does not pin vcpkg via Install-PinnedVcpkg.ps1.'
+}
+
+if ($buildWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
+    Add-RepoError 'Windows Common Build does not configure the MSVC developer shell explicitly.'
+}
+
 if ($buildWorkflow -match 'git clone --depth 1 https://github.com/microsoft/vcpkg') {
     Add-RepoError 'Windows Common Build uses a shallow vcpkg clone that can break builtin-baseline resolution.'
 }
@@ -193,6 +204,14 @@ if ($codeqlWorkflow -notmatch 'security-events:\s*write') {
 
 if ($codeqlWorkflow -notmatch 'schedule:') {
     Add-RepoError 'CodeQL workflow is missing scheduled analysis.'
+}
+
+if ($codeqlWorkflow -notmatch 'Install-PinnedVcpkg\.ps1') {
+    Add-RepoError 'CodeQL workflow does not pin vcpkg via Install-PinnedVcpkg.ps1.'
+}
+
+if ($codeqlWorkflow -notmatch 'Use-MsvcDevShell\.ps1') {
+    Add-RepoError 'CodeQL workflow does not configure the MSVC developer shell explicitly.'
 }
 
 if ($codeqlWorkflow -match 'if \(-not \(Test-Path \$env:VCPKG_ROOT\)\)') {

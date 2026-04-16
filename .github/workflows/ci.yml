@@ -5,76 +5,129 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xpe-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
 
 jobs:
-  configure:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install vcpkg
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat
-          
-      - name: Configure CMake
-        run: |
-          cmake --preset ci-common -S . -B build
+  common-build:
+    runs-on: windows-2025
+    timeout-minutes: 45
 
-  build:
-    needs: configure
-    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install vcpkg
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat
-          
-      - name: Build
-        run: |
-          cmake --build --preset ci-common
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  test:
-    needs: build
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install vcpkg
+      - name: Validate tracked text files
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
+
+      - name: Ensure Ninja is available
+        shell: pwsh
         run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat
-          
-      - name: Run Tests
-        run: |
-          cmake --preset ci-common
-          ctest --preset default --output-on-failure
-          
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Cache vcpkg downloads and installed packages
+        uses: actions/cache@v5
         with:
-          name: test-results
+          path: |
+            ${{ env.VCPKG_ROOT }}\downloads
+            ${{ env.VCPKG_ROOT }}\installed
+            ${{ env.VCPKG_ROOT }}\packages
+          key: xpe-ci-vcpkg-common-x64-windows-${{ runner.os }}-${{ hashFiles('third_party/common/vcpkg.json') }}
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Install-PinnedVcpkg.ps1 -ManifestPath third_party/common/vcpkg.json
+
+      - name: Install dependencies from manifest
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
+
+      - name: Configure CMake
+        shell: pwsh
+        run: cmake --preset ci-common
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-common --parallel
+
+      - name: Run tests
+        shell: pwsh
+        run: ctest --test-dir build/ci-common --build-config RelWithDebInfo --output-on-failure
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-test-results
+          if-no-files-found: ignore
+          retention-days: 14
           path: build/ci-common/Testing/
 
   coverage:
-    needs: build
-    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: common-build
+    runs-on: windows-2025
+    timeout-minutes: 60
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install OpenCPPCoverage
-        run: choco install opencppcoverage -y
-        
-      - name: Run Coverage
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
         run: |
-          cmake --preset coverage -DENABLE_COVERAGE=ON
-          cmake --build --preset coverage
-          
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Install OpenCppCoverage
+        shell: pwsh
+        run: choco install opencppcoverage -y --no-progress
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Install-PinnedVcpkg.ps1 -ManifestPath third_party/common/vcpkg.json
+
+      - name: Install dependencies from manifest
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --x-manifest-root=third_party/common --triplet x64-windows
+
+      - name: Configure coverage build
+        shell: pwsh
+        run: cmake --preset coverage
+
+      - name: Build coverage target
+        shell: pwsh
+        run: cmake --build --preset coverage --parallel
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v6
         with:
-          name: coverage-report
-          path: build/coverage/coverage.xml
+          name: coverage-build-artifacts
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/coverage/
