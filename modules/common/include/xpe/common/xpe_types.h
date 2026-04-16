@@ -55,12 +55,12 @@ typedef struct XpeImageMetadata {
 // @MX:REASON: Ensures C#/C++ ABI compatibility; prevents marshaling errors
 
 /* XpeImageBuffer size verification (Pack=8) */
-/* Layout: width(4) + height(4) + bitsAllocated(4) + bitsStored(4) + format(4) + data(8) + dataSize(8) = 36 bytes */
-static_assert(sizeof(XpeImageBuffer) == 36, "XpeImageBuffer must be 36 bytes for P/Invoke Pack=8 compatibility");
+/* Layout: 5 scalar fields (20) + 4 bytes padding + data(8) + dataSize(8) = 40 bytes */
+static_assert(sizeof(XpeImageBuffer) == 40, "XpeImageBuffer must be 40 bytes for P/Invoke Pack=8 compatibility");
 
 /* XpeImageMetadata size verification (Pack=8) */
-/* Layout: bodyPart(64) + kVp(4) + mAs(4) + SID_mm(4) + pixelPitch_mm(4) + acquisitionTime(8) + flags(4) = 92 bytes */
-static_assert(sizeof(XpeImageMetadata) == 92, "XpeImageMetadata must be 92 bytes for P/Invoke Pack=8 compatibility");
+/* Layout: bodyPart(64) + 4 floats (16) + acquisitionTime(8) + flags(4) + 4 bytes tail padding = 96 bytes */
+static_assert(sizeof(XpeImageMetadata) == 96, "XpeImageMetadata must be 96 bytes for P/Invoke Pack=8 compatibility");
 
 /* XpePixelFormat size verification (enum is 4 bytes in MSVC with Pack=8) */
 static_assert(sizeof(XpePixelFormat) == 4, "XpePixelFormat must be 4 bytes");
@@ -68,7 +68,7 @@ static_assert(sizeof(XpePixelFormat) == 4, "XpePixelFormat must be 4 bytes");
 /* Verify no padding between struct members (critical for C# marshaling) */
 static_assert(offsetof(XpeImageBuffer, width) == 0, "XpeImageBuffer.width offset must be 0");
 static_assert(offsetof(XpeImageBuffer, height) == 4, "XpeImageBuffer.height offset must be 4");
-static_assert(offsetof(XpeImageBuffer, data) == 20, "XpeImageBuffer.data offset must be 20");
+static_assert(offsetof(XpeImageBuffer, data) == 24, "XpeImageBuffer.data offset must be 24");
 static_assert(offsetof(XpeImageMetadata, bodyPart) == 0, "XpeImageMetadata.bodyPart offset must be 0");
 static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80, "XpeImageMetadata.acquisitionTime offset must be 80");
 
