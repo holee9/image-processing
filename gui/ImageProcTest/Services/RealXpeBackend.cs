@@ -159,7 +159,7 @@ public sealed class RealXpeBackend : IXpeBackend
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
-            var summary = $"Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
             return new LoadedImageFrame
@@ -298,6 +298,13 @@ public sealed class RealXpeBackend : IXpeBackend
         }
 
         return "Linear";
+    }
+
+    private static string BuildCalibrationEvaluationSummary(AppSettings settings)
+    {
+        return $"Offset={settings.OffsetCorrectionMode}, Gain={settings.GainCorrectionMode}, Defect={settings.DefectCorrectionMode}, " +
+               $"Ghost={settings.GhostCorrectionMode}, Temp={settings.TemperatureCompensationMode}, " +
+               $"Nonlinearity={settings.NonlinearityCorrectionMode}, Binning={settings.BinningCorrectionMode}";
     }
 
     private static XpeBodyPartEnumNative ToNativeBodyPart(XpeBodyPartEnum bodyPart) => bodyPart switch

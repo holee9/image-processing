@@ -94,7 +94,8 @@ public sealed class MockXpeBackend : IXpeBackend
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings)
     {
-        var summary = $"MOCK Display: Modality({settings.ModalityRescaleSlope:0.###}/{settings.ModalityRescaleIntercept:0.###}) -> VOI({settings.VoiLutMode}, C={settings.VoiWindowCenter:0.###}, W={settings.VoiWindowWidth:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+        var calibrationSummary = BuildCalibrationEvaluationSummary(settings);
+        var summary = $"MOCK CalibrationEval({calibrationSummary}) -> Display: Modality({settings.ModalityRescaleSlope:0.###}/{settings.ModalityRescaleIntercept:0.###}) -> VOI({settings.VoiLutMode}, C={settings.VoiWindowCenter:0.###}, W={settings.VoiWindowWidth:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
         AddLog(summary);
         var processedPreview = CreateDisplayPreview(rawFrame, settings);
 
@@ -121,6 +122,7 @@ public sealed class MockXpeBackend : IXpeBackend
         }
 
         var count = checked(rawFrame.Width * rawFrame.Height);
+        var calibratedPixels = CreateMockCalibrationPixels(rawFrame, settings);
         var output = new byte[count];
         var width = Math.Max(1.0, settings.VoiWindowWidth);
         var center = settings.VoiWindowCenter;
@@ -130,7 +132,7 @@ public sealed class MockXpeBackend : IXpeBackend
 
         for (var i = 0; i < count; i++)
         {
-            var modality = (rawFrame.RawPixels[i] * settings.ModalityRescaleSlope) + settings.ModalityRescaleIntercept;
+            var modality = (calibratedPixels[i] * settings.ModalityRescaleSlope) + settings.ModalityRescaleIntercept;
             var normalized = NormalizeVoi(modality, lower, range, settings.VoiLutMode);
             output[i] = (byte)Math.Clamp((int)Math.Round(normalized * 255.0), 0, 255);
         }
@@ -146,6 +148,136 @@ public sealed class MockXpeBackend : IXpeBackend
             rawFrame.Width);
         preview.Freeze();
         return preview;
+    }
+
+    private static double[] CreateMockCalibrationPixels(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        var count = checked(rawFrame.Width * rawFrame.Height);
+        var pixels = new double[count];
+        for (var i = 0; i < count; i++)
+        {
+            pixels[i] = rawFrame.RawPixels![i];
+        }
+
+        if (ShouldApplyStage(settings.OffsetCorrectionMode, autoApplies: true))
+        {
+            for (var i = 0; i < count; i++)
+            {
+                pixels[i] = Math.Max(0.0, pixels[i] - 128.0);
+            }
+        }
+
+        if (ShouldApplyStage(settings.TemperatureCompensationMode, autoApplies: false))
+        {
+            for (var y = 0; y < rawFrame.Height; y++)
+            {
+                var drift = 64.0 * y / Math.Max(1, rawFrame.Height - 1);
+                var rowStart = y * rawFrame.Width;
+                for (var x = 0; x < rawFrame.Width; x++)
+                {
+                    pixels[rowStart + x] = Math.Max(0.0, pixels[rowStart + x] - drift);
+                }
+            }
+        }
+
+        if (ShouldApplyStage(settings.NonlinearityCorrectionMode, autoApplies: false))
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var normalized = Math.Clamp(pixels[i] / ushort.MaxValue, 0.0, 1.0);
+                pixels[i] = Math.Pow(normalized, 1.015) * ushort.MaxValue;
+            }
+        }
+
+        if (ShouldApplyStage(settings.GainCorrectionMode, autoApplies: true))
+        {
+            for (var y = 0; y < rawFrame.Height; y++)
+            {
+                var rowStart = y * rawFrame.Width;
+                var yTerm = rawFrame.Height <= 1 ? 0.0 : y / (double)(rawFrame.Height - 1);
+                for (var x = 0; x < rawFrame.Width; x++)
+                {
+                    var xTerm = rawFrame.Width <= 1 ? 0.0 : x / (double)(rawFrame.Width - 1);
+                    var gain = 0.985 + (0.03 * xTerm) + (0.01 * yTerm);
+                    pixels[rowStart + x] = pixels[rowStart + x] / Math.Max(0.1, gain);
+                }
+            }
+        }
+
+        if (ShouldApplyStage(settings.BinningCorrectionMode, autoApplies: false))
+        {
+            var smoothed = (double[])pixels.Clone();
+            for (var y = 0; y < rawFrame.Height - 1; y += 2)
+            {
+                var rowStart = y * rawFrame.Width;
+                var nextRowStart = rowStart + rawFrame.Width;
+                for (var x = 0; x < rawFrame.Width - 1; x += 2)
+                {
+                    var average = (pixels[rowStart + x] + pixels[rowStart + x + 1] + pixels[nextRowStart + x] + pixels[nextRowStart + x + 1]) / 4.0;
+                    smoothed[rowStart + x] = average;
+                    smoothed[rowStart + x + 1] = average;
+                    smoothed[nextRowStart + x] = average;
+                    smoothed[nextRowStart + x + 1] = average;
+                }
+            }
+
+            pixels = smoothed;
+        }
+
+        if (ShouldApplyStage(settings.DefectCorrectionMode, autoApplies: !string.IsNullOrWhiteSpace(settings.DefectCalibrationDirectory)))
+        {
+            var stride = Math.Max(257, rawFrame.Width / 3);
+            for (var i = stride; i < count - stride; i += stride)
+            {
+                pixels[i] = (pixels[i - 1] + pixels[i + 1] + pixels[Math.Max(0, i - rawFrame.Width)] + pixels[Math.Min(count - 1, i + rawFrame.Width)]) / 4.0;
+            }
+        }
+
+        if (ShouldApplyStage(settings.GhostCorrectionMode, autoApplies: false))
+        {
+            for (var y = 0; y < rawFrame.Height; y++)
+            {
+                var rowStart = y * rawFrame.Width;
+                for (var x = 1; x < rawFrame.Width; x++)
+                {
+                    var index = rowStart + x;
+                    pixels[index] = Math.Max(0.0, pixels[index] - (pixels[index - 1] * 0.01));
+                }
+            }
+        }
+
+        return pixels;
+    }
+
+    private static string BuildCalibrationEvaluationSummary(AppSettings settings)
+    {
+        return string.Join(", ", new[]
+        {
+            ResolveStage("Offset", settings.OffsetCorrectionMode, true),
+            ResolveStage("Gain", settings.GainCorrectionMode, true),
+            ResolveStage("Defect", settings.DefectCorrectionMode, !string.IsNullOrWhiteSpace(settings.DefectCalibrationDirectory)),
+            ResolveStage("Ghost", settings.GhostCorrectionMode, false),
+            ResolveStage("Temp", settings.TemperatureCompensationMode, false),
+            ResolveStage("Nonlinearity", settings.NonlinearityCorrectionMode, false),
+            ResolveStage("Binning", settings.BinningCorrectionMode, false)
+        });
+    }
+
+    private static string ResolveStage(string label, string mode, bool autoApplies)
+    {
+        var normalized = CalibrationStageMode.Normalize(mode);
+        var applied = ShouldApplyStage(normalized, autoApplies) ? "applied" : "bypassed";
+        return $"{label}={normalized}/{applied}";
+    }
+
+    private static bool ShouldApplyStage(string mode, bool autoApplies)
+    {
+        return CalibrationStageMode.Normalize(mode) switch
+        {
+            CalibrationStageMode.On => true,
+            CalibrationStageMode.Off => false,
+            _ => autoApplies
+        };
     }
 
     private static double NormalizeVoi(double value, double lower, double range, string mode)

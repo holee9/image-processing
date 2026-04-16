@@ -15,6 +15,13 @@ public sealed class AppSettings : ObservableObject
     private string _offsetCalibrationDirectory = "data/calibration/offset";
     private string _gainCalibrationDirectory = "data/calibration/gain";
     private string _defectCalibrationDirectory = "data/calibration/defect";
+    private string _offsetCorrectionMode = CalibrationStageMode.Auto;
+    private string _gainCorrectionMode = CalibrationStageMode.Auto;
+    private string _defectCorrectionMode = CalibrationStageMode.Auto;
+    private string _ghostCorrectionMode = CalibrationStageMode.Auto;
+    private string _temperatureCompensationMode = CalibrationStageMode.Auto;
+    private string _nonlinearityCorrectionMode = CalibrationStageMode.Auto;
+    private string _binningCorrectionMode = CalibrationStageMode.Auto;
     private string _lastOpenedPath = string.Empty;
     private float _voiWindowCenter = 40.0f;
     private float _voiWindowWidth = 400.0f;
@@ -99,6 +106,76 @@ public sealed class AppSettings : ObservableObject
     {
         get => _defectCalibrationDirectory;
         set => SetProperty(ref _defectCalibrationDirectory, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for offset correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibOffsetMode")]
+    public string OffsetCorrectionMode
+    {
+        get => _offsetCorrectionMode;
+        set => SetProperty(ref _offsetCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for gain correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibGainMode")]
+    public string GainCorrectionMode
+    {
+        get => _gainCorrectionMode;
+        set => SetProperty(ref _gainCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for defect correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibDefectMode")]
+    public string DefectCorrectionMode
+    {
+        get => _defectCorrectionMode;
+        set => SetProperty(ref _defectCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for ghost correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibGhostMode")]
+    public string GhostCorrectionMode
+    {
+        get => _ghostCorrectionMode;
+        set => SetProperty(ref _ghostCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for temperature compensation: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibTemperatureMode")]
+    public string TemperatureCompensationMode
+    {
+        get => _temperatureCompensationMode;
+        set => SetProperty(ref _temperatureCompensationMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for nonlinearity correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibNonlinearityMode")]
+    public string NonlinearityCorrectionMode
+    {
+        get => _nonlinearityCorrectionMode;
+        set => SetProperty(ref _nonlinearityCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// Gets or sets the Test GUI evaluation mode for binning correction: Auto, On, or Off.
+    /// </summary>
+    [JsonPropertyName("calibBinningMode")]
+    public string BinningCorrectionMode
+    {
+        get => _binningCorrectionMode;
+        set => SetProperty(ref _binningCorrectionMode, CalibrationStageMode.Normalize(value));
     }
 
     /// <summary>

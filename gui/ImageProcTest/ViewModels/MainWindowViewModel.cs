@@ -50,6 +50,7 @@ public sealed class MainWindowViewModel : ObservableObject
         Logs = new ObservableCollection<string>();
         Alerts = new ObservableCollection<AlertEntry>();
         BackendModeOptions = new[] { "Mock", "Native" };
+        CalibrationStageModeOptions = CalibrationStageMode.Options;
         VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
         BodyPartOptions = Enum.GetNames<XpeBodyPartEnum>();
         CompareModeOptions = new[]
@@ -94,6 +95,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public AppSettings Settings { get; }
 
     public string[] BackendModeOptions { get; }
+
+    public string[] CalibrationStageModeOptions { get; }
 
     public string[] VoiLutModeOptions { get; }
 
@@ -172,6 +175,11 @@ public sealed class MainWindowViewModel : ObservableObject
         get => _displayPipelineSummary;
         private set => SetProperty(ref _displayPipelineSummary, value);
     }
+
+    public string CalibrationEvaluationSummary =>
+        $"Offset={Settings.OffsetCorrectionMode}, Gain={Settings.GainCorrectionMode}, Defect={Settings.DefectCorrectionMode}, " +
+        $"Ghost={Settings.GhostCorrectionMode}, Temp={Settings.TemperatureCompensationMode}, " +
+        $"Nonlinearity={Settings.NonlinearityCorrectionMode}, Binning={Settings.BinningCorrectionMode}";
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -354,6 +362,17 @@ public sealed class MainWindowViewModel : ObservableObject
                 bodyPart = Settings.SelectedBodyPart,
                 gsdf = Settings.GsdfEnabled
             },
+            calibrationEvaluation = new
+            {
+                summary = CalibrationEvaluationSummary,
+                offset = Settings.OffsetCorrectionMode,
+                gain = Settings.GainCorrectionMode,
+                defect = Settings.DefectCorrectionMode,
+                ghost = Settings.GhostCorrectionMode,
+                temperature = Settings.TemperatureCompensationMode,
+                nonlinearity = Settings.NonlinearityCorrectionMode,
+                binning = Settings.BinningCorrectionMode
+            },
             comparison = new
             {
                 mode = Settings.ComparisonMode,
@@ -490,7 +509,7 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         StatusText = "Applying display pipeline...";
-        Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}.");
+        Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}, calibrationEval=[{CalibrationEvaluationSummary}].");
 
         try
         {
@@ -677,6 +696,17 @@ public sealed class MainWindowViewModel : ObservableObject
             or nameof(AppSettings.ComparisonOverlayOpacity))
         {
             OnPropertyChanged(nameof(ComparisonStatus));
+        }
+
+        if (e.PropertyName is nameof(AppSettings.OffsetCorrectionMode)
+            or nameof(AppSettings.GainCorrectionMode)
+            or nameof(AppSettings.DefectCorrectionMode)
+            or nameof(AppSettings.GhostCorrectionMode)
+            or nameof(AppSettings.TemperatureCompensationMode)
+            or nameof(AppSettings.NonlinearityCorrectionMode)
+            or nameof(AppSettings.BinningCorrectionMode))
+        {
+            OnPropertyChanged(nameof(CalibrationEvaluationSummary));
         }
     }
 

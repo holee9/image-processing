@@ -88,6 +88,10 @@ public partial class MainWindow : System.Windows.Window
             ClickButton(LoadRawImageButton);
             await Task.Delay(1500);
 
+            viewModel.Settings.OffsetCorrectionMode = CalibrationStageMode.Off;
+            viewModel.Settings.DefectCorrectionMode = CalibrationStageMode.On;
+            await Task.Delay(100);
+
             ClickButton(ApplyBodyPartPresetButton);
             await Task.Delay(250);
             ClickButton(ApplyDisplayPipelineButton);
@@ -100,6 +104,9 @@ public partial class MainWindow : System.Windows.Window
             report.LastRawDirectory = viewModel.Settings.LastRawDirectory;
             report.DisplayPipelineApplied = viewModel.ActiveImageFrame?.DisplayPipelineApplied ?? false;
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
+            report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
+            report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
+            report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
             report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
             report.ComparisonViewportDetected = ImageComparisonViewport is not null;
@@ -184,6 +191,9 @@ public partial class MainWindow : System.Windows.Window
             report.ComparisonEvidenceExported =
                 report.MenuCommandReportCreated &&
                 File.ReadAllText(menuCommandReportPath).Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
+            report.CalibrationEvaluationEvidenceExported =
+                report.MenuCommandReportCreated &&
+                File.ReadAllText(menuCommandReportPath).Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
 
             var settingsFile = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             if (File.Exists(settingsFile))
@@ -229,6 +239,9 @@ public partial class MainWindow : System.Windows.Window
                 report.ActiveImageSummary.StartsWith("RAW ", StringComparison.Ordinal) &&
                 report.LastRawDirPersisted &&
                 report.DisplayPipelineApplied &&
+                report.CalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
+                report.CalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
+                report.CalibrationEvaluationEvidenceExported &&
                 report.DisplayPanelVisible &&
                 !string.IsNullOrWhiteSpace(report.DisplayVersion) &&
                 report.ComparisonViewportDetected &&

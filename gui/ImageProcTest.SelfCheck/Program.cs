@@ -48,6 +48,13 @@ Assert(loadedSettings.BackendMode == manifest.BackendMode, "BackendMode should p
 Assert(loadedSettings.RawWidth == manifest.RawSample.Width, "RawWidth should persist.");
 Assert(loadedSettings.RawHeight == manifest.RawSample.Height, "RawHeight should persist.");
 Assert(loadedSettings.RawPixelFormat == manifest.RawSample.PixelFormat, "RawPixelFormat should persist.");
+Assert(loadedSettings.OffsetCorrectionMode == "Auto", "Offset correction mode should default to Auto.");
+Assert(loadedSettings.GainCorrectionMode == "Auto", "Gain correction mode should default to Auto.");
+Assert(loadedSettings.DefectCorrectionMode == "Auto", "Defect correction mode should default to Auto.");
+Assert(loadedSettings.GhostCorrectionMode == "Auto", "Ghost correction mode should default to Auto.");
+Assert(loadedSettings.TemperatureCompensationMode == "Auto", "Temperature compensation mode should default to Auto.");
+Assert(loadedSettings.NonlinearityCorrectionMode == "Auto", "Nonlinearity correction mode should default to Auto.");
+Assert(loadedSettings.BinningCorrectionMode == "Auto", "Binning correction mode should default to Auto.");
 Assert(loadedSettings.VoiWindowCenter == 40.0f, "VOI window center should default to Abdomen preset.");
 Assert(loadedSettings.VoiWindowWidth == 400.0f, "VOI window width should default to Abdomen preset.");
 Assert(loadedSettings.VoiLutMode == "Linear", "VOI LUT mode should default to Linear.");
@@ -101,6 +108,7 @@ Assert(displayFrame.DisplayPipelineApplied, "Mock display pipeline should mark t
 Assert(displayFrame.ProcessedPreview is not null, "Mock display pipeline should provide a processed preview.");
 Assert(!ReferenceEquals(displayFrame.Preview, displayFrame.ProcessedPreview), "Mock display pipeline should provide a distinct processed preview for comparison.");
 Assert(displayFrame.DisplayPipelineSummary.Contains("VOI", StringComparison.Ordinal), "Display summary should include VOI settings.");
+Assert(displayFrame.DisplayPipelineSummary.Contains("CalibrationEval", StringComparison.Ordinal), "Display summary should include calibration evaluation settings.");
 
 Console.WriteLine("GUI-S0 self-check passed.");
 Console.WriteLine($"Fixture manifest: {manifestPath}");

@@ -6,6 +6,7 @@
 - `IXpeBackend` mock and native display backend contracts
 - `RealXpeBackend` P/Invoke wrapper for `xpe_common.dll` and `xpe_display.dll`
 - display pipeline command path: Modality LUT -> VOI LUT -> Presentation LUT
+- calibration evaluation controls for preprocessing stages using `Off`, `On`, and `Auto`
 - display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale
 - source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detached viewer
 - settings UI, log panel, alert panel
@@ -38,6 +39,7 @@ The self-check validates the precreated fixture pack under `gui/ImageProcTest/fi
 - mock backend version plus expected log/alert counts
 - wrist lateral 3072x3072 raw image loading and preview creation
 - display settings defaults
+- calibration stage mode defaults: Offset/Gain/Defect/Ghost/Temperature/Nonlinearity/Binning all start as `Auto`
 - mock display pipeline application
 - comparison viewport defaults, source preservation, and processed preview separation
 - VOI body-part preset values
@@ -57,6 +59,7 @@ The E2E runner:
 - verifies the main window and required controls
 - verifies mock version text and initial log/alert population
 - verifies the display settings panel and display version text
+- verifies calibration evaluation `Off`/`On`/`Auto` selectors and live summary updates
 - verifies `Apply Body Part Preset` and `Apply Display Pipeline` command wiring
 - verifies comparison mode controls, zoom commands, and viewport presence
 - verifies menu/toolbar parity and resizable diagnostics splitters
@@ -91,6 +94,7 @@ The emitted report includes:
 - `DisplayPipelineSummary`
 - `DisplayPanelVisible`
 - `DisplayVersion`
+- `CalibrationEvaluationSummary`
 - `VoiPresetApplied`
 - `ResizableDiagnosticsLayoutDetected`
 - `ComparisonViewportDetected`
@@ -156,6 +160,13 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 - `calibOffsetDir`
 - `calibGainDir`
 - `calibDefectDir`
+- `calibOffsetMode`
+- `calibGainMode`
+- `calibDefectMode`
+- `calibGhostMode`
+- `calibTemperatureMode`
+- `calibNonlinearityMode`
+- `calibBinningMode`
 - `lastRawDir`
 - `voiWindowCenter`
 - `voiWindowWidth`
@@ -175,6 +186,7 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 ## Scope boundary
 
 - Real DICOM read/write remains owned by `xpe_dicom.dll` in Phase 1b.
+- Calibration `Off`/`On`/`Auto` controls are evaluation-only Test GUI controls. Product-mode mandatory offset/gain policy remains owned by `xpe_preprocess.dll`.
 - SWU-3.4 LUT Manager remains deferred; the GUI uses the four native presets from `xpe_voi_preset_create`.
 - GSDF defaults to off until DICOM PS3.14 validation vectors are accepted.
 - Tile-backed rendering for images larger than 4096x4096 remains a planned extension before larger-size release claims.

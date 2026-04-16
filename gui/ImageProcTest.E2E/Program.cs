@@ -118,6 +118,14 @@ static void RunWpfE2E()
         var diagnosticsColumnSplitter = GetControl<GridSplitter>(window, "DiagnosticsColumnSplitter");
         var logsAlertsSplitter = GetControl<GridSplitter>(window, "LogsAlertsSplitter");
         var displayVersionText = GetControl<TextBlock>(window, "DisplayVersionText");
+        var calibrationEvaluationSummaryText = GetControl<TextBlock>(window, "CalibrationEvaluationSummaryText");
+        var offsetCorrectionModeComboBox = GetControl<ComboBox>(window, "OffsetCorrectionModeComboBox");
+        var gainCorrectionModeComboBox = GetControl<ComboBox>(window, "GainCorrectionModeComboBox");
+        var defectCorrectionModeComboBox = GetControl<ComboBox>(window, "DefectCorrectionModeComboBox");
+        var ghostCorrectionModeComboBox = GetControl<ComboBox>(window, "GhostCorrectionModeComboBox");
+        var temperatureCompensationModeComboBox = GetControl<ComboBox>(window, "TemperatureCompensationModeComboBox");
+        var nonlinearityCorrectionModeComboBox = GetControl<ComboBox>(window, "NonlinearityCorrectionModeComboBox");
+        var binningCorrectionModeComboBox = GetControl<ComboBox>(window, "BinningCorrectionModeComboBox");
         var displaySettingsGroup = GetControl<GroupBox>(window, "DisplaySettingsGroup");
         var voiLutModeComboBox = GetControl<ComboBox>(window, "VoiLutModeComboBox");
         var bodyPartPresetComboBox = GetControl<ComboBox>(window, "BodyPartPresetComboBox");
@@ -175,6 +183,14 @@ static void RunWpfE2E()
         Assert(logsAlertsSplitter.ResizeDirection == GridResizeDirection.Rows, "Logs/Alerts splitter should resize rows.");
         Assert(Grid.GetRow(logsAlertsSplitter) == 1, "Logs/Alerts splitter should sit between Logs and Alerts rows.");
         Assert(displaySettingsGroup.Visibility == Visibility.Visible, "Display settings panel should be visible by default.");
+        Assert(offsetCorrectionModeComboBox.Items.Count == 3, "Offset mode selector should expose Auto, On, and Off.");
+        Assert(gainCorrectionModeComboBox.Items.Count == 3, "Gain mode selector should expose Auto, On, and Off.");
+        Assert(defectCorrectionModeComboBox.Items.Count == 3, "Defect mode selector should expose Auto, On, and Off.");
+        Assert(ghostCorrectionModeComboBox.Items.Count == 3, "Ghost mode selector should expose Auto, On, and Off.");
+        Assert(temperatureCompensationModeComboBox.Items.Count == 3, "Temperature mode selector should expose Auto, On, and Off.");
+        Assert(nonlinearityCorrectionModeComboBox.Items.Count == 3, "Nonlinearity mode selector should expose Auto, On, and Off.");
+        Assert(binningCorrectionModeComboBox.Items.Count == 3, "Binning mode selector should expose Auto, On, and Off.");
+        Assert(calibrationEvaluationSummaryText.Text.Contains("Offset=Auto", StringComparison.Ordinal), "Calibration summary should include Offset Auto mode.");
         Assert(voiLutModeComboBox.Items.Count >= 3, "VOI mode selector should expose Linear, LinearExact, and Sigmoid.");
         Assert(bodyPartPresetComboBox.Items.Count >= 4, "Body part selector should expose four native presets.");
         Assert(applyBodyPartPresetButton.Command is not null, "Apply Body Part Preset command missing.");
@@ -194,6 +210,12 @@ static void RunWpfE2E()
         Assert(displayPipelineSummaryText.Text.Contains("not run", StringComparison.OrdinalIgnoreCase), "Display summary should start in not-run state.");
         Assert(logsList.Items.Count >= 5, "Logs list should have at least 5 items.");
         Assert(alertsList.Items.Count == 3, "Alerts list should have 3 items.");
+
+        offsetCorrectionModeComboBox.SelectedItem = "Off";
+        defectCorrectionModeComboBox.SelectedItem = "On";
+        DoEvents();
+        Assert(calibrationEvaluationSummaryText.Text.Contains("Offset=Off", StringComparison.Ordinal), "Calibration summary should update when Offset is bypassed.");
+        Assert(calibrationEvaluationSummaryText.Text.Contains("Defect=On", StringComparison.Ordinal), "Calibration summary should update when Defect is forced on.");
 
         ExecuteMenuItem(quickStartMenuItem);
         DoEvents();

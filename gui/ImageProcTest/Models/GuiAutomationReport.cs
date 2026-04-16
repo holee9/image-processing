@@ -50,6 +50,14 @@ public sealed class GuiAutomationReport
 
     public string DisplayPipelineSummary { get; set; } = string.Empty;
 
+    public string CalibrationEvaluationSummary { get; set; } = string.Empty;
+
+    public string OffsetCorrectionMode { get; set; } = string.Empty;
+
+    public string DefectCorrectionMode { get; set; } = string.Empty;
+
+    public bool CalibrationEvaluationEvidenceExported { get; set; }
+
     public bool DisplayPanelVisible { get; set; }
 
     public string DisplayVersion { get; set; } = string.Empty;
