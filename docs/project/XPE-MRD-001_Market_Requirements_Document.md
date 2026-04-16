@@ -110,6 +110,7 @@ These customers need:
 | `MR-OPS-003` | XPE shall preserve benchmark-pack manifests and content hashes for repeatable release comparison. | Customers need reproducible evidence, not one-off tuning. |
 | `MR-OPS-004` | XPE developer and user documentation shall be generated from version-controlled Markdown and structured code comments so that help stays synchronized with the shipped build. | Manually maintained side documents drift too easily for regulated and integration-heavy programs. |
 | `MR-OPS-005` | XPE shall capture reviewer-visible comparison state, including source/processed layer identity, zoom, pan, and comparison mode, when evidence is exported. | Visual review must be reproducible and auditable, especially when large images cannot be assessed in one native-size view. |
+| `MR-OPS-006` | The QA/Test GUI shall support feature-level evaluation controls that let reviewers run detector-correction stages in `Off`, `On`, or `Auto` mode while recording the selected stage mix in evidence. | Algorithm effect, latency, and visual impact must be measured stage-by-stage before deciding which controls belong in the released product workflow. |
 
 ### 4.4 AI transparency and human-factors requirements
 

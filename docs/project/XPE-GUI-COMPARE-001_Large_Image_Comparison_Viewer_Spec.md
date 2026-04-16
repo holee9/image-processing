@@ -22,6 +22,7 @@ Traceability:
 - product requirements: `PR-GUI-001`, `PR-GUI-002`, `PR-GUI-003`,
 - software requirements: `SRS-FUNC-024`, `SRS-SAFE-013`, `SRS-PERF-007`, `SRS-PERF-008`,
 - display interface requirements: `IF-GUI-301` through `IF-GUI-304`.
+- calibration evaluation requirement: `PR-FUNC-011`, `PR-GUI-004`.
 
 ---
 
@@ -50,8 +51,9 @@ Rationale:
 2. App renders the source image in the comparison viewport.
 3. User applies display or processing pipeline.
 4. App keeps the source image immutable and attaches a processed image layer.
-5. User compares source and processed outputs through one of the comparison modes.
-6. User can zoom, pan, inspect pixel coordinates, export evidence, or detach the same viewer into a separate window.
+5. User may set calibration/preprocessing stages to `Off`, `On`, or `Auto` for evaluation-only A/B testing.
+6. User compares source and processed outputs through one of the comparison modes.
+7. User can zoom, pan, inspect pixel coordinates, export evidence, or detach the same viewer into a separate window.
 
 ---
 
@@ -80,6 +82,8 @@ Rationale:
 | `GUI-CMP-FR-005` | The viewer shall expose source only, processed only, split locked, overlay opacity, and difference heatmap modes. | Mode switching does not reload source data. |
 | `GUI-CMP-FR-006` | The viewer shall preserve the original source frame or source frame reference while processed outputs are updated. | Re-running a pipeline never overwrites the source layer. |
 | `GUI-CMP-FR-007` | The viewer shall expose image metadata, current zoom, pan, divider position, pixel coordinate, and sampled source/processed values for evidence capture. | Evidence export contains viewer state and image identifiers. |
+| `GUI-CMP-FR-008` | The Test GUI shall expose calibration stage modes for offset, gain, defect, ghost, temperature, nonlinearity, and binning using `Off`, `On`, and `Auto`. | User can switch each stage independently before re-running the pipeline. |
+| `GUI-CMP-FR-009` | The Test GUI shall label and record stage bypass/force decisions as evaluation-only behavior. | Automation report contains the selected stage mode for each controllable stage. |
 
 ---
 
@@ -148,6 +152,7 @@ The current `ScrollViewer + Image` source pane and `ScrollViewer + Image` proces
 | `GUI-CMP-VER-004` | Switch all comparison modes without reloading source image. | GUI automation report. |
 | `GUI-CMP-VER-005` | Detach viewer and verify same state model. | Detached-window automation or manual UAT checklist. |
 | `GUI-CMP-VER-006` | Record viewer state in evidence export. | JSON evidence bundle. |
+| `GUI-CMP-VER-007` | Switch calibration stage modes between `Off`, `On`, and `Auto` and verify the summary/evidence state updates. | GUI automation report includes calibration evaluation state. |
 
 ---
 
@@ -160,6 +165,7 @@ The current `ScrollViewer + Image` source pane and `ScrollViewer + Image` proces
 | `BI-05.05.05` | Connect display pipeline output to comparison viewport. | Implemented |
 | `BI-05.05.06` | Add RAW comparison E2E fixture and automation. | Implemented with `wrist_lat_3072x3072.raw` fixture plus 4096 synthetic automation |
 | `BI-05.05.07` | Design tile-backed rendering extension for images larger than 4096x4096. | Documented, implementation deferred |
+| `BI-05.05.08` | Add calibration evaluation stage controls with `Off`/`On`/`Auto` modes. | Implemented for Test GUI wiring and evidence capture; native preprocess bridge deferred |
 
 ---
 
@@ -171,6 +177,7 @@ Implemented in `gui/ImageProcTest`:
 - `ViewModels/MainWindowViewModel.cs`,
 - `MainWindow.xaml`,
 - `Models/AppSettings.cs`,
+- `Models/CalibrationStageMode.cs`,
 - `Models/GuiAutomationReport.cs`,
 - `Services/MockXpeBackend.cs`,
 - `ImageProcTest.E2E`,

@@ -1,9 +1,9 @@
 # Software Requirements Specification
 
-**Document ID:** XPE-SRS-001 v1.0  
+**Document ID:** XPE-SRS-001 v1.1  
 **IEC 62304 Clause:** 5.2.1 — 5.2.6  
 **Safety Classification:** Class B  
-**Date:** 2026-04-03  
+**Date:** 2026-04-16  
 **Author:** XPE Development Team  
 **Approval:** __________________ Date: __________  
 
@@ -171,11 +171,38 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 
 ---
 
+## 13. Common Foundation Requirements (Phase 0)
+
+### 13.1 AED Subsystem Requirements
+
+| Req ID | Requirement | Priority | SDD Trace |
+|--------|------------|----------|-----------|
+| SRS-FUNC-040 | 시스템은 Automatic Exposure Detection (AED) subsystem를 제공해야 한다. AED는 노출 이벤트를 감지하고 XPE_STATUS_NO_EVENT (= 1) 코드를 반환하여 폴링 방식으로 이벤트를 제공해야 한다. | Must | SDD-001 §6.4 |
+| SRS-FUNC-041 | AED 설정은 JSON configuration string으로 지원해야 한다. NULL 입력 시 default 설정 사용. enable/disable flag, dose threshold, cooldown period, callback mode selection을 포함해야 한다. | Must | SDD-001 §6.4 |
+| SRS-FUNC-042 | AED 상태 기계는 3가지 상태를 지원해야 한다: 0=IDLE (미설정), 1=ARMED (노출 대기 중), 2=TRIGGERED (노출 감지). xpe_aed_get_status 함수로 현재 상태 조회 가능해야 한다. | Must | SDD-001 §6.4 |
+
+### 13.2 Logging Subsystem Requirements
+
+| Req ID | Requirement | Priority | SDD Trace |
+|--------|------------|----------|-----------|
+| SRS-FUNC-043 | 시스템은 6단계 logging subsystem를 제공해야 한다. TRACE=0, DEBUG=1, INFO=2, WARN=3, ERROR=4, OFF=5. xpe_log_set_level 함수로 레벨 조정 가능해야 한다. | Must | SDD-001 §6.5 |
+| SRS-FUNC-044 | 로그 출력은 stderr (기본) 또는 file path로 redirect 가능해야 한다. xpe_log_set_file 함수로 파일 경로 지정. NULL 입력 시 stderr로 복귀. | Must | SDD-001 §6.5 |
+| SRS-FUNC-045 | 시스템은 강제 log flush 기능을 제공해야 한다. xpe_log_flush 함수로 버퍼링된 로그 메시지를 즉시 출력 대상에 기록해야 한다. | Must | SDD-001 §6.5 |
+
+### 13.3 xpe_common.dll API Requirements
+
+| Req ID | Requirement | Priority | SDD Trace |
+|--------|------------|----------|-----------|
+| SRS-FUNC-046 | xpe_common.dll은 정확히 18개의 C API 함수를 export해야 한다. Lifecycle (3): xpe_init, xpe_shutdown, xpe_version. Configuration (2): xpe_configure, xpe_get_param_range. Error/Alert (4): xpe_error_string, xpe_get_pending_alert_count, xpe_get_pending_alert, xpe_clear_alerts. Logging (3): xpe_log_set_level, xpe_log_set_file, xpe_log_flush. AED (3): xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status. Memory (3): xpe_alloc_image, xpe_free_image, xpe_copy_image. | Must | SDD-001 §6 |
+
+---
+
 ## Revision History
 
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-03 | XPE Team | Initial release (Phase 1 requirements) |
+| 1.1 | 2026-04-16 | XPE Team | AED subsystem 요구사항 추가, Logging subsystem 요구사항 추가, xpe_common API 함수 카운트 18개로 업데이트, EI baseline 단계 재배치 반영 |
 
 ---
 

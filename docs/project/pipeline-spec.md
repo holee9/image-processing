@@ -1,8 +1,8 @@
 # X-Ray Image Processing Pipeline Specification
 
 **Document ID**: PIPE-SPEC-001  
-**Version**: 1.5.0  
-**Date**: 2026-04-14  
+**Version**: 1.6.0  
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Project**: X-ray Image Processing Engine (XPE)  
 **Canonical Scope**: `docs/project/`
@@ -10,6 +10,7 @@
 **Changelog**:
 
 - `v1.3.0 -> v1.5.0`: fixed canonical phase ownership, added AED acquisition gate, reinstated EI baseline stage in the normative body, removed internal Phase 2/Phase 3 contradictions, and normalized GSVG fallback semantics
+- `v1.5.0 -> v1.6.0`: EI baseline 단계를 xpe_enhance_basic.dll로 이동 (SWU-2.10), AED subsystem 통합 완료, xpe_common API 18함수로 확정, 전체 파이프라인 단계 재정렬 반영
 
 ---
 

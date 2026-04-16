@@ -98,7 +98,7 @@ Initial and planned commands:
 
 - `Show Runtime Panel`
 - `Show Raw Settings`
-- `Show Calibration Paths`
+- `Show Calibration Evaluation`
 - `Show Logs`
 - `Show Alerts`
 - `Reset Layout`
@@ -137,6 +137,7 @@ Rules:
 Initial and planned commands:
 
 - `Calibration Settings`
+- `Calibration Evaluation`
 - `Fixture Manager`
 - `Run Self-Check`
 - `Run GUI E2E`
@@ -148,6 +149,7 @@ Rules:
 
 - Tool commands should produce explicit evidence files when they affect verification.
 - Benchmark and QA commands shall point to frozen manifests when those manifests exist.
+- Calibration evaluation controls are Test GUI tools, not product-mode clinical bypass controls; their `Off`/`On`/`Auto` state shall be saved in automation evidence.
 
 ### 4.6 Help
 

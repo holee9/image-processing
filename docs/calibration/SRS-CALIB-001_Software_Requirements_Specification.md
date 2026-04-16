@@ -122,6 +122,8 @@ Selection logic: If `panel.nonlinearity_mode == "LUT"` use 6a; if `"POLY"` use 6
 | **SRS-CALIB-SAFE-002** | System shall enforce calibration expiry checking (SRS-CALIB-FUNC-009). Pipeline shall abort image acquisition if any loaded calibration file has expired (current_time_ms > expiryEpochMs). Error code `XPE_ERR_CALIBRATION_EXPIRED` shall be returned and propagated to user interface. | Expired calibration introduces known systematic bias into diagnostic images. Hard enforcement prevents clinical use of stale data and ensures regulatory compliance (21 CFR Part 11, IEC 62304). | Test: Expiry validation |
 | **SRS-CALIB-SAFE-003** | All calibration file loads (offset, gain, BPM) shall validate file integrity via CRC-32 checksum. Corrupted files shall be rejected with error `XPE_ERR_IO_FAILED`. No partial corrections shall be applied. Pipeline shall fail atomically: either all calibration files load successfully, or none are loaded. | CRC-32 prevents silent data corruption that could lead to systematic image bias. Atomic behavior ensures consistency: either fully calibrated or raw pass-through. | Test: Corruption detection |
 
+**Test GUI evaluation exception:** `ImageProcTest.exe` may expose `Off`, `On`, and `Auto` controls for each calibration/preprocessing stage to support algorithm effect and performance evaluation. This exception is limited to QA/Test GUI workflows, shall be labelled evaluation-only, shall not relax the product-mode mandatory offset/gain policy, and shall record every bypass or forced-stage decision in the automation/evidence report.
+
 ### 3.2 Data Integrity and Buffer Protection (SRS-CALIB-SAFE-004 through SRS-CALIB-SAFE-005)
 
 | Req ID | Requirement | Hazard Ref | Rationale | Verification |

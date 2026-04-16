@@ -101,6 +101,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-FUNC-008` | The system shall emit standardized event and metadata records sufficient for site-level reject-analysis and repeat-rate review. | `MR-OPS-001` |
 | `PR-FUNC-009` | The host application shall expose a Help entry point that opens version-matched offline documentation for the current workflow, screen, or troubleshooting context. | `MR-MKT-005` |
 | `PR-FUNC-010` | The host application shall expose a top-level menu bar that organizes commands into File, Backend, View, Pipeline, Tools, and Help groups while keeping unsupported phase commands disabled or absent until their owner module is available. | `MR-MKT-005`, `MR-OPS-002` |
+| `PR-FUNC-011` | The host Test GUI shall expose calibration/preprocessing stage controls using `Off`, `On`, and `Auto` modes for evaluation-only A/B testing, independent of the product-mode mandatory correction policy. | `MR-OPS-006`, `MR-IMG-001` |
 | `PR-GUI-001` | The host application shall provide a synchronized source-vs-processed comparison viewport with swipe, split, overlay, difference, source-only, processed-only, zoom, pan, and optional detach modes. | `MR-IMG-006`, `MR-OPS-005` |
 
 ### 4.2 Safety and degraded-mode requirements
@@ -152,6 +153,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 | `PR-OPS-005` | Public managed contracts and exported native ABI headers shall carry structured documentation comments from which API reference can be generated automatically. | `MR-OPS-004`, `MR-MKT-002` |
 | `PR-OPS-006` | CI and release packaging shall generate and preserve a version-matched offline help bundle that includes conceptual guidance, API reference entry points, and build-version metadata. | `MR-MKT-005`, `MR-OPS-004` |
 | `PR-GUI-003` | Evidence export shall record comparison viewport state, including comparison mode, zoom, pan, divider position, source image identity, and processed image identity. | `MR-OPS-005` |
+| `PR-GUI-004` | Evidence export shall record the calibration evaluation mode for each controllable preprocessing stage: offset, gain, defect, ghost, temperature compensation, nonlinearity, and binning. | `MR-OPS-006` |
 
 ---
 
@@ -161,6 +163,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 
 - host application launches with diagnostics and an offline Help entry point,
 - host application exposes the canonical top-level menu groups with only supported commands enabled,
+- host application exposes evaluation-only `Off`/`On`/`Auto` calibration stage controls and records their state in automation evidence,
 - managed XML documentation generation and native API documentation generation paths are defined,
 - version-matched quick-start help bundle is available offline for the current build,
 - `PR-FUNC-009`, `PR-FUNC-010`, `PR-OPS-005`, and `PR-OPS-006` have implementation and verification plans.
