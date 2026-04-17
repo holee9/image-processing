@@ -19,6 +19,7 @@ namespace ImageProcTest
             RawPreviewResult? preview,
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
+            PreprocessHealthResult? preprocessHealth,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness)
         {
@@ -61,6 +62,8 @@ namespace ImageProcTest
                 },
                 backendHealth,
                 readinessReportPath,
+                preprocessHealth,
+                preprocessSyntheticOracle = preprocessHealth?.SyntheticOracle,
                 moduleReadiness,
                 stageModes,
                 beforeAfter = new
@@ -79,7 +82,7 @@ namespace ImageProcTest
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
             File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, stageModes, moduleReadiness, timestamp));
+            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, preprocessHealth, stageModes, moduleReadiness, timestamp));
 
             return new GuiE2eReportWriteResult(jsonPath, markdownPath);
         }
@@ -90,6 +93,7 @@ namespace ImageProcTest
             RawPreviewResult? preview,
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
+            PreprocessHealthResult? preprocessHealth,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
             DateTimeOffset timestamp)
@@ -103,6 +107,26 @@ namespace ImageProcTest
             builder.AppendLine($"- Readiness report: `{readinessReportPath ?? "none"}`");
             builder.AppendLine($"- Backend mode: `{backendHealth?.Mode ?? "unknown"}`");
             builder.AppendLine($"- Native processing enabled: `false`");
+            builder.AppendLine();
+
+            builder.AppendLine("## Preprocess Native Gate");
+            if (preprocessHealth is null)
+            {
+                builder.AppendLine("- Preprocess health was not checked.");
+            }
+            else
+            {
+                builder.AppendLine($"- Status: `{preprocessHealth.Status}`");
+                builder.AppendLine($"- Version: `{preprocessHealth.Version}`");
+                builder.AppendLine($"- DLL: `{preprocessHealth.DllPath}`");
+                builder.AppendLine($"- Synthetic oracle: `{preprocessHealth.SyntheticOracle.Status}`");
+                builder.AppendLine($"- Synthetic passed: `{preprocessHealth.SyntheticOracle.Passed}`");
+                builder.AppendLine($"- Total latency ms: `{preprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}`");
+                builder.AppendLine($"- Input preserved: `{preprocessHealth.SyntheticOracle.InputPreserved}`");
+                builder.AppendLine($"- NaN/Inf count: `{preprocessHealth.SyntheticOracle.NaNInfCount}`");
+                builder.AppendLine($"- Determinism RMSE: `{preprocessHealth.SyntheticOracle.DeterminismRmse}`");
+            }
+
             builder.AppendLine();
 
             builder.AppendLine("## Raw Preview");

@@ -16,6 +16,7 @@ namespace ImageProcTest
         private RawPreviewResult? currentPreview;
         private BackendHealthResult? lastBackendHealth;
         private string? lastReadinessReportPath;
+        private PreprocessHealthResult? lastPreprocessHealth;
         private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
 
         public MainWindow()
@@ -139,6 +140,7 @@ namespace ImageProcTest
                     currentPreview,
                     lastBackendHealth,
                     lastReadinessReportPath,
+                    lastPreprocessHealth,
                     GetStageModes(),
                     currentModuleReadiness);
 
@@ -171,16 +173,23 @@ namespace ImageProcTest
             {
                 var report = NativeReadinessProbe.WriteReport(result);
                 lastReadinessReportPath = report.ReportPath;
+                lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
                 PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
+                PreprocessSmokeText.Text =
+                    $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
+                    $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
+                    $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
                 ReportText.Text = $"Readiness report: {report.ReportPath}";
             }
             catch (Exception ex)
             {
                 DisplayHealthText.Text = "Display health: Report generation skipped";
                 PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
+                PreprocessSmokeText.Text = "Preprocess smoke: Report generation skipped";
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
                 lastReadinessReportPath = null;
+                lastPreprocessHealth = null;
             }
 
             RefreshModuleReadiness();

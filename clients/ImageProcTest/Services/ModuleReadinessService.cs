@@ -80,12 +80,23 @@ namespace ImageProcTest
                     ? "pipeline export present"
                     : $"missing execution export(s): {string.Join(", ", health.MissingExecutionExports)}";
 
+                if (health.IsSyntheticOracleReady)
+                {
+                    return new ModuleReadinessSnapshot(
+                        "xpe_preprocess",
+                        "R3",
+                        "Synthetic oracle ready",
+                        $"version={health.Version}; dll={health.DllPath}; adapter-chain smoke passed; latency={health.SyntheticOracle.TotalLatencyMs:0.###}ms; {executionGap}",
+                        "Next: run local raw/calibration fixture E2E before enabling GUI On/Auto real processing.",
+                        ProcessingEnabled: false);
+                }
+
                 return new ModuleReadinessSnapshot(
                     "xpe_preprocess",
                     "R2",
                     "Version and export checklist ready",
-                    $"version={health.Version}; dll={health.DllPath}; {executionGap}",
-                    "Next: run ABI smoke, synthetic oracle, and fixture E2E before enabling GUI execution.",
+                    $"version={health.Version}; dll={health.DllPath}; synthetic={health.SyntheticOracle.Status}; {executionGap}",
+                    "Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.",
                     ProcessingEnabled: false);
             }
 

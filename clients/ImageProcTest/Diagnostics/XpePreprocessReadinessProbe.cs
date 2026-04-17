@@ -72,20 +72,27 @@ namespace ImageProcTest
                             PresentExports: present,
                             MissingExports: missing,
                             MissingExecutionExports: missingExecution,
+                            SyntheticOracle: PreprocessSyntheticOracleResult.NotRun("Export checklist is incomplete."),
                             IsVersionReady: version != "Unavailable",
-                            IsExportReady: false);
+                            IsExportReady: false,
+                            IsSyntheticOracleReady: false);
                     }
 
+                    var synthetic = XpePreprocessSyntheticOracle.Run(candidate);
                     return new PreprocessHealthResult(
-                        Status: "Export checklist ready",
+                        Status: synthetic.Passed ? "Synthetic oracle ready" : "Export checklist ready",
                         Version: version,
                         DllPath: candidate,
-                        Details: "Preprocess exports are discoverable. Native image execution remains gated until ABI smoke, synthetic oracle, and fixture E2E pass.",
+                        Details: synthetic.Passed
+                            ? "Preprocess exports are discoverable and the 16x16 synthetic adapter-chain oracle passed. Real fixture execution remains gated until R4 fixture E2E passes."
+                            : "Preprocess exports are discoverable. Native real-image execution remains gated until ABI smoke, synthetic oracle, and fixture E2E pass.",
                         PresentExports: present,
                         MissingExports: missing,
                         MissingExecutionExports: missingExecution,
+                        SyntheticOracle: synthetic,
                         IsVersionReady: true,
-                        IsExportReady: true);
+                        IsExportReady: true,
+                        IsSyntheticOracleReady: synthetic.Passed);
                 }
                 finally
                 {
@@ -101,8 +108,10 @@ namespace ImageProcTest
                 PresentExports: [],
                 MissingExports: RequiredExports,
                 MissingExecutionExports: ExecutionExports,
+                SyntheticOracle: PreprocessSyntheticOracleResult.NotRun("DLL not found."),
                 IsVersionReady: false,
-                IsExportReady: false);
+                IsExportReady: false,
+                IsSyntheticOracleReady: false);
         }
 
         private static IEnumerable<string> GetDllCandidates()
