@@ -1,15 +1,19 @@
-# Product Overview: X-ray Image Processing Engine
+# 제품 개요: X-ray Image Processing Engine (XPE) (v2.0)
 
-## Product Identity
+**Version**: 2.0.0 | **Updated**: 2026-04-17
+**Changes from v1.0**: 2024-2026 규제 환경 반영 (FDA PCCP/AI-DSF/Transparency, EU AI Act, ISO 42001, IEC 81001-5-1), Must/Should/Could 전략 명시, 신규 SPEC 4종(REG/SEC/IOP/OPS) 참조. See `.moai/project/trend-survey-2026.md`.
 
-- **Name**: X-ray Image Processing Engine
-- **Repository**: https://github.com/holee9/image-processing
-- **Domain**: Medical Device Software (X-ray Flat Panel Detector)
-- **Regulatory**: IEC 62304 Class B/C, FDA 21 CFR 820.30, EU MDR 2017/745
+## 제품 정체성
 
-## Purpose
+- **이름**: X-ray Image Processing Engine (XPE)
+- **저장소**: https://github.com/holee9/image-processing
+- **분야**: 의료 기기 소프트웨어 (X-ray Flat Panel Detector)
+- **규제**: IEC 62304 Class B/C, FDA 21 CFR 820.30, EU MDR 2017/745, **FDA §524B Cyber Device (2025-06 Final)**, **FDA PCCP AI-DSF (2024-12 Final)**, **FDA AI-DSF Lifecycle (2025-01 Draft)**, **EU Regulation 2024/1689 AI Act (2027-08 전면 발효)**, **ISO/IEC 42001:2023 AIMS**, **IEC 81001-5-1:2021 Secure SW Lifecycle**, **QMSR 2026-02-02 발효**
+- **개발 상태**: 활성 개발 중 (Active Product Development)
 
-X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 가능한 의료 영상으로 변환하는 영상처리 엔진. Detector raw data의 보정(Pre-Processing)부터 영상 향상 및 DICOM 표시(Post-Processing)까지 전체 파이프라인을 커버한다.
+## 목적
+
+X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 가능한 의료 영상으로 변환하는 영상처리 엔진. Detector raw data의 보정(Pre-Processing)부터 영상 향상 및 DICOM 표시(Post-Processing)까지 전체 파이프라인을 커버하며, 의료 기기 규정 인증을 목표로 개발 중입니다.
 
 ## Product Components
 
@@ -62,11 +66,62 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 
 ## Must-Have vs Differentiator Strategy
 
-출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, 2026-04-13)
+출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, 2026-04-13), **확장 출처**: `.moai/project/trend-survey-2026.md` (v1.0, 2026-04-17)
 
 - **필수 (Must-Have)**: 미구현 시 IEC/FDA 규제 인증 불가. Pre-Processing 전체(PRE-01~09), Support(SUP-01~05), Post-Processing 기반(POST-01~04, POST-07 기본, POST-12) 해당.
 - **차별화 (Differentiator)**: Phase 2/3에서 경쟁 우위 확보. PRE-04 NLCSC(14-50x), PRE-06 ML(14.2x), POST-05 MFP, POST-09 Bone Suppression, POST-11 Virtual Grid.
 - **HW/SW 경계**: PRE-01은 FPGA 전담(HW팀). PRE-02,03,06,08,09는 SW-first 후 FPGA 이관 가능 설계. PRE-07은 SW-first 후 MCU 이관 가능 설계. PRE-04,05는 SW-only.
+
+### Must/Should/Could 3-Tier 전략 (v2.1 Strict)
+
+**v2.1 변경**: 엄격 재분류 (2026-04-17). Must 27→12. "반드시 출시 블로커 또는 법적 의무"만 Must. 프로젝트 관례·자발적 표준은 Should.
+
+| Tier | 항목 수 (v2.1) | 의미 | 문서 |
+|:----:|:------:|------|------|
+| **Must** | **12** (was 27) | 법률 의무 OR 시장 진입 블로커 OR IEC 62304 강제 조항 | 신규 SPEC 4종의 core 부분 + IEC 62304 |
+| **Should** | **35** (was 19) | 강력 권장 · 경쟁력 · Phase 연결 조건부 Must | Phase 2/3 및 AI 배포 결정 시 승격 |
+| **Could** | 10 | 미래 옵션·연구 모드 | Phase 4 Research Track |
+
+**v2.1 엄격 판정 기준**: "이것이 없으면 출시 불가 또는 법적 거절?" → YES만 Must
+
+### Must 12항목 (v2.1 엄격)
+
+| ID | 항목 | 블로커 근거 |
+|:--:|------|------------|
+| M-01 | IEC 62304 Class B | 의료기기 SW 법적 분류 증명 |
+| M-02 | EU MDR 2017/745 | EU 시장 진입 법률 |
+| M-03 | FDA 21 CFR 820.30 + QMSR 2026 | US 시장 진입 법률 |
+| M-04 | FDA §524B Cyber Device | 2023 법률 (DICOM 네트워크 = 강제 cyber device) |
+| M-05 | SBOM (SPDX 3.0/CycloneDX 1.6) | §524B 법적 필수 구성요소 |
+| M-06 | Vulnerability Management | §524B 판매 후 법적 의무 |
+| M-07 | Basic Input Validation | 기본 방어 + IEC 62304 결합 |
+| M-08 | DICOM 3.0 Core | 병원 PACS 통합 실질적 필수 |
+| M-09 | DICOM Conformance Statement | 병원 구매 실사 법적 증빙 |
+| M-10 | Post-Market Surveillance | EU MDR Article 83 법률 |
+| M-11 | Characterization Tests | IEC 62304 §5.4.1 강제 조항 |
+| M-12 | Trackability (RTM, commits) | IEC 62304 §5.4.1 강제 조항 |
+
+### Should 35항목 (v2.1 확장, 조건부 Must 승격)
+
+- **Regulatory Should 8**: FDA PCCP, AI-DSF Lifecycle Draft, Transparency, IMDRF GMLP, EU AI Act, ISO 42001, 기존 S-REG-01~02 — **Phase 3 AI 배포 시 Must 승격**
+- **Cybersecurity Should 5**: IEC 81001-5-1 (자발적), SLSA L3, Threat Modeling, SBOM Continuous, CVD — **SBOM/L3는 Phase 2 Must 승격 권고**
+- **Interoperability Should 5**: DICOMweb (Phase 2+), FHIR R5 (Phase 2-3+), IHE AIR/AIRA (Phase 3+), IHE Baseline (통합 편의), DICOM SR for AI — **Phase 연결**
+- **AI Should 8**: SSL Denoising, Diffusion Priors, Conformal UQ, XAI, ONNX 1.20+, ML Defect, Bone Suppression, AI Collimation — **Phase 3 진입 시**
+- **Operations Should 5**: Drift Detection, OpenTelemetry, VEX, Reject-Analysis, Reproducible Builds — **운영 성숙도 향상**
+- **Quality/Architecture Should 4**: TRUST 5, Reference+SIMD Parity, MX Tag System, Anti-Spaghetti — **프로젝트 품질 기반 (v2.0 Must → v2.1 Should)**
+
+### Could 10항목 (Phase 4+)
+
+MedSAM Foundation Model, Federated Learning, GPU Production Path, Rust Safety Module, PQC, FHIRcast, WebAssembly, Continuous Learning, NIST AI RMF Full Adoption, Generative AI
+
+### 조건부 Must 승격 규칙 (v2.1 신규)
+
+- Phase 3 AI-DSF 배포 승인 → S-REG-03~07, S-AI-06~08 항목 Must 승격
+- EU 시장 + AI 판매 결정 → S-REG-07 (EU AI Act) Must 승격
+- Connectathon 참여 결정 → S-IOP-05 (IHE Baseline) Must 승격
+- SLSA L3 인증 결정 → S-SEC-01 Must 승격
+
+상세: `.moai/project/trend-survey-2026.md` v1.1 §1-§4
 
 ## Architecture Principle
 
@@ -76,14 +131,68 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 - Layer 1-G: GSVG (독립 IEC 62304 패키지, xpe_common 비의존)
 - Layer 2: C# GUI Orchestrator (P/Invoke로 모든 DLL 호출)
 
-## Target Users
+## 대상 사용자
 
-- 영상처리 엔지니어: 알고리즘 개발 및 튜닝
-- QA 엔지니어: IEC 62304 검증/확인
-- 시스템 통합자: DLL을 RadiConsole 등 프로덕션 GUI에 연동
+- **영상처리 엔지니어**: 알고리즘 개발 및 튜닝
+- **QA 엔지니어**: IEC 62304 검증/확인 및 테스트 관리
+- **시스템 통합자**: DLL을 RadiConsole 등 프로덕션 GUI에 연동
+- **의료 영상 전문가**: 알고리즘 평가 및 검증
 
-## Development Status
+## 주요 시나리오
 
-- IEC 62304 규정 문서: 완비 (XPE, GSVG, Ghost Correction, Panel Defect)
-- 소스 코드: 스캐폴딩 단계
-- Phase 0 (Foundation) → Phase 1 (Pre/Post Basic) → Phase 2 (Clinical) → Phase 3 (AI)
+### 1. X-ray 이미지 처리 파이프라인
+- **입력**: Raw FPD 데이터 (DICOM 형식, UINT16/FLOAT32)
+- **전처리**: Offset/Dark 보정, Gain 보정, 불량 픽셀 보정 등
+- **후처리**: 노이즈 감소, 대비 향상, 윤곽선 강화 등
+- **출력**: 진단 가능한 의료 영상 (DICOM 표준 준수)
+
+### 2. 알고리즘 개발 및 검증
+- 단위 테스트 및 통합 테스트 수행
+- ImageProcTest GUI로 실시간 알고리즘 검증
+- 성능 벤치마킹 및 품질 평가
+
+### 3. 의료 기기 인증 준비
+- IEC 62304 Class B 합격 지원
+- 요구사항 추적 관리 (RTM)
+- 자동화 테스트 및 검증
+
+## 개발 현황
+
+### 현재 단계
+**Phase 1 진행 중**: 전처리 기본 알고리즘 구현 완료, 기본 후처리 개발 진행 중
+- **Phase 0 완료**: 인프라, 공통 라이브러리, 테스트 프레임워크, GUI 프로토타입, CI/CD
+- **Phase 1**: 기본 전처리(PRE-01~09) 및 기본 후처리(POST-01~04, POST-07) 구현
+- **목표**: 의료 기기 인증 (IEC 62304 Class B)
+
+### 최근 개발 성과
+- **SPEC-XPE-P1A**: 전처리 모듈 (Gain/Offset/Defect Correction) 구현 완료
+- **통합 테스트 GUI**: ImageProcTest WPF GUI로 DLL 모듈 통합 테스트 지원
+- **API 명세**: 완전한 C ABI 규격 82개 함수 구현
+
+### 로드맵 (v2.0 Updated)
+
+**Phase 2 (Differentiator)**: AI 기반 고급 알고리즘 도입 (deterministic 중심)
+- PRE-04 NLCSC Lag Correction (14-50x 업계 우위)
+- PRE-06 ML Defect Correction (14.2x NMSE) — Phase 3 AI tier와 통합
+- POST-05 Multiscale Frequency Processing
+- POST-09 Bone Suppression — Phase 3 AI tier로 분류
+- POST-11 Virtual Grid (GSVG, 별도 IEC 62304 패키지)
+
+**Phase 3 (Intelligence)**: AI 모듈 고도화 (SPEC-XPE-P3-AI v1.0)
+- POST-02 Deep Learning Denoising — SSL (Noise2Noise family) baseline
+- POST-02 Diffusion Priors — opt-in premium tier (NEED/DiffDenoise)
+- POST-07 AI Collimation Detection (baseline Hough + AI refinement)
+- POST-09 Bone Suppression (U-Net, +16.8% 민감도)
+- ONNX Runtime 1.20+ through Multi-EP (CPU/CUDA/TensorRT/DirectML)
+- XAI Sidecar (Grad-CAM saliency, SHAP, opt-in)
+- Conformal Prediction Uncertainty Quantification
+- PCCP boundary enforcement (FDA 2024-12)
+- Model Card API + Data Lineage
+
+**Parallel Tracks (신규 v2.0)**:
+- **S-REG**: FDA/EU/ISO 규제 문서 및 governance (S0-A 이후 병행)
+- **S-SEC**: §524B + SBOM + SLSA (S0-B 이후 병행)
+- **S-OPS**: PMS + Drift + OTEL + Reproducible (S1-B1 이후 병행)
+- **S-IOP**: DICOMweb + FHIR R5 + IHE AIR/AIRA (S1-B3 이후)
+
+**Phase 4 Research Track (Could, 2027+)**: MedSAM fine-tuning, Federated Learning, GPU production path, Rust safety modules.
