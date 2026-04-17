@@ -19,7 +19,7 @@
     // @MX:NOTE: [AUTO] PREP-time decay constant for offset correction
     // Models dark current accumulation after detector reset
     // SPEC-XPE-P1A AC-OFF-003: PREP-time exponential decay model
-    constexpr float PREP_DECAY_CONSTANT = 0.1f;  // Decay time constant in seconds
+    [[maybe_unused]] constexpr float PREP_DECAY_CONSTANT = 0.1f;  // Decay time constant in seconds
 
 // =============================================================================
 // Internal Helper Functions
@@ -79,7 +79,7 @@ static void apply_offset_correction_uint16(
  * @param width Image width
  * @param height Image height
  */
-static void interpolate_offset_temperature(
+[[maybe_unused]] static void interpolate_offset_temperature(
     const float* offset_low,
     const float* offset_high,
     float temp_low,
@@ -114,7 +114,7 @@ static void interpolate_offset_temperature(
  * @param width Image width
  * @param height Image height
  */
-static void apply_prep_time_decay(
+[[maybe_unused]] static void apply_prep_time_decay(
     const float* offset,
     float acquisition_time_s,
     float* output,

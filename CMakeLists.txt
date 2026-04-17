@@ -69,6 +69,27 @@ if(NOT spdlog_FOUND OR NOT nlohmann_json_FOUND OR NOT fmt_FOUND)
     FetchContent_MakeAvailable(spdlog nlohmann_json fmt)
 endif()
 
+# Eigen 3.4.x for matrix operations (REQ-ADV-001, REQ-ADV-010)
+set(XPE_NEEDS_EIGEN ${BUILD_ENHANCE_ADVANCED})
+if(BUILD_GSVG)
+    set(XPE_NEEDS_EIGEN TRUE)
+endif()
+
+if(XPE_NEEDS_EIGEN)
+    find_package(Eigen3 CONFIG QUIET)
+endif()
+
+if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
+    FetchContent_Declare(
+        eigen
+        URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        URL_HASH SHA256=4c5a19a2e804e29dc299d43d0297c4b7fe67d7f2e2a744dfb4f29da4dcab9c0
+    )
+
+    # Eigen is header-only, so we just need to make it available
+    FetchContent_MakeAvailable(eigen)
+endif()
+
 # XPE modules (Layer 0 + Layer 1)
 add_subdirectory(modules/common)
 

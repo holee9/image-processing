@@ -13,6 +13,7 @@
 #include <mutex>
 #include <atomic>
 #include <cstring>
+#include <cstdio>
 #include <cmath>
 #include <nlohmann/json.hpp>
 
@@ -38,11 +39,23 @@ struct PreprocessState {
 
 } g_state;
 
+static void copy_c_string(char* destination, size_t destination_size, const char* source) {
+    if (destination == nullptr || destination_size == 0) {
+        return;
+    }
+
+    std::snprintf(destination, destination_size, "%s", source == nullptr ? "" : source);
+}
+
 } // anonymous namespace
 
 // =============================================================================
 // Phase 1: Lifecycle Functions
 // =============================================================================
+
+extern "C" XPE_API const char* xpe_preprocess_version(void) {
+    return "0.1.0-readiness";
+}
 
 /**
  * @brief Initialize preprocessing module with configuration
@@ -69,8 +82,7 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* config) {
         // AC-LC-001: Default configuration when NULL
         if (config == nullptr) {
             // Use default settings
-            std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
-            g_state.mode[sizeof(g_state.mode) - 1] = '\0';  // Ensure null-termination
+            copy_c_string(g_state.mode, sizeof(g_state.mode), "default");
             g_state.log_level = 0;
         }
         // AC-LC-002: Parse JSON configuration with proper JSON parser
@@ -82,18 +94,18 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* config) {
                 // Extract mode parameter
                 if (config_json.contains("mode") && config_json["mode"].is_string()) {
                     std::string mode = config_json["mode"];
-                    std::strncpy(g_state.mode, mode.c_str(), sizeof(g_state.mode) - 1);
+                    copy_c_string(g_state.mode, sizeof(g_state.mode), mode.c_str());
                 } else {
-                    std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
+                    copy_c_string(g_state.mode, sizeof(g_state.mode), "default");
                 }
 
                 // Extract log_level parameter
                 if (config_json.contains("log_level") && config_json["log_level"].is_number()) {
                     g_state.log_level = config_json["log_level"];
                 }
-            } catch (const nlohmann::json::parse_error& e) {
+            } catch (const nlohmann::json::parse_error&) {
                 // Invalid JSON, use defaults
-                std::strncpy(g_state.mode, "default", sizeof(g_state.mode) - 1);
+                copy_c_string(g_state.mode, sizeof(g_state.mode), "default");
                 g_state.log_level = 0;
             }
         }

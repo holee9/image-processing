@@ -23,8 +23,8 @@
 
     // @MX:NOTE: [AUTO] Default SID values for multi-SID interpolation
     // AC-GAIN-002: Multi-SID gain interpolation
-    constexpr float DEFAULT_SID_LOW = 1000.0f;   // mm
-    constexpr float DEFAULT_SID_HIGH = 1800.0f;  // mm
+    [[maybe_unused]] constexpr float DEFAULT_SID_LOW = 1000.0f;   // mm
+    [[maybe_unused]] constexpr float DEFAULT_SID_HIGH = 1800.0f;  // mm
 
 // =============================================================================
 // Internal Helper Functions
@@ -87,7 +87,7 @@ static XpeErrorCode apply_gain_correction_uint16_to_float32(
  * @param width Image width
  * @param height Image height
  */
-static void interpolate_gain_sid(
+[[maybe_unused]] static void interpolate_gain_sid(
     const float* gain_low,
     const float* gain_high,
     float sid_low,

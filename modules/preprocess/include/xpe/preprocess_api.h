@@ -2,7 +2,8 @@
  * @file preprocess_api.h
  * @brief XPE Preprocessing Module API (SPEC-XPE-P1A)
  *
- * Phase 1: Lifecycle (2 functions)
+ * Phase 1: Lifecycle (3 functions)
+ * - xpe_preprocess_version()
  * - xpe_preprocess_init()
  * - xpe_preprocess_shutdown()
  *
@@ -26,7 +27,7 @@
  * - xpe_defect_detect_runtime()
  * - xpe_preprocess_get_param_range()
  *
- * Total: 14 API functions
+ * Total: 15 API functions
  *
  * ABI Compliance:
  * - extern "C" linkage
@@ -47,6 +48,14 @@ extern "C" {
 /* =============================================================================
  * Phase 1: Lifecycle Functions (REQ-P1A-001, AC-LC-001~003)
  * ============================================================================ */
+
+/**
+ * @brief Return preprocessing module version string.
+ *
+ * The returned pointer is owned by the module and remains valid for the process
+ * lifetime. GUI readiness probes use this export for R1 binary health only.
+ */
+XPE_API const char* xpe_preprocess_version(void);
 
 /**
  * @brief Initialize preprocessing module with configuration

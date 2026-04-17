@@ -40,6 +40,7 @@
                         <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="DetailsText" Text="Details: Waiting for health check." FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>

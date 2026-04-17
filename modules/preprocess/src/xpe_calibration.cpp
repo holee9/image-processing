@@ -69,6 +69,24 @@ static bool validate_xcal_header(const XCalHeader& header, int32_t expected_type
     return true;
 }
 
+static void copy_fixed_string(char* destination,
+                              size_t destination_size,
+                              const char* source,
+                              size_t source_limit = static_cast<size_t>(-1)) {
+    if (destination == nullptr || destination_size == 0) {
+        return;
+    }
+
+    size_t index = 0;
+    if (source != nullptr) {
+        for (; index + 1 < destination_size && index < source_limit && source[index] != '\0'; ++index) {
+            destination[index] = source[index];
+        }
+    }
+
+    destination[index] = '\0';
+}
+
 // =============================================================================
 // Phase 2: Calibration Loading Functions
 // =============================================================================
@@ -132,16 +150,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
             width_to_store = header.width;
             height_to_store = header.height;
             timestamp_to_store = header.timestamp;
-            std::strncpy(session_id_to_store, header.session_id, 63);
-            session_id_to_store[63] = '\0';
+            copy_fixed_string(session_id_to_store, sizeof(session_id_to_store),
+                              header.session_id, sizeof(header.session_id));
 
             // Store in global calibration data
             g_calib.offset_map = std::move(data_to_store);
             g_calib.offset_width = width_to_store;
             g_calib.offset_height = height_to_store;
             g_calib.offset_timestamp = timestamp_to_store;
-            std::strncpy(g_calib.offset_session_id, session_id_to_store, 63);
-            g_calib.offset_session_id[63] = '\0';
+            copy_fixed_string(g_calib.offset_session_id, sizeof(g_calib.offset_session_id),
+                              session_id_to_store);
         }
 
         return XPE_OK;
@@ -211,16 +229,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             width_to_store = header.width;
             height_to_store = header.height;
             timestamp_to_store = header.timestamp;
-            std::strncpy(session_id_to_store, header.session_id, 63);
-            session_id_to_store[63] = '\0';
+            copy_fixed_string(session_id_to_store, sizeof(session_id_to_store),
+                              header.session_id, sizeof(header.session_id));
 
             // Store in global calibration data
             g_calib.gain_map = std::move(data_to_store);
             g_calib.gain_width = width_to_store;
             g_calib.gain_height = height_to_store;
             g_calib.gain_timestamp = timestamp_to_store;
-            std::strncpy(g_calib.gain_session_id, session_id_to_store, 63);
-            g_calib.gain_session_id[63] = '\0';
+            copy_fixed_string(g_calib.gain_session_id, sizeof(g_calib.gain_session_id),
+                              session_id_to_store);
         }
 
         return XPE_OK;
@@ -320,6 +338,9 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* 
                                                           float temperature_c,
                                                           const char* output_path) {
     try {
+        (void)integration_time_ms;
+        (void)temperature_c;
+
         // Validate input
         if (dark_frames == nullptr || output_path == nullptr) {
             return XPE_ERR_INVALID_INPUT;
@@ -371,7 +392,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* 
         header.width = width;
         header.height = height;
         header.timestamp = static_cast<int64_t>(std::time(nullptr));
-        std::strncpy(header.session_id, "generated", 63);
+        copy_fixed_string(header.session_id, sizeof(header.session_id), "generated");
         header.data_size = width * height * sizeof(float);
         std::memset(header.sha256, 0, 32);  // TODO: Compute SHA-256
 
@@ -518,13 +539,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
 
         // Set session ID
         if (type == 0) {
-            std::strncpy(header.session_id, g_calib.offset_session_id, 63);
+            copy_fixed_string(header.session_id, sizeof(header.session_id), g_calib.offset_session_id);
         } else if (type == 1) {
-            std::strncpy(header.session_id, g_calib.gain_session_id, 63);
+            copy_fixed_string(header.session_id, sizeof(header.session_id), g_calib.gain_session_id);
         } else {
-            std::strncpy(header.session_id, "defect_map", 63);
+            copy_fixed_string(header.session_id, sizeof(header.session_id), "defect_map");
         }
-        header.session_id[63] = '\0';
 
         // Write to file
         std::ofstream file(filepath, std::ios::binary);

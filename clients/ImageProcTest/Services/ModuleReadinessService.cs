@@ -71,13 +71,36 @@ namespace ImageProcTest
 
         private static ModuleReadinessSnapshot EvaluatePreprocess(string? root)
         {
+            var health = XpePreprocessReadinessProbe.Check();
             var sourceExists = root is not null && Directory.Exists(Path.Combine(root, "modules", "preprocess", "src"));
-            var binary = FindFirstExisting(root, "xpe_preprocess.dll",
-                Path.Combine("build", "readiness-preprocess-vs", "bin", "Debug"),
-                Path.Combine("build", "default", "bin", "Debug"),
-                Path.Combine("build", "ci-common", "bin", "Debug"));
 
-            if (binary is null)
+            if (health.IsExportReady)
+            {
+                var executionGap = health.MissingExecutionExports.Count == 0
+                    ? "pipeline export present"
+                    : $"missing execution export(s): {string.Join(", ", health.MissingExecutionExports)}";
+
+                return new ModuleReadinessSnapshot(
+                    "xpe_preprocess",
+                    "R2",
+                    "Version and export checklist ready",
+                    $"version={health.Version}; dll={health.DllPath}; {executionGap}",
+                    "Next: run ABI smoke, synthetic oracle, and fixture E2E before enabling GUI execution.",
+                    ProcessingEnabled: false);
+            }
+
+            if (health.IsVersionReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_preprocess",
+                    "R1",
+                    "Version ready, export checklist incomplete",
+                    $"version={health.Version}; missing={string.Join(", ", health.MissingExports)}",
+                    "Complete mandatory exports before ABI smoke or execution controls.",
+                    ProcessingEnabled: false);
+            }
+
+            if (health.Status == "DLL not found")
             {
                 return new ModuleReadinessSnapshot(
                     "xpe_preprocess",
@@ -91,9 +114,9 @@ namespace ImageProcTest
             return new ModuleReadinessSnapshot(
                 "xpe_preprocess",
                 "R1",
-                "Binary discoverable, execution still gated",
-                $"dll={binary}",
-                "Run export checklist, ABI smoke, synthetic oracle, and fixture E2E before enabling GUI execution.",
+                health.Status,
+                health.Details,
+                "Fix preprocess binary load/export readiness before ABI smoke.",
                 ProcessingEnabled: false);
         }
 

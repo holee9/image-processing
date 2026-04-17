@@ -172,11 +172,13 @@ namespace ImageProcTest
                 var report = NativeReadinessProbe.WriteReport(result);
                 lastReadinessReportPath = report.ReportPath;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
+                PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
                 ReportText.Text = $"Readiness report: {report.ReportPath}";
             }
             catch (Exception ex)
             {
                 DisplayHealthText.Text = "Display health: Report generation skipped";
+                PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
                 lastReadinessReportPath = null;
             }
