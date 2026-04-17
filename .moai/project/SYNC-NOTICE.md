@@ -6,15 +6,20 @@ The **normative (canonical)** versions of all project documents are in `docs/pro
 
 This directory (`.moai/project/`) contains MoAI framework working copies that may be **outdated**.
 
-## Known Differences (as of 2026-04-14)
+## Known Differences (as of 2026-04-18)
 
 | File | .moai/project/ | docs/project/ | Status |
 |------|:--------------:|:-------------:|--------|
-| product.md | 90 lines | 95 lines | docs/ is more complete (SWU Count Scope added) |
-| structure.md | 78 lines | 72 lines | docs/ has expanded DLL mapping table |
-| tech.md | 136 lines | 136 lines | Identical |
-| api-spec.md | v1.1.0 (1,410 lines) | **v1.2.0** (1,470 lines) | docs/ adds AED functions, EI reorganization |
-| pipeline-spec.md | 667 lines | 667 lines | Identical |
+| product.md | 198 lines | 188 lines | .moai/ expanded locally; re-reconcile pending |
+| structure.md | 120 lines | 150 lines | docs/ has fuller DLL mapping; sync pending |
+| tech.md | 306 lines | 155 lines | .moai/ superset; docs/ is legacy; treat .moai/ as working copy |
+| api-spec.md | **v1.3.0 (1,530 lines)** | **v1.3.0 (1,530 lines)** | ✅ Synced 2026-04-18 (S1-A gate cleared) |
+| pipeline-spec.md | 666 lines | 185 lines | .moai/ superset; docs/ is legacy |
+
+### Sync History
+
+- 2026-04-18: `api-spec.md` synced to v1.3.0 (S1-A start gate requirement met)
+- 2026-04-14: `api-spec.md` v1.3.0 published in docs/project/ (AED + explicit-path appendix + AED acronym control)
 
 ## Rule
 
