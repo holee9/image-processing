@@ -2,12 +2,19 @@
 
 ---
 spec_id: SPEC-XPE-P1A
-version: 1.0.0
-status: Planned
+version: 1.2.0
+status: In Progress (SUP-01 complete, M2 pending)
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-18
 author: manager-spec (MoAI)
 ---
+
+## HISTORY
+
+| Version | Date       | Author       | Changes |
+|---------|------------|--------------|---------|
+| 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Align with spec.md v1.2.0. Cross-reference simd-parity-harness.md and benchmark manifest. M2 scope strengthened with Hampel runtime detection recipe. |
+| 1.0.0   | 2026-04-16 | manager-spec | Initial implementation plan |
 
 ## 1. Implementation Overview
 
@@ -389,14 +396,28 @@ XPE_API XpeErrorCode function_name(/* params */) {
 
 ### 7.3 SIMD Parity Harness
 
-```
-For each correction function:
-  1. Generate random input image
-  2. Execute scalar implementation -> result_scalar
-  3. Execute AVX2 implementation -> result_avx2
-  4. Assert bit-exact equality: result_scalar == result_avx2
-  5. Repeat for 100 random inputs
-```
+See `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md` v1.0.0 for the complete protocol. Summary:
+
+- Deterministic RNG seed: CRC32("XPE-SIMD-PARITY-v1") derived per operation
+- 100 random inputs per (operation, shape) pair — 3 shapes (512, 1024, 3072) × 6 operations = 1800 cases
+- Plus 30 edge-case tests (zero, max, hotspot, checkerboard, ramp) per operation
+- Parity rules:
+  - Integer operations (Offset, Defect, Runtime Detect): **bit-identical** via memcmp
+  - Float operations (Gain reciprocal, Gain polynomial): **1 ULP** tolerance via `fabsf(s-a) <= ULP(max(|s|,|a|))`
+- Dispatch override: `XPE_FORCE_SCALAR=1` env or `{"force_scalar": true}` config
+- Harness location: `modules/preprocess/tests/test_simd_parity.cpp` (new file, M5 deliverable)
+
+### 7.4 Pixel-Accuracy Benchmarks (BP-01~05)
+
+See `benchmark/BP-01-05-preprocess-manifest.md` v1.0.0. Pre Lane M2 release gate requires:
+
+- BP-01 Temperature sweep dataset captured and passing (REQ-P1A-010)
+- BP-02 Multi-gain linearity dataset captured and passing (REQ-P1A-011)
+- BP-03 Heel-effect SID dataset captured and passing (REQ-P1A-011)
+- BP-04 Defect density dataset captured and passing (REQ-P1A-012, 013)
+- BP-SIMD addendum (1830/1830 parity) passing (REQ-P1A-040)
+
+Freeze protocol: SHA-256 hashes locked before release; any replacement requires version bump per parent spec Section 7.
 
 ---
 
@@ -435,4 +456,4 @@ M6 (Readout Validation + Utility) ← 마지막
 
 ---
 
-*Document End - SPEC-XPE-P1A Plan v1.0.0*
+*Document End - SPEC-XPE-P1A Plan v1.2.0*

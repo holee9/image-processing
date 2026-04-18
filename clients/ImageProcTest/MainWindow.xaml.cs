@@ -170,6 +170,9 @@ namespace ImageProcTest
                     $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
                     $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
                     $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
+                PreprocessParamRangeText.Text =
+                    $"Preprocess parameter ranges: {NativeReadinessProbe.FormatPreprocessParameterRanges(report.PreprocessHealth.ParameterRanges)}";
+                PreprocessParamRangeGrid.ItemsSource = report.PreprocessHealth.ParameterRanges;
                 ReportText.Text = $"Readiness report: {report.ReportPath}";
             }
             catch (Exception ex)
@@ -177,6 +180,8 @@ namespace ImageProcTest
                 DisplayHealthText.Text = "Display health: Report generation skipped";
                 PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
                 PreprocessSmokeText.Text = "Preprocess smoke: Report generation skipped";
+                PreprocessParamRangeText.Text = "Preprocess parameter ranges: Report generation skipped";
+                PreprocessParamRangeGrid.ItemsSource = null;
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
                 lastReadinessReportPath = null;
                 lastPreprocessHealth = null;
@@ -444,8 +449,22 @@ namespace ImageProcTest
 
             return string.Join(", ", loads.Select(load =>
                 load.Loaded
-                    ? $"{load.Stage}={load.Status}/{load.LatencyMs:0.###}ms"
-                    : $"{load.Stage}={load.Status}"));
+                    ? $"{load.Stage}={load.Status}/{load.LatencyMs:0.###}ms{FormatExpirySummary(load.Expiry)}"
+                    : $"{load.Stage}={load.Status}{FormatExpirySummary(load.Expiry)}"));
+        }
+
+        private static string FormatExpirySummary(NativePreviewCalibrationExpiryResult? expiry)
+        {
+            if (expiry is null)
+            {
+                return "";
+            }
+
+            var remaining = expiry.RemainingDays.HasValue
+                ? $"{expiry.RemainingDays.Value:0.#}d"
+                : "unknown";
+            var expired = expiry.Expired ? "expired" : "valid";
+            return $", expiry={expiry.Status}/{expired}/{remaining}";
         }
 
         private static string FormatMetricSummary(NativePreviewMetrics metrics)

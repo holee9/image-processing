@@ -83,8 +83,6 @@
 
 **Issue B1 (CRITICAL)**: api-spec.md §4 Summary table lists "xpe_common.dll = 15" but SPEC-XPE-MASTER v2.0.0 §P0-05 states "**18 API** (기존 15 + Auto Exposure Detection 3)".
 **Functions missing from api-spec §5.1~5.15**: 
-- `xpe_aed_configure` (Auto Exposure Detection 1/3)
-- `xpe_aed_poll_event` (Auto Exposure Detection 2/3)
 - `xpe_aed_get_status` (Auto Exposure Detection 3/3)
 
 **Status**: **RESOLVED** — api-spec.md v1.2.0 adds §5.16~5.18 with full Auto Exposure Detection function documentation. §4 Summary table updated to xpe_common=18.

@@ -103,7 +103,6 @@ Phase 3  :  xpe_ai.dll (proxy)      — AI 모델 인터페이스
 | §4.1 | `avx2_log_ps()` — Cephes 다항식 근사 | GAP-G |
 | §5.1.3 | `nsct_grid_suppression()` — 4단계 NSCT | GAP-D |
 | §7.2 | EI ROI Central Method 수학 수정 (√0.1 계수) | GAP-F |
-| §9.4 | AED-0 Automatic Exposure Detection | GAP-J |
 | §12.3 | NPS 계산 (IEC 62220-1 준수) | GAP-L |
 | §12.4 | DQE 계산 | GAP-M |
 | §12.5 | Collimation Mask Detection / CollimatorMask 클래스 | GAP-N |

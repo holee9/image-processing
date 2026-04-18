@@ -49,7 +49,7 @@ XPE is a modular X-ray image-processing engine for flat-panel detector systems. 
 
 | Binary | Phase | Role |
 |---|:---:|---|
-| `xpe_common.dll` | 0 | ABI types, lifecycle, alerts, logging, Auto Exposure Detection event interface |
+| `xpe_common.dll` | 0 | ABI types, lifecycle, alerts, logging |
 | `xpe_preprocess.dll` | 1a | detector correction and calibration application |
 | `xpe_enhance_basic.dll` | 1b | deterministic enhancement and whole-image EI |
 | `xpe_display.dll` | 1b | LUT and GSDF-aligned presentation |

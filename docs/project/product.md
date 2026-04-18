@@ -112,7 +112,7 @@ The previous `43` total is retired by this revision.
 
 | Binary | Type | Phase | Responsibility |
 |---|---|:---:|---|
-| `xpe_common.dll` | Native DLL | 0 | ABI types, lifecycle, alerts, logging, Auto Exposure Detection event interface |
+| `xpe_common.dll` | Native DLL | 0 | ABI types, lifecycle, alerts, logging |
 | `xpe_preprocess.dll` | Native DLL | 1a | detector correction and calibration application |
 | `xpe_enhance_basic.dll` | Native DLL | 1b | log, noise, contrast, edge, whole-image EI |
 | `xpe_display.dll` | Native DLL | 1b | modality/VOI/presentation LUT |
@@ -154,8 +154,7 @@ The final Test GUI shall not present mock, fallback, identity, or version-only h
 | `PRE-02/03/06/07/08/09` detector correction | `SWU-1.1~1.8` | deterministic release baseline |
 | `PRE-04/05` lag and ghost correction | `SWU-1.4` | deterministic release baseline with tier downgrade |
 | `SUP-01` calibration management | `SWU-1.5`, `SWU-5.6` | release baseline |
-| `SUP-02` Auto Exposure Detection (AED) | `SWU-5.8` | release baseline infrastructure |
-| `SUP-03` Exposure Index | `SWU-2.10` | one unit reused across Phase 1b baseline and Phase 2 ROI refinement |
+| `SUP-02` Exposure Index | `SWU-2.10` | one unit reused across Phase 1b baseline and Phase 2 ROI refinement |
 | `SUP-04` DICOM conformance | `SWU-4.1~4.4` | release baseline |
 | `SUP-05` QA / constancy | `SWU-6.1` | release baseline validation surface |
 | `POST-05/07/10/11` advanced deterministic features | `SWU-2.5`, `SWU-2.8`, `SI-001~004` | optional Phase 2 |

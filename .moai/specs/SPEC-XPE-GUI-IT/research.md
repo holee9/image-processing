@@ -29,7 +29,6 @@ C# WPF 클라이언트 `clients/ImageProcTest/`가 P/Invoke로 호출하는 XPE 
 | 파일 | 역할 |
 |------|------|
 | `IXpeBackend.cs` | `CheckHealth()` / `Shutdown()` 계약 |
-| `RealXpeCommonBackend.cs` | `XpeCommonApi.xpe_init/version/error_string/get_param_range/alloc_image/free_image/get_pending_alert_count/aed_get_status` 실호출. `DllNotFoundException`, `EntryPointNotFoundException`, `BadImageFormatException` 예외 변환 |
 | `MockXpeBackend.cs` | 네이티브 로드 실패 시 GUI 워이어링 유지용 폴백 |
 | `CompositeXpeBackend.cs` | Real → Mock 폴백, Details 병합 |
 | `BackendHealthResult.cs` | 결과 record (`IsNativeReady` 포함 11 필드) |
@@ -88,11 +87,8 @@ C# WPF 클라이언트 `clients/ImageProcTest/`가 P/Invoke로 호출하는 XPE 
 | 13 | `xpe_log_set_level(int) -> XpeErrorCode` | `xpe_log_set_level` | xpe_common_api.h:25 |
 | 14 | `xpe_log_set_file(string) -> XpeErrorCode` | `xpe_log_set_file` | xpe_common_api.h:26 |
 | 15 | `xpe_log_flush() -> void` | `xpe_log_flush` | xpe_common_api.h:27 |
-| 16 | `xpe_aed_configure(string) -> XpeErrorCode` | `xpe_aed_configure` | xpe_common_api.h:30 |
-| 17 | `xpe_aed_poll_event(out int, out ulong, out float) -> XpeErrorCode` | `xpe_aed_poll_event` | xpe_common_api.h:31 |
-| 18 | `xpe_aed_get_status(out int) -> XpeErrorCode` | `xpe_aed_get_status` | xpe_common_api.h:32 |
 
-총 **18개 함수 = api-spec.md v1.3.0 Section 5 xpe_common.dll 함수 목록과 일치** (SPEC-XPE-P0 REQ-P0-008 충족 확인).
+총 **15개 함수 = api-spec.md v1.4.0 Section 5 xpe_common.dll 함수 목록과 일치** (SPEC-XPE-P0 REQ-P0-008 충족 확인).
 
 ### 3.2 NativeLibrary.TryGetExport 동적 바인딩 (별도 경로)
 
@@ -203,8 +199,6 @@ Headless probe는 **사실상 scaffold 수준 통합 테스트**이나 xUnit 등
 |---|--------|------|------|
 | R-05 | init 없이 호출 시 `XPE_ERR_NOT_INITIALIZED`가 돌아오지 않고 crash | api-spec 5.1: "Not thread-safe; call from a single thread at startup" | Negative test: init 미호출 상태에서 각 함수 호출 시 에러 코드 확인 (void 반환 함수는 제외) |
 | R-06 | 1000회 init/shutdown 사이클에서 누적 메모리 누수 | SPEC-XPE-P0 Acceptance 3.2: "No memory leaks in 1000-cycle init/shutdown test (ASan clean)" — C++ 측만 검증됨 | C# 레이어에서도 동일 회차 반복하여 Process working set delta 확인 |
-| R-07 | AED 상태 IDLE/ARMED/TRIGGERED 전이 누락 | REQ-P0-028: state 0/1/2 | `xpe_aed_configure(null)` → `xpe_aed_get_status` → ARMED 확인. 미초기화 시 IDLE |
-
 ### 6.3 예외/마샬링 리스크
 
 | # | 리스크 | 증거 | 완화 |
@@ -237,7 +231,6 @@ Headless probe는 **사실상 scaffold 수준 통합 테스트**이나 xUnit 등
 - `[Trait("Category", "Functional")]` — 1분 이하: 모든 18 P/Invoke 함수 contract
 - `[Trait("Category", "Safety")]` — 3분 이하: null/invalid/boundary/1000-cycle
 - `[Trait("Category", "ErrorMapping")]` — 초: XpeErrorCode ↔ xpe_error_string
-- `[Trait("Category", "Lifecycle")]` — 3분 이하: init-many, aed-transition
 
 ### 7.3 DLL 스테이징 전략 (2안 중 택1)
 
@@ -285,8 +278,8 @@ Headless probe는 **사실상 scaffold 수준 통합 테스트**이나 xUnit 등
 
 1. **테스트 프로젝트 경로**: `clients/ImageProcTest.IntegrationTests/` 로 통일할지, 또는 structure.md가 예고하는 `gui/ImageProcTest.Tests/`로 갈지 (정책 판단 → SPEC 본문은 `clients/` 전제)
 2. **ARM64 테스트 요구 여부**: tech.md는 ARM64 "지연" 상태 → Optional 요구사항으로 다룸
-3. **hardware detector 연결 여부**: 본 SPEC은 Excluded로 고정 (실 panel, GPU, AED 실 이벤트 생성 제외)
-4. **최소 coverage 대상 단위**: "PinInvoke surface" = 18 xpe_common 함수 + dynamic 10+ preprocess 심볼. P/Invoke 선언 한 줄당 한 개 이상의 Functional 테스트 존재 여부를 coverage 기준으로 삼는다
+3. **hardware detector 연결 여부**: 본 SPEC은 Excluded로 고정 (실 panel, GPU 연결 제외)
+4. **최소 coverage 대상 단위**: "PinInvoke surface" = 15 xpe_common 함수 + dynamic 10+ preprocess 심볼. P/Invoke 선언 한 줄당 한 개 이상의 Functional 테스트 존재 여부를 coverage 기준으로 삼는다
 
 ---
 

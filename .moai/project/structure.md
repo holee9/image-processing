@@ -100,7 +100,7 @@ image-processing/
 ### 상세 의존성 규칙
 ```
 Layer 0 (xpe_common.dll)
-├── 타입 정의, 메모리 관리, 로깅, AED 시스템
+├── 타입 정의, 메모리 관리, 로깅, 경고 큐
 ├── 18개 API 함수: xpe_init(), xpe_alloc_image(), xpe_configure(), etc.
 └── 모든 Layer 1 모듈의 기반
 

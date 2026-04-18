@@ -353,7 +353,6 @@ Each run shall emit JSON and Markdown summaries.
 {
   "schema": "xpe-pre-e2e-report-v1",
   "git_sha": "<commit>",
-  "case_id": "aed_shock_had1717mc",
   "image_path": "tests/test_data/calibration_cases/<case>/images/<file>.raw",
   "calibration_paths": ["..."],
   "raw_sha256_before": "...",

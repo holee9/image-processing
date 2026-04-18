@@ -1,12 +1,22 @@
 # XPE-GUI-DISP-INT-001: GUI Display Integration Guide
 
 **Document ID**: XPE-GUI-DISP-INT-001
-**Version**: 1.1.0
-**Date**: 2026-04-16
+**Version**: 2.0.0
+**Date**: 2026-04-18
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
-**Related SPEC**: SPEC-XPE-P1B-DISP v1.0.0
+**Related SPEC**: SPEC-XPE-P1B-DISP v1.0.0, SPEC-XPE-GUI-IT v1.2.0
 **Target**: Agent implementing Phase 1b Display module integration into `ImageProcTest.exe`
+**Cross-References**: XPE-GUI-ARCH-001 (MVVM 아키텍처), XPE-GUI-E2E-001 (E2E 테스트), SHA-GUI-001 (hazard analysis), RTM-GUI-001 (추적 매트릭스)
+
+---
+
+## CHANGE HISTORY
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 2.0.0 | 2026-04-18 | manager-spec (GUI Lane) | Added v2.0 addendum (§11-14): GUI adapter contract formalization (DisplayNativeWrapper.cs spec), DisplayViewModel service contract, pipeline integration flow (preprocess→display), performance budget (<5ms Modality LUT for 2048x2048), HAZ-GUI-004 stale preview mitigation, cross-references to ARCH-001/E2E-001/SHA-GUI-001 |
+| 1.1.0 | 2026-04-16 | (author) | Initial gap analysis and integration plan |
 
 ---
 
@@ -655,7 +665,184 @@ No implementation shall begin until the user approves this comparison viewer wor
 | 1.0.0 | 2026-04-16 | MoAI | Initial cross-validation: GUI-S0 vs SPEC-XPE-P1B-DISP. 5 gaps identified, integration guide created. |
 | 1.1.0 | 2026-04-16 | Codex | Recorded GUI Phase 1b display integration implementation, verification, and native ABI fallback status. |
 | 1.2.0 | 2026-04-16 | Codex | Added approval-gated large image comparison viewer requirement reference. |
+| 2.0.0 | 2026-04-18 | manager-spec (GUI Lane) | v2.0 major upgrade — §18-21 addendum: DisplayNativeWrapper contract, DisplayViewModel service contract, pipeline integration flow, performance budget, hazard cross-reference. |
 
 ---
 
-*Document End — XPE-GUI-DISP-INT-001 v1.0.0*
+## 18. v2.0 DisplayNativeWrapper.cs Contract (Addendum)
+
+본 섹션은 `clients/ImageProcTest/Services/Native/DisplayNativeWrapper.cs`가 구현해야 할 **형식 계약**을 정의한다. XPE-GUI-ARCH-001 §2 Tier 4 (Native Interop)에 해당하며, 본 계약을 따르는 구현은 Claude 또는 Codex (후자는 반드시 Claude 검토 후) 가 수행 가능하다.
+
+### 18.1 타입 계약
+
+| C# 타입 | Layout | C ABI 대응 | 크기 |
+|--------|--------|-----------|------|
+| `XpeModalityLutParams` | `[StructLayout(LayoutKind.Sequential, Pack=8)]` | `XpeModalityLutParams` (display_api.h) | 28 bytes (x64, verify) |
+| `XpeVoiLutParams` | Same | `XpeVoiLutParams` | 20 bytes |
+| `XpePresentationLutParams` | Same + `ByValArray SizeConst=1024` | `XpePresentationLutParams` | 2052 bytes |
+
+[HARD] 각 struct 도입 시 `AbiLayoutTests`에 `Marshal.SizeOf` 와 필드 offset assertion 동시 추가. 누락은 HAZ-GUI-002 직접 위험.
+
+### 18.2 Public API 계약
+
+```csharp
+internal static class DisplayNativeWrapper
+{
+    // xpe_display.dll version (static pointer, do NOT free)
+    public static string GetVersion();
+
+    // Modality LUT: in-place transformation of XpeImageBuffer
+    // Returns XpeErrorCode (0 = OK, < 0 = error)
+    public static int ApplyModalityLut(
+        ref XpeImageBufferNative img,
+        ref XpeModalityLutParams @params);
+
+    // VOI LUT: in-place transformation
+    public static int ApplyVoiLut(
+        ref XpeImageBufferNative img,
+        ref XpeVoiLutParams @params);
+
+    // Presentation LUT: in-place transformation (Modality→VOI → Presentation 순)
+    public static int ApplyPresentationLut(
+        ref XpeImageBufferNative img,
+        ref XpePresentationLutParams @params);
+
+    // Preset creation: body part 기준 VOI 파라미터 반환
+    public static int CreateVoiPreset(
+        out XpeVoiLutParams @params,
+        int bodyPart);
+
+    // GSDF calibration: luminance array → presentation LUT
+    public static int CalibrateGsdf(
+        float[] luminanceValues,
+        out XpePresentationLutParams outParams);
+}
+```
+
+### 18.3 Error Handling Contract
+
+- [HARD] 모든 메서드는 **managed exception을 throw하지 않는다**. 네이티브 에러는 `XpeErrorCode` 반환값으로만 표현.
+- [HARD] 상위 레이어(DisplayViewModel)는 반환값 점검 후 `XpeBoundaryException`(custom, ARCH-001 §8.2) 또는 `AlertService.ShowError(...)` 로 처리.
+- [HARD] DLL 부재 시 `DllNotFoundException`이 첫 호출에서만 발생 — `CompositeXpeBackend`가 catch하여 Mock fallback 트리거.
+
+### 18.4 Pinning and Lifetime
+
+- [HARD] `XpeModalityLutParams.LutData`가 non-null인 TABLE 모드 호출 시 **caller가 `GCHandle.Alloc(Pinned)`** 으로 buffer 고정, `finally`에서 `Free()`. DisplayNativeWrapper는 pinning을 수행하지 않는다.
+- [HARD] `XpePresentationLutParams.LutData[1024]`는 `ByValArray`로 struct 내부 매립 — pinning 불필요, 복사 비용 수용.
+
+---
+
+## 19. DisplayViewModel Service Contract (Addendum)
+
+본 섹션은 `ViewModels/Display/DisplayPipelineViewModel.cs` 의 구조를 정의한다.
+
+### 19.1 ViewModel Hierarchy
+
+```
+DisplayPipelineViewModel (composite)
+├── ModalityLutViewModel    — Rescale slope/intercept
+├── VoiLutViewModel         — Window center/width, mode, body part preset
+└── PresentationLutViewModel — GSDF enable, luminance calibration
+```
+
+### 19.2 DisplayPipelineViewModel Public API
+
+```csharp
+public partial class DisplayPipelineViewModel : ObservableObject
+{
+    [ObservableProperty] private ModalityLutViewModel _modality;
+    [ObservableProperty] private VoiLutViewModel _voi;
+    [ObservableProperty] private PresentationLutViewModel _presentation;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyPipelineCommand))]
+    private LoadedImageFrame? _currentFrame;
+
+    [ObservableProperty] private bool _isProcessing;
+    [ObservableProperty] private bool _isPreviewStale;   // HAZ-GUI-004 mitigation
+    [ObservableProperty] private string _pipelineSummary = string.Empty;
+    [ObservableProperty] private TimeSpan _lastExecutionTime;
+
+    [RelayCommand(CanExecute = nameof(CanApply))]
+    private async Task ApplyPipelineAsync();
+
+    [RelayCommand]
+    private void ResetToDefaults();
+}
+```
+
+### 19.3 State-Change Propagation
+
+- [HARD] VoiWindowCenter / VoiWindowWidth / BodyPart 변경 시 `IsPreviewStale = true` 즉시 설정
+- [HARD] ApplyPipelineAsync 완료 시 `IsPreviewStale = false`
+- [HARD] UI에 `IsPreviewStale` 바인딩된 **경고 오버레이** 표시 (HAZ-GUI-004 control)
+
+---
+
+## 20. Pipeline Integration Flow (preprocess → display)
+
+### 20.1 Full Pipeline Chain
+
+```
+1. LoadRawImage(path)
+   → xpe_alloc_image → raw float32 buffer
+   → BitmapSource (raw preview)
+
+2. (Optional) PreprocessPipeline (Phase 1a)
+   → xpe_offset_correct → xpe_gain_correct → xpe_defect_correct
+   → float32 corrected buffer
+
+3. (Phase 1b) DisplayPipeline
+   → xpe_apply_modality_lut  (float32 → linear radiometric)
+   → xpe_apply_voi_lut       (radiometric → display range)
+   → xpe_apply_presentation_lut (display range → GSDF corrected)
+   → uint16 display buffer
+
+4. BitmapSource.Freeze() → ProcessedImage binding
+```
+
+### 20.2 Stage Timing
+
+Runtime Panel에 각 단계 소요 시간 표시:
+
+```
+Modality LUT:      3.2ms
+VOI LUT:           1.8ms
+Presentation LUT:  2.1ms
+GSDF Correction:   0.9ms
+Total:             8.0ms
+```
+
+[HARD] Stage timing은 `Stopwatch`로 측정 후 ViewModel의 `StageTimings` dictionary에 게시. E2E 테스트 W-06이 이 필드를 검증.
+
+---
+
+## 21. Performance Budget (v2.0 Addendum)
+
+### 21.1 Target Gates (2048×2048 uint16)
+
+| Stage | Gate | Measurement | Fallback |
+|-------|------|-------------|----------|
+| Modality LUT (LINEAR) | **< 5ms** | Stopwatch in ViewModel | Warn in runtime panel |
+| VOI LUT (LINEAR) | **< 3ms** | Same | Warn |
+| VOI LUT (SIGMOID) | < 8ms | Same | Warn |
+| Presentation LUT | < 2ms | Same | Warn |
+| GSDF Calibration | < 10ms (one-shot) | Setup phase only | Not user-visible |
+| **Total pipeline** | **< 20ms** | End-to-end | Warn; downgrade to preset |
+
+### 21.2 Image Size Scaling
+
+| Image Size | Expected Total | Hard Limit |
+|------------|----------------|------------|
+| 1024x1024 | ~5ms | 15ms |
+| 2048x2048 | ~20ms | 50ms |
+| 4096x4096 | ~80ms | 200ms (async mandatory) |
+
+### 21.3 [HARD] Enforcement
+
+- [HARD] 파이프라인 > 50ms로 실행될 경우 반드시 `Task.Run` + progress indicator
+- [HARD] 4096x4096 처리는 tile-backed rendering 필수 (XPE-GUI-COMPARE-001 참조)
+
+---
+
+*Document End — XPE-GUI-DISP-INT-001 v2.0.0*

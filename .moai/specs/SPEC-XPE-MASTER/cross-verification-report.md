@@ -144,11 +144,10 @@ v2.0.0 3-round deep verification에서 20건의 이슈를 발견. v3.0.0 deep re
 | ID | Issue | Owner | Target Document |
 |----|-------|-------|----------------|
 | C2 | XPE-SDD-001 6 SWU missing | QA-RA | XPE-SDD-001 v1.1 |
-| N4 | AED functions header missing | Dev | xpe_common_api.h (Phase 0) |
-| N5 | Logging functions header missing | Dev | xpe_common_api.h (Phase 0) |
+| N4 | Logging functions header missing | Dev | xpe_common_api.h (Phase 0) |
 | N1 | api-spec function count | Tech Lead | api-spec.md v1.2.0 |
 | N2 | RTM revision | QA | XPE-RTM-001 v1.1 |
-| N3 | AED function docs | Tech Lead | api-spec.md v1.2.0 |
+| N3 | Logging function docs | Tech Lead | api-spec.md v1.2.0 |
 | N6 | xpe_common_api.h incomplete | Dev | Phase 0 implementation |
 | N7 | Test infrastructure non-standard | Dev | Phase 0 (Google Test) |
 | N8 | api-spec count table | Tech Lead | api-spec.md v1.2.0 |

@@ -2,8 +2,8 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.1.0
-status: In Progress (SUP-01 implemented)
+version: 1.2.0
+status: In Progress (SUP-01 implemented, M2 pending)
 created: 2026-04-16
 updated: 2026-04-18
 author: manager-spec (MoAI)
@@ -17,6 +17,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Strengthen REQ-P1A-010~013 with pixel-accuracy tolerances from research.md v2.0.0. Add REQ-P1A-013 algorithmic recipe (Hampel 5-sigma). Add Section 4.6 (SIMD Parity Contract) referencing simd-parity-harness.md. Research references refreshed to 2022-2026 survey. |
 | 1.1.0   | 2026-04-18 | manager-docs | SUP-01 (REQ-P1A-014~019) implemented and tested. 89/90 tests pass. XCal v1 format finalized. PicoSHA2 vendored. |
 | 1.0.0   | 2026-04-16 | manager-spec | Initial SPEC creation |
 
@@ -60,7 +61,9 @@ xpe_preprocess.dll의 핵심 전처리 알고리즘 3종(SWU-1.1 Offset Correcti
 | XPE-SAD-001            | Software Architecture Description          | Draft   | 아키텍처 참조           |
 | XPE-ALG-001            | Algorithm Technical Reference              | Draft   | 수학적 공식 및 성능 기준  |
 | XPE-TERM-001           | Terminology and Acronym Control            | 1.0.0   | 용어 표준               |
-| SPEC-XPE-P1A-RESEARCH  | Research Report                            | 1.0.0   | 코드베이스 분석 결과     |
+| SPEC-XPE-P1A-RESEARCH  | Research Report                            | 2.0.0   | 코드베이스 분석 + 2022-2026 deep research |
+| SPEC-XPE-P1A-SIMD-PARITY| SIMD Parity Harness Specification         | 1.0.0   | Scalar↔AVX2 동등성 검증 프로토콜          |
+| BP-01-05-PREPROCESS    | Benchmark Pack Manifest (Pre Lane portion) | 1.0.0   | BP-01~BP-05 dataset/tolerance/pass criteria |
 
 ---
 
@@ -128,8 +131,13 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-001
 - **Traceability**: PRE-02, SWU-1.1
-- **Algorithm**: `I_offset(x,y) = max(I_raw(x,y) - I_dark(x,y), 0)`
-- **Performance**: < 55ms for 3072x3072 UINT16 frame
+- **Algorithm**: `I_offset(x,y) = max(I_raw(x,y) - I_dark(x,y), 0)`  (saturating unsigned subtraction; `_mm256_subs_epu16` for AVX2)
+- **Performance**: < 55ms for 3072x3072 UINT16 frame (scalar); < 15ms (AVX2)
+- **Pixel Accuracy** (research.md v2.0.0 Section 8.1):
+  - Residual dark mean: < 2 ADU (sigma < 3 ADU) across 15-40 C operating range
+  - Scalar vs AVX2 parity: bit-identical (UINT16 saturating subtract is exact) — see Section 4.6
+  - No wrap-around or negative values in output (floor-at-zero guarantee)
+- **Research References**: Ranger et al. PMC3965338 (2014, revalidated 2023); Wenz et al. IEEE TMI (2023); EP2148500A1 (Canon dark-current patent); AAPM TG-151 (2022)
 
 #### REQ-P1A-011: Gain Correction Execution
 
@@ -137,8 +145,14 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-002
 - **Traceability**: PRE-03, SWU-1.2
-- **Algorithm**: `I_corrected(x,y) = I_offset(x,y) * G(x,y)` where `G(x,y) = mean(I_flat) / (I_flat(x,y) - I_dark(x,y))`
-- **Performance**: < 55ms for 3072x3072 UINT16 frame
+- **Algorithm**: `I_corrected(x,y) = I_offset(x,y) * G(x,y)` where `G(x,y) = mean(I_flat) / (I_flat(x,y) - I_dark(x,y))`. Production path uses precomputed reciprocal gain map `R(x,y) = 1/G(x,y)` and `_mm256_mul_ps` (multiplication 3-5x faster than division on modern CPUs).
+- **Performance**: < 55ms for 3072x3072 UINT16 frame (scalar); < 15ms (AVX2)
+- **Pixel Accuracy** (research.md v2.0.0 Section 8.2):
+  - Flat-field residual: sigma/mean < 0.5% over 90% FOV
+  - Scalar vs AVX2 parity: FLOAT32 tolerance 1 ULP (FMA rounding order difference documented in simd-parity-harness.md)
+  - No NaN / Inf in output (REQ-P1A-033 must-pass cross-check)
+  - UINT16 output: no overflow/wraparound at pixel = 65535
+- **Research References**: Park & Sharp PMID 25795048 (2016); Wang 2013 Duo-SID heel effect; ACPSEM PMC11408574 (2024); Intel Intrinsics Guide (AVX2 FMA semantics)
 
 #### REQ-P1A-012: Defect Correction Execution
 
@@ -146,7 +160,16 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-003, SRS-CALIB-004
 - **Traceability**: PRE-06, SWU-1.3
-- **Performance**: < 95ms for 3072x3072 UINT16 frame
+- **Algorithm** (baseline):
+  - Isolated single-pixel defect: edge-aware bilinear interpolation using 4-neighborhood weighted by inverse gradient magnitude
+  - 2+ adjacent defects (cluster): median-of-valid-neighbors (8-neighborhood excluding other defects)
+  - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
+- **Performance**: < 95ms for 3072x3072 UINT16 frame (scalar); < 30ms (AVX2)
+- **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
+  - Correction recall on BPM-marked defects: >= 99% (no defect left uncorrected)
+  - Artifact suppression: zero new edges introduced at defect sites — verified by gradient-magnitude delta at defect boundary (|grad_after - grad_before| < 10% of local contrast)
+  - Cluster preservation: when >50% of neighborhood is defective, function returns clamp-to-median-of-in-range-neighbors rather than hallucinating
+- **Research References**: Jeon et al. PMC7930811 (2021); Schirrmacher et al. arXiv:2310.11637v2 / Springer (2024, FixPix); AAPM TG-151 detector artifact taxonomy
 
 #### REQ-P1A-013: Runtime Defect Detection
 
@@ -154,6 +177,20 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-005
 - **Traceability**: PRE-06, SWU-1.3
+- **Algorithm (Hampel 5-sigma detector, research.md v2.0.0 Section 8.3, item 4)**:
+  1. For each pixel `p(x,y)`, compute local median `m(x,y)` over 3x3 neighborhood excluding center (8 values)
+  2. Compute local MAD (median absolute deviation): `MAD(x,y) = median(|neighbor - m|)`
+  3. Modified z-score: `z = 0.6745 * (p(x,y) - m(x,y)) / MAD(x,y)` (0.6745 is the scale factor for Gaussian equivalence)
+  4. `defectMapOut[x,y] = 1` if `|z| > lambda` (default `lambda = 5.0`), else 0
+  5. `lambda` is configurable via `configJsonOrNull` key `"hampel_threshold"` (range 3.0 to 10.0, default 5.0)
+- **Rationale**: Median + MAD is robust to clustered outliers (unlike mean + stddev which gets corrupted when defects cluster). 0.6745 scale factor makes z comparable to standard Gaussian z-score.
+- **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
+  - True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%
+  - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
+  - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
+  - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
+- **Performance**: < 35ms for 3072x3072 UINT16 frame (scalar); < 12ms (AVX2, sorting network for median-of-9)
+- **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
 
@@ -255,10 +292,11 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 #### REQ-P1A-040: SIMD Optimization
 
-**Where** AVX2 is available at runtime, the module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation) while maintaining bit-exact parity with the scalar reference implementation.
+**Where** AVX2 is available at runtime, the module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation, runtime detection) while maintaining the parity contract defined in Section 4.6.
 
 - **SRS**: SRS-PERF-001
 - **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3
+- **Detailed protocol**: See `simd-parity-harness.md` (deterministic seed, 100 random inputs, dispatch override `xpe.simd.force_scalar`)
 
 #### REQ-P1A-041: Readout Artifact Validation
 
@@ -273,6 +311,28 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 - **SRS**: SRS-SAFE-002, SRS-SAFE-005
 - **Traceability**: SUP-01
+
+### 4.6 SIMD Parity Contract (NEW IN v1.2.0)
+
+The scalar path is the reference implementation. The AVX2 path is an opt-in performance layer that must honour the following parity rules on every supported operation:
+
+| Operation | Scalar Path | AVX2 Path | Parity Rule |
+|-----------|-------------|-----------|-------------|
+| Offset subtraction (UINT16) | `max(a - b, 0)` via branch | `_mm256_subs_epu16` | **Bit-identical** |
+| Defect interpolation (UINT16 bilinear) | pure-C bilinear | AVX2 gather + weighted average | **Bit-identical** (integer arithmetic only) |
+| Gain correction (FLOAT32 reciprocal) | `a * (1.0f / b)` | `_mm256_mul_ps` | **1 ULP tolerance** (FLOAT32) |
+| Gain correction (FLOAT32 polynomial) | Horner method scalar | `_mm256_fmadd_ps` chain | **1 ULP tolerance** (FMA rounding) |
+| Runtime detection (MAD, UINT16) | sort-9 + median | AVX2 sorting network | **Bit-identical** (integer median) |
+
+Fallback policy:
+- Runtime CPUID detection determines dispatch (see `simd-parity-harness.md` Section 2)
+- Config flag `"force_scalar": true` (passed via `xpe_preprocess_init(configJsonOrNull)`) forces the scalar path
+- Environment variable `XPE_FORCE_SCALAR=1` has equivalent effect
+
+Verification:
+- `test_simd_parity.cpp` runs 100 pseudo-random inputs per operation (deterministic seed = CRC32("XPE-SIMD-PARITY-v1"))
+- Full protocol in `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md`
+- Pass criterion: 100/100 parity checks succeed per operation
 
 ---
 
@@ -402,12 +462,21 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 | REQ-P1A-020 ~ 022 | Existing | Guards: uninitialized, dimension/format mismatch |
 | REQ-P1A-030 ~ 033 | Existing | Unwanted behaviors: exception safety, memory leaks, NaN/Inf validation |
 
-### Pending Features (Future Sprints)
+### Pending Features (Next Sprint — Priority High)
 
 | Requirement | Target SPEC | Notes |
 |-------------|----------|-------|
-| REQ-P1A-010 ~ 013 | SPEC-XPE-P1A (PRE-02/03/06) | Offset/Gain/Defect correction algorithms — scheduled for next sprint |
-| REQ-P1A-040 ~ 042 | SPEC-XPE-P1A (AVX2/Optional) | SIMD optimization, readout artifact validation, parameter range query |
+| REQ-P1A-010 | SPEC-XPE-P1A M2 | Offset correction scalar + AVX2 dispatch; parity bit-identical |
+| REQ-P1A-011 | SPEC-XPE-P1A M2 | Gain correction reciprocal-map + FMA path; parity 1 ULP |
+| REQ-P1A-012 | SPEC-XPE-P1A M2 | Defect correction (bilinear + cluster fallback); 99%+ recall target |
+| REQ-P1A-013 | SPEC-XPE-P1A M2 | Runtime detection (Hampel 5-sigma); TPR >= 99.9%, FPR < 0.001% |
+| REQ-P1A-040 | SPEC-XPE-P1A M5 | SIMD dispatch + parity harness per simd-parity-harness.md |
+| REQ-P1A-041 | SPEC-XPE-P1A M6 | Readout artifact validation (Priority Low) |
+| REQ-P1A-042 | SPEC-XPE-P1A M6 | Parameter range query (Priority Medium) |
+
+### Benchmark Pack Freeze (Pre Lane)
+
+Manifest BP-01 through BP-05 must be frozen (SHA-256 dataset hashes, tolerance values, pass criteria locked) before the M2 completion is accepted as release-relevant. See `benchmark/BP-01-05-preprocess-manifest.md`.
 
 ### Dependencies
 
@@ -416,4 +485,4 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 ---
 
-*Document End - SPEC-XPE-P1A v1.1.0*
+*Document End - SPEC-XPE-P1A v1.2.0*

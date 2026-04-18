@@ -2,7 +2,7 @@ name: XPE CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev/preprocess, dev/postprocess, dev/gui ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -15,7 +15,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect-lane:
+    runs-on: windows-2025
+    timeout-minutes: 5
+    outputs:
+      lane: ${{ steps.detect.outputs.lane }}
+      is_main: ${{ steps.detect.outputs.is_main }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect Lane
+        id: detect
+        shell: pwsh
+        run: |
+          $branch = "${{ github.ref_name }}"
+          $isMain = "false"
+          $lane = "unknown"
+
+          if ($branch -eq "main") {
+            $isMain = "true"
+            $lane = "main"
+          } elseif ($branch -eq "dev/preprocess") {
+            $lane = "preprocess"
+          } elseif ($branch -eq "dev/postprocess") {
+            $lane = "postprocess"
+          } elseif ($branch -eq "dev/gui") {
+            $lane = "gui"
+          }
+
+          Write-Output "lane=$lane" >> $env:GITHUB_OUTPUT
+          Write-Output "is_main=$isMain" >> $env:GITHUB_OUTPUT
+          Write-Output "Detected: lane=$lane, is_main=$isMain"
+
   common-build:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'gui'
     runs-on: windows-2025
     timeout-minutes: 45
 

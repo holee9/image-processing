@@ -47,17 +47,11 @@ dumpbin /exports build/release/lib/xpe_common.dll
 - xpe_log_set_file
 - xpe_log_flush
 
-**AED (3):**
-- xpe_aed_configure
-- xpe_aed_poll_event
-- xpe_aed_get_status
-
 ### 4. Internal Test Functions (Optional)
 
 The following internal test functions may also be exported:
 - xpe_initialized_flag
 - xpe_test_inject_alert
-- xpe_test_inject_aed_event
 
 **Decision Required:**
 - Option A: Keep test functions exported (document as XPE_TEST_API)
