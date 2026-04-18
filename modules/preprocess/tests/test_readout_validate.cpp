@@ -26,11 +26,13 @@ protected:
 
     void SetUp() override {
         pixels.assign(W * H, 32768); // mid-range clean image
-        img.pixels      = pixels.data();
-        img.width       = W;
-        img.height      = H;
-        img.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-        img.stride      = W * sizeof(uint16_t);
+        img.data          = pixels.data();
+        img.width         = W;
+        img.height        = H;
+        img.bitsAllocated = 16;
+        img.bitsStored    = 16;
+        img.format        = XPE_PIXEL_UINT16;
+        img.dataSize      = pixels.size() * sizeof(uint16_t);
     }
 };
 

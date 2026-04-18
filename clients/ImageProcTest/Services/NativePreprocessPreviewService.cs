@@ -41,6 +41,17 @@ namespace ImageProcTest
         string? SourceRawPath,
         string? XCalPath,
         double LatencyMs,
+        string Details,
+        NativePreviewCalibrationExpiryResult? Expiry);
+
+    internal sealed record NativePreviewCalibrationExpiryResult(
+        string Status,
+        bool Checked,
+        bool Expired,
+        ulong ExpiryEpochMs,
+        string? ExpiryUtc,
+        double? RemainingDays,
+        double LatencyMs,
         string Details);
 
     internal sealed record NativePreviewMetrics(
@@ -81,6 +92,12 @@ namespace ImageProcTest
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate XpeCommonApi.XpeErrorCode CalibrationLoadDelegate(IntPtr path);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate XpeCommonApi.XpeErrorCode CalibrationExpiryDelegate(
+            IntPtr path,
+            IntPtr firstOut,
+            IntPtr secondOut);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate XpeCommonApi.XpeErrorCode CorrectionDelegate(
@@ -131,6 +148,7 @@ namespace ImageProcTest
                 var loadOffset = GetRequiredDelegate<CalibrationLoadDelegate>(handle, "xpe_calib_load_offset");
                 var loadGain = GetRequiredDelegate<CalibrationLoadDelegate>(handle, "xpe_calib_load_gain");
                 var loadDefect = GetRequiredDelegate<CalibrationLoadDelegate>(handle, "xpe_calib_load_defect_map");
+                var checkExpiry = GetRequiredDelegate<CalibrationExpiryDelegate>(handle, "xpe_calib_check_expiry");
                 var offsetCorrect = GetRequiredDelegate<CorrectionDelegate>(handle, "xpe_offset_correct");
                 var gainCorrect = GetRequiredDelegate<CorrectionDelegate>(handle, "xpe_gain_correct");
                 var defectCorrect = GetRequiredDelegate<CorrectionDelegate>(handle, "xpe_defect_correct");
@@ -148,7 +166,8 @@ namespace ImageProcTest
                         preparedCalibration,
                         loadOffset,
                         loadGain,
-                        loadDefect);
+                        loadDefect,
+                        checkExpiry);
 
                     return RunChain(
                         preview,
@@ -251,7 +270,8 @@ namespace ImageProcTest
                     SourceRawPath: null,
                     XCalPath: null,
                     LatencyMs: 0,
-                    Details: $"{modeText}: no {role} calibration file exists in the selected fixture case."));
+                    Details: $"{modeText}: no {role} calibration file exists in the selected fixture case.",
+                    Expiry: null));
                 return;
             }
 
@@ -268,7 +288,8 @@ namespace ImageProcTest
             PreparedCalibration prepared,
             CalibrationLoadDelegate loadOffset,
             CalibrationLoadDelegate loadGain,
-            CalibrationLoadDelegate loadDefect)
+            CalibrationLoadDelegate loadDefect,
+            CalibrationExpiryDelegate checkExpiry)
         {
             var results = new List<NativePreviewCalibrationResult>(prepared.MissingLoads);
 
@@ -282,6 +303,7 @@ namespace ImageProcTest
                     _ => throw new InvalidOperationException($"Unsupported calibration role {request.Role}.")
                 };
 
+                var expiry = CheckCalibrationExpiry(checkExpiry, request.XCalPath);
                 var stopwatch = Stopwatch.StartNew();
                 var result = CallCalibrationLoad(load, request.XCalPath);
                 stopwatch.Stop();
@@ -293,7 +315,8 @@ namespace ImageProcTest
                     request.Source.Path,
                     request.XCalPath,
                     stopwatch.Elapsed.TotalMilliseconds,
-                    request.Details);
+                    request.Details,
+                    expiry);
                 results.Add(loadResult);
 
                 if (result != XpeCommonApi.XpeErrorCode.OK)
@@ -581,6 +604,129 @@ namespace ImageProcTest
             finally
             {
                 Marshal.FreeHGlobal(pathPointer);
+            }
+        }
+
+        private static NativePreviewCalibrationExpiryResult CheckCalibrationExpiry(
+            CalibrationExpiryDelegate checkExpiry,
+            string path)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var result = CallCalibrationExpiry(
+                    checkExpiry,
+                    path,
+                    out var expiryEpochMs,
+                    out var boolRemainingDaysAbi,
+                    out var isExpired,
+                    out var remainingDays);
+                stopwatch.Stop();
+
+                if (boolRemainingDaysAbi)
+                {
+                    var remaining = remainingDays == int.MaxValue
+                        ? (double?)null
+                        : remainingDays;
+                    var boolAbiChecked = result == XpeCommonApi.XpeErrorCode.OK ||
+                        result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
+                    var boolAbiExpired = isExpired || result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
+                    var boolAbiDetails = remainingDays == int.MaxValue
+                        ? "Calibration expiry checked through bool/int32 ABI; calibration does not expire."
+                        : $"Calibration expiry checked through bool/int32 ABI; remainingDays={remainingDays}.";
+
+                    return new NativePreviewCalibrationExpiryResult(
+                        result.ToString(),
+                        boolAbiChecked,
+                        boolAbiExpired,
+                        ExpiryEpochMs: 0,
+                        ExpiryUtc: null,
+                        remaining,
+                        stopwatch.Elapsed.TotalMilliseconds,
+                        boolAbiDetails);
+                }
+
+                var expiry = ConvertExpiryEpoch(expiryEpochMs);
+                var checkedResult = result == XpeCommonApi.XpeErrorCode.OK ||
+                    result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
+                var expired = result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED ||
+                    (expiry.ExpiresAtUtc is not null && expiry.ExpiresAtUtc.Value <= DateTimeOffset.UtcNow);
+                var details = expiry.ExpiresAtUtc is null
+                    ? "Calibration expiry checked through uint64 epoch ABI, but epoch could not be converted."
+                    : $"Calibration expiry checked through uint64 epoch ABI; expires at {expiry.ExpiresAtUtc.Value:O}.";
+
+                return new NativePreviewCalibrationExpiryResult(
+                    result.ToString(),
+                    checkedResult,
+                    expired,
+                    expiryEpochMs,
+                    expiry.ExpiresAtUtc?.ToString("O"),
+                    expiry.RemainingDays,
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    details);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return new NativePreviewCalibrationExpiryResult(
+                    "Exception",
+                    Checked: false,
+                    Expired: false,
+                    ExpiryEpochMs: 0,
+                    ExpiryUtc: null,
+                    RemainingDays: null,
+                    LatencyMs: stopwatch.Elapsed.TotalMilliseconds,
+                    Details: $"xpe_calib_check_expiry failed: {ex.Message}");
+            }
+        }
+
+        private static XpeCommonApi.XpeErrorCode CallCalibrationExpiry(
+            CalibrationExpiryDelegate checkExpiry,
+            string path,
+            out ulong expiryEpochMs,
+            out bool boolRemainingDaysAbi,
+            out bool isExpired,
+            out int remainingDays)
+        {
+            var pathPointer = Marshal.StringToHGlobalAnsi(path);
+            var firstOut = Marshal.AllocHGlobal(sizeof(long));
+            var secondOut = Marshal.AllocHGlobal(sizeof(int));
+            try
+            {
+                Marshal.WriteInt64(firstOut, 0);
+                Marshal.WriteInt32(secondOut, int.MinValue);
+
+                var result = checkExpiry(pathPointer, firstOut, secondOut);
+                remainingDays = Marshal.ReadInt32(secondOut);
+                boolRemainingDaysAbi = remainingDays != int.MinValue;
+                isExpired = Marshal.ReadByte(firstOut) != 0;
+                expiryEpochMs = boolRemainingDaysAbi ? 0 : unchecked((ulong)Marshal.ReadInt64(firstOut));
+                return result;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(secondOut);
+                Marshal.FreeHGlobal(firstOut);
+                Marshal.FreeHGlobal(pathPointer);
+            }
+        }
+
+        private static (DateTimeOffset? ExpiresAtUtc, double? RemainingDays) ConvertExpiryEpoch(
+            ulong expiryEpochMs)
+        {
+            if (expiryEpochMs > long.MaxValue)
+            {
+                return (null, null);
+            }
+
+            try
+            {
+                var expiresAtUtc = DateTimeOffset.FromUnixTimeMilliseconds((long)expiryEpochMs);
+                return (expiresAtUtc, (expiresAtUtc - DateTimeOffset.UtcNow).TotalDays);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return (null, null);
             }
         }
 

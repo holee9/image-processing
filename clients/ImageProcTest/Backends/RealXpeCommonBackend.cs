@@ -29,12 +29,6 @@ namespace ImageProcTest
                 var memoryAbi = RunMemoryAbiSmoke();
                 var alerts = $"Alerts: pending={XpeCommonApi.xpe_get_pending_alert_count()}";
 
-                var aedResult = XpeCommonApi.xpe_aed_get_status(out var aedState);
-                if (aedResult == XpeCommonApi.XpeErrorCode.OK)
-                {
-                    details += Environment.NewLine + $"Auto Exposure Detection state: {aedState}";
-                }
-
                 return new BackendHealthResult(
                     BackendName: nameof(RealXpeCommonBackend),
                     Mode: "Native",

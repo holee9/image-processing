@@ -30,11 +30,13 @@ protected:
 
     void SetUp() override {
         calibData.assign(W * H, 1.0f);
-        calibMap.pixels      = calibData.data();
-        calibMap.width       = W;
-        calibMap.height      = H;
-        calibMap.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-        calibMap.stride      = W * sizeof(float);
+        calibMap.data          = calibData.data();
+        calibMap.width         = W;
+        calibMap.height        = H;
+        calibMap.bitsAllocated = 32;
+        calibMap.bitsStored    = 32;
+        calibMap.format        = XPE_PIXEL_FLOAT32;
+        calibMap.dataSize      = calibData.size() * sizeof(float);
 
         tmpFile = fs::temp_directory_path() / "xpe_calib_test.xpec";
     }
@@ -74,11 +76,13 @@ TEST_F(CalibManagerTest, SaveAndLoadRoundTrip) {
 
     std::vector<float> loadedData(W * H, 0.0f);
     XpeImageBuffer loaded{};
-    loaded.pixels      = loadedData.data();
-    loaded.width       = W;
-    loaded.height      = H;
-    loaded.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-    loaded.stride      = W * sizeof(float);
+    loaded.data          = loadedData.data();
+    loaded.width         = W;
+    loaded.height        = H;
+    loaded.bitsAllocated = 32;
+    loaded.bitsStored    = 32;
+    loaded.format        = XPE_PIXEL_FLOAT32;
+    loaded.dataSize      = loadedData.size() * sizeof(float);
 
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(tmpFile.string().c_str(), &loaded));
     for (uint32_t i = 0; i < W * H; ++i)
@@ -127,11 +131,13 @@ TEST_F(CalibManagerTest, CorruptedPayloadReturnsCrcError) {
 
     std::vector<float> loadedData(W * H, 0.0f);
     XpeImageBuffer loaded{};
-    loaded.pixels      = loadedData.data();
-    loaded.width       = W;
-    loaded.height      = H;
-    loaded.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-    loaded.stride      = W * sizeof(float);
+    loaded.data          = loadedData.data();
+    loaded.width         = W;
+    loaded.height        = H;
+    loaded.bitsAllocated = 32;
+    loaded.bitsStored    = 32;
+    loaded.format        = XPE_PIXEL_FLOAT32;
+    loaded.dataSize      = loadedData.size() * sizeof(float);
 
     EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_calib_load_gain(tmpFile.string().c_str(), &loaded));
 }
@@ -140,19 +146,23 @@ TEST_F(CalibManagerTest, CorruptedPayloadReturnsCrcError) {
 TEST_F(CalibManagerTest, GenerateOffsetSingleFrameProducesCorrectMean) {
     std::vector<uint16_t> frameData(W * H, 500);
     XpeImageBuffer frame{};
-    frame.pixels      = frameData.data();
-    frame.width       = W;
-    frame.height      = H;
-    frame.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-    frame.stride      = W * sizeof(uint16_t);
+    frame.data          = frameData.data();
+    frame.width         = W;
+    frame.height        = H;
+    frame.bitsAllocated = 16;
+    frame.bitsStored    = 16;
+    frame.format        = XPE_PIXEL_UINT16;
+    frame.dataSize      = frameData.size() * sizeof(uint16_t);
 
     std::vector<uint16_t> outData(W * H, 0);
     XpeImageBuffer out{};
-    out.pixels      = outData.data();
-    out.width       = W;
-    out.height      = H;
-    out.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-    out.stride      = W * sizeof(uint16_t);
+    out.data          = outData.data();
+    out.width         = W;
+    out.height        = H;
+    out.bitsAllocated = 16;
+    out.bitsStored    = 16;
+    out.format        = XPE_PIXEL_UINT16;
+    out.dataSize      = outData.size() * sizeof(uint16_t);
 
     ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&frame, 1, &out, nullptr));
     EXPECT_EQ(500u, outData[0]);

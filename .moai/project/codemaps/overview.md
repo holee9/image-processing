@@ -10,7 +10,7 @@
 
 ## 1. 아키텍처 개요
 
-XPE(X-ray Processing Engine)는 의료 장비 소프트웨어로, X선 플랫 판 디텍터(FPD)의 원시 raw 프레임을 진단 가능한 DICOM 영상으로 변환하는 모듈형 이미지 처리 엔진입니다.
+XPE(X-ray Processing Engine)는 의료 장비 소프트웨어로, X선 플랫 판 디텍터(FPD)의 원시 raw 프레임을 진단 가능한 DICOM 영상으로 변환하는 모듈형 이미지 처리 엔진입니다. 최신 업데이트로 고스트 보정 Tier 1/2/3 구현과 전처리 파이프라인 통합이 추가되었습니다.
 
 ### 핵심 설계 원칙
 
@@ -27,6 +27,7 @@ XPE(X-ray Processing Engine)는 의료 장비 소프트웨어로, X선 플랫 �
 - C ABI 인터페이스를 통한 안정적인 경계
 - 선택적 로딩을 통한 점진적 기능 추가
 - 각 DLL은 독립적으로 개발/테스트 가능
+- **신규**: 전처리 파이프라인 통합 모듈 (pipeline.cpp)
 
 #### 1.3 상태 비설계 원칙 (Stateless Design)
 
@@ -79,6 +80,13 @@ typedef struct XpeImageBuffer {
 
 // 모든 함수는 __cdecl 호출 규칙
 XPE_API XpeErrorCode xpe_process(XpeImageBuffer* img);
+
+// **신규**: 전처리 파이프라인 통합 API
+XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+                                             XpeImageMetadata* meta,
+                                             const char* calibPath,
+                                             void* ghostHandle,
+                                             const char* configJsonOrNull);
 ```
 
 ### 3.2 메모리 관리 패턴
@@ -89,6 +97,10 @@ XpeImageBuffer img;
 xpe_alloc_image(width, height, format, &img);  // DLL 할당
 // ... 처리 ...
 xpe_free_image(&img);  // 호출자 해제
+
+// **신규**: 파이프라인 통합 시 메모리 흐름
+// Stage 0.5~4: 단일 버퍼에서 모든 처리 수행
+// 형식 변환: uint16 -> float32 (단방향 흐름)
 ```
 
 ### 3.3 선택적 로딩 패턴
@@ -115,6 +127,7 @@ catch {
 | 알고리즘 DLL | C/C++17 | Windows DLL | 성능 최적화 연산 |
 | 오케스트레이터 | C# 8.0 | .NET WPF | GUI, 제어, 통합 |
 | 외부 의존 | 다양 | 크로스 플랫폼 | 표준 라이브러리 |
+| **신규**: 파이프라인 모듈 | C++17 | Windows DLL | **전처리 단계 통합 (0.5-4)** |
 
 ### 4.2 핵심 의존성
 

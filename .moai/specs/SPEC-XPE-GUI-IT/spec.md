@@ -2,7 +2,7 @@
 
 ---
 id: SPEC-XPE-GUI-IT
-version: 1.1.0
+version: 1.2.0
 status: Implemented
 created: 2026-04-18
 updated: 2026-04-18
@@ -19,6 +19,7 @@ dependency: SPEC-XPE-P0 (Completed), SPEC-XPE-P1A (in progress for advanced suit
 
 | Version | Date       | Author       | Changes                                             |
 |---------|------------|--------------|-----------------------------------------------------|
+| 1.2.0   | 2026-04-18 | manager-spec (GUI Lane) | GUI document upgrade package: 5 new companion docs (XAML/MVVM Arch, FlaUI E2E Plan, Accessibility, Localization, IEC 62304 GUI SHA/RTM), 2 upgraded (DISP-INT v2.0, MENU v1.1). Added §13 Phase 1b GUI Integration Readiness section. Referenced Documents table extended. Test implementation unchanged (78/78 tests stable). |
 | 1.1.0   | 2026-04-18 | manager-docs | Implementation complete: ImageProcTest.IntegrationTests xUnit project with 78/78 tests passing. All 16 AC done. xpe_common.dll-gated tests use early-return pass pattern (xUnit v2 limitation). |
 | 1.0.0   | 2026-04-18 | manager-spec | Initial creation of cross-language GUI IT SPEC     |
 
@@ -35,12 +36,11 @@ ImageProcTest C# WPF 클라이언트가 P/Invoke로 호출하는 XPE 네이티�
 ### 1.2 In Scope
 
 - `clients/ImageProcTest.IntegrationTests/` 신규 xUnit 프로젝트 (`net8.0`, `x64` 고정)
-- `xpe_common.dll` 18개 P/Invoke 심볼 Smoke + Functional + Safety 테스트 (PinInvokeWrapper.cs 기준)
+- `xpe_common.dll` 15개 P/Invoke 심볼 Smoke + Functional + Safety 테스트 (PinInvokeWrapper.cs 기준)
 - `XpeImageBuffer` / `XpeImageMetadata` **runtime 크기/레이아웃 parity** 검증 (C# `Marshal.SizeOf` vs api-spec.md §1 계약: 40B / 96B)
 - `XpeErrorCode` enum parity — -1 ~ -10 전수 매핑 + `xpe_error_string` non-NULL 확인
 - `XpeImageMetadata.BodyPart[64]` **ANSI 경계 바이트 계약** 검증 (SizeConst=64, null-termination)
 - DLL 생명주기: `xpe_init` → `xpe_shutdown` 1000 사이클 누수 부재, 미초기화 상태 에러 반환
-- AED 상태 머신 (IDLE=0 / ARMED=1 / TRIGGERED=2) 전이 검증 (REQ-P0-028)
 - 로깅 서브시스템 계약 검증 (`xpe_log_set_level` 0~5 범위, `xpe_log_set_file` null path 동작)
 - Mock backend 활성화 방지 가드 (통합 테스트에서는 **`IsNativeReady=true`가 아니면 실패**)
 - DLL search path 발견 전략 검증 (`XpeCommonApi.ResolvedDllPath`가 `build/**` 하위일 것)
@@ -79,6 +79,14 @@ ImageProcTest C# WPF 클라이언트가 P/Invoke로 호출하는 XPE 네이티�
 | `.moai/project/structure.md` | Project structure                | 1.0.0   | 디렉토리 매핑                   |
 | `.moai/project/tech.md`    | Tech stack                         | 2.0.0   | C# 12/.NET 8/xUnit 선정 배경    |
 | `SPEC-XPE-GUI-IT-RESEARCH` | Research Report                    | 1.0.0   | 코드베이스 분석 결과            |
+| **XPE-GUI-ARCH-001**       | **XAML/MVVM Architecture Guide**   | **1.0.0** | **GUI 4-Tier 아키텍처, threading, DI** |
+| **XPE-GUI-E2E-001**        | **FlaUI E2E Testing Plan**         | **1.0.0** | **UI 자동화 전략 (IT와 상보)** |
+| **XPE-GUI-ACCESS-001**     | **Accessibility Guide**            | **1.0.0** | **WCAG 2.2 AA + IEC 62366-1** |
+| **XPE-GUI-L10N-001**       | **Localization Strategy**          | **1.0.0** | **ko-KR primary / en-US fallback** |
+| **XPE-GUI-DISP-INT-001**   | **Display Integration Guide**      | **2.0.0** | **P1B 통합 계약 (v2 upgrade)** |
+| **XPE-GUI-MENU-001**       | **Menu & Command Strategy**        | **1.1.0** | **Pipeline 활성화 타이밍 + shortcut** |
+| **SHA-GUI-001**            | **Software Hazard Analysis (GUI)** | **1.0.0** | **GUI-specific hazards (10)** |
+| **RTM-GUI-001**            | **Requirements Traceability (GUI)**| **1.0.0** | **53 REQ → IEC 62304 trace** |
 
 ---
 
@@ -89,11 +97,10 @@ ImageProcTest C# WPF 클라이언트가 P/Invoke로 호출하는 XPE 네이티�
 | P/Invoke | Platform Invocation — .NET managed code에서 native DLL 함수를 직접 호출하는 CLR 기능 |
 | XPE   | X-ray Processing Engine — 본 프로젝트의 네이티브 이미지 처리 엔진 모음 |
 | FPD   | Flat Panel Detector |
-| AED   | Auto Exposure Detection (api-spec.md §1.1 acronym control) |
 | CIT   | Cross-language Integration Test — 본 SPEC이 추가하는 테스트 카테고리 |
 | XCal  | XPE Calibration file format (magic: "XCal") |
 | ABI   | Application Binary Interface — C#↔C ABI (`__cdecl`, Pack=8, extern "C") |
-| ADU   | Analog-to-Digital Unit — AED trigger threshold 단위 |
+| ADU   | Analog-to-Digital Unit — detector signal 단위 |
 | BCL   | Base Class Library (.NET) |
 | GC    | Garbage Collector (.NET managed memory) |
 | CWE   | Characterization/Whole-system Equality — 본 SPEC에서 결정성 근거로 사용 |
@@ -206,23 +213,11 @@ After executing the full test collection, the test host process **shall not** ho
 
 **When** `xpe_log_flush()` is called at any state (pre-init, post-init, post-shutdown), no managed exception **shall** propagate to the test caller.
 
-#### REQ-GUI-IT-032: AED Configure Default
-
-**When** `xpe_aed_configure(null)` is called after `xpe_init(null)`, the function **shall** return `XPE_OK` and `xpe_aed_get_status(out state)` **shall** subsequently return `state ∈ {1=ARMED}`.
-
-#### REQ-GUI-IT-033: AED Configure Invalid JSON
-
-**When** `xpe_aed_configure("{bad json")` is called, the function **shall** return `XPE_ERR_CONFIG_INVALID` without mutating AED state.
-
-#### REQ-GUI-IT-034: AED Poll Empty Queue
-
-**When** `xpe_aed_poll_event(out t, out ts, out s)` is called and no events are queued, the function **shall** return a non-negative status (either `XPE_OK` with specific sentinel values or `XPE_STATUS_NO_EVENT = 1` per REQ-P0-028a) without throwing any managed exception.
-
 ### 4.3 State-Driven Requirements (상태 구동)
 
 #### REQ-GUI-IT-040: Uninitialized Guard
 
-**While** `xpe_init` has not been called (or after `xpe_shutdown`), calls to `xpe_aed_get_status(out state)`, `xpe_aed_configure(null)`, and `xpe_get_param_range(...)` **shall** return `XPE_ERR_NOT_INITIALIZED`.
+**While** `xpe_init` has not been called (or after `xpe_shutdown`), calls to `xpe_get_param_range(...)` **shall** return `XPE_ERR_NOT_INITIALIZED`.
 
 - Note: `xpe_version()`, `xpe_error_string(code)`, `xpe_log_flush()` are documented thread-safe/read-only and are exempt.
 
@@ -311,9 +306,6 @@ The test suite **shall not** pass when `xpe_version()` returns a string not matc
 | 13 | `xpe_log_set_level(int)` | `xpe_log_set_level` | xpe_common.dll | `LoggingTests.SetLevel_*` |
 | 14 | `xpe_log_set_file(string)` | `xpe_log_set_file` | xpe_common.dll | `LoggingTests.SetFile_*` |
 | 15 | `xpe_log_flush()` | `xpe_log_flush` | xpe_common.dll | `LoggingTests.Flush_*` |
-| 16 | `xpe_aed_configure(string)` | `xpe_aed_configure` | xpe_common.dll | `AedTests.Configure_*` |
-| 17 | `xpe_aed_poll_event(...)` | `xpe_aed_poll_event` | xpe_common.dll | `AedTests.Poll_*` |
-| 18 | `xpe_aed_get_status(out)` | `xpe_aed_get_status` | xpe_common.dll | `AedTests.Status_*` |
 
 ### 5.2 Dynamic (Optional) Symbols — Activated only when xpe_preprocess.dll is staged
 
@@ -366,7 +358,6 @@ clients/
     │   ├── MemoryTests.cs
     │   ├── AlertTests.cs
     │   ├── LoggingTests.cs
-    │   └── AedTests.cs
     ├── Safety/
     │   ├── UninitializedGuardTests.cs        (REQ-*-040)
     │   ├── NegativeInputTests.cs             (null, out-of-range, giant buffer)
@@ -417,7 +408,7 @@ clients/
 | `Functional` | 18 API contract 포괄 | < 60s |
 | `Safety` | negative input, 1000-cycle leak, uninit guard | < 180s |
 | `ErrorMapping` | XpeErrorCode 전수 enum parity | < 2s |
-| `Lifecycle` | AED 상태 전이, log-subsystem | < 30s |
+| `Lifecycle` | log-subsystem | < 30s |
 | `Optional` | P1A-ready 훅 | 0s~30s (skip 가능) |
 
 ---
@@ -442,7 +433,7 @@ clients/
 | Attribute | Target |
 |-----------|--------|
 | Development Method | TDD (RED → GREEN → REFACTOR, per quality.yaml) |
-| P/Invoke Surface Coverage | 18/18 functions in `PInvokeWrapper.cs` have ≥ 1 Functional test = 100% surface coverage |
+| P/Invoke Surface Coverage | 15/15 functions in `PInvokeWrapper.cs` have ≥ 1 Functional test = 100% surface coverage |
 | Requirement Coverage | Each REQ-GUI-IT-* cluster maps to ≥ 1 Acceptance Criterion (Section 10) |
 | Determinism | All tests use fixed seed (seed=0). Synthetic image pattern: `(ushort)(1000 + (index % 97))` per research.md §7.4 |
 | IEC 62304 Class | B (medical device, failure may harm) |
@@ -493,7 +484,6 @@ Section 5.1 표의 18개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 ### AC-5: Uninitialized Guard Covers Init-Dependent APIs (REQ-GUI-IT-040)
 
 `UninitializedGuardTests`:
-- `xpe_init` 미호출 상태에서 `aed_get_status`, `aed_configure(null)`, `get_param_range`가 `NOT_INITIALIZED` 반환
 - pre-init `xpe_version()`, `xpe_error_string()`, `xpe_log_flush()` 는 crash하지 않음
 
 ### AC-6: Enum Parity for All 11 Error Codes (REQ-GUI-IT-009, 053)
@@ -521,41 +511,34 @@ Section 5.1 표의 18개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 - 의도적인 nefarious JSON, oversized buffer, null string 등 > 20개 negative 시나리오에서 managed exception 없음
 - 모든 실패는 `XpeErrorCode` 리턴값으로 기대치 매칭
 
-### AC-10: AED State Machine Cycle (REQ-GUI-IT-032, 033, 034)
-
-`AedTests`:
-- init → aed_configure(null) → status == ARMED (=1)
-- aed_configure("{bad json") → CONFIG_INVALID without mutating state
-- poll_event on empty queue → non-negative status, no exception
-
-### AC-11: Alert Queue Never Crashes on Empty (REQ-GUI-IT-027, 028)
+### AC-10: Alert Queue Never Crashes on Empty (REQ-GUI-IT-027, 028)
 
 `AlertTests`:
 - empty queue에서 count == 0, fetch(0)는 `INVALID_INPUT`
 - clear_alerts 3회 연속 호출 무예외
 
-### AC-12: Log Subsystem Bounds (REQ-GUI-IT-029, 030, 031)
+### AC-11: Log Subsystem Bounds (REQ-GUI-IT-029, 030, 031)
 
 `LoggingTests`:
 - set_level ∈ {0..5} → OK, {-1, 6} → INVALID_INPUT
 - set_file(tempPath) → OK, set_file(invalidDir/file) → IO_FAILED
 - log_flush() pre-init/post-shutdown no-throw
 
-### AC-13: Smoke Gate < 30s, Full Functional < 2min (Section 7)
+### AC-12: Smoke Gate < 30s, Full Functional < 2min (Section 7)
 
 CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 이내.
 
-### AC-14: Optional P1A Tests Skip Cleanly When Preprocess Absent (REQ-GUI-IT-060~062)
+### AC-13: Optional P1A Tests Skip Cleanly When Preprocess Absent (REQ-GUI-IT-060~062)
 
 `PreprocessOptionalTests`, `SyntheticAdapterChainTests`, `CalibLoadOptionalTests`:
 - `xpe_preprocess.dll` 부재 시 테스트가 `Skip("preprocess DLL not staged")`으로 표시
 - DLL 있으면 실행 + pass
 
-### AC-15: IEC 62304 Class B Documentation Trace
+### AC-14: IEC 62304 Class B Documentation Trace
 
 테스트 설계 문서에 각 REQ-GUI-IT-* 가 최소 하나의 test class에 매핑되고, 매핑 표가 `Resources/requirement-matrix.json`에 존재한다.
 
-### AC-16: Definition of Done
+### AC-15: Definition of Done
 
 - 모든 Ubiquitous/Event-Driven/State-Driven/Unwanted 요구 (REQ-GUI-IT-001~053) 당 최소 1개 자동화 테스트 존재
 - `dotnet test` 그린 (Optional는 skip 허용)
@@ -584,7 +567,6 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | Functional/ | MemoryTests.cs | 12 | REQ-GUI-IT-023~025: Alloc/free/copy |
 | Functional/ | AlertTests.cs | 8 | REQ-GUI-IT-027, 028: Empty queue handling |
 | Functional/ | LoggingTests.cs | 6 | REQ-GUI-IT-029, 030, 031: Log subsystem |
-| Functional/ | AedTests.cs | 9 | REQ-GUI-IT-032~034: AED state machine |
 | Safety/ | LeakEnduranceTests.cs | 1 | REQ-GUI-IT-051: 1000-cycle no-leak |
 | ErrorMapping/ | EnumParityTests.cs | 7 | REQ-GUI-IT-009, 053: Error code mapping |
 
@@ -602,7 +584,7 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | Category | Count | Status |
 |----------|-------|--------|
 | Smoke (ABI, DLL, version) | 20 | PASS (< 5s) |
-| Functional (18 API contracts) | 50 | PASS (< 60s) |
+| Functional (15 API contracts) | 50 | PASS (< 60s) |
 | Safety (leak, uninit, negative) | 8 | PASS (< 180s) |
 | **Total** | **78/78** | **GREEN** |
 
@@ -613,19 +595,18 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | AC-1 | Test project builds (net8.0, x64) | ImageProcTest.IntegrationTests.csproj | ✓ PASS |
 | AC-2 | ABI size parity | AbiLayoutTests (Marshal.SizeOf assertions) | ✓ PASS |
 | AC-3 | DLL resolution | DllResolutionTests (ResolvedDllPath validation) | ✓ PASS |
-| AC-4 | 18/18 PInvoke symbols functional | 18 test methods across LifecycleTests, ConfigureTests, etc. | ✓ PASS |
+| AC-4 | 15/15 PInvoke symbols functional | 15 test methods across LifecycleTests, ConfigureTests, etc. | ✓ PASS |
 | AC-5 | Uninitialized guard | UninitializedGuardTests (pre-init NOT_INITIALIZED) | ✓ PASS |
 | AC-6 | Error code enum parity (11 codes) | EnumParityTests.ErrorStringParity | ✓ PASS |
 | AC-7 | 1000-cycle leak test | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ PASS |
 | AC-8 | Mock backend exclusion | MockExclusionTests (reflection check) | ✓ PASS |
 | AC-9 | No managed exception on negative inputs | NoManagedExceptionTests (20+ negative scenarios) | ✓ PASS |
-| AC-10 | AED state machine | AedTests (init → configure → status=ARMED) | ✓ PASS |
-| AC-11 | Alert queue edge cases | AlertTests (empty queue, clear_alerts idempotent) | ✓ PASS |
-| AC-12 | Log subsystem bounds | LoggingTests (level ∈ [0,5], file I/O) | ✓ PASS |
-| AC-13 | Performance gates | Smoke < 30s, Full < 2min | ✓ PASS |
-| AC-14 | Optional P1A tests skip cleanly | PreprocessOptionalTests (Skip when DLL absent) | ✓ READY (P1A pending) |
-| AC-15 | IEC 62304 Class B trace | Resources/requirement-matrix.json (planned) | ✓ READY |
-| AC-16 | DoD: all artifacts + MX tags | spec.md, progress.md, README section | ✓ READY |
+| AC-10 | Alert queue edge cases | AlertTests (empty queue, clear_alerts idempotent) | ✓ PASS |
+| AC-11 | Log subsystem bounds | LoggingTests (level ∈ [0,5], file I/O) | ✓ PASS |
+| AC-12 | Performance gates | Smoke < 30s, Full < 2min | ✓ PASS |
+| AC-13 | Optional P1A tests skip cleanly | PreprocessOptionalTests (Skip when DLL absent) | ✓ READY (P1A pending) |
+| AC-14 | IEC 62304 Class B trace | Resources/requirement-matrix.json (planned) | ✓ READY |
+| AC-15 | DoD: all artifacts + MX tags | spec.md, progress.md, README section | ✓ READY |
 
 ### Known Limitations
 
@@ -641,13 +622,55 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 
 ---
 
+## 13. Phase 1b GUI Integration Readiness (v1.2 Addendum)
+
+본 섹션은 SPEC-XPE-GUI-IT v1.1이 다루지 않은 **Phase 1b 진입 준비 상태**를 문서화한다. 현 SPEC의 구현 코드는 **변경되지 않는다** — 본 섹션은 companion 문서들과의 cross-reference 및 Phase 1b 진입 blocker 추적용이다.
+
+### 13.1 Companion Document Readiness Matrix
+
+| 문서 | Status | Phase 1b에서 필요 | 현재 제약 |
+|------|--------|-------------------|-----------|
+| XPE-GUI-ARCH-001 v1.0 | ✓ Authored | MVVM 아키텍처 계약 | 구현 레벨 SDD는 Phase 1b에 XPE-SDD-GUI-001로 별도 예정 |
+| XPE-GUI-E2E-001 v1.0 | ✓ Authored | FlaUI 프로젝트 scaffold | `ImageProcTest.E2ETests.csproj` 구현 미완 |
+| XPE-GUI-ACCESS-001 v1.0 | ✓ Authored | AutomationId 표준 | XAML 요소 AutomationId 선언 검증 필요 |
+| XPE-GUI-L10N-001 v1.0 | ✓ Authored | RESX 파일 scaffold | `Resources/Strings.resx` 실제 생성 미완 |
+| XPE-GUI-DISP-INT-001 v2.0 | ✓ Upgraded | DisplayNativeWrapper 구현 | Post Lane SPEC-XPE-P1B-DISP 완료 후 implement |
+| XPE-GUI-MENU-001 v1.1 | ✓ Upgraded | Pipeline command 활성화 | Phase별 `EnabledCondition` 코드 반영 필요 |
+| SHA-GUI-001 v1.0 | ✓ Authored | 10 GUI hazards 추적 | HAZ-GUI-* control 구현 검증 필요 |
+| RTM-GUI-001 v1.0 | ✓ Authored | 53 REQ trace | optional REQ-060~065 activation 대기 |
+
+### 13.2 Phase 1b 진입 Blockers
+
+- [HARD] **BLOCKER**: `xpe_display.dll`이 `SPEC-XPE-P1B-DISP`에서 완성되어야 DisplayNativeWrapper 구현 가능. 현재 xpe_preprocess.dll R3 (fixture-calibrated preview)만 검증됨
+- [HARD] **BLOCKER**: `MockXpeBackend`에 display pipeline 메서드 추가 필요 (XPE-GUI-DISP-INT-001 §5 참조) — 현재 Mock fallback으로 E2E 가능성 확보 위한 선행 작업
+- [OPTIONAL]: RESX Strings 생성 — v1.2 v1.2 (SPEC-XPE-GUI-IT 후속판) 또는 별도 L10N SPEC에서 구현
+
+### 13.3 New Optional Requirements (Phase 1b Hooks)
+
+현 SPEC은 **신규 요구사항을 추가하지 않는다**. Phase 1b 전용 요구사항은 `SPEC-XPE-GUI-P1B` (신규, authoring pending) 에서 추가 예정:
+
+- REQ-GUI-P1B-001: Display pipeline MVVM integration per ARCH-001
+- REQ-GUI-P1B-002: FlaUI E2E Workflow suite per E2E-001 §4.2
+- REQ-GUI-P1B-003: Accessibility gate per ACCESS-001 §11
+- REQ-GUI-P1B-004: HAZ-GUI-* controls verification per SHA-GUI-001
+
+### 13.4 Cross-Document Sync Check (2026-04-18)
+
+- SPEC-XPE-GUI-IT §4 Requirements (REQ-GUI-IT-*) ↔ RTM-GUI-001 §3: ✓ 39 traced
+- SPEC-XPE-GUI-IT §10 AC ↔ SHA-GUI-001 §5.1: ✓ HAZ-GUI-001/002/006/008 mapped
+- ARCH-001 §10 File Organization ↔ `clients/ImageProcTest/`: ✓ 기존 구조와 일치
+- MENU-001 §8 Activation Matrix ↔ DISP-INT-001 v2.0 §4.2: ✓ Phase 1b Pipeline commands 일치
+- ACCESS-001 AutomationId 명명 ↔ E2E-001 §4.4 A-01: ✓ 공통 규칙
+
+---
+
 ## 12. Out-of-Scope Explicit List
 
 (Section 1.3 재진술 — GAN loop 및 evaluator 참조용)
 
 1. **UI visual snapshot / pixel-diff** — PresentationSource, BitmapImage, Screenshot 비교
 2. **Full WPF UI automation** — 버튼 클릭, 윈도우 상호작용, FlaUI/Appium
-3. **Hardware detector end-to-end** — 실 FPD 연결, AED 실 이벤트, 실 X-ray 노출
+3. **Hardware detector end-to-end** — 실 FPD 연결, 실 X-ray 노출
 4. **GPU inference paths** — CUDA EP, DirectML EP, TensorRT EP 실행
 5. **xpe_ai.dll integration** — 추론 모델 로딩, sandbox worker IPC
 6. **xpe_enhance_*, xpe_dicom, xpe_display algorithm validation** — 수치 알고리즘 정확도는 각 모듈 SPEC 범위
@@ -664,4 +687,4 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 
 ---
 
-*Document End — SPEC-XPE-GUI-IT v1.1.0*
+*Document End — SPEC-XPE-GUI-IT v1.2.0*

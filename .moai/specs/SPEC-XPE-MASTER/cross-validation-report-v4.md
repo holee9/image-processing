@@ -81,7 +81,7 @@
 
 | ID | Issue | Action Required | Impact |
 |----|-------|----------------|--------|
-| N1+N3+N8 | api-spec.md v1.2.0 not released | Tech Lead must publish with 18 function contracts, AED docs, updated count table | Blocks S0-B (6 API implementations) |
+| N1+N3+N8 | api-spec.md v1.2.0 not released | Tech Lead must publish with 15 function contracts, Logging docs, updated count table | Blocks S0-B (6 API implementations) |
 
 ### Current Implementation State
 
@@ -112,7 +112,7 @@
 
 | DLL | Old Count | Correct Count | Delta |
 |-----|:---------:|:------------:|:-----:|
-| xpe_common | 15 | **18** | +3 (AED) |
+| xpe_common | 15 | 15 | 0 |
 | xpe_preprocess | 18 | 18 | 0 |
 | xpe_enhance_basic | 6 | **7** | +1 (EI moved here) |
 | xpe_enhance_advanced | 4 | **3** | -1 (EI moved out) |

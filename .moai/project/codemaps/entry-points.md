@@ -17,14 +17,14 @@ XPE 아키텍처는 82개의 C ABI 함수를 통해 외부와 상호작용합니
 | DLL 이름 | 함수 개수 | 진입점 유형 | 목적 |
 |----------|-----------|-------------|------|
 | `xpe_common.dll` | 18개 | 시스템 진입점 | 라이브러리 관리, 메모리, 구성 |
-| `xpe_preprocess.dll` | 18개 | 처리 진입점 | 전처리 알고리즘 |
+| `xpe_preprocess.dll` | 19개 | 처리 진입점 | 전처리 알고리즘 (파이프라인 통합) |
 | `xpe_enhance_basic.dll` | 6개 | 처리 진입점 | 기본 향상 알고리즘 |
 | `xpe_enhance_advanced.dll` | 4개 | 처리 진입점 | 고급 향상 알고리즘 |
 | `xpe_ai.dll` | 7개 | 처리 진입점 | AI 알고리즘 |
 | `xpe_display.dll` | 11개 | 처리 진입점 | 디스플레이 LUT |
 | `xpe_dicom.dll` | 10개 | I/O 진입점 | DICOM 파일 처리 |
 | `gsvg.dll` | 8개 | 처리 진입점 | 그리드 처리 |
-| **총계** | **82개** | - | 전체 API |
+| **총계** | **83개** | - | 전체 API |
 
 ---
 
@@ -96,25 +96,44 @@ XpeErrorCode result = xpe_alloc_image(1920, 1080, XpePixelFormat.XPE_PIXEL_UINT1
 | **고스트 보정** | `XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img, const XpeImageMetadata* meta)` | PRE-09 | 고스트 핸들 |
 | **온도 보상** | `XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img, float detectorTempC, const char* configJsonOrNull)` | PRE-07 | 온도 값 |
 | **비선형 보정** | `XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img, const char* configJsonOrNull)` | PRE-08 | 설정 JSON |
+| **빈닝 보정** | `XpeErrorCode xpe_binning_correct(XpeImageBuffer* img, int32_t binningMode, const char* configJsonOrNull)` | PRE-09 | 빈닝 모드 |
+| **읽기 아티팩트 검증** | `XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg, int32_t* artifactScoreOut, char* msgOut, size_t msgLen)` | PRE-01 | 아티팩트 점수 |
+| **파이프라인 통합** | `XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img, XpeImageMetadata* meta, const char* calibPath, void* ghostHandle, const char* configJsonOrNull)` | **새로 추가** | 전처리 파이프라인 |
 
 **처리 순서 강제**:
 ```csharp
 // 정해진 순서대로 호출해야 함
 public void PreprocessPipeline(XpeImageBuffer rawImage, float temperature) {
-    // 1. 오프셋 보정
-    xpe_offset_correct(rawImage, offsetMap);
+    // 1. 읽기 아티팩트 검증 (0.5)
+    xpe_validate_readout_artifact(rawImage, out int score, out string msg);
     
-    // 2. 게인 보정 (uint16 -> float32 변환)
-    xpe_gain_correct(rawImage, gainMap);
-    
-    // 3. 온도 보상
+    // 2. 온도 보상 (1)
     xpe_temp_compensate(rawImage, temperature);
     
-    // 4. 결함 보정
+    // 3. 오프셋 보정 (1.5)
+    xpe_offset_correct(rawImage, offsetMap);
+    
+    // 4. 비선형 보정 (2)
+    xpe_nonlinearity_correct(rawImage, config);
+    
+    // 5. 게인 보정 (2.5) + uint16 -> float32
+    xpe_gain_correct(rawImage, gainMap);
+    
+    // 6. 빈닝 보정 (3)
+    xpe_binning_correct(rawImage, binningMode, config);
+    
+    // 7. 결함 보정 (3.5)
     xpe_defect_correct(rawImage, defectMap, config);
     
-    // 5. 고스트 보정
+    // 8. 고스트 보정 (4) - Tier 1/2/3
     xpe_ghost_correct(ghostHandle, rawImage, metadata);
+}
+
+// 새로운 전처리 파이프라인 API (추천)
+public void ProcessWithPipeline(XpeImageBuffer rawImage, XpeImageMetadata metadata, string calibPath, IntPtr ghostHandle) {
+    // 단일 호출로 전체 전처리 실행 (REQ-P1A-041~049)
+    XpeErrorCode result = xpe_preprocess_pipeline(
+        rawImage, metadata, calibPath, ghostHandle, pipelineConfig);
 }
 ```
 
@@ -356,48 +375,6 @@ public void ProcessAlerts() {
 }
 ```
 
-### 7.2 AED 시스템 (xpe_common.dll)
-
-| 진입점 | 함수 시그니처 | 목적 |
-|--------|---------------|------|
-| **AED 구성** | `XpeErrorCode xpe_aed_configure(const char* configJsonOrNull)` | 자동 노출 감지 구성 |
-| **AED 이벤트 폴링** | `XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut, uint64_t* timestampOut, float* signalLevelOut)` | 노출 이벤트 확인 |
-| **AED 상태 확인** | `XpeErrorCode xpe_aed_get_status(int32_t* stateOut)` | AED 상태 확인 |
-
-**AED 이벤트 처리**:
-```csharp
-public class AEDProcessor {
-    public void ConfigureAED() {
-        string config = @"{
-            ""enabled"": true,
-            ""doseThreshold"": 100.0,
-            ""cooldownPeriodMs"": 5000,
-            ""callbackMode"": ""poll""
-        }";
-        
-        xpe_aed_configure(config);
-    }
-    
-    public bool CheckExposureEvent() {
-        int eventType;
-        uint64_t timestamp;
-        float signalLevel;
-        
-        XpeErrorCode result = xpe_aed_poll_event(out eventType, out timestamp, out signalLevel);
-        
-        if (result == XpeErrorCode.OK) {
-            // 노출 이벤트 발생
-            DateTime eventTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
-            Console.WriteLine($"Exposure detected at {eventTime}, level: {signalLevel}");
-            return true;
-        }
-        
-        return false;
-    }
-}
-```
-
----
 
 ## 8. P/Invoke 인터페이스 정의
 

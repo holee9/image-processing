@@ -56,7 +56,6 @@ Required evidence:
 - successful native build and smoke test
 - verified common ABI export list
 - alert subsystem exercised
-- Auto Exposure Detection subsystem exercised
 - memory ownership and struct packing checks
 
 ### 4.2 M2 Detector correction

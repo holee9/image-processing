@@ -20,6 +20,8 @@ XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
                                             size_t msgLen)
 {
     if (!rawImg || !artifactScoreOut) return XPE_ERR_INVALID_INPUT;
+    size_t n = 0;
+    if (!xpe_buffer_has_format(rawImg, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-001: validate raw uint16 image for readout artifacts
     // REQ-P1A-002: line noise — rows where mean > 0.9 * UINT16_MAX
@@ -28,8 +30,7 @@ XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
 
     const uint32_t W  = rawImg->width;
     const uint32_t H  = rawImg->height;
-    const size_t   n  = static_cast<size_t>(W) * H;
-    const auto*    px = static_cast<const uint16_t*>(rawImg->pixels);
+    const auto*    px = static_cast<const uint16_t*>(rawImg->data);
 
     // ADC saturation detection
     size_t saturated = 0;

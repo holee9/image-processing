@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -159,19 +160,6 @@ namespace ImageProcTest
 
         #endregion
 
-        #region AED Functions
-
-        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern XpeErrorCode xpe_aed_configure([MarshalAs(UnmanagedType.LPStr)] string configJson);
-
-        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern XpeErrorCode xpe_aed_poll_event(out int eventType, out ulong timestamp, out float signalLevel);
-
-        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern XpeErrorCode xpe_aed_get_status(out int state);
-
-        #endregion
-
         private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
             if (!string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
@@ -206,26 +194,67 @@ namespace ImageProcTest
         {
             yield return Path.Combine(AppContext.BaseDirectory, DllName);
 
+            var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+            if (!string.IsNullOrWhiteSpace(envDir))
+            {
+                yield return Path.Combine(envDir, DllName);
+            }
+
             var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);
             if (repoRoot is null)
             {
                 yield break;
             }
 
-            var candidates = new[]
+            foreach (var root in GetRepositoryAndSiblingRoots(repoRoot, "xpe-pre"))
             {
-                Path.Combine(repoRoot, "build", "ci-common", "bin", DllName),
-                Path.Combine(repoRoot, "build", "ci-common", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "readiness-display-vs", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", DllName),
-            };
+                var candidates = new[]
+                {
+                    Path.Combine(root, "build", "gui-preprocess-link", "bin", DllName),
+                    Path.Combine(root, "build", "gui-preprocess-link", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "ci-common", "bin", DllName),
+                    Path.Combine(root, "build", "ci-common", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "ci", "bin", DllName),
+                    Path.Combine(root, "build", "ci", "bin", "RelWithDebInfo", DllName),
+                    Path.Combine(root, "build", "default", "bin", DllName),
+                    Path.Combine(root, "build", "default", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "release", "bin", DllName),
+                    Path.Combine(root, "build", "release", "bin", "Release", DllName),
+                    Path.Combine(root, "build", "readiness-display-vs", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
+                    Path.Combine(root, "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", DllName),
+                };
 
-            foreach (var candidate in candidates)
+                foreach (var candidate in candidates)
+                {
+                    yield return candidate;
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetRepositoryAndSiblingRoots(
+            string repoRoot,
+            params string[] siblingNames)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (seen.Add(repoRoot))
             {
-                yield return candidate;
+                yield return repoRoot;
+            }
+
+            var parent = Directory.GetParent(repoRoot);
+            if (parent is null)
+            {
+                yield break;
+            }
+
+            foreach (var siblingName in siblingNames)
+            {
+                var siblingRoot = Path.Combine(parent.FullName, siblingName);
+                if (Directory.Exists(siblingRoot) && seen.Add(siblingRoot))
+                {
+                    yield return siblingRoot;
+                }
             }
         }
 

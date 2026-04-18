@@ -27,9 +27,4 @@ public static class TestDataLoader
     /// <summary>Malformed JSON that xpe_configure must reject with CONFIG_INVALID.</summary>
     public static string MalformedConfigJson { get; } = "{not json";
 
-    /// <summary>Valid AED JSON configuration (null/empty uses defaults).</summary>
-    public static string? AedDefaultConfig { get; } = null;
-
-    /// <summary>Malformed AED JSON (must return CONFIG_INVALID).</summary>
-    public static string AedMalformedJson { get; } = "{bad json";
 }

@@ -42,6 +42,24 @@
                         <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="PreprocessSmokeText" Text="Preprocess smoke: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="PreprocessParamRangeText" Text="Preprocess parameter ranges: Not checked" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap"/>
+                        <DataGrid x:Name="PreprocessParamRangeGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="72"
+                                  MaxHeight="160"
+                                  Margin="0,0,0,6">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Parameter" Binding="{Binding ParamName}" Width="170"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding ErrorCode}" Width="90"/>
+                                <DataGridTextColumn Header="Min" Binding="{Binding MinValue, StringFormat={}{0:0.###}}" Width="80"/>
+                                <DataGridTextColumn Header="Max" Binding="{Binding MaxValue, StringFormat={}{0:0.###}}" Width="80"/>
+                                <DataGridCheckBoxColumn Header="OK" Binding="{Binding Passed}" Width="50"/>
+                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                         <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
                         <TextBlock x:Name="DetailsText" Text="Details: Waiting for health check." FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>

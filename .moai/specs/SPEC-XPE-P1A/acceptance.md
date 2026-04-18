@@ -2,12 +2,19 @@
 
 ---
 spec_id: SPEC-XPE-P1A
-version: 1.0.0
-status: Planned
+version: 1.2.0
+status: In Progress (SUP-01 done, M2 pending)
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-18
 author: manager-spec (MoAI)
 ---
+
+## HISTORY
+
+| Version | Date       | Author       | Changes |
+|---------|------------|--------------|---------|
+| 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Align with spec.md v1.2.0. Strengthen AC-DET-001 with Hampel recipe. Expand AC-SIMD-001~003 to reference simd-parity-harness.md. Add AC-PERF-001~005 pixel-accuracy benchmark mapping. |
+| 1.0.0   | 2026-04-16 | manager-spec | Initial acceptance criteria |
 
 ## 1. Definition of Done
 
@@ -247,17 +254,58 @@ And img is identical to the input (no modifications)
 
 ### 2.5 Runtime Defect Detection
 
-#### AC-DET-001: Transient Defect Detection
+#### AC-DET-001: Transient Defect Detection (Hampel 5-sigma)
 
 ```gherkin
-Given a 512x512 image with a pixel significantly deviating from neighbors (>5 sigma)
+Given a 512x512 UINT16 image with a pixel whose value differs from its 8-neighborhood median by more than 5 * MAD / 0.6745
+And the config JSON omits "hampel_threshold" (use default 5.0)
 When xpe_defect_detect_runtime(img, defectMapOut, config) is called
-Then defectMapOut marks the deviating pixel as defective (non-zero)
+Then defectMapOut[x,y] == 1 for that deviating pixel
+And all other pixels have defectMapOut == 0 (assuming they are within threshold)
 And the function returns XPE_OK
 ```
 
 **REQ Mapping**: REQ-P1A-013
 **Test Type**: Unit
+**Algorithm Reference**: spec.md v1.2.0 Section 4.2 REQ-P1A-013 (Hampel recipe), research.md v2.0.0 Section 8.3
+
+#### AC-DET-002: Runtime Detection Accuracy
+
+```gherkin
+Given 1000 synthetic clinical frames with 50 injected 5-sigma transient defects per frame (ground truth known)
+When xpe_defect_detect_runtime is applied with default threshold
+Then aggregate TPR (true-positive rate) over all 50,000 injections >= 99.9%
+And aggregate FPR (false-positive rate) on un-injected pixels < 0.001%
+And no function call returns an error
+```
+
+**REQ Mapping**: REQ-P1A-013
+**Test Type**: Statistical / Benchmark (BP-04 runtime portion)
+
+#### AC-DET-003: Edge-of-Image Handling
+
+```gherkin
+Given a 512x512 UINT16 image where the top row has >5-sigma values
+When xpe_defect_detect_runtime is called
+Then pixels in the top row (incomplete 3x3 neighborhood) are handled with available subset
+And no out-of-bounds memory access occurs
+And at least 5 valid neighbors are required; otherwise defectMapOut[x,y] = 0
+```
+
+**REQ Mapping**: REQ-P1A-013, REQ-P1A-005
+**Test Type**: Unit (Edge case)
+
+#### AC-DET-004: Configurable Threshold
+
+```gherkin
+Given a 512x512 UINT16 image with a 4-sigma transient
+When xpe_defect_detect_runtime is called with config '{"hampel_threshold": 3.5}'
+Then the 4-sigma transient is flagged (defectMapOut == 1)
+And calling again with config '{"hampel_threshold": 5.0}' does NOT flag the same transient
+```
+
+**REQ Mapping**: REQ-P1A-013
+**Test Type**: Unit (Parameterized)
 
 ---
 
@@ -362,38 +410,72 @@ And applying offset + gain correction again with same maps produces predictable 
 
 ### 2.8 SIMD Parity
 
-#### AC-SIMD-001: Offset Correction Parity
+Full parity protocol specification: `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md` v1.0.0. The scenarios below are the high-level acceptance gates; the harness document contains the detailed seed policy, input distributions, ULP computation, and dispatch override mechanism.
+
+#### AC-SIMD-001: Offset Correction Parity (UINT16 Bit-Identical)
 
 ```gherkin
-Given 100 random 512x512 UINT16 images and offset maps
-When scalar offset_correct and AVX2 offset_correct are both applied
-Then all output pixels are bit-identical between scalar and AVX2 results
+Given 100 pseudo-random UINT16 frames per shape (512x512, 1024x1024, 3072x3072) generated with seed = CRC32("offset_subtract" derived from master "XPE-SIMD-PARITY-v1")
+And corresponding random UINT16 offset maps (range 0..32767)
+When scalar xpe_offset_correct and AVX2 xpe_offset_correct are both applied
+Then memcmp(scalar_output, avx2_output, byte_count) == 0 for all 100 inputs per shape
 ```
 
 **REQ Mapping**: REQ-P1A-040
-**Test Type**: Parity
+**Test Type**: Parity (simd-parity-harness.md Section 3, Rule: Bit-identical)
+**Test Count**: 300 (100 per 3 shapes)
 
-#### AC-SIMD-002: Gain Correction Parity
+#### AC-SIMD-002: Gain Correction Parity (FLOAT32 1-ULP)
 
 ```gherkin
-Given 100 random FLOAT32 images and gain maps
-When scalar gain_correct and AVX2 gain_correct are both applied
-Then all output pixels are bit-identical (within FP tolerance for FLOAT32)
+Given 100 pseudo-random FLOAT32 frames per shape (seeded per harness Section 4.1)
+And random FLOAT32 gain maps in range [0.5, 2.0]
+When scalar gain correction (a * (1.0f/b)) and AVX2 gain correction (_mm256_mul_ps with reciprocal) are both applied
+Then for every output pixel: fabsf(scalar - avx2) <= 1 * ULP(max(|scalar|, |avx2|))
+And neither path produces NaN or Inf when the other does not
+```
+
+**REQ Mapping**: REQ-P1A-040, REQ-P1A-033
+**Test Type**: Parity (harness Section 3, Rule: OneULP)
+**Test Count**: 300 (100 per 3 shapes)
+
+#### AC-SIMD-003: Defect Correction Parity (UINT16 Bit-Identical)
+
+```gherkin
+Given 100 pseudo-random UINT16 frames + random defect maps (Bernoulli p=0.001)
+When scalar bilinear defect correction and AVX2 defect correction are both applied
+Then scalar_output == avx2_output (byte-level)
+And the same parity holds for median mode (cluster defects)
 ```
 
 **REQ Mapping**: REQ-P1A-040
-**Test Type**: Parity
+**Test Type**: Parity (harness, Rule: Bit-identical)
+**Test Count**: 600 (100 per 3 shapes x 2 modes: bilinear + median)
 
-#### AC-SIMD-003: Defect Correction Parity
+#### AC-SIMD-004: Runtime Detection Parity (UINT16 Bit-Identical)
 
 ```gherkin
-Given 100 random images with random defect maps
-When scalar defect_correct and AVX2 defect_correct are both applied
-Then all output pixels are bit-identical
+Given 100 pseudo-random UINT16 frames with injected 5-sigma transients
+When scalar runtime detection (median-of-9 + MAD) and AVX2 runtime detection (sorting network + MAD) are both applied
+Then the output defectMap is byte-identical between paths
+```
+
+**REQ Mapping**: REQ-P1A-013, REQ-P1A-040
+**Test Type**: Parity (harness, Rule: Bit-identical)
+**Test Count**: 300
+
+#### AC-SIMD-005: Dispatch Override Honors Force-Scalar
+
+```gherkin
+Given the module initialized with config '{"force_scalar": true}'
+When any correction function is called on AVX2-capable hardware
+Then the scalar code path executes (verified via profiler or debug flag)
+And subsequent calls after xpe_preprocess_shutdown + re-init WITHOUT override default to AVX2
 ```
 
 **REQ Mapping**: REQ-P1A-040
-**Test Type**: Parity
+**Test Type**: Dispatch control
+**Test Count**: 2 (one with override, one without)
 
 ---
 
@@ -497,6 +579,32 @@ And the processed image is displayed in the GUI
 | PERF-004     | Full pipeline (offset+gain+defect)| 3072x3072 U16 | < 500ms         | < 100ms       |
 | PERF-005     | XCal file load (offset)          | 3072x3072     | < 50ms          | N/A           |
 | PERF-006     | Calibration generate (10 frames) | 3072x3072     | < 200ms         | < 80ms        |
+| PERF-007     | Runtime detection (Hampel)       | 3072x3072 U16 | < 35ms          | < 12ms        |
+
+---
+
+## 4A. Pixel-Accuracy Benchmarks (BP-01~05 linkage)
+
+These acceptance criteria are verified by the Pre Lane benchmark pack (`benchmark/BP-01-05-preprocess-manifest.md`). Each row below maps a REQ to its benchmark pack and pass criterion.
+
+| REQ | Benchmark Pack | Metric | Target |
+|-----|---------------|--------|--------|
+| REQ-P1A-010 | BP-01 Temperature sweep | Residual dark mean (post-correction) | < 2 ADU |
+| REQ-P1A-010 | BP-01 | Residual dark sigma | < 3 ADU |
+| REQ-P1A-010 | BP-01 | Temperature stability 20-35 C | < 5 ADU drift |
+| REQ-P1A-011 | BP-02 Multi-gain linearity | Flat-field residual sigma/mean | < 0.5% over 90% FOV |
+| REQ-P1A-011 | BP-02 | Linearity R^2 | >= 0.9999 |
+| REQ-P1A-011 | BP-02 | NaN/Inf pixel count | 0 |
+| REQ-P1A-011 | BP-03 Heel-effect SID | Heel RMSE reduction | >= 80% (Wang 2013 baseline) |
+| REQ-P1A-012 | BP-04 Defect density | Isolated-pixel NMSE improvement over copy-neighbor | >= 10x |
+| REQ-P1A-012 | BP-04 | Cluster (3x3) NMSE on UINT16 | < 150 |
+| REQ-P1A-012 | BP-04 | Cluster (5x5) NMSE on UINT16 | < 250 |
+| REQ-P1A-012 | BP-04 | Artificial-edge count at defect boundaries | 0 |
+| REQ-P1A-013 | BP-04 runtime | TPR on 5-sigma injections | >= 99.9% |
+| REQ-P1A-013 | BP-04 runtime | FPR on clean frames | < 0.001% |
+| REQ-P1A-040 | BP-SIMD (parity harness) | Total parity cases pass | 1830/1830 |
+
+Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Section 8.
 
 ---
 
@@ -557,4 +665,4 @@ And the processed image is displayed in the GUI
 
 ---
 
-*Document End - SPEC-XPE-P1A Acceptance v1.0.0*
+*Document End - SPEC-XPE-P1A Acceptance v1.2.0*

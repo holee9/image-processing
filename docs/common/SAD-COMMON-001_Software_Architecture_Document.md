@@ -295,7 +295,7 @@ typedef struct {
     uint64_t discarded_count; // 제거된 알림
     pthread_mutex_t lock;
     pthread_cond_t cond;      // 조건 변수 (깨우기)
-} XpeAlertQueue;  // NOTE: 과거 XpeAedQueue에서 이름 변경. AED는 detector 노출 감지 전용 약어이므로 일반 알림 큐에는 AED 약어 미사용
+} XpeAlertQueue;
 
 // 콜백
 typedef void (*XpeAlertCallback)(const char* alert_json, void* userdata);

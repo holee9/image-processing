@@ -72,8 +72,9 @@ Layer 2 → 모든 DLL을 동적으로 로드
 | **외부 의존성** | `vcpkg:opencv-core` | 이미지 연산 함수 |
 | **외부 의존성** | `vcpkg:eigen3` | 행렬 연산 (보정 데이터 처리) |
 | **선택적 의존성** | `vcpkg:tbb` | 병렬 처리 성능 향상 |
+| **새로운 의존성** | `xpe_pipeline_integrate` | 파이프라인 통합 (stage 0.5-4) |
 
-**의존성 상태**: Layer 0 의존만 허용
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
 
 ### 2.3 Layer 1: xpe_enhance_basic.dll
 
@@ -83,7 +84,7 @@ Layer 2 → 모든 DLL을 동적으로 로드
 | **외부 의존성** | `vcpkg:opencv-imgproc` | 이미지 처리 함수 |
 | **외부 의존성** | `vcpkg:opencv-photo` | 노이즈 감소 알고리즘 |
 
-**의존성 상태**: Layer 0 의존만 허용
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
 
 ### 2.4 Layer 1: xpe_enhance_advanced.dll
 
@@ -94,7 +95,7 @@ Layer 2 → 모든 DLL을 동적으로 로드
 | **외부 의존성** | `vcpkg:opencv-features2d` | 특징 검출 (콜리메이션) |
 | **선택적 의존성** | `vcpkg:tbb` | 병렬 처리 |
 
-**의존성 상태**: Layer 0 의존만 허용
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
 
 ### 2.5 Layer 1: xpe_ai.dll
 
@@ -115,7 +116,7 @@ Layer 2 → 모든 DLL을 동적으로 로드
 | **외부 의존성** | `vcpkg:opencv-imgproc` | LUT 적용 연산 |
 | **외부 의존성** | `vcpkg:dcmtk` | 디스플레이 관련 DICOM 기능 |
 
-**의존성 상태**: Layer 0 의존만 허용
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
 
 ### 2.7 Layer 1: xpe_dicom.dll
 

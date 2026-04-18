@@ -34,7 +34,6 @@
 | GAP-G | AVX2 log 근사 (avx2_log_ps) 미구현 | §4.1.3 | v1.1 |
 | GAP-H | 비선형성 보정 (PCHIP LUT) 미명세 | §3.0.5 | v1.1 |
 | GAP-I | Readout Validation 미명세 | §3.0 | v1.1 |
-| GAP-J | AED-0 자동 노출 감지 미명세 | §9.4 | v1.1 |
 | GAP-L | NPS 계산 (IEC 62220-1) 미명세 | §12.3 | v1.1 |
 | GAP-M | DQE 계산 알고리즘 미명세 | §12.4 | v1.1 |
 | GAP-N | Collimation Mask 검출 미명세 | §12.5 | v1.1 |
@@ -134,7 +133,6 @@
 8. [AI/DL 알고리즘](#8-aidl-알고리즘)
    - [§8.4 AI Worker 격리 아키텍처 ★GAP-W](#84-ai-worker-격리-아키텍처-및-onnx-추론-gap-w-해소)
 9. [교정 데이터 파이프라인](#9-교정-데이터-파이프라인)
-   - [§9.4 AED-0 Automatic Exposure Detection ★GAP-J](#94-aed-0-automatic-exposure-detection-gap-j-해소)
    - [§9.5 교정 드리프트 모니터링 ★GAP-X](#95-교정-드리프트-모니터링-gap-x-해소)
 10. [성능 최적화 — SIMD/OpenMP 전략](#10-성능-최적화--simdopenmp-전략)
 11. [검증 방법론](#11-검증-방법론)
@@ -4377,114 +4375,6 @@ public:
 
 ---
 
-### 9.4 AED-0: Automatic Exposure Detection (GAP-J 해소)
-
-AED-0는 XPE-10-Pass-Review Pass 4에서 파이프라인 실행 순서에 추가된 선행 스텝이다 (product.md §4 "pipeline execution" 참조). **Offset/Gain/Defect 보정 이후, Log Transform 이전**에 실행되어 노출 유효성을 판단하고 하위 단계에 신호 레벨 정보를 전달한다.
-
-#### 9.4.1 알고리즘 정의
-
-AED-0의 목적은 두 가지다:
-1. 충분한 노출이 이루어졌는지 여부 판정 (실패 시 파이프라인 중단 + 경보)
-2. I₀ (air kerma reference signal) 추정 — EI, DI 계산에 사용
-
-**유효 노출 조건**:
-$$\bar{I}_{\text{field}} \geq I_{\text{min\_exposure}} \quad \text{AND} \quad \frac{P_{\text{sat}}}{P_{\text{total}}} \leq \theta_{\text{sat}}$$
-
-$$\bar{I}_{\text{field}} = \frac{1}{|M_{\text{coll}}|} \sum_{(x,y) \in M_{\text{coll}}} I_{\text{gain\_corr}}(x,y)$$
-
-**I₀ 추정** (dark-corrected flood reference):
-$$I_0 = G_{\text{mean}} \cdot \bar{I}_{\text{flat\_ref}}$$
-
-여기서 $\bar{I}_{\text{flat\_ref}}$는 교정 flood 이미지의 mean signal이고, $G_{\text{mean}}$은 gain map 평균값이다.
-
-| 파라미터 | 기본값 | 의미 |
-|---------|-------|------|
-| `I_min_exposure` | 1000 ADU | 최소 유효 노출 신호 |
-| `θ_sat` | 0.05 | 허용 포화 픽셀 비율 |
-| Collimation source | `CollimatorMask` (§12.5) | 조준기 마스크 |
-
-#### 9.4.2 Python 구현
-
-```python
-@dataclass
-class AEDResult:
-    is_valid_exposure: bool
-    mean_field_signal: float       # I̅_field (ADU)
-    i0_estimate:       float       # I₀ (ADU)
-    saturation_frac:   float
-    fault_reason:      str = ''    # empty if valid
-
-def run_aed0(gain_corr_img:    np.ndarray,
-             calibration_data: dict,
-             collimator_mask:  'CollimatorMask | None' = None,
-             i_min_exposure:   float = 1000.0,
-             theta_sat:        float = 0.05) -> AEDResult:
-    """
-    AED-0: Automatic Exposure Detection — pipeline gate before Log Transform.
-
-    Args:
-        gain_corr_img:    float32 (H, W), offset+gain corrected
-        calibration_data: dict with 'gain_mean' and 'flat_ref_mean' (ADU)
-        collimator_mask:  CollimatorMask instance; None → use full image
-        i_min_exposure:   minimum mean field signal for valid exposure
-        theta_sat:        maximum allowed saturation fraction
-    Returns:
-        AEDResult
-    """
-    H, W = gain_corr_img.shape
-    max_adu = 65535.0
-
-    # Build field mask
-    if collimator_mask is not None:
-        field_mask = collimator_mask.mask.astype(bool)
-    else:
-        field_mask = np.ones((H, W), dtype=bool)
-
-    field_pixels   = gain_corr_img[field_mask]
-    mean_field_sig = float(np.mean(field_pixels)) if field_pixels.size > 0 else 0.0
-    sat_frac       = float(np.mean(field_pixels >= max_adu * 0.999))
-
-    # I₀ estimate from calibration reference
-    gain_mean     = float(calibration_data.get('gain_mean',      1.0))
-    flat_ref_mean = float(calibration_data.get('flat_ref_mean', mean_field_sig))
-    i0_estimate   = gain_mean * flat_ref_mean
-
-    # Validity checks
-    fault = ''
-    if mean_field_sig < i_min_exposure:
-        fault = f'under_exposure: mean={mean_field_sig:.1f} < {i_min_exposure}'
-    elif sat_frac > theta_sat:
-        fault = f'over_exposure: sat_frac={sat_frac:.4f} > {theta_sat}'
-
-    return AEDResult(
-        is_valid_exposure = (fault == ''),
-        mean_field_signal = mean_field_sig,
-        i0_estimate       = i0_estimate,
-        saturation_frac   = sat_frac,
-        fault_reason      = fault,
-    )
-```
-
-#### 9.4.3 파이프라인 통합
-
-```
-[Readout Validation (§3.0)] → [Offset Correct] → [Non-linearity Correct] →
-[Gain Correct] → [Defect Correct] → [AED-0 (§9.4)] → decision:
-    FAIL → alert xpe_alert(ALERT_EXPOSURE_INVALID) + return error
-    PASS → [Log Transform → ...] with i0 = aed_result.i0_estimate
-```
-
-#### 9.4.4 검증 기준
-
-| 항목 | 기준 | 측정 방법 |
-|------|------|---------|
-| 유효 노출 감지 | 정상 팬텀 이미지 → is_valid = True | 10회 반복 |
-| 노출 부족 감지 | 1/10 노출 이미지 → is_valid = False | 감쇠기 사용 |
-| I₀ 정확도 | 교정값 ±5% 이내 | flood 이미지 검증 |
-
----
-
-### 9.5 교정 드리프트 모니터링 (GAP-X 해소)
 
 xpe-algorithm-spec-deepsync.md §4.1 "Drift monitoring shall feed recalibration decisions rather than silently allowing quality erosion"에서 요구된 항목이다. 매 처리 세션에서 드리프트 지표를 측정하고 임계치 초과 시 재교정을 트리거한다.
 
@@ -12599,7 +12489,6 @@ XpeStatus xpe_sdt_compute_jafroc(
 | 1.4 | 2026-04-15 | XPE Team | **Round 5 GAP 해소 10건 (GAP-AI~AR)**: GAP-AI (Real-Time GCR Estimator §3.4.6, 슬라이딩 윈도우 EMA, 0.2% 임계값 조건부 Lag 활성화, <0.1ms/프레임), GAP-AJ (NLCSC State Machine §3.4.7, 비선형 전하 누적 4차 다항식 보정, kVp 에너지 의존 계수, 유휴 상태 리셋), GAP-AK (Row/Column FPN Correction §3.11, 3패스 반복 분해, AVX2 행 중앙값, <0.5ms/3Kx3K), GAP-AL (Allan Variance 장기 안정성 §12.9, 잡음 유형 3분류, σ_A(τ=300s)>2 ADU 재교정 트리거), GAP-AM (선량 의존 동적 결함 검출 §3.3.5, 4선량 z-score, R²<0.95 비선형 플래그, 정적 결함 맵 union), GAP-AN (다중 지수 Lag 피팅 §9.9, LM 최소제곱, 이중 노출 프로토콜, scipy.optimize, R²>0.999 검증), GAP-AO (Scatter SPR Boone-Seibert §5.4, Beer-Lambert 두께 역산, 픽셀별 산란 보정 1/(1+SPR)), GAP-AP (Wavelet BayesShrink §4.8, db4 3레벨, MAD σ_n 추정, AVX2 소프트 임계값, 해부 부위별 λ 블렌딩), GAP-AQ (Dual-Energy Subtraction §16, 로그 차감, 위상 상관 모션 보정, xpe_enhance_advanced.dll 익스포트), GAP-AR (DICOM IOD 적합성 검증 §17, Type 1/2/3 속성 검사, 픽셀 수치 일관성, xpe_dicom.dll 쓰기 경로 통합). §16/§17 신설. 부록 C 10건 추가. |
 | 1.3 | 2026-04-15 | XPE Team | **Round 4 GAP 해소 10건 (GAP-Y~AH)**: GAP-Y (Fluoroscopy 시간적 IIR 필터 §14, AVX2 FMA α 적응형, <0.3ms/3Kx3K), GAP-Z (Beam Hardening Correction §3.9, PMMA 팬텀 다항식 보정, BHC LUT 65536-entry), GAP-AA (Geometric Distortion Correction §3.10, Brown-Conrady 방사형+접선 모델, 역 LUT 바이리니어 보간), GAP-AB (Pixel Binning Mode 교정 보간 §9.7, gain 블록 평균, defect OR 전파, lag τ 선형 스케일), GAP-AC (Memory Arena Zero-Copy §10.7, 8-슬롯 링 버퍼, CAS 상태 기계, 런타임 힙 할당 0), GAP-AD (Multi-Channel SPSC Thread Safety §10.8, lock-free 링 버퍼, CPU affinity, 백프레셔 드롭), GAP-AE (Automatic CNR Auto-Assessment §12.8, 히스토그램 퍼센타일 배경 검출, SDNR 계산, XpeQualityState 연동), GAP-AF (Anatomy-Adaptive Auto W/L §6.4, 5종 해부 부위별 퍼센타일 테이블, 콜리메이터 마스크 적용), GAP-AG (Multi-Frame Sigma-Clipping §9.8, 반복적 κ=3.0 클리핑, Python NumPy 구현, min_frames 결함 마킹), GAP-AH (Error Code Taxonomy §15, 32개 코드 5범주, xpe_error_string, C# 핸들러 패턴). 섹션 수 대폭 추가, §14/§15 신설. |
 | 1.2 | 2026-04-15 | XPE Team | **Round 3 GAP 해소 10건 (GAP-O~X)**: GAP-O (Heel Effect Compensation §3.5, Wang 2013 Duo-SID), GAP-P (Multi-SID Gain 보간 §3.2.5), GAP-Q (교정 세션 잠금 §2.4, 매니페스트 해시 체인), GAP-R (품질 상태 벡터 사이드카 §13, XpeQualityState), GAP-S (스칼라 참조 + SIMD 패리티 하네스 §11.4), GAP-T (MTF ESF 완전 구현 §12.6, IEC 62220-1-1), GAP-U (Lag 잔류 티어링 §3.4.5, Tier-0/1/3 결정론적 선택), GAP-V (해부 부위별 VG 프리셋 §5.3, 15개 부위 테이블), GAP-W (AI Worker 격리 §8.4, ONNX + 폴백 + 모델 매니페스트), GAP-X (교정 드리프트 모니터링 §9.5, 드리프트율 측정 + 재교정 트리거). 섹션 수 추가, §13 신설. |
-| 1.1 | 2026-04-15 | XPE Team | **GAP 해소 10건**: GAP-D (NSCT 완전 구현), GAP-E (update_defect_map_runtime AVX2 구현), GAP-F (EI ROI Central Method √0.1 수정), GAP-G (avx2_log_ps Cephes 다항식), GAP-H (Non-linearity Correction §3.0.5), GAP-I (Readout Validation §3.0), GAP-J (AED-0 §9.4), GAP-L (NPS §12.3), GAP-M (DQE §12.4), GAP-N (Collimation Mask §12.5). 섹션 수 ~50% 증가. |
 | 1.0 | 2026-04-15 | XPE Team | 초판 (10회 review-evaluate-fix 완료). GAP-01~GAP-10 초기 해소. |
 
 ---

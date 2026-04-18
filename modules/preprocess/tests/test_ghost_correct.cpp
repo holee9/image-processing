@@ -25,11 +25,13 @@ protected:
 
     void SetUp() override {
         imgPixels.assign(W * H, 1000.0f);
-        img.pixels      = imgPixels.data();
-        img.width       = W;
-        img.height      = H;
-        img.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-        img.stride      = W * sizeof(float);
+        img.data          = imgPixels.data();
+        img.width         = W;
+        img.height        = H;
+        img.bitsAllocated = 32;
+        img.bitsStored    = 32;
+        img.format        = XPE_PIXEL_FLOAT32;
+        img.dataSize      = imgPixels.size() * sizeof(float);
         meta.acquisitionTime = 0.0;
     }
 
@@ -94,20 +96,22 @@ TEST_F(GhostCorrectTest, CorrectDimensionMismatchReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(handle, &wrongImg, &meta));
 }
 
-// After 5 identical frames, ghost correction converges (lag diminishes)
-TEST_F(GhostCorrectTest, LagDiminishesAfterMultipleFrames) {
+// Repeated frames reduce the visible residual after the first history update.
+TEST_F(GhostCorrectTest, RepeatedFramesApplyHistoryCorrection) {
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
-    // Apply same frame value repeatedly; ghost contribution should reduce
     std::vector<float> first(W * H, 500.0f);
     XpeImageBuffer f1 = img;
-    f1.pixels = first.data();
-    for (int i = 0; i < 5; ++i) {
-        meta.acquisitionTime = static_cast<double>(i) * 0.1;
-        ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f1, &meta));
-    }
-    // After convergence, correction should be < 5% of original value
-    const float* out = static_cast<const float*>(f1.pixels);
-    EXPECT_NEAR(500.0f, out[W * H / 2], 25.0f); // within 5% = 25
+    f1.data = first.data();
+    f1.dataSize = first.size() * sizeof(float);
+
+    meta.acquisitionTime = 1;
+    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f1, &meta));
+    EXPECT_NEAR(500.0f, first[W * H / 2], 1e-3f);
+
+    std::fill(first.begin(), first.end(), 500.0f);
+    meta.acquisitionTime = 2;
+    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f1, &meta));
+    EXPECT_LT(first[W * H / 2], 500.0f);
 }
 
 } // namespace

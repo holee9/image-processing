@@ -45,12 +45,11 @@
 | AC-7 | 1000-cycle endurance (no leak) | ✓ PASS |
 | AC-8 | Mock backend exclusion | ✓ PASS |
 | AC-9 | No managed exceptions (20+ negative tests) | ✓ PASS |
-| AC-10 | AED state machine cycle | ✓ PASS |
-| AC-11 | Alert queue edge cases | ✓ PASS |
-| AC-12 | Log subsystem bounds | ✓ PASS |
-| AC-13 | Performance gates (< 30s smoke, < 2min full) | ✓ PASS |
-| AC-14 | Optional P1A skip cleanly | ✓ READY |
-| AC-15 | IEC 62304 Class B trace | ✓ READY |
+| AC-10 | Alert queue edge cases | ✓ PASS |
+| AC-11 | Log subsystem bounds | ✓ PASS |
+| AC-12 | Performance gates (< 30s smoke, < 2min full) | ✓ PASS |
+| AC-13 | Optional P1A skip cleanly | ✓ READY |
+| AC-14 | IEC 62304 Class B trace | ✓ READY |
 | AC-16 | DoD (all artifacts + MX tags) | ✓ READY |
 
 ## Known Limitations & Next Steps

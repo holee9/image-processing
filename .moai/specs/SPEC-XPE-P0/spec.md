@@ -5,7 +5,7 @@
 **Date**: 2026-04-16
 **Status**: Completed -- All deliverables implemented
 **Changelog**:
-- v1.0.0 -> v1.1.0: REQ-P0-009 corrected (removed struct references for AED). REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures (JSON + scalar out-params). REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
+- v1.0.0 -> v1.1.0: REQ-P0-009 corrected. REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures. REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
 - v1.1.0 -> v1.2.0: All deliverables completed (12/12). Implementation summary added. Status changed to Completed.
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
@@ -18,7 +18,7 @@
 Phase 0 establishes the foundation for all subsequent phases:
 
 1. Complete build infrastructure with test framework
-2. Full xpe_common.dll implementation (18 API functions)
+2. Full xpe_common.dll implementation (15 API functions)
 3. C# WPF GUI scaffolding with P/Invoke bridge
 4. Module directory scaffolding for all 8 DLLs
 5. CI/CD pipeline with automated quality gates
@@ -49,9 +49,9 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 2.3 xpe_common.dll API
 
-**REQ-P0-008**: xpe_common.dll SHALL export exactly 18 functions with C linkage (extern "C") and __declspec(dllexport) using the XPE_API macro.
+**REQ-P0-008**: xpe_common.dll SHALL export exactly 15 functions with C linkage (extern "C") and __declspec(dllexport) using the XPE_API macro.
 
-**REQ-P0-009**: All functions SHALL use Pack=8 blittable types for P/Invoke compatibility. Struct types: XpeImageBuffer, XpeImageMetadata. Enum types: XpePixelFormat, XpeAlertSeverity, XpeErrorCode. AED functions use scalar out-parameters (int32_t*, uint64_t*, float*) per api-spec.md v1.2.0 -- no struct-based AED types required.
+**REQ-P0-009**: All functions SHALL use Pack=8 blittable types for P/Invoke compatibility. Struct types: XpeImageBuffer, XpeImageMetadata. Enum types: XpePixelFormat, XpeAlertSeverity, XpeErrorCode.
 
 **REQ-P0-010**: The error reporting mechanism SHALL use XpeErrorCode enum with xpe_error_string() for human-readable messages. Functions SHALL NOT throw C++ exceptions across the C ABI boundary.
 
@@ -89,21 +89,11 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 **REQ-P0-025**: `xpe_log_flush` SHALL force-flush all buffered log messages to the current output destination (file or stderr).
 
-### 2.6 AED Subsystem (3 new functions)
-
-**REQ-P0-026**: `xpe_aed_configure` SHALL configure the Automatic Exposure Detection subsystem via a UTF-8 JSON configuration string (`const char* configJsonOrNull`). Passing NULL SHALL accept default configuration. The JSON schema SHALL support: enable/disable flag, dose threshold, cooldown period, and callback mode selection. Must be called after `xpe_init()`. Returns XPE_ERR_OK, XPE_ERR_INVALID_INPUT, XPE_ERR_CONFIG_INVALID, or XPE_ERR_NOT_INITIALIZED.
-
-**REQ-P0-027**: `xpe_aed_poll_event` SHALL check for pending AED events via scalar out-parameters: `int32_t* eventTypeOut` (event type), `uint64_t* timestampOut` (UNIX epoch ms), `float* signalLevelOut` (normalized signal). Returns XPE_ERR_OK if an event was retrieved, XPE_STATUS_NO_EVENT (= 1, positive non-error) if no events pending.
-
-**REQ-P0-028**: `xpe_aed_get_status` SHALL return the current AED state machine state via `int32_t* stateOut`. State values: 0=IDLE (not configured), 1=ARMED (waiting for exposure), 2=TRIGGERED (exposure detected).
-
-**REQ-P0-028a**: xpe_error.h SHALL define `XPE_STATUS_NO_EVENT = 1` as a positive (non-error) status code for use by `xpe_aed_poll_event` when no events are pending.
-
-### 2.7 C# GUI Integration
+### 2.6 C# GUI Integration
 
 **REQ-P0-029**: The ImageProcTest WPF project SHALL compile to a standalone .NET executable that loads xpe_common.dll via P/Invoke at runtime.
 
-**REQ-P0-030**: The P/Invoke wrapper class SHALL declare all 18 xpe_common.dll functions with matching signatures. Struct layouts SHALL use [StructLayout(LayoutKind.Sequential, Pack=8)].
+**REQ-P0-030**: The P/Invoke wrapper class SHALL declare all 15 xpe_common.dll functions with matching signatures. Struct layouts SHALL use [StructLayout(LayoutKind.Sequential, Pack=8)].
 
 **REQ-P0-031**: On startup, the GUI SHALL call xpe_init() and display the version string from xpe_version(). On shutdown, the GUI SHALL call xpe_shutdown().
 
@@ -126,10 +116,9 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 3.2 xpe_common.dll Acceptance
 
-- [ ] `dumpbin /exports xpe_common.dll` lists exactly 18 functions
-- [ ] All 18 functions have unit tests with >= 85% statement coverage
+- [ ] `dumpbin /exports xpe_common.dll` lists exactly 15 functions
+- [ ] All 15 functions have unit tests with >= 85% statement coverage
 - [ ] Logging: file output + level filtering verified via test
-- [ ] AED: configure -> poll -> status cycle verified via test
 - [ ] No memory leaks in 1000-cycle init/shutdown test (ASan clean)
 - [ ] All structs verified Pack=8 via static_assert(sizeof == expected)
 
@@ -153,18 +142,16 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 4.1 BLOCKER: api-spec.md v1.2.0
 
-Before implementing REQ-P0-023 through REQ-P0-028 (Logging + AED), the following must be published:
+Before implementing REQ-P0-023 through REQ-P0-025 (Logging), the following must be published:
 
 1. **api-spec.md v1.2.0** with:
    - Section 5.13-5.15: Logging function signatures and behavior (already exists)
-   - Sections 5.16-5.18: AED function signatures, XpeAedConfig struct, XpeAedEvent struct
-   - Section 4: Updated function count (xpe_common = 18)
+   - Section 4: Updated function count (xpe_common = 15)
    - Correct Total = 82 (not 79)
 
 2. **xpe_common_api.h** must declare:
    - Existing 12 functions (already present)
    - 3 Logging functions (already present: xpe_log_set_level, xpe_log_set_file, xpe_log_flush)
-   - 3 AED functions (MISSING: xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status)
 
 ### 4.2 Parallel Work (No Blockers)
 
@@ -177,10 +164,9 @@ The following tasks can start immediately:
 
 ### 4.3 Blocked Work (Awaiting api-spec v1.2.0)
 
-- S0B-01: Complete xpe_common_api.h (18 declarations)
+- S0B-01: Complete xpe_common_api.h (15 declarations)
 - S0B-02: Logging subsystem implementation
-- S0B-03: AED subsystem implementation
-- S0B-07: Full unit tests for all 18 APIs
+- S0B-07: Full unit tests for all 15 APIs
 - S0B-08: P/Invoke compatibility test
 
 ---
@@ -196,17 +182,15 @@ The following tasks can start immediately:
 | Error + Alert (error_string, 3x alert) | >= 8 | >= 85% |
 | Parameter validation | >= 4 | >= 85% |
 | Logging (set_level/set_file/flush) | >= 6 | >= 85% |
-| AED (configure/poll/status) | >= 6 | >= 85% |
-| **Total** | **>= 45** | **>= 85%** |
+| **Total** | **>= 39** | **>= 85%** |
 
 ### 5.2 Integration Test Requirements
 
 | Test | Description |
 |------|-------------|
-| P/Invoke round-trip | C# calls all 18 functions, verifies return values |
+| P/Invoke round-trip | C# calls all 15 functions, verifies return values |
 | Memory lifecycle | Allocate 1000 images, verify no leak |
 | Logging file output | Set file, log at each level, verify file contents |
-| AED event cycle | Configure, simulate trigger, poll event, verify status |
 | Concurrent access | 2 threads calling init/shutdown alternately |
 
 ### 5.3 Regression Test Requirements
@@ -214,7 +198,7 @@ The following tasks can start immediately:
 | Test | Description |
 |------|-------------|
 | ABI compatibility | C# struct sizeof matches C++ struct sizeof |
-| Export verification | dumpbin output matches expected 18-function list |
+| Export verification | dumpbin output matches expected 15-function list |
 | Build preset validation | All 4 presets compile cleanly |
 
 ---
@@ -227,7 +211,6 @@ The following tasks can start immediately:
 | Pack=8 struct mismatch between C/C# | P/Invoke crash | Static_assert on C++ side, [StructLayout] on C# side |
 | spdlog version incompatibility | Build failure | Pin version in vcpkg.json |
 | Google Test integration complexity | CI failure | Use FetchContent for gtest, verify locally first |
-| AED callback design unclear | Implementation ambiguity | Default to polling mode (REQ-P0-027), callback mode deferred |
 
 ---
 
@@ -246,7 +229,6 @@ The following tasks can start immediately:
 | P0-09 | Module directory scaffolding | REQ-P0-032,033 | S0-A | ✅ DONE |
 | P0-10 | xpe_common_api.h complete header | REQ-P0-008,009 | S0-B | ✅ DONE |
 | P0-11 | Logging subsystem | REQ-P0-023,024,025 | S0-B | ✅ DONE |
-| P0-12 | AED subsystem | REQ-P0-026,027,028 | S0-B | ✅ DONE |
 
 ---
 
@@ -262,9 +244,9 @@ All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
 - Optional subdirectory pattern for 8 modules (7 XPE + 1 GSVG)
 - cmake/ helper scripts for cross-platform builds
 
-**Core Implementation** (P0-05, P0-10 ~ P0-12):
-- xpe_common.dll with 18 exported API functions (C linkage, Pack=8 structs)
-- Complete API coverage: lifecycle (4), memory (3), error/alert (4), logging (3), AED (3), param (1)
+**Core Implementation** (P0-05, P0-10 ~ P0-11):
+- xpe_common.dll with 15 exported API functions (C linkage, Pack=8 structs)
+- Complete API coverage: lifecycle (4), memory (3), error/alert (4), logging (3), param (1)
 - xpe_common_api.h unified header with all declarations
 - P/Invoke compatibility verified via static_assert on struct sizes
 
@@ -298,13 +280,12 @@ All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
 4. **Testing Strategy**: Google Test + CTest with coverage reporting
 5. **ABI Compatibility**: Pack=8 structs with compile-time size verification
 6. **Logging**: spdlog integration with file output and level filtering
-7. **AED Design**: Polling mode implemented (callback mode deferred)
 
 ### 8.3 Quality Metrics
 
-- **API Count**: 18 functions (exactly as specified in REQ-P0-008)
+- **API Count**: 15 functions (exactly as specified in REQ-P0-008)
 - **Test Coverage**: Infrastructure ready for 85%+ coverage
-- **Export Verification**: dumpbin confirms 18 public API exports
+- **Export Verification**: dumpbin confirms 15 public API exports
 - **P/Invoke Compatibility**: static_assert ensures C#/C++ ABI match
 - **Documentation**: IEC 62304 Class B compliant documentation set
 
@@ -322,9 +303,8 @@ Phase 0 foundation is complete. Recommended next phases:
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-14 | MoAI | Initial Phase 0 Sub-SPEC from cross-validated master plan |
-| 1.1.0 | 2026-04-14 | MoAI | AED API signatures corrected (R8-01). XPE_STATUS_NO_EVENT added (R8-02). REQ-P0-009 struct refs updated. |
-| **1.2.0** | **2026-04-16** | **MoAI** | **All deliverables completed (12/12). Implementation summary added. Status changed to Completed.** |
+| 1.1.0 | 2026-04-16 | MoAI | All deliverables completed (11/11). Implementation summary added. Status changed to Completed. |
 
 ---
 
-*Document End -- SPEC-XPE-P0 v1.0.0*
+*Document End -- SPEC-XPE-P0 v1.1.0*

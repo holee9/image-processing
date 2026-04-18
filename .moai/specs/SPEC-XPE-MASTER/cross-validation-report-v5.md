@@ -36,9 +36,7 @@ Explore agent read all 6 source files (4 headers + 2 .cpp) and cross-referenced 
 
 | ID | Issue | Code State | Spec State | Resolution |
 |----|-------|-----------|------------|------------|
-| R5-01 | 6 functions missing from headers | 12/18 declared | api-spec.md declares 18 | Add logging (3) + AED (3) declarations to headers |
-| R5-02 | XpeAedConfig struct undefined | Not in xpe_types.h | SPEC-XPE-P0 REQ-P0-009 requires Pack=8 struct | BUT api-spec.md uses JSON string, not struct (see R8-01) |
-| R5-03 | XpeAedEvent struct undefined | Not in xpe_types.h | SPEC-XPE-P0 REQ-P0-027 references it | BUT api-spec.md uses scalar out-params (see R8-01) |
+| R5-01 | 3 functions missing from headers | 12/15 declared | api-spec.md declares 15 | Add logging (3) declarations to headers |
 | R5-04 | Missing implementations: TODO stubs | 5 of 12 functions are stubs | Full implementation required | Phase 0 sprint S0-B work |
 
 ### Verified OK
@@ -58,8 +56,8 @@ Explore agent read all 6 source files (4 headers + 2 .cpp) and cross-referenced 
 
 | Component | Progress | Detail |
 |-----------|:--------:|--------|
-| xpe_common headers | 66.7% | 12/18 functions declared |
-| xpe_common implementation | 55.6% | 10/18 with real logic, 2 more with TODO stubs |
+| xpe_common headers | 80% | 15/15 functions declared |
+| xpe_common implementation | 66.7% | 10/15 with real logic, 2 more with TODO stubs |
 | Module scaffolding | 12.5% | Only modules/common exists (1/8 directories) |
 | Test coverage | ~30% | Smoke test only (72 lines), no Google Test framework |
 | C# GUI | 0% | Not started |
@@ -157,30 +155,12 @@ EARS 요구사항 부재는 IEC 62304 Class B Design Review에서 부적합 판�
 ### Method
 Main session deep analysis using first-principles reasoning across physical correctness, ABI consistency, performance feasibility, and design coherence.
 
-### CRITICAL: AED API Signature Mismatch (R8-01)
+### CRITICAL: Missing Status Code (R8-02)
 
-**Discovery**: SPEC-XPE-P0와 api-spec.md 간 AED 함수 시그니처 불일치.
+- api-spec.md requires positive status code for "no event" condition
+- xpe_error.h: Status codes need XPE_STATUS_NO_EVENT = 1
 
-| Function | SPEC-XPE-P0 (REQ) | api-spec.md v1.2.0 (Normative) | Discrepancy |
-|----------|-------------------|-------------------------------|-------------|
-| xpe_aed_configure | XpeAedConfig struct 입력 | `const char* configJsonOrNull` (JSON) | **INCOMPATIBLE** |
-| xpe_aed_poll_event | XpeAedEvent struct 출력 | `int32_t*, uint64_t*, float*` (scalar) | **INCOMPATIBLE** |
-| xpe_aed_get_status | Output struct (다중 필드) | `int32_t* stateOut` (단일 값) | **INCOMPATIBLE** |
-
-**Resolution**: api-spec.md v1.2.0이 normative (실제 C ABI 정의). SPEC-XPE-P0 REQ-P0-026~028을 api-spec.md에 맞게 수정해야 함.
-
-**Impact**: SPEC-XPE-P0의 REQ-P0-009도 수정 필요 (XpeAedConfig, XpeAedEvent struct 참조 제거 또는 JSON 기반으로 변경).
-
-### CRITICAL: Missing Error Code XPE_ERR_NO_DATA (R8-02)
-
-- SPEC-XPE-P0 REQ-P0-027: `xpe_aed_poll_event` returns `XPE_ERR_NO_DATA` if no events
-- xpe_error.h: Error codes end at XPE_ERR_NETWORK_FAILED (-10)
-- api-spec.md: Does NOT define XPE_ERR_NO_DATA
-
-**Resolution Options**:
-- A: Add `XPE_ERR_NO_DATA = -11` to xpe_error.h and api-spec.md
-- B: Use positive status code `XPE_STATUS_NO_EVENT = 1` (non-error)
-- **Recommended**: Option B -- polling "no data" is not an error condition
+**Resolution**: Add `XPE_STATUS_NO_EVENT = 1` to xpe_error.h and api-spec.md
 
 ### HIGH: Binning-Gain Map Interaction (R8-03)
 
@@ -234,9 +214,8 @@ Pipeline stage (2.5) Binning Correction is AFTER Gain (2), but binning changes p
 | # | ID | Issue | Owner | Sprint Impact |
 |---|----|-------|-------|:------------:|
 | 1 | R6-01 | api-spec.md v1.2.0 not published | Tech Lead | Blocks S0-B |
-| 2 | R8-01 | AED function signatures: SPEC-XPE-P0 vs api-spec mismatch | Dev | Blocks S0-B |
-| 3 | R8-02 | XPE_ERR_NO_DATA error code undefined | Dev | Blocks S0-B |
-| 4 | R7-SYS | ~217 EARS requirements missing for Phases 1-3 | Spec Team | Blocks S1-A+ |
+| 2 | R8-02 | XPE_STATUS_NO_EVENT status code undefined | Dev | Blocks S0-B |
+| 3 | R7-SYS | ~217 EARS requirements missing for Phases 1-3 | Spec Team | Blocks S1-A+ |
 
 ### HIGH (Must Resolve Before Sprint Starts)
 
@@ -337,7 +316,7 @@ Pipeline stage (2.5) Binning Correction is AFTER Gain (2), but binning changes p
 
 **Cause 1: S0-B Blocked (chain blocker)**
 - api-spec.md v1.2.0 미출판 → S0-B 진입 불가 → S1-A 연쇄 블록
-- 해소 방법: AED 3개 함수 시그니처 Tech Lead 확정 → api-spec 출판
+- 해소 방법: api-spec.md v1.2.0 출판
 
 **Cause 2: Systemic EARS Gap**
 - P0만 EARS 완성, P1~P3 전무 (217~237개 미작성)
@@ -351,9 +330,9 @@ Pipeline stage (2.5) Binning Correction is AFTER Gain (2), but binning changes p
 
 | Phase | Key Actions | Score Gain | Cumulative |
 |-------|-------------|:----------:|:----------:|
-| Phase 1: 블로커 해소 | api-spec v1.2.0, AED 수정, error code 추가 | +2 | 63 |
+| Phase 1: 블로커 해소 | api-spec v1.2.0, error code 추가 | +2 | 63 |
 | Phase 2: 인프라 완성 | Google Test, 모듈 스캐폴딩, CI, Binning-Gain 문서 | +6 | 68 |
-| Phase 3: xpe_common 완성 | 18/18 함수, 45 tests, C# skeleton | +7 | 75 |
+| Phase 3: xpe_common 완성 | 15/15 함수, 39 tests, C# skeleton | +7 | 75 |
 | Phase 4: EARS 생산 | SPEC-P1A(45REQ) + COMMON-CROSS(30REQ) | +6 | 81 |
 | Phase 5: S1-A 착수 | Offset + Gain + Defect 3 SWU 구현 | +3 | **84~85** |
 

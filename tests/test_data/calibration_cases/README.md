@@ -38,6 +38,22 @@ Do not mix calibration data across cases unless a test explicitly validates mism
 
 These fixtures are the local real-data input for `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md`.
 
+GUI R4 fixture acceptance is tracked by GitHub Issue #28. Run the headless GUI gate after copying local raw payloads and staging `xpe_common.dll` / `xpe_preprocess.dll` into a known build or GUI output directory:
+
+```powershell
+dotnet build clients\ImageProcTest\ImageProcTest.csproj -c Debug
+dotnet clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll --run-preprocess-fixture-e2e
+```
+
+To run one case only:
+
+```powershell
+dotnet clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll --run-preprocess-fixture-e2e --case aed_shock_had1717mc
+```
+
+Reports are written under `clients/ImageProcTest/bin/Debug/net8.0-windows/preprocess-fixture-e2e/`.
+The command is expected to fail when the raw payloads or native DLLs are not staged, but it must still emit a JSON and Markdown report explaining the blocker.
+
 Required automated checks:
 
 - `PRE-E2E-0`: scan every case, compute file size and SHA-256, infer 3072 x 3072 uint16 geometry, and prove raw payloads are ignored by Git.

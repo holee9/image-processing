@@ -17,7 +17,6 @@
 
 /* External test-support functions from xpe_common.cpp (white-box linkage) */
 extern "C" {
-    XPE_API void xpe_test_inject_aed_event(int32_t eventType, float signalLevel);
     XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
 }
 
@@ -221,77 +220,6 @@ TEST_F(XpeCommonTest, LogSetFileReopensSink) {
 }
 
 /* ============================================================================
- * AED Tests (REQ-P0-026, REQ-P0-027, REQ-P0-028)
- * ============================================================================ */
-
-TEST_F(XpeCommonTest, AedConfigureWithNullUsesDefaults) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-}
-
-TEST_F(XpeCommonTest, AedConfigureWithInvalidJsonReturnsInvalid) {
-    EXPECT_EQ(xpe_aed_configure("not json"), XPE_ERR_CONFIG_INVALID);
-}
-
-TEST_F(XpeCommonTest, AedConfigureWithValidJsonSucceeds) {
-    const char* config = R"({"trigger_threshold_adu": 600, "settle_time_ms": 150})";
-    EXPECT_EQ(xpe_aed_configure(config), XPE_OK);
-}
-
-TEST_F(XpeCommonTest, AedGetStatusWithoutInitReturnsNotInitialized) {
-    xpe_shutdown();
-    int32_t state;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_ERR_NOT_INITIALIZED);
-}
-
-TEST_F(XpeCommonTest, AedGetStatusReturnsValidState) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-
-    int32_t state;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_GE(state, 0);
-    EXPECT_LE(state, 2);
-}
-
-TEST_F(XpeCommonTest, AedPollEventWithNullPtrReturnsInvalid) {
-    int32_t eventType;
-    uint64_t timestamp;
-    float signalLevel;
-
-    EXPECT_EQ(xpe_aed_poll_event(nullptr, &timestamp, &signalLevel),
-              XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, nullptr, &signalLevel),
-              XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, nullptr),
-              XPE_ERR_INVALID_INPUT);
-}
-
-TEST_F(XpeCommonTest, AedPollEventWithoutEventsReturnsNoEvent) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-
-    int32_t eventType;
-    uint64_t timestamp;
-    float signalLevel;
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel),
-              XPE_STATUS_NO_EVENT);
-}
-
-TEST_F(XpeCommonTest, AedPollEventRetrievesInjectedEvent) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-
-    const int32_t testEventType = 1;
-    const float testSignalLevel = 0.75f;
-    xpe_test_inject_aed_event(testEventType, testSignalLevel);
-
-    int32_t eventType;
-    uint64_t timestamp;
-    float signalLevel;
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel), XPE_OK);
-    EXPECT_EQ(eventType, testEventType);
-    EXPECT_GT(timestamp, 0);
-    EXPECT_FLOAT_EQ(signalLevel, testSignalLevel);
-}
-
-/* ============================================================================
  * Memory Tests (REQ-P0-015, REQ-P0-016, REQ-P0-017)
  * ============================================================================ */
 
@@ -478,73 +406,6 @@ TEST_F(XpeCommonTest, LogFlushDoesNotCrash) {
     xpe_log_flush();
     xpe_log_flush();
     SUCCEED();
-}
-
-/* ============================================================================
- * Additional AED Tests (REQ-P0-026, REQ-P0-027, REQ-P0-028)
- * ============================================================================ */
-
-TEST_F(XpeCommonTest, AedConfigureWithDisabledSetsIdleState) {
-    const char* config = R"({"enabled": false})";
-    EXPECT_EQ(xpe_aed_configure(config), XPE_OK);
-
-    int32_t state;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 0);  // IDLE
-}
-
-TEST_F(XpeCommonTest, AedConfigureWithEnabledSetsArmedState) {
-    const char* config = R"({"enabled": true})";
-    EXPECT_EQ(xpe_aed_configure(config), XPE_OK);
-
-    int32_t state;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 1);  // ARMED
-}
-
-TEST_F(XpeCommonTest, AedPollEventClearsTriggeredStateWhenEmpty) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-
-    // Inject an event
-    xpe_test_inject_aed_event(1, 0.5f);
-
-    // Poll it
-    int32_t eventType;
-    uint64_t timestamp;
-    float signalLevel;
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel), XPE_OK);
-
-    // State should now be IDLE (queue empty)
-    int32_t state;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 0);  // IDLE
-}
-
-TEST_F(XpeCommonTest, AedPollEventMultipleEvents) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-
-    // Inject multiple events
-    xpe_test_inject_aed_event(1, 0.3f);
-    xpe_test_inject_aed_event(2, 0.6f);
-    xpe_test_inject_aed_event(3, 0.9f);
-
-    // Poll all events
-    int32_t eventType;
-    uint64_t timestamp;
-    float signalLevel;
-
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel), XPE_OK);
-    EXPECT_EQ(eventType, 1);
-
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel), XPE_OK);
-    EXPECT_EQ(eventType, 2);
-
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel), XPE_OK);
-    EXPECT_EQ(eventType, 3);
-
-    // Next poll should return NO_EVENT
-    EXPECT_EQ(xpe_aed_poll_event(&eventType, &timestamp, &signalLevel),
-              XPE_STATUS_NO_EVENT);
 }
 
 /* ============================================================================
