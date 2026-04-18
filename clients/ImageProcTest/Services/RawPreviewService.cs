@@ -63,7 +63,7 @@ namespace ImageProcTest
                 stride,
                 min,
                 max,
-                ComputeSha256(path),
+                ComputeFileSha256(path),
                 samples,
                 bitmap);
         }
@@ -238,7 +238,7 @@ namespace ImageProcTest
             }
         }
 
-        private static string ComputeSha256(string path)
+        internal static string ComputeFileSha256(string path)
         {
             using var stream = File.OpenRead(path);
             var hash = SHA256.HashData(stream);

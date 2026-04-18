@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ImageProcTest
 {
@@ -95,7 +96,11 @@ namespace ImageProcTest
             };
 
             var path = Path.Combine(AppContext.BaseDirectory, "native-readiness-report.json");
-            var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(report, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+            });
             File.WriteAllText(path, json);
 
             return new NativeReadinessReportWriteResult(
