@@ -44,7 +44,6 @@ XPE 아키텍처는 총 8개의 DLL 모듈로 구성됩니다. 각 모듈은 명
 | `xpe_free_image()` | 이미지 버퍼 해제 |
 | `xpe_configure()` | 런타임 구성 업데이트 |
 | `xpe_get_pending_alert()` | 대기 중인 알릿 조회 |
-| `xpe_aed_configure()` | 자동 노출 감지 구성 |
 | **공개 타입** | `XpeImageBuffer`, `XpeImageMetadata`, `XpeErrorCode`, `XpePixelFormat` |
 
 ### 2.2 Layer 1: xpe_preprocess.dll
@@ -210,8 +209,7 @@ xpe_common.dll/
 │   ├── lifecycle.cpp     # 라이프사이클
 │   ├── memory.cpp       # 메모리 관리
 │   ├── alert.cpp        # 알릿 시스템
-│   ├── logging.cpp      # 로깅
-│   └── aed.cpp          # 자동 노출 감지
+│   └── logging.cpp      # 로깅
 
 xpe_preprocess.dll/
 ├── include/xpe/preprocess/

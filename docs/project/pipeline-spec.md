@@ -9,7 +9,8 @@
 
 **Changelog**:
 
-- `v1.3.0 -> v1.5.0`: fixed canonical phase ownership, added Auto Exposure Detection (AED) acquisition gate, reinstated EI baseline stage in the normative body, removed internal Phase 2/Phase 3 contradictions, and normalized GSVG fallback semantics
+- `v1.3.0 -> v1.5.0`: fixed canonical phase ownership, reinstated EI baseline stage in the normative body, removed internal Phase 2/Phase 3 contradictions, and normalized GSVG fallback semantics
+- `v1.5.0 -> v1.6.0`: removed Auto Exposure Detection (AED) references; AED is detector-hardware functionality outside XPE scope
 
 ---
 
@@ -43,7 +44,7 @@ Normative algorithm detail is carried by `xpe-algorithm-spec-deepsync.md`. Norma
 
 | Domain | Typical stages | Allowed outputs |
 |---|---|---|
-| Detector domain | Auto Exposure Detection (AED), readout validation, temperature, offset, nonlinearity, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
+| Detector domain | readout validation, temperature, offset, nonlinearity, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
 | Enhancement domain | log, noise, contrast, edge, multiscale, fractional, GSVG, AI enhancement | enhanced float image, AI advisory outputs |
 | Presentation domain | modality LUT, VOI LUT, presentation LUT, DICOM write | display-ready image, exported DICOM |
 
@@ -70,7 +71,6 @@ The orchestrator must not feed presentation-domain images into EI, detector QC, 
 | Label | Stage | Owner | Domain | Mandatory | Notes |
 |---|---|---|---|:---:|---|
 | `BOOT-0` | Calibration manifest load | `xpe_preprocess.dll` | N/A | yes | startup-only, may lazy-load heavy maps and LUTs after validation |
-| `AED-0` | Automatic exposure detection and event capture | `xpe_common.dll` | acquisition sidecar | yes | asynchronous, records timing and state before first frame enters stage `(0.5)` |
 
 ### 5.2 Per-frame canonical order
 

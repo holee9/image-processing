@@ -161,19 +161,13 @@ Phase 1b 완료 (Framework B): 66점   ← Codex 기준 첫 번째 의미 있는
 
 #### 전제: 블로커 해소 (즉시)
 
-| 항목 | 파일 | 비고 |
-|------|------|------|
-| `XPE_STATUS_NO_EVENT = 1` 추가 | `modules/common/include/xpe/common/xpe_error.h` | R8-02 해소 |
-| api-spec.md v1.2.0 AED 시그니처 확정 | `docs/project/api-spec.md` | R6-01, R8-01 해소 |
-| SPEC-XPE-P0 REQ-P0-026~028 수정 | `.moai/specs/SPEC-XPE-P0/spec.md` | AED 시그니처 일치 |
-
 #### Phase 0 완성
 
 | Task | 결과물 | Framework A | Framework B |
 |------|--------|:-----------:|:-----------:|
 | S0-A: Google Test + CTest 통합 | CI 자동화 가동 | QA +1 | Operational +1 |
 | S0-A: 8모듈 스캐폴딩 | 디렉토리 구조 | 구현 +1 | Functional +0.5 |
-| S0-B: xpe_common 18/18 완성 | DLL + 45 tests | 구현 +3, QA +2 | Functional +1 |
+| S0-B: xpe_common 15/15 완성 | DLL + 45 tests | 구현 +3, QA +2 | Functional +1 |
 | S0-C: WPF skeleton + P/Invoke | ImageProcTest.exe | 구현 +1 | Functional +0.5 |
 
 #### Phase 1a: xpe_preprocess (SPEC-XPE-P1A 선행 필수)
@@ -245,7 +239,7 @@ Phase 1b 완료 (Framework B): 66점   ← Codex 기준 첫 번째 의미 있는
 - [ ] EARS 총 요구사항 >= 120개 (P0 33 + P1A 45 + COMMON-CROSS 30 + P1B 일부)
 - [ ] api-spec.md v1.2.0 + SDD v1.1 출판 완료
 - [ ] OPEN CRITICAL 이슈 0건
-- [ ] xpe_common.dll 18/18 함수 + >= 85% 커버리지
+- [ ] xpe_common.dll 15/15 함수 + >= 85% 커버리지
 - [ ] Google Test + CI/CD 자동화 가동
 - [ ] 8/8 모듈 디렉토리 존재
 

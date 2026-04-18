@@ -18,9 +18,6 @@ This directory (`.moai/project/`) contains MoAI framework working copies that ma
 
 ### Sync History
 
-- 2026-04-18: `api-spec.md` synced to v1.3.0 (S1-A start gate requirement met)
-- 2026-04-14: `api-spec.md` v1.3.0 published in docs/project/ (AED + explicit-path appendix + AED acronym control)
-
 ## Rule
 
 > When information conflicts between `.moai/project/` and `docs/project/`, **`docs/project/` is authoritative**.

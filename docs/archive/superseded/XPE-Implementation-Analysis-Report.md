@@ -270,7 +270,6 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 | SWU-5.4 | Logger | 0 |
 | SWU-5.5 | ParameterValidator | 0 |
 | SWU-5.6 | ConfigManager | 0 |
-| SWU-5.8 | AedEventInterface | 0 |
 
 #### SWI-6: GSVG (4 SI) -- gsvg.dll (independent)
 

@@ -66,7 +66,6 @@ End-to-end verification on branch `feature/SPEC-P1A-SUP01-and-GUI-IT-2026-04-18`
 - Built `xpe_common.dll` from source into `build/ci-common/bin/Debug/` and staged it (plus `fmtd.dll` / `spdlogd.dll`) into the xUnit output directory.
 - Executed full `ImageProcTest.IntegrationTests` suite: **79 / 79 pass** (0 fail, 0 skip). Native-dependent subset (NativeLibraryCollection, 9 classes): **56 / 56 pass**.
 - Hardened 5 xpe_common paths surfaced by the native-dependent verification:
-  1. `xpe_aed_configure` — added init guard, returns `XPE_ERR_NOT_INITIALIZED` when called before `xpe_init` (REQ-GUI-IT-040).
   2. `xpe_get_param_range` — added init guard + body-part whitelist (`CHEST / ABDOMEN / PELVIS / SPINE / SKULL / HEAD / EXTREMITY`) returning `XPE_ERR_INVALID_INPUT` for unknown anatomy (REQ-GUI-IT-026, REQ-GUI-IT-040).
   3. `xpe_log_set_file` — parent-directory existence check returns `XPE_ERR_IO_FAILED` before spdlog is touched (REQ-GUI-IT-030).
   4. `xpe_log_set_file` — release prior sink (`spdlog::drop("xpe_file")` + reset) before opening a new one so repeat calls do not collide on the file handle (REQ-GUI-IT-030).

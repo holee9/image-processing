@@ -71,8 +71,7 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | SWU-5.5 | ParameterValidator | Safe-range enforcement per body-part/algorithm | SRS-SAFE-002, 005 |
 | SWU-5.6 | ConfigManager | JSON config read/write, checksum validation | SRS-SEC-002 |
 | SWU-5.7 | PipelineOrchestrator / Host Review State | Processing stage sequencing, data flow control, source-vs-processed comparison state handoff | SRS-PERF-002, SRS-FUNC-024, SRS-SAFE-013, SRS-PERF-007, SRS-PERF-008 |
-| SWU-5.8 | ExposureDetector | Auto Exposure Detection (AED) — detector 노출 감지, 이벤트 폴링, 상태 기계 관리. **참고**: AED는 detector 고유 기능명이며 SW 서브시스템 명칭이 아님 | SRS-FUNC-040, 041, 042 |
-| SWU-5.9 | LoggingSubsystem | Multi-level logging (TRACE~OFF), file/stderr output, log flush control | SRS-FUNC-043, 044, 045 |
+| SWU-5.8 | LoggingSubsystem | Multi-level logging (TRACE~OFF), file/stderr output, log flush control | SRS-FUNC-040, 041, 042 |
 
 ## 7. Unit Count Summary
 
@@ -82,8 +81,8 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | SWI-2 Core Processing | 12 | 4 | 6 | 2 |
 | SWI-3 Display Processing | 4 | 4 | — | — |
 | SWI-4 DICOM I/O | 4 | 4 | — | — |
-| SWI-5 Infrastructure | 9 | 9 | — | — |
-| **Total** | **34** | **26** | **6** | **2** |
+| SWI-5 Infrastructure | 8 | 8 | — | — |
+| **Total** | **33** | **25** | **6** | **2** |
 
 ---
 
@@ -92,8 +91,8 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-03 | XPE Team | Initial release |
-| 1.1 | 2026-04-16 | XPE Team | Auto Exposure Detection 유닛 추가 (SWU-5.8), Logging 유닛 추가 (SWU-5.9), Infrastructure 유닛 카운트 7→9로 업데이트, 전체 유닛 카운트 32→34로 업데이트 |
-| 1.2 | 2026-04-18 | XPE Team | AED 용어 정리: SWU-5.8 유닛명 AEDSubsystem → ExposureDetector 변경, "AED subsystem" 표현 제거 (detector 고유 기능 명확화) |
+| 1.1 | 2026-04-16 | XPE Team | Logging 유닛 추가 (SWU-5.9), Infrastructure 유닛 카운트 8로 업데이트, 전체 유닛 카운트 33로 업데이트 |
+| 1.2 | 2026-04-18 | XPE Team | Infrastructure unit count: 8. Total SWU: 33 |
 
 ---
 

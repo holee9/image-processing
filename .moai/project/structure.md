@@ -96,7 +96,7 @@ image-processing/
 ### 상세 의존성 규칙
 ```
 Layer 0 (xpe_common.dll)
-├── 타입 정의, 메모리 관리, 로깅, AED 시스템
+├── 타입 정의, 메모리 관리, 로깅, 경고 큐
 └── 모든 Layer 1 모듈의 기반
 
 Layer 1 (7개 알고리즘 DLL)

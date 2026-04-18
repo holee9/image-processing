@@ -1,198 +1,188 @@
-# 제품 개요: X-ray Image Processing Engine (XPE) (v2.0)
+# Product Overview: X-ray Image Processing Engine (XPE)
 
-**Version**: 2.0.0 | **Updated**: 2026-04-17
-**Changes from v1.0**: 2024-2026 규제 환경 반영 (FDA PCCP/AI-DSF/Transparency, EU AI Act, ISO 42001, IEC 81001-5-1), Must/Should/Could 전략 명시, 신규 SPEC 4종(REG/SEC/IOP/OPS) 참조. See `.moai/project/trend-survey-2026.md`.
+**Document ID**: XPE-PRODUCT-001  
+**Version**: 1.3.0
+**Date**: 2026-04-17
+**Status**: Controlled Draft  
+**Canonical Scope**: `docs/project/`
 
-## 제품 정체성
+---
 
-- **이름**: X-ray Image Processing Engine (XPE)
-- **저장소**: https://github.com/holee9/image-processing
-- **분야**: 의료 기기 소프트웨어 (X-ray Flat Panel Detector)
-- **규제**: IEC 62304 Class B/C, FDA 21 CFR 820.30, EU MDR 2017/745, **FDA §524B Cyber Device (2025-06 Final)**, **FDA PCCP AI-DSF (2024-12 Final)**, **FDA AI-DSF Lifecycle (2025-01 Draft)**, **EU Regulation 2024/1689 AI Act (2027-08 전면 발효)**, **ISO/IEC 42001:2023 AIMS**, **IEC 81001-5-1:2021 Secure SW Lifecycle**, **QMSR 2026-02-02 발효**
-- **개발 상태**: 활성 개발 중 (Active Product Development)
+## 1. Purpose
 
-## 목적
+XPE is a modular X-ray flat panel detector image-processing engine. It converts detector-domain raw frames into diagnostic-ready DICOM images while preserving a regulated boundary between detector correction, enhancement, presentation, and optional AI-assisted functions.
 
-X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 가능한 의료 영상으로 변환하는 영상처리 엔진. Detector raw data의 보정(Pre-Processing)부터 영상 향상 및 DICOM 표시(Post-Processing)까지 전체 파이프라인을 커버하며, 의료 기기 규정 인증을 목표로 개발 중입니다.
+The delivery plan is staged:
 
-## Product Components
+- **Phase 0**: foundation, common ABI, orchestration, QA scaffolding (now fixture-calibrated native preprocessing via XCal conversion)
+- **Phase 1a**: deterministic detector correction
+- **Phase 1b**: deterministic enhancement, display, DICOM, whole-image EI
+- **Phase 2**: deterministic premium processing and GSVG
+- **Phase 3**: assistive AI features with worker isolation
 
-### 1. Native Processing Modules (C/C++ DLLs)
+---
 
-각 알고리즘 모듈은 독립 DLL로 빌드되며, 최소 종속성 원칙으로 모듈화.
+## 2. Product Boundary
 
-**Pre-Processing (Raw → Clean Image) — 9개 기술 (PRE-01~09)**
+### 2.1 Mandatory release baseline
 
-| Research ID | 기술 | 분류 |
-|-------------|------|------|
-| PRE-01 | Readout Artifact Correction | 필수 (HW-only FPGA, SW는 validation) |
-| PRE-02 | Offset/Dark Correction | 필수 (SW-first → HW) |
-| PRE-03 | Gain/Flat-Field Correction | 필수 (SW-first → HW) |
-| PRE-04 | Lag Correction (LTI 기본) | 필수 (SW-only) |
-| PRE-04 | Lag Correction (NLCSC 비선형) | 차별화 — 14-50x 업계 우위 |
-| PRE-05 | Ghost/Gain Ghosting Correction | 필수 (SW-only) |
-| PRE-06 | Defective Pixel Correction (기본 보간) | 필수 (SW-first → HW) |
-| PRE-06 | Defective Pixel Correction (ML/ViT AE) | 차별화 — 14.2x NMSE 우위 |
-| PRE-07 | Temperature Compensation | 필수 (SW-first → MCU) |
-| PRE-08 | Non-linearity Correction | 필수 (SW-first → HW) |
-| PRE-09 | Pixel Binning Correction | 조건부 필수 (형광투시/CBCT 시) |
+The baseline product that must work without any optional modules includes:
 
-**Support Technologies — 5개 기술 (SUP-01~05)**
+- `xpe_common.dll`
+- `xpe_preprocess.dll`
+- `xpe_enhance_basic.dll`
+- `xpe_display.dll`
+- `xpe_dicom.dll`
+- `ImageProcTest.exe`
 
-| Research ID | 기술 | SWU 매핑 | 분류 |
-|-------------|------|-----------|------|
-| SUP-01 | Calibration Parameter Management | SWU-1.5, SWU-5.6 | 필수 |
-| SUP-02 | Exposure Detection (AED) | SWU-5.8 AedEventInterface | 필수 |
-| SUP-03 | Exposure Index (IEC 62494-1) | SWU-2.10 ExposureIndexCalc | 필수 |
-| SUP-04 | DICOM Conformance | SWU-4.1~4.4 | 필수 |
-| SUP-05 | Quality Assurance / Constancy Test | SWU-6.1 QaConstancyTest (C#) | 필수 |
+This baseline shall deliver:
 
-**Post-Processing (Clean → Diagnostic-Ready Image)**
-- Log Transform, Noise Reduction, Contrast Enhancement (CLAHE), Edge Enhancement
-- Multiscale Frequency Processing, Collimation Detection, Exposure Index
-- Body-Part Recognition (CNN), Bone Suppression (U-Net), DL Denoiser
-- Grid Suppression Virtual Grid (GSVG) - 독립 모듈
-- DICOM Grayscale Display Pipeline (Modality/VOI/Presentation LUT)
+- detector-domain correction,
+- whole-image Exposure Index / Deviation Index,
+- presentation LUT / GSDF-aligned display path,
+- diagnostic DICOM export,
+- graceful diagnostics and alerting.
 
-**Infrastructure**
-- DICOM I/O (Reader/Writer/Network SCU)
-- Common Library (Memory Pool, Thread Pool, Logger, Config, Parameter Validator)
+### 2.2 Optional deterministic premium scope
 
-### 2. Integration Test GUI (C# WPF)
+Phase 2 remains optional at deployment time but deterministic in behavior:
 
-- **Name**: ImageProcTest
-- **Purpose**: 알고리즘 DLL 모듈을 P/Invoke로 로드하여 통합 테스트
-- **Features**: 파이프라인 빌더, DICOM 영상 뷰어, W/L 조절, 벤치마크
+- `xpe_enhance_advanced.dll`
+- `gsvg.dll`
 
-## Must-Have vs Differentiator Strategy
+Phase 2 adds:
 
-출처: `docs/xray_fpd_tech_classification_final.md` (v2.0, 2026-04-13), **확장 출처**: `.moai/project/trend-survey-2026.md` (v1.0, 2026-04-17)
+- baseline collimation detection,
+- ROI-aware EI refinement by re-invoking `xpe_calc_exposure_index`,
+- multiscale processing,
+- fractional processing,
+- grid suppression / virtual grid.
 
-- **필수 (Must-Have)**: 미구현 시 IEC/FDA 규제 인증 불가. Pre-Processing 전체(PRE-01~09), Support(SUP-01~05), Post-Processing 기반(POST-01~04, POST-07 기본, POST-12) 해당.
-- **차별화 (Differentiator)**: Phase 2/3에서 경쟁 우위 확보. PRE-04 NLCSC(14-50x), PRE-06 ML(14.2x), POST-05 MFP, POST-09 Bone Suppression, POST-11 Virtual Grid.
-- **HW/SW 경계**: PRE-01은 FPGA 전담(HW팀). PRE-02,03,06,08,09는 SW-first 후 FPGA 이관 가능 설계. PRE-07은 SW-first 후 MCU 이관 가능 설계. PRE-04,05는 SW-only.
+### 2.3 Optional AI assistive scope
 
-### Must/Should/Could 3-Tier 전략 (v2.1 Strict)
+Phase 3 is assistive only and must never block baseline image delivery:
 
-**v2.1 변경**: 엄격 재분류 (2026-04-17). Must 27→12. "반드시 출시 블로커 또는 법적 의무"만 Must. 프로젝트 관례·자발적 표준은 Should.
+- `xpe_ai.dll`
+- `xpe_ai_worker.exe`
 
-| Tier | 항목 수 (v2.1) | 의미 | 문서 |
-|:----:|:------:|------|------|
-| **Must** | **12** (was 27) | 법률 의무 OR 시장 진입 블로커 OR IEC 62304 강제 조항 | 신규 SPEC 4종의 core 부분 + IEC 62304 |
-| **Should** | **35** (was 19) | 강력 권장 · 경쟁력 · Phase 연결 조건부 Must | Phase 2/3 및 AI 배포 결정 시 승격 |
-| **Could** | 10 | 미래 옵션·연구 모드 | Phase 4 Research Track |
+Phase 3 adds:
 
-**v2.1 엄격 판정 기준**: "이것이 없으면 출시 불가 또는 법적 거절?" → YES만 Must
+- body-part recognition,
+- AI collimation refinement,
+- image stitching,
+- bone suppression,
+- DL denoising.
 
-### Must 12항목 (v2.1 엄격)
+If AI fails, the product shall fall back to deterministic Phase 1/2 output.
 
-| ID | 항목 | 블로커 근거 |
-|:--:|------|------------|
-| M-01 | IEC 62304 Class B | 의료기기 SW 법적 분류 증명 |
-| M-02 | EU MDR 2017/745 | EU 시장 진입 법률 |
-| M-03 | FDA 21 CFR 820.30 + QMSR 2026 | US 시장 진입 법률 |
-| M-04 | FDA §524B Cyber Device | 2023 법률 (DICOM 네트워크 = 강제 cyber device) |
-| M-05 | SBOM (SPDX 3.0/CycloneDX 1.6) | §524B 법적 필수 구성요소 |
-| M-06 | Vulnerability Management | §524B 판매 후 법적 의무 |
-| M-07 | Basic Input Validation | 기본 방어 + IEC 62304 결합 |
-| M-08 | DICOM 3.0 Core | 병원 PACS 통합 실질적 필수 |
-| M-09 | DICOM Conformance Statement | 병원 구매 실사 법적 증빙 |
-| M-10 | Post-Market Surveillance | EU MDR Article 83 법률 |
-| M-11 | Characterization Tests | IEC 62304 §5.4.1 강제 조항 |
-| M-12 | Trackability (RTM, commits) | IEC 62304 §5.4.1 강제 조항 |
+---
 
-### Should 35항목 (v2.1 확장, 조건부 Must 승격)
+## 3. Canonical Unit Count
 
-- **Regulatory Should 8**: FDA PCCP, AI-DSF Lifecycle Draft, Transparency, IMDRF GMLP, EU AI Act, ISO 42001, 기존 S-REG-01~02 — **Phase 3 AI 배포 시 Must 승격**
-- **Cybersecurity Should 5**: IEC 81001-5-1 (자발적), SLSA L3, Threat Modeling, SBOM Continuous, CVD — **SBOM/L3는 Phase 2 Must 승격 권고**
-- **Interoperability Should 5**: DICOMweb (Phase 2+), FHIR R5 (Phase 2-3+), IHE AIR/AIRA (Phase 3+), IHE Baseline (통합 편의), DICOM SR for AI — **Phase 연결**
-- **AI Should 8**: SSL Denoising, Diffusion Priors, Conformal UQ, XAI, ONNX 1.20+, ML Defect, Bone Suppression, AI Collimation — **Phase 3 진입 시**
-- **Operations Should 5**: Drift Detection, OpenTelemetry, VEX, Reject-Analysis, Reproducible Builds — **운영 성숙도 향상**
-- **Quality/Architecture Should 4**: TRUST 5, Reference+SIMD Parity, MX Tag System, Anti-Spaghetti — **프로젝트 품질 기반 (v2.0 Must → v2.1 Should)**
+### 3.1 Counting rule
 
-### Could 10항목 (Phase 4+)
+This project uses two unit types:
 
-MedSAM Foundation Model, Federated Learning, GPU Production Path, Rust Safety Module, PQC, FHIRcast, WebAssembly, Continuous Learning, NIST AI RMF Full Adoption, Generative AI
+- **SWU**: XPE software units governed inside the XPE architecture
+- **SI**: GSVG software items governed by the independent GSVG package
 
-### 조건부 Must 승격 규칙 (v2.1 신규)
+**Canonical total**: **42 executable units**
 
-- Phase 3 AI-DSF 배포 승인 → S-REG-03~07, S-AI-06~08 항목 Must 승격
-- EU 시장 + AI 판매 결정 → S-REG-07 (EU AI Act) Must 승격
-- Connectathon 참여 결정 → S-IOP-05 (IHE Baseline) Must 승격
-- SLSA L3 인증 결정 → S-SEC-01 Must 승격
+- **38 XPE SWU**
+- **4 GSVG SI**
 
-상세: `.moai/project/trend-survey-2026.md` v1.1 §1-§4
+The previous `43` total is retired by this revision.
 
-## Architecture Principle
+### 3.2 Unit summary
 
-**Anti-Spaghetti 3-Layer Design**:
-- Layer 0: 공통 타입/메모리 (xpe_common.dll)
-- Layer 1: 알고리즘 DLLs (상호 의존 금지, Layer 0에만 의존)
-- Layer 1-G: GSVG (독립 IEC 62304 패키지, xpe_common 비의존)
-- Layer 2: C# GUI Orchestrator (P/Invoke로 모든 DLL 호출)
+| Category | Count | Notes |
+|---|---:|---|
+| Common infrastructure | 7 SWU | `xpe_common.dll` |
+| Pre-processing | 9 SWU | `xpe_preprocess.dll` |
+| Core processing | 12 SWU | `xpe_enhance_basic.dll`, `xpe_enhance_advanced.dll`, `xpe_ai.dll` |
+| Display | 4 SWU | `xpe_display.dll` |
+| DICOM I/O | 4 SWU | `xpe_dicom.dll` |
+| C# orchestration and QA | 2 SWU | `ImageProcTest.exe` |
+| GSVG | 4 SI | `gsvg.dll` |
+| **Total** | **42 units** | **38 SWU + 4 SI** |
 
-## 대상 사용자
+---
 
-- **영상처리 엔지니어**: 알고리즘 개발 및 튜닝
-- **QA 엔지니어**: IEC 62304 검증/확인 및 테스트 관리
-- **시스템 통합자**: DLL을 RadiConsole 등 프로덕션 GUI에 연동
-- **의료 영상 전문가**: 알고리즘 평가 및 검증
+## 4. Binary Deliverables
 
-## 주요 시나리오
+| Binary | Type | Phase | Responsibility |
+|---|---|:---:|---|
+| `xpe_common.dll` | Native DLL | 0 | ABI types, lifecycle, alerts, logging |
+| `xpe_preprocess.dll` | Native DLL | 1a | detector correction and calibration application |
+| `xpe_enhance_basic.dll` | Native DLL | 1b | log, noise, contrast, edge, whole-image EI |
+| `xpe_display.dll` | Native DLL | 1b | modality/VOI/presentation LUT |
+| `xpe_dicom.dll` | Native DLL | 1b | DICOM IO and network SCU |
+| `xpe_enhance_advanced.dll` | Native DLL | 2 | collimation baseline, multiscale, fractional |
+| `gsvg.dll` | Native DLL | 2 | grid suppression and virtual grid |
+| `xpe_ai.dll` | Native DLL | 3 | in-process assistive proxy |
+| `xpe_ai_worker.exe` | Native EXE | 3 | sandboxed inference worker |
+| `ImageProcTest.exe` | C# WPF EXE | 0+ | orchestration, QA, integration harness |
 
-### 1. X-ray 이미지 처리 파이프라인
-- **입력**: Raw FPD 데이터 (DICOM 형식, UINT16/FLOAT32)
-- **전처리**: Offset/Dark 보정, Gain 보정, 불량 픽셀 보정 등
-- **후처리**: 노이즈 감소, 대비 향상, 윤곽선 강화 등
-- **출력**: 진단 가능한 의료 영상 (DICOM 표준 준수)
+---
 
-### 2. 알고리즘 개발 및 검증
-- 단위 테스트 및 통합 테스트 수행
-- ImageProcTest GUI로 실시간 알고리즘 검증
-- 성능 벤치마킹 및 품질 평가
+## 5. ImageProcTest Product Role
 
-### 3. 의료 기기 인증 준비
-- IEC 62304 Class B 합격 지원
-- 요구사항 추적 관리 (RTM)
-- 자동화 테스트 및 검증
+`ImageProcTest.exe` is the release validation console for the XPE pipeline. Its early implementation may expose health and readiness prominently, but the release-level application shall be workflow-first.
 
-## 개발 현황
+The final application shall support:
 
-### 현재 단계
-**Phase 1 진행 중**: 전처리 기본 알고리즘 구현 완료, 기본 후처리 개발 진행 중
-- **Phase 0 완료**: 인프라, 공통 라이브러리, 테스트 프레임워크, GUI 프로토타입, CI/CD
-- **Phase 1**: 기본 전처리(PRE-01~09) 및 기본 후처리(POST-01~04, POST-07) 구현
-- **목표**: 의료 기기 인증 (IEC 62304 Class B)
+- raw/calibration fixture selection with automatic calibration role inference (Offset/Gain/Defect/Reference);
+- stage Off/On/Auto control per preprocessing stage;
+- fixture-calibrated native preprocessing: raw calibration files are converted to XCal format and loaded into `xpe_preprocess.dll`;
+- before/after comparison with swipe, zoom, pan, and pixel inspection;
+- quantitative Before/After delta metrics (meanAbsDelta, RMSE, maxAbsDelta, changed pixel ratio);
+- JSON/Markdown preprocessing test report generation (schema `xpe-preprocess-gui-test-v1`);
+- embedded help/manual content;
+- a diagnostics area for DLL readiness, ABI, version, export, fallback, and alert triage.
 
-### 최근 개발 성과
-- **SPEC-XPE-P1A**: 전처리 모듈 (Gain/Offset/Defect Correction) 구현 완료
-- **통합 테스트 GUI**: ImageProcTest WPF GUI로 DLL 모듈 통합 테스트 지원
-- **API 명세**: 완전한 C ABI 규격 82개 함수 구현
+The diagnostics area is a permanent support feature, not a temporary feature. It shall be demoted from the primary screen once module workflows are mature, but it shall remain available for release validation and field troubleshooting.
 
-### 로드맵 (v2.0 Updated)
+The final Test GUI shall not present mock, fallback, identity, or version-only health output as native image-processing output.
 
-**Phase 2 (Differentiator)**: AI 기반 고급 알고리즘 도입 (deterministic 중심)
-- PRE-04 NLCSC Lag Correction (14-50x 업계 우위)
-- PRE-06 ML Defect Correction (14.2x NMSE) — Phase 3 AI tier와 통합
-- POST-05 Multiscale Frequency Processing
-- POST-09 Bone Suppression — Phase 3 AI tier로 분류
-- POST-11 Virtual Grid (GSVG, 별도 IEC 62304 패키지)
+---
 
-**Phase 3 (Intelligence)**: AI 모듈 고도화 (SPEC-XPE-P3-AI v1.0)
-- POST-02 Deep Learning Denoising — SSL (Noise2Noise family) baseline
-- POST-02 Diffusion Priors — opt-in premium tier (NEED/DiffDenoise)
-- POST-07 AI Collimation Detection (baseline Hough + AI refinement)
-- POST-09 Bone Suppression (U-Net, +16.8% 민감도)
-- ONNX Runtime 1.20+ through Multi-EP (CPU/CUDA/TensorRT/DirectML)
-- XAI Sidecar (Grad-CAM saliency, SHAP, opt-in)
-- Conformal Prediction Uncertainty Quantification
-- PCCP boundary enforcement (FDA 2024-12)
-- Model Card API + Data Lineage
+## 6. Key Feature Map
 
-**Parallel Tracks (신규 v2.0)**:
-- **S-REG**: FDA/EU/ISO 규제 문서 및 governance (S0-A 이후 병행)
-- **S-SEC**: §524B + SBOM + SLSA (S0-B 이후 병행)
-- **S-OPS**: PMS + Drift + OTEL + Reproducible (S1-B1 이후 병행)
-- **S-IOP**: DICOMweb + FHIR R5 + IHE AIR/AIRA (S1-B3 이후)
+| Research / Product ID | Canonical ownership | Delivery rule |
+|---|---|---|
+| `PRE-01` Readout validation | `SWU-1.9` | advisory only, no pixel mutation |
+| `PRE-02/03/06/07/08/09` detector correction | `SWU-1.1~1.8` | deterministic release baseline |
+| `PRE-04/05` lag and ghost correction | `SWU-1.4` | deterministic release baseline with tier downgrade |
+| `SUP-01` calibration management | `SWU-1.5`, `SWU-5.6` | release baseline |
+| `SUP-02` Exposure Index | `SWU-2.10` | one unit reused across Phase 1b baseline and Phase 2 ROI refinement |
+| `SUP-04` DICOM conformance | `SWU-4.1~4.4` | release baseline |
+| `SUP-05` QA / constancy | `SWU-6.1` | release baseline validation surface |
+| `POST-05/07/10/11` advanced deterministic features | `SWU-2.5`, `SWU-2.8`, `SI-001~004` | optional Phase 2 |
+| `POST-06/08/09` AI features | `SWU-2.7`, `SWU-2.9`, `SWU-2.11`, `SWU-2.12` | optional Phase 3, assistive only |
 
-**Phase 4 Research Track (Could, 2027+)**: MedSAM fine-tuning, Federated Learning, GPU production path, Rust safety modules.
+---
+
+## 7. Product Rules That Shall Not Change
+
+1. `SWU-2.10` is the only canonical EI unit identifier.
+2. EI/DI apply only to detector-domain, single-irradiation images.
+3. Body-part recognition and stitching are Phase 3 features, not Phase 2.
+4. `XPE_FLAG_*` values are state bits only. Error details go to alerts or diagnostic JSON.
+5. GSVG may fail open. When skipped, the pipeline records `XPE_FLAG_GSVG_SKIPPED` and a diagnostic reason, but continues with non-GSVG output.
+6. AI modules are assistive. Their failure must not block the deterministic path.
+7. `docs/project/` is the only canonical documentation tree for this architecture.
+8. `ImageProcTest.exe` shall evolve from diagnostic-first to workflow-first; diagnostics remain available but shall not dominate the release validation flow.
+
+---
+
+## 8. Product Success Criteria
+
+| Area | Minimum release criterion |
+|---|---|
+| Phase 1a latency | pre-processing completes within 500 ms for 3072x3072 |
+| Phase 1 total latency | deterministic baseline completes within 3000 ms |
+| Memory discipline | no unbounded frame-to-frame growth in steady-state loops |
+| Traceability | every planned SWU/SI maps to owner binary, API contract, and validation evidence |
+| Degraded operation | missing Phase 2/3 binaries degrade gracefully with explicit diagnostics |
+| Regulatory boundary | release claims stay inside deterministic enhancement and assistive AI boundaries documented in `Regulatory-Feature-Boundary-Matrix.md` |
+| Test GUI usability | release validation starts from workflow, metrics, reports, and help; diagnostics are accessible but secondary |

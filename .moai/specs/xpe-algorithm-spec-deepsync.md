@@ -544,30 +544,3 @@ The locked verification pack shall include:
 ## 10. Sync Actions Required Outside This Document
 
 1. **pipeline-spec.md v1.2.0**: Add multi-gain model as internal to stage (2). Clarify Tier 2/3 ghost time allocation within 500ms pre-processing budget. Add EI-0 stage assignment.
-2. **api-spec.md v1.2.0**: Add AED functions (5.16-5.18). Update function counts (82 total). Document multi-gain calibration API parameters.
-3. **XPE-SDD-001 v1.1**: Add SWU-1.6 to SWU-1.9, SWU-5.8, SWU-6.1. Add SWU-2.0 (EI_Baseline).
-4. **XPE-SRS-001 v1.1**: Add SRS-AED-* requirements. Add calibration drift detection requirements.
-5. **XPE-RTM-001 v1.1**: Track all new SWUs and requirements.
-6. **PRD-FPD-CAL-001**: Add cross-reference note: "For normative algorithm behavior and pipeline ordering, refer to ALG-SPEC-001 v3.0.0-ds2."
-7. **product.md v1.1**: Update SWU count from 38 to 43 (or current correct total).
-
----
-
-## 11. Acceptance Summary
-
-The upgraded algorithm spec is accepted only when ALL of the following are true:
-
-1. Detector-domain algorithms satisfy performance and regression gates without relying on AI.
-2. Pipeline order follows research-validated sequence: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost.
-3. EI/DI computed in detector domain, suppressed for unsupported image classes.
-4. Phase 2 and Phase 3 ownership is unambiguous in pipeline, API, and plan documents.
-5. Failure details use alerts/diagnostics, not overloaded metadata flags.
-6. AI features remain optional, provenance-aware, and safely degradable.
-7. Calibration drift detection strategy is documented and testable.
-8. All 20 cross-verification issues (v2.0) are resolved or tracked with action plans.
-9. Multi-gain and nonlinearity correction ordering is validated against physical principles.
-10. Lag/ghost correction targets match peer-reviewed performance benchmarks.
-
----
-
-*End of Algorithm Specification v3.0.0-ds2*

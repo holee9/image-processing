@@ -167,7 +167,6 @@ ctest --preset x86-windows-developer
 #define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  // PRE-07 온도 보정 완료
 #define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  // PRE-08 비선형성 보정 완료
 #define XPE_FLAG_BINNING_CORRECTED       0x00000080u  // PRE-09 binning correction 완료
-#define XPE_FLAG_AED_TRIGGERED           0x00000100u  // SUP-02 AED 이벤트로 획득
 #define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  // POST-07 ROI 검출 완료
 #define XPE_FLAG_STITCHED                0x00000400u  // POST-08 stitching 완료
 #define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  // POST-09 bone suppression 완료

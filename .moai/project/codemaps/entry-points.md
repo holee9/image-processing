@@ -356,48 +356,6 @@ public void ProcessAlerts() {
 }
 ```
 
-### 7.2 AED 시스템 (xpe_common.dll)
-
-| 진입점 | 함수 시그니처 | 목적 |
-|--------|---------------|------|
-| **AED 구성** | `XpeErrorCode xpe_aed_configure(const char* configJsonOrNull)` | 자동 노출 감지 구성 |
-| **AED 이벤트 폴링** | `XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut, uint64_t* timestampOut, float* signalLevelOut)` | 노출 이벤트 확인 |
-| **AED 상태 확인** | `XpeErrorCode xpe_aed_get_status(int32_t* stateOut)` | AED 상태 확인 |
-
-**AED 이벤트 처리**:
-```csharp
-public class AEDProcessor {
-    public void ConfigureAED() {
-        string config = @"{
-            ""enabled"": true,
-            ""doseThreshold"": 100.0,
-            ""cooldownPeriodMs"": 5000,
-            ""callbackMode"": ""poll""
-        }";
-        
-        xpe_aed_configure(config);
-    }
-    
-    public bool CheckExposureEvent() {
-        int eventType;
-        uint64_t timestamp;
-        float signalLevel;
-        
-        XpeErrorCode result = xpe_aed_poll_event(out eventType, out timestamp, out signalLevel);
-        
-        if (result == XpeErrorCode.OK) {
-            // 노출 이벤트 발생
-            DateTime eventTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
-            Console.WriteLine($"Exposure detected at {eventTime}, level: {signalLevel}");
-            return true;
-        }
-        
-        return false;
-    }
-}
-```
-
----
 
 ## 8. P/Invoke 인터페이스 정의
 

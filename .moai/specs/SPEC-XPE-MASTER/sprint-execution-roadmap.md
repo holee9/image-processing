@@ -114,25 +114,21 @@ S2-A and S2-B can execute in parallel.
 
 ### S0-B: xpe_common.dll Implementation
 
-**BLOCKER**: api-spec.md v1.2.0 must be released before starting
-
 | Task ID | Deliverable | SWU | Priority | Status |
 |---------|------------|-----|:--------:|:------:|
-| S0B-01 | Complete xpe_common_api.h (18 declarations) | -- | Must | PARTIAL |
+| S0B-01 | Complete xpe_common_api.h (15 declarations) | -- | Must | PARTIAL |
 | S0B-02 | Logging subsystem implementation | SWU-5.4 | Must | TODO |
-| S0B-03 | AED subsystem implementation | SWU-5.8 | Must | TODO |
-| S0B-04 | Memory pool hardening | SWU-5.1 | Must | PARTIAL |
-| S0B-05 | Error handler validation | SWU-5.3 | Must | PARTIAL |
-| S0B-06 | Config manager (xpe_init/shutdown/configure) | SWU-5.6 | Must | PARTIAL |
-| S0B-07 | Unit tests for all 18 APIs (>= 85% coverage) | -- | Must | TODO |
-| S0B-08 | P/Invoke compatibility test (C# <-> C ABI) | -- | Must | TODO |
+| S0B-03 | Memory pool hardening | SWU-5.1 | Must | PARTIAL |
+| S0B-04 | Error handler validation | SWU-5.3 | Must | PARTIAL |
+| S0B-05 | Config manager (xpe_init/shutdown/configure) | SWU-5.6 | Must | PARTIAL |
+| S0B-06 | Unit tests for all 15 APIs (>= 85% coverage) | -- | Must | TODO |
+| S0B-07 | P/Invoke compatibility test (C# <-> C ABI) | -- | Must | TODO |
 
 **Acceptance Criteria**:
-- [ ] dumpbin /exports shows exactly 18 functions
-- [ ] All 18 functions have unit tests with >= 85% coverage
+- [ ] dumpbin /exports shows exactly 15 functions
+- [ ] All 15 functions have unit tests with >= 85% coverage
 - [ ] P/Invoke test passes from C#
 - [ ] Logging: file output + level filtering verified
-- [ ] AED: configure + poll + status cycle verified
 - [ ] No memory leaks in 1000-cycle init/shutdown test
 
 ### S0-C: C# GUI Scaffolding
@@ -286,10 +282,6 @@ S2-A and S2-B can execute in parallel.
 ## 8. Cross-Validation Resolutions Required
 
 ### 8.1 Before Sprint S0-B (Blockers)
-
-| ID | Issue | Resolution | Owner |
-|----|-------|-----------|-------|
-| N1+N3+N8 | api-spec.md v1.2.0 release | Publish with all 18 function signatures, AED docs, count table | Tech Lead |
 
 ### 8.2 Before Sprint S1-A
 
