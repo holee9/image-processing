@@ -160,7 +160,6 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80, "XpeImageMetada
 #define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  /**< Temperature drift compensation applied */
 #define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied */
 #define XPE_FLAG_BINNING_CORRECTED       0x00000080u  /**< Binning mode correction applied */
-#define XPE_FLAG_AED_TRIGGERED           0x00000100u  /**< Automatic Exposure Detection (AED) triggered acquisition */
 #define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  /**< Collimation region detected and masked */
 #define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (stitching) */
 #define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */

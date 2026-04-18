@@ -40,12 +40,11 @@ typedef int32_t XpeErrorCode;
  *
  *  Non-negative values indicate success or informational status.
  *  Negative values indicate errors.
- *  Callers should test `code >= XPE_OK` for a general success check, or
+ *  Callers should test `code == XPE_OK` for a success check, or
  *  compare against specific values for precise error handling.
  *  @{
  */
 #define XPE_OK                       0   /**< Success — operation completed without error */
-#define XPE_STATUS_NO_EVENT          1   /**< Informational: AED poll returned no pending event (R8-02) */
 #define XPE_ERR_INVALID_INPUT       -1   /**< NULL pointer, wrong pixel format, or invalid parameter value */
 #define XPE_ERR_OUT_OF_MEMORY       -2   /**< Heap allocation failure */
 #define XPE_ERR_PROCESSING_FAILED   -3   /**< Internal algorithm failure (e.g. singular matrix, zero-mean image) */
