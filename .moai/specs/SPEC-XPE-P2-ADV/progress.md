@@ -174,3 +174,46 @@
 *Last Updated: 2026-04-17*
 *Implementation Status: Core Functionality COMPLETE (84.4% AC)*
 *Quality Status: TRUST 5 Score 86/100 (WARNING)*
+
+---
+
+## 2026-04-18 — Merge-Prep Audit (Skeleton Build Verification)
+
+PR #27 병합 준비 과정에서 `BUILD_ENHANCE_ADVANCED=ON`으로 실제 컴파일 시도
+(build/ci-enhance-advanced). 프리커밋 빌드가 돌지 않았던 사실이 드러났으며,
+스켈레톤에 잔존한 컴파일 차단 이슈 **6종**을 식별/부분 수정.
+
+### 병합 전 해소 완료
+
+| # | 이슈 | 파일 | 처리 |
+|---|------|------|------|
+| 1 | `XPE_ERR_INTERNAL(-12)` 미정의로 enhance_advanced 11개 호출지점 미컴파일 | `modules/common/include/xpe/common/xpe_error.h`, `xpe_common.cpp` | **정의 + xpe_error_string 매핑 추가** |
+| 2 | root CMakeLists Eigen FetchContent SHA-256 해시가 62자 truncated + 값 오류 | `CMakeLists.txt` (루트) | **8586084f...1c72 (64자)로 정정** |
+| 3 | `hough_transform.cpp` MSVC에서 `M_PI` / `M_PI_2` 선언 안됨 | `modules/enhance_advanced/CMakeLists.txt` | **`_USE_MATH_DEFINES` 컴파일 정의 추가** |
+| 4 | 자동 생성 `version.cpp`가 `xpe_common_api.h` 상대 경로로 include → 미해결 | `modules/enhance_advanced/CMakeLists.txt` (placeholder 함수) | **`<xpe/common/xpe_common_api.h>` 로 변경** |
+| 5 | `xpe_enhance_advanced_api.h`가 `XpeErrorCode` 타입을 사용하면서 `xpe_error.h` 미포함 | `modules/enhance_advanced/include/xpe/enhance_advanced/xpe_enhance_advanced_api.h` | **`#include "xpe/common/xpe_error.h"` 추가** |
+
+### 차기 스프린트 필수 (이번 PR 범위 밖 — `BUILD_ENHANCE_ADVANCED` 기본값 OFF로 전환)
+
+| # | 이슈 | 파일 |
+|---|------|------|
+| 6a | `xpe_enhance_advanced.cpp:18` `fractional_derivative.h`를 namespace-less 상대 경로로 include → 경로 불일치 (`include/xpe/enhance_advanced/` 아래에 존재) | `src/xpe_enhance_advanced.cpp` |
+| 6b | `mfp_scalar.h` / `mfp_scalar.cpp` / `fractional_derivative.h` 등 다수 헤더가 `XpeErrorCode` 사용하면서 `xpe_error.h` 미포함 (include 패턴 체계화 필요) | `modules/enhance_advanced/src/**`, `modules/enhance_advanced/include/**` |
+| 6c | C4244 (narrowing) 경고 다수 — Eigen `Index → int/float` 변환. `/WX` 적용 시 빌드 실패 (현재 advanced에는 `/WX` 미적용) | `src/detail/hough_transform.cpp`, `src/xpe_collimation_detect.cpp` |
+| 6d | `fractional_derivative.h` / `exposure_index.h` public include 경로 노출 — ABI 경계 위생상 `src/` 이동 권장 (Reviewer Concern C WARN) | `include/xpe/enhance_advanced/` |
+
+### PR #27 대응 요약
+
+- **이번 PR**: 머지 차단 요인 1-5 해소 (5건). xpe_common 및 GUI-IT는 영향 없음 (79+6=**85/85 Pass**).
+- **다음 스프린트 (SPEC-P2-ADV 구현)**: 이슈 6a-6d 해결 + `BUILD_ENHANCE_ADVANCED=ON` 기본값 복원 + `/WX` 적용 + 실제 알고리즘 구현(MFP/Fractional/Collimation/EI) + Google Test 통과.
+
+### Reviewer Concern 추가 반영
+
+- **Concern A (WARN)**: body_part 화이트리스트 7종이 DICOM BodyPartExamined 일부이지만 `HAND`, `FOOT`, `KNEE`, `SHOULDER`, `HIP`, `CSPINE`, `TSPINE`, `LSPINE` 등 임상 필수 부위 누락. P1A 후속 (REQ 추가 필요).
+- **Concern B (PASS)**: `xpe_shutdown` 다중 호출 안전성 확인. `xpe_logging.cpp:17` stale 주석은 이번 PR에서 정정 완료.
+- **Concern C (FAIL → 부분 해소)**: 이번 PR에서 XPE_ERR_INTERNAL / Eigen / M_PI / include 경로 5건 해결. 6a-6d는 스프린트 이월.
+
+---
+
+*Last Updated: 2026-04-18*
+*Skeleton Build: unlocked for explicit opt-in (default OFF) until 6a-6d are resolved*

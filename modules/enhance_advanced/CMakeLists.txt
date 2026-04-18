@@ -39,14 +39,14 @@ elseif(TARGET eigen)
     target_link_libraries(${MODULE_NAME} PUBLIC eigen)
 endif()
 
-# Export symbols
-target_compile_definitions(${MODULE_NAME} PRIVATE XPE_DLL_EXPORT)
+# Export symbols + MSVC math macros (M_PI etc. require _USE_MATH_DEFINES)
+target_compile_definitions(${MODULE_NAME} PRIVATE XPE_DLL_EXPORT _USE_MATH_DEFINES)
 
 # Placeholder version function
 function(create_placeholder_version_function MODULE_NAME)
     set(VERSION_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
     file(WRITE "${VERSION_SOURCE}"
-"#include \"xpe_common_api.h\"
+"#include <xpe/common/xpe_common_api.h>
 
 extern \"C\" XPE_API const char* ${MODULE_NAME}_version() {
     return \"0.1.0-placeholder\";

@@ -2,6 +2,7 @@
 #define XPE_ENHANCE_ADVANCED_API_H
 
 #include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
 
 #ifdef __cplusplus
 extern "C" {
