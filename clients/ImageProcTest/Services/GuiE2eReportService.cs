@@ -153,6 +153,13 @@ namespace ImageProcTest
                 {
                     builder.AppendLine($"- Calibration `{load.Stage}`: status=`{load.Status}`, loaded=`{load.Loaded}`, source=`{load.SourceRawPath ?? "none"}`, xcal=`{load.XCalPath ?? "none"}`");
                     builder.AppendLine($"  Details: {load.Details}");
+                    if (load.Expiry is not null)
+                    {
+                        builder.AppendLine(
+                            $"  Expiry: status=`{load.Expiry.Status}`, checked=`{load.Expiry.Checked}`, expired=`{load.Expiry.Expired}`, " +
+                            $"expiryUtc=`{load.Expiry.ExpiryUtc ?? "unknown"}`, remainingDays=`{FormatNullableDays(load.Expiry.RemainingDays)}`, " +
+                            $"latency=`{load.Expiry.LatencyMs:0.###}` ms; {load.Expiry.Details}");
+                    }
                 }
                 foreach (var stage in nativePreview.Stages)
                 {
@@ -221,6 +228,11 @@ namespace ImageProcTest
                 : "- Current after image is fixture-calibrated native preprocess output.");
             builder.AppendLine("- This GUI test is diagnostic preview execution on sampled buffers; clinical workflow release still needs formal fixture E2E acceptance.");
             return builder.ToString();
+        }
+
+        private static string FormatNullableDays(double? days)
+        {
+            return days.HasValue ? days.Value.ToString("0.###") : "unknown";
         }
     }
 }

@@ -449,8 +449,22 @@ namespace ImageProcTest
 
             return string.Join(", ", loads.Select(load =>
                 load.Loaded
-                    ? $"{load.Stage}={load.Status}/{load.LatencyMs:0.###}ms"
-                    : $"{load.Stage}={load.Status}"));
+                    ? $"{load.Stage}={load.Status}/{load.LatencyMs:0.###}ms{FormatExpirySummary(load.Expiry)}"
+                    : $"{load.Stage}={load.Status}{FormatExpirySummary(load.Expiry)}"));
+        }
+
+        private static string FormatExpirySummary(NativePreviewCalibrationExpiryResult? expiry)
+        {
+            if (expiry is null)
+            {
+                return "";
+            }
+
+            var remaining = expiry.RemainingDays.HasValue
+                ? $"{expiry.RemainingDays.Value:0.#}d"
+                : "unknown";
+            var expired = expiry.Expired ? "expired" : "valid";
+            return $", expiry={expiry.Status}/{expired}/{remaining}";
         }
 
         private static string FormatMetricSummary(NativePreviewMetrics metrics)
