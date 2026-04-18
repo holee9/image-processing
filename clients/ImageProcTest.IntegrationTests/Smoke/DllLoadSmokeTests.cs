@@ -105,4 +105,31 @@ public sealed class DllLoadSmokeTests
         var ptr2 = XpeCommonNative.xpe_version();
         Assert.Equal(ptr1, ptr2);
     }
+
+    /// <summary>
+    /// REQ-GUI-IT-042: When architecture mismatch is detected, the fixture's ResolvedPath
+    /// MUST surface the offending DLL path so operators can diagnose the wrong-arch binary.
+    /// On a healthy x64 build this test asserts the success-path contract (ResolvedPath
+    /// points at a .dll). The mismatch path is asserted conditionally when it triggers.
+    /// </summary>
+    [Fact]
+    public void ArchitectureMismatch_SurfacesResolvedPathInMessage()
+    {
+        Assert.False(string.IsNullOrWhiteSpace(_fixture.ResolvedPath),
+            "ResolvedPath must always be populated (success or diagnostic message).");
+
+        if (_fixture.ResolvedPath.Contains("Architecture mismatch", StringComparison.Ordinal))
+        {
+            // Mismatch mode: message contract must include the actual path and reason.
+            Assert.Contains(".dll", _fixture.ResolvedPath, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(" is not x64", _fixture.ResolvedPath, StringComparison.Ordinal);
+            return;
+        }
+
+        if (_fixture.IsAvailable)
+        {
+            // Healthy x64 resolution: path must end with .dll so downstream tooling can locate the binary.
+            Assert.EndsWith(".dll", _fixture.ResolvedPath, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

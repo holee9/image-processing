@@ -109,6 +109,53 @@ public sealed class ImageBufferLifecycleTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// REQ-GUI-IT-025: xpe_copy_image with dst smaller than src returns BUFFER_TOO_SMALL
+    /// (mismatched dimensions path). Verifies that the API does not silently truncate.
+    /// </summary>
+    [Fact]
+    public void CopyImage_MismatchedDimensions_ReturnsError()
+    {
+        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        EnsureInitialized();
+
+        // src 32x32 (2048 bytes) > dst 16x16 (512 bytes) — must NOT silently succeed.
+        var allocSrc = XpeCommonNative.xpe_alloc_image(32, 32, XpeCommonNative.XpePixelFormat.UInt16, out var src);
+        var allocDst = XpeCommonNative.xpe_alloc_image(16, 16, XpeCommonNative.XpePixelFormat.UInt16, out var dst);
+        Assert.Equal(XpeCommonNative.XpeErrorCode.OK, allocSrc);
+        Assert.Equal(XpeCommonNative.XpeErrorCode.OK, allocDst);
+
+        try
+        {
+            var copyResult = XpeCommonNative.xpe_copy_image(ref src, ref dst);
+            Assert.True(
+                copyResult == XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL ||
+                copyResult == XpeCommonNative.XpeErrorCode.INVALID_INPUT,
+                $"Expected BUFFER_TOO_SMALL or INVALID_INPUT for mismatched dims, got {copyResult}");
+        }
+        finally
+        {
+            XpeCommonNative.xpe_free_image(ref src);
+            XpeCommonNative.xpe_free_image(ref dst);
+        }
+    }
+
+    /// <summary>
+    /// REQ-GUI-IT-021: After successful xpe_init(null), xpe_get_pending_alert_count()
+    /// must return a non-negative integer (no implicit error signalling via negative count).
+    /// </summary>
+    [Fact]
+    public void Init_Success_AlertCountIsNonNegative()
+    {
+        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+
+        var initResult = XpeCommonNative.xpe_init(null);
+        Assert.Equal(XpeCommonNative.XpeErrorCode.OK, initResult);
+
+        var count = XpeCommonNative.xpe_get_pending_alert_count();
+        Assert.True(count >= 0, $"xpe_get_pending_alert_count must be non-negative post-init, got {count}");
+    }
+
     public void Dispose()
     {
         if (!_fixture.IsAvailable) return;
