@@ -6,7 +6,7 @@ The **normative (canonical)** versions of all project documents are in `docs/pro
 
 This directory (`.moai/project/`) contains MoAI framework working copies that may be **outdated**.
 
-## Known Differences (as of 2026-04-18)
+## Known Differences (as of 2026-04-19)
 
 | File | .moai/project/ | docs/project/ | Status |
 |------|:--------------:|:-------------:|--------|

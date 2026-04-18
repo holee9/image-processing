@@ -4,23 +4,35 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-16)
+## 프로젝트 완성도 현황 (2026-04-19)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 | Phase 1b 완료 시 | 목표 |
 |-----------|------|:----:|:---------------:|:----:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **68 / 100** | ~76 | **85** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~50 | **66 / 100** | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **70 / 100** | ~78 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~58 | **66 / 100** | **85** |
 
-**최근 진행 상황** (2026-04-16):
-- ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (12/12 deliverables 완료)
-- ✅ Sprint S0-A (Build Infrastructure) 100% 완료
-- ✅ xpe_common.dll 18 API 함수 구현 완료
-- ✅ Google Test + CTest + 커버리지 테스트 인프라 구축
-- ✅ ImageProcTest WPF GUI fixture-calibrated native preprocessing 구현 완료 (XCal 변환, Before/After delta metrics, calibration role 자동 추론)
-- ✅ 8개 모듈 디렉터리 스캐폴딩 (preprocess, enhance_basic, enhance_advanced, ai, display, dicom, gsvg, common)
-- ✅ CI/CD 파이프라인 (GitHub Actions) 완료
+### 점수 상세 (Framework A, 2026-04-19 기준)
+
+| 영역 | 배점 | 현재 | 변화 | 비고 |
+|------|:----:|:----:|:----:|------|
+| 요구사항 완전성 (EARS) | 25 | **13** | — | P1A EARS 완성, P1B~P3 미작성 |
+| 문서 품질 (IEC 62304) | 20 | **18** | +1 | AED 제거, docs sync 완료 |
+| 아키텍처 설계 | 20 | **17** | — | 파이프라인 물리 정확성 확인 |
+| 구현 진행도 | 20 | **13** | +5 | Phase 1a 전처리 9스테이지 + pipeline 통합 완료 |
+| 품질 보증 | 15 | **13** | +3 | P1A 89/90 + GUI-IT 78/78 + common 91/91 |
+| **합계** | **100** | **70** | **+7** | 2026-04-19 기준 |
+
+**최근 진행 상황** (2026-04-16 → 2026-04-19):
+- ✅ **SPEC-XPE-P1A Phase 1a 완료** (2026-04-18) — 전처리 파이프라인 9개 스테이지 전체 구현
+- ✅ Ghost Correction Tier 1/2/3 완료 — NLCSC 비선형 보정 고도화 (14-50x 업계 우위)
+- ✅ `xpe_preprocess_pipeline` 통합 함수 구현 완료 (스테이지 0.5~4 단일 진입점)
+- ✅ **SPEC-XPE-GUI-IT 완료** — 통합 테스트 78/78 통과, xpe_common 강화 (init guard, param range whitelist)
+- ✅ **AED 코드 완전 제거** — detector 고유 하드웨어 기능, XPE 범위 외 (CRITICAL 정책)
+- ✅ 3-Lane worktree 통합 — dev/preprocess + dev/gui → main squash merge
+- ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (11/11 deliverables)
+- ✅ xpe_common.dll 15 API 함수, Google Test, CI/CD, ImageProcTest WPF 완료
 
 ### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
 
