@@ -3,6 +3,11 @@
  * @brief XCal v1 header validation implementation (SPEC-XPE-P1A SUP-01)
  *
  * REQ-P1A-014, REQ-P1A-015, REQ-P1A-016, REQ-P1A-030
+ *
+ * @MX:ANCHOR: High fan_in — used by xpe_calib_load_offset, xpe_calib_load_gain,
+ *            xpe_calib_load_defect_map, xpe_calib_check_expiry, and all 6 SUP-01 functions.
+ * @MX:REASON: Invariant contract — all calibration loaders call validate_xcal_header()
+ *             before data access. Breaking this function breaks the entire XCal ecosystem.
  */
 
 #include "xcal_validator.hpp"

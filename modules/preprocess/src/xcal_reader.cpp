@@ -3,6 +3,11 @@
  * @brief XCal v1 file reader implementation (T-005)
  *
  * REQ-P1A-014~016, REQ-P1A-018, REQ-P1A-030
+ *
+ * @MX:ANCHOR: read_xcal_file() is the core reader used by xpe_calib_load_offset,
+ *            xpe_calib_load_gain, and xpe_calib_load_defect_map (3+ callers).
+ * @MX:REASON: Invariant contract — all calibration loading functions depend on correct
+ *             file parsing and validation. File format evolution must maintain backward compat.
  */
 
 #include "xcal_reader.hpp"
