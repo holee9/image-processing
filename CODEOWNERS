@@ -1,0 +1,28 @@
+# XPE Worktree Lane Ownership
+# Each lane owns its directory tree. Shared files modified only on main.
+
+# Lane A: Preprocessing (Claude)
+# Branch: dev/preprocess | Worktree: xpe-pre
+/modules/common/       @holee9
+/modules/preprocess/   @holee9
+
+# Lane B: Postprocessing (Claude)
+# Branch: dev/postprocess | Worktree: xpe-post
+/modules/enhance_basic/    @holee9
+/modules/enhance_advanced/ @holee9
+/modules/ai/               @holee9
+/modules/display/          @holee9
+/modules/dicom/            @holee9
+/modules/gsvg/             @holee9
+
+# Lane C: Test GUI App (Codex)
+# Branch: dev/gui | Worktree: xpe-gui
+/clients/             @holee9
+
+# Shared — modify only on main branch during integration
+/CMakeLists.txt       @holee9
+/cmake/               @holee9
+/.github/             @holee9
+
+# Documentation
+/docs/                @holee9
