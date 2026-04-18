@@ -1,27 +1,26 @@
 @echo off
-REM Build script for XPE Preprocess module
+REM Build script for XPE preprocess module in xpe-pre worktree
+REM Requires Visual Studio 2022 with C++ development tools
 
-set MSBUILD="D:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe"
+set MSBUILD_PATH=D:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe
+set PROJECT_ROOT=D:\workspace-github\xpe-pre
 
-echo Building xpe_preprocess...
-cd build\build_test\modules\preprocess
+echo Building XPE preprocess module...
+echo.
 
-%MSBUILD% xpe_preprocess.vcxproj /p:Configuration=Debug /nologo /v:m
-
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to build xpe_preprocess
-    exit /b 1
-)
+echo Source files in modules/preprocess/src:
+dir /b "%PROJECT_ROOT%\modules\preprocess\src\*.cpp"
 
 echo.
-echo Building test_xpe_preprocess...
-%MSBUILD% xpe_preprocess_tests.vcxproj /p:Configuration=Debug /nologo /v:m
-
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to build test_xpe_preprocess
-    exit /b 1
-)
+echo For full build with tests, use CMake:
+echo   mkdir build
+echo   cd build
+echo   cmake .. -DBUILD_TESTS=ON -DBUILD_PREPROCESS=ON
+echo   cmake --build . --config Release
 
 echo.
-echo Build completed successfully!
-cd ..\..\..\..
+echo Or run tests directly:
+echo   cd build
+echo   ctest --output-on-failure
+
+pause
