@@ -16,6 +16,10 @@
 #include <mutex>
 #include <string>
 
+// Forward declaration: implemented in xpe_logging.cpp
+// Releases custom spdlog sinks to let tests delete log files.
+extern "C" void xpe_log_internal_reset();
+
 // @MX:NOTE: [AUTO] Static alert queue for cross-module communication
 // Thread-safe for concurrent access from xpe_ghost, xpe_gain modules
 
@@ -60,12 +64,17 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull) {
 }
 
 XPE_API void xpe_shutdown(void) {
-    std::lock_guard<std::mutex> lock(g_alertMutex);
-    // Clear alert queue
-    while (!g_alertQueue.empty()) {
-        g_alertQueue.pop();
+    {
+        std::lock_guard<std::mutex> lock(g_alertMutex);
+        // Clear alert queue
+        while (!g_alertQueue.empty()) {
+            g_alertQueue.pop();
+        }
+        g_initialized = false;
     }
-    g_initialized = false;
+    // @MX:ANCHOR: [AUTO] Release log file handles — REQ-GUI-IT-030
+    // @MX:REASON: Prior log file must be closed so tests can delete the temp path
+    xpe_log_internal_reset();
 }
 
 XPE_API const char* xpe_version(void) {
@@ -95,7 +104,25 @@ XPE_API XpeErrorCode xpe_get_param_range(const char* bodyPart, const char* param
                                          float* minVal, float* maxVal, float* defaultVal) {
     if (!bodyPart || !paramName || !minVal || !maxVal || !defaultVal)
         return XPE_ERR_INVALID_INPUT;
-    // TODO: Lookup parameter ranges from ParameterValidator
+
+    // @MX:ANCHOR: [AUTO] Init guard — REQ-GUI-IT-040
+    // @MX:REASON: Parameter range lookup must reject pre-init calls
+    {
+        std::lock_guard<std::mutex> lock(g_alertMutex);
+        if (!g_initialized) return XPE_ERR_NOT_INITIALIZED;
+    }
+
+    // Body-part whitelist (REQ-GUI-IT-026): reject unknown anatomy strings
+    // TODO: Replace with ParameterValidator backed by JSON catalog
+    static const char* const kKnownBodyParts[] = {
+        "CHEST", "ABDOMEN", "PELVIS", "SPINE", "SKULL", "HEAD", "EXTREMITY"
+    };
+    bool validBodyPart = false;
+    for (const char* known : kKnownBodyParts) {
+        if (std::strcmp(bodyPart, known) == 0) { validBodyPart = true; break; }
+    }
+    if (!validBodyPart) return XPE_ERR_INVALID_INPUT;
+
     *minVal = 0.0f;
     *maxVal = 1.0f;
     *defaultVal = 0.5f;
@@ -119,6 +146,7 @@ XPE_API const char* xpe_error_string(XpeErrorCode code) {
         case XPE_ERR_BUFFER_TOO_SMALL:     return "Buffer too small";
         case XPE_ERR_IO_FAILED:            return "I/O operation failed";
         case XPE_ERR_NETWORK_FAILED:       return "Network operation failed";
+        case XPE_ERR_SAFETY_VIOLATION:     return "Safety violation";
         default:                           return "Unknown error";
     }
 }

@@ -28,6 +28,9 @@ dist/
 *.egg-info/
 *.egg
 
+# Test run artifacts (TRX, per-run logs)
+artifacts/
+
 # ===========================================
 # Python Cache & Bytecode
 # ===========================================

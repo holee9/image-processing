@@ -9,6 +9,8 @@
 #include "xpe/common/xpe_common_api.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/null_sink.h>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 
@@ -62,24 +64,67 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
     std::lock_guard<std::mutex> lock(g_logMutex);
 
     try {
+        // Always release any prior custom logger so its file handle is closed
+        // before we open a new one (REQ-GUI-IT-030: repeat calls must not collide).
+        if (g_logger) {
+            g_logger->flush();
+            spdlog::drop("xpe_file");
+            g_logger.reset();
+        }
+
         if (filePath == nullptr) {
             // Revert to default console logger
-            g_logger = nullptr;
-            // Use spdlog's default console logger
             spdlog::set_default_logger(spdlog::default_logger());
             spdlog::set_level(to_spdlog_level(g_currentLevel));
-        } else {
-            // Create file sink with rotation
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filePath, true);
-            g_logger = std::make_shared<spdlog::logger>("xpe_file", file_sink);
-            g_logger->set_level(to_spdlog_level(g_currentLevel));
-            g_logger->flush_on(to_spdlog_level(g_currentLevel));
-            spdlog::set_default_logger(g_logger);
+            return XPE_OK;
         }
+
+        // Validate parent directory existence BEFORE touching spdlog
+        // (basic_file_sink does not auto-create directories reliably on Windows
+        //  and may swallow failures depending on OS/spdlog build).
+        std::filesystem::path p(filePath);
+        auto parent = p.parent_path();
+        if (!parent.empty() && !std::filesystem::exists(parent)) {
+            return XPE_ERR_IO_FAILED;
+        }
+
+        // Create fresh file sink
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filePath, true);
+        g_logger = std::make_shared<spdlog::logger>("xpe_file", file_sink);
+        g_logger->set_level(to_spdlog_level(g_currentLevel));
+        g_logger->flush_on(to_spdlog_level(g_currentLevel));
+        spdlog::set_default_logger(g_logger);
         return XPE_OK;
     } catch (...) {
         // spdlog exceptions (file permissions, disk full, etc.)
         return XPE_ERR_IO_FAILED;
+    }
+}
+
+// Internal helper invoked by xpe_shutdown to release the custom file sink so
+// that callers (tests, hosts) can delete/rotate the underlying log file.
+// After reset, spdlog::default_logger() points at a null-sink logger so that
+// xpe_log_flush() (and any other default-logger consumer) is safe to call.
+void xpe_log_internal_reset() {
+    std::lock_guard<std::mutex> lock(g_logMutex);
+
+    // Install a null-sink default FIRST so that default_logger() never holds a
+    // dangling pointer to the logger we are about to drop.
+    try {
+        spdlog::drop("xpe_default_null");
+        auto null_logger = std::make_shared<spdlog::logger>(
+            "xpe_default_null",
+            std::make_shared<spdlog::sinks::null_sink_mt>());
+        spdlog::set_default_logger(null_logger);
+    } catch (...) {
+        // set_default_logger must not break the reset sequence
+    }
+
+    if (g_logger) {
+        try {
+            spdlog::drop("xpe_file");
+        } catch (...) {}
+        g_logger.reset();
     }
 }
 

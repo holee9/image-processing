@@ -65,6 +65,13 @@ extern "C" {
  * REQ-P0-026: JSON config parsing with error handling.
  */
 XPE_API XpeErrorCode xpe_aed_configure(const char* jsonConfig) {
+    // @MX:ANCHOR: [AUTO] Init guard — REQ-GUI-IT-040
+    // @MX:REASON: xpe_aed_configure must reject pre-init calls to preserve state machine invariants
+    bool* initialized_ptr = xpe_initialized_flag();
+    if (initialized_ptr && !(*initialized_ptr)) {
+        return XPE_ERR_NOT_INITIALIZED;
+    }
+
     std::lock_guard<std::mutex> lock(g_aedMutex);
 
     if (jsonConfig == nullptr) {

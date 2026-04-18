@@ -31,9 +31,6 @@ XPE_API XpeErrorCode xpe_aed_configure(const char* jsonConfig);
 XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut, uint64_t* timestampOut, float* signalLevelOut);
 XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut);
 
-/* Special return value for "no event available" (REQ-P0-028a) */
-#define XPE_STATUS_NO_EVENT 1
-
 #ifdef __cplusplus
 }
 #endif
