@@ -76,8 +76,8 @@ namespace ImageProcTest
 
             if (health.IsExportReady)
             {
-                var executionGap = health.MissingExecutionExports.Count == 0
-                    ? "pipeline export present"
+                var executionEvidence = health.MissingExecutionExports.Count == 0
+                    ? "native adapter chain uses offset/gain/defect exports"
                     : $"missing execution export(s): {string.Join(", ", health.MissingExecutionExports)}";
 
                 if (health.IsSyntheticOracleReady)
@@ -86,16 +86,16 @@ namespace ImageProcTest
                         "xpe_preprocess",
                         "R3",
                         "Synthetic oracle ready",
-                        $"version={health.Version}; dll={health.DllPath}; adapter-chain smoke passed; latency={health.SyntheticOracle.TotalLatencyMs:0.###}ms; {executionGap}",
-                        "Next: run local raw/calibration fixture E2E before enabling GUI On/Auto real processing.",
-                        ProcessingEnabled: false);
+                        $"version={health.Version}; dll={health.DllPath}; adapter-chain smoke passed; latency={health.SyntheticOracle.TotalLatencyMs:0.###}ms; {executionEvidence}",
+                        "GUI preview execution can use the native adapter chain; fixture-calibrated clinical processing still needs R4 E2E.",
+                        ProcessingEnabled: true);
                 }
 
                 return new ModuleReadinessSnapshot(
                     "xpe_preprocess",
                     "R2",
                     "Version and export checklist ready",
-                    $"version={health.Version}; dll={health.DllPath}; synthetic={health.SyntheticOracle.Status}; {executionGap}",
+                    $"version={health.Version}; dll={health.DllPath}; synthetic={health.SyntheticOracle.Status}; {executionEvidence}",
                     "Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.",
                     ProcessingEnabled: false);
             }

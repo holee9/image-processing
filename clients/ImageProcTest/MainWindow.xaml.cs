@@ -17,7 +17,9 @@ namespace ImageProcTest
         private BackendHealthResult? lastBackendHealth;
         private string? lastReadinessReportPath;
         private PreprocessHealthResult? lastPreprocessHealth;
+        private NativePreprocessPreviewResult? lastNativePreviewResult;
         private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
+        private bool hasInitializedNativeStageDefaults;
 
         public MainWindow()
         {
@@ -141,6 +143,7 @@ namespace ImageProcTest
                     lastBackendHealth,
                     lastReadinessReportPath,
                     lastPreprocessHealth,
+                    lastNativePreviewResult,
                     GetStageModes(),
                     currentModuleReadiness);
 
@@ -192,6 +195,7 @@ namespace ImageProcTest
                 lastPreprocessHealth = null;
             }
 
+            UpdateNativePreviewControls();
             RefreshModuleReadiness();
         }
 
@@ -234,8 +238,10 @@ namespace ImageProcTest
                 BeforePreviewImage.Source = null;
                 AfterPreviewImage.Source = null;
                 currentPreview = null;
+                lastNativePreviewResult = null;
                 RawZoomSlider.Value = 1;
                 CompareSwipeSlider.Value = 0.5;
+                AfterPreviewLabelText.Text = "After preview";
 
                 var preview = RawPreviewService.LoadUInt16Preview(path);
                 currentPreview = preview;
@@ -248,7 +254,10 @@ namespace ImageProcTest
                     $"preview={preview.PreviewWidth}x{preview.PreviewHeight}, stride={preview.SampleStride}, " +
                     $"min={preview.MinValue}, max={preview.MaxValue}";
                 RawPreviewHashText.Text = $"SHA-256: {preview.Sha256}";
-                ProcessingScaffoldText.Text = "Processing scaffold: Before=original, After=identity mock. Native correction is still disabled until preprocess readiness gates pass.";
+                ProcessingScaffoldText.Text = IsNativePreviewReady()
+                    ? "Processing scaffold: Before=original. Select stage modes and apply the native preview chain to update After."
+                    : "Processing scaffold: Before=original, After=identity mock. Native correction is disabled until preprocess readiness gates pass.";
+                UpdateNativePreviewControls();
                 UpdateComparisonClip();
             }
             catch (Exception ex)
@@ -256,20 +265,72 @@ namespace ImageProcTest
                 BeforePreviewImage.Source = null;
                 AfterPreviewImage.Source = null;
                 currentPreview = null;
+                lastNativePreviewResult = null;
                 RawPreviewInfoText.Text = $"Raw preview failed: {ex.Message}";
                 RawPreviewHashText.Text = "SHA-256: unavailable";
+                NativePreviewText.Text = "Native preview: unavailable";
+                UpdateNativePreviewControls();
+            }
+        }
+
+        private void ApplyNativePreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (currentPreview is null)
+            {
+                NativePreviewText.Text = "Native preview: load a raw file first.";
+                return;
+            }
+
+            if (!IsNativePreviewReady())
+            {
+                NativePreviewText.Text = "Native preview: preprocess synthetic oracle is not ready.";
+                return;
+            }
+
+            var selection = GetPreprocessSelection();
+            if (!selection.HasAnyStage)
+            {
+                NativePreviewText.Text = "Native preview: select at least one Offset/Gain/Defect stage.";
+                return;
+            }
+
+            try
+            {
+                SetStatus("Running native preprocess preview...", Brushes.Goldenrod);
+                var result = NativePreprocessPreviewService.Run(currentPreview, selection, lastPreprocessHealth?.DllPath);
+                lastNativePreviewResult = result;
+                AfterPreviewImage.Source = result.Bitmap;
+                AfterPreviewLabelText.Text = "Native after";
+                NativePreviewText.Text =
+                    $"Native preview: {FormatStageSummary(result.Stages)}; " +
+                    $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}";
+                ProcessingScaffoldText.Text =
+                    $"Processing scaffold: native preview adapter chain executed from {Path.GetFileName(result.DllPath)}. " +
+                    "Calibration fixture loading remains gated on XCal assets.";
+                SetStatus("Native preprocess preview complete", Brushes.ForestGreen);
+                UpdateComparisonClip();
+            }
+            catch (Exception ex)
+            {
+                lastNativePreviewResult = null;
+                NativePreviewText.Text = $"Native preview failed: {ex.Message}";
+                SetStatus("Native preprocess preview failed", Brushes.OrangeRed);
             }
         }
 
         private IReadOnlyList<StageModeSnapshot> GetStageModes()
         {
-            const string reason = "Native preprocess/display execution is disabled until readiness gates pass.";
+            var preprocessReason = IsNativePreviewReady()
+                ? "Native preprocess preview execution is enabled for sampled raw buffers; fixture-calibrated clinical execution remains gated."
+                : "Native preprocess execution is disabled until readiness gates pass.";
+            const string displayReason = "Display execution is disabled until display pipeline exports pass readiness gates.";
+
             return
             [
-                new StageModeSnapshot("Offset", OffsetOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
-                new StageModeSnapshot("Gain", GainOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
-                new StageModeSnapshot("Defect", DefectOffRadio.IsChecked == true ? "Off" : "Unknown", reason),
-                new StageModeSnapshot("Display", DisplayOffRadio.IsChecked == true ? "Off" : "Unknown", reason)
+                new StageModeSnapshot("Offset", GetMode(OffsetOffRadio, OffsetOnRadio, OffsetAutoRadio), preprocessReason),
+                new StageModeSnapshot("Gain", GetMode(GainOffRadio, GainOnRadio, GainAutoRadio), preprocessReason),
+                new StageModeSnapshot("Defect", GetMode(DefectOffRadio, DefectOnRadio, DefectAutoRadio), preprocessReason),
+                new StageModeSnapshot("Display", GetMode(DisplayOffRadio, DisplayOnRadio, DisplayAutoRadio), displayReason)
             ];
         }
 
@@ -285,7 +346,84 @@ namespace ImageProcTest
 
             ModuleReadinessSummaryText.Text =
                 $"Executable modules={enabledCount}; blocked modules={nativeBlocked}. " +
-                "Native image processing remains disabled until module-specific readiness gates pass.";
+                "Only modules marked Exec can run preview adapters; clinical processing remains gated by fixture E2E.";
+            UpdateNativePreviewControls();
+        }
+
+        private void UpdateNativePreviewControls()
+        {
+            var preprocessReady = IsNativePreviewReady();
+            OffsetOnRadio.IsEnabled = preprocessReady;
+            OffsetAutoRadio.IsEnabled = preprocessReady;
+            GainOnRadio.IsEnabled = preprocessReady;
+            GainAutoRadio.IsEnabled = preprocessReady;
+            DefectOnRadio.IsEnabled = preprocessReady;
+            DefectAutoRadio.IsEnabled = preprocessReady;
+
+            DisplayOnRadio.IsEnabled = false;
+            DisplayAutoRadio.IsEnabled = false;
+            ApplyNativePreviewButton.IsEnabled = preprocessReady && currentPreview is not null;
+
+            if (preprocessReady && !hasInitializedNativeStageDefaults)
+            {
+                OffsetAutoRadio.IsChecked = true;
+                GainAutoRadio.IsChecked = true;
+                DefectAutoRadio.IsChecked = true;
+                hasInitializedNativeStageDefaults = true;
+            }
+
+            if (!preprocessReady)
+            {
+                StageModesInfoText.Text = "Native preprocess is not ready, so executable stages stay disabled. Off is recorded for traceability.";
+                NativePreviewText.Text = lastPreprocessHealth is null
+                    ? "Native preview: readiness has not been checked."
+                    : $"Native preview: unavailable ({lastPreprocessHealth.Status}; {lastPreprocessHealth.SyntheticOracle.Status}).";
+                return;
+            }
+
+            StageModesInfoText.Text = "Native preprocess preview is available through the offset/gain/defect adapter chain. Display output remains disabled until display pipeline exports are ready.";
+            if (lastNativePreviewResult is null)
+            {
+                NativePreviewText.Text = currentPreview is null
+                    ? "Native preview: load a raw image to run the adapter chain."
+                    : "Native preview: ready. Select stage modes and apply.";
+            }
+        }
+
+        private bool IsNativePreviewReady()
+        {
+            return lastPreprocessHealth?.IsSyntheticOracleReady == true;
+        }
+
+        private PreprocessStageSelection GetPreprocessSelection()
+        {
+            return new PreprocessStageSelection(
+                OffsetOnRadio.IsChecked == true || OffsetAutoRadio.IsChecked == true,
+                GainOnRadio.IsChecked == true || GainAutoRadio.IsChecked == true,
+                DefectOnRadio.IsChecked == true || DefectAutoRadio.IsChecked == true);
+        }
+
+        private static string GetMode(RadioButton off, RadioButton on, RadioButton auto)
+        {
+            if (on.IsChecked == true)
+            {
+                return "On";
+            }
+
+            if (auto.IsChecked == true)
+            {
+                return "Auto";
+            }
+
+            return off.IsChecked == true ? "Off" : "Unknown";
+        }
+
+        private static string FormatStageSummary(IReadOnlyList<NativePreviewStageResult> stages)
+        {
+            return string.Join(", ", stages.Select(stage =>
+                stage.Executed
+                    ? $"{stage.Stage}={stage.ErrorCode}/{stage.LatencyMs:0.###}ms"
+                    : $"{stage.Stage}=skipped"));
         }
 
         private void UpdateComparisonClip()

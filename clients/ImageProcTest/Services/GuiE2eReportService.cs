@@ -20,6 +20,7 @@ namespace ImageProcTest
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
             PreprocessHealthResult? preprocessHealth,
+            NativePreprocessPreviewResult? nativePreview,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness)
         {
@@ -64,13 +65,23 @@ namespace ImageProcTest
                 readinessReportPath,
                 preprocessHealth,
                 preprocessSyntheticOracle = preprocessHealth?.SyntheticOracle,
+                nativePreview = nativePreview is null ? null : new
+                {
+                    nativePreview.DllPath,
+                    nativePreview.TotalLatencyMs,
+                    nativePreview.OutputMin,
+                    nativePreview.OutputMax,
+                    nativePreview.Stages
+                },
                 moduleReadiness,
                 stageModes,
                 beforeAfter = new
                 {
-                    mode = "identity-mock",
-                    nativeProcessingEnabled = false,
-                    reason = "xpe_preprocess.dll readiness gates have not passed."
+                    mode = nativePreview is null ? "identity-mock" : "native-preprocess-preview",
+                    nativeProcessingEnabled = nativePreview is not null,
+                    reason = nativePreview is null
+                        ? "xpe_preprocess.dll readiness gates have not passed or preview has not been applied."
+                        : "Native offset/gain/defect adapter chain was applied to the sampled preview buffer."
                 }
             };
 
@@ -82,7 +93,7 @@ namespace ImageProcTest
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
             File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, preprocessHealth, stageModes, moduleReadiness, timestamp));
+            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, preprocessHealth, nativePreview, stageModes, moduleReadiness, timestamp));
 
             return new GuiE2eReportWriteResult(jsonPath, markdownPath);
         }
@@ -94,6 +105,7 @@ namespace ImageProcTest
             BackendHealthResult? backendHealth,
             string? readinessReportPath,
             PreprocessHealthResult? preprocessHealth,
+            NativePreprocessPreviewResult? nativePreview,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
             DateTimeOffset timestamp)
@@ -106,7 +118,25 @@ namespace ImageProcTest
             builder.AppendLine($"- Raw file: `{selectedRaw?.Path ?? "none"}`");
             builder.AppendLine($"- Readiness report: `{readinessReportPath ?? "none"}`");
             builder.AppendLine($"- Backend mode: `{backendHealth?.Mode ?? "unknown"}`");
-            builder.AppendLine($"- Native processing enabled: `false`");
+            builder.AppendLine($"- Native processing enabled: `{nativePreview is not null}`");
+            builder.AppendLine();
+
+            builder.AppendLine("## Native Preview");
+            if (nativePreview is null)
+            {
+                builder.AppendLine("- Native preview was not applied; after image is the identity mock.");
+            }
+            else
+            {
+                builder.AppendLine($"- DLL: `{nativePreview.DllPath}`");
+                builder.AppendLine($"- Total latency ms: `{nativePreview.TotalLatencyMs:0.###}`");
+                builder.AppendLine($"- Output min/max: `{nativePreview.OutputMin:0.###}` / `{nativePreview.OutputMax:0.###}`");
+                foreach (var stage in nativePreview.Stages)
+                {
+                    builder.AppendLine($"- `{stage.Stage}`: `{stage.ErrorCode}`, executed=`{stage.Executed}`, latency=`{stage.LatencyMs:0.###}` ms");
+                }
+            }
+
             builder.AppendLine();
 
             builder.AppendLine("## Preprocess Native Gate");
@@ -161,8 +191,10 @@ namespace ImageProcTest
 
             builder.AppendLine();
             builder.AppendLine("## Before/After Scaffold");
-            builder.AppendLine("- Current after image is identity-mock output.");
-            builder.AppendLine("- Native preprocess execution remains disabled until readiness gates pass.");
+            builder.AppendLine(nativePreview is null
+                ? "- Current after image is identity-mock output."
+                : "- Current after image is native preprocess preview output.");
+            builder.AppendLine("- Fixture-calibrated clinical execution remains gated until XCal fixture E2E is available.");
             return builder.ToString();
         }
     }

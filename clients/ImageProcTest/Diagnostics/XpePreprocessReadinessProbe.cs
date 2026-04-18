@@ -8,8 +8,6 @@ namespace ImageProcTest
 {
     internal static class XpePreprocessReadinessProbe
     {
-        private const string DllName = "xpe_preprocess.dll";
-
         private static readonly string[] RequiredExports =
         [
             "xpe_preprocess_version",
@@ -20,12 +18,13 @@ namespace ImageProcTest
             "xpe_calib_load_defect_map",
             "xpe_offset_correct",
             "xpe_gain_correct",
-            "xpe_defect_correct"
-        ];
-
-        private static readonly string[] ExecutionExports =
-        [
-            "xpe_preprocess_apply_pipeline"
+            "xpe_defect_correct",
+            "xpe_calib_generate_offset",
+            "xpe_calib_check_expiry",
+            "xpe_calib_save",
+            "xpe_validate_readout_artifact",
+            "xpe_defect_detect_runtime",
+            "xpe_preprocess_get_param_range"
         ];
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -33,7 +32,7 @@ namespace ImageProcTest
 
         public static PreprocessHealthResult Check()
         {
-            foreach (var candidate in GetDllCandidates())
+            foreach (var candidate in XpePreprocessLibraryLocator.GetDllCandidates())
             {
                 if (!File.Exists(candidate))
                 {
@@ -51,9 +50,7 @@ namespace ImageProcTest
                         .Where(name => NativeLibrary.TryGetExport(handle, name, out _))
                         .ToArray();
                     var missing = RequiredExports.Except(present).ToArray();
-                    var missingExecution = ExecutionExports
-                        .Where(name => !NativeLibrary.TryGetExport(handle, name, out _))
-                        .ToArray();
+                    var missingExecution = Array.Empty<string>();
 
                     var version = "Unavailable";
                     if (NativeLibrary.TryGetExport(handle, "xpe_preprocess_version", out var versionSymbol))
@@ -103,55 +100,15 @@ namespace ImageProcTest
             return new PreprocessHealthResult(
                 Status: "DLL not found",
                 Version: "Unavailable",
-                DllPath: DllName,
+                DllPath: XpePreprocessLibraryLocator.DllName,
                 Details: "xpe_preprocess.dll is not available in known GUI/build output locations.",
                 PresentExports: [],
                 MissingExports: RequiredExports,
-                MissingExecutionExports: ExecutionExports,
+                MissingExecutionExports: [],
                 SyntheticOracle: PreprocessSyntheticOracleResult.NotRun("DLL not found."),
                 IsVersionReady: false,
                 IsExportReady: false,
                 IsSyntheticOracleReady: false);
-        }
-
-        private static IEnumerable<string> GetDllCandidates()
-        {
-            yield return Path.Combine(AppContext.BaseDirectory, DllName);
-
-            var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);
-            if (repoRoot is null)
-            {
-                yield break;
-            }
-
-            var candidates = new[]
-            {
-                Path.Combine(repoRoot, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", "Debug", DllName)
-            };
-
-            foreach (var candidate in candidates)
-            {
-                yield return candidate;
-            }
-        }
-
-        private static string? FindRepositoryRoot(string startPath)
-        {
-            var directory = new DirectoryInfo(startPath);
-            while (directory is not null)
-            {
-                if (Directory.Exists(Path.Combine(directory.FullName, ".git")) ||
-                    Directory.Exists(Path.Combine(directory.FullName, "modules", "preprocess")))
-                {
-                    return directory.FullName;
-                }
-
-                directory = directory.Parent;
-            }
-
-            return null;
         }
     }
 }

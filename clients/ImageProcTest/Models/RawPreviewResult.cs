@@ -13,5 +13,6 @@ namespace ImageProcTest
         ushort MinValue,
         ushort MaxValue,
         string Sha256,
+        ushort[] SampledPixels,
         WriteableBitmap Bitmap);
 }
