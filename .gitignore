@@ -31,6 +31,10 @@ dist/
 # Test run artifacts (TRX, per-run logs)
 artifacts/
 
+# Standalone module build trees (CMake -S modules/X -B build_standalone)
+build_standalone/
+modules/**/build_standalone/
+
 # ===========================================
 # Python Cache & Bytecode
 # ===========================================
