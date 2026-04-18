@@ -399,6 +399,7 @@ namespace ImageProcTest
 
             builder.AppendLine($"- Preprocess status: `{preprocessHealth.Status}`");
             builder.AppendLine($"- Preprocess DLL: `{preprocessHealth.DllPath}`");
+            builder.AppendLine($"- Preprocess parameter ranges: `{NativeReadinessProbe.FormatPreprocessParameterRanges(preprocessHealth.ParameterRanges)}`");
             builder.AppendLine();
             builder.AppendLine("## Inventory");
             foreach (var fixtureCase in selectedCases)

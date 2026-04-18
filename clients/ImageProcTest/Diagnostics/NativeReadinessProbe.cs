@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,9 +29,18 @@ namespace ImageProcTest
         IReadOnlyList<string> MissingExports,
         IReadOnlyList<string> MissingExecutionExports,
         PreprocessSyntheticOracleResult SyntheticOracle,
+        IReadOnlyList<PreprocessParameterRangeResult> ParameterRanges,
         bool IsVersionReady,
         bool IsExportReady,
         bool IsSyntheticOracleReady);
+
+    internal sealed record PreprocessParameterRangeResult(
+        string ParamName,
+        string ErrorCode,
+        float MinValue,
+        float MaxValue,
+        bool Passed,
+        string Details);
 
     internal sealed record PreprocessSyntheticStageResult(
         string Stage,
@@ -106,8 +116,32 @@ namespace ImageProcTest
             return new NativeReadinessReportWriteResult(
                 path,
                 $"{display.Status} ({display.Version})",
-                $"{preprocess.Status} ({preprocess.Version}); smoke={preprocess.SyntheticOracle.Status}",
+                $"{preprocess.Status} ({preprocess.Version}); smoke={preprocess.SyntheticOracle.Status}; params={FormatPreprocessParameterRanges(preprocess.ParameterRanges)}",
                 preprocess);
+        }
+
+        public static string FormatPreprocessParameterRanges(IReadOnlyList<PreprocessParameterRangeResult> ranges)
+        {
+            if (ranges.Count == 0)
+            {
+                return "not available";
+            }
+
+            var passed = 0;
+            foreach (var range in ranges)
+            {
+                if (range.Passed)
+                {
+                    passed++;
+                }
+            }
+
+            var summary = string.Join(", ", ranges.Select(range =>
+                range.Passed
+                    ? $"{range.ParamName}={range.MinValue:0.###}..{range.MaxValue:0.###}"
+                    : $"{range.ParamName}={range.ErrorCode}"));
+
+            return $"{passed}/{ranges.Count} ok; {summary}";
         }
     }
 }

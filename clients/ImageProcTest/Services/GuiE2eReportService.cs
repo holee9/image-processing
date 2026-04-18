@@ -173,6 +173,7 @@ namespace ImageProcTest
                 builder.AppendLine($"- Status: `{preprocessHealth.Status}`");
                 builder.AppendLine($"- Version: `{preprocessHealth.Version}`");
                 builder.AppendLine($"- DLL: `{preprocessHealth.DllPath}`");
+                builder.AppendLine($"- Parameter ranges: `{NativeReadinessProbe.FormatPreprocessParameterRanges(preprocessHealth.ParameterRanges)}`");
                 builder.AppendLine($"- Synthetic oracle: `{preprocessHealth.SyntheticOracle.Status}`");
                 builder.AppendLine($"- Synthetic passed: `{preprocessHealth.SyntheticOracle.Passed}`");
                 builder.AppendLine($"- Total latency ms: `{preprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}`");
