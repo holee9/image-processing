@@ -2,10 +2,10 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.0.0
-status: Planned
+version: 1.1.0
+status: In Progress (SUP-01 implemented)
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-04-18
 author: manager-spec (MoAI)
 priority: High
 issue_number: 16
@@ -17,6 +17,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.1.0   | 2026-04-18 | manager-docs | SUP-01 (REQ-P1A-014~019) implemented and tested. 89/90 tests pass. XCal v1 format finalized. PicoSHA2 vendored. |
 | 1.0.0   | 2026-04-16 | manager-spec | Initial SPEC creation |
 
 ---
@@ -358,4 +359,61 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 ---
 
-*Document End - SPEC-XPE-P1A v1.0.0*
+## 8. Implementation Status
+
+### Phase 1 SUP-01 (Calibration Management) — Completed 2026-04-18
+
+| Requirement | Status | Implementation Files |
+|-------------|--------|----------------------|
+| REQ-P1A-014 | Implemented | modules/preprocess/src/xpe_calib_load_offset.cpp |
+| REQ-P1A-015 | Implemented | modules/preprocess/src/xpe_calib_load_gain.cpp |
+| REQ-P1A-016 | Implemented | modules/preprocess/src/xpe_calib_load_defect_map.cpp |
+| REQ-P1A-017 | Implemented | modules/preprocess/src/xpe_calib_generate_offset.cpp |
+| REQ-P1A-018 | Implemented | modules/preprocess/src/xpe_calib_check_expiry.cpp |
+| REQ-P1A-019 | Implemented | modules/preprocess/src/xpe_calib_save.cpp |
+
+### Core Validators & Utilities
+
+| Component | Status | Implementation Files |
+|-----------|--------|----------------------|
+| XCal Format Reader | Implemented | modules/preprocess/src/xcal_reader.cpp, modules/preprocess/include/xpe/preprocess/xcal_format.h |
+| XCal Format Writer | Implemented | modules/preprocess/src/xcal_writer.cpp |
+| XCal Validator | Implemented | modules/preprocess/src/xcal_validator.cpp |
+| SHA-256 Hash (PicoSHA2) | Implemented | third_party/picosha2/picosha2.h (header-only, MIT-0 license) |
+
+### Test Coverage — 89/90 Tests Passing
+
+| Test Suite | Count | Status |
+|-----------|-------|--------|
+| Calibration Validators | 18 | PASS |
+| XCal Reader/Writer Round-trip | 16 | PASS |
+| SHA-256 Integrity | 8 | PASS |
+| Calibration Loaders (offset/gain/defect) | 24 | PASS |
+| Expiry Check & Date Handling | 8 | PASS |
+| Offset Generation | 8 | PASS |
+| Endurance (memory leaks) | 1 | SKIP |
+| **Total** | **89/90** | **GREEN** |
+
+### Existing Requirements (Phase 0 & Prior Work)
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| REQ-P1A-001 ~ 009 | Existing | Module initialization, P/Invoke ABI, thread safety (from prior iterations or Phase 0) |
+| REQ-P1A-020 ~ 022 | Existing | Guards: uninitialized, dimension/format mismatch |
+| REQ-P1A-030 ~ 033 | Existing | Unwanted behaviors: exception safety, memory leaks, NaN/Inf validation |
+
+### Pending Features (Future Sprints)
+
+| Requirement | Target SPEC | Notes |
+|-------------|----------|-------|
+| REQ-P1A-010 ~ 013 | SPEC-XPE-P1A (PRE-02/03/06) | Offset/Gain/Defect correction algorithms — scheduled for next sprint |
+| REQ-P1A-040 ~ 042 | SPEC-XPE-P1A (AVX2/Optional) | SIMD optimization, readout artifact validation, parameter range query |
+
+### Dependencies
+
+- **xpe_common.dll**: Layer 0 dependency (used for error handling, memory allocation)
+- **PicoSHA2**: Third-party header-only library (MIT-0 license, no SOUP classification — vendored in-tree)
+
+---
+
+*Document End - SPEC-XPE-P1A v1.1.0*

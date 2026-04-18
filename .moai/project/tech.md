@@ -48,6 +48,7 @@
 | spdlog | 1.13.x | MIT | common | 비동기 로깅 |
 | nlohmann/json | 3.11.x | MIT | common | JSON 설정 파싱 |
 | fmt | 10.x | MIT | common | 문자열 서식 지정 |
+| PicoSHA2 | header-only | MIT-0 / public domain | preprocess (SUP-01) | SHA-256 무결성 검증 (XCal v1 포맷) |
 | Google Test | 1.14.x | BSD-3 | tests | 단위 테스트 프레임워크 |
 
 ## SOUP 의존성 (GSVG, 독립)
