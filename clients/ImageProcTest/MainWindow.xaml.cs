@@ -170,6 +170,9 @@ namespace ImageProcTest
                     $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
                     $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
                     $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
+                PreprocessParamRangeText.Text =
+                    $"Preprocess parameter ranges: {NativeReadinessProbe.FormatPreprocessParameterRanges(report.PreprocessHealth.ParameterRanges)}";
+                PreprocessParamRangeGrid.ItemsSource = report.PreprocessHealth.ParameterRanges;
                 ReportText.Text = $"Readiness report: {report.ReportPath}";
             }
             catch (Exception ex)
@@ -177,6 +180,8 @@ namespace ImageProcTest
                 DisplayHealthText.Text = "Display health: Report generation skipped";
                 PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
                 PreprocessSmokeText.Text = "Preprocess smoke: Report generation skipped";
+                PreprocessParamRangeText.Text = "Preprocess parameter ranges: Report generation skipped";
+                PreprocessParamRangeGrid.ItemsSource = null;
                 ReportText.Text = $"Readiness report: failed ({ex.Message})";
                 lastReadinessReportPath = null;
                 lastPreprocessHealth = null;

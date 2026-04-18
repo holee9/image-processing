@@ -79,6 +79,7 @@ namespace ImageProcTest
                 var executionEvidence = health.MissingExecutionExports.Count == 0
                     ? "native adapter chain uses offset/gain/defect exports"
                     : $"missing execution export(s): {string.Join(", ", health.MissingExecutionExports)}";
+                var paramRangeEvidence = NativeReadinessProbe.FormatPreprocessParameterRanges(health.ParameterRanges);
 
                 if (health.IsSyntheticOracleReady)
                 {
@@ -86,7 +87,7 @@ namespace ImageProcTest
                         "xpe_preprocess",
                         "R3",
                         "Synthetic oracle ready",
-                        $"version={health.Version}; dll={health.DllPath}; adapter-chain smoke passed; latency={health.SyntheticOracle.TotalLatencyMs:0.###}ms; {executionEvidence}",
+                        $"version={health.Version}; dll={health.DllPath}; adapter-chain smoke passed; latency={health.SyntheticOracle.TotalLatencyMs:0.###}ms; {executionEvidence}; params={paramRangeEvidence}",
                         "GUI preview execution can use the native adapter chain; fixture-calibrated clinical processing still needs R4 E2E.",
                         ProcessingEnabled: true);
                 }
@@ -95,7 +96,7 @@ namespace ImageProcTest
                     "xpe_preprocess",
                     "R2",
                     "Version and export checklist ready",
-                    $"version={health.Version}; dll={health.DllPath}; synthetic={health.SyntheticOracle.Status}; {executionEvidence}",
+                    $"version={health.Version}; dll={health.DllPath}; synthetic={health.SyntheticOracle.Status}; {executionEvidence}; params={paramRangeEvidence}",
                     "Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.",
                     ProcessingEnabled: false);
             }
@@ -106,7 +107,7 @@ namespace ImageProcTest
                     "xpe_preprocess",
                     "R1",
                     "Version ready, export checklist incomplete",
-                    $"version={health.Version}; missing={string.Join(", ", health.MissingExports)}",
+                    $"version={health.Version}; missing={string.Join(", ", health.MissingExports)}; params={NativeReadinessProbe.FormatPreprocessParameterRanges(health.ParameterRanges)}",
                     "Complete mandatory exports before ABI smoke or execution controls.",
                     ProcessingEnabled: false);
             }

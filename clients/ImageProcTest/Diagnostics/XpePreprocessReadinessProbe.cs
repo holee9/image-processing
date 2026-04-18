@@ -27,8 +27,24 @@ namespace ImageProcTest
             "xpe_preprocess_get_param_range"
         ];
 
+        private static readonly string[] ParameterRangeNames =
+        [
+            "integration_time_ms",
+            "temperature_c",
+            "kVp",
+            "mAs",
+            "SID_mm",
+            "pixelPitch_mm"
+        ];
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate IntPtr VersionDelegate();
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate XpeCommonApi.XpeErrorCode ParamRangeDelegate(
+            IntPtr paramName,
+            out float minValue,
+            out float maxValue);
 
         public static PreprocessHealthResult Check()
         {
@@ -59,6 +75,8 @@ namespace ImageProcTest
                         version = Marshal.PtrToStringAnsi(versionPtr) ?? "<empty>";
                     }
 
+                    var parameterRanges = ProbeParameterRanges(handle);
+
                     if (missing.Length > 0)
                     {
                         return new PreprocessHealthResult(
@@ -70,6 +88,7 @@ namespace ImageProcTest
                             MissingExports: missing,
                             MissingExecutionExports: missingExecution,
                             SyntheticOracle: PreprocessSyntheticOracleResult.NotRun("Export checklist is incomplete."),
+                            ParameterRanges: parameterRanges,
                             IsVersionReady: version != "Unavailable",
                             IsExportReady: false,
                             IsSyntheticOracleReady: false);
@@ -87,6 +106,7 @@ namespace ImageProcTest
                         MissingExports: missing,
                         MissingExecutionExports: missingExecution,
                         SyntheticOracle: synthetic,
+                        ParameterRanges: parameterRanges,
                         IsVersionReady: true,
                         IsExportReady: true,
                         IsSyntheticOracleReady: synthetic.Passed);
@@ -106,9 +126,56 @@ namespace ImageProcTest
                 MissingExports: RequiredExports,
                 MissingExecutionExports: [],
                 SyntheticOracle: PreprocessSyntheticOracleResult.NotRun("DLL not found."),
+                ParameterRanges: [],
                 IsVersionReady: false,
                 IsExportReady: false,
                 IsSyntheticOracleReady: false);
+        }
+
+        private static IReadOnlyList<PreprocessParameterRangeResult> ProbeParameterRanges(IntPtr handle)
+        {
+            if (!NativeLibrary.TryGetExport(handle, "xpe_preprocess_get_param_range", out var symbol))
+            {
+                return [];
+            }
+
+            var getRange = Marshal.GetDelegateForFunctionPointer<ParamRangeDelegate>(symbol);
+            var results = new List<PreprocessParameterRangeResult>();
+
+            foreach (var name in ParameterRangeNames)
+            {
+                var namePtr = Marshal.StringToHGlobalAnsi(name);
+                try
+                {
+                    var code = getRange(namePtr, out var minValue, out var maxValue);
+                    var passed = code == XpeCommonApi.XpeErrorCode.OK && minValue <= maxValue;
+                    results.Add(new PreprocessParameterRangeResult(
+                        name,
+                        code.ToString(),
+                        minValue,
+                        maxValue,
+                        passed,
+                        passed
+                            ? "xpe_preprocess_get_param_range returned a bounded range."
+                            : "xpe_preprocess_get_param_range returned an error or invalid bounds."));
+                }
+                catch (Exception ex)
+                {
+                    results.Add(new PreprocessParameterRangeResult(
+                        name,
+                        "Exception",
+                        float.NaN,
+                        float.NaN,
+                        Passed: false,
+                        Details: ex.Message));
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(namePtr);
+                }
+            }
+
+            return results;
         }
     }
 }

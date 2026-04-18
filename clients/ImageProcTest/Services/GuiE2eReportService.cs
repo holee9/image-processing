@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ImageProcTest
 {
@@ -97,7 +98,11 @@ namespace ImageProcTest
             var jsonPath = Path.Combine(directory, $"{name}.json");
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
-            File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(jsonPath, JsonSerializer.Serialize(report, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+            }));
             File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, preprocessHealth, nativePreview, stageModes, moduleReadiness, timestamp));
 
             return new GuiE2eReportWriteResult(jsonPath, markdownPath);
@@ -168,6 +173,7 @@ namespace ImageProcTest
                 builder.AppendLine($"- Status: `{preprocessHealth.Status}`");
                 builder.AppendLine($"- Version: `{preprocessHealth.Version}`");
                 builder.AppendLine($"- DLL: `{preprocessHealth.DllPath}`");
+                builder.AppendLine($"- Parameter ranges: `{NativeReadinessProbe.FormatPreprocessParameterRanges(preprocessHealth.ParameterRanges)}`");
                 builder.AppendLine($"- Synthetic oracle: `{preprocessHealth.SyntheticOracle.Status}`");
                 builder.AppendLine($"- Synthetic passed: `{preprocessHealth.SyntheticOracle.Passed}`");
                 builder.AppendLine($"- Total latency ms: `{preprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}`");

@@ -190,6 +190,18 @@ cmake --build --preset ci-common
 ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebInfo
 ```
 
+### ImageProcTest GUI fixture E2E
+
+GitHub Issue #28 tracks the GUI preprocess R4 fixture acceptance gate. After local calibration raw payloads and native DLLs are staged, run:
+
+```powershell
+dotnet build clients\ImageProcTest\ImageProcTest.csproj -c Debug
+dotnet clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll --probe-native-readiness
+dotnet clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll --run-preprocess-fixture-e2e
+```
+
+The fixture E2E command writes JSON and Markdown reports under `clients/ImageProcTest/bin/Debug/net8.0-windows/preprocess-fixture-e2e/`. It records PRE-E2E-0 inventory, PRE-E2E-2 matching fixture execution, PRE-E2E-5 mismatch-negative evidence, raw SHA-256 preservation, calibration loads, native stage execution, latency, delta metrics, and blocker details.
+
 ---
 
 ## GitHub CI/CD
