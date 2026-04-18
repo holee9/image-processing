@@ -493,7 +493,7 @@ XpeError xpe_validate_pipeline_config(const char* config_json);
 
 - **범위 초과**: `XPE_ERR_PARAM_OUT_OF_RANGE` 반환
 - **조합 불가능**: `XPE_ERR_PARAM_INVALID_COMBINATION` (예: sdd < 400mm with 100mm pinhole)
-- **로깅**: AED를 통해 경고 알림 발송
+- **로깅**: Alert Queue를 통해 경고 알림 발송
 - **파이프라인 중단**: 필수 검증 실패 시 파이프라인 시작 거부
 
 ---
@@ -666,7 +666,7 @@ Frame A arrives
 1. **즉시 반환**: C 함수에서 에러 발생 → `XpeError` enum 반환
 2. **스레드-로컬 저장**: 에러 컨텍스트 (메시지, 파일, 라인) `_xpe_error_context`에 저장
 3. **C#에서 폴링**: `xpe_get_last_error()` → `xpe_get_last_error_detail()` 호출
-4. **알림 발송**: 심각한 에러는 AED를 통해 C#에 비동기 알림
+4. **알림 발송**: 심각한 에러는 Alert Queue를 통해 C#에 비동기 알림
 
 ### 에러 분류
 

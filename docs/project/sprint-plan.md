@@ -407,12 +407,12 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 ---
 
-### SPRINT-P0-05: Auto Exposure Detection Event Interface and Alert Subsystem
+### SPRINT-P0-05: Auto Exposure Detection (AED) Interface and Alert Queue
 
 **Sprint ID**: SPRINT-P0-05
-**Sprint Goal**: Implement Automatic Exposure Detection event interface and the alert ring buffer.
-**SWU Scope**: SWU-5.8 (AedEventInterface)
-**API Functions**: `xpe_aed_configure`, `xpe_aed_poll_event`, `xpe_aed_get_status`, `xpe_get_pending_alert_count`, `xpe_get_pending_alert`, `xpe_clear_alerts`
+**Sprint Goal**: Implement Auto Exposure Detection (AED) event interface and the alert ring buffer (Alert Queue). AED는 detector 고유 노출 감지 기능이며, Alert Queue는 일반적인 경고/알림 인프라이다.
+**SWU Scope**: SWU-5.8 (ExposureDetector)
+**API Functions**: `xpe_aed_configure`, `xpe_aed_poll_event`, `xpe_aed_get_status` (Auto Exposure Detection), `xpe_get_pending_alert_count`, `xpe_get_pending_alert`, `xpe_clear_alerts` (Alert Queue)
 **Dependencies**: SPRINT-P0-04 (lifecycle/config)
 **Estimated Complexity**: Medium
 

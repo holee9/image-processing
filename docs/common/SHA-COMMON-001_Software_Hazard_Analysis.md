@@ -608,7 +608,7 @@ fprintf(stderr, "Event Queue Overflow: %lu alerts discarded\n", g_event_discarde
 ### HAZ-CMN-007: C# P/Invoke 콜백 크래시로 인한 DLL 불안정성
 
 #### 위험 설명
-AED가 C# 콜백을 호출할 때 콜백 함수가 예외를 발생시키거나 포인터 역참조 오류를 일으킬 수 있다. C++ 코드(DLL)가 C# 예외를 처리하지 못하면 전체 프로세스가 불안정해질 수 있다.
+Event System이 C# 콜백을 호출할 때 콜백 함수가 예외를 발생시키거나 포인터 역참조 오류를 일으킬 수 있다. C++ 코드(DLL)가 C# 예외를 처리하지 못하면 전체 프로세스가 불안정해질 수 있다.
 
 #### 위험 경로
 
