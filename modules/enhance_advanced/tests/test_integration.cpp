@@ -48,7 +48,6 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 512 * sizeof(float);
     img.data = new float[512 * 512];
 
     // Initialize with test pattern
@@ -59,7 +58,7 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Test: Call all 4 functions - should never throw exception
     try {
@@ -119,13 +118,12 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 512 * sizeof(float);
     img.data = new float[512 * 512];
     std::memset(img.data, 0, 512 * 512 * sizeof(float));
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Test: Execute functions - should generate logs
     // Note: Automated log verification requires custom spdlog sink
@@ -141,7 +139,7 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
     EXPECT_EQ(result, XPE_OK);
     EXPECT_GT(duration, 0);  // Some time elapsed
 
-    delete[] data;
+    delete[] static_cast<float*>(img.data);
     xpe_enhance_advanced_shutdown();
 }
 
@@ -169,7 +167,6 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 512 * sizeof(float);
     img.data = new float[512 * 512];
 
     // Initialize with realistic test pattern
@@ -185,7 +182,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
     meta.kVp = 120.0f;
     meta.mAs = 100.0f;
 
@@ -207,7 +204,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
 
     // Stage 4: Exposure Index Calculation
     float ei, di;
-    XpeErrorCode result4 = xpe_calc_exposure_index(&img, &meta, &ei, &di, nullptr);
+    XpeErrorCode result4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
     ASSERT_EQ(result4, XPE_OK);
 
     auto pipelineEnd = high_resolution_clock::now();
@@ -280,7 +277,6 @@ TEST(IntegrationTest, T604_ThreadSafety) {
             img.width = IMG_SIZE;
             img.height = IMG_SIZE;
             img.format = XPE_PIXEL_FLOAT32;
-            img.stride = IMG_SIZE * sizeof(float);
             img.data = new float[IMG_SIZE * IMG_SIZE];
 
             // Initialize with unique pattern per thread
@@ -291,7 +287,7 @@ TEST(IntegrationTest, T604_ThreadSafety) {
 
             XpeImageMetadata meta;
             std::memset(&meta, 0, sizeof(meta));
-            meta.bodyPart = XPE_BODY_PART_CHEST;
+            strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
             // Execute full pipeline
             XpeErrorCode r1 = xpe_multiscale_process(&img, &meta, nullptr);
@@ -370,7 +366,6 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
         img.width = IMG_SIZE;
         img.height = IMG_SIZE;
         img.format = XPE_PIXEL_FLOAT32;
-        img.stride = IMG_SIZE * sizeof(float);
         img.data = new float[IMG_SIZE * IMG_SIZE];
 
         // Initialize
@@ -378,7 +373,7 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
 
         XpeImageMetadata meta;
         std::memset(&meta, 0, sizeof(meta));
-        meta.bodyPart = XPE_BODY_PART_CHEST;
+        strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
         // Execute all functions
         XpeErrorCode r1 = xpe_multiscale_process(&img, &meta, nullptr);
@@ -441,7 +436,6 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 512 * sizeof(float);
     img.data = new float[512 * 512];
 
     // Path 1: NULL pointer checks
@@ -449,7 +443,7 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 
     // Path 2: Invalid format
-    img.format = XPE_PIXEL_UINT8;
+    img.format = XPE_PIXEL_UINT16;
     EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
     img.format = XPE_PIXEL_FLOAT32;
 
@@ -493,14 +487,13 @@ TEST(IntegrationTest, T607_IndependentFunctionCalling) {
         img->width = 256;
         img->height = 256;
         img->format = XPE_PIXEL_FLOAT32;
-        img->stride = 256 * sizeof(float);
         img->data = new float[256 * 256];
         std::memset(img->data, 0.5f, 256 * 256 * sizeof(float));
     }
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Test: Call each function independently (no dependency on others)
 
@@ -560,7 +553,6 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
     img.width = IMG_SIZE;
     img.height = IMG_SIZE;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = IMG_SIZE * sizeof(float);
     img.data = new float[IMG_SIZE * IMG_SIZE];
 
     // Initialize with realistic pattern
@@ -571,7 +563,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Measure MFP performance
     // Budget: < 800ms for 3072x3072 -> ~22ms for 512x512
@@ -644,13 +636,12 @@ TEST(IntegrationTest, T609_SIMIDispatchPreparation) {
     img.width = 256;
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 256 * sizeof(float);
     img.data = new float[256 * 256];
     std::memset(img.data, 0.5f, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Verify scalar implementations work
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
@@ -691,13 +682,12 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     img.width = 256;
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
-    img.stride = 256 * sizeof(float);
     img.data = new float[256 * 256];
     std::memset(img.data, 0.5f, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    meta.bodyPart = XPE_BODY_PART_CHEST;
+    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
 
     // Call functions to verify they exist and are documented
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);

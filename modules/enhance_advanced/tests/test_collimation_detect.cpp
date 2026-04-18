@@ -43,7 +43,6 @@ protected:
         img.width = static_cast<uint32_t>(width);
         img.height = static_cast<uint32_t>(height);
         img.format = XPE_PIXEL_FLOAT32;
-        img.stride = width * sizeof(float);
 
         std::vector<float> buffer(width * height, fillValue);
         imageData_.push_back(std::move(buffer));
@@ -140,7 +139,7 @@ TEST_F(CollimationDetectTest, NullOutputPointerReturnsInvalidInput) {
 TEST_F(CollimationDetectTest, WrongPixelFormatReturnsUnsupportedFormat) {
     // Arrange
     XpeImageBuffer img = createFloatImage(100, 100);
-    img.format = XPE_PIXEL_UINT8;  // Wrong format
+    img.format = XPE_PIXEL_UINT16;  // Wrong format
     int32_t x0, y0, x1, y1;
 
     // Act & Assert

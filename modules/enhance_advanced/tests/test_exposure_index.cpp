@@ -48,7 +48,6 @@ protected:
         img.width = static_cast<uint32_t>(width);
         img.height = static_cast<uint32_t>(height);
         img.format = XPE_PIXEL_FLOAT32;
-        img.stride = width * sizeof(float);
 
         std::vector<float> buffer(width * height, fillValue);
         imageData_.push_back(std::move(buffer));
@@ -396,7 +395,7 @@ TEST_F(ExposureIndexTest, T506_NULLPointerRejection) {
     int width = 256;
     int height = 256;
     XpeImageBuffer img = createFloatImage(width, height, 1.0f);
-    XpeImageMetadata meta = createMetadata(XPE_BODY_PART_CHEST, 1.0f);
+    XpeImageMetadata meta = createMetadata("CHEST", 1.0f);
 
     float ei = 0.0f;
     float di = 0.0f;

@@ -35,11 +35,10 @@ protected:
         img_.height = height_;
         img_.format = XPE_PIXEL_FLOAT32;
         img_.data = testData_.data();
-        img_.stride = width_ * sizeof(float);
 
         // Setup metadata
         meta_.kVp = 120.0f;
-        meta_.bodyPart = "CHEST";
+        strncpy(meta_.bodyPart, "CHEST", sizeof(meta_.bodyPart));
     }
 
     void TearDown() override {
@@ -210,7 +209,6 @@ TEST_F(MfpScalarTest, SmallImage) {
     smallImg.height = 64;
     smallImg.format = XPE_PIXEL_FLOAT32;
     smallImg.data = smallData.data();
-    smallImg.stride = 64 * sizeof(float);
 
     XpeErrorCode result = xpe_multiscale_process(&smallImg, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);
@@ -232,7 +230,6 @@ TEST_F(MfpScalarTest, NonPowerOf2Dimensions) {
     np2Img.height = 150;
     np2Img.format = XPE_PIXEL_FLOAT32;
     np2Img.data = np2Data.data();
-    np2Img.stride = 100 * sizeof(float);
 
     XpeErrorCode result = xpe_multiscale_process(&np2Img, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);

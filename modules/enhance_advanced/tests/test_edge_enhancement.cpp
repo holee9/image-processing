@@ -46,7 +46,6 @@ protected:
         img.width = static_cast<uint32_t>(width);
         img.height = static_cast<uint32_t>(height);
         img.format = XPE_PIXEL_FLOAT32;
-        img.stride = width * sizeof(float);
 
         std::vector<float> buffer(width * height, fillValue);
         imageData_.push_back(std::move(buffer));
@@ -324,7 +323,6 @@ TEST_F(EdgeEnhancementTest, T303_OvershootLimiterEnforcement) {
     beforeImg.width = img.width;
     beforeImg.height = img.height;
     beforeImg.format = img.format;
-    beforeImg.stride = img.stride;
     beforeImg.data = before.data();
 
     bool overshootLimited = verifyOvershootLimit(beforeImg, img);
@@ -394,7 +392,6 @@ TEST_F(EdgeEnhancementTest, T304_FractionalProcessIntegration) {
     beforeImg.width = img.width;
     beforeImg.height = img.height;
     beforeImg.format = img.format;
-    beforeImg.stride = img.stride;
     beforeImg.data = before.data();
 
     EXPECT_TRUE(verifyOvershootLimit(beforeImg, img))
