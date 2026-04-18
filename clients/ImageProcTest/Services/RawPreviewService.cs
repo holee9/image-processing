@@ -155,6 +155,30 @@ namespace ImageProcTest
             return CreateGray8Bitmap(pixels, width, height);
         }
 
+        internal static WriteableBitmap CreateGray8Bitmap(
+            ReadOnlySpan<float> values,
+            int width,
+            int height,
+            float windowMin,
+            float windowMax)
+        {
+            if (values.Length != checked(width * height))
+            {
+                throw new ArgumentException("Pixel count does not match bitmap dimensions.", nameof(values));
+            }
+
+            var pixels = new byte[values.Length];
+            var range = Math.Max(1.0f, windowMax - windowMin);
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                var value = float.IsFinite(values[i]) ? values[i] : windowMin;
+                pixels[i] = (byte)Math.Clamp(((value - windowMin) * 255.0f) / range, 0.0f, 255.0f);
+            }
+
+            return CreateGray8Bitmap(pixels, width, height);
+        }
+
         private static WriteableBitmap CreateGray8Bitmap(byte[] pixels, int width, int height)
         {
             var bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Gray8, null);

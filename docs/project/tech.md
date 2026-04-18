@@ -27,7 +27,7 @@ It answers:
 |---|---|---|
 | C++17 | native algorithm implementation | primary language for detector correction, enhancement, display, DICOM, and AI proxy layers |
 | C11 ABI surface | exported DLL contract | stable boundary for host integration and P/Invoke |
-| C# / .NET 8 / WPF | orchestration and QA host | `ImageProcTest.exe`, integration harness, QA workflows |
+| C# / .NET 8 / WPF | orchestration and QA host | `ImageProcTest.exe`, fixture-calibrated native preprocessing, Before/After delta metrics, QA workflows |
 
 The project rule remains:
 

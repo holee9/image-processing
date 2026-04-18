@@ -86,15 +86,14 @@
                 <Separator Margin="0,16,0,12"/>
 
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Raw Fixture Browser" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                    <TextBlock Text="Preprocessing Fixture Test" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <Button Content="Refresh Fixtures" Width="120" Margin="0,0,8,0" Click="RefreshFixturesButton_Click"/>
-                        <Button Content="Open Raw File..." Width="120" Click="OpenRawFileButton_Click"/>
+                        <Button Content="Refresh Fixtures" Width="120" Click="RefreshFixturesButton_Click"/>
                     </StackPanel>
                 </DockPanel>
 
                 <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                    <TextBlock Text="This browser is a GUI and E2E scaffold. It proves that local fixture data can be selected, hashed, dimension-checked, previewed, zoomed, and panned before native preprocessing is enabled. Native correction remains disabled until preprocess readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+                    <TextBlock Text="Select a prepared fixture case, load one raw image from that case, then run Offset/Gain/Defect preprocessing with the calibration raw files in the same case. The app converts those calibration raws to preview-sized XCal files, loads them into xpe_preprocess.dll, and reports before/after delta metrics so execution is verifiable." TextWrapping="Wrap" FontSize="13"/>
                 </Border>
 
                 <Grid>
@@ -111,6 +110,12 @@
                                       DisplayMemberPath="DisplayName"
                                       SelectionChanged="FixtureCaseComboBox_SelectionChanged"
                                       Margin="0,0,0,10"/>
+                            <TextBlock x:Name="SelectedCaseText"
+                                       Text="Selected case: none"
+                                       TextWrapping="Wrap"
+                                       FontSize="11"
+                                       Foreground="#FF57606A"
+                                       Margin="0,0,0,10"/>
 
                             <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <ListBox x:Name="ImageFilesListBox"
@@ -128,7 +133,7 @@
                                     Height="30"
                                     Click="LoadSelectedRawButton_Click"/>
                             <Button x:Name="ApplyNativePreviewButton"
-                                    Content="Apply Native Preview"
+                                    Content="Run Preprocessing Test"
                                     Margin="0,6,0,0"
                                     Height="30"
                                     IsEnabled="False"
@@ -138,7 +143,7 @@
 
                             <TextBlock Text="Stage modes" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock x:Name="StageModesInfoText"
-                                       Text="Native preprocess is not ready, so executable stages stay disabled. Off is recorded for traceability."
+                                       Text="Offset/Gain/Defect controls are enabled when xpe_preprocess.dll exports are available. Auto runs only when the selected fixture case has a matching calibration role."
                                        TextWrapping="Wrap"
                                        FontSize="11"
                                        Foreground="#FF57606A"
@@ -163,13 +168,6 @@
                                 <RadioButton x:Name="DefectOffRadio" Content="Off" GroupName="DefectMode" IsChecked="True" Margin="0,0,10,0"/>
                                 <RadioButton x:Name="DefectOnRadio" Content="On" GroupName="DefectMode" IsEnabled="False" Margin="0,0,10,0"/>
                                 <RadioButton x:Name="DefectAutoRadio" Content="Auto" GroupName="DefectMode" IsEnabled="False"/>
-                            </StackPanel>
-
-                            <TextBlock Text="Display" FontSize="12" FontWeight="SemiBold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
-                                <RadioButton x:Name="DisplayOffRadio" Content="Off" GroupName="DisplayMode" IsChecked="True" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="DisplayOnRadio" Content="On" GroupName="DisplayMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="DisplayAutoRadio" Content="Auto" GroupName="DisplayMode" IsEnabled="False"/>
                             </StackPanel>
 
                             <TextBlock x:Name="NativePreviewText"
@@ -200,7 +198,7 @@
 
                             <StackPanel Grid.Row="0">
                                 <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="RawPreviewInfoText" Text="Select a fixture image or open a raw file." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="RawPreviewInfoText" Text="Select a fixture image, then load it for preprocessing verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
                             </StackPanel>
 
@@ -277,7 +275,7 @@
 
                             <TextBlock Grid.Row="4"
                                        x:Name="ProcessingScaffoldText"
-                                       Text="Processing scaffold: native preprocess is disabled. Before/After comparison currently uses an identity mock output."
+                                       Text="Preprocessing test: Before is the selected raw image. After updates only after fixture calibration is loaded and native preprocessing stages execute."
                                        FontSize="12"
                                        TextWrapping="Wrap"
                                        Margin="0,8,0,0"/>

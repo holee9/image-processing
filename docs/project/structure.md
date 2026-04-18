@@ -1,8 +1,8 @@
 # Project Structure
 
 **Document ID**: XPE-STRUCTURE-001  
-**Version**: 1.3.0  
-**Date**: 2026-04-16  
+**Version**: 1.4.0
+**Date**: 2026-04-18
 **Status**: Controlled Draft  
 **Canonical Scope**: `docs/project/`
 
@@ -31,7 +31,7 @@ The structure document describes the target code and binary layout that all plan
 | `modules/display/` | not yet present | Phase 1b module |
 | `modules/dicom/` | not yet present | Phase 1b module |
 | `gsvg/` | not yet present in source tree | independent Phase 2 module |
-| `gui/` | not yet present in source tree | C# orchestrator and QA application |
+| `gui/` → `clients/` | present (C# WPF) | C# orchestrator and QA application (`ImageProcTest.exe`); fixture-calibrated native preprocessing with XCal conversion, Before/After delta metrics |
 | `tests/common_smoke/` | present | initial native smoke test |
 | `docs/project/` | present | canonical design and plan set |
 
@@ -53,8 +53,10 @@ image-processing/
 |   |-- display/
 |   `-- dicom/
 |-- gsvg/
-|-- gui/
+|-- clients/
 |   |-- ImageProcTest/
+|   |   |-- Models/            # FixtureCaseInfo, CalibrationRole, CalibrationFileDescriptor
+|   |   |-- Services/          # NativePreprocessPreviewService, FixtureCatalogService, RawPreviewService, GuiE2eReportService
 |   |   `-- fixtures/
 |   |-- ImageProcTest.SelfCheck/
 |   `-- ImageProcTest.E2E/
@@ -87,7 +89,7 @@ image-processing/
 | `modules/display/` | `xpe_display.dll` | 1 | 1b | 4 SWU | 11 |
 | `modules/dicom/` | `xpe_dicom.dll` | 1 | 1b | 4 SWU | 10 |
 | `gsvg/` | `gsvg.dll` | 1-G | 2 | 4 SI | 8 |
-| `gui/` | `ImageProcTest.exe` | 2 | 0+ | 2 SWU | N/A |
+| `clients/` | `ImageProcTest.exe` | 2 | 0+ | 2 SWU | N/A |
 
 ### 4.1 Canonical totals
 

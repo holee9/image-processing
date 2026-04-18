@@ -14,7 +14,7 @@ XPE is a modular X-ray flat panel detector image-processing engine. It converts 
 
 The delivery plan is staged:
 
-- **Phase 0**: foundation, common ABI, orchestration, QA scaffolding
+- **Phase 0**: foundation, common ABI, orchestration, QA scaffolding (now fixture-calibrated native preprocessing via XCal conversion)
 - **Phase 1a**: deterministic detector correction
 - **Phase 1b**: deterministic enhancement, display, DICOM, whole-image EI
 - **Phase 2**: deterministic premium processing and GSVG
@@ -131,11 +131,12 @@ The previous `43` total is retired by this revision.
 
 The final application shall support:
 
-- raw/calibration fixture selection;
-- stage Off/On/Auto control;
+- raw/calibration fixture selection with automatic calibration role inference (Offset/Gain/Defect/Reference);
+- stage Off/On/Auto control per preprocessing stage;
+- fixture-calibrated native preprocessing: raw calibration files are converted to XCal format and loaded into `xpe_preprocess.dll`;
 - before/after comparison with swipe, zoom, pan, and pixel inspection;
-- module-specific metrics and pass/fail gates;
-- JSON/Markdown E2E report generation;
+- quantitative Before/After delta metrics (meanAbsDelta, RMSE, maxAbsDelta, changed pixel ratio);
+- JSON/Markdown preprocessing test report generation (schema `xpe-preprocess-gui-test-v1`);
 - embedded help/manual content;
 - a diagnostics area for DLL readiness, ABI, version, export, fallback, and alert triage.
 

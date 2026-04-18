@@ -27,7 +27,7 @@ namespace ImageProcTest
             var timestamp = DateTimeOffset.UtcNow;
             var report = new
             {
-                schema = "xpe-gui-e2e-scaffold-v1",
+                schema = "xpe-preprocess-gui-test-v1",
                 timestampUtc = timestamp,
                 selectedCase = selectedCase is null ? null : new
                 {
@@ -35,11 +35,13 @@ namespace ImageProcTest
                     selectedCase.RootPath,
                     imageCount = selectedCase.Images.Count,
                     calibrationCount = selectedCase.CalibrationFiles.Count,
+                    selectedCase.CalibrationSummary,
                     calibrationFiles = selectedCase.CalibrationFiles.Select(file => new
                     {
                         file.Name,
                         file.Path,
-                        file.Length
+                        file.Length,
+                        Role = file.Role.ToString()
                     })
                 },
                 selectedRaw = selectedRaw is null ? null : new
@@ -68,9 +70,12 @@ namespace ImageProcTest
                 nativePreview = nativePreview is null ? null : new
                 {
                     nativePreview.DllPath,
+                    nativePreview.ArtifactDirectory,
+                    nativePreview.CalibrationLoads,
                     nativePreview.TotalLatencyMs,
                     nativePreview.OutputMin,
                     nativePreview.OutputMax,
+                    nativePreview.Metrics,
                     nativePreview.Stages
                 },
                 moduleReadiness,
@@ -80,15 +85,15 @@ namespace ImageProcTest
                     mode = nativePreview is null ? "identity-mock" : "native-preprocess-preview",
                     nativeProcessingEnabled = nativePreview is not null,
                     reason = nativePreview is null
-                        ? "xpe_preprocess.dll readiness gates have not passed or preview has not been applied."
-                        : "Native offset/gain/defect adapter chain was applied to the sampled preview buffer."
+                        ? "xpe_preprocess.dll export readiness has not passed or preprocessing has not been applied."
+                        : "Fixture calibration raw files were converted to XCal, loaded into xpe_preprocess.dll, and applied to the sampled preview buffer."
                 }
             };
 
-            var directory = Path.Combine(AppContext.BaseDirectory, "gui-e2e-reports");
+            var directory = Path.Combine(AppContext.BaseDirectory, "preprocess-gui-reports");
             Directory.CreateDirectory(directory);
 
-            var name = $"gui-e2e-{timestamp:yyyyMMdd-HHmmss}";
+            var name = $"preprocess-gui-{timestamp:yyyyMMdd-HHmmss}";
             var jsonPath = Path.Combine(directory, $"{name}.json");
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
@@ -111,10 +116,11 @@ namespace ImageProcTest
             DateTimeOffset timestamp)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("# GUI E2E Scaffold Report");
+            builder.AppendLine("# Preprocess GUI Test Report");
             builder.AppendLine();
             builder.AppendLine($"- Timestamp UTC: `{timestamp:O}`");
             builder.AppendLine($"- Fixture case: `{selectedCase?.Name ?? "none"}`");
+            builder.AppendLine($"- Calibration roles: `{selectedCase?.CalibrationSummary ?? "none"}`");
             builder.AppendLine($"- Raw file: `{selectedRaw?.Path ?? "none"}`");
             builder.AppendLine($"- Readiness report: `{readinessReportPath ?? "none"}`");
             builder.AppendLine($"- Backend mode: `{backendHealth?.Mode ?? "unknown"}`");
@@ -129,11 +135,24 @@ namespace ImageProcTest
             else
             {
                 builder.AppendLine($"- DLL: `{nativePreview.DllPath}`");
+                builder.AppendLine($"- Artifacts: `{nativePreview.ArtifactDirectory}`");
                 builder.AppendLine($"- Total latency ms: `{nativePreview.TotalLatencyMs:0.###}`");
                 builder.AppendLine($"- Output min/max: `{nativePreview.OutputMin:0.###}` / `{nativePreview.OutputMax:0.###}`");
+                builder.AppendLine($"- Mean absolute delta: `{nativePreview.Metrics.MeanAbsoluteDelta:0.###}`");
+                builder.AppendLine($"- RMSE: `{nativePreview.Metrics.Rmse:0.###}`");
+                builder.AppendLine($"- Max absolute delta: `{nativePreview.Metrics.MaxAbsoluteDelta:0.###}`");
+                builder.AppendLine($"- Changed pixels: `{nativePreview.Metrics.ChangedPixels}/{nativePreview.Metrics.PixelCount}` (`{nativePreview.Metrics.ChangedPixelRatio:P2}`)");
+                builder.AppendLine($"- Input preserved: `{nativePreview.Metrics.InputPreserved}`");
+                builder.AppendLine($"- NaN/Inf count: `{nativePreview.Metrics.NaNInfCount}`");
+                foreach (var load in nativePreview.CalibrationLoads)
+                {
+                    builder.AppendLine($"- Calibration `{load.Stage}`: status=`{load.Status}`, loaded=`{load.Loaded}`, source=`{load.SourceRawPath ?? "none"}`, xcal=`{load.XCalPath ?? "none"}`");
+                    builder.AppendLine($"  Details: {load.Details}");
+                }
                 foreach (var stage in nativePreview.Stages)
                 {
                     builder.AppendLine($"- `{stage.Stage}`: `{stage.ErrorCode}`, executed=`{stage.Executed}`, latency=`{stage.LatencyMs:0.###}` ms");
+                    builder.AppendLine($"  Details: {stage.Details}");
                 }
             }
 
@@ -193,8 +212,8 @@ namespace ImageProcTest
             builder.AppendLine("## Before/After Scaffold");
             builder.AppendLine(nativePreview is null
                 ? "- Current after image is identity-mock output."
-                : "- Current after image is native preprocess preview output.");
-            builder.AppendLine("- Fixture-calibrated clinical execution remains gated until XCal fixture E2E is available.");
+                : "- Current after image is fixture-calibrated native preprocess output.");
+            builder.AppendLine("- This GUI test is diagnostic preview execution on sampled buffers; clinical workflow release still needs formal fixture E2E acceptance.");
             return builder.ToString();
         }
     }
