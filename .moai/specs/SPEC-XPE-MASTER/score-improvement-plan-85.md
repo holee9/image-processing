@@ -21,18 +21,23 @@
 
 IEC 62304, EARS 추적성, 문서 완전성, 교차검증 이슈 해소를 중심으로 평가.
 
-| 영역 | 배점 | 현재 (2026-04-17) | 비고 |
+| 영역 | 배점 | 현재 (2026-04-19) | 비고 |
 |------|:----:|:-----------------:|------|
-| 요구사항 완전성 (EARS) | 25 | **13** | P0만 완성, P1~P3 미작성 |
-| 문서 품질 (IEC 62304) | 20 | **17** | 풀 패키지 존재, api-spec v1.2 미출판 |
+| 요구사항 완전성 (EARS) | 25 | **13** | P1A EARS 완성, P1B~P3 미작성 |
+| 문서 품질 (IEC 62304) | 20 | **18** | AED 제거·docs sync 완료, api-spec v1.3.0 출판 |
 | 아키텍처 설계 | 20 | **17** | 파이프라인 물리 정확성 확인, Binning-Gain 미문서화 |
-| 구현 진행도 | 20 | **8** | xpe_common /WX 빌드 성공, 전체 모듈 스텁 빌드 |
-| 품질 보증 | 15 | **10** | unit tests 86/86 통과, Google Test 구성 완료 |
-| **합계** | **100** | **63** | 2026-04-17 기준 |
+| 구현 진행도 | 20 | **13** | Phase 1a 전처리 9스테이지 + pipeline 통합 완료 |
+| 품질 보증 | 15 | **13** | P1A 89/90 + GUI-IT 78/78 + common 91/91 GREEN |
+| **합계** | **100** | **70** | 2026-04-19 기준 |
 
 **변경 이력 (v2.0.0 → v2.1.0)**:
 - 구현 진행도 6→8: xpe_common.cpp 버그 5건 수정, /WX 빌드 통과, 전체 7개 DLL 스텁 빌드 성공
 - 품질 보증 8→10: Google Test vcpkg 구성, unit test 86/86 통과 (기존 스모크 전용에서 unit 포함으로 확장)
+
+**변경 이력 (v2.1.0 → v2.2.0)** (2026-04-19):
+- 구현 진행도 8→13: Phase 1a 전처리 9스테이지 완료 (Offset/Gain/Defect/Ghost Tier1~3/Temp/Nonlin/Binning/Readout), xpe_preprocess_pipeline 통합
+- 품질 보증 10→13: P1A 89/90 + GUI-IT 78/78 + xpe_common 강화 (91/91)
+- 문서 품질 17→18: AED 완전 제거 (CRITICAL 정책 준수), docs sync, api-spec v1.3.0
 
 ### 1.2 Framework B — Product/Delivery Score (Codex 분석 기반)
 
@@ -161,19 +166,13 @@ Phase 1b 완료 (Framework B): 66점   ← Codex 기준 첫 번째 의미 있는
 
 #### 전제: 블로커 해소 (즉시)
 
-| 항목 | 파일 | 비고 |
-|------|------|------|
-| `XPE_STATUS_NO_EVENT = 1` 추가 | `modules/common/include/xpe/common/xpe_error.h` | R8-02 해소 |
-| api-spec.md v1.2.0 AED 시그니처 확정 | `docs/project/api-spec.md` | R6-01, R8-01 해소 |
-| SPEC-XPE-P0 REQ-P0-026~028 수정 | `.moai/specs/SPEC-XPE-P0/spec.md` | AED 시그니처 일치 |
-
 #### Phase 0 완성
 
 | Task | 결과물 | Framework A | Framework B |
 |------|--------|:-----------:|:-----------:|
 | S0-A: Google Test + CTest 통합 | CI 자동화 가동 | QA +1 | Operational +1 |
 | S0-A: 8모듈 스캐폴딩 | 디렉토리 구조 | 구현 +1 | Functional +0.5 |
-| S0-B: xpe_common 18/18 완성 | DLL + 45 tests | 구현 +3, QA +2 | Functional +1 |
+| S0-B: xpe_common 15/15 완성 | DLL + 45 tests | 구현 +3, QA +2 | Functional +1 |
 | S0-C: WPF skeleton + P/Invoke | ImageProcTest.exe | 구현 +1 | Functional +0.5 |
 
 #### Phase 1a: xpe_preprocess (SPEC-XPE-P1A 선행 필수)
@@ -245,7 +244,7 @@ Phase 1b 완료 (Framework B): 66점   ← Codex 기준 첫 번째 의미 있는
 - [ ] EARS 총 요구사항 >= 120개 (P0 33 + P1A 45 + COMMON-CROSS 30 + P1B 일부)
 - [ ] api-spec.md v1.2.0 + SDD v1.1 출판 완료
 - [ ] OPEN CRITICAL 이슈 0건
-- [ ] xpe_common.dll 18/18 함수 + >= 85% 커버리지
+- [ ] xpe_common.dll 15/15 함수 + >= 85% 커버리지
 - [ ] Google Test + CI/CD 자동화 가동
 - [ ] 8/8 모듈 디렉토리 존재
 

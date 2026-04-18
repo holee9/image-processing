@@ -46,7 +46,7 @@ Snapshot date: 2026-04-16.
 
 | Module | Observed status | GUI integration decision |
 |---|---|---|
-| `xpe_common.dll` | Runtime DLL exists; exported lifecycle, memory, alert, log, and Auto Exposure Detection APIs were observed. | Ready for baseline native health/status integration. |
+| `xpe_common.dll` | Runtime DLL exists; exported lifecycle, memory, alert, and log APIs were observed. | Ready for baseline native health/status integration. |
 | `xpe_preprocess.dll` | Source or runtime DLL not present in the current inspected workspace snapshot. | Not ready. Prepare gates and adapter contract only. |
 | `xpe_display.dll` | Runtime DLL exists but only `xpe_display_version` was observed. Display pipeline entry points were not available. | Not ready for real display pipeline. Keep mock/fallback path. |
 | `xpe_enhance_basic.dll` | No ready source/runtime export evidence in the inspected snapshot. | Not ready. |

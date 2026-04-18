@@ -12,12 +12,22 @@
 #include <ctime>
 #include <cstring>
 #include <chrono>
+#include <limits>
 
 /* =========================================================================
  * CRC-32/ISO-HDLC implementation (polynomial 0xEDB88320)
  * ========================================================================= */
 static uint32_t crc32_table[256] = {0};
 static bool     crc32_table_init = false;
+
+static FILE* xpe_fopen(const char* filePath, const char* mode) noexcept {
+#if defined(_MSC_VER)
+    FILE* file = nullptr;
+    return (fopen_s(&file, filePath, mode) == 0) ? file : nullptr;
+#else
+    return std::fopen(filePath, mode);
+#endif
+}
 
 static void init_crc32_table() {
     for (uint32_t i = 0; i < 256; ++i) {
@@ -43,7 +53,7 @@ uint32_t xpe_crc32(const uint8_t* data, size_t len) noexcept {
 static XpeErrorCode calib_load_file(const char* filePath, XpeImageBuffer* mapOut) {
     if (!filePath || !mapOut) return XPE_ERR_INVALID_INPUT;
 
-    FILE* f = std::fopen(filePath, "rb");
+    FILE* f = xpe_fopen(filePath, "rb");
     if (!f) return XPE_ERR_IO_FAILED;
 
     CalibFileHeader hdr{};
@@ -66,25 +76,44 @@ static XpeErrorCode calib_load_file(const char* filePath, XpeImageBuffer* mapOut
         return XPE_ERR_CALIBRATION_EXPIRED;
     }
 
+    XpePixelFormat format = static_cast<XpePixelFormat>(hdr.pixelFormat);
+    size_t pixelSize = 0;
+    if (!xpe_pixel_size(format, &pixelSize)) {
+        std::fclose(f);
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+    if (hdr.width == 0 || hdr.height == 0) {
+        std::fclose(f);
+        return XPE_ERR_IO_FAILED;
+    }
     const size_t n = static_cast<size_t>(hdr.width) * hdr.height;
-    const size_t pixelSize = (hdr.pixelFormat == XPE_PIXEL_FORMAT_FLOAT32) ? 4u : 2u;
+    if (n > std::numeric_limits<size_t>::max() / pixelSize) {
+        std::fclose(f);
+        return XPE_ERR_IO_FAILED;
+    }
     const size_t payloadBytes = n * pixelSize;
+    if (!mapOut->data || mapOut->dataSize < payloadBytes) {
+        std::fclose(f);
+        return XPE_ERR_BUFFER_TOO_SMALL;
+    }
 
-    // REQ-P1A-035: caller must have pre-allocated mapOut->pixels
-    if (std::fread(mapOut->pixels, 1, payloadBytes, f) != payloadBytes) {
+    // REQ-P1A-035: caller must have pre-allocated mapOut->data
+    if (std::fread(mapOut->data, 1, payloadBytes, f) != payloadBytes) {
         std::fclose(f);
         return XPE_ERR_IO_FAILED;
     }
     std::fclose(f);
 
     // REQ-P1A-036: verify CRC-32 of pixel payload
-    uint32_t crc = xpe_crc32(static_cast<const uint8_t*>(mapOut->pixels), payloadBytes);
+    uint32_t crc = xpe_crc32(static_cast<const uint8_t*>(mapOut->data), payloadBytes);
     if (crc != hdr.payloadCrc32) return XPE_ERR_IO_FAILED;
 
     mapOut->width = hdr.width;
     mapOut->height = hdr.height;
-    mapOut->pixelFormat = static_cast<XpePixelFormat>(hdr.pixelFormat);
-    mapOut->stride = hdr.width * static_cast<uint32_t>(pixelSize);
+    mapOut->format = format;
+    mapOut->bitsAllocated = static_cast<uint32_t>(pixelSize * 8u);
+    mapOut->bitsStored = mapOut->bitsAllocated;
+    mapOut->dataSize = payloadBytes;
     return XPE_OK;
 }
 
@@ -118,22 +147,31 @@ XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* frames,
 {
     if (!frames || frameCount == 0 || !offsetMapOut) return XPE_ERR_INVALID_INPUT;
     (void)configJsonOrNull;
+    size_t n = 0;
+    if (!xpe_buffer_has_format(&frames[0], XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
+    if (!xpe_buffer_has_format(offsetMapOut, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-038: compute per-pixel mean across frameCount uint16 dark frames
-    const size_t n = static_cast<size_t>(frames[0].width) * frames[0].height;
-    auto* out = static_cast<uint16_t*>(offsetMapOut->pixels);
+    auto* out = static_cast<uint16_t*>(offsetMapOut->data);
 
     for (size_t i = 0; i < n; ++i) {
         uint64_t sum = 0;
-        for (uint32_t f = 0; f < frameCount; ++f)
-            sum += static_cast<const uint16_t*>(frames[f].pixels)[i];
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            if (!xpe_dims_match(&frames[0], &frames[f]) ||
+                !xpe_buffer_has_format(&frames[f], XPE_PIXEL_UINT16)) {
+                return XPE_ERR_INVALID_INPUT;
+            }
+            sum += static_cast<const uint16_t*>(frames[f].data)[i];
+        }
         out[i] = static_cast<uint16_t>(sum / frameCount);
     }
 
     offsetMapOut->width = frames[0].width;
     offsetMapOut->height = frames[0].height;
-    offsetMapOut->pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-    offsetMapOut->stride = frames[0].width * static_cast<uint32_t>(sizeof(uint16_t));
+    offsetMapOut->format = XPE_PIXEL_UINT16;
+    offsetMapOut->bitsAllocated = 16;
+    offsetMapOut->bitsStored = 16;
+    offsetMapOut->dataSize = n * sizeof(uint16_t);
     return XPE_OK;
 }
 
@@ -142,7 +180,7 @@ XpeErrorCode xpe_calib_check_expiry(const char* filePath,
 {
     if (!filePath || !expiryEpochMsOut) return XPE_ERR_INVALID_INPUT;
 
-    FILE* f = std::fopen(filePath, "rb");
+    FILE* f = xpe_fopen(filePath, "rb");
     if (!f) return XPE_ERR_IO_FAILED;
 
     CalibFileHeader hdr{};
@@ -168,12 +206,28 @@ XpeErrorCode xpe_calib_save(const XpeImageBuffer* calibMap,
     if (!calibMap || !filePath) return XPE_ERR_INVALID_INPUT;
     (void)configJsonOrNull;
 
-    FILE* f = std::fopen(filePath, "wb");
+    FILE* f = xpe_fopen(filePath, "wb");
     if (!f) return XPE_ERR_IO_FAILED;
 
-    const size_t n = static_cast<size_t>(calibMap->width) * calibMap->height;
-    const size_t pixelSize = (calibMap->pixelFormat == XPE_PIXEL_FORMAT_FLOAT32) ? 4u : 2u;
+    size_t pixelSize = 0;
+    if (!xpe_pixel_size(calibMap->format, &pixelSize)) {
+        std::fclose(f);
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+    size_t n = 0;
+    if (!xpe_pixel_count(calibMap, &n)) {
+        std::fclose(f);
+        return XPE_ERR_INVALID_INPUT;
+    }
+    if (n > std::numeric_limits<size_t>::max() / pixelSize) {
+        std::fclose(f);
+        return XPE_ERR_INVALID_INPUT;
+    }
     const size_t payloadBytes = n * pixelSize;
+    if (!calibMap->data || calibMap->dataSize < payloadBytes) {
+        std::fclose(f);
+        return XPE_ERR_INVALID_INPUT;
+    }
 
     CalibFileHeader hdr{};
     hdr.magic[0] = 'X'; hdr.magic[1] = 'P';
@@ -181,13 +235,13 @@ XpeErrorCode xpe_calib_save(const XpeImageBuffer* calibMap,
     hdr.version = 1;
     hdr.width = calibMap->width;
     hdr.height = calibMap->height;
-    hdr.pixelFormat = static_cast<uint32_t>(calibMap->pixelFormat);
+    hdr.pixelFormat = static_cast<uint32_t>(calibMap->format);
     hdr.expiryEpochMs = expiryEpochMs;
     hdr.payloadCrc32 = xpe_crc32(
-        static_cast<const uint8_t*>(calibMap->pixels), payloadBytes);
+        static_cast<const uint8_t*>(calibMap->data), payloadBytes);
 
     if (std::fwrite(&hdr, sizeof(hdr), 1, f) != 1 ||
-        std::fwrite(calibMap->pixels, 1, payloadBytes, f) != payloadBytes) {
+        std::fwrite(calibMap->data, 1, payloadBytes, f) != payloadBytes) {
         std::fclose(f);
         return XPE_ERR_IO_FAILED;
     }

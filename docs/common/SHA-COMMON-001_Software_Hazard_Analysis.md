@@ -585,11 +585,9 @@ if (queue_full) {
 
 ```c
 // 오버플로우 추적
-static uint64_t g_aed_discarded_count = 0;
 
 // 오버플로우 발생 시 경고 알림 자동 발송
 if (queue_overflow) {
-    g_aed_discarded_count++;
     // 무한 루프 방지: 5초마다 1회만 발송
     if (time_since_last_overflow_warning > 5000ms) {
         // 내부적으로 새 알림을 발송 (별도 큐 사용 또는 콘솔 로그)

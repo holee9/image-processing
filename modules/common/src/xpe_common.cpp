@@ -1,7 +1,7 @@
 /**
  * @file xpe_common.cpp
  * @brief xpe_common.dll implementation -- lifecycle, config, param range,
- *        error strings, alert queue, logging, and AED subsystem.
+ *        error strings, alert queue, and logging.
  *
  * IEC 62304 Class B -- Software Unit Implementation.
  * All exported symbols are extern "C"; no C++ exceptions cross the C ABI.
@@ -14,7 +14,6 @@
 #include "xpe/common/xpe_common_api.h"
 
 #include <array>
-#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
@@ -30,21 +29,6 @@
 struct AlertEntry {
     std::string  message;
     int32_t      severity{0};
-};
-
-// @MX:NOTE: AED state: 0=IDLE, 1=ARMED, 2=TRIGGERED (REQ-P0-028)
-struct AedEvent {
-    int32_t  eventType{0};
-    uint64_t timestamp{0};
-    float    signalLevel{0.0f};
-};
-
-struct AedConfig {
-    bool     enabled{true};
-    int32_t  triggerThresholdAdu{500};
-    int32_t  settleTimeMs{100};
-    int32_t  minExposureMs{5};
-    int32_t  maxExposureMs{5000};
 };
 
 /* ============================================================================
@@ -66,13 +50,6 @@ static std::deque<AlertEntry> g_alertQueue;
 static int32_t           g_logLevel{2};      // default INFO
 static std::string       g_logFilePath;
 static std::ofstream     g_logFile;
-
-// AED subsystem
-static AedConfig         g_aedConfig;
-static std::atomic<int32_t> g_aedState{0};   // 0=IDLE, 1=ARMED, 2=TRIGGERED
-static std::deque<AedEvent>  g_aedEvents;
-static std::mutex            g_aedMutex;
-static bool                  g_aedConfigured{false};
 
 /* Version string -- semantic versioning */
 static const char* kVersionString = "0.1.0";
@@ -147,15 +124,6 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
             }
         }
 
-        // Reset AED subsystem (separate mutex, safe outside g_mutex)
-        {
-            std::lock_guard<std::mutex> aedLk(g_aedMutex);
-            g_aedConfigured = false;
-            g_aedState.store(0);
-            g_aedEvents.clear();
-            g_aedConfig = AedConfig{};
-        }
-
         // internal_log acquires g_mutex; must be called after releasing it
         internal_log(2, "xpe_init: library initialised");
         return XPE_OK;
@@ -173,14 +141,6 @@ XPE_API void xpe_shutdown(void)
         g_initialized = false;
         g_alertQueue.clear();
         g_configJson.clear();
-
-        // Reset AED
-        {
-            std::lock_guard<std::mutex> aedLk(g_aedMutex);
-            g_aedConfigured = false;
-            g_aedState.store(0);
-            g_aedEvents.clear();
-        }
 
         // Flush and close log file
         if (g_logFile.is_open()) {
@@ -275,7 +235,6 @@ XPE_API const char* xpe_error_string(XpeErrorCode code)
 {
     switch (code) {
         case XPE_OK:                       return "Success";
-        case XPE_STATUS_NO_EVENT:          return "No pending event";
         case XPE_ERR_INVALID_INPUT:        return "Invalid input parameter";
         case XPE_ERR_OUT_OF_MEMORY:        return "Out of memory";
         case XPE_ERR_PROCESSING_FAILED:    return "Processing failed";
@@ -381,138 +340,11 @@ XPE_API void xpe_log_flush(void)
 }
 
 /* ============================================================================
- * AED subsystem (REQ-P0-026 .. REQ-P0-028)
- * ============================================================================ */
-
-// @MX:ANCHOR: xpe_aed_configure is the AED entry point; called from C# P/Invoke.
-// @MX:REASON: [AUTO] fan_in >= 3 callers expected (GUI, test harness, batch pipeline).
-XPE_API XpeErrorCode xpe_aed_configure(const char* configJsonOrNull)
-{
-    {
-        std::lock_guard<std::mutex> lk(g_mutex);
-        if (!g_initialized) return XPE_ERR_NOT_INITIALIZED;
-    }
-
-    try {
-        std::lock_guard<std::mutex> aedLk(g_aedMutex);
-
-        AedConfig cfg;  // start from defaults
-
-        if (configJsonOrNull) {
-            // Minimal JSON validation
-            const char* p = configJsonOrNull;
-            while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
-            if (*p != '{') return XPE_ERR_CONFIG_INVALID;
-
-            // Simple key extraction without pulling in nlohmann/json for
-            // this minimal implementation. For production, use nlohmann::json.
-            auto extract_int = [](const char* json, const char* key, int32_t& out) -> bool {
-                const char* pos = std::strstr(json, key);
-                if (!pos) return false;
-                pos = std::strchr(pos, ':');
-                if (!pos) return false;
-                ++pos;
-                while (*pos == ' ') ++pos;
-                char* end = nullptr;
-                long v = std::strtol(pos, &end, 10);
-                if (end == pos) return false;
-                out = static_cast<int32_t>(v);
-                return true;
-            };
-
-            int32_t val = 0;
-            if (extract_int(configJsonOrNull, "\"trigger_threshold_adu\"", val))
-                cfg.triggerThresholdAdu = val;
-            if (extract_int(configJsonOrNull, "\"settle_time_ms\"", val))
-                cfg.settleTimeMs = val;
-            if (extract_int(configJsonOrNull, "\"min_exposure_ms\"", val))
-                cfg.minExposureMs = val;
-            if (extract_int(configJsonOrNull, "\"max_exposure_ms\"", val))
-                cfg.maxExposureMs = val;
-        }
-
-        // Validate ranges
-        if (cfg.triggerThresholdAdu < 0 ||
-            cfg.settleTimeMs < 0          ||
-            cfg.minExposureMs < 0         ||
-            cfg.maxExposureMs < cfg.minExposureMs) {
-            return XPE_ERR_CONFIG_INVALID;
-        }
-
-        g_aedConfig     = cfg;
-        g_aedConfigured = true;
-        g_aedState.store(1);  // ARMED
-        g_aedEvents.clear();
-
-        return XPE_OK;
-    } catch (...) {
-        return XPE_ERR_CONFIG_INVALID;
-    }
-}
-
-XPE_API XpeErrorCode xpe_aed_poll_event(int32_t* eventTypeOut,
-                                          uint64_t* timestampOut,
-                                          float* signalLevelOut)
-{
-    if (!eventTypeOut || !timestampOut || !signalLevelOut)
-        return XPE_ERR_INVALID_INPUT;
-
-    {
-        std::lock_guard<std::mutex> lk(g_mutex);
-        if (!g_initialized) return XPE_ERR_NOT_INITIALIZED;
-    }
-
-    std::lock_guard<std::mutex> aedLk(g_aedMutex);
-
-    if (g_aedEvents.empty()) {
-        return XPE_STATUS_NO_EVENT;
-    }
-
-    const AedEvent& ev = g_aedEvents.front();
-    *eventTypeOut   = ev.eventType;
-    *timestampOut   = ev.timestamp;
-    *signalLevelOut = ev.signalLevel;
-    g_aedEvents.pop_front();
-
-    // Transition back to ARMED if queue is now empty
-    if (g_aedEvents.empty() && g_aedState.load() == 2) {
-        g_aedState.store(1);  // back to ARMED
-    }
-
-    return XPE_OK;
-}
-
-XPE_API XpeErrorCode xpe_aed_get_status(int32_t* stateOut)
-{
-    if (!stateOut) return XPE_ERR_INVALID_INPUT;
-
-    {
-        std::lock_guard<std::mutex> lk(g_mutex);
-        if (!g_initialized) return XPE_ERR_NOT_INITIALIZED;
-    }
-
-    *stateOut = g_aedState.load();
-    return XPE_OK;
-}
-
-/* ============================================================================
- * Internal test-support: inject AED event (not exported, used from unit tests
- * via white-box linkage).
+ * Internal test-support helpers (white-box linkage for unit tests).
  * ============================================================================ */
 
 /** @cond INTERNAL */
 extern "C" {
-
-XPE_API void xpe_test_inject_aed_event(int32_t eventType, float signalLevel)
-{
-    std::lock_guard<std::mutex> aedLk(g_aedMutex);
-    AedEvent ev;
-    ev.eventType   = eventType;
-    ev.timestamp   = unix_epoch_ms();
-    ev.signalLevel = signalLevel;
-    g_aedEvents.push_back(ev);
-    g_aedState.store(2);  // TRIGGERED
-}
 
 XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
 {

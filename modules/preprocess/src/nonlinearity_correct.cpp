@@ -23,6 +23,7 @@ XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
                                        const char* configJsonOrNull)
 {
     if (!img) return XPE_ERR_INVALID_INPUT;
+    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-013: no-op when no config supplied
     if (!configJsonOrNull) return XPE_OK;

@@ -95,7 +95,7 @@ Representative:
                           │
 ┌─────────────────────────▼─────────────────────────────────────────┐
 │ Layer 0: xpe_common.dll                                            │
-│ - Types, Memory, Config, Logger, Alert, AED (v2.0)                 │
+│ - Types, Memory, Config, Logger, Alert                             │
 │ - NEW: xpe_otel (OpenTelemetry wrapper)                            │
 │ - NEW: xpe_telemetry (drift/reject/DI events)                      │
 │ - NEW: xpe_model_card (AI governance)                              │

@@ -94,9 +94,8 @@
 | MR-FUNC-003 | DICOM Display Pipeline | PR-FUNC-020, 021, 022, 023 | SRS-FUNC-020, 021, 022, 023 |
 | MR-FUNC-013 | Source/processed large-image comparison | PR-GUI-001 | SRS-FUNC-024 |
 | MR-FUNC-004 | DICOM 파일/네트워크 | PR-FUNC-030, 031, 032 | SRS-FUNC-030, 031, 032 |
-| MR-FUNC-005 | 교정 파라미터 관리 | PR-FUNC-040 | SRS-FUNC-040 (TBD Phase 1a) |
+| MR-FUNC-005 | 교정 파라미터 관리 | PR-FUNC-040 | SRS-FUNC-016 (Logging subsystem, EI baseline) |
 | MR-FUNC-006 | EI / DI 계산 | PR-FUNC-041 | SRS-FUNC-016 (EI baseline) |
-| MR-FUNC-007 | Auto Exposure Detection 이벤트 처리 | PR-FUNC-042 | SRS-FUNC-042 (TBD Phase 0) |
 | MR-FUNC-008 | Multiscale 처리 | PR-FUNC-014, 015 | SRS-FUNC-014, 015 |
 | MR-FUNC-009 | Grid Suppression/Virtual Grid | PR-FUNC-050 | GSVG-SRS-001 (별도 패키지) |
 | MR-FUNC-010 | CNN 신체 부위 인식 | PR-FUNC-016 | SRS-FUNC-016 |
@@ -116,7 +115,7 @@
 | MR-COMPAT-002 | C ABI 인터페이스 | PR-COMPAT-001 | SRS-COMPAT-001 (TBD) |
 | MR-COMPAT-003 | Windows 10/11 64-bit | PR-COMPAT-002 | SRS-COMPAT-002 (TBD) |
 | MR-BUSI-001 | 모듈별 라이선스 | PR-BUSI-001 | — (Non-SW) |
-| MR-BUSI-002 | 파라미터 기반 FPD 추가 | PR-BUSI-002 | SRS-FUNC-040 |
+| MR-BUSI-002 | 파라미터 기반 FPD 추가 | PR-BUSI-002 | SRS-FUNC-001 (Offset/Gain calibration)|
 | MR-BUSI-003 | 규제 문서 고객 제공 | PR-BUSI-003 | — (Non-SW) |
 
 **Note**: "TBD" 항목은 해당 Phase gate 전 SRS에 추가 예정이다.
@@ -165,7 +164,8 @@
 | 1.3 | 2026-04-15 | XPE Team | §6 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건): SRS-MEAS-004, SRS-FUNC-002d/001c/009b/011c/008c, SRS-QC-004, SRS-FLUORO-002, SRS-DICOM-002, SRS-QA-001. |
 | 1.4 | 2026-04-15 | XPE Team | §7 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건): SRS-DOSE-001, SRS-DICOM-003, SRS-FUNC-001d/e, SRS-TOMO-001, SRS-FUNC-017b/014b, SRS-PERF-003, SRS-QA-002, SRS-CAL-002. |
 | 1.5 | 2026-04-16 | Codex | Added large-image GUI comparison viewer traceability for Issue #8. |
+| 1.6 | 2026-04-18 | AED-cleanup Agent | MR-FUNC-007 제거, MR-FUNC-005/006 재매핑 |
 
 ---
 
-*Document End — XPE-RTM-001 v1.3*
+*Document End — XPE-RTM-001 v1.6*

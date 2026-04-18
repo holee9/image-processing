@@ -12,7 +12,6 @@
  *   - ErrorString     (xpe_error_string)
  *   - AlertQueue      (xpe_get_pending_alert_count, xpe_get_pending_alert, xpe_clear_alerts)
  *   - Logging         (xpe_log_set_level, xpe_log_set_file, xpe_log_flush)
- *   - AED             (xpe_aed_configure, xpe_aed_poll_event, xpe_aed_get_status)
  *   - ImageMemory     (xpe_alloc_image, xpe_free_image, xpe_copy_image)
  *   - StructLayout    (P/Invoke struct-size static assertions)
  */
@@ -33,7 +32,6 @@
 // (linked from xpe_common.cpp via same target)
 // ---------------------------------------------------------------------------
 extern "C" {
-void xpe_test_inject_aed_event(int32_t eventType, float signalLevel);
 void xpe_test_inject_alert(const char* msg, int32_t severity);
 }
 
@@ -189,7 +187,6 @@ TEST(XpeErrorString, OutOfMemoryMapped) {
 TEST(XpeErrorString, AllDefinedCodesNonNull) {
     XpeErrorCode codes[] = {
         XPE_OK,
-        XPE_STATUS_NO_EVENT,
         XPE_ERR_INVALID_INPUT,
         XPE_ERR_OUT_OF_MEMORY,
         XPE_ERR_PROCESSING_FAILED,
@@ -210,10 +207,6 @@ TEST(XpeErrorString, AllDefinedCodesNonNull) {
 
 TEST(XpeErrorString, UnknownCodeReturnsUnknown) {
     EXPECT_STREQ(xpe_error_string(-9999), "Unknown error");
-}
-
-TEST(XpeErrorString, StatusNoEventMapped) {
-    EXPECT_STREQ(xpe_error_string(XPE_STATUS_NO_EVENT), "No pending event");
 }
 
 // ===========================================================================
@@ -326,114 +319,6 @@ TEST_F(XpeCommonFixture, SetLogFileInvalidPathFails) {
 
 TEST_F(XpeCommonFixture, LogFlushDoesNotCrash) {
     xpe_log_flush();  // must not crash regardless of state
-}
-
-// ===========================================================================
-// 8. AED SUBSYSTEM TESTS
-// ===========================================================================
-
-TEST_F(XpeCommonFixture, AedGetStatusBeforeConfigureReturnsIdle) {
-    // After init, AED is not yet configured -- state should be IDLE (0)
-    int32_t state = -1;
-    ASSERT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 0);  // IDLE
-}
-
-TEST_F(XpeCommonFixture, AedConfigureNullAcceptsDefaults) {
-    EXPECT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-}
-
-TEST_F(XpeCommonFixture, AedConfigureValidJsonReturnsOk) {
-    const char* json = R"({
-        "aed": {
-            "trigger_threshold_adu": 200,
-            "settle_time_ms": 50,
-            "min_exposure_ms": 10,
-            "max_exposure_ms": 3000
-        }
-    })";
-    EXPECT_EQ(xpe_aed_configure(json), XPE_OK);
-}
-
-TEST_F(XpeCommonFixture, AedConfigureInvalidJsonFails) {
-    EXPECT_EQ(xpe_aed_configure("not-json-at-all"), XPE_ERR_CONFIG_INVALID);
-}
-
-TEST_F(XpeCommonFixture, AedConfigureArmsSubsystem) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    int32_t state = -1;
-    ASSERT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 1);  // ARMED
-}
-
-TEST_F(XpeCommonFixture, AedGetStatusNullFails) {
-    EXPECT_EQ(xpe_aed_get_status(nullptr), XPE_ERR_INVALID_INPUT);
-}
-
-TEST_F(XpeCommonFixture, AedPollEventNullPtrsFail) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    uint64_t ts; float sig;
-    EXPECT_EQ(xpe_aed_poll_event(nullptr, &ts, &sig), XPE_ERR_INVALID_INPUT);
-
-    int32_t et; float sig2;
-    EXPECT_EQ(xpe_aed_poll_event(&et, nullptr, &sig2), XPE_ERR_INVALID_INPUT);
-
-    int32_t et2; uint64_t ts2;
-    EXPECT_EQ(xpe_aed_poll_event(&et2, &ts2, nullptr), XPE_ERR_INVALID_INPUT);
-}
-
-TEST_F(XpeCommonFixture, AedPollEventEmptyQueueReturnsNoEvent) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    int32_t et = -1; uint64_t ts = 0; float sig = 0.0f;
-    EXPECT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_STATUS_NO_EVENT);
-}
-
-TEST_F(XpeCommonFixture, AedPollEventConsumesInjectedEvent) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    xpe_test_inject_aed_event(1 /*exposure_end*/, 0.85f);
-
-    int32_t et = -1; uint64_t ts = 0; float sig = 0.0f;
-    ASSERT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_OK);
-    EXPECT_EQ(et, 1);
-    EXPECT_FLOAT_EQ(sig, 0.85f);
-    EXPECT_GT(ts, 0u);
-}
-
-TEST_F(XpeCommonFixture, AedPollEventTriggeredStateTransition) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    xpe_test_inject_aed_event(2 /*exposure_trigger*/, 1.0f);
-
-    int32_t state = -1;
-    ASSERT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 2);  // TRIGGERED
-
-    int32_t et; uint64_t ts; float sig;
-    ASSERT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_OK);
-
-    // After consuming, should return to ARMED
-    ASSERT_EQ(xpe_aed_get_status(&state), XPE_OK);
-    EXPECT_EQ(state, 1);  // ARMED
-}
-
-TEST_F(XpeCommonFixture, AedPollMultipleEvents) {
-    ASSERT_EQ(xpe_aed_configure(nullptr), XPE_OK);
-    xpe_test_inject_aed_event(0, 0.3f);
-    xpe_test_inject_aed_event(1, 0.7f);
-
-    int32_t et; uint64_t ts; float sig;
-    ASSERT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_OK);
-    EXPECT_EQ(et, 0);
-    ASSERT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_OK);
-    EXPECT_EQ(et, 1);
-    EXPECT_EQ(xpe_aed_poll_event(&et, &ts, &sig), XPE_STATUS_NO_EVENT);
-}
-
-TEST_F(XpeCommonFixture, AedNotInitializedAfterShutdown) {
-    xpe_shutdown();
-    int32_t state = -1;
-    EXPECT_EQ(xpe_aed_get_status(&state), XPE_ERR_NOT_INITIALIZED);
-    // Re-initialize for TearDown
-    xpe_init(nullptr);
 }
 
 // ===========================================================================

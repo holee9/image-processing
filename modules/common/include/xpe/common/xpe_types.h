@@ -53,10 +53,12 @@ extern "C" {
  * Determines the data type and interpretation of the pixel buffer.
  * All enhancement and display functions require @c XPE_PIXEL_FLOAT32.
  * Pre-processing input from the detector is @c XPE_PIXEL_UINT16.
+ * Binary masks such as bad-pixel maps use @c XPE_PIXEL_UINT8.
  */
 typedef enum XpePixelFormat {
     XPE_PIXEL_UINT16  = 0,  /**< 16-bit unsigned integer (raw detector output) */
-    XPE_PIXEL_FLOAT32 = 1   /**< 32-bit IEEE 754 single-precision float (post-gain-correction domain) */
+    XPE_PIXEL_FLOAT32 = 1,  /**< 32-bit IEEE 754 single-precision float (post-gain-correction domain) */
+    XPE_PIXEL_UINT8   = 2   /**< 8-bit unsigned integer mask or classification map */
 } XpePixelFormat;
 
 /**
@@ -158,7 +160,6 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80, "XpeImageMetada
 #define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  /**< Temperature drift compensation applied */
 #define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied */
 #define XPE_FLAG_BINNING_CORRECTED       0x00000080u  /**< Binning mode correction applied */
-#define XPE_FLAG_AED_TRIGGERED           0x00000100u  /**< Automatic Exposure Detection (AED) triggered acquisition */
 #define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  /**< Collimation region detected and masked */
 #define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (stitching) */
 #define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */

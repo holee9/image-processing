@@ -13,12 +13,10 @@
 
 | Change | Detail |
 |--------|--------|
-| AED API signature corrected | JSON-based (api-spec normative), struct references removed |
 | EARS SPEC gating added | Each sprint now requires EARS SPEC as entry criterion |
 | R8-01~R8-04 resolutions | Architecture issues from Round 8 integrated |
 | Pre-sprint checklist added | Mandatory verification steps before each sprint |
 | Coverage harmonized | Core preprocess 90%, others 85%, AI 80% |
-| XPE_ERR_NO_DATA resolved | Recommended: XPE_STATUS_NO_EVENT = 1 (non-error) |
 
 ---
 
@@ -175,27 +173,25 @@ S2-B ─────────────────────────
 
 **Acceptance**: cmake --preset release succeeds, 8 module dirs exist, CTest works
 
-### S0-B: xpe_common.dll (8 tasks)
+### S0-B: xpe_common.dll (7 tasks)
 
 | Task ID | Deliverable | SWU | Priority | Status | Sessions |
 |---------|------------|-----|:--------:|:------:|:--------:|
-| S0B-01 | Complete xpe_common_api.h (18 declarations) | -- | Must | PARTIAL | 1 |
+| S0B-01 | Complete xpe_common_api.h (15 declarations) | -- | Must | PARTIAL | 1 |
 | S0B-02 | Logging subsystem (set_level/set_file/flush) | SWU-5.4 | Must | TODO | 1 |
-| S0B-03 | AED subsystem (configure/poll/status) -- JSON API | SWU-5.8 | Must | TODO | 1 |
 | S0B-04 | Memory pool hardening (alloc/free/copy) | SWU-5.1 | Must | PARTIAL | 1 |
 | S0B-05 | Error handler + Alert queue | SWU-5.3 | Must | PARTIAL | 1 |
 | S0B-06 | Config manager (init/shutdown/configure) | SWU-5.6 | Must | PARTIAL | 1 |
 | S0B-07 | Unit tests (>= 85% coverage, >= 45 test cases) | -- | Must | TODO | 2 |
 | S0B-08 | P/Invoke compatibility test | -- | Must | TODO | 1 |
 
-**v2.0 수정**: S0B-03 AED -- JSON string 기반 API (api-spec.md normative). XpeAedConfig/XpeAedEvent struct 불필요.
+**v2.0 수정**: API count 15.
 
 **Acceptance**:
-- [ ] dumpbin /exports: exactly 18 functions
+- [ ] dumpbin /exports: exactly 15 functions
 - [ ] >= 85% statement coverage (>= 45 test cases)
 - [ ] P/Invoke round-trip test passes
 - [ ] Logging: file output + level filtering verified
-- [ ] AED: configure (JSON) -> poll -> status cycle verified
 - [ ] No memory leaks (ASan clean, 1000-cycle test)
 
 ### S0-C: C# GUI Scaffolding (4 tasks)
@@ -262,9 +258,8 @@ Phase 1b, 2, 3의 상세 스프린트 내용은 Sprint Roadmap v1.0.0과 동일�
 1. **EARS SPEC gating**: 각 스프린트 시작 전 해당 EARS SPEC 문서가 필수
 2. **Coverage harmonization**: Phase 1a=90%, Phase 1b/2=85%, Phase 3=80%
 3. **Pre-sprint checklist**: Section 3의 체크리스트 충족 필수
-4. **AED signature**: JSON string 기반 (api-spec normative)
-5. **API total**: 82 (not 83)
-6. **P2-ADV API**: 3 (not 4)
+4. **API total**: 15 functions
+5. **P2-ADV API**: 3 (not 4)
 
 ---
 
@@ -293,7 +288,6 @@ Phase 1b, 2, 3의 상세 스프린트 내용은 Sprint Roadmap v1.0.0과 동일�
 
 | ID | Issue | Resolution |
 |----|-------|-----------|
-| R8-01 | AED API signature mismatch | api-spec.md is normative. SPEC-XPE-P0 to be corrected. |
 | R8-02 | XPE_ERR_NO_DATA undefined | Add XPE_STATUS_NO_EVENT = 1 (positive, non-error) |
 | R7-SYS | ~217 EARS missing | EARS SPEC production schedule added (Section 9) |
 | R6-07 | Coverage discrepancy | Harmonized: Phase 1a=90%, 1b/2=85%, 3=80% |
@@ -338,7 +332,7 @@ Framework A 영역별 현황:
 
 | Sprint / Action | Framework A | Framework B | Cumulative (A) |
 |----------------|:-----------:|:-----------:|:--------------:|
-| 블로커 해소 (api-spec v1.2, AED fix, error code) | +2 | +0 | 63 |
+| 블로커 해소 (AED removal) | +1 (now scope-clearer) | +0 | 63 |
 | S0-A 완료 (GTest + 스캐폴딩 + CI + Coverage) | +5 | +1 | 68 |
 | S0-B 완료 (xpe_common 18/18 + 45 tests) | +5 | +1 | 73 |
 | S0-C 완료 (WPF skeleton + P/Invoke) | +2 | +0.5 | 75 |

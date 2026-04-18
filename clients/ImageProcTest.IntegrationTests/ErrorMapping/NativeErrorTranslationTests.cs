@@ -26,29 +26,6 @@ public sealed class NativeErrorTranslationTests : IDisposable
 
     // REQ-GUI-IT-040: Uninitialized guard tests are covered here too.
 
-    /// <summary>REQ-GUI-IT-040: xpe_aed_get_status before init returns NOT_INITIALIZED.</summary>
-    [Fact]
-    public void AedGetStatus_BeforeInit_ReturnsNotInitialized()
-    {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
-
-        // Shutdown first to ensure uninitialized state.
-        XpeCommonNative.xpe_shutdown();
-        var result = XpeCommonNative.xpe_aed_get_status(out _);
-        Assert.Equal(XpeCommonNative.XpeErrorCode.NOT_INITIALIZED, result);
-    }
-
-    /// <summary>REQ-GUI-IT-040: xpe_aed_configure before init returns NOT_INITIALIZED.</summary>
-    [Fact]
-    public void AedConfigure_BeforeInit_ReturnsNotInitialized()
-    {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
-
-        XpeCommonNative.xpe_shutdown();
-        var result = XpeCommonNative.xpe_aed_configure(null);
-        Assert.Equal(XpeCommonNative.XpeErrorCode.NOT_INITIALIZED, result);
-    }
-
     /// <summary>REQ-GUI-IT-040: xpe_get_param_range before init returns NOT_INITIALIZED.</summary>
     [Fact]
     public void GetParamRange_BeforeInit_ReturnsNotInitialized()

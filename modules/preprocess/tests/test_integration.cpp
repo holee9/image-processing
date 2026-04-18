@@ -30,17 +30,21 @@ struct PipelineBuffers {
         raw(w * h, 2000), offset(w * h, 200),
         gain(w * h, 1.0f), defect(w * h, 0) {
 
-        rawBuf.pixels = raw.data(); rawBuf.width = w; rawBuf.height = h;
-        rawBuf.pixelFormat = XPE_PIXEL_FORMAT_UINT16; rawBuf.stride = w * 2;
+        rawBuf.data = raw.data(); rawBuf.width = w; rawBuf.height = h;
+        rawBuf.bitsAllocated = 16; rawBuf.bitsStored = 16;
+        rawBuf.format = XPE_PIXEL_UINT16; rawBuf.dataSize = raw.size() * sizeof(uint16_t);
 
-        offsetBuf.pixels = offset.data(); offsetBuf.width = w; offsetBuf.height = h;
-        offsetBuf.pixelFormat = XPE_PIXEL_FORMAT_UINT16; offsetBuf.stride = w * 2;
+        offsetBuf.data = offset.data(); offsetBuf.width = w; offsetBuf.height = h;
+        offsetBuf.bitsAllocated = 16; offsetBuf.bitsStored = 16;
+        offsetBuf.format = XPE_PIXEL_UINT16; offsetBuf.dataSize = offset.size() * sizeof(uint16_t);
 
-        gainBuf.pixels = gain.data(); gainBuf.width = w; gainBuf.height = h;
-        gainBuf.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32; gainBuf.stride = w * 4;
+        gainBuf.data = gain.data(); gainBuf.width = w; gainBuf.height = h;
+        gainBuf.bitsAllocated = 32; gainBuf.bitsStored = 32;
+        gainBuf.format = XPE_PIXEL_FLOAT32; gainBuf.dataSize = gain.size() * sizeof(float);
 
-        defectBuf.pixels = defect.data(); defectBuf.width = w; defectBuf.height = h;
-        defectBuf.pixelFormat = XPE_PIXEL_FORMAT_UINT8; defectBuf.stride = w;
+        defectBuf.data = defect.data(); defectBuf.width = w; defectBuf.height = h;
+        defectBuf.bitsAllocated = 8; defectBuf.bitsStored = 8;
+        defectBuf.format = XPE_PIXEL_UINT8; defectBuf.dataSize = defect.size();
 
         meta.acquisitionTime = 0.0;
     }

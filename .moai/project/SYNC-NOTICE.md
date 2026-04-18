@@ -6,7 +6,7 @@ The **normative (canonical)** versions of all project documents are in `docs/pro
 
 This directory (`.moai/project/`) contains MoAI framework working copies that may be **outdated**.
 
-## Known Differences (as of 2026-04-18)
+## Known Differences (as of 2026-04-19)
 
 | File | .moai/project/ | docs/project/ | Status |
 |------|:--------------:|:-------------:|--------|
@@ -17,9 +17,6 @@ This directory (`.moai/project/`) contains MoAI framework working copies that ma
 | pipeline-spec.md | 666 lines | 185 lines | .moai/ superset; docs/ is legacy |
 
 ### Sync History
-
-- 2026-04-18: `api-spec.md` synced to v1.3.0 (S1-A start gate requirement met)
-- 2026-04-14: `api-spec.md` v1.3.0 published in docs/project/ (AED + explicit-path appendix + AED acronym control)
 
 ## Rule
 

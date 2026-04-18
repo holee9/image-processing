@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include <cstdlib>
 
 /* =========================================================================
  * Edge-aware bilinear interpolation
@@ -35,11 +36,16 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
     try_add(static_cast<int>(x),     static_cast<int>(y) + 1);
 
     if (count == 0) {
-        // All 4-connected neighbors are defective; fall back to diagonals
-        try_add(static_cast<int>(x) - 1, static_cast<int>(y) - 1);
-        try_add(static_cast<int>(x) + 1, static_cast<int>(y) - 1);
-        try_add(static_cast<int>(x) - 1, static_cast<int>(y) + 1);
-        try_add(static_cast<int>(x) + 1, static_cast<int>(y) + 1);
+        // Cluster fallback: search the nearest complete ring of valid pixels.
+        for (int radius = 1; radius <= 3 && count == 0; ++radius) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dx = -radius; dx <= radius; ++dx) {
+                    if (dx == 0 && dy == 0) continue;
+                    if (std::max(std::abs(dx), std::abs(dy)) != radius) continue;
+                    try_add(static_cast<int>(x) + dx, static_cast<int>(y) + dy);
+                }
+            }
+        }
     }
 
     return (count > 0) ? sum / static_cast<float>(count) : 0.0f;

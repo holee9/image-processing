@@ -163,17 +163,4 @@ public static class XpeCommonNative
 
     #endregion
 
-    #region AED
-
-    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern XpeErrorCode xpe_aed_configure([MarshalAs(UnmanagedType.LPStr)] string? configJson);
-
-    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern XpeErrorCode xpe_aed_poll_event(
-        out int eventType, out ulong timestamp, out float signalLevel);
-
-    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern XpeErrorCode xpe_aed_get_status(out int state);
-
-    #endregion
 }

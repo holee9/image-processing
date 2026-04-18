@@ -41,14 +41,14 @@ DICOM Output [uint16]
 
 ```
 Raw Frame
-  ↓ (0.5) Readout Validation (PRE-01)
-  ↓ (0.7) Temperature Compensation (PRE-07) 
+  ↓ (0.5) Readout Validation (PRE-01) - 신규 추가
+  ↓ (0.7) Temperature Compensation (PRE-07) - 신규 추가
   ↓ (1) Offset Correction (PRE-02) — uint16
-  ↓ (1.5) Nonlinearity Correction (PRE-08) — uint16  
+  ↓ (1.5) Nonlinearity Correction (PRE-08) - 신규 추가
   ↓ (2) Gain Correction (PRE-03) — uint16 → float32 [FORMAT BOUNDARY]
-  ↓ (2.5) Binning Correction (PRE-09) — float32
+  ↓ (2.5) Binning Correction (PRE-09) - 신규 추가
   ↓ (3) Defect Correction (PRE-06) — float32
-  ↓ (4) Ghost Removal (PRE-09) — float32
+  ↓ (4) Ghost Correction (PRE-09) — float32 [TIER 1/2/3 NLCSC]
   ↓ (5) Log Transform (POST-01) — float32
   ↓ (5a) Body Part Recognition (POST-02 AI) — float32 → metadata
   ↓ (5b) Collimation Detection (POST-09) — float32 → ROI metadata
@@ -88,11 +88,11 @@ PRE-08: Nonlinearity Correction → uint16 (선형화)
   ↓
 PRE-03: Gain Correction → float32 (Flat Field 보정 + 형식 변환)
   ↓
-PRE-09: Binning Correction → float32 (Conditional)
+PRE-09: Binning Correction → float32 (조건부)
   ↓
 PRE-06: Defect Correction → float32 (보간)
   ↓
-PRE-09: Ghost Removal → float32 (Tiered Algorithm)
+PRE-09: Ghost Correction → float32 [TIER 1/2/3 NLCSC 알고리즘]
 ```
 
 #### 데이터 구조 변화

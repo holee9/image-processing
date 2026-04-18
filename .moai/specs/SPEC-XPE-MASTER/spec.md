@@ -19,7 +19,7 @@
 | §3.5 corrected | Infrastructure SWU = **7** (not 8). SWU-5.7은 §3.7 C# GUI에 분류 |
 | §3.8 corrected | Summary 테이블 Infrastructure 행 8→7 수정 |
 | §3.9 NEW | EI-0 Phase Assignment Resolution 추가 |
-| §4 Phase 0 enhanced | P0-09~P0-12 신규 deliverable 추가 (로깅, AED, 테스트 인프라, 모듈 스캐폴딩) |
+| §4 Phase 0 enhanced | P0-09~P0-12 신규 deliverable 추가 (로깅, 테스트 인프라, 모듈 스캐폴딩) |
 | §5 upgraded | Document Update Matrix v2.0으로 확장 (8개 문서) |
 | §7 upgraded | Quality Gate Phase 3 면제 사유 추가 |
 | §8 upgraded | 3개 부차적 리스크 추가 (총 8개) |
@@ -45,7 +45,7 @@
 
 | ID | Severity | Issue | Resolution |
 |----|----------|-------|-----------|
-| **N4** | CRITICAL | AED 3개 함수 헤더 미선언 + 미구현 | Phase 0 구현 시 xpe_common_api.h에 선언 추가. api-spec.md v1.2.0에 §5.16~5.18 추가 |
+| **N4** | RESOLVED | AED scope removed 2026-04-18 | AED is detector SDK responsibility, not XPE scope. Removed from spec. |
 | **N5** | CRITICAL | Logging 3개 함수 헤더 미선언 | Phase 0 구현 시 xpe_common_api.h (또는 xpe_log.h)에 선언 추가 |
 | **N11** | CRITICAL | EI-0 (Whole-image EI baseline) Phase 1b에 SWU 미할당 | **본 SPEC §3.9에서 해결**: xpe_calc_exposure_index를 xpe_enhance_basic.dll Phase 1b로 이동. Phase 2에서는 ROI-aware refinement 기능 추가 호출 |
 
@@ -57,7 +57,7 @@
 | N12 | MAJOR | SPEC §3.8 Infrastructure 카운트 8→7 오류 | **본 SPEC §3.8에서 수정** |
 | N13 | MAJOR | Quality Gate Phase 3 면제 근거 부족 | **본 SPEC §7에서 면제 사유 추가** |
 | N2 | MEDIUM | RTM v1.1 동시 개정 필요 | SDD v1.1과 동시 릴리즈 계획 |
-| N3 | MEDIUM | api-spec.md AED 함수 문서 미작성 | api-spec.md v1.2.0 |
+| N3 | RESOLVED | AED scope removed 2026-04-18 | AED is detector SDK responsibility. No longer applicable. |
 | N6 | HIGH | xpe_common_api.h 불완전 | Phase 0 구현에서 해결 |
 | N7 | HIGH | 테스트 인프라 비표준 | **Phase 0 deliverable P0-06 강화** |
 | N8 | MEDIUM | api-spec.md §4 카운트 테이블 미갱신 | api-spec.md v1.2.0 |
@@ -83,7 +83,7 @@
 ### 2.1 Anti-Spaghetti 3-Layer Design (Confirmed)
 
 ```
-Layer 0: xpe_common.dll          -- Types, Memory, Config, Logger, Alert, AED
+Layer 0: xpe_common.dll          -- Types, Memory, Config, Logger, Alert
 Layer 1: xpe_preprocess.dll      -- PRE-01~09 (Calibration + Correction)
          xpe_enhance_basic.dll   -- POST-01~04, EI baseline (LOG, Noise, Contrast, Edge, EI)
          xpe_enhance_advanced.dll-- POST-05,07 (Multiscale, Collimation, EI ROI refinement)
@@ -194,9 +194,7 @@ Raw Frame
 | SWU-5.4 | Logger | `xpe_log_set_level/set_file/flush` | 0 |
 | SWU-5.5 | ParameterValidator | `xpe_get_param_range` | 0 |
 | SWU-5.6 | ConfigManager | `xpe_init/shutdown/version/configure` | 0 |
-| SWU-5.8 | AedEventInterface | `xpe_aed_configure/poll_event/get_status` | 0 |
-
-**v2.0 수정**: Infrastructure SWU = **7** (SWU-5.1~5.6 + SWU-5.8). SWU-5.7 PipelineOrchestrator는 C# Layer 2 (§3.7).
+**v2.0 수정**: Infrastructure SWU = **7** (SWU-5.1~5.6 + SWU-5.8 LoggingSubsystem). SWU-5.7 PipelineOrchestrator는 C# Layer 2 (§3.7).
 
 ### 3.6 SWI-6: GSVG Module (4 SI) -- gsvg.dll (independent)
 
@@ -262,24 +260,22 @@ Raw Frame
 | P0-02 | CMakePresets.json (Debug/Release/CI) | -- | Must |
 | P0-03 | vcpkg.json SOUP 매니페스트 | -- | Must |
 | P0-04 | cmake/ 헬퍼 (CompilerWarnings, Platform/AVX2, DependencyRules) | -- | Must |
-| P0-05 | xpe_common.dll 완전 구현 (**18 API**: 기존 15 + AED 3) | SWU-5.1~5.6, 5.8 | Must |
+| P0-05 | xpe_common.dll 완전 구현 (15 API) | SWU-5.1~5.6, 5.8 | Must |
 | P0-06 | **Google Test 프레임워크 설정 + CTest 통합 + 커버리지 리포팅** | -- | Must |
 | P0-07 | ImageProcTest C# WPF 프로젝트 스캐폴딩 | SWU-5.7 | Must |
 | P0-08 | CI 파이프라인 (CMake build + CTest + coverage) | -- | Should |
 | **P0-09** | **모든 모듈 디렉토리 스캐폴딩** (preprocess/, enhance_basic/, enhance_advanced/, ai/, display/, dicom/, gsvg/) | -- | **Must** |
-| **P0-10** | **xpe_common_api.h 통합 헤더 구조 확립** (모든 18 API 선언 또는 sub-header include) | -- | **Must** |
+| **P0-10** | **xpe_common_api.h 통합 헤더 구조 확립** (모든 15 API 선언 또는 sub-header include) | -- | **Must** |
 | **P0-11** | **Logging 서브시스템 구현** (xpe_log_set_level/set_file/flush) | SWU-5.4 | **Must** |
-| **P0-12** | **AED 서브시스템 구현** (xpe_aed_configure/poll_event/get_status) | SWU-5.8 | **Must** |
 
 **Acceptance Criteria**:
 - [ ] `cmake --preset release && cmake --build --preset release` 성공
-- [ ] xpe_common.dll의 **18개** 함수 모두 export 확인 (dumpbin /exports)
+- [ ] xpe_common.dll의 **15개** 함수 모두 export 확인 (dumpbin /exports)
 - [ ] P/Invoke 호환성 테스트 통과 (C# <-> C ABI)
 - [ ] **Google Test + CTest로 자동화된** unit test coverage >= 85% (xpe_common)
 - [ ] ImageProcTest.exe 실행 + xpe_common.dll 로드 확인
 - [ ] **모든 9개 모듈 디렉토리 존재** + 빈 CMakeLists.txt 생성
 - [ ] **Logging 함수 3개 동작 확인** (파일 출력 + 레벨 필터링)
-- [ ] **AED 함수 3개 동작 확인** (configure + poll + status)
 
 ### Phase 1a: Pre-Processing (xpe_preprocess.dll)
 
@@ -398,11 +394,11 @@ Raw Frame
 
 | Document | Current | Required Action | Priority |
 |----------|---------|----------------|----------|
-| **api-spec.md** | v1.1.0 | **v1.2.0**: (1) §4 카운트 82로 갱신 (xpe_common=18), (2) §5.16~5.18 AED 3개 함수 문서 추가, (3) §7 xpe_enhance_basic에 xpe_calc_exposure_index 추가 (총 7 함수) | **P1** |
+| **api-spec.md** | v1.4.0 | §4 카운트 79로 갱신 (xpe_common=15), §7 xpe_enhance_basic에 xpe_calc_exposure_index 추가 (총 7 함수) | **P1** |
 | **XPE-SDD-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추가 (5개 SWU). SWU-6.1은 별도 GUI SPEC | P2 |
-| **XPE-SRS-001** | v1.0 | **v1.1**: SRS-AED-001~003 요구사항 추가. SRS-EI-001에 Phase 1b baseline 명시 | P2 |
-| **XPE-RTM-001** | v1.0 | **v1.1**: SWU-1.6~1.9, SWU-5.8 추적 행 추가 (SDD v1.1과 동시 릴리즈) | P2 |
-| **pipeline-spec.md** | v1.1.0 | **v1.2.0**: (1) EI-0 stage의 DLL 소유권 명확화 (xpe_enhance_basic.dll), (2) AED stage 추가 | P2 |
+| **XPE-SRS-001** | v1.0 | **v1.1**: SRS-EI-001에 Phase 1b baseline 명시 | P2 |
+| **XPE-RTM-001** | v1.0 | **v1.1**: SWU-1.6~1.9 추적 행 추가 | P2 |
+| **pipeline-spec.md** | v1.1.0 | **v1.2.0**: EI-0 stage의 DLL 소유권 명확화 (xpe_enhance_basic.dll) | P2 |
 | **product.md** | v1.0 | **v1.1**: SWU 총수 43으로 갱신, Infrastructure=7 명시 | P3 |
 | **structure.md** | v1.0 | **v1.1**: Module-to-DLL 테이블에 xpe_enhance_basic SWU 5로 갱신 | P3 |
 | **Ghost SRS** | v1.0 | **v1.0.1**: FR-701에 "XPE 전체 파이프라인 순서와의 관계" 주석 추가 | P3 |
@@ -413,7 +409,7 @@ Raw Frame
 
 | SPEC ID | Scope | Phase | DLL | SWU Count | API Count |
 |---------|-------|-------|-----|:---------:|:---------:|
-| SPEC-XPE-P0 | Foundation + Build + Common | 0 | xpe_common | 7+1(C#) | **18** |
+| SPEC-XPE-P0 | Foundation + Build + Common | 0 | xpe_common | 7+1(C#) | **15** |
 | SPEC-XPE-P1A | Pre-Processing | 1a | xpe_preprocess | 9 | 18 |
 | SPEC-XPE-P1B-ENH | Basic Enhancement + EI Baseline | 1b | xpe_enhance_basic | **5** | **7** |
 | SPEC-XPE-P1B-DISP | Display Processing | 1b | xpe_display | 4 | 11 |
@@ -424,13 +420,12 @@ Raw Frame
 | SPEC-XPE-P3-AI | AI Inference | 3 | xpe_ai + worker | 4 | 7 |
 
 **v2.0 변경**:
-- P0: 18 API (기존 15 + AED 3)
 - P1B-ENH: SWU 4 -> **5** (EI 추가), API 6 -> **7**
 - P2-ADV: SWU 4 -> **3** (EI가 P1B로 이동)
 
-**API Total**: 18+18+7+11+10+4+8+7 = **83**
+**API Total**: 15+18+7+11+10+4+8+7 = **80**
 
-> Note: v1.0.0 대비 +1 (EI 함수가 enhance_basic으로 이동하면서 enhance_basic API count 증가).
+> Note: v1.0.0 대비 0 (AED 3개 API 제거로 감소, EI 함수 이동으로 증가, 상쇄됨).
 
 **Execution Order** (의존성 기반):
 

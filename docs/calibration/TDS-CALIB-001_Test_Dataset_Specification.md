@@ -1196,7 +1196,6 @@ Current local cases:
 
 | Case ID | Purpose | Required automated checks |
 |---|---|---|
-| `aed_shock_had1717mc` | Auto Exposure Detection/shock and dark-calibration workflow checks | fixture scan, calibration pairing, raw preservation, exploratory dark/gain effect |
 | `auradr_release_line_trg` | line-trigger calibration and image pairing | fixture scan, calibration pairing, gain semantics classification, mismatch negative test |
 | `corner_blemish_17a06b1` | defect/blemish comparison | fixture scan, BPM/defect metric extraction, before/after ROI comparison |
 

@@ -45,7 +45,6 @@ add_library(xpe_common SHARED
     src/xpe_common.cpp
     src/xpe_memory.cpp
     src/xpe_logging.cpp
-    src/xpe_aed.cpp
 )
 
 target_compile_definitions(xpe_common
@@ -112,7 +111,7 @@ if(_XPE_BUILD_TESTS)
 
     include(GoogleTest)
 
-    # --- test_xpe_common (18 API functions) ---
+    # --- test_xpe_common (15 API functions) ---
     add_executable(test_xpe_common
         tests/test_xpe_common.cpp
     )

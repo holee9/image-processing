@@ -82,9 +82,8 @@
 | P0-07 | ImageProcTest C# WPF | **DONE** | WPF 프로젝트 + P/Invoke wrapper 완료 |
 | P0-08 | CI 파이프라인 | **DONE** | GitHub Actions workflow 작성 완료 |
 | P0-09 | 모듈 디렉토리 스캐폴딩 | **DONE** | 8개 모듈 모두 존재 |
-| P0-10 | xpe_common_api.h 통합 헤더 | **DONE** | 18개 API 선언 완료 |
+| P0-10 | xpe_common_api.h 통합 헤더 | **DONE** | 15개 API 선언 완료 |
 | P0-11 | Logging 서브시스템 | **DONE** | 3개 함수 구현 완료 |
-| P0-12 | AED 서브시스템 | **DONE** | 3개 함수 구현 완료 |
 
-### 최종 완료도: 12/12 (100%)
+### 최종 완료도: 11/11 (100%)
 
