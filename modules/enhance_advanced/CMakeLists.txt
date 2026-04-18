@@ -42,28 +42,45 @@ endif()
 # Export symbols + MSVC math macros (M_PI etc. require _USE_MATH_DEFINES)
 target_compile_definitions(${MODULE_NAME} PRIVATE XPE_DLL_EXPORT _USE_MATH_DEFINES)
 
-# Placeholder version function
-function(create_placeholder_version_function MODULE_NAME)
-    set(VERSION_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
-    file(WRITE "${VERSION_SOURCE}"
-"#include <xpe/common/xpe_common_api.h>
+# Warnings-as-errors per-target (SPEC-P2-ADV S1 audit 6c)
+# Applies to module only; avoids project-wide impact on other modules.
+if(MSVC)
+    target_compile_options(${MODULE_NAME} PRIVATE /W4 /WX)
+else()
+    target_compile_options(${MODULE_NAME} PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+        -Wno-unused-parameter   # Eigen-heavy code triggers these spuriously
+    )
+endif()
 
-extern \"C\" XPE_API const char* ${MODULE_NAME}_version() {
-    return \"0.1.0-placeholder\";
-}
-")
-    target_sources(${MODULE_NAME} PRIVATE "${VERSION_SOURCE}")
-endfunction()
-
-create_placeholder_version_function(${MODULE_NAME})
+# Note: xpe_enhance_advanced_version() is provided by src/xpe_enhance_advanced.cpp
+# (real implementation returns "1.0.0"). The previous create_placeholder_version_function
+# was removed to avoid LNK2005 (symbol multiply defined) — S1 build unblock.
 
 # ============================================================================
 # Tests (T-015: Google Test scaffolding)
 # ============================================================================
 
 if(BUILD_TESTS)
-    # Find Google Test
-    find_package(GTest REQUIRED)
+    # Google Test: reuse parent's target when available; otherwise
+    # fall back to find_package, then FetchContent. Mirrors modules/common
+    # pattern so the module works both in monorepo and standalone builds.
+    if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gtest_main)
+        find_package(GTest CONFIG QUIET)
+    endif()
+
+    if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gtest_main)
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG v1.14.0
+            GIT_SHALLOW TRUE
+        )
+        # Windows: prevent overriding parent project CRT settings
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
 
     # Create test executable
     add_executable(test_${MODULE_NAME}

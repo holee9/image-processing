@@ -7,7 +7,7 @@
  * REQ-ADV-032: No NaN/Inf in output
  */
 
-#include "xpe/enhance_advanced/exposure_index.h"
+#include "detail/exposure_index.h"
 #include "xpe/common/xpe_common_api.h"
 #include <cmath>
 #include <algorithm>

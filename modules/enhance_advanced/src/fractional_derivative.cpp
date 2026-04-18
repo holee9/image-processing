@@ -10,7 +10,7 @@
  * REQ-ADV-051: Mandatory overshoot limiting (SAF-100)
  */
 
-#include "xpe/enhance_advanced/fractional_derivative.h"
+#include "detail/fractional_derivative.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_common_api.h"
 #include <nlohmann/json.hpp>
@@ -135,10 +135,10 @@ FractionalConfig FractionalConfig::fromJson(const char* configJsonOrNull) {
             }
         }
 
-    } catch (const nlohmann::json::exception& e) {
+    } catch (const nlohmann::json::exception&) {
         // JSON parse error - return defaults
         // In production, might want to log this
-    } catch (const std::runtime_error& e) {
+    } catch (const std::runtime_error&) {
         // SAF-100 violation - will be caught by caller and converted to error code
         throw;
     }
@@ -186,9 +186,9 @@ float calculateLocalStdDev(const float* data, int width, int height, int x, int 
             int nx = x + dx;
             int ny = y + dy;
 
-            // Boundary check: clamp to image bounds
-            nx = clamp(nx, 0, width - 1);
-            ny = clamp(ny, 0, height - 1);
+            // Boundary check: clamp to image bounds (int overload)
+            nx = std::clamp(nx, 0, width - 1);
+            ny = std::clamp(ny, 0, height - 1);
 
             float val = data[ny * static_cast<size_t>(width) + nx];
 
@@ -312,8 +312,8 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
             for (size_t k = 0; k < maskSize; ++k) {
                 int nx = x - static_cast<int>(k) + static_cast<int>(maskSize) / 2;
 
-                // Boundary handling: clamp
-                nx = clamp(nx, 0, width - 1);
+                // Boundary handling: clamp (int overload)
+                nx = std::clamp(nx, 0, width - 1);
 
                 size_t srcIdx = y * static_cast<size_t>(width) + nx;
                 float val = original[srcIdx];
@@ -337,8 +337,8 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
             for (size_t k = 0; k < maskSize; ++k) {
                 int ny = y - static_cast<int>(k) + static_cast<int>(maskSize) / 2;
 
-                // Boundary handling: clamp
-                ny = clamp(ny, 0, height - 1);
+                // Boundary handling: clamp (int overload)
+                ny = std::clamp(ny, 0, height - 1);
 
                 size_t srcIdx = ny * static_cast<size_t>(width) + x;
                 float val = temp[srcIdx];

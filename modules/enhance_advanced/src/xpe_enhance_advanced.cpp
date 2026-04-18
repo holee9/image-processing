@@ -15,8 +15,8 @@
 #include "xpe/common/xpe_common_api.h"
 #include "xpe/common/xpe_error.h"
 #include "mfp_scalar.h"
-#include "fractional_derivative.h"
-#include "exposure_index.h"
+#include "detail/fractional_derivative.h"
+#include "detail/exposure_index.h"
 #include <nlohmann/json.hpp>
 #include <cstdlib>
 #include <cstring>
@@ -213,7 +213,7 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(
     try {
         return xpe::enhance_advanced::ExposureIndexCalculator::calculate(
             img, meta, eiOut, deviationIndexOut);
-    } catch (const std::exception& e) {
+    } catch (const std::exception&) {
         // REQ-ADV-030: No exceptions across C ABI
         return XPE_ERR_INTERNAL;
     } catch (...) {

@@ -8,12 +8,16 @@
  * REQ-ADV-011: Fractional-order process execution
  * REQ-ADV-032: No NaN/Inf in output
  * REQ-ADV-051: Mandatory overshoot limiting (SAF-100)
+ *
+ * Internal detail header — not part of public ABI.
+ * Moved from include/xpe/enhance_advanced/ per 2026-04-18 audit issue 6d.
  */
 
-#ifndef XPE_ENHANCE_ADVANCED_FRACTIONAL_DERIVATIVE_H
-#define XPE_ENHANCE_ADVANCED_FRACTIONAL_DERIVATIVE_H
+#ifndef XPE_ENHANCE_ADVANCED_DETAIL_FRACTIONAL_DERIVATIVE_H
+#define XPE_ENHANCE_ADVANCED_DETAIL_FRACTIONAL_DERIVATIVE_H
 
 #include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
 #include <vector>
 #include <cstddef>
 
@@ -119,4 +123,4 @@ float calculateLocalStdDev(const float* data, int width, int height, int x, int 
 } // namespace enhance_advanced
 } // namespace xpe
 
-#endif // XPE_ENHANCE_ADVANCED_FRACTIONAL_DERIVATIVE_H
+#endif // XPE_ENHANCE_ADVANCED_DETAIL_FRACTIONAL_DERIVATIVE_H

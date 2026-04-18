@@ -123,7 +123,7 @@ void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
         std::vector<float> upsampled(w * h);
         int currentW = reconstructed.size() > 0 ?
             static_cast<int>(std::sqrt(reconstructed.size())) : 1;
-        int currentH = reconstructed.size() / currentW;
+        int currentH = static_cast<int>(reconstructed.size() / static_cast<size_t>(currentW));
 
         upsample(reconstructed.data(), upsampled.data(), currentW, currentH);
 

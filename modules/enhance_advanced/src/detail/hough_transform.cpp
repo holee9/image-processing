@@ -13,7 +13,7 @@ namespace enhance_advanced {
 namespace detail {
 
 HoughTransform::HoughTransform(float thetaStep, float rhoStep)
-    : thetaStep_(thetaStep * M_PI / 180.0f)  // Convert degrees to radians
+    : thetaStep_(thetaStep * static_cast<float>(M_PI) / 180.0f)  // Convert degrees to radians
     , rhoStep_(rhoStep)
     , thetaBins_(static_cast<int>(180.0f / thetaStep))
     , maxRho_(0) {
@@ -23,8 +23,10 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
     const int rows = static_cast<int>(edgeMagnitude.rows());
     const int cols = static_cast<int>(edgeMagnitude.cols());
 
-    // Calculate maximum rho (diagonal of image)
-    maxRho_ = static_cast<int>(std::sqrt(rows * rows + cols * cols) / rhoStep_) + 1;
+    // Calculate maximum rho (diagonal of image) — cast sqrt (double) back to int via static_cast
+    const double diag = std::sqrt(static_cast<double>(rows) * rows
+                                + static_cast<double>(cols) * cols);
+    maxRho_ = static_cast<int>(diag / rhoStep_) + 1;
 
     // Initialize accumulator: [theta bins, rho bins]
     Eigen::MatrixXi accumulator(thetaBins_, 2 * maxRho_);
@@ -42,8 +44,9 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
 
             // Vote for all theta bins
             for (int t = 0; t < thetaBins_; ++t) {
-                float theta = t * thetaStep_;
-                float rho = x * std::cos(theta) + y * std::sin(theta);
+                const float theta = static_cast<float>(t) * thetaStep_;
+                const float rho = static_cast<float>(x) * std::cos(theta)
+                                + static_cast<float>(y) * std::sin(theta);
 
                 // Convert rho to bin index (offset by maxRho for negative values)
                 int rhoBin = static_cast<int>(rho / rhoStep_) + maxRho_;
@@ -123,7 +126,9 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
 
     std::vector<float> verticalX;
     for (const auto& line : verticalLines) {
-        float x = line.rho / std::cos(line.theta - M_PI_2 + 1e-6f);  // Adjust for vertical
+        // Cast M_PI_2 (double) to float to avoid C4244 narrowing warning
+        const float adjustedTheta = line.theta - static_cast<float>(M_PI_2) + 1e-6f;
+        float x = line.rho / std::cos(adjustedTheta);  // Adjust for vertical
         verticalX.push_back(x);
     }
 
@@ -175,8 +180,8 @@ std::vector<HoughLine> HoughTransform::findPeaks(
 
     std::vector<HoughLine> peaks;
 
-    const int rows = accumulator.rows();
-    const int cols = accumulator.cols();
+    const int rows = static_cast<int>(accumulator.rows());
+    const int cols = static_cast<int>(accumulator.cols());
 
     // Non-maximum suppression
     for (int t = 0; t < rows; ++t) {
@@ -203,8 +208,8 @@ std::vector<HoughLine> HoughTransform::findPeaks(
             }
 
             if (isMax) {
-                float theta = t * thetaStep_;
-                float rho = (r - maxRho_) * rhoStep_;
+                const float theta = static_cast<float>(t) * thetaStep_;
+                const float rho = static_cast<float>(r - maxRho_) * rhoStep_;
                 peaks.emplace_back(theta, rho, static_cast<float>(value));
             }
         }
@@ -215,7 +220,7 @@ std::vector<HoughLine> HoughTransform::findPeaks(
 
 bool HoughTransform::isAxisAligned(float theta) const {
     // Normalize theta to [0, 180) degrees
-    float degrees = theta * 180.0f / M_PI;
+    float degrees = theta * 180.0f / static_cast<float>(M_PI);
     while (degrees < 0.0f) degrees += 180.0f;
     while (degrees >= 180.0f) degrees -= 180.0f;
 

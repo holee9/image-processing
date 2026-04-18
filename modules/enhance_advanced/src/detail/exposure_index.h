@@ -11,10 +11,13 @@
  * IEC 62494-1 Formulas:
  * - EI = c1 * g * mean(pixel_values_roi) + c2
  * - DI = 10 * log10(EI / EI_target)
+ *
+ * Internal detail header — not part of public ABI.
+ * Moved from include/xpe/enhance_advanced/ per 2026-04-18 audit issue 6d.
  */
 
-#ifndef XPE_ENHANCE_ADVANCED_EXPOSURE_INDEX_H
-#define XPE_ENHANCE_ADVANCED_EXPOSURE_INDEX_H
+#ifndef XPE_ENHANCE_ADVANCED_DETAIL_EXPOSURE_INDEX_H
+#define XPE_ENHANCE_ADVANCED_DETAIL_EXPOSURE_INDEX_H
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -144,4 +147,4 @@ private:
 } // namespace enhance_advanced
 } // namespace xpe
 
-#endif // XPE_ENHANCE_ADVANCED_EXPOSURE_INDEX_H
+#endif // XPE_ENHANCE_ADVANCED_DETAIL_EXPOSURE_INDEX_H

@@ -157,7 +157,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         std::vector<xpe::enhance_advanced::detail::HoughLine> verticalLines;
 
         for (const auto& line : lines) {
-            float degrees = line.theta * 180.0f / M_PI;
+            float degrees = line.theta * 180.0f / static_cast<float>(M_PI);
             while (degrees < 0.0f) degrees += 180.0f;
             while (degrees >= 180.0f) degrees -= 180.0f;
 

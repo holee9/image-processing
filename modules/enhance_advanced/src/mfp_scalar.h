@@ -2,6 +2,7 @@
 #define MFP_SCALAR_H
 
 #include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
 #include <vector>
 #include <memory>
 
