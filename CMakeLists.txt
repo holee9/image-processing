@@ -83,7 +83,7 @@ if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
     FetchContent_Declare(
         eigen
         URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-        URL_HASH SHA256=4c5a19a2e804e29dc299d43d0297c4b7fe67d7f2e2a744dfb4f29da4dcab9c0
+        URL_HASH SHA256=8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72
     )
 
     # Eigen is header-only, so we just need to make it available

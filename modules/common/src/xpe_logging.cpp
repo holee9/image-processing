@@ -14,8 +14,7 @@
 #include <memory>
 #include <mutex>
 
-// @MX:NOTE: [AUTO] Single-threaded initialization assumed (REQ-P0-022)
-// Future: Add std::atomic for thread-safe initialization if needed
+// @MX:NOTE: [AUTO] g_logMutex guards all logger state mutations — safe for concurrent callers (REQ-P0-022)
 
 // @MX:ANCHOR: [AUTO] spdlog backend singleton -- REQ-P0-023
 // @MX:REASON: Central logging state; shared across all xpe modules

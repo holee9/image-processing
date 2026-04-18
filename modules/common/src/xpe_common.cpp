@@ -147,6 +147,7 @@ XPE_API const char* xpe_error_string(XpeErrorCode code) {
         case XPE_ERR_IO_FAILED:            return "I/O operation failed";
         case XPE_ERR_NETWORK_FAILED:       return "Network operation failed";
         case XPE_ERR_SAFETY_VIOLATION:     return "Safety violation";
+        case XPE_ERR_INTERNAL:             return "Internal processing error";
         default:                           return "Unknown error";
     }
 }

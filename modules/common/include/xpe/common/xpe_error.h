@@ -21,6 +21,7 @@ typedef int32_t XpeErrorCode;
 #define XPE_ERR_IO_FAILED           -9
 #define XPE_ERR_NETWORK_FAILED      -10
 #define XPE_ERR_SAFETY_VIOLATION    -11
+#define XPE_ERR_INTERNAL            -12
 
 /* Special status codes (non-error positive values) */
 #define XPE_STATUS_NO_EVENT         1    /* No event available (used by xpe_aed_poll_event) */
