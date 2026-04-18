@@ -1,9 +1,9 @@
 # Software Unit Identification
 
-**Document ID:** XPE-SDD-001 v1.0  
+**Document ID:** XPE-SDD-001 v1.1  
 **IEC 62304 Clause:** 5.4.1 (Class B: unit identification only)  
 **Safety Classification:** Class B  
-**Date:** 2026-04-03  
+**Date:** 2026-04-16  
 **Author:** XPE Development Team  
 **Approval:** __________________ Date: __________  
 
@@ -70,7 +70,9 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | SWU-5.4 | Logger | spdlog wrapper, audit trail, log level control | SRS-SEC-003 |
 | SWU-5.5 | ParameterValidator | Safe-range enforcement per body-part/algorithm | SRS-SAFE-002, 005 |
 | SWU-5.6 | ConfigManager | JSON config read/write, checksum validation | SRS-SEC-002 |
-| SWU-5.7 | PipelineOrchestrator | Processing stage sequencing, data flow control | SRS-PERF-002 |
+| SWU-5.7 | PipelineOrchestrator / Host Review State | Processing stage sequencing, data flow control, source-vs-processed comparison state handoff | SRS-PERF-002, SRS-FUNC-024, SRS-SAFE-013, SRS-PERF-007, SRS-PERF-008 |
+| SWU-5.8 | AEDSubsystem | Automatic Exposure Detection, event polling, state machine management | SRS-FUNC-040, 041, 042 |
+| SWU-5.9 | LoggingSubsystem | Multi-level logging (TRACE~OFF), file/stderr output, log flush control | SRS-FUNC-043, 044, 045 |
 
 ## 7. Unit Count Summary
 
@@ -80,8 +82,8 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | SWI-2 Core Processing | 12 | 4 | 6 | 2 |
 | SWI-3 Display Processing | 4 | 4 | — | — |
 | SWI-4 DICOM I/O | 4 | 4 | — | — |
-| SWI-5 Infrastructure | 7 | 7 | — | — |
-| **Total** | **32** | **24** | **6** | **2** |
+| SWI-5 Infrastructure | 9 | 9 | — | — |
+| **Total** | **34** | **26** | **6** | **2** |
 
 ---
 
@@ -90,6 +92,7 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-03 | XPE Team | Initial release |
+| 1.1 | 2026-04-16 | XPE Team | AED subsystem 유닛 추가 (SWU-5.8), Logging subsystem 유닛 추가 (SWU-5.9), Infrastructure 유닛 카운트 7→9로 업데이트, 전체 유닛 카운트 32→34로 업데이트 |
 
 ---
 

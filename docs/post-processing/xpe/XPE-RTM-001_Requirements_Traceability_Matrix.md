@@ -34,6 +34,7 @@
 | SRS-FUNC-021 | SWI-3 | SWU-3.2 | SDD-002 §4.2 | UT-3.2-001..005 | IT-003 | ST-021 | HAZ-006 | SHA §3 HAZ-006 |
 | SRS-FUNC-022 | SWI-3 | SWU-3.3 | SDD-002 §4.3 | UT-3.3-001..006 | IT-003 | ST-022 | HAZ-007 | SHA §3 HAZ-007 |
 | SRS-FUNC-023 | SWI-3 | SWU-3.3 | SDD-002 §4.3 | UT-3.3-003,005 | IT-003 | ST-023 | — | — |
+| SRS-FUNC-024 | SWI-5 | SWU-5.7 | XPE-GUI-COMPARE-001 §4-7 | GUI-CMP-VER-001..006 | IT-GUI-CMP | ST-GUI-CMP | HAZ-009 | SHA §3 HAZ-009 |
 | SRS-FUNC-030 | SWI-4 | SWU-4.1,4.2 | SDD-002 §5.1,5.2 | UT-4.1/4.2-001..008 | IT-003 | ST-030 | — | — |
 | SRS-FUNC-031 | SWI-4 | SWU-4.3 | SDD-002 §5.3 | UT-4.3-001..004 | IT-003 | ST-031 | — | — |
 | SRS-FUNC-032 | SWI-4 | SWU-4.2 | SDD-002 §5.2 | UT-4.2-002,004 | IT-003 | ST-030 | — | — |
@@ -46,10 +47,13 @@
 | SRS-SAFE-007 | SWI-3,5 | SWU-3.3,5.3 | SDD-002 §4.3,6.3 | UT-3.3-002,004 | IT-003 | ST-SAFE-007 | HAZ-007 | SHA §3 HAZ-007 |
 | SRS-SAFE-008 | SWI-2,3 | SWU-2.11,3.3 | SDD-002 §3.11,4.3 | UT-2.11-005,UT-3.3-007 | IT-002 | ST-SAFE-008 | HAZ-008 | SHA §3 HAZ-008 |
 | SRS-SAFE-009 | SWI-3,5 | SWU-3.3,5.7 | SDD-002 §4.3,6.7 | UT-3.3-008,UT-5.7-002 | IT-003 | ST-SAFE-009 | HAZ-009 | SHA §3 HAZ-009 |
+| SRS-SAFE-013 | SWI-5 | SWU-5.7 | XPE-GUI-COMPARE-001 §5-7 | GUI-CMP-VER-001..006 | IT-GUI-CMP | ST-SAFE-013 | HAZ-009 | SHA §3 HAZ-009 |
 | SRS-PERF-001 | SWI-1 | All SWU-1.x | SDD-002 §2 | ST-PERF-001 | IT-010 | ST-PERF-001 | — | — |
 | SRS-PERF-002 | All SWI | All SWU | SDD-002 §6.7 | — | IT-009 | ST-PERF-002 | — | — |
 | SRS-PERF-003 | SWI-3 | SWU-3.2 | SDD-002 §4.2 | UT-3.2-interactive | IT-004 | ST-PERF-003 | — | — |
 | SRS-PERF-004 | SWI-5 | SWU-5.1 | SDD-002 §6.1 | UT-5.1-002 | IT-006 | ST-PERF-004 | — | — |
+| SRS-PERF-007 | SWI-5 | SWU-5.7 | XPE-GUI-COMPARE-001 §6-7 | GUI-CMP-VER-001 | IT-GUI-CMP | ST-PERF-007 | — | — |
+| SRS-PERF-008 | SWI-5 | SWU-5.7 | XPE-GUI-COMPARE-001 §6-7 | GUI-CMP-VER-002,003 | IT-GUI-CMP | ST-PERF-008 | — | — |
 
 ## 3. Risk Control Traceability (7.3.3)
 
@@ -63,7 +67,7 @@
 | HAZ-006 | W/L range warning | SRS-SAFE-006 | SWI-3,5 ErrorHandler | SWU-3.2,5.3 | ST-SAFE-006 |
 | HAZ-007 | GSDF compliance warning | SRS-SAFE-007 | SWI-3,5 ErrorHandler | SWU-3.3,5.3 | ST-SAFE-007 |
 | HAZ-008 | AI-processed label | SRS-SAFE-008 | SWI-2,3 overlay | SWU-2.11,3.3 | ST-SAFE-008 |
-| HAZ-009 | Original/processed toggle | SRS-SAFE-009 | SWI-3,5 orchestrator | SWU-3.3,5.7 | ST-SAFE-009 |
+| HAZ-009 | Original/processed comparison | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 | SWI-3,5 orchestrator | SWU-3.3,5.7 | ST-SAFE-009, ST-SAFE-013, ST-GUI-CMP |
 
 ## 4. Coverage Summary
 
@@ -88,6 +92,7 @@
 | MR-FUNC-001 | Pre-processing 4종 보정 | PR-FUNC-001, 002, 003, 004 | SRS-FUNC-001, 002, 003, 004 |
 | MR-FUNC-002 | Core 처리 (Log, NR, CE, EE) | PR-FUNC-010, 011, 012, 013 | SRS-FUNC-010, 011, 012, 013 |
 | MR-FUNC-003 | DICOM Display Pipeline | PR-FUNC-020, 021, 022, 023 | SRS-FUNC-020, 021, 022, 023 |
+| MR-FUNC-013 | Source/processed large-image comparison | PR-GUI-001 | SRS-FUNC-024 |
 | MR-FUNC-004 | DICOM 파일/네트워크 | PR-FUNC-030, 031, 032 | SRS-FUNC-030, 031, 032 |
 | MR-FUNC-005 | 교정 파라미터 관리 | PR-FUNC-040 | SRS-FUNC-040 (TBD Phase 1a) |
 | MR-FUNC-006 | EI / DI 계산 | PR-FUNC-041 | SRS-FUNC-016 (EI baseline) |
@@ -159,6 +164,7 @@
 | 1.2 | 2026-04-15 | MoAI (SPEC-DOC-001) | §5 MR→PR Backward Traceability 추가 (OPEN-001 해소). Coverage summary 갱신 (HAZ 9→12). |
 | 1.3 | 2026-04-15 | XPE Team | §6 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건): SRS-MEAS-004, SRS-FUNC-002d/001c/009b/011c/008c, SRS-QC-004, SRS-FLUORO-002, SRS-DICOM-002, SRS-QA-001. |
 | 1.4 | 2026-04-15 | XPE Team | §7 Algorithm SRS IDs 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건): SRS-DOSE-001, SRS-DICOM-003, SRS-FUNC-001d/e, SRS-TOMO-001, SRS-FUNC-017b/014b, SRS-PERF-003, SRS-QA-002, SRS-CAL-002. |
+| 1.5 | 2026-04-16 | Codex | Added large-image GUI comparison viewer traceability for Issue #8. |
 
 ---
 

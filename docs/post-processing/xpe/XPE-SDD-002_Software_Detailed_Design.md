@@ -1022,9 +1022,12 @@ GSDF compliance check (SRS-SAFE-007, HAZ-007):
   IF NOT gsdfEnabled:
     Emit SRS-ALERT-003 WARNING ("Non-GSDF display detected")
 
-Toggle support (SRS-SAFE-009, HAZ-009):
-  Maintain both original and processed buffers
-  Toggle latency: < 100ms
+Comparison viewport support (SRS-FUNC-024, SRS-SAFE-009, SRS-SAFE-013, HAZ-009):
+  Maintain both original/source and processed buffers or tile providers
+  Default comparison mode: vertical swipe/wiper slider
+  Additional modes: split locked, overlay opacity, difference heatmap, source only, processed only
+  Zoom/pan/cursor state is synchronized by ImageComparisonViewport
+  Toggle/switch latency: < 100ms for mode changes without pipeline reprocessing
 ```
 
 #### Edge Case
@@ -1033,7 +1036,7 @@ Toggle support (SRS-SAFE-009, HAZ-009):
 |------|-------|--------|-----------|
 | Non-GSDF display | gsdfEnabled=0 | Linear LUT + WARNING | SRS-SAFE-007 |
 | MONOCHROME1 | inversion needed | Invert output | SRS-FUNC-023 |
-| Toggle request | switch view | < 100ms switch | SRS-SAFE-009 |
+| Toggle / compare request | switch comparison mode | < 100ms switch without source overwrite | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
 
 ---
 
@@ -1454,6 +1457,17 @@ public:
         float totalMs;
     };
     TimingInfo getLastTiming() const noexcept;
+
+    /// @brief  Last GUI comparison viewport state for evidence export.
+    struct ComparisonViewportState {
+        std::string mode;        // swipe, split, overlay, difference, source, processed
+        double zoom;
+        double panX;
+        double panY;
+        double swipePosition;
+        uint32_t cursorX;
+        uint32_t cursorY;
+    };
 
 private:
     // Pipeline order (ALG-SPEC-001 v3.0.0-ds2):

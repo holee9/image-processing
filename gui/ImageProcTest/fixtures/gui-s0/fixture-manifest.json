@@ -1,0 +1,28 @@
+{
+  "fixtureId": "gui-s0",
+  "fixtureVersion": "1.1.0",
+  "backendMode": "Mock",
+  "rawSample": {
+    "relativePath": "raw/wrist_lat_3072x3072.raw",
+    "width": 3072,
+    "height": 3072,
+    "pixelFormat": "UInt16LE",
+    "sha256": "C823233F2196A217F4512BFEC47E62A17F003CC894EF7947E1F40DD0B59A3D70"
+  },
+  "runtime": {
+    "settingsTemplateRelativePath": "appsettings.template.json",
+    "preparedSettingsFileName": "appsettings.json",
+    "automationReportFileName": "automation-report.json",
+    "prepReportFileName": "fixture-prep-report.json"
+  },
+  "calibrationDirectories": {
+    "offset": "calibration/offset",
+    "gain": "calibration/gain",
+    "defect": "calibration/defect"
+  },
+  "expectedTelemetry": {
+    "backendVersion": "v0.0.0-mock",
+    "initialLogCount": 5,
+    "initialAlertCount": 3
+  }
+}

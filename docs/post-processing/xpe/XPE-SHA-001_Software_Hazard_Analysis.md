@@ -227,6 +227,7 @@ graph LR
 
     subgraph "HAZ-009: State Confusion"
         RC9[SRS-SAFE-009<br/>State indicator + toggle]
+        RC9B[SRS-SAFE-013 / SRS-FUNC-024<br/>Synchronized comparison viewport]
     end
 
     subgraph "HAZ-010: AI Confidence Misuse"
@@ -260,7 +261,7 @@ graph LR
 | HAZ-006 | W/L out-of-range warning | Protective measure | SWU-3.2 + SWU-5.3 ErrorHandler | SRS-SAFE-006 |
 | HAZ-007 | Non-GSDF display warning | Information for safety | SWU-3.3 PresentationLUT | SRS-SAFE-007 |
 | HAZ-008 | AI-processed label + original toggle | Information for safety | SWU-2.11 + SWU-3.3 | SRS-SAFE-008, 009 |
-| HAZ-009 | Processing state indicator + 1-click toggle | Protective measure | SWU-3.3 + SWU-5.7 | SRS-SAFE-009 |
+| HAZ-009 | Processing state indicator + synchronized comparison viewport + source preservation | Protective measure | SWU-3.3 + SWU-5.7 | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
 | HAZ-010 | AI worker health check; mandatory confidence score display; OOD threshold (confidence < 0.70 → UNKNOWN); fallback to Phase 1/2 on AI failure | Protective measure + Information for safety | SWU-2.11, SWU-2.12, AI Router | SRS-SAFE-010, SRS-SAFE-011 |
 | HAZ-011 | Multi-package initialization verification; pipeline hard-stop on partial initialization; GSVG failure → mandatory user alert | Inherent safety + Protective measure | SWU-5.7 PipelineOrchestrator + GSVG API wrapper | SRS-SAFE-012 |
 | HAZ-012 | Persistent AI-processed overlay indicator; 1-click original toggle (same as HAZ-008/009); IFU mandatory orientation training requirement | Information for safety + IFU/Labeling | SWU-3.3 + SWU-5.7 + Labeling | SRS-SAFE-008, SRS-SAFE-009; IFU-TRAIN-001 |
@@ -298,7 +299,7 @@ graph LR
 | HAZ-006 | SRS-SAFE-006 | SWI-3, SWI-5 ErrorHandler | SWU-3.2, SWU-5.3 | ST-SAFE-006 |
 | HAZ-007 | SRS-SAFE-007 | SWI-3, SWI-5 ErrorHandler | SWU-3.3, SWU-5.3 | ST-SAFE-007 |
 | HAZ-008 | SRS-SAFE-008 | SWI-2, SWI-3 overlay | SWU-2.11, SWU-3.3 | ST-SAFE-008 |
-| HAZ-009 | SRS-SAFE-009 | SWI-3, SWI-5 orchestrator | SWU-3.3, SWU-5.7 | ST-SAFE-009 |
+| HAZ-009 | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 | SWI-3, SWI-5 orchestrator | SWU-3.3, SWU-5.7 | ST-SAFE-009, ST-SAFE-013, ST-GUI-CMP |
 | HAZ-010 | SRS-SAFE-010, SRS-SAFE-011 | SWI-2 AI Router, SWI-5 health check | SWU-2.11, SWU-2.12, AI Router | ST-SAFE-010, ST-SAFE-011 |
 | HAZ-011 | SRS-SAFE-012 | SWI-5 orchestrator, GSVG API | SWU-5.7, GSVG wrapper | ST-SAFE-012, MP-IT-004 |
 | HAZ-012 | SRS-SAFE-008, SRS-SAFE-009; IFU-TRAIN-001 | SWI-3, SWI-5 + Labeling | SWU-3.3, SWU-5.7 | ST-SAFE-008, ST-SAFE-009; UV-002 |

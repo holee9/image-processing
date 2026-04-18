@@ -583,8 +583,40 @@ Large PDFs (>10 pages) return a lightweight reference when @-mentioned. Always s
 
 ---
 
-Version: 14.0.0 (Agency v3.2 + Harness Design Integration)
-Last Updated: 2026-04-03
+---
+
+## 19. Codex Integration Strategy
+
+**목적:** Claude와 Codex CLI의 최적 역할 분담을 통한 생산성 향상
+
+**핵심 원칙:** Claude와 Codex는 독립 도구 — 직접 통신 불가, git으로 통합
+
+**트리거:** 사용자가 작업을 지시할 때, Claude는 해당 작업이 Codex에 적합한지 자동 평가하여 대안을 제시한다.
+
+### 역할 분담 요약
+
+| 역할 | Claude | Codex |
+|------|--------|-------|
+| 아키텍처/설계 | 항상 Claude | 불가 |
+| 알고리즘 구현 | 항상 Claude | 불가 |
+| IEC 62304 문서 | 항상 Claude | 불가 |
+| 보일러플레이트 생성 | 가능 | 대안 제안 가능 |
+| 테스트 초안 | 가능 | 대안 제안 가능 |
+| Doxygen 주석 | 가능 | 대안 제안 가능 |
+
+### Codex 제안 프로토콜
+
+기계적/반복적 작업 감지 시 Claude는:
+1. Claude에서 직접 작업 완료 (항상 결과 제공)
+2. 추가로 Codex 대안 명령어 제시
+3. "Codex 결과물은 Claude 검토 필수" 경고 포함
+
+**상세 규칙:** `.claude/rules/moai/workflow/codex-integration.md`
+
+---
+
+Version: 14.1.0 (Codex Integration Strategy Added)
+Last Updated: 2026-04-15
 Language: English
 Core Rule: MoAI is an orchestrator; direct implementation is prohibited
 

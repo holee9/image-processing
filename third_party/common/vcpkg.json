@@ -6,7 +6,8 @@
     "dependencies": [
         { "name": "spdlog", "version>=": "1.13.0" },
         { "name": "nlohmann-json", "version>=": "3.11.3" },
-        { "name": "fmt", "version>=": "10.0.0" }
+        { "name": "fmt", "version>=": "10.0.0" },
+        { "name": "gtest", "version>=": "1.14.0" }
     ],
     "overrides": [],
     "builtin-baseline": "b80e0066576f98276a53fd3a8aed379edaf945d6"

@@ -75,7 +75,7 @@ image-processing/
 | modules/enhance_basic/ | xpe_enhance_basic.dll | 1 | 1b | 4 (SWU-2.1~2.4) |
 | modules/enhance_advanced/ | xpe_enhance_advanced.dll | 1 | 2 | 4 (SWU-2.5,2.6,2.8,2.10) |
 | modules/ai/ | xpe_ai.dll | 1 | 3 | 4 (SWU-2.7,2.9,2.11,2.12) |
-| modules/display/ | xpe_display.dll | 1 | 1b | 4 (SWU-3.1~3.4) |
+| modules/display/ | xpe_display.dll | 1 | 1b | 3 implemented (SWU-3.1~3.3); SWU-3.4 deferred |
 | modules/dicom/ | xpe_dicom.dll | 1 | 1b | 4 (SWU-4.1~4.4) |
 | gsvg/ | gsvg.dll | 1-G | 2 | 4 (SI-001~004) |
 | clients/ImageProcTest/ | ImageProcTest.exe | 2 | 0+ | 2 (SWU-5.7 PipelineOrchestrator, SWU-6.1 QaConstancyTest) |

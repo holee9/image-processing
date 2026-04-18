@@ -1,0 +1,100 @@
+name: Documentation Generation
+
+on:
+  push:
+    branches:
+      - main
+      - dev/integration
+    paths:
+      - 'modules/*/include/**/*.h'
+      - 'docs/help/**'
+      - 'gui/**/*.cs'
+      - 'gui/**/*.csproj'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  doxygen-native:
+    name: Doxygen Native API Reference
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        uses: ssciwr/doxygen-install@v1
+        with:
+          version: "1.12.0"
+
+      - name: Clone doxygen-awesome-css
+        run: |
+          git clone https://github.com/jothepro/doxygen-awesome-css.git docs/help/doxygen/doxygen-awesome
+        shell: bash
+
+      - name: Generate Doxygen documentation
+        run: doxygen Doxyfile
+        working-directory: docs/help/doxygen
+        shell: bash
+
+      - name: Upload Doxygen artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-reference-native
+          path: docs/help/generated/doxygen/html/
+          retention-days: 30
+
+  docfx-managed:
+    name: DocFX Managed API + Conceptual
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx
+
+      - name: Build DocFX documentation
+        run: docfx docs/help/docfx/docfx.json
+        shell: bash
+
+      - name: Upload DocFX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-reference-managed
+          path: docs/help/generated/docfx/
+          retention-days: 30
+
+  docs-bundle-release:
+    name: Package Help Bundle (Release only)
+    runs-on: windows-latest
+    needs: [doxygen-native, docfx-managed]
+    if: github.event_name == 'release'
+    steps:
+      - name: Download Doxygen artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-reference-native
+          path: help-bundle/doxygen/
+
+      - name: Download DocFX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-reference-managed
+          path: help-bundle/docfx/
+
+      - name: Create help bundle zip
+        run: Compress-Archive -Path help-bundle/* -DestinationPath help-bundle-${{ github.ref_name }}.zip
+        shell: pwsh
+
+      - name: Upload help bundle to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: help-bundle-${{ github.ref_name }}.zip

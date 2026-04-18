@@ -24,6 +24,15 @@ Preserve existing terminology for X-ray FPD, defect correction, and IEC 62304 ar
 ## Testing Guidelines
 There is no repository-wide automated test harness at present. Validate contributions by checking internal consistency across linked specs, plans, and traceability documents. When updating regulated document sets, confirm related SRS, SAD, SDD, RTM, and VVP files stay synchronized.
 
+## GitHub Issue Tracking Workflow
+All implementation, modification, and documentation-sync work must be backed by a GitHub Issue before file edits begin. If no suitable issue exists, create one using `.github/ISSUE_TEMPLATE/implementation-change.md` or the closest matching template.
+
+- Record progress in the issue comments at minimum for start, scope changes, implementation notes, verification results, blockers, commit, and push.
+- Prefix Codex progress comments with `codex:` so agent history is searchable.
+- Reference the issue number in commits and pull requests with `Refs #<issue>` or `Closes #<issue>` as appropriate.
+- Keep one logical change per issue. If work expands into another module, create or link a separate issue instead of mixing unrelated scope.
+- Preserve Korean text as UTF-8. Before committing Korean Markdown or YAML, inspect it with UTF-8 terminal output and run `git diff --check` to catch formatting problems.
+
 ## Moai Review Workflow
 When `.moai/plans/` or `.moai/specs/` receives a new or updated plan/specification, review it against the authoritative documents in `docs/` before treating it as source of truth.
 

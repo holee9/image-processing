@@ -1,8 +1,8 @@
 # Market Requirements Document
 
 **Document ID**: XPE-MRD-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-15  
+**Version**: 1.3.0
+**Date**: 2026-04-16  
 **Status**: Controlled Draft  
 **Classification**: Internal / Confidential  
 **Author**: XPE Program Management  
@@ -63,7 +63,8 @@ These customers need:
 - stable DICOM behavior,
 - configurable deployment by module,
 - predictable degraded behavior when premium modules are absent,
-- strong technical documentation and field diagnostics.
+- strong technical documentation and field diagnostics,
+- version-matched offline help that can be opened directly from the host QA or integration tool.
 
 ### 3.3 QA, service, and regulatory teams
 
@@ -72,7 +73,8 @@ These customers need:
 - auditability,
 - benchmarked release evidence,
 - exposure-management support,
-- post-market quality signals such as reject analysis and drift monitoring.
+- post-market quality signals such as reject analysis and drift monitoring,
+- versioned user and developer manuals that match the shipped build.
 
 ---
 
@@ -86,6 +88,7 @@ These customers need:
 | `MR-MKT-002` | XPE shall expose a stable C ABI suitable for C# P/Invoke and native host integration. | Integrators need low-friction adoption into existing consoles. |
 | `MR-MKT-003` | XPE shall support modular deployment by binary so that OEMs can ship baseline, premium, and assistive variants without forking the architecture. | Product-line flexibility is a market requirement. |
 | `MR-MKT-004` | XPE documentation shall define a single canonical document root and tie-breaker document for conflicts. | Integration programs fail when specs drift. |
+| `MR-MKT-005` | XPE shall provide version-matched offline help and integration guidance that can be opened from the host application or QA tool. | Integrators and field users need low-friction onboarding and troubleshooting without relying on external portals. |
 
 ### 4.2 Image-quality and detector-correction requirements
 
@@ -96,6 +99,8 @@ These customers need:
 | `MR-IMG-003` | XPE shall support Exposure Index / Deviation Index for detector-exposure management, while explicitly avoiding patient-dose claims. | EI/DI are operationally valuable but are not dose surrogates. |
 | `MR-IMG-004` | Nonlinear or suppressive algorithms shall not be promoted using only scalar fidelity metrics; task-based or observer-centered evidence shall be required where clinically relevant. | Published imaging literature shows scalar metrics alone are not enough for nonlinear processing decisions. |
 | `MR-IMG-005` | Premium deterministic features such as virtual grid, ROI-aware EI refinement, and advanced enhancement shall degrade safely when absent or bypassed. | Optional modules must not create unusable systems. |
+| `MR-IMG-006` | XPE shall provide a practical source-vs-processed visual comparison workflow for large detector images. | Operators and reviewers need fast visual evidence that a processing change improved the image without hiding source-context artifacts. |
+| `MR-IMG-007` | XPE shall support a body-part and view-aware display preset taxonomy beyond the four Phase 1b quick presets. | DR workflows are not adequately represented by Bone/Lung/Abdomen/Head alone; DICOM Body Part Examined, Anatomic Region, and View Position metadata require an extensible preset library for reliable evaluation and later product use. |
 
 ### 4.3 Operational quality-control requirements
 
@@ -104,6 +109,9 @@ These customers need:
 | `MR-OPS-001` | XPE shall emit enough standardized event and metadata information to support vendor-neutral reject analysis and repeat-rate review. | Reject analysis is part of ongoing DR quality control. |
 | `MR-OPS-002` | XPE shall support DI trend monitoring and site-configurable operational review bands. | Exposure management is a field-operations requirement, not just a lab metric. |
 | `MR-OPS-003` | XPE shall preserve benchmark-pack manifests and content hashes for repeatable release comparison. | Customers need reproducible evidence, not one-off tuning. |
+| `MR-OPS-004` | XPE developer and user documentation shall be generated from version-controlled Markdown and structured code comments so that help stays synchronized with the shipped build. | Manually maintained side documents drift too easily for regulated and integration-heavy programs. |
+| `MR-OPS-005` | XPE shall capture reviewer-visible comparison state, including source/processed layer identity, zoom, pan, and comparison mode, when evidence is exported. | Visual review must be reproducible and auditable, especially when large images cannot be assessed in one native-size view. |
+| `MR-OPS-006` | The QA/Test GUI shall support feature-level evaluation controls that let reviewers run detector-correction stages in `Off`, `On`, or `Auto` mode while recording the selected stage mix in evidence. | Algorithm effect, latency, and visual impact must be measured stage-by-stage before deciding which controls belong in the released product workflow. |
 
 ### 4.4 AI transparency and human-factors requirements
 
@@ -152,8 +160,10 @@ These may be researched, but they are outside the current market claim boundary.
 | OEM adoption | baseline integration into a host system without requiring Phase 2 or Phase 3 binaries |
 | delivery speed | meaningful reduction in time-to-market versus custom, from-scratch image-processing development |
 | image quality | stable detector correction across temperature, gain, and lag-history benchmark families |
+| visual review | source and processed images can be compared in one synchronized viewport for 4096x4096 16-bit frames |
 | field quality | DI trend review and reject-analysis data available for site QA workflows |
 | trust | explicit AI labeling, fallback, and transparency in operator-facing workflows |
+| usability | offline help and integration guidance accessible from the host UI and matched to the shipped version |
 | compliance readiness | SBOM, benchmark freeze, and cross-document traceability available for review |
 
 ---

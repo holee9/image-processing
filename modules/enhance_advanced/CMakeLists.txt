@@ -23,6 +23,8 @@ target_compile_features(${MODULE_NAME} PUBLIC cxx_std_17)
 # Include directories
 target_include_directories(${MODULE_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -52,6 +54,12 @@ else()
         -Wno-unused-parameter   # Eigen-heavy code triggers these spuriously
     )
 endif()
+
+# Set version properties
+set_target_properties(${MODULE_NAME} PROPERTIES
+    OUTPUT_NAME "xpe_enhance_advanced"
+    VERSION ${PROJECT_VERSION}
+)
 
 # Note: xpe_enhance_advanced_version() is provided by src/xpe_enhance_advanced.cpp
 # (real implementation returns "1.0.0"). The previous create_placeholder_version_function

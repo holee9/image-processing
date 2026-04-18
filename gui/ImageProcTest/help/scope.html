@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ImageProcTest Scope and Limitations</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Scope</p>
+      <h1>Current Build Scope and Limitations</h1>
+      <p class="lede">GUI-S0 is intentionally narrow. It proves the host shell, fixture path, telemetry surfaces, and settings persistence before native DLL integration begins.</p>
+    </header>
+
+    <section class="card-grid">
+      <article class="card">
+        <h2>Included</h2>
+        <ul>
+          <li>Mock backend initialization and shutdown</li>
+          <li>Raw binary image loading and preview rendering</li>
+          <li>Source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detach</li>
+          <li>Calibration path settings</li>
+          <li>Logs, alerts, and fixture-first automation</li>
+          <li>Offline packaged help pages</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Excluded</h2>
+        <ul>
+          <li>Real native P/Invoke backend</li>
+          <li>Real DICOM read/write</li>
+          <li>Phase 1a preprocessing controls</li>
+          <li>Full Phase 1b EI and DICOM workflow controls</li>
+          <li>Tile-backed rendering for images beyond the 4096x4096 comfort envelope</li>
+          <li>Phase 2 and Phase 3 premium or assistive features</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="section">
+      <h2>Ownership Boundary</h2>
+      <p>Real DICOM behavior remains owned by <code>xpe_dicom.dll</code>. Real runtime activation remains owned by the native integration sprint. The comparison viewport is a host review surface: it preserves the source frame, displays processed output as a separate layer, and records viewport state for evidence.</p>
+    </section>
+
+    <section class="section">
+      <p><a href="quick-start.html">Return to quick start</a></p>
+      <p><a href="index.html">Return to the help landing page</a></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -24,11 +24,26 @@ option(BUILD_AI "Build AI module" ON)
 option(BUILD_DISPLAY "Build display module" ON)
 option(BUILD_DICOM "Build DICOM module" ON)
 option(XPE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(BUILD_COVERAGE "Enable code coverage instrumentation (GCC/Clang only)" OFF)
 
 # Platform detection
 include(cmake/Platform.cmake)
 include(cmake/CompilerWarnings.cmake)
 include(FetchContent)
+
+# Coverage instrumentation
+# On Windows with MSVC, use OpenCppCoverage externally:
+#   OpenCppCoverage --sources <src> -- ctest --preset default
+if(BUILD_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(STATUS "Coverage: adding --coverage flags (GCC/Clang)")
+        add_compile_options(--coverage -O0 -g)
+        add_link_options(--coverage)
+    else()
+        message(WARNING "Coverage: BUILD_COVERAGE=ON is only supported on GCC/Clang. "
+                        "On MSVC/Windows use OpenCppCoverage externally.")
+    endif()
+endif()
 
 function(xpe_add_optional_subdirectory relative_dir)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${relative_dir}/CMakeLists.txt")
@@ -90,6 +105,13 @@ if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
     FetchContent_MakeAvailable(eigen)
 endif()
 
+# Google Test (via vcpkg)
+if(BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
+    enable_testing()
+endif()
+
 # XPE modules (Layer 0 + Layer 1)
 add_subdirectory(modules/common)
 
@@ -119,11 +141,10 @@ endif()
 
 # GSVG module (Layer 1-G, independent)
 if(BUILD_GSVG)
-    xpe_add_optional_subdirectory(gsvg)
+    xpe_add_optional_subdirectory(modules/gsvg)
 endif()
 
 # Tests
 if(BUILD_TESTS)
-    enable_testing()
     xpe_add_optional_subdirectory(tests)
 endif()

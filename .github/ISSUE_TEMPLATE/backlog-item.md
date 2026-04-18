@@ -1,6 +1,6 @@
 ---
 name: Backlog Item
-about: Create a sprint-ready backlog item from the XPE PRD decomposition
+about: XPE PRD 분해 결과를 sprint-ready backlog item으로 등록합니다.
 title: "[BI-xx.yy.zz] "
 labels: ["backlog"]
 assignees: []
@@ -17,15 +17,15 @@ assignees: []
 
 ## Summary
 
-작업 한 줄 설명
+작업을 한 문단으로 설명합니다.
 
 ## Why
 
-왜 이 작업이 지금 필요한지 적습니다.
+이 작업이 지금 필요한 이유와 지연 시 영향을 적습니다.
 
 ## Deliverable
 
-- 코드/문서/테스트/리포트 중 무엇을 남길지 적습니다.
+- 코드, 문서, 테스트, 리포트 중 무엇을 산출할지 명시합니다.
 
 ## Acceptance Criteria
 
@@ -45,6 +45,12 @@ assignees: []
 - [ ] benchmark/report
 - [ ] review note
 - [ ] dataset manifest
+
+## Progress Log
+
+- [ ] 시작 댓글 기록
+- [ ] 검증 결과 댓글 기록
+- [ ] 커밋/푸시 댓글 기록
 
 ## Notes
 

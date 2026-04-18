@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "xpe",
-  "version-string": "0.1.0",
-  "description": "X-ray FPD Image Processing Engine",
+  "version": "0.1.0",
+  "builtin-baseline": "b80e0066576f98276a53fd3a8aed379edaf945d6",
   "dependencies": [
     {
       "name": "spdlog",
@@ -13,7 +13,8 @@
     {
       "name": "gtest",
       "host": true
-    }
-  ],
-  "builtin-baseline": "2026-04-01"
+    },
+    "dcmtk",
+    "openjpeg"
+  ]
 }

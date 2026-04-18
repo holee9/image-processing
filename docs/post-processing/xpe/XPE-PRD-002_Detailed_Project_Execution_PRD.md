@@ -148,6 +148,8 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 - Modality LUT
 - VOI LUT
 - Presentation LUT / GSDF
+- synchronized source-vs-processed comparison viewer
+- large-image viewport interaction for 4096x4096 16-bit review
 - DICOM Reader/Writer
 - Presentation state support
 
@@ -288,6 +290,8 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 | PRD-P1B-007 | DICOM write/read baseline 구현 | Must | DX IOD validation 통과 |
 | PRD-P1B-008 | `ImageProcTest` viewer + W/L fast path 구현 | Must | UI interaction latency 기준 충족 |
 | PRD-P1B-009 | `QaConstancyTest` baseline workflow 구현 | Must | QA run result artifact 생성 |
+| PRD-P1B-010 | `ImageProcTest` source-vs-processed comparison viewport 구현 | Must | swipe/split/overlay/diff mode 검증 |
+| PRD-P1B-011 | 4096x4096 16-bit RAW comparison E2E 검증 | Must | synchronized zoom/pan + evidence export 통과 |
 
 ### 8.5 Phase 2 Clinical Requirements
 
@@ -334,6 +338,8 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 | NFR-PERF-002 | Phase 1 total | `<= 3000 ms/frame` |
 | NFR-PERF-003 | full pipeline with optional modules | `<= 5000 ms/frame` target |
 | NFR-PERF-004 | W/L interaction latency | `<= 16 ms` |
+| NFR-PERF-005 | comparison viewport interaction | synchronized zoom/pan/swipe without pipeline reprocessing |
+| NFR-PERF-006 | large-image viewer comfort envelope | 4096x4096 UInt16 source + processed in one viewport |
 
 ### 9.2 Image Quality
 
@@ -398,7 +404,7 @@ XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ra
 | WS-04 DICOM | IO, DX IOD, GSPS | dicom DLL, validation report |
 | WS-05 Clinical Advanced | collimation, EI refinement, GSVG | advanced DLL, clinical review set |
 | WS-06 AI | worker, models, inference path | ai DLL, worker, eval pack |
-| WS-07 Host GUI | orchestrator, viewer, benchmark, QA | `ImageProcTest` |
+| WS-07 Host GUI | orchestrator, comparison viewer, benchmark, QA | `ImageProcTest` |
 | WS-08 QA/RA | traceability, verification, release gate | RTM/VVP sync, gate checklist |
 
 ### 11.2 Mandatory Deliverables Per Phase

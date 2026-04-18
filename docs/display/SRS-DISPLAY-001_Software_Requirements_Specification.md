@@ -4,8 +4,8 @@
 **IEC 62304 절**: 5.2 소프트웨어 요구사항  
 **안전 분류**: Class B  
 **모듈**: `xpe_display.dll`  
-**버전**: 1.0  
-**날짜**: 2026-04-14  
+**버전**: 1.1  
+**날짜**: 2026-04-16  
 **작성자**: XPE 디스플레이팀  
 **승인**: __________________ 날짜: __________
 
@@ -69,19 +69,23 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 | FR-GSDF-307 | 메모리 효율 | 1024-entry LUT (4KB) 이하 | 정적 메모리 할당 | **MUST** |
 | FR-GSDF-308 | Format 변환 | float32 (0~4095) → uint16 (0~65535) | 손실 ≤ 1 LSB (1/65535) | **MUST** |
 
-### 3.4 LUT Manager 요구사항 (FR-LUT-xxx)
+### 3.4 LUT Manager 요구사항 (FR-LUT-xxx) — ⏸ Phase 1b 범위 외
 
-| ID | 요구사항 | 상세 | 시험 | 우선도 |
-|----|---------|------|------|--------|
-| FR-LUT-401 | Preset 저장 | `xpe_lut_add_preset(preset, lut_id)` 구현 | 유효한 프리셋, 중복 ID 거부 | **MUST** |
-| FR-LUT-402 | Preset 조회 | `xpe_lut_get_preset(lut_id, output)` 구현 | 존재하는 ID 조회 성공, 비존재 ID 거부 | **MUST** |
-| FR-LUT-403 | Preset 삭제 | `xpe_lut_remove_preset(lut_id)` 구현 | 사용자 프리셋 삭제, Factory 거부 | **MUST** |
-| FR-LUT-404 | 자동 선택 | `xpe_lut_auto_select(body_part)` → 최적 LUT ID | Chest → chest_pa, Extremity → extremity | **MUST** |
-| FR-LUT-405 | 보간 | 두 프리셋 간 cubic spline 보간 | 보간 계수 t ∈ [0, 1] 테스트 | MAY |
-| FR-LUT-406 | JSON 지속성 | `~/.xpe/luts/factory/`, `~/.xpe/luts/user/` 저장 | 파일 쓰기/읽기 검증 | **MUST** |
-| FR-LUT-407 | Factory Presets | 7가지 기본 프리셋 읽기 전용 | chest_pa, chest_lateral, extremity, spine, abdomen, pediatric, fluoroscopy | **MUST** |
-| FR-LUT-408 | Preset 리스트 | `xpe_lut_list_presets(list, count)` 구현 | 모든 활성 프리셋 열거 | **MUST** |
-| FR-LUT-409 | 버전 관리 | 각 프리셋에 버전 정보 포함 | 호환성 검증 | MAY |
+> **[DEFERRED]** 이 섹션의 요구사항(`FR-LUT-401 ~ FR-LUT-409`)은 `SPEC-XPE-P1B-DISP`에서 **OUT OF SCOPE**로 명시되었습니다.
+> 후속 릴리스(Phase 1c 또는 Phase 2)에서 구현 예정입니다.
+> Phase 1b에서는 `xpe_voi_preset_create(params, bodyPart)` 함수가 4개 신체 부위(BONE/LUNG/ABDOMEN/HEAD)의 기본 프리셋을 제공합니다.
+
+| ID | 요구사항 | 상세 | 시험 | 우선도 | 상태 |
+|----|---------|------|------|--------|------|
+| FR-LUT-401 | Preset 저장 | `xpe_lut_add_preset(preset, lut_id)` 구현 | 유효한 프리셋, 중복 ID 거부 | **MUST** | ⏸ 연기됨 |
+| FR-LUT-402 | Preset 조회 | `xpe_lut_get_preset(lut_id, output)` 구현 | 존재하는 ID 조회 성공, 비존재 ID 거부 | **MUST** | ⏸ 연기됨 |
+| FR-LUT-403 | Preset 삭제 | `xpe_lut_remove_preset(lut_id)` 구현 | 사용자 프리셋 삭제, Factory 거부 | **MUST** | ⏸ 연기됨 |
+| FR-LUT-404 | 자동 선택 | `xpe_lut_auto_select(body_part)` → 최적 LUT ID | Chest → chest_pa, Extremity → extremity | **MUST** | ⏸ 연기됨 |
+| FR-LUT-405 | 보간 | 두 프리셋 간 cubic spline 보간 | 보간 계수 t ∈ [0, 1] 테스트 | MAY | ⏸ 연기됨 |
+| FR-LUT-406 | JSON 지속성 | `~/.xpe/luts/factory/`, `~/.xpe/luts/user/` 저장 | 파일 쓰기/읽기 검증 | **MUST** | ⏸ 연기됨 |
+| FR-LUT-407 | Factory Presets | 7가지 기본 프리셋 읽기 전용 | chest_pa, chest_lateral, extremity, spine, abdomen, pediatric, fluoroscopy | **MUST** | ⏸ 연기됨 |
+| FR-LUT-408 | Preset 리스트 | `xpe_lut_list_presets(list, count)` 구현 | 모든 활성 프리셋 열거 | **MUST** | ⏸ 연기됨 |
+| FR-LUT-409 | 버전 관리 | 각 프리셋에 버전 정보 포함 | 호환성 검증 | MAY | ⏸ 연기됨 |
 
 ---
 
@@ -175,6 +179,15 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 | IF-EXT-302 | 메타데이터 전달 | ImageMetadata 구조체로 body_part, EI 통과 | 공유 메모리 포인터 |
 | IF-EXT-303 | 에러 반환 | XPE_OK, XPE_ERR_INVALID_PARAM 등 | C enum |
 
+### 6.3 Host GUI Comparison Interface (IF-GUI-xxx)
+
+| ID | 요구사항 | 상세 | 프로토콜 |
+|----|---------|------|---------|
+| IF-GUI-301 | 원본/처리 레이어 분리 | `xpe_display.dll` 출력은 GUI의 processed layer로 전달되어야 하며 source layer를 덮어쓰지 않아야 한다. | C# P/Invoke / `LoadedImageFrame` |
+| IF-GUI-302 | 동기화 viewport | GUI는 source와 processed layer에 동일한 zoom/pan/좌표계를 적용해야 한다. | `ImageComparisonViewport` |
+| IF-GUI-303 | 비교 상태 증거화 | GUI는 comparison mode, zoom, pan, divider position, source/processed identity를 evidence export에 포함해야 한다. | JSON evidence bundle |
+| IF-GUI-304 | 대용량 영상 경계 | Phase 1b GUI는 4096x4096 UInt16 source + processed 비교를 지원하고, 그 이상의 크기는 tile/cache 설계 승인 후 claim한다. | GUI rendering contract |
+
 ---
 
 ## 7. 검증 요구사항
@@ -185,6 +198,7 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 | VER-PERF-001 | 성능 요구사항 | Profiling + 시간 측정 | Benchmark report |
 | VER-SAFE-001 | 안전 요구사항 | Code review + FEA | SHA-DISPLAY-001 |
 | VER-DICOM-001 | DICOM 준수 | DCMTK validator 사용 | DICOM 파일 검증 |
+| VER-GUI-001 | GUI source-vs-processed 비교 | 4096x4096 RAW E2E + swipe/zoom/pan automation | GUI evidence report |
 
 ---
 
@@ -198,11 +212,41 @@ XPE Display Processing Module의 소프트웨어 요구사항을 정의합니다
 
 ---
 
+## 7.1 Body-Part/View Preset Scope Addendum (2026-04-16)
+
+The current four GUI body-part presets are Phase 1b quick presets only. They are sufficient for validating `xpe_voi_preset_create()` command wiring, P/Invoke stability, and display pipeline smoke tests, but they are not a complete DR preset taxonomy.
+
+Normative and operational basis:
+
+- DICOM PS3.16 Annex L defines many Body Part Examined / anatomic region terms beyond Bone, Lung, Abdomen, and Head.
+- DICOM PS3.3 CR/DX modules separate Body Part Examined / Anatomic Region from View Position and positioning attributes.
+- ACR DIR DR anatomical-view grouping and RadLex Playbook exam concepts describe radiography context as anatomy plus view/projection, not as a four-value preset list.
+
+Requirement addendum for SWU-3.4 LUT Manager:
+
+- The four Phase 1b presets shall remain compatibility quick presets for `xpe_voi_preset_create()`.
+- The product LUT Manager shall provide an extended factory preset library keyed by `bodyPart`, `viewPosition`, `laterality` when applicable, `patientGroup`, and `displayIntent`.
+- The deferred factory library shall include at least 15 body-part/view profiles before product-level DR preset completeness is claimed.
+- Minimum deferred groups: chest, abdomen/KUB, pelvis/hip, cervical/thoracic/lumbar spine, upper extremity, lower extremity, skull/head, pediatric low-dose, and fluoroscopy/realtime.
+- Each extended preset shall document its source mapping to DICOM Body Part Examined or Anatomic Region, View Position when applicable, and RadLex/Playbook-style exam naming when available.
+- GUI evidence shall distinguish the Phase 1b quick preset from the resolved extended SWU-3.4 preset ID once the LUT Manager library exists.
+
+References:
+
+- DICOM PS3.16 Annex L: https://dicom.nema.org/medical/dicom/current/output/chtml/part16/chapter_l.html
+- DICOM PS3.3 CR/DX modules and positioning attributes: https://dicom.nema.org/medical/Dicom/2023e/output/chtml/part03/sect_C.8.html
+- RadLex Playbook: https://playbook.radlex.org/
+- ACR DIR DR: https://nrdrsupport.acr.org/support/solutions/articles/11000065405-dir-digital-radiography-dr-
+
+---
+
 ## Revision History
 
 | Rev | Date | Author | Description |
 |-----|------|--------|-------------|
 | 1.0 | 2026-04-14 | XPE Display Team | Initial release |
+| 1.1 | 2026-04-16 | MoAI | Added GUI Comparison Interface requirements (IF-GUI-301~304). Implemented in XPE-GUI-COMPARE-001 v0.2.0. |
+| 1.2 | 2026-04-16 | Codex | Added body-part/view preset scope addendum for SWU-3.4 LUT Manager. |
 
 ---
 

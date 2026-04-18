@@ -143,7 +143,7 @@
 | `FT-02.01` | WPF shell bootstrap | `EP-01` ABI | app shell |
 | `FT-02.02` | Native DLL loader and lifecycle manager | `FT-02.01` | loader smoke test |
 | `FT-02.03` | Pipeline executor skeleton | `FT-02.02` | execution trace log |
-| `FT-02.04` | Viewer and W/L interaction | `EP-05` display path | viewer demo |
+| `FT-02.04` | Viewer, W/L, and source-vs-processed comparison | `EP-05` display path | viewer demo + comparison evidence |
 | `FT-02.05` | Benchmark and QA harness | `FT-02.03` | benchmark output / QA artifact |
 
 ### Backlog Items
@@ -157,6 +157,8 @@
 | `BI-02.03.02` | Add alert polling and display console | `PRD-P0-003` | Must | `BI-01.02.03`, `BI-02.03.01` |
 | `BI-02.04.01` | Add viewer canvas and basic image load/display path | `PRD-P1B-008` | Must | `BI-02.03.01` |
 | `BI-02.04.02` | Add W/L fast-path interaction layer | `PRD-P1B-008`, `NFR-PERF-004` | Must | `BI-02.04.01`, `BI-05.03.02` |
+| `BI-02.04.03` | Add source-vs-processed comparison viewport with swipe and synchronized zoom/pan | `PRD-P1B-010`, `NFR-PERF-005` | Must | `BI-02.04.01` |
+| `BI-02.04.04` | Add comparison mode commands and viewer-state evidence export | `PRD-P1B-010`, `PRD-P1B-011` | Must | `BI-02.04.03` |
 | `BI-02.05.01` | Add benchmark runner UI and export format | `PRD-PROG-005` | Should | `BI-02.03.01` |
 | `BI-02.05.02` | Add QA constancy test host workflow | `PRD-P1B-009` | Must | `BI-02.04.01`, `BI-03.03.01` |
 
@@ -238,7 +240,7 @@
 | `FT-05.02` | EI baseline | `FT-05.01`, `EP-03` | EI/DI test set |
 | `FT-05.03` | Display LUT stack | `FT-05.01` | GSDF/VOI smoke test |
 | `FT-05.04` | DICOM baseline | `FT-05.03` | DX validation result |
-| `FT-05.05` | Viewer and QA host integration | `EP-02`, `FT-05.03` | user demo |
+| `FT-05.05` | Viewer and QA host integration | `EP-02`, `FT-05.03` | user demo + comparison evidence |
 
 ### Backlog Items
 
@@ -263,6 +265,9 @@
 | `BI-05.05.02` | Wire W/L fast path from host to display DLL | `PRD-P1B-008`, `NFR-PERF-004` | Must | `BI-02.04.02`, `BI-05.03.02` |
 | `BI-05.05.03` | Implement QA constancy baseline workflow and result artifact | `PRD-P1B-009` | Must | `BI-02.05.02`, `BI-05.04.03` |
 | `BI-05.05.04` | Produce raw-to-DICOM Phase 1 demo package | `M3` | Must | `BI-05.05.03` |
+| `BI-05.05.05` | Connect display pipeline output to comparison viewport | `PRD-P1B-010` | Must | `BI-02.04.03`, `BI-05.05.01` |
+| `BI-05.05.06` | Add 4096x4096 RAW comparison E2E fixture and automation | `PRD-P1B-011`, `NFR-PERF-006` | Must | `BI-05.05.05` |
+| `BI-05.05.07` | Design tile-backed rendering extension for images larger than 4096x4096 | `NFR-PERF-006` | Should | `BI-05.05.06` |
 
 ---
 
