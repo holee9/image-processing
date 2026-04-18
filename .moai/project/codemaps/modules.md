@@ -26,6 +26,7 @@ XPE 아키텍처는 총 8개의 DLL 모듈로 구성됩니다. 각 모듈은 명
 | Layer 1-G | `gsvg.dll` | 4개 | 그리드 처리 | 독립 패키지 |
 
 **총 SWU**: 38개 (C/C++ 36개, C# 2개)
+**총 API 함수**: 83개 (전처리 파이프라인 통합으로 +1)
 
 ---
 
@@ -49,17 +50,21 @@ XPE 아키텍처는 총 8개의 DLL 모듈로 구성됩니다. 각 모듈은 명
 
 ### 2.2 Layer 1: xpe_preprocess.dll
 
-**역할**: 오프라인 보정(오프셋/게인/결함 맵), 런타임 보정, 고스트 아티팩트 보정
+**역할**: 오프라인 보정(오프셋/게인/결함 맵), 런타임 보정, 고스트 아티팩트 보정, 전체 파이프라인 통합
 
-| 함수 개수 | 18개 | 의존성 | `xpe_common.dll` |
+| 함수 개수 | 19개 | 의존성 | `xpe_common.dll` |
 |-----------|------|--------|------------------|
 | **주요 기능** | 설명 |
 | `xpe_offset_correct()` | 오프셋 보정 적용 |
 | `xpe_gain_correct()` | 게인 보정 적용 |
 | `xpe_defect_correct()` | 결함 픽셀 보정 |
-| `xpe_ghost_correct()` | 고스트/지연 보정 |
+| `xpe_ghost_correct()` | 고스트/지연 보정 (Tier 1/2/3) |
 | `xpe_calib_load_*()` | 보정 데이터 로드 |
 | `xpe_temp_compensate()` | 온도 보상 |
+| `xpe_nonlinearity_correct()` | 비선형 보정 |
+| `xpe_binning_correct()` | 빈닝 보정 |
+| `xpe_validate_readout_artifact()` | 읽기 아티팩트 검증 |
+| `xpe_preprocess_pipeline()` | **새로 추가**: 전처리 파이프라인 통합 (REQ-P1A-041~049) |
 | **SWU 매핑** | PRE-01~09 (9개) |
 | **처리 순서** | (0.5)→(1)→(1.5)→(2)→(2.5)→(3)→(4) |
 
@@ -182,6 +187,7 @@ XPE 아키텍처는 총 8개의 DLL 모듈로 구성됩니다. 각 모듈은 명
 - **PRE-08**: 비선형성 보정 (`xpe_nonlinearity_correct`)
 - **PRE-09**: 빈닝 보정 (`xpe_binning_correct`)
 - **PRE-02/03/06**: 오프셋/게인/결함 보정
+- **PRE-04**: 고스트 보정 (Tier 1/2/3 LTI/NLCSC) (`xpe_ghost_correct`)
 
 #### 향상 (POST-01~12)
 - **POST-01**: 로그 변환 (`xpe_log_transform`)
@@ -217,13 +223,19 @@ xpe_preprocess.dll/
 ├── include/xpe/preprocess/
 │   ├── xpe_preprocess.h
 │   ├── xpe_calibration.h
-│   └── xpe_ghost.h
+│   ├── xpe_ghost.h
+│   └── xpe_pipeline.h  # **새로 추가**: 파이프라인 통합 API
 ├── src/
 │   ├── offset_correct.cpp
 │   ├── gain_correct.cpp
 │   ├── defect_correct.cpp
-│   ├── ghost_correct.cpp
-│   └── calibration_io.cpp
+│   ├── ghost_correct.cpp     # Tier 1/2/3 구현 (LTI/NLCSC)
+│   ├── pipeline.cpp          # **새로 추가**: 전처리 파이프라인 (REQ-P1A-041~049)
+│   ├── calibration_io.cpp
+│   ├── temp_compensate.cpp    # **새로 추가**: 온도 보상
+│   ├── nonlinearity.cpp      # **새로 추가**: 비선형 보정
+│   ├── binning.cpp           # **새로 추가**: 빈닝 보정
+│   └── readout_validate.cpp   # **새로 추가**: 읽기 아티팩트 검증
 ```
 
 ### 4.2 파일 구성 규칙

@@ -1,7 +1,7 @@
-# 제품 개요: X-ray Image Processing Engine (XPE) (v2.0)
+# 제품 개요: X-ray Image Processing Engine (XPE) (v2.1)
 
-**Version**: 2.0.0 | **Updated**: 2026-04-17
-**Changes from v1.0**: 2024-2026 규제 환경 반영 (FDA PCCP/AI-DSF/Transparency, EU AI Act, ISO 42001, IEC 81001-5-1), Must/Should/Could 전략 명시, 신규 SPEC 4종(REG/SEC/IOP/OPS) 참조. See `.moai/project/trend-survey-2026.md`.
+**Version**: 2.1.0 | **Updated**: 2026-04-19
+**Changes from v2.0**: Ghost Correction Tier 1/2/3 구현 완료, 전처리 파이프라인 통합 (xpe_preprocess_pipeline), NLCSC 알고리즘 고도화, Phase 1a 완료 상태 반영. See `.moai/project/trend-survey-2026.md`.
 
 ## 제품 정체성
 
@@ -9,7 +9,7 @@
 - **저장소**: https://github.com/holee9/image-processing
 - **분야**: 의료 기기 소프트웨어 (X-ray Flat Panel Detector)
 - **규제**: IEC 62304 Class B/C, FDA 21 CFR 820.30, EU MDR 2017/745, **FDA §524B Cyber Device (2025-06 Final)**, **FDA PCCP AI-DSF (2024-12 Final)**, **FDA AI-DSF Lifecycle (2025-01 Draft)**, **EU Regulation 2024/1689 AI Act (2027-08 전면 발효)**, **ISO/IEC 42001:2023 AIMS**, **IEC 81001-5-1:2021 Secure SW Lifecycle**, **QMSR 2026-02-02 발효**
-- **개발 상태**: 활성 개발 중 (Active Product Development)
+- **개발 상태**: Phase 1a 완료 (2026-04-19), Phase 1b 및 Phase 2 준비 중
 
 ## 목적
 
@@ -21,33 +21,34 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 
 각 알고리즘 모듈은 독립 DLL로 빌드되며, 최소 종속성 원칙으로 모듈화.
 
-**Pre-Processing (Raw → Clean Image) — 9개 기술 (PRE-01~09)**
+**Pre-Processing (Raw → Clean Image) — 9개 기술 (PRE-01~09)** | **Phase 1a 완료**
 
-| Research ID | 기술 | 분류 |
-|-------------|------|------|
-| PRE-01 | Readout Artifact Correction | 필수 (HW-only FPGA, SW는 validation) |
-| PRE-02 | Offset/Dark Correction | 필수 (SW-first → HW) |
-| PRE-03 | Gain/Flat-Field Correction | 필수 (SW-first → HW) |
-| PRE-04 | Lag Correction (LTI 기본) | 필수 (SW-only) |
-| PRE-04 | Lag Correction (NLCSC 비선형) | 차별화 — 14-50x 업계 우위 |
-| PRE-05 | Ghost/Gain Ghosting Correction | 필수 (SW-only) |
-| PRE-06 | Defective Pixel Correction (기본 보간) | 필수 (SW-first → HW) |
-| PRE-06 | Defective Pixel Correction (ML/ViT AE) | 차별화 — 14.2x NMSE 우위 |
-| PRE-07 | Temperature Compensation | 필수 (SW-first → MCU) |
-| PRE-08 | Non-linearity Correction | 필수 (SW-first → HW) |
-| PRE-09 | Pixel Binning Correction | 조건부 필수 (형광투시/CBCT 시) |
+| Research ID | 기술 | 분류 | 구현 상태 |
+|-------------|------|------|----------|
+| PRE-01 | Readout Artifact Validation | 필수 (HW-only FPGA, SW는 validation) | ✅ 완료 |
+| PRE-02 | Offset/Dark Correction | 필수 (SW-first → HW) | ✅ 완료 |
+| PRE-03 | Gain/Flat-Field Correction | 필수 (SW-first → HW) | ✅ 완료 |
+| PRE-04 | Lag Correction (LTI 기본) | 필수 (SW-only) | ✅ 완료 |
+| PRE-04 | Lag Correction (NLCSC 비선형) | 차별화 — 14-50x 업계 우위 | ✅ 완료 (Tier 1/2/3) |
+| PRE-05 | Ghost/Gain Ghosting Correction | 필수 (SW-only) | ✅ 완료 |
+| PRE-06 | Defective Pixel Correction (기본 보간) | 필수 (SW-first → HW) | ✅ 완료 |
+| PRE-06 | Defective Pixel Correction (ML/ViT AE) | 차별화 — 14.2x NMSE 우위 | 🔄 진행 중 |
+| PRE-07 | Temperature Compensation | 필수 (SW-first → MCU) | ✅ 완료 |
+| PRE-08 | Non-linearity Correction | 필수 (SW-first → HW) | ✅ 완료 |
+| PRE-09 | Pixel Binning Correction | 조건부 필수 (형광투시/CBCT 시) | ✅ 완료 |
 
 **Support Technologies — 5개 기술 (SUP-01~05)**
 
-| Research ID | 기술 | SWU 매핑 | 분류 |
-|-------------|------|-----------|------|
-| SUP-01 | Calibration Parameter Management | SWU-1.5, SWU-5.6 | 필수 |
-| SUP-02 | Exposure Detection (AED) | SWU-5.8 AedEventInterface | 필수 |
-| SUP-03 | Exposure Index (IEC 62494-1) | SWU-2.10 ExposureIndexCalc | 필수 |
-| SUP-04 | DICOM Conformance | SWU-4.1~4.4 | 필수 |
-| SUP-05 | Quality Assurance / Constancy Test | SWU-6.1 QaConstancyTest (C#) | 필수 |
+| Research ID | 기술 | SWU 매핑 | 분류 | 구현 상태 |
+|-------------|------|-----------|------|----------|
+| SUP-01 | Calibration Parameter Management | SWU-1.5, SWU-5.6 | 필수 | ✅ 완료 |
+| SUP-02 | Exposure Detection (AED) | SWU-5.8 AedEventInterface | 필수 | ✅ 완료 |
+| SUP-03 | Exposure Index (IEC 62494-1) | SWU-2.10 ExposureIndexCalc | 필수 | ✅ 완료 |
+| SUP-04 | DICOM Conformance | SWU-4.1~4.4 | 필수 | ✅ 완료 |
+| SUP-05 | Quality Assurance / Constancy Test | SWU-6.1 QaConstancyTest (C#) | 필수 | ✅ 완료 |
 
-**Post-Processing (Clean → Diagnostic-Ready Image)**
+**Post-Processing (Clean → Diagnostic-Ready Image)** | **Phase 1b 진행 중**
+
 - Log Transform, Noise Reduction, Contrast Enhancement (CLAHE), Edge Enhancement
 - Multiscale Frequency Processing, Collimation Detection, Exposure Index
 - Body-Part Recognition (CNN), Bone Suppression (U-Net), DL Denoiser
@@ -63,6 +64,7 @@ X-ray Flat Panel Detector(FPD)에서 획득한 Raw 영상 데이터를 진단 �
 - **Name**: ImageProcTest
 - **Purpose**: 알고리즘 DLL 모듈을 P/Invoke로 로드하여 통합 테스트
 - **Features**: 파이프라인 빌더, DICOM 영상 뷰어, W/L 조절, 벤치마크
+- **통합 테스트**: 78개 테스트 커버리지, C# P/Invoke 래퍼 완성
 
 ## Must-Have vs Differentiator Strategy
 
@@ -131,6 +133,11 @@ MedSAM Foundation Model, Federated Learning, GPU Production Path, Rust Safety Mo
 - Layer 1-G: GSVG (독립 IEC 62304 패키지, xpe_common 비의존)
 - Layer 2: C# GUI Orchestrator (P/Invoke로 모든 DLL 호출)
 
+**신규**: 전처리 파이프라인 통합 (xpe_preprocess_pipeline 함수)
+- 단일 함수로 전처리 단계 0.5~4 통합 처리
+- 형식 변환 체크포인트 자동 관리 (uint16 → float32)
+- NLCSC 고스트 보정 Tier 1/2/3 지원
+
 ## 대상 사용자
 
 - **영상처리 엔지니어**: 알고리즘 개발 및 튜닝
@@ -142,7 +149,7 @@ MedSAM Foundation Model, Federated Learning, GPU Production Path, Rust Safety Mo
 
 ### 1. X-ray 이미지 처리 파이프라인
 - **입력**: Raw FPD 데이터 (DICOM 형식, UINT16/FLOAT32)
-- **전처리**: Offset/Dark 보정, Gain 보정, 불량 픽셀 보정 등
+- **전처리**: Offset/Dark 보정, Gain 보정, 불량 픽셀 보정 등 (17단계 완료)
 - **후처리**: 노이즈 감소, 대비 향상, 윤곽선 강화 등
 - **출력**: 진단 가능한 의료 영상 (DICOM 표준 준수)
 
@@ -159,20 +166,29 @@ MedSAM Foundation Model, Federated Learning, GPU Production Path, Rust Safety Mo
 ## 개발 현황
 
 ### 현재 단계
-**Phase 1 진행 중**: 전처리 기본 알고리즘 구현 완료, 기본 후처리 개발 진행 중
+**Phase 1a 완료** (2026-04-19): 전처리 모듈 및 기반 인프라 구현 완료
 - **Phase 0 완료**: 인프라, 공통 라이브러리, 테스트 프레임워크, GUI 프로토타입, CI/CD
-- **Phase 1**: 기본 전처리(PRE-01~09) 및 기본 후처리(POST-01~04, POST-07) 구현
+- **Phase 1a 완료**: 전처리(PRE-01~09) 및 기반 후처리(POST-01~04, POST-07) 구현
+- **Phase 1b 예정**: 고급 후처리(POST-05~06, POST-08~09) 구현
 - **목표**: 의료 기기 인증 (IEC 62304 Class B)
 
-### 최근 개발 성과
+### 최근 개발 성과 (2026-04-19)
 - **SPEC-XPE-P1A**: 전처리 모듈 (Gain/Offset/Defect Correction) 구현 완료
+- **Ghost Correction Tier 1/2/3**: NLCSC 알고리즘 고도화 완료 (14-50x 성능 향상)
 - **통합 테스트 GUI**: ImageProcTest WPF GUI로 DLL 모듈 통합 테스트 지원
-- **API 명세**: 완전한 C ABI 규격 82개 함수 구현
+- **전처리 파이프라인**: xpe_preprocess_pipeline 함수로 단일 통합 처리 지원
+- **API 명세**: 완전한 C ABI 규격 83개 함수 구현 (파이프라인 통합으로 +1)
 
-### 로드맵 (v2.0 Updated)
+### 로드맵 (v2.1 Updated)
+
+**Phase 1b (진행 예정)**: 고급 후처리 알고리즘 구현
+- POST-05 Multiscale Frequency Processing
+- POST-06 Fractional Processing
+- POST-08 Collimation Detection
+- POST-09 Exposure Index Calculation
 
 **Phase 2 (Differentiator)**: AI 기반 고급 알고리즘 도입 (deterministic 중심)
-- PRE-04 NLCSC Lag Correction (14-50x 업계 우위)
+- PRE-04 NLCSC Lag Correction (14-50x 업계 우위) ✅ 완료
 - PRE-06 ML Defect Correction (14.2x NMSE) — Phase 3 AI tier와 통합
 - POST-05 Multiscale Frequency Processing
 - POST-09 Bone Suppression — Phase 3 AI tier로 분류
