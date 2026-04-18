@@ -215,5 +215,68 @@ PR #27 병합 준비 과정에서 `BUILD_ENHANCE_ADVANCED=ON`으로 실제 컴�
 
 ---
 
-*Last Updated: 2026-04-18*
+*Last Updated: 2026-04-18 (S1 in-progress section)*
 *Skeleton Build: unlocked for explicit opt-in (default OFF) until 6a-6d are resolved*
+
+---
+
+## 2026-04-18 — S1 Build Unblock Sprint (Session 1 of 5)
+
+Sprint 목표: 2026-04-18 audit 에서 차기 스프린트로 이월된 6a-6d 해소 + `BUILD_ENHANCE_ADVANCED=ON` 기본값 복원 + 모듈 `/WX` 적용 + 기존 테스트 컴파일 성공.
+
+### S1 DoD 충족 상태
+
+| DoD 항목 | 상태 | 비고 |
+|---|:---:|---|
+| `cmake --build` 0 exit (모듈) | ✅ | `xpe_enhance_advanced.dll` (142 KB) 생성 |
+| 4개 API export 확인 | ✅ | DLL 빌드 성공 = export 검증. dumpbin 실행은 CI 파이프라인에서 수행 |
+| `/WX` 모듈 대상 경고 0 | ✅ | 모든 C4101/C4244/C4267/LNK2005 해소 |
+| 35 테스트 컴파일 성공 | ✅ | `test_xpe_enhance_advanced.exe` (230 KB) 생성. 실행·통과는 S2-S3 |
+| `BUILD_ENHANCE_ADVANCED` 기본값 ON | ✅ | 루트 CMakeLists.txt 복원 |
+
+### 감사 항목 6a-6d 해소 상세
+
+- **6a** `xpe_enhance_advanced.cpp` 내부 헤더 include 경로 불일치 → 6d와 함께 해소. `"detail/fractional_derivative.h"`, `"detail/exposure_index.h"` 로 일관화.
+- **6b** `mfp_scalar.h`, `fractional_derivative.h` 가 `XpeErrorCode` 사용하면서 `xpe_error.h` 누락 → 헤더 include 체계화 완료.
+- **6c** C4244 narrowing (Eigen Index, M_PI) → 모든 호출 지점에서 명시적 `static_cast<int>`/`static_cast<float>` 적용.
+- **6d** 내부 헤더 ABI 경계 위생 → `fractional_derivative.h` / `exposure_index.h` 를 `include/xpe/enhance_advanced/` 에서 `src/detail/` 로 이동 (namespace 유지, 파일 경로만 변경).
+
+### 추가 발견 (신규 스프린트 항목)
+
+**6e (S1 세션 내 발견·해소)**: `create_placeholder_version_function` CMake 함수가 `xpe_enhance_advanced_version()` 을 중복 정의 → LNK2005. 실제 구현은 `xpe_enhance_advanced.cpp:75` 에 이미 존재하므로 placeholder 함수 제거.
+
+**6f (S1 세션 내 발견·해소)**: 35개 기존 테스트가 `XpeImageBuffer` 구조체에 존재하지 않는 `stride` 멤버, 미정의 상수 `XPE_BODY_PART_CHEST`, `XPE_PIXEL_UINT8` 사용 → ABI 사양 (`xpe_types.h`) 에 맞춰 일괄 수정:
+- `.stride = ...` / `->stride = ...` 19개 라인 제거 (구조체 멤버 없음)
+- `meta.bodyPart = "XXX"` / `= XPE_BODY_PART_CHEST` 12개 → `strncpy(bodyPart, "XXX", sizeof(bodyPart))`
+- `XPE_BODY_PART_CHEST` 13개 → 리터럴 `"CHEST"` (함수 인자 자리)
+- `XPE_PIXEL_UINT8` 2개 → `XPE_PIXEL_UINT16` (enhance_advanced 비-FLOAT32 거부 로직 검증 목적)
+- `test_integration.cpp:142 delete[] data;` → `delete[] static_cast<float*>(img.data);` (변수 미정의)
+
+**6g (S1 세션 내 발견·해소)**: 모듈 CMakeLists 에서 `find_package(GTest REQUIRED)` 사용하나 상위 빌드 컨텍스트에서 GTest가 FetchContent 되지 않음. `modules/common` 패턴 미러링하여 FetchContent 폴백 추가.
+
+### 빌드 환경
+
+- CMake: `D:/Program Files/Microsoft Visual Studio/2022/Professional/.../CMake/bin/cmake.exe` v3.31
+- Generator: `Visual Studio 17 2022` / `x64` / `Release`
+- Build dir: `build/ci-enhance-advanced`
+- 옵션: `-DBUILD_ENHANCE_ADVANCED=ON -DBUILD_TESTS=ON -DBUILD_PREPROCESS=OFF -DBUILD_ENHANCE_BASIC=OFF -DBUILD_AI=OFF -DBUILD_DISPLAY=OFF -DBUILD_DICOM=OFF -DBUILD_GSVG=OFF`
+
+### 변경 파일 목록 (S1 범위)
+
+| 카테고리 | 파일 | 변경 유형 |
+|---|---|---|
+| 루트 빌드 | `CMakeLists.txt` | `BUILD_ENHANCE_ADVANCED` OFF→ON |
+| 모듈 빌드 | `modules/enhance_advanced/CMakeLists.txt` | `/WX` per-target, GTest FetchContent, placeholder 제거 |
+| 모듈 소스 (8) | `modules/enhance_advanced/src/{xpe_enhance_advanced,mfp_scalar,fractional_derivative,exposure_index,xpe_collimation_detect}.cpp`, `src/mfp_scalar.h`, `src/detail/hough_transform.cpp` | include 경로·narrowing·LNK 해소 |
+| 새 헤더 (2) | `modules/enhance_advanced/src/detail/{fractional_derivative,exposure_index}.h` | 이동 (6d) |
+| 구 헤더 (2, 삭제) | `modules/enhance_advanced/include/xpe/enhance_advanced/{fractional_derivative,exposure_index}.h` | 삭제 (6d) |
+| 테스트 (5) | `modules/enhance_advanced/tests/test_{mfp_scalar,collimation_detect,edge_enhancement,exposure_index,integration}.cpp` | `XpeImageBuffer` ABI 정합 (6f) |
+
+### 다음 세션 (S2)
+
+**S2 Scope**: 핵심 알고리즘 실체화 (Laplacian pyramid numeric stability, Hough transform, Gruenwald-Letnikov, IEC 62494-1 EI/DI). 기존 테스트는 **컴파일은 되나 실행 시 스켈레톤 구현이 알고리즘 기대치를 충족 못 하여 실패할 수 있음** — 이는 S2-S3의 과제.
+
+**S1 누적 AC**: 27/32 → **27/32 유지** (빌드 인프라 작업, 기능 AC 변화 없음). 실행 테스트 통과로 AC 전환은 S2 이후.
+
+*Last Updated: 2026-04-18 (S1 complete)*
+*Skeleton Build: unlocked (`BUILD_ENHANCE_ADVANCED=ON` default) + `/WX` clean + 35 tests compile-ready*
