@@ -1,0 +1,6 @@
+{
+  "xpe_common": {
+    "pinned_major": 1,
+    "comment": "Update pinned_major when a breaking ABI change is released. Tests verify semver major matches this value."
+  }
+}
