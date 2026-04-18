@@ -26,6 +26,7 @@ set(XPE_PREPROCESS_SOURCES
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
     src/calibration_manager.cpp  # SWU-1.5 REQ-P1A-035..040
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
+    src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
 )
 
 add_library(xpe_preprocess SHARED

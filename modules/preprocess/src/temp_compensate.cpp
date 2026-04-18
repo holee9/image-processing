@@ -26,6 +26,8 @@ XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
                                   const char* configJsonOrNull)
 {
     if (!img) return XPE_ERR_INVALID_INPUT;
+    size_t n = 0;
+    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-007: NaN -> use 25.0C fallback
     if (std::isnan(detectorTempC)) detectorTempC = kTempFallback;
@@ -47,8 +49,7 @@ XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
     const float scale = static_cast<float>(exp_T / exp_ref);
 
     // REQ-P1A-005: apply correction — divide by scale to compensate dark current
-    const size_t n = static_cast<size_t>(img->width) * img->height;
-    auto* px = static_cast<uint16_t*>(img->pixels);
+    auto* px = static_cast<uint16_t*>(img->data);
     for (size_t i = 0; i < n; ++i) {
         const float corrected = static_cast<float>(px[i]) / (scale > 0.f ? scale : 1.f);
         px[i] = static_cast<uint16_t>(std::min(corrected, 65535.0f));

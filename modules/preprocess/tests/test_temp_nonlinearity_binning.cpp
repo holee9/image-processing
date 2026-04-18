@@ -19,21 +19,25 @@ namespace {
 
 static XpeImageBuffer make_uint16_buf(std::vector<uint16_t>& data, uint32_t w, uint32_t h) {
     XpeImageBuffer buf{};
-    buf.pixels      = data.data();
-    buf.width       = w;
-    buf.height      = h;
-    buf.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-    buf.stride      = w * sizeof(uint16_t);
+    buf.data          = data.data();
+    buf.width         = w;
+    buf.height        = h;
+    buf.bitsAllocated = 16;
+    buf.bitsStored    = 16;
+    buf.format        = XPE_PIXEL_UINT16;
+    buf.dataSize      = data.size() * sizeof(uint16_t);
     return buf;
 }
 
 static XpeImageBuffer make_float32_buf(std::vector<float>& data, uint32_t w, uint32_t h) {
     XpeImageBuffer buf{};
-    buf.pixels      = data.data();
-    buf.width       = w;
-    buf.height      = h;
-    buf.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-    buf.stride      = w * sizeof(float);
+    buf.data          = data.data();
+    buf.width         = w;
+    buf.height        = h;
+    buf.bitsAllocated = 32;
+    buf.bitsStored    = 32;
+    buf.format        = XPE_PIXEL_FLOAT32;
+    buf.dataSize      = data.size() * sizeof(float);
     return buf;
 }
 
@@ -82,7 +86,7 @@ TEST(NonlinearityCorrect, NullConfigIsNoOp) {
     std::vector<uint16_t> data(16, 5000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
     EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, nullptr));
-    EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.pixels)); // unchanged
+    EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)); // unchanged
 }
 
 // REQ-P1A-014: unknown detector mode -> XPE_ERR_CONFIG_INVALID
@@ -104,7 +108,7 @@ TEST(BinningCorrect, Binning1x1IsNoOp) {
     std::vector<float> data(16, 100.0f);
     XpeImageBuffer buf = make_float32_buf(data, 4, 4);
     EXPECT_EQ(XPE_OK, xpe_binning_correct(&buf, 1, nullptr));
-    EXPECT_NEAR(100.0f, *static_cast<const float*>(buf.pixels), 1e-6f);
+    EXPECT_NEAR(100.0f, *static_cast<const float*>(buf.data), 1e-6f);
 }
 
 // REQ-P1A-021: unknown binning mode -> XPE_ERR_CONFIG_INVALID

@@ -44,15 +44,15 @@ XPE_API XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
  *
  * @par Ownership Transfer
  *   This function allocates a new float32 pixel buffer (via malloc) and stores
- *   the pointer in img->pixels. The caller takes ownership of the new buffer and
- *   must call free(img->pixels) when done. The original uint16 buffer is NOT freed
+ *   the pointer in img->data. The caller takes ownership of the new buffer and
+ *   must call free(img->data) when done. The original uint16 buffer is NOT freed
  *   by this function — the caller retains ownership of the original buffer.
  *
  * @par Buffer Layout
  *   Both img and gainMap must be contiguous (stride == width * element_size).
  *   Non-contiguous (row-padded) buffers return XPE_ERR_INVALID_INPUT.
  *
- * @param img     [in/out] Image to correct (uint16 in, float32 out); pixels ptr replaced
+ * @param img     [in/out] Image to correct (uint16 in, float32 out); data ptr replaced
  * @param gainMap [in]     Per-pixel gain map (float32, must match img dimensions)
  * @return XPE_OK on success, XPE_ERR_INVALID_INPUT (NULL/dim mismatch/non-contiguous),
  *         XPE_ERR_OUT_OF_MEMORY if allocation fails
@@ -265,6 +265,27 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
                                                     int32_t* artifactScoreOut,
                                                     char* msgOut,
                                                     size_t msgLen);
+
+/* =========================================================================
+ * Full Pre-Processing Pipeline (stages 0.5-4)
+ * REQ-P1A-041 to REQ-P1A-047
+ * ========================================================================= */
+
+/**
+ * @brief Execute full pre-processing pipeline with bypass logic.
+ *        Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
+ * @param img           [in/out] Image to process (uint16 in, float32 out after Gain)
+ * @param meta          [in/out] Image metadata (updated with processing flags)
+ * @param calibPath     [in]     Calibration data directory path
+ * @param ghostHandle   [in]     Ghost corrector handle (NULL = skip ghost correction)
+ * @param configJsonOrNull [in]  Pipeline configuration JSON (bypass flags, etc.)
+ * @return XPE_OK on success, XPE_ERR_* on failure
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+                                              XpeImageMetadata* meta,
+                                              const char* calibPath,
+                                              void* ghostHandle,
+                                              const char* configJsonOrNull);
 
 #ifdef __cplusplus
 }

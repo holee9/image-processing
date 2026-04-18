@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <string>
 #include <memory>
@@ -35,17 +36,28 @@ struct GhostCorrectorHandle {
     uint32_t width{0};
     uint32_t height{0};
 
+    // Ghost correction tier (1=LTI, 2=exposure-weighted LTI, 3=NLCSC)
+    int tier{1};
+
     // Dual-exponential IRF coefficients (PMC3465354)
     double alpha1{0.9};    // fast component amplitude
     double tau1{1.0};      // fast component time constant (frames)
     double alpha2{0.05};   // slow component amplitude
     double tau2{20.0};     // slow component time constant (frames)
 
+    // Tier 2: exposure-weighted LTI thresholds
+    double tier2Threshold{0.005};  // auto-escalate to Tier 2 when residual > 0.5%
+    double exposureWeight{1.0};    // dynamic exposure scaling factor
+
+    // Tier 3: NLCSC signal-dependent coefficients
+    double nlcscBeta{0.1};  // signal dependency parameter
+
     // Frame history ring buffer (float32 per pixel per history slot)
     std::vector<float> hist1; // fast IRF accumulator
     std::vector<float> hist2; // slow IRF accumulator
 
     double lastAcqTimeSec{0.0};
+    double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
     // Validate that a void* is a live handle
     static bool isValid(const void* h) noexcept {
@@ -103,10 +115,63 @@ inline bool xpe_dims_match(const XpeImageBuffer* a, const XpeImageBuffer* b) noe
     return a && b && a->width == b->width && a->height == b->height;
 }
 
-// Returns true when buffer has contiguous layout: stride == width * elementSize.
-// All XPE processing functions require contiguous buffers (no row padding).
-inline bool xpe_is_contiguous(const XpeImageBuffer* buf, size_t elementSize) noexcept {
-    return buf && buf->stride == static_cast<uint32_t>(buf->width * elementSize);
+inline bool xpe_pixel_size(XpePixelFormat format, size_t* bytesOut) noexcept {
+    if (!bytesOut) return false;
+
+    switch (format) {
+    case XPE_PIXEL_UINT8:
+        *bytesOut = 1;
+        return true;
+    case XPE_PIXEL_UINT16:
+        *bytesOut = 2;
+        return true;
+    case XPE_PIXEL_FLOAT32:
+        *bytesOut = 4;
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool xpe_pixel_count(const XpeImageBuffer* buf, size_t* countOut) noexcept {
+    if (!buf || !countOut || buf->width == 0 || buf->height == 0) return false;
+
+    const size_t width = static_cast<size_t>(buf->width);
+    const size_t height = static_cast<size_t>(buf->height);
+    if (width > std::numeric_limits<size_t>::max() / height) return false;
+
+    *countOut = width * height;
+    return true;
+}
+
+inline bool xpe_required_bytes(const XpeImageBuffer* buf, size_t elementSize,
+                               size_t* bytesOut) noexcept {
+    if (!bytesOut) return false;
+
+    size_t count = 0;
+    if (!xpe_pixel_count(buf, &count)) return false;
+    if (count > std::numeric_limits<size_t>::max() / elementSize) return false;
+
+    *bytesOut = count * elementSize;
+    return true;
+}
+
+inline bool xpe_buffer_has_format(const XpeImageBuffer* buf,
+                                  XpePixelFormat expectedFormat,
+                                  size_t* countOut = nullptr) noexcept {
+    if (!buf || !buf->data || buf->format != expectedFormat) return false;
+
+    size_t elementSize = 0;
+    if (!xpe_pixel_size(expectedFormat, &elementSize)) return false;
+
+    size_t requiredBytes = 0;
+    if (!xpe_required_bytes(buf, elementSize, &requiredBytes)) return false;
+    if (buf->dataSize < requiredBytes) return false;
+
+    if (countOut) {
+        *countOut = requiredBytes / elementSize;
+    }
+    return true;
 }
 
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */
