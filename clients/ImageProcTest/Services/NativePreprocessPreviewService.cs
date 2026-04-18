@@ -96,7 +96,8 @@ namespace ImageProcTest
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate XpeCommonApi.XpeErrorCode CalibrationExpiryDelegate(
             IntPtr path,
-            out ulong expiryEpochMs);
+            IntPtr firstOut,
+            IntPtr secondOut);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate XpeCommonApi.XpeErrorCode CorrectionDelegate(
@@ -613,16 +614,46 @@ namespace ImageProcTest
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                var result = CallCalibrationExpiry(checkExpiry, path, out var expiryEpochMs);
+                var result = CallCalibrationExpiry(
+                    checkExpiry,
+                    path,
+                    out var expiryEpochMs,
+                    out var boolRemainingDaysAbi,
+                    out var isExpired,
+                    out var remainingDays);
                 stopwatch.Stop();
+
+                if (boolRemainingDaysAbi)
+                {
+                    var remaining = remainingDays == int.MaxValue
+                        ? (double?)null
+                        : remainingDays;
+                    var boolAbiChecked = result == XpeCommonApi.XpeErrorCode.OK ||
+                        result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
+                    var boolAbiExpired = isExpired || result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
+                    var boolAbiDetails = remainingDays == int.MaxValue
+                        ? "Calibration expiry checked through bool/int32 ABI; calibration does not expire."
+                        : $"Calibration expiry checked through bool/int32 ABI; remainingDays={remainingDays}.";
+
+                    return new NativePreviewCalibrationExpiryResult(
+                        result.ToString(),
+                        boolAbiChecked,
+                        boolAbiExpired,
+                        ExpiryEpochMs: 0,
+                        ExpiryUtc: null,
+                        remaining,
+                        stopwatch.Elapsed.TotalMilliseconds,
+                        boolAbiDetails);
+                }
+
                 var expiry = ConvertExpiryEpoch(expiryEpochMs);
                 var checkedResult = result == XpeCommonApi.XpeErrorCode.OK ||
                     result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED;
                 var expired = result == XpeCommonApi.XpeErrorCode.CALIBRATION_EXPIRED ||
                     (expiry.ExpiresAtUtc is not null && expiry.ExpiresAtUtc.Value <= DateTimeOffset.UtcNow);
                 var details = expiry.ExpiresAtUtc is null
-                    ? "Calibration expiry epoch could not be converted."
-                    : $"Calibration expires at {expiry.ExpiresAtUtc.Value:O}.";
+                    ? "Calibration expiry checked through uint64 epoch ABI, but epoch could not be converted."
+                    : $"Calibration expiry checked through uint64 epoch ABI; expires at {expiry.ExpiresAtUtc.Value:O}.";
 
                 return new NativePreviewCalibrationExpiryResult(
                     result.ToString(),
@@ -652,15 +683,30 @@ namespace ImageProcTest
         private static XpeCommonApi.XpeErrorCode CallCalibrationExpiry(
             CalibrationExpiryDelegate checkExpiry,
             string path,
-            out ulong expiryEpochMs)
+            out ulong expiryEpochMs,
+            out bool boolRemainingDaysAbi,
+            out bool isExpired,
+            out int remainingDays)
         {
             var pathPointer = Marshal.StringToHGlobalAnsi(path);
+            var firstOut = Marshal.AllocHGlobal(sizeof(long));
+            var secondOut = Marshal.AllocHGlobal(sizeof(int));
             try
             {
-                return checkExpiry(pathPointer, out expiryEpochMs);
+                Marshal.WriteInt64(firstOut, 0);
+                Marshal.WriteInt32(secondOut, int.MinValue);
+
+                var result = checkExpiry(pathPointer, firstOut, secondOut);
+                remainingDays = Marshal.ReadInt32(secondOut);
+                boolRemainingDaysAbi = remainingDays != int.MinValue;
+                isExpired = Marshal.ReadByte(firstOut) != 0;
+                expiryEpochMs = boolRemainingDaysAbi ? 0 : unchecked((ulong)Marshal.ReadInt64(firstOut));
+                return result;
             }
             finally
             {
+                Marshal.FreeHGlobal(secondOut);
+                Marshal.FreeHGlobal(firstOut);
                 Marshal.FreeHGlobal(pathPointer);
             }
         }

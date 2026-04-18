@@ -30,19 +30,56 @@ namespace ImageProcTest
                 yield break;
             }
 
-            var candidates = new[]
+            foreach (var root in GetRepositoryAndSiblingRoots(repoRoot, "xpe-pre"))
             {
-                Path.Combine(repoRoot, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "ci-common", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "ci-common", "bin", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", DllName)
-            };
+                var candidates = new[]
+                {
+                    Path.Combine(root, "build", "gui-preprocess-link", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "gui-preprocess-link", "bin", DllName),
+                    Path.Combine(root, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "preprocess", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "preprocess", "bin", DllName),
+                    Path.Combine(root, "build", "ci", "bin", "RelWithDebInfo", DllName),
+                    Path.Combine(root, "build", "ci", "bin", DllName),
+                    Path.Combine(root, "build", "ci-common", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "ci-common", "bin", DllName),
+                    Path.Combine(root, "build", "release", "bin", "Release", DllName),
+                    Path.Combine(root, "build", "release", "bin", DllName),
+                    Path.Combine(root, "build", "default", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "default", "bin", DllName)
+                };
 
-            foreach (var candidate in candidates)
+                foreach (var candidate in candidates)
+                {
+                    yield return candidate;
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetRepositoryAndSiblingRoots(
+            string repoRoot,
+            params string[] siblingNames)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (seen.Add(repoRoot))
             {
-                yield return candidate;
+                yield return repoRoot;
+            }
+
+            var parent = Directory.GetParent(repoRoot);
+            if (parent is null)
+            {
+                yield break;
+            }
+
+            foreach (var siblingName in siblingNames)
+            {
+                var siblingRoot = Path.Combine(parent.FullName, siblingName);
+                if (Directory.Exists(siblingRoot) && seen.Add(siblingRoot))
+                {
+                    yield return siblingRoot;
+                }
             }
         }
 
