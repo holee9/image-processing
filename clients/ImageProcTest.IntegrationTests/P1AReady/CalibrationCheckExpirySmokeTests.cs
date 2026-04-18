@@ -59,7 +59,7 @@ public sealed class CalibrationCheckExpirySmokeTests
             var fn = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.CalibLoadDelegate>(sym);
             var nonExistentPath = Path.Combine(Path.GetTempPath(), $"nonexistent_{Guid.NewGuid():N}.xcal");
 
-            var result = fn(nonExistentPath, out _);
+            var result = fn(nonExistentPath);
             Assert.Equal(XpeCommonNative.XpeErrorCode.IO_FAILED, result);
         }
         finally

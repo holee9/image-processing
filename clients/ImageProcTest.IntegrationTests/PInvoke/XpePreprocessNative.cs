@@ -31,8 +31,7 @@ internal static class XpePreprocessNative
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public delegate XpeCommonNative.XpeErrorCode CalibLoadDelegate(
-        [MarshalAs(UnmanagedType.LPStr)] string path,
-        out XpeCommonNative.XpeImageBuffer buffer);
+        [MarshalAs(UnmanagedType.LPStr)] string path);
 
     // -- Required export names --
     public static readonly string[] RequiredExports =
@@ -46,6 +45,12 @@ internal static class XpePreprocessNative
         "xpe_calib_load_offset",
         "xpe_calib_load_gain",
         "xpe_calib_load_defect_map",
+        "xpe_calib_generate_offset",
+        "xpe_calib_check_expiry",
+        "xpe_calib_save",
+        "xpe_validate_readout_artifact",
+        "xpe_defect_detect_runtime",
+        "xpe_preprocess_get_param_range",
     };
 
     /// <summary>
@@ -68,6 +73,7 @@ internal static class XpePreprocessNative
         {
             Path.Combine(repoRoot, "build", "ci-common", "bin", "Debug", DllName),
             Path.Combine(repoRoot, "build", "ci-common", "bin", DllName),
+            Path.Combine(repoRoot, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),
             Path.Combine(repoRoot, "build", "default", "bin", "Debug", DllName),
             Path.Combine(repoRoot, "build", "default", "bin", DllName),
             Path.Combine(repoRoot, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
