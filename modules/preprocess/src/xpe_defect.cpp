@@ -217,6 +217,10 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
             return XPE_ERR_INVALID_INPUT;
         }
 
+        if (!xpe_preprocess_is_initialized()) {
+            return XPE_ERR_NOT_INITIALIZED;
+        }
+
         // Validate format
         if (input->format != XPE_PIXEL_FLOAT32 || output->format != XPE_PIXEL_FLOAT32) {
             return XPE_ERR_UNSUPPORTED_FORMAT;

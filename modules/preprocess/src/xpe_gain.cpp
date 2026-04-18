@@ -135,6 +135,10 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
             return XPE_ERR_INVALID_INPUT;
         }
 
+        if (!xpe_preprocess_is_initialized()) {
+            return XPE_ERR_NOT_INITIALIZED;
+        }
+
         // REQ-P1A-022: Validate format mismatch
         if (input->format != XPE_PIXEL_UINT16 || output->format != XPE_PIXEL_FLOAT32) {
             return XPE_ERR_UNSUPPORTED_FORMAT;

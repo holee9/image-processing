@@ -49,6 +49,10 @@ static void copy_c_string(char* destination, size_t destination_size, const char
 
 } // anonymous namespace
 
+bool xpe_preprocess_is_initialized() noexcept {
+    return g_state.initialized.load(std::memory_order_acquire);
+}
+
 // =============================================================================
 // Phase 1: Lifecycle Functions
 // =============================================================================
@@ -104,9 +108,7 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* config) {
                     g_state.log_level = config_json["log_level"];
                 }
             } catch (const nlohmann::json::parse_error&) {
-                // Invalid JSON, use defaults
-                copy_c_string(g_state.mode, sizeof(g_state.mode), "default");
-                g_state.log_level = 0;
+                return XPE_ERR_CONFIG_INVALID;
             }
         }
 
@@ -177,6 +179,10 @@ extern "C" XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* 
         // Validate input
         if (image == nullptr || metadata == nullptr || defect_map_output == nullptr) {
             return XPE_ERR_INVALID_INPUT;
+        }
+
+        if (!xpe_preprocess_is_initialized()) {
+            return XPE_ERR_NOT_INITIALIZED;
         }
 
         // Validate format

@@ -154,6 +154,10 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
             return XPE_ERR_INVALID_INPUT;
         }
 
+        if (!xpe_preprocess_is_initialized()) {
+            return XPE_ERR_NOT_INITIALIZED;
+        }
+
         // Validate format
         if (input->format != XPE_PIXEL_UINT16 || output->format != XPE_PIXEL_UINT16) {
             return XPE_ERR_UNSUPPORTED_FORMAT;

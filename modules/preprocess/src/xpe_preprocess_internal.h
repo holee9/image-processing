@@ -63,6 +63,11 @@ extern CalibrationData g_calib;
 extern std::mutex g_calib_mutex;
 
 /**
+ * @brief Return whether xpe_preprocess_init has completed successfully.
+ */
+bool xpe_preprocess_is_initialized() noexcept;
+
+/**
  * @brief Validate XCal file header
  *
  * @param header XCal header to validate
