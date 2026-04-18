@@ -32,9 +32,8 @@ XpeImageBuffer* CreateTestImage(uint32_t width, uint32_t height, XpePixelFormat 
     img->bitsAllocated = (format == XPE_PIXEL_UINT16) ? 16 : 32;
     img->bitsStored = img->bitsAllocated;
 
-    // Calculate stride
+    // stride field does not exist in XpeImageBuffer; compute data_size directly
     size_t pixel_size = (format == XPE_PIXEL_UINT16) ? sizeof(uint16_t) : sizeof(float);
-    img->stride = width * pixel_size;
 
     // Allocate data
     size_t data_size = height * width * pixel_size;

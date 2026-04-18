@@ -14,25 +14,17 @@
 #include <cstdint>
 #include <ctime>  // For std::time
 
-/**
- * @brief XCal file header format
+/* XCal v1 canonical header is defined in xcal_format.h
+ * Use XCalFileHeader (pack=1, 152 bytes) for file I/O.
  *
  * REQ-P1A-014: XCal format structure for calibration data
- * Fixed-size header for binary calibration file format
  */
-#pragma pack(push, 8)
-struct XCalHeader {
-    char     magic[4];      // File signature "XCAL"
-    int32_t  version;       // Format version (current: 1)
-    int32_t  type;          // Calibration type (0=offset, 1=gain, 2=defect)
-    uint32_t width;         // Image width in pixels
-    uint32_t height;        // Image height in pixels
-    int64_t  timestamp;     // Creation timestamp (Unix epoch)
-    char     session_id[64]; // Session identifier
-    uint64_t data_size;     // Data size in bytes
-    uint8_t  sha256[32];    // SHA-256 hash of data
-};
-#pragma pack(pop)
+#include "xpe/preprocess/xcal_format.h"
+
+/* Legacy alias so existing code that references XCalHeader still compiles.
+ * New code should use XCalFileHeader directly.
+ */
+typedef XCalFileHeader XCalHeader;
 
 /**
  * @brief Global calibration data storage
