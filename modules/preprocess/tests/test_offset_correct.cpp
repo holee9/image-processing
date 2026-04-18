@@ -29,24 +29,28 @@ protected:
         rawPixels.assign(W * H, 1000);
         offsetPixels.assign(W * H, 200);
 
-        img.pixels     = rawPixels.data();
-        img.width      = W;
-        img.height     = H;
-        img.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-        img.stride     = W * sizeof(uint16_t);
+        img.data          = rawPixels.data();
+        img.width         = W;
+        img.height        = H;
+        img.bitsAllocated = 16;
+        img.bitsStored    = 16;
+        img.format        = XPE_PIXEL_UINT16;
+        img.dataSize      = rawPixels.size() * sizeof(uint16_t);
 
-        offsetMap.pixels     = offsetPixels.data();
-        offsetMap.width      = W;
-        offsetMap.height     = H;
-        offsetMap.pixelFormat = XPE_PIXEL_FORMAT_UINT16;
-        offsetMap.stride     = W * sizeof(uint16_t);
+        offsetMap.data          = offsetPixels.data();
+        offsetMap.width         = W;
+        offsetMap.height        = H;
+        offsetMap.bitsAllocated = 16;
+        offsetMap.bitsStored    = 16;
+        offsetMap.format        = XPE_PIXEL_UINT16;
+        offsetMap.dataSize      = offsetPixels.size() * sizeof(uint16_t);
     }
 };
 
 // REQ-P1A-009: corrected[i] = clamp(raw[i] - offsetMap[i], 0)
 TEST_F(OffsetCorrectTest, SubtractsOffsetFromRawPixels) {
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&img, &offsetMap));
-    const auto* out = static_cast<const uint16_t*>(img.pixels);
+    const auto* out = static_cast<const uint16_t*>(img.data);
     EXPECT_EQ(800u, out[0]);  // 1000 - 200 = 800
 }
 
@@ -55,7 +59,7 @@ TEST_F(OffsetCorrectTest, ClampsUnderflowToZero) {
     std::fill(rawPixels.begin(), rawPixels.end(), 100);
     std::fill(offsetPixels.begin(), offsetPixels.end(), 500); // offset > raw
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&img, &offsetMap));
-    const auto* out = static_cast<const uint16_t*>(img.pixels);
+    const auto* out = static_cast<const uint16_t*>(img.data);
     for (uint32_t i = 0; i < W * H; ++i)
         EXPECT_EQ(0u, out[i]) << "pixel " << i << " should clamp to 0";
 }
@@ -81,7 +85,7 @@ TEST_F(OffsetCorrectTest, DimensionMismatchReturnsError) {
 TEST_F(OffsetCorrectTest, ZeroOffsetLeavesPixelsUnchanged) {
     std::fill(offsetPixels.begin(), offsetPixels.end(), 0);
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&img, &offsetMap));
-    const auto* out = static_cast<const uint16_t*>(img.pixels);
+    const auto* out = static_cast<const uint16_t*>(img.data);
     EXPECT_EQ(1000u, out[0]);
 }
 

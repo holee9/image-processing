@@ -2,6 +2,35 @@
 #include <cstdlib>
 #include <cstring>
 
+namespace {
+
+bool bytes_per_pixel(XpePixelFormat format, size_t* bytesOut) noexcept {
+    if (!bytesOut) {
+        return false;
+    }
+
+    switch (format) {
+    case XPE_PIXEL_UINT8:
+        *bytesOut = 1;
+        return true;
+    case XPE_PIXEL_UINT16:
+        *bytesOut = 2;
+        return true;
+    case XPE_PIXEL_FLOAT32:
+        *bytesOut = 4;
+        return true;
+    default:
+        return false;
+    }
+}
+
+uint32_t bits_per_pixel(XpePixelFormat format) noexcept {
+    return (format == XPE_PIXEL_UINT8) ? 8u :
+           (format == XPE_PIXEL_FLOAT32) ? 32u : 16u;
+}
+
+} // namespace
+
 XPE_API XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
                                      XpePixelFormat format, XpeImageBuffer* out) {
     if (!out || width == 0 || height == 0)
@@ -9,7 +38,10 @@ XPE_API XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
     if (width > 4096 || height > 4096)
         return XPE_ERR_INVALID_INPUT;
 
-    size_t bytesPerPixel = (format == XPE_PIXEL_FLOAT32) ? 4 : 2;
+    size_t bytesPerPixel = 0;
+    if (!bytes_per_pixel(format, &bytesPerPixel))
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+
     size_t dataSize = (size_t)width * height * bytesPerPixel;
 
     void* data = std::malloc(dataSize);
@@ -20,7 +52,7 @@ XPE_API XpeErrorCode xpe_alloc_image(uint32_t width, uint32_t height,
 
     out->width = width;
     out->height = height;
-    out->bitsAllocated = (format == XPE_PIXEL_FLOAT32) ? 32 : 16;
+    out->bitsAllocated = bits_per_pixel(format);
     out->bitsStored = out->bitsAllocated;
     out->format = format;
     out->data = data;
@@ -52,6 +84,7 @@ XPE_API XpeErrorCode xpe_copy_image(const XpeImageBuffer* src, XpeImageBuffer* d
     dst->bitsAllocated = src->bitsAllocated;
     dst->bitsStored = src->bitsStored;
     dst->format = src->format;
+    dst->dataSize = src->dataSize;
 
     return XPE_OK;
 }

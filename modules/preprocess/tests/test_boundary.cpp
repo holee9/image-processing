@@ -14,17 +14,20 @@
 #include <vector>
 #include <cstdint>
 #include <limits>
+#include <cstdlib>
 
 namespace {
 
 static XpeImageBuffer make_img(void* data, uint32_t w, uint32_t h,
                                 XpePixelFormat fmt, uint32_t elemSize) {
     XpeImageBuffer buf{};
-    buf.pixels      = data;
-    buf.width       = w;
-    buf.height      = h;
-    buf.pixelFormat = fmt;
-    buf.stride      = w * elemSize;
+    buf.data          = data;
+    buf.width         = w;
+    buf.height        = h;
+    buf.bitsAllocated = elemSize * 8u;
+    buf.bitsStored    = buf.bitsAllocated;
+    buf.format        = fmt;
+    buf.dataSize      = static_cast<size_t>(w) * h * elemSize;
     return buf;
 }
 
@@ -32,8 +35,8 @@ static XpeImageBuffer make_img(void* data, uint32_t w, uint32_t h,
 
 TEST(Boundary, OffsetCorrect1x1) {
     uint16_t px = 500, off = 200;
-    auto img    = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
-    auto offMap = make_img(&off, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
+    auto img    = make_img(&px, 1, 1, XPE_PIXEL_UINT16, 2);
+    auto offMap = make_img(&off, 1, 1, XPE_PIXEL_UINT16, 2);
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&img, &offMap));
     EXPECT_EQ(300u, px);
 }
@@ -41,17 +44,18 @@ TEST(Boundary, OffsetCorrect1x1) {
 TEST(Boundary, GainCorrect1x1) {
     uint16_t px = 1000;
     float    gn = 2.0f;
-    auto img     = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
-    auto gainMap = make_img(&gn, 1, 1, XPE_PIXEL_FORMAT_FLOAT32, 4);
+    auto img     = make_img(&px, 1, 1, XPE_PIXEL_UINT16, 2);
+    auto gainMap = make_img(&gn, 1, 1, XPE_PIXEL_FLOAT32, 4);
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_NEAR(2000.0f, *reinterpret_cast<float*>(&px), 1e-3f);
+    EXPECT_NEAR(2000.0f, *static_cast<float*>(img.data), 1e-3f);
+    std::free(img.data);
 }
 
 TEST(Boundary, DefectCorrect1x1NoDefect) {
     float   px  = 500.0f;
     uint8_t def = 0;
-    auto img    = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_FLOAT32, 4);
-    auto defMap = make_img(&def, 1, 1, XPE_PIXEL_FORMAT_UINT8, 1);
+    auto img    = make_img(&px, 1, 1, XPE_PIXEL_FLOAT32, 4);
+    auto defMap = make_img(&def, 1, 1, XPE_PIXEL_UINT8, 1);
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defMap, nullptr));
     EXPECT_NEAR(500.0f, px, 1e-3f); // no defect -> unchanged
 }
@@ -61,8 +65,8 @@ TEST(Boundary, DefectCorrect1x1NoDefect) {
 TEST(Boundary, OffsetCorrectMaxUint16NoCrash) {
     uint16_t px  = std::numeric_limits<uint16_t>::max(); // 65535
     uint16_t off = std::numeric_limits<uint16_t>::max();
-    auto img    = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
-    auto offMap = make_img(&off, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
+    auto img    = make_img(&px, 1, 1, XPE_PIXEL_UINT16, 2);
+    auto offMap = make_img(&off, 1, 1, XPE_PIXEL_UINT16, 2);
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&img, &offMap));
     EXPECT_EQ(0u, px); // clamped to 0
 }
@@ -88,7 +92,7 @@ TEST(Boundary, CalibSaveNullMapReturnsError) {
 
 TEST(Boundary, CalibSaveNullPathReturnsError) {
     float px = 1.0f;
-    auto buf = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_FLOAT32, 4);
+    auto buf = make_img(&px, 1, 1, XPE_PIXEL_FLOAT32, 4);
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(&buf, nullptr, 0, nullptr));
 }
 
@@ -96,7 +100,7 @@ TEST(Boundary, CalibSaveNullPathReturnsError) {
 
 TEST(Boundary, ReadoutValidate1x1ReturnsOk) {
     uint16_t px = 32768;
-    auto img = make_img(&px, 1, 1, XPE_PIXEL_FORMAT_UINT16, 2);
+    auto img = make_img(&px, 1, 1, XPE_PIXEL_UINT16, 2);
     int32_t score{};
     EXPECT_EQ(XPE_OK, xpe_validate_readout_artifact(&img, &score, nullptr, 0));
 }

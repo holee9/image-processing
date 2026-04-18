@@ -19,13 +19,15 @@ XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
 {
     if (!img || !offsetMap) return XPE_ERR_INVALID_INPUT;
     if (!xpe_dims_match(img, offsetMap)) return XPE_ERR_INVALID_INPUT;
+    size_t n = 0;
+    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
+    if (!xpe_buffer_has_format(offsetMap, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-009: corrected[i] = clamp(raw[i] - offsetMap[i], 0)
     // REQ-P1A-010: in-place, uint16 format
     // REQ-P1A-011: no pixel shall underflow below 0 — saturating subtract
-    const size_t n = static_cast<size_t>(img->width) * img->height;
-    auto*       dst = static_cast<uint16_t*>(img->pixels);
-    const auto* off = static_cast<const uint16_t*>(offsetMap->pixels);
+    auto*       dst = static_cast<uint16_t*>(img->data);
+    const auto* off = static_cast<const uint16_t*>(offsetMap->data);
     for (size_t i = 0; i < n; ++i)
         dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
     return XPE_OK;

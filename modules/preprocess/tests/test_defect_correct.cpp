@@ -28,24 +28,28 @@ protected:
         imgPixels.assign(W * H, 1000.0f);
         defectPixels.assign(W * H, 0); // no defects by default
 
-        img.pixels      = imgPixels.data();
-        img.width       = W;
-        img.height      = H;
-        img.pixelFormat = XPE_PIXEL_FORMAT_FLOAT32;
-        img.stride      = W * sizeof(float);
+        img.data          = imgPixels.data();
+        img.width         = W;
+        img.height        = H;
+        img.bitsAllocated = 32;
+        img.bitsStored    = 32;
+        img.format        = XPE_PIXEL_FLOAT32;
+        img.dataSize      = imgPixels.size() * sizeof(float);
 
-        defectMap.pixels      = defectPixels.data();
-        defectMap.width       = W;
-        defectMap.height      = H;
-        defectMap.pixelFormat = XPE_PIXEL_FORMAT_UINT8;
-        defectMap.stride      = W * sizeof(uint8_t);
+        defectMap.data          = defectPixels.data();
+        defectMap.width         = W;
+        defectMap.height        = H;
+        defectMap.bitsAllocated = 8;
+        defectMap.bitsStored    = 8;
+        defectMap.format        = XPE_PIXEL_UINT8;
+        defectMap.dataSize      = defectPixels.size();
     }
 };
 
 // REQ-P1A-024: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.pixels);
+    const auto* out = static_cast<const float*>(img.data);
     EXPECT_NEAR(1000.0f, out[W + 1], 1e-3f); // interior pixel
 }
 
@@ -57,7 +61,7 @@ TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     defectPixels[cy * W + cx] = 1; // mark as defect
 
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.pixels);
+    const auto* out = static_cast<const float*>(img.data);
     // Replaced value should be close to neighbours (1000.0f)
     EXPECT_NEAR(1000.0f, out[cy * W + cx], 100.0f);
 }
@@ -93,11 +97,13 @@ TEST_F(DefectCorrectTest, DetectRuntimeNullOutReturnsError) {
 TEST_F(DefectCorrectTest, DetectRuntimeCleanImageYieldsZeroDefects) {
     std::vector<uint8_t> outData(W * H, 0xFF); // initialize to non-zero
     XpeImageBuffer outMap{};
-    outMap.pixels      = outData.data();
-    outMap.width       = W;
-    outMap.height      = H;
-    outMap.pixelFormat = XPE_PIXEL_FORMAT_UINT8;
-    outMap.stride      = W;
+    outMap.data          = outData.data();
+    outMap.width         = W;
+    outMap.height        = H;
+    outMap.bitsAllocated = 8;
+    outMap.bitsStored    = 8;
+    outMap.format        = XPE_PIXEL_UINT8;
+    outMap.dataSize      = outData.size();
 
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &outMap, nullptr));
     // Uniform image should have no detected defects

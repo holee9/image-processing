@@ -9,6 +9,8 @@
 #include "xpe/preprocess/xpe_preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
+#include <cmath>
+
 // @MX:NOTE: [AUTO] No-op for 1x1 binning mode; valid modes: 1, 2, 4. Scales float32 pixels by 1/mode^2
 // @MX:SPEC: REQ-P1A-020
 XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
@@ -16,6 +18,8 @@ XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
                                   const char* configJsonOrNull)
 {
     if (!img) return XPE_ERR_INVALID_INPUT;
+    size_t n = 0;
+    if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-P1A-020: no-op for binningMode == 1
     if (binningMode == 1) return XPE_OK;
@@ -28,10 +32,12 @@ XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
 
     // REQ-P1A-022/023: normalize by binningMode^2 to compensate for summed charge
     // float32 format (post-gain-correct stage)
-    const size_t n = static_cast<size_t>(img->width) * img->height;
-    auto* px = static_cast<float*>(img->pixels);
+    auto* px = static_cast<float*>(img->data);
     const float norm = 1.0f / static_cast<float>(binningMode * binningMode);
-    for (size_t i = 0; i < n; ++i) px[i] *= norm;
+    for (size_t i = 0; i < n; ++i) {
+        px[i] *= norm;
+        if (!std::isfinite(px[i])) return XPE_ERR_PROCESSING_FAILED;
+    }
 
     (void)configJsonOrNull;
     return XPE_OK;

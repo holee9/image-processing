@@ -335,6 +335,17 @@ TEST_F(XpeCommonTest, AllocImageForFloat32Format) {
     xpe_free_image(&buf);
 }
 
+TEST_F(XpeCommonTest, AllocImageForUint8Format) {
+    XpeImageBuffer buf;
+    EXPECT_EQ(xpe_alloc_image(32, 16, XPE_PIXEL_UINT8, &buf), XPE_OK);
+    EXPECT_EQ(buf.bitsAllocated, 8);
+    EXPECT_EQ(buf.bitsStored, 8);
+    EXPECT_EQ(buf.format, XPE_PIXEL_UINT8);
+    EXPECT_EQ(buf.dataSize, 32u * 16u);
+
+    xpe_free_image(&buf);
+}
+
 TEST_F(XpeCommonTest, FreeImageWithNullPtrReturnsInvalid) {
     EXPECT_EQ(xpe_free_image(nullptr), XPE_ERR_INVALID_INPUT);
 }
@@ -343,7 +354,6 @@ TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
     XpeImageBuffer buf;
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf);
 
-    void* dataPtr = buf.data;
     EXPECT_EQ(xpe_free_image(&buf), XPE_OK);
     EXPECT_EQ(buf.data, nullptr);
     EXPECT_EQ(buf.dataSize, 0);

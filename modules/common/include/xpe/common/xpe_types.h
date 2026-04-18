@@ -53,10 +53,12 @@ extern "C" {
  * Determines the data type and interpretation of the pixel buffer.
  * All enhancement and display functions require @c XPE_PIXEL_FLOAT32.
  * Pre-processing input from the detector is @c XPE_PIXEL_UINT16.
+ * Binary masks such as bad-pixel maps use @c XPE_PIXEL_UINT8.
  */
 typedef enum XpePixelFormat {
     XPE_PIXEL_UINT16  = 0,  /**< 16-bit unsigned integer (raw detector output) */
-    XPE_PIXEL_FLOAT32 = 1   /**< 32-bit IEEE 754 single-precision float (post-gain-correction domain) */
+    XPE_PIXEL_FLOAT32 = 1,  /**< 32-bit IEEE 754 single-precision float (post-gain-correction domain) */
+    XPE_PIXEL_UINT8   = 2   /**< 8-bit unsigned integer mask or classification map */
 } XpePixelFormat;
 
 /**
