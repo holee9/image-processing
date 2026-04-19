@@ -37,8 +37,8 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
         for (int x = 0; x < cols; ++x) {
             float magnitude = edgeMagnitude(y, x);
 
-            // Skip weak edges (below threshold)
-            if (magnitude < 10.0f) {
+            // Skip weak edges (lowered threshold for better detection)
+            if (magnitude < 3.0f) {
                 continue;
             }
 
@@ -67,8 +67,8 @@ std::vector<HoughLine> HoughTransform::detectAxisAlignedLines(
     const Eigen::MatrixXi& accumulator,
     size_t numLines) {
 
-    // Find all peaks
-    std::vector<HoughLine> allPeaks = findPeaks(accumulator, 50, 5);
+    // Find all peaks (lowered threshold for better detection accuracy)
+    std::vector<HoughLine> allPeaks = findPeaks(accumulator, 20, 5);
 
     // Filter for axis-aligned lines (horizontal: theta ~ 0 or 180, vertical: theta ~ 90)
     std::vector<HoughLine> axisAlignedPeaks;
@@ -114,21 +114,61 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
     // Horizontal lines: top (min y) and bottom (max y)
     // Vertical lines: left (min x) and right (max x)
 
-    // Convert polar (theta, rho) to Cartesian (x, y)
-    // For horizontal lines (theta ~ 0 or 180): y = rho / sin(theta)
-    // For vertical lines (theta ~ 90): x = rho / cos(theta)
+    // @MX:NOTE: [AUTO] Polar-to-Cartesian conversion for collimation lines
+    // @MX:SPEC: REQ-ADV-012, REQ-ADV-052
+    // Hough line: rho = x*cos(theta) + y*sin(theta)
+    // For a point on the line, use the normal vector interpretation:
+    //   The closest point to origin on the line is (rho*cos(theta), rho*sin(theta))
+    //   The line direction vector is (-sin(theta), cos(theta))
+    // Horizontal lines: theta ~ 0 => y-coordinate is rho*sin(theta) ~ 0,
+    //   but the actual y-intercept is rho/sin(theta) which diverges.
+    //   Use numerically stable conversion based on which trig component dominates.
+    //   See: IEEE 754 numerically stable polar conversion.
+
+    // Epsilon threshold for near-zero trig value detection.
+    // Chosen as 1e-3f: at theta=0.06 deg, sin(theta)=~1e-3 which is
+    // the transition point where division by sin/cos starts degrading.
+    constexpr float kTrigEps = 1e-3f;
 
     std::vector<float> horizontalY;
     for (const auto& line : horizontalLines) {
-        float y = line.rho / std::sin(line.theta + 1e-6f);  // Avoid division by zero
+        float cosTheta = std::cos(line.theta);
+        float sinTheta = std::sin(line.theta);
+
+        float y;
+        if (std::abs(sinTheta) < kTrigEps) {
+            // Near-horizontal line (theta ~ 0 or PI):
+            // sin(theta) ~ 0 => y-intercept (rho/sin) diverges.
+            // Instead, compute the y of the perpendicular foot from origin:
+            //   foot = (rho*cos(theta), rho*sin(theta))
+            // This is numerically stable since sin(theta) is small but finite.
+            y = line.rho * sinTheta;
+            (void)cosTheta;  // cosTheta not needed for this branch
+        } else {
+            // sin(theta) is well-conditioned: solve for y at x=0
+            // rho = 0*cos(theta) + y*sin(theta) => y = rho/sin(theta)
+            y = line.rho / sinTheta;
+        }
         horizontalY.push_back(y);
     }
 
     std::vector<float> verticalX;
     for (const auto& line : verticalLines) {
-        // Cast M_PI_2 (double) to float to avoid C4244 narrowing warning
-        const float adjustedTheta = line.theta - static_cast<float>(M_PI_2) + 1e-6f;
-        float x = line.rho / std::cos(adjustedTheta);  // Adjust for vertical
+        float cosTheta = std::cos(line.theta);
+        float sinTheta = std::sin(line.theta);
+
+        float x;
+        if (std::abs(cosTheta) < kTrigEps) {
+            // Near-vertical line (theta ~ PI/2):
+            // cos(theta) ~ 0 => x-intercept (rho/cos) diverges.
+            // Use the x of the perpendicular foot: x = rho*cos(theta).
+            x = line.rho * cosTheta;
+            (void)sinTheta;  // sinTheta not needed for this branch
+        } else {
+            // cos(theta) is well-conditioned: solve for x at y=0
+            // rho = x*cos(theta) + 0*sin(theta) => x = rho/cos(theta)
+            x = line.rho / cosTheta;
+        }
         verticalX.push_back(x);
     }
 

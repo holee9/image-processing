@@ -675,3 +675,60 @@ TEST_F(EdgeEnhancementTest, T309_TestCoverageVerification) {
     // Document that coverage targets are met
     EXPECT_TRUE(true) << "All acceptance criteria have corresponding tests";
 }
+
+/**
+ * T-310: Boundary condition - minimal image size
+ *
+ * Verify fractional derivative works on smallest practical image.
+ */
+TEST_F(EdgeEnhancementTest, T310_MinimalImageSize) {
+    // Arrange: 32x32 image (smallest size that can support 5x5 convolution)
+    int width = 32;
+    int height = 32;
+    XpeImageBuffer img = createFloatImage(width, height, 0.5f);
+
+    // Act: Apply fractional derivative
+    XpeErrorCode result = xpe_fractional_process(&img, 1.0f, nullptr);
+
+    // Assert:
+    EXPECT_EQ(XPE_OK, result);
+    EXPECT_FALSE(hasInvalidValues(img));
+}
+
+/**
+ * T-311: Boundary condition - non-square aspect ratio
+ *
+ * Verify fractional derivative handles non-square images correctly.
+ */
+TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
+    // Arrange: 256x64 image (4:1 aspect ratio)
+    int width = 256;
+    int height = 64;
+    XpeImageBuffer img = createFloatImage(width, height, 0.3f);
+
+    // Add vertical edge
+    float* data = static_cast<float*>(img.data);
+    for (int y = 0; y < height; ++y) {
+        for (int x = width / 2; x < width; ++x) {
+            data[y * width + x] = 0.7f;
+        }
+    }
+
+    std::vector<float> before(data, data + width * height);
+
+    // Act: Apply fractional derivative
+    XpeErrorCode result = xpe_fractional_process(&img, 1.0f, nullptr);
+
+    // Assert:
+    EXPECT_EQ(XPE_OK, result);
+    EXPECT_FALSE(hasInvalidValues(img));
+
+    // Verify overshoot limiting
+    XpeImageBuffer beforeImg;
+    beforeImg.width = img.width;
+    beforeImg.height = img.height;
+    beforeImg.format = img.format;
+    beforeImg.data = before.data();
+
+    EXPECT_TRUE(verifyOvershootLimit(beforeImg, img));
+}

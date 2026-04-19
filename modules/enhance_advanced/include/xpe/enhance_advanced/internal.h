@@ -98,10 +98,14 @@ bool parse_mfp_config(const char* json,
                       float& outFlatGain,
                       float& outNoiseThreshold);
 
-/** Parse fractional-order config from JSON string. Returns true on success. */
+/** Parse fractional-order config from JSON string. Returns true on success.
+ *  If a SAF-100 forbidden key is detected, returns false and sets
+ *  outSafetyViolation to true. Caller should return XPE_ERR_SAFETY_VIOLATION
+ *  in that case. */
 bool parse_fractional_config(const char* json,
                              int&   outIterations,
-                             float& outStepSize);
+                             float& outStepSize,
+                             bool&  outSafetyViolation);
 
 /** Parse collimation config from JSON string. Returns true on success. */
 bool parse_collimation_config(const char* json,

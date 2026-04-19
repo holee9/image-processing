@@ -62,33 +62,42 @@ MfpConfig MfpConfig::fromJson(const char* jsonConfig) {
 LaplacianPyramid::LaplacianPyramid(const float* data, int width, int height, int numLevels)
     : width_(width), height_(height), numLevels_(numLevels) {
 
+    // @MX:NOTE: Gaussian pyramid -- blur applied to COPY before downsample, not in-place.
+    // @MX:REASON: In-place blur corrupted G(i) before Laplacian subtraction, breaking
+    //             the reconstruction identity G(i) = upsample(G(i+1)) + L(i).
+    //             With blur-on-copy, L(i) = G(i) - upsample(G(i+1)) where G(i) is the
+    //             unblurred level, so round-trip with gain=1 is mathematically exact.
+    // @MX:SPEC: REQ-ADV-050 identity reconstruction fidelity
     levels_.resize(numLevels);
 
     // Build Gaussian pyramid first
     std::vector<std::vector<float>> gaussianPyramid(numLevels);
 
-    // Level 0: Original image
+    // Level 0: Original image (unmodified)
     gaussianPyramid[0].resize(width * height);
     std::memcpy(gaussianPyramid[0].data(), data, width * height * sizeof(float));
 
-    // Build Gaussian pyramid by blurring and downsampling
+    // Build Gaussian pyramid by blurring (on copy) and downsampling
     for (int level = 0; level < numLevels - 1; ++level) {
         int currentW = width >> level;
         int currentH = height >> level;
 
-        // Apply Gaussian blur to current level
-        gaussianBlur(gaussianPyramid[level].data(), currentW, currentH);
+        // Blur a copy -- do NOT modify gaussianPyramid[level] in place
+        std::vector<float> blurred = gaussianPyramid[level];
+        gaussianBlur(blurred.data(), currentW, currentH);
 
-        // Downsample for next level
+        // Downsample the blurred copy for next level
         int nextW = std::max(1, currentW / 2);
         int nextH = std::max(1, currentH / 2);
         gaussianPyramid[level + 1].resize(nextW * nextH);
-        downsample(gaussianPyramid[level].data(), gaussianPyramid[level + 1].data(),
+        downsample(blurred.data(), gaussianPyramid[level + 1].data(),
                    currentW, currentH);
     }
 
     // Convert Gaussian pyramid to Laplacian pyramid
-    // L(i) = G(i) - expand(G(i+1))
+    // L(i) = G(i) - upsample(G(i+1))
+    // Since G(i) is the unblurred level, this captures both blur loss and
+    // downsample interpolation loss in L(i), enabling exact reconstruction.
     for (int level = 0; level < numLevels - 1; ++level) {
         int currentW = width >> level;
         int currentH = height >> level;
@@ -125,12 +134,12 @@ void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
         int w = width_ >> level;
         int h = height_ >> level;
 
-        // Upsample current reconstruction
-        std::vector<float> upsampled(w * h);
-        int currentW = reconstructed.size() > 0 ?
-            static_cast<int>(std::sqrt(reconstructed.size())) : 1;
-        int currentH = static_cast<int>(reconstructed.size() / static_cast<size_t>(currentW));
+        // Calculate current reconstruction dimensions (coarser level)
+        int currentW = std::max(1, width_ >> (level + 1));
+        int currentH = std::max(1, height_ >> (level + 1));
 
+        // Upsample current reconstruction to target size
+        std::vector<float> upsampled(w * h);
         upsample(reconstructed.data(), upsampled.data(), currentW, currentH);
 
         // Add enhanced Laplacian detail
@@ -218,15 +227,42 @@ void LaplacianPyramid::downsample(const float* in, float* out, int width, int he
 }
 
 void LaplacianPyramid::upsample(const float* in, float* out, int width, int height) {
+    // @MX:NOTE: Bilinear interpolation upsampling -- pseudo-inverse of 2x2 average downsample
+    // @MX:REASON: Nearest-neighbor was NOT the inverse of downsample; bilinear preserves
+    //             the Laplacian pyramid reconstruction identity G(i) = expand(G(i+1)) + L(i)
+    // @MX:SPEC: REQ-ADV-050 identity reconstruction fidelity
     int outW = width * 2;
     int outH = height * 2;
 
     for (int y = 0; y < outH; ++y) {
         for (int x = 0; x < outW; ++x) {
-            // Nearest neighbor upsampling
-            int inX = std::min(width - 1, x / 2);
-            int inY = std::min(height - 1, y / 2);
-            out[y * outW + x] = in[inY * width + inX];
+            // Map output pixel center to input coordinates
+            // Output pixel (x,y) center maps to ((x-0.5)/2, (y-0.5)/2) in input space
+            // which aligns the upsample grid as the pseudo-inverse of 2x2 averaging
+            float srcX = (static_cast<float>(x) - 0.5f) * 0.5f;
+            float srcY = (static_cast<float>(y) - 0.5f) * 0.5f;
+
+            // Compute integer source coordinates with boundary clamping
+            int x0 = std::max(0, std::min(width - 1, static_cast<int>(std::floor(srcX))));
+            int y0 = std::max(0, std::min(height - 1, static_cast<int>(std::floor(srcY))));
+            int x1 = std::min(width - 1, x0 + 1);
+            int y1 = std::min(height - 1, y0 + 1);
+
+            // Fractional parts clamped to [0, 1]
+            float fx = std::max(0.0f, std::min(1.0f, srcX - static_cast<float>(x0)));
+            float fy = std::max(0.0f, std::min(1.0f, srcY - static_cast<float>(y0)));
+
+            // Bilinear interpolation weights
+            float w00 = (1.0f - fx) * (1.0f - fy);
+            float w10 = fx * (1.0f - fy);
+            float w01 = (1.0f - fx) * fy;
+            float w11 = fx * fy;
+
+            out[y * outW + x] =
+                w00 * in[y0 * width + x0] +
+                w10 * in[y0 * width + x1] +
+                w01 * in[y1 * width + x0] +
+                w11 * in[y1 * width + x1];
         }
     }
 }

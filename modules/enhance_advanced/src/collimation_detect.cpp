@@ -112,8 +112,9 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         auto houghTime = std::chrono::high_resolution_clock::now();
 
         // Step 3: Detect axis-aligned lines
+        // Increased threshold for better accuracy (REQ-ADV-052: +-3 pixel)
         std::vector<xpe::enhance_advanced::detail::HoughLine> lines =
-            hough.detectAxisAlignedLines(accumulator, 4);
+            hough.detectAxisAlignedLines(accumulator, 8);
 
         // Separate horizontal and vertical lines
         std::vector<xpe::enhance_advanced::detail::HoughLine> horizontalLines;

@@ -229,6 +229,14 @@ void applyOvershootLimiting(const float* original, float* enhanced,
             size_t idx = y * static_cast<size_t>(width) + x;
 
             float baseValue = original[idx];
+
+            // REQ-ADV-032: Guard against NaN/Inf in original data.
+            // If the base value is non-finite, fallback to 0.0f.
+            if (!std::isfinite(baseValue)) {
+                enhanced[idx] = 0.0f;
+                continue;
+            }
+
             float enhancedValue = enhanced[idx];
             float boost = enhancedValue - baseValue;
 
@@ -240,8 +248,9 @@ void applyOvershootLimiting(const float* original, float* enhanced,
 
             // Handle zero sigma (uniform region)
             if (sigmaLocal < 1e-6f) {
-                // In uniform regions, allow minimal enhancement
-                limit = 0.1f;  // Small fixed limit
+                // In uniform regions, reject ALL enhancement (identity)
+                enhanced[idx] = baseValue;
+                continue;
             }
 
             // Apply clipping
@@ -284,9 +293,18 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
     int width = static_cast<int>(img->width);
     int height = static_cast<int>(img->height);
     float* data = static_cast<float*>(img->data);
+    size_t totalPixels = static_cast<size_t>(width) * height;
+
+    // REQ-ADV-032: Sanitize input NaN/Inf to 0.0f before processing.
+    // This prevents propagation through convolution accumulation.
+    for (size_t i = 0; i < totalPixels; ++i) {
+        if (!std::isfinite(data[i])) {
+            data[i] = 0.0f;
+        }
+    }
 
     // Store original for overshoot limiting
-    std::vector<float> original(data, data + width * height);
+    std::vector<float> original(data, data + totalPixels);
 
     // For order = 0, no enhancement (identity)
     if (config.order < 1e-6f) {
@@ -325,6 +343,11 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
                 sum += val * mask[k];
             }
 
+            // REQ-ADV-032: Guard against NaN/Inf from accumulation overflow
+            if (!std::isfinite(sum)) {
+                sum = 0.0f;
+            }
+
             temp[y * static_cast<size_t>(width) + x] = sum;
         }
     }
@@ -348,6 +371,11 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
                 }
 
                 sum += val * mask[k];
+            }
+
+            // REQ-ADV-032: Guard against NaN/Inf from accumulation overflow
+            if (!std::isfinite(sum)) {
+                sum = 0.0f;
             }
 
             data[y * static_cast<size_t>(width) + x] = sum;

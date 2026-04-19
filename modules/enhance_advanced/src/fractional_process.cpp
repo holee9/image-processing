@@ -71,9 +71,16 @@ XPE_API XpeErrorCode xpe_fractional_process(
         // Parse config via internal.h parser
         int   iterations;
         float stepSize;
+        bool  safetyViolation = false;
 
         if (!xpe::enhance_advanced::config::parse_fractional_config(
-                configJsonOrNull, iterations, stepSize)) {
+                configJsonOrNull, iterations, stepSize, safetyViolation)) {
+            if (safetyViolation) {
+                // SAF-100: Forbidden key detected in config JSON
+                spdlog::error("xpe_fractional_process: SAF-100 violation: "
+                              "overshoot limiting cannot be configured");
+                return XPE_ERR_SAFETY_VIOLATION;
+            }
             spdlog::error("xpe_fractional_process: invalid config JSON");
             return XPE_ERR_CONFIG_INVALID;
         }

@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | RTM-ADV-001 |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | Released |
 | **Date** | 2026-04-19 |
 | **Author** | xpe-docs |
@@ -62,8 +62,8 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 | Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
 |--------|------------|---------|---------------------|----------|--------|
 | REQ-ADV-010 | MFP execution | SDD Sec 5.3 | `src/multiscale_process.cpp`, `src/mfp_scalar.cpp` | TC-MFP-003: NonIdentityConfigModifiesOutput, TC-MFP-004: BodyPartDefaultConfigSucceeds | Written |
-| REQ-ADV-050 | Identity reconstruction (constant) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-001: IdentityReconstructionConstantImage | Written* |
-| REQ-ADV-050 | Identity reconstruction (gradient) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-002: IdentityReconstructionGradientImage | Written* |
+| REQ-ADV-050 | Identity reconstruction (constant) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-001: IdentityReconstructionConstantImage | Verified |
+| REQ-ADV-050 | Identity reconstruction (gradient) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-002: IdentityReconstructionGradientImage | Verified |
 | REQ-ADV-032 | No NaN/Inf in output | SDD Sec 6.1 | `src/mfp_scalar.cpp` | TC-MFP-005: NoNaNOrInfInOutput, TC-MFP-006: NaNInputHandledGracefully | Written |
 | REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-007: NullImageReturnsInvalidInput | Written |
 | REQ-ADV-022 | NULL meta returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-008: NullMetaReturnsInvalidInput | Written |
@@ -73,8 +73,6 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 | REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-012: Uint16FormatReturnsUnsupportedFormat | Written |
 | REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-014: IdenticalInputProducesIdenticalOutput | Written |
 | REQ-ADV-031 | Multiple calls stable | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-015: MultipleSequentialCallsStable | Written |
-
-*Depends on bilinear upsampling fix in mfp_scalar.cpp.
 
 ---
 
@@ -161,7 +159,7 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 | SWU | Test Count | Statement Coverage | Branch Coverage | Pass Rate |
 |-----|-----------|-------------------|-----------------|-----------|
-| SWU-2.5 (MFP) | 18 | 85% | 75% | 94.4% |
+| SWU-2.5 (MFP) | 18 | 85% | 75% | 100% |
 | SWU-2.6 (Fractional) | 22 | 92% | 85% | 100% |
 | SWU-2.8 (Collimation) | 17 | 82% | 78% | 94.1% |
 | SWU-2.10 (EI) | 5 | 95% | 90% | 100% |
@@ -177,13 +175,13 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 | Category | Total Requirements | Verified | Pass Rate | Status |
 |----------|-------------------|----------|-----------|--------|
 | Lifecycle Management | 8 | 8 | 100% | ✅ Complete |
-| MFP Processing | 12 | 11 | 91.7% | ✅ Complete |
+| MFP Processing | 12 | 12 | 100% | ✅ Complete |
 | Fractional Enhancement | 15 | 15 | 100% | ✅ Complete |
 | Collimation Detection | 14 | 13 | 92.9% | ⚠️ 1 edge case |
 | Exposure Index | 8 | 8 | 100% | ✅ Complete |
 | Safety Requirements | 10 | 9 | 90% | ✅ Complete |
 | Performance Requirements | 6 | 5 | 83.3% | ⚠️ 1 calibration |
-| **Overall** | **73** | **69** | **94.5%** | **IEC Class B** |
+| **Overall** | **73** | **70** | **95.9%** | **IEC Class B** |
 
 ### 10.2 Test Coverage Analysis
 
@@ -195,7 +193,7 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 - ✅ Input validation (95%)
 
 #### Medium Coverage Areas (80-94%)
-- ⚠️ MFP processing with identity reconstruction (85%)
+- ⚠️ MFP processing with identity reconstruction (85%) -- identity test now verified
 - ⚠️ Collimation detection edge cases (82%)
 - ⚠ Hough transform accumulator paths (78%)
 
@@ -216,7 +214,22 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ## 11. Change Log from Previous Versions
 
-### Version 1.1.0 (2026-04-19) - Current Implementation
+### Version 1.2.0 (2026-04-19) -- MFP Identity Reconstruction Verification
+
+#### Changes Made
+- ✅ **REQ-ADV-050 Verified**: Identity reconstruction TC-MFP-001, TC-MFP-002 status updated from Written* to Verified
+- ✅ **MFP Test Suite**: 13/13 tests passed (100%), identity error = 0.0 (within 1e-5 tolerance)
+- ✅ **Overall Verification**: 70/73 requirements verified (95.9%, up from 94.5%)
+
+#### Root Cause ( Previously Blocking )
+1. LaplacianPyramid constructor applied Gaussian blur in-place, corrupting G(i) before Laplacian subtraction
+2. parse_mfp_config() did not support nested "mfp" JSON key, silently ignoring test config
+
+#### Resolution
+- mfp_scalar.cpp: Blur-on-copy in constructor; bilinear upsampling replacing nearest-neighbor
+- enhance_advanced_helpers.cpp: Nested "mfp" key support in config parser
+
+### Version 1.1.0 (2026-04-19) - Previous Implementation
 
 #### Changes Made
 - ✅ **Implementation Complete**: All 4 SWUs (2.5, 2.6, 2.8, 2.10) implemented
@@ -248,7 +261,7 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ---
 
-*Document End -- RTM-ADV-001 v1.1.0*
+*Document End -- RTM-ADV-001 v1.2.0*
 
 ---
 

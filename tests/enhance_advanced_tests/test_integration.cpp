@@ -266,7 +266,14 @@ TEST_F(IntegrationPipelineTest, SequentialProcessingDeterministic) {
 // ============================================================================
 
 TEST_F(IntegrationPipelineTest, ErrorPathsCovered) {
-    // NULL pointer checks across all functions
+    // NOT_INITIALIZED checks (module not initialized yet)
+    EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_NOT_INITIALIZED);
+    EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_NOT_INITIALIZED);
+
+    // Initialize module
+    ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
+
+    // NULL pointer checks after initialization
     EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 

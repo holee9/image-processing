@@ -46,29 +46,42 @@ bool parse_mfp_config(const char* json,
             return false;
         }
 
-        // Parse direct keys (flat schema per design doc Section 8)
-        if (cfg.contains("levels") && cfg["levels"].is_number_integer()) {
-            int val = cfg["levels"].get<int>();
+        // @MX:NOTE: Supports both flat schema and nested "mfp" key schema.
+        // Nested takes precedence: if "mfp" object exists, read keys from it;
+        // otherwise fall back to flat top-level keys for backward compatibility.
+        nlohmann::json src = cfg;
+        if (cfg.contains("mfp") && cfg["mfp"].is_object()) {
+            src = cfg["mfp"];
+        }
+
+        // Parse keys from resolved source (nested or flat)
+        if (src.contains("num_levels") && src["num_levels"].is_number_integer()) {
+            int val = src["num_levels"].get<int>();
+            outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
+        }
+        // Backward compat: also accept "levels" (flat schema legacy key)
+        if (src.contains("levels") && src["levels"].is_number_integer()) {
+            int val = src["levels"].get<int>();
             outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
         }
 
-        if (cfg.contains("edge_gain") && cfg["edge_gain"].is_number()) {
-            float val = cfg["edge_gain"].get<float>();
+        if (src.contains("edge_gain") && src["edge_gain"].is_number()) {
+            float val = src["edge_gain"].get<float>();
             outEdgeGain = std::clamp(val, 0.0f, 5.0f);
         }
 
-        if (cfg.contains("texture_gain") && cfg["texture_gain"].is_number()) {
-            float val = cfg["texture_gain"].get<float>();
+        if (src.contains("texture_gain") && src["texture_gain"].is_number()) {
+            float val = src["texture_gain"].get<float>();
             outTextureGain = std::clamp(val, 0.0f, 5.0f);
         }
 
-        if (cfg.contains("flat_gain") && cfg["flat_gain"].is_number()) {
-            float val = cfg["flat_gain"].get<float>();
+        if (src.contains("flat_gain") && src["flat_gain"].is_number()) {
+            float val = src["flat_gain"].get<float>();
             outFlatGain = std::clamp(val, 0.0f, 5.0f);
         }
 
-        if (cfg.contains("noise_threshold") && cfg["noise_threshold"].is_number()) {
-            float val = cfg["noise_threshold"].get<float>();
+        if (src.contains("noise_threshold") && src["noise_threshold"].is_number()) {
+            float val = src["noise_threshold"].get<float>();
             outNoiseThreshold = std::clamp(val, 0.0f, 50.0f);
         }
 
@@ -84,7 +97,14 @@ bool parse_mfp_config(const char* json,
 
 bool parse_fractional_config(const char* json,
                              int&   outIterations,
-                             float& outStepSize) {
+                             float& outStepSize,
+                             bool&  outSafetyViolation) {
+    // @MX:ANCHOR: [AUTO] SAF-100 forbidden key gate in fractional config parser
+    // @MX:REASON: Safety-critical — overshoot limiting bypass must be blocked at config parse level (IEC 62304 Class B)
+    // @MX:SPEC: REQ-ADV-051, SAF-100
+
+    outSafetyViolation = false;
+
     // Apply defaults
     outIterations = XPE_FRAC_DEFAULT_ITER;
     outStepSize   = XPE_FRAC_DEFAULT_STEP;
@@ -97,6 +117,34 @@ bool parse_fractional_config(const char* json,
         auto cfg = nlohmann::json::parse(json, nullptr, false);
         if (cfg.is_discarded()) {
             return false;
+        }
+
+        // SAF-100 (REQ-ADV-051): Reject any attempt to configure overshoot limiting.
+        // These keys are forbidden because overshoot limiting is mandatory and
+        // non-configurable under IEC 62304 Class B safety requirements.
+        const std::vector<const char*> forbiddenKeys = {
+            "overshoot_limiting",
+            "overshoot_limit",
+            "overshoot_factor",
+            "disable_overshoot_limit",
+            "overshoot"  // Also catch bare "overshoot" used inside nested objects
+        };
+
+        for (const char* key : forbiddenKeys) {
+            if (cfg.contains(key)) {
+                outSafetyViolation = true;
+                return false;  // SAF-100 violation: forbidden key at top level
+            }
+        }
+
+        // Check nested "safety" object for forbidden keys
+        if (cfg.contains("safety") && cfg["safety"].is_object()) {
+            for (const char* key : forbiddenKeys) {
+                if (cfg["safety"].contains(key)) {
+                    outSafetyViolation = true;
+                    return false;  // SAF-100 violation: forbidden key in safety object
+                }
+            }
         }
 
         if (cfg.contains("iterations") && cfg["iterations"].is_number_integer()) {
