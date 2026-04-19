@@ -111,16 +111,20 @@
                                     Click="WorkflowCancelButton_Click"/>
                         </StackPanel>
 
-                        <!-- Before/After Comparison Panel (placeholder) -->
+                        <!-- Before/After Comparison Panel -->
                         <TextBlock Text="Before / After" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
                         <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4"
                                 Background="#FF101820" MinHeight="240">
-                            <TextBlock Text="Phase 1b pending"
-                                       Foreground="#FF8899AA"
-                                       FontSize="18"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Margin="0,80"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="WorkflowBeforeAfterText"
+                                           Text="No run yet. Select a file and click Run."
+                                           Foreground="#FF8899AA"
+                                           FontSize="13"
+                                           FontFamily="Consolas"
+                                           TextWrapping="NoWrap"
+                                           VerticalAlignment="Top"
+                                           Margin="12,8"/>
+                            </ScrollViewer>
                         </Border>
 
                     </StackPanel>
