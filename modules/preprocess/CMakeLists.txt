@@ -30,6 +30,7 @@ set(XPE_PREPROCESS_SOURCES
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
     src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
     src/rle_codec.cpp            # RLE compression for defect maps
+    src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
 )
 
 add_library(xpe_preprocess SHARED

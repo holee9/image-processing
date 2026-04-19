@@ -452,29 +452,6 @@ XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* frames,
     return XPE_OK;
 }
 
-XpeErrorCode xpe_calib_check_expiry(const char* filePath,
-                                     uint64_t* expiryEpochMsOut)
-{
-    if (!filePath || !expiryEpochMsOut) return XPE_ERR_INVALID_INPUT;
-
-    FILE* f = xpe_fopen(filePath, "rb");
-    if (!f) return XPE_ERR_IO_FAILED;
-
-    CalibFileHeader hdr{};
-    if (std::fread(&hdr, sizeof(hdr), 1, f) != 1) {
-        std::fclose(f);
-        return XPE_ERR_IO_FAILED;
-    }
-    std::fclose(f);
-
-    *expiryEpochMsOut = hdr.expiryEpochMs;
-
-    auto now_ms = static_cast<uint64_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count());
-    return (hdr.expiryEpochMs < now_ms) ? XPE_ERR_CALIBRATION_EXPIRED : XPE_OK;
-}
-
 XpeErrorCode xpe_calib_save(const XpeImageBuffer* calibMap,
                              const char* filePath,
                              uint64_t expiryEpochMs,
