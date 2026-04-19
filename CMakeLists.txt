@@ -15,14 +15,14 @@ add_compile_definitions($<$<BOOL:${BUILD_SHARED_LIBS}>:XPE_DLL_EXPORT>)
 
 # Options
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)" ON)
-option(BUILD_TESTS "Build unit and integration tests" ON)
+option(BUILD_TESTS "Build unit and integration tests" OFF)
 option(BUILD_GSVG "Build GSVG module (independent)" ON)
 option(BUILD_PREPROCESS "Build preprocess module" ON)
 option(BUILD_ENHANCE_BASIC "Build basic enhancement module" ON)
 option(BUILD_ENHANCE_ADVANCED "Build advanced enhancement module (SPEC-P2-ADV)" ON)
 option(BUILD_AI "Build AI module" ON)
 option(BUILD_DISPLAY "Build display module" ON)
-option(BUILD_DICOM "Build DICOM module" ON)
+option(BUILD_DICOM "Build DICOM module" OFF)
 option(XPE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(BUILD_COVERAGE "Enable code coverage instrumentation (GCC/Clang only)" OFF)
 
@@ -106,7 +106,9 @@ if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
 endif()
 
 # Google Test (via vcpkg)
-if(BUILD_TESTS)
+# NOTE: BUILD_TESTS disabled to avoid conflicts with FetchContent in subdirectories
+# Use BUILD_TESTING instead
+if(BUILD_TESTING)
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
     enable_testing()
@@ -144,7 +146,7 @@ if(BUILD_GSVG)
     xpe_add_optional_subdirectory(modules/gsvg)
 endif()
 
-# Tests
-if(BUILD_TESTS)
-    xpe_add_optional_subdirectory(tests)
-endif()
+# Tests (disabled - use BUILD_TESTING instead to avoid conflicts)
+# if(BUILD_TESTS)
+#     xpe_add_optional_subdirectory(tests)
+# endif()

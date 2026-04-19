@@ -46,10 +46,10 @@ target_link_libraries(xpe_preprocess
 target_compile_features(xpe_preprocess PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_preprocess PRIVATE /W4)
+    target_compile_options(xpe_preprocess PRIVATE /W4 /WX-)
 else()
     target_compile_options(xpe_preprocess PRIVATE
-        -Wall -Wextra -Wpedantic
+        -Wall -Wextra -Wpedantic -Werror
     )
 endif()
 
@@ -122,6 +122,12 @@ if(_XPE_BUILD_TESTS)
     )
 
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(xpe_preprocess_tests PRIVATE /W4 /WX-)
+    else()
+        target_compile_options(xpe_preprocess_tests PRIVATE -Wall -Wextra)
+    endif()
 
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

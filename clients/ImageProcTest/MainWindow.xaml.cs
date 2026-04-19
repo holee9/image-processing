@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace ImageProcTest
 {
@@ -30,6 +31,38 @@ namespace ImageProcTest
             RefreshNativeHealth();
             LoadFixtureCases();
             RefreshModuleReadiness();
+        }
+
+        private void WorkflowBrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Raw Image",
+                Filter = "Raw image files (*.raw)|*.raw",
+                Multiselect = false,
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                WorkflowFilePathText.Text = dialog.FileName;
+                WorkflowRunButton.IsEnabled = true;
+            }
+        }
+
+        private void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Phase 1b: pipeline execution not yet implemented.
+            WorkflowCancelButton.IsEnabled = true;
+            WorkflowRunButton.IsEnabled = false;
+            SetStatus("Run requested (Phase 1b pending)", System.Windows.Media.Brushes.Goldenrod);
+        }
+
+        private void WorkflowCancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            WorkflowCancelButton.IsEnabled = false;
+            WorkflowRunButton.IsEnabled = !string.IsNullOrEmpty(WorkflowFilePathText.Text) &&
+                                          WorkflowFilePathText.Text != "No file selected";
+            SetStatus("Cancelled", System.Windows.Media.Brushes.Gray);
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)

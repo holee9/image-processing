@@ -8,162 +8,9 @@
 #include "xpe/preprocess/xpe_preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
-#include <cstring>
-#include <cmath>
-#include <algorithm>
-
-/* =========================================================================
- * SWU-1.6: Temperature Compensation (PRE-07) - Stub implementation
- * REQ-P1A-005 to REQ-P1A-008
- * ========================================================================= */
-
-XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-                                 float detectorTempC,
-                                 const char* configJsonOrNull)
-{
-    if (!img) return XPE_ERR_INVALID_INPUT;
-
-    // REQ-P1A-005: validate temperature range [-20, +60] Celsius
-    if (std::isnan(detectorTempC)) {
-        detectorTempC = 25.0f; // fallback to nominal temperature
-    }
-    if (detectorTempC < -20.0f || detectorTempC > 60.0f) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-P1A-006: apply exponential dark current model
-    // I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
-    // For now: simple linear model (2% change per degree from 25C)
-    const float tempDelta = detectorTempC - 25.0f;
-    const float correctionFactor = 1.0f + 0.02f * tempDelta;
-
-    auto* px = static_cast<uint16_t*>(img->data);
-    for (size_t i = 0; i < n; ++i) {
-        const float corrected = static_cast<float>(px[i]) / correctionFactor;
-        px[i] = static_cast<uint16_t>(std::round(std::min(65535.0f, std::max(0.0f, corrected))));
-    }
-
-    (void)configJsonOrNull; // TODO: parse calibration coefficients
-    return XPE_OK;
-}
-
-/* =========================================================================
- * SWU-1.7: Nonlinearity Correction (PRE-08) - Stub implementation
- * REQ-P1A-012 to REQ-P1A-015
- * ========================================================================= */
-
-XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-                                     const char* configJsonOrNull)
-{
-    if (!img) return XPE_ERR_INVALID_INPUT;
-
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-P1A-012: apply piecewise linear or polynomial correction
-    // For now: no-op (linear detector assumed)
-    // TODO: Load detector mode and coefficients from config
-
-    (void)configJsonOrNull;
-    return XPE_OK;
-}
-
-/* =========================================================================
- * SWU-1.8: Binning Correction (PRE-09) - Stub implementation
- * REQ-P1A-020 to REQ-P1A-023
- * ========================================================================= */
-
-XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
-                                int32_t binningMode,
-                                const char* configJsonOrNull)
-{
-    if (!img) return XPE_ERR_INVALID_INPUT;
-
-    // REQ-P1A-020: validate binning mode
-    if (binningMode != 1 && binningMode != 2 && binningMode != 4) {
-        return XPE_ERR_CONFIG_INVALID;
-    }
-
-    // REQ-P1A-021: no-op when binningMode == 1 (1x1, no binning)
-    if (binningMode == 1) {
-        return XPE_OK;
-    }
-
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-P1A-022: apply per-mode correction for gain/uniformity differences
-    // For now: simple scaling based on binning factor
-    const float scaleFactor = static_cast<float>(binningMode);
-    auto* px = static_cast<float*>(img->data);
-    for (size_t i = 0; i < n; ++i) {
-        px[i] *= scaleFactor;
-    }
-
-    (void)configJsonOrNull; // TODO: load correction profile from config
-    return XPE_OK;
-}
-
-/* =========================================================================
- * SWU-1.9: Readout Artifact Validation (PRE-01) - Stub implementation
- * REQ-P1A-001 to REQ-P1A-004
- * ========================================================================= */
-
-XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
-                                           int32_t* artifactScoreOut,
-                                           char* msgOut,
-                                           size_t msgLen)
-{
-    if (!rawImg || !artifactScoreOut) return XPE_ERR_INVALID_INPUT;
-
-    size_t n = 0;
-    if (!xpe_buffer_has_format(rawImg, XPE_PIXEL_UINT16, &n)) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-P1A-001: detect dropped columns (>10 consecutive zero columns)
-    // REQ-P1A-002: detect ADC saturation (>1% pixels at max value)
-    // REQ-P1A-003: detect line noise (high-frequency horizontal patterns)
-
-    const uint32_t W = rawImg->width;
-    const uint32_t H = rawImg->height;
-    const auto* px = static_cast<const uint16_t*>(rawImg->data);
-
-    // Simple detection: count zero columns
-    int32_t zeroColumns = 0;
-    for (uint32_t x = 0; x < W; ++x) {
-        bool columnIsZero = true;
-        for (uint32_t y = 0; y < H && columnIsZero; ++y) {
-            if (px[y * W + x] != 0) {
-                columnIsZero = false;
-            }
-        }
-        if (columnIsZero) ++zeroColumns;
-    }
-
-    // Calculate artifact score (0 = clean, 100 = severely corrupted)
-    int32_t score = (zeroColumns * 100) / static_cast<int32_t>(W);
-    if (score > 100) score = 100;
-
-    *artifactScoreOut = score;
-
-    // REQ-P1A-004: operator-readable message
-    if (msgOut && msgLen > 0) {
-        std::snprintf(msgOut, msgLen, "Artifact score: %d (zero columns: %d)",
-                     score, zeroColumns);
-    }
-
-    return XPE_OK;
-}
+#include <cstdio>
+#include <cstdlib>
+#include <string>
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
@@ -264,8 +111,8 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
         result = xpe_temp_compensate(img, cfg.detectorTempC, configJsonOrNull);
         if (result != XPE_OK) return result;
 
-        // REQ-P1A-043: set XPE_FLAG_TEMP_CORRECTED
-        if (meta) meta->flags |= XPE_FLAG_TEMP_CORRECTED;
+        // REQ-P1A-043: set XPE_FLAG_TEMP_COMPENSATED
+        if (meta) meta->flags |= XPE_FLAG_TEMP_COMPENSATED;
     }
 
     // Stage 2: Offset Correction (PRE-02)

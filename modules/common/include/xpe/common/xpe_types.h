@@ -164,6 +164,7 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80, "XpeImageMetada
 #define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (stitching) */
 #define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */
 #define XPE_FLAG_GSVG_SKIPPED            0x00001000u  /**< GSVG stage was skipped (e.g. modality does not require it) */
+#define XPE_FLAG_OFFSET_CORRECTED        0x00002000u  /**< Dark/offset correction applied */
 /** @} */
 
 /** @} */ /* end group xpe_common */

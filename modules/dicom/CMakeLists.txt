@@ -1,5 +1,9 @@
-find_package(DCMTK CONFIG REQUIRED)
-find_package(OpenJPEG CONFIG REQUIRED)
+if(BUILD_DICOM)
+    find_package(DCMTK CONFIG REQUIRED)
+    find_package(OpenJPEG CONFIG REQUIRED)
+else()
+    message(FATAL_ERROR "BUILD_DICOM option is required for xpe_dicom module")
+endif()
 
 add_library(xpe_dicom SHARED
     src/dicom.cpp
