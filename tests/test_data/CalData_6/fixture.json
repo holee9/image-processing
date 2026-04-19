@@ -1,0 +1,23 @@
+{
+  "case_id": "CalData_6",
+  "description": "Multi-step gain calibration: 6 dose levels for nonlinearity LUT and BPM generation",
+  "srs_refs": ["SRS-CALIB-FUNC-022", "SRS-CALIB-FUNC-023", "SRS-CALIB-FUNC-024"],
+  "layout": "flat",
+  "roles": {
+    "dark.raw":     "Offset",
+    "bright01.raw": "Gain",
+    "bright02.raw": "Gain",
+    "bright03.raw": "Gain",
+    "bright04.raw": "Gain",
+    "bright05.raw": "Gain",
+    "bright06.raw": "Gain",
+    "BPMap.map":    "Defect_Oracle"
+  },
+  "verification_targets": {
+    "min_gain_frames": 6,
+    "expected_defect_density_pct_max": 5.0,
+    "flat_residual_pct_max": 1.0,
+    "dark_bias_adu_max": 5.0
+  },
+  "notes": "BPMap.map is uint8 (9.4MB = 3072x3072 / 1byte). Use as oracle BPM for DefectRecall verification."
+}

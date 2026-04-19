@@ -107,6 +107,8 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
 
 std::string xpe_json_get_string(const char* configJson, const char* key);
 
+double xpe_json_get_double(const char* configJson, const char* key, double defaultVal);
+
 /* =========================================================================
  * Dimension / null guard inline helpers
  * ========================================================================= */
@@ -173,5 +175,37 @@ inline bool xpe_buffer_has_format(const XpeImageBuffer* buf,
     }
     return true;
 }
+
+/* =========================================================================
+ * Pre-loaded Calibration State (Pipeline Optimization)
+ *
+ * Holds calibration maps loaded once and reused across multiple pipeline
+ * invocations. Eliminates per-frame file I/O for offset/gain/defect maps.
+ * ========================================================================= */
+
+/**
+ * @brief Pre-loaded calibration maps for pipeline optimization.
+ *
+ * Populated once via xpe_calib_state_load(), then passed to
+ * xpe_preprocess_pipeline_ex() to skip file I/O on each frame.
+ *
+ * Lifecycle:
+ * 1. Zero-initialize: XpeCalibrationState state = {};
+ * 2. Load maps:       xpe_calib_state_load(&state, calibPath);
+ * 3. Process frames:  xpe_preprocess_pipeline_ex(img, meta, &state, ...);
+ * 4. Release:         xpe_calib_state_release(&state);
+ *
+ * Memory ownership: offset/gain/defect data pointers are owned by this struct.
+ * Callers must call xpe_calib_state_release() to free.
+ */
+struct XpeCalibrationState {
+    XpeImageBuffer offsetMap;   ///< Pre-loaded offset correction map (uint16)
+    XpeImageBuffer gainMap;     ///< Pre-loaded gain correction map (float32)
+    XpeImageBuffer defectMap;   ///< Pre-loaded defect pixel map (uint8)
+
+    bool offsetLoaded;          ///< true if offsetMap is valid
+    bool gainLoaded;            ///< true if gainMap is valid
+    bool defectLoaded;          ///< true if defectMap is valid
+};
 
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */

@@ -280,6 +280,10 @@ tests/test_data/*.raw
 tests/test_data/*.dcm
 tests/test_data/**/*.raw
 tests/test_data/**/*.dcm
+tests/test_data/**/*.map
+tests/test_data/**/*.pptx
+tests/test_data/**/Cluster_position.txt
+tests/test_data/**/PositionMap.raw
 
 # ===========================================
 # MoAI Runtime (keep config, ignore runtime)
@@ -301,3 +305,6 @@ rebuild.bat
 run_all_tests.bat
 run_t301.bat
 run_tests.bat
+build-and-test.ps1
+build-result.txt
+.moai/docs/MCP_OAUTH_SETUP.md

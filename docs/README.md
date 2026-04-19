@@ -136,14 +136,19 @@
 | — | Test Dataset Specification | [TDS-GSVG-001](post-processing/gsvg/TDS-GSVG-001_Test_Dataset_Specification.md) | TDS-001 |
 | — | Module README | [README.md](post-processing/gsvg/README.md) | REF |
 
-### 3.3 Calibration (전처리 보정 모듈) — 7개 문서
+### 3.3 Calibration (전처리 보정 모듈) — 9개 문서
 
 PRE-02~09 Calibration 보정 알고리즘의 완전한 IEC 62304 Class B 수명 주기입니다.
+
+> **빠른 진입**: [KNOWLEDGE-BASE.md](calibration/KNOWLEDGE-BASE.md) — 알고리즘·문서·코드·API 전체 교차 참조 허브  
+> **알고리즘 시각화**: [CONCEPT-DIAGRAMS.md](calibration/CONCEPT-DIAGRAMS.md) — 12개 Mermaid 개념도, 처리 흐름도, 상태 기계
 
 | IEC 62304 Clause | Document Type | Document | ID |
 |----------------:|:-------------|---------|-----|
 | — | PRD (Calibration) | [xray-detector-calibration-prd.md](calibration/xray-detector-calibration-prd.md) | PRD |
 | — | Module README | [README.md](calibration/README.md) | REF |
+| — | **Knowledge Base** | [**KNOWLEDGE-BASE.md**](calibration/KNOWLEDGE-BASE.md) | **KB-001** |
+| — | **Concept Diagrams** | [**CONCEPT-DIAGRAMS.md**](calibration/CONCEPT-DIAGRAMS.md) | **DGM-001** |
 | 5.2 | Requirements Specification | [SRS-CALIB-001](calibration/SRS-CALIB-001_Software_Requirements_Specification.md) | SRS-001 |
 | 5.3 | Architecture Document | [SAD-CALIB-001](calibration/SAD-CALIB-001_Software_Architecture_Document.md) | SAD-001 |
 | 7 | Hazard Analysis | [SHA-CALIB-001](calibration/SHA-CALIB-001_Software_Hazard_Analysis.md) | SHA-001 |

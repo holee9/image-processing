@@ -25,8 +25,11 @@ set(XPE_PREPROCESS_SOURCES
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-024..028
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
     src/calibration_manager.cpp  # SWU-1.5 REQ-P1A-035..040
+    src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
+    src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
     src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
+    src/rle_codec.cpp            # RLE compression for defect maps
 )
 
 add_library(xpe_preprocess SHARED
@@ -46,10 +49,11 @@ target_link_libraries(xpe_preprocess
 target_compile_features(xpe_preprocess PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_preprocess PRIVATE /W4)
+    target_compile_options(xpe_preprocess PRIVATE /W4 /arch:AVX2)
 else()
     target_compile_options(xpe_preprocess PRIVATE
         -Wall -Wextra -Wpedantic
+        -mavx2
     )
 endif()
 
@@ -98,22 +102,35 @@ if(_XPE_BUILD_TESTS)
 
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
+        tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct.cpp
+        tests/test_gain_correct_reciprocal_fma.cpp
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp
         tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
         tests/test_calibration_manager.cpp
+        tests/test_calib_generate_offset_multi.cpp
+        tests/test_calibration_cache.cpp
+        tests/test_pipeline_ex.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
+        tests/test_xpe_preprocess_memleak.cpp
+        tests/test_xcal_compression.cpp
     )
 
     add_executable(xpe_preprocess_tests
         ${XPE_TEST_SOURCES}
+        src/rle_codec.cpp
+        src/xcal_writer.cpp
+        src/xcal_reader.cpp
+        src/xcal_validator.cpp
     )
 
     target_include_directories(xpe_preprocess_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
 
     target_link_libraries(xpe_preprocess_tests
@@ -121,7 +138,19 @@ if(_XPE_BUILD_TESTS)
                 GTest::gtest_main
     )
 
+    # Windows: psapi.lib is required for GetProcessMemoryInfo
+    # (used by test_xpe_preprocess_memleak.cpp to measure heap growth).
+    if(WIN32)
+        target_link_libraries(xpe_preprocess_tests PRIVATE psapi)
+    endif()
+
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(xpe_preprocess_tests PRIVATE /W4 /WX-)
+    else()
+        target_compile_options(xpe_preprocess_tests PRIVATE -Wall -Wextra)
+    endif()
 
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

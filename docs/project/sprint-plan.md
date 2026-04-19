@@ -123,7 +123,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [x] Static analysis (cppcheck) reports 0 warnings
 - [x] Benchmark manifest schema exists (`benchmark/BP-01-05-preprocess-manifest.md`)
 
-### Gate G1a -> G1b (Phase 1a Complete) ✅ PASSED 2026-04-18
+### Gate G1a -> G1b (Phase 1a Complete) ✅ PASSED 2026-04-19
 
 - [x] xpe_preprocess.dll exports all 18 functions
 - [x] Pre-processing pipeline (stages 0.5-4) — `xpe_preprocess_pipeline` 통합 완료
@@ -132,7 +132,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [x] Calibration CRC verification works end-to-end (SUP-01, 89/90 tests GREEN)
 - [x] Unit test coverage >= 85% for xpe_preprocess (P1A: 89/90 GREEN)
 - [x] P/Invoke integration test: GUI-IT 78/78 통과 (SPEC-XPE-GUI-IT 완료)
-- [ ] Memory leak test: 1000 frames without growth — 미완료 (다음 스프린트)
+- [x] Memory leak test: 1000 frames without growth — PASSED 2026-04-19 (delta 0KB)
 
 ### Gate G1b -> G2 (Phase 1b Complete)
 
@@ -802,11 +802,11 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. Log transform on all-zero image: returns `XPE_ERR_INVALID_INPUT` (log(0) undefined)
 5. Config `{"method": "nlm"}` -> NLM algorithm applied instead of bilateral
 
-**Definition of Done**:
-- [ ] 4 API functions exported from xpe_enhance_basic.dll
-- [ ] All 5 test cases pass
-- [ ] Performance within budgets
-- [ ] Unit test coverage >= 85%
+**Definition of Done** ✅ COMPLETED 2026-04-19:
+- [x] 4 API functions exported from xpe_enhance_basic.dll (실제 8개 export)
+- [x] All 5 test cases pass
+- [x] Performance within budgets
+- [x] Unit test coverage >= 85%
 
 **Risk Items**:
 - NLM is computationally expensive; may need tiling or approximate version for 3072x3072
@@ -838,13 +838,13 @@ SPRINT-P1A-01 (CalibManager)                   |
 5. EI on zero image -> `XPE_ERR_PROCESSING_FAILED` (cannot compute EI for blank image)
 6. EI with bodyPart="CHEST" vs "HAND" -> different EIT selected
 
-**Definition of Done**:
-- [ ] 3 API functions exported from xpe_enhance_basic.dll (total now 7)
-- [ ] All 6 test cases pass
-- [ ] IEC 62494-1 compliance documented
-- [ ] Performance within budgets
-- [ ] Unit test coverage >= 85%
-- [ ] `dumpbin /exports xpe_enhance_basic.dll` shows 7 symbols
+**Definition of Done** ✅ COMPLETED 2026-04-19:
+- [x] 3 API functions exported from xpe_enhance_basic.dll (total now 7)
+- [x] All 6 test cases pass
+- [x] IEC 62494-1 compliance documented
+- [x] Performance within budgets
+- [x] Unit test coverage >= 85%
+- [x] `dumpbin /exports xpe_enhance_basic.dll` shows 8 symbols (including version)
 
 **Risk Items**:
 - IEC 62494-1 EIT lookup table needs body-part-specific values (mitigate: use AAPM TG-232 values in xpe-implementation-reference.md Section 3)

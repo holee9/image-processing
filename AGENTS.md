@@ -87,8 +87,20 @@ When updating regulated document sets (SRS, SAD, SDD, RTM, VVP), confirm cross-f
 ## GitHub Issue Tracking Workflow
 All implementation, modification, and documentation-sync work must be backed by a GitHub Issue before file edits begin. If no suitable issue exists, create one using `.github/ISSUE_TEMPLATE/implementation-change.md` or the closest matching template.
 
-- Record progress in the issue comments at minimum for start, scope changes, implementation notes, verification results, blockers, commit, and push.
-- Prefix Codex progress comments with `codex:` so agent history is searchable.
+**Lane-specific comment prefix rules** (so agent history is searchable per lane):
+- Pre-A Lane (xpe-pre worktree, modules/common+preprocess): prefix `pre:`
+- Post-B Lane (xpe-post worktree, modules/enhance+display+dicom+ai+gsvg): prefix `post:`
+- GUI-C Lane (xpe-gui worktree, clients/): prefix `codex:` (Codex) or `gui:` (Claude)
+- Main (integration, docs, SPEC): prefix `main:`
+
+**Required progress comments** (minimum checkpoints):
+1. `🚀 착수` — 작업 시작, 범위 확인
+2. `🔧 구현중` — 주요 변경 사항 (선택)
+3. `✅ 검증` — 테스트 결과 (테스트 수, 합격률)
+4. `📦 완료` — 커밋 해시, 병합 PR 링크
+
+**Labels**: Use `lane:pre`, `lane:post`, `lane:gui`, `lane:main` + `status:wip/done/planned` + `phase:1b/2/cross`.
+
 - Reference the issue number in commits and pull requests with `Refs #<issue>` or `Closes #<issue>` as appropriate.
 - Keep one logical change per issue. If work expands into another module, create or link a separate issue instead of mixing unrelated scope.
 - Preserve Korean text as UTF-8. Before committing Korean Markdown or YAML, inspect it with UTF-8 terminal output and run `git diff --check` to catch formatting problems.
