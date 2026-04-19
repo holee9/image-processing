@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include <chrono>
 #include <vector>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
