@@ -102,21 +102,28 @@ if(_XPE_BUILD_TESTS)
 
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
-        tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct.cpp
-        tests/test_gain_correct_reciprocal_fma.cpp
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp
         tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
         tests/test_calibration_manager.cpp
-        tests/test_calib_generate_offset_multi.cpp
-        tests/test_calibration_cache.cpp
-        tests/test_pipeline_ex.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
         tests/test_xpe_preprocess_memleak.cpp
-        tests/test_xcal_compression.cpp
+        tests/test_xcal_reader.cpp
+        tests/test_xcal_writer.cpp
+        tests/test_xcal_validator.cpp
+        tests/test_xpe_sha256.cpp
+        tests/test_xpe_calib_check_expiry.cpp
+        tests/test_xpe_calib_endurance.cpp
+        tests/test_xpe_calib_generate_offset.cpp
+        tests/test_xpe_calib_load.cpp
+        tests/test_xpe_calib_save.cpp
+        tests/test_xpe_preprocess.cpp
+        tests/test_xpe_preprocess_calibration.cpp
+        tests/test_xpe_preprocess_correction.cpp
+        tests/test_xpe_preprocess_init.cpp
     )
 
     add_executable(xpe_preprocess_tests
