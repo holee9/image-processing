@@ -81,14 +81,15 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalPrecomputationIsValid) {
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
     const auto* out = static_cast<const float*>(img.data);
 
-    // 2000 * 1.5 = 3000 (should use reciprocal: 2000 * (1/1.5))
-    EXPECT_NEAR(3000.0f, out[0], 1e-3f);
+    // AC-GAIN-001: corrected = input / gain (flat-field normalization)
+    // 2000 / 1.5 = 1333.33...
+    EXPECT_NEAR(2000.0f / 1.5f, out[0], 1e-3f);
 
-    // Verify reciprocal property: output * gain ≈ input
+    // Round-trip: output * gain ≈ input (since output = input / gain)
     for (size_t i = 0; i < W * H; ++i) {
         float reconstructed = out[i] * gainPixels[i];
         EXPECT_NEAR(static_cast<float>(rawPixels[i]), reconstructed, 0.1f)
-            << "Reciprocal validation failed at pixel " << i;
+            << "Round-trip validation failed at pixel " << i;
     }
 }
 
