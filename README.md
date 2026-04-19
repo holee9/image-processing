@@ -142,7 +142,7 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | **XPE** (시스템 레벨) | 22 | Complete (전체 패키지) | [xpe-iec62304-class-b-package](docs/post-processing/xpe/xpe-iec62304-class-b-package.md) |
 | **GSVG** (Grid Suppression Virtual Grid) | 13 | Complete + IAP/TDS | [GSVG_IEC62304_ClassB_Document_Package](docs/post-processing/gsvg/GSVG_IEC62304_ClassB_Document_Package.md) |
 | **Ghost Correction** (Lag/Ghost 보정) | 9 | Complete + IAP/TDS/README | [README](docs/ghost-correction/README.md) |
-| **Calibration** (전처리 보정 모듈) | 8 | Complete + IAP/TDS | [docs/calibration/](docs/calibration/) |
+| **Calibration** (전처리 보정 모듈) | 9 | Complete + IAP/TDS + **알고리즘 검증 가이드** | [docs/calibration/](docs/calibration/) · [검증 가이드](docs/calibration/ALGORITHM-VERIFICATION-GUIDE.md) |
 | **Panel Defect** (패널 불량 보정) | 9 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README+INDEX) | [docs/panel-defect/](docs/panel-defect/) |
 | **Enhance Basic** (기본 향상 모듈) | 9 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README+MANIFEST) | [docs/enhance-basic/](docs/enhance-basic/) |
 | **Enhance Advanced** (고급 향상 모듈) | 8 | Complete (PRD+SRS+SAD+SHA+RTM+IAP+TDS+README) | [docs/enhance-advanced/](docs/enhance-advanced/) |

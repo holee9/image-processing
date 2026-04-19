@@ -6,8 +6,9 @@
 **안전 등급**: IEC 62304 Class B  
 **문서 버전**: 2.0  
 **날짜**: 2026-04-15  
-**최종 갱신**: 2026-04-15 (5차 교차검증, 비선형성 보정 알고리즘 확장)
+**최종 갱신**: 2026-04-19 (알고리즘 검증 가이드 추가)
 **규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
+**알고리즘 검증 가이드**: [ALGORITHM-VERIFICATION-GUIDE.md](ALGORITHM-VERIFICATION-GUIDE.md)
 
 ---
 
@@ -22,6 +23,7 @@
 | **QA / 테스트 엔지니어** | TDS-CALIB-001 → RTM | 테스트 데이터 구성, 합격 기준 |
 | **안전/위험 담당자** | SHA-CALIB-001 → RTM | 위험 식별, 리스크 관리 |
 | **의료기기 규제 담당자** | SRS → RTM → SHA → SAD | IEC 62304 추적성 패키지 |
+| **알고리즘 검증 엔지니어** | [ALGORITHM-VERIFICATION-GUIDE.md](ALGORITHM-VERIFICATION-GUIDE.md) | Spec↔구현 교차검증, 수학적 검증 방법, CI 파이프라인 |
 
 ### 문서 생태계 구조
 
