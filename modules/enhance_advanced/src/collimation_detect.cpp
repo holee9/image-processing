@@ -91,7 +91,11 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         auto startTime = std::chrono::high_resolution_clock::now();
 
         // Step 1: Map image to Eigen and compute Sobel gradients
-        Eigen::Map<const Eigen::MatrixXf> image(data, height, width);
+        // @MX:NOTE: [AUTO] Row-major image data mapping -- image buffer is row-major (y*w+x)
+        // @MX:REASON: Eigen defaults to column-major; must use RowMajor flag to match
+        //   the image buffer layout p[y * width + x]. Without this, x/y axes are transposed.
+        using RowMajorMatrixXf = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        Eigen::Map<const RowMajorMatrixXf> image(data, height, width);
 
         xpe::enhance_advanced::detail::EdgeGradientResult gradients =
             xpe::enhance_advanced::detail::computeSobelGradients(image);
@@ -99,8 +103,11 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         auto edgeTime = std::chrono::high_resolution_clock::now();
 
         // Step 2: Build Hough accumulator
-        // Derive Hough resolution from sensitivity: higher sensitivity -> finer resolution
-        int thetaStep = std::max(1, static_cast<int>(5.0f * (1.0f - sensitivity) + 1.0f));
+        // @MX:NOTE: [AUTO] Hough theta resolution derived from sensitivity
+        // @MX:REASON: Collimation requires fine angular resolution (1-2 deg) for accurate
+        //   axis-aligned line detection. Coarser resolution (3+ deg) causes rho drift
+        //   and misclassification of line positions.
+        int thetaStep = std::max(1, static_cast<int>(2.0f * (1.0f - sensitivity) + 1.0f));
         int rhoStep   = 1;
 
         xpe::enhance_advanced::detail::HoughTransform hough(
@@ -116,7 +123,12 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         std::vector<xpe::enhance_advanced::detail::HoughLine> lines =
             hough.detectAxisAlignedLines(accumulator, 8);
 
-        // Separate horizontal and vertical lines
+        // @MX:NOTE: [AUTO] Hough line orientation classification
+        // @MX:REASON: In Hough space, theta=0 => normal along x-axis => line is vertical (x=const).
+        //   theta=PI/2 (90 deg) => normal along y-axis => line is horizontal (y=const).
+        //   We classify by which Cartesian axis the line runs parallel to:
+        //   degrees near 0 or 180: vertical lines (x=const) => verticalLines
+        //   degrees near 90: horizontal lines (y=const) => horizontalLines
         std::vector<xpe::enhance_advanced::detail::HoughLine> horizontalLines;
         std::vector<xpe::enhance_advanced::detail::HoughLine> verticalLines;
 
@@ -125,10 +137,12 @@ XPE_API XpeErrorCode xpe_detect_collimation(
             while (degrees < 0.0f)    degrees += 180.0f;
             while (degrees >= 180.0f) degrees -= 180.0f;
 
+            // theta ~ 0 or 180: vertical lines (x = rho / cos(theta))
+            // theta ~ 90: horizontal lines (y = rho / sin(theta))
             if (degrees < 45.0f || degrees > 135.0f) {
-                horizontalLines.push_back(line);
-            } else {
                 verticalLines.push_back(line);
+            } else {
+                horizontalLines.push_back(line);
             }
         }
 
@@ -147,10 +161,14 @@ XPE_API XpeErrorCode xpe_detect_collimation(
                          "Using full-image extent.",
                          rect.confidence, confidenceThreshold);
 
-            *x0Out = borderMargin;
-            *y0Out = borderMargin;
-            *x1Out = std::max(borderMargin, width  - 1 - borderMargin);
-            *y1Out = std::max(borderMargin, height - 1 - borderMargin);
+            // @MX:NOTE: [FIX] Low confidence returns full image extent (no border margin)
+            // @MX:REASON: REQ-ADV-041 requires actual full extent [0, width-1] when
+            //   confidence is low, not margin-padded extent. Previous code incorrectly
+            //   applied borderMargin in fallback path, causing 8-pixel insets.
+            *x0Out = 0;
+            *y0Out = 0;
+            *x1Out = width - 1;
+            *y1Out = height - 1;
         } else {
             // Use detected rectangle with border margin applied
             *x0Out = std::max(borderMargin, rect.x0);
@@ -170,10 +188,11 @@ XPE_API XpeErrorCode xpe_detect_collimation(
                          "Using full-image extent.",
                          roiArea / imgArea, minAreaRatio);
 
-            *x0Out = borderMargin;
-            *y0Out = borderMargin;
-            *x1Out = std::max(borderMargin, width  - 1 - borderMargin);
-            *y1Out = std::max(borderMargin, height - 1 - borderMargin);
+            // @MX:NOTE: [FIX] Minimum area ratio fallback also returns full extent
+            *x0Out = 0;
+            *y0Out = 0;
+            *x1Out = width - 1;
+            *y1Out = height - 1;
         }
 
         auto totalTime = std::chrono::high_resolution_clock::now();
