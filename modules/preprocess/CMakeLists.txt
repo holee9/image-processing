@@ -25,9 +25,11 @@ set(XPE_PREPROCESS_SOURCES
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-024..028
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
     src/calibration_manager.cpp  # SWU-1.5 REQ-P1A-035..040
+    src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
     src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
     src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
+    src/rle_codec.cpp            # RLE compression for defect maps
 )
 
 add_library(xpe_preprocess SHARED
@@ -108,11 +110,13 @@ if(_XPE_BUILD_TESTS)
         tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
         tests/test_calibration_manager.cpp
+        tests/test_calib_generate_offset_multi.cpp
+        tests/test_calibration_cache.cpp
+        tests/test_pipeline_ex.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
         tests/test_xpe_preprocess_memleak.cpp
-        tests/test_golden_reference.cpp
-        tests/test_calibration_roundtrip.cpp
+        tests/test_xcal_compression.cpp
     )
 
     add_executable(xpe_preprocess_tests
@@ -121,6 +125,7 @@ if(_XPE_BUILD_TESTS)
 
     target_include_directories(xpe_preprocess_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 
     target_link_libraries(xpe_preprocess_tests

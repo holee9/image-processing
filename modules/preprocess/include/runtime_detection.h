@@ -57,7 +57,7 @@ extern "C" {
  * For normally distributed data: MAD = sigma * 0.6745
  * Therefore: sigma = MAD / 0.6745 = MAD * 1.4826
  */
-#define RUNTIME_DETECTION_MAD_SCALE 1.4826
+#define RUNTIME_DETECTION_MAD_SCALE 1.4826f
 
 /**
  * @brief Configuration parameters for runtime detection.

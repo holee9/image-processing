@@ -11,8 +11,10 @@
 #include <cstdio>
 #include <ctime>
 #include <cstring>
+#include <cmath>
 #include <chrono>
 #include <limits>
+#include <vector>
 
 /* =========================================================================
  * CRC-32/ISO-HDLC implementation (polynomial 0xEDB88320)
@@ -138,34 +140,309 @@ XpeErrorCode xpe_calib_load_defect_map(const char* filePath,
     return calib_load_file(filePath, defectMapOut);
 }
 
-// @MX:NOTE: [AUTO] Per-pixel mean across frameCount dark-field frames
+/* =========================================================================
+ * Offset Generation Method enum
+ * ========================================================================= */
+enum class OffsetMethod : int {
+    Mean       = 0,  // Simple arithmetic mean (default, backward compatible)
+    Median     = 1,  // Per-pixel median across frames
+    SigmaClip  = 2,  // Iterative sigma clipping (remove outliers beyond N*sigma)
+    Winsor     = 3   // Winsorization (clip extremes to percentiles, then mean)
+};
+
+/* =========================================================================
+ * Internal helpers for multi-method offset generation
+ * ========================================================================= */
+
+/**
+ * @brief Validate all frames have consistent dimensions and UINT16 format.
+ * @return true if all frames are valid
+ */
+static bool validate_all_frames(const XpeImageBuffer* frames, uint32_t frameCount) noexcept {
+    for (uint32_t f = 0; f < frameCount; ++f) {
+        if (!xpe_dims_match(&frames[0], &frames[f])) return false;
+        if (!xpe_buffer_has_format(&frames[f], XPE_PIXEL_UINT16)) return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Compute per-pixel arithmetic mean (method: "mean").
+ *        Uses double accumulator for precision (IEC 62304 Class B safety).
+ */
+static void compute_mean_offset(const XpeImageBuffer* frames,
+                                 uint32_t frameCount, size_t n,
+                                 uint16_t* out) noexcept
+{
+    for (size_t i = 0; i < n; ++i) {
+        double sum = 0.0;
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            sum += static_cast<double>(
+                static_cast<const uint16_t*>(frames[f].data)[i]);
+        }
+        double mean = sum / static_cast<double>(frameCount);
+        // Clamp to uint16 range with NaN/Inf guard
+        if (!std::isfinite(mean)) { out[i] = 0; continue; }
+        if (mean < 0.0) mean = 0.0;
+        if (mean > 65535.0) mean = 65535.0;
+        out[i] = static_cast<uint16_t>(mean + 0.5);  // round to nearest
+    }
+}
+
+/**
+ * @brief Compute per-pixel median using insertion sort (method: "median").
+ *        Robust to outliers -- O(frameCount^2) per pixel but frameCount is
+ *        typically small (3-64 dark frames).
+ */
+static void compute_median_offset(const XpeImageBuffer* frames,
+                                   uint32_t frameCount, size_t n,
+                                   uint16_t* out) noexcept
+{
+    // Pre-allocate sorting buffer (avoids per-pixel allocation)
+    std::vector<uint16_t> buf(static_cast<size_t>(frameCount));
+
+    for (size_t i = 0; i < n; ++i) {
+        // Collect pixel values across frames
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            buf[f] = static_cast<const uint16_t*>(frames[f].data)[i];
+        }
+
+        // Insertion sort (efficient for small N)
+        for (uint32_t j = 1; j < frameCount; ++j) {
+            uint16_t key = buf[j];
+            int32_t k = static_cast<int32_t>(j) - 1;
+            while (k >= 0 && buf[k] > key) {
+                buf[k + 1] = buf[k];
+                --k;
+            }
+            buf[k + 1] = key;
+        }
+
+        // Select median
+        if (frameCount % 2 == 1) {
+            out[i] = buf[frameCount / 2];
+        } else {
+            // Average of two middle values
+            uint32_t a = buf[frameCount / 2 - 1];
+            uint32_t b = buf[frameCount / 2];
+            out[i] = static_cast<uint16_t>((a + b + 1) / 2);  // round up
+        }
+    }
+}
+
+/**
+ * @brief Compute per-pixel sigma-clipped mean (method: "sigma_clip").
+ *        Iteratively removes pixels beyond sigmaThreshold * stddev from mean.
+ * @param sigmaThreshold  Number of standard deviations for clipping (default: 3.0)
+ * @param maxIter         Maximum iterations (default: 5)
+ */
+static void compute_sigma_clip_offset(const XpeImageBuffer* frames,
+                                       uint32_t frameCount, size_t n,
+                                       double sigmaThreshold, uint32_t maxIter,
+                                       uint16_t* out) noexcept
+{
+    // Pre-allocate buffers
+    std::vector<double> values(static_cast<size_t>(frameCount));
+    std::vector<double> filtered(static_cast<size_t>(frameCount));
+
+    for (size_t i = 0; i < n; ++i) {
+        // Collect pixel values as doubles
+        size_t count = frameCount;
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            values[f] = static_cast<double>(
+                static_cast<const uint16_t*>(frames[f].data)[i]);
+        }
+
+        for (uint32_t iter = 0; iter < maxIter; ++iter) {
+            // Compute mean
+            double sum = 0.0;
+            for (size_t j = 0; j < count; ++j) sum += values[j];
+            double mean = sum / static_cast<double>(count);
+
+            // Compute standard deviation
+            double sqSum = 0.0;
+            for (size_t j = 0; j < count; ++j) {
+                double diff = values[j] - mean;
+                sqSum += diff * diff;
+            }
+            double stddev = std::sqrt(sqSum / static_cast<double>(count));
+
+            // If stddev is zero (all values identical), no clipping needed
+            if (stddev < 1e-10) break;
+
+            // Filter: keep values within sigmaThreshold * stddev
+            double lo = mean - sigmaThreshold * stddev;
+            double hi = mean + sigmaThreshold * stddev;
+
+            size_t newCount = 0;
+            for (size_t j = 0; j < count; ++j) {
+                if (values[j] >= lo && values[j] <= hi) {
+                    filtered[newCount++] = values[j];
+                }
+            }
+
+            // If no values were removed, converged
+            if (newCount == count) break;
+
+            // If all values removed, keep last mean (safety: never empty)
+            if (newCount == 0) break;
+
+            // Swap buffers for next iteration
+            for (size_t j = 0; j < newCount; ++j) values[j] = filtered[j];
+            count = newCount;
+        }
+
+        // Final mean from remaining values
+        double sum = 0.0;
+        for (size_t j = 0; j < count; ++j) sum += values[j];
+        double finalMean = sum / static_cast<double>(count);
+
+        if (!std::isfinite(finalMean)) { out[i] = 0; continue; }
+        if (finalMean < 0.0) finalMean = 0.0;
+        if (finalMean > 65535.0) finalMean = 65535.0;
+        out[i] = static_cast<uint16_t>(finalMean + 0.5);
+    }
+}
+
+/**
+ * @brief Compute per-pixel Winsorized mean (method: "winsor").
+ *        Clips extreme values to percentile boundaries, then takes mean.
+ * @param lowerPercentile  Lower percentile (0-100, default: 5)
+ * @param upperPercentile  Upper percentile (0-100, default: 95)
+ */
+static void compute_winsor_offset(const XpeImageBuffer* frames,
+                                   uint32_t frameCount, size_t n,
+                                   double lowerPercentile, double upperPercentile,
+                                   uint16_t* out) noexcept
+{
+    // Pre-allocate sorting buffer
+    std::vector<uint16_t> buf(static_cast<size_t>(frameCount));
+
+    for (size_t i = 0; i < n; ++i) {
+        // Collect and sort pixel values
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            buf[f] = static_cast<const uint16_t*>(frames[f].data)[i];
+        }
+
+        // Insertion sort
+        for (uint32_t j = 1; j < frameCount; ++j) {
+            uint16_t key = buf[j];
+            int32_t k = static_cast<int32_t>(j) - 1;
+            while (k >= 0 && buf[k] > key) {
+                buf[k + 1] = buf[k];
+                --k;
+            }
+            buf[k + 1] = key;
+        }
+
+        // Compute percentile indices (nearest-rank method)
+        size_t loIdx = static_cast<size_t>(
+            (lowerPercentile / 100.0) * static_cast<double>(frameCount - 1) + 0.5);
+        size_t hiIdx = static_cast<size_t>(
+            (upperPercentile / 100.0) * static_cast<double>(frameCount - 1) + 0.5);
+
+        // Clamp indices
+        if (loIdx >= frameCount) loIdx = 0;
+        if (hiIdx >= frameCount) hiIdx = frameCount - 1;
+        if (loIdx > hiIdx) loIdx = hiIdx;
+
+        uint16_t loVal = buf[loIdx];
+        uint16_t hiVal = buf[hiIdx];
+
+        // Winsorize: clip values below loVal to loVal, above hiVal to hiVal
+        double sum = 0.0;
+        for (uint32_t f = 0; f < frameCount; ++f) {
+            uint16_t v = static_cast<const uint16_t*>(frames[f].data)[i];
+            if (v < loVal) v = loVal;
+            if (v > hiVal) v = hiVal;
+            sum += static_cast<double>(v);
+        }
+
+        double mean = sum / static_cast<double>(frameCount);
+        if (!std::isfinite(mean)) { out[i] = 0; continue; }
+        if (mean < 0.0) mean = 0.0;
+        if (mean > 65535.0) mean = 65535.0;
+        out[i] = static_cast<uint16_t>(mean + 0.5);
+    }
+}
+
+// @MX:NOTE: [AUTO] Multi-method offset generation: mean/median/sigma_clip/winsor
 // @MX:SPEC: REQ-P1A-038
+// @MX:ANCHOR: [AUTO] xpe_calib_generate_offset -- dark frame offset generation
+// @MX:REASON: Critical calibration path; method selection via configJsonOrNull
 XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* frames,
                                         uint32_t frameCount,
                                         XpeImageBuffer* offsetMapOut,
                                         const char* configJsonOrNull)
 {
+    // --- Input validation ---
     if (!frames || frameCount == 0 || !offsetMapOut) return XPE_ERR_INVALID_INPUT;
-    (void)configJsonOrNull;
+
     size_t n = 0;
     if (!xpe_buffer_has_format(&frames[0], XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
     if (!xpe_buffer_has_format(offsetMapOut, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
 
-    // REQ-P1A-038: compute per-pixel mean across frameCount uint16 dark frames
-    auto* out = static_cast<uint16_t*>(offsetMapOut->data);
+    // Validate all frames up front (fail fast)
+    if (!validate_all_frames(frames, frameCount)) return XPE_ERR_INVALID_INPUT;
 
-    for (size_t i = 0; i < n; ++i) {
-        uint64_t sum = 0;
-        for (uint32_t f = 0; f < frameCount; ++f) {
-            if (!xpe_dims_match(&frames[0], &frames[f]) ||
-                !xpe_buffer_has_format(&frames[f], XPE_PIXEL_UINT16)) {
-                return XPE_ERR_INVALID_INPUT;
-            }
-            sum += static_cast<const uint16_t*>(frames[f].data)[i];
+    // --- Parse method from config JSON ---
+    OffsetMethod method = OffsetMethod::Mean;  // default: backward compatible
+
+    if (configJsonOrNull) {
+        std::string methodStr = xpe_json_get_string(configJsonOrNull, "method");
+
+        if (methodStr == "median") {
+            method = OffsetMethod::Median;
+        } else if (methodStr == "sigma_clip") {
+            method = OffsetMethod::SigmaClip;
+        } else if (methodStr == "winsor") {
+            method = OffsetMethod::Winsor;
+        } else if (!methodStr.empty() && methodStr != "mean") {
+            // Unknown method string
+            return XPE_ERR_CONFIG_INVALID;
         }
-        out[i] = static_cast<uint16_t>(sum / frameCount);
+        // "mean" or empty string -> Mean (default)
     }
 
+    // --- Dispatch to selected algorithm ---
+    auto* out = static_cast<uint16_t*>(offsetMapOut->data);
+
+    switch (method) {
+    case OffsetMethod::Mean:
+        compute_mean_offset(frames, frameCount, n, out);
+        break;
+
+    case OffsetMethod::Median:
+        compute_median_offset(frames, frameCount, n, out);
+        break;
+
+    case OffsetMethod::SigmaClip: {
+        double sigma = xpe_json_get_double(configJsonOrNull, "sigma", 3.0);
+        double maxIterD = xpe_json_get_double(configJsonOrNull, "max_iter", 5.0);
+        // Clamp to safe range
+        if (sigma < 1.0) sigma = 1.0;
+        if (sigma > 10.0) sigma = 10.0;
+        uint32_t maxIter = static_cast<uint32_t>(maxIterD);
+        if (maxIter < 1) maxIter = 1;
+        if (maxIter > 20) maxIter = 20;
+        compute_sigma_clip_offset(frames, frameCount, n, sigma, maxIter, out);
+        break;
+    }
+
+    case OffsetMethod::Winsor: {
+        double lowerPct = xpe_json_get_double(configJsonOrNull, "lower_percentile", 5.0);
+        double upperPct = xpe_json_get_double(configJsonOrNull, "upper_percentile", 95.0);
+        // Clamp to safe range
+        if (lowerPct < 0.0) lowerPct = 0.0;
+        if (lowerPct > 49.0) lowerPct = 49.0;
+        if (upperPct < 51.0) upperPct = 51.0;
+        if (upperPct > 100.0) upperPct = 100.0;
+        compute_winsor_offset(frames, frameCount, n, lowerPct, upperPct, out);
+        break;
+    }
+    }
+
+    // --- Populate output metadata ---
     offsetMapOut->width = frames[0].width;
     offsetMapOut->height = frames[0].height;
     offsetMapOut->format = XPE_PIXEL_UINT16;

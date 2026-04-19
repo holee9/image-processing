@@ -60,6 +60,23 @@ typedef enum XCalPixelFormat {
 /* Maximum config JSON length (sanity cap: 1 MB) */
 #define XCAL_MAX_CONFIG_JSON_LEN (1024u * 1024u)
 
+/* Compression method constants (stored in config_json metadata) */
+#define XCAL_COMPRESSION_NONE 0u  /* No compression (default) */
+#define XCAL_COMPRESSION_RLE  1u  /* Run-Length Encoding (defect maps only) */
+
+/*
+ * Compression metadata convention (stored inside config_json):
+ *
+ * When payload is compressed, the config_json MUST contain a JSON object
+ * with at minimum: {"xcal_compression":1,"xcal_raw_payload_len":NNN}
+ *
+ * - "xcal_compression": integer, compression method (XCAL_COMPRESSION_RLE = 1)
+ * - "xcal_raw_payload_len": integer, original uncompressed payload size in bytes
+ *
+ * This approach preserves the 152-byte header layout for backward compatibility.
+ * Uncompressed files have no compression metadata in config_json.
+ */
+
 /* @MX:ANCHOR: [AUTO] XCalFileHeader -- canonical file format contract
  * @MX:REASON: SHA-256 coverage and pack=1 struct layout are invariant;
  *             any change breaks all existing XCal files on disk.

@@ -144,41 +144,6 @@ static inline __m256 apply_gain_fma(__m128i input, float reciprocal_gain) noexce
 }
 
 /**
- * @brief Precompute reciprocal gain map: R(x,y) = 1/G(x,y)
- *
- * AC-GAIN-001: Reciprocal precomputation to avoid division in pixel loop
- * Stores 1.0f / gain[x,y] for each pixel
- *
- * @param gain_map Original gain map (G(x,y))
- * @param reciprocal_out Output reciprocal map (R(x,y) = 1/G(x,y))
- * @param width Image width
- * @param height Image height
- * @return XPE_OK if all gain values valid, XPE_ERR_CONFIG_INVALID if any invalid
- */
-static XpeErrorCode precompute_reciprocal_gain_map(
-    const float* gain_map,
-    float* reciprocal_out,
-    uint32_t width,
-    uint32_t height) noexcept
-{
-    const size_t pixel_count = width * height;
-    bool has_invalid_gain = false;
-
-    for (size_t i = 0; i < pixel_count; ++i) {
-        // AC-GAIN-005: Validate gain map values
-        if (!is_valid_gain(gain_map[i])) {
-            has_invalid_gain = true;
-            reciprocal_out[i] = 1.0f;  // Identity for invalid gain
-        } else {
-            // AC-GAIN-001: Precompute reciprocal: R(x,y) = 1/G(x,y)
-            reciprocal_out[i] = 1.0f / gain_map[i];
-        }
-    }
-
-    return has_invalid_gain ? XPE_ERR_CONFIG_INVALID : XPE_OK;
-}
-
-/**
  * @brief Apply gain correction using AVX2/FMA vectorized path
  *
  * AC-GAIN-003: FMA path for polynomial optimization
@@ -216,8 +181,17 @@ static void apply_gain_avx2(
         __m256i u32_hi = _mm256_cvtepu16_epi32(_mm_srli_si128(u16_data, 8));
         __m256 f32_lo = _mm256_cvtepi32_ps(u32_lo);
         __m256 f32_hi = _mm256_cvtepi32_ps(u32_hi);
-        __m256 result_lo = _mm256_mul_ps(f32_lo, _mm256_castps256_ps128(gain_vec));
-        __m256 result_hi = _mm256_mul_ps(f32_hi, _mm256_extractf128_ps(gain_vec, 1));
+
+        // Extract low and high 128-bit lanes from the 256-bit gain vector
+        __m128 gain_lo = _mm256_castps256_ps128(gain_vec);
+        __m128 gain_hi = _mm256_extractf128_ps(gain_vec, 1);
+
+        // Broadcast 128-bit gain lanes to 256-bit (zero-extend high lane)
+        __m256 gain256_lo = _mm256_insertf128_ps(_mm256_castps128_ps256(gain_lo), gain_lo, 1);
+        __m256 gain256_hi = _mm256_insertf128_ps(_mm256_castps128_ps256(gain_hi), gain_hi, 1);
+
+        __m256 result_lo = _mm256_mul_ps(f32_lo, gain256_lo);
+        __m256 result_hi = _mm256_mul_ps(f32_hi, gain256_hi);
 
         // Store results (combine lower and upper halves)
         _mm256_storeu_ps(&output[i], _mm256_permute2f128_ps(result_lo, result_hi, 0x20));
