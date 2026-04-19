@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-19 — 3-Lane 교차검증 후)
+## 프로젝트 완성도 현황 (2026-04-19 — CI/CD 구축 세션)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -24,15 +24,17 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 품질 보증 | 15 | **15** | — | SIMD parity 405/405, Golden Reference 26/26 |
 | **합계** | **100** | **82** | **+1** | 3-Lane 교차검증 후 |
 
-### 3-Lane Worktree 현황 (2026-04-19 교차검증)
+### 3-Lane Worktree 현황 (2026-04-19 CI/CD 세션)
 
 | Lane | Branch | SPEC | 상태 | 비고 |
 |------|--------|------|:----:|------|
-| **A (Pre)** | dev/preprocess | SPEC-XPE-P1A M2 | ✅ **main 머지 완료** | AVX2/FMA, SIMD parity 405/405, M4-M6 대기 |
-| **B (Post)** | dev/postprocess | SPEC-XPE-P2-ADV | ⚠️ **버그픽스 완료, 검증 대기** | Collimation+FD 9+8건 수정, 빌드 검증 필요 |
+| **A (Pre)** | dev/preprocess | SPEC-XPE-P1A M2 | 🔄 **CI 실행 중** | XPE_PIX→XPE_PIXEL 심볼 수정 + XPE_ERR_NOT_IMPLEMENTED 추가 |
+| **B (Post)** | dev/postprocess | SPEC-XPE-P2-ADV | 🔄 **CI 실행 중** | main 동기화 머지 완료 (CI 수정 + xpe_common 버그픽스) |
 | **C (GUI)** | dev/gui | SPEC-XPE-GUI-CALIB-001 | ⚠️ **커밋 완료, 머지 대기** | Algorithm Validation UI 11개 SWU |
 
-**최근 진행 상황** (2026-04-19):
+**최근 진행 상황** (2026-04-19 CI/CD 세션):
+- 🔄 **dev/preprocess CI 수정 중** — XPE_PIX_*/XPE_ERR_NOT_IMPLEMENTED 미정의 심볼 해소, 푸시 완료
+- 🔄 **dev/postprocess CI 수정 중** — main → dev/postprocess 동기화 (GTest REQUIRED 제거, xpe_common 버그픽스), 푸시 완료
 - ✅ **3-Lane 교차검증 완료** (2026-04-19) — xpe-pre/post/gui 전체 SPEC 대비 구현 상태 검증
 - ✅ **xpe-pre → main squash merge** (2026-04-19) — SPEC-XPE-P1A M2 캘리브레이션 알고리즘 통합
 - ✅ **xpe-post Hough/FD 버그픽스 커밋** (2026-04-19) — polar-to-Cartesian 발산 수정, gradient-magnitude 재작성
