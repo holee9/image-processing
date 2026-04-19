@@ -269,7 +269,7 @@ TEST_F(GainCorrectReciprocalFMATest, NonAVX2AlignedImageSize) {
 
     // Verify all pixels processed correctly
     for (size_t i = 0; i < oddSize; ++i) {
-        EXPECT_NEAR(3000.0f, out[i], 1e-3f) << "Failed at pixel " << i;
+        EXPECT_NEAR(2000.0f / 1.5f, out[i], 1e-3f) << "Failed at pixel " << i;
     }
 
     std::free(oddImg.data);
