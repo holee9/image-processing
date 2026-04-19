@@ -53,17 +53,37 @@
             }
         },
         {
+            "name": "ci-preprocess",
+            "displayName": "CI Preprocess Tests",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "ON",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "OFF",
+                "XPE_WARNINGS_AS_ERRORS": "ON",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
+            }
+        },
+        {
             "name": "coverage",
             "displayName": "Coverage Analysis",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ENABLE_COVERAGE": "ON",
+                "BUILD_COVERAGE": "ON",
                 "BUILD_SHARED_LIBS": "ON",
                 "BUILD_TESTS": "ON",
                 "BUILD_GSVG": "OFF",
-                "BUILD_PREPROCESS": "OFF",
+                "BUILD_PREPROCESS": "ON",
                 "BUILD_ENHANCE_BASIC": "OFF",
                 "BUILD_ENHANCE_ADVANCED": "OFF",
                 "BUILD_AI": "OFF",
@@ -78,6 +98,7 @@
         { "name": "release", "configurePreset": "release" },
         { "name": "ci", "configurePreset": "ci" },
         { "name": "ci-common", "configurePreset": "ci-common" },
+        { "name": "ci-preprocess", "configurePreset": "ci-preprocess" },
         { "name": "coverage", "configurePreset": "coverage" }
     ],
     "testPresets": [

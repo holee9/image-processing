@@ -15,13 +15,10 @@ namespace ImageProcTest
                 return [];
             }
 
-            var fixtureRoot = Path.Combine(root, "tests", "test_data", "calibration_cases");
-            if (!Directory.Exists(fixtureRoot))
-            {
-                return [];
-            }
-
-            return Directory.EnumerateDirectories(fixtureRoot)
+            return GetRepositoryAndSiblingRoots(root, "image-processing", "xpe-pre")
+                .Select(candidateRoot => Path.Combine(candidateRoot, "tests", "test_data", "calibration_cases"))
+                .Where(Directory.Exists)
+                .SelectMany(fixtureRoot => Directory.EnumerateDirectories(fixtureRoot))
                 .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
                 .Select(CreateCase)
                 .ToList();
@@ -109,6 +106,7 @@ namespace ImageProcTest
             while (directory is not null)
             {
                 if (Directory.Exists(Path.Combine(directory.FullName, ".git")) ||
+                    File.Exists(Path.Combine(directory.FullName, ".git")) ||
                     Directory.Exists(Path.Combine(directory.FullName, "tests", "test_data")))
                 {
                     return directory.FullName;
@@ -118,6 +116,32 @@ namespace ImageProcTest
             }
 
             return null;
+        }
+
+        private static IEnumerable<string> GetRepositoryAndSiblingRoots(
+            string repoRoot,
+            params string[] siblingNames)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (seen.Add(repoRoot))
+            {
+                yield return repoRoot;
+            }
+
+            var parent = Directory.GetParent(repoRoot);
+            if (parent is null)
+            {
+                yield break;
+            }
+
+            foreach (var siblingName in siblingNames)
+            {
+                var siblingRoot = Path.Combine(parent.FullName, siblingName);
+                if (Directory.Exists(siblingRoot) && seen.Add(siblingRoot))
+                {
+                    yield return siblingRoot;
+                }
+            }
         }
     }
 }

@@ -62,6 +62,10 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-PERF-001** | Load all calibration maps within 200 ms (startup) | SWU-1.5 | SAD §3.1.5 | ST-PERF-001 | IT-CALIB-006 | ST-PERF-001 | -- | Perf budget |
 | **SRS-CALIB-PERF-002** | Support 3072 x 3072 detector resolution | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-PERF-002 | -- | Size support |
 | **SRS-CALIB-PERF-003** | Support 4096 x 4096 detector (max) | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-PERF-003 | -- | Max size |
+| **SRS-CALIB-FUNC-022** | BPM dark detection: min 32×32 adaptive window (replaces MC 256×7) | SWU-1.10 | SAD §3.4 | UT-BPM-001 | IT-BPM-001 | ST-BPM-001 | -- | Grid_abnormal |
+| **SRS-CALIB-FUNC-023** | BPM bright detection: 128×128 window, tolerance 5~9% (replaces MC 60×60, 15%) | SWU-1.10 | SAD §3.4 | UT-BPM-002 | IT-BPM-001 | ST-BPM-002 | -- | CalData_6 |
+| **SRS-CALIB-FUNC-024** | Multi-gain frame count: min 5~10, recommended 15~20 per dose level | SWU-1.10 | SAD §3.4 | UT-BPM-003 | IT-BPM-002 | ST-BPM-003 | -- | CalData_6 |
+| **SRS-CALIB-FUNC-025** | Grid artifact robustness: LineArtifactScore < 10% (Blue target: < 5%) | SWU-1.10 | SAD §3.4 | UT-BPM-004 | IT-BPM-002 | ST-BPM-004 | -- | Grid_abnormal |
 
 ---
 
@@ -103,6 +107,8 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **IT-CALIB-003** | SRS-CALIB-FUNC-009 | QA validation: reject poor-quality offset | SWU-1.5 validation flow |
 | **IT-CALIB-004** | SRS-CALIB-FUNC-017, SAFE-005 | Field calibration update merge + audit log | SWU-1.5 + logging |
 | **IT-CALIB-005** | SRS-CALIB-FUNC-013..014 | Multi-session concurrent initialization (threading) | SWU-1.5 session table |
+| **IT-BPM-001** | SRS-CALIB-FUNC-022..023 | BPM generation dark+bright with Grid_abnormal dataset | SWU-1.10 + Grid_abnormal fixture |
+| **IT-BPM-002** | SRS-CALIB-FUNC-024..025 | Multi-gain frame count + LineArtifactScore validation | SWU-1.10 + CalData_6/Grid_abnormal |
 
 ---
 
@@ -112,14 +118,14 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 
 | Coverage Dimension | Total | Traced | % | Status |
 |:---|:---:|:---:|:---:|:---|
-| **Functional Req (SRS-CALIB-FUNC)** | 17 | 17 | **100%** | ✓ All traced |
+| **Functional Req (SRS-CALIB-FUNC)** | 21 | 21 | **100%** | ✓ All traced |
 | **Safety Req (SRS-CALIB-SAFE)** | 5 | 5 | **100%** | ✓ All traced |
 | **Performance Req (SRS-CALIB-PERF)** | 3 | 3 | **100%** | ✓ All traced |
-| **Total SRS Reqs** | **25** | **25** | **100%** | ✓ Complete |
+| **Total SRS Reqs** | **29** | **29** | **100%** | ✓ Complete |
 
 ### Backward Traceability (Test → SRS)
 
-All test cases (23 UT + 5 IT) reference at least one SRS requirement. No orphaned tests.
+All test cases (23 UT + 4 UT-BPM + 5 IT + 2 IT-BPM) reference at least one SRS requirement. No orphaned tests.
 
 ### Risk Control Traceability
 
@@ -146,6 +152,7 @@ Does every SRS requirement have a corresponding design section?
 | SRS-CALIB-FUNC-011..017 | Storage & updates | 3.1.5c | ✓ Designed |
 | SRS-CALIB-SAFE-001..005 | Error handling | 3.1.5d | ✓ Designed |
 | SRS-CALIB-PERF-001..003 | Performance budgets | 3.1.5e | ✓ Designed |
+| SRS-CALIB-FUNC-022..025 | BPM generation algorithm | SAD §3.4 | ✓ Designed (2026-04-19) |
 
 ---
 
@@ -154,8 +161,8 @@ Does every SRS requirement have a corresponding design section?
 **Document Status**: Ready for formal review
 
 **Review Checklist**:
-- [ ] All 25 SRS requirements traced to architecture
-- [ ] All 25 SRS requirements traced to test cases
+- [ ] All 29 SRS requirements traced to architecture
+- [ ] All 29 SRS requirements traced to test cases
 - [ ] All 7 hazards have risk controls traced to SRS-SAFE
 - [ ] Forward & backward traceability complete (100%)
 - [ ] No orphaned requirements or tests

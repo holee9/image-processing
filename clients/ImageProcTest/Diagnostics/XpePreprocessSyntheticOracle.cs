@@ -17,10 +17,20 @@ namespace ImageProcTest
         private delegate void ShutdownDelegate();
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate XpeCommonApi.XpeErrorCode CorrectionDelegate(
-            ref XpeCommonApi.XpeImageBuffer input,
-            ref XpeCommonApi.XpeImageBuffer output,
-            ref XpeCommonApi.XpeImageMetadata metadata);
+        private delegate XpeCommonApi.XpeErrorCode OffsetCorrectionDelegate(
+            ref XpeCommonApi.XpeImageBuffer image,
+            ref XpeCommonApi.XpeImageBuffer offsetMap);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate XpeCommonApi.XpeErrorCode GainCorrectionDelegate(
+            ref XpeCommonApi.XpeImageBuffer image,
+            ref XpeCommonApi.XpeImageBuffer gainMap);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate XpeCommonApi.XpeErrorCode DefectCorrectionDelegate(
+            ref XpeCommonApi.XpeImageBuffer image,
+            ref XpeCommonApi.XpeImageBuffer defectMap,
+            IntPtr config);
 
         public static PreprocessSyntheticOracleResult Run(string dllPath)
         {
@@ -29,6 +39,7 @@ namespace ImageProcTest
                 return PreprocessSyntheticOracleResult.NotRun($"DLL not found: {dllPath}");
             }
 
+            NativeDependencyLoader.TryLoadFor(dllPath);
             if (!NativeLibrary.TryLoad(dllPath, out var handle))
             {
                 return PreprocessSyntheticOracleResult.NotRun($"DLL load failed: {dllPath}");
@@ -38,9 +49,9 @@ namespace ImageProcTest
             {
                 if (!TryGetDelegate(handle, "xpe_preprocess_init", out InitDelegate? init) ||
                     !TryGetDelegate(handle, "xpe_preprocess_shutdown", out ShutdownDelegate? shutdown) ||
-                    !TryGetDelegate(handle, "xpe_offset_correct", out CorrectionDelegate? offsetCorrect) ||
-                    !TryGetDelegate(handle, "xpe_gain_correct", out CorrectionDelegate? gainCorrect) ||
-                    !TryGetDelegate(handle, "xpe_defect_correct", out CorrectionDelegate? defectCorrect))
+                    !TryGetDelegate(handle, "xpe_offset_correct", out OffsetCorrectionDelegate? offsetCorrect) ||
+                    !TryGetDelegate(handle, "xpe_gain_correct", out GainCorrectionDelegate? gainCorrect) ||
+                    !TryGetDelegate(handle, "xpe_defect_correct", out DefectCorrectionDelegate? defectCorrect))
                 {
                     return PreprocessSyntheticOracleResult.NotRun("Mandatory correction exports are not available.");
                 }
@@ -141,9 +152,9 @@ namespace ImageProcTest
         }
 
         private static ChainRunResult RunChain(
-            CorrectionDelegate offsetCorrect,
-            CorrectionDelegate gainCorrect,
-            CorrectionDelegate defectCorrect)
+            OffsetCorrectionDelegate offsetCorrect,
+            GainCorrectionDelegate gainCorrect,
+            DefectCorrectionDelegate defectCorrect)
         {
             const uint width = 16;
             const uint height = 16;
@@ -152,9 +163,11 @@ namespace ImageProcTest
             var raw = Enumerable.Range(0, pixelCount)
                 .Select(index => (ushort)(1000 + (index % 97)))
                 .ToArray();
-            var offset = new ushort[pixelCount];
+            var offset = raw.ToArray();
+            var offsetMap = new ushort[pixelCount];
+            var gainMap = Enumerable.Repeat(1.0f, pixelCount).ToArray();
             var gain = new float[pixelCount];
-            var defect = new float[pixelCount];
+            var defectMap = new byte[pixelCount];
 
             var rawShaBefore = ComputeSha256(raw);
             var stages = new List<PreprocessSyntheticStageResult>();
@@ -162,37 +175,54 @@ namespace ImageProcTest
 
             var rawHandle = GCHandle.Alloc(raw, GCHandleType.Pinned);
             var offsetHandle = GCHandle.Alloc(offset, GCHandleType.Pinned);
-            var gainHandle = GCHandle.Alloc(gain, GCHandleType.Pinned);
-            var defectHandle = GCHandle.Alloc(defect, GCHandleType.Pinned);
+            var offsetMapHandle = GCHandle.Alloc(offsetMap, GCHandleType.Pinned);
+            var gainMapHandle = GCHandle.Alloc(gainMap, GCHandleType.Pinned);
+            var defectMapHandle = GCHandle.Alloc(defectMap, GCHandleType.Pinned);
 
             try
             {
-                var metadata = CreateMetadata();
                 var rawBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.UInt16, rawHandle.AddrOfPinnedObject(), raw.Length * sizeof(ushort));
                 var offsetBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.UInt16, offsetHandle.AddrOfPinnedObject(), offset.Length * sizeof(ushort));
-                var gainBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.Float32, gainHandle.AddrOfPinnedObject(), gain.Length * sizeof(float));
-                var defectBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.Float32, defectHandle.AddrOfPinnedObject(), defect.Length * sizeof(float));
+                var offsetMapBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.UInt16, offsetMapHandle.AddrOfPinnedObject(), offsetMap.Length * sizeof(ushort));
+                var gainMapBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.Float32, gainMapHandle.AddrOfPinnedObject(), gainMap.Length * sizeof(float));
+                var defectMapBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.UInt8, defectMapHandle.AddrOfPinnedObject(), defectMap.Length);
 
-                var offsetResult = TimedCall("offset", () => offsetCorrect(ref rawBuffer, ref offsetBuffer, ref metadata));
+                var offsetResult = TimedCall("offset", () => offsetCorrect(ref offsetBuffer, ref offsetMapBuffer));
                 stages.Add(offsetResult.ToStageResult(MaxAbsError(offset, raw), offsetResult.ErrorCode == XpeCommonApi.XpeErrorCode.OK && MaxAbsError(offset, raw) == 0));
 
-                var gainResult = TimedCall("gain", () => gainCorrect(ref offsetBuffer, ref gainBuffer, ref metadata));
+                var gainResult = TimedCall("gain", () => gainCorrect(ref offsetBuffer, ref gainMapBuffer));
+                if (gainResult.ErrorCode == XpeCommonApi.XpeErrorCode.OK)
+                {
+                    Marshal.Copy(offsetBuffer.Data, gain, 0, pixelCount);
+                    XpeCommonApi.xpe_free_image(ref offsetBuffer);
+                }
                 stages.Add(gainResult.ToStageResult(MaxAbsError(gain, offset), gainResult.ErrorCode == XpeCommonApi.XpeErrorCode.OK && MaxAbsError(gain, offset) == 0));
 
-                var defectResult = TimedCall("defect", () => defectCorrect(ref gainBuffer, ref defectBuffer, ref metadata));
-                stages.Add(defectResult.ToStageResult(MaxAbsError(defect, gain), defectResult.ErrorCode == XpeCommonApi.XpeErrorCode.OK && MaxAbsError(defect, gain) == 0));
+                var beforeDefect = gain.ToArray();
+                var gainHandle = GCHandle.Alloc(gain, GCHandleType.Pinned);
+                try
+                {
+                    var gainBuffer = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.Float32, gainHandle.AddrOfPinnedObject(), gain.Length * sizeof(float));
+                    var defectResult = TimedCall("defect", () => defectCorrect(ref gainBuffer, ref defectMapBuffer, IntPtr.Zero));
+                    stages.Add(defectResult.ToStageResult(MaxAbsError(gain, beforeDefect), defectResult.ErrorCode == XpeCommonApi.XpeErrorCode.OK && MaxAbsError(gain, beforeDefect) == 0));
+                }
+                finally
+                {
+                    gainHandle.Free();
+                }
             }
             finally
             {
                 rawHandle.Free();
                 offsetHandle.Free();
-                gainHandle.Free();
-                defectHandle.Free();
+                offsetMapHandle.Free();
+                gainMapHandle.Free();
+                defectMapHandle.Free();
                 total.Stop();
             }
 
             var rawShaAfter = ComputeSha256(raw);
-            var nanInfCount = defect.Count(value => float.IsNaN(value) || float.IsInfinity(value));
+            var nanInfCount = gain.Count(value => float.IsNaN(value) || float.IsInfinity(value));
             var inputPreserved = string.Equals(rawShaBefore, rawShaAfter, StringComparison.OrdinalIgnoreCase);
             var passed = inputPreserved && nanInfCount == 0 && stages.All(stage => stage.Passed);
 
@@ -203,9 +233,9 @@ namespace ImageProcTest
                 RawSha256Before: rawShaBefore,
                 RawSha256After: rawShaAfter,
                 NaNInfCount: nanInfCount,
-                OutputMin: defect.Min(),
-                OutputMax: defect.Max(),
-                Output: defect,
+                OutputMin: gain.Min(),
+                OutputMax: gain.Max(),
+                Output: gain,
                 Stages: stages);
         }
 
@@ -220,25 +250,21 @@ namespace ImageProcTest
             {
                 Width = width,
                 Height = height,
-                BitsAllocated = format == XpeCommonApi.XpePixelFormat.UInt16 ? 16u : 32u,
-                BitsStored = format == XpeCommonApi.XpePixelFormat.UInt16 ? 16u : 32u,
+                BitsAllocated = format switch
+                {
+                    XpeCommonApi.XpePixelFormat.UInt8 => 8u,
+                    XpeCommonApi.XpePixelFormat.UInt16 => 16u,
+                    _ => 32u,
+                },
+                BitsStored = format switch
+                {
+                    XpeCommonApi.XpePixelFormat.UInt8 => 8u,
+                    XpeCommonApi.XpePixelFormat.UInt16 => 16u,
+                    _ => 32u,
+                },
                 Format = format,
                 Data = data,
                 DataSize = (nuint)dataSize
-            };
-        }
-
-        private static XpeCommonApi.XpeImageMetadata CreateMetadata()
-        {
-            return new XpeCommonApi.XpeImageMetadata
-            {
-                BodyPart = "CHEST",
-                KVp = 120.0f,
-                MAs = 10.0f,
-                SID_mm = 1200.0f,
-                PixelPitch_mm = 0.143f,
-                AcquisitionTime = 0,
-                Flags = 0
             };
         }
 

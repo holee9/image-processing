@@ -17,11 +17,11 @@ namespace ImageProcTest
                 EvaluateCommon(commonHealth),
                 EvaluateDisplay(display),
                 EvaluatePreprocess(root),
-                EvaluateSourceOnly(root, "enhance_basic", "xpe_enhance_basic.dll"),
-                EvaluateSourceOnly(root, "dicom", "xpe_dicom.dll"),
-                EvaluateSourceOnly(root, "enhance_advanced", "xpe_enhance_advanced.dll"),
-                EvaluateSourceOnly(root, "gsvg", "gsvg.dll"),
-                EvaluateSourceOnly(root, "ai", "xpe_ai.dll")
+                EvaluateDllPresence("enhance_basic", "xpe_enhance_basic.dll"),
+                EvaluateDllPresence("dicom", "xpe_dicom.dll"),
+                EvaluateDllPresence("enhance_advanced", "xpe_enhance_advanced.dll"),
+                EvaluateDllPresence("gsvg", "gsvg.dll"),
+                EvaluateDllPresence("ai", "xpe_ai.dll")
             ];
         }
 
@@ -130,6 +130,58 @@ namespace ImageProcTest
                 health.Details,
                 "Fix preprocess binary load/export readiness before ABI smoke.",
                 ProcessingEnabled: false);
+        }
+
+        /// <summary>
+        /// Checks DLL presence in the application directory and well-known build output paths.
+        /// Supersedes EvaluateSourceOnly for modules that have no dedicated probe yet.
+        /// </summary>
+        private static ModuleReadinessSnapshot EvaluateDllPresence(string moduleName, string dllName)
+        {
+            var found = GetDllSearchDirectories()
+                .Select(d => Path.Combine(d, dllName))
+                .FirstOrDefault(File.Exists);
+
+            if (found != null)
+                return new ModuleReadinessSnapshot(
+                    moduleName,
+                    "R1",
+                    "DLL found",
+                    $"path={found}",
+                    "DLL present. Enable processing when R2 ABI smoke is implemented.",
+                    ProcessingEnabled: false);
+
+            return new ModuleReadinessSnapshot(
+                moduleName,
+                "R0",
+                "DLL absent",
+                $"{dllName} not found in search path",
+                "Build and place the DLL to enable this module.",
+                ProcessingEnabled: false);
+        }
+
+        private static IEnumerable<string> GetDllSearchDirectories()
+        {
+            yield return AppContext.BaseDirectory;
+
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                foreach (var candidate in new[]
+                {
+                    "bin",
+                    Path.Combine("build", "release", "bin"),
+                    Path.Combine("build", "enh01_release", "bin"),
+                    Path.Combine("build", "default", "bin", "Debug"),
+                    Path.Combine("build", "readiness-display-vs", "bin", "Debug"),
+                    Path.Combine("build", "ci-common", "bin", "Debug"),
+                })
+                {
+                    var p = Path.Combine(dir.FullName, candidate);
+                    if (Directory.Exists(p)) yield return p;
+                }
+                dir = dir.Parent;
+            }
         }
 
         private static ModuleReadinessSnapshot EvaluateSourceOnly(string? root, string moduleName, string dllName)

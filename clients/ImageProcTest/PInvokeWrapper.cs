@@ -27,6 +27,7 @@ namespace ImageProcTest
         {
             UInt16 = 0,
             Float32 = 1,
+            UInt8 = 2,
         }
 
         public enum XpeErrorCode : int
@@ -174,6 +175,7 @@ namespace ImageProcTest
                     continue;
                 }
 
+                NativeDependencyLoader.TryLoadFor(candidate);
                 if (NativeLibrary.TryLoad(candidate, out var handle))
                 {
                     resolvedDllPath = candidate;
@@ -210,6 +212,8 @@ namespace ImageProcTest
             {
                 var candidates = new[]
                 {
+                    Path.Combine(root, "build", "local-vs2022-common", "bin", DllName),
+                    Path.Combine(root, "build", "local-vs2022-common", "bin", "RelWithDebInfo", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", "Debug", DllName),
                     Path.Combine(root, "build", "ci-common", "bin", DllName),

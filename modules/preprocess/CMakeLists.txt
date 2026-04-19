@@ -111,6 +111,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_integration.cpp
         tests/test_boundary.cpp
         tests/test_xpe_preprocess_memleak.cpp
+        tests/test_golden_reference.cpp
+        tests/test_calibration_roundtrip.cpp
     )
 
     add_executable(xpe_preprocess_tests
@@ -133,6 +135,12 @@ if(_XPE_BUILD_TESTS)
     endif()
 
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(xpe_preprocess_tests PRIVATE /W4 /WX-)
+    else()
+        target_compile_options(xpe_preprocess_tests PRIVATE -Wall -Wextra)
+    endif()
 
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

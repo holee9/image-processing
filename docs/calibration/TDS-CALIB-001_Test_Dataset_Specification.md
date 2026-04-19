@@ -1259,6 +1259,257 @@ Raw payload policy:
 
 ---
 
+## 9.4 신규 실제 데이터 픽스처 추가 (2026-04-19)
+
+### 개요
+
+2026-04-19에 추가된 세 개의 실제 데이터 세트(CalData_6, cyan_test, Grid_abnormal)는 기존 테스트 커버리지를 확대하여 다중 선량 게인 보정, 생산 환경 캘리브레이션, 그리고 그리드 아티팩트 환경에서의 BPM 알고리즘 검증을 가능하게 합니다.
+
+### 9.4.1 신규 데이터셋 정보
+
+#### Case 1: CalData_6 (다중 단계 평탄화 캘리브레이션)
+
+| 항목 | 값 |
+|------|-----|
+| **Case ID** | `caldata_6_mc_multistep` |
+| **목적** | 다중 선량 레벨 게인 맵 생성 및 비선형성 LUT 검증 |
+| **파일 수** | 11개 (dark.raw × 1, bright.raw × 6, BPMap.map, PositionMap.raw, Total_Defect_Map.raw, Cluster_position.txt) |
+| **총 용량** | 171MB (6×18.9MB + 9.4MB + 18.9MB + 18.9MB 기타) |
+| **수집 일자** | 2025-02-24 |
+| **검출기 타입** | 표준 X-ray FPD (3072×3072) |
+| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (다중 게인), SRS-CALIB-FUNC-006 (비선형성 LUT), SRS-CALIB-FUNC-007 (BPM) |
+| **필수 E2E 모드** | PRE-E2E-0 (데이터 검증), PRE-E2E-2 (캘리브레이션 메트릭) |
+| **합격 기준** | CES ≥ 85, FPN < 5%, 비선형성 오류 < 0.3% ADU |
+
+**파일 설명:**
+- `dark.raw`: 암전류 기준 (18.9MB)
+- `bright01.raw ~ bright06.raw`: 6개 선량 레벨 평탄도 프레임 (각 18.9MB)
+- `BPMap.map`: 불량 픽셀 맵 (9.4MB, 절반 크기 압축 uint8)
+- `PositionMap.raw`: 픽셀 위치 정렬 맵 (18.9MB)
+- `Total_Defect_Map.raw`: 통합 결함 맵 (18.9MB)
+
+**사용 시나리오:**
+```
+Step 1: 6개 밝음 프레임 평균 → 게인 맵 계산
+Step 2: 선량 vs 신호 피팅 → 비선형성 LUT 생성
+Step 3: 생성 BPM vs 기준 BPMap 비교 → Recall/FPR 계산
+```
+
+**참고 문서:** `tests/test_data/CalData_6/README.md`
+
+---
+
+#### Case 2: cyan_test (Cyan 검출기 생산 캘리브레이션 + 임상 E2E)
+
+| 항목 | 값 |
+|------|-----|
+| **Case ID** | `cyan_prod_calib_clinical` |
+| **목적** | Cyan 검출기의 생산 환경 캘리브레이션 워크플로우 및 임상 이미지 E2E 검증 |
+| **파일 수** | 52개 (Dark 10 + Differential 3 + Bright 20 + CalSet 5 + 임상 영상 5 + 참조 2 + DICOM 5 + 기타) |
+| **총 용량** | 919MB (20×18.9MB 다크/밝음 + 5×18.9MB CalSet + 임상 영상 포함) |
+| **수집 기간** | 2026-04-02 |
+| **검출기 타입** | Cyan 변형 X-ray FPD (3072×3072) |
+| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (다중 게인 다항식), SRS-CALIB-FUNC-008 (온도 보정), SRS-CALIB-FUNC-011 (세션 관리), SRS-CALIB-FUNC-015~021 (E2E 메트릭) |
+| **필수 E2E 모드** | PRE-E2E-0 (파일 검증), PRE-E2E-2 (캘리브레이션 메트릭), PRE-E2E-3 (DICOM 기준값 비교) |
+| **합격 기준** | CES ≥ 85, 다항식 R² > 0.99, 임상 PSNR > 40 dB |
+
+**파일 그룹:**
+- `Dark_07.raw ~ Dark_16.raw`: 10개 다크 프레임 (시간 드리프트, 각 18.9MB)
+- `Dark_14-Dark_13.raw` 등: 차분 프레임 (미분 분석)
+- `Bright_17.raw ~ Bright_36.raw`: 20개 밝음 프레임 (각 18.9MB)
+- `CalSet_14037.raw ~ CalSet_42677.raw`: 5개 선량 레벨 (각 18.9MB)
+- `MasterDark.raw`, `MasterBright.raw`: 평균 기준 이미지
+- 임상 영상: 흉부/발 팬텀 (5개)
+- DICOM 출력: `*_result_raw.dcm` (5개)
+
+**사용 시나리오:**
+```
+Step 1: 10개 Dark 프레임 시간 드리프트 분석
+Step 2: 5개 CalSet에서 다중 게인 다항식 피팅 (dose vs signal)
+Step 3: 임상 영상(Chest/Foot phantom) 전처리
+Step 4: DICOM 출력 형식 및 메타데이터 검증
+```
+
+**추가 검증:**
+- 온도 보정 지수 모델 검증 (tau 추정)
+- 세션 상태 추적 (초기화/리셋)
+- 임상 PACS 시스템 호환성
+
+**참고 문서:** `tests/test_data/cyan_test/README.md`
+
+---
+
+#### Case 3: Grid_abnormal (그리드 아티팩트 BPM 알고리즘 비교)
+
+| 항목 | 값 |
+|------|-----|
+| **Case ID** | `grid_abnormal_bpm_comparison` |
+| **목적** | MC vs Blue BPM 생성 알고리즘 성능 비교 및 그리드 아티팩트 보정 검증 |
+| **파일 수** | 16개 (알고리즘 결과 6 + FFT 주파수 6 + 참조 3 + PPT 1) |
+| **총 용량** | 279MB (15×18.9MB 이미지 + PPT) |
+| **수집 일자** | 2025-02-12 |
+| **검출기 타입** | 표준 X-ray FPD (3072×3072), 그리드 아티팩트 포함 |
+| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-007 (BPM), SRS-CALIB-FUNC-025 (그리드 견고성, 신규) |
+| **필수 E2E 모드** | PRE-E2E-0 (데이터 검증), PRE-E2E-2 (그리드 아티팩트 메트릭) |
+| **합격 기준** | LineArtifactScore (Blue_Pre) < 5%, MC 대비 개선도 > 30% |
+
+**파일 그룹:**
+- `2G_Pre.raw`: 2G 알고리즘 결과 (18.9MB)
+- `2G_Pre_Horizontal.raw`, `2G_Pre_Vertical.raw`: FFT 주파수 성분
+- `Blue_Pre.raw`: Blue 알고리즘 + 전처리 (18.9MB)
+- `Blue_Pre_Horizontal.raw`, `Blue_Pre_Vertical.raw`: FFT 주파수 성분
+- `Blue_NonPre.raw`: Blue 알고리즘만 (전처리 없음, 기저선)
+- `Blue_NonPre_Horizontal.raw`, `Blue_NonPre_Vertical.raw`: FFT 주파수 성분
+- `BPM.raw`, `MasterBright.raw`, `MasterDark.raw`: 캘리브레이션 참조
+- `PreProcessing Algorithm 개발 보고_최종본.pptx`: 종래기술 분석 (63MB)
+
+**사용 시나리오:**
+```
+Step 1: Blue_Pre vs Blue_NonPre 비교 → 전처리 효과 확인
+Step 2: FFT 주파수 분석 → LineArtifactScore 계산
+Step 3: MC vs Blue 성능 비교 (PPT 기준값)
+Step 4: 시각적 회귀 테스트 (이미지 유사도)
+```
+
+**핵심 메트릭:**
+```
+LineArtifactScore = (중주파 에너지) / (전체 에너지) × 100%
+  Blue_NonPre: ~15% (그리드 명백)
+  Blue_Pre:    ~5% (개선됨, 합격)
+  2G_Pre:      ~8%
+```
+
+**참고 문서:** `tests/test_data/Grid_abnormal/README.md`, `docs/calibration/PRIOR-ART-BPM-ALGORITHM.md`
+
+---
+
+### 9.4.2 SRS 요구사항 매핑
+
+새로운 데이터셋이 검증하는 요구사항:
+
+| 데이터셋 | SRS 요구사항 | 검증 방법 |
+|--------|-----------|---------|
+| **CalData_6** | SRS-CALIB-FUNC-005 (다중 게인) | 6개 선량 레벨 피팅 성능 측정 |
+| | SRS-CALIB-FUNC-006 (비선형성 LUT) | LUT 생성 후 residual < 0.3% |
+| | SRS-CALIB-FUNC-007 (BPM) | Recall ≥ 95%, FPR < 1% |
+| **cyan_test** | SRS-CALIB-FUNC-005 (CalSet 다항식) | 5개 선량에서 R² > 0.99 |
+| | SRS-CALIB-FUNC-008 (온도 보정) | Dark 시간 드리프트 분석 |
+| | SRS-CALIB-FUNC-011 (세션 관리) | 세션 ID, 타임스탬프 추적 |
+| | SRS-CALIB-FUNC-015~021 (E2E 메트릭) | 전체 CES 점수 계산 |
+| **Grid_abnormal** | SRS-CALIB-FUNC-007 (BPM) | 알고리즘 비교 검증 |
+| | **SRS-CALIB-FUNC-025** (신규, 그리드 견고성) | LineArtifactScore < 5% |
+
+---
+
+### 9.4.3 BPMap.map 파일 형식 주의
+
+CalData_6의 `BPMap.map` 파일은 **절반 크기 압축** 형식입니다:
+
+| 특성 | 값 |
+|------|-----|
+| **크기** | 9,437,184 바이트 (9.4MB) |
+| **이미지 해상도** | 3072 × 3072 픽셀 |
+| **데이터 타입** | uint8 (1바이트/픽셀) |
+| **표준 크기와의 차이** | 표준 uint16은 18.9MB, 절반 크기 (uint8) = 9.4MB |
+| **해석** | 각 픽셀이 uint16 (2바이트)이 아닌 uint8로 저장 |
+
+**로드 코드 (주의):**
+```python
+# 올바른 로드
+import numpy as np
+
+with open('BPMap.map', 'rb') as f:
+    bpm = np.frombuffer(f.read(), dtype=np.uint8).reshape(3072, 3072)
+
+# 결과: shape=(3072, 3072), dtype=uint8, size=9.4MB
+```
+
+---
+
+### 9.4.4 CI/CD 통합 및 테스트 모드
+
+새로운 데이터셋은 다음 E2E 테스트 모드에 포함됩니다:
+
+#### PRE-E2E-0 (메타데이터 검증)
+```
+- 파일 크기 확인
+- 파일 무결성 (SHA-256)
+- 이미지 통계 (평균, 표준편차, 범위)
+- Git ignore 정책 준수
+```
+
+#### PRE-E2E-2 (실제 픽스처 모드)
+```
+CalData_6:
+  ├─ 6개 밝음 프레임 → 게인 맵 생성
+  ├─ 게인 FPN < 5% ✓
+  └─ BPM Recall ≥ 95% ✓
+
+cyan_test:
+  ├─ 5개 CalSet → 다항식 피팅
+  ├─ R² > 0.99 ✓
+  ├─ 임상 영상 PSNR > 40 dB ✓
+  └─ DICOM 출력 검증 ✓
+
+Grid_abnormal:
+  ├─ LineArtifactScore 계산
+  ├─ Blue_Pre < 5% ✓
+  └─ 개선도 > 30% ✓
+```
+
+#### PRE-E2E-3 (기준값 비교, 해당되는 경우)
+```
+cyan_test:
+  - 임상 영상 출력과 기준값(있으면) 비교
+  - RMSE/PSNR 검증
+
+Grid_abnormal:
+  - Blue_Pre vs Blue_NonPre 시각적 품질 비교
+```
+
+---
+
+### 9.4.5 보고서 메트릭
+
+각 데이터셋 실행 후 생성되는 E2E 보고서:
+
+```json
+{
+  "dataset_id": "caldata_6_mc_multistep",
+  "test_mode": "PRE-E2E-2",
+  "metrics": {
+    "FlatResidualPct": 0.8,           // < 1.0% 합격
+    "PRNU_CV": 0.035,                 // < 5% 합격
+    "FPN_Reduction_dB": 12.5,
+    "DefectRecall": 0.96,             // > 95% 합격
+    "DefectFPR": 0.008,               // < 1% 합격
+    "LineArtifactScore": null,        // 해당 없음
+    "Calibration_Effect_Score": 87    // > 85 합격
+  },
+  "verdict": "PASS",
+  "timestamp": "2026-04-19T10:30:00Z"
+}
+```
+
+---
+
+### 9.4.6 추가 SRS 요구사항 (참고)
+
+2026-04-19 추가 데이터셋 분석 결과, 다음 신규 SRS 요구사항이 `Section 2.6`에서 제안됩니다:
+
+- **SRS-CALIB-FUNC-022**: BPM 다크 검출 마스크 크기 명시 (32×32 이상)
+- **SRS-CALIB-FUNC-023**: BPM 밝음 검출 허용도 명시 (5~9%)
+- **SRS-CALIB-FUNC-024**: 다중 단계 게인 보정 프레임 개수 명시 (최소 5, 표준 15~20)
+- **SRS-CALIB-FUNC-025**: 그리드 아티팩트 견고성 (LineArtifactScore < 10%)
+
+자세한 내용은 `Section 2.6`을 참조하세요.
+
+---
+
+**Section 9.4 끝**
+
+---
+
 **문서 끝**
 
-*버전 1.0.0 | 최종 수정: 2026-04-14 | 승인 대기*
+*버전 1.0.1 | 최종 수정: 2026-04-19 | 신규 데이터셋 추가 | 승인 대기*
