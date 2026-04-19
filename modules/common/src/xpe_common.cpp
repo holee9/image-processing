@@ -292,52 +292,14 @@ XPE_API void xpe_clear_alerts(void)
 
 /* ============================================================================
  * Logging subsystem (REQ-P0-023 .. REQ-P0-025)
+ *
+ * NOTE: The public logging API (xpe_log_set_level, xpe_log_set_file,
+ * xpe_log_flush) is now implemented in xpe_logging.cpp using spdlog.
+ * Duplicate definitions were removed here to fix LNK2005 multi-definition
+ * errors at link time. The internal globals (g_logLevel, g_logFilePath,
+ * g_logFile) remain in this translation unit because internal_log() and
+ * xpe_shutdown() still reference them for lifecycle + alert-queue diagnostics.
  * ============================================================================ */
-
-XPE_API XpeErrorCode xpe_log_set_level(int32_t level)
-{
-    if (level < 0 || level > 5) return XPE_ERR_INVALID_INPUT;
-
-    std::lock_guard<std::mutex> lk(g_mutex);
-    g_logLevel = level;
-    return XPE_OK;
-}
-
-XPE_API XpeErrorCode xpe_log_set_file(const char* filePath)
-{
-    std::lock_guard<std::mutex> lk(g_mutex);
-
-    // Close existing file sink
-    if (g_logFile.is_open()) {
-        g_logFile.flush();
-        g_logFile.close();
-    }
-
-    if (!filePath) {
-        // Revert to stderr
-        g_logFilePath.clear();
-        return XPE_OK;
-    }
-
-    g_logFile.open(filePath, std::ios::app);
-    if (!g_logFile.is_open()) {
-        g_logFilePath.clear();
-        return XPE_ERR_IO_FAILED;
-    }
-
-    g_logFilePath = filePath;
-    return XPE_OK;
-}
-
-XPE_API void xpe_log_flush(void)
-{
-    std::lock_guard<std::mutex> lk(g_mutex);
-    if (g_logFile.is_open()) {
-        g_logFile.flush();
-    } else {
-        std::fflush(stderr);
-    }
-}
 
 /* ============================================================================
  * Internal test-support helpers (white-box linkage for unit tests).
