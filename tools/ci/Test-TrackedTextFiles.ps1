@@ -41,7 +41,7 @@ foreach ($relativePath in $trackedFiles) {
         $lineNumber = $index + 1
         $line = $lines[$index]
 
-        if ($line -match '^(<<<<<<< |=======|>>>>>>> )') {
+        if ($line -match '^<<<<<<< \S' -or $line -match '^={7}\s*$' -or $line -match '^>>>>>>> \S') {
             Add-TextError "${relativePath}:$lineNumber contains an unresolved merge conflict marker."
         }
 
