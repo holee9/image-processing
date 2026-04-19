@@ -38,7 +38,7 @@ protected:
 
         // Setup metadata
         meta_.kVp = 120.0f;
-        strncpy(meta_.bodyPart, "CHEST", sizeof(meta_.bodyPart));
+        strncpy_s(meta_.bodyPart, sizeof(meta_.bodyPart), "CHEST", _TRUNCATE);
     }
 
     void TearDown() override {
@@ -161,15 +161,14 @@ TEST_F(MfpScalarTest, CustomConfiguration) {
     EXPECT_EQ(result, XPE_OK);
 
     // Verify enhancement is different from default
-    bool differentFromDefault = false;
-    // (We'd need to run with default config first for full comparison)
+    // TODO: Run with default config first for full comparison
 }
 
 /**
  * T-207: Test MFP identity reconstruction (REQ-ADV-050, AC-MFP-003)
  *
  * Given: Module is initialized
- * When: MFP is applied with zero enhancement coefficients
+ * When: MFP is applied with unity gain coefficients (no enhancement)
  * Then: Output should equal input (identity)
  */
 TEST_F(MfpScalarTest, IdentityReconstruction) {
@@ -177,7 +176,8 @@ TEST_F(MfpScalarTest, IdentityReconstruction) {
         "mfp": {
             "edge_gain": 0.0,
             "texture_gain": 0.0,
-            "flat_gain": 1.0
+            "flat_gain": 1.0,
+            "noise_threshold": 0.0
         }
     })";
 

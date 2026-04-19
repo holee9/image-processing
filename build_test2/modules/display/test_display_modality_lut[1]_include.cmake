@@ -1,0 +1,5 @@
+if(EXISTS "D:/workspace-github/xpe-post/build_test2/modules/display/test_display_modality_lut[1]_tests.cmake")
+  include("D:/workspace-github/xpe-post/build_test2/modules/display/test_display_modality_lut[1]_tests.cmake")
+else()
+  add_test(test_display_modality_lut_NOT_BUILT test_display_modality_lut_NOT_BUILT)
+endif()

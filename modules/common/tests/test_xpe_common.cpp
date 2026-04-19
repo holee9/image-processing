@@ -224,7 +224,7 @@ TEST_F(XpeCommonTest, LogSetFileReopensSink) {
  * ============================================================================ */
 
 TEST_F(XpeCommonTest, AllocImageWithNullPtrReturnsInvalid) {
-    XpeImageBuffer buf;
+    [[maybe_unused]] XpeImageBuffer buf;
     EXPECT_EQ(xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
@@ -375,7 +375,7 @@ TEST_F(XpeCommonTest, VersionFormatSemanticVersioning) {
 
     // Verify format X.Y.Z (semantic versioning)
     int major = 0, minor = 0, patch = 0;
-    int parsed = sscanf(ver, "%d.%d.%d", &major, &minor, &patch);
+    int parsed = sscanf_s(ver, "%d.%d.%d", &major, &minor, &patch);
     EXPECT_EQ(parsed, 3);
     EXPECT_GE(major, 0);
     EXPECT_GE(minor, 0);

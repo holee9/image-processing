@@ -145,7 +145,7 @@ namespace {
         const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
         gh->exposureWeight = exposureWeight;
 
-        const float beta = gh->nlcscBeta; // signal dependency parameter
+        const float beta = static_cast<float>(gh->nlcscBeta); // signal dependency parameter
         const uint32_t W = gh->width;
         const uint32_t H = gh->height;
 

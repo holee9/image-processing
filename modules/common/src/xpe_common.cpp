@@ -91,7 +91,7 @@ static void enqueue_alert(const char* msg, int32_t severity)
 }
 
 /** Returns current UNIX epoch milliseconds. */
-static uint64_t unix_epoch_ms()
+[[maybe_unused]] static uint64_t unix_epoch_ms()
 {
     using namespace std::chrono;
     return static_cast<uint64_t>(

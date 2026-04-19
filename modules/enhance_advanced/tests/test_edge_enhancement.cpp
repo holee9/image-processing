@@ -277,7 +277,7 @@ TEST_F(EdgeEnhancementTest, T302_FractionalMaskGeneration) {
         // Sample points around the edge
         float leftOfEdge = data[edgeX - 5];
         float atEdge = data[edgeX];
-        float rightOfEdge = data[edgeX + 5];
+        [[maybe_unused]] float rightOfEdge = data[edgeX + 5];
 
         // Edge should be enhanced (higher response at edge)
         EXPECT_GT(std::abs(atEdge - leftOfEdge), 0.0f)

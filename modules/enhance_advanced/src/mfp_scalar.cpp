@@ -64,50 +64,56 @@ LaplacianPyramid::LaplacianPyramid(const float* data, int width, int height, int
 
     levels_.resize(numLevels);
 
-    // Level 0: Store original (will become Laplacian after processing)
-    levels_[0].resize(width * height);
-    std::memcpy(levels_[0].data(), data, width * height * sizeof(float));
+    // Build Gaussian pyramid first
+    std::vector<std::vector<float>> gaussianPyramid(numLevels);
 
-    // Build pyramid: Gaussian blur + downsample for each level
-    std::vector<float> currentLevel = levels_[0];
+    // Level 0: Original image
+    gaussianPyramid[0].resize(width * height);
+    std::memcpy(gaussianPyramid[0].data(), data, width * height * sizeof(float));
 
+    // Build Gaussian pyramid by blurring and downsampling
     for (int level = 0; level < numLevels - 1; ++level) {
         int currentW = width >> level;
         int currentH = height >> level;
 
-        // Apply Gaussian blur
-        gaussianBlur(currentLevel.data(), currentW, currentH);
-
-        // Store Laplacian (detail - blurred)
-        levels_[level] = currentLevel;
+        // Apply Gaussian blur to current level
+        gaussianBlur(gaussianPyramid[level].data(), currentW, currentH);
 
         // Downsample for next level
         int nextW = std::max(1, currentW / 2);
         int nextH = std::max(1, currentH / 2);
-        levels_[level + 1].resize(nextW * nextH);
-
-        downsample(currentLevel.data(), levels_[level + 1].data(), currentW, currentH);
-
-        // Prepare for next iteration
-        currentLevel = levels_[level + 1];
+        gaussianPyramid[level + 1].resize(nextW * nextH);
+        downsample(gaussianPyramid[level].data(), gaussianPyramid[level + 1].data(),
+                   currentW, currentH);
     }
 
-    // Convert to Laplacian pyramid: L(i) = G(i) - expand(G(i+1))
+    // Convert Gaussian pyramid to Laplacian pyramid
+    // L(i) = G(i) - expand(G(i+1))
     for (int level = 0; level < numLevels - 1; ++level) {
-        int w = width >> level;
-        int h = height >> level;
-        int nextW = std::max(1, w / 2);
-        int nextH = std::max(1, h / 2);
+        int currentW = width >> level;
+        int currentH = height >> level;
+        int nextW = std::max(1, currentW / 2);
+        int nextH = std::max(1, currentH / 2);
 
-        // Upsample next level
-        std::vector<float> upsampled(w * h);
-        upsample(levels_[level + 1].data(), upsampled.data(), nextW, nextH);
+        // Allocate Laplacian level
+        levels_[level].resize(currentW * currentH);
 
-        // Subtract to get Laplacian
-        for (int i = 0; i < w * h; ++i) {
-            levels_[level][i] -= upsampled[i];
+        // Upsample next Gaussian level
+        std::vector<float> upsampled(currentW * currentH);
+        upsample(gaussianPyramid[level + 1].data(), upsampled.data(), nextW, nextH);
+
+        // Compute Laplacian: G(i) - upsampled(G(i+1))
+        for (int i = 0; i < currentW * currentH; ++i) {
+            levels_[level][i] = gaussianPyramid[level][i] - upsampled[i];
         }
     }
+
+    // Store coarsest level (Gaussian, not Laplacian)
+    int coarsestW = std::max(1, width >> (numLevels - 1));
+    int coarsestH = std::max(1, height >> (numLevels - 1));
+    levels_[numLevels_ - 1].resize(coarsestW * coarsestH);
+    std::memcpy(levels_[numLevels_ - 1].data(), gaussianPyramid[numLevels - 1].data(),
+                coarsestW * coarsestH * sizeof(float));
 }
 
 void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
