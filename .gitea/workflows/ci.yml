@@ -1,0 +1,96 @@
+name: XPE CI (Gitea)
+
+on:
+  push:
+    branches: [main, dev/preprocess, dev/postprocess, dev/gui]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: xpe-gitea-ci-${{ gitea.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preprocess-tests:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 45
+    if: |
+      gitea.ref_name == 'main' ||
+      gitea.ref_name == 'dev/preprocess' ||
+      gitea.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Test (preprocess)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass `
+            -File tools\ci\Invoke-LocalVsCommonBuild.ps1 `
+            -BuildDir build\gitea-preprocess
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitea-preprocess-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/gitea-preprocess/Testing/
+
+  coverage:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 60
+    if: gitea.event_name == 'workflow_dispatch'
+    needs: preprocess-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OpenCppCoverage
+        shell: pwsh
+        run: |
+          if (-not (Get-Command OpenCppCoverage -ErrorAction SilentlyContinue)) {
+            choco install opencppcoverage -y --no-progress
+          }
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1
+
+      - name: Configure coverage build
+        shell: pwsh
+        run: cmake --preset coverage
+
+      - name: Build coverage target
+        shell: pwsh
+        run: cmake --build --preset coverage --parallel
+
+      - name: Run tests with OpenCppCoverage
+        shell: pwsh
+        run: |
+          $ctest = (Get-Command ctest).Source
+          $testDir = "build\coverage"
+          $srcDir = "modules\preprocess\src"
+
+          OpenCppCoverage `
+            --sources "$srcDir" `
+            --export_type "html:build\coverage-report" `
+            --export_type "cobertura:build\coverage.xml" `
+            -- $ctest --test-dir $testDir `
+                      --build-config Debug `
+                      --output-on-failure
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          if-no-files-found: ignore
+          retention-days: 30
+          path: |
+            build/coverage-report/
+            build/coverage.xml

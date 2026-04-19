@@ -25,6 +25,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **합계** | **100** | **73** | **+3** | 2026-04-19 기준 |
 
 **최근 진행 상황** (2026-04-19):
+- ✅ **Golden Reference 테스트 26/26 통과** (2026-04-19) — Offset/Gain/Ghost/Temp/Binning/Readout 수식 검증 + Calibration round-trip (generate→save→load→apply) 완전 자동화
+- ✅ **CI Preprocess 전용 파이프라인 추가** — `ci-preprocess` CMake 프리셋 + GitHub Actions `preprocess-tests` 잡 (기존 ci-common은 BUILD_PREPROCESS=OFF라 preprocess 테스트가 CI에서 실행되지 않던 구조적 공백 해소)
+- ✅ **Gitea CI 구축** — self-hosted Windows 러너 + OpenCppCoverage HTML/Cobertura XML 커버리지 리포트
 - ✅ **Gate G1a → G1b 완전 마감** (2026-04-19) — 메모리 누수 1000프레임 테스트 delta 0KB PASSED
 - ✅ **SPRINT-P1B-ENH-01 완료** — xpe_enhance_basic.dll 8개 함수, 5/5 테스트 GREEN
 - ✅ **GUI 모듈 독립성 원칙 적용** — Workflow-first UI, DLL graceful degradation, 모듈별 의존성 맵
@@ -204,6 +207,11 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Invoke-LocalVsCommonBui
 cmake --preset ci-common
 cmake --build --preset ci-common
 ctest --test-dir build/ci-common --output-on-failure --build-config RelWithDebInfo
+
+# Preprocess 전용 (Golden Reference + Calibration round-trip)
+cmake --preset ci-preprocess
+cmake --build --preset ci-preprocess --parallel
+ctest --test-dir build/ci-preprocess --output-on-failure --build-config RelWithDebInfo
 ```
 
 ### ImageProcTest GUI fixture E2E
@@ -228,6 +236,7 @@ The fixture E2E command writes JSON and Markdown reports under `clients/ImagePro
 |-----------|------|
 | `Repository Guard` | 필수 파일, 백로그/PRD 일관성, ABI 플래그 고유성, 마크다운 링크, 병합 충돌 표시, 후행 공백 검증 |
 | `Windows Common Build` | 경량 공통 매니페스트 복원, 컴파일러 경고를 오류로 처리, `xpe_common` 빌드 및 스모크 테스트 |
+| `Preprocess Tests` | `xpe_preprocess` 전용 빌드 — Golden Reference 수식 검증 26개 + Calibration round-trip 테스트 |
 | `Delivery Bundle` | `main` 브랜치에 현재 프로젝트 기준을 아티팩트로 패키징 |
 | `Release Bundle` | `v*` 태그에서 배포 번들을 GitHub Releases에 게시 |
 | `CodeQL` | C/C++ 기준에 대한 정적 보안 및 품질 분석 (주간 반복) |
