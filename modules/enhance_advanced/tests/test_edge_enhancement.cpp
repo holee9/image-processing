@@ -201,24 +201,30 @@ TEST_F(EdgeEnhancementTest, T301_FractionalDerivativeAlgorithm) {
     // 2. Output should not contain NaN or Inf (REQ-ADV-032)
     EXPECT_FALSE(hasInvalidValues(img)) << "Fractional derivative produced NaN/Inf";
 
-    // 3. First derivative of linear ramp should be approximately constant
-    // The exact value depends on implementation, but variance should be low
-    float mean = 0.0f;
+    // 3. For a linear ramp, the enhancement boost (output - original) should
+    // be approximately constant because the gradient magnitude is constant.
+    // The algorithm computes enhanced = original + gain * |grad|.
+    // For a ramp, |grad| is constant, so boost should be nearly constant.
+    float boostMean = 0.0f;
     for (int i = 0; i < width * height; ++i) {
-        mean += data[i];
+        boostMean += (data[i] - original[i]);
     }
-    mean /= (width * height);
+    boostMean /= (width * height);
 
-    float variance = 0.0f;
+    float boostVariance = 0.0f;
     for (int i = 0; i < width * height; ++i) {
-        float diff = data[i] - mean;
-        variance += diff * diff;
+        float diff = (data[i] - original[i]) - boostMean;
+        boostVariance += diff * diff;
     }
-    variance /= (width * height);
+    boostVariance /= (width * height);
 
-    // Variance should be relatively small for a constant derivative
-    // This threshold may need adjustment based on actual implementation
-    EXPECT_LT(variance, 10.0f) << "First derivative variance too high: " << variance;
+    // The boost variance should be low (near-zero for an ideal ramp)
+    // Boundary effects and float precision cause small deviations.
+    // A threshold of 5.0 is generous enough for 64x64 with clamp boundaries.
+    EXPECT_LT(boostVariance, 5.0f) << "Enhancement boost variance too high: " << boostVariance;
+
+    // 4. The boost should be positive (enhancement adds signal, never removes)
+    EXPECT_GT(boostMean, 0.0f) << "Enhancement should add positive boost to ramp";
 }
 
 /* ============================================================================
