@@ -128,6 +128,25 @@ The following requirements bind preprocessing algorithm quality to automated evi
 
 ---
 
+### 2.6 BPM 생성 알고리즘 상세 (2026-04-19 종래기술 교차검증 결과)
+
+다음 요구사항은 `docs/calibration/PRIOR-ART-BPM-ALGORITHM.md`의 MC/Blue 알고리즘 비교 분석 및 `tests/test_data/Grid_abnormal/` 데이터셋의 실제 검증 결과를 기반으로 추가되었습니다. 이는 기존 SRS-CALIB-FUNC-007 (BPM)의 구현 상세를 명시화합니다.
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|------------|-----------|--------------|
+| **SRS-CALIB-FUNC-022** | BPM 다크(어두운 영상) 불량 픽셀 검출 시, 마스크 윈도우 크기는 최소 32×32 이상이어야 합니다. RMM(Robust Mask Maker, lambda=8.0)을 사용하는 경우, 기반이 되는 국소 마스크는 32×32 픽셀 이상의 영역을 포함해야 합니다. 종래 MC 알고리즘(256×7 + 1×45 비대칭 마스크)은 적응형 마스크(32×32 이상)로 대체되어야 합니다. | 고정된 비대칭 마스크(256×7)는 이상 환경(그리드 아티팩트, 국소 아티팩트)에 취약합니다. 적응형 방식(32×32)은 지역 통계에 기반하여 더 견고한 불량 픽셀 검출을 제공합니다. 종래기술 분석(PPT 및 Grid_abnormal 데이터셋)에서 Blue 알고리즘(32×32 마스크)이 MC 대비 이상 환경에서 우수함을 입증했습니다. | Test: Grid_abnormal 데이터셋, MC vs Blue 비교 검증 |
+| **SRS-CALIB-FUNC-023** | BPM 밝은(평탄화) 영상 불량 픽셀 검출 시, 마스크 윈도우 크기는 128×128 이상이어야 하며, 허용도(tolerance)는 마스크 평균의 5~9%로 설정해야 합니다. 종래 MC 알고리즘(60×60 마스크, 15% 허용도)은 보다 보수적인 Blue 알고리즘(128×128 마스크, 5~9% 허용도)으로 대체되어야 합니다. 선택 이유: 더 큰 마스크는 통계적 안정성을 향상시키며, 낮은 허용도는 과도한 오경보(False Positive)를 감소시킵니다. | MC 알고리즘의 15% 허용도는 과도한 불량 픽셀 탐지를 야기합니다(실험: MC 499개, Blue 798개 불량픽셀 탐지). 5~9% 허용도는 실제 결함과 정상 변동을 더 정확히 구분합니다. 종래기술 분석에서 Blue의 보수적 임계값이 이상 환경에서도 시각적 품질 향상을 입증했습니다. | Test: CalData_6 데이터셋, BPM 생성 및 Recall/FPR 검증 |
+| **SRS-CALIB-FUNC-024** | 다중 단계 게인 보정(Multi-step Gain Calibration)에서, 단일 선량 조건에서 수집하는 평탄화 프레임의 최소 개수를 명시합니다. 최소 요구사항: 5~10 프레임 (신호 안정화). 표준 권고: 15~20 프레임 (DSNU 감소). 우수 품질: 25~30 프레임 (최상의 비선형성 보정 LUT). 프레임 개수는 구현자의 신호 수렴 분석 및 노이즈 특성에 따라 조정될 수 있습니다. | 종래기술 분석 PPT(Slide 22)에서 "단일 게인 캘리브레이션시 선량 레벨당 프레임 수"에 대한 미결 질문이 제기되었습니다. 통계적으로 더 많은 프레임은 (1) 암신호(DSNU) 감소, (2) 비선형성 특성 추정 정확도 향상, (3) 시간 드리프트 영향 최소화를 제공합니다. CalData_6 데이터셋(6개 선량 레벨, 각 1개 프레임)은 최소 요구사항을 초과하는 다중 프레임 수집 권장안을 검증합니다. | Test: CalData_6 데이터셋에서 6개 프레임 이상 평탄화로 게인 맵 생성, 게인 FPN < 5% 검증 |
+| **SRS-CALIB-FUNC-025** | BPM 생성 알고리즘은 그리드 아티팩트(Anti-Scatter Grid Artifact) 환경에서도 견고해야 합니다. 특히 전처리(BPM 보정 적용) 후 생성된 이미지의 라인 아티팩트 점수(LineArtifactScore, 중주파 에너지 비율)가 10% 미만이어야 합니다. Blue 알고리즘을 적용할 경우, 그리드 아티팩트 환경에서도 LineArtifactScore < 5%의 우수 품질을 목표로 합니다. 측정 방법: 2D FFT 후 중주파 대역(0.05~0.3 cycles/pixel) 에너지 비율 계산. | 그리드 아티팩트는 의료 X-ray 촬영 환경에서 표준이며, BPM 알고리즘이 이상적 환경뿐만 아니라 실제 그리드 환경에서도 아티팩트를 효과적으로 제거해야 합니다. 종래기술 분석(PRIOR-ART-BPM-ALGORITHM.md) 및 Grid_abnormal 데이터셋에서 Blue 알고리즘의 그리드 견고성을 입증했습니다: Blue_NonPre (15% 라인 스코어) → Blue_Pre (5% 이후 전처리, 66% 감소). | Test: Grid_abnormal 데이터셋, Blue_Pre vs Blue_NonPre FFT 분석, LineArtifactScore < 5% 검증 |
+
+**추가 설명:**
+
+- **SRS-CALIB-FUNC-022 vs FUNC-007의 관계**: FUNC-007은 "BPM 적용 및 보간"을 정의하며, FUNC-022~023은 BPM **생성**의 알고리즘 상세를 명시합니다.
+- **Gap 식별**: 기존 FUNC-007에서는 "RMM with lambda=8.0"만 언급되었으나, 실제 마스크 크기, 허용도 범위, 그리드 견고성이 명시되지 않았습니다. 새로운 FUNC-022~025가 이를 보완합니다.
+- **Reference 문서**: `docs/calibration/PRIOR-ART-BPM-ALGORITHM.md`에서 MC/Blue 알고리즘 상세 비교 및 XPE RMM 개선 권고사항을 참고하세요.
+
+---
+
 ## 3. Safety Requirements
 
 ### 3.1 Mandatory Correction Policy (SRS-CALIB-SAFE-001 through SRS-CALIB-SAFE-003)

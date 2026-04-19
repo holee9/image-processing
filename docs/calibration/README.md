@@ -33,6 +33,7 @@
 |------|------|
 | [**KNOWLEDGE-BASE.md**](KNOWLEDGE-BASE.md) | 전체 알고리즘·문서·코드·API를 연결하는 중앙 지식 허브. 역할별 탐색 가이드, 소스↔문서 매핑, 수학 모델 레퍼런스 포함 |
 | [**CONCEPT-DIAGRAMS.md**](CONCEPT-DIAGRAMS.md) | 12개 Mermaid 다이어그램: 전체 파이프라인, 데이터 타입 흐름, 알고리즘별 처리 메커니즘 흐름도, 고스트 Tier 상태 기계, 생명주기 다이어그램 |
+| [**PRIOR-ART-BPM-ALGORITHM.md**](PRIOR-ART-BPM-ALGORITHM.md) | 종래기술 분석: MC vs Blue BPM 불량픽셀 생성 알고리즘 상세 비교, 실험 결과, XPE RMM 개선 권고사항. 포함: PPT 기반 알고리즘 스펙, 비교표, 검증 데이터셋 참조 |
 
 ---
 
@@ -868,6 +869,15 @@ flags = 0x00000000  (원본 프레임)
 | **RTM-CALIB-001** | 요건 추적 행렬 | `docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md` | QA / 개발자 | SRS ↔ 아키텍처 ↔ 테스트 ↔ 위험 양방향 추적 (IEC 62304 §5.1.1c) |
 | **IAP-CALIB-001** | **영상 취득 프로토콜** | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` | **캘리브레이션 엔지니어** | Dark/Flat-field/BPM/Lag/Nonlinearity 촬영 절차 · 합격 기준 · 장비 요건 |
 | **TDS-CALIB-001** | **테스트 데이터셋 명세서** | `docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md` | **QA / 개발자** | 알고리즘별 합성·실제 테스트 데이터 규격 · Golden Reference 관리 |
+| **PRIOR-ART-BPM-ALGORITHM** | 종래기술 분석 (2026-04-19 추가) | `docs/calibration/PRIOR-ART-BPM-ALGORITHM.md` | **개발자** | MC vs Blue BPM 알고리즘 상세 비교, 실험 결과, XPE RMM 개선 권고사항 |
+
+#### 신규 테스트 데이터 픽스처 (2026-04-19 추가)
+
+| 데이터셋 ID | 제목 | 경로 | 목적 | 검증 대상 |
+|-----------|------|------|------|---------|
+| `caldata_6_mc_multistep` | **다중 단계 게인 보정 데이터** | `tests/test_data/CalData_6/README.md` | 다중 선량 레벨 게인 맵 생성 및 비선형성 LUT 검증 | SRS-CALIB-FUNC-005, 006, 007 |
+| `cyan_prod_calib_clinical` | **Cyan 검출기 생산 캘리브레이션 + 임상 E2E** | `tests/test_data/cyan_test/README.md` | 생산 환경 캘리브레이션 워크플로우 및 임상 이미지 전처리 검증 | SRS-CALIB-FUNC-005, 008, 011, 015-021 |
+| `grid_abnormal_bpm_comparison` | **그리드 아티팩트 BPM 알고리즘 비교** | `tests/test_data/Grid_abnormal/README.md` | MC vs Blue BPM 성능 비교 및 그리드 아티팩트 환경에서의 견고성 검증 | SRS-CALIB-FUNC-007, 025 (신규) |
 
 #### 규범 알고리즘 사양
 
