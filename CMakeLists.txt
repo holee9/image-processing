@@ -107,7 +107,7 @@ endif()
 
 # Google Test (via vcpkg)
 if(BUILD_TESTS)
-    find_package(GTest CONFIG REQUIRED)
+    find_package(GTest CONFIG)
     include(GoogleTest)
     enable_testing()
 endif()
