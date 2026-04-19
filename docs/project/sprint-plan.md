@@ -132,7 +132,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 - [x] Calibration CRC verification works end-to-end (SUP-01, 89/90 tests GREEN)
 - [x] Unit test coverage >= 85% for xpe_preprocess (P1A: 89/90 GREEN)
 - [x] P/Invoke integration test: GUI-IT 78/78 통과 (SPEC-XPE-GUI-IT 완료)
-- [ ] Memory leak test: 1000 frames without growth — 미완료 (다음 스프린트)
+- [x] Memory leak test: 1000 frames without growth — PASSED 2026-04-19 (PrivateUsage delta = 0 KB over 1000 init/process/shutdown cycles @ 512x512 uint16; test: `XpePreprocessEndurance.NoMemoryLeakAfter1000Frames`)
 
 ### Gate G1b -> G2 (Phase 1b Complete)
 

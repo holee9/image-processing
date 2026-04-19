@@ -90,14 +90,6 @@ static void enqueue_alert(const char* msg, int32_t severity)
     g_alertQueue.push_back(std::move(e));
 }
 
-/** Returns current UNIX epoch milliseconds. */
-static uint64_t unix_epoch_ms()
-{
-    using namespace std::chrono;
-    return static_cast<uint64_t>(
-        duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
-}
-
 /* ============================================================================
  * Lifecycle
  * ============================================================================ */
@@ -294,50 +286,7 @@ XPE_API void xpe_clear_alerts(void)
  * Logging subsystem (REQ-P0-023 .. REQ-P0-025)
  * ============================================================================ */
 
-XPE_API XpeErrorCode xpe_log_set_level(int32_t level)
-{
-    if (level < 0 || level > 5) return XPE_ERR_INVALID_INPUT;
-
-    std::lock_guard<std::mutex> lk(g_mutex);
-    g_logLevel = level;
-    return XPE_OK;
-}
-
-XPE_API XpeErrorCode xpe_log_set_file(const char* filePath)
-{
-    std::lock_guard<std::mutex> lk(g_mutex);
-
-    // Close existing file sink
-    if (g_logFile.is_open()) {
-        g_logFile.flush();
-        g_logFile.close();
-    }
-
-    if (!filePath) {
-        // Revert to stderr
-        g_logFilePath.clear();
-        return XPE_OK;
-    }
-
-    g_logFile.open(filePath, std::ios::app);
-    if (!g_logFile.is_open()) {
-        g_logFilePath.clear();
-        return XPE_ERR_IO_FAILED;
-    }
-
-    g_logFilePath = filePath;
-    return XPE_OK;
-}
-
-XPE_API void xpe_log_flush(void)
-{
-    std::lock_guard<std::mutex> lk(g_mutex);
-    if (g_logFile.is_open()) {
-        g_logFile.flush();
-    } else {
-        std::fflush(stderr);
-    }
-}
+// Logging functions implemented in xpe_logging.cpp using spdlog
 
 /* ============================================================================
  * Internal test-support helpers (white-box linkage for unit tests).

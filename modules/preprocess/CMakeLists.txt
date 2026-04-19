@@ -106,6 +106,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_calibration_manager.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
+        tests/test_xpe_preprocess_memleak.cpp
     )
 
     add_executable(xpe_preprocess_tests
@@ -120,6 +121,12 @@ if(_XPE_BUILD_TESTS)
         PRIVATE xpe_preprocess
                 GTest::gtest_main
     )
+
+    # Windows: psapi.lib is required for GetProcessMemoryInfo
+    # (used by test_xpe_preprocess_memleak.cpp to measure heap growth).
+    if(WIN32)
+        target_link_libraries(xpe_preprocess_tests PRIVATE psapi)
+    endif()
 
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)
 

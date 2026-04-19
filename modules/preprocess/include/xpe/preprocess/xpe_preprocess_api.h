@@ -18,6 +18,20 @@ extern "C" {
 #endif
 
 /* =========================================================================
+ * Module Lifecycle / GUI Readiness
+ * ========================================================================= */
+
+XPE_API const char* xpe_preprocess_version(void);
+
+XPE_API XpeErrorCode xpe_preprocess_init(const char* configJsonOrNull);
+
+XPE_API void xpe_preprocess_shutdown(void);
+
+XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* paramName,
+                                                     float* minValue,
+                                                     float* maxValue);
+
+/* =========================================================================
  * SWU-1.1: Offset Correction (PRE-02)
  * REQ-P1A-009 to REQ-P1A-011
  * ========================================================================= */
