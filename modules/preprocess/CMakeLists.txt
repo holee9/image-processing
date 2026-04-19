@@ -121,6 +121,10 @@ if(_XPE_BUILD_TESTS)
 
     add_executable(xpe_preprocess_tests
         ${XPE_TEST_SOURCES}
+        src/rle_codec.cpp
+        src/xcal_writer.cpp
+        src/xcal_reader.cpp
+        src/xcal_validator.cpp
     )
 
     target_include_directories(xpe_preprocess_tests
