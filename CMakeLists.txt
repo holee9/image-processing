@@ -105,12 +105,12 @@ if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
     FetchContent_MakeAvailable(eigen)
 endif()
 
-# Google Test (via vcpkg)
-# NOTE: BUILD_TESTS disabled to avoid conflicts with FetchContent in subdirectories
-# Use BUILD_TESTING instead
-if(BUILD_TESTING)
-    find_package(GTest CONFIG REQUIRED)
-    include(GoogleTest)
+# Google Test (via vcpkg or FetchContent in tests/CMakeLists.txt)
+if(BUILD_TESTS)
+    find_package(GTest CONFIG)
+    if(GTest_FOUND)
+        include(GoogleTest)
+    endif()
     enable_testing()
 endif()
 

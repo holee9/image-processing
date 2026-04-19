@@ -192,6 +192,88 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
   - `ResetSession(handle)` → clear history (patient change)
   - `DestroySession(handle)` → free resources
 
+### 3.3 BpmGenerator (SWU-1.11)  <!-- 2026-04-19 추가: FUNC-022~025 구현 단위 -->
+
+**Responsibility:** Factory-calibration Bad Pixel Map generation from dark and flat-field frame stacks.
+
+SWU-1.11 is called during **factory calibration only** (not per-frame). It produces the static BPM consumed by SWU-1.3 DefectCorrector at runtime.
+
+#### 3.3.1 Interface
+
+```
+XPE_API int XpeBpmGenerate(
+    const uint16_t* dark_frames,    // [N_dark × W × H]  dark frame stack
+    uint32_t        N_dark,         // number of dark frames
+    const uint16_t* bright_frames,  // [N_bright × W × H] flat-field frame stack
+    uint32_t        N_bright,       // number of flat-field frames per gain level
+    uint32_t        W, uint32_t H,  // detector dimensions
+    const XpeBpmConfig* cfg,        // algorithm configuration (see §3.3.3)
+    uint8_t*        bpm_out         // output BPM [W × H], caller-allocated
+);
+```
+
+#### 3.3.2 Algorithm — Dark BPM Generation (FUNC-022)
+
+Replaces the legacy MC algorithm (256×7 + 1×45 asymmetric mask) with an adaptive RMM approach:
+
+```
+For each pixel (x,y):
+  1. Extract 32×32 neighbourhood window centred on (x,y), boundary-clamped
+  2. Compute local median M and MAD σ_r = 1.4826 × median(|w_i - M|)
+  3. Flag pixel as bad if |dark[x,y] - M| > λ × σ_r   where λ = 8.0 (cfg.lambda_dark)
+  4. Mark: bpm[x,y] = 1 (dead/stuck)
+```
+
+Boundary pixels use reflect-padding (not zero-padding) to avoid edge over-detection.
+
+#### 3.3.3 Algorithm — Bright BPM Generation (FUNC-023)
+
+Replaces MC bright algorithm (60×60, 15% tolerance) with a wider window and tighter band:
+
+```
+For each pixel (x,y):
+  1. Compute per-pixel mean across N_bright frames: I_mean(x,y) = mean(bright_stack[:,x,y])
+  2. Extract 128×128 neighbourhood window from I_mean, centred on (x,y)
+  3. Compute maskAvg = mean(128×128 window of I_mean)
+  4. Compute Bright_Tol = maskAvg × cfg.tolerance_pct   [default: 7%, range: 5~9%]
+  5. Flag pixel as bad if |I_mean(x,y) - maskAvg| > Bright_Tol
+  6. Mark: bpm[x,y] = 2 (hot/noisy)
+```
+
+Merge: final bpm[x,y] = max(dark_bpm[x,y], bright_bpm[x,y]).
+
+#### 3.3.4 Configuration (XpeBpmConfig)
+
+```c
+typedef struct {
+    float    lambda_dark;      // RMM lambda for dark detection  (default: 8.0)
+    uint32_t mask_size_dark;   // local window side length       (default: 32, min: 32)
+    float    tolerance_pct;    // flat-field tolerance fraction  (default: 0.07, range: 0.05~0.09)
+    uint32_t mask_size_bright; // local window side length       (default: 128, min: 128)
+    uint32_t min_frames_dark;  // minimum dark frames required   (default: 5)
+    uint32_t min_frames_bright;// minimum bright frames required (default: 10, target: 15~20)
+} XpeBpmConfig;
+```
+
+#### 3.3.5 Source File Mapping
+
+```
+modules/preprocess/src/xpe_defect_gen.cpp   ← SWU-1.11 BpmGenerator implementation
+modules/preprocess/include/xpe_defect_gen.h ← public C ABI
+tests/preprocess/test_bpm_generator.cpp     ← UT-BPM-001~004 Google Tests
+```
+
+---
+
+### 3.4 Design Completeness: FUNC-022~025 → SWU-1.11
+
+| SRS Req | SWU | Algorithm Section | Test |
+|:--------|:----|:-----------------|:-----|
+| FUNC-022 | SWU-1.11 | §3.3.2 (dark, λ-RMM 32×32) | UT-BPM-001 |
+| FUNC-023 | SWU-1.11 | §3.3.3 (bright, 128×128, 5~9%) | UT-BPM-002 |
+| FUNC-024 | SWU-1.11 | §3.3.4 (min_frames_bright ≥ 10) | UT-BPM-003 |
+| FUNC-025 | SWU-1.11 | Integration: Grid_abnormal LineArtifactScore | UT-BPM-004 |
+
 ---
 
 ## 4. External Interfaces
@@ -538,6 +620,7 @@ xpe_preprocess.dll/
 │   ├── calib_binning.c         → SWU-1.8 BinningCorrector
 │   ├── calib_runtime_defects.c → SWU-1.9 RuntimeDefectDetector
 │   ├── calib_session.c         → SWU-1.10 SessionManager
+│   ├── xpe_defect_gen.cpp      → SWU-1.11 BpmGenerator (factory cal, FUNC-022~025)
 │   └── calib_manager.c         → Central orchestration (CalibrationManager)
 ├── inc/
 │   ├── calib_*.h               → Internal headers (one per SWU)

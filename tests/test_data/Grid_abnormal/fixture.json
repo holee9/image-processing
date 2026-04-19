@@ -1,0 +1,20 @@
+{
+  "case_id": "Grid_abnormal",
+  "description": "BPM algorithm comparison under anti-scatter grid artifact conditions (MC vs Blue vs RMM)",
+  "srs_refs": ["SRS-CALIB-FUNC-025"],
+  "layout": "flat",
+  "roles": {
+    "2G_Pre.raw":         "Reference",
+    "Blue_Pre.raw":       "Reference",
+    "Blue_NonPre.raw":    "Reference",
+    "BPM.raw":            "Defect_Oracle",
+    "MasterBright.raw":   "Gain",
+    "MasterDark.raw":     "Offset"
+  },
+  "verification_targets": {
+    "line_artifact_score_max_pct": 10.0,
+    "blue_algo_line_artifact_target_pct": 5.0,
+    "rmm_algo_line_artifact_target_pct": 5.0
+  },
+  "notes": "Algorithm comparison test: Blue_NonPre expected LineArtifactScore ~15%, Blue_Pre expected ~5% after BPM application. Source: PPT PreProcessing Algorithm 개발 보고_최종본.pptx Slide 22."
+}
