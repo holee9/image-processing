@@ -284,6 +284,13 @@ XPE_API void xpe_clear_alerts(void)
 
 /* ============================================================================
  * Logging subsystem (REQ-P0-023 .. REQ-P0-025)
+ *
+ * NOTE: The public logging API (xpe_log_set_level, xpe_log_set_file,
+ * xpe_log_flush) is now implemented in xpe_logging.cpp using spdlog.
+ * Duplicate definitions were removed here to fix LNK2005 multi-definition
+ * errors at link time. The internal globals (g_logLevel, g_logFilePath,
+ * g_logFile) remain in this translation unit because internal_log() and
+ * xpe_shutdown() still reference them for lifecycle + alert-queue diagnostics.
  * ============================================================================ */
 
 // Logging functions implemented in xpe_logging.cpp using spdlog
