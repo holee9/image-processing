@@ -25,6 +25,7 @@ set(XPE_PREPROCESS_SOURCES
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-024..028
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
     src/calibration_manager.cpp  # SWU-1.5 REQ-P1A-035..040
+    src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
     src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
 )
@@ -46,10 +47,11 @@ target_link_libraries(xpe_preprocess
 target_compile_features(xpe_preprocess PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_preprocess PRIVATE /W4)
+    target_compile_options(xpe_preprocess PRIVATE /W4 /arch:AVX2)
 else()
     target_compile_options(xpe_preprocess PRIVATE
         -Wall -Wextra -Wpedantic
+        -mavx2
     )
 endif()
 
@@ -98,7 +100,9 @@ if(_XPE_BUILD_TESTS)
 
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
+        tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct.cpp
+        tests/test_gain_correct_reciprocal_fma.cpp
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp
         tests/test_defect_correct.cpp

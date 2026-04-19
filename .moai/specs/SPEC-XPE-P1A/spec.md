@@ -2,10 +2,10 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.2.0
-status: In Progress (SUP-01 implemented, M2 pending)
+version: 1.3.0
+status: M2 Complete (SUP-01 + M2 algorithms implemented)
 created: 2026-04-16
-updated: 2026-04-18
+updated: 2026-04-19
 author: manager-spec (MoAI)
 priority: High
 issue_number: 16
@@ -17,6 +17,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.3.0   | 2026-04-19 | manager-ddd (MoAI Team Mode) | M2 (REQ-P1A-010~013) implementation complete. Offset correction (AVX2 bit-identical), Gain correction (Reciprocal + FMA, 1 ULP parity), Defect correction (Bilinear + cluster fallback), Runtime detection (Hampel 5-sigma). 657 lines added across 7 files. Integration tests added. MX tags applied. |
 | 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Strengthen REQ-P1A-010~013 with pixel-accuracy tolerances from research.md v2.0.0. Add REQ-P1A-013 algorithmic recipe (Hampel 5-sigma). Add Section 4.6 (SIMD Parity Contract) referencing simd-parity-harness.md. Research references refreshed to 2022-2026 survey. |
 | 1.1.0   | 2026-04-18 | manager-docs | SUP-01 (REQ-P1A-014~019) implemented and tested. 89/90 tests pass. XCal v1 format finalized. PicoSHA2 vendored. |
 | 1.0.0   | 2026-04-16 | manager-spec | Initial SPEC creation |
