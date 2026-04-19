@@ -34,6 +34,8 @@ namespace ImageProcTest
             {
                 var candidates = new[]
                 {
+                    Path.Combine(root, "build", "local-vs2022-common", "bin", DllName),
+                    Path.Combine(root, "build", "local-vs2022-common", "bin", "RelWithDebInfo", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", "Debug", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", DllName),
                     Path.Combine(root, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),

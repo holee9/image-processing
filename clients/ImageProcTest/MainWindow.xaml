@@ -8,6 +8,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+
+        <!-- Header -->
         <Border Grid.Row="0" Background="#FF2C3E50" Padding="12">
             <StackPanel>
                 <TextBlock Text="XPE Image Processing Engine Test" FontSize="20" FontWeight="Bold" Foreground="White"/>
@@ -15,292 +17,559 @@
                 <TextBlock x:Name="StatusText" Text="Status: Initializing..." FontSize="12" Foreground="#FFECF0F1" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
-        <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="10">
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Native Common Health" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                    <Button Content="Refresh" Width="90" DockPanel.Dock="Right" Click="RefreshButton_Click"/>
-                </DockPanel>
 
-                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="Why this screen exists" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock Text="This is an integration safety dashboard, not an image-processing feature screen. It verifies that the GUI can safely load and call xpe_common.dll before preprocess, display, DICOM, GSVG, or AI modules are connected." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,6"/>
-                        <TextBlock Text="How to read it" FontSize="14" FontWeight="SemiBold" Margin="0,4,0,4"/>
-                        <TextBlock Text="Ready means the native common DLL loaded and basic ABI calls succeeded. Unavailable means the GUI is running safely without native common. Entry point mismatch means the DLL and C# P/Invoke contract disagree. Image-processing modules remain gated until their own readiness checks pass." TextWrapping="Wrap" FontSize="13"/>
+        <!-- Main Tab Area -->
+        <TabControl Grid.Row="1" Margin="8">
+
+            <!-- ===== WORKFLOW TAB (default landing) ===== -->
+            <TabItem Header="Workflow">
+                <ScrollViewer>
+                    <StackPanel Margin="10">
+
+                        <!-- Load Image Section -->
+                        <TextBlock Text="Load Image" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                                           Text="Select a *.raw image file to process. DICOM (*.dcm) loading is handled by xpe_dicom.dll (Phase 1b)."
+                                           FontSize="12" Foreground="#FF57606A" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <TextBox x:Name="WorkflowFilePathText"
+                                         Grid.Row="1" Grid.Column="0"
+                                         IsReadOnly="True"
+                                         Text="No file selected"
+                                         VerticalAlignment="Center"
+                                         Padding="4"
+                                         Margin="0,0,8,0"/>
+                                <Button x:Name="WorkflowBrowseButton"
+                                        Grid.Row="1" Grid.Column="1"
+                                        Content="Browse..."
+                                        Width="90"
+                                        Click="WorkflowBrowseButton_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Pipeline Stages Section -->
+                        <TextBlock Text="Pipeline Stages" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Toggle each stage on, off, or auto. Stages marked (stub) are not yet connected."
+                                           FontSize="12" Foreground="#FF57606A" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                                <!-- Preprocess stage -->
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Preprocess" FontSize="13" FontWeight="SemiBold" Width="120" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="WfOffsetOffRadio" Content="Off" GroupName="WfOffsetMode" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfOffsetOnRadio" Content="On" GroupName="WfOffsetMode" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfOffsetAutoRadio" Content="Auto" GroupName="WfOffsetMode" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <!-- Enhance stage (stub) -->
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Enhance (stub)" FontSize="13" FontWeight="SemiBold" Width="120" VerticalAlignment="Center" Foreground="#FF57606A"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="WfEnhanceOffRadio" Content="Off" GroupName="WfEnhanceMode" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfEnhanceOnRadio" Content="On" GroupName="WfEnhanceMode" IsEnabled="False" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfEnhanceAutoRadio" Content="Auto" GroupName="WfEnhanceMode" IsEnabled="False" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <!-- Display stage (stub) -->
+                                <DockPanel Margin="0,0,0,0">
+                                    <TextBlock Text="Display (stub)" FontSize="13" FontWeight="SemiBold" Width="120" VerticalAlignment="Center" Foreground="#FF57606A"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="WfDisplayOffRadio" Content="Off" GroupName="WfDisplayMode" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfDisplayOnRadio" Content="On" GroupName="WfDisplayMode" IsEnabled="False" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="WfDisplayAutoRadio" Content="Auto" GroupName="WfDisplayMode" IsEnabled="False" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Run / Cancel -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button x:Name="WorkflowRunButton"
+                                    Content="Run"
+                                    Width="100" Height="32"
+                                    IsEnabled="False"
+                                    Click="WorkflowRunButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="WorkflowCancelButton"
+                                    Content="Cancel"
+                                    Width="100" Height="32"
+                                    IsEnabled="False"
+                                    Click="WorkflowCancelButton_Click"/>
+                        </StackPanel>
+
+                        <!-- Before/After Comparison Panel (placeholder) -->
+                        <TextBlock Text="Before / After" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4"
+                                Background="#FF101820" MinHeight="240">
+                            <TextBlock Text="Phase 1b pending"
+                                       Foreground="#FF8899AA"
+                                       FontSize="18"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,80"/>
+                        </Border>
+
                     </StackPanel>
-                </Border>
+                </ScrollViewer>
+            </TabItem>
 
-                <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock x:Name="NativePathText" Text="DLL: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="InitText" Text="Init: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="VersionCheckText" Text="Version: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="ParamRangeText" Text="Param range: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="PreprocessSmokeText" Text="Preprocess smoke: Not checked" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="PreprocessParamRangeText" Text="Preprocess parameter ranges: Not checked" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap"/>
-                        <DataGrid x:Name="PreprocessParamRangeGrid"
+            <!-- ===== DIAGNOSTICS TAB (moved from default) ===== -->
+            <TabItem Header="Diagnostics">
+                <ScrollViewer>
+                    <StackPanel Margin="10">
+
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Native Common Health" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                            <Button Content="Refresh" Width="90" DockPanel.Dock="Right" Click="RefreshButton_Click"/>
+                        </DockPanel>
+
+                        <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Why this screen exists" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock Text="This is an integration safety dashboard, not an image-processing feature screen. It verifies that the GUI can safely load and call xpe_common.dll before preprocess, display, DICOM, GSVG, or AI modules are connected." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,6"/>
+                                <TextBlock Text="How to read it" FontSize="14" FontWeight="SemiBold" Margin="0,4,0,4"/>
+                                <TextBlock Text="Ready means the native common DLL loaded and basic ABI calls succeeded. Unavailable means the GUI is running safely without native common. Entry point mismatch means the DLL and C# P/Invoke contract disagree. Image-processing modules remain gated until their own readiness checks pass." TextWrapping="Wrap" FontSize="13"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock x:Name="NativePathText" Text="DLL: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="InitText" Text="Init: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="VersionCheckText" Text="Version: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="ParamRangeText" Text="Param range: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="PreprocessSmokeText" Text="Preprocess smoke: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="PreprocessParamRangeText" Text="Preprocess parameter ranges: Not checked" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap"/>
+                                <DataGrid x:Name="PreprocessParamRangeGrid"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          IsReadOnly="True"
+                                          HeadersVisibility="Column"
+                                          MinHeight="72"
+                                          MaxHeight="160"
+                                          Margin="0,0,0,6">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Parameter" Binding="{Binding ParamName}" Width="170"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding ErrorCode}" Width="90"/>
+                                        <DataGridTextColumn Header="Min" Binding="{Binding MinValue, StringFormat={}{0:0.###}}" Width="80"/>
+                                        <DataGridTextColumn Header="Max" Binding="{Binding MaxValue, StringFormat={}{0:0.###}}" Width="80"/>
+                                        <DataGridCheckBoxColumn Header="OK" Binding="{Binding Passed}" Width="50"/>
+                                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="DetailsText" Text="Details: Waiting for health check." FontSize="12" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Integration policy" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,4"/>
+                        <TextBlock Text="This screen only verifies xpe_common native health. Preprocess and display image-processing controls must remain disabled until their DLL readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+
+                        <Separator Margin="0,16,0,12"/>
+
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Module Readiness Matrix" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                            <Button Content="Refresh Modules" Width="120" DockPanel.Dock="Right" Click="RefreshModulesButton_Click"/>
+                        </DockPanel>
+
+                        <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means ABI smoke ready, R3+ requires module exports, oracle tests, and fixture E2E. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
+                                <DataGrid x:Name="ModuleReadinessGrid"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          IsReadOnly="True"
+                                          HeadersVisibility="Column"
+                                          Height="210">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="130"/>
+                                        <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
+                                        <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
+                                        <DataGridTextColumn Header="Next action" Binding="{Binding NextAction}" Width="260"/>
+                                        <DataGridCheckBoxColumn Header="Exec" Binding="{Binding ProcessingEnabled}" Width="60"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock x:Name="ModuleReadinessSummaryText"
+                                           Text="Module readiness: not checked"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Margin="0,16,0,12"/>
+
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Preprocessing Fixture Test" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                <Button Content="Refresh Fixtures" Width="120" Click="RefreshFixturesButton_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                            <TextBlock Text="Select a prepared fixture case, load one raw image from that case, then run Offset/Gain/Defect preprocessing with the calibration raw files in the same case. The app converts those calibration raws to preview-sized XCal files, loads them into xpe_preprocess.dll, and reports before/after delta metrics so execution is verifiable." TextWrapping="Wrap" FontSize="13"/>
+                        </Border>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="330"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="Calibration cases" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="FixtureCaseComboBox"
+                                              DisplayMemberPath="DisplayName"
+                                              SelectionChanged="FixtureCaseComboBox_SelectionChanged"
+                                              Margin="0,0,0,10"/>
+                                    <TextBlock x:Name="SelectedCaseText"
+                                               Text="Selected case: none"
+                                               TextWrapping="Wrap"
+                                               FontSize="11"
+                                               Foreground="#FF57606A"
+                                               Margin="0,0,0,10"/>
+
+                                    <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <ListBox x:Name="ImageFilesListBox"
+                                             DisplayMemberPath="DisplayName"
+                                             Height="150"
+                                             SelectionChanged="ImageFilesListBox_SelectionChanged"/>
+
+                                    <TextBlock Text="Calibration files" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                                    <ListBox x:Name="CalibrationFilesListBox"
+                                             DisplayMemberPath="DisplayName"
+                                             Height="150"/>
+
+                                    <Button Content="Load Selected Raw"
+                                            Margin="0,12,0,0"
+                                            Height="30"
+                                            Click="LoadSelectedRawButton_Click"/>
+                                    <Button x:Name="ApplyNativePreviewButton"
+                                            Content="Run Preprocessing Test"
+                                            Margin="0,6,0,0"
+                                            Height="30"
+                                            IsEnabled="False"
+                                            Click="ApplyNativePreviewButton_Click"/>
+
+                                    <Separator Margin="0,14,0,10"/>
+
+                                    <TextBlock Text="Stage modes" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="StageModesInfoText"
+                                               Text="Offset/Gain/Defect controls are enabled when xpe_preprocess.dll exports are available. Auto runs only when the selected fixture case has a matching calibration role."
+                                               TextWrapping="Wrap"
+                                               FontSize="11"
+                                               Foreground="#FF57606A"
+                                               Margin="0,0,0,8"/>
+
+                                    <TextBlock Text="Offset" FontSize="12" FontWeight="SemiBold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                        <RadioButton x:Name="OffsetOffRadio" Content="Off" GroupName="OffsetMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="OffsetOnRadio" Content="On" GroupName="OffsetMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="OffsetAutoRadio" Content="Auto" GroupName="OffsetMode" IsEnabled="False"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Gain" FontSize="12" FontWeight="SemiBold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                        <RadioButton x:Name="GainOffRadio" Content="Off" GroupName="GainMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="GainOnRadio" Content="On" GroupName="GainMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="GainAutoRadio" Content="Auto" GroupName="GainMode" IsEnabled="False"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Defect" FontSize="12" FontWeight="SemiBold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                        <RadioButton x:Name="DefectOffRadio" Content="Off" GroupName="DefectMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="DefectOnRadio" Content="On" GroupName="DefectMode" IsEnabled="False" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="DefectAutoRadio" Content="Auto" GroupName="DefectMode" IsEnabled="False"/>
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="NativePreviewText"
+                                               Text="Native preview: unavailable"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,8"/>
+                                    <Button Content="Save E2E Report"
+                                            Height="30"
+                                            Click="SaveE2eReportButton_Click"/>
+                                    <TextBlock x:Name="E2eReportText"
+                                               Text="E2E report: not saved"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0">
+                                        <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="RawPreviewInfoText" Text="Select a fixture image, then load it for preprocessing verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <DockPanel Grid.Row="1" Margin="0,10,0,8">
+                                        <TextBlock Text="Zoom" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="ZoomValueText" Text="100%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                                        <Slider x:Name="RawZoomSlider"
+                                                Minimum="0.1"
+                                                Maximum="8"
+                                                Value="1"
+                                                TickFrequency="0.1"
+                                                IsSnapToTickEnabled="False"
+                                                ValueChanged="RawZoomSlider_ValueChanged"/>
+                                    </DockPanel>
+
+                                    <DockPanel Grid.Row="2" Margin="0,0,0,8">
+                                        <TextBlock Text="Swipe" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="SwipeValueText" Text="50%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                                        <Slider x:Name="CompareSwipeSlider"
+                                                Minimum="0"
+                                                Maximum="1"
+                                                Value="0.5"
+                                                TickFrequency="0.01"
+                                                IsSnapToTickEnabled="False"
+                                                ValueChanged="CompareSwipeSlider_ValueChanged"/>
+                                    </DockPanel>
+
+                                    <Border Grid.Row="3" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
+                                        <ScrollViewer x:Name="RawImageScrollViewer"
+                                                      HorizontalScrollBarVisibility="Auto"
+                                                      VerticalScrollBarVisibility="Auto">
+                                            <Grid x:Name="ComparisonCanvas"
+                                                  Background="#FF101820"
+                                                  SizeChanged="ComparisonCanvas_SizeChanged">
+                                                <Grid.RenderTransform>
+                                                    <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
+                                                </Grid.RenderTransform>
+
+                                                <Image x:Name="BeforePreviewImage"
+                                                       Stretch="None"
+                                                       SnapsToDevicePixels="True"
+                                                       RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                                <Image x:Name="AfterPreviewImage"
+                                                       Stretch="None"
+                                                       SnapsToDevicePixels="True"
+                                                       RenderOptions.BitmapScalingMode="NearestNeighbor">
+                                                    <Image.Clip>
+                                                        <RectangleGeometry x:Name="AfterPreviewClip"/>
+                                                    </Image.Clip>
+                                                </Image>
+                                                <Border x:Name="SwipeLine"
+                                                        HorizontalAlignment="Left"
+                                                        Width="2"
+                                                        Background="#FFFFD166"
+                                                        Opacity="0.9"/>
+                                                <TextBlock Text="Original"
+                                                           HorizontalAlignment="Left"
+                                                           VerticalAlignment="Top"
+                                                           Foreground="White"
+                                                           Background="#99000000"
+                                                           Padding="6,3"
+                                                           Margin="8"/>
+                                                <TextBlock x:Name="AfterPreviewLabelText"
+                                                           Text="After preview"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Top"
+                                                           Foreground="White"
+                                                           Background="#99000000"
+                                                           Padding="6,3"
+                                                           Margin="8"/>
+                                            </Grid>
+                                        </ScrollViewer>
+                                    </Border>
+
+                                    <TextBlock Grid.Row="4"
+                                               x:Name="ProcessingScaffoldText"
+                                               Text="Preprocessing test: Before is the selected raw image. After updates only after fixture calibration is loaded and native preprocessing stages execute."
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,0"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ===== METRICS TAB ===== -->
+            <TabItem Header="Metrics">
+                <ScrollViewer>
+                    <StackPanel Margin="16">
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Metrics" FontSize="18" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                            <Button Content="Refresh" Width="90" DockPanel.Dock="Right" Click="RefreshButton_Click"/>
+                        </DockPanel>
+                        <TextBlock x:Name="MetricsSummaryText"
+                                   Text="Metrics: waiting for native readiness and fixture preview."
+                                   FontSize="13"
+                                   Foreground="#FF57606A"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <TextBlock Text="Evaluation Gates" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="EvaluationMetricsGrid"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
-                                  MinHeight="72"
-                                  MaxHeight="160"
-                                  Margin="0,0,0,6">
+                                  MinHeight="180"
+                                  MaxHeight="260"
+                                  Margin="0,0,0,14">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Parameter" Binding="{Binding ParamName}" Width="170"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding ErrorCode}" Width="90"/>
-                                <DataGridTextColumn Header="Min" Binding="{Binding MinValue, StringFormat={}{0:0.###}}" Width="80"/>
-                                <DataGridTextColumn Header="Max" Binding="{Binding MaxValue, StringFormat={}{0:0.###}}" Width="80"/>
-                                <DataGridCheckBoxColumn Header="OK" Binding="{Binding Passed}" Width="50"/>
+                                <DataGridTextColumn Header="Area" Binding="{Binding Area}" Width="150"/>
+                                <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="210"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Stage Latency" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="StageLatencyGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="110"
+                                  MaxHeight="190"
+                                  Margin="0,0,0,14">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="130"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                <DataGridCheckBoxColumn Header="Exec" Binding="{Binding Executed}" Width="60"/>
+                                <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
                                 <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="DetailsText" Text="Details: Waiting for health check." FontSize="12" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
 
-                <TextBlock Text="Integration policy" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,4"/>
-                <TextBlock Text="This screen only verifies xpe_common native health. Preprocess and display image-processing controls must remain disabled until their DLL readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
-
-                <Separator Margin="0,16,0,12"/>
-
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Module Readiness Matrix" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                    <Button Content="Refresh Modules" Width="120" DockPanel.Dock="Right" Click="RefreshModulesButton_Click"/>
-                </DockPanel>
-
-                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means ABI smoke ready, R3+ requires module exports, oracle tests, and fixture E2E. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
-                        <DataGrid x:Name="ModuleReadinessGrid"
+                        <TextBlock Text="Calibration Loads" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="CalibrationMetricsGrid"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
-                                  Height="210">
+                                  MinHeight="110"
+                                  MaxHeight="220">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="130"/>
-                                <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
-                                <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
-                                <DataGridTextColumn Header="Next action" Binding="{Binding NextAction}" Width="260"/>
-                                <DataGridCheckBoxColumn Header="Exec" Binding="{Binding ProcessingEnabled}" Width="60"/>
+                                <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="110"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                <DataGridCheckBoxColumn Header="Loaded" Binding="{Binding Loaded}" Width="70"/>
+                                <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
+                                <DataGridTextColumn Header="Expiry" Binding="{Binding Expiry}" Width="160"/>
+                                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <TextBlock x:Name="ModuleReadinessSummaryText"
-                                   Text="Module readiness: not checked"
-                                   FontSize="12"
-                                   TextWrapping="Wrap"
-                                   Margin="0,8,0,0"/>
                     </StackPanel>
-                </Border>
+                </ScrollViewer>
+            </TabItem>
 
-                <Separator Margin="0,16,0,12"/>
-
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Preprocessing Fixture Test" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <Button Content="Refresh Fixtures" Width="120" Click="RefreshFixturesButton_Click"/>
-                    </StackPanel>
-                </DockPanel>
-
-                <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                    <TextBlock Text="Select a prepared fixture case, load one raw image from that case, then run Offset/Gain/Defect preprocessing with the calibration raw files in the same case. The app converts those calibration raws to preview-sized XCal files, loads them into xpe_preprocess.dll, and reports before/after delta metrics so execution is verifiable." TextWrapping="Wrap" FontSize="13"/>
-                </Border>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="330"/>
-                        <ColumnDefinition Width="12"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Border Grid.Column="0" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
-                        <StackPanel>
-                            <TextBlock Text="Calibration cases" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <ComboBox x:Name="FixtureCaseComboBox"
-                                      DisplayMemberPath="DisplayName"
-                                      SelectionChanged="FixtureCaseComboBox_SelectionChanged"
-                                      Margin="0,0,0,10"/>
-                            <TextBlock x:Name="SelectedCaseText"
-                                       Text="Selected case: none"
-                                       TextWrapping="Wrap"
-                                       FontSize="11"
-                                       Foreground="#FF57606A"
-                                       Margin="0,0,0,10"/>
-
-                            <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <ListBox x:Name="ImageFilesListBox"
-                                     DisplayMemberPath="DisplayName"
-                                     Height="150"
-                                     SelectionChanged="ImageFilesListBox_SelectionChanged"/>
-
-                            <TextBlock Text="Calibration files" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <ListBox x:Name="CalibrationFilesListBox"
-                                     DisplayMemberPath="DisplayName"
-                                     Height="150"/>
-
-                            <Button Content="Load Selected Raw"
-                                    Margin="0,12,0,0"
+            <!-- ===== REPORTS TAB ===== -->
+            <TabItem Header="Reports">
+                <ScrollViewer>
+                    <StackPanel Margin="16">
+                        <TextBlock Text="Reports" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button x:Name="RunSelectedFixtureE2eButton"
+                                    Content="Run Selected Case E2E"
+                                    Width="160"
                                     Height="30"
-                                    Click="LoadSelectedRawButton_Click"/>
-                            <Button x:Name="ApplyNativePreviewButton"
-                                    Content="Run Preprocessing Test"
-                                    Margin="0,6,0,0"
+                                    Margin="0,0,8,0"
+                                    Click="RunSelectedFixtureE2eButton_Click"/>
+                            <Button x:Name="RunAllFixtureE2eButton"
+                                    Content="Run All Fixture E2E"
+                                    Width="150"
                                     Height="30"
-                                    IsEnabled="False"
-                                    Click="ApplyNativePreviewButton_Click"/>
-
-                            <Separator Margin="0,14,0,10"/>
-
-                            <TextBlock Text="Stage modes" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <TextBlock x:Name="StageModesInfoText"
-                                       Text="Offset/Gain/Defect controls are enabled when xpe_preprocess.dll exports are available. Auto runs only when the selected fixture case has a matching calibration role."
-                                       TextWrapping="Wrap"
-                                       FontSize="11"
-                                       Foreground="#FF57606A"
-                                       Margin="0,0,0,8"/>
-
-                            <TextBlock Text="Offset" FontSize="12" FontWeight="SemiBold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                <RadioButton x:Name="OffsetOffRadio" Content="Off" GroupName="OffsetMode" IsChecked="True" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="OffsetOnRadio" Content="On" GroupName="OffsetMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="OffsetAutoRadio" Content="Auto" GroupName="OffsetMode" IsEnabled="False"/>
-                            </StackPanel>
-
-                            <TextBlock Text="Gain" FontSize="12" FontWeight="SemiBold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                <RadioButton x:Name="GainOffRadio" Content="Off" GroupName="GainMode" IsChecked="True" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="GainOnRadio" Content="On" GroupName="GainMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="GainAutoRadio" Content="Auto" GroupName="GainMode" IsEnabled="False"/>
-                            </StackPanel>
-
-                            <TextBlock Text="Defect" FontSize="12" FontWeight="SemiBold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                <RadioButton x:Name="DefectOffRadio" Content="Off" GroupName="DefectMode" IsChecked="True" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="DefectOnRadio" Content="On" GroupName="DefectMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="DefectAutoRadio" Content="Auto" GroupName="DefectMode" IsEnabled="False"/>
-                            </StackPanel>
-
-                            <TextBlock x:Name="NativePreviewText"
-                                       Text="Native preview: unavailable"
-                                       FontSize="11"
-                                       TextWrapping="Wrap"
-                                       Margin="0,0,0,8"/>
-                            <Button Content="Save E2E Report"
+                                    Margin="0,0,8,0"
+                                    Click="RunAllFixtureE2eButton_Click"/>
+                            <Button Content="Save Current GUI Report"
+                                    Width="170"
                                     Height="30"
                                     Click="SaveE2eReportButton_Click"/>
-                            <TextBlock x:Name="E2eReportText"
-                                       Text="E2E report: not saved"
-                                       FontSize="11"
-                                       TextWrapping="Wrap"
-                                       Margin="0,6,0,0"/>
                         </StackPanel>
-                    </Border>
+                        <TextBlock x:Name="ReportsSummaryText"
+                                   Text="Reports: no report generated in this session."
+                                   FontSize="13"
+                                   Foreground="#FF57606A"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="FixtureE2eReportText"
+                                   Text="Fixture E2E: not run"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
 
-                    <Border Grid.Column="2" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                        <DataGrid x:Name="ReportArtifactsGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="180">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="210"/>
+                                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                            <StackPanel Grid.Row="0">
-                                <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="RawPreviewInfoText" Text="Select a fixture image, then load it for preprocessing verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                            </StackPanel>
+            <!-- ===== HELP TAB ===== -->
+            <TabItem Header="Help">
+                <ScrollViewer>
+                    <StackPanel Margin="16">
+                        <TextBlock Text="Workflow Guide" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
 
-                            <DockPanel Grid.Row="1" Margin="0,10,0,8">
-                                <TextBlock Text="Zoom" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-                                <TextBlock x:Name="ZoomValueText" Text="100%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
-                                <Slider x:Name="RawZoomSlider"
-                                        Minimum="0.1"
-                                        Maximum="8"
-                                        Value="1"
-                                        TickFrequency="0.1"
-                                        IsSnapToTickEnabled="False"
-                                        ValueChanged="RawZoomSlider_ValueChanged"/>
-                            </DockPanel>
+                        <TextBlock Text="Step 1 — Load Image" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Go to the Workflow tab. Click Browse and select a *.raw flat-panel image file. DICOM (*.dcm) loading is reserved for xpe_dicom.dll in Phase 1b."
+                                   TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
-                            <DockPanel Grid.Row="2" Margin="0,0,0,8">
-                                <TextBlock Text="Swipe" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-                                <TextBlock x:Name="SwipeValueText" Text="50%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
-                                <Slider x:Name="CompareSwipeSlider"
-                                        Minimum="0"
-                                        Maximum="1"
-                                        Value="0.5"
-                                        TickFrequency="0.01"
-                                        IsSnapToTickEnabled="False"
-                                        ValueChanged="CompareSwipeSlider_ValueChanged"/>
-                            </DockPanel>
+                        <TextBlock Text="Step 2 — Configure Pipeline Stages" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Set each processing stage to Off, On, or Auto. Preprocess is active when xpe_preprocess.dll is at R3. Enhance and Display are stubs — they become available in later phases."
+                                   TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
-                            <Border Grid.Row="3" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
-                                <ScrollViewer x:Name="RawImageScrollViewer"
-                                              HorizontalScrollBarVisibility="Auto"
-                                              VerticalScrollBarVisibility="Auto">
-                                    <Grid x:Name="ComparisonCanvas"
-                                          Background="#FF101820"
-                                          SizeChanged="ComparisonCanvas_SizeChanged">
-                                        <Grid.RenderTransform>
-                                            <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
-                                        </Grid.RenderTransform>
+                        <TextBlock Text="Step 3 — Run" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Click Run to execute the active pipeline stages. The Before/After comparison panel will update when Phase 1b is complete."
+                                   TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
-                                        <Image x:Name="BeforePreviewImage"
-                                               Stretch="None"
-                                               SnapsToDevicePixels="True"
-                                               RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                                        <Image x:Name="AfterPreviewImage"
-                                               Stretch="None"
-                                               SnapsToDevicePixels="True"
-                                               RenderOptions.BitmapScalingMode="NearestNeighbor">
-                                            <Image.Clip>
-                                                <RectangleGeometry x:Name="AfterPreviewClip"/>
-                                            </Image.Clip>
-                                        </Image>
-                                        <Border x:Name="SwipeLine"
-                                                HorizontalAlignment="Left"
-                                                Width="2"
-                                                Background="#FFFFD166"
-                                                Opacity="0.9"/>
-                                        <TextBlock Text="Original"
-                                                   HorizontalAlignment="Left"
-                                                   VerticalAlignment="Top"
-                                                   Foreground="White"
-                                                   Background="#99000000"
-                                                   Padding="6,3"
-                                                   Margin="8"/>
-                                        <TextBlock x:Name="AfterPreviewLabelText"
-                                                   Text="After preview"
-                                                   HorizontalAlignment="Right"
-                                                   VerticalAlignment="Top"
-                                                   Foreground="White"
-                                                   Background="#99000000"
-                                                   Padding="6,3"
-                                                   Margin="8"/>
-                                    </Grid>
-                                </ScrollViewer>
-                            </Border>
+                        <TextBlock Text="Diagnostics Tab" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Switch to the Diagnostics tab to inspect DLL health probes, module readiness gates, and fixture calibration results. Use Refresh to re-run checks."
+                                   TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
-                            <TextBlock Grid.Row="4"
-                                       x:Name="ProcessingScaffoldText"
-                                       Text="Preprocessing test: Before is the selected raw image. After updates only after fixture calibration is loaded and native preprocessing stages execute."
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       Margin="0,8,0,0"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-            </StackPanel>
-        </ScrollViewer>
+                        <TextBlock Text="Metrics and Reports Tabs" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="These areas are reserved for Phase 1b processing metrics and report generation."
+                                   TextWrapping="Wrap" FontSize="13"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </Window>

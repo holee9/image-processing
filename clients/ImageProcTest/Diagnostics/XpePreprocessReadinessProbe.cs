@@ -55,6 +55,7 @@ namespace ImageProcTest
                     continue;
                 }
 
+                NativeDependencyLoader.TryLoadFor(candidate);
                 if (!NativeLibrary.TryLoad(candidate, out var handle))
                 {
                     continue;
