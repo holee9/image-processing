@@ -151,7 +151,7 @@ XPE_API const char* xpe_version(void)
 
 XPE_API XpeErrorCode xpe_configure(const char* jsonConfig)
 {
-    if (!jsonConfig) return XPE_ERR_INVALID_INPUT;
+    if (!jsonConfig || jsonConfig[0] == '\0') return XPE_ERR_INVALID_INPUT;
 
     try {
         // Minimal JSON validity check: must start with '{'

@@ -16,8 +16,8 @@ namespace {
 
 class DefectCorrectTest : public ::testing::Test {
 protected:
-    static constexpr uint32_t W = 8;
-    static constexpr uint32_t H = 8;
+    static constexpr uint32_t W = 32;
+    static constexpr uint32_t H = 32;
 
     std::vector<float>   imgPixels;
     std::vector<uint8_t> defectPixels;

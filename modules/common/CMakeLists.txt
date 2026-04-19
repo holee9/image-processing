@@ -44,6 +44,7 @@ endif()
 add_library(xpe_common SHARED
     src/xpe_common.cpp
     src/xpe_memory.cpp
+    src/xpe_logging.cpp
 )
 
 target_compile_definitions(xpe_common

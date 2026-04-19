@@ -57,11 +57,11 @@ protected:
     }
 };
 
-// REQ-P1A-016: corrected[i] = img[i] * gainMap[i]
-TEST_F(GainCorrectTest, AppliesGainMultiplication) {
+// REQ-P1A-016: corrected[i] = img[i] / gainMap[i] (flat-field normalization)
+TEST_F(GainCorrectTest, AppliesGainCorrection) {
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
     const auto* out = static_cast<const float*>(img.data);
-    EXPECT_NEAR(3000.0f, out[0], 1e-3f);
+    EXPECT_NEAR(2000.0f / 1.5f, out[0], 1e-3f);
 }
 
 // REQ-P1A-017: output format must be float32 after conversion

@@ -275,7 +275,7 @@ XpeErrorCode xpe_gain_correct(XpeImageBuffer* img,
     if (has_invalid_gain) return XPE_ERR_CONFIG_INVALID;
 
     // Step 2: Precompute reciprocal gain map
-    // AC-GAIN-001: R(x,y) = 1/G(x,y) precomputation
+    // AC-GAIN-001: R(x,y) = 1/G(x,y) — corrected = raw / gain (flat-field normalization)
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): pipeline manages lifetime
     float* reciprocal = static_cast<float*>(std::malloc(n * sizeof(float)));
     if (!reciprocal) return XPE_ERR_OUT_OF_MEMORY;

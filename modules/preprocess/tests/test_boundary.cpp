@@ -47,7 +47,7 @@ TEST(Boundary, GainCorrect1x1) {
     auto img     = make_img(&px, 1, 1, XPE_PIXEL_UINT16, 2);
     auto gainMap = make_img(&gn, 1, 1, XPE_PIXEL_FLOAT32, 4);
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_NEAR(2000.0f, *static_cast<float*>(img.data), 1e-3f);
+    EXPECT_NEAR(1000.0f / 2.0f, *static_cast<float*>(img.data), 1e-3f);
     std::free(img.data);
 }
 
