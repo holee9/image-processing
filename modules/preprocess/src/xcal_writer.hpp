@@ -46,4 +46,38 @@ XPE_API XpeErrorCode write_xcal_file(
     const uint8_t* payload,
     uint64_t payload_len);
 
+/**
+ * @brief Write an XCal v1 file atomically with optional RLE compression.
+ *
+ * Extended version of write_xcal_file that supports RLE compression for
+ * DEFECT (UINT8_MASK) payloads. When compress_defect is true and the
+ * header type is XCAL_TYPE_DEFECT, the payload is RLE-encoded.
+ *
+ * Compression metadata is stored in the config_json field as:
+ *   {"xcal_compression":1,"xcal_raw_payload_len":NNN}
+ *
+ * If the compressed payload is larger than the original (e.g. random data),
+ * the uncompressed version is written instead.
+ *
+ * @param path             Destination file path (UTF-8).
+ * @param hdr_template     Caller-supplied header template.
+ * @param config_json      Optional config JSON bytes (nullptr if none).
+ * @param config_json_len  Length of config_json in bytes (0 if none).
+ * @param payload          Pixel payload bytes.
+ * @param payload_len      Length of payload in bytes.
+ * @param compress_defect  Enable RLE compression for DEFECT type payloads.
+ * @return XPE_OK on success.
+ *         XPE_ERR_INVALID_INPUT if path or payload is nullptr when payload_len > 0.
+ *         XPE_ERR_IO_FAILED on file write error.
+ *         XPE_ERR_OUT_OF_MEMORY on allocation failure.
+ */
+XPE_API XpeErrorCode write_xcal_file_ex(
+    const char* path,
+    XCalFileHeader hdr_template,
+    const uint8_t* config_json,
+    uint64_t config_json_len,
+    const uint8_t* payload,
+    uint64_t payload_len,
+    bool compress_defect);
+
 #endif /* XPE_XCAL_WRITER_HPP */

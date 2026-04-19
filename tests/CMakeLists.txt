@@ -30,6 +30,7 @@ enable_testing()
 
 # Module-specific test suites
 add_subdirectory(preprocess_smoke)
+add_subdirectory(preprocess)
 
 # Additional modules are added below as each module is implemented.
 # Pattern: xpe_add_optional_subdirectory(enhance_basic_smoke)

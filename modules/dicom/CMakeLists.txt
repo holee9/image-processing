@@ -1,8 +1,20 @@
-if(BUILD_DICOM)
-    find_package(DCMTK CONFIG REQUIRED)
-    find_package(OpenJPEG CONFIG REQUIRED)
-else()
-    message(FATAL_ERROR "BUILD_DICOM option is required for xpe_dicom module")
+# DICOM module requires DCMTK and OpenJPEG
+# Only build if BUILD_DICOM=ON and dependencies are available
+if(NOT BUILD_DICOM)
+    message(STATUS "DICOM module disabled (BUILD_DICOM=OFF)")
+    return()
+endif()
+
+find_package(DCMTK CONFIG QUIET)
+if(NOT DCMTK_FOUND)
+    message(STATUS "DCMTK not found, skipping DICOM module")
+    return()
+endif()
+
+find_package(OpenJPEG CONFIG QUIET)
+if(NOT OpenJPEG_FOUND)
+    message(STATUS "OpenJPEG not found, skipping DICOM module")
+    return()
 endif()
 
 add_library(xpe_dicom SHARED

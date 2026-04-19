@@ -75,3 +75,28 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
 
     return std::string(pos, end);
 }
+
+/**
+ * Minimal JSON numeric field extractor — parses "key": number (int or float).
+ * Returns defaultVal when key is absent or configJson is null.
+ */
+double xpe_json_get_double(const char* configJson, const char* key, double defaultVal) {
+    if (!configJson || !key) return defaultVal;
+
+    // Search for: "key"
+    char needle[128];
+    std::snprintf(needle, sizeof(needle), "\"%s\"", key);
+    const char* pos = std::strstr(configJson, needle);
+    if (!pos) return defaultVal;
+
+    // Skip past "key":
+    pos += std::strlen(needle);
+    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == ':')) ++pos;
+
+    // Parse numeric value (int or float, possibly negative)
+    char* end = nullptr;
+    double val = std::strtod(pos, &end);
+    if (end == pos) return defaultVal; // no conversion performed
+
+    return val;
+}

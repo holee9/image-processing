@@ -292,3 +292,11 @@ tests/test_data/**/PositionMap.raw
 .moai/state/
 .moai/reports/
 .moai/plans/
+
+# ===========================================
+# XPE Dev Workspace & Build Scripts
+# ===========================================
+_workspace/
+build-and-test.ps1
+build-result.txt
+.moai/docs/MCP_OAUTH_SETUP.md
