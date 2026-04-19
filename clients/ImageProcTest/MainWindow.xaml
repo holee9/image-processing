@@ -422,28 +422,123 @@
 
             <!-- ===== METRICS TAB ===== -->
             <TabItem Header="Metrics">
-                <StackPanel Margin="16">
-                    <TextBlock Text="Metrics" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <TextBlock Text="Phase 1b metrics pending" FontSize="13" Foreground="#FF57606A" Margin="0,0,0,12"/>
-                    <DataGrid AutoGenerateColumns="False"
-                              CanUserAddRows="False"
-                              IsReadOnly="True"
-                              HeadersVisibility="Column"
-                              Height="200">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Metric" Width="200"/>
-                            <DataGridTextColumn Header="Value" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </StackPanel>
+                <ScrollViewer>
+                    <StackPanel Margin="16">
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Metrics" FontSize="18" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                            <Button Content="Refresh" Width="90" DockPanel.Dock="Right" Click="RefreshButton_Click"/>
+                        </DockPanel>
+                        <TextBlock x:Name="MetricsSummaryText"
+                                   Text="Metrics: waiting for native readiness and fixture preview."
+                                   FontSize="13"
+                                   Foreground="#FF57606A"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <TextBlock Text="Evaluation Gates" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="EvaluationMetricsGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="180"
+                                  MaxHeight="260"
+                                  Margin="0,0,0,14">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Area" Binding="{Binding Area}" Width="150"/>
+                                <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="210"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Stage Latency" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="StageLatencyGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="110"
+                                  MaxHeight="190"
+                                  Margin="0,0,0,14">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="130"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                <DataGridCheckBoxColumn Header="Exec" Binding="{Binding Executed}" Width="60"/>
+                                <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
+                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Calibration Loads" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <DataGrid x:Name="CalibrationMetricsGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="110"
+                                  MaxHeight="220">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="110"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                <DataGridCheckBoxColumn Header="Loaded" Binding="{Binding Loaded}" Width="70"/>
+                                <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
+                                <DataGridTextColumn Header="Expiry" Binding="{Binding Expiry}" Width="160"/>
+                                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <!-- ===== REPORTS TAB ===== -->
             <TabItem Header="Reports">
-                <StackPanel Margin="16">
-                    <TextBlock Text="Reports" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <TextBlock Text="Phase 1b reports pending" FontSize="13" Foreground="#FF57606A"/>
-                </StackPanel>
+                <ScrollViewer>
+                    <StackPanel Margin="16">
+                        <TextBlock Text="Reports" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button x:Name="RunSelectedFixtureE2eButton"
+                                    Content="Run Selected Case E2E"
+                                    Width="160"
+                                    Height="30"
+                                    Margin="0,0,8,0"
+                                    Click="RunSelectedFixtureE2eButton_Click"/>
+                            <Button x:Name="RunAllFixtureE2eButton"
+                                    Content="Run All Fixture E2E"
+                                    Width="150"
+                                    Height="30"
+                                    Margin="0,0,8,0"
+                                    Click="RunAllFixtureE2eButton_Click"/>
+                            <Button Content="Save Current GUI Report"
+                                    Width="170"
+                                    Height="30"
+                                    Click="SaveE2eReportButton_Click"/>
+                        </StackPanel>
+                        <TextBlock x:Name="ReportsSummaryText"
+                                   Text="Reports: no report generated in this session."
+                                   FontSize="13"
+                                   Foreground="#FF57606A"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="FixtureE2eReportText"
+                                   Text="Fixture E2E: not run"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <DataGrid x:Name="ReportArtifactsGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="180">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="210"/>
+                                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <!-- ===== HELP TAB ===== -->
