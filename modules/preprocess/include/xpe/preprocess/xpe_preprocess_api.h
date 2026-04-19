@@ -267,18 +267,18 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * ========================================================================= */
 
 /**
- * @brief Validate raw uint16 image for readout artifacts (line noise, dropped columns,
- *        ADC saturation). Call BEFORE any correction stage.
- * @param rawImg         [in]  Raw uint16 image to validate
- * @param artifactScoreOut [out] Normalized score: 0 = clean, 100 = severely corrupted
- * @param msgOut         [out] Operator-readable summary message buffer
- * @param msgLen         [in]  Size of msgOut buffer in bytes
- * @return XPE_OK on success (score > 80 posts WARNING alert but returns XPE_OK)
+ * @brief Validate raw uint16 image for readout artifacts (dropped columns,
+ *        gain nonuniformity). Call BEFORE any correction stage.
+ * @param image               [in]  Raw uint16 image to validate
+ * @param metadata            [in]  Image metadata (acquisition context)
+ * @param has_dropped_columns [out] True if any all-zero column detected
+ * @param has_nonuniform_gain [out] True if any row mean > 0.9 * UINT16_MAX
+ * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on NULL pointers
  */
-XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
-                                                    int32_t* artifactScoreOut,
-                                                    char* msgOut,
-                                                    size_t msgLen);
+XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
+                                                    const XpeImageMetadata* metadata,
+                                                    bool* has_dropped_columns,
+                                                    bool* has_nonuniform_gain);
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)

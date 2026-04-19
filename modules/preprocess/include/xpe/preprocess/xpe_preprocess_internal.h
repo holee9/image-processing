@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <mutex>
 
 /* =========================================================================
  * SWU-1.4: GhostCorrectorHandle — opaque handle backing xpe_ghost_create
@@ -207,5 +208,31 @@ struct XpeCalibrationState {
     bool gainLoaded;            ///< true if gainMap is valid
     bool defectLoaded;          ///< true if defectMap is valid
 };
+
+/* =========================================================================
+ * Global Calibration Data (singleton, new XCal v1 API)
+ * Populated by xpe_calib_load_offset / xpe_calib_load_gain / xpe_calib_load_defect_map.
+ * ========================================================================= */
+
+struct CalibrationData {
+    std::unique_ptr<float[]>   offset_map;
+    uint32_t offset_width{0};
+    uint32_t offset_height{0};
+    int64_t  offset_timestamp{0};
+    char     offset_session_id[64]{};
+
+    std::unique_ptr<float[]>   gain_map;
+    uint32_t gain_width{0};
+    uint32_t gain_height{0};
+    int64_t  gain_timestamp{0};
+    char     gain_session_id[64]{};
+
+    std::unique_ptr<uint8_t[]> defect_map;
+    uint32_t defect_width{0};
+    uint32_t defect_height{0};
+};
+
+extern CalibrationData g_calib;
+extern std::mutex      g_calib_mutex;
 
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */

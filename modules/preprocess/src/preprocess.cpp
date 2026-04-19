@@ -1,4 +1,5 @@
 #include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <atomic>
 #include <cstring>
@@ -62,6 +63,8 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void)
     try {
         std::lock_guard<std::mutex> lock(g_lifecycleMutex);
         g_initialized.store(false, std::memory_order_release);
+        std::lock_guard<std::mutex> calib_lock(g_calib_mutex);
+        g_calib = CalibrationData{};
     } catch (...) {
     }
 }

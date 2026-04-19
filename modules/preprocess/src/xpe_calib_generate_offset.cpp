@@ -18,7 +18,7 @@
  */
 
 #include "xpe/preprocess_api.h"
-#include "xpe_preprocess_internal.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_writer.hpp"
 
 #include <cstring>
