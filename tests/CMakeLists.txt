@@ -5,22 +5,23 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Use vcpkg-provided GTest only (must be found before enable_testing)
-find_package(GTest CONFIG REQUIRED)
+find_package(GTest CONFIG)
 
 # Enable testing (REQ-P0-005)
 enable_testing()
 
-# Test subdirectories
-add_subdirectory(common_smoke)
-# Temporarily disabled due to GTest conflicts
-# add_subdirectory(common)
-# add_subdirectory(common_unit)
+# Test subdirectories (GTest required for all test targets)
+if(GTest_FOUND)
+    add_subdirectory(common_smoke)
+    # Temporarily disabled due to GTest conflicts
+    # add_subdirectory(common)
+    # add_subdirectory(common_unit)
 
-# Module-specific test suites are added below as each module is implemented.
-# Pattern: xpe_add_optional_subdirectory(preprocess_smoke)
-#           xpe_add_optional_subdirectory(enhance_basic_smoke)
-#           ...
-add_subdirectory(enhance_advanced_tests)
+    # Module-specific test suites
+    add_subdirectory(enhance_advanced_tests)
+else()
+    message(STATUS "GTest not found — skipping test subdirectories (ci-common preset)")
+endif()
 
 # ============================================================================
 # Coverage Configuration (REQ-P0-006: >=85% statement coverage)
