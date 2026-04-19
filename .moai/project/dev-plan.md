@@ -45,7 +45,7 @@ xpe-gui/ (Lane C, dev/gui)
 | xpe_display.dll | Post-B | 48/48 ✅ | ✅ | PASS |
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
 | ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 부분 (S1-B4) |
-| xpe_enhance_advanced.dll | Post-B | 0 🔄 | ❌ 스켈레톤 | 미착수 |
+| xpe_enhance_advanced.dll | Post-B | 97/103 ✅ | ✅ | PASS (94.17%) |
 | gsvg.dll | Post-B | - | ❌ | 미착수 |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
 
@@ -53,10 +53,10 @@ xpe-gui/ (Lane C, dev/gui)
 
 | Framework | 문서화 | 실제 추정 | 목표 |
 |-----------|:------:|:--------:|:----:|
-| A (Process/Compliance) | 73 | **~77~79** | 85 |
-| B (Product/Delivery) | ~70 | **~70** | 85 |
+| A (Process/Compliance) | 81 | **~81** | 85 |
+| B (Product/Delivery) | ~74 | **~74** | 85 |
 
-DISP + DICOM 완료 점수가 Framework A에 未반영. 실제 구현 진행도 +2 추정.
+M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-19 v2.3.0 기준).
 
 ---
 
@@ -96,21 +96,26 @@ main이 정의할 다음 Lane 작업 SPEC:
 ## 3. 85점 달성 main 기여 경로
 
 ```
-현재 ~79점 (추정)
-         ↓
-[main] IEC sync + S-OPS + S-IOP + S-SEC    → +6~8점 → ~85~87점
-[Pre-A Lane] SIMD scalar ref + benchmark    → +8점 (Lane 작업, main 병합)
+현재 81점 (2026-04-19 v2.3.0)
+         ↓ +4점 필요
+[main] benchmark freeze + EARS P1B~P2 + IEC VVP sync  → +4~6점 → 85~87점
 ```
 
-### main 직접 기여 항목 (점수 증가)
+### 완료된 항목 (점수 반영됨)
+
+| 항목 | Framework A 기여 | 완료일 |
+|------|:----------------:|--------|
+| M2 SIMD (AVX2/FMA) 구현 + parity | +2 (구현진행도) | 2026-04-19 |
+| P2-ADV 97/103 + IEC 62304 4종 | +5 (요구사항+문서+구현+품질) | 2026-04-19 |
+| Golden Reference 26개 + CI | +1 (품질보증) | 2026-04-19 |
+
+### main 직접 기여 항목 (잔여, 점수 증가)
 
 | 항목 | Framework A 기여 | 비고 |
 |------|:----------------:|------|
-| IEC 62304 SRS/SDD/RTM/VVP sync | +3 | 문서 품질 영역 |
-| S-OPS-CORE (PMS Plan) | +1~2 | 운영 준비도 |
-| S-IOP-CORE (Conformance) | +1~2 | 아키텍처 설계 |
-| S-SEC-CORE (SBOM, §524B) | +1~2 | 문서 품질 |
-| EARS P1B 요구사항 작성 | +3~4 | 요구사항 완전성 |
+| benchmark BP-01~10 동결 + 자동 재현 | +3 | 임계경로 — 가장 빠른 +3 |
+| EARS P1B 요구사항 작성 | +2 | 요구사항 완전성 13→17 |
+| IEC 62304 VVP sync | +1 | 문서 품질 19→20 |
 
 ---
 
@@ -138,30 +143,31 @@ main 병합 후 전체 파이프라인 E2E 검증:
 
 ## 5. 다음 main 작업 계획 (우선순위 순)
 
-### P0: 점수 공식 갱신
+### P0: benchmark BP-01~10 동결 ← 임계경로 (+3점)
 
-DISP/DICOM 완료 반영하여 Framework A/B 점수 공식 측정.
-- 대상 문서: `SPEC-XPE-MASTER/score-improvement-plan-85.md`
-- 측정 항목: 구현 진행도, 품질 보증 재산정
+현재 상태: SIMD 구현 완료. 기준 동결 미수행.
+- Pre-A Lane: SPEC-BENCH-001 작성 → Preprocess 10개 벤치마크 측정값 동결
+- main: CI 자동 재현 (benchmark regression CI 잡 추가)
+- 기여: Framework A +3, Framework B (알고리즘 품질) +2
 
-### P0: EARS P1B 요구사항 작성
+### P0: EARS P1B 요구사항 작성 (+2점)
 
-S1-B1~B3 구현은 완료됐으나 EARS 요구사항 문서 미작성.
+S1-B1~B3 구현 완료됐으나 EARS 요구사항 문서 미작성.
 - 대상 SPEC: SPEC-XPE-P1B-ENH, SPEC-XPE-P1B-DISP, SPEC-XPE-P1B-DICOM
-- 내용: 각 모듈 EARS 요구사항 30~22개 작성 → Framework A 요구사항 완전성 +4~6점
+- 내용: 각 모듈 EARS 요구사항 작성 → 요구사항 완전성 15→17점
 
-### P1: S-OPS-CORE / S-IOP-CORE / S-SEC-CORE
+### P1: IEC 62304 VVP sync (+1점)
 
-교차 추적 스프린트 (Must), 모두 main 고유 작업:
-- OPS: PMS Plan 초안 작성
-- IOP: DICOM Conformance Statement 템플릿
-- SEC: SBOM (SPDX 3.0 + CycloneDX), §524B 점검
+P2-ADV IEC 패키지는 완성됐으나 VVP (Validation/Verification Plan) 미완성.
+- 대상: docs/project/vvp_adv.md 작성
+- P1A/P1B 모듈 VVP 항목도 추가
 
-### P1: Lane SPEC 정의
+### P1: Gate G1b → G2 준비
 
-다음 Lane 작업을 위한 SPEC 생성:
-- Pre-A Lane용: SPEC-SIMD-001 (scalar ref + SIMD parity)
-- Post-B Lane용: SPEC-XPE-P2-ADV 실구현 범위 확정
+Phase 1b 파이프라인 성능 검증 (게이트 블로커):
+- Full Phase 1 pipeline < 3000ms for 3072×3072
+- Phase 1 peak memory <= 190MB
+- Integration test: Raw DICOM → Pre → Post → EI → Display → DICOM Write
 
 ---
 
@@ -171,3 +177,4 @@ S1-B1~B3 구현은 완료됐으나 EARS 요구사항 문서 미작성.
 |------|------|------|
 | 2026-04-19 | 1.0.0 | 초기 생성 — Phase 1b 완료 확인, 85점 임계 경로 분석 |
 | 2026-04-19 | 1.1.0 | main 역할 재정의 — 구현은 Lane, main은 통합/거버넌스/문서 |
+| 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |

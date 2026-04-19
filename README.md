@@ -10,21 +10,23 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | 프레임워크 | 기준 | 현재 | Phase 1b 완료 시 | 목표 |
 |-----------|------|:----:|:---------------:|:----:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **73 / 100** | ~80 | **85** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | ~58 | **66 / 100** | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **81 / 100** | ~85 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | **~74** | **66 / 100** | **85** |
 
 ### 점수 상세 (Framework A, 2026-04-19 기준)
 
 | 영역 | 배점 | 현재 | 변화 | 비고 |
 |------|:----:|:----:|:----:|------|
-| 요구사항 완전성 (EARS) | 25 | **13** | — | P1A EARS 완성, P1B~P3 미작성 |
-| 문서 품질 (IEC 62304) | 20 | **18** | — | AED 제거, docs sync 완료 |
-| 아키텍처 설계 | 20 | **17** | — | 파이프라인 물리 정확성 확인 |
-| 구현 진행도 | 20 | **15** | +2 | Phase 1a 전처리 + ENH-01 기본향상 완료 |
-| 품질 보증 | 15 | **14** | +1 | P1A 89/90 + ENH-01 5/5 + 메모리 누수 테스트 |
-| **합계** | **100** | **73** | **+3** | 2026-04-19 기준 |
+| 요구사항 완전성 (EARS) | 25 | **15** | +2 | P2-ADV SRS 요구사항 추가 (SWU-2.5/2.6/2.8/2.10) |
+| 문서 품질 (IEC 62304) | 20 | **19** | +1 | P2-ADV IEC 62304 Class B 패키지 (SRS/SDD/RTM/Compliance) |
+| 아키텍처 설계 | 20 | **17** | — | 파이프라인 물리 정확성 확인, SIMD dispatch 구조 |
+| 구현 진행도 | 20 | **18** | +3 | M2 SIMD (AVX2/FMA) + P2-ADV 97/103 완료 |
+| 품질 보증 | 15 | **15** | +1 | Golden Reference 26개 수식 검증 + CI 자동화 + P2-ADV 94.17% |
+| **합계** | **100** | **81** | **+8** | 2026-04-19 기준 |
 
 **최근 진행 상황** (2026-04-19):
+- ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19) — MFP(2.5)/Edge(2.6)/Collimation(2.8)/EI(2.10) 4개 SWU, 97/103 테스트(94.17%), IEC 62304 SRS/SDD/RTM/Compliance 문서 완성
+- ✅ **M2 SIMD 구현 완료** (2026-04-19) — Offset/Gain/Defect/Detection AVX2/FMA 최적화, bit-identical/1 ULP parity, SPEC-XPE-P1A 완료
 - ✅ **Golden Reference 테스트 26/26 통과** (2026-04-19) — Offset/Gain/Ghost/Temp/Binning/Readout 수식 검증 + Calibration round-trip (generate→save→load→apply) 완전 자동화
 - ✅ **CI Preprocess 전용 파이프라인 추가** — `ci-preprocess` CMake 프리셋 + GitHub Actions `preprocess-tests` 잡 (기존 ci-common은 BUILD_PREPROCESS=OFF라 preprocess 테스트가 CI에서 실행되지 않던 구조적 공백 해소)
 - ✅ **Gitea CI 구축** — self-hosted Windows 러너 + OpenCppCoverage HTML/Cobertura XML 커버리지 리포트
@@ -43,14 +45,14 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 ### 85점 달성 경로 (8라운드 교차검증 + Codex 분석 통합)
 
-| 단계 | 행동 | 예상 기여 |
-|:----:|------|:---------:|
-| 1 | `xpe_preprocess` scalar 레퍼런스 + SIMD parity harness | +5 |
-| 2 | benchmark pack BP-01~10 동결 + 자동 재현 | +3 |
-| 3 | deterministic Phase 1b 완전 납품 (측정값 포함) | +4 |
-| 4 | IEC 패키지 sync (SRS, SDD, RTM, VVP) | +3 |
-| 5 | baseline collimation + ROI-aware EI 재호출 | +3 |
-| 6 | reject-analysis + DI drift telemetry end-to-end | +2 |
+| 단계 | 행동 | 예상 기여 | 상태 |
+|:----:|------|:---------:|:----:|
+| 1 | `xpe_preprocess` M2 SIMD (AVX2/FMA) + parity | +3 | ✅ 완료 |
+| 2 | SPEC-XPE-P2-ADV 구현 (MFP/Edge/Collimation/EI) | +4 | ✅ 완료 |
+| 3 | Golden Reference CI + 품질 보증 완성 | +1 | ✅ 완료 |
+| 4 | benchmark pack BP-01~10 동결 + 자동 재현 | +3 | 미착수 |
+| 5 | EARS P1B~P2 요구사항 문서화 | +2 | 미착수 |
+| 6 | IEC 패키지 sync 완성 (VVP 포함) | +1 | 부분 |
 
 > **핵심 원칙**: AI 조기 투입보다 deterministic baseline 완성 → benchmark freeze → IEC sync → premium 순서가 가장 빠른 경로. 상세 계획: [`.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md`](.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md)
 

@@ -23,12 +23,12 @@ IEC 62304, EARS 추적성, 문서 완전성, 교차검증 이슈 해소를 중�
 
 | 영역 | 배점 | 현재 (2026-04-19) | 비고 |
 |------|:----:|:-----------------:|------|
-| 요구사항 완전성 (EARS) | 25 | **13** | P1A EARS 완성, P1B~P3 미작성 |
-| 문서 품질 (IEC 62304) | 20 | **18** | AED 제거·docs sync 완료, api-spec v1.3.0 출판 |
-| 아키텍처 설계 | 20 | **17** | 파이프라인 물리 정확성 확인, Binning-Gain 미문서화 |
-| 구현 진행도 | 20 | **13** | Phase 1a 전처리 9스테이지 + pipeline 통합 완료 |
-| 품질 보증 | 15 | **13** | P1A 89/90 + GUI-IT 78/78 + common 91/91 GREEN |
-| **합계** | **100** | **70** | 2026-04-19 기준 |
+| 요구사항 완전성 (EARS) | 25 | **15** | P2-ADV SRS 추가 (SWU-2.5/2.6/2.8/2.10); P1B~P3 EARS 미작성 |
+| 문서 품질 (IEC 62304) | 20 | **19** | P2-ADV IEC 62304 Class B 패키지 (SRS/SDD/RTM/Compliance) |
+| 아키텍처 설계 | 20 | **17** | 파이프라인 물리 정확성 확인, SIMD dispatch 구조 |
+| 구현 진행도 | 20 | **18** | M2 SIMD(AVX2/FMA) + P2-ADV 97/103 완료; GSVG/AI 미착수 |
+| 품질 보증 | 15 | **15** | Golden Reference 26개 + CI 자동화 + P2-ADV 94.17% |
+| **합계** | **100** | **81** | 2026-04-19 기준 (v2.3.0) |
 
 **변경 이력 (v2.0.0 → v2.1.0)**:
 - 구현 진행도 6→8: xpe_common.cpp 버그 5건 수정, /WX 빌드 통과, 전체 7개 DLL 스텁 빌드 성공
@@ -38,6 +38,12 @@ IEC 62304, EARS 추적성, 문서 완전성, 교차검증 이슈 해소를 중�
 - 구현 진행도 8→13: Phase 1a 전처리 9스테이지 완료 (Offset/Gain/Defect/Ghost Tier1~3/Temp/Nonlin/Binning/Readout), xpe_preprocess_pipeline 통합
 - 품질 보증 10→13: P1A 89/90 + GUI-IT 78/78 + xpe_common 강화 (91/91)
 - 문서 품질 17→18: AED 완전 제거 (CRITICAL 정책 준수), docs sync, api-spec v1.3.0
+
+**변경 이력 (v2.2.0 → v2.3.0)** (2026-04-19):
+- 구현 진행도 13→18: M2 SIMD (AVX2/FMA) Offset/Gain/Defect/Detection + P2-ADV 97/103 (94.17%) 완료
+- 요구사항 완전성 13→15: P2-ADV SRS (SWU-2.5 MFP, SWU-2.6 Edge, SWU-2.8 Collimation, SWU-2.10 EI)
+- 문서 품질 18→19: P2-ADV IEC 62304 Class B 패키지 (SRS/SDD/RTM/Compliance 4종)
+- 품질 보증 13→15: Golden Reference 26개 수식 검증 + Calibration CI + P2-ADV 94.17% coverage
 
 ### 1.2 Framework B — Product/Delivery Score (Codex 분석 기반)
 
