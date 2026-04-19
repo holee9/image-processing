@@ -24,6 +24,7 @@
 | **안전/위험 담당자** | SHA-CALIB-001 → RTM | 위험 식별, 리스크 관리 |
 | **의료기기 규제 담당자** | SRS → RTM → SHA → SAD | IEC 62304 추적성 패키지 |
 | **알고리즘 검증 엔지니어** | [ALGORITHM-VERIFICATION-GUIDE.md](ALGORITHM-VERIFICATION-GUIDE.md) | Spec↔구현 교차검증, 수학적 검증 방법, CI 파이프라인 |
+| **GUI QA / Test GUI 개발자** | [XPE-GUI-CALIB-001](XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md) | ImageProcTest.exe BPM Generator 구현 사양, P/Invoke ABI, QA 플레이북 |
 | **처음 접하는 개발자** | [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) | 전체 문서/코드/API 교차 참조 허브 |
 | **개념/메커니즘 이해** | [CONCEPT-DIAGRAMS.md](CONCEPT-DIAGRAMS.md) | 12개 Mermaid 개념도, 처리 흐름도, 상태 기계 |
 
@@ -34,6 +35,7 @@
 | [**KNOWLEDGE-BASE.md**](KNOWLEDGE-BASE.md) | 전체 알고리즘·문서·코드·API를 연결하는 중앙 지식 허브. 역할별 탐색 가이드, 소스↔문서 매핑, 수학 모델 레퍼런스 포함 |
 | [**CONCEPT-DIAGRAMS.md**](CONCEPT-DIAGRAMS.md) | 12개 Mermaid 다이어그램: 전체 파이프라인, 데이터 타입 흐름, 알고리즘별 처리 메커니즘 흐름도, 고스트 Tier 상태 기계, 생명주기 다이어그램 |
 | [**PRIOR-ART-BPM-ALGORITHM.md**](PRIOR-ART-BPM-ALGORITHM.md) | 종래기술 분석: MC vs Blue BPM 불량픽셀 생성 알고리즘 상세 비교, 실험 결과, XPE RMM 개선 권고사항. 포함: PPT 기반 알고리즘 스펙, 비교표, 검증 데이터셋 참조 |
+| [**XPE-GUI-CALIB-001**](XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md) | **Test GUI 캘리브레이션 검증 사양서**: ImageProcTest.exe BPM Generator 패널, 알고리즘 비교(MC/Blue/RMM), 검출기 도메인 메트릭(DSNU/PRNU/LineArtifactScore), Phase 1~3 구현 계획, QA 플레이북 |
 
 ---
 
