@@ -1,8 +1,9 @@
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <nlohmann/json.hpp>
 
 namespace {
 std::atomic_bool g_initialized{false};
@@ -33,8 +34,20 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* configJsonOrNull
 {
     try {
         std::lock_guard<std::mutex> lock(g_lifecycleMutex);
-        if (configJsonOrNull && configJsonOrNull[0] == '\0') {
-            return XPE_ERR_CONFIG_INVALID;
+
+        if (g_initialized.load(std::memory_order_acquire)) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+
+        if (configJsonOrNull != nullptr) {
+            if (configJsonOrNull[0] == '\0') {
+                return XPE_ERR_CONFIG_INVALID;
+            }
+            auto parsed = nlohmann::json::parse(configJsonOrNull,
+                                                nullptr, /*allow_exceptions=*/false);
+            if (parsed.is_discarded()) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
         }
 
         g_initialized.store(true, std::memory_order_release);
