@@ -130,6 +130,7 @@ if(_XPE_BUILD_TESTS)
     target_include_directories(xpe_preprocess_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
 
     target_link_libraries(xpe_preprocess_tests
