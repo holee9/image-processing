@@ -38,7 +38,7 @@ protected:
 
         // Setup metadata
         meta_.kVp = 120.0f;
-        strncpy(meta_.bodyPart, "CHEST", sizeof(meta_.bodyPart));
+        strncpy_s(meta_.bodyPart, sizeof(meta_.bodyPart), "CHEST", _TRUNCATE);
     }
 
     void TearDown() override {
@@ -161,23 +161,25 @@ TEST_F(MfpScalarTest, CustomConfiguration) {
     EXPECT_EQ(result, XPE_OK);
 
     // Verify enhancement is different from default
-    bool differentFromDefault = false;
-    // (We'd need to run with default config first for full comparison)
+    // TODO: Run with default config first for full comparison
 }
 
 /**
  * T-207: Test MFP identity reconstruction (REQ-ADV-050, AC-MFP-003)
  *
  * Given: Module is initialized
- * When: MFP is applied with zero enhancement coefficients
+ * When: MFP is applied with unity gain coefficients (no enhancement)
  * Then: Output should equal input (identity)
  */
 TEST_F(MfpScalarTest, IdentityReconstruction) {
+    // @MX:NOTE: REQ-ADV-050 identity reconstruction requires all gain coefficients = 1.0
+    // so that Laplacian pyramid detail coefficients pass through unmodified.
     const char* identityConfig = R"({
         "mfp": {
-            "edge_gain": 0.0,
-            "texture_gain": 0.0,
-            "flat_gain": 1.0
+            "edge_gain": 1.0,
+            "texture_gain": 1.0,
+            "flat_gain": 1.0,
+            "noise_threshold": 0.0
         }
     })";
 
@@ -278,4 +280,44 @@ TEST_F(MfpScalarTest, PreservesMeanValue) {
     // Mean should not change more than 5%
     float meanChange = std::abs(newMean - originalMean) / (std::abs(originalMean) + 1e-6f);
     EXPECT_LT(meanChange, 0.05f);
+}
+
+/**
+ * T-212: Boundary condition - 32x32 minimal image
+ *
+ * Given: Module is initialized with 32x32 image
+ * When: xpe_multiscale_process() is called
+ * Then: Function returns XPE_OK (handles extreme downsampling)
+ */
+TEST_F(MfpScalarTest, MinimalImage32x32) {
+    std::vector<float> tinyData(32 * 32, 1.0f);
+
+    XpeImageBuffer tinyImg = {};
+    tinyImg.width = 32;
+    tinyImg.height = 32;
+    tinyImg.format = XPE_PIXEL_FLOAT32;
+    tinyImg.data = tinyData.data();
+
+    XpeErrorCode result = xpe_multiscale_process(&tinyImg, &meta_, nullptr);
+    EXPECT_EQ(result, XPE_OK);
+}
+
+/**
+ * T-213: Boundary condition - non-square image
+ *
+ * Given: Module is initialized with 128x64 image
+ * When: xpe_multiscale_process() is called
+ * Then: Function returns XPE_OK and handles aspect ratio correctly
+ */
+TEST_F(MfpScalarTest, NonSquareImage) {
+    std::vector<float> rectData(128 * 64, 1.0f);
+
+    XpeImageBuffer rectImg = {};
+    rectImg.width = 128;
+    rectImg.height = 64;
+    rectImg.format = XPE_PIXEL_FLOAT32;
+    rectImg.data = rectData.data();
+
+    XpeErrorCode result = xpe_multiscale_process(&rectImg, &meta_, nullptr);
+    EXPECT_EQ(result, XPE_OK);
 }

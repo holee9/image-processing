@@ -58,7 +58,7 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Test: Call all 4 functions - should never throw exception
     try {
@@ -123,7 +123,7 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Test: Execute functions - should generate logs
     // Note: Automated log verification requires custom spdlog sink
@@ -182,7 +182,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
     meta.kVp = 120.0f;
     meta.mAs = 100.0f;
 
@@ -287,7 +287,7 @@ TEST(IntegrationTest, T604_ThreadSafety) {
 
             XpeImageMetadata meta;
             std::memset(&meta, 0, sizeof(meta));
-            strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+            strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
             // Execute full pipeline
             XpeErrorCode r1 = xpe_multiscale_process(&img, &meta, nullptr);
@@ -373,7 +373,7 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
 
         XpeImageMetadata meta;
         std::memset(&meta, 0, sizeof(meta));
-        strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+        strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
         // Execute all functions
         XpeErrorCode r1 = xpe_multiscale_process(&img, &meta, nullptr);
@@ -488,12 +488,12 @@ TEST(IntegrationTest, T607_IndependentFunctionCalling) {
         img->height = 256;
         img->format = XPE_PIXEL_FLOAT32;
         img->data = new float[256 * 256];
-        std::memset(img->data, 0.5f, 256 * 256 * sizeof(float));
+        std::memset(img->data, 0, 256 * 256 * sizeof(float));
     }
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Test: Call each function independently (no dependency on others)
 
@@ -563,7 +563,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Measure MFP performance
     // Budget: < 800ms for 3072x3072 -> ~22ms for 512x512
@@ -575,7 +575,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
     EXPECT_LT(mfpTime, 100) << "MFP exceeded budget: " << mfpTime << "ms";
 
     // Reset image
-    std::memset(data, 0.5f, IMG_SIZE * IMG_SIZE * sizeof(float));
+    std::memset(data, 0, IMG_SIZE * IMG_SIZE * sizeof(float));
 
     // Measure Fractional performance
     // Budget: < 400ms for 3072x3072 -> ~11ms for 512x512
@@ -637,11 +637,11 @@ TEST(IntegrationTest, T609_SIMIDispatchPreparation) {
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[256 * 256];
-    std::memset(img.data, 0.5f, 256 * 256 * sizeof(float));
+    std::memset(img.data, 0, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Verify scalar implementations work
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
@@ -683,11 +683,11 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[256 * 256];
-    std::memset(img.data, 0.5f, 256 * 256 * sizeof(float));
+    std::memset(img.data, 0, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
-    strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
     // Call functions to verify they exist and are documented
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);

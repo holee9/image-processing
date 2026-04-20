@@ -9,9 +9,12 @@ set(MODULE_NAME xpe_enhance_advanced)
 # Shared library
 add_library(${MODULE_NAME} SHARED
     src/xpe_enhance_advanced.cpp
+    src/multiscale_process.cpp
+    src/fractional_process.cpp
+    src/collimation_detect.cpp
+    src/enhance_advanced_helpers.cpp
     src/mfp_scalar.cpp
     src/fractional_derivative.cpp
-    src/xpe_collimation_detect.cpp
     src/exposure_index.cpp
     src/detail/edge_detection.cpp
     src/detail/hough_transform.cpp
@@ -70,25 +73,8 @@ set_target_properties(${MODULE_NAME} PROPERTIES
 # ============================================================================
 
 if(BUILD_TESTS)
-    # Google Test: reuse parent's target when available; otherwise
-    # fall back to find_package, then FetchContent. Mirrors modules/common
-    # pattern so the module works both in monorepo and standalone builds.
-    if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gtest_main)
-        find_package(GTest CONFIG QUIET)
-    endif()
-
-    if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gtest_main)
-        include(FetchContent)
-        FetchContent_Declare(
-            googletest
-            GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG v1.14.0
-            GIT_SHALLOW TRUE
-        )
-        # Windows: prevent overriding parent project CRT settings
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        FetchContent_MakeAvailable(googletest)
-    endif()
+    # Google Test: use vcpkg-provided GTest only
+    find_package(GTest CONFIG REQUIRED)
 
     # Create test executable
     add_executable(test_${MODULE_NAME}

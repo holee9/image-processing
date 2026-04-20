@@ -12,25 +12,21 @@
  */
 
 #include "xpe/enhance_advanced/xpe_enhance_advanced_api.h"
+#include "xpe/enhance_advanced/internal.h"
 #include "xpe/common/xpe_common_api.h"
 #include "xpe/common/xpe_error.h"
-#include "mfp_scalar.h"
-#include "detail/fractional_derivative.h"
 #include "detail/exposure_index.h"
 #include <nlohmann/json.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
-#include <string>
 
 // @MX:ANCHOR: [AUTO] Initialization flag -- REQ-ADV-001, REQ-ADV-020
 // @MX:REASON: Module lifecycle state; high fan-in from all processing functions
 
-namespace {
-    std::mutex g_initMutex;
-    bool g_initialized = false;
-    const char* XPE_ENHANCE_ADVANCED_VERSION = "1.0.0";
-}
+// Module state (defined here, declared as extern in internal.h)
+bool          g_initialized = false;
+std::mutex    g_initMutex;
 
 /* ============================================================================
  * Lifecycle Management (REQ-ADV-001, REQ-ADV-020)
@@ -77,103 +73,12 @@ XPE_API const char* xpe_enhance_advanced_version(void) {
 }
 
 /* ============================================================================
- * Multiscale Frequency Processing (SWU-2.5, REQ-ADV-010)
+ * Processing Functions
  * ============================================================================ */
 
-XPE_API XpeErrorCode xpe_multiscale_process(
-    XpeImageBuffer* img,
-    const XpeImageMetadata* meta,
-    const char* configJsonOrNull) {
-
-    std::lock_guard<std::mutex> lock(g_initMutex);
-
-    // REQ-ADV-020: Not-initialized guard
-    if (!g_initialized) {
-        return XPE_ERR_NOT_INITIALIZED;
-    }
-
-    // REQ-ADV-022: NULL pointer guard
-    if (img == nullptr || meta == nullptr) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-ADV-071: Format validation (advanced module only supports FLOAT32)
-    if (img->format != XPE_PIXEL_FLOAT32) {
-        return XPE_ERR_UNSUPPORTED_FORMAT;
-    }
-
-    // REQ-ADV-070: Dimension validation
-    if (img->width == 0 || img->height == 0) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // T-206, T-207: Parse configuration
-    auto config = xpe::enhance_advanced::MfpConfig::fromJson(configJsonOrNull);
-
-    // T-201: Apply MFP processing
-    return xpe::enhance_advanced::applyMfpScalar(img, config);
-}
-
-/* ============================================================================
- * Fractional-Order Edge Enhancement (SWU-2.6, REQ-ADV-011)
- * ============================================================================ */
-
-XPE_API XpeErrorCode xpe_fractional_process(
-    XpeImageBuffer* img,
-    float order,
-    const char* configJsonOrNull) {
-
-    std::lock_guard<std::mutex> lock(g_initMutex);
-
-    // REQ-ADV-020: Not-initialized guard
-    if (!g_initialized) {
-        return XPE_ERR_NOT_INITIALIZED;
-    }
-
-    // REQ-ADV-022: NULL pointer guard
-    if (img == nullptr) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-ADV-071: Format validation
-    if (img->format != XPE_PIXEL_FLOAT32) {
-        return XPE_ERR_UNSUPPORTED_FORMAT;
-    }
-
-    // REQ-ADV-070: Dimension validation
-    if (img->width == 0 || img->height == 0) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // REQ-ADV-021: Order parameter validation [0.0, 2.0]
-    if (order < 0.0f || order > 2.0f) {
-        return XPE_ERR_INVALID_INPUT;
-    }
-
-    // Parse configuration
-    auto config = xpe::enhance_advanced::FractionalConfig::fromJson(configJsonOrNull);
-    config.order = order;  // Override with parameter
-
-    // Apply fractional-order enhancement with overshoot limiting (SAF-100)
-    try {
-        return xpe::enhance_advanced::applyFractionalDerivative(img, config);
-    } catch (const std::runtime_error& e) {
-        // SAF-100: Catch attempts to disable overshoot limiting
-        if (std::string(e.what()).find("SAF-100") != std::string::npos) {
-            return XPE_ERR_SAFETY_VIOLATION;
-        }
-        return XPE_ERR_INTERNAL;
-    } catch (...) {
-        return XPE_ERR_INTERNAL;
-    }
-}
-
-/* ============================================================================
- * Collimation ROI Detection (SWU-2.8, REQ-ADV-012)
- * ============================================================================ */
-
-// Implemented in xpe_collimation_detect.cpp (T-045, T-046, T-047)
-// See that file for implementation details
+// xpe_multiscale_process: Implemented in multiscale_process.cpp
+// xpe_fractional_process: Implemented in fractional_process.cpp
+// xpe_detect_collimation: Implemented in collimation_detect.cpp
 
 /* ============================================================================
  * Exposure Index Calculation (SWU-2.10, REQ-ADV-013)

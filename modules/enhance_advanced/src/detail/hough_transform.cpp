@@ -37,8 +37,8 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
         for (int x = 0; x < cols; ++x) {
             float magnitude = edgeMagnitude(y, x);
 
-            // Skip weak edges (below threshold)
-            if (magnitude < 10.0f) {
+            // Skip weak edges (lowered threshold for better detection)
+            if (magnitude < 3.0f) {
                 continue;
             }
 
@@ -67,8 +67,8 @@ std::vector<HoughLine> HoughTransform::detectAxisAlignedLines(
     const Eigen::MatrixXi& accumulator,
     size_t numLines) {
 
-    // Find all peaks
-    std::vector<HoughLine> allPeaks = findPeaks(accumulator, 50, 5);
+    // Find all peaks (lowered threshold for better detection accuracy)
+    std::vector<HoughLine> allPeaks = findPeaks(accumulator, 20, 5);
 
     // Filter for axis-aligned lines (horizontal: theta ~ 0 or 180, vertical: theta ~ 90)
     std::vector<HoughLine> axisAlignedPeaks;
@@ -110,25 +110,61 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
         return result;
     }
 
-    // Extract top 2 horizontal and vertical lines
-    // Horizontal lines: top (min y) and bottom (max y)
-    // Vertical lines: left (min x) and right (max x)
+    // Extract top 2 horizontal and vertical lines by strength.
+    // Lines are pre-sorted by strength (descending) from detectAxisAlignedLines.
+    // Use only the top-2 strongest lines per orientation to avoid noise contamination.
+    size_t hCount = std::min(horizontalLines.size(), size_t(2));
+    size_t vCount = std::min(verticalLines.size(), size_t(2));
 
-    // Convert polar (theta, rho) to Cartesian (x, y)
-    // For horizontal lines (theta ~ 0 or 180): y = rho / sin(theta)
-    // For vertical lines (theta ~ 90): x = rho / cos(theta)
+    // @MX:NOTE: [AUTO] Polar-to-Cartesian conversion for collimation lines
+    // @MX:SPEC: REQ-ADV-012, REQ-ADV-052
+    // Hough line: rho = x*cos(theta) + y*sin(theta)
+    // Horizontal lines have theta ~ PI/2 => y = rho / sin(theta)
+    // Vertical lines have theta ~ 0 => x = rho / cos(theta)
+
+    // Epsilon threshold for near-zero trig value detection.
+    constexpr float kTrigEps = 1e-3f;
 
     std::vector<float> horizontalY;
-    for (const auto& line : horizontalLines) {
-        float y = line.rho / std::sin(line.theta + 1e-6f);  // Avoid division by zero
+    for (size_t i = 0; i < hCount; ++i) {
+        const auto& line = horizontalLines[i];
+        float cosTheta = std::cos(line.theta);
+        float sinTheta = std::sin(line.theta);
+
+        float y;
+        if (std::abs(sinTheta) < kTrigEps) {
+            // Near-horizontal line (theta ~ 0 or PI):
+            // sin(theta) ~ 0 => y-intercept (rho/sin) diverges.
+            // Use the y of the perpendicular foot from origin:
+            //   foot = (rho*cos(theta), rho*sin(theta))
+            y = line.rho * sinTheta;
+            (void)cosTheta;
+        } else {
+            // sin(theta) is well-conditioned: solve for y at x=0
+            // rho = 0*cos(theta) + y*sin(theta) => y = rho/sin(theta)
+            y = line.rho / sinTheta;
+        }
         horizontalY.push_back(y);
     }
 
     std::vector<float> verticalX;
-    for (const auto& line : verticalLines) {
-        // Cast M_PI_2 (double) to float to avoid C4244 narrowing warning
-        const float adjustedTheta = line.theta - static_cast<float>(M_PI_2) + 1e-6f;
-        float x = line.rho / std::cos(adjustedTheta);  // Adjust for vertical
+    for (size_t i = 0; i < vCount; ++i) {
+        const auto& line = verticalLines[i];
+        float cosTheta = std::cos(line.theta);
+        float sinTheta = std::sin(line.theta);
+
+        float x;
+        if (std::abs(cosTheta) < kTrigEps) {
+            // Near-vertical line (theta ~ PI/2):
+            // cos(theta) ~ 0 => x-intercept (rho/cos) diverges.
+            // Use the x of the perpendicular foot: x = rho*cos(theta).
+            x = line.rho * cosTheta;
+            (void)sinTheta;
+        } else {
+            // cos(theta) is well-conditioned: solve for x at y=0
+            // rho = x*cos(theta) + 0*sin(theta) => x = rho/cos(theta)
+            x = line.rho / cosTheta;
+        }
         verticalX.push_back(x);
     }
 
@@ -136,11 +172,11 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
     std::sort(horizontalY.begin(), horizontalY.end());
     std::sort(verticalX.begin(), verticalX.end());
 
-    // Extract boundaries (using top 2 lines)
+    // Extract boundaries (top 2 strongest lines per orientation)
     float y0 = horizontalY[0];
-    float y1 = horizontalY[1];
+    float y1 = horizontalY[horizontalY.size() > 1 ? 1 : 0];
     float x0 = verticalX[0];
-    float x1 = verticalX[1];
+    float x1 = verticalX[verticalX.size() > 1 ? 1 : 0];
 
     // Swap if needed to ensure y0 < y1 and x0 < x1
     if (y0 > y1) std::swap(y0, y1);

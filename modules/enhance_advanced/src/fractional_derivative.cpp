@@ -229,6 +229,14 @@ void applyOvershootLimiting(const float* original, float* enhanced,
             size_t idx = y * static_cast<size_t>(width) + x;
 
             float baseValue = original[idx];
+
+            // REQ-ADV-032: Guard against NaN/Inf in original data.
+            // If the base value is non-finite, fallback to 0.0f.
+            if (!std::isfinite(baseValue)) {
+                enhanced[idx] = 0.0f;
+                continue;
+            }
+
             float enhancedValue = enhanced[idx];
             float boost = enhancedValue - baseValue;
 
@@ -240,8 +248,9 @@ void applyOvershootLimiting(const float* original, float* enhanced,
 
             // Handle zero sigma (uniform region)
             if (sigmaLocal < 1e-6f) {
-                // In uniform regions, allow minimal enhancement
-                limit = 0.1f;  // Small fixed limit
+                // In uniform regions, reject ALL enhancement (identity)
+                enhanced[idx] = baseValue;
+                continue;
             }
 
             // Apply clipping
@@ -261,7 +270,65 @@ void applyOvershootLimiting(const float* original, float* enhanced,
 
 /* ============================================================================
  * Fractional Derivative Application
+ *
+ * Architecture:
+ *   1. Compute Dx = horizontal 1D GL fractional derivative from original
+ *   2. Compute Dy = vertical   1D GL fractional derivative from original
+ *   3. Gradient magnitude  G = sqrt(Dx^2 + Dy^2)
+ *   4. Enhanced image = original + gain * G
+ *   5. SAF-100 overshoot limiting (mandatory)
+ *
+ * The previous 2-pass separable approach (H then V on the H result) computed
+ * the mixed partial D_xy, which annihilates features oriented along a single
+ * axis (e.g. a horizontal ramp).  The gradient-magnitude approach correctly
+ * preserves all edge orientations.
+ *
+ * REQ-ADV-011: Fractional-order process execution
+ * REQ-ADV-032: No NaN/Inf in output
+ * REQ-ADV-051: Mandatory overshoot limiting (SAF-100)
  * ============================================================================ */
+
+/// @brief Apply a 1D fractional derivative kernel along the horizontal axis
+static void convolveHorizontal(const float* src, float* dst,
+                               int width, int height,
+                               const float* mask, int maskSize) {
+    const int half = maskSize / 2;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float sum = 0.0f;
+            for (int k = 0; k < maskSize; ++k) {
+                int nx = x - k + half;
+                nx = std::clamp(nx, 0, width - 1);
+                float val = src[y * static_cast<size_t>(width) + nx];
+                if (!std::isfinite(val)) val = 0.0f;
+                sum += val * mask[k];
+            }
+            if (!std::isfinite(sum)) sum = 0.0f;
+            dst[y * static_cast<size_t>(width) + x] = sum;
+        }
+    }
+}
+
+/// @brief Apply a 1D fractional derivative kernel along the vertical axis
+static void convolveVertical(const float* src, float* dst,
+                             int width, int height,
+                             const float* mask, int maskSize) {
+    const int half = maskSize / 2;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float sum = 0.0f;
+            for (int k = 0; k < maskSize; ++k) {
+                int ny = y - k + half;
+                ny = std::clamp(ny, 0, height - 1);
+                float val = src[ny * static_cast<size_t>(width) + x];
+                if (!std::isfinite(val)) val = 0.0f;
+                sum += val * mask[k];
+            }
+            if (!std::isfinite(sum)) sum = 0.0f;
+            dst[y * static_cast<size_t>(width) + x] = sum;
+        }
+    }
+}
 
 XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConfig& config) {
     if (img == nullptr) {
@@ -284,9 +351,17 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
     int width = static_cast<int>(img->width);
     int height = static_cast<int>(img->height);
     float* data = static_cast<float*>(img->data);
+    size_t totalPixels = static_cast<size_t>(width) * height;
 
-    // Store original for overshoot limiting
-    std::vector<float> original(data, data + width * height);
+    // REQ-ADV-032: Sanitize input NaN/Inf to 0.0f before processing.
+    for (size_t i = 0; i < totalPixels; ++i) {
+        if (!std::isfinite(data[i])) {
+            data[i] = 0.0f;
+        }
+    }
+
+    // Store original for overshoot limiting and derivative computation
+    std::vector<float> original(data, data + totalPixels);
 
     // For order = 0, no enhancement (identity)
     if (config.order < 1e-6f) {
@@ -295,63 +370,39 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
 
     // Compute fractional derivative mask
     // Mask size: 5 for order <= 1.0, 7 for order > 1.0
-    size_t maskSize = (config.order <= 1.0f) ? 5 : 7;
+    const size_t maskSize = (config.order <= 1.0f) ? 5 : 7;
     std::vector<float> mask = computeFractionalMask(config.order, maskSize);
+    const int mSize = static_cast<int>(maskSize);
 
-    // Apply fractional derivative convolution
-    // For simplicity, we apply 1D convolution horizontally and vertically
-    // Full 2D implementation would use separable filters
+    // Step 1: Compute Dx (horizontal derivative from original)
+    std::vector<float> Dx(totalPixels);
+    convolveHorizontal(original.data(), Dx.data(), width, height, mask.data(), mSize);
 
-    std::vector<float> temp(width * height);
+    // Step 2: Compute Dy (vertical derivative from original)
+    std::vector<float> Dy(totalPixels);
+    convolveVertical(original.data(), Dy.data(), width, height, mask.data(), mSize);
 
-    // Horizontal pass
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            float sum = 0.0f;
+    // Step 3: Gradient magnitude G = sqrt(Dx^2 + Dy^2) and
+    // Step 4: Enhanced = original + gain * G
+    //
+    // Gain: scales the derivative contribution into the enhancement.
+    // For order < 1 the derivative is sub-pixel; compensate with a
+    // slightly higher gain.  The gain is clamped so that overshoot
+    // limiting (SAF-100) still has room to clip cleanly.
+    const float gain = std::min(1.0f + 0.5f * config.order, 2.0f);
 
-            for (size_t k = 0; k < maskSize; ++k) {
-                int nx = x - static_cast<int>(k) + static_cast<int>(maskSize) / 2;
+    for (size_t i = 0; i < totalPixels; ++i) {
+        float gx = Dx[i];
+        float gy = Dy[i];
+        float gMag = std::sqrt(gx * gx + gy * gy);
 
-                // Boundary handling: clamp (int overload)
-                nx = std::clamp(nx, 0, width - 1);
+        // REQ-ADV-032: Guard gradient magnitude
+        if (!std::isfinite(gMag)) gMag = 0.0f;
 
-                size_t srcIdx = y * static_cast<size_t>(width) + nx;
-                float val = original[srcIdx];
+        data[i] = original[i] + gain * gMag;
 
-                if (!isValid(val)) {
-                    val = 0.0f;  // Treat invalid as zero
-                }
-
-                sum += val * mask[k];
-            }
-
-            temp[y * static_cast<size_t>(width) + x] = sum;
-        }
-    }
-
-    // Vertical pass
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            float sum = 0.0f;
-
-            for (size_t k = 0; k < maskSize; ++k) {
-                int ny = y - static_cast<int>(k) + static_cast<int>(maskSize) / 2;
-
-                // Boundary handling: clamp (int overload)
-                ny = std::clamp(ny, 0, height - 1);
-
-                size_t srcIdx = ny * static_cast<size_t>(width) + x;
-                float val = temp[srcIdx];
-
-                if (!isValid(val)) {
-                    val = 0.0f;
-                }
-
-                sum += val * mask[k];
-            }
-
-            data[y * static_cast<size_t>(width) + x] = sum;
-        }
+        // REQ-ADV-032: Guard output
+        if (!std::isfinite(data[i])) data[i] = original[i];
     }
 
     // SAF-100: Apply overshoot limiting (MANDATORY)
