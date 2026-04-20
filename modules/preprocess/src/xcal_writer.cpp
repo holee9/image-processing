@@ -37,11 +37,10 @@ static std::string build_config_json(
         // Build compression metadata JSON
         // Minimal: {"xcal_compression":1,"xcal_raw_payload_len":NNN}
         char meta[128];
-        int n = std::snprintf(meta, sizeof(meta),
+        std::snprintf(meta, sizeof(meta),
             "{\"xcal_compression\":%u,\"xcal_raw_payload_len\":%llu}",
             static_cast<unsigned>(compression_method),
             static_cast<unsigned long long>(raw_payload_len));
-        // n is always >=0 here since buffer is 128 bytes and format is short
         meta[sizeof(meta) - 1] = '\0';
 
         if (caller_config != nullptr && caller_config_len > 0) {

@@ -30,7 +30,7 @@ namespace ImageProcTest
             (1792, 2304)
         ];
 
-        public static RawPreviewResult LoadUInt16Preview(string path, int maxPreviewSide = 1024)
+        public static RawPreviewResult LoadUInt16Preview(string path, int maxPreviewSide = 4096)
         {
             var file = new FileInfo(path);
             if (!file.Exists)

@@ -8,6 +8,7 @@ namespace ImageProcTest
         Offset,
         Gain,
         Defect,
+        DefectOracle,
         Reference,
         Unknown
     }
@@ -40,12 +41,14 @@ namespace ImageProcTest
             string name,
             string rootPath,
             IReadOnlyList<RawFileDescriptor> images,
-            IReadOnlyList<CalibrationFileDescriptor> calibrationFiles)
+            IReadOnlyList<CalibrationFileDescriptor> calibrationFiles,
+            string? calibrationDirectoryPath = null)
         {
             Name = name;
             RootPath = rootPath;
             Images = images;
             CalibrationFiles = calibrationFiles;
+            CalibrationDirectoryPath = calibrationDirectoryPath ?? System.IO.Path.Combine(rootPath, "calibration");
             CalibrationSummary = string.Join(", ", calibrationFiles
                 .GroupBy(file => file.Role)
                 .OrderBy(group => group.Key)
@@ -58,6 +61,8 @@ namespace ImageProcTest
         public string Name { get; }
 
         public string RootPath { get; }
+
+        public string CalibrationDirectoryPath { get; }
 
         public IReadOnlyList<RawFileDescriptor> Images { get; }
 

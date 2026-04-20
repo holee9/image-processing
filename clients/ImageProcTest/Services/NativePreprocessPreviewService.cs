@@ -70,6 +70,7 @@ namespace ImageProcTest
         IReadOnlyList<NativePreviewCalibrationResult> CalibrationLoads,
         IReadOnlyList<NativePreviewStageResult> Stages,
         NativePreviewMetrics Metrics,
+        DetectorDomainMetrics DetectorMetrics,
         double TotalLatencyMs,
         double OutputMin,
         double OutputMax,
@@ -179,6 +180,7 @@ namespace ImageProcTest
                     return RunChain(
                         preview,
                         selection,
+                        fixtureCase,
                         dllPath,
                         preparedCalibration.ArtifactDirectory,
                         loadResults,
@@ -339,6 +341,7 @@ namespace ImageProcTest
         private static NativePreprocessPreviewResult RunChain(
             RawPreviewResult preview,
             PreprocessStageSelection selection,
+            FixtureCaseInfo? fixtureCase,
             string dllPath,
             string artifactDirectory,
             IReadOnlyList<NativePreviewCalibrationResult> calibrationLoads,
@@ -405,6 +408,7 @@ namespace ImageProcTest
 
             var finalValues = currentFloat ?? currentUInt16.Select(value => (float)value).ToArray();
             var metrics = ComputeMetrics(preview.SampledPixels, finalValues);
+            var detectorMetrics = MetricsComputationService.Compute(preview, finalValues, fixtureCase, stages);
             var (outputMin, outputMax) = ComputeMinMax(finalValues);
             var bitmap = RawPreviewService.CreateGray8Bitmap(
                 finalValues,
@@ -419,6 +423,7 @@ namespace ImageProcTest
                 calibrationLoads,
                 stages,
                 metrics,
+                detectorMetrics,
                 stopwatch.Elapsed.TotalMilliseconds,
                 outputMin,
                 outputMax,

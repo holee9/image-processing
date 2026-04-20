@@ -30,16 +30,19 @@ namespace ImageProcTest
                 yield break;
             }
 
-            foreach (var root in GetRepositoryAndSiblingRoots(repoRoot, "xpe-pre"))
+            foreach (var root in GetRepositoryAndSiblingRoots(repoRoot, "image-processing", "xpe-pre"))
             {
                 var candidates = new[]
                 {
                     Path.Combine(root, "build", "local-vs2022-common", "bin", DllName),
                     Path.Combine(root, "build", "local-vs2022-common", "bin", "RelWithDebInfo", DllName),
+                    Path.Combine(root, "build", "ci-preprocess-only", "bin", DllName),
+                    Path.Combine(root, "build", "test-golden", "bin", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", "Debug", DllName),
                     Path.Combine(root, "build", "gui-preprocess-link", "bin", DllName),
                     Path.Combine(root, "build", "readiness-preprocess-only-vs2", "bin", "Debug", DllName),
                     Path.Combine(root, "build", "readiness-preprocess-vs", "bin", "Debug", DllName),
+                    Path.Combine(root, "modules", "preprocess", "build_standalone", "Debug", DllName),
                     Path.Combine(root, "build", "preprocess", "bin", "Debug", DllName),
                     Path.Combine(root, "build", "preprocess", "bin", DllName),
                     Path.Combine(root, "build", "ci", "bin", "RelWithDebInfo", DllName),
