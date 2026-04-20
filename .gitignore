@@ -217,6 +217,9 @@ dist-ssr/
 # ============================================
 cmake-build-*/
 build_test/
+build_test2/
+build_test3/
+lint_results.json
 CMakeCache.txt
 CMakeFiles/
 *.obj

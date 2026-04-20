@@ -1,5 +1,0 @@
-if(EXISTS "D:/workspace-github/xpe-post/build_test2/modules/display/test_display_integration[1]_tests.cmake")
-  include("D:/workspace-github/xpe-post/build_test2/modules/display/test_display_integration[1]_tests.cmake")
-else()
-  add_test(test_display_integration_NOT_BUILT test_display_integration_NOT_BUILT)
-endif()
