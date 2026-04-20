@@ -105,14 +105,11 @@ namespace {
 
         // Stage 0.5: Readout Artifact Validation (PRE-01)
         if (!cfg.bypassReadout) {
-            int32_t artifactScore = 0;
-            char msg[256] = {0};
-            result = xpe_validate_readout_artifact(img, &artifactScore, msg, sizeof(msg));
+            bool hasDropped = false, hasNonuniform = false;
+            XpeImageMetadata tmpMeta{};
+            const XpeImageMetadata* metaPtr = meta ? meta : &tmpMeta;
+            result = xpe_validate_readout_artifact(img, metaPtr, &hasDropped, &hasNonuniform);
             if (result != XPE_OK) return result;
-
-            if (artifactScore > 80) {
-                // TODO: post alert via alert queue
-            }
 
             if (meta) meta->flags |= XPE_FLAG_READOUT_VALIDATED;
         }

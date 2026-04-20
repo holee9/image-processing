@@ -5,11 +5,13 @@
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <algorithm>
 #include <cstdint>
+#include <cmath>
+#include <mutex>
 
 // @MX:NOTE: [AUTO] AVX2 intrinsics header — conditional include based on _MSC_VER
 #if defined(_MSC_VER)
@@ -231,63 +233,43 @@ void offset_correct_neon(uint16_t* dst, const uint16_t* off, size_t n) noexcept
  * Hierarchical fallback: AVX-512F → AVX2 → NEON → Scalar
  * ========================================================================= */
 
-// @MX:ANCHOR: [AUTO] xpe_offset_correct_dispatch — runtime dispatch implementation
-// @MX:REASON: Public API entry point; selects optimal implementation at runtime; fan_in >= 3
-// @MX:SPEC: REQ-P1A-009
-static XpeErrorCode xpe_offset_correct_dispatch(XpeImageBuffer* img,
-                                                 const XpeImageBuffer* offsetMap) noexcept
+// @MX:ANCHOR: [AUTO] xpe_offset_correct — public API entry point (new g_calib-based)
+// @MX:REASON: Called by pipeline; reads g_calib.offset_map (float32); fan_in >= 3
+// @MX:SPEC: REQ-P1A-009, REQ-P1A-020
+extern "C" XPE_API XpeErrorCode xpe_offset_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
 {
-    if (!img || !offsetMap) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_dims_match(img, offsetMap)) return XPE_ERR_INVALID_INPUT;
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_buffer_has_format(offsetMap, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
+    if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+    if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
+    if (input->format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (output->width  != input->width ||
+        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    auto* dst = static_cast<uint16_t*>(img->data);
-    const auto* off = static_cast<const uint16_t*>(offsetMap->data);
+    const size_t n = static_cast<size_t>(input->width) * input->height;
+    if (output->dataSize < n * sizeof(uint16_t)) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    // REQ-P1A-010: Hierarchical SIMD dispatch
-    // Priority: AVX-512F > AVX2 > NEON > Scalar
-    // All implementations produce bit-identical results
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    if (!g_calib.offset_map) return XPE_ERR_NOT_INITIALIZED;
+    if (g_calib.offset_width  != input->width ||
+        g_calib.offset_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-#if defined(__aarch64__)
-    // ARM64 path: NEON → Scalar
-    if (n >= 8) {
-        offset_correct_neon(dst, off, n);
-    } else {
-        offset_correct_scalar(dst, off, n);
+    const uint16_t* src    = static_cast<const uint16_t*>(input->data);
+    uint16_t*       dst    = static_cast<uint16_t*>(output->data);
+    const float*    offmap = g_calib.offset_map.get();
+
+    for (size_t i = 0; i < n; ++i) {
+        float v = static_cast<float>(src[i]) - offmap[i];
+        if (v < 0.0f) v = 0.0f;
+        if (v > 65535.0f) v = 65535.0f;
+        dst[i] = static_cast<uint16_t>(v + 0.5f);
     }
-#else
-    // x86-64 path: AVX-512F → AVX2 → Scalar
-    #if defined(__AVX512F__) || defined(_MSC_VER)
-    if (xpe_has_avx512f() && n >= 32) {
-        // @MX:NOTE: [AUTO] AVX-512 threshold: 32 pixels minimum for vectorization benefit
-        offset_correct_avx512(dst, off, n);
-    } else
-    #endif
-    #if defined(__AVX2__) || defined(_MSC_VER)
-    if (xpe_has_avx2() && n >= 16) {
-        // @MX:NOTE: [AUTO] AVX2 threshold: 16 pixels minimum for vectorization benefit
-        offset_correct_avx2(dst, off, n);
-    } else {
-        offset_correct_scalar(dst, off, n);
-    }
-    #else
-    {
-        // No SIMD support available
-        offset_correct_scalar(dst, off, n);
-    }
-    #endif
-#endif
 
+    output->format        = XPE_PIXEL_UINT16;
+    output->bitsAllocated = 16;
+    output->bitsStored    = 16;
+    output->dataSize      = n * sizeof(uint16_t);
     return XPE_OK;
-}
-
-// @MX:ANCHOR: [AUTO] xpe_offset_correct — public API entry point
-// @MX:REASON: Called by pipeline and directly by calibration manager; fan_in >= 3
-// @MX:SPEC: REQ-P1A-009
-XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
-                                 const XpeImageBuffer* offsetMap)
-{
-    return xpe_offset_correct_dispatch(img, offsetMap);
 }

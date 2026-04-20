@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include <chrono>
 #include <vector>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
@@ -384,7 +385,3 @@ TEST_F(PreprocessLifecycleTest, InitWithComplexConfig) {
 // Main Test Runner
 // =============================================================================
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

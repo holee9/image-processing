@@ -6,13 +6,15 @@
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdlib>
 #include <cstdint>
 #include <cmath>
 #include <limits>
+#include <vector>
+#include <mutex>
 #include <immintrin.h>
 #include <intrin.h>
 #include <cstring>
@@ -228,106 +230,57 @@ static void apply_gain_correction_scalar(
     }
 }
 
-// @MX:ANCHOR: [AUTO] xpe_gain_correct — public API entry point, domain transition
-// @MX:REASON: uint16->float32 domain transition happens here; all downstream funcs expect float32
-// @MX:SPEC: REQ-P1A-011
-// @MX:NOTE: [AUTO] Allocates new float buffer; caller takes ownership of img->data after call
-XpeErrorCode xpe_gain_correct(XpeImageBuffer* img,
-                               const XpeImageBuffer* gainMap)
+// @MX:ANCHOR: [AUTO] xpe_gain_correct — public API entry point (new g_calib-based)
+// @MX:REASON: UINT16→FLOAT32 domain transition; reads g_calib.gain_map; fan_in >= 3
+// @MX:SPEC: REQ-P1A-011, REQ-P1A-020
+extern "C" XPE_API XpeErrorCode xpe_gain_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
 {
-    if (!img || !gainMap) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_dims_match(img, gainMap)) return XPE_ERR_INVALID_INPUT;
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_buffer_has_format(gainMap, XPE_PIXEL_FLOAT32)) return XPE_ERR_INVALID_INPUT;
+    if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+    if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
+    if (input->format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (output->width  != input->width ||
+        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    // REQ-P1A-011: Gain correction with reciprocal precomputation
-    // AC-GAIN-001: Precompute R(x,y) = 1/G(x,y)
-    // AC-GAIN-002: Scalar path: a * (1.0f / b)
-    // AC-GAIN-003: FMA path: _mm256_fmadd_ps chain for polynomial
-    // AC-GAIN-004: Parity: 1 ULP tolerance
-    // AC-GAIN-005: NaN/Inf validation
-    //
-    // Algorithm:
-    // 1. Validate gain map for NaN/Inf values
-    // 2. Precompute reciprocal: R[x,y] = 1.0f / G[x,y]
-    // 3. Apply correction: output[x,y] = input[x,y] * R[x,y]
-    // 4. Use AVX2/FMA when available, scalar as fallback
-    //
-    // NOTE: float32 (4B) > uint16 (2B), so in-place conversion would overflow the source buffer.
-    // A new float buffer is allocated and stored in img->data; ownership transfers to the caller.
-    //
-    // Overflow guard: img->width and img->height are uint32_t; their product fits in size_t
-    // (64-bit) for all realistic image sizes, but we guard explicitly.
+    const size_t n = static_cast<size_t>(input->width) * input->height;
     if (n > std::numeric_limits<size_t>::max() / sizeof(float)) return XPE_ERR_INVALID_INPUT;
+    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    const auto* u16 = static_cast<const uint16_t*>(img->data);
-    const auto* gain = static_cast<const float*>(gainMap->data);
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    if (!g_calib.gain_map) return XPE_ERR_NOT_INITIALIZED;
+    if (g_calib.gain_width  != input->width ||
+        g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    // Step 1: Validate gain map
-    bool has_invalid_gain = false;
+    const uint16_t* src     = static_cast<const uint16_t*>(input->data);
+    float*          dst     = static_cast<float*>(output->data);
+    const float*    gainmap = g_calib.gain_map.get();
+
+    // Validate gain map and precompute reciprocals
+    std::vector<float> reciprocal(n);
     for (size_t i = 0; i < n; ++i) {
-        if (!is_valid_gain(gain[i])) {
-            has_invalid_gain = true;
-            break;
-        }
-    }
-    if (has_invalid_gain) return XPE_ERR_CONFIG_INVALID;
-
-    // Step 2: Precompute reciprocal gain map
-    // AC-GAIN-001: R(x,y) = 1/G(x,y) — corrected = raw / gain (flat-field normalization)
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): pipeline manages lifetime
-    float* reciprocal = static_cast<float*>(std::malloc(n * sizeof(float)));
-    if (!reciprocal) return XPE_ERR_OUT_OF_MEMORY;
-
-    for (size_t i = 0; i < n; ++i) {
-        reciprocal[i] = 1.0f / gain[i];
+        if (!is_valid_gain(gainmap[i])) return XPE_ERR_CONFIG_INVALID;
+        reciprocal[i] = 1.0f / gainmap[i];
     }
 
-    // Step 3: Allocate output buffer
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): pipeline manages lifetime
-    float* dst = static_cast<float*>(std::malloc(n * sizeof(float)));
-    if (!dst) {
-        std::free(reciprocal);
-        return XPE_ERR_OUT_OF_MEMORY;
-    }
-
-    // Step 4: Apply gain correction
-    // AC-GAIN-002/AC-GAIN-003: Use AVX2 when available, scalar fallback
-    // Check for AVX2 support at runtime
+    // Apply: AVX2 when available, scalar fallback
     int cpuinfo[4];
     __cpuid(cpuinfo, 0);
     bool has_avx2 = false;
-
-    // Check CPUID for AVX2 support
     if (cpuinfo[0] >= 7) {
         __cpuidex(cpuinfo, 7, 0);
-        has_avx2 = (cpuinfo[1] & (1 << 5));  // EBX bit 5 = AVX2
+        has_avx2 = (cpuinfo[1] & (1 << 5)) != 0;
     }
+    if (has_avx2)
+        apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
+    else
+        apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);
 
-    if (has_avx2) {
-        apply_gain_avx2(u16, reciprocal, dst, img->width, img->height);
-    } else {
-        apply_gain_correction_scalar(u16, reciprocal, dst, img->width, img->height);
-    }
-
-    // Verify output for NaN/Inf (should not happen with valid input)
-    for (size_t i = 0; i < n; ++i) {
-        if (!std::isfinite(dst[i])) {
-            std::free(reciprocal);
-            std::free(dst);
-            return XPE_ERR_PROCESSING_FAILED;
-        }
-    }
-
-    std::free(reciprocal);
-
-    // Update image buffer metadata (domain transition)
-    img->data = dst;
-    img->format = XPE_PIXEL_FLOAT32;
-    img->bitsAllocated = 32;
-    img->bitsStored = 32;
-    img->dataSize = n * sizeof(float);
-
+    output->format        = XPE_PIXEL_FLOAT32;
+    output->bitsAllocated = 32;
+    output->bitsStored    = 32;
+    output->dataSize      = n * sizeof(float);
     return XPE_OK;
 }

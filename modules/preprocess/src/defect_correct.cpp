@@ -5,8 +5,9 @@
  * SPEC: SPEC-XPE-P1A v1.2.0  IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include <mutex>
 
 #include <cmath>
 #include <cstring>
@@ -100,68 +101,84 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
 
 } // anonymous namespace
 
-// @MX:ANCHOR: [AUTO] xpe_defect_correct — float32 in-place defect replacement
-// @MX:REASON: Called in main pipeline after gain correction; fan_in >= 3
-// @MX:SPEC: REQ-P1A-012
-XpeErrorCode xpe_defect_correct(XpeImageBuffer* img,
-                                 const XpeImageBuffer* defectMap,
-                                 const char* configJsonOrNull)
+// @MX:ANCHOR: [AUTO] xpe_defect_correct — public API entry point (new g_calib-based)
+// @MX:REASON: Called after gain correction; reads g_calib.defect_map; fan_in >= 3
+// @MX:SPEC: REQ-P1A-012, REQ-P1A-020
+extern "C" XPE_API XpeErrorCode xpe_defect_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
 {
-    if (!img || !defectMap) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_dims_match(img, defectMap)) return XPE_ERR_INVALID_INPUT;
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_buffer_has_format(defectMap, XPE_PIXEL_UINT8)) return XPE_ERR_INVALID_INPUT;
+    if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+    if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
+    if (input->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (output->width  != input->width ||
+        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    const uint32_t W = img->width;
-    const uint32_t H = img->height;
-    auto*       px = static_cast<float*>(img->data);
-    const auto* dm = static_cast<const uint8_t*>(defectMap->data);
+    const size_t n = static_cast<size_t>(input->width) * input->height;
+    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+
+    std::unique_lock<std::mutex> lock(g_calib_mutex);
+    if (!g_calib.defect_map) return XPE_ERR_NOT_INITIALIZED;
+    if (g_calib.defect_width  != input->width ||
+        g_calib.defect_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+
+    // Copy defect map locally so we can release the mutex before heavy processing
+    std::vector<uint8_t> dm_local(g_calib.defect_map.get(),
+                                   g_calib.defect_map.get() + n);
+    lock.unlock();
+
+    const uint32_t W  = input->width;
+    const uint32_t H  = input->height;
+    const float*   src = static_cast<const float*>(input->data);
+    float*         dst = static_cast<float*>(output->data);
+    const uint8_t* dm  = dm_local.data();
+
+    // Copy input → output first
+    std::memcpy(dst, src, n * sizeof(float));
 
     bool hasDefects = false;
     for (size_t i = 0; i < n; ++i) {
-        if (dm[i] != 0) {
-            hasDefects = true;
-            break;
-        }
+        if (dm[i] != 0) { hasDefects = true; break; }
     }
-    if (!hasDefects) return XPE_OK;
-
-    std::vector<float> source;
-    try {
-        source.assign(px, px + n);
-    } catch (...) {
-        return XPE_ERR_OUT_OF_MEMORY;
+    if (!hasDefects) {
+        output->format        = XPE_PIXEL_FLOAT32;
+        output->bitsAllocated = 32;
+        output->bitsStored    = 32;
+        output->dataSize      = n * sizeof(float);
+        return XPE_OK;
     }
 
-    // REQ-P1A-012: Process defects with cluster-aware algorithm
+    // Use a source snapshot for neighbor lookups during correction
+    std::vector<float> source(src, src + n);
+
+    // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> processed(n, false);
-
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
             if (dm[idx] != 0 && !processed[idx]) {
-                // Analyze cluster for this defect
                 ClusterInfo cluster = analyzeCluster(dm, W, H, x, y);
-
                 if (cluster.isCluster) {
-                    // REQ-P1A-012: Use median filter for defect clusters
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
-                        px[cidx] = median_filter_cluster(source.data(), dm, cx, cy, W, H);
+                        dst[cidx] = median_filter_cluster(source.data(), dm, cx, cy, W, H);
                         processed[cidx] = true;
                     }
                 } else {
-                    // REQ-P1A-012: Isolated defect uses edge-aware bilinear
-                    px[idx] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
+                    dst[idx] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
                     processed[idx] = true;
                 }
             }
         }
     }
 
-    (void)configJsonOrNull;
+    output->format        = XPE_PIXEL_FLOAT32;
+    output->bitsAllocated = 32;
+    output->bitsStored    = 32;
+    output->dataSize      = n * sizeof(float);
     return XPE_OK;
 }
 
