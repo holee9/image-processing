@@ -1,8 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace ImageProcTest
@@ -27,9 +30,14 @@ namespace ImageProcTest
         private PreprocessHealthResult? lastPreprocessHealth;
         private NativePreprocessPreviewResult? lastNativePreviewResult;
         private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
+        private IReadOnlyList<AlgorithmValidationItem> currentAlgorithmValidation = [];
         private readonly List<ReportArtifactRow> reportArtifacts = [];
-        private PreprocessFixtureE2eWriteResult? lastFixtureE2eReport;
+        private AlgorithmValidationRunSnapshot? lastAlgorithmValidationRun;
+        private UserEvaluationSnapshot? lastUserEvaluation;
+        private FixtureCaseInfo? currentCalibrationContext;
+        private string? currentCalibrationFolderPath;
         private bool hasInitializedNativeStageDefaults;
+        private bool isDraggingComparisonSwipe;
 
         public MainWindow()
         {
@@ -38,17 +46,163 @@ namespace ImageProcTest
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            MoveComparisonViewerToEvaluation();
             RefreshNativeHealth();
             LoadFixtureCases();
             RefreshModuleReadiness();
             UpdateEvaluationDashboards();
         }
 
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F1)
+            {
+                SelectTab("Help");
+                e.Handled = true;
+                return;
+            }
+
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (e.Key == Key.O)
+                {
+                    WorkflowBrowseButton_Click(sender, e);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.S)
+                {
+                    SaveE2eReportButton_Click(sender, e);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void MenuOpenRaw_Click(object sender, RoutedEventArgs e)
+        {
+            WorkflowBrowseButton_Click(sender, e);
+        }
+
+        private void MenuSaveEvidenceReport_Click(object sender, RoutedEventArgs e)
+        {
+            SaveE2eReportButton_Click(sender, e);
+        }
+
+        private void MenuExit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void MenuRefreshNativeDiagnostics_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshNativeHealth();
+        }
+
+        private void MenuRunSmokeTest_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Diagnostics");
+            RefreshNativeHealth();
+        }
+
+        private void MenuShowEvaluation_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Evaluation");
+        }
+
+        private void MenuShowCalibration_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Calibration");
+        }
+
+        private void MenuShowMetrics_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Metrics");
+        }
+
+        private void MenuShowReports_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Reports");
+        }
+
+        private void MenuShowDiagnostics_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Diagnostics");
+        }
+
+        private void MenuZoomFit_Click(object sender, RoutedEventArgs e)
+        {
+            FitComparisonToViewport();
+        }
+
+        private void MenuZoomActual_Click(object sender, RoutedEventArgs e)
+        {
+            SetComparisonZoom(1.0);
+        }
+
+        private void MenuZoomIn_Click(object sender, RoutedEventArgs e)
+        {
+            AdjustComparisonZoom(1.25);
+        }
+
+        private void MenuZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            AdjustComparisonZoom(0.8);
+        }
+
+        private void MenuResetLayout_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Evaluation");
+            CompareSwipeSlider.Value = 0.5;
+            FitComparisonToViewport();
+        }
+
+        private void MenuOpenEvidenceFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var directory = Path.Combine(AppContext.BaseDirectory, "preprocess-gui-reports");
+            Directory.CreateDirectory(directory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = directory,
+                UseShellExecute = true
+            });
+        }
+
+        private void MenuHelpHome_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("Help");
+        }
+
+        private void SelectTab(string header)
+        {
+            foreach (var item in MainTabControl.Items.OfType<TabItem>())
+            {
+                if (string.Equals(item.Header?.ToString(), header, StringComparison.OrdinalIgnoreCase))
+                {
+                    MainTabControl.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private void MoveComparisonViewerToEvaluation()
+        {
+            if (EvaluationComparisonHost.Content == ComparisonViewerPanel)
+            {
+                return;
+            }
+
+            if (ComparisonViewerPanel.Parent is Panel panel)
+            {
+                panel.Children.Remove(ComparisonViewerPanel);
+            }
+
+            EvaluationComparisonHost.Content = ComparisonViewerPanel;
+        }
+
         private void WorkflowBrowseButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Select Raw Image",
+                Title = "Select Target Raw Image",
                 Filter = "Raw image files (*.raw)|*.raw",
                 Multiselect = false,
             };
@@ -56,58 +210,88 @@ namespace ImageProcTest
             if (dialog.ShowDialog() == true)
             {
                 WorkflowFilePathText.Text = dialog.FileName;
-                WorkflowRunButton.IsEnabled = true;
+                LoadRawPreview(dialog.FileName);
+                UpdateWorkflowRunState();
+            }
+        }
+
+        private void WorkflowBrowseCalibrationFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Select Calibration Folder",
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                LoadCalibrationWorkspace(dialog.FolderName);
+            }
+        }
+
+        private void WorkflowRefreshCalibrationFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(currentCalibrationFolderPath))
+            {
+                WorkflowCalibrationContextText.Text = "Calibration context: select the acquired calibration folder first.";
+                UpdateWorkflowRunState();
+                return;
+            }
+
+            LoadCalibrationWorkspace(currentCalibrationFolderPath);
+        }
+
+        private void LoadCalibrationWorkspace(string selectedPath)
+        {
+            try
+            {
+                var context = FixtureCatalogService.LoadCalibrationFolder(selectedPath);
+                SetActiveCalibrationContext(context, selectedPath);
+            }
+            catch (Exception ex)
+            {
+                currentCalibrationContext = null;
+                currentCalibrationFolderPath = null;
+                WorkflowCalibrationFolderText.Text = selectedPath;
+                WorkflowCalibrationFilesListBox.ItemsSource = null;
+                WorkflowCalibrationContextText.Text = $"Calibration context: folder scan failed: {ex.Message}";
+                SetStatus("Calibration folder scan failed", Brushes.OrangeRed);
+                UpdateWorkflowRunState();
+                UpdateEvaluationDashboards();
             }
         }
 
         private void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
         {
-            var filePath = WorkflowFilePathText.Text;
-            if (string.IsNullOrEmpty(filePath) || filePath == "No file selected") return;
+            if (WorkflowAlgorithmComboBox.SelectedItem is not AlgorithmValidationItem item)
+            {
+                WorkflowBeforeAfterText.Text = "Select a calibration SWU before running evaluation.";
+                return;
+            }
 
             WorkflowRunButton.IsEnabled = false;
             WorkflowCancelButton.IsEnabled = true;
-            SetStatus("Running pipeline...", System.Windows.Media.Brushes.Goldenrod);
-
-            var log = new System.Text.StringBuilder();
-            log.AppendLine($"[Run] File: {filePath}");
-            log.AppendLine();
-
-            // Stage 1: Preprocess
-            var preprocessReady = currentModuleReadiness
-                .FirstOrDefault(m => m.ModuleName == "xpe_preprocess")?.ProcessingEnabled == true;
-            log.AppendLine(preprocessReady
-                ? "[xpe_preprocess] R3 ready — stage active"
-                : "[xpe_preprocess] not ready — stage skipped");
-
-            // Stage 2: Enhance Basic
-            log.AppendLine(ImageProcTest.PInvokeWrappers.XpeEnhanceBasicWrapper.IsAvailable
-                ? "[xpe_enhance_basic] DLL available — stage active (Phase 1b)"
-                : $"[xpe_enhance_basic] unavailable: {ImageProcTest.PInvokeWrappers.XpeEnhanceBasicWrapper.UnavailableReason ?? "not found"} — stage skipped");
-
-            // Remaining stages: log current readiness level and skip
-            foreach (var m in currentModuleReadiness.Where(m =>
-                m.ModuleName != "xpe_common" &&
-                m.ModuleName != "xpe_preprocess" &&
-                m.ModuleName != "enhance_basic"))
+            try
             {
-                log.AppendLine($"[{m.ModuleName}] {m.Level} — stage skipped (not yet integrated)");
+                var run = RunAlgorithmValidation(item);
+                WorkflowBeforeAfterText.Text =
+                    $"Calibration SWU: {run.SwuId} {run.AlgorithmName}{Environment.NewLine}" +
+                    $"Result: {run.Status}{Environment.NewLine}" +
+                    $"Latency: {(run.LatencyMs.HasValue ? $"{run.LatencyMs.Value:0.###} ms" : "n/a")}{Environment.NewLine}" +
+                    $"Artifacts: {run.ArtifactDirectory ?? "none"}{Environment.NewLine}" +
+                    $"Details: {run.Details}";
+            }
+            finally
+            {
+                UpdateWorkflowRunState();
+                WorkflowCancelButton.IsEnabled = false;
             }
 
-            log.AppendLine();
-            log.AppendLine("Pipeline run complete.");
-
-            WorkflowBeforeAfterText.Text = log.ToString();
-            WorkflowRunButton.IsEnabled = true;
-            WorkflowCancelButton.IsEnabled = false;
-            SetStatus("Pipeline run complete", System.Windows.Media.Brushes.ForestGreen);
         }
-
         private void WorkflowCancelButton_Click(object sender, RoutedEventArgs e)
         {
             WorkflowCancelButton.IsEnabled = false;
-            WorkflowRunButton.IsEnabled = !string.IsNullOrEmpty(WorkflowFilePathText.Text) &&
-                                          WorkflowFilePathText.Text != "No file selected";
+            UpdateWorkflowRunState();
             SetStatus("Cancelled", System.Windows.Media.Brushes.Gray);
         }
 
@@ -126,6 +310,221 @@ namespace ImageProcTest
             RefreshModuleReadiness();
         }
 
+        private void RefreshAlgorithmsButton_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshAlgorithmValidation();
+        }
+
+        private void WorkflowAlgorithmComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (WorkflowAlgorithmComboBox.SelectedItem is not AlgorithmValidationItem item)
+            {
+                WorkflowAlgorithmStatusText.Text = "Calibration evaluation: select a SWU.";
+                return;
+            }
+
+            WorkflowAlgorithmStatusText.Text =
+                $"{item.SwuId} {item.AlgorithmName}; module={item.ModuleName}; status={item.Status}; " +
+                $"requirements={item.RequirementIds}; tests={item.TestIds}; run={item.CanRun}";
+            UpdateWorkflowRunState();
+        }
+
+        private void AlgorithmValidationGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (AlgorithmValidationGrid.SelectedItem is not AlgorithmValidationItem item)
+            {
+                AlgorithmValidationResultText.Text = "Calibration validation: no row selected.";
+                return;
+            }
+
+            AlgorithmValidationResultText.Text =
+                $"Selected {item.SwuId} {item.AlgorithmName}; status={item.Status}; run={item.CanRun}; next={item.NextAction}";
+        }
+
+        private void RunSelectedAlgorithmValidationButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (AlgorithmValidationGrid.SelectedItem is not AlgorithmValidationItem item)
+            {
+                AlgorithmValidationResultText.Text = "Calibration validation: select a calibration SWU row first.";
+                return;
+            }
+
+            if (!item.CanRun || string.IsNullOrWhiteSpace(item.StageKey))
+            {
+                lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Blocked",
+                    item.NextAction,
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                AlgorithmValidationResultText.Text =
+                    $"Calibration validation: blocked for {item.SwuId}; {item.NextAction}";
+                UpdateEvaluationDashboards();
+                return;
+            }
+
+            if (string.Equals(item.StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase))
+            {
+                var folderAudit = RunCalibrationFolderAudit(item);
+                AlgorithmValidationResultText.Text =
+                    $"Calibration validation: {folderAudit.Status} {item.SwuId}; {folderAudit.Details}";
+                return;
+            }
+
+            if (currentPreview is null)
+            {
+                AlgorithmValidationResultText.Text = "Calibration validation: load the target raw image first.";
+                return;
+            }
+
+            if (currentCalibrationContext is not FixtureCaseInfo selectedCase)
+            {
+                AlgorithmValidationResultText.Text = "Calibration validation: select the acquired calibration folder first.";
+                return;
+            }
+
+            try
+            {
+                var selection = CreateCalibrationValidationSelection(item.StageKey);
+                var result = RunNativePreprocessPreview(selection, selectedCase, $"{item.SwuId} {item.AlgorithmName}");
+                lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Pass",
+                    FormatMetricSummary(result.Metrics),
+                    result.ArtifactDirectory,
+                    result.TotalLatencyMs);
+                AlgorithmValidationResultText.Text =
+                    $"Calibration validation: PASS {item.SwuId}; latency={result.TotalLatencyMs:0.###}ms; " +
+                    $"artifacts={result.ArtifactDirectory}; {FormatMetricSummary(result.Metrics)}";
+            }
+            catch (Exception ex)
+            {
+                lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Fail",
+                    ex.Message,
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                AlgorithmValidationResultText.Text = $"Calibration validation: FAIL {item.SwuId}; {ex.Message}";
+                SetStatus("Calibration validation failed", Brushes.OrangeRed);
+                UpdateEvaluationDashboards();
+            }
+        }
+
+        private AlgorithmValidationRunSnapshot RunAlgorithmValidation(AlgorithmValidationItem item)
+        {
+            if (!item.CanRun || string.IsNullOrWhiteSpace(item.StageKey))
+            {
+                var blocked = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Blocked",
+                    item.NextAction,
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                lastAlgorithmValidationRun = blocked;
+                SetStatus("Calibration validation blocked", Brushes.OrangeRed);
+                UpdateEvaluationDashboards();
+                return blocked;
+            }
+
+            if (string.Equals(item.StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase))
+            {
+                return RunCalibrationFolderAudit(item);
+            }
+
+            if (currentPreview is null)
+            {
+                var blocked = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                "Blocked",
+                    "Load the target raw image first.",
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                lastAlgorithmValidationRun = blocked;
+                UpdateEvaluationDashboards();
+                return blocked;
+            }
+
+            if (currentCalibrationContext is not FixtureCaseInfo selectedCase)
+            {
+                var blocked = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                "Blocked",
+                    "Select the acquired calibration folder first.",
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                lastAlgorithmValidationRun = blocked;
+                UpdateEvaluationDashboards();
+                return blocked;
+            }
+
+            try
+            {
+                var selection = CreateCalibrationValidationSelection(item.StageKey);
+                var result = RunNativePreprocessPreview(selection, selectedCase, $"{item.SwuId} {item.AlgorithmName}");
+                var pass = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Pass",
+                    FormatMetricSummary(result.Metrics),
+                    result.ArtifactDirectory,
+                    result.TotalLatencyMs);
+                lastAlgorithmValidationRun = pass;
+                return pass;
+            }
+            catch (Exception ex)
+            {
+                var fail = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Fail",
+                    ex.Message,
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                lastAlgorithmValidationRun = fail;
+                SetStatus("Calibration validation failed", Brushes.OrangeRed);
+                UpdateEvaluationDashboards();
+                return fail;
+            }
+        }
+
+        private void RecordUserEvaluationButton_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = WorkflowAlgorithmComboBox.SelectedItem as AlgorithmValidationItem ??
+                AlgorithmValidationGrid.SelectedItem as AlgorithmValidationItem;
+            var algorithmKey = selected is null
+                ? "none"
+                : $"{selected.SwuId} {selected.AlgorithmName}";
+            var verdict = UserFailRadio.IsChecked == true
+                ? "Fail"
+                : UserReviewRadio.IsChecked == true
+                    ? "Needs review"
+                    : "Pass";
+            var evaluator = string.IsNullOrWhiteSpace(EvaluatorTextBox.Text)
+                ? Environment.UserName
+                : EvaluatorTextBox.Text.Trim();
+            var notes = UserEvaluationNotesTextBox.Text.Trim();
+            var evidence = lastAlgorithmValidationRun is null
+                ? "No calibration run recorded in this session."
+                : $"{lastAlgorithmValidationRun.Status}; {lastAlgorithmValidationRun.Details}";
+
+            lastUserEvaluation = new UserEvaluationSnapshot(
+                algorithmKey,
+                evaluator,
+                verdict,
+                notes,
+                evidence);
+            UserEvaluationStatusText.Text =
+                $"User evaluation: {verdict} by {evaluator}; calibration={algorithmKey}; evidence={evidence}";
+            UpdateEvaluationDashboards();
+        }
+
         private void FixtureCaseComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FixtureCaseComboBox.SelectedItem is not FixtureCaseInfo selectedCase)
@@ -133,6 +532,9 @@ namespace ImageProcTest
                 ImageFilesListBox.ItemsSource = null;
                 CalibrationFilesListBox.ItemsSource = null;
                 SelectedCaseText.Text = "Selected case: none";
+                WorkflowCalibrationContextText.Text = currentCalibrationContext is null
+                    ? "Calibration context: no folder selected."
+                    : BuildCalibrationContextStatus(currentCalibrationContext);
                 UpdateEvaluationDashboards();
                 return;
             }
@@ -143,6 +545,8 @@ namespace ImageProcTest
                 $"Selected case: {selectedCase.Name}; calibration roles: {selectedCase.CalibrationSummary}; root={selectedCase.RootPath}";
             RawPreviewInfoText.Text = $"Case: {selectedCase.RootPath}";
             ProcessingScaffoldText.Text = "Preprocessing test: select an image in this case, load it, then run the native fixture-calibrated chain.";
+
+            SetActiveCalibrationContext(selectedCase, selectedCase.CalibrationDirectoryPath);
             UpdateNativePreviewControls();
             UpdateEvaluationDashboards();
         }
@@ -157,6 +561,8 @@ namespace ImageProcTest
             RawPreviewTitleText.Text = $"Raw preview: {raw.Name}";
             RawPreviewInfoText.Text = $"Selected: {raw.Path} ({RawFileDescriptor.FormatBytes(raw.Length)})";
             RawPreviewHashText.Text = "SHA-256: not calculated until preview load";
+            WorkflowFilePathText.Text = raw.Path;
+            UpdateWorkflowRunState();
             UpdateEvaluationDashboards();
         }
 
@@ -168,7 +574,19 @@ namespace ImageProcTest
                 return;
             }
 
+            WorkflowFilePathText.Text = raw.Path;
             LoadRawPreview(raw.Path);
+            UpdateWorkflowRunState();
+        }
+
+        private void SetActiveCalibrationContext(FixtureCaseInfo selectedCase, string selectedPath)
+        {
+            currentCalibrationContext = selectedCase;
+            currentCalibrationFolderPath = selectedPath;
+            WorkflowCalibrationFolderText.Text = selectedCase.CalibrationDirectoryPath;
+            WorkflowCalibrationFilesListBox.ItemsSource = selectedCase.CalibrationFiles;
+            WorkflowCalibrationContextText.Text = BuildCalibrationContextStatus(selectedCase);
+            UpdateWorkflowRunState();
         }
 
         private void RawZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -184,6 +602,26 @@ namespace ImageProcTest
             ZoomValueText.Text = $"{scale * 100:0}%";
         }
 
+        private void ZoomFitButton_Click(object sender, RoutedEventArgs e)
+        {
+            FitComparisonToViewport();
+        }
+
+        private void ZoomActualButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetComparisonZoom(1.0);
+        }
+
+        private void ZoomInButton_Click(object sender, RoutedEventArgs e)
+        {
+            AdjustComparisonZoom(1.25);
+        }
+
+        private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
+        {
+            AdjustComparisonZoom(0.8);
+        }
+
         private void CompareSwipeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             UpdateComparisonClip();
@@ -194,11 +632,56 @@ namespace ImageProcTest
             UpdateComparisonClip();
         }
 
+        private void ComparisonCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            isDraggingComparisonSwipe = true;
+            ComparisonCanvas.CaptureMouse();
+            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
+            e.Handled = true;
+        }
+
+        private void ComparisonCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!isDraggingComparisonSwipe || e.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
+            e.Handled = true;
+        }
+
+        private void ComparisonCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!isDraggingComparisonSwipe)
+            {
+                return;
+            }
+
+            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
+            EndComparisonSwipeDrag();
+            e.Handled = true;
+        }
+
+        private void ComparisonCanvas_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (isDraggingComparisonSwipe && e.LeftButton != MouseButtonState.Pressed)
+            {
+                EndComparisonSwipeDrag();
+            }
+        }
+
+        private void ComparisonCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            AdjustComparisonZoom(e.Delta > 0 ? 1.1 : 1.0 / 1.1);
+            e.Handled = true;
+        }
+
         private void SaveE2eReportButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var selectedCase = FixtureCaseComboBox.SelectedItem as FixtureCaseInfo;
+                var selectedCase = currentCalibrationContext ?? FixtureCaseComboBox.SelectedItem as FixtureCaseInfo;
                 var selectedRaw = ImageFilesListBox.SelectedItem as RawFileDescriptor;
                 if (selectedRaw is null && currentPreview is not null)
                 {
@@ -214,7 +697,10 @@ namespace ImageProcTest
                     lastPreprocessHealth,
                     lastNativePreviewResult,
                     GetStageModes(),
-                    currentModuleReadiness);
+                    currentModuleReadiness,
+                    currentAlgorithmValidation,
+                    lastAlgorithmValidationRun,
+                    lastUserEvaluation);
 
                 E2eReportText.Text = $"E2E report: {report.JsonPath}";
                 AddReportArtifact("GUI report JSON", report.JsonPath);
@@ -227,22 +713,6 @@ namespace ImageProcTest
                 E2eReportText.Text = $"E2E report failed: {ex.Message}";
                 ReportsSummaryText.Text = $"Reports: current GUI report failed: {ex.Message}";
             }
-        }
-
-        private async void RunSelectedFixtureE2eButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (FixtureCaseComboBox.SelectedItem is not FixtureCaseInfo selectedCase)
-            {
-                FixtureE2eReportText.Text = "Fixture E2E: select a fixture case first.";
-                return;
-            }
-
-            await RunFixtureE2eAsync(selectedCase.Name);
-        }
-
-        private async void RunAllFixtureE2eButton_Click(object sender, RoutedEventArgs e)
-        {
-            await RunFixtureE2eAsync(caseName: null);
         }
 
         private void RefreshNativeHealth()
@@ -308,21 +778,20 @@ namespace ImageProcTest
 
                 if (cases.Count == 0)
                 {
-                    RawPreviewInfoText.Text = "No calibration fixture cases found under tests/test_data/calibration_cases.";
                     ImageFilesListBox.ItemsSource = null;
                     CalibrationFilesListBox.ItemsSource = null;
-                    SelectedCaseText.Text = "Selected case: none";
+                    SelectedCaseText.Text = "Sample data: none";
                     UpdateEvaluationDashboards();
                     return;
                 }
 
-                FixtureCaseComboBox.SelectedIndex = 0;
-                RawPreviewInfoText.Text = $"Loaded {cases.Count} fixture cases.";
+                FixtureCaseComboBox.SelectedIndex = -1;
+                SelectedCaseText.Text = $"Sample data available for internal regression: {cases.Count} folder(s).";
                 UpdateEvaluationDashboards();
             }
             catch (Exception ex)
             {
-                RawPreviewInfoText.Text = $"Fixture scan failed: {ex.Message}";
+                SelectedCaseText.Text = $"Sample data scan failed: {ex.Message}";
                 UpdateEvaluationDashboards();
             }
         }
@@ -354,10 +823,12 @@ namespace ImageProcTest
                     $"min={preview.MinValue}, max={preview.MaxValue}";
                 RawPreviewHashText.Text = $"SHA-256: {preview.Sha256}";
                 ProcessingScaffoldText.Text = IsNativePreviewReady()
-                    ? "Preprocessing test: Before=original. Select Offset/Gain/Defect modes and run the fixture-calibrated native chain to update After."
+                    ? "Preprocessing test: Before=original. Select Offset/Gain/Defect modes and run the active calibration folder against the target raw to update After."
                     : "Preprocessing test: Before=original, After=identity placeholder. Native correction is disabled until xpe_preprocess.dll exports are available.";
                 UpdateNativePreviewControls();
                 UpdateComparisonClip();
+                Dispatcher.BeginInvoke(new Action(FitComparisonToViewport), DispatcherPriority.Loaded);
+                UpdateWorkflowRunState();
                 UpdateEvaluationDashboards();
             }
             catch (Exception ex)
@@ -370,6 +841,7 @@ namespace ImageProcTest
                 RawPreviewHashText.Text = "SHA-256: unavailable";
                 NativePreviewText.Text = "Native preview: unavailable";
                 UpdateNativePreviewControls();
+                UpdateWorkflowRunState();
                 UpdateEvaluationDashboards();
             }
         }
@@ -388,9 +860,9 @@ namespace ImageProcTest
                 return;
             }
 
-            if (FixtureCaseComboBox.SelectedItem is not FixtureCaseInfo selectedCase)
+            if (currentCalibrationContext is not FixtureCaseInfo selectedCase)
             {
-                NativePreviewText.Text = "Native preview: select a prepared fixture case first.";
+                NativePreviewText.Text = "Native preview: select the acquired calibration folder first.";
                 return;
             }
 
@@ -403,22 +875,7 @@ namespace ImageProcTest
 
             try
             {
-                SetStatus("Running native preprocess preview...", Brushes.Goldenrod);
-                var result = NativePreprocessPreviewService.Run(currentPreview, selection, selectedCase, lastPreprocessHealth?.DllPath);
-                lastNativePreviewResult = result;
-                AfterPreviewImage.Source = result.Bitmap;
-                AfterPreviewLabelText.Text = "Native after";
-                NativePreviewText.Text =
-                    $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
-                    $"stages={FormatStageSummary(result.Stages)}; " +
-                    $"metrics={FormatMetricSummary(result.Metrics)}; " +
-                    $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}";
-                ProcessingScaffoldText.Text =
-                    $"Preprocessing test: fixture calibration was loaded from {selectedCase.Name}; " +
-                    $"artifacts={result.ArtifactDirectory}. Before/After uses the same raw display window so brightness changes are visible.";
-                SetStatus("Native preprocess preview complete", Brushes.ForestGreen);
-                UpdateComparisonClip();
-                UpdateEvaluationDashboards();
+                RunNativePreprocessPreview(selection, selectedCase, "native preprocess preview");
             }
             catch (Exception ex)
             {
@@ -429,10 +886,39 @@ namespace ImageProcTest
             }
         }
 
+        private NativePreprocessPreviewResult RunNativePreprocessPreview(
+            PreprocessStageSelection selection,
+            FixtureCaseInfo selectedCase,
+            string statusLabel)
+        {
+            if (currentPreview is null)
+            {
+                throw new InvalidOperationException("Load a raw preview before running native preprocessing.");
+            }
+
+            SetStatus($"Running {statusLabel}...", Brushes.Goldenrod);
+            var result = NativePreprocessPreviewService.Run(currentPreview, selection, selectedCase, lastPreprocessHealth?.DllPath);
+            lastNativePreviewResult = result;
+            AfterPreviewImage.Source = result.Bitmap;
+            AfterPreviewLabelText.Text = "Native after";
+            NativePreviewText.Text =
+                $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
+                $"stages={FormatStageSummary(result.Stages)}; " +
+                $"metrics={FormatMetricSummary(result.Metrics)}; " +
+                $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}";
+            ProcessingScaffoldText.Text =
+                $"Preprocessing test: calibration was loaded from {selectedCase.CalibrationDirectoryPath}; " +
+                $"artifacts={result.ArtifactDirectory}. Before/After uses the target raw display window.";
+            SetStatus($"{statusLabel} complete", Brushes.ForestGreen);
+            UpdateComparisonClip();
+            UpdateEvaluationDashboards();
+            return result;
+        }
+
         private IReadOnlyList<StageModeSnapshot> GetStageModes()
         {
             var preprocessReason = IsNativePreviewReady()
-                ? "Native preprocess export readiness is available. Auto executes only when fixture calibration for that role is present."
+                ? "Native preprocess export readiness is available. Auto executes only when the active calibration folder contains that role."
                 : "Native preprocess execution is disabled until xpe_preprocess.dll export readiness passes.";
 
             return
@@ -441,6 +927,83 @@ namespace ImageProcTest
                 new StageModeSnapshot("Gain", GetMode(GainOffRadio, GainOnRadio, GainAutoRadio), preprocessReason),
                 new StageModeSnapshot("Defect", GetMode(DefectOffRadio, DefectOnRadio, DefectAutoRadio), preprocessReason)
             ];
+        }
+
+        private void UpdateWorkflowRunState()
+        {
+            if (WorkflowRunButton is null)
+            {
+                return;
+            }
+
+            var selected = WorkflowAlgorithmComboBox.SelectedItem as AlgorithmValidationItem;
+            var hasCalibrationFolder = currentCalibrationContext is not null;
+            var hasTargetRaw = currentPreview is not null;
+            var isFolderAudit = string.Equals(selected?.StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
+            WorkflowRunButton.IsEnabled = selected?.CanRun == true &&
+                hasCalibrationFolder &&
+                (isFolderAudit || hasTargetRaw);
+        }
+
+        private AlgorithmValidationRunSnapshot RunCalibrationFolderAudit(AlgorithmValidationItem item)
+        {
+            if (currentCalibrationContext is not FixtureCaseInfo context)
+            {
+                var blocked = new AlgorithmValidationRunSnapshot(
+                    item.SwuId,
+                    item.AlgorithmName,
+                    "Blocked",
+                    "Select the acquired calibration folder first.",
+                    ArtifactDirectory: null,
+                    LatencyMs: null);
+                lastAlgorithmValidationRun = blocked;
+                UpdateEvaluationDashboards();
+                return blocked;
+            }
+
+            var hasOffset = HasCalibrationRole(context, CalibrationRole.Offset);
+            var hasGain = HasCalibrationRole(context, CalibrationRole.Gain);
+            var unknownCount = context.CalibrationFiles.Count(file => file.Role == CalibrationRole.Unknown);
+            var status = hasOffset && hasGain ? "Pass" : "Blocked";
+            var details = BuildCalibrationContextStatus(context);
+            if (unknownCount > 0)
+            {
+                details += $" Unknown calibration file(s) require role confirmation: {unknownCount}.";
+            }
+
+            var run = new AlgorithmValidationRunSnapshot(
+                item.SwuId,
+                item.AlgorithmName,
+                status,
+                details,
+                ArtifactDirectory: context.CalibrationDirectoryPath,
+                LatencyMs: null);
+            lastAlgorithmValidationRun = run;
+            UpdateEvaluationDashboards();
+            return run;
+        }
+
+        private static bool HasCalibrationRole(FixtureCaseInfo context, CalibrationRole role)
+        {
+            return context.CalibrationFiles.Any(file => file.Role == role);
+        }
+
+        private static string BuildCalibrationContextStatus(FixtureCaseInfo context)
+        {
+            var hasOffset = HasCalibrationRole(context, CalibrationRole.Offset);
+            var hasGain = HasCalibrationRole(context, CalibrationRole.Gain);
+            var hasDefect = HasCalibrationRole(context, CalibrationRole.Defect);
+            var hasDefectOracle = HasCalibrationRole(context, CalibrationRole.DefectOracle);
+            var unknownCount = context.CalibrationFiles.Count(file => file.Role == CalibrationRole.Unknown);
+            var mandatory = hasOffset && hasGain
+                ? "mandatory offset/gain present"
+                : "blocked: offset/dark and gain/flat are mandatory";
+            var roles = string.IsNullOrWhiteSpace(context.CalibrationSummary)
+                ? "none"
+                : context.CalibrationSummary;
+
+            return $"Calibration context: folder={context.CalibrationDirectoryPath}; files={context.CalibrationFiles.Count}; " +
+                $"roles={roles}; {mandatory}; offset={hasOffset}, gain={hasGain}, defect={hasDefect}, oracle={hasDefectOracle}, unknown={unknownCount}.";
         }
 
         private void RefreshModuleReadiness()
@@ -455,49 +1018,36 @@ namespace ImageProcTest
 
             ModuleReadinessSummaryText.Text =
                 $"Executable modules={enabledCount}; blocked modules={nativeBlocked}. " +
-                "Only modules marked Exec can run preview adapters; clinical processing remains gated by fixture E2E.";
+                "Only modules marked Exec can run preview adapters; clinical processing remains gated by formal verification evidence.";
+            RefreshAlgorithmValidation();
             UpdateNativePreviewControls();
             UpdateEvaluationDashboards();
         }
 
-        private async Task RunFixtureE2eAsync(string? caseName)
+        private void RefreshAlgorithmValidation()
         {
-            try
-            {
-                SetFixtureE2eButtonsEnabled(false);
-                var scope = string.IsNullOrWhiteSpace(caseName) ? "all fixture cases" : caseName;
-                FixtureE2eReportText.Text = $"Fixture E2E: running {scope}...";
-                ReportsSummaryText.Text = "Reports: fixture E2E running.";
-                SetStatus("Running preprocess fixture E2E...", Brushes.Goldenrod);
+            var previousKey = WorkflowAlgorithmComboBox.SelectedItem is AlgorithmValidationItem previous
+                ? $"{previous.SwuId}|{previous.AlgorithmName}"
+                : null;
+            currentAlgorithmValidation = AlgorithmValidationCatalogService.Build(currentModuleReadiness);
+            AlgorithmValidationGrid.ItemsSource = currentAlgorithmValidation;
+            WorkflowAlgorithmComboBox.ItemsSource = currentAlgorithmValidation;
 
-                var result = await Task.Run(() => PreprocessFixtureE2eService.Run(new PreprocessFixtureE2eOptions(caseName)));
-                lastFixtureE2eReport = result;
-                AddReportArtifact("Fixture E2E JSON", result.JsonPath);
-                AddReportArtifact("Fixture E2E Markdown", result.MarkdownPath);
-                FixtureE2eReportText.Text =
-                    $"Fixture E2E: {(result.Passed ? "PASS" : "FAIL")} exit={result.ExitCode}; {result.Summary}; {result.MarkdownPath}";
-                ReportsSummaryText.Text = $"Reports: latest fixture E2E report is {result.MarkdownPath}";
-                SetStatus(
-                    result.Passed ? "Preprocess fixture E2E passed" : "Preprocess fixture E2E failed",
-                    result.Passed ? Brushes.ForestGreen : Brushes.OrangeRed);
-            }
-            catch (Exception ex)
-            {
-                FixtureE2eReportText.Text = $"Fixture E2E failed: {ex.Message}";
-                ReportsSummaryText.Text = $"Reports: fixture E2E failed: {ex.Message}";
-                SetStatus("Preprocess fixture E2E failed", Brushes.OrangeRed);
-            }
-            finally
-            {
-                SetFixtureE2eButtonsEnabled(true);
-                UpdateEvaluationDashboards();
-            }
-        }
+            var selected = previousKey is null
+                ? currentAlgorithmValidation.FirstOrDefault(item => item.CanRun) ?? currentAlgorithmValidation.FirstOrDefault()
+                : currentAlgorithmValidation.FirstOrDefault(item => $"{item.SwuId}|{item.AlgorithmName}" == previousKey) ??
+                  currentAlgorithmValidation.FirstOrDefault(item => item.CanRun) ??
+                  currentAlgorithmValidation.FirstOrDefault();
+            WorkflowAlgorithmComboBox.SelectedItem = selected;
 
-        private void SetFixtureE2eButtonsEnabled(bool enabled)
-        {
-            RunSelectedFixtureE2eButton.IsEnabled = enabled;
-            RunAllFixtureE2eButton.IsEnabled = enabled;
+            var runnableCount = currentAlgorithmValidation.Count(item => item.CanRun);
+            var moduleCount = currentAlgorithmValidation
+                .Select(item => item.ModuleName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+
+            AlgorithmValidationResultText.Text =
+                $"Calibration validation: {currentAlgorithmValidation.Count} calibration SWUs across {moduleCount} modules; runnable={runnableCount}.";
         }
 
         private void UpdateEvaluationDashboards()
@@ -522,6 +1072,38 @@ namespace ImageProcTest
                     currentModuleReadiness.Count(item => item.ProcessingEnabled).ToString(),
                     "GUI-GATE")
             };
+
+            rows.Add(new EvaluationMetricRow(
+                "Calibration",
+                "SWU coverage",
+                $"{currentAlgorithmValidation.Count} calibration SWUs; runnable={currentAlgorithmValidation.Count(item => item.CanRun)}",
+                "SRS-CALIB-001"));
+
+            rows.Add(new EvaluationMetricRow(
+                "Calibration",
+                "active folder",
+                currentCalibrationContext is null
+                    ? "not selected"
+                    : $"{currentCalibrationContext.CalibrationFiles.Count} file(s); {currentCalibrationContext.CalibrationSummary}; {currentCalibrationContext.CalibrationDirectoryPath}",
+                "PRE-E2E-0"));
+
+            if (lastAlgorithmValidationRun is not null)
+            {
+                rows.Add(new EvaluationMetricRow(
+                    "Calibration",
+                    "latest SWU validation",
+                    $"{lastAlgorithmValidationRun.Status} {lastAlgorithmValidationRun.SwuId}; {lastAlgorithmValidationRun.Details}",
+                    "SWU"));
+            }
+
+            if (lastUserEvaluation is not null)
+            {
+                rows.Add(new EvaluationMetricRow(
+                    "User Evaluation",
+                    lastUserEvaluation.AlgorithmKey,
+                    $"{lastUserEvaluation.Verdict} by {lastUserEvaluation.Evaluator}; {lastUserEvaluation.Notes}",
+                    "User verdict"));
+            }
 
             if (currentPreview is null)
             {
@@ -562,15 +1144,6 @@ namespace ImageProcTest
                     "Functional"));
             }
 
-            if (lastFixtureE2eReport is not null)
-            {
-                rows.Add(new EvaluationMetricRow(
-                    "Fixture E2E",
-                    "latest batch result",
-                    $"{(lastFixtureE2eReport.Passed ? "PASS" : "FAIL")}; exit={lastFixtureE2eReport.ExitCode}; {lastFixtureE2eReport.Summary}",
-                    "R4"));
-            }
-
             EvaluationMetricsGrid.ItemsSource = rows;
             StageLatencyGrid.ItemsSource = lastNativePreviewResult?.Stages
                 .Select(stage => new StageLatencyRow(
@@ -589,6 +1162,11 @@ namespace ImageProcTest
                     FormatCalibrationExpiry(load.Expiry),
                     load.SourceRawPath ?? "none"))
                 .ToList();
+            var detectorMetrics = lastNativePreviewResult?.DetectorMetrics ??
+                MetricsComputationService.Empty("native calibration preview not run");
+            DarkMetricsGrid.ItemsSource = detectorMetrics.DarkMetrics;
+            FlatMetricsGrid.ItemsSource = detectorMetrics.FlatMetrics;
+            DefectMetricsGrid.ItemsSource = detectorMetrics.DefectMetrics;
             ReportArtifactsGrid.ItemsSource = reportArtifacts.ToList();
 
             var previewState = currentPreview is null ? "no raw loaded" : $"{currentPreview.PreviewWidth}x{currentPreview.PreviewHeight} preview";
@@ -653,7 +1231,7 @@ namespace ImageProcTest
             DefectOnRadio.IsEnabled = preprocessReady;
             DefectAutoRadio.IsEnabled = preprocessReady;
 
-            ApplyNativePreviewButton.IsEnabled = preprocessReady && currentPreview is not null && FixtureCaseComboBox.SelectedItem is FixtureCaseInfo;
+            ApplyNativePreviewButton.IsEnabled = preprocessReady && currentPreview is not null && currentCalibrationContext is not null;
 
             if (preprocessReady && !hasInitializedNativeStageDefaults)
             {
@@ -673,12 +1251,12 @@ namespace ImageProcTest
             }
 
             StageModesInfoText.Text = lastPreprocessHealth?.IsSyntheticOracleReady == true
-                ? "Native preprocess is ready. Auto runs Offset/Gain/Defect only when the selected fixture has the matching calibration role."
-                : "Native preprocess exports are available, so fixture diagnostics can run. Synthetic oracle is not passed; review the metric/report output carefully.";
+                ? "Native preprocess is ready. Auto runs Offset/Gain/Defect only when the active calibration folder has the matching role."
+                : "Native preprocess exports are available, so calibration diagnostics can run. Synthetic oracle is not passed; review the metric/report output carefully.";
             if (lastNativePreviewResult is null)
             {
                 NativePreviewText.Text = currentPreview is null
-                    ? "Native preview: load a fixture raw image to run preprocessing."
+                    ? "Native preview: load a target raw image to run preprocessing."
                     : "Native preview: ready. Select stage modes and run preprocessing.";
             }
         }
@@ -694,6 +1272,17 @@ namespace ImageProcTest
                 GetPreprocessMode(OffsetOffRadio, OffsetOnRadio, OffsetAutoRadio),
                 GetPreprocessMode(GainOffRadio, GainOnRadio, GainAutoRadio),
                 GetPreprocessMode(DefectOffRadio, DefectOnRadio, DefectAutoRadio));
+        }
+
+        private static PreprocessStageSelection CreateCalibrationValidationSelection(string stageKey)
+        {
+            return stageKey.ToLowerInvariant() switch
+            {
+                "offset" => new PreprocessStageSelection(PreprocessStageMode.On, PreprocessStageMode.Off, PreprocessStageMode.Off),
+                "gain" => new PreprocessStageSelection(PreprocessStageMode.On, PreprocessStageMode.On, PreprocessStageMode.Off),
+                "defect" => new PreprocessStageSelection(PreprocessStageMode.On, PreprocessStageMode.On, PreprocessStageMode.On),
+                _ => throw new InvalidOperationException($"No calibration validation adapter exists for '{stageKey}'.")
+            };
         }
 
         private static string GetMode(RadioButton off, RadioButton on, RadioButton auto)
@@ -777,12 +1366,8 @@ namespace ImageProcTest
                 return;
             }
 
-            var width = !double.IsNaN(ComparisonCanvas.Width) && ComparisonCanvas.Width > 0
-                ? ComparisonCanvas.Width
-                : ComparisonCanvas.ActualWidth;
-            var height = !double.IsNaN(ComparisonCanvas.Height) && ComparisonCanvas.Height > 0
-                ? ComparisonCanvas.Height
-                : ComparisonCanvas.ActualHeight;
+            var width = GetComparisonCanvasWidth();
+            var height = GetComparisonCanvasHeight();
 
             if (width <= 0 || height <= 0)
             {
@@ -795,6 +1380,82 @@ namespace ImageProcTest
             SwipeLine.Height = height;
             SwipeLine.Margin = new Thickness(Math.Max(0, x - 1), 0, 0, 0);
             SwipeValueText.Text = $"{fraction * 100:0}%";
+        }
+
+        private void FitComparisonToViewport()
+        {
+            if (currentPreview is null || RawImageScrollViewer is null || RawZoomSlider is null)
+            {
+                return;
+            }
+
+            var viewportWidth = RawImageScrollViewer.ViewportWidth > 0
+                ? RawImageScrollViewer.ViewportWidth
+                : RawImageScrollViewer.ActualWidth;
+            var viewportHeight = RawImageScrollViewer.ViewportHeight > 0
+                ? RawImageScrollViewer.ViewportHeight
+                : RawImageScrollViewer.ActualHeight;
+
+            if (viewportWidth <= 0 || viewportHeight <= 0)
+            {
+                return;
+            }
+
+            var widthScale = Math.Max(0.01, (viewportWidth - 24) / currentPreview.PreviewWidth);
+            var heightScale = Math.Max(0.01, (viewportHeight - 24) / currentPreview.PreviewHeight);
+            var fitScale = Math.Min(1.0, Math.Min(widthScale, heightScale));
+            RawZoomSlider.Value = Math.Clamp(fitScale, RawZoomSlider.Minimum, RawZoomSlider.Maximum);
+        }
+
+        private void AdjustComparisonZoom(double factor)
+        {
+            if (RawZoomSlider is null)
+            {
+                return;
+            }
+
+            SetComparisonZoom(RawZoomSlider.Value * factor);
+        }
+
+        private void SetComparisonZoom(double value)
+        {
+            if (RawZoomSlider is null)
+            {
+                return;
+            }
+
+            RawZoomSlider.Value = Math.Clamp(value, RawZoomSlider.Minimum, RawZoomSlider.Maximum);
+        }
+
+        private void UpdateComparisonSwipeFromPoint(double x)
+        {
+            var width = GetComparisonCanvasWidth();
+            if (width <= 0 || CompareSwipeSlider is null)
+            {
+                return;
+            }
+
+            CompareSwipeSlider.Value = Math.Clamp(x / width, 0, 1);
+        }
+
+        private void EndComparisonSwipeDrag()
+        {
+            isDraggingComparisonSwipe = false;
+            ComparisonCanvas.ReleaseMouseCapture();
+        }
+
+        private double GetComparisonCanvasWidth()
+        {
+            return !double.IsNaN(ComparisonCanvas.Width) && ComparisonCanvas.Width > 0
+                ? ComparisonCanvas.Width
+                : ComparisonCanvas.ActualWidth;
+        }
+
+        private double GetComparisonCanvasHeight()
+        {
+            return !double.IsNaN(ComparisonCanvas.Height) && ComparisonCanvas.Height > 0
+                ? ComparisonCanvas.Height
+                : ComparisonCanvas.ActualHeight;
         }
 
         private void SetStatus(string message, Brush brush)
