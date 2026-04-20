@@ -23,7 +23,10 @@ namespace ImageProcTest
             PreprocessHealthResult? preprocessHealth,
             NativePreprocessPreviewResult? nativePreview,
             IReadOnlyList<StageModeSnapshot> stageModes,
-            IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness)
+            IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
+            IReadOnlyList<AlgorithmValidationItem> algorithmValidation,
+            AlgorithmValidationRunSnapshot? latestAlgorithmRun,
+            UserEvaluationSnapshot? userEvaluation)
         {
             var timestamp = DateTimeOffset.UtcNow;
             var report = new
@@ -77,9 +80,13 @@ namespace ImageProcTest
                     nativePreview.OutputMin,
                     nativePreview.OutputMax,
                     nativePreview.Metrics,
+                    nativePreview.DetectorMetrics,
                     nativePreview.Stages
                 },
                 moduleReadiness,
+                algorithmValidation,
+                latestAlgorithmRun,
+                userEvaluation,
                 stageModes,
                 beforeAfter = new
                 {
@@ -103,7 +110,20 @@ namespace ImageProcTest
                 WriteIndented = true,
                 NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
             }));
-            File.WriteAllText(markdownPath, RenderMarkdown(selectedCase, selectedRaw, preview, backendHealth, readinessReportPath, preprocessHealth, nativePreview, stageModes, moduleReadiness, timestamp));
+            File.WriteAllText(markdownPath, RenderMarkdown(
+                selectedCase,
+                selectedRaw,
+                preview,
+                backendHealth,
+                readinessReportPath,
+                preprocessHealth,
+                nativePreview,
+                stageModes,
+                moduleReadiness,
+                algorithmValidation,
+                latestAlgorithmRun,
+                userEvaluation,
+                timestamp));
 
             return new GuiE2eReportWriteResult(jsonPath, markdownPath);
         }
@@ -118,6 +138,9 @@ namespace ImageProcTest
             NativePreprocessPreviewResult? nativePreview,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
+            IReadOnlyList<AlgorithmValidationItem> algorithmValidation,
+            AlgorithmValidationRunSnapshot? latestAlgorithmRun,
+            UserEvaluationSnapshot? userEvaluation,
             DateTimeOffset timestamp)
         {
             var builder = new StringBuilder();
@@ -149,6 +172,7 @@ namespace ImageProcTest
                 builder.AppendLine($"- Changed pixels: `{nativePreview.Metrics.ChangedPixels}/{nativePreview.Metrics.PixelCount}` (`{nativePreview.Metrics.ChangedPixelRatio:P2}`)");
                 builder.AppendLine($"- Input preserved: `{nativePreview.Metrics.InputPreserved}`");
                 builder.AppendLine($"- NaN/Inf count: `{nativePreview.Metrics.NaNInfCount}`");
+                AppendDetectorMetrics(builder, nativePreview.DetectorMetrics);
                 foreach (var load in nativePreview.CalibrationLoads)
                 {
                     builder.AppendLine($"- Calibration `{load.Stage}`: status=`{load.Status}`, loaded=`{load.Loaded}`, source=`{load.SourceRawPath ?? "none"}`, xcal=`{load.XCalPath ?? "none"}`");
@@ -215,6 +239,45 @@ namespace ImageProcTest
             }
 
             builder.AppendLine();
+            builder.AppendLine("## Calibration Validation Catalog");
+            builder.AppendLine($"- Catalog rows: `{algorithmValidation.Count}`");
+            builder.AppendLine($"- Runnable rows: `{algorithmValidation.Count(item => item.CanRun)}`");
+            if (latestAlgorithmRun is null)
+            {
+                builder.AppendLine("- Latest SWU validation: `none`");
+            }
+            else
+            {
+                builder.AppendLine(
+                    $"- Latest SWU validation: `{latestAlgorithmRun.Status}` `{latestAlgorithmRun.SwuId}` " +
+                    $"`{latestAlgorithmRun.AlgorithmName}`, latency=`{FormatNullableLatency(latestAlgorithmRun.LatencyMs)}`, " +
+                    $"artifacts=`{latestAlgorithmRun.ArtifactDirectory ?? "none"}`");
+                builder.AppendLine($"  Details: {latestAlgorithmRun.Details}");
+            }
+
+            foreach (var item in algorithmValidation)
+            {
+                builder.AppendLine($"- `{item.SwuId}` `{item.AlgorithmName}`: module=`{item.ModuleName}`, level=`{item.Level}`, status=`{item.Status}`, run=`{item.CanRun}`");
+                builder.AppendLine($"  Req: {item.RequirementIds}; Tests: {item.TestIds}; Gate: {item.Gate}");
+                builder.AppendLine($"  Next: {item.NextAction}");
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("## User Evaluation");
+            if (userEvaluation is null)
+            {
+                builder.AppendLine("- User evaluation was not recorded.");
+            }
+            else
+            {
+                builder.AppendLine($"- Calibration: `{userEvaluation.AlgorithmKey}`");
+                builder.AppendLine($"- Evaluator: `{userEvaluation.Evaluator}`");
+                builder.AppendLine($"- Verdict: `{userEvaluation.Verdict}`");
+                builder.AppendLine($"- Evidence: {userEvaluation.EvidenceSummary}");
+                builder.AppendLine($"- Notes: {userEvaluation.Notes}");
+            }
+
+            builder.AppendLine();
             builder.AppendLine("## Stage Modes");
             foreach (var mode in stageModes)
             {
@@ -233,6 +296,29 @@ namespace ImageProcTest
         private static string FormatNullableDays(double? days)
         {
             return days.HasValue ? days.Value.ToString("0.###") : "unknown";
+        }
+
+        private static string FormatNullableLatency(double? latencyMs)
+        {
+            return latencyMs.HasValue ? $"{latencyMs.Value:0.###} ms" : "n/a";
+        }
+
+        private static void AppendDetectorMetrics(StringBuilder builder, DetectorDomainMetrics metrics)
+        {
+            builder.AppendLine("- Detector-domain dark metrics:");
+            AppendMetricRows(builder, metrics.DarkMetrics);
+            builder.AppendLine("- Detector-domain flat metrics:");
+            AppendMetricRows(builder, metrics.FlatMetrics);
+            builder.AppendLine("- Defect/BPM metrics:");
+            AppendMetricRows(builder, metrics.DefectMetrics);
+        }
+
+        private static void AppendMetricRows(StringBuilder builder, IReadOnlyList<DetectorMetricRow> rows)
+        {
+            foreach (var row in rows)
+            {
+                builder.AppendLine($"  - `{row.Metric}`: value=`{row.Value}`, gate=`{row.Gate}`, status=`{row.Status}`");
+            }
         }
     }
 }

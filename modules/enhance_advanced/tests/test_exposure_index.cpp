@@ -65,8 +65,8 @@ protected:
      */
     XpeImageMetadata createMetadata(const char* bodyPart, float kvp = 80.0f, float mas = 10.0f) {
         XpeImageMetadata meta;
-        std::strncpy(meta.bodyPart, bodyPart, sizeof(meta.bodyPart) - 1);
-        meta.bodyPart[sizeof(meta.bodyPart) - 1] = '\0';  // Ensure null-termination
+        strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), bodyPart, _TRUNCATE);
+        // Ensure null-termination
         meta.kVp = kvp;
         meta.mAs = mas;
         meta.SID_mm = 1200.0f;  // Standard source-to-image distance

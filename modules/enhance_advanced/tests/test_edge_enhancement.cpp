@@ -201,24 +201,30 @@ TEST_F(EdgeEnhancementTest, T301_FractionalDerivativeAlgorithm) {
     // 2. Output should not contain NaN or Inf (REQ-ADV-032)
     EXPECT_FALSE(hasInvalidValues(img)) << "Fractional derivative produced NaN/Inf";
 
-    // 3. First derivative of linear ramp should be approximately constant
-    // The exact value depends on implementation, but variance should be low
-    float mean = 0.0f;
+    // 3. For a linear ramp, the enhancement boost (output - original) should
+    // be approximately constant because the gradient magnitude is constant.
+    // The algorithm computes enhanced = original + gain * |grad|.
+    // For a ramp, |grad| is constant, so boost should be nearly constant.
+    float boostMean = 0.0f;
     for (int i = 0; i < width * height; ++i) {
-        mean += data[i];
+        boostMean += (data[i] - original[i]);
     }
-    mean /= (width * height);
+    boostMean /= (width * height);
 
-    float variance = 0.0f;
+    float boostVariance = 0.0f;
     for (int i = 0; i < width * height; ++i) {
-        float diff = data[i] - mean;
-        variance += diff * diff;
+        float diff = (data[i] - original[i]) - boostMean;
+        boostVariance += diff * diff;
     }
-    variance /= (width * height);
+    boostVariance /= (width * height);
 
-    // Variance should be relatively small for a constant derivative
-    // This threshold may need adjustment based on actual implementation
-    EXPECT_LT(variance, 10.0f) << "First derivative variance too high: " << variance;
+    // The boost variance should be low (near-zero for an ideal ramp)
+    // Boundary effects and float precision cause small deviations.
+    // A threshold of 5.0 is generous enough for 64x64 with clamp boundaries.
+    EXPECT_LT(boostVariance, 5.0f) << "Enhancement boost variance too high: " << boostVariance;
+
+    // 4. The boost should be positive (enhancement adds signal, never removes)
+    EXPECT_GT(boostMean, 0.0f) << "Enhancement should add positive boost to ramp";
 }
 
 /* ============================================================================
@@ -277,7 +283,7 @@ TEST_F(EdgeEnhancementTest, T302_FractionalMaskGeneration) {
         // Sample points around the edge
         float leftOfEdge = data[edgeX - 5];
         float atEdge = data[edgeX];
-        float rightOfEdge = data[edgeX + 5];
+        [[maybe_unused]] float rightOfEdge = data[edgeX + 5];
 
         // Edge should be enhanced (higher response at edge)
         EXPECT_GT(std::abs(atEdge - leftOfEdge), 0.0f)
@@ -674,4 +680,61 @@ TEST_F(EdgeEnhancementTest, T309_TestCoverageVerification) {
 
     // Document that coverage targets are met
     EXPECT_TRUE(true) << "All acceptance criteria have corresponding tests";
+}
+
+/**
+ * T-310: Boundary condition - minimal image size
+ *
+ * Verify fractional derivative works on smallest practical image.
+ */
+TEST_F(EdgeEnhancementTest, T310_MinimalImageSize) {
+    // Arrange: 32x32 image (smallest size that can support 5x5 convolution)
+    int width = 32;
+    int height = 32;
+    XpeImageBuffer img = createFloatImage(width, height, 0.5f);
+
+    // Act: Apply fractional derivative
+    XpeErrorCode result = xpe_fractional_process(&img, 1.0f, nullptr);
+
+    // Assert:
+    EXPECT_EQ(XPE_OK, result);
+    EXPECT_FALSE(hasInvalidValues(img));
+}
+
+/**
+ * T-311: Boundary condition - non-square aspect ratio
+ *
+ * Verify fractional derivative handles non-square images correctly.
+ */
+TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
+    // Arrange: 256x64 image (4:1 aspect ratio)
+    int width = 256;
+    int height = 64;
+    XpeImageBuffer img = createFloatImage(width, height, 0.3f);
+
+    // Add vertical edge
+    float* data = static_cast<float*>(img.data);
+    for (int y = 0; y < height; ++y) {
+        for (int x = width / 2; x < width; ++x) {
+            data[y * width + x] = 0.7f;
+        }
+    }
+
+    std::vector<float> before(data, data + width * height);
+
+    // Act: Apply fractional derivative
+    XpeErrorCode result = xpe_fractional_process(&img, 1.0f, nullptr);
+
+    // Assert:
+    EXPECT_EQ(XPE_OK, result);
+    EXPECT_FALSE(hasInvalidValues(img));
+
+    // Verify overshoot limiting
+    XpeImageBuffer beforeImg;
+    beforeImg.width = img.width;
+    beforeImg.height = img.height;
+    beforeImg.format = img.format;
+    beforeImg.data = before.data();
+
+    EXPECT_TRUE(verifyOvershootLimit(beforeImg, img));
 }

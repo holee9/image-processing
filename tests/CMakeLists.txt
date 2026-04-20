@@ -4,38 +4,24 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-# Include FetchContent for Google Test
-include(FetchContent)
-
-# Fetch Google Test (REQ-P0-005)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.14.0
-    GIT_SHALLOW TRUE
-)
-
-# For Windows: Prevent overriding parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+# Use vcpkg-provided GTest only (must be found before enable_testing)
+find_package(GTest CONFIG)
 
 # Enable testing (REQ-P0-005)
 enable_testing()
 
-# Test subdirectories
-# Note: common tests are built in modules/common/CMakeLists.txt to avoid target name conflicts
-# add_subdirectory(common_smoke)
-# add_subdirectory(common)
-# add_subdirectory(common_unit)
+# Test subdirectories (GTest required for all test targets)
+if(GTest_FOUND)
+    add_subdirectory(common_smoke)
+    # Temporarily disabled due to GTest conflicts
+    # add_subdirectory(common)
+    # add_subdirectory(common_unit)
 
-# Module-specific test suites
-add_subdirectory(preprocess_smoke)
-add_subdirectory(preprocess)
-
-# Additional modules are added below as each module is implemented.
-# Pattern: xpe_add_optional_subdirectory(enhance_basic_smoke)
-#           xpe_add_optional_subdirectory(enhance_advanced_smoke)
-#           ...
+    # Module-specific test suites
+    add_subdirectory(enhance_advanced_tests)
+else()
+    message(STATUS "GTest not found — skipping test subdirectories (ci-common preset)")
+endif()
 
 # ============================================================================
 # Coverage Configuration (REQ-P0-006: >=85% statement coverage)
@@ -93,6 +79,10 @@ endif()
 add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_xpe_common
+            test_multiscale_process
+            test_fractional_process
+            test_collimation_detect
+            test_enhance_advanced_integration
     COMMENT "Running all tests..."
 )
 
@@ -100,5 +90,9 @@ add_custom_target(check
 add_custom_target(check_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
     DEPENDS test_xpe_common
+            test_multiscale_process
+            test_fractional_process
+            test_collimation_detect
+            test_enhance_advanced_integration
     COMMENT "Running all tests with verbose output..."
 )

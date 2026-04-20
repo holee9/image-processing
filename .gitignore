@@ -217,6 +217,9 @@ dist-ssr/
 # ============================================
 cmake-build-*/
 build_test/
+build_test2/
+build_test3/
+lint_results.json
 CMakeCache.txt
 CMakeFiles/
 *.obj
@@ -297,6 +300,14 @@ tests/test_data/**/PositionMap.raw
 # XPE Dev Workspace & Build Scripts
 # ===========================================
 _workspace/
+build_collimation_test/
+build_collimation_test2/
+build_xpe.bat
+do_build.bat
+rebuild.bat
+run_all_tests.bat
+run_t301.bat
+run_tests.bat
 build-and-test.ps1
 build-result.txt
 .moai/docs/MCP_OAUTH_SETUP.md

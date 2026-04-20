@@ -4,40 +4,40 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-19 — 3-Lane 교차검증 후)
+## 프로젝트 완성도 현황 (2026-04-20 — 3-Lane 통합 세션)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 | 다음 목표 | 최종 목표 |
 |-----------|------|:----:|:---------:|:---------:|
 | **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **82 / 100** | ~85 | **85** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | **~75** | ~78 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | **~76** | ~78 | **85** |
 
-### 점수 상세 (Framework A, 2026-04-19 교차검증 기준)
+### 점수 상세 (Framework A, 2026-04-20 3-Lane 통합 후)
 
 | 영역 | 배점 | 현재 | 변화 | 비고 |
 |------|:----:|:----:|:----:|------|
 | 요구사항 완전성 (EARS) | 25 | **15** | — | P2-ADV SRS 요구사항 추가 (SWU-2.5/2.6/2.8/2.10) |
 | 문서 품질 (IEC 62304) | 20 | **19** | — | P2-ADV IEC 62304 Class B 패키지 완성 |
-| 아키텍처 설계 | 20 | **18** | +1 | P1A M2 SIMD dispatch + Hough/FD 알고리즘 구조 검증 |
-| 구현 진행도 | 20 | **18** | — | M2 SIMD + P2-ADV 263/288 (91.3%) — Collimation/FD 버그픽스 완료 |
-| 품질 보증 | 15 | **15** | — | SIMD parity 405/405, Golden Reference 26/26 |
-| **합계** | **100** | **82** | **+1** | 3-Lane 교차검증 후 |
+| 아키텍처 설계 | 20 | **18** | — | P1A M2 SIMD dispatch + Hough/FD 알고리즘 구조 검증 |
+| 구현 진행도 | 20 | **18** | — | M2 SIMD + P2-ADV 97/103 (94.17%) + GUI Algorithm Validation UI |
+| 품질 보증 | 15 | **15** | — | SIMD parity 405/405, Golden Reference 26/26, preprocess 202/202 |
+| **합계** | **100** | **82** | — | 3-Lane main 통합 후 |
 
-### 3-Lane Worktree 현황 (2026-04-19 교차검증)
+### 3-Lane Worktree 현황 (2026-04-20 통합 세션)
 
 | Lane | Branch | SPEC | 상태 | 비고 |
 |------|--------|------|:----:|------|
-| **A (Pre)** | dev/preprocess | SPEC-XPE-P1A M2 | ✅ **main 머지 완료** | AVX2/FMA, SIMD parity 405/405, M4-M6 대기 |
-| **B (Post)** | dev/postprocess | SPEC-XPE-P2-ADV | ⚠️ **버그픽스 완료, 검증 대기** | Collimation+FD 9+8건 수정, 빌드 검증 필요 |
-| **C (GUI)** | dev/gui | SPEC-XPE-GUI-CALIB-001 | ⚠️ **커밋 완료, 머지 대기** | Algorithm Validation UI 11개 SWU |
+| **A (Pre)** | dev/preprocess | SPEC-XPE-P1A M2 | ✅ **main 통합 완료** | 테스트 202/202 전체 통과, API 마이그레이션 완료 |
+| **B (Post)** | dev/postprocess | SPEC-XPE-P2-ADV | ✅ **main 통합 완료** | MFP/Edge/Collimation/EI + Hough/FD 버그픽스 |
+| **C (GUI)** | dev/gui | SPEC-XPE-GUI-CALIB-001 | ✅ **main 통합 완료** | Algorithm Validation UI 11개 SWU, MetricsComputationService |
 
-**최근 진행 상황** (2026-04-19):
-- ✅ **3-Lane 교차검증 완료** (2026-04-19) — xpe-pre/post/gui 전체 SPEC 대비 구현 상태 검증
-- ✅ **xpe-pre → main squash merge** (2026-04-19) — SPEC-XPE-P1A M2 캘리브레이션 알고리즘 통합
-- ✅ **xpe-post Hough/FD 버그픽스 커밋** (2026-04-19) — polar-to-Cartesian 발산 수정, gradient-magnitude 재작성
-- ✅ **xpe-gui Algorithm Validation UI 커밋** (2026-04-19) — 11개 SWU 카탈로그, MetricsComputationService
-- ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19) — MFP(2.5)/Edge(2.6)/Collimation(2.8)/EI(2.10) 4개 SWU, 97/103 테스트(94.17%), IEC 62304 SRS/SDD/RTM/Compliance 문서 완성
+**최근 진행 상황** (2026-04-20 3-Lane 통합 세션):
+- ✅ **dev/preprocess → main squash merge** (2026-04-20) — 테스트 202/202 전체 통과, XPE_PIX→XPE_PIXEL API 마이그레이션
+- ✅ **dev/postprocess → main squash merge** (2026-04-20) — SPEC-XPE-P2-ADV MFP/Edge/Collimation/EI + Hough/FD 버그픽스
+- ✅ **dev/gui → main squash merge** (2026-04-20) — Algorithm Validation UI, MetricsComputationService, TASK-GUI-VIEWER-001 문서
+- ✅ **build_test2/build_test3/lint_results.json 추적 제외** — .gitignore 보강, dev/postprocess 빌드 아티팩트 정리
+- ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19~20) — MFP(2.5)/Edge(2.6)/Collimation(2.8)/EI(2.10) 4개 SWU, 97/103 테스트(94.17%), IEC 62304 SRS/SDD/RTM/Compliance 문서 완성
 - ✅ **M2 SIMD 구현 완료** (2026-04-19) — Offset/Gain/Defect/Detection AVX2/FMA 최적화, bit-identical/1 ULP parity, SPEC-XPE-P1A 완료
 - ✅ **Golden Reference 테스트 26/26 통과** (2026-04-19) — Offset/Gain/Ghost/Temp/Binning/Readout 수식 검증 + Calibration round-trip 완전 자동화
 - ✅ **CI Preprocess 전용 파이프라인 추가** — `ci-preprocess` CMake 프리셋 + GitHub Actions `preprocess-tests` 잡
@@ -61,7 +61,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 1 | `xpe_preprocess` M2 SIMD (AVX2/FMA) + parity | +3 | ✅ 완료 (main 머지) |
 | 2 | SPEC-XPE-P2-ADV 구현 (MFP/Edge/Collimation/EI) | +4 | ✅ 완료 (버그픽스 포함) |
 | 3 | Golden Reference CI + 품질 보증 완성 | +1 | ✅ 완료 |
-| 4 | P2-ADV 빌드 검증 + 잔여 실패 해소 (목표 95%+) | +1 | ⏳ 다음 세션 |
+| 4 | P2-ADV 빌드 검증 + 잔여 실패 해소 (목표 95%+) | +1 | ⏳ 진행 중 (97/103, 6건 잔존) |
 | 5 | benchmark pack BP-01~10 동결 + 자동 재현 | +3 | 미착수 |
 | 6 | EARS P1B~P2 요구사항 문서화 | +2 | 미착수 |
 | 7 | IEC 패키지 sync 완성 (VVP 포함) | +1 | 부분 |
