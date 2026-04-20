@@ -99,6 +99,6 @@ jobs:
         shell: pwsh
 
       - name: Upload help bundle to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: help-bundle-${{ github.ref_name }}.zip
