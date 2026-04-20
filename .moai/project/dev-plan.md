@@ -1,8 +1,8 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-19  
+**Version**: 1.3.0  
+**Date**: 2026-04-20  
 **Status**: Active — 지속적 갱신 대상
 
 ---
@@ -82,7 +82,9 @@ main이 정의할 다음 Lane 작업 SPEC:
 |------|----------|:---------:|---------|
 | SPEC-XPE-P2-ADV 실구현 명세 완성 | Post-B | +3 | 스켈레톤 존재 |
 | SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | SPEC 미작성 |
-| SPEC-BENCH-001 (benchmark freeze) | Pre-A | +3 | SPEC 미작성 |
+| SPEC-BENCH-PRE (BP-01~05 preprocess freeze) | Pre-A | +2 | SPEC 미작성 |
+| SPEC-BENCH-POST (BP-06~09 post-processing freeze) | Post-B | +1 | SPEC 미작성 |
+| BP-10 (degraded-mode stress) | main | +? | cross-lane, 통합 후 측정 |
 | S2-B: SPEC-XPE-GSVG 정의 | Post-B | +? | 미작성 |
 
 ### 2.3 main 작업 금지 항목
@@ -143,11 +145,17 @@ main 병합 후 전체 파이프라인 E2E 검증:
 
 ## 5. 다음 main 작업 계획 (우선순위 순)
 
-### P0: benchmark BP-01~10 동결 ← 임계경로 (+3점)
+### P0: benchmark 동결 ← 임계경로 (+3점)
 
 현재 상태: SIMD 구현 완료. 기준 동결 미수행.
-- Pre-A Lane: SPEC-BENCH-001 작성 → Preprocess 10개 벤치마크 측정값 동결
-- main: CI 자동 재현 (benchmark regression CI 잡 추가)
+
+| 팩 | 담당 Lane | 내용 |
+|----|----------|------|
+| BP-01~05 | **Pre-A** | Preprocess 전용 — Offset/Gain/Defect/Ghost/Temp 측정값 동결 |
+| BP-06~09 | **Post-B** | Post 전용 — GSVG/Collimation/EI/DI 측정값 동결 |
+| BP-10 | **main** | Degraded-mode stress (cross-lane, 통합 후 측정) |
+
+- main: benchmark regression CI 잡 추가 (양 Lane 결과 통합 검증)
 - 기여: Framework A +3, Framework B (알고리즘 품질) +2
 
 ### P0: EARS P1B 요구사항 작성 (+2점)
@@ -178,3 +186,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-19 | 1.0.0 | 초기 생성 — Phase 1b 완료 확인, 85점 임계 경로 분석 |
 | 2026-04-19 | 1.1.0 | main 역할 재정의 — 구현은 Lane, main은 통합/거버넌스/문서 |
 | 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |
+| 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
