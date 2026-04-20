@@ -16,7 +16,8 @@
  */
 
 #include "xpe/preprocess_api.h"
-#include "xpe_preprocess_internal.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "xpe/preprocess/xcal_format.h"
 
 #include <fstream>
 #include <cstring>

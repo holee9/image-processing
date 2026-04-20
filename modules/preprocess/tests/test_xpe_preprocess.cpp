@@ -114,13 +114,13 @@ XpeImageBuffer* CreateTestImage(uint32_t width, uint32_t height, XpePixelFormat 
     img->width = width;
     img->height = height;
     img->format = format;
-    img->stride = width * (format == XPE_PIX_UINT16 ? sizeof(uint16_t) : sizeof(float));
+    img->stride = width * (format == XPE_PIXEL_UINT16 ? sizeof(uint16_t) : sizeof(float));
 
     size_t data_size = height * img->stride;
     img->data = new uint8_t[data_size];
 
     // Fill with test data
-    if (format == XPE_PIX_UINT16) {
+    if (format == XPE_PIXEL_UINT16) {
         uint16_t* data = reinterpret_cast<uint16_t*>(img->data);
         for (size_t i = 0; i < width * height; ++i) {
             data[i] = 1000 + (i % 100);  // Test pattern
@@ -701,8 +701,8 @@ protected:
  */
 TEST_F(PreprocessCorrectionTest, OffsetCorrect_BasicSubtraction) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -726,8 +726,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_BasicSubtraction) {
  */
 TEST_F(PreprocessCorrectionTest, OffsetCorrect_FloorAtZeroClamping) {
     // Arrange: Create input with low values
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Set input values to 50 (below offset of 100)
@@ -765,8 +765,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FloorAtZeroClamping) {
  */
 TEST_F(PreprocessCorrectionTest, OffsetCorrect_TemperatureInterpolation) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
     XpeImageMetadata* metadata = CreateTestMetadata();
     metadata->temperature_c = 27.5f;  // Intermediate temperature
 
@@ -791,8 +791,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_TemperatureInterpolation) {
  */
 TEST_F(PreprocessCorrectionTest, OffsetCorrect_PREPTimeModel) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
     XpeImageMetadata* metadata = CreateTestMetadata();
     metadata->acquisition_time_s = 5.0f;  // 5 seconds after PREP
 
@@ -817,8 +817,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_PREPTimeModel) {
  */
 TEST_F(PreprocessCorrectionTest, OffsetCorrect_DimensionMismatch) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(512, 512, XPE_PIX_UINT16);  // Wrong size
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(512, 512, XPE_PIXEL_UINT16);  // Wrong size
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -865,8 +865,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_NullBuffers) {
  */
 TEST_F(PreprocessCorrectionTest, GainCorrect_UINT16ToFLOAT32Conversion) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -879,7 +879,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_UINT16ToFLOAT32Conversion) {
 
     // Verify output format
     if (result == XPE_OK) {
-        EXPECT_EQ(output->format, XPE_PIX_FLOAT32);
+        EXPECT_EQ(output->format, XPE_PIXEL_FLOAT32);
     }
 
     // Cleanup
@@ -897,8 +897,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_UINT16ToFLOAT32Conversion) {
  */
 TEST_F(PreprocessCorrectionTest, GainCorrect_GainMapDivision) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -924,8 +924,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_GainMapDivision) {
  */
 TEST_F(PreprocessCorrectionTest, GainCorrect_MultiSIDInterpolation) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
     metadata->sid_mm = 1100.0f;  // Intermediate SID
 
@@ -954,8 +954,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_NaNInfValidation) {
     // This test would require creating a gain map with NaN/Inf
     // For now, we'll test the basic behavior
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -989,8 +989,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_NaNInfValidation) {
  */
 TEST_F(PreprocessCorrectionTest, DefectCorrect_EdgeAwareInterpolation) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -1015,8 +1015,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_EdgeAwareInterpolation) {
  */
 TEST_F(PreprocessCorrectionTest, DefectCorrect_StaticBPMPriority) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -1041,8 +1041,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_StaticBPMPriority) {
  */
 TEST_F(PreprocessCorrectionTest, DefectCorrect_TransientDefectDetection) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -1067,8 +1067,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_TransientDefectDetection) {
  */
 TEST_F(PreprocessCorrectionTest, DefectCorrect_ClusterDefect) {
     // Arrange
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate cluster defect (set 2x2 region to 0)
@@ -1104,8 +1104,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_EmptyBPM) {
     xpe_preprocess_shutdown();
     ASSERT_EQ(xpe_preprocess_init(NULL), XPE_OK);
 
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Act
@@ -1153,7 +1153,7 @@ TEST_F(PreprocessCalibrationManagementTest, GenerateOffset_DarkFrameAveraging) {
     const int num_frames = 10;
     std::vector<XpeImageBuffer*> dark_frames;
     for (int i = 0; i < num_frames; ++i) {
-        dark_frames.push_back(CreateTestImage(1024, 1024, XPE_PIX_UINT16));
+        dark_frames.push_back(CreateTestImage(1024, 1024, XPE_PIXEL_UINT16));
     }
 
     // Act
@@ -1184,7 +1184,7 @@ TEST_F(PreprocessCalibrationManagementTest, GenerateOffset_DarkFrameAveraging) {
  */
 TEST_F(PreprocessCalibrationManagementTest, GenerateOffset_SingleFrame) {
     // Arrange
-    XpeImageBuffer* dark_frame = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* dark_frame = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
 
     // Act
     XpeErrorCode result = xpe_calib_generate_offset(
@@ -1378,7 +1378,7 @@ TEST_F(PreprocessCalibrationManagementTest, Save_FileCreationSuccess) {
  */
 TEST_F(PreprocessCalibrationManagementTest, ValidateReadout_DroppedColumnDetection) {
     // Arrange: Create image with dropped column (all zeros)
-    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate dropped column at x=100
@@ -1416,7 +1416,7 @@ TEST_F(PreprocessCalibrationManagementTest, ValidateReadout_DroppedColumnDetecti
  */
 TEST_F(PreprocessCalibrationManagementTest, ValidateReadout_GainNonUniformity) {
     // Arrange: Create image with gain variation
-    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate gain nonuniformity (left half brighter)
@@ -1472,14 +1472,14 @@ protected:
  */
 TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StatisticalOutlierDetection) {
     // Arrange: Create image with hot pixel (outlier)
-    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate hot pixel at (100, 100)
     float* data = reinterpret_cast<float*>(image->data);
     data[100 * 1024 + 100] = 10000.0f;  // Extreme outlier
 
-    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
 
     // Act
     XpeErrorCode result = xpe_defect_detect_runtime(image, metadata, defect_map);
@@ -1504,7 +1504,7 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StatisticalOutlierDetection) {
  */
 TEST_F(PreprocessUtilityTest, DefectDetectRuntime_HotPixelDetection) {
     // Arrange
-    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate multiple hot pixels
@@ -1513,7 +1513,7 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_HotPixelDetection) {
     data[100 * 1024 + 100] = 8000.0f;
     data[200 * 1024 + 200] = 10000.0f;
 
-    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
 
     // Act
     XpeErrorCode result = xpe_defect_detect_runtime(image, metadata, defect_map);
@@ -1538,7 +1538,7 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_HotPixelDetection) {
  */
 TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StuckPixelDetection) {
     // Arrange
-    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIX_FLOAT32);
+    XpeImageBuffer* image = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
     // Simulate stuck pixels (stuck at max value)
@@ -1546,7 +1546,7 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StuckPixelDetection) {
     data[75 * 1024 + 75] = std::numeric_limits<float>::max();
     data[150 * 1024 + 150] = std::numeric_limits<float>::max();
 
-    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIX_UINT16);
+    XpeImageBuffer* defect_map = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
 
     // Act
     XpeErrorCode result = xpe_defect_detect_runtime(image, metadata, defect_map);

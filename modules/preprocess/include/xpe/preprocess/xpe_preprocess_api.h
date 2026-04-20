@@ -267,18 +267,18 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * ========================================================================= */
 
 /**
- * @brief Validate raw uint16 image for readout artifacts (line noise, dropped columns,
- *        ADC saturation). Call BEFORE any correction stage.
- * @param rawImg         [in]  Raw uint16 image to validate
- * @param artifactScoreOut [out] Normalized score: 0 = clean, 100 = severely corrupted
- * @param msgOut         [out] Operator-readable summary message buffer
- * @param msgLen         [in]  Size of msgOut buffer in bytes
- * @return XPE_OK on success (score > 80 posts WARNING alert but returns XPE_OK)
+ * @brief Validate raw uint16 image for readout artifacts (dropped columns,
+ *        gain nonuniformity). Call BEFORE any correction stage.
+ * @param image               [in]  Raw uint16 image to validate
+ * @param metadata            [in]  Image metadata (acquisition context)
+ * @param has_dropped_columns [out] True if any all-zero column detected
+ * @param has_nonuniform_gain [out] True if any row mean > 0.9 * UINT16_MAX
+ * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on NULL pointers
  */
-XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
-                                                    int32_t* artifactScoreOut,
-                                                    char* msgOut,
-                                                    size_t msgLen);
+XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
+                                                    const XpeImageMetadata* metadata,
+                                                    bool* has_dropped_columns,
+                                                    bool* has_nonuniform_gain);
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
@@ -300,6 +300,127 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
                                               const char* calibPath,
                                               void* ghostHandle,
                                               const char* configJsonOrNull);
+
+/* =========================================================================
+ * SWU-1.10: Calibration Data Caching (LRU)
+ * Eliminates repeated file I/O for calibration maps.
+ * ========================================================================= */
+
+/**
+ * @brief Load offset calibration map with LRU caching.
+ *        On cache hit, returns cached data without file I/O.
+ *        On miss, loads from file and inserts into cache.
+ * @param filePath     [in]  Path to calibration file
+ * @param offsetMapOut [out] Populated by this function; caller owns the buffer.
+ *                           Data pointer is shared with cache — do NOT free.
+ * @return XPE_OK, XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED
+ */
+XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
+                                                    XpeImageBuffer* offsetMapOut);
+
+/**
+ * @brief Load gain calibration map with LRU caching.
+ * @param filePath  [in]  Path to calibration file
+ * @param gainMapOut [out] Populated on hit or miss; data shared with cache.
+ * @return XPE_OK, XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED
+ */
+XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
+                                                  XpeImageBuffer* gainMapOut);
+
+/**
+ * @brief Load defect map with LRU caching.
+ * @param filePath     [in]  Path to defect map file
+ * @param defectMapOut [out] Populated on hit or miss; data shared with cache.
+ * @return XPE_OK, XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED
+ */
+XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
+                                                    XpeImageBuffer* defectMapOut);
+
+/**
+ * @brief Clear all entries from the calibration cache, freeing memory.
+ */
+XPE_API void xpe_calib_cache_clear(void);
+
+/**
+ * @brief Set the maximum number of calibration maps retained in cache.
+ *        Default is 4. Excess entries are evicted (LRU first).
+ * @param maxMaps Maximum cache entries (minimum 1)
+ */
+XPE_API void xpe_calib_cache_set_max_size(uint32_t maxMaps);
+
+/* =========================================================================
+ * SWU-1.11: Pre-loaded Calibration State (Pipeline Optimization)
+ * Load calibration maps once, reuse across multiple pipeline invocations.
+ * ========================================================================= */
+
+/**
+ * @brief Load all calibration maps from a directory into a state struct.
+ *        Files expected: offset.xcal, gain.xcal, defect.xcal
+ *        Missing files are silently skipped (corresponding *Loaded flag = false).
+ * @param state     [out] Zero-initialized state to populate
+ * @param calibPath [in]  Calibration data directory path
+ * @return XPE_OK on success (at least one map loaded),
+ *         XPE_ERR_INVALID_INPUT on null parameters
+ */
+XPE_API XpeErrorCode xpe_calib_state_load(void* state, const char* calibPath);
+
+/**
+ * @brief Free all resources held by a calibration state struct.
+ *        Safe to call on zero-initialized or already-released state.
+ * @param state [in/out] Calibration state to release
+ */
+XPE_API void xpe_calib_state_release(void* state);
+
+/* =========================================================================
+ * Optimized Pipeline with Pre-loaded Calibration State
+ * REQ-P1A-041 to REQ-P1A-047 (extended)
+ * ========================================================================= */
+
+/**
+ * @brief Execute full pre-processing pipeline using pre-loaded calibration maps.
+ *        Identical to xpe_preprocess_pipeline() but skips file I/O by using
+ *        calibration data from a pre-loaded XpeCalibrationState.
+ * @param img           [in/out] Image to process
+ * @param meta          [in/out] Image metadata
+ * @param calibState    [in]     Pre-loaded calibration state (from xpe_calib_state_load)
+ * @param ghostHandle   [in]     Ghost corrector handle (NULL = skip ghost)
+ * @param configJsonOrNull [in]  Pipeline configuration JSON
+ * @return XPE_OK on success, XPE_ERR_* on failure
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
+                                                  XpeImageMetadata* meta,
+                                                  const void* calibState,
+                                                  void* ghostHandle,
+                                                  const char* configJsonOrNull);
+
+/* =========================================================================
+ * SWU-1.12: Batch Processing
+ * Apply identical calibration to multiple frames with SIMD parallelism.
+ * ========================================================================= */
+
+/**
+ * @brief Process multiple frames with identical calibration in batch.
+ *        All frames share the same calibration maps (offset/gain/defect).
+ *        Optimized for AVX2 parallel processing of frames.
+ *
+ * @param images        [in/out] Array of imageCount XpeImageBuffer to process.
+ *                             Each image undergoes the full pipeline.
+ * @param imageCount    [in]    Number of images in the array (must be >= 1)
+ * @param metas         [in/out] Array of imageCount XpeImageMetadata
+ * @param calibPath     [in]    Calibration data directory path
+ * @param ghostHandle   [in]    Ghost corrector handle (NULL = skip ghost)
+ * @param configJsonOrNull [in] Pipeline configuration JSON
+ * @return XPE_OK if all images processed successfully,
+ *         XPE_ERR_INVALID_INPUT on null/invalid parameters,
+ *         first error code if any individual frame fails
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
+    XpeImageBuffer* images,
+    uint32_t imageCount,
+    XpeImageMetadata* metas,
+    const char* calibPath,
+    void* ghostHandle,
+    const char* configJsonOrNull);
 
 #ifdef __cplusplus
 }

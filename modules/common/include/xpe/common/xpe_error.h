@@ -59,6 +59,7 @@ typedef int32_t XpeErrorCode;
 #define XPE_ERR_INTERNAL            -12  /**< Internal processing error */
 #define XPE_ERR_DICOM_INVALID       -13  /**< DICOM file is malformed, truncated, or not a valid DICOM file */
 #define XPE_ERR_DICOM_CONFORMANCE   -14  /**< DICOM conformance violation: unsupported SOP class, transfer syntax, or mandatory attribute missing */
+#define XPE_ERR_NOT_IMPLEMENTED     -15  /**< Function is recognized but not yet implemented in this version */
 /** @} */
 
 /**

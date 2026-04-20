@@ -1,112 +1,186 @@
 /**
  * @file defect_correct.cpp
  * @brief SWU-1.3: Defect pixel correction and runtime detection (PRE-06)
- *        REQ-P1A-024 to REQ-P1A-028
- * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ *        REQ-P1A-012 (Defect Correction Bilinear + Cluster)
+ * SPEC: SPEC-XPE-P1A v1.2.0  IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include <mutex>
 
 #include <cmath>
 #include <cstring>
 #include <vector>
+#include <algorithm>
+#include <queue>
 
-// @MX:ANCHOR: [AUTO] xpe_defect_correct — float32 in-place defect replacement
-// @MX:REASON: Called in main pipeline after gain correction; fan_in >= 3
-// @MX:SPEC: REQ-P1A-024
-XpeErrorCode xpe_defect_correct(XpeImageBuffer* img,
-                                 const XpeImageBuffer* defectMap,
-                                 const char* configJsonOrNull)
+namespace {
+
+// @MX:NOTE: [AUTO] Connected component analysis for defect cluster detection
+// Uses BFS to find adjacent defective pixels (4-connectivity)
+struct ClusterInfo {
+    std::vector<uint32_t> positions; // defect pixel positions
+    bool isCluster; // true if 2+ adjacent defects
+};
+
+ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t height,
+                           uint32_t startX, uint32_t startY)
 {
-    if (!img || !defectMap) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_dims_match(img, defectMap)) return XPE_ERR_INVALID_INPUT;
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_buffer_has_format(defectMap, XPE_PIXEL_UINT8)) return XPE_ERR_INVALID_INPUT;
+    ClusterInfo info;
+    std::vector<bool> visited(width * height, false);
+    std::queue<uint32_t> q;
 
-    const uint32_t W = img->width;
-    const uint32_t H = img->height;
-    auto*       px = static_cast<float*>(img->data);
-    const auto* dm = static_cast<const uint8_t*>(defectMap->data);
+    uint32_t startIdx = startY * width + startX;
+    q.push(startIdx);
+    visited[startIdx] = true;
 
-    bool hasDefects = false;
-    for (size_t i = 0; i < n; ++i) {
-        if (dm[i] != 0) {
-            hasDefects = true;
-            break;
-        }
-    }
-    if (!hasDefects) return XPE_OK;
+    const int dx[] = {-1, 1, 0, 0};
+    const int dy[] = {0, 0, -1, 1};
 
-    std::vector<float> source;
-    try {
-        source.assign(px, px + n);
-    } catch (...) {
-        return XPE_ERR_OUT_OF_MEMORY;
-    }
+    while (!q.empty()) {
+        uint32_t idx = q.front();
+        q.pop();
+        info.positions.push_back(idx);
 
-    // REQ-P1A-024/025/027/028: iterate defect map and replace defective pixels
-    // using edge-aware neighbor interpolation (xpe_interpolate_pixel handles
-    // fallback to diagonals when all 4-connected neighbors are also defective)
-    for (uint32_t y = 0; y < H; ++y) {
-        for (uint32_t x = 0; x < W; ++x) {
-            if (dm[y * W + x] != 0) {
-                px[y * W + x] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
+        uint32_t cx = idx % width;
+        uint32_t cy = idx / width;
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = static_cast<int>(cx) + dx[i];
+            int ny = static_cast<int>(cy) + dy[i];
+
+            if (nx >= 0 && ny >= 0 &&
+                static_cast<uint32_t>(nx) < width &&
+                static_cast<uint32_t>(ny) < height) {
+                uint32_t nidx = static_cast<uint32_t>(ny) * width + static_cast<uint32_t>(nx);
+                if (!visited[nidx] && defectMask[nidx] != 0) {
+                    visited[nidx] = true;
+                    q.push(nidx);
+                }
             }
         }
     }
 
-    (void)configJsonOrNull;
-    return XPE_OK;
+    info.isCluster = info.positions.size() >= 2;
+    return info;
 }
 
-// @MX:NOTE: [AUTO] Runtime transient defect detection via mean+3sigma statistical outlier analysis
-// @MX:SPEC: REQ-P1A-028
-XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
-                                        XpeImageBuffer* defectMapOut,
-                                        const char* configJsonOrNull)
+// @MX:NOTE: [AUTO] 3x3 median filter for defect cluster correction
+// Collects valid neighbor pixels and returns median value
+float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
+                             uint32_t x, uint32_t y,
+                             uint32_t width, uint32_t height)
 {
-    if (!img || !defectMapOut) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_dims_match(img, defectMapOut)) return XPE_ERR_INVALID_INPUT;
+    std::vector<float> values;
 
-    size_t n = 0;
-    if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
-    if (!xpe_buffer_has_format(defectMapOut, XPE_PIXEL_UINT8)) return XPE_ERR_INVALID_INPUT;
-    const auto*  px = static_cast<const float*>(img->data);
-    auto*        out = static_cast<uint8_t*>(defectMapOut->data);
-    std::memset(out, 0, n);
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
 
-    // Compute mean
-    double mean = 0.0;
-    size_t finiteCount = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (std::isfinite(px[i])) {
-            mean += px[i];
-            ++finiteCount;
-        } else {
-            out[i] = 1u;
+            int nx = static_cast<int>(x) + dx;
+            int ny = static_cast<int>(y) + dy;
+
+            if (nx >= 0 && ny >= 0 &&
+                static_cast<uint32_t>(nx) < width &&
+                static_cast<uint32_t>(ny) < height) {
+                uint32_t idx = static_cast<uint32_t>(ny) * width + static_cast<uint32_t>(nx);
+                if (defectMask[idx] == 0) { // valid pixel
+                    values.push_back(pixels[idx]);
+                }
+            }
         }
     }
-    if (finiteCount == 0) return XPE_ERR_PROCESSING_FAILED;
-    mean /= static_cast<double>(finiteCount);
 
-    // Compute standard deviation
-    double var = 0.0;
+    if (values.empty()) return 0.0f;
+
+    std::sort(values.begin(), values.end());
+    size_t mid = values.size() / 2;
+    return values[mid];
+}
+
+} // anonymous namespace
+
+// @MX:ANCHOR: [AUTO] xpe_defect_correct — public API entry point (new g_calib-based)
+// @MX:REASON: Called after gain correction; reads g_calib.defect_map; fan_in >= 3
+// @MX:SPEC: REQ-P1A-012, REQ-P1A-020
+extern "C" XPE_API XpeErrorCode xpe_defect_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
+{
+    if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+    if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
+    if (input->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (output->width  != input->width ||
+        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+
+    const size_t n = static_cast<size_t>(input->width) * input->height;
+    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+
+    std::unique_lock<std::mutex> lock(g_calib_mutex);
+    if (!g_calib.defect_map) return XPE_ERR_NOT_INITIALIZED;
+    if (g_calib.defect_width  != input->width ||
+        g_calib.defect_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+
+    // Copy defect map locally so we can release the mutex before heavy processing
+    std::vector<uint8_t> dm_local(g_calib.defect_map.get(),
+                                   g_calib.defect_map.get() + n);
+    lock.unlock();
+
+    const uint32_t W  = input->width;
+    const uint32_t H  = input->height;
+    const float*   src = static_cast<const float*>(input->data);
+    float*         dst = static_cast<float*>(output->data);
+    const uint8_t* dm  = dm_local.data();
+
+    // Copy input → output first
+    std::memcpy(dst, src, n * sizeof(float));
+
+    bool hasDefects = false;
     for (size_t i = 0; i < n; ++i) {
-        if (!std::isfinite(px[i])) continue;
-        const double d = static_cast<double>(px[i]) - mean;
-        var += d * d;
+        if (dm[i] != 0) { hasDefects = true; break; }
     }
-    const double sigma = std::sqrt(var / static_cast<double>(finiteCount));
-    if (sigma == 0.0) return XPE_OK;
-
-    // Flag pixels beyond mean ± 3*sigma as defective
-    for (size_t i = 0; i < n; ++i) {
-        if (!std::isfinite(px[i])) continue;
-        out[i] = (std::abs(static_cast<double>(px[i]) - mean) > 3.0 * sigma) ? 1u : 0u;
+    if (!hasDefects) {
+        output->format        = XPE_PIXEL_FLOAT32;
+        output->bitsAllocated = 32;
+        output->bitsStored    = 32;
+        output->dataSize      = n * sizeof(float);
+        return XPE_OK;
     }
 
-    (void)configJsonOrNull;
+    // Use a source snapshot for neighbor lookups during correction
+    std::vector<float> source(src, src + n);
+
+    // REQ-P1A-012: cluster-aware defect correction
+    std::vector<bool> processed(n, false);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            uint32_t idx = y * W + x;
+            if (dm[idx] != 0 && !processed[idx]) {
+                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y);
+                if (cluster.isCluster) {
+                    for (uint32_t cidx : cluster.positions) {
+                        uint32_t cx = cidx % W;
+                        uint32_t cy = cidx / W;
+                        dst[cidx] = median_filter_cluster(source.data(), dm, cx, cy, W, H);
+                        processed[cidx] = true;
+                    }
+                } else {
+                    dst[idx] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
+                    processed[idx] = true;
+                }
+            }
+        }
+    }
+
+    output->format        = XPE_PIXEL_FLOAT32;
+    output->bitsAllocated = 32;
+    output->bitsStored    = 32;
+    output->dataSize      = n * sizeof(float);
     return XPE_OK;
 }
+
+// Runtime detection implementation moved to runtime_detection.cpp (REQ-P1A-013)
+// Uses Hampel 5-sigma outlier detection instead of mean+3sigma

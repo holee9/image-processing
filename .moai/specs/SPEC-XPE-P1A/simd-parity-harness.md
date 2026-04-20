@@ -1,9 +1,9 @@
 # SIMD Parity Harness Specification
 
 **Document ID**: SPEC-XPE-P1A-SIMD-PARITY
-**Version**: 1.0.0
-**Date**: 2026-04-18
-**Status**: Normative (companion to SPEC-XPE-P1A v1.2.0)
+**Version**: 2.0.0
+**Date**: 2026-04-19
+**Status**: Normative (companion to SPEC-XPE-P1A v1.3.0)
 **Parent SPEC**: SPEC-XPE-P1A (Pre-processing Module)
 **Author**: manager-spec (Pre Lane upgrade)
 **IEC 62304 Class**: B
@@ -15,28 +15,74 @@
 | Version | Date       | Author         | Changes |
 |---------|------------|----------------|---------|
 | 1.0.0   | 2026-04-18 | manager-spec   | Initial specification extracted from spec.md Section 4.6 and research.md v2.0.0 Section 9 |
+| 2.0.0   | 2026-04-19 | xpe-qa         | Added AVX-512 and NEON architecture support; expanded CPUID detection; added runtime dispatch protocol |
 
 ---
 
 ## 1. Purpose
 
-This document formalises the scalar-vs-AVX2 equivalence test harness required by REQ-P1A-040. It specifies:
+This document formalises the scalar-vs-SIMD equivalence test harness required by REQ-P1A-040. It specifies:
 
-1. The feature-detection (CPUID) contract used to dispatch between scalar and AVX2 paths
+1. The feature-detection (CPUID) contract used to dispatch between scalar, AVX2, AVX-512, and NEON paths
 2. The parity rules (bit-identical vs 1 ULP) for each operation in SPEC-XPE-P1A
 3. The deterministic random input generation protocol (100 inputs per operation)
-4. The Google Test harness structure (`test_simd_parity.cpp`)
+4. The Google Test harness structure (`test_simd_parity_*.cpp`)
 5. The dispatch override mechanism (config + environment variable)
+6. Cross-platform architecture support (x86-64: AVX2/AVX-512, ARM64: NEON)
 
 This harness is the acceptance test for REQ-P1A-040 and the +5-point Score Plan Step 1 (Pre Lane scalar + SIMD parity).
+
+### Supported Architectures
+
+| Architecture | Instruction Set | Register Width | Platforms | Test File |
+|--------------|-----------------|----------------|-----------|-----------|
+| Scalar | Portable | N/A | All | N/A (baseline) |
+| AVX2 | Intel/AMD x86-64 | 256-bit (16x uint16) | x86-64 (Haswell+) | test_simd_parity_avx2.cpp |
+| AVX-512 | Intel x86-64 | 512-bit (32x uint16) | x86-64 (Skylake-X, Ice Lake) | test_simd_parity_avx512.cpp |
+| NEON | ARM64 | 128-bit (8x uint16) | ARM64 (Android/iOS/Linux) | test_simd_parity_neon.cpp |
 
 ---
 
 ## 2. CPUID / Feature Detection Contract
 
-### 2.1 Runtime Detection
+### 2.1 Runtime Detection Architecture
 
-Feature detection runs once at `xpe_preprocess_init()` and caches the result in the module's internal state.
+Feature detection runs once at module initialization and caches the result. The dispatch layer follows a hierarchical fallback:
+
+```
+AVX-512F → AVX2 → NEON → Scalar
+```
+
+**Priority Rules:**
+1. AVX-512F has highest priority on supported x86-64 hardware (Skylake-X, Ice Lake+)
+2. AVX2 is fallback for older x86-64 (Haswell to Skylake)
+3. NEON is primary path on ARM64 (Android/iOS/Linux)
+4. Scalar is portable fallback for all platforms
+
+### 2.2 CPUID Detection Functions
+
+#### 2.2.1 AVX-512F Detection (x86-64)
+
+```
+bool cpu_supports_avx512f(void)
+{
+    // Step 1: CPUID leaf 1, ECX bit 27 (OSXSAVE enabled)
+    int cpuid_leaf1[4];
+    __cpuid(cpuid_leaf1, 1);
+    if ((cpuid_leaf1[2] & (1 << 27)) == 0) return false;
+
+    // Step 2: CPUID leaf 7, subleaf 0, EBX bit 16 (AVX-512F foundation)
+    int cpuid_leaf7[4];
+    __cpuidex(cpuid_leaf7, 7, 0);
+    if ((cpuid_leaf7[1] & (1 << 16)) == 0) return false;
+
+    // Step 3: XGETBV bits 5, 1, and 0 (OS saves ZMM + YMM + XMM registers)
+    unsigned long long xcr_mask = _xgetbv(0);
+    return ((xcr_mask & 0xE6) == 0xE6);  // bits 7:5 = ZMM, 2:1 = YMM, 0 = XMM
+}
+```
+
+#### 2.2.2 AVX2 Detection (x86-64)
 
 ```
 bool cpu_supports_avx2(void)
@@ -51,45 +97,127 @@ bool cpu_supports_avx2(void)
     __cpuidex(cpuid_leaf7, 7, 0);
     if ((cpuid_leaf7[1] & (1 << 5)) == 0) return false;
 
-    // Step 3: XGETBV bits 1 and 2 (OS saves YMM registers on context switch)
+    // Step 3: XGETBV bits 1 and 0 (OS saves YMM + XMM registers on context switch)
     unsigned long long xcr_mask = _xgetbv(0);
-    return ((xcr_mask & 0x06) == 0x06);
+    return ((xcr_mask & 0x03) == 0x03);
 }
 ```
 
-### 2.2 Dispatch Override
+#### 2.2.3 NEON Detection (ARM64)
+
+```
+#if defined(__aarch64__)
+bool cpu_supports_neon(void)
+{
+    // ARM64 always has NEON (it's part of the base architecture)
+    return true;
+}
+#endif
+```
+
+### 2.3 Dispatch Priority Table
+
+| Platform | Detection Order | Fallback Chain |
+|----------|-----------------|----------------|
+| x86-64 (Intel) | AVX-512F → AVX2 → Scalar | Check AVX-512F first, then AVX2, else scalar |
+| x86-64 (AMD) | AVX2 → Scalar | AMD Zen4+ has AVX-512, but with different encoding; AVX2 is safe default |
+| ARM64 | NEON → Scalar | NEON always available, scalar fallback only for testing |
+| Other | Scalar only | Portable C implementation |
+
+### 2.3 Dispatch Override
 
 Dispatch priority (highest wins):
 
 1. Environment variable `XPE_FORCE_SCALAR=1` — forces scalar path unconditionally (useful for CI regression across hardware)
-2. Config JSON key `"force_scalar": true` passed to `xpe_preprocess_init(configJsonOrNull)` — forces scalar path for the module lifetime
-3. Runtime CPUID detection (default) — AVX2 if supported, else scalar
+2. Environment variable `XPE_FORCE_AVX2=1` — forces AVX2 path (for testing parity even if AVX-512 available)
+3. Environment variable `XPE_FORCE_AVX512=1` — forces AVX-512 path (requires hardware support)
+4. Environment variable `XPE_FORCE_NEON=1` — forces NEON path (ARM64 only, for testing)
+5. Config JSON key `"force_simd": "scalar|avx2|avx512|neon"` passed to `xpe_preprocess_init(configJsonOrNull)`
+6. Runtime CPUID detection (default) — AVX-512F → AVX2 → NEON → Scalar based on platform
 
-Rationale: deterministic CI runs on machines without AVX2 (or for parity testing) must be able to force scalar path without recompilation.
+Rationale: deterministic CI runs on machines without AVX2/AVX-512 (or for parity testing) must be able to force specific paths without recompilation.
 
-### 2.3 Dispatch Telemetry
+### 2.4 Dispatch Telemetry
 
 On init, the module logs the selected path:
 
 ```
-[xpe_preprocess] SIMD dispatch: AVX2      (CPUID=ok, override=none)
+[xpe_preprocess] SIMD dispatch: AVX-512F  (CPUID=ok, override=none)
+[xpe_preprocess] SIMD dispatch: AVX2      (CPUID=ok, AVX-512=not-supported)
+[xpe_preprocess] SIMD dispatch: NEON      (Platform=ARM64, override=none)
 [xpe_preprocess] SIMD dispatch: scalar    (CPUID=not-supported)
-[xpe_preprocess] SIMD dispatch: scalar    (override=config.force_scalar)
-[xpe_preprocess] SIMD dispatch: scalar    (override=env.XPE_FORCE_SCALAR)
+[xpe_preprocess] SIMD dispatch: scalar    (override=config.force_simd)
+[xpe_preprocess] SIMD dispatch: AVX2      (override=env.XPE_FORCE_AVX2)
 ```
 
 ---
 
 ## 3. Parity Rules
 
-| Operation | REQ | Scalar Baseline | AVX2 Path | Parity Rule |
-|-----------|-----|-----------------|-----------|-------------|
-| Offset subtract (UINT16) | REQ-P1A-010 | `max(a - b, 0)` via branch | `_mm256_subs_epu16` | **Bit-identical** |
-| Gain correct (FLOAT32 reciprocal) | REQ-P1A-011 | `a * (1.0f / b)` | `_mm256_mul_ps(a, recip_b)` | **1 ULP** |
-| Gain correct (FLOAT32 polynomial) | REQ-P1A-011 | Horner: `c0 + x*(c1 + x*c2)` scalar | `_mm256_fmadd_ps` chain | **1 ULP** |
-| Defect interp (UINT16 bilinear) | REQ-P1A-012 | pure-C bilinear weighted sum | AVX2 gather + weighted average | **Bit-identical** |
-| Defect interp (UINT16 median) | REQ-P1A-012 | sort-9 + median | AVX2 sorting network | **Bit-identical** |
-| Runtime detect (MAD UINT16) | REQ-P1A-013 | median-of-8 + MAD + threshold | AVX2 sort + compare | **Bit-identical** |
+### 3.1 Parity Matrix by Architecture
+
+| Operation | REQ | Scalar | AVX2 | AVX-512 | NEON | Parity Rule |
+|-----------|-----|--------|------|---------|------|-------------|
+| Offset subtract (UINT16) | REQ-P1A-010 | `max(a - b, 0)` | `_mm256_subs_epu16` | `_mm512_subs_epu16` | `vqsubq_u16` | **Bit-identical** |
+| Gain correct (FLOAT32 reciprocal) | REQ-P1A-011 | `a * (1.0f / b)` | `_mm256_mul_ps` | `_mm512_mul_ps` | `vmulq_f32` | **1 ULP** |
+| Gain correct (FLOAT32 polynomial) | REQ-P1A-011 | Horner scalar | `_mm256_fmadd_ps` | `_mm512_fmadd_ps` | `vfmaq_f32` | **1 ULP** |
+| Defect interp (UINT16 bilinear) | REQ-P1A-012 | pure-C bilinear | AVX2 gather | AVX-512 gather | NEON tbl | **Bit-identical** |
+| Defect interp (UINT16 median) | REQ-P1A-012 | sort-9 + median | AVX2 sort-9 | AVX-512 sort-9 | NEON sort-9 | **Bit-identical** |
+| Runtime detect (MAD UINT16) | REQ-P1A-013 | median-of-8 + MAD | AVX2 sort | AVX-512 sort | NEON sort | **Bit-identical** |
+
+### 3.2 Architecture-Specific Intrinsics
+
+#### 3.2.1 AVX-512 Intrinsics (x86-64)
+
+| Operation | AVX-512 Intrinsic | Throughput | Latency |
+|-----------|-------------------|------------|---------|
+| Saturating subtract (uint16) | `_mm512_subs_epu16` | 0.5 (2x AVX2) | 1 cycle |
+| FMA (float32) | `_mm512_fmadd_ps` | 0.5 (2x AVX2) | 4 cycles |
+| Load/store | `_mm512_loadu_si512` / `_mm512_storeu_si512` | 1 (2x AVX2) | 1 cycle |
+
+#### 3.2.2 NEON Intrinsics (ARM64)
+
+| Operation | NEON Intrinsic | Throughput | Latency |
+|-----------|----------------|------------|---------|
+| Saturating subtract (uint16) | `vqsubq_u16` | 1 (same as AVX2) | 3-4 cycles |
+| FMA (float32) | `vfmaq_f32` | 1-2 | 4-5 cycles |
+| Load/store | `vld1q_u16` / `vst1q_u16` | 1 | 2 cycles |
+
+### 3.3 "Bit-identical" Rule
+
+Applies to all integer operations. Defined as: `memcmp(scalar_out, simd_out, size) == 0`.
+
+This rule MUST hold for:
+- **Offset correction** (UINT16 saturating subtract)
+- **Defect interpolation** (UINT16 bilinear/median)
+- **Runtime detection** (UINT16 MAD)
+
+### 3.4 "1 ULP" Rule
+
+Applies to FLOAT32 operations where FMA fusion changes rounding. Defined as:
+
+```
+for each (s, a) in zip(scalar_out, simd_out):
+    if isnan(s) and isnan(a): continue                    # both NaN is OK
+    if isinf(s) and isinf(a) and sign(s)==sign(a): continue
+    assert fabsf(s - a) <= 1 * ULP(max(|s|, |a|))
+```
+
+where `ULP(x)` is `nextafterf(x, INFINITY) - x` for positive x.
+
+This rule applies to:
+- **Gain correction** (FLOAT32 reciprocal/polynomial)
+
+Rationale: FMA combines multiply + add into a single rounded operation (IEEE-754-2019 standard). Different architectures use different FMA precisions:
+- AVX2/AVX-512: IEEE-754 compliant FMA
+- NEON: IEEE-754 compliant FMA (ARMv8+)
+- Scalar: Separate multiply + add (two rounding operations)
+
+### 3.5 NaN / Inf Handling
+
+All paths must handle edge inputs identically:
+- `a - b` where `a < b` on UINT16: all paths must produce 0 (no wraparound)
+- `a / b` where `b == 0` on FLOAT32: all paths must produce the same Inf or NaN result (or both must return a predetermined clamp value — REQ-P1A-033)
 
 ### 3.1 "Bit-identical" Rule
 
@@ -245,6 +373,8 @@ void ClearForceOverride();
 
 ### 5.3 Test Matrix
 
+#### 5.3.1 AVX2 Test Suite (x86-64 Baseline)
+
 | Test name | Operation | Shape | Rule | Count |
 |-----------|-----------|-------|------|-------|
 | OffsetSubtract_512 | REQ-P1A-010 | 512x512 | BitIdentical | 100 |
@@ -258,15 +388,66 @@ void ClearForceOverride();
 | DefectMedian_* | REQ-P1A-012 | 3 shapes | BitIdentical | 300 |
 | RuntimeDetect_* | REQ-P1A-013 | 3 shapes | BitIdentical | 300 |
 | EdgeCases_* | All 6 ops | 512x512 | Respective | 30 |
-| **Total** | | | | **1830** |
+| **AVX2 Total** | | | | **1830** |
+
+#### 5.3.2 AVX-512 Test Suite (x86-64 Advanced)
+
+| Test name | Operation | Shape | Rule | Count |
+|-----------|-----------|-------|------|-------|
+| OffsetSubtract_AVX512_* | REQ-P1A-010 | 3 shapes | BitIdentical | 300 |
+| GainReciprocal_AVX512_* | REQ-P1A-011 | 3 shapes | OneULP | 300 |
+| GainPolynomial_AVX512_* | REQ-P1A-011 | 3 shapes | OneULP | 300 |
+| DefectBilinear_AVX512_* | REQ-P1A-012 | 3 shapes | BitIdentical | 300 |
+| DefectMedian_AVX512_* | REQ-P1A-012 | 3 shapes | BitIdentical | 300 |
+| RuntimeDetect_AVX512_* | REQ-P1A-013 | 3 shapes | BitIdentical | 300 |
+| EdgeCases_AVX512_* | All 6 ops | 512x512 | Respective | 30 |
+| **AVX-512 Total** | | | | **1830** |
+
+#### 5.3.3 NEON Test Suite (ARM64)
+
+| Test name | Operation | Shape | Rule | Count |
+|-----------|-----------|-------|------|-------|
+| OffsetSubtract_NEON_* | REQ-P1A-010 | 3 shapes | BitIdentical | 300 |
+| GainReciprocal_NEON_* | REQ-P1A-011 | 3 shapes | OneULP | 300 |
+| GainPolynomial_NEON_* | REQ-P1A-011 | 3 shapes | OneULP | 300 |
+| DefectBilinear_NEON_* | REQ-P1A-012 | 3 shapes | BitIdentical | 300 |
+| DefectMedian_NEON_* | REQ-P1A-012 | 3 shapes | BitIdentical | 300 |
+| RuntimeDetect_NEON_* | REQ-P1A-013 | 3 shapes | BitIdentical | 300 |
+| EdgeCases_NEON_* | All 6 ops | 512x512 | Respective | 30 |
+| **NEON Total** | | | | **1830** |
+
+#### 5.3.4 Grand Total
+
+**Total test cases across all architectures: 1830 × 3 = 5490**
+
+Note: AVX-512 tests only run on compatible hardware (Skylake-X, Ice Lake+). NEON tests only run on ARM64 platforms.
 
 ### 5.4 CI Integration
 
-The full harness runs on every Pre Lane PR touching `modules/preprocess/`. Fail criteria:
+The full harness runs on every Pre Lane PR touching `modules/preprocess/`. Platform-specific execution:
 
-- Any parity assertion fails: BLOCKER (PR cannot merge)
-- Any test skipped (e.g., AVX2 not available on runner): WARNING (documented, not blocking)
-- Runtime > 5 minutes total: WARNING (optimize tests, not a blocker)
+**x86-64 runners (Ubuntu, Windows, macOS):**
+- AVX2 tests: Always run (baseline requirement)
+- AVX-512 tests: Run only if hardware supports (Skylake-X or newer), otherwise SKIP
+- Scalar tests: Always run (portable baseline)
+
+**ARM64 runners (Android, iOS, Linux):**
+- NEON tests: Always run (ARM64 baseline)
+- Scalar tests: Always run (portable baseline)
+
+**Fail criteria:**
+
+- Any parity assertion fails: **BLOCKER** (PR cannot merge)
+- Any test skipped (e.g., AVX-512 not available on runner): **WARNING** (documented, not blocking)
+- Runtime > 5 minutes total: **WARNING** (optimize tests, not a blocker)
+
+**Test file organization:**
+```
+modules/preprocess/tests/
+├── test_simd_parity_avx2.cpp      (x86-64 baseline)
+├── test_simd_parity_avx512.cpp    (x86-64 advanced, #ifdef __AVX512F__)
+└── test_simd_parity_neon.cpp      (ARM64, #ifdef __aarch64__)
+```
 
 ---
 
@@ -274,12 +455,17 @@ The full harness runs on every Pre Lane PR touching `modules/preprocess/`. Fail 
 
 Harness is ACCEPTED when:
 
-- [ ] `test_simd_parity.cpp` exists under `modules/preprocess/tests/`
-- [ ] All 18 baseline tests (6 ops x 3 shapes, 100 inputs each) pass on AVX2-capable hardware
-- [ ] All 30 edge-case tests pass
+- [ ] `test_simd_parity_avx2.cpp` exists under `modules/preprocess/tests/`
+- [ ] `test_simd_parity_avx512.cpp` exists under `modules/preprocess/tests/` (x86-64 only)
+- [ ] `test_simd_parity_neon.cpp` exists under `modules/preprocess/tests/` (ARM64 only)
+- [ ] All 1830 AVX2 baseline tests pass on AVX2-capable hardware
+- [ ] All 1830 AVX-512 tests pass on AVX-512-capable hardware (or SKIP if not available)
+- [ ] All 1830 NEON tests pass on ARM64 platforms
+- [ ] All 90 edge-case tests pass (30 per architecture × 3 architectures)
 - [ ] Forced-scalar mode runs identically (both paths run scalar, trivially parity-identical)
-- [ ] CI pipeline includes the harness
-- [ ] SPEC-XPE-P1A acceptance.md AC-SIMD-001/002/003 are replaced with references to this harness (see plan.md update in next iteration)
+- [ ] CI pipeline includes multi-platform harness execution
+- [ ] SPEC-XPE-P1A acceptance.md AC-SIMD-001/002/003 are replaced with references to this harness
+- [ ] Runtime dispatch logic (`simd_dispatch.cpp`) implements hierarchical fallback (AVX-512 → AVX2 → NEON → Scalar)
 
 ---
 
@@ -295,11 +481,30 @@ Harness is ACCEPTED when:
 
 ## 8. References
 
-- Intel Intrinsics Guide (2023) — AVX2 instruction semantics, FMA rounding
-- IEEE-754-2019 — Floating-point arithmetic and ULP definition
-- github.com/ermig1979/Simd (2024) — Open-source reference for bit-exact AVX2 integer ops
-- Agner Fog Optimization Resources (2024) — CPUID feature detection patterns
-- Starman et al., PMC3465354 — Cited for lag correction parity considerations (cross-reference, out of scope)
+### 8.1 Architecture Documentation
+
+- **Intel Intrinsics Guide** (2023) — AVX2, AVX-512 instruction semantics, FMA rounding
+- **ARM NEON Intrinsics Reference** (2024) — ARM64 vector processing documentation
+- **IEEE-754-2019** — Floating-point arithmetic and ULP definition
+
+### 8.2 Open Source Implementations
+
+- **github.com/ermig1979/Simd** (2024) — Open-source reference for bit-exact AVX2/AVX-512 integer ops
+- **github.com/google/highway** (2024) — Portable SIMD library (AVX2/AVX-512/NEON reference)
+
+### 8.3 CPUID Detection
+
+- **Agner Fog Optimization Resources** (2024) — CPUID feature detection patterns
+- **Intel SDM Vol. 2** — CPUID instruction documentation
+
+### 8.4 Cross-Platform Testing
+
+- **Google Test** — Cross-platform test framework used for parity harness
+- **CMake Compile Features** — `compile_features(avx2, avx512f, neon)` for portable detection
+
+### 8.5 Cross-References
+
+- **Starman et al., PMC3465354** — Cited for lag correction parity considerations (out of scope for this harness)
 
 ---
 
