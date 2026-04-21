@@ -1,5 +1,6 @@
 param(
     [string]$BuildDir = 'build/local-vs2022-common',
+    [switch]$PostBenchmark,
     [switch]$Clean
 )
 
@@ -94,9 +95,22 @@ $configureArgs = @(
     "-DVCPKG_MANIFEST_DIR=$repoRoot\third_party\common",
     '-DVCPKG_TARGET_TRIPLET=x64-windows',
     '-DBUILD_TESTS=ON',
-    '-DBUILD_GSVG=OFF',
     '-DXPE_WARNINGS_AS_ERRORS=ON'
 )
+
+if ($PostBenchmark) {
+    $configureArgs += @(
+        '-DBUILD_GSVG=ON',
+        '-DBUILD_PREPROCESS=OFF',
+        '-DBUILD_ENHANCE_BASIC=ON',
+        '-DBUILD_ENHANCE_ADVANCED=ON',
+        '-DBUILD_AI=OFF',
+        '-DBUILD_DISPLAY=ON',
+        '-DBUILD_DICOM=OFF'
+    )
+} else {
+    $configureArgs += '-DBUILD_GSVG=OFF'
+}
 
 Write-Host "Visual Studio: $vsInstall"
 Write-Host "Build directory: $resolvedBuildDir"

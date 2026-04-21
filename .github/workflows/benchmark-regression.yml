@@ -1,7 +1,7 @@
-name: XPE Benchmark Regression (BP-10)
+name: XPE Benchmark Regression (BP-06~10)
 
-# BP-10: Degraded-mode stress — cross-lane integration test
-# Validates graceful degradation when optional DLLs are absent or fail.
+# BP-10: Degraded-mode stress - cross-lane integration test
+# BP-06~09 freezes Post-B benchmark gates. BP-10 validates graceful degradation.
 # Run manually or after main merges to verify regression baseline.
 
 on:
@@ -16,6 +16,7 @@ on:
     paths:
       - 'modules/**'
       - 'clients/**'
+      - 'benchmark/**'
       - 'tools/ci/Test-DegradedMode.ps1'
       - '.github/workflows/benchmark-regression.yml'
 
@@ -47,13 +48,17 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
 
-      - name: Configure CMake (full pipeline)
+      - name: Configure CMake (Post-B benchmark)
         shell: pwsh
-        run: cmake --preset ci-common
+        run: cmake --preset ci-post
 
-      - name: Build all modules
+      - name: Build Post-B modules
         shell: pwsh
-        run: cmake --build --preset ci-common --parallel
+        run: cmake --build --preset ci-post --parallel
+
+      - name: Run BP-06~09 benchmark freeze GTests
+        shell: pwsh
+        run: ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -61,8 +66,8 @@ jobs:
           name: xpe-pipeline-binaries
           retention-days: 1
           path: |
-            build/ci-common/modules/**/*.dll
-            build/ci-common/modules/**/*.exe
+            build/ci-post/bin/*.dll
+            build/ci-post/bin/*.exe
 
   bp10-degraded-mode:
     needs: build-full-pipeline
@@ -75,6 +80,9 @@ jobs:
         scenario:
           - name: "missing_enhance_basic"
             absent_dll: "xpe_enhance_basic.dll"
+            expected_readiness: "R0"
+          - name: "missing_gsvg"
+            absent_dll: "gsvg.dll"
             expected_readiness: "R0"
           - name: "missing_enhance_advanced"
             absent_dll: "xpe_enhance_advanced.dll"
@@ -97,9 +105,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: xpe-pipeline-binaries
-          path: build/ci-common
+          path: build/ci-post
 
-      - name: Run BP-10 degraded-mode scenario — ${{ matrix.scenario.name }}
+      - name: Run BP-10 degraded-mode scenario - ${{ matrix.scenario.name }}
         shell: pwsh
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass `
@@ -107,7 +115,7 @@ jobs:
             -Scenario "${{ matrix.scenario.name }}" `
             -AbsentDll "${{ matrix.scenario.absent_dll }}" `
             -ExpectedReadiness "${{ matrix.scenario.expected_readiness }}" `
-            -BuildDir "build/ci-common" `
+            -BuildDir "build/ci-post" `
             -ResultsDir "build/bp10-results/${{ matrix.scenario.name }}"
 
       - name: Upload scenario results
@@ -144,7 +152,7 @@ jobs:
           foreach ($r in $results) {
             $data = Get-Content $r.FullName | ConvertFrom-Json
             if ($data.passed) { $passed++ } else { $failed++ }
-            Write-Host "$($r.BaseName): $(if($data.passed){'PASS'}else{'FAIL'}) — $($data.summary)"
+            Write-Host "$($r.BaseName): $(if($data.passed){'PASS'}else{'FAIL'}) - $($data.summary)"
           }
           Write-Host ""
           Write-Host "BP-10 Summary: $passed passed, $failed failed"

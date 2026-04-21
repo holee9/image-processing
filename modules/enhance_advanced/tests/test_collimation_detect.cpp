@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <cmath>
+#include <chrono>
 
 /* ============================================================================
  * Test Fixtures
@@ -401,4 +402,34 @@ TEST_F(CollimationDetectTest, LargeImagePerformance) {
     EXPECT_NEAR(y0, 100, 10);
     EXPECT_NEAR(x1, 1900, 10);
     EXPECT_NEAR(y1, 1900, 10);
+}
+
+TEST_F(CollimationDetectTest, BenchmarkFreeze_BP07_CollimationDetectionBaseline) {
+    constexpr int kWidth = 512;
+    constexpr int kHeight = 512;
+    constexpr auto kMaxMs = 500;
+
+    XpeImageBuffer img = createSyntheticCollimation(
+        kWidth, kHeight, 64, 72, 448, 440, 900.0f);
+
+    int32_t x0 = 0;
+    int32_t y0 = 0;
+    int32_t x1 = 0;
+    int32_t y1 = 0;
+
+    auto start = std::chrono::steady_clock::now();
+    XpeErrorCode result = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start);
+
+    EXPECT_EQ(XPE_OK, result);
+    EXPECT_NEAR(x0, 64, 10);
+    EXPECT_NEAR(y0, 72, 10);
+    EXPECT_NEAR(x1, 448, 10);
+    EXPECT_NEAR(y1, 440, 10);
+    EXPECT_LT(elapsed.count(), kMaxMs)
+        << "BP-07 collimation detection baseline exceeded.";
+    RecordProperty("BP", "BP-07");
+    RecordProperty("baseline_ms_max", kMaxMs);
+    RecordProperty("pixels", kWidth * kHeight);
 }
