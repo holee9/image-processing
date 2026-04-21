@@ -443,8 +443,10 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 
     // Path 2: Invalid format
+    XpeImageMetadata meta;
+    memset(&meta, 0, sizeof(meta));
     img.format = XPE_PIXEL_UINT16;
-    EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
     img.format = XPE_PIXEL_FLOAT32;
 
     // Path 3: Invalid dimensions
