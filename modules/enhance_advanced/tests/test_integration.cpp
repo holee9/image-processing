@@ -444,7 +444,11 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
 
     // Path 2: Invalid format
     XpeImageMetadata meta;
+<<<<<<< HEAD
     std::memset(&meta, 0, sizeof(meta));
+=======
+    memset(&meta, 0, sizeof(meta));
+>>>>>>> main
     img.format = XPE_PIXEL_UINT16;
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
     img.format = XPE_PIXEL_FLOAT32;

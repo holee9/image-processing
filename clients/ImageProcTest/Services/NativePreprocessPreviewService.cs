@@ -71,6 +71,7 @@ namespace ImageProcTest
         IReadOnlyList<NativePreviewStageResult> Stages,
         NativePreviewMetrics Metrics,
         DetectorDomainMetrics DetectorMetrics,
+        IReadOnlyList<float> OutputPixels,
         double TotalLatencyMs,
         double OutputMin,
         double OutputMax,
@@ -134,7 +135,8 @@ namespace ImageProcTest
             RawPreviewResult preview,
             PreprocessStageSelection selection,
             FixtureCaseInfo? fixtureCase,
-            string? preferredDllPath)
+            string? preferredDllPath,
+            IReadOnlyList<string>? stageOrder = null)
         {
             if (!selection.HasAnyStage)
             {
@@ -185,6 +187,7 @@ namespace ImageProcTest
                         preparedCalibration.ArtifactDirectory,
                         loadResults,
                         preparedCalibration.Requests,
+                        stageOrder,
                         offsetCorrect,
                         gainCorrect,
                         defectCorrect);
@@ -198,6 +201,40 @@ namespace ImageProcTest
             {
                 NativeLibrary.Free(handle);
             }
+        }
+
+        public static NativePreprocessPreviewResult CreateBypass(
+            RawPreviewResult preview,
+            string reason)
+        {
+            var output = preview.SampledPixels.Select(value => (float)value).ToArray();
+            var stages = new[]
+            {
+                new NativePreviewStageResult("offset", "Bypassed", 0, Executed: false, reason),
+                new NativePreviewStageResult("gain", "Bypassed", 0, Executed: false, reason),
+                new NativePreviewStageResult("defect", "Bypassed", 0, Executed: false, reason)
+            };
+            var metrics = ComputeMetrics(preview.SampledPixels, output);
+            var (outputMin, outputMax) = ComputeMinMax(output);
+            var bitmap = RawPreviewService.CreateGray8Bitmap(
+                output,
+                preview.PreviewWidth,
+                preview.PreviewHeight,
+                preview.MinValue,
+                preview.MaxValue);
+
+            return new NativePreprocessPreviewResult(
+                "bypass",
+                "none",
+                [],
+                stages,
+                metrics,
+                MetricsComputationService.Empty("all correction stages bypassed"),
+                output,
+                0,
+                outputMin,
+                outputMax,
+                bitmap);
         }
 
         private static PreparedCalibration PrepareCalibrationFiles(
@@ -272,7 +309,12 @@ namespace ImageProcTest
             var source = FindCalibration(fixtureCase, role);
             if (source is null)
             {
-                var modeText = mode == PreprocessStageMode.Auto ? "Auto skipped" : "On requested but blocked";
+                if (mode == PreprocessStageMode.On)
+                {
+                    throw new InvalidOperationException(
+                        $"{stage} calibration is required because the stage is On, but no {role} calibration file exists in the selected calibration folder.");
+                }
+
                 missingLoads.Add(new NativePreviewCalibrationResult(
                     stage,
                     "Missing",
@@ -280,7 +322,7 @@ namespace ImageProcTest
                     SourceRawPath: null,
                     XCalPath: null,
                     LatencyMs: 0,
-                    Details: $"{modeText}: no {role} calibration file exists in the selected fixture case.",
+                    Details: $"Skipped: no {role} calibration file exists in the selected calibration folder.",
                     Expiry: null));
                 return;
             }
@@ -346,6 +388,7 @@ namespace ImageProcTest
             string artifactDirectory,
             IReadOnlyList<NativePreviewCalibrationResult> calibrationLoads,
             IReadOnlyList<CalibrationRequest> calibrationRequests,
+            IReadOnlyList<string>? stageOrder,
             OffsetCorrectionDelegate offsetCorrect,
             GainCorrectionDelegate gainCorrect,
             DefectCorrectionDelegate defectCorrect)
@@ -356,47 +399,67 @@ namespace ImageProcTest
             var currentUInt16 = preview.SampledPixels.ToArray();
             float[]? currentFloat = null;
 
-            if (selection.Offset != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "offset"))
+            foreach (var stageKey in NormalizeStageOrder(stageOrder))
             {
-                var offsetMap = GetRequiredCalibration(calibrationRequests, "offset").OffsetMap ??
-                    throw new InvalidOperationException("Offset calibration map was not prepared.");
-                stages.Add(CallStage(
-                    "offset",
-                    () => CallOffset(offsetCorrect, currentUInt16, offsetMap, preview.PreviewWidth, preview.PreviewHeight),
-                    GetLoadDetails(calibrationLoads, "offset")));
-            }
-            else
-            {
-                stages.Add(CreateSkippedStage("offset", selection.Offset, calibrationLoads));
-            }
+                switch (stageKey)
+                {
+                    case "offset":
+                        if (currentFloat is not null)
+                        {
+                            throw new InvalidOperationException("Offset correction cannot run after a float32 stage in the current native adapter.");
+                        }
 
-            if (selection.Gain != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "gain"))
-            {
-                var gainMap = GetRequiredCalibration(calibrationRequests, "gain").GainMap ??
-                    throw new InvalidOperationException("Gain calibration map was not prepared.");
-                stages.Add(CallStage(
-                    "gain",
-                    () => CallGain(gainCorrect, currentUInt16, gainMap, preview.PreviewWidth, preview.PreviewHeight, out currentFloat),
-                    GetLoadDetails(calibrationLoads, "gain")));
-            }
-            else
-            {
-                stages.Add(CreateSkippedStage("gain", selection.Gain, calibrationLoads));
-            }
+                        if (selection.Offset != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "offset"))
+                        {
+                            var offsetMap = GetRequiredCalibration(calibrationRequests, "offset").OffsetMap ??
+                                throw new InvalidOperationException("Offset calibration map was not prepared.");
+                            stages.Add(CallStage(
+                                "offset",
+                                () => CallOffset(offsetCorrect, currentUInt16, offsetMap, preview.PreviewWidth, preview.PreviewHeight),
+                                GetLoadDetails(calibrationLoads, "offset")));
+                        }
+                        else
+                        {
+                            stages.Add(CreateSkippedStage("offset", selection.Offset, calibrationLoads));
+                        }
+                        break;
 
-            if (selection.Defect != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "defect"))
-            {
-                currentFloat ??= currentUInt16.Select(value => (float)value).ToArray();
-                var defectMap = GetRequiredCalibration(calibrationRequests, "defect").DefectMap ??
-                    throw new InvalidOperationException("Defect calibration map was not prepared.");
-                stages.Add(CallStage(
-                    "defect",
-                    () => CallDefect(defectCorrect, currentFloat, defectMap, preview.PreviewWidth, preview.PreviewHeight),
-                    GetLoadDetails(calibrationLoads, "defect")));
-            }
-            else
-            {
-                stages.Add(CreateSkippedStage("defect", selection.Defect, calibrationLoads));
+                    case "gain":
+                        if (selection.Gain != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "gain"))
+                        {
+                            var gainMap = GetRequiredCalibration(calibrationRequests, "gain").GainMap ??
+                                throw new InvalidOperationException("Gain calibration map was not prepared.");
+                            stages.Add(CallStage(
+                                "gain",
+                                () => CallGain(gainCorrect, currentUInt16, gainMap, preview.PreviewWidth, preview.PreviewHeight, out currentFloat),
+                                GetLoadDetails(calibrationLoads, "gain")));
+                        }
+                        else
+                        {
+                            stages.Add(CreateSkippedStage("gain", selection.Gain, calibrationLoads));
+                        }
+                        break;
+
+                    case "defect":
+                        if (selection.Defect != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "defect"))
+                        {
+                            currentFloat ??= currentUInt16.Select(value => (float)value).ToArray();
+                            var defectMap = GetRequiredCalibration(calibrationRequests, "defect").DefectMap ??
+                                throw new InvalidOperationException("Defect calibration map was not prepared.");
+                            stages.Add(CallStage(
+                                "defect",
+                                () => CallDefect(defectCorrect, currentFloat, defectMap, preview.PreviewWidth, preview.PreviewHeight),
+                                GetLoadDetails(calibrationLoads, "defect")));
+                        }
+                        else
+                        {
+                            stages.Add(CreateSkippedStage("defect", selection.Defect, calibrationLoads));
+                        }
+                        break;
+
+                    default:
+                        throw new InvalidOperationException($"Native preprocess preview does not support stage '{stageKey}'.");
+                }
             }
 
             stopwatch.Stop();
@@ -424,10 +487,25 @@ namespace ImageProcTest
                 stages,
                 metrics,
                 detectorMetrics,
+                finalValues.ToArray(),
                 stopwatch.Elapsed.TotalMilliseconds,
                 outputMin,
                 outputMax,
                 bitmap);
+        }
+
+        private static IReadOnlyList<string> NormalizeStageOrder(IReadOnlyList<string>? stageOrder)
+        {
+            var requested = stageOrder is null || stageOrder.Count == 0
+                ? ["offset", "gain", "defect"]
+                : stageOrder;
+            return requested
+                .Where(stage => string.Equals(stage, "offset", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(stage, "gain", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(stage, "defect", StringComparison.OrdinalIgnoreCase))
+                .Select(stage => stage.ToLowerInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
         }
 
         private static NativePreviewStageResult CallStage(
@@ -459,7 +537,7 @@ namespace ImageProcTest
         {
             if (mode == PreprocessStageMode.Off)
             {
-                return new NativePreviewStageResult(stage, "Skipped", 0, Executed: false, "Stage mode is Off.");
+                return new NativePreviewStageResult(stage, "Skipped", 0, Executed: false, "Stage switch is Off.");
             }
 
             var load = calibrationLoads.FirstOrDefault(item => item.Stage == stage);

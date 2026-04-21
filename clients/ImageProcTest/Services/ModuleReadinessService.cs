@@ -11,13 +11,14 @@ namespace ImageProcTest
         {
             var root = FindRepositoryRoot(AppContext.BaseDirectory);
             var display = XpeDisplayVersionProbe.Check();
+            var enhanceBasic = XpeEnhanceBasicReadinessProbe.Check();
 
             return
             [
                 EvaluateCommon(commonHealth),
                 EvaluateDisplay(display),
                 EvaluatePreprocess(root),
-                EvaluateDllPresence("enhance_basic", "xpe_enhance_basic.dll"),
+                EvaluateEnhanceBasic(enhanceBasic),
                 EvaluateDllPresence("dicom", "xpe_dicom.dll"),
                 EvaluateDllPresence("enhance_advanced", "xpe_enhance_advanced.dll"),
                 EvaluateDllPresence("gsvg", "gsvg.dll"),
@@ -129,6 +130,51 @@ namespace ImageProcTest
                 health.Status,
                 health.Details,
                 "Fix preprocess binary load/export readiness before ABI smoke.",
+                ProcessingEnabled: false);
+        }
+
+        private static ModuleReadinessSnapshot EvaluateEnhanceBasic(EnhanceBasicHealthResult health)
+        {
+            if (health.IsSmokeReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_enhance_basic",
+                    "R3",
+                    "ABI smoke ready",
+                    $"version={health.Version}; dll={health.DllPath}; smoke={health.Smoke.Status}; latency={health.Smoke.LatencyMs:0.###}ms; " +
+                    $"sigma={health.Smoke.SigmaBefore:0.###}->{health.Smoke.SigmaAfter:0.###}; EI={health.Smoke.ExposureIndex:0.###}; DI={health.Smoke.DeviationIndex:0.###}; {health.Smoke.Details}",
+                    "GUI post-processing evaluation can execute log/noise/contrast/edge/EI on the active detector-float preview buffer.",
+                    ProcessingEnabled: true);
+            }
+
+            if (health.IsExportReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_enhance_basic",
+                    "R2",
+                    "Version and export checklist ready",
+                    $"version={health.Version}; dll={health.DllPath}; smoke={health.Smoke.Status}; {health.Smoke.Details}",
+                    "Fix enhance_basic ABI smoke before enabling GUI post-processing execution.",
+                    ProcessingEnabled: false);
+            }
+
+            if (health.IsVersionReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_enhance_basic",
+                    "R1",
+                    "Version ready, export checklist incomplete",
+                    $"version={health.Version}; missing={string.Join(", ", health.MissingExports)}",
+                    "Complete mandatory enhance_basic exports before GUI execution.",
+                    ProcessingEnabled: false);
+            }
+
+            return new ModuleReadinessSnapshot(
+                "xpe_enhance_basic",
+                "R0",
+                health.Status,
+                health.Details,
+                "Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.",
                 ProcessingEnabled: false);
         }
 

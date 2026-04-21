@@ -1,8 +1,8 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.1.0  
-**Date**: 2026-04-19  
+**Version**: 1.3.0  
+**Date**: 2026-04-20  
 **Status**: Active — 지속적 갱신 대상
 
 ---
@@ -33,21 +33,29 @@ xpe-gui/ (Lane C, dev/gui)
 
 ---
 
-## 1. 현재 상태 (2026-04-19 기준)
+## 1. 현재 상태 (2026-04-21 기준)
 
 ### 1.1 통합 현황 (main 기준)
 
 | 모듈 | Lane | 테스트 | main 병합 | 품질 게이트 |
 |------|------|--------|----------|------------|
 | xpe_common.dll | Pre-A | 91/91 ✅ | ✅ | PASS |
-| xpe_preprocess.dll | Pre-A | 89/90 ✅ | ✅ | PASS |
+| xpe_preprocess.dll | Pre-A | 202/202 ✅ | ✅ | PASS (M2 API 완료) |
 | xpe_enhance_basic.dll | Post-B | 67/67 ✅ | ✅ | PASS |
 | xpe_display.dll | Post-B | 48/48 ✅ | ✅ | PASS |
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
-| ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 부분 (S1-B4) |
-| xpe_enhance_advanced.dll | Post-B | 97/103 ✅ | ✅ | PASS (94.17%) |
+| ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 진행중 (TASK-GUI-IA-001) |
+| xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
 | gsvg.dll | Post-B | - | ❌ | 미착수 |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
+
+### 1.1.1 Lane 브랜치 현황 (main 미통합)
+
+| Lane | 브랜치 | main 선행 커밋 | 최신 작업 | 상태 |
+|------|--------|:-----------:|---------|------|
+| Pre-A | dev/preprocess | 16 | docs(codemaps) 아키텍처 개선 | 클린 ✅ |
+| Post-B | dev/postprocess | 13 | IEC docs 갱신 + GTest fallback | 클린 ✅ |
+| GUI-C | dev/gui | 5 | TASK-GUI-IA-001 MVVM 모듈화 | 클린 ✅ |
 
 ### 1.2 점수 현황
 
@@ -56,7 +64,7 @@ xpe-gui/ (Lane C, dev/gui)
 | A (Process/Compliance) | 81 | **~81** | 85 |
 | B (Product/Delivery) | ~74 | **~74** | 85 |
 
-M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-19 v2.3.0 기준).
+M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-21 v2.4.0 기준).
 
 ---
 
@@ -82,7 +90,9 @@ main이 정의할 다음 Lane 작업 SPEC:
 |------|----------|:---------:|---------|
 | SPEC-XPE-P2-ADV 실구현 명세 완성 | Post-B | +3 | 스켈레톤 존재 |
 | SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | SPEC 미작성 |
-| SPEC-BENCH-001 (benchmark freeze) | Pre-A | +3 | SPEC 미작성 |
+| SPEC-BENCH-PRE (BP-01~05 preprocess freeze) | Pre-A | +2 | SPEC 미작성 |
+| SPEC-BENCH-POST (BP-06~09 post-processing freeze) | Post-B | +1 | SPEC 미작성 |
+| BP-10 (degraded-mode stress) | main | +? | cross-lane, 통합 후 측정 |
 | S2-B: SPEC-XPE-GSVG 정의 | Post-B | +? | 미작성 |
 
 ### 2.3 main 작업 금지 항목
@@ -143,11 +153,17 @@ main 병합 후 전체 파이프라인 E2E 검증:
 
 ## 5. 다음 main 작업 계획 (우선순위 순)
 
-### P0: benchmark BP-01~10 동결 ← 임계경로 (+3점)
+### P0: benchmark 동결 ← 임계경로 (+3점)
 
 현재 상태: SIMD 구현 완료. 기준 동결 미수행.
-- Pre-A Lane: SPEC-BENCH-001 작성 → Preprocess 10개 벤치마크 측정값 동결
-- main: CI 자동 재현 (benchmark regression CI 잡 추가)
+
+| 팩 | 담당 Lane | 내용 |
+|----|----------|------|
+| BP-01~05 | **Pre-A** | Preprocess 전용 — Offset/Gain/Defect/Ghost/Temp 측정값 동결 |
+| BP-06~09 | **Post-B** | Post 전용 — GSVG/Collimation/EI/DI 측정값 동결 |
+| BP-10 | **main** | Degraded-mode stress (cross-lane, 통합 후 측정) |
+
+- main: benchmark regression CI 잡 추가 (양 Lane 결과 통합 검증)
 - 기여: Framework A +3, Framework B (알고리즘 품질) +2
 
 ### P0: EARS P1B 요구사항 작성 (+2점)
@@ -178,3 +194,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-19 | 1.0.0 | 초기 생성 — Phase 1b 완료 확인, 85점 임계 경로 분석 |
 | 2026-04-19 | 1.1.0 | main 역할 재정의 — 구현은 Lane, main은 통합/거버넌스/문서 |
 | 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |
+| 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
