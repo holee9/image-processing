@@ -85,7 +85,8 @@ namespace ImageProcTest
 
         private static readonly string[] RunnablePrePostBasicOrder =
         [
-            "calib-folder", "offset", "gain", "defect", "ei-whole", "log", "basic-noise", "contrast", "edge"
+            "calib-folder", "offset", "gain", "defect", "ei-whole", "log", "basic-noise", "contrast", "edge",
+            "modality-lut", "voi-lut", "presentation-lut", "dicom-write"
         ];
 
         public static IReadOnlyList<AlgorithmNode> BuildNodes(
@@ -195,17 +196,40 @@ namespace ImageProcTest
                 .Where(step => IsNativeEnhanceBasicStage(step.StageKey))
                 .Select(step => step.StageKey)
                 .ToArray();
+            var displayOrder = steps
+                .Where(step => IsDisplayStage(step.StageKey))
+                .Select(step => step.StageKey)
+                .ToArray();
+            var dicomOrder = steps
+                .Where(step => IsDicomStage(step.StageKey))
+                .Select(step => step.StageKey)
+                .ToArray();
             var isFolderAuditOnly = steps.Count == 1 &&
                 string.Equals(steps[0].StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
             var hasHardBlocks = findings.Any(item => item.Severity == AlgorithmRuleSeverity.Hard);
-            var canExecute = !hasHardBlocks && (isFolderAuditOnly || nativeOrder.Length > 0 || enhanceBasicOrder.Length > 0);
-            var summary = BuildSummary(steps, findings, nativeOrder, enhanceBasicOrder, isFolderAuditOnly, canExecute);
+            var canExecute = !hasHardBlocks &&
+                (isFolderAuditOnly ||
+                 nativeOrder.Length > 0 ||
+                 enhanceBasicOrder.Length > 0 ||
+                 displayOrder.Length > 0 ||
+                 dicomOrder.Length > 0);
+            var summary = BuildSummary(
+                steps,
+                findings,
+                nativeOrder,
+                enhanceBasicOrder,
+                displayOrder,
+                dicomOrder,
+                isFolderAuditOnly,
+                canExecute);
 
             return new AlgorithmChainPlan(
                 steps,
                 findings,
                 nativeOrder,
                 enhanceBasicOrder,
+                displayOrder,
+                dicomOrder,
                 isFolderAuditOnly,
                 canExecute,
                 summary);
@@ -256,6 +280,32 @@ namespace ImageProcTest
                         findings.Add(Hard(
                             "POST-NOT-READY",
                             $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the native enhance_basic adapter is not ready.",
+                            step.Node.NextAction));
+                    }
+
+                    continue;
+                }
+
+                if (IsDisplayStage(step.StageKey))
+                {
+                    if (!step.Node.CanRun)
+                    {
+                        findings.Add(Hard(
+                            "DISPLAY-NOT-READY",
+                            $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the xpe_display readiness smoke is not ready.",
+                            step.Node.NextAction));
+                    }
+
+                    continue;
+                }
+
+                if (IsDicomStage(step.StageKey))
+                {
+                    if (!step.Node.CanRun)
+                    {
+                        findings.Add(Hard(
+                            "DICOM-NOT-READY",
+                            $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the xpe_dicom readiness smoke is not ready.",
                             step.Node.NextAction));
                     }
 
@@ -480,6 +530,8 @@ namespace ImageProcTest
         private static bool IsRunnableAdapter(string adapter) =>
             string.Equals(adapter, "native-preview", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(adapter, "native-enhance-basic", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(adapter, "native-display", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(adapter, "native-dicom", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(adapter, "folder-audit", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsNativePreprocessStage(string stageKey) =>
@@ -493,6 +545,14 @@ namespace ImageProcTest
             string.Equals(stageKey, "basic-noise", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(stageKey, "contrast", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(stageKey, "edge", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsDisplayStage(string stageKey) =>
+            string.Equals(stageKey, "modality-lut", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "voi-lut", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "presentation-lut", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsDicomStage(string stageKey) =>
+            string.Equals(stageKey, "dicom-write", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsDetectorOrLaterImageStage(string stageKey) =>
             !string.Equals(stageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
@@ -530,6 +590,8 @@ namespace ImageProcTest
             IReadOnlyList<AlgorithmDependencyFinding> findings,
             IReadOnlyList<string> nativeOrder,
             IReadOnlyList<string> enhanceBasicOrder,
+            IReadOnlyList<string> displayOrder,
+            IReadOnlyList<string> dicomOrder,
             bool isFolderAuditOnly,
             bool canExecute)
         {
@@ -541,7 +603,10 @@ namespace ImageProcTest
                 : string.Join(" -> ", steps.Select(step => step.Node.Label));
             var executableStages = string.Join(
                 " -> ",
-                nativeOrder.Concat(enhanceBasicOrder));
+                nativeOrder
+                    .Concat(enhanceBasicOrder)
+                    .Concat(displayOrder)
+                    .Concat(dicomOrder));
             var execution = canExecute
                 ? isFolderAuditOnly ? "folder audit runnable" : $"native runnable: {executableStages}"
                 : "blocked";

@@ -32,21 +32,21 @@ namespace ImageProcTest.Controls
                 nameof(Data),
                 typeof(HistogramData),
                 typeof(HistogramControl),
-                new PropertyMetadata(HistogramData.Empty, OnDataChanged));
+                new PropertyMetadata(HistogramData.Empty, OnDataChanged, CoerceHistogramData));
 
         public static readonly DependencyProperty RangeStartProperty =
             DependencyProperty.Register(
                 nameof(RangeStart),
                 typeof(double),
                 typeof(HistogramControl),
-                new PropertyMetadata(0.0, OnRangeDisplayChanged));
+                new PropertyMetadata(0.0, OnRangeDisplayChanged, CoerceRangeValue));
 
         public static readonly DependencyProperty RangeEndProperty =
             DependencyProperty.Register(
                 nameof(RangeEnd),
                 typeof(double),
                 typeof(HistogramControl),
-                new PropertyMetadata(1.0, OnRangeDisplayChanged));
+                new PropertyMetadata(1.0, OnRangeDisplayChanged, CoerceRangeValue));
 
         public HistogramData Data
         {
@@ -88,6 +88,16 @@ namespace ImageProcTest.Controls
             {
                 control.Render();
             }
+        }
+
+        private static object CoerceHistogramData(DependencyObject d, object baseValue)
+        {
+            return baseValue is HistogramData data ? data : HistogramData.Empty;
+        }
+
+        private static object CoerceRangeValue(DependencyObject d, object baseValue)
+        {
+            return baseValue is double value ? Clamp01(value) : 0.0;
         }
 
         private static double Clamp01(double value)

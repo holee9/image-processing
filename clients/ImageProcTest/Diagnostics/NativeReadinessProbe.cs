@@ -10,15 +10,60 @@ namespace ImageProcTest
     internal sealed record NativeReadinessReportWriteResult(
         string ReportPath,
         string DisplaySummary,
+        string DicomSummary,
+        string GsvgSummary,
         string PreprocessSummary,
         PreprocessHealthResult PreprocessHealth);
+
+    internal sealed record DisplaySmokeResult(
+        string Status,
+        bool Passed,
+        string Details)
+    {
+        public static DisplaySmokeResult NotRun(string reason) =>
+            new("Not run", false, reason);
+    }
 
     internal sealed record DisplayHealthResult(
         string Status,
         string Version,
         string DllPath,
         string Details,
-        bool IsReady);
+        IReadOnlyList<string> PresentExports,
+        IReadOnlyList<string> MissingExports,
+        DisplaySmokeResult Smoke,
+        bool IsVersionReady,
+        bool IsExportReady,
+        bool IsSmokeReady)
+    {
+        public bool IsReady => IsVersionReady;
+    }
+
+    internal sealed record DicomSmokeResult(
+        string Status,
+        bool Passed,
+        string Details)
+    {
+        public static DicomSmokeResult NotRun(string reason) =>
+            new("Not run", false, reason);
+    }
+
+    internal sealed record DicomHealthResult(
+        string Status,
+        string DllPath,
+        string Details,
+        IReadOnlyList<string> PresentExports,
+        IReadOnlyList<string> MissingExports,
+        DicomSmokeResult Smoke,
+        bool IsExportReady,
+        bool IsSmokeReady);
+
+    internal sealed record GsvgHealthResult(
+        string Status,
+        string Version,
+        string DllPath,
+        string Details,
+        bool IsVersionReady);
 
     internal sealed record PreprocessHealthResult(
         string Status,
@@ -90,6 +135,8 @@ namespace ImageProcTest
         public static NativeReadinessReportWriteResult WriteReport(BackendHealthResult commonResult)
         {
             var display = XpeDisplayVersionProbe.Check();
+            var dicom = XpeDicomReadinessProbe.Check();
+            var gsvg = XpeGsvgReadinessProbe.Check();
             var preprocess = XpePreprocessReadinessProbe.Check();
             var report = new
             {
@@ -102,6 +149,8 @@ namespace ImageProcTest
                     imageMetadataSize = Marshal.SizeOf<XpeCommonApi.XpeImageMetadata>()
                 },
                 display,
+                dicom,
+                gsvg,
                 preprocess
             };
 
@@ -115,7 +164,9 @@ namespace ImageProcTest
 
             return new NativeReadinessReportWriteResult(
                 path,
-                $"{display.Status} ({display.Version})",
+                $"{display.Status} ({display.Version}); smoke={display.Smoke.Status}",
+                $"{dicom.Status}; smoke={dicom.Smoke.Status}",
+                $"{gsvg.Status} ({gsvg.Version})",
                 $"{preprocess.Status} ({preprocess.Version}); smoke={preprocess.SyntheticOracle.Status}; params={FormatPreprocessParameterRanges(preprocess.ParameterRanges)}",
                 preprocess);
         }
