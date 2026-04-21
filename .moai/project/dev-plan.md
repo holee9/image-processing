@@ -33,21 +33,29 @@ xpe-gui/ (Lane C, dev/gui)
 
 ---
 
-## 1. 현재 상태 (2026-04-19 기준)
+## 1. 현재 상태 (2026-04-21 기준)
 
 ### 1.1 통합 현황 (main 기준)
 
 | 모듈 | Lane | 테스트 | main 병합 | 품질 게이트 |
 |------|------|--------|----------|------------|
 | xpe_common.dll | Pre-A | 91/91 ✅ | ✅ | PASS |
-| xpe_preprocess.dll | Pre-A | 89/90 ✅ | ✅ | PASS |
+| xpe_preprocess.dll | Pre-A | 202/202 ✅ | ✅ | PASS (M2 API 완료) |
 | xpe_enhance_basic.dll | Post-B | 67/67 ✅ | ✅ | PASS |
 | xpe_display.dll | Post-B | 48/48 ✅ | ✅ | PASS |
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
-| ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 부분 (S1-B4) |
-| xpe_enhance_advanced.dll | Post-B | 97/103 ✅ | ✅ | PASS (94.17%) |
+| ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 진행중 (TASK-GUI-IA-001) |
+| xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
 | gsvg.dll | Post-B | - | ❌ | 미착수 |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
+
+### 1.1.1 Lane 브랜치 현황 (main 미통합)
+
+| Lane | 브랜치 | main 선행 커밋 | 최신 작업 | 상태 |
+|------|--------|:-----------:|---------|------|
+| Pre-A | dev/preprocess | 16 | docs(codemaps) 아키텍처 개선 | 클린 ✅ |
+| Post-B | dev/postprocess | 13 | IEC docs 갱신 + GTest fallback | 클린 ✅ |
+| GUI-C | dev/gui | 5 | TASK-GUI-IA-001 MVVM 모듈화 | 클린 ✅ |
 
 ### 1.2 점수 현황
 
@@ -56,7 +64,7 @@ xpe-gui/ (Lane C, dev/gui)
 | A (Process/Compliance) | 81 | **~81** | 85 |
 | B (Product/Delivery) | ~74 | **~74** | 85 |
 
-M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-19 v2.3.0 기준).
+M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-21 v2.4.0 기준).
 
 ---
 
