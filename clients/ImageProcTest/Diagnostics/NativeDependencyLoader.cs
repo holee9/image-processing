@@ -19,6 +19,7 @@ namespace ImageProcTest
             ["xpe_enhance_basic.dll"]    = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
             ["xpe_display.dll"]          = ["fmt.dll", "spdlog.dll"],
             ["xpe_enhance_advanced.dll"] = ["fmt.dll", "spdlog.dll"],
+            ["gsvg.dll"]                 = ["fmt.dll", "spdlog.dll"],
             ["xpe_gsvg.dll"]             = ["fmt.dll", "spdlog.dll"],
             ["xpe_ai.dll"]               = ["fmt.dll", "spdlog.dll"],
             ["xpe_dicom.dll"]            = ["fmt.dll", "spdlog.dll",
