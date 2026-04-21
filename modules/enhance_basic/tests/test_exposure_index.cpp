@@ -10,6 +10,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -46,8 +47,7 @@ static void free_img(XpeImageBuffer& img) {
 static XpeImageMetadata make_meta(const char* bodyPart) {
     XpeImageMetadata meta{};
     if (bodyPart) {
-        std::strncpy(meta.bodyPart, bodyPart, sizeof(meta.bodyPart) - 1);
-        meta.bodyPart[sizeof(meta.bodyPart) - 1] = '\0';
+        std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", bodyPart);
     }
     meta.kVp = 80.0f;
     meta.mAs = 5.0f;
