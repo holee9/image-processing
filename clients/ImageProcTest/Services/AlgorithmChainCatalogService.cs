@@ -195,17 +195,35 @@ namespace ImageProcTest
                 .Where(step => IsNativeEnhanceBasicStage(step.StageKey))
                 .Select(step => step.StageKey)
                 .ToArray();
+            var displayOrder = steps
+                .Where(step => IsDisplayStage(step.StageKey))
+                .Select(step => step.StageKey)
+                .ToArray();
+            var dicomOrder = steps
+                .Where(step => IsDicomStage(step.StageKey))
+                .Select(step => step.StageKey)
+                .ToArray();
             var isFolderAuditOnly = steps.Count == 1 &&
                 string.Equals(steps[0].StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
             var hasHardBlocks = findings.Any(item => item.Severity == AlgorithmRuleSeverity.Hard);
             var canExecute = !hasHardBlocks && (isFolderAuditOnly || nativeOrder.Length > 0 || enhanceBasicOrder.Length > 0);
-            var summary = BuildSummary(steps, findings, nativeOrder, enhanceBasicOrder, isFolderAuditOnly, canExecute);
+            var summary = BuildSummary(
+                steps,
+                findings,
+                nativeOrder,
+                enhanceBasicOrder,
+                displayOrder,
+                dicomOrder,
+                isFolderAuditOnly,
+                canExecute);
 
             return new AlgorithmChainPlan(
                 steps,
                 findings,
                 nativeOrder,
                 enhanceBasicOrder,
+                displayOrder,
+                dicomOrder,
                 isFolderAuditOnly,
                 canExecute,
                 summary);
@@ -494,6 +512,14 @@ namespace ImageProcTest
             string.Equals(stageKey, "contrast", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(stageKey, "edge", StringComparison.OrdinalIgnoreCase);
 
+        private static bool IsDisplayStage(string stageKey) =>
+            string.Equals(stageKey, "modality-lut", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "voi-lut", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "presentation-lut", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsDicomStage(string stageKey) =>
+            string.Equals(stageKey, "dicom-write", StringComparison.OrdinalIgnoreCase);
+
         private static bool IsDetectorOrLaterImageStage(string stageKey) =>
             !string.Equals(stageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
 
@@ -530,6 +556,8 @@ namespace ImageProcTest
             IReadOnlyList<AlgorithmDependencyFinding> findings,
             IReadOnlyList<string> nativeOrder,
             IReadOnlyList<string> enhanceBasicOrder,
+            IReadOnlyList<string> displayOrder,
+            IReadOnlyList<string> dicomOrder,
             bool isFolderAuditOnly,
             bool canExecute)
         {
@@ -542,11 +570,17 @@ namespace ImageProcTest
             var executableStages = string.Join(
                 " -> ",
                 nativeOrder.Concat(enhanceBasicOrder));
+            var pendingStages = string.Join(
+                " -> ",
+                displayOrder.Concat(dicomOrder));
             var execution = canExecute
                 ? isFolderAuditOnly ? "folder audit runnable" : $"native runnable: {executableStages}"
                 : "blocked";
+            var pending = pendingStages.Length == 0
+                ? "none"
+                : pendingStages;
 
-            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; execution={execution}.";
+            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; execution={execution}; pending presentation/export={pending}.";
         }
 
         private static AlgorithmDependencyFinding Hard(string ruleId, string message, string evidence) =>
