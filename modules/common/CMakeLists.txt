@@ -114,6 +114,7 @@ if(_XPE_BUILD_TESTS)
     # --- test_xpe_common (15 API functions) ---
     add_executable(test_xpe_common
         tests/test_xpe_common.cpp
+        tests/test_post_degraded_mode.cpp
     )
     target_include_directories(test_xpe_common PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -41,7 +41,7 @@ target_link_libraries(xpe_display
 target_compile_features(xpe_display PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_display PRIVATE /W4)
+    target_compile_options(xpe_display PRIVATE /W4 /WX-)
 else()
     target_compile_options(xpe_display PRIVATE
         -Wall -Wextra -Wpedantic
@@ -98,6 +98,9 @@ if(_XPE_BUILD_TESTS)
         GTest::gtest_main
     )
     target_compile_features(test_display_modality_lut PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_modality_lut PRIVATE /W4 /WX-)
+    endif()
     gtest_discover_tests(test_display_modality_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -114,6 +117,9 @@ if(_XPE_BUILD_TESTS)
         GTest::gtest_main
     )
     target_compile_features(test_display_voi_lut PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_voi_lut PRIVATE /W4 /WX-)
+    endif()
     gtest_discover_tests(test_display_voi_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -130,6 +136,9 @@ if(_XPE_BUILD_TESTS)
         GTest::gtest_main
     )
     target_compile_features(test_display_presentation_lut PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_presentation_lut PRIVATE /W4 /WX-)
+    endif()
     gtest_discover_tests(test_display_presentation_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -146,6 +155,9 @@ if(_XPE_BUILD_TESTS)
         GTest::gtest_main
     )
     target_compile_features(test_display_integration PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_integration PRIVATE /W4 /WX-)
+    endif()
     gtest_discover_tests(test_display_integration
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )

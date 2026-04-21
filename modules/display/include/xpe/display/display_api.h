@@ -98,7 +98,7 @@ typedef enum XpeBodyPart {
  *                     minOut, maxOut)
  *
  * LINEAR_EXACT formula (DICOM PS3.3 C.11.2.1.3):
- *   output[i] = clamp((input[i] - center + 0.5f) / (width - 1.0f) * (maxOut - minOut) + (minOut + maxOut) / 2.0f,
+ *   output[i] = clamp(((input[i] - center) / width + 0.5f) * (maxOut - minOut) + minOut,
  *                     minOut, maxOut)
  *
  * SIGMOID formula:

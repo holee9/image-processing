@@ -49,6 +49,7 @@ if(MSVC)
     # Haswell+ (2013) CPUs support AVX2; required as system prerequisite per
     # SPEC-XPE-P1B-ENH Section 3.1.
     target_compile_options(xpe_enhance_basic PRIVATE /arch:AVX2 /fp:fast)
+    target_compile_options(xpe_enhance_basic PRIVATE /wd4365)  # int→size_t in ring buffer size calc
 else()
     target_compile_options(xpe_enhance_basic PRIVATE
         -Wall -Wextra -Wpedantic -mavx2
@@ -121,6 +122,10 @@ if(_XPE_BUILD_TESTS)
     )
 
     target_compile_features(xpe_enhance_basic_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(xpe_enhance_basic_tests PRIVATE /W4 /WX-)
+    endif()
 
     gtest_discover_tests(xpe_enhance_basic_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

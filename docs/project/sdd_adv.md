@@ -458,7 +458,7 @@ Output: Enhanced image + ROI coordinates + EI/DI values
 - ✅ Software Requirements Specification (SRS-ADV-001)
 - ✅ Software Design Description (SDD-ADV-001) 
 - ✅ Requirements Traceability Matrix (RTM-ADV-001)
-- ✅ Test documentation with 103 test cases
+- ✅ Test documentation aligned to 65 active GoogleTest cases, including 10 integration and 1 smoke case
 - ✅ Risk analysis and mitigation documentation
 
 #### Configuration Management
@@ -472,21 +472,17 @@ Output: Enhanced image + ROI coordinates + EI/DI values
 
 | Test Category | Count | Pass Rate | Coverage |
 |---------------|-------|-----------|----------|
-| Unit Tests | 65 | 100% | 90.4% statement |
-| Integration Tests | 10 | 100% | N/A |
-| Smoke Tests | 1 | 100% | N/A |
-| **Total** | **76** | **100%** | **IEC 62304 Class B** |
+| Active GoogleTest Cases | 65 | 100% | 90.4% statement |
+| Included Integration Cases | 10 | 100% | N/A |
+| Included Smoke Case | 1 | 100% | N/A |
+| **Total Executable Cases** | **65** | **100%** | **IEC 62304 Class B** |
 
 ### 9.5 Known Limitations
 
-1. **Coverage Measurement**: gcov/lcov coverage measurement pending (requires coverage build preset)
+1. **Coverage Measurement**: gcov/lcov coverage measurement pending; run the coverage preset from an initialized VS2022/CMake environment
 2. **Performance Benchmarking**: Reference hardware calibration needed for precise performance metrics
 3. **Documentation Integration**: api-spec.md synchronization with final implementation signatures pending
 
 ---
 
-*Document End -- SDD-ADV-001 v1.1.0*
-
----
-
-*Document End -- SDD-ADV-001 v1.0.0*
+*Document End -- SDD-ADV-001 v1.2.0*

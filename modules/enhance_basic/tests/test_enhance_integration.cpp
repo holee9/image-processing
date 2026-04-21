@@ -10,6 +10,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -39,6 +40,10 @@ static XpeImageBuffer make_f32(uint32_t w, uint32_t h, float fill = 0.0f) {
 static void free_img(XpeImageBuffer& img) {
     free(img.data);
     img.data = nullptr;
+}
+
+static void set_body_part(XpeImageMetadata& meta, const char* bodyPart) {
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", bodyPart ? bodyPart : "");
 }
 
 // REQ-ENH-CC-002: All functions reject null img with XPE_ERR_INVALID_INPUT
@@ -76,7 +81,7 @@ TEST(EnhanceIntegration, AllFunctions_NullImg_ReturnInvalidInput) {
 
     // xpe_calc_exposure_index
     XpeImageMetadata meta{};
-    std::strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart) - 1);
+    set_body_part(meta, "CHEST");
     float outEI = 0.0f, outDI = 0.0f;
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(nullptr, &meta, &outEI, &outDI));
 }
@@ -87,7 +92,7 @@ TEST(EnhanceIntegration, FullPipeline_3072x3072_Within200ms) {
 
     // Prepare metadata for EI
     XpeImageMetadata meta{};
-    std::strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart) - 1);
+    set_body_part(meta, "CHEST");
     float outEI = 0.0f, outDI = 0.0f;
 
     // Prepare params

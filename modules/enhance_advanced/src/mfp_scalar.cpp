@@ -280,7 +280,7 @@ XpeErrorCode applyMfpScalar(XpeImageBuffer* img, const MfpConfig& config) {
         return XPE_ERR_UNSUPPORTED_FORMAT;
     }
 
-    if (img->width <= 0 || img->height <= 0) {
+    if (img->width == 0 || img->height == 0) {
         return XPE_ERR_INVALID_INPUT;
     }
 

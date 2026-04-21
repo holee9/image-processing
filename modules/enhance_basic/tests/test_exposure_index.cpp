@@ -10,9 +10,11 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
 
 namespace {
 
@@ -46,8 +48,7 @@ static void free_img(XpeImageBuffer& img) {
 static XpeImageMetadata make_meta(const char* bodyPart) {
     XpeImageMetadata meta{};
     if (bodyPart) {
-        std::strncpy(meta.bodyPart, bodyPart, sizeof(meta.bodyPart) - 1);
-        meta.bodyPart[sizeof(meta.bodyPart) - 1] = '\0';
+        std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", bodyPart);
     }
     meta.kVp = 80.0f;
     meta.mAs = 5.0f;
@@ -240,6 +241,61 @@ TEST(ExposureIndex, ROISubBuffer_ComputesOnSubRegion) {
     float expected_EI = EIT_CHEST * (mean / S0_REFERENCE);
     EXPECT_NEAR(expected_EI, outEI, expected_EI * 0.001f)
         << "ROI sub-buffer EI should be computed on 100x100 pixels";
+    free_img(img);
+}
+
+TEST(ExposureIndex, BenchmarkFreeze_BP08_EICalcTimeBaseline) {
+    constexpr int kWidth = 512;
+    constexpr int kHeight = 512;
+    constexpr auto kMaxMs = 25;
+
+    auto img = make_f32(kWidth, kHeight, S0_REFERENCE);
+    auto meta = make_meta("CHEST");
+    float outEI = 0.0f;
+    float outDI = 0.0f;
+
+    auto start = std::chrono::steady_clock::now();
+    ASSERT_EQ(XPE_OK, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI));
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start);
+
+    EXPECT_NEAR(EIT_CHEST, outEI, EIT_CHEST * 0.001f);
+    EXPECT_NEAR(0.0f, outDI, 0.001f);
+    EXPECT_LT(elapsed.count(), kMaxMs)
+        << "BP-08 EI calculation baseline exceeded.";
+    RecordProperty("BP", "BP-08");
+    RecordProperty("baseline_ms_max", kMaxMs);
+    RecordProperty("pixels", kWidth * kHeight);
+    free_img(img);
+}
+
+TEST(ExposureIndex, BenchmarkFreeze_BP09_DICalcTimeBaseline) {
+    constexpr int kWidth = 512;
+    constexpr int kHeight = 512;
+    constexpr auto kMaxMs = 25;
+    constexpr float kMean = 3000.0f;
+
+    auto img = make_f32(kWidth, kHeight, kMean);
+    auto meta = make_meta("CHEST");
+    float outEI = 0.0f;
+    float outDI = 0.0f;
+
+    xpe_clear_alerts();
+    auto start = std::chrono::steady_clock::now();
+    ASSERT_EQ(XPE_OK, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI));
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start);
+
+    const float expectedEI = EIT_CHEST * (kMean / S0_REFERENCE);
+    const float expectedDI = 10.0f * std::log10(expectedEI / EIT_CHEST);
+    EXPECT_NEAR(expectedEI, outEI, expectedEI * 0.001f);
+    EXPECT_NEAR(expectedDI, outDI, 0.001f);
+    EXPECT_GT(std::fabs(outDI), 3.0f);
+    EXPECT_LT(elapsed.count(), kMaxMs)
+        << "BP-09 DI calculation baseline exceeded.";
+    RecordProperty("BP", "BP-09");
+    RecordProperty("baseline_ms_max", kMaxMs);
+    RecordProperty("pixels", kWidth * kHeight);
     free_img(img);
 }
 
