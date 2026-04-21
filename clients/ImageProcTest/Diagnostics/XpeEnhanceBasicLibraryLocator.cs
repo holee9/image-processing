@@ -46,7 +46,10 @@ namespace ImageProcTest
                     Path.Combine(root, "build", "release", "bin", DllName),
                     Path.Combine(root, "build", "release", "bin", "Release", DllName),
                     Path.Combine(root, "build", "default", "bin", DllName),
-                    Path.Combine(root, "build", "default", "bin", "Debug", DllName)
+                    Path.Combine(root, "build", "default", "bin", "Debug", DllName),
+                    Path.Combine(root, "build", "enhance_test", "bin", DllName),
+                    Path.Combine(root, "build", "enhance_test", "bin", "Release", DllName),
+                    Path.Combine(root, "build", "enhance_test", "bin", "Debug", DllName)
                 };
 
                 foreach (var candidate in candidates)

@@ -20,6 +20,12 @@ namespace ImageProcTest
                 return;
             }
 
+            if (e.Args.Contains("--run-phase1b-fixture-e2e", StringComparer.OrdinalIgnoreCase))
+            {
+                RunPhase1bFixtureE2e(e.Args);
+                return;
+            }
+
             var window = new MainWindow();
             MainWindow = window;
             window.Show();
@@ -59,6 +65,23 @@ namespace ImageProcTest
             catch (Exception ex)
             {
                 PreprocessFixtureE2eService.WriteUnhandledException(ex);
+                Environment.ExitCode = 1;
+                Shutdown(1);
+            }
+        }
+
+        private void RunPhase1bFixtureE2e(string[] args)
+        {
+            try
+            {
+                var options = Phase1bFixtureE2eOptions.Parse(args);
+                var report = Phase1bFixtureE2eService.Run(options);
+                Environment.ExitCode = report.ExitCode;
+                Shutdown(report.ExitCode);
+            }
+            catch (Exception ex)
+            {
+                Phase1bFixtureE2eService.WriteUnhandledException(ex);
                 Environment.ExitCode = 1;
                 Shutdown(1);
             }
