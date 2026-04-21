@@ -85,7 +85,8 @@ namespace ImageProcTest
 
         private static readonly string[] RunnablePrePostBasicOrder =
         [
-            "calib-folder", "offset", "gain", "defect", "ei-whole", "log", "basic-noise", "contrast", "edge"
+            "calib-folder", "offset", "gain", "defect", "ei-whole", "log", "basic-noise", "contrast", "edge",
+            "modality-lut", "voi-lut", "presentation-lut", "dicom-write"
         ];
 
         public static IReadOnlyList<AlgorithmNode> BuildNodes(
@@ -206,7 +207,12 @@ namespace ImageProcTest
             var isFolderAuditOnly = steps.Count == 1 &&
                 string.Equals(steps[0].StageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
             var hasHardBlocks = findings.Any(item => item.Severity == AlgorithmRuleSeverity.Hard);
-            var canExecute = !hasHardBlocks && (isFolderAuditOnly || nativeOrder.Length > 0 || enhanceBasicOrder.Length > 0);
+            var canExecute = !hasHardBlocks &&
+                (isFolderAuditOnly ||
+                 nativeOrder.Length > 0 ||
+                 enhanceBasicOrder.Length > 0 ||
+                 displayOrder.Length > 0 ||
+                 dicomOrder.Length > 0);
             var summary = BuildSummary(
                 steps,
                 findings,
@@ -274,6 +280,32 @@ namespace ImageProcTest
                         findings.Add(Hard(
                             "POST-NOT-READY",
                             $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the native enhance_basic adapter is not ready.",
+                            step.Node.NextAction));
+                    }
+
+                    continue;
+                }
+
+                if (IsDisplayStage(step.StageKey))
+                {
+                    if (!step.Node.CanRun)
+                    {
+                        findings.Add(Hard(
+                            "DISPLAY-NOT-READY",
+                            $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the xpe_display readiness smoke is not ready.",
+                            step.Node.NextAction));
+                    }
+
+                    continue;
+                }
+
+                if (IsDicomStage(step.StageKey))
+                {
+                    if (!step.Node.CanRun)
+                    {
+                        findings.Add(Hard(
+                            "DICOM-NOT-READY",
+                            $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the xpe_dicom readiness smoke is not ready.",
                             step.Node.NextAction));
                     }
 
@@ -498,6 +530,8 @@ namespace ImageProcTest
         private static bool IsRunnableAdapter(string adapter) =>
             string.Equals(adapter, "native-preview", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(adapter, "native-enhance-basic", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(adapter, "native-display", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(adapter, "native-dicom", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(adapter, "folder-audit", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsNativePreprocessStage(string stageKey) =>
@@ -569,18 +603,15 @@ namespace ImageProcTest
                 : string.Join(" -> ", steps.Select(step => step.Node.Label));
             var executableStages = string.Join(
                 " -> ",
-                nativeOrder.Concat(enhanceBasicOrder));
-            var pendingStages = string.Join(
-                " -> ",
-                displayOrder.Concat(dicomOrder));
+                nativeOrder
+                    .Concat(enhanceBasicOrder)
+                    .Concat(displayOrder)
+                    .Concat(dicomOrder));
             var execution = canExecute
                 ? isFolderAuditOnly ? "folder audit runnable" : $"native runnable: {executableStages}"
                 : "blocked";
-            var pending = pendingStages.Length == 0
-                ? "none"
-                : pendingStages;
 
-            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; execution={execution}; pending presentation/export={pending}.";
+            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; execution={execution}.";
         }
 
         private static AlgorithmDependencyFinding Hard(string ruleId, string message, string evidence) =>

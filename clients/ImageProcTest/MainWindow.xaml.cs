@@ -733,7 +733,9 @@ namespace ImageProcTest
                     enhanceSelection,
                     $"algorithm chain {currentAlgorithmChainPlan.DisplayName}",
                     currentAlgorithmChainPlan.NativeStageOrder,
-                    currentAlgorithmChainPlan.EnhanceBasicStageOrder);
+                    currentAlgorithmChainPlan.EnhanceBasicStageOrder,
+                    currentAlgorithmChainPlan.DisplayStageOrder,
+                    currentAlgorithmChainPlan.DicomStageOrder);
                 lastAlgorithmValidationRun = pass;
                 AlgorithmValidationResultText.Text =
                     $"Algorithm chain: PASS; latency={FormatNullableLatency(pass.LatencyMs)}; " +
@@ -1158,7 +1160,9 @@ namespace ImageProcTest
             EnhanceBasicStageSelection enhanceSelection,
             string statusLabel,
             IReadOnlyList<string>? preprocessStageOrder = null,
-            IReadOnlyList<string>? enhanceBasicStageOrder = null)
+            IReadOnlyList<string>? enhanceBasicStageOrder = null,
+            IReadOnlyList<string>? displayStageOrder = null,
+            IReadOnlyList<string>? dicomStageOrder = null)
         {
             if (currentPreview is null)
             {
@@ -1184,6 +1188,8 @@ namespace ImageProcTest
                 lastNativePreviewResult = null;
             }
 
+            var presentationRun = RunPresentationExportReadinessSmoke(displayStageOrder, dicomStageOrder);
+
             if (enhanceSelection.HasAnyStage)
             {
                 var inputPixels = preprocessResult?.OutputPixels;
@@ -1201,12 +1207,31 @@ namespace ImageProcTest
                     "CHAIN",
                     currentAlgorithmChainPlan.DisplayName,
                     "Pass",
-                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}",
+                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}; {presentationRun.Summary}",
                     ArtifactDirectory: null,
-                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0));
+                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0) + presentationRun.LatencyMs);
                 lastAlgorithmValidationRun = run;
                 UpdateEvaluationDashboards();
                 return run;
+            }
+
+            if (presentationRun.HasAnyStage)
+            {
+                if (preprocessResult is null)
+                {
+                    ApplyBypassPreview("Presentation/export readiness smoke ran without image-domain native stages.");
+                }
+
+                var presentationOnlyRun = new AlgorithmValidationRunSnapshot(
+                    "CHAIN",
+                    currentAlgorithmChainPlan.DisplayName,
+                    "Pass",
+                    $"{currentAlgorithmChainPlan.Summary} {presentationRun.Summary}",
+                    preprocessResult?.ArtifactDirectory,
+                    (preprocessResult?.TotalLatencyMs ?? 0) + presentationRun.LatencyMs);
+                lastAlgorithmValidationRun = presentationOnlyRun;
+                UpdateEvaluationDashboards();
+                return presentationOnlyRun;
             }
 
             if (preprocessResult is null)
@@ -1225,12 +1250,59 @@ namespace ImageProcTest
                 "CHAIN",
                 currentAlgorithmChainPlan.DisplayName,
                 "Pass",
-                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}",
+                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}; {presentationRun.Summary}",
                 preprocessResult.ArtifactDirectory,
                 preprocessResult.TotalLatencyMs);
             lastAlgorithmValidationRun = preprocessRun;
             UpdateEvaluationDashboards();
             return preprocessRun;
+        }
+
+        private static (string Summary, double LatencyMs, bool HasAnyStage) RunPresentationExportReadinessSmoke(
+            IReadOnlyList<string>? displayStageOrder,
+            IReadOnlyList<string>? dicomStageOrder)
+        {
+            var displayStages = displayStageOrder is { Count: > 0 }
+                ? displayStageOrder
+                : [];
+            var dicomStages = dicomStageOrder is { Count: > 0 }
+                ? dicomStageOrder
+                : [];
+
+            if (displayStages.Count == 0 && dicomStages.Count == 0)
+            {
+                return ("presentation/export readiness=not selected", 0, HasAnyStage: false);
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            var evidence = new List<string>();
+
+            if (displayStages.Count > 0)
+            {
+                var display = XpeDisplayVersionProbe.Check();
+                if (!display.IsSmokeReady)
+                {
+                    throw new InvalidOperationException($"xpe_display readiness smoke is not ready: {display.Status}; {display.Details}");
+                }
+
+                evidence.Add(
+                    $"display={string.Join("->", displayStages)}; dll={Path.GetFileName(display.DllPath)}; smoke={display.Smoke.Status}");
+            }
+
+            if (dicomStages.Count > 0)
+            {
+                var dicom = XpeDicomReadinessProbe.Check();
+                if (!dicom.IsSmokeReady)
+                {
+                    throw new InvalidOperationException($"xpe_dicom readiness smoke is not ready: {dicom.Status}; {dicom.Details}");
+                }
+
+                evidence.Add(
+                    $"dicom={string.Join("->", dicomStages)}; dll={Path.GetFileName(dicom.DllPath)}; smoke={dicom.Smoke.Status}");
+            }
+
+            stopwatch.Stop();
+            return ($"presentation/export readiness: {string.Join("; ", evidence)}", stopwatch.Elapsed.TotalMilliseconds, HasAnyStage: true);
         }
 
         private NativeEnhanceBasicPreviewResult RunNativeEnhanceBasicPreview(
@@ -1280,6 +1352,12 @@ namespace ImageProcTest
             var postReason = IsEnhanceBasicPreviewReady()
                 ? "Native enhance_basic ABI smoke is available. Checked post stages execute on pre output or raw-float bypass input."
                 : "Native enhance_basic execution is disabled until xpe_enhance_basic.dll ABI smoke passes.";
+            var displayReason = IsModuleReadinessAtLeast("xpe_display", 3)
+                ? "Native display readiness smoke is available. Selected display stages are included in Phase 1b E2E evidence."
+                : "Native display readiness smoke is disabled until xpe_display.dll reaches R3.";
+            var dicomReason = IsModuleReadinessAtLeast("xpe_dicom", 3)
+                ? "Native DICOM readiness smoke is available. Selected export stages are included in Phase 1b E2E evidence."
+                : "Native DICOM readiness smoke is disabled until xpe_dicom.dll reaches R3.";
 
             return
             [
@@ -1290,7 +1368,11 @@ namespace ImageProcTest
                 new StageModeSnapshot("Log", GetMode(LogEnabledCheckBox), postReason),
                 new StageModeSnapshot("Noise", GetMode(NoiseEnabledCheckBox), postReason),
                 new StageModeSnapshot("Contrast", GetMode(ContrastEnabledCheckBox), postReason),
-                new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason)
+                new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason),
+                new StageModeSnapshot("Modality LUT", GetChainStageMode("modality-lut"), displayReason),
+                new StageModeSnapshot("VOI LUT", GetChainStageMode("voi-lut"), displayReason),
+                new StageModeSnapshot("Presentation LUT", GetChainStageMode("presentation-lut"), displayReason),
+                new StageModeSnapshot("DICOM write", GetChainStageMode("dicom-write"), dicomReason)
             ];
         }
 
@@ -1732,6 +1814,21 @@ namespace ImageProcTest
             return currentModuleReadiness.Any(module =>
                 string.Equals(module.ModuleName, "xpe_enhance_basic", StringComparison.OrdinalIgnoreCase) &&
                 module.ProcessingEnabled);
+        }
+
+        private bool IsModuleReadinessAtLeast(string moduleName, int requiredRank)
+        {
+            return currentModuleReadiness.Any(module =>
+                string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase) &&
+                module.LevelRank >= requiredRank);
+        }
+
+        private string GetChainStageMode(string stageKey)
+        {
+            return currentAlgorithmChainPlan.Steps.Any(step =>
+                string.Equals(step.StageKey, stageKey, StringComparison.OrdinalIgnoreCase))
+                ? "On"
+                : "Off";
         }
 
         private PreprocessStageSelection GetPreprocessSelection()
