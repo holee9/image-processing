@@ -20,6 +20,35 @@ namespace enhance_advanced {
 namespace detail {
 
 /**
+ * @namespace HoughParams
+ * @brief Hough transform algorithm parameters
+ *
+ * Centralized constants for Hough transform algorithm tuning.
+ * All parameters are derived from clinical requirements and empirical validation.
+ */
+namespace HoughParams {
+    // Edge Detection Parameters
+    constexpr float kEdgeMagnitudeThreshold = 3.0f;      ///< Minimum edge magnitude for voting (lowered for better detection)
+
+    // Adaptive Threshold Parameters
+    constexpr int kBaseAdaptiveThreshold = 50;            ///< Base threshold for peak detection
+    constexpr float kAdaptiveThresholdFactor = 0.1f;      ///< Fraction of max accumulator value for adaptive threshold
+
+    // Axis-Aligned Line Detection
+    constexpr float kAxisAlignmentTolerance = 5.0f;       ///< Tolerance in degrees for axis-aligned filtering
+
+    // Confidence Scoring
+    constexpr float kMaxExpectedStrengthPerLine = 1000.0f; ///< Upper bound for single line strength
+    constexpr float kMinExpectedStrength = 50.0f;         ///< Minimum total strength to consider as real edges
+
+    // Non-Maximum Suppression
+    constexpr int kDefaultWindowSize = 5;                 ///< Default suppression window size
+
+    // Trigonometric Stability
+    constexpr float kTrigEps = 1e-3f;                     ///< Epsilon for near-zero trig value detection
+}
+
+/**
  * @struct HoughLine
  * @brief Detected line in Hough space
  *

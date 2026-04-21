@@ -1,215 +1,149 @@
-# XPE 아키텍처 개요
+# XPE Image Processing Engine - Architecture Overview
 
-**문서 ID**: XPE-CODEMAP-001  
-**버전**: 1.0.0  
-**날짜**: 2026-04-17  
-**상태**: 작성 중  
-**분류**: 내부 / 아키텍처 기준 문서
+**Last Updated**: 2026-04-20
+**Branch**: dev/postprocess
+**Architecture Type**: Modular DLL with C# Orchestration
 
----
+## System Architecture
 
-## 1. 아키텍처 개요
+The XPE (X-ray Processing Engine) is a modular medical image processing system designed for clinical deployment with IEC 62304 Class B compliance. The architecture follows a layered design with clear separation of concerns.
 
-XPE(X-ray Processing Engine)는 의료 장비 소프트웨어로, X선 플랫 판 디텍터(FPD)의 원시 raw 프레임을 진단 가능한 DICOM 영상으로 변환하는 모듈형 이미지 처리 엔진입니다. 최신 업데이트로 고스트 보정 Tier 1/2/3 구현과 전처리 파이프라인 통합이 추가되었습니다.
-
-### 핵심 설계 원칙
-
-#### 1.1 3-Layer Anti-Spaghetti Architecture
-
-- **Layer 0**: `xpe_common.dll` - 공통 기능 기반 계층
-- **Layer 1**: 7개 알고리즘 DLL - 독립적 계산 모듈  
-- **Layer 1-G**: `gsvg.dll` - 독립 IEC 62304 패키지
-- **Layer 2**: `ImageProcTest` - C# WPF GUI 오케스트레이터
-
-#### 1.2 모듈형 DLL 아키텍처
-
-- DLL 간 laterl dependency 금지
-- C ABI 인터페이스를 통한 안정적인 경계
-- 선택적 로딩을 통한 점진적 기능 추가
-- 각 DLL은 독립적으로 개발/테스트 가능
-- **신규**: 전처리 파이프라인 통합 모듈 (pipeline.cpp)
-
-#### 1.3 상태 비설계 원칙 (Stateless Design)
-
-- 모든 처리 함수는 reentrant 특성 보장
-- 호출자 할당 메모리 모델
-- 스레드 안전성 기본 제공
-- 상태 관리는 오케스트레이터 담당
-
----
-
-## 2. 시스템 경계
-
-### 2.1 계층 구조
+### High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Layer 2: 오케스트레이터                     │
-│                    (ImageProcTest - C# WPF)                  │
-├─────────────────────────────────────────────────────────────┤
-│  Layer 1-G: gsvg.dll (독립 패키지)                           │
-│  Layer 1: 알고리즘 DLL 7개 (Phase 1/2/3 분할 로딩)             │
-│  Layer 0: xpe_common.dll (기반 계층)                         │
-├─────────────────────────────────────────────────────────────┤
-│               외부 의존성 (OpenCV, DCMTK, ONNX 등)            │
+│                    C# Orchestration Layer                   │
+│                    (ImageProcTest.exe)                      │
+│  - Composite backend pattern                                │
+│  - Graceful degradation                                     │
+│  - Module readiness levels (R0-R3)                          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      C++ Processing Layer                    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Layer 3: AI Processing (xpe_ai.dll)                   │  │
+│  │   - Body part recognition, stitching, denoising       │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                              │                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Layer 2: Advanced Processing                          │  │
+│  │   - xpe_enhance_advanced.dll: MFP, Edge, Collimation  │  │
+│  │   - gsvg.dll: Grid suppression (independent)          │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                              │                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Layer 1: Basic Processing                             │  │
+│  │   - xpe_preprocess.dll: Calibration, defect correction │  │
+│  │   - xpe_enhance_basic.dll: EI, noise reduction        │  │
+│  │   - xpe_display.dll: VOI LUT, presentation state      │  │
+│  │   - xpe_dicom.dll: DICOM I/O                          │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                              │                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Layer 0: Common Infrastructure (xpe_common.dll)       │  │
+│  │   - Memory management, logging, configuration         │  │
+│  │   - C ABI for interop                                 │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Third-Party Libraries                      │
+│  spdlog, fmt, nlohmann-json, eigen3, opencv4, dcmtk, gtest  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 런타임 패키징
+## Architectural Principles
 
-| Phase | 필수 DLL | 선택 DLL | 목적 |
-|-------|----------|----------|------|
-| Phase 1 | `xpe_common.dll`, `xpe_preprocess.dll`, `xpe_enhance_basic.dll`, `xpe_display.dll`, `xpe_dicom.dll` | 없음 | Raw-to-DICOM 기본 경로 |
-| Phase 2 | - | `xpe_enhance_advanced.dll`, `gsvg.dll` | 임상 품질 향상 기능 |
-| Phase 3 | - | `xpe_ai.dll`, `xpe_ai_worker.exe` | AI 기반 프리미엄 기능 |
+### 1. Module Independence
+- Each XPE module DLL depends **only** on `xpe_common`
+- No lateral dependencies between processing modules
+- Enables independent deployment and testing
 
----
+### 2. Graceful Degradation
+- GUI continues functioning with subset of modules available
+- Per-module P/Invoke wrappers with exception handling
+- Module readiness levels (R0-R3) drive UI state
 
-## 3. 주요 설계 패턴
+### 3. Layered Architecture
+- **Layer 0**: Common infrastructure (memory, logging, config)
+- **Layer 1a**: Preprocessing (calibration, defect correction)
+- **Layer 1b**: Basic enhancement, display, DICOM I/O
+- **Layer 2**: Advanced algorithms (MFP, Edge, Collimation)
+- **Layer 3**: AI-powered analysis
 
-### 3.1 C ABI 경계 패턴
+### 4. Zero-Crossing ABI
+- C linkage for C# interop
+- No C++ exceptions cross module boundaries
+- Deterministic struct layout with `#pragma pack(8)`
 
-```c
-// 안정적인 ABI 경계
-typedef struct XpeImageBuffer {
-    uint32_t width;
-    uint32_t height;
-    XpePixelFormat format;
-    void* data;
-} XpeImageBuffer;
+### 5. Configuration-Driven
+- JSON-based runtime configuration
+- Parameter ranges for validation
+- Logging level control
 
-// 모든 함수는 __cdecl 호출 규칙
-XPE_API XpeErrorCode xpe_process(XpeImageBuffer* img);
+## Technology Stack
 
-// **신규**: 전처리 파이프라인 통합 API
-XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
-                                             XpeImageMetadata* meta,
-                                             const char* calibPath,
-                                             void* ghostHandle,
-                                             const char* configJsonOrNull);
-```
+### Native Layer (C++)
+- **Language**: C++17 with modern features
+- **Compiler**: MSVC 2022 (Windows)
+- **Build**: CMake 3.20+ with vcpkg integration
+- **Testing**: Google Test framework
+- **Optimization**: SIMD (AVX2/FMA) for critical algorithms
 
-### 3.2 메모리 관리 패턴
+### Managed Layer (C#)
+- **Language**: C#12 / .NET 8
+- **Architecture**: Clean Architecture with separation of concerns
+- **Testing**: xUnit framework
+- **Deployment**: Single executable with native DLL loading
 
-```c
-// 호출자 할당 모델
-XpeImageBuffer img;
-xpe_alloc_image(width, height, format, &img);  // DLL 할당
-// ... 처리 ...
-xpe_free_image(&img);  // 호출자 해제
+### Third-Party Dependencies
+- **spdlog** (1.13.0+): High-performance logging
+- **fmt** (10.0.0+): Modern formatting
+- **nlohmann-json** (3.11.3+): JSON parsing
+- **eigen3** (3.4.0+): Linear algebra
+- **opencv4** (4.9.0+): Computer vision
+- **dcmtk** (3.6.8+): DICOM toolkit
+- **gtest** (1.14.0+): Testing framework
 
-// **신규**: 파이프라인 통합 시 메모리 흐름
-// Stage 0.5~4: 단일 버퍼에서 모든 처리 수행
-// 형식 변환: uint16 -> float32 (단방향 흐름)
-```
+## Quality Assurance
 
-### 3.3 선택적 로딩 패턴
+### IEC 62304 Class B Compliance
+- Full regulatory documentation (SRS, SDD, VVP, RTM)
+- Traceability from requirements to tests
+- Verification and validation procedures
 
-```csharp
-// C# 오케스트레이터에서 선택적 DLL 로딩
-try {
-    var ai = NativeLibrary.Load("xpe_ai.dll");
-    phase3Available = true;
-}
-catch {
-    phase3Available = false; // 그레이스풀 다운그레이드
-}
-```
+### Testing Strategy
+- **Golden Reference Testing**: Bit-identical validation
+- **Memory Safety**: 1000 frame leak testing
+- **Benchmark Freeze**: Reproducible performance evaluation
+- **Cross-Verification**: Independent claim verification
 
----
+### Quality Gates
+- Multi-stage verification with automated testing
+- Code coverage targets (85%+)
+- Static analysis integration
 
-## 4. 기술 스택
+## Current Status (dev/postprocess)
 
-### 4.1 언어 및 플랫폼
+### Recently Modified
+- `modules/enhance_advanced/src/detail/hough_transform.cpp`
+- `modules/enhance_advanced/tests/test_integration.cpp`
+- Documentation updates (SRS, SDD, RTM)
 
-| 계층 | 언어 | 플랫폼 | 목적 |
-|------|------|--------|------|
-| 알고리즘 DLL | C/C++17 | Windows DLL | 성능 최적화 연산 |
-| 오케스트레이터 | C# 8.0 | .NET WPF | GUI, 제어, 통합 |
-| 외부 의존 | 다양 | 크로스 플랫폼 | 표준 라이브러리 |
-| **신규**: 파이프라인 모듈 | C++17 | Windows DLL | **전처리 단계 통합 (0.5-4)** |
+### Focus Areas
+- **Hough Transform**: Collimation ROI detection
+- **Feature Detection**: Edge and boundary detection
+- **Integration Testing**: Cross-module validation
 
-### 4.2 핵심 의존성
+### Known Issues
+- See `memory/quality-verification-spec-xpe-p2-adv.md` for detailed quality assessment
 
-| 의존성 | 용도 | 라이선스 |
-|--------|------|----------|
-| OpenCV 이미지 처리 | 이미지 연산 | Apache 2.0 |
-| DCMTK | DICOM 처리 | GPL 3.0 (상업용 라이선스) |
-| ONNX Runtime | AI 추론 | MIT |
-| Eigen | 선형 대수 | MPL 2.0 |
-| vcpkg | 패키지 관리 | MIT |
+## Next Steps
 
----
-
-## 5. 아키텍처 장점
-
-### 5.1 모듈성과 유지보수성
-
-- DLL 단위로 독립 개발 가능
-- 명확한 인터페이스 경계
-- 상호 의존성 제거로 단위 테스트 용이
-- 버전 관리 독립성
-
-### 5.2 성능과 확장성
-
-- C/C++으로 성능 최적화
-- 선택적 로딩으로 메모리 관리
-- 병렬 처리 지원
-- GPU 가속 가능 (ONNX)
-
-### 5.3 규제 준수성
-
-- IEC 62304 Class B 준비 구조
-- 추적성 확보 아키텍처
-- 안전한 실패 메커니즘
-- 검증 가능한 모듈 경계
-
----
-
-## 6. 품질 보증
-
-### 6.1 테스트 전략
-
-| 계층 | 테스트 방법 | 커버리지 목표 |
-|------|-------------|---------------|
-| DLL 단위 | Google Test | Statement 90%, Branch 80% |
-| 통합 테스트 | ImageProcTest | End-to-end 검증 |
-| 성능 테스트 | 벤치마크 프레임워크 | 3000ms/frame 이내 |
-
-### 6.2 검증 점검점
-
-- ABI 안정성 검증
-- 메모리 누수 테스트
-- 스레드 안전성 검증
-- 예외 처리 검증
-
----
-
-## 7. 미래 확장성
-
-### 7.1 예상 확장 방향
-
-1. **GPU 가속**: CUDA/Metal 지원 추가
-2. **클라우드 통합**: 원격 처리 모듈
-3. **실시간 처리**: 스트리밍 처리 지원
-4. **AI 모델**: 추가 AI 기능 확장
-
-### 7.2 아키텍처 적응성
-
-- 모듈 추가 시 기존 API 변경 최소화
-- 새로운 처리 스테이지 통합 용이
-- 하드웨어 가속 플러그인 아키텍처
-- 다중 플랫폼 지원 가능성
-
----
-
-## 8. 참고 문서
-
-- `.moai/project/pipeline-spec.md` - 파이프라인 상세 명세
-- `.moai/project/api-spec.md` - C ABI 참조 문서  
-- `.moai/specs/xpe-algorithm-spec-deepsync.md` - 알고리즘 심화 명세
-- `docs/post-processing/xpe/XPE-PRD-002_*.md` - 실행형 PRD
-
----
-
-*최종 업데이트: 2026-04-17*
+1. Review detailed module documentation in `modules.md`
+2. Examine dependency relationships in `dependencies.md`
+3. Reference entry point catalog in `entry-points.md`
+4. Trace data flows in `data-flow.md`

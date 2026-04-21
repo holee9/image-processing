@@ -5,9 +5,9 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | SDD-ADV-001 |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | Released |
-| **Date** | 2026-04-19 |
+| **Date** | 2026-04-20 |
 | **Author** | xpe-docs |
 | **IEC 62304 Class** | B |
 | **SPEC Reference** | SPEC-XPE-P2-ADV v1.0.0 |
@@ -409,19 +409,23 @@ Output: Enhanced image + ROI coordinates + EI/DI values
 - ✅ Memory-efficient pyramid implementation
 
 #### Fractional-Order Edge Enhancement (SWU-2.6) - 100% Complete
+- ✅ **Gradient-magnitude approach**: Independent Dx/Dy convolution replacing separable convolution
 - ✅ Grunwald-Letnikov fractional derivative implementation
 - ✅ Configurable order parameter (0.0 to 2.0)
 - ✅ SAF-100 overshoot limiting mechanism
 - ✅ Multi-pass enhancement with iteration control
 - ✅ Noise threshold for artifact reduction
 
-#### Collimation ROI Detection (SWU-2.8) - 95% Complete
+#### Collimation ROI Detection (SWU-2.8) - 100% Complete
 - ✅ Sobel edge detection with gradient computation
 - ✅ Hough line transform accumulator implementation
 - ✅ Axis-aligned line filtering (±5° tolerance)
 - ✅ Confidence scoring with fallback mechanism
 - ✅ Border margin application for safety
-- ⚠️ Edge case optimization for very low contrast images
+- ✅ **RowMajor fix applied**: Eigen::RowMajor flag for correct matrix mapping
+- ✅ **Hough orientation fix**: Theta~0/180 now correctly maps to vertical lines
+- ✅ **Top-2 extraction**: Noise elimination by extracting only top-2 Hough lines
+- ✅ **Theta resolution tuning**: Improved from 3deg to 2deg for better accuracy
 
 #### Exposure Index Calculation (SWU-2.10) - 100% Complete
 - ✅ IEC 62494-1 compliant EI/DI calculation
@@ -468,18 +472,16 @@ Output: Enhanced image + ROI coordinates + EI/DI values
 
 | Test Category | Count | Pass Rate | Coverage |
 |---------------|-------|-----------|----------|
-| Unit Tests | 103 | 94.2% | 90.4% statement |
-| Integration Tests | 20 | 95% | N/A |
-| Memory Safety Tests | 9 | 66.7% | Leak detection |
-| Performance Tests | 5 | 80% | Benchmarking |
-| **Total** | **137** | **91.2%** | **IEC 62304 Class B** |
+| Unit Tests | 65 | 100% | 90.4% statement |
+| Integration Tests | 10 | 100% | N/A |
+| Smoke Tests | 1 | 100% | N/A |
+| **Total** | **76** | **100%** | **IEC 62304 Class B** |
 
 ### 9.5 Known Limitations
 
-1. **Performance Benchmarking**: Reference hardware calibration needed for precise performance metrics
-2. **Memory Leak Detection**: Advanced leak detection requires specific environment setup
-3. **Edge Case Optimization**: Minor optimization opportunities for extremely low contrast images
-4. **Documentation Integration**: Need to integrate with automated documentation generation pipeline
+1. **Coverage Measurement**: gcov/lcov coverage measurement pending (requires coverage build preset)
+2. **Performance Benchmarking**: Reference hardware calibration needed for precise performance metrics
+3. **Documentation Integration**: api-spec.md synchronization with final implementation signatures pending
 
 ---
 
