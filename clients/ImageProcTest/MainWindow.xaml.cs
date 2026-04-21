@@ -479,6 +479,31 @@ namespace ImageProcTest
                 return;
             }
 
+            if (IsDisplayStageKey(item.StageKey) || IsDicomStageKey(item.StageKey))
+            {
+                try
+                {
+                    var run = RunPresentationExportValidation(item);
+                    AlgorithmValidationResultText.Text =
+                        $"Presentation/export validation: PASS {item.SwuId}; latency={FormatNullableLatency(run.LatencyMs)}; {run.Details}";
+                }
+                catch (Exception ex)
+                {
+                    lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
+                        item.SwuId,
+                        item.AlgorithmName,
+                        "Fail",
+                        ex.Message,
+                        ArtifactDirectory: null,
+                        LatencyMs: null);
+                    AlgorithmValidationResultText.Text = $"Presentation/export validation: FAIL {item.SwuId}; {ex.Message}";
+                    SetStatus("Presentation/export validation failed", Brushes.OrangeRed);
+                    UpdateEvaluationDashboards();
+                }
+
+                return;
+            }
+
             if (currentCalibrationContext is not FixtureCaseInfo selectedCase)
             {
                 AlgorithmValidationResultText.Text = "Calibration validation: select the acquired calibration folder first.";
@@ -591,6 +616,28 @@ namespace ImageProcTest
                         LatencyMs: null);
                     lastAlgorithmValidationRun = fail;
                     SetStatus("Post validation failed", Brushes.OrangeRed);
+                    UpdateEvaluationDashboards();
+                    return fail;
+                }
+            }
+
+            if (IsDisplayStageKey(item.StageKey) || IsDicomStageKey(item.StageKey))
+            {
+                try
+                {
+                    return RunPresentationExportValidation(item);
+                }
+                catch (Exception ex)
+                {
+                    var fail = new AlgorithmValidationRunSnapshot(
+                        item.SwuId,
+                        item.AlgorithmName,
+                        "Fail",
+                        ex.Message,
+                        ArtifactDirectory: null,
+                        LatencyMs: null);
+                    lastAlgorithmValidationRun = fail;
+                    SetStatus("Presentation/export validation failed", Brushes.OrangeRed);
                     UpdateEvaluationDashboards();
                     return fail;
                 }
@@ -1305,6 +1352,23 @@ namespace ImageProcTest
             return ($"presentation/export readiness: {string.Join("; ", evidence)}", stopwatch.Elapsed.TotalMilliseconds, HasAnyStage: true);
         }
 
+        private AlgorithmValidationRunSnapshot RunPresentationExportValidation(AlgorithmValidationItem item)
+        {
+            IReadOnlyList<string> displayStages = IsDisplayStageKey(item.StageKey) ? [item.StageKey!] : [];
+            IReadOnlyList<string> dicomStages = IsDicomStageKey(item.StageKey) ? [item.StageKey!] : [];
+            var smoke = RunPresentationExportReadinessSmoke(displayStages, dicomStages);
+            var pass = new AlgorithmValidationRunSnapshot(
+                item.SwuId,
+                item.AlgorithmName,
+                "Pass",
+                smoke.Summary,
+                ArtifactDirectory: null,
+                smoke.LatencyMs);
+            lastAlgorithmValidationRun = pass;
+            UpdateEvaluationDashboards();
+            return pass;
+        }
+
         private NativeEnhanceBasicPreviewResult RunNativeEnhanceBasicPreview(
             EnhanceBasicStageSelection selection,
             EnhanceBasicStageParameters parameters,
@@ -1902,6 +1966,18 @@ namespace ImageProcTest
                 string.Equals(stageKey, "basic-noise", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(stageKey, "contrast", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(stageKey, "edge", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDisplayStageKey(string? stageKey)
+        {
+            return string.Equals(stageKey, "modality-lut", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stageKey, "voi-lut", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stageKey, "presentation-lut", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDicomStageKey(string? stageKey)
+        {
+            return string.Equals(stageKey, "dicom-write", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetMode(CheckBox enabled)

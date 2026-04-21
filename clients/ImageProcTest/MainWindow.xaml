@@ -522,7 +522,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <Button Content="Runnable preprocess" Width="138" Height="28" Click="UseRunnablePreprocessChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Post basic" Width="92" Height="28" Click="UseRunnablePostBasicChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Pre + post" Width="92" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Phase 1b E2E" Width="116" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Product canonical" Width="132" Height="28" Click="UseProductCanonicalChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Pre-E2E proof" Width="110" Height="28" Click="UsePreE2eProofChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Clear" Width="72" Height="28" Click="ClearAlgorithmChain_Click"/>

@@ -56,13 +56,13 @@ namespace ImageProcTest
             {
                 return new ModuleReadinessSnapshot(
                     "xpe_display",
-                    "R2",
+                    "R3",
                     "ABI smoke ready",
                     $"version={display.Version}; dll={display.DllPath}; exports={display.PresentExports.Count}; smoke={display.Smoke.Details}",
-                    "Wire xpe_display modality/VOI/presentation LUT wrapper into the full Phase 1b pipeline runner before enabling execution.",
+                    "Use xpe_display readiness smoke as Phase 1b E2E evidence; image-domain display rendering remains separately gated.",
                     ProcessingEnabled: false,
                     RequiredLevel: "R3",
-                    DegradedMode: "Display DLL is callable, but the GUI execution adapter is intentionally Off until full pipeline E2E is wired.");
+                    DegradedMode: "Display DLL is callable; clinical display rendering remains Off until a verified image-domain adapter is approved.");
             }
 
             if (display.IsExportReady)
@@ -216,13 +216,13 @@ namespace ImageProcTest
             {
                 return new ModuleReadinessSnapshot(
                     "xpe_dicom",
-                    "R2",
+                    "R3",
                     "ABI smoke ready",
                     $"dll={health.DllPath}; exports={health.PresentExports.Count}; smoke={health.Smoke.Details}",
-                    "Wire xpe_dicom read/write/validate wrapper into the full Phase 1b pipeline runner before enabling execution.",
+                    "Use xpe_dicom readiness smoke as Phase 1b E2E evidence; file export remains separately gated.",
                     ProcessingEnabled: false,
                     RequiredLevel: "R3",
-                    DegradedMode: "DICOM DLL is callable, but export stays Off until the GUI has a verified DICOM file writer path.");
+                    DegradedMode: "DICOM DLL is callable; clinical file export remains Off until a verified writer path is approved.");
             }
 
             if (health.IsExportReady)
