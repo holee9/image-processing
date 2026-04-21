@@ -140,6 +140,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_xpe_preprocess_calibration.cpp
         tests/test_xpe_preprocess_correction.cpp
         tests/test_xpe_preprocess_init.cpp
+        # BP-01~05 DegradedMode benchmark smoke tests (null/identity calibration)
+        tests/test_preprocess_degraded.cpp
     )
 
     add_executable(xpe_preprocess_tests
