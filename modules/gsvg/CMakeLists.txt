@@ -46,6 +46,7 @@ if(_XPE_BUILD_TESTS)
 
     add_executable(gsvg_tests
         tests/test_gsvg_benchmark.cpp
+        tests/test_gsvg_degraded.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE
