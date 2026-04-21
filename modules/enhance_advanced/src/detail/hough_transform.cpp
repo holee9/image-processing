@@ -38,7 +38,7 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
             float magnitude = edgeMagnitude(y, x);
 
             // Skip weak edges (lowered threshold for better detection)
-            if (magnitude < 3.0f) {
+            if (magnitude < HoughParams::kEdgeMagnitudeThreshold) {
                 continue;
             }
 
@@ -67,8 +67,12 @@ std::vector<HoughLine> HoughTransform::detectAxisAlignedLines(
     const Eigen::MatrixXi& accumulator,
     size_t numLines) {
 
-    // Find all peaks (lowered threshold for better detection accuracy)
-    std::vector<HoughLine> allPeaks = findPeaks(accumulator, 20, 5);
+    // Find peaks with higher threshold to reduce noise detection
+    // Use adaptive threshold based on accumulator max value for robustness
+    int maxAccumulatorValue = accumulator.maxCoeff();
+    int adaptiveThreshold = std::max(HoughParams::kBaseAdaptiveThreshold,
+                                      static_cast<int>(maxAccumulatorValue * HoughParams::kAdaptiveThresholdFactor));
+    std::vector<HoughLine> allPeaks = findPeaks(accumulator, adaptiveThreshold, HoughParams::kDefaultWindowSize);
 
     // Filter for axis-aligned lines (horizontal: theta ~ 0 or 180, vertical: theta ~ 90)
     std::vector<HoughLine> axisAlignedPeaks;
@@ -123,7 +127,7 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
     // Vertical lines have theta ~ 0 => x = rho / cos(theta)
 
     // Epsilon threshold for near-zero trig value detection.
-    constexpr float kTrigEps = 1e-3f;
+    constexpr float kTrigEps = HoughParams::kTrigEps;
 
     std::vector<float> horizontalY;
     for (size_t i = 0; i < hCount; ++i) {
@@ -201,10 +205,18 @@ CollimationRectangle HoughTransform::extractCollimationRectangle(
         totalStrength += verticalLines[1].strength;
     }
 
-    // Normalize by maximum possible strength (heuristic)
-    float maxExpectedStrength = 4.0f * 1000.0f;  // Adjust based on accumulator size
-    result.confidence = totalStrength / maxExpectedStrength;
-    result.confidence = std::min(1.0f, std::max(0.0f, result.confidence));
+    // Normalize by detected line strength for accurate confidence
+    // REQ-ADV-041: Confidence = sum(4 peak values) / (4 * max_accumulator_value)
+    float maxExpectedStrength = 4.0f * HoughParams::kMaxExpectedStrengthPerLine;  // Upper bound for normalization
+
+    // Check if we have enough strong lines to justify high confidence
+    // If total strength is too low, we detected noise, not real edges
+    if (totalStrength < HoughParams::kMinExpectedStrength) {
+        result.confidence = 0.0f;
+    } else {
+        result.confidence = totalStrength / maxExpectedStrength;
+        result.confidence = std::min(1.0f, std::max(0.0f, result.confidence));
+    }
 
     return result;
 }
@@ -261,7 +273,7 @@ bool HoughTransform::isAxisAligned(float theta) const {
     while (degrees >= 180.0f) degrees -= 180.0f;
 
     // Check if within +-5 degrees of horizontal (0 or 180) or vertical (90)
-    const float tolerance = 5.0f;
+    const float tolerance = HoughParams::kAxisAlignmentTolerance;
 
     bool isHorizontal = (degrees <= tolerance) || (degrees >= 180.0f - tolerance);
     bool isVertical = (std::abs(degrees - 90.0f) <= tolerance);

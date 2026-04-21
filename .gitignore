@@ -219,6 +219,7 @@ cmake-build-*/
 build_test/
 build_test2/
 build_test3/
+build_coverage/
 lint_results.json
 CMakeCache.txt
 CMakeFiles/
