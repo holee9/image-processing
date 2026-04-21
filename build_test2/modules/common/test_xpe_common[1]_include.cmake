@@ -1,5 +1,0 @@
-if(EXISTS "D:/workspace-github/xpe-post/build_test2/modules/common/test_xpe_common[1]_tests.cmake")
-  include("D:/workspace-github/xpe-post/build_test2/modules/common/test_xpe_common[1]_tests.cmake")
-else()
-  add_test(test_xpe_common_NOT_BUILT test_xpe_common_NOT_BUILT)
-endif()
