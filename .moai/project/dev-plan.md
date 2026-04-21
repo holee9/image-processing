@@ -189,6 +189,15 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 - Phase 1 peak memory <= 190MB
 - Integration test: Raw DICOM → Pre → Post → EI → Display → DICOM Write
 
+**검증 계획 (빌드 환경 필요):**
+1. `xpe_preprocess_tests.exe` + `xpe_enhance_basic_tests.exe` + `xpe_display_tests.exe` + `xpe_dicom_tests.exe` 전체 PASS 확인
+2. ImageProcTest.IntegrationTests 78개 PASS 확인
+3. 성능 측정: 3072×3072 Raw DICOM 입력 → 전체 파이프라인 E2E 타이밍 기록
+4. 메모리 프로파일: 1000프레임 연속 처리 피크 메모리 190MB 이하 확인
+5. GSVG 통합: GSVG 모듈 R2(ABI smoke test) 달성 후 G2 게이트 통과 가능
+
+**현재 상태**: GSVG API 구현 완료(v0.2.0), DegradedMode GTest 추가됨. 빌드 후 실측 필요.
+
 ---
 
 ## 6. 변경 이력
@@ -200,3 +209,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |
 | 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
 | 2026-04-21 | 1.4.0 | 3-Lane 전체 squash merge 반영 — runtime_detection 보강, gsvg 착수, BP-06~09 baseline 완료, GUI Phase1B chain; 점수 갱신 A=83, B=~77 |
+| 2026-04-21 | 1.5.0 | 비-AI 잔여 작업 일괄 처리 — VVP 문서 작성, EARS P1B-ENH/DISP 검증(완료 확인), GSVG API 구현(v0.2.0), DegradedMode GTest BP-01~09, Gate G1b→G2 검증 계획 수립 |
