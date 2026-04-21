@@ -101,7 +101,17 @@ if(XPE_NEEDS_EIGEN AND NOT Eigen3_FOUND)
         GIT_TAG        3.4.0
         GIT_SHALLOW    TRUE
     )
-    FetchContent_MakeAvailable(eigen)
+    FetchContent_GetProperties(eigen)
+    if(NOT eigen_POPULATED)
+        FetchContent_Populate(eigen)
+    endif()
+    # Eigen is header-only. We create an INTERFACE target manually to avoid
+    # running Eigen's own CMakeLists.txt, which requires cmake_minimum_required
+    # < 3.5 and is rejected as a hard error by CMake 4.0 (windows-2025 runner).
+    if(NOT TARGET Eigen3::Eigen)
+        add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
+        target_include_directories(Eigen3::Eigen INTERFACE "${eigen_SOURCE_DIR}")
+    endif()
 endif()
 
 # Google Test (via vcpkg or FetchContent in tests/CMakeLists.txt)
