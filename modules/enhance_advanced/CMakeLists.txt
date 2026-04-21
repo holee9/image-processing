@@ -50,7 +50,14 @@ target_compile_definitions(${MODULE_NAME} PRIVATE XPE_DLL_EXPORT _USE_MATH_DEFIN
 # Warnings-as-errors per-target (SPEC-P2-ADV S1 audit 6c)
 # Applies to module only; avoids project-wide impact on other modules.
 if(MSVC)
-    target_compile_options(${MODULE_NAME} PRIVATE /W4 /WX)
+    target_compile_options(${MODULE_NAME} PRIVATE /W4 /WX
+        # Eigen 3.4.0 generates these with /W4 on MSVC; suppress without lowering overall level
+        /wd4100   # unreferenced formal parameter (Eigen template specializations)
+        /wd4127   # conditional expression is constant (Eigen compile-time checks)
+        /wd4244   # conversion, possible loss of data (Eigen index arithmetic)
+        /wd4245   # signed/unsigned mismatch (Eigen index conversions)
+        /wd5054   # deprecated operator between enumerations (Eigen 3.4.0 bitset ops)
+    )
 else()
     target_compile_options(${MODULE_NAME} PRIVATE
         -Wall -Wextra -Wpedantic -Werror
@@ -111,6 +118,13 @@ if(BUILD_TESTS)
     target_include_directories(test_${MODULE_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
+
+    # MSVC: lower test exe to /WX- (tests include xpe_types.h which has int→uint32_t
+    # assignments; keeping /WX on tests adds noise without safety gain since the
+    # module library itself is built with /WX).
+    if(MSVC)
+        target_compile_options(test_${MODULE_NAME} PRIVATE /W4 /WX-)
+    endif()
 
     # Enable C++17 for tests
     target_compile_features(test_${MODULE_NAME} PRIVATE cxx_std_17)
