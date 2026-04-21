@@ -1,0 +1,256 @@
+<UserControl x:Class="ImageProcTest.Controls.EvaluationViewerPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ImageProcTest.Controls"
+             MinHeight="560">
+    <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock x:Name="RawPreviewInfoText" Text="Use Calibration to select the acquired calibration folder and target raw image, then evaluate the correction result here." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <DockPanel Grid.Row="1" Visibility="Collapsed">
+                <Slider x:Name="RawZoomSlider"
+                        Minimum="0.1"
+                        Maximum="8"
+                        Value="1"
+                        TickFrequency="0.1"
+                        IsSnapToTickEnabled="False"
+                        AutomationProperties.AutomationId="XPE_Viewport_Zoom_Slider"
+                        AutomationProperties.Name="Viewport zoom"
+                        ValueChanged="RawZoomSlider_ValueChanged"/>
+            </DockPanel>
+
+            <DockPanel Grid.Row="2" Visibility="Collapsed">
+                <TextBlock x:Name="SwipeValueText" Text="50%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                <Slider x:Name="CompareSwipeSlider"
+                        Minimum="0"
+                        Maximum="1"
+                        Value="0.5"
+                        TickFrequency="0.01"
+                        IsSnapToTickEnabled="False"
+                        AutomationProperties.AutomationId="XPE_Viewport_CompareSwipe_Slider"
+                        AutomationProperties.Name="Compare swipe divider"
+                        ValueChanged="CompareSwipeSlider_ValueChanged"/>
+            </DockPanel>
+
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="310"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Background="#FFF6F8FA"
+                        BorderBrush="#FFD0D7DE"
+                        BorderThickness="1"
+                        Padding="8"
+                        Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="Render Controls"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="Fit"
+                                            Width="46"
+                                            Height="26"
+                                            Margin="0,0,8,0"
+                                            Click="ZoomFitButton_Click"
+                                            AutomationProperties.AutomationId="XPE_Viewport_ZoomFit_Button"
+                                            AutomationProperties.Name="Zoom fit"/>
+                                    <TextBlock x:Name="ZoomValueText" Text="100%" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <WrapPanel Margin="0,0,0,8">
+                                <CheckBox x:Name="ViewerLinkCheckBox"
+                                          Content="Link W/L"
+                                          IsChecked="True"
+                                          VerticalAlignment="Center"
+                                          Checked="ViewerControl_Changed"
+                                          Unchecked="ViewerControl_Changed"
+                                          Margin="0,0,12,6"/>
+                                <TextBlock Text="Target" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                                <ComboBox x:Name="ViewerTargetComboBox"
+                                          Width="96"
+                                          SelectedIndex="0"
+                                          SelectionChanged="ViewerTargetComboBox_SelectionChanged"
+                                          Margin="0,0,12,6">
+                                    <ComboBoxItem Content="Original"/>
+                                    <ComboBoxItem Content="After"/>
+                                </ComboBox>
+                                <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                                <ComboBox x:Name="ViewerPresetComboBox"
+                                          Width="126"
+                                          SelectedIndex="0"
+                                          SelectionChanged="ViewerPresetComboBox_SelectionChanged"
+                                          Margin="0,0,12,6">
+                                    <ComboBoxItem Content="Auto Fit"/>
+                                    <ComboBoxItem Content="Chest PA"/>
+                                    <ComboBoxItem Content="Bone"/>
+                                    <ComboBoxItem Content="Soft Tissue"/>
+                                    <ComboBoxItem Content="Lung"/>
+                                    <ComboBoxItem Content="Pediatric"/>
+                                </ComboBox>
+                                <TextBlock Text="LUT" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                                <ComboBox x:Name="ViewerLutComboBox"
+                                          Width="86"
+                                          SelectedIndex="0"
+                                          SelectionChanged="ViewerControl_Changed"
+                                          Margin="0,0,12,6">
+                                    <ComboBoxItem Content="Linear"/>
+                                    <ComboBoxItem Content="Sigmoid"/>
+                                </ComboBox>
+                                <CheckBox x:Name="ViewerInvertCheckBox"
+                                          Content="Invert"
+                                          VerticalAlignment="Center"
+                                          Checked="ViewerControl_Changed"
+                                          Unchecked="ViewerControl_Changed"
+                                          Margin="0,0,0,6"/>
+                            </WrapPanel>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="78"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="62"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Brightness" VerticalAlignment="Center"/>
+                                <Slider x:Name="ViewerWindowCenterSlider"
+                                        Grid.Row="0" Grid.Column="1"
+                                        Minimum="0" Maximum="4096" Value="2048"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="False"
+                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
+                                <TextBlock x:Name="ViewerWindowCenterText"
+                                           Grid.Row="0" Grid.Column="2"
+                                           Text="2048"
+                                           TextAlignment="Right"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Contrast" VerticalAlignment="Center"/>
+                                <Slider x:Name="ViewerWindowWidthSlider"
+                                        Grid.Row="1" Grid.Column="1"
+                                        Minimum="1" Maximum="8192" Value="4096"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="False"
+                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
+                                <TextBlock x:Name="ViewerWindowWidthText"
+                                           Grid.Row="1" Grid.Column="2"
+                                           Text="4096"
+                                           TextAlignment="Right"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2">
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock x:Name="OriginalHistogramText" Text="Original histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                <controls:HistogramControl x:Name="OriginalHistogramControl"
+                                                           Height="92"
+                                                           RangeChanged="OriginalHistogramControl_RangeChanged"
+                                                           ToolTip="Drag either yellow handle to adjust the original render range."/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock x:Name="AfterHistogramText" Text="After histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                <controls:HistogramControl x:Name="AfterHistogramControl"
+                                                           Height="92"
+                                                           RangeChanged="AfterHistogramControl_RangeChanged"
+                                                           ToolTip="Drag either yellow handle to adjust the processed render range."/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
+                    <ScrollViewer x:Name="RawImageScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Grid x:Name="ComparisonCanvas"
+                              Background="#FF101820"
+                              Cursor="SizeWE"
+                              ToolTip="Left-drag to move the before/after split. Right-drag to pan. Mouse wheel zooms."
+                              SizeChanged="ComparisonCanvas_SizeChanged"
+                              MouseLeftButtonDown="ComparisonCanvas_MouseLeftButtonDown"
+                              MouseRightButtonDown="ComparisonCanvas_MouseRightButtonDown"
+                              MouseMove="ComparisonCanvas_MouseMove"
+                              MouseLeftButtonUp="ComparisonCanvas_MouseLeftButtonUp"
+                              MouseRightButtonUp="ComparisonCanvas_MouseRightButtonUp"
+                              MouseLeave="ComparisonCanvas_MouseLeave"
+                              MouseWheel="ComparisonCanvas_MouseWheel">
+                            <Grid.LayoutTransform>
+                                <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
+                            </Grid.LayoutTransform>
+
+                            <Image x:Name="BeforePreviewImage"
+                                   Stretch="None"
+                                   SnapsToDevicePixels="True"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                            <Image x:Name="AfterPreviewImage"
+                                   Stretch="None"
+                                   SnapsToDevicePixels="True"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor">
+                                <Image.Clip>
+                                    <RectangleGeometry x:Name="AfterPreviewClip"/>
+                                </Image.Clip>
+                            </Image>
+                            <Border x:Name="SwipeLine"
+                                    HorizontalAlignment="Left"
+                                    Width="2"
+                                    Background="#FFFFD166"
+                                    Opacity="0.9"/>
+                            <TextBlock Text="Original"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       Foreground="White"
+                                       Background="#CC000000"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Padding="10,5"
+                                       Margin="8"/>
+                            <TextBlock x:Name="AfterPreviewLabelText"
+                                       Text="After preview"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Foreground="White"
+                                       Background="#CC000000"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Padding="10,5"
+                                       Margin="8"/>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <TextBlock Grid.Row="4"
+                       x:Name="ProcessingScaffoldText"
+                       Text="Before is the selected target raw image. After updates only after the selected calibration folder is loaded and the selected algorithm chain executes."
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,0"/>
+        </Grid>
+    </Border>
+</UserControl>

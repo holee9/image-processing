@@ -1,6 +1,7 @@
 <Window x:Class="ImageProcTest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ImageProcTest.Controls"
         Title="XPE Image Processing Test" Height="860" Width="1240"
         Loaded="Window_Loaded" Closed="Window_Closed" KeyDown="Window_KeyDown">
     <Grid>
@@ -143,19 +144,270 @@
         <!-- Main Tab Area -->
         <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="8">
 
-            <!-- ===== WORKFLOW TAB (default landing) ===== -->
+            <!-- ===== EVALUATION TAB (viewer-first) ===== -->
             <TabItem Header="Evaluation">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                <TextBlock Text="Evaluation Workbench" FontSize="15" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ActiveContextSummaryText"
+                                           Text="No calibration folder, target raw, or algorithm chain is ready."
+                                           FontSize="12"
+                                           Foreground="#FF57606A"
+                                           TextWrapping="Wrap"
+                                           Margin="0,3,0,0"/>
+                                <TextBlock x:Name="ActiveContextDetailsText"
+                                           Text="Use Calibration to select the acquired calibration folder, target raw image, and ordered algorithm chain."
+                                           FontSize="11"
+                                           Foreground="#FF57606A"
+                                           TextWrapping="Wrap"
+                                           Margin="0,1,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <Button Content="Calibration Setup"
+                                        Width="136"
+                                        Height="30"
+                                        Click="OpenCalibrationSetupButton_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button x:Name="WorkflowRunButton"
+                                        Content="Run Chain"
+                                        Width="112"
+                                        Height="30"
+                                        IsEnabled="False"
+                                        Click="WorkflowRunButton_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button x:Name="WorkflowCancelButton"
+                                        Content="Cancel"
+                                        Width="84"
+                                        Height="30"
+                                        IsEnabled="False"
+                                        Click="WorkflowCancelButton_Click"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="Save Evidence"
+                                        Width="116"
+                                        Height="30"
+                                        Click="SaveE2eReportButton_Click"/>
+                            </StackPanel>
+
+                            <Border Grid.Row="1" Grid.ColumnSpan="2"
+                                    BorderBrush="#FFD0D7DE"
+                                    BorderThickness="1"
+                                    Background="#FFFFFFFF"
+                                    CornerRadius="3"
+                                    Padding="8"
+                                    Margin="0,10,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                               Text="Processing Stages"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0"/>
+                                    <UniformGrid Grid.Row="0" Grid.Column="1" Columns="4" VerticalAlignment="Center">
+                                        <CheckBox x:Name="OffsetEnabledCheckBox"
+                                                  Content="Pre Offset"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,0,10,0"/>
+                                        <CheckBox x:Name="GainEnabledCheckBox"
+                                                  Content="Pre Gain"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,0,10,0"/>
+                                        <CheckBox x:Name="DefectEnabledCheckBox"
+                                                  Content="Pre Defect"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,0,10,0"/>
+                                        <CheckBox x:Name="EiEnabledCheckBox"
+                                                  Content="Post EI"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"/>
+                                        <CheckBox x:Name="LogEnabledCheckBox"
+                                                  Content="Post Log"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,4,10,0"/>
+                                        <CheckBox x:Name="NoiseEnabledCheckBox"
+                                                  Content="Post Noise"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,4,10,0"/>
+                                        <CheckBox x:Name="ContrastEnabledCheckBox"
+                                                  Content="Post Contrast"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,4,10,0"/>
+                                        <CheckBox x:Name="EdgeEnabledCheckBox"
+                                                  Content="Post Edge"
+                                                  IsEnabled="False"
+                                                  Checked="StageSelection_Changed"
+                                                  Unchecked="StageSelection_Changed"
+                                                  Margin="0,4,0,0"/>
+                                    </UniformGrid>
+                                    <Button x:Name="ApplyNativePreviewButton"
+                                            Grid.Row="0"
+                                            Grid.Column="2"
+                                            Content="Run Selected"
+                                            Width="118"
+                                            Height="30"
+                                            IsEnabled="False"
+                                            Click="ApplyNativePreviewButton_Click"
+                                            Margin="12,0,0,0"/>
+                                    <UniformGrid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Columns="5" Margin="0,8,0,0">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                                            <TextBlock Text="Log norm" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox x:Name="LogNormFactorTextBox" Text="1000" Width="58"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                                            <TextBlock Text="Noise s/r" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox x:Name="NoiseSigmaSpaceTextBox" Text="3.0" Width="42" Margin="0,0,4,0"/>
+                                            <TextBox x:Name="NoiseSigmaRangeTextBox" Text="50.0" Width="48"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                                            <TextBlock Text="CLAHE clip" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox x:Name="ClaheClipLimitTextBox" Text="3.0" Width="42"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                                            <TextBlock Text="USM a/r/t" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox x:Name="UsmAmountTextBox" Text="0.5" Width="38" Margin="0,0,4,0"/>
+                                            <TextBox x:Name="UsmRadiusTextBox" Text="2.0" Width="38" Margin="0,0,4,0"/>
+                                            <TextBox x:Name="UsmThresholdTextBox" Text="10.0" Width="46"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Post uses pre output when selected, otherwise raw→float input."
+                                                   FontSize="11"
+                                                   Foreground="#FF57606A"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"/>
+                                    </UniformGrid>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                <TextBlock x:Name="StageModesInfoText"
+                                           Text="Offset/Gain/Defect apply switches are disabled until native preprocess readiness passes."
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="#FF57606A"/>
+                                <TextBlock x:Name="NativePreviewText"
+                                           Text="Native preview: unavailable"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,3,0,0"/>
+                                <TextBlock x:Name="E2eReportText"
+                                           Text="E2E report: not saved"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <controls:EvaluationViewerPanel x:Name="EvaluationViewer" Grid.Row="1"/>
+
+                    <Border Grid.Row="2"
+                            Background="#FFF6F8FA"
+                            BorderBrush="#FFD0D7DE"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8"
+                            Margin="0,10,0,10">
+                        <TextBlock x:Name="WorkflowBeforeAfterText"
+                                   Text="No run yet. Configure calibration inputs, load a target raw, then run the selected algorithm chain."
+                                   Foreground="#FF57606A"
+                                   FontSize="12"
+                                   FontFamily="Consolas"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+
+                    <Border Grid.Row="3" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="User Evaluation" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Evaluator" Width="90" VerticalAlignment="Center"/>
+                                <TextBox x:Name="EvaluatorTextBox" Width="180" Margin="0,0,18,0"/>
+                                <TextBlock Text="Verdict" Width="70" VerticalAlignment="Center"/>
+                                <RadioButton x:Name="UserPassRadio" Content="Pass" GroupName="UserVerdict" Margin="0,0,10,0" IsChecked="True"/>
+                                <RadioButton x:Name="UserReviewRadio" Content="Needs review" GroupName="UserVerdict" Margin="0,0,10,0"/>
+                                <RadioButton x:Name="UserFailRadio" Content="Fail" GroupName="UserVerdict" Margin="0,0,18,0"/>
+                                <Button Content="Record Evaluation"
+                                        Width="140"
+                                        Click="RecordUserEvaluationButton_Click"
+                                        Margin="0,0,8,0"/>
+                            </StackPanel>
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="260"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="UserEvaluationNotesTextBox"
+                                         Grid.Column="0"
+                                         AcceptsReturn="True"
+                                         Height="58"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"/>
+                                <TextBlock x:Name="UserEvaluationStatusText"
+                                           Grid.Column="1"
+                                           Text="User evaluation: not recorded."
+                                           FontSize="12"
+                                           Foreground="#FF57606A"
+                                           TextWrapping="Wrap"
+                                           Margin="10,0,0,0"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== CALIBRATION TAB ===== -->
+            <TabItem Header="Calibration">
                 <ScrollViewer>
                     <StackPanel Margin="10">
+                        <TextBlock Text="Calibration Setup" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
 
-                        <!-- Calibration Evaluation Section -->
-                        <TextBlock Text="Calibration Module Under Evaluation" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
                         <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -170,13 +422,10 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.ColumnSpan="3"
-                                           Text="Select the acquired calibration folder first, load the target raw image, then run calibration correction for visual and metric evaluation."
+                                           Text="Select the acquired calibration folder and the target raw image. Sample datasets remain internal regression inputs only."
                                            FontSize="12" Foreground="#FF57606A" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0"
-                                           Text="Calibration folder"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,6"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Calibration folder" VerticalAlignment="Center" Margin="0,0,8,6"/>
                                 <TextBox x:Name="WorkflowCalibrationFolderText"
                                          Grid.Row="1" Grid.Column="1"
                                          IsReadOnly="True"
@@ -196,20 +445,14 @@
                                             Click="WorkflowRefreshCalibrationFolderButton_Click"/>
                                 </StackPanel>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0"
-                                           Text="Cal files"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,6"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Cal files" VerticalAlignment="Center" Margin="0,0,8,6"/>
                                 <ListBox x:Name="WorkflowCalibrationFilesListBox"
                                          Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                          DisplayMemberPath="DisplayName"
-                                         Height="92"
+                                         Height="96"
                                          Margin="0,0,0,6"/>
 
-                                <TextBlock Grid.Row="3" Grid.Column="0"
-                                           Text="Target raw"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,6"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Target raw" VerticalAlignment="Center" Margin="0,0,8,6"/>
                                 <TextBox x:Name="WorkflowFilePathText"
                                          Grid.Row="3" Grid.Column="1"
                                          IsReadOnly="True"
@@ -223,175 +466,167 @@
                                         Width="90"
                                         Click="WorkflowBrowseButton_Click"/>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0"
-                                           Text="Validation target"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,6"/>
-                                <ComboBox x:Name="WorkflowAlgorithmComboBox"
-                                          Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
-                                          DisplayMemberPath="AlgorithmName"
-                                          SelectionChanged="WorkflowAlgorithmComboBox_SelectionChanged"
-                                          Margin="0,0,0,6"/>
-
                                 <TextBlock x:Name="WorkflowCalibrationContextText"
-                                           Grid.Row="5" Grid.ColumnSpan="3"
+                                           Grid.Row="4" Grid.ColumnSpan="3"
                                            Text="Calibration context: no folder selected. Use the folder acquired per IAP-CALIB-001; offset/dark and gain/flat are mandatory for product-mode correction."
                                            FontSize="12"
                                            Foreground="#FF57606A"
                                            TextWrapping="Wrap"
                                            Margin="0,8,0,0"/>
                                 <TextBlock x:Name="WorkflowAcquisitionGuideText"
-                                           Grid.Row="6" Grid.ColumnSpan="3"
+                                           Grid.Row="5" Grid.ColumnSpan="3"
                                            Text="Acquisition guide: Dark/Offset raw is acquired with X-ray OFF; Gain/Flat raw is acquired from flat-field exposure with matching dark; BPM/Defect map is optional for defect correction but required for defect SWU validation."
                                            FontSize="12"
                                            Foreground="#FF57606A"
                                            TextWrapping="Wrap"
                                            Margin="0,4,0,0"/>
-                                <TextBlock x:Name="WorkflowAlgorithmStatusText"
-                                           Grid.Row="7" Grid.ColumnSpan="3"
-                                           Text="Calibration evaluation: select a SWU."
+                            </Grid>
+                        </Border>
+
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Ordered Algorithm Chain" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Available algorithms" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Selected evaluation chain" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                <ListBox x:Name="AvailableAlgorithmListBox"
+                                         Grid.Row="2" Grid.Column="0"
+                                         DisplayMemberPath="DisplayName"
+                                         Height="170"
+                                         MinWidth="330"
+                                         Margin="0,0,8,0"/>
+                                <StackPanel Grid.Row="2" Grid.Column="1" Width="94" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <Button Content="Add &gt;" Height="26" Click="AddAlgorithmToChain_Click" Margin="0,0,0,6"/>
+                                    <Button Content="&lt; Remove" Height="26" Click="RemoveAlgorithmFromChain_Click" Margin="0,0,0,12"/>
+                                    <Button Content="Move up" Height="26" Click="MoveAlgorithmUp_Click" Margin="0,0,0,6"/>
+                                    <Button Content="Move down" Height="26" Click="MoveAlgorithmDown_Click"/>
+                                </StackPanel>
+                                <ListBox x:Name="SelectedAlgorithmChainListBox"
+                                         Grid.Row="2" Grid.Column="2"
+                                         DisplayMemberPath="ChainDisplayName"
+                                         Height="170"
+                                         MinWidth="330"
+                                         SelectionChanged="SelectedAlgorithmChainListBox_SelectionChanged"/>
+                                <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Runnable preprocess" Width="138" Height="28" Click="UseRunnablePreprocessChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Post basic" Width="92" Height="28" Click="UseRunnablePostBasicChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Pre + post" Width="92" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Product canonical" Width="132" Height="28" Click="UseProductCanonicalChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Pre-E2E proof" Width="110" Height="28" Click="UsePreE2eProofChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Clear" Width="72" Height="28" Click="ClearAlgorithmChain_Click"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="WorkflowAlgorithmStatusText"
+                                               Text="Algorithm chain: select one or more stages."
+                                               FontSize="12"
+                                               Foreground="#FF57606A"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,0"/>
+                                    <DataGrid x:Name="WorkflowRuleFindingsGrid"
+                                              AutoGenerateColumns="False"
+                                              CanUserAddRows="False"
+                                              IsReadOnly="True"
+                                              HeadersVisibility="Column"
+                                              MinHeight="90"
+                                              MaxHeight="150"
+                                              Margin="0,8,0,0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Severity" Binding="{Binding SeverityText}" Width="90"/>
+                                            <DataGridTextColumn Header="Rule" Binding="{Binding RuleId}" Width="140"/>
+                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                            <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="260"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Evaluation Stage Switches" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock Text="Calibration keeps folder, file role audit, target raw, and algorithm chain preparation. Offset/Gain/Defect Apply/Skip switches are in the Evaluation workbench so the reviewer can rerun selected stages while comparing the image."
+                                           TextWrapping="Wrap"
                                            FontSize="12"
-                                           Foreground="#FF57606A"
+                                           Foreground="#FF57606A"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                                    <TextBlock Text="Calibration Validation Matrix" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                        <Button Content="Refresh" Width="90" Margin="0,0,8,0" Click="RefreshAlgorithmsButton_Click"/>
+                                        <Button x:Name="RunSelectedAlgorithmButton"
+                                                Content="Run Selected"
+                                                Width="120"
+                                                Click="RunSelectedAlgorithmValidationButton_Click"/>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <DataGrid Grid.Row="1"
+                                          x:Name="AlgorithmValidationGrid"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          IsReadOnly="True"
+                                          HeadersVisibility="Column"
+                                          MinHeight="230"
+                                          MaxHeight="360"
+                                          SelectionChanged="AlgorithmValidationGrid_SelectionChanged">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="125"/>
+                                        <DataGridTextColumn Header="SWU" Binding="{Binding SwuId}" Width="90"/>
+                                        <DataGridTextColumn Header="Calibration Unit" Binding="{Binding AlgorithmName}" Width="210"/>
+                                        <DataGridTextColumn Header="Req" Binding="{Binding RequirementIds}" Width="170"/>
+                                        <DataGridTextColumn Header="Tests" Binding="{Binding TestIds}" Width="190"/>
+                                        <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="90"/>
+                                        <DataGridTextColumn Header="Adapter" Binding="{Binding Adapter}" Width="120"/>
+                                        <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="140"/>
+                                        <DataGridCheckBoxColumn Header="Run" Binding="{Binding CanRun}" Width="55"/>
+                                        <DataGridTextColumn Header="Next" Binding="{Binding NextAction}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <TextBlock Grid.Row="2"
+                                           x:Name="AlgorithmValidationResultText"
+                                           Text="Calibration validation: not checked"
+                                           FontSize="12"
                                            TextWrapping="Wrap"
                                            Margin="0,8,0,0"/>
                             </Grid>
                         </Border>
 
-                        <Expander Header="Evaluation Help" IsExpanded="False" Margin="0,0,0,12">
-                            <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
-                                <StackPanel>
-                                    <TextBlock Text="1. Point the app at the calibration folder acquired for the detector/session. The folder must contain the dark/offset and gain/flat files before offset+gain validation can pass." TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"/>
-                                    <TextBlock Text="2. Load the target raw image separately. Sample datasets are only optional inputs for algorithm verification, not a separate app workflow." TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"/>
-                                    <TextBlock Text="3. Drag inside Visual Review or use Swipe to compare Original and After in one synchronized image-sized viewport." TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"/>
-                                    <TextBlock Text="4. Treat Off/On/Auto as evaluation-only overrides. Product-mode offset and gain remain mandatory; every override is recorded in the evidence report." TextWrapping="Wrap" FontSize="12"/>
-                                </StackPanel>
-                            </Border>
-                        </Expander>
-
-                        <!-- Run / Cancel -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Button x:Name="WorkflowRunButton"
-                                    Content="Apply Calibration"
-                                    Width="150" Height="32"
-                                    IsEnabled="False"
-                                    Click="WorkflowRunButton_Click"
-                                    Margin="0,0,8,0"/>
-                            <Button x:Name="WorkflowCancelButton"
-                                    Content="Cancel"
-                                    Width="100" Height="32"
-                                    IsEnabled="False"
-                                    Click="WorkflowCancelButton_Click"/>
-                        </StackPanel>
-
-                        <!-- Before/After Comparison Panel -->
-                        <TextBlock Text="Visual Review" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
-                            <StackPanel>
-                                <ContentControl x:Name="EvaluationComparisonHost"/>
-                                <Border Background="#FFF6F8FA"
-                                        BorderBrush="#FFD0D7DE"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Padding="8"
-                                        Margin="0,8,0,0">
-                                    <TextBlock x:Name="WorkflowBeforeAfterText"
-                                               Text="No run yet. Select a calibration folder, load a target raw, then apply calibration."
-                                               Foreground="#FF57606A"
-                                               FontSize="12"
-                                               FontFamily="Consolas"
-                                               TextWrapping="Wrap"/>
-                                </Border>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- User Evaluation -->
-                        <TextBlock Text="User Evaluation" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,6"/>
-                        <Border BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="Evaluator" Width="90" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="EvaluatorTextBox" Width="180" Margin="0,0,18,0"/>
-                                    <TextBlock Text="Verdict" Width="70" VerticalAlignment="Center"/>
-                                    <RadioButton x:Name="UserPassRadio" Content="Pass" GroupName="UserVerdict" Margin="0,0,10,0" IsChecked="True"/>
-                                    <RadioButton x:Name="UserReviewRadio" Content="Needs review" GroupName="UserVerdict" Margin="0,0,10,0"/>
-                                    <RadioButton x:Name="UserFailRadio" Content="Fail" GroupName="UserVerdict"/>
-                                </StackPanel>
-                                <TextBox x:Name="UserEvaluationNotesTextBox"
-                                         AcceptsReturn="True"
-                                         Height="72"
-                                         TextWrapping="Wrap"
-                                         VerticalScrollBarVisibility="Auto"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button Content="Record Evaluation"
-                                            Width="140"
-                                            Click="RecordUserEvaluationButton_Click"
-                                            Margin="0,0,8,0"/>
-                                    <Button Content="Save Evidence Report"
-                                            Width="150"
-                                            Click="SaveE2eReportButton_Click"/>
-                                </StackPanel>
-                                <TextBlock x:Name="UserEvaluationStatusText"
-                                           Text="User evaluation: not recorded."
-                                           FontSize="12"
-                                           Foreground="#FF57606A"
-                                           TextWrapping="Wrap"
-                                           Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
-
+                        <Grid Visibility="Collapsed">
+                            <ComboBox x:Name="FixtureCaseComboBox"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="FixtureCaseComboBox_SelectionChanged"/>
+                            <TextBlock x:Name="SelectedCaseText" Text="Selected case: none"/>
+                            <ListBox x:Name="ImageFilesListBox"
+                                     DisplayMemberPath="DisplayName"
+                                     SelectionChanged="ImageFilesListBox_SelectionChanged"/>
+                            <ListBox x:Name="CalibrationFilesListBox" DisplayMemberPath="DisplayName"/>
+                            <Button Content="Load Selected Raw" Click="LoadSelectedRawButton_Click"/>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
-
-            <!-- ===== CALIBRATION TAB ===== -->
-            <TabItem Header="Calibration">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="Calibration Validation Matrix" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                            <Button Content="Refresh" Width="90" Margin="0,0,8,0" Click="RefreshAlgorithmsButton_Click"/>
-                            <Button x:Name="RunSelectedAlgorithmButton"
-                                    Content="Run Selected"
-                                    Width="120"
-                                    Click="RunSelectedAlgorithmValidationButton_Click"/>
-                        </StackPanel>
-                    </DockPanel>
-
-                    <DataGrid Grid.Row="1"
-                              x:Name="AlgorithmValidationGrid"
-                              AutoGenerateColumns="False"
-                              CanUserAddRows="False"
-                              IsReadOnly="True"
-                              HeadersVisibility="Column"
-                              SelectionChanged="AlgorithmValidationGrid_SelectionChanged">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="125"/>
-                            <DataGridTextColumn Header="SWU" Binding="{Binding SwuId}" Width="90"/>
-                            <DataGridTextColumn Header="Calibration Unit" Binding="{Binding AlgorithmName}" Width="210"/>
-                            <DataGridTextColumn Header="Req" Binding="{Binding RequirementIds}" Width="170"/>
-                            <DataGridTextColumn Header="Tests" Binding="{Binding TestIds}" Width="190"/>
-                            <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="90"/>
-                            <DataGridTextColumn Header="Adapter" Binding="{Binding Adapter}" Width="120"/>
-                            <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="140"/>
-                            <DataGridCheckBoxColumn Header="Run" Binding="{Binding CanRun}" Width="55"/>
-                            <DataGridTextColumn Header="Next" Binding="{Binding NextAction}" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-                    <TextBlock Grid.Row="2"
-                               x:Name="AlgorithmValidationResultText"
-                               Text="Calibration validation: not checked"
-                               FontSize="12"
-                               TextWrapping="Wrap"
-                               Margin="0,8,0,0"/>
-                </Grid>
             </TabItem>
 
             <!-- ===== DIAGNOSTICS TAB (moved from default) ===== -->
@@ -506,11 +741,11 @@
                             <Border Grid.Column="0" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
                                 <StackPanel>
                                     <TextBlock Text="Calibration cases" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="FixtureCaseComboBox"
+                                    <ComboBox x:Name="LegacyFixtureCaseComboBox"
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixtureCaseComboBox_SelectionChanged"
                                               Margin="0,0,0,10"/>
-                                    <TextBlock x:Name="SelectedCaseText"
+                                    <TextBlock x:Name="LegacySelectedCaseText"
                                                Text="Selected case: none"
                                                TextWrapping="Wrap"
                                                FontSize="11"
@@ -518,13 +753,13 @@
                                                Margin="0,0,0,10"/>
 
                                     <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <ListBox x:Name="ImageFilesListBox"
+                                    <ListBox x:Name="LegacyImageFilesListBox"
                                              DisplayMemberPath="DisplayName"
                                              Height="150"
                                              SelectionChanged="ImageFilesListBox_SelectionChanged"/>
 
                                     <TextBlock Text="Calibration files" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                                    <ListBox x:Name="CalibrationFilesListBox"
+                                    <ListBox x:Name="LegacyCalibrationFilesListBox"
                                              DisplayMemberPath="DisplayName"
                                              Height="150"/>
 
@@ -532,7 +767,7 @@
                                             Margin="0,12,0,0"
                                             Height="30"
                                             Click="LoadSelectedRawButton_Click"/>
-                                    <Button x:Name="ApplyNativePreviewButton"
+                                    <Button x:Name="LegacyApplyNativePreviewButton"
                                             Content="Run Preprocessing Test"
                                             Margin="0,6,0,0"
                                             Height="30"
@@ -541,9 +776,9 @@
 
                                     <Separator Margin="0,14,0,10"/>
 
-                                    <TextBlock Text="Stage modes" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="StageModesInfoText"
-                                               Text="Offset/Gain/Defect controls are enabled when xpe_preprocess.dll exports are available. Auto runs only when the selected fixture case has a matching calibration role."
+                                    <TextBlock Text="Stage switches" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="LegacyStageModesInfoText"
+                                               Text="Legacy hidden fixture controls are disabled in the deployable verification UI."
                                                TextWrapping="Wrap"
                                                FontSize="11"
                                                Foreground="#FF57606A"
@@ -551,26 +786,23 @@
 
                                     <TextBlock Text="Offset" FontSize="12" FontWeight="SemiBold"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="OffsetOffRadio" Content="Off" GroupName="OffsetMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="OffsetOnRadio" Content="On" GroupName="OffsetMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="OffsetAutoRadio" Content="Auto" GroupName="OffsetMode" IsEnabled="False"/>
+                                        <RadioButton x:Name="LegacyOffsetOffRadio" Content="Off" GroupName="LegacyOffsetMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="LegacyOffsetOnRadio" Content="On" GroupName="LegacyOffsetMode" IsEnabled="False"/>
                                     </StackPanel>
 
                                     <TextBlock Text="Gain" FontSize="12" FontWeight="SemiBold"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="GainOffRadio" Content="Off" GroupName="GainMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="GainOnRadio" Content="On" GroupName="GainMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="GainAutoRadio" Content="Auto" GroupName="GainMode" IsEnabled="False"/>
+                                        <RadioButton x:Name="LegacyGainOffRadio" Content="Off" GroupName="LegacyGainMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="LegacyGainOnRadio" Content="On" GroupName="LegacyGainMode" IsEnabled="False"/>
                                     </StackPanel>
 
                                     <TextBlock Text="Defect" FontSize="12" FontWeight="SemiBold"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="DefectOffRadio" Content="Off" GroupName="DefectMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="DefectOnRadio" Content="On" GroupName="DefectMode" IsEnabled="False" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="DefectAutoRadio" Content="Auto" GroupName="DefectMode" IsEnabled="False"/>
+                                        <RadioButton x:Name="LegacyDefectOffRadio" Content="Off" GroupName="LegacyDefectMode" IsChecked="True" Margin="0,0,10,0"/>
+                                        <RadioButton x:Name="LegacyDefectOnRadio" Content="On" GroupName="LegacyDefectMode" IsEnabled="False"/>
                                     </StackPanel>
 
-                                    <TextBlock x:Name="NativePreviewText"
+                                    <TextBlock x:Name="LegacyNativePreviewText"
                                                Text="Native preview: unavailable"
                                                FontSize="11"
                                                TextWrapping="Wrap"
@@ -578,7 +810,7 @@
                                     <Button Content="Save E2E Report"
                                             Height="30"
                                             Click="SaveE2eReportButton_Click"/>
-                                    <TextBlock x:Name="E2eReportText"
+                                    <TextBlock x:Name="LegacyE2eReportText"
                                                Text="E2E report: not saved"
                                                FontSize="11"
                                                TextWrapping="Wrap"
@@ -592,13 +824,14 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
                                     <StackPanel Grid.Row="0">
                                         <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
-                                        <TextBlock x:Name="RawPreviewInfoText" Text="Load a target raw image from the Evaluation tab, then apply calibration for verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="RawPreviewInfoText" Text="Load a target raw image from the Evaluation tab, then run the selected algorithm chain for verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                         <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                     </StackPanel>
 
@@ -656,7 +889,117 @@
                                                 ValueChanged="CompareSwipeSlider_ValueChanged"/>
                                     </DockPanel>
 
-                                    <Border Grid.Row="3" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
+                                    <Border Grid.Row="3"
+                                            Background="#FFF6F8FA"
+                                            BorderBrush="#FFD0D7DE"
+                                            BorderThickness="1"
+                                            Padding="8"
+                                            Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <WrapPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                                <CheckBox x:Name="ViewerLinkCheckBox"
+                                                          Content="Link W/L"
+                                                          IsChecked="True"
+                                                          VerticalAlignment="Center"
+                                                          Checked="ViewerControl_Changed"
+                                                          Unchecked="ViewerControl_Changed"
+                                                          Margin="0,0,12,0"/>
+                                                <TextBlock Text="Target" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <ComboBox x:Name="ViewerTargetComboBox"
+                                                          Width="96"
+                                                          SelectedIndex="0"
+                                                          SelectionChanged="ViewerTargetComboBox_SelectionChanged"
+                                                          Margin="0,0,12,0">
+                                                    <ComboBoxItem Content="Original"/>
+                                                    <ComboBoxItem Content="After"/>
+                                                </ComboBox>
+                                                <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <ComboBox x:Name="ViewerPresetComboBox"
+                                                          Width="126"
+                                                          SelectedIndex="0"
+                                                          SelectionChanged="ViewerPresetComboBox_SelectionChanged"
+                                                          Margin="0,0,12,0">
+                                                    <ComboBoxItem Content="Auto Fit"/>
+                                                    <ComboBoxItem Content="Chest PA"/>
+                                                    <ComboBoxItem Content="Bone"/>
+                                                    <ComboBoxItem Content="Soft Tissue"/>
+                                                    <ComboBoxItem Content="Lung"/>
+                                                    <ComboBoxItem Content="Pediatric"/>
+                                                </ComboBox>
+                                                <TextBlock Text="LUT" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <ComboBox x:Name="ViewerLutComboBox"
+                                                          Width="86"
+                                                          SelectedIndex="0"
+                                                          SelectionChanged="ViewerControl_Changed"
+                                                          Margin="0,0,12,0">
+                                                    <ComboBoxItem Content="Linear"/>
+                                                    <ComboBoxItem Content="Sigmoid"/>
+                                                </ComboBox>
+                                                <CheckBox x:Name="ViewerInvertCheckBox"
+                                                          Content="Invert"
+                                                          VerticalAlignment="Center"
+                                                          Checked="ViewerControl_Changed"
+                                                          Unchecked="ViewerControl_Changed"/>
+                                            </WrapPanel>
+
+                                            <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="92"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="72"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Brightness" VerticalAlignment="Center"/>
+                                                <Slider x:Name="ViewerWindowCenterSlider"
+                                                        Grid.Row="0" Grid.Column="1"
+                                                        Minimum="0" Maximum="4096" Value="2048"
+                                                        TickFrequency="1"
+                                                        IsSnapToTickEnabled="False"
+                                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
+                                                <TextBlock x:Name="ViewerWindowCenterText"
+                                                           Grid.Row="0" Grid.Column="2"
+                                                           Text="2048"
+                                                           TextAlignment="Right"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Contrast" VerticalAlignment="Center"/>
+                                                <Slider x:Name="ViewerWindowWidthSlider"
+                                                        Grid.Row="1" Grid.Column="1"
+                                                        Minimum="1" Maximum="8192" Value="4096"
+                                                        TickFrequency="1"
+                                                        IsSnapToTickEnabled="False"
+                                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
+                                                <TextBlock x:Name="ViewerWindowWidthText"
+                                                           Grid.Row="1" Grid.Column="2"
+                                                           Text="4096"
+                                                           TextAlignment="Right"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,4,0">
+                                                <TextBlock x:Name="OriginalHistogramText" Text="Original histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                                <controls:HistogramControl x:Name="OriginalHistogramControl" Height="72"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="4,0,0,0">
+                                                <TextBlock x:Name="AfterHistogramText" Text="After histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                                <controls:HistogramControl x:Name="AfterHistogramControl" Height="72"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="4" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
                                         <ScrollViewer x:Name="RawImageScrollViewer"
                                                       HorizontalScrollBarVisibility="Auto"
                                                       VerticalScrollBarVisibility="Auto">
@@ -710,7 +1053,7 @@
                                         </ScrollViewer>
                                     </Border>
 
-                                    <TextBlock Grid.Row="4"
+                                    <TextBlock Grid.Row="5"
                                                x:Name="ProcessingScaffoldText"
                                                Text="Calibration test: Before is the selected target raw image. After updates only after the selected calibration folder is loaded and native preprocessing stages execute."
                                                FontSize="12"
@@ -891,11 +1234,11 @@
                         <TextBlock Text="Evaluation Help" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
 
                         <TextBlock Text="Calibration selection" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock Text="Use the Evaluation tab to select the acquired calibration folder first. The app audits dark/offset, gain/flat, BPM/defect, reference, and unknown files before allowing correction runs."
+                        <TextBlock Text="Use the Calibration tab to select the acquired calibration folder first. The app audits dark/offset, gain/flat, BPM/defect, reference, and unknown files before allowing correction runs."
                                    TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
                         <TextBlock Text="Visual comparison" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock Text="Load the target raw image, then run the selected calibration validation target. The Visual Review viewport keeps original and applied images aligned to the raw image dimensions; drag across the image for direct comparison, or use Zoom and Swipe for pixel inspection."
+                        <TextBlock Text="Load the target raw image from Calibration, then use Offset/Gain/Defect Apply switches in Evaluation and run the selected stages. The viewer keeps original and applied images aligned to the raw image dimensions; drag across the image for direct comparison, right-drag to pan, or use Zoom and Swipe for pixel inspection."
                                    TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
                         <TextBlock Text="User verdict" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
@@ -903,7 +1246,7 @@
                                    TextWrapping="Wrap" FontSize="13" Margin="0,0,0,12"/>
 
                         <TextBlock Text="Supporting tabs" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock Text="Calibration lists every calibration SWU and its gate. Metrics shows run evidence. Reports stores generated artifacts. Diagnostics only shows native readiness and integration health."
+                        <TextBlock Text="Calibration owns folders, files, chain order, and SWU gates. Evaluation owns stage Apply/Skip switches, visual review, and user verdicts. Metrics shows run evidence. Reports stores generated artifacts. Diagnostics only shows native readiness and integration health."
                                    TextWrapping="Wrap" FontSize="13"/>
                     </StackPanel>
                 </ScrollViewer>

@@ -16,7 +16,7 @@ namespace ImageProcTest
         private static readonly Dictionary<string, string[]> ModuleDependencies = new(StringComparer.OrdinalIgnoreCase)
         {
             ["xpe_common.dll"]           = ["fmt.dll", "spdlog.dll"],
-            ["xpe_enhance_basic.dll"]    = ["fmt.dll", "spdlog.dll"],
+            ["xpe_enhance_basic.dll"]    = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
             ["xpe_display.dll"]          = ["fmt.dll", "spdlog.dll"],
             ["xpe_enhance_advanced.dll"] = ["fmt.dll", "spdlog.dll"],
             ["xpe_gsvg.dll"]             = ["fmt.dll", "spdlog.dll"],
