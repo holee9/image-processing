@@ -1,258 +1,421 @@
-# XPE Dependency Graph
+# XPE 의존성 그래프
 
-**Last Updated**: 2026-04-20
-
-## Module Dependencies
-
-### Dependency Tree
-
-```
-xpe_common.dll (Layer 0)
-├── All other XPE modules depend on this
-└── Third-party: fmt.dll, spdlog.dll
-
-xpe_preprocess.dll (Layer 1a)
-├── Depends on: xpe_common
-└── Third-party: fmt.dll, spdlog.dll
-
-xpe_enhance_basic.dll (Layer 1b)
-├── Depends on: xpe_common
-└── Third-party: fmt.dll, spdlog.dll
-
-xpe_enhance_advanced.dll (Layer 2)
-├── Depends on: xpe_common
-├── Third-party: fmt.dll, spdlog.dll, eigen3.dll
-└── Eigen3 for matrix operations
-
-xpe_display.dll (Layer 1b)
-├── Depends on: xpe_common
-└── Third-party: fmt.dll, spdlog.dll
-
-xpe_dicom.dll (Layer 1b)
-├── Depends on: xpe_common
-└── Third-party: fmt.dll, spdlog.dll, dcmtk.dll (multiple)
-
-xpe_ai.dll (Layer 3)
-├── Depends on: xpe_common
-├── No other XPE module dependencies
-└── IPC launch of xpe_ai_worker.exe
-
-gsvg.dll (Layer 2-G)
-├── Independent: no XPE dependencies
-└── Standalone build system
-```
+**문서 ID**: XPE-CODEMAP-003  
+**버전**: 1.1.0  
+**날짜**: 2026-04-20  
+**상태**: 완료  
+**분류**: 내부 / 의존성 관리 문서
 
 ---
 
-## Dependency Adjacency List
+## 1. 의존성 개요
 
-### Who Depends On Whom
+XPE 엔진은 계층형 의존성 구조를 가지며, 각 모듈은 `xpe_common`을 제외한 다른 XPE 모듈과의 횡적 의존성을 허용하지 않습니다. 이 구조는 독립적인 배포와 테스트를 가능하게 합니다.
 
-| Module | Dependencies |
-|--------|--------------|
-| **xpe_common** | None (foundation) |
-| **xpe_preprocess** | xpe_common |
-| **xpe_enhance_basic** | xpe_common |
-| **xpe_enhance_advanced** | xpe_common |
-| **xpe_display** | xpe_common |
-| **xpe_dicom** | xpe_common |
-| **xpe_ai** | xpe_common |
-| **gsvg** | None (independent) |
-
-### Reverse Dependencies (Fan-In)
-
-| Module | Dependents | Fan-In Count |
-|--------|------------|--------------|
-| **xpe_common** | All other modules | 7 |
-| **xpe_preprocess** | None (leaf) | 0 |
-| **xpe_enhance_basic** | None (leaf) | 0 |
-| **xpe_enhance_advanced** | None (leaf) | 0 |
-| **xpe_display** | None (leaf) | 0 |
-| **xpe_dicom** | None (leaf) | 0 |
-| **xpe_ai** | None (leaf) | 0 |
-| **gsvg** | None (independent) | 0 |
-
----
-
-## Third-Party Dependencies
-
-### Core Dependencies (All Modules)
-
-| Library | Version | Purpose | Used By |
-|---------|---------|---------|---------|
-| **spdlog** | 1.13.0+ | High-performance logging | All XPE modules |
-| **fmt** | 10.0.0+ | Modern formatting | All XPE modules |
-| **nlohmann-json** | 3.11.3+ | JSON parsing | All XPE modules |
-
-### Algorithm-Specific Dependencies
-
-| Library | Version | Purpose | Used By |
-|---------|---------|---------|---------|
-| **eigen3** | 3.4.0+ | Linear algebra | xpe_enhance_advanced |
-| **opencv4** | 4.9.0+ | Computer vision | xpe_enhance_advanced |
-| **dcmtk** | 3.6.8+ | DICOM toolkit | xpe_dicom |
-
-### Build & Test Dependencies
-
-| Library | Version | Purpose | Used By |
-|---------|---------|---------|---------|
-| **gtest** | 1.14.0+ | Testing framework | All test executables |
-| **OpenMP** | - | Parallel execution | Performance-critical code |
-
----
-
-## Dependency Rules
-
-### Rule 1: No Lateral Dependencies
-**Status**: ENFORCED
-
-Each XPE module DLL depends ONLY on `xpe_common`. Lateral dependencies are forbidden.
-
-**Verification**:
-```bash
-dumpbin /dependents <module>.dll
-```
-
-Expected: NO other `xpe_*.dll` in the output.
-
-### Rule 2: Independent Deployment
-**Status**: ENFORCED
-
-A module DLL must function correctly when only `xpe_common.dll` is present.
-
-**Test**: Load module with only xpe_common in the directory.
-
-### Rule 3: Third-Party Isolation
-**Status**: ENFORCED
-
-Third-party libraries are module-specific and not shared across XPE modules (except through xpe_common).
-
-**Exception**: fmt and spdlog are linked by all modules but loaded dynamically.
-
----
-
-## Circular Dependency Check
-
-### Status: ✅ NO CIRCULAR DEPENDENCIES
-
-The dependency graph is acyclic by design:
+### 1.1 의존성 규칙
 
 ```
-Layer 0 (xpe_common)
-    ↓
-Layer 1 (preprocess, enhance_basic, display, dicom)
-    ↓
-Layer 2 (enhance_advanced, gsvg)
-    ↓
-Layer 3 (ai)
+Layer 1 → Layer 0 ONLY (가로 방향 의존성 금지)
+Layer 1-G → 독립 (의존성 없음)
+Layer 2 → 모든 DLL을 동적으로 로드
 ```
 
-### Verification
+### 1.2 의존성 그래프
 
-**Method**: Topological sort of dependency graph
+```
+                     Layer 1-G
+                       gsvg.dll
+                         (독립)
 
-**Result**: Valid ordering with no back edges
-
-**Confidence**: High (enforced by architecture rules)
-
----
-
-## Dependency Visualization
-
-### Mermaid Diagram
-
-```mermaid
-graph TD
-    Common[xpe_common.dll<br/>Foundation]
-    
-    Pre[xpe_preprocess.dll<br/>Calibration]
-    Basic[xpe_enhance_basic.dll<br/>Basic Enhancement]
-    Disp[xpe_display.dll<br/>Presentation]
-    Dicom[xpe_dicom.dll<br/>DICOM I/O]
-    
-    Adv[xpe_enhance_advanced.dll<br/>Advanced Algorithms]
-    GSVG[gsvg.dll<br/>Grid Suppression<br/>(Independent)]
-    
-    AI[xpe_ai.dll<br/>AI Processing]
-    
-    Common --> Pre
-    Common --> Basic
-    Common --> Disp
-    Common --> Dicom
-    Common --> Adv
-    Common --> AI
-    
-    Pre -.->|Foundation| Common
-    Basic -.->|Foundation| Common
-    Disp -.->|Foundation| Common
-    Dicom -.->|Foundation| Common
-    Adv -.->|Foundation| Common
-    AI -.->|Foundation| Common
-    
-    style Common fill:#e1f5ff
-    style Pre fill:#fff4e1
-    style Basic fill:#fff4e1
-    style Disp fill:#fff4e1
-    style Dicom fill:#fff4e1
-    style Adv fill:#ffe1f5
-    style GSVG fill:#e1ffe1
-    style AI fill:#f5e1ff
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      Layer 1                               │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
+│  │xpe_common  │ │xpe_preprocess│ │xpe_enhance_ │          │
+│  │   .dll      │ │    .dll     │ │  basic.dll  │          │
+│  └─────────────┘ └─────────────┘ └─────────────┘          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
+│  │xpe_enhance_ │ │xpe_ai       │ │xpe_display  │          │
+│  │ advanced.dll│ │    .dll     │ │    .dll     │          │
+│  └─────────────┘ └─────────────┘ └─────────────┘          │
+│  ┌─────────────┐                                           │
+│  │xpe_dicom   │                                           │
+│  │    .dll     │                                           │
+│  └─────────────┘                                           │
+├─────────────────────────────────────────────────────────────┤
+│                      Layer 0                               │
+│                      xpe_common.dll                         │
+│                      (기반 계층)                             │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+                  외부 의존성 패키지
+                  (OpenCV, DCMTK, Eigen, ONNX 등)
 ```
 
 ---
 
-## Dependency Management
+## 2. 모듈별 의존성 상세
 
-### vcpkg Integration
+### 2.1 Layer 0: xpe_common.dll (의존성 없음)
 
-All third-party dependencies are managed through vcpkg:
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **의존성 없음** | - | 기반 계층 |
+
+**의존성 상태**: 무의존 (Base Layer)
+
+### 2.2 Layer 1: xpe_preprocess.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리, 알릿 시스템 |
+| **외부 의존성** | `vcpkg:opencv-core` | 이미지 연산 함수 |
+| **외부 의존성** | `vcpkg:eigen3` | 행렬 연산 (보정 데이터 처리) |
+| **선택적 의존성** | `vcpkg:tbb` | 병렬 처리 성능 향상 |
+| **새로운 의존성** | `xpe_pipeline_integrate` | 파이프라인 통합 (stage 0.5-4) |
+
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
+
+### 2.3 Layer 1: xpe_enhance_basic.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리 |
+| **외부 의존성** | `vcpkg:opencv-imgproc` | 이미지 처리 함수 |
+| **외부 의존성** | `vcpkg:opencv-photo` | 노이즈 감소 알고리즘 |
+
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
+
+### 2.4 Layer 1: xpe_enhance_advanced.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리 |
+| **외부 의존성** | `vcpkg:opencv-imgproc` | 다중 스케일 처리 |
+| **외부 의존성** | `vcpkg:opencv-features2d` | 특징 검출 (콜리메이션) |
+| **선택적 의존성** | `vcpkg:tbb` | 병렬 처리 |
+
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
+
+### 2.5 Layer 1: xpe_ai.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리 |
+| **외부 의존성** | `vcpkg:onnxruntime` | AI 추론 엔진 |
+| **외부 의존성** | `vcpkg:opencv-dnn` | 딥러닝 전처리 |
+| **시스템 의존성** | `xpe_ai_worker.exe` | 샌드박스된 AI 워커 |
+
+**의존성 상태**: Layer 0 의존 + AI 워커 프로세스
+
+### 2.6 Layer 1: xpe_display.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리 |
+| **외부 의존성** | `vcpkg:opencv-imgproc` | LUT 적용 연산 |
+| **외부 의존성** | `vcpkg:dcmtk` | 디스플레이 관련 DICOM 기능 |
+
+**의존성 상태**: Layer 0 의존만 허용 + 파이프라인 통합 의존성
+
+### 2.7 Layer 1: xpe_dicom.dll
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **내부 의존성** | `xpe_common.dll` | 메모리 관리, 오류 처리 |
+| **외부 의존성** | `vcpkg:dcmtk` | DICOM 파일 I/O, 네트워크 통신 |
+| **외부 의존성** | `vcpkg:zlib` | 데이터 압축 |
+| **외부 의존성** | `vcpkg:charls` | JPEG-LS 압축 |
+
+**의존성 상태**: Layer 0 의존 + DCMTK
+
+### 2.8 Layer 1-G: gsvg.dll (독립 패키지)
+
+| 의존성 유형 | 의존 패키지 | 목적 |
+|-------------|-------------|------|
+| **의존성 없음** | - | 완전 독립 패키지 |
+| **내부 의존성** | - | 자체 구현된 모든 기능 |
+| **외부 의존성** | `vcpkg:opencv-core` | 기본 이미지 연산 |
+
+**의존성 상태**: 완전 독립
+
+---
+
+## 3. 외부 패키지 의존성
+
+### 3.1 vcpkg 매니페스트 구조
 
 ```json
 {
-  "name": "xpe",
-  "version": "3.0.0",
+  "name": "xpe-external-deps",
+  "version-semver": "1.0.0",
   "dependencies": [
-    "spdlog",
-    "fmt",
-    "nlohmann-json",
-    "eigen3",
-    "opencv4",
-    "dcmtk",
-    "gtest"
+    {
+      "name": "opencv",
+      "features": ["core", "imgproc", "photo", "features2d", "dnn"]
+    },
+    {
+      "name": "dcmtk", 
+      "features": ["dcmdata", "dcmimgle", "dcmjpeg", "dcmnet"]
+    },
+    {
+      "name": "onnxruntime",
+      "features": ["cuda", "tensorrt"]
+    },
+    {
+      "name": "eigen3",
+      "features": ["eigen3"]
+    },
+    {
+      "name": "tbb",
+      "features": ["tbb"]
+    },
+    {
+      "name": "zlib",
+      "features": ["zlib"]
+    },
+    {
+      "name": "charls",
+      "features": ["charls"]
+    }
   ]
 }
 ```
 
-### NativeDependencyLoader
+### 3.2 주요 외부 패키지 상세
 
-The C# GUI uses `NativeDependencyLoader` to load third-party dependencies:
+#### 3.2.1 OpenCV (Open Source Computer Vision Library)
 
-```csharp
-// Load dependencies before attempting to load the module DLL
-NativeDependencyLoader.LoadDependencies("xpe_enhance_advanced",
-    new[] { "fmt.dll", "spdlog.dll", "eigen3.dll" }
-);
+**용도**: 이미지 처리 컴퓨터 비전 알고리즘
+**버전**: 4.x
+**주요 기능**:
+- `cv::Mat`: 이미지 데이터 구조
+- `cv::GaussianBlur`: 가우시안 블러
+- `cv::bilateralFilter`: 양방향 필터
+- `cv::CLAHE`: 대비 제한 적응 히스토그램 평활화
+- `cv::LUT`: 룩업 테이블 적용
+
+**의존성 영향**:
+- `xpe_preprocess.dll`: 보정 연산
+- `xpe_enhance_basic.dll`: 노이즈 감소, 대비 향상
+- `xpe_enhance_advanced.dll`: 다중 스케일 처리
+- `xpe_ai.dll`: 이미지 전처리
+- `xpe_display.dll`: LUT 적용
+
+#### 3.2.2 DCMTK (DICOM Toolkit)
+
+**용도**: DICOM 파일 I/O 및 네트워크 통신
+**버전**: 3.6.x
+**주요 기능**:
+- `DcmDataset`: DICOM 데이터셋
+- `DcmJpeg`: JPEG 압축/해제
+- `DcmJ2K`: JPEG 2000 압축/해제
+- `DcmNet`: DICOM 네트워크 통신
+- `DcmQuantTable`: 양자화 테이블
+
+**의존성 영향**:
+- `xpe_dicom.dll`: DICOM 읽기/쓰기, 네트워크 전송
+
+#### 3.2.3 ONNX Runtime
+
+**용도**: AI/ML 모델 추론 엔진
+**버전**: 1.16.x
+**주요 기능**:
+- `OrtSession`: ONNX 모델 세션
+- `OrtEnv`: ONNX 환경
+- `OrtMemoryInfo`: 메모리 정보
+- `Tensor`: 텐서 데이터 구조
+
+**의존성 영향**:
+- `xpe_ai.dll`: AI 모델 실행 (신체 부위 인식, 뼈 억제 등)
+
+#### 3.2.4 Eigen
+
+**용도**: C++ 템플릿 기반 선형 대수 라이브러리
+**버전**: 3.4.x
+**주요 기능**:
+- `Eigen::Matrix`: 행렬 연산
+- `Eigen::Array`: 배열 연산
+- `Eigen::Map`: 메모리 매핑
+
+**의존성 영향**:
+- `xpe_preprocess.dll`: 보정 데이터의 행렬 연산
+
+#### 3.2.5 TBB (Intel Threading Building Blocks)
+
+**용도**: 병렬 처리 프레임워크
+**버전**: 2021.x
+**주요 기능**:
+- `tbb::parallel_for`: 병렬 루프
+- `tbb::concurrent_vector`: 스레드 안전 컨테이너
+
+**의존성 영향**:
+- 모든 모듈: 선택적 병렬 처리 성능 향장
+
+---
+
+## 4. 의존성 관리 규칙
+
+### 4.1 의존성 추가 규칙
+
+1. **Layer 1 → Layer 0 만 허용**: 새로운 의존성은 반드시 `xpe_common.dll`을 통과해야 함
+2. **외부 패키지 검증**: 새로운 외부 패키지는 라이선스, 성능, 안정성 검증 필요
+3. **선택적 의존성**: TBB와 같은 선택적 의존성은 기능 저하 없이 사용 가능해야 함
+4. **버전 고정**: 외부 패키지 버전은 고정하여 ABI 호환성 유지
+
+### 4.2 의존성 검증 절차
+
+1. **소스 코드 스캔**: 모든 include 문 분석
+2. **링크 오류 테스트**: 빌드 시 의존성 확인
+3. **런타임 테스트**: 실제 실행에서 의존성 검증
+4. **버전 호환성**: 패키지 간 버전 충돌 검증
+
+### 4.3 의존성 문제 해결
+
+| 문제 유형 | 증상 | 해결 방법 |
+|-----------|------|-----------|
+| **링크 오류** | unresolved external symbol | vcpkg 패키지 재설치 |
+| **런타임 오류** | DLL not found | 경로 설정 확인 |
+| **ABI 충돌** | 버전 충돌 | 버전 고정 |
+| **메모리 누수** | 메모리 증가 | 의존성 패키지 버그 확인 |
+
+---
+
+## 5. 라이선스 고려사항
+
+### 5.1 주요 패키지 라이선스
+
+| 패키지 | 라이선스 | 상업적 사용 | 필수 고지 |
+|--------|----------|-------------|-----------|
+| **OpenCV** | Apache 2.0 | 가능 | 필요 |
+| **DCMTK** | GPL 3.0 | 상업용 라이선스 필요 | 필요 |
+| **ONNX Runtime** | MIT | 가능 | 불필요 |
+| **Eigen** | MPL 2.0 | 가능 | 불필요 |
+| **TBB** | Apache 2.0 | 가능 | 필요 |
+| **Zlib** | Zlib | 가능 | 불필요 |
+
+### 5.2 라이선스 관리
+
+1. **상업용 제품**: DCMTK 상업용 라이선스 확보 필요
+2. **오픈소스 고지**: Apache 2.0/MIT 패키지 고지 포함
+3. **사용자 공개**: 최종 사용자에게 라이선스 공지
+4. **배포 문서**: 각 DLL의 라이선스 정보 포함
+
+---
+
+## 6. 성능 영향 분석
+
+### 6.1 외부 의존성별 성능 영향
+
+| 의존성 | 초기화 비용 | 메모리 사용 | 처리 지연 | 병렬화 가능성 |
+|--------|-------------|-------------|----------|---------------|
+| **OpenCV** | 낮음 | 중간 | 중간 | 높음 |
+| **DCMTK** | 높음 | 높음 | 높음 | 낮음 |
+| **ONNX Runtime** | 높음 | 높음 | 높음 | 중간 |
+| **Eigen** | 낮음 | 낮음 | 낮음 | 중간 |
+| **TBB** | 중간 | 중간 | 낮음 | 높음 |
+
+### 6.2 최적화 전략
+
+1. **지연 로딩**: DCMTK, ONNX Runtime 등 큰 패키지는 지연 로딩
+2. **공유 리소스**: 여러 DLL이 사용하는 패키지는 공유
+3. **선택적 기능**: TBB 등 선택적 기능은 조건부 컴파일
+4. **캐싱**: 초기화 비용이 높은 패키지는 캐싱
+
+---
+
+## 7. 보안 고려사항
+
+### 7.1 외부 의존성 취약점
+
+| 패키지 | 잠재적 취약점 | 위험도 | 완화 방법 |
+|--------|---------------|--------|-----------|
+| **OpenCV** | 이미지 처리 취약점 | 중간 | 입력 검증, 버전 업데이트 |
+| **DCMTK** | DICOM 파서 취약점 | 높음 | 입력 검증, 안전한 버전 사용 |
+| **ONNX Runtime** | 메모리 취약점 | 중간 | 샌드박스 환경 실행 |
+| **Eigen** | - | 낮음 | - |
+
+### 7.2 보안 검증 절차
+
+1. **입력 검증**: 모든 외부 입력 데이터 검증
+2. **메모리 안전**: 버퍼 오버플로우 방지
+3. **의존성 업데이트**: 정기적인 취약점 스캔
+4. **안전한 실행**: AI 워커 샌드박싱
+
+---
+
+## 8. 배포 관리
+
+### 8.1 패키지 관리 도구
+
+```bash
+# vcpkg 통합 빌드
+vcpkg install opencv[core,imgproc,photo,features2d,dnn]:x64-windows
+vcpkg install dcmtk[dcmdata,dcmimgle,dcmjpeg,dcmnet]:x64-windows
+vcpkg install onnxruntime[cuda,tensorrt]:x64-windows
+vcpkg install eigen3[core]:x64-windows
+vcpkg install tbb[core]:x64-windows
 ```
 
----
+### 8.2 의존성 배포 단위
 
-## Dependency Changes (dev/postprocess)
-
-### Recent Modifications
-
-No dependency changes in the current branch.
-
-### Focus Areas
-
-- **Hough Transform**: Uses Eigen3 for matrix operations
-- **Feature Detection**: Uses OpenCV4 for edge detection
-- **Integration Testing**: Cross-module dependency validation
+| 배포 유형 | 포함 패키지 | 용도 |
+|-----------|-------------|------|
+| **개발 배포** | 모든 의존성 개발 파일 | 개발 환경 |
+| **런타임 배포** | 런타임 라이브러리만 | 사용자 배포 |
+| **Docker 배포** | vcpkg 설치된 환경 | 컨테이너 환경 |
+| **소스 배포** | 의존성 없음 | 소스 코드만 |
 
 ---
 
-## Next Steps
+## 9. 버전 관리 전략
 
-1. Run `dumpbin /dependents` on all modules to verify independence
-2. Test module loading with only xpe_common present
-3. Verify third-party DLL loading order
-4. Check for hidden dependencies through runtime analysis
+### 9.1 의존성 버전 고정
+
+| 패키지 | 고정 버전 | 이유 |
+|--------|-----------|------|
+| **OpenCV** | 4.8.0 | API 안정성 |
+| **DCMTK** | 3.6.7 | DICOM 표준 준수 |
+| **ONNX Runtime** | 1.16.3 | AI 모델 호환성 |
+| **Eigen** | 3.4.0 | ABI 호환성 |
+
+### 9.2 업데이트 절차
+
+1. **테스트 업데이트**: 새 버전 테스트 환경에서 검증
+2. **ABI 호환성**: 기존 API 변경 여부 확인
+3. **성능 검증**: 성능 저하 발생 시 분석
+4. **보안 검증**: 보안 패치 확인
+5. **점진적 배포**: 이전 버전과 병행 배포
+
+---
+
+## 10. 모니터링 및 유지보수
+
+### 10.1 의존성 모니터링
+
+1. **크래시 모니터링**: 외부 패키지 관련 크래시 추적
+2. **성능 모니터링**: 각 패키지별 성능 추적
+3. **메모리 모니터링**: 메모리 누수 감시
+4. **오류 모니터링**: 외부 패키지 관련 오류 추적
+
+### 10.2 유지보수 일정
+
+| 유지보수 유형 | 주기 | 내용 |
+|---------------|------|------|
+| **보안 업데이트** | 월별 | 보안 패치 적용 |
+| **성능 모니터링** | 주별 | 성능 지표 추적 |
+| **버전 업데이트** | 분기 | 주요 패키지 업데이트 |
+| **의존성 검토** | 반기전체 | 의존성 구조 재검토 |
+
+---
+
+## 11. 참고 문서
+
+- `.moai/project/pipeline-spec.md` - 파이프라인 명세
+- `.moai/project/api-spec.md` - API 명세
+- `vcpkg/` - vcpkg 패키지 매니페스트
+- `docs/` - 외부 패키지 문서
+
+---
+
+*최종 업데이트: 2026-04-17*

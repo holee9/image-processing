@@ -219,12 +219,15 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     std::vector<float> deviations = windowValues;  // Copy for MAD computation
     float mad = ComputeMAD(deviations, median);
 
-    // Avoid division by zero
-    if (mad < 1e-6f) return false;
-
     // Get center pixel value
     const float* pixels = static_cast<const float*>(img->data);
     float centerValue = pixels[y * img->width + x];
+
+    // Flat-field windows produce MAD == 0. In that case, any non-trivial
+    // deviation from the local median is an outlier rather than noise.
+    if (mad < 1e-6f) {
+        return std::abs(centerValue - median) > 1e-6f;
+    }
 
     // Hampel identifier test
     float deviation = std::abs(centerValue - median);
