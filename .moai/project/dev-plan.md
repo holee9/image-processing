@@ -116,15 +116,18 @@ main이 정의할 다음 Lane 작업 SPEC:
 | 항목 | Framework A 기여 | 완료일 |
 |------|:----------------:|--------|
 | M2 SIMD (AVX2/FMA) 구현 + parity | +2 (구현진행도) | 2026-04-19 |
-| P2-ADV 97/103 + IEC 62304 4종 | +5 (요구사항+문서+구현+품질) | 2026-04-19 |
+| P2-ADV 65/65 + IEC 62304 4종 | +5 (요구사항+문서+구현+품질) | 2026-04-21 |
 | Golden Reference 26개 + CI | +1 (품질보증) | 2026-04-19 |
+| **SPEC-XPE-P1B-DICOM Released** | +2 (요구사항 완전성 →46개) | 2026-04-21 |
+| **BP-10 CI 워크플로우 + 테스트 드라이버** | +2 (benchmark regression 준비) | 2026-04-21 |
+| **Post-B + GUI-C → main 통합** | 품질게이트 확인 후 통합 | 2026-04-21 |
 
 ### main 직접 기여 항목 (잔여, 점수 증가)
 
 | 항목 | Framework A 기여 | 비고 |
 |------|:----------------:|------|
-| benchmark BP-01~10 동결 + 자동 재현 | +3 | 임계경로 — 가장 빠른 +3 |
-| EARS P1B 요구사항 작성 | +2 | 요구사항 완전성 13→17 |
+| benchmark BP-01~05 Lane A 동결 | +2 | Pre-A: DegradedMode.* GTest 구현 필요 |
+| benchmark BP-06~09 Lane B 동결 | +1 | Post-B: DegradedMode.* GTest 구현 필요 |
 | IEC 62304 VVP sync | +1 | 문서 품질 19→20 |
 
 ---
