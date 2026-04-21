@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-21 — 거버넌스/통합 세션)
+## 프로젝트 완성도 현황 (2026-04-21 — 3-Lane 병합 세션)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -34,11 +34,11 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** |
 | xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** |
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** |
-| gsvg.dll | 2 | — | G2⏳ | SPEC-XPE-GSVG | **미착수** |
+| gsvg.dll | 2 | 1/1 ✅ | G2⏳ | SPEC-XPE-GSVG | **착수** |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
 | ImageProcTest.exe | GUI | 78/78 ✅ | — | TASK-GUI-IA-001 | **진행 중** |
 
-> **진도율**: Phase 0~2 구현 완료 기준 **7/9 모듈 (78%)**, 전체 테스트 **488/488 통과**
+> **진도율**: Phase 0~2 구현 완료 기준 **7/9 모듈 (78%) + gsvg 착수**, 전체 테스트 **489/489 통과**
 
 ### 게이트 현황
 
@@ -53,11 +53,15 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | Lane | Branch | 선행 커밋 | 최신 작업 | 상태 |
 |------|--------|:---------:|---------|:----:|
-| **A (Pre)** | dev/preprocess | 16 | docs(codemaps) 아키텍처 문서 개선 | ✅ 클린 |
-| **B (Post)** | dev/postprocess | 13 | std::memset + void* cast + IEC docs 개선 | ✅ 클린 |
-| **C (GUI)** | dev/gui | 5 | TASK-GUI-IA-001 MVVM 모듈화 (main 동기화 완료) | ✅ 클린 |
+| **A (Pre)** | dev/preprocess | 17 | runtime_detection 검증 보강 + test_temp_nonlinearity_binning TDD RED | ✅ main 병합 완료 |
+| **B (Post)** | dev/postprocess | 25 | BP-06~09 baseline freeze + MSVC C4365 수정 + gsvg CMakeLists/benchmark | ✅ main 병합 완료 |
+| **C (GUI)** | dev/gui | 13 | Phase1B readiness chain + DICOM/Display/GSVG P/Invoke 래퍼 + MVVM 보강 | ✅ main 병합 완료 |
 
-**최근 진행 상황** (2026-04-21 거버넌스 세션):
+**최근 진행 상황** (2026-04-21 3-Lane 병합 세션):
+- ✅ **dev/preprocess → main squash merge** — runtime_detection 검증 보강 + codemaps 아키텍처 문서 개선 + test_temp_nonlinearity_binning TDD RED (SWU-1.6/1.7/1.8)
+- ✅ **dev/postprocess → main squash merge** — BP-06~09 benchmark baseline freeze + MSVC C4365 경고 정리 + gsvg CMakeLists/BP-06 테스트 착수 + display VOI 정합화 + Eigen CMake 4.0 호환
+- ✅ **dev/gui → main squash merge** — Phase1B readiness chain 연결 + NativeModuleLibraryLocator/XpeDicomReadinessProbe/XpeGsvgReadinessProbe 신설 + XpeDicomWrapper/XpeDisplayWrapper P/Invoke 래퍼 + ModuleReadinessViewModel 신설
+- ✅ **gsvg.dll 착수** — CMakeLists + BP-06 benchmark test 1개 추가 (미착수 → 착수)
 - ✅ **stale 워크트리 정리** — `xpe-gui-r4` prunable 워크트리 제거
 - ✅ **Lane B 미커밋 작업 커밋** — GTest FetchContent fallback + T606 메타 초기화 + IEC docs 65/65 전수 GREEN 반영
 - ✅ **Lane C 미커밋 작업 커밋** — TASK-GUI-IA-001 MVVM 탭 분리 모듈화 (26파일, +5700줄)
@@ -66,7 +70,6 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 - ✅ **SPEC-XPE-P1B-DICOM Released** — v1.1.0, 46 EARS 요구사항 교차검증 완료 (Draft → Released)
 - ✅ **benchmark-regression.yml** — BP-10 degraded-mode 5개 시나리오 CI 워크플로우 신설
 - ✅ **Test-DegradedMode.ps1** — DLL 제거 + smoke test 드라이버 (Lane A/B GTest 연동 준비)
-- ✅ **Lane B + C ← main 동기화** 완료
 - ✅ **dev/postprocess → main squash merge** (2026-04-20) — SPEC-XPE-P2-ADV MFP/Edge/Collimation/EI + Hough/FD 버그픽스
 - ✅ **dev/preprocess → main squash merge** (2026-04-20) — 테스트 202/202 전체 통과, XPE_PIX→XPE_PIXEL API 마이그레이션
 - ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19~20) — MFP(2.5)/Edge(2.6)/Collimation(2.8)/EI(2.10) 4개 SWU, 65/65 전수 통과, IEC 62304 SRS/SDD/RTM 문서 완성
@@ -84,7 +87,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 3 | Golden Reference CI + 품질 보증 완성 | +1 | ✅ 완료 |
 | 4 | SPEC-XPE-P1B-DICOM Released + EARS 46개 교차검증 | +1 | ✅ 완료 (2026-04-21) |
 | 5 | BP-10 CI 하네스 + 테스트 드라이버 준비 | +1 | ✅ 완료 (smoke exe 연동 대기) |
-| 6 | benchmark BP-01~09 Lane A/B에서 동결 | +2 | ⏳ DegradedMode GTest 구현 필요 |
+| 6 | benchmark BP-01~09 Lane A/B에서 동결 | +2 | ⏳ BP-06~09 baseline 문서 완료, DegradedMode GTest 연동 남음 |
 | 7 | IEC 62304 VVP sync 완성 | +1 | ⏳ 미착수 |
 
 > **핵심 원칙**: AI 조기 투입보다 deterministic baseline 완성 → benchmark freeze → IEC sync → premium 순서가 가장 빠른 경로. 상세 계획: [`.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md`](.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md)

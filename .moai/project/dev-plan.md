@@ -1,8 +1,8 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.3.0  
-**Date**: 2026-04-20  
+**Version**: 1.4.0  
+**Date**: 2026-04-21  
 **Status**: Active — 지속적 갱신 대상
 
 ---
@@ -46,25 +46,25 @@ xpe-gui/ (Lane C, dev/gui)
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
 | ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 진행중 (TASK-GUI-IA-001) |
 | xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
-| gsvg.dll | Post-B | - | ❌ | 미착수 |
+| gsvg.dll | Post-B | 1/1 ✅ (BP-06) | ✅ | 착수 (CMakeLists + benchmark test) |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
 
-### 1.1.1 Lane 브랜치 현황 (main 미통합)
+### 1.1.1 Lane 브랜치 현황 (2026-04-21 squash merge 완료)
 
-| Lane | 브랜치 | main 선행 커밋 | 최신 작업 | 상태 |
-|------|--------|:-----------:|---------|------|
-| Pre-A | dev/preprocess | 16 | docs(codemaps) 아키텍처 개선 | 클린 ✅ |
-| Post-B | dev/postprocess | 13 | IEC docs 갱신 + GTest fallback | 클린 ✅ |
-| GUI-C | dev/gui | 5 | TASK-GUI-IA-001 MVVM 모듈화 | 클린 ✅ |
+| Lane | 브랜치 | 선행 커밋 | 최신 main 통합 내용 | 상태 |
+|------|--------|:---------:|---------|------|
+| Pre-A | dev/preprocess | 17 | runtime_detection 검증 보강 + TDD RED test_temp_nonlinearity_binning | main 병합 ✅ |
+| Post-B | dev/postprocess | 25 | BP-06~09 baseline + gsvg CMakeLists/test + MSVC 경고 정리 | main 병합 ✅ |
+| GUI-C | dev/gui | 13 | Phase1B readiness chain + DICOM/Display/GSVG P/Invoke 래퍼 | main 병합 ✅ |
 
 ### 1.2 점수 현황
 
 | Framework | 문서화 | 실제 추정 | 목표 |
 |-----------|:------:|:--------:|:----:|
-| A (Process/Compliance) | 81 | **~81** | 85 |
-| B (Product/Delivery) | ~74 | **~74** | 85 |
+| A (Process/Compliance) | 83 | **~83** | 85 |
+| B (Product/Delivery) | ~76 | **~77** | 85 |
 
-M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-21 v2.4.0 기준).
+3-Lane squash merge 반영 — gsvg 착수 + BP-06~09 baseline 문서 + GUI Phase1B chain (2026-04-21 v1.4.0 기준).
 
 ---
 
@@ -121,13 +121,14 @@ main이 정의할 다음 Lane 작업 SPEC:
 | **SPEC-XPE-P1B-DICOM Released** | +2 (요구사항 완전성 →46개) | 2026-04-21 |
 | **BP-10 CI 워크플로우 + 테스트 드라이버** | +2 (benchmark regression 준비) | 2026-04-21 |
 | **Post-B + GUI-C → main 통합** | 품질게이트 확인 후 통합 | 2026-04-21 |
+| **3-Lane 전체 squash merge (Pre-A + Post-B + GUI-C)** | 런타임 검증 보강, gsvg 착수, Phase1B GUI chain | 2026-04-21 |
 
 ### main 직접 기여 항목 (잔여, 점수 증가)
 
 | 항목 | Framework A 기여 | 비고 |
 |------|:----------------:|------|
 | benchmark BP-01~05 Lane A 동결 | +2 | Pre-A: DegradedMode.* GTest 구현 필요 |
-| benchmark BP-06~09 Lane B 동결 | +1 | Post-B: DegradedMode.* GTest 구현 필요 |
+| benchmark BP-06~09 Lane B 동결 | +1 | Post-B: baseline 문서 완료 ✅, DegradedMode GTest 연동 남음 |
 | IEC 62304 VVP sync | +1 | 문서 품질 19→20 |
 
 ---
@@ -198,3 +199,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-19 | 1.1.0 | main 역할 재정의 — 구현은 Lane, main은 통합/거버넌스/문서 |
 | 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |
 | 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
+| 2026-04-21 | 1.4.0 | 3-Lane 전체 squash merge 반영 — runtime_detection 보강, gsvg 착수, BP-06~09 baseline 완료, GUI Phase1B chain; 점수 갱신 A=83, B=~77 |
