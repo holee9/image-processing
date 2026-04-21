@@ -67,6 +67,7 @@ env/
 .coverage
 coverage.json
 htmlcov/
+build_coverage/
 
 # ===========================================
 # IDE & Editors

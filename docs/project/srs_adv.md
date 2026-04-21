@@ -424,7 +424,7 @@ The SPEC-XPE-P2-ADV implementation has been completed across all planned phases:
 | Lifecycle/Config | 98% | 92% | All paths tested |
 | **Overall** | **90.4%** | **84%** | **IEC 62304 Class B compliant** |
 
-**Note**: Coverage measurement with gcov/lcov pending (requires coverage build preset)
+**Note**: Coverage measurement with gcov/lcov remains pending; run the coverage preset from an initialized VS2022/CMake environment.
 
 ---
 
@@ -485,7 +485,7 @@ The SPEC-XPE-P2-ADV implementation has been completed across all planned phases:
 
 ### 5.4 Open Issues (Post-Implementation)
 
-1. **Coverage Measurement**: Run gcov/lcov coverage measurement with `cmake --preset coverage`
+1. **Coverage Measurement**: Run gcov/lcov coverage measurement through the configured coverage preset from the VS2022 build environment
 2. **Performance Benchmarking**: Performance benchmark test needs calibration for reference hardware
 3. **Documentation Integration**: Update api-spec.md with final implementation signatures
 
@@ -495,7 +495,7 @@ The SPEC-XPE-P2-ADV implementation has been completed across all planned phases:
 
 | Requirement | Verification Status | Evidence |
 |-------------|-------------------|----------|
-| Software Unit Testing | ✅ Complete | 103 test cases written and executed |
+| Software Unit Testing | ✅ Complete | 65 active GoogleTest cases executed, including 10 integration and 1 smoke case |
 | Risk Analysis | ✅ Complete | SAF-100 implemented and verified |
 | Documentation | ✅ Complete | SRS, SDD, RTM updated |
 | Configuration Management | ✅ Complete | Version control with tags |
@@ -512,4 +512,4 @@ The SPEC-XPE-P2-ADV implementation has been completed across all planned phases:
 
 ---
 
-*Document End -- SRS-ADV-001 v1.0.0*
+*Document End -- SRS-ADV-001 v1.2.0*
