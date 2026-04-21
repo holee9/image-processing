@@ -761,20 +761,48 @@ namespace ImageProcTest.Controls
 
         private bool TryGetProcessedOutputPixels(out float[] pixels)
         {
+            var expectedPixelCount = currentPreview is null
+                ? 0
+                : checked(currentPreview.PreviewWidth * currentPreview.PreviewHeight);
+
             if (algorithmPreviewPixels is { Count: > 0 } algorithmValues)
             {
-                pixels = algorithmValues as float[] ?? algorithmValues.ToArray();
-                return true;
+                return TryCopyProcessedOutputPixels(
+                    algorithmValues,
+                    expectedPixelCount,
+                    "Algorithm after output",
+                    out pixels);
             }
 
             if (nativePreview?.OutputPixels is { Count: > 0 } values)
             {
-                pixels = values as float[] ?? values.ToArray();
-                return true;
+                return TryCopyProcessedOutputPixels(
+                    values,
+                    expectedPixelCount,
+                    "Native after output",
+                    out pixels);
             }
 
             pixels = [];
             return false;
+        }
+
+        private bool TryCopyProcessedOutputPixels(
+            IReadOnlyList<float> values,
+            int expectedPixelCount,
+            string label,
+            out float[] pixels)
+        {
+            if (expectedPixelCount > 0 && values.Count != expectedPixelCount)
+            {
+                pixels = [];
+                ProcessingScaffoldText.Text =
+                    $"{label} ignored: pixel count {values.Count} does not match the active preview count {expectedPixelCount}.";
+                return false;
+            }
+
+            pixels = values as float[] ?? values.ToArray();
+            return true;
         }
 
         private ViewportRenderParams CreateAutoFitForActiveTarget(ViewportRenderParams current)
@@ -812,6 +840,17 @@ namespace ImageProcTest.Controls
 
         private void ClearViewerRenderState()
         {
+            if (ComparisonCanvas is not null)
+            {
+                ComparisonCanvas.Width = double.NaN;
+                ComparisonCanvas.Height = double.NaN;
+            }
+
+            if (AfterPreviewClip is not null)
+            {
+                AfterPreviewClip.Rect = Rect.Empty;
+            }
+
             if (BeforePreviewImage is not null)
             {
                 BeforePreviewImage.Source = null;

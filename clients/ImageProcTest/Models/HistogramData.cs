@@ -17,11 +17,9 @@ namespace ImageProcTest
             : $"pixels={TotalCount}, maxBin={MaxCount}, source={SourceMin:0.###}..{SourceMax:0.###}";
 
         public static HistogramData FromBins(IReadOnlyList<int> bins, float sourceMin, float sourceMax) =>
-            new(
-                bins,
-                bins.Sum(),
-                bins.Count == 0 ? 0 : bins.Max(),
-                sourceMin,
-                sourceMax);
+            Create(bins.ToArray(), sourceMin, sourceMax);
+
+        private static HistogramData Create(int[] bins, float sourceMin, float sourceMax) =>
+            new(bins, bins.Sum(), bins.Length == 0 ? 0 : bins.Max(), sourceMin, sourceMax);
     }
 }
