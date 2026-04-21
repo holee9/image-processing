@@ -657,6 +657,8 @@
                                 <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="DicomHealthText" Text="DICOM health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="GsvgHealthText" Text="GSVG health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessSmokeText" Text="Preprocess smoke: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessParamRangeText" Text="Preprocess parameter ranges: Not checked" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap"/>

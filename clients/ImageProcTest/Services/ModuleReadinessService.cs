@@ -290,7 +290,12 @@ namespace ImageProcTest
 
         private static ModuleReadinessSnapshot EvaluateDllPresence(string moduleName, string dllName)
         {
-            var found = NativeModuleLibraryLocator.TryFindDll(dllName, "image-processing", "xpe-post", "xpe-pre");
+            var found = NativeModuleLibraryLocator.TryFindDll(
+                dllName,
+                moduleName,
+                "image-processing",
+                "xpe-post",
+                "xpe-pre");
 
             if (found != null)
                 return new ModuleReadinessSnapshot(

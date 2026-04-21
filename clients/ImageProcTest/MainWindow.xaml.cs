@@ -926,6 +926,8 @@ namespace ImageProcTest
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
+                DicomHealthText.Text = $"DICOM health: {report.DicomSummary}";
+                GsvgHealthText.Text = $"GSVG health: {report.GsvgSummary}";
                 PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
                 PreprocessSmokeText.Text =
                     $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
@@ -939,6 +941,8 @@ namespace ImageProcTest
             catch (Exception ex)
             {
                 DisplayHealthText.Text = "Display health: Report generation skipped";
+                DicomHealthText.Text = "DICOM health: Report generation skipped";
+                GsvgHealthText.Text = "GSVG health: Report generation skipped";
                 PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
                 PreprocessSmokeText.Text = "Preprocess smoke: Report generation skipped";
                 PreprocessParamRangeText.Text = "Preprocess parameter ranges: Report generation skipped";

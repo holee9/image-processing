@@ -49,6 +49,8 @@ namespace ImageProcTest
             Path.Combine("build", "release", "bin", "Release"),
             Path.Combine("build", "readiness-display-vs", "bin", "Debug"),
             Path.Combine("build", "readiness-preprocess-vs", "bin", "Debug"),
+            Path.Combine("build", "build_test", "bin", "Debug"),
+            Path.Combine("build", "enhance_test", "bin", "Release"),
             Path.Combine("build", "enh01_release", "bin"),
             Path.Combine("build", "enh01_release", "bin", "Release")
         ];

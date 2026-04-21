@@ -16,13 +16,13 @@ namespace ImageProcTest
         private static readonly Dictionary<string, string[]> ModuleDependencies = new(StringComparer.OrdinalIgnoreCase)
         {
             ["xpe_common.dll"]           = ["fmt.dll", "spdlog.dll"],
-            ["xpe_enhance_basic.dll"]    = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
-            ["xpe_display.dll"]          = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
+            ["xpe_enhance_basic.dll"]    = ["fmt.dll", "spdlog.dll", "xpe_common.dll"],
+            ["xpe_display.dll"]          = ["fmt.dll", "spdlog.dll", "xpe_common.dll"],
             ["xpe_enhance_advanced.dll"] = ["fmt.dll", "spdlog.dll"],
-            ["gsvg.dll"]                 = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
-            ["xpe_gsvg.dll"]             = ["xpe_common.dll", "fmt.dll", "spdlog.dll"],
+            ["gsvg.dll"]                 = ["fmt.dll", "spdlog.dll", "xpe_common.dll"],
+            ["xpe_gsvg.dll"]             = ["fmt.dll", "spdlog.dll", "xpe_common.dll"],
             ["xpe_ai.dll"]               = ["fmt.dll", "spdlog.dll"],
-            ["xpe_dicom.dll"]            = ["xpe_common.dll", "fmt.dll", "spdlog.dll",
+            ["xpe_dicom.dll"]            = ["fmt.dll", "spdlog.dll", "xpe_common.dll",
                                             "dcmnet.dll", "dcmdata.dll",
                                             "ofstd.dll", "oflog.dll",
                                             "openjp2.dll"],
