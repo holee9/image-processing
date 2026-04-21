@@ -57,6 +57,8 @@ if(MSVC)
         /wd4244   # conversion, possible loss of data (Eigen index arithmetic)
         /wd4245   # signed/unsigned mismatch (Eigen index conversions)
         /wd5054   # deprecated operator between enumerations (Eigen 3.4.0 bitset ops)
+        # mfp_scalar.cpp LaplacianPyramid uses int dimensions with vector<>::resize/ctor
+        /wd4365   # signed/unsigned mismatch in function argument (int→size_t)
     )
 else()
     target_compile_options(${MODULE_NAME} PRIVATE
