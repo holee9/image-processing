@@ -11,6 +11,8 @@ namespace ImageProcTest
         {
             var root = FindRepositoryRoot(AppContext.BaseDirectory);
             var display = XpeDisplayVersionProbe.Check();
+            var dicom = XpeDicomReadinessProbe.Check();
+            var gsvg = XpeGsvgReadinessProbe.Check();
             var enhanceBasic = XpeEnhanceBasicReadinessProbe.Check();
 
             return
@@ -19,9 +21,9 @@ namespace ImageProcTest
                 EvaluateDisplay(display),
                 EvaluatePreprocess(root),
                 EvaluateEnhanceBasic(enhanceBasic),
-                EvaluateDllPresence("dicom", "xpe_dicom.dll"),
+                EvaluateDicom(dicom),
                 EvaluateDllPresence("enhance_advanced", "xpe_enhance_advanced.dll"),
-                EvaluateDllPresence("gsvg", "gsvg.dll"),
+                EvaluateGsvg(gsvg),
                 EvaluateDllPresence("ai", "xpe_ai.dll")
             ];
         }
@@ -50,15 +52,43 @@ namespace ImageProcTest
 
         private static ModuleReadinessSnapshot EvaluateDisplay(DisplayHealthResult display)
         {
-            if (display.IsReady)
+            if (display.IsSmokeReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_display",
+                    "R2",
+                    "ABI smoke ready",
+                    $"version={display.Version}; dll={display.DllPath}; exports={display.PresentExports.Count}; smoke={display.Smoke.Details}",
+                    "Wire xpe_display modality/VOI/presentation LUT wrapper into the full Phase 1b pipeline runner before enabling execution.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "Display DLL is callable, but the GUI execution adapter is intentionally Off until full pipeline E2E is wired.");
+            }
+
+            if (display.IsExportReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_display",
+                    "R2",
+                    "Export checklist ready",
+                    $"version={display.Version}; dll={display.DllPath}; smoke={display.Smoke.Status}; {display.Smoke.Details}",
+                    "Fix display ABI smoke before enabling the full Phase 1b pipeline runner.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "Display stage remains Off because ABI smoke has not passed.");
+            }
+
+            if (display.IsVersionReady)
             {
                 return new ModuleReadinessSnapshot(
                     "xpe_display",
                     "R1",
-                    "Version-only health ready",
-                    $"version={display.Version}; dll={display.DllPath}",
-                    "Wait for real LUT/display pipeline exports before enabling image processing.",
-                    ProcessingEnabled: false);
+                    "Version ready, export checklist incomplete",
+                    $"version={display.Version}; missing={string.Join(", ", display.MissingExports)}",
+                    "Complete mandatory display exports before ABI smoke.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "Display stage remains Off because required exports are incomplete.");
             }
 
             return new ModuleReadinessSnapshot(
@@ -67,7 +97,9 @@ namespace ImageProcTest
                 display.Status,
                 display.Details,
                 "Build xpe_display.dll with required display pipeline exports.",
-                ProcessingEnabled: false);
+                ProcessingEnabled: false,
+                RequiredLevel: "R3",
+                DegradedMode: "Display stage remains Off because xpe_display.dll is unavailable.");
         }
 
         private static ModuleReadinessSnapshot EvaluatePreprocess(string? root)
@@ -178,15 +210,87 @@ namespace ImageProcTest
                 ProcessingEnabled: false);
         }
 
-        /// <summary>
-        /// Checks DLL presence in the application directory and well-known build output paths.
-        /// Supersedes EvaluateSourceOnly for modules that have no dedicated probe yet.
-        /// </summary>
+        private static ModuleReadinessSnapshot EvaluateDicom(DicomHealthResult health)
+        {
+            if (health.IsSmokeReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_dicom",
+                    "R2",
+                    "ABI smoke ready",
+                    $"dll={health.DllPath}; exports={health.PresentExports.Count}; smoke={health.Smoke.Details}",
+                    "Wire xpe_dicom read/write/validate wrapper into the full Phase 1b pipeline runner before enabling execution.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "DICOM DLL is callable, but export stays Off until the GUI has a verified DICOM file writer path.");
+            }
+
+            if (health.IsExportReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_dicom",
+                    "R2",
+                    "Export checklist ready",
+                    $"dll={health.DllPath}; smoke={health.Smoke.Status}; {health.Smoke.Details}",
+                    "Fix DICOM ABI smoke before enabling DICOM export.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "DICOM export remains Off because ABI smoke has not passed.");
+            }
+
+            if (health.PresentExports.Count > 0)
+            {
+                return new ModuleReadinessSnapshot(
+                    "xpe_dicom",
+                    "R1",
+                    "Export checklist incomplete",
+                    $"dll={health.DllPath}; missing={string.Join(", ", health.MissingExports)}",
+                    "Complete mandatory DICOM exports before ABI smoke.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "DICOM export remains Off because required exports are incomplete.");
+            }
+
+            return new ModuleReadinessSnapshot(
+                "xpe_dicom",
+                "R0",
+                health.Status,
+                health.Details,
+                "Build xpe_dicom.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.",
+                ProcessingEnabled: false,
+                RequiredLevel: "R3",
+                DegradedMode: "DICOM export remains Off because xpe_dicom.dll is unavailable.");
+        }
+
+        private static ModuleReadinessSnapshot EvaluateGsvg(GsvgHealthResult health)
+        {
+            if (health.IsVersionReady)
+            {
+                return new ModuleReadinessSnapshot(
+                    "gsvg",
+                    "R1",
+                    "Version-only health ready",
+                    $"version={health.Version}; dll={health.DllPath}",
+                    "Wait for #61 processing exports and GUI adapter contract before enabling GSVG execution.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "GSVG is Phase 2 and stays Off until #61 defines stable processing exports.");
+            }
+
+            return new ModuleReadinessSnapshot(
+                "gsvg",
+                "R0",
+                health.Status,
+                health.Details,
+                "Complete #61, then add GSVG processing export and GUI adapter smoke checks.",
+                ProcessingEnabled: false,
+                RequiredLevel: "R3",
+                DegradedMode: "GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution.");
+        }
+
         private static ModuleReadinessSnapshot EvaluateDllPresence(string moduleName, string dllName)
         {
-            var found = GetDllSearchDirectories()
-                .Select(d => Path.Combine(d, dllName))
-                .FirstOrDefault(File.Exists);
+            var found = NativeModuleLibraryLocator.TryFindDll(dllName, "image-processing", "xpe-post", "xpe-pre");
 
             if (found != null)
                 return new ModuleReadinessSnapshot(
@@ -204,78 +308,6 @@ namespace ImageProcTest
                 $"{dllName} not found in search path",
                 "Build and place the DLL to enable this module.",
                 ProcessingEnabled: false);
-        }
-
-        private static IEnumerable<string> GetDllSearchDirectories()
-        {
-            yield return AppContext.BaseDirectory;
-
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                foreach (var candidate in new[]
-                {
-                    "bin",
-                    Path.Combine("build", "release", "bin"),
-                    Path.Combine("build", "enh01_release", "bin"),
-                    Path.Combine("build", "default", "bin", "Debug"),
-                    Path.Combine("build", "readiness-display-vs", "bin", "Debug"),
-                    Path.Combine("build", "ci-common", "bin", "Debug"),
-                })
-                {
-                    var p = Path.Combine(dir.FullName, candidate);
-                    if (Directory.Exists(p)) yield return p;
-                }
-                dir = dir.Parent;
-            }
-        }
-
-        private static ModuleReadinessSnapshot EvaluateSourceOnly(string? root, string moduleName, string dllName)
-        {
-            var moduleRoot = root is null ? null : Path.Combine(root, "modules", moduleName);
-            var sourceCount = moduleRoot is null || !Directory.Exists(moduleRoot)
-                ? 0
-                : Directory.EnumerateFiles(moduleRoot, "*.*", SearchOption.AllDirectories)
-                    .Count(path =>
-                        path.EndsWith(".cpp", StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith(".h", StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith(".hpp", StringComparison.OrdinalIgnoreCase));
-
-            var binary = FindFirstExisting(root, dllName,
-                Path.Combine("build", "default", "bin", "Debug"),
-                Path.Combine("build", "readiness-display-vs", "bin", "Debug"),
-                Path.Combine("build", "ci-common", "bin", "Debug"));
-
-            if (binary is not null)
-            {
-                return new ModuleReadinessSnapshot(
-                    moduleName,
-                    "R1",
-                    "Binary discoverable, no GUI adapter",
-                    $"dll={binary}",
-                    "Add module-specific export and ABI smoke checks before processing controls.",
-                    ProcessingEnabled: false);
-            }
-
-            return new ModuleReadinessSnapshot(
-                moduleName,
-                "R0",
-                sourceCount > 0 ? "Source scaffold only" : "No implementation evidence",
-                $"sourceFiles={sourceCount}",
-                "Wait for stable exports and module smoke tests.",
-                ProcessingEnabled: false);
-        }
-
-        private static string? FindFirstExisting(string? root, string dllName, params string[] relativeDirectories)
-        {
-            if (root is null)
-            {
-                return null;
-            }
-
-            return relativeDirectories
-                .Select(relative => Path.Combine(root, relative, dllName))
-                .FirstOrDefault(File.Exists);
         }
 
         private static string? FindRepositoryRoot(string startPath)

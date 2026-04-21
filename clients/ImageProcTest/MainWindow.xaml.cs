@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using ImageProcTest.PInvokeWrappers;
+using ImageProcTest.ViewModels;
 using Microsoft.Win32;
 
 namespace ImageProcTest
@@ -45,12 +46,14 @@ namespace ImageProcTest
         private FixtureCaseInfo? currentCalibrationContext;
         private string? currentCalibrationFolderPath;
         private readonly EvaluationContextService evaluationContextService = new();
+        private readonly ModuleReadinessViewModel moduleReadinessViewModel = new();
         private ActiveEvaluationContext? activeEvaluationContext;
 
         public MainWindow()
         {
             InitializeComponent();
             SelectedAlgorithmChainListBox.ItemsSource = selectedAlgorithmChain;
+            ModuleReadinessGrid.ItemsSource = moduleReadinessViewModel.Modules;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -1369,17 +1372,8 @@ namespace ImageProcTest
 
         private void RefreshModuleReadiness()
         {
-            currentModuleReadiness = ModuleReadinessService.Evaluate(lastBackendHealth);
-            ModuleReadinessGrid.ItemsSource = currentModuleReadiness;
-
-            var enabledCount = currentModuleReadiness.Count(module => module.ProcessingEnabled);
-            var nativeBlocked = string.Join(", ", currentModuleReadiness
-                .Where(module => !module.ProcessingEnabled && module.ModuleName != "xpe_common")
-                .Select(module => $"{module.ModuleName}:{module.Level}"));
-
-            ModuleReadinessSummaryText.Text =
-                $"Executable modules={enabledCount}; blocked modules={nativeBlocked}. " +
-                "Only modules marked Exec can run preview adapters; clinical processing remains gated by formal verification evidence.";
+            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth);
+            ModuleReadinessSummaryText.Text = moduleReadinessViewModel.SummaryText;
             RefreshAlgorithmValidation();
             UpdateNativePreviewControls();
             UpdateEvaluationDashboards();

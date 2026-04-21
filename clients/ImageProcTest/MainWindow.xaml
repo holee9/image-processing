@@ -683,7 +683,7 @@
                         </Border>
 
                         <TextBlock Text="Integration policy" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,4"/>
-                        <TextBlock Text="This screen only verifies xpe_common native health. Preprocess and display image-processing controls must remain disabled until their DLL readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+                        <TextBlock Text="This screen verifies common, preprocess, enhance, display, DICOM, GSVG, and AI readiness. Missing DLLs or future modules stay Off and are skipped without stopping the available preview adapters." TextWrapping="Wrap" FontSize="13"/>
 
                         <Separator Margin="0,16,0,12"/>
 
@@ -694,7 +694,7 @@
 
                         <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means ABI smoke ready, and R3+ requires module exports plus oracle checks. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
+                                <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means export/ABI smoke ready, and R3+ means executable oracle evidence. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
                                 <DataGrid x:Name="ModuleReadinessGrid"
                                           AutoGenerateColumns="False"
                                           CanUserAddRows="False"
@@ -704,10 +704,12 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="130"/>
                                         <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
+                                        <DataGridTextColumn Header="Meaning" Binding="{Binding LevelDescription}" Width="150"/>
+                                        <DataGridTextColumn Header="Req" Binding="{Binding RequiredLevel}" Width="55"/>
                                         <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
                                         <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
-                                        <DataGridTextColumn Header="Next action" Binding="{Binding NextAction}" Width="260"/>
-                                        <DataGridCheckBoxColumn Header="Exec" Binding="{Binding ProcessingEnabled}" Width="60"/>
+                                        <DataGridTextColumn Header="Exec" Binding="{Binding ExecutionState}" Width="75"/>
+                                        <DataGridTextColumn Header="Degraded mode" Binding="{Binding DegradationReason}" Width="280"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <TextBlock x:Name="ModuleReadinessSummaryText"
