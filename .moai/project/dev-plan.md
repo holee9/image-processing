@@ -1,8 +1,8 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.4.0  
-**Date**: 2026-04-21  
+**Version**: 1.7.0  
+**Date**: 2026-04-22  
 **Status**: Active — 지속적 갱신 대상
 
 ---
@@ -64,7 +64,7 @@ xpe-gui/ (Lane C, dev/gui)
 | A (Process/Compliance) | 83 | **~83** | 85 |
 | B (Product/Delivery) | ~76 | **~77** | 85 |
 
-3-Lane squash merge 반영 — gsvg 착수 + BP-06~09 baseline 문서 + GUI Phase1B chain (2026-04-21 v1.4.0 기준).
+S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement + SECURITY.md + SPDF Plan + PMS Plan 초안 작성 (2026-04-22 v1.7.0 기준).
 
 ---
 
@@ -74,9 +74,9 @@ xpe-gui/ (Lane C, dev/gui)
 
 | 작업 | 종류 | 점수 기여 | 선행 조건 |
 |------|------|:---------:|---------|
-| **S-OPS-CORE** (SPEC-XPE-OPS 필수 부분) | 문서/프로세스 | +? | S1-B1 완료 ✅ |
-| **S-IOP-CORE** (DICOM Conformance Statement) | 문서/검증 | +? | S1-B3 완료 ✅ |
-| **S-SEC-CORE** (§524B, SBOM, Input Val) | 문서/CI | +? | S0-B 완료 ✅ |
+| **S-OPS-CORE** (SPEC-XPE-OPS 필수 부분) | 문서/프로세스 | +? | ✅ pms-plan.md v0.1 작성 완료 (2026-04-22) |
+| **S-IOP-CORE** (DICOM Conformance Statement) | 문서/검증 | +? | ✅ dicom-conformance-statement.md v0.1 작성 완료 (2026-04-22) |
+| **S-SEC-CORE** (§524B, SBOM, Input Val) | 문서/CI | +? | ✅ SECURITY.md + spdf-plan.md v0.1 작성 완료 (2026-04-22) |
 | **IEC 62304 sync** (SRS/SDD/RTM/VVP) | 문서 | **+3** | 병렬 가능 |
 | **점수 공식 재측정** (Framework A/B 갱신) | 평가 | 기준선 확립 | 즉시 |
 | **api-spec.md 최신화** | 명세 | 아키텍처 점수 | 즉시 |
@@ -89,7 +89,7 @@ main이 정의할 다음 Lane 작업 SPEC:
 | SPEC | 담당 Lane | 점수 기여 | 현재 상태 |
 |------|----------|:---------:|---------|
 | SPEC-XPE-P2-ADV 실구현 명세 완성 | Post-B | +3 | 스켈레톤 존재 |
-| SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | SPEC 미작성 |
+| SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | ✅ SPEC v1.0.0 작성 완료 (2026-04-22) |
 | SPEC-BENCH-PRE (BP-01~05 preprocess freeze) | Pre-A | +2 | SPEC 미작성 |
 | SPEC-BENCH-POST (BP-06~09 post-processing freeze) | Post-B | +1 | SPEC 미작성 |
 | BP-10 (degraded-mode stress) | main | +? | cross-lane, 통합 후 측정 |
@@ -210,3 +210,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-21 | 1.4.0 | 3-Lane 전체 squash merge 반영 — runtime_detection 보강, gsvg 착수, BP-06~09 baseline 완료, GUI Phase1B chain; 점수 갱신 A=83, B=~77 |
 | 2026-04-21 | 1.5.0 | 비-AI 잔여 작업 일괄 처리 — VVP 문서 작성, EARS P1B-ENH/DISP 검증(완료 확인), GSVG API 구현(v0.2.0), DegradedMode GTest BP-01~09, Gate G1b→G2 검증 계획 수립 |
 | 2026-04-22 | 1.6.0 | 7개 검토사항 순차 완료 — xpe-gui 커밋(+7파일), build_test2 정리, BP-01~05 DegradedMode freeze(6/6 PASS), SPEC-SIMD-001 v1.0.0 작성(+5점 임계경로 문서화), BP-06~09 freeze(4/4 PASS), EARS P1B 완료 확인, Lane 브랜치 현황 갱신 |
+| 2026-04-22 | 1.7.0 | S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement v0.1 (PS 3.2), SECURITY.md (CVD), SPDF Plan v0.1 (§524B), PMS Plan v0.1 (EU MDR Art 83) |
