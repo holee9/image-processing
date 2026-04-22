@@ -21,10 +21,10 @@ namespace {
 
 class RuntimeDetectAVX2ParityTest : public ::testing::Test {
 protected:
-    std::vector<uint16_t> inputPixels1;
-    std::vector<uint16_t> inputPixels2;
-    std::vector<uint16_t> defectOut1;
-    std::vector<uint16_t> defectOut2;
+    std::vector<float> inputPixels1;
+    std::vector<float> inputPixels2;
+    std::vector<uint8_t> defectOut1;
+    std::vector<uint8_t> defectOut2;
     XpeImageBuffer input1{};
     XpeImageBuffer input2{};
     XpeImageBuffer defectMapOut1{};
@@ -35,7 +35,8 @@ protected:
     static constexpr size_t PIXEL_COUNT = W * H;
 
     void SetUp() override {
-        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        // Try to initialize, but don't fail if already initialized
+        xpe_preprocess_init(nullptr);
 
         std::mt19937 rng(0xDEAD1234);
         std::uniform_int_distribution<uint16_t> dist(0, 4095);
@@ -46,7 +47,7 @@ protected:
         defectOut2.resize(PIXEL_COUNT, 0);
 
         for (size_t i = 0; i < PIXEL_COUNT; ++i) {
-            inputPixels1[i] = dist(rng);
+            inputPixels1[i] = static_cast<float>(dist(rng));
             inputPixels2[i] = inputPixels1[i];
         }
 
@@ -61,14 +62,14 @@ protected:
             buf.dataSize      = static_cast<uint32_t>(w * h * elemBytes);
         };
 
-        fillBuf(input1, inputPixels1.data(), W, H, XPE_PIXEL_UINT16, 2);
-        fillBuf(input2, inputPixels2.data(), W, H, XPE_PIXEL_UINT16, 2);
-        fillBuf(defectMapOut1, defectOut1.data(), W, H, XPE_PIXEL_UINT16, 2);
-        fillBuf(defectMapOut2, defectOut2.data(), W, H, XPE_PIXEL_UINT16, 2);
+        fillBuf(input1, inputPixels1.data(), W, H, XPE_PIXEL_FLOAT32, 4);
+        fillBuf(input2, inputPixels2.data(), W, H, XPE_PIXEL_FLOAT32, 4);
+        fillBuf(defectMapOut1, defectOut1.data(), W, H, XPE_PIXEL_UINT8, 1);
+        fillBuf(defectMapOut2, defectOut2.data(), W, H, XPE_PIXEL_UINT8, 1);
     }
 
     void TearDown() override {
-        xpe_preprocess_shutdown();
+        // Module managed by global environment
     }
 };
 
@@ -77,62 +78,62 @@ TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input2, &defectMapOut2, nullptr));
 
     EXPECT_EQ(0, std::memcmp(defectOut1.data(), defectOut2.data(),
-                             PIXEL_COUNT * sizeof(uint16_t)))
+                             PIXEL_COUNT * sizeof(uint8_t)))
         << "Runtime detection AVX2 output differs between identical calls";
 }
 
 TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
-    std::vector<uint16_t> noisyPixels(PIXEL_COUNT);
+    std::vector<float> noisyPixels(PIXEL_COUNT);
     std::mt19937 rng(0xCAFEBABE);
-    std::uniform_int_distribution<uint16_t> bigDist(0, 65535);
+    std::uniform_real_distribution<float> bigDist(0.0f, 65535.0f);
     for (auto& p : noisyPixels) p = bigDist(rng);
 
     XpeImageBuffer noisyBuf{};
     noisyBuf.data = noisyPixels.data();
     noisyBuf.width = W;
     noisyBuf.height = H;
-    noisyBuf.bitsAllocated = 16;
-    noisyBuf.bitsStored = 16;
-    noisyBuf.format = XPE_PIXEL_UINT16;
-    noisyBuf.dataSize = static_cast<uint32_t>(PIXEL_COUNT * 2);
+    noisyBuf.bitsAllocated = 32;
+    noisyBuf.bitsStored = 32;
+    noisyBuf.format = XPE_PIXEL_FLOAT32;
+    noisyBuf.dataSize = static_cast<uint32_t>(PIXEL_COUNT * 4);
 
-    std::vector<uint16_t> noisyOut(PIXEL_COUNT, 0);
+    std::vector<uint8_t> noisyOut(PIXEL_COUNT, 0);
     XpeImageBuffer noisyOutBuf{};
     noisyOutBuf.data = noisyOut.data();
     noisyOutBuf.width = W;
     noisyOutBuf.height = H;
-    noisyOutBuf.bitsAllocated = 16;
-    noisyOutBuf.bitsStored = 16;
-    noisyOutBuf.format = XPE_PIXEL_UINT16;
-    noisyOutBuf.dataSize = static_cast<uint32_t>(PIXEL_COUNT * 2);
+    noisyOutBuf.bitsAllocated = 8;
+    noisyOutBuf.bitsStored = 8;
+    noisyOutBuf.format = XPE_PIXEL_UINT8;
+    noisyOutBuf.dataSize = static_cast<uint32_t>(PIXEL_COUNT * 1);
 
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &defectMapOut1, nullptr));
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&noisyBuf, &noisyOutBuf, nullptr));
 
     bool anyDifference = (std::memcmp(defectOut1.data(), noisyOut.data(),
-                                      PIXEL_COUNT * sizeof(uint16_t)) != 0);
+                                      PIXEL_COUNT * sizeof(uint8_t)) != 0);
     EXPECT_TRUE(anyDifference)
         << "Highly noisy input should produce different defect map from uniform input";
 }
 
 TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
-    std::vector<std::vector<uint16_t>> outputs(5, std::vector<uint16_t>(PIXEL_COUNT, 0));
+    std::vector<std::vector<uint8_t>> outputs(5, std::vector<uint8_t>(PIXEL_COUNT, 0));
     std::vector<XpeImageBuffer> outBufs(5);
 
     for (int i = 0; i < 5; ++i) {
         outBufs[i].data = outputs[i].data();
         outBufs[i].width = W;
         outBufs[i].height = H;
-        outBufs[i].bitsAllocated = 16;
-        outBufs[i].bitsStored = 16;
-        outBufs[i].format = XPE_PIXEL_UINT16;
-        outBufs[i].dataSize = static_cast<uint32_t>(PIXEL_COUNT * 2);
+        outBufs[i].bitsAllocated = 8;
+        outBufs[i].bitsStored = 8;
+        outBufs[i].format = XPE_PIXEL_UINT8;
+        outBufs[i].dataSize = static_cast<uint32_t>(PIXEL_COUNT * 1);
         ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &outBufs[i], nullptr));
     }
 
     for (int i = 1; i < 5; ++i) {
         EXPECT_EQ(0, std::memcmp(outputs[0].data(), outputs[i].data(),
-                                 PIXEL_COUNT * sizeof(uint16_t)))
+                                 PIXEL_COUNT * sizeof(uint8_t)))
             << "Call " << i << " differs from call 0 — non-deterministic AVX2 dispatch";
     }
 }
