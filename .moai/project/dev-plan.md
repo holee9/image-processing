@@ -1,7 +1,7 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.8.0  
+**Version**: 1.9.0  
 **Date**: 2026-04-22  
 **Status**: Active — 지속적 갱신 대상
 
@@ -59,13 +59,17 @@ xpe-gui/ (Lane C, dev/gui)
 
 ### 1.2 점수 현황
 
-| Framework | 이전 | 현재 추정 | 목표 |
+| Framework | 이전 | 현재 실측 | 목표 |
 |-----------|:----:|:--------:|:----:|
-| A (Process/Compliance) | ~83 | **~86** | 85 ✅ |
-| B (Product/Delivery) | ~77 | **~78** | 85 |
+| A (Process/Compliance) | ~86 | **~85** | 85 ✅ |
+| B (Product/Delivery) | ~78 | **~75** | 85 |
 
-- 3-Lane 병합 완료 (2026-04-22 v1.8.0): BP-01~09 freeze +3, E2E 테스트 보강 +1
-- S-OPS/IOP/SEC CORE 문서 초안 완료 — DICOM Conformance Statement + SECURITY.md + SPDF Plan + PMS Plan
+- 점수 재측정 (2026-04-22 v1.9.0): 항목별 실측 기반 재계산, AI governance 미반영으로 B 하향 조정
+- SPEC-BENCH-PRE/POST v1.0.0 작성 완료 — BP-01~09 freeze SPEC 정식화
+- SPEC-XPE-GSVG v1.0.0 작성 완료 — GSVG 26개 요구사항 정식화
+- api-spec.md v1.4.0 갱신 — AED 제거, SPEC-MASTER v3.0 참조
+- Post-B 재통합 (37파일) — GSVG API + BP freeze + E2E + MSVC 수정
+- OPS/IOP/SEC 리뷰: DICOM Conf/PMS = Minor, SECURITY/SPDF = Major 업데이트 필요
 
 ---
 
@@ -193,8 +197,16 @@ SPEC 문서 검토 결과 요구사항이 이미 완전히 작성된 상태임�
 ### P1: IEC 62304 VVP sync (+1점)
 
 P2-ADV VVP 완성됨 (vvp_adv.md 작성 완료 2026-04-21).
-P1A/P1B 모듈 VVP 항목 추가 여부 별도 확인 필요.
-- 대상: vvp_adv.md 기반 P1A/P1B 항목 보강
+VVP-PREPROCESS-001 v1.1.0 작성 완료 (SPEC-SIMD-001, BP-01~05 freeze 반영).
+**P1B VVP addendum 누락 확인** — ENH/DISP/DICOM 모듈 VVP 보강 필요.
+
+### P1: S-OPS/IOP/SEC v0.1 → v1.0 승인
+
+리뷰 결과 (2026-04-22):
+- DICOM Conformance Statement v0.1 → **Minor** (검증 절차, 유지보수 섹션 추가)
+- PMS Plan v0.1 → **Minor** (AI 모니터링, 필드 배포 시스템 추가)
+- SECURITY.md v0.1 → **Major** (사건 대응 절차, 보안 테스트 계획 필요)
+- SPDF Plan v0.1 → **Major** (위협 모델 완성, SLSA L2/L3 구현 필요)
 
 ### P1: Gate G1b → G2 준비
 
@@ -227,3 +239,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-22 | 1.6.0 | 7개 검토사항 순차 완료 — xpe-gui 커밋(+7파일), build_test2 정리, BP-01~05 DegradedMode freeze(6/6 PASS), SPEC-SIMD-001 v1.0.0 작성(+5점 임계경로 문서화), BP-06~09 freeze(4/4 PASS), EARS P1B 완료 확인, Lane 브랜치 현황 갱신 |
 | 2026-04-22 | 1.7.0 | S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement v0.1 (PS 3.2), SECURITY.md (CVD), SPDF Plan v0.1 (§524B), PMS Plan v0.1 (EU MDR Art 83) |
 | 2026-04-22 | 1.8.0 | 3-Lane 전체 squash merge 완료 — GUI-C/Post-B/Pre-A 병합 (충돌 4개 해소); 점수 갱신 A ~83→~86, B ~77→~78; 잔여 임계경로: SPEC-SIMD-001 구현 (+5) |
+| 2026-04-22 | 1.9.0 | SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 작성; api-spec.md v1.4.0 갱신; Post-B 재통합 37파일; 점수 실측 재계산 A ~85, B ~75; OPS/IOP/SEC 리뷰 완료; P1B VVP 누락 확인 |
