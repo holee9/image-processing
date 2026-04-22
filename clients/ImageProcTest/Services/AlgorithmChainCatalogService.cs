@@ -46,7 +46,7 @@ namespace ImageProcTest
             new("edge", "(8)", "Edge enhancement", "xpe_enhance_basic", "xpe_enhance_basic.dll", "1b", "enhancement", "enhancement", "pipeline-spec (8)", "TST-200-001", "mandatory baseline", "native-enhance-basic", 8.0, true, false, false, false, null, "Build/load xpe_enhance_basic.dll and run USM edge enhancement."),
             new("collimation", "(5b)", "Baseline collimation detection", "xpe_enhance_advanced", "xpe_enhance_advanced.dll", "2", "detector-float-side-copy", "roi-sidecar", "SRS-ENHANCE-ADV ROI", "ROI confidence tests", "optional branch", "adapter-pending", 8.5, false, true, false, true, null, "Add ROI sidecar adapter; result gates EI-1 only."),
             new("ei-roi", "(EI-1)", "ROI-aware EI refinement", "orchestrator+xpe_enhance_basic", "orchestrator", "2", "detector-float-roi", "metrics", "ALG-SPEC 6.5, SAF-101", "ROI EI tests", "optional branch", "adapter-pending", 8.6, false, true, false, true, null, "Add ROI crop orchestration after baseline collimation detection."),
-            new("gsvg", "(9)", "GSVG / virtual grid", "gsvg", "gsvg.dll", "2", "enhancement", "enhancement", "GSVG-SRS-001", "grid/no-grid benchmark", "optional", "adapter-pending", 9.0, false, true, false, false, null, "Add gsvg adapter and skip-reason diagnostic JSON before enabling execution."),
+            new("gsvg", "(9)", "GSVG / virtual grid", "gsvg", "gsvg.dll", "2", "enhancement", "enhancement", "GSVG-SRS-001", "grid/no-grid benchmark", "optional", "gsvg-adapter-pending", 9.0, false, true, false, false, null, "Track C1/C2 readiness in the GUI and wait for #61 processing exports before enabling GSVG execution."),
             new("multiscale", "(10)", "Multiscale processing", "xpe_enhance_advanced", "xpe_enhance_advanced.dll", "2", "enhancement", "enhancement", "SRS-ENHANCE-ADV", "PSNR/SSIM/MTF gates", "optional", "adapter-pending", 10.0, false, true, false, false, null, "Add advanced enhancement adapter and quality gates."),
             new("fractional", "(11)", "Fractional processing", "xpe_enhance_advanced", "xpe_enhance_advanced.dll", "2", "enhancement", "enhancement", "pipeline-spec (11)", "advanced enhancement gates", "optional", "adapter-pending", 11.0, false, true, false, false, null, "Add fractional processing adapter and benchmark binding."),
             new("ai-bodypart", "(5a)", "Body-part recognition advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-copy", "ai-advisory", "ALG-SPEC 6.7", "AI reporting rule", "optional branch", "adapter-pending", 12.0, false, true, false, true, null, "Add AI worker proxy and confidence/fallback report."),
@@ -312,6 +312,15 @@ namespace ImageProcTest
                     continue;
                 }
 
+                if (IsGsvgStage(step.StageKey))
+                {
+                    findings.Add(Hard(
+                        "GSVG-ADAPTER-PENDING",
+                        $"{step.Node.Label} {step.Node.AlgorithmName} is selected, but GSVG C1/C2 execution is waiting on the Post-B #61 native adapter contract.",
+                        step.Node.NextAction));
+                    continue;
+                }
+
                 findings.Add(Hard(
                     "ADAPTER-PENDING",
                     $"{step.Node.Label} {step.Node.AlgorithmName} is selected but its GUI execution adapter is not available yet.",
@@ -553,6 +562,9 @@ namespace ImageProcTest
 
         private static bool IsDicomStage(string stageKey) =>
             string.Equals(stageKey, "dicom-write", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsGsvgStage(string stageKey) =>
+            string.Equals(stageKey, "gsvg", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsDetectorOrLaterImageStage(string stageKey) =>
             !string.Equals(stageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);

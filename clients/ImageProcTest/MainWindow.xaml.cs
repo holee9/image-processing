@@ -1653,6 +1653,7 @@ namespace ImageProcTest
                         ? "ready"
                         : "blocked";
             WorkflowAlgorithmStatusText.Text = $"{currentAlgorithmChainPlan.Summary} Input: {inputState}.";
+            UpdateGsvgWorkflowStatus();
             UpdateWorkflowRunState();
         }
 
@@ -1695,6 +1696,20 @@ namespace ImageProcTest
                 "rule status",
                 currentAlgorithmChainPlan.Summary,
                 currentAlgorithmChainPlan.HasHardBlocks ? "Blocked" : "Runnable"));
+
+            var gsvg = GetGsvgReadiness();
+            rows.Add(new EvaluationMetricRow(
+                "GSVG",
+                "C1/C2 UI gate",
+                gsvg is null
+                    ? "not checked"
+                    : $"{gsvg.Level} {gsvg.Status}; execution={gsvg.ExecutionState}; {gsvg.DegradedMode}",
+                "GSVG-SRS-001"));
+            rows.Add(new EvaluationMetricRow(
+                "GSVG",
+                "catalog coverage",
+                $"{currentAlgorithmValidation.Count(IsGsvgValidationItem)} C1/C2 row(s); selected={IsGsvgSelected()}",
+                "GSVG-RTM-001"));
 
             rows.Add(new EvaluationMetricRow(
                 "Calibration",
@@ -1843,6 +1858,41 @@ namespace ImageProcTest
             {
                 ReportsSummaryText.Text = $"Reports: {reportArtifacts.Count} artifact(s) generated in this session.";
             }
+        }
+
+        private ModuleReadinessSnapshot? GetGsvgReadiness()
+        {
+            return currentModuleReadiness.FirstOrDefault(module =>
+                string.Equals(module.ModuleName, "gsvg", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsGsvgValidationItem(AlgorithmValidationItem item)
+        {
+            return string.Equals(item.ModuleName, "gsvg", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsGsvgSelected()
+        {
+            return currentAlgorithmChainPlan.Steps.Any(step =>
+                string.Equals(step.StageKey, "gsvg", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void UpdateGsvgWorkflowStatus()
+        {
+            var gsvg = GetGsvgReadiness();
+            var rowCount = currentAlgorithmValidation.Count(IsGsvgValidationItem);
+            var selected = IsGsvgSelected() ? "yes" : "no";
+            if (gsvg is null)
+            {
+                GsvgWorkflowStatusText.Text =
+                    $"GSVG UI: Phase 2 C1/C2 catalog rows={rowCount}; module readiness not checked; execution remains blocked until #61.";
+                return;
+            }
+
+            GsvgWorkflowStatusText.Text =
+                $"GSVG UI: Phase 2 C1/C2 rows={rowCount}; selected={selected}; " +
+                $"{gsvg.Level} {gsvg.Status}; execution={gsvg.ExecutionState}; " +
+                $"skip={gsvg.DegradedMode}; next={gsvg.NextAction}";
         }
 
         private void AddReportArtifact(string kind, string path)
