@@ -82,10 +82,14 @@ TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
 }
 
 TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
-    std::vector<float> noisyPixels(PIXEL_COUNT);
+    // Flat image with sparse extreme outliers: Hampel window median=2000, MAD≈0,
+    // so extreme pixels (65535) are always flagged regardless of threshold.
+    // Regular input1 is uniform [0,4095] — Hampel threshold >>2047 so no defects.
+    std::vector<float> noisyPixels(PIXEL_COUNT, 2000.0f);
     std::mt19937 rng(0xCAFEBABE);
-    std::uniform_real_distribution<float> bigDist(0.0f, 65535.0f);
-    for (auto& p : noisyPixels) p = bigDist(rng);
+    std::uniform_int_distribution<size_t> posDist(0, PIXEL_COUNT - 1);
+    for (int j = 0; j < 500; ++j)
+        noisyPixels[posDist(rng)] = 65535.0f;
 
     XpeImageBuffer noisyBuf{};
     noisyBuf.data = noisyPixels.data();
@@ -112,7 +116,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
     bool anyDifference = (std::memcmp(defectOut1.data(), noisyOut.data(),
                                       PIXEL_COUNT * sizeof(uint8_t)) != 0);
     EXPECT_TRUE(anyDifference)
-        << "Highly noisy input should produce different defect map from uniform input";
+        << "Flat image with extreme outliers should produce different defect map from uniform input";
 }
 
 TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
