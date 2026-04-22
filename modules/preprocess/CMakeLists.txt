@@ -142,6 +142,12 @@ if(_XPE_BUILD_TESTS)
         tests/test_xpe_preprocess_init.cpp
         # BP-01~05 DegradedMode benchmark smoke tests (null/identity calibration)
         tests/test_preprocess_degraded.cpp
+        # BP-01~05 DegradedMode — see test_preprocess_degraded.cpp above
+        # TODO SPEC-SIMD-001 REQ-SIMD-001: test_offset_correct_avx2_parity.cpp
+        #   Blocked: uses 2-arg xpe_offset_correct(input, offsetMap) — API changed to 3-arg (input, output, metadata)
+        #   Fix: rewrite SetUp() to load calibration via xpe_calib_load() and call new API before re-enabling
+        # TODO SPEC-SIMD-001: test_offset_correct_avx512_parity.cpp — blocked by xpe_simd_force_scalar API
+        # TODO SPEC-SIMD-001: test_offset_correct_neon_parity.cpp — blocked by NEON dispatch API (ARM only)
     )
 
     add_executable(xpe_preprocess_tests
