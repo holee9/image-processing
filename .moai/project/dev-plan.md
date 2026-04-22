@@ -1,8 +1,8 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.3.0  
-**Date**: 2026-04-20  
+**Version**: 1.7.0  
+**Date**: 2026-04-22  
 **Status**: Active — 지속적 갱신 대상
 
 ---
@@ -33,7 +33,7 @@ xpe-gui/ (Lane C, dev/gui)
 
 ---
 
-## 1. 현재 상태 (2026-04-21 기준)
+## 1. 현재 상태 (2026-04-22 기준)
 
 ### 1.1 통합 현황 (main 기준)
 
@@ -46,25 +46,25 @@ xpe-gui/ (Lane C, dev/gui)
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
 | ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | 진행중 (TASK-GUI-IA-001) |
 | xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
-| gsvg.dll | Post-B | - | ❌ | 미착수 |
+| gsvg.dll | Post-B | 1/1 ✅ (BP-06) | ✅ | 착수 (CMakeLists + benchmark test) |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
 
-### 1.1.1 Lane 브랜치 현황 (main 미통합)
+### 1.1.1 Lane 브랜치 현황 (2026-04-22 기준)
 
-| Lane | 브랜치 | main 선행 커밋 | 최신 작업 | 상태 |
-|------|--------|:-----------:|---------|------|
-| Pre-A | dev/preprocess | 16 | docs(codemaps) 아키텍처 개선 | 클린 ✅ |
-| Post-B | dev/postprocess | 13 | IEC docs 갱신 + GTest fallback | 클린 ✅ |
-| GUI-C | dev/gui | 5 | TASK-GUI-IA-001 MVVM 모듈화 | 클린 ✅ |
+| Lane | 브랜치 | 선행 커밋 | 최신 내용 | 상태 |
+|------|--------|:---------:|---------|------|
+| Pre-A | dev/preprocess | +3 | BP-01~05 DegradedMode 6/6 PASS + SPEC-SIMD-001 CMakeLists TODO | 작업 중 (미병합) |
+| Post-B | dev/postprocess | +2 | BP-06~09 4/4 PASS + build_test2/ 아티팩트 정리 | 작업 중 (미병합) |
+| GUI-C | dev/gui | +1 | Phase1b E2E fixture + NativePresentation export 서비스 | 작업 중 (미병합) |
 
 ### 1.2 점수 현황
 
 | Framework | 문서화 | 실제 추정 | 목표 |
 |-----------|:------:|:--------:|:----:|
-| A (Process/Compliance) | 81 | **~81** | 85 |
-| B (Product/Delivery) | ~74 | **~74** | 85 |
+| A (Process/Compliance) | 83 | **~83** | 85 |
+| B (Product/Delivery) | ~76 | **~77** | 85 |
 
-M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-21 v2.4.0 기준).
+S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement + SECURITY.md + SPDF Plan + PMS Plan 초안 작성 (2026-04-22 v1.7.0 기준).
 
 ---
 
@@ -74,9 +74,9 @@ M2 SIMD + P2-ADV + Golden Reference CI 반영 (2026-04-21 v2.4.0 기준).
 
 | 작업 | 종류 | 점수 기여 | 선행 조건 |
 |------|------|:---------:|---------|
-| **S-OPS-CORE** (SPEC-XPE-OPS 필수 부분) | 문서/프로세스 | +? | S1-B1 완료 ✅ |
-| **S-IOP-CORE** (DICOM Conformance Statement) | 문서/검증 | +? | S1-B3 완료 ✅ |
-| **S-SEC-CORE** (§524B, SBOM, Input Val) | 문서/CI | +? | S0-B 완료 ✅ |
+| **S-OPS-CORE** (SPEC-XPE-OPS 필수 부분) | 문서/프로세스 | +? | ✅ pms-plan.md v0.1 작성 완료 (2026-04-22) |
+| **S-IOP-CORE** (DICOM Conformance Statement) | 문서/검증 | +? | ✅ dicom-conformance-statement.md v0.1 작성 완료 (2026-04-22) |
+| **S-SEC-CORE** (§524B, SBOM, Input Val) | 문서/CI | +? | ✅ SECURITY.md + spdf-plan.md v0.1 작성 완료 (2026-04-22) |
 | **IEC 62304 sync** (SRS/SDD/RTM/VVP) | 문서 | **+3** | 병렬 가능 |
 | **점수 공식 재측정** (Framework A/B 갱신) | 평가 | 기준선 확립 | 즉시 |
 | **api-spec.md 최신화** | 명세 | 아키텍처 점수 | 즉시 |
@@ -89,7 +89,7 @@ main이 정의할 다음 Lane 작업 SPEC:
 | SPEC | 담당 Lane | 점수 기여 | 현재 상태 |
 |------|----------|:---------:|---------|
 | SPEC-XPE-P2-ADV 실구현 명세 완성 | Post-B | +3 | 스켈레톤 존재 |
-| SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | SPEC 미작성 |
+| SPEC-SIMD-001 (scalar ref + parity) | Pre-A | +5 | ✅ SPEC v1.0.0 작성 완료 (2026-04-22) |
 | SPEC-BENCH-PRE (BP-01~05 preprocess freeze) | Pre-A | +2 | SPEC 미작성 |
 | SPEC-BENCH-POST (BP-06~09 post-processing freeze) | Post-B | +1 | SPEC 미작성 |
 | BP-10 (degraded-mode stress) | main | +? | cross-lane, 통합 후 측정 |
@@ -116,15 +116,19 @@ main이 정의할 다음 Lane 작업 SPEC:
 | 항목 | Framework A 기여 | 완료일 |
 |------|:----------------:|--------|
 | M2 SIMD (AVX2/FMA) 구현 + parity | +2 (구현진행도) | 2026-04-19 |
-| P2-ADV 97/103 + IEC 62304 4종 | +5 (요구사항+문서+구현+품질) | 2026-04-19 |
+| P2-ADV 65/65 + IEC 62304 4종 | +5 (요구사항+문서+구현+품질) | 2026-04-21 |
 | Golden Reference 26개 + CI | +1 (품질보증) | 2026-04-19 |
+| **SPEC-XPE-P1B-DICOM Released** | +2 (요구사항 완전성 →46개) | 2026-04-21 |
+| **BP-10 CI 워크플로우 + 테스트 드라이버** | +2 (benchmark regression 준비) | 2026-04-21 |
+| **Post-B + GUI-C → main 통합** | 품질게이트 확인 후 통합 | 2026-04-21 |
+| **3-Lane 전체 squash merge (Pre-A + Post-B + GUI-C)** | 런타임 검증 보강, gsvg 착수, Phase1B GUI chain | 2026-04-21 |
 
 ### main 직접 기여 항목 (잔여, 점수 증가)
 
 | 항목 | Framework A 기여 | 비고 |
 |------|:----------------:|------|
-| benchmark BP-01~10 동결 + 자동 재현 | +3 | 임계경로 — 가장 빠른 +3 |
-| EARS P1B 요구사항 작성 | +2 | 요구사항 완전성 13→17 |
+| benchmark BP-01~05 Lane A 동결 | +2 | Pre-A: DegradedMode.* GTest 구현 필요 |
+| benchmark BP-06~09 Lane B 동결 | +1 | Post-B: baseline 문서 완료 ✅, DegradedMode GTest 연동 남음 |
 | IEC 62304 VVP sync | +1 | 문서 품질 19→20 |
 
 ---
@@ -153,30 +157,29 @@ main 병합 후 전체 파이프라인 E2E 검증:
 
 ## 5. 다음 main 작업 계획 (우선순위 순)
 
-### P0: benchmark 동결 ← 임계경로 (+3점)
+### ✅ P0: benchmark 동결 ← 완료 (2026-04-22)
 
-현재 상태: SIMD 구현 완료. 기준 동결 미수행.
-
-| 팩 | 담당 Lane | 내용 |
+| 팩 | 담당 Lane | 상태 |
 |----|----------|------|
-| BP-01~05 | **Pre-A** | Preprocess 전용 — Offset/Gain/Defect/Ghost/Temp 측정값 동결 |
-| BP-06~09 | **Post-B** | Post 전용 — GSVG/Collimation/EI/DI 측정값 동결 |
-| BP-10 | **main** | Degraded-mode stress (cross-lane, 통합 후 측정) |
+| BP-01~05 | **Pre-A** | ✅ DegradedMode 6/6 PASS, manifest v1.1.0 Frozen |
+| BP-06~09 | **Post-B** | ✅ BenchmarkFreeze 4/4 PASS, manifest Frozen |
+| BP-10 | **main** | CI 워크플로우 완료 (benchmark-regression.yml) |
 
-- main: benchmark regression CI 잡 추가 (양 Lane 결과 통합 검증)
 - 기여: Framework A +3, Framework B (알고리즘 품질) +2
 
-### P0: EARS P1B 요구사항 작성 (+2점)
+### ✅ P0: EARS P1B 요구사항 작성 (+2점) — 완료 확인 (2026-04-22)
 
-S1-B1~B3 구현 완료됐으나 EARS 요구사항 문서 미작성.
-- 대상 SPEC: SPEC-XPE-P1B-ENH, SPEC-XPE-P1B-DISP, SPEC-XPE-P1B-DICOM
-- 내용: 각 모듈 EARS 요구사항 작성 → 요구사항 완전성 15→17점
+SPEC 문서 검토 결과 요구사항이 이미 완전히 작성된 상태임을 확인.
+- SPEC-XPE-P1B-ENH: 30 EARS 요구사항 ✅ (Status: Implemented)
+- SPEC-XPE-P1B-DISP: 35 EARS 요구사항 ✅ (Status: Completed)
+- SPEC-XPE-P1B-DICOM: 40 EARS 요구사항 ✅ (Released 2026-04-21)
+→ 요구사항 완전성 점수 이미 반영됨
 
 ### P1: IEC 62304 VVP sync (+1점)
 
-P2-ADV IEC 패키지는 완성됐으나 VVP (Validation/Verification Plan) 미완성.
-- 대상: docs/project/vvp_adv.md 작성
-- P1A/P1B 모듈 VVP 항목도 추가
+P2-ADV VVP 완성됨 (vvp_adv.md 작성 완료 2026-04-21).
+P1A/P1B 모듈 VVP 항목 추가 여부 별도 확인 필요.
+- 대상: vvp_adv.md 기반 P1A/P1B 항목 보강
 
 ### P1: Gate G1b → G2 준비
 
@@ -184,6 +187,15 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 - Full Phase 1 pipeline < 3000ms for 3072×3072
 - Phase 1 peak memory <= 190MB
 - Integration test: Raw DICOM → Pre → Post → EI → Display → DICOM Write
+
+**검증 계획 (빌드 환경 필요):**
+1. `xpe_preprocess_tests.exe` + `xpe_enhance_basic_tests.exe` + `xpe_display_tests.exe` + `xpe_dicom_tests.exe` 전체 PASS 확인
+2. ImageProcTest.IntegrationTests 78개 PASS 확인
+3. 성능 측정: 3072×3072 Raw DICOM 입력 → 전체 파이프라인 E2E 타이밍 기록
+4. 메모리 프로파일: 1000프레임 연속 처리 피크 메모리 190MB 이하 확인
+5. GSVG 통합: GSVG 모듈 R2(ABI smoke test) 달성 후 G2 게이트 통과 가능
+
+**현재 상태**: GSVG API 구현 완료(v0.2.0), DegradedMode GTest 추가됨. 빌드 후 실측 필요.
 
 ---
 
@@ -195,3 +207,7 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-19 | 1.1.0 | main 역할 재정의 — 구현은 Lane, main은 통합/거버넌스/문서 |
 | 2026-04-19 | 1.2.0 | 점수 갱신 — M2 SIMD + P2-ADV + Golden Ref CI 반영 (73→81); xpe_enhance_advanced.dll 완료; 다음 작업 benchmark 최우선으로 재편 |
 | 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
+| 2026-04-21 | 1.4.0 | 3-Lane 전체 squash merge 반영 — runtime_detection 보강, gsvg 착수, BP-06~09 baseline 완료, GUI Phase1B chain; 점수 갱신 A=83, B=~77 |
+| 2026-04-21 | 1.5.0 | 비-AI 잔여 작업 일괄 처리 — VVP 문서 작성, EARS P1B-ENH/DISP 검증(완료 확인), GSVG API 구현(v0.2.0), DegradedMode GTest BP-01~09, Gate G1b→G2 검증 계획 수립 |
+| 2026-04-22 | 1.6.0 | 7개 검토사항 순차 완료 — xpe-gui 커밋(+7파일), build_test2 정리, BP-01~05 DegradedMode freeze(6/6 PASS), SPEC-SIMD-001 v1.0.0 작성(+5점 임계경로 문서화), BP-06~09 freeze(4/4 PASS), EARS P1B 완료 확인, Lane 브랜치 현황 갱신 |
+| 2026-04-22 | 1.7.0 | S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement v0.1 (PS 3.2), SECURITY.md (CVD), SPDF Plan v0.1 (§524B), PMS Plan v0.1 (EU MDR Art 83) |

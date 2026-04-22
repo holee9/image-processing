@@ -444,7 +444,7 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
 
     // Path 2: Invalid format
     XpeImageMetadata meta;
-    memset(&meta, 0, sizeof(meta));
+    std::memset(&meta, 0, sizeof(meta));
     img.format = XPE_PIXEL_UINT16;
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
     img.format = XPE_PIXEL_FLOAT32;
@@ -462,7 +462,7 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     xpe_enhance_advanced_shutdown();
     EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_NOT_INITIALIZED);
 
-    delete[] img.data;
+    delete[] static_cast<float*>(img.data);
 }
 
 /* ============================================================================
@@ -649,7 +649,7 @@ TEST(IntegrationTest, T609_SIMIDispatchPreparation) {
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_OK);
 
-    delete[] img.data;
+    delete[] static_cast<float*>(img.data);
     xpe_enhance_advanced_shutdown();
 
     // Note: Phase 5 will add:
@@ -697,7 +697,7 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     int x0, y0, x1, y1;
     EXPECT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK);
 
-    delete[] img.data;
+    delete[] static_cast<float*>(img.data);
     xpe_enhance_advanced_shutdown();
 
     // Note: MX tag verification requires code scanning:

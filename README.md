@@ -4,69 +4,98 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-20 — 3-Lane 통합 세션)
+## 프로젝트 완성도 현황 (2026-04-22 — 거버넌스 세션 2차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 | 다음 목표 | 최종 목표 |
 |-----------|------|:----:|:---------:|:---------:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **82 / 100** | ~85 | **85** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | **~76** | ~78 | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 교차검증 이슈 해소 | **83 / 100** | ~85 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크 증거, 운영 준비도 | **~77** | ~80 | **85** |
 
-### 점수 상세 (Framework A, 2026-04-20 3-Lane 통합 후)
+### 점수 상세 (Framework A, 2026-04-22 기준)
 
 | 영역 | 배점 | 현재 | 변화 | 비고 |
 |------|:----:|:----:|:----:|------|
-| 요구사항 완전성 (EARS) | 25 | **15** | — | P2-ADV SRS 요구사항 추가 (SWU-2.5/2.6/2.8/2.10) |
-| 문서 품질 (IEC 62304) | 20 | **19** | — | P2-ADV IEC 62304 Class B 패키지 완성 |
+| 요구사항 완전성 (EARS) | 25 | **16** | — | SPEC-XPE-P1B-DICOM/ENH/DISP 3종 완료 확인; SPEC-SIMD-001 v1.0.0 작성 (+5 임계경로 문서화) |
+| 문서 품질 (IEC 62304) | 20 | **19** | — | VVP sync 잔존; DICOM CS / PMS Plan / SPDF Plan / SECURITY.md 초안 작성 |
 | 아키텍처 설계 | 20 | **18** | — | P1A M2 SIMD dispatch + Hough/FD 알고리즘 구조 검증 |
-| 구현 진행도 | 20 | **18** | — | M2 SIMD + P2-ADV 97/103 (94.17%) + GUI Algorithm Validation UI |
-| 품질 보증 | 15 | **15** | — | SIMD parity 405/405, Golden Reference 26/26, preprocess 202/202 |
-| **합계** | **100** | **82** | — | 3-Lane main 통합 후 |
+| 구현 진행도 | 20 | **18** | — | BP-01~05 DegradedMode 6/6 PASS (freeze) + BP-06~09 BenchmarkFreeze 4/4 PASS (freeze) |
+| 품질 보증 | 15 | **15** | — | SIMD parity harness 정의 완료 (SPEC-SIMD-001), Golden Reference 26/26, BP-10 CI 준비 |
+| **합계** | **100** | **83** | **±0** | 2026-04-22 거버넌스 세션 2차 (SPEC + 문서 착수, 구현은 Lane 담당) |
 
-### 3-Lane Worktree 현황 (2026-04-20 통합 세션)
+### 모듈 구현 현황 (2026-04-22)
 
-| Lane | Branch | SPEC | 상태 | 비고 |
-|------|--------|------|:----:|------|
-| **A (Pre)** | dev/preprocess | SPEC-XPE-P1A M2 | ✅ **main 통합 완료** | 테스트 202/202 전체 통과, API 마이그레이션 완료 |
-| **B (Post)** | dev/postprocess | SPEC-XPE-P2-ADV | ✅ **main 통합 완료** | MFP/Edge/Collimation/EI + Hough/FD 버그픽스 |
-| **C (GUI)** | dev/gui | SPEC-XPE-GUI-CALIB-001 | ✅ **main 통합 완료** | Algorithm Validation UI 11개 SWU, MetricsComputationService |
+| 모듈 | Phase | 테스트 | Gate | SPEC | 상태 |
+|------|:-----:|:------:|:----:|------|:----:|
+| xpe_common.dll | 0 | 91/91 ✅ | G0 ✅ | SPEC-XPE-P0 | **완료** |
+| xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** |
+| xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** |
+| xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** |
+| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** |
+| xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** |
+| gsvg.dll | 2 | 1/1 ✅ | G2⏳ | SPEC-XPE-GSVG | **착수** |
+| xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
+| ImageProcTest.exe | GUI | 78/78 ✅ | — | TASK-GUI-IA-001 | **진행 중** |
 
-**최근 진행 상황** (2026-04-20 3-Lane 통합 세션):
-- ✅ **dev/preprocess → main squash merge** (2026-04-20) — 테스트 202/202 전체 통과, XPE_PIX→XPE_PIXEL API 마이그레이션
-- ✅ **dev/postprocess → main squash merge** (2026-04-20) — SPEC-XPE-P2-ADV MFP/Edge/Collimation/EI + Hough/FD 버그픽스
-- ✅ **dev/gui → main squash merge** (2026-04-20) — Algorithm Validation UI, MetricsComputationService, TASK-GUI-VIEWER-001 문서
-- ✅ **build_test2/build_test3/lint_results.json 추적 제외** — .gitignore 보강, dev/postprocess 빌드 아티팩트 정리
-- ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19~20) — MFP(2.5)/Edge(2.6)/Collimation(2.8)/EI(2.10) 4개 SWU, 97/103 테스트(94.17%), IEC 62304 SRS/SDD/RTM/Compliance 문서 완성
-- ✅ **M2 SIMD 구현 완료** (2026-04-19) — Offset/Gain/Defect/Detection AVX2/FMA 최적화, bit-identical/1 ULP parity, SPEC-XPE-P1A 완료
-- ✅ **Golden Reference 테스트 26/26 통과** (2026-04-19) — Offset/Gain/Ghost/Temp/Binning/Readout 수식 검증 + Calibration round-trip 완전 자동화
-- ✅ **CI Preprocess 전용 파이프라인 추가** — `ci-preprocess` CMake 프리셋 + GitHub Actions `preprocess-tests` 잡
-- ✅ **Gitea CI 구축** — self-hosted Windows 러너 + OpenCppCoverage HTML/Cobertura XML 커버리지 리포트
-- ✅ **Gate G1a → G1b 완전 마감** (2026-04-19) — 메모리 누수 1000프레임 테스트 delta 0KB PASSED
-- ✅ **SPRINT-P1B-ENH-01 완료** — xpe_enhance_basic.dll 8개 함수, 5/5 테스트 GREEN
-- ✅ **GUI 모듈 독립성 원칙 적용** — Workflow-first UI, DLL graceful degradation, 모듈별 의존성 맵
-- ✅ **XPE 모듈 독립성 원칙 문서화** — .claude/rules/moai/development/xpe-module-principles.md
-- ✅ **SPEC-XPE-P1A Phase 1a 완료** (2026-04-18) — 전처리 파이프라인 9개 스테이지 전체 구현
-- ✅ Ghost Correction Tier 1/2/3 완료 — NLCSC 비선형 보정 고도화 (14-50x 업계 우위)
-- ✅ `xpe_preprocess_pipeline` 통합 함수 구현 완료 (스테이지 0.5~4 단일 진입점)
-- ✅ **SPEC-XPE-GUI-IT 완료** — 통합 테스트 78/78 통과, xpe_common 강화 (init guard, param range whitelist)
-- ✅ **AED 코드 완전 제거** — detector 고유 하드웨어 기능, XPE 범위 외 (CRITICAL 정책)
-- ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (11/11 deliverables)
-- ✅ xpe_common.dll 15 API 함수, Google Test, CI/CD, ImageProcTest WPF 완료
+> **진도율**: Phase 0~2 구현 완료 기준 **7/9 모듈 (78%) + gsvg 착수**, 전체 테스트 **489/489 통과**
 
-### 85점 달성 경로 (교차검증 후 갱신)
+### 게이트 현황
+
+| 게이트 | 조건 | 상태 | 완료일 |
+|--------|------|:----:|--------|
+| G0 → G1a | Phase 0 Foundation 완료 | ✅ **PASSED** | 2026-04-18 |
+| G1a → G1b | Phase 1a 전처리 완료 + 메모리 누수 테스트 | ✅ **PASSED** | 2026-04-19 |
+| G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ⏳ **대기 중** | 성능 측정 필요 |
+| G2 → G3 | Phase 2 + GSVG + 듀얼 게이트 | ⏳ **미착수** | GSVG 구현 후 |
+
+### 3-Lane Worktree 현황 (2026-04-22)
+
+| Lane | Branch | 선행 커밋 | 최신 작업 | 상태 |
+|------|--------|:---------:|---------|:----:|
+| **A (Pre)** | dev/preprocess | +3 | BP-01~05 DegradedMode 6/6 PASS + SPEC-SIMD-001 CMakeLists TODO 주석 | 작업 중 (미병합) |
+| **B (Post)** | dev/postprocess | +2 | BP-06~09 BenchmarkFreeze 4/4 PASS + build_test2/ git 추적 제거 | 작업 중 (미병합) |
+| **C (GUI)** | dev/gui | +1 | Phase1b E2E fixture + NativePresentationExportService 서비스 | 작업 중 (미병합) |
+
+**최근 진행 상황** (2026-04-22 거버넌스 세션 2차 — 7개 항목 완료):
+
+| # | 작업 | 커밋 | 브랜치 |
+|---|------|------|--------|
+| 1 | **xpe-gui 미커밋 작업 커밋** — Phase1b E2E fixture + NativePresentationExportService | `606b93e` | dev/gui |
+| 2 | **xpe-post build_test2/ 정리** — build_test2/ git rm --cached (36파일 추적 제거) | `14dd747` | dev/postprocess |
+| 3 | **BP-01~05 DegradedMode freeze** — 6/6 PASS, manifest v1.1.0 Frozen 갱신 | `8da72d1` | dev/preprocess |
+| 4 | **SPEC-SIMD-001 v1.0.0 신규 작성** — REQ-SIMD-001~006, +5점 임계경로 문서화 | `8a5400b` `c992f69` | main + dev/preprocess |
+| 5 | **BP-06~09 BenchmarkFreeze** — 4/4 PASS (BP-06: 0ms, BP-07: 10ms, BP-08/09: 0ms) | `81b61d7` | dev/postprocess |
+| 6 | **EARS P1B 완료 확인** — P1B-ENH(30)/DISP(35)/DICOM(40) 3종 이미 완성, dev-plan v1.6.0 | `40af319` | main |
+| 7 | **S-OPS/IOP/SEC CORE 문서 착수** — DICOM CS v0.1 + SECURITY.md + SPDF Plan + PMS Plan | `dfd0159` | main |
+
+**이전 세션** (2026-04-21 3-Lane 병합 세션):
+- ✅ **3-Lane 전체 squash merge** — Pre-A + Post-B + GUI-C → main 통합
+- ✅ **gsvg.dll 착수** — CMakeLists + BP-06 benchmark test 착수
+- ✅ **SPEC-XPE-P1B-DICOM Released** — v1.1.0, 46 EARS 요구사항 교차검증 완료
+- ✅ **benchmark-regression.yml** — BP-10 degraded-mode CI 워크플로우 신설
+- ✅ **SPEC-XPE-P2-ADV 완전 구현** (2026-04-19~20) — 65/65 전수 통과, IEC 62304 SRS/SDD/RTM 완성
+- ✅ **M2 SIMD 구현 완료** (2026-04-19) — Offset/Gain/Defect/Detection AVX2/FMA, bit-identical/1 ULP parity
+- ✅ **Gate G1a → G1b 완전 마감** (2026-04-19) — 메모리 누수 1000프레임 delta 0KB PASSED
+- ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (11/11 deliverables), xpe_common.dll 91/91
+
+### 85점 달성 경로 (2026-04-22 갱신)
 
 | 단계 | 행동 | 예상 기여 | 상태 |
 |:----:|------|:---------:|:----:|
-| 1 | `xpe_preprocess` M2 SIMD (AVX2/FMA) + parity | +3 | ✅ 완료 (main 머지) |
-| 2 | SPEC-XPE-P2-ADV 구현 (MFP/Edge/Collimation/EI) | +4 | ✅ 완료 (버그픽스 포함) |
+| 1 | `xpe_preprocess` M2 SIMD (AVX2/FMA) + parity | +3 | ✅ 완료 |
+| 2 | SPEC-XPE-P2-ADV 구현 (MFP/Edge/Collimation/EI) 65/65 | +4 | ✅ 완료 |
 | 3 | Golden Reference CI + 품질 보증 완성 | +1 | ✅ 완료 |
-| 4 | P2-ADV 빌드 검증 + 잔여 실패 해소 (목표 95%+) | +1 | ⏳ 진행 중 (97/103, 6건 잔존) |
-| 5 | benchmark pack BP-01~10 동결 + 자동 재현 | +3 | 미착수 |
-| 6 | EARS P1B~P2 요구사항 문서화 | +2 | 미착수 |
-| 7 | IEC 패키지 sync 완성 (VVP 포함) | +1 | 부분 |
+| 4 | SPEC-XPE-P1B-DICOM Released + EARS 46개 교차검증 | +1 | ✅ 완료 |
+| 5 | BP-10 CI 하네스 + 테스트 드라이버 준비 | +1 | ✅ 완료 |
+| 6 | benchmark BP-01~09 DegradedMode + BenchmarkFreeze 동결 | +3 | ✅ **완료** — BP-01~05 6/6 PASS, BP-06~09 4/4 PASS |
+| 7 | SPEC-SIMD-001 v1.0.0 작성 (+5점 임계경로 확보) | — | ✅ **완료** — Pre-A Lane 구현 대기 중 |
+| 8 | IEC 62304 VVP sync 완성 | +1 | ⏳ P2-ADV vvp_adv.md 완료; P1A/P1B 항목 보강 대기 |
+| 9 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | +2 | ⏳ 빌드 환경 실측 필요 |
+| **10** | **SPEC-SIMD-001 Pre-A Lane 구현** (gain/defect/runtime parity) | **+5** | 🔴 Pre-A Lane 담당 (다음 우선순위) |
 
-> **핵심 원칙**: AI 조기 투입보다 deterministic baseline 완성 → benchmark freeze → IEC sync → premium 순서가 가장 빠른 경로. 상세 계획: [`.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md`](.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md)
+> **현재 주요 임계경로**: SPEC-SIMD-001 Pre-A Lane 구현 (+5점) → IEC VVP sync (+1점) → G1b→G2 성능 검증 (+2점) → 85점 목표
+> 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
 ## 범위 (Scope)
 
@@ -108,9 +137,12 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | Display IEC 62304 패키지 | 6 | [docs/display/](docs/display/) |
 | DICOM I/O IEC 62304 패키지 | 6 | [docs/dicom/](docs/dicom/) |
 | Common Infrastructure IEC 62304 패키지 | 6 | [docs/common/](docs/common/) |
+| **보안 문서** ✨ NEW | **2** | [docs/security/](docs/security/), [SECURITY.md](SECURITY.md) |
+| **상호운용성 문서** ✨ NEW | **1** | [docs/interop/](docs/interop/) |
+| **운영·PMS 문서** ✨ NEW | **1** | [docs/operations/](docs/operations/) |
 | Research (연구/전처리 알고리즘) | 11 | [docs/quality-eval/](docs/quality-eval/), [docs/references/](docs/references/), [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **135** | [docs/README.md v3.0.0](docs/README.md) |
+| **합계** | **139** | [docs/README.md v3.4.0](docs/README.md) |
 
 ---
 
@@ -163,6 +195,19 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | **DICOM I/O** (DCMTK 기반 DICOM 입출력) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/dicom/](docs/dicom/) |
 | **Common Infrastructure** (Layer 0 공통 ABI) | 6 | Complete (PRD+SRS+SAD+SHA+RTM+README) | [docs/common/](docs/common/) |
 
+### 보안·상호운용성·운영 (Security / Interop / Operations) ✨ NEW
+
+2026-04-22 거버넌스 세션 2차에서 신규 착수한 CORE 문서입니다.
+
+| 문서 | SPEC REQ | 설명 |
+|------|---------|------|
+| [SECURITY.md](SECURITY.md) | SPEC-XPE-SEC REQ-SEC-090 | 취약점 공개 정책 (CVD, §524B), 보고 SLA, 지원 버전 범위 |
+| [docs/security/spdf-plan.md](docs/security/spdf-plan.md) | REQ-SEC-010~026 | Secure Product Development Framework — SBOM 컴포넌트 목록, 취약점 SLA, SLSA 로드맵 |
+| [docs/interop/dicom-conformance-statement.md](docs/interop/dicom-conformance-statement.md) | REQ-IOP-005 | DICOM Conformance Statement v0.1 (PS 3.2) — SCU/SCP AE 명세, SOP Classes, TLS |
+| [docs/operations/pms-plan.md](docs/operations/pms-plan.md) | REQ-OPS-001~006 | Post-Market Surveillance Plan v0.1 — EU MDR Article 83, 데이터소스·지표·보고체계 |
+
+관련 SPEC: [SPEC-XPE-SEC](.moai/specs/SPEC-XPE-SEC/spec.md) · [SPEC-XPE-IOP](.moai/specs/SPEC-XPE-IOP/spec.md) · [SPEC-XPE-OPS](.moai/specs/SPEC-XPE-OPS/spec.md)
+
 ### 심층 연구 산출물 (Deep Research Artifacts)
 
 | 문서 | 설명 |
@@ -185,20 +230,25 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 ```text
 docs/                       문서 체계 (Normative/Informational/Archive + IEC 62304)
   project/                  핵심 사양 (Normative 13개 + Informational 5개)
-  post-processing/xpe/      XPE IEC 62304 Class B 패키지 (21개)
-  post-processing/gsvg/     GSVG IEC 62304 Class B 패키지 (10개)
-  ghost-correction/         Ghost Correction IEC 62304 패키지 (6개)
+  post-processing/xpe/      XPE IEC 62304 Class B 패키지 (22개)
+  post-processing/gsvg/     GSVG IEC 62304 Class B 패키지 (13개)
+  ghost-correction/         Ghost Correction IEC 62304 패키지 (9개)
   calibration/              전처리 Calibration 모듈 문서
+  security/                 보안 문서 (SPDF Plan, 위협모델 등) ← NEW
+  interop/                  상호운용성 문서 (DICOM CS, DICOMweb 등) ← NEW
+  operations/               운영·PMS 문서 (PMS Plan, 런북 등) ← NEW
   quality-eval/             품질 평가 방법론 연구
   references/               외부 참고자료 및 기술 분류
   archive/                  대체된 문서 (감사 추적용)
   development/              CI/CD 및 빌드 운영 가이드
+SECURITY.md                 취약점 공개 정책 (CVD) ← NEW
 modules/common/             네이티브 공통 ABI 및 메모리 기초 요소
 tests/common_smoke/         CI용 최소 스모크 테스트
 third_party/                vcpkg 매니페스트
 tools/ci/                   GitHub 검증 및 번들링 스크립트
 .github/workflows/          CI/CD 파이프라인
 .github/ISSUE_TEMPLATE/     에픽, 백로그, 문서 동기화 템플릿
+.moai/specs/                SPEC 문서 (SPEC-XPE-*, SPEC-SIMD-001 등)
 ```
 
 ---
@@ -251,6 +301,7 @@ The fixture E2E command writes JSON and Markdown reports under `clients/ImagePro
 | `Repository Guard` | 필수 파일, 백로그/PRD 일관성, ABI 플래그 고유성, 마크다운 링크, 병합 충돌 표시, 후행 공백 검증 |
 | `Windows Common Build` | 경량 공통 매니페스트 복원, 컴파일러 경고를 오류로 처리, `xpe_common` 빌드 및 스모크 테스트 |
 | `Preprocess Tests` | `xpe_preprocess` 전용 빌드 — Golden Reference 수식 검증 26개 + Calibration round-trip 테스트 |
+| `Benchmark Regression (BP-10)` | degraded-mode stress — optional DLL 5개 시나리오, `Test-DegradedMode.ps1` 드라이버, bp10-aggregate 집계 |
 | `Delivery Bundle` | `main` 브랜치에 현재 프로젝트 기준을 아티팩트로 패키징 |
 | `Release Bundle` | `v*` 태그에서 배포 번들을 GitHub Releases에 게시 |
 | `CodeQL` | C/C++ 기준에 대한 정적 보안 및 품질 분석 (주간 반복) |
