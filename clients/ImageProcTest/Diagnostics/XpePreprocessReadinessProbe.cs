@@ -48,6 +48,7 @@ namespace ImageProcTest
 
         public static PreprocessHealthResult Check()
         {
+            PreprocessHealthResult? fallback = null;
             foreach (var candidate in XpePreprocessLibraryLocator.GetDllCandidates())
             {
                 if (!File.Exists(candidate))
@@ -80,7 +81,7 @@ namespace ImageProcTest
 
                     if (missing.Length > 0)
                     {
-                        return new PreprocessHealthResult(
+                        fallback ??= new PreprocessHealthResult(
                             Status: "Export checklist incomplete",
                             Version: version,
                             DllPath: candidate,
@@ -93,10 +94,11 @@ namespace ImageProcTest
                             IsVersionReady: version != "Unavailable",
                             IsExportReady: false,
                             IsSyntheticOracleReady: false);
+                        continue;
                     }
 
                     var synthetic = XpePreprocessSyntheticOracle.Run(candidate);
-                    return new PreprocessHealthResult(
+                    var result = new PreprocessHealthResult(
                         Status: synthetic.Passed ? "Synthetic oracle ready" : "Export checklist ready",
                         Version: version,
                         DllPath: candidate,
@@ -111,11 +113,22 @@ namespace ImageProcTest
                         IsVersionReady: true,
                         IsExportReady: true,
                         IsSyntheticOracleReady: synthetic.Passed);
+                    if (synthetic.Passed)
+                    {
+                        return result;
+                    }
+
+                    fallback ??= result;
                 }
                 finally
                 {
                     NativeLibrary.Free(handle);
                 }
+            }
+
+            if (fallback is not null)
+            {
+                return fallback;
             }
 
             return new PreprocessHealthResult(

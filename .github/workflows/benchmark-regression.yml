@@ -1,0 +1,169 @@
+name: XPE Benchmark Regression (BP-06~10)
+
+# BP-10: Degraded-mode stress - cross-lane integration test
+# BP-06~09 freezes Post-B benchmark gates. BP-10 validates graceful degradation.
+# Run manually or after main merges to verify regression baseline.
+
+on:
+  workflow_dispatch:
+    inputs:
+      freeze_baseline:
+        description: 'Freeze current results as new baseline (true/false)'
+        required: false
+        default: 'false'
+  push:
+    branches: [ main ]
+    paths:
+      - 'modules/**'
+      - 'clients/**'
+      - 'benchmark/**'
+      - 'tools/ci/Test-DegradedMode.ps1'
+      - '.github/workflows/benchmark-regression.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xpe-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-full-pipeline:
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Configure CMake (Post-B benchmark)
+        shell: pwsh
+        run: cmake --preset ci-post
+
+      - name: Build Post-B modules
+        shell: pwsh
+        run: cmake --build --preset ci-post --parallel
+
+      - name: Run BP-06~09 benchmark freeze GTests
+        shell: pwsh
+        run: |
+          $pattern = 'BenchmarkFreeze|CollimationDetectTest\.BenchmarkFreeze_BP07_CollimationDetectionBaseline|ExposureIndex\.BenchmarkFreeze_BP0[89]_(EI|DI)CalcTimeBaseline'
+          ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -R $pattern
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-pipeline-binaries
+          retention-days: 1
+          path: |
+            build/ci-post/bin/*.dll
+            build/ci-post/bin/*.exe
+
+  bp10-degraded-mode:
+    needs: build-full-pipeline
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - name: "missing_enhance_basic"
+            absent_dll: "xpe_enhance_basic.dll"
+            expected_readiness: "R0"
+          - name: "missing_gsvg"
+            absent_dll: "gsvg.dll"
+            expected_readiness: "R0"
+          - name: "missing_enhance_advanced"
+            absent_dll: "xpe_enhance_advanced.dll"
+            expected_readiness: "R0"
+          - name: "missing_display"
+            absent_dll: "xpe_display.dll"
+            expected_readiness: "R0"
+          - name: "missing_dicom"
+            absent_dll: "xpe_dicom.dll"
+            expected_readiness: "R0"
+          - name: "all_optional_absent"
+            absent_dll: "ALL_OPTIONAL"
+            expected_readiness: "R0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download pipeline binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-pipeline-binaries
+          path: build/ci-post
+
+      - name: Run BP-10 degraded-mode scenario - ${{ matrix.scenario.name }}
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass `
+            -File .\tools\ci\Test-DegradedMode.ps1 `
+            -Scenario "${{ matrix.scenario.name }}" `
+            -AbsentDll "${{ matrix.scenario.absent_dll }}" `
+            -ExpectedReadiness "${{ matrix.scenario.expected_readiness }}" `
+            -BuildDir "build/ci-post" `
+            -ResultsDir "build/bp10-results/${{ matrix.scenario.name }}"
+
+      - name: Upload scenario results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: bp10-${{ matrix.scenario.name }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: build/bp10-results/${{ matrix.scenario.name }}/
+
+  bp10-aggregate:
+    needs: bp10-degraded-mode
+    if: always()
+    runs-on: windows-2025
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download all scenario results
+        uses: actions/download-artifact@v6
+        with:
+          pattern: bp10-*
+          path: build/bp10-results
+          merge-multiple: true
+
+      - name: Aggregate BP-10 results
+        shell: pwsh
+        run: |
+          $results = Get-ChildItem -Path "build/bp10-results" -Filter "*.json" -Recurse
+          $passed = 0; $failed = 0
+          foreach ($r in $results) {
+            $data = Get-Content $r.FullName | ConvertFrom-Json
+            if ($data.passed) { $passed++ } else { $failed++ }
+            Write-Host "$($r.BaseName): $(if($data.passed){'PASS'}else{'FAIL'}) - $($data.summary)"
+          }
+          Write-Host ""
+          Write-Host "BP-10 Summary: $passed passed, $failed failed"
+          if ($failed -gt 0) { exit 1 }
+
+      - name: Upload aggregate report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: bp10-aggregate-report
+          retention-days: 90
+          path: build/bp10-results/

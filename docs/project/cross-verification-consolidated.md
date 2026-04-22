@@ -1,8 +1,8 @@
 # XPE Cross-Verification Consolidated Register
 
 **Document ID**: XPE-XVER-CONSOLIDATED-001  
-**Version**: 4.0.0  
-**Date**: 2026-04-15  
+**Version**: 5.0.0  
+**Date**: 2026-04-20  
 **Status**: Living register  
 **Canonical Scope**: `docs/project/`
 
@@ -97,11 +97,43 @@ These decisions are now also reflected in `xpe-algorithm-spec-deepsync.md` §8.1
 
 ---
 
+## 2.4 Cross-Verification Round 7 (2026-04-20) — 3-Lane Integration
+
+**Scope**: 3개 Lane (pre/post/gui) → main squash merge 통합 후 상태 검증
+
+### Closed by Round 7
+
+| ID | Item | Resolution |
+|---|---|---|
+| `OPEN-003-partial` | source modules beyond `modules/common/` not implemented | **PARTIALLY CLOSED** — xpe_preprocess (SPEC-XPE-P1A M2 완료, 202 tests), xpe_enhance_advanced (SPEC-XPE-P2-ADV 완료, 97/103 tests). 잔존: enhance_basic(done), gsvg/ai/display/dicom 미착수. |
+
+### Integration Status (2026-04-20)
+
+| Lane | Branch | SPEC | Tests | Status |
+|---|---|---|---|---|
+| A (Pre) | dev/preprocess | SPEC-XPE-P1A M2 | 202/202 | ✅ main merged (e9b8ed4) |
+| B (Post) | dev/postprocess | SPEC-XPE-P2-ADV | 97/103 | ✅ main merged (f057d9e) |
+| C (GUI) | dev/gui | SPEC-XPE-GUI-CALIB-001 | — | ✅ main merged (c746e20) |
+
+### New issues created (2026-04-20)
+
+| ID | Title | Status |
+|---|---|---|
+| GitHub #46 | GUI viewer brightness/contrast/histogram | Open — TASK-GUI-VIEWER-001 문서 추가, 구현 예정 |
+| GitHub #47 | GUI evaluation viewer 탭 구조 모듈화 | Open — 계획 수립 중 |
+
+### Artifact cleanup (2026-04-20)
+
+- build_test2/, build_test3/, lint_results.json .gitignore에 추가 (dev/postprocess 빌드 아티팩트 오염 수정)
+
+---
+
 ## 3. Open Blocking Items
 
 | ID | Severity | Blocking item | Owner class |
 |---|---|---|---|
 | `OPEN-001` | High | SRS and SDD full synchronization with XPE-PRD-SYSTEM-001 canonical architecture. RTM/SHA/VVP partially fixed (see §2.3). Track as SPEC-DOC-002. | documentation |
 | `OPEN-002` | High | benchmark pack manifests and dataset hashes are not yet frozen in code or data | algorithm / QA |
-| `OPEN-003` | High | source modules beyond `modules/common/` are not yet implemented | engineering |
+| `OPEN-003` | Medium | GSVG/AI/display/dicom 모듈 미착수 (pre/post/enhance_advanced는 완료) | engineering |
+| `OPEN-004-ADV` | Medium | xpe_enhance_advanced 테스트 6건 미통과 (97/103, 94.17% → 목표 95%+) | QA |
 | `OPEN-005-ACTION` | Critical | ISO 14971 formal signature of XPE-SHA-001 §9 required before Phase 1a gate. Document is complete (v2.0); 4 human signatures pending. | regulatory / QA |

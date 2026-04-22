@@ -53,6 +53,26 @@
             }
         },
         {
+            "name": "ci-post",
+            "displayName": "CI Post-B Benchmark Build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "ON",
+                "BUILD_PREPROCESS": "OFF",
+                "BUILD_ENHANCE_BASIC": "ON",
+                "BUILD_ENHANCE_ADVANCED": "ON",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "ON",
+                "BUILD_DICOM": "OFF",
+                "XPE_WARNINGS_AS_ERRORS": "ON",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
+            }
+        },
+        {
             "name": "ci-preprocess",
             "displayName": "CI Preprocess Tests",
             "generator": "Ninja",
@@ -98,6 +118,7 @@
         { "name": "release", "configurePreset": "release" },
         { "name": "ci", "configurePreset": "ci" },
         { "name": "ci-common", "configurePreset": "ci-common" },
+        { "name": "ci-post", "configurePreset": "ci-post" },
         { "name": "ci-preprocess", "configurePreset": "ci-preprocess" },
         { "name": "coverage", "configurePreset": "coverage" }
     ],

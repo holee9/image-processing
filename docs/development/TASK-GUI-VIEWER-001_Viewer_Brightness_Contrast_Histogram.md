@@ -4,7 +4,7 @@
 **Lane**: C (GUI) — `dev/gui` 브랜치  
 **대상 프로젝트**: `clients/ImageProcTest`  
 **작성일**: 2026-04-20  
-**상태**: 구현 대기
+**상태**: 1차 구현 완료 / 모듈화 후속 작업 대기
 
 ---
 
@@ -184,7 +184,7 @@ int[] ComputeHistogram(float[] pixels, int bins = 256)
 - [ ] `ViewportRenderService.cs` LUT 렌더링 서비스 작성
 - [ ] `ViewportViewModel.cs` MVVM ViewModel 작성 (INotifyPropertyChanged)
 - [ ] `ViewportControl.xaml/.cs` WriteableBitmap 컨트롤 작성
-- [ ] `HistogramControl.xaml/.cs` 히스토그램 차트 컨트롤 작성
+- [ ] `HistogramControl.xaml/.cs` 히스토그램 차트 및 W/L range handle 작성
 - [ ] `MainWindow.xaml` 에 슬라이더 패널 및 뷰포트 컨트롤 통합
 - [ ] 링크 토글 (동기/독립 모드) 구현
 - [ ] W/L 프리셋 드롭다운 구현
@@ -213,6 +213,30 @@ int[] ComputeHistogram(float[] pixels, int bins = 256)
 | 원본 버퍼 불변성 | 슬라이더 조작 후 원본 float[] 값 동일 |
 | 링크 모드 동기화 | A 뷰포트 WC 변경 시 B 뷰포트 동일 WC 적용 |
 | 히스토그램 bin 합계 | = 전체 픽셀 수 |
+
+---
+
+## 9. 탭 책임 경계 및 후속 모듈화
+
+viewer 기능은 Evaluation 탭의 주 콘텐츠로 유지한다. calibration 폴더/파일 선택, target raw 선택, algorithm chain 구성은 viewer 내부 책임이 아니다. 다만 Offset/Gain/Defect Apply/Skip 스위치는 영상 비교 중 즉시 재실행해야 하므로 Evaluation workbench에 둔다.
+
+후속 작업은 `TASK-GUI-IA-001` 및 GitHub Issue #47에서 추적한다.
+
+| 영역 | 책임 |
+|------|------|
+| Evaluation workbench | Offset/Gain/Defect Apply/Skip, 원본/적용 영상 비교, swipe, zoom, W/L, LUT, invert, histogram range, 사용자 visual review |
+| Calibration setup | calibration folder/file role audit, raw 선택, algorithm chain 구성 |
+| Metrics | detector-domain metric, stage latency, calibration load 결과 |
+| Reports | evidence JSON/Markdown 저장 및 확인 |
+| Diagnostics | DLL/export readiness, smoke test, native parameter range |
+
+### 모듈화 기준
+
+- `ViewportRenderService`는 픽셀 불변 렌더링 서비스로 유지한다.
+- `ViewportViewModel`은 W/L, LUT, histogram, histogram range, zoom, swipe 상태를 소유한다.
+- `ViewportControl` 또는 `EvaluationViewerPanel`은 XAML viewer를 소유한다.
+- `MainWindow`는 탭 host와 전역 command routing만 담당하도록 축소한다.
+- calibration setup에서 만든 `ActiveEvaluationContext`만 Evaluation viewer가 소비한다.
 
 ---
 

@@ -29,7 +29,16 @@ namespace ImageProcTest
             new("xpe_preprocess", "SWU-1.8", "BinningCorrector", "SRS-CALIB-FUNC-012", "UT binning, detector metadata tests", "R4", "adapter-pending", null, "Add binning-mode detector metadata and gain scaling evidence."),
             new("xpe_preprocess", "SWU-1.9", "RuntimeDefectDetector", "SRS-CALIB-FUNC-010, SRS-CALIB-FUNC-019", "IT runtime defect, BP-04 runtime", "R4", "adapter-pending", null, "Add 10-frame sequence input and runtime BPM merge evidence."),
             new("xpe_preprocess", "SWU-1.10", "SessionManager", "SRS-CALIB-FUNC-011, SRS-CALIB-FUNC-014, SRS-CALIB-NFR-006", "UT-1.5-013, UT-1.5-014, IT-CALIB-005", "R4", "adapter-pending", null, "Add session-id and isolation evidence for multi-frame calibration state."),
-            new("xpe_preprocess", "SWU-1.4", "GhostCorrector", "SRS-CALIB-FUNC-013, SRS-CALIB-FUNC-020", "UT-1.4, PRE-E2E-1, PRE-E2E-2, BP-05", "R4", "adapter-pending", null, "Add lag history fixture sequence, tier selection, bypass reason, and residual metrics.")
+            new("xpe_preprocess", "SWU-1.4", "GhostCorrector", "SRS-CALIB-FUNC-013, SRS-CALIB-FUNC-020", "UT-1.4, PRE-E2E-1, PRE-E2E-2, BP-05", "R4", "adapter-pending", null, "Add lag history fixture sequence, tier selection, bypass reason, and residual metrics."),
+            new("xpe_enhance_basic", "SWU-2.10", "ExposureIndex", "REQ-ENH-023..030", "EI baseline tests", "R3", "native-enhance-basic", "ei-whole", "Run EI/DI on the active detector-float preview buffer and review EI, DI, and alert evidence."),
+            new("xpe_enhance_basic", "SWU-2.1", "LogTransform", "REQ-ENH-001..006", "TST-100-001", "R3", "native-enhance-basic", "log", "Run log transform on the active detector-float preview buffer and review output range/histogram changes."),
+            new("xpe_enhance_basic", "SWU-2.2", "NoiseReduction", "REQ-ENH-007..012", "TST-200-001", "R3", "native-enhance-basic", "basic-noise", "Run bilateral noise reduction and compare sigma/visual texture before and after."),
+            new("xpe_enhance_basic", "SWU-2.3", "ContrastEnhancement", "REQ-ENH-013..017", "TST-100-003/004", "R3", "native-enhance-basic", "contrast", "Run CLAHE contrast enhancement and compare histogram distribution and visual contrast."),
+            new("xpe_enhance_basic", "SWU-2.4", "EdgeEnhancement", "REQ-ENH-018..022", "TST-200-001", "R3", "native-enhance-basic", "edge", "Run USM edge enhancement and inspect edge detail, overshoot, and changed-pixel metrics."),
+            new("xpe_display", "SWU-3.1", "ModalityLUT", "REQ-DISP-001..008", "display LUT smoke", "R3", "native-display", "modality-lut", "Run xpe_display readiness smoke and include modality LUT in the Phase 1b E2E evidence chain."),
+            new("xpe_display", "SWU-3.2", "VOILUT", "REQ-DISP-009..018", "display VOI smoke", "R3", "native-display", "voi-lut", "Run xpe_display readiness smoke and include VOI/window LUT in the Phase 1b E2E evidence chain."),
+            new("xpe_display", "SWU-3.3", "PresentationLUT", "REQ-DISP-019..028", "display presentation smoke", "R3", "native-display", "presentation-lut", "Run xpe_display readiness smoke and include presentation LUT/GSDF in the Phase 1b E2E evidence chain."),
+            new("xpe_dicom", "SWU-4.2", "DicomWriterValidator", "REQ-DICOM-013..028", "DICOM write/validate smoke", "R3", "native-dicom", "dicom-write", "Run xpe_dicom readiness smoke and include DICOM write/validate readiness in the Phase 1b E2E evidence chain.")
         ];
 
         public static IReadOnlyList<AlgorithmValidationItem> Build(IReadOnlyList<ModuleReadinessSnapshot> readiness)
@@ -52,10 +61,19 @@ namespace ImageProcTest
             var level = module?.Level ?? "R0";
             var moduleStatus = module?.Status ?? "Module not registered";
             var isFolderAudit = string.Equals(definition.Adapter, "folder-audit", StringComparison.OrdinalIgnoreCase);
+            var isNativeAdapter =
+                string.Equals(definition.Adapter, "native-preview", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(definition.Adapter, "native-enhance-basic", StringComparison.OrdinalIgnoreCase);
+            var isReadinessSmokeAdapter =
+                string.Equals(definition.Adapter, "native-display", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(definition.Adapter, "native-dicom", StringComparison.OrdinalIgnoreCase);
             var canRun = isFolderAudit ||
-                (string.Equals(definition.Adapter, "native-preview", StringComparison.OrdinalIgnoreCase) &&
+                (isNativeAdapter &&
                     definition.StageKey is not null &&
-                    module?.ProcessingEnabled == true);
+                    module?.ProcessingEnabled == true) ||
+                (isReadinessSmokeAdapter &&
+                    definition.StageKey is not null &&
+                    module?.LevelRank >= 3);
 
             var status = canRun
                 ? "Runnable"

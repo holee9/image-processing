@@ -29,21 +29,23 @@ This benchmark structure is aligned to:
 
 ## 3. Benchmark Families
 
-| Pack ID | Purpose | Primary algorithms |
-|---|---|---|
-| `BP-01` | temperature sweep | offset, temperature compensation, drift logic |
-| `BP-02` | multi-gain linearity | nonlinearity, gain correction |
-| `BP-03` | heel-effect SID variation | gain / heel compensation |
-| `BP-04` | sparse defect and cluster defect | defect correction |
-| `BP-05` | lag history sequence | lag / ghost correction |
-| `BP-06` | grid and no-grid | GSVG, contrast stability |
-| `BP-07` | collimation ROI | collimation, ROI-aware EI refinement |
-| `BP-08` | single-irradiation EI reference | EI / DI validation |
-| `BP-09` | stitched and multi-irradiation exclusion | EI rejection logic |
-| `BP-10` | degraded-mode stress | missing optional binaries, worker failure, timeout recovery |
-| `BP-11` | task-based and observer-centered assessment | virtual grid, bone suppression, DL denoise, other nonlinear processing |
-| `BP-12` | operational QC and reject-analysis telemetry | DI drift review, repeat/reject schema, field-quality monitoring |
-| `BP-13` | new modality and compliance packs for Round 9 algorithms | PCD spectral binning, ring artifact correction, CS-Tomo sparse-view, RDSR compliance |
+Lane ownership defines which worktree is responsible for freezing each benchmark pack.
+
+| Pack ID | Purpose | Primary algorithms | Lane owner |
+|---|---|---|---|
+| `BP-01` | temperature sweep | offset, temperature compensation, drift logic | **Pre-A** |
+| `BP-02` | multi-gain linearity | nonlinearity, gain correction | **Pre-A** |
+| `BP-03` | heel-effect SID variation | gain / heel compensation | **Pre-A** |
+| `BP-04` | sparse defect and cluster defect | defect correction | **Pre-A** |
+| `BP-05` | lag history sequence | lag / ghost correction | **Pre-A** |
+| `BP-06` | grid and no-grid | GSVG, contrast stability | **Post-B** |
+| `BP-07` | collimation ROI | collimation, ROI-aware EI refinement | **Post-B** |
+| `BP-08` | single-irradiation EI reference | EI / DI validation | **Post-B** |
+| `BP-09` | stitched and multi-irradiation exclusion | EI rejection logic | **Post-B** |
+| `BP-10` | degraded-mode stress | missing optional binaries, worker failure, timeout recovery | **main** (cross-lane) |
+| `BP-11` | task-based and observer-centered assessment | virtual grid, bone suppression, DL denoise, other nonlinear processing | **Post-B** |
+| `BP-12` | operational QC and reject-analysis telemetry | DI drift review, repeat/reject schema, field-quality monitoring | **main** |
+| `BP-13` | new modality and compliance packs for Round 9 algorithms | PCD spectral binning, ring artifact correction, CS-Tomo sparse-view, RDSR compliance | **Post-B** |
 
 ---
 

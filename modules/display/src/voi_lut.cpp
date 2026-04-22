@@ -45,11 +45,9 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
         }
         case XPE_VOI_LINEAR_EXACT: {
             // REQ-DISP-011: DICOM PS3.3 C.11.2.1.3
-            // output = clamp((input - center + 0.5) / (width - 1) * range + (minOut + maxOut)/2, minOut, maxOut)
-            const float mid    = (minOut + maxOut) * 0.5f;
-            const float denom  = (width > 1.0f) ? (width - 1.0f) : 1.0f;
+            // output = clamp(((input - center) / width + 0.5) * range + minOut, minOut, maxOut)
             for (size_t i = 0; i < count; ++i) {
-                float val = (px[i] - center + 0.5f) / denom * range + mid;
+                float val = ((px[i] - center) / width + 0.5f) * range + minOut;
                 px[i] = xpe_clamp(val, minOut, maxOut);
             }
             break;

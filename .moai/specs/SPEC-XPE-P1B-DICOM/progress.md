@@ -1,6 +1,8 @@
 ## SPEC-XPE-P1B-DICOM Progress
 
 - Started: 2026-04-16
+- Released: **2026-04-21**
+- Status: ✅ **COMPLETE (Released v1.1.0)**
 - Methodology: TDD (RED-GREEN-REFACTOR)
 - Language: C++ (moai-lang-cpp)
 - Scale Mode: Standard (19 files, 1 domain — DICOM)
@@ -21,3 +23,22 @@
 - [x] Phase 2.4 (M4): DicomNetworkSCU GREEN — cstore/cfind_mwl/cancel 구현
 - [x] Phase 2.5: REFACTOR + MX 태그 정리 — @MX:ANCHOR/WARN 추가, @MX:TODO 제거, DCM_ExposureInmAs 수정
 - [x] Phase 3: 품질 검증 (TRUST 5) + Git 커밋 — cdb5b66
+- [x] Phase 4 (Release, 2026-04-21): EARS 46 요구사항 교차검증 완료 — API 10/10, SWU 4/4, AC 18/18 PASS, 테스트 35/35 통과. SPEC 상태 Draft→Released (v1.0.0→v1.1.0)
+
+### Release Summary (2026-04-21)
+
+| 항목 | 결과 |
+|------|:----:|
+| EARS 요구사항 (REQ-DICOM-001..046) | 46/46 ✅ |
+| C API 함수 (dicom_api.h ↔ dicom.cpp) | 10/10 ✅ |
+| Software Unit (SWU-4.1 ~ 4.4) | 4/4 ✅ |
+| 수락 기준 (AC-01..AC-18) | 18/18 PASS ✅ |
+| Google Test | 35/35 통과 ✅ |
+| TRUST 5 게이트 | 통과 ✅ |
+| Header EARS Count 정정 | 40 → 46 ✅ |
+
+### 후속 조치
+
+- Framework A "요구사항 완전성" 지표: 13 → 17 (+4점 예상, 목표 +2점 초과 달성)
+- Downstream 참조: SPEC-XPE-MASTER v2.0.0 SWI-4 완료 상태 반영 가능
+- SWU-4.1/4.2 (Must) + SWU-4.3/4.4 (Should) 전량 완료
