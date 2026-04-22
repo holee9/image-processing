@@ -4,16 +4,16 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-22 — 거버넌스 세션 4차)
+## 프로젝트 완성도 현황 (2026-04-23 — 세션 5차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 (실측) | 다음 목표 | 최종 목표 |
 |-----------|------|:----------:|:---------:|:---------:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~88 / 100** | 85 ✅ 달성 | **90** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~78 / 100** | ~85 | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~89 / 100** | 85 ✅ 달성 | **90** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~79 / 100** | ~85 | **85** |
 
-### 점수 상세 (Framework A v3.1, 2026-04-22 세션 4차 실측)
+### 점수 상세 (Framework A v3.2, 2026-04-23 세션 5차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
@@ -22,12 +22,12 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 아키텍처 설계 | 18 | **~16** | api-spec v1.4.0, DLL 독립성 원칙 수립, xpe-module-principles 명문화 |
 | 구현 진행도 | 17 | **~16** | 8/9 모듈 구현, SIMD AVX2/FMA, BP-01~09 freeze, **SPEC-SIMD-001 P0/P1 수정 통합 (403/403 GREEN)** |
 | 품질 보증 | 12 | **~11** | 403/403 C++ 테스트 통과, DegradedMode 검증, CI/CD 활성 |
-| 규제 준수 | 5 | **~4** | **SECURITY/SPDF v1.0 승인 완료**; S-OPS/IOP Minor 업데이트 대기 |
+| 규제 준수 | 5 | **~5** | **SECURITY/SPDF v1.0 + DICOM Conformance Statement v1.0 승인 완료** |
 | 사이버보안 | 3 | **~2** | **SECURITY.md v1.0 (사건대응 7단계) + SPDF v1.0 (STRIDE 19위협, IEC 81001 69%)** |
-| 운영 준비도 | 2 | **~1** | PMS Plan v0.1, benchmark-regression.yml 활성; Minor 업데이트 대기 |
-| **합계** | **100** | **~88** | Framework A 목표 85 초과 달성 (+3) |
+| 운영 준비도 | 2 | **~2** | **PMS Plan v1.0 (AI 모니터링·필드 배포·드리프트 감지 추가)**, benchmark-regression.yml 활성 |
+| **합계** | **100** | **~89** | Framework A 목표 85 초과 달성 (+4) |
 
-### 점수 상세 (Framework B v3.1, 2026-04-22 세션 4차 실측)
+### 점수 상세 (Framework B v3.2, 2026-04-23 세션 5차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
@@ -35,20 +35,20 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 성능·메모리 | 13 | **~11** | BP-01~09 freeze, CI benchmark regression, **403/403 M1/M2 GREEN** |
 | 알고리즘 품질 | 17 | **~15** | SIMD AVX2 parity, golden reference 26개, **P0/P1 수정 통합** |
 | 규제·문서 | 15 | **~13** | IEC 62304 Class B 4종 패키지, **VVP-P1B-001 + SECURITY/SPDF v1.0** |
-| 운영 준비도 | 15 | **~11** | CI/CD 전체 파이프라인, E2E fixture, DegradedMode 자동화 |
-| 상호운용성 | 5 | **~3** | DICOM C-STORE/C-FIND, Conformance Statement v0.1; DICOMweb 미착수 |
+| 운영 준비도 | 15 | **~12** | CI/CD 전체 파이프라인, E2E fixture, DegradedMode 자동화, **PMS Plan v1.0 (AI 모니터링 체계)** |
+| 상호운용성 | 5 | **~3** | DICOM C-STORE/C-FIND, **Conformance Statement v1.0 (검증 절차·유지보수 완료)**; DICOMweb 미착수 |
 | AI governance | 5 | **~1** | SPEC-XPE-P3-AI 정의만; AI 모듈 미구현 |
-| **합계** | **100** | **~78** | Framework B 목표 85 대비 -7, AI governance·상호운용성이 주요 갭 |
+| **합계** | **100** | **~79** | Framework B 목표 85 대비 -6, AI governance·상호운용성이 주요 갭 |
 
-### 모듈 구현 현황 (2026-04-22 세션 4차)
+### 모듈 구현 현황 (2026-04-23 세션 5차)
 
 | 모듈 | Phase | 테스트 | Gate | SPEC | 상태 |
 |------|:-----:|:------:|:----:|------|:----:|
 | xpe_common.dll | 0 | 91/91 ✅ | G0 ✅ | SPEC-XPE-P0 | **완료** |
 | xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** (M2 API + BP-01~05 freeze + SIMD P0/P1 수정) |
-| xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** (30 EARS 요구사항) |
-| xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** (35 EARS 요구사항) |
-| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS 요구사항, Released) |
+| xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** (30 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
+| xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** (35 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
+| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, **Conformance Statement v1.0 승인**) |
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** (전수 GREEN, IEC 62304 4종) |
 | gsvg.dll | 2 | 2/2 ✅ | G2⏳ | SPEC-XPE-GSVG | **완료** (BP-06 + DegradedMode, v0.2.0) |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
@@ -62,7 +62,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 |--------|------|:----:|--------|
 | G0 → G1a | Phase 0 Foundation 완료 | ✅ **PASSED** | 2026-04-18 |
 | G1a → G1b | Phase 1a 전처리 완료 + 메모리 누수 테스트 | ✅ **PASSED** | 2026-04-19 |
-| G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ⏳ **대기 중** | GSVG R2 + 성능 실측 필요 (M1) |
+| G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ⏳ **대기 중** | 빌드 환경 성능 실측 필요 (M1 잔여) |
 | G2 → G3 | Phase 2 + GSVG + 듀얼 게이트 | ⏳ **미착수** | G2 통과 후 |
 
 ### SPEC 문서 현황 (2026-04-22)
@@ -85,7 +85,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | SPEC-XPE-IOP | 📋 작성 | — | main |
 | SPEC-XPE-OPS | 📋 작성 | — | main |
 
-### 3-Lane Worktree 현황 (2026-04-22 세션 4차)
+### 3-Lane Worktree 현황 (2026-04-23 세션 5차)
 
 | Lane | Branch | 선행 커밋 | 최신 작업 | 상태 |
 |------|--------|:---------:|---------|:----:|
@@ -93,7 +93,15 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 0 | Phase1b E2E fixture, Native readiness, Evaluation UI, GSVG/Workflow UI | **최종 통합 완료** |
 
-**최근 진행 상황** (2026-04-22 거버넌스 세션 4차 — 3개 항목 완료):
+**최근 진행 상황** (2026-04-23 세션 5차 — 3개 항목 완료):
+
+| # | 작업 | 커밋 | 브랜치 |
+|---|------|------|--------|
+| 1 | **DICOM Conformance Statement v1.0** — 검증 절차·유지보수·버전관리 섹션 추가, Minor → Released | `580d6b9` | main |
+| 2 | **VVP-P1B-001 addendum 커밋** — ENH/DISP/DICOM 3모듈 VVP 검증 계획 보강 | `9211380` | main |
+| 3 | **PMS Plan v1.0** — AI 모니터링·드리프트 감지·필드 배포 섹션 신규 추가 (Minor → Released) | 미커밋 | main |
+
+**이전 세션** (2026-04-22 거버넌스 세션 4차 — 3개 항목 완료):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
@@ -138,7 +146,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 - ✅ **Gate G1a → G1b 완전 마감** (2026-04-19) — 메모리 누수 1000프레임 delta 0KB PASSED
 - ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (11/11 deliverables), xpe_common.dll 91/91
 
-### 85점 달성 경로 (2026-04-22 세션 4차 갱신)
+### 85점 달성 경로 (2026-04-23 세션 5차 갱신)
 
 | 단계 | 행동 | 기여 (A/B) | 상태 |
 |:----:|------|:---------:|:----:|
@@ -155,21 +163,21 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **10** | **SPEC-SIMD-001 P0/P1 수정 통합 + M1/M2 403/403 GREEN** | **+2/+1** | ✅ **완료 (세션 4차)** |
 | 11 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | +2 | ⏳ 빌드 환경 실측 필요 |
 | **12** | **SPEC-SIMD-001 Pre-A Lane 실구현** (gain/defect/runtime parity) | **+5/+3** | 🔴 **임계경로** — Pre-A Lane 담당 |
-| 13 | DICOM Conformance + PMS Plan v1.0 (Minor 업데이트) | +1/+1 | 📋 검증 절차·AI 모니터링 추가 |
+| **13** | **DICOM Conformance v1.0 + PMS Plan v1.0 (Minor → Released)** | **+1/+1** | ✅ **완료 (세션 5차)** |
 | 14 | xpe_ai.dll + AI governance (Phase 3) | 0/+3 | 📋 Should, B 상향 핵심 |
 
-> **Framework A**: ~88/85 (목표 초과 달성) | **Framework B**: ~78/85 (AI governance·상호운용성이 주요 갭)
+> **Framework A**: ~89/85 (목표 초과 달성) | **Framework B**: ~79/85 (AI governance·상호운용성이 주요 갭)
 > 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
-### 잔여 작업 분류 (2026-04-22 세션 4차)
+### 잔여 작업 분류 (2026-04-23 세션 5차)
 
 #### Must (출시 블로커)
 
 | # | 작업 | 담당 | 점수 기여 | 상태 |
 |:-:|------|:----:|:---------:|:----:|
 | M1 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | main | A +2 | ⏳ 빌드 환경 실측 |
-| M2 | P1B VVP addendum 커밋 (untracked 파일 존재) | main | A 유지 | 📄 파일 작성 완료, 커밋 대기 |
-| M3 | DICOM Conformance Statement v0.1 → v1.0 (Minor) | main | A +1 | 📋 검증 절차·유지보수 섹션 추가 |
+| ~~M2~~ | ~~P1B VVP addendum 커밋~~ | ~~main~~ | ~~A 유지~~ | ✅ **완료 (세션 5차)** |
+| ~~M3~~ | ~~DICOM Conformance Statement v1.0~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
 
 #### Should (품질·점수 향상)
 
@@ -177,7 +185,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 |:-:|------|:----:|:---------:|:----:|
 | S1 | SPEC-SIMD-001 Pre-A 실구현 (gain/defect/runtime parity) | Pre-A | A +5, B +3 | 🔴 임계경로 |
 | S2 | xpe_ai.dll 구현 (AI governance) | Post-B | B +3 | 📋 Phase 3 |
-| S3 | PMS Plan v0.1 → v1.0 (Minor: AI 모니터링·필드 배포) | main | A +1 | 📋 |
+| ~~S3~~ | ~~PMS Plan v1.0 (AI 모니터링·필드 배포)~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
 | S4 | DICOMweb 상호운용성 | Post-B | B +2 | 📋 PS 3.4+ |
 
 #### Nice-to-Have (여력 확보 시)
@@ -189,9 +197,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N3 | Gate G2 → G3 준비 | main | Phase 3 진입 전제 |
 | N4 | DICOM Conformance PS 3.4+ 확장 | Post-B | Storage Commitment 등 |
 
-> **전체 진도율**: Must 항목 0/3 (0%), Should 항목 0/4 (0%), 완료된 달성 경로 10/14 (71%)
-> **Framework A 잔여 가용점수**: M1~M3 + S1 + S3 = 최대 ~10점 (현재 ~88 → 최대 ~98)
-> **Framework B 잔여 가용점수**: S1~S4 = 최대 ~10점 (현재 ~78 → 최대 ~88)
+> **전체 진도율**: Must 항목 2/3 (67%), Should 항목 1/4 (25%), 완료된 달성 경로 11/14 (79%)
+> **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~89 → 최대 ~96)
+> **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~79 → 최대 ~87)
 
 ## 범위 (Scope)
 
@@ -293,14 +301,14 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 
 ### 보안·상호운용성·운영 (Security / Interop / Operations)
 
-2026-04-22 거버넌스 세션 2~4차에서 착수·리뷰·승인한 CORE 문서입니다.
+2026-04-22~23 거버넌스 세션 2~5차에서 착수·리뷰·승인한 CORE 문서입니다.
 
 | 문서 | SPEC REQ | 설명 | 리뷰 상태 |
 |------|---------|------|:---------:|
 | [SECURITY.md](SECURITY.md) | SPEC-XPE-SEC REQ-SEC-090 | 취약점 공개 정책 (CVD, §524B), **사건대응 7단계, 보안 테스트 피라미드 8종** | ✅ **v1.0 승인 완료** |
 | [docs/security/spdf-plan.md](docs/security/spdf-plan.md) | REQ-SEC-010~026 | Secure Product Development Framework — **STRIDE 5경계 19위협, IEC 81001 69% 준수, SLSA 로드맵** | ✅ **v1.0 승인 완료** |
-| [docs/interop/dicom-conformance-statement.md](docs/interop/dicom-conformance-statement.md) | REQ-IOP-005 | DICOM Conformance Statement v0.1 (PS 3.2) — SCU/SCP AE 명세, SOP Classes, TLS | **Minor** 업데이트 필요 |
-| [docs/operations/pms-plan.md](docs/operations/pms-plan.md) | REQ-OPS-001~006 | Post-Market Surveillance Plan v0.1 — EU MDR Article 83, 데이터소스·지표·보고체계 | **Minor** 업데이트 필요 |
+| [docs/interop/dicom-conformance-statement.md](docs/interop/dicom-conformance-statement.md) | REQ-IOP-005 | DICOM Conformance Statement v1.0 — 검증 절차·유지보수·버전관리 섹션 추가 | ✅ **v1.0 승인 완료 (세션 5차)** |
+| [docs/operations/pms-plan.md](docs/operations/pms-plan.md) | REQ-OPS-001~006 | Post-Market Surveillance Plan v1.0 — AI 모니터링·드리프트 감지·필드 배포 체계 추가 | ✅ **v1.0 승인 완료 (세션 5차)** |
 
 관련 SPEC: [SPEC-XPE-SEC](.moai/specs/SPEC-XPE-SEC/spec.md) · [SPEC-XPE-IOP](.moai/specs/SPEC-XPE-IOP/spec.md) · [SPEC-XPE-OPS](.moai/specs/SPEC-XPE-OPS/spec.md)
 
