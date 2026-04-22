@@ -140,6 +140,7 @@ namespace ImageProcTest
                     algorithmChain.IsFolderAuditOnly,
                     algorithmChain.NativeStageOrder,
                     algorithmChain.EnhanceBasicStageOrder,
+                    algorithmChain.AdvancedStageOrder,
                     algorithmChain.DisplayStageOrder,
                     algorithmChain.DicomStageOrder,
                     steps = algorithmChain.Steps.Select(step => new
@@ -435,6 +436,7 @@ namespace ImageProcTest
                 builder.AppendLine($"- Can execute: `{algorithmChain.CanExecute}`");
                 builder.AppendLine($"- Preprocess native stage order: `{string.Join(" -> ", algorithmChain.NativeStageOrder)}`");
                 builder.AppendLine($"- Post basic native stage order: `{string.Join(" -> ", algorithmChain.EnhanceBasicStageOrder)}`");
+                builder.AppendLine($"- Advanced stage order: `{string.Join(" -> ", algorithmChain.AdvancedStageOrder)}`");
                 builder.AppendLine($"- Display native stage order: `{string.Join(" -> ", algorithmChain.DisplayStageOrder)}`");
                 builder.AppendLine($"- DICOM native stage order: `{string.Join(" -> ", algorithmChain.DicomStageOrder)}`");
                 foreach (var step in algorithmChain.Steps)

@@ -74,6 +74,7 @@ namespace ImageProcTest
         IReadOnlyList<AlgorithmDependencyFinding> Findings,
         IReadOnlyList<string> NativeStageOrder,
         IReadOnlyList<string> EnhanceBasicStageOrder,
+        IReadOnlyList<string> AdvancedStageOrder,
         IReadOnlyList<string> DisplayStageOrder,
         IReadOnlyList<string> DicomStageOrder,
         bool IsFolderAuditOnly,

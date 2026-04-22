@@ -22,9 +22,9 @@ namespace ImageProcTest
                 EvaluatePreprocess(root),
                 EvaluateEnhanceBasic(enhanceBasic),
                 EvaluateDicom(dicom),
-                EvaluateDllPresence("enhance_advanced", "xpe_enhance_advanced.dll"),
+                EvaluateDllPresence("xpe_enhance_advanced", "xpe_enhance_advanced.dll"),
                 EvaluateGsvg(gsvg),
-                EvaluateDllPresence("ai", "xpe_ai.dll")
+                EvaluateDllPresence("xpe_ai", "xpe_ai.dll")
             ];
         }
 

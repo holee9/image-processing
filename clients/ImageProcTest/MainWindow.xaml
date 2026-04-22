@@ -540,6 +540,13 @@
                                                Foreground="#FF57606A"
                                                TextWrapping="Wrap"
                                                Margin="0,4,0,0"/>
+                                    <TextBlock x:Name="AdvancedWorkflowStatusText"
+                                               AutomationProperties.AutomationId="AdvancedWorkflowStatusText"
+                                               Text="Advanced UI: not checked"
+                                               FontSize="12"
+                                               Foreground="#FF57606A"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"/>
                                     <DataGrid x:Name="WorkflowRuleFindingsGrid"
                                               AutoGenerateColumns="False"
                                               CanUserAddRows="False"

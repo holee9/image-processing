@@ -1451,6 +1451,9 @@ namespace ImageProcTest
             var dicomReason = IsModuleReadinessAtLeast("xpe_dicom", 3)
                 ? "Native DICOM readiness smoke is available. Selected export stages write and validate a DICOM artifact."
                 : "Native DICOM readiness smoke is disabled until xpe_dicom.dll reaches R3.";
+            var advancedReason = IsModuleReadinessAtLeast("xpe_enhance_advanced", 3)
+                ? "Native enhance_advanced readiness smoke is available. Selected advanced stages execute on the active preview buffer."
+                : "Advanced C3/C4 execution is disabled until xpe_enhance_advanced.dll reaches R3 and a GUI adapter is approved.";
 
             return
             [
@@ -1462,6 +1465,10 @@ namespace ImageProcTest
                 new StageModeSnapshot("Noise", GetMode(NoiseEnabledCheckBox), postReason),
                 new StageModeSnapshot("Contrast", GetMode(ContrastEnabledCheckBox), postReason),
                 new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason),
+                new StageModeSnapshot("Collimation ROI", GetChainStageMode("collimation"), advancedReason),
+                new StageModeSnapshot("ROI EI", GetChainStageMode("ei-roi"), advancedReason),
+                new StageModeSnapshot("Multiscale", GetChainStageMode("multiscale"), advancedReason),
+                new StageModeSnapshot("Fractional", GetChainStageMode("fractional"), advancedReason),
                 new StageModeSnapshot("Modality LUT", GetChainStageMode("modality-lut"), displayReason),
                 new StageModeSnapshot("VOI LUT", GetChainStageMode("voi-lut"), displayReason),
                 new StageModeSnapshot("Presentation LUT", GetChainStageMode("presentation-lut"), displayReason),
@@ -1654,6 +1661,7 @@ namespace ImageProcTest
                         : "blocked";
             WorkflowAlgorithmStatusText.Text = $"{currentAlgorithmChainPlan.Summary} Input: {inputState}.";
             UpdateGsvgWorkflowStatus();
+            UpdateAdvancedWorkflowStatus();
             UpdateWorkflowRunState();
         }
 
@@ -1710,6 +1718,20 @@ namespace ImageProcTest
                 "catalog coverage",
                 $"{currentAlgorithmValidation.Count(IsGsvgValidationItem)} C1/C2 row(s); selected={IsGsvgSelected()}",
                 "GSVG-RTM-001"));
+
+            var advanced = GetAdvancedReadiness();
+            rows.Add(new EvaluationMetricRow(
+                "Advanced",
+                "C3/C4 UI gate",
+                advanced is null
+                    ? "not checked"
+                    : $"{advanced.Level} {advanced.Status}; execution={advanced.ExecutionState}; {advanced.DegradedMode}",
+                "SRS-ENHANCE-ADV-001"));
+            rows.Add(new EvaluationMetricRow(
+                "Advanced",
+                "workflow coverage",
+                $"{currentAlgorithmValidation.Count(IsAdvancedValidationItem)} C3/C4 row(s); selected={currentAlgorithmChainPlan.AdvancedStageOrder.Count}",
+                "PR-FUNC-006/007"));
 
             rows.Add(new EvaluationMetricRow(
                 "Calibration",
@@ -1893,6 +1915,37 @@ namespace ImageProcTest
                 $"GSVG UI: Phase 2 C1/C2 rows={rowCount}; selected={selected}; " +
                 $"{gsvg.Level} {gsvg.Status}; execution={gsvg.ExecutionState}; " +
                 $"skip={gsvg.DegradedMode}; next={gsvg.NextAction}";
+        }
+
+        private ModuleReadinessSnapshot? GetAdvancedReadiness()
+        {
+            return currentModuleReadiness.FirstOrDefault(module =>
+                string.Equals(module.ModuleName, "xpe_enhance_advanced", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsAdvancedValidationItem(AlgorithmValidationItem item)
+        {
+            return string.Equals(item.ModuleName, "xpe_enhance_advanced", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateAdvancedWorkflowStatus()
+        {
+            var advanced = GetAdvancedReadiness();
+            var rowCount = currentAlgorithmValidation.Count(IsAdvancedValidationItem);
+            var selected = currentAlgorithmChainPlan.AdvancedStageOrder.Count == 0
+                ? "none"
+                : string.Join(" -> ", currentAlgorithmChainPlan.AdvancedStageOrder);
+            if (advanced is null)
+            {
+                AdvancedWorkflowStatusText.Text =
+                    $"Advanced UI: Phase 2 C3/C4 catalog rows={rowCount}; module readiness not checked; execution remains blocked until adapter smoke exists.";
+                return;
+            }
+
+            AdvancedWorkflowStatusText.Text =
+                $"Advanced UI: Phase 2 C3/C4 rows={rowCount}; selected={selected}; " +
+                $"{advanced.Level} {advanced.Status}; execution={advanced.ExecutionState}; " +
+                $"skip={advanced.DegradedMode}; next={advanced.NextAction}";
         }
 
         private void AddReportArtifact(string kind, string path)
