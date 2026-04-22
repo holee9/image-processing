@@ -1,0 +1,5 @@
+if(EXISTS "D:/workspace-github/xpe-post/build_test3/tests/enhance_advanced_tests/test_enhance_advanced[1]_tests.cmake")
+  include("D:/workspace-github/xpe-post/build_test3/tests/enhance_advanced_tests/test_enhance_advanced[1]_tests.cmake")
+else()
+  add_test(test_enhance_advanced_NOT_BUILT test_enhance_advanced_NOT_BUILT)
+endif()
