@@ -19,6 +19,9 @@ if(GTest_FOUND)
 
     # Module-specific test suites
     add_subdirectory(enhance_advanced_tests)
+
+    # E2E Integration tests
+    add_subdirectory(e2e_post_pipeline)
 else()
     message(STATUS "GTest not found — skipping test subdirectories (ci-common preset)")
 endif()
