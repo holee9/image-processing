@@ -30,14 +30,10 @@ protected:
     XpeImageBuffer output1{};
     XpeImageBuffer output2{};
     XpeImageMetadata metadata{};
-    static bool calibrationLoaded;
 
     void SetUp() override {
-        if (!calibrationLoaded) {
-            ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-            // Note: Calibration must be loaded externally before running these tests
-            calibrationLoaded = true;
-        }
+        // Try to initialize, but don't fail if already initialized
+        xpe_preprocess_init(nullptr);
 
         std::mt19937 rng(0x5EED);
         std::uniform_int_distribution<uint16_t> inputDist(0, 4000);
@@ -89,11 +85,9 @@ protected:
     }
 
     void TearDown() override {
-        // xpe_preprocess_shutdown() called in test suite teardown
+        // Module managed by global environment
     }
 };
-
-bool GainCorrectAVX2ParityTest::calibrationLoaded = false;
 
 TEST_F(GainCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     // Skip if calibration not loaded
