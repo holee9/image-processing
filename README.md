@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-23 — 세션 5차)
+## 프로젝트 완성도 현황 (2026-04-23 — 세션 6차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -13,7 +13,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~89 / 100** | 85 ✅ 달성 | **90** |
 | **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~79 / 100** | ~85 | **85** |
 
-### 점수 상세 (Framework A v3.2, 2026-04-23 세션 5차 실측)
+### 점수 상세 (Framework A v3.2, 2026-04-23 세션 6차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
@@ -27,7 +27,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 운영 준비도 | 2 | **~2** | **PMS Plan v1.0 (AI 모니터링·필드 배포·드리프트 감지 추가)**, benchmark-regression.yml 활성 |
 | **합계** | **100** | **~89** | Framework A 목표 85 초과 달성 (+4) |
 
-### 점수 상세 (Framework B v3.2, 2026-04-23 세션 5차 실측)
+### 점수 상세 (Framework B v3.2, 2026-04-23 세션 6차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
@@ -40,7 +40,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | AI governance | 5 | **~1** | SPEC-XPE-P3-AI 정의만; AI 모듈 미구현 |
 | **합계** | **100** | **~79** | Framework B 목표 85 대비 -6, AI governance·상호운용성이 주요 갭 |
 
-### 모듈 구현 현황 (2026-04-23 세션 5차)
+### 모듈 구현 현황 (2026-04-23 세션 6차)
 
 | 모듈 | Phase | 테스트 | Gate | SPEC | 상태 |
 |------|:-----:|:------:|:----:|------|:----:|
@@ -48,13 +48,15 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** (M2 API + BP-01~05 freeze + SIMD P0/P1 수정) |
 | xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** (30 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
 | xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** (35 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
-| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, **Conformance Statement v1.0 승인**) |
+| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, Conformance v1.0; **CMakeLists.txt 누락 — 빌드 구성 필요**) |
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** (전수 GREEN, IEC 62304 4종) |
 | gsvg.dll | 2 | 2/2 ✅ | G2⏳ | SPEC-XPE-GSVG | **완료** (BP-06 + DegradedMode, v0.2.0) |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
-| ImageProcTest.exe | GUI | 78/78 ✅ | — | TASK-GUI-IA-001 | **진행 중** (Phase1b E2E fixture 완료) |
+| ImageProcTest.exe | GUI | 78/78 ✅ | — | TASK-GUI-IA-001 | **진행 중** (GSVG/Advanced/AI workflow 연동 — dev/gui 미통합) |
 
 > **진도율**: Phase 0~2 구현 완료 기준 **8/9 모듈 (89%)**, C++ 테스트 **403/403 통과 (M1/M2 GREEN)**, GUI 통합테스트 78/78 통과, SPEC-BENCH-PRE/POST freeze 완료
+> **모듈 소스 현황**: common(3), preprocess(190), enhance_basic(6), enhance_advanced(12), display(5), gsvg(1), dicom(5), ai(1) — 총 223개 .cpp 소스파일
+> **발견 이슈**: dicom 모듈 CMakeLists.txt 누락 (`BUILD_DICOM=OFF` 상태, 빌드 구성 필요)
 
 ### 게이트 현황
 
@@ -65,7 +67,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ⏳ **대기 중** | 빌드 환경 성능 실측 필요 (M1 잔여) |
 | G2 → G3 | Phase 2 + GSVG + 듀얼 게이트 | ⏳ **미착수** | G2 통과 후 |
 
-### SPEC 문서 현황 (2026-04-22)
+### SPEC 문서 현황 (2026-04-23)
 
 | SPEC | 상태 | 요구사항 수 | 담당 Lane |
 |------|:----:|:----------:|:---------:|
@@ -85,21 +87,30 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | SPEC-XPE-IOP | 📋 작성 | — | main |
 | SPEC-XPE-OPS | 📋 작성 | — | main |
 
-### 3-Lane Worktree 현황 (2026-04-23 세션 5차)
+### 3-Lane Worktree 현황 (2026-04-23 세션 6차)
 
 | Lane | Branch | 선행 커밋 | 최신 작업 | 상태 |
 |------|--------|:---------:|---------|:----:|
 | **A (Pre)** | dev/preprocess | 0 | SIMD P0/P1 수정 통합, BP-01~05 freeze, SPEC-SIMD-001 P0/P1 | **최종 통합 완료** |
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
-| **C (GUI)** | dev/gui | 0 | Phase1b E2E fixture, Native readiness, Evaluation UI, GSVG/Workflow UI | **최종 통합 완료** |
+| **C (GUI)** | dev/gui | 3 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동** | **미통합 (3커밋 선행)** |
 
-**최근 진행 상황** (2026-04-23 세션 5차 — 3개 항목 완료):
+**최근 진행 상황** (2026-04-23 세션 6차 — 정밀분석):
+
+| # | 작업 | 커밋 | 브랜치 |
+|---|------|------|--------|
+| 1 | **정밀분석 수행** — 모듈 소스 223개, 테스트 파일 14개, 문서 139종 현황 교차 검증 | — | main |
+| 2 | **dicom CMakeLists.txt 누락 발견** — `BUILD_DICOM=OFF`, 빌드 구성 필요 이슈 기록 | — | main |
+| 3 | **PMS Plan v1.0 커밋 확인** — 세션 5차 미커밋 표시에서 `6aadca0` 포함 확정 | `6aadca0` | main |
+| 4 | **GUI workflow 확장 확인** — GSVG C1/C2 + Advanced C3/C4 + AI C5/C6 (335줄, 미통합) | `c669e85` `fcba184` `af0a738` | dev/gui |
+
+**이전 세션** (2026-04-23 세션 5차 — 3개 항목 완료):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
 | 1 | **DICOM Conformance Statement v1.0** — 검증 절차·유지보수·버전관리 섹션 추가, Minor → Released | `580d6b9` | main |
 | 2 | **VVP-P1B-001 addendum 커밋** — ENH/DISP/DICOM 3모듈 VVP 검증 계획 보강 | `9211380` | main |
-| 3 | **PMS Plan v1.0** — AI 모니터링·드리프트 감지·필드 배포 섹션 신규 추가 (Minor → Released) | 미커밋 | main |
+| 3 | **PMS Plan v1.0** — AI 모니터링·드리프트 감지·필드 배포 섹션 신규 추가 (Minor → Released) | `6aadca0` | main |
 
 **이전 세션** (2026-04-22 거버넌스 세션 4차 — 3개 항목 완료):
 
@@ -146,7 +157,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 - ✅ **Gate G1a → G1b 완전 마감** (2026-04-19) — 메모리 누수 1000프레임 delta 0KB PASSED
 - ✅ **SPEC-XPE-P0 Phase 0 Foundation 완료** (11/11 deliverables), xpe_common.dll 91/91
 
-### 85점 달성 경로 (2026-04-23 세션 5차 갱신)
+### 85점 달성 경로 (2026-04-23 세션 6차 갱신)
 
 | 단계 | 행동 | 기여 (A/B) | 상태 |
 |:----:|------|:---------:|:----:|
@@ -169,7 +180,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 > **Framework A**: ~89/85 (목표 초과 달성) | **Framework B**: ~79/85 (AI governance·상호운용성이 주요 갭)
 > 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
-### 잔여 작업 분류 (2026-04-23 세션 5차)
+### 잔여 작업 분류 (2026-04-23 세션 6차)
 
 #### Must (출시 블로커)
 
@@ -178,6 +189,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | M1 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | main | A +2 | ⏳ 빌드 환경 실측 |
 | ~~M2~~ | ~~P1B VVP addendum 커밋~~ | ~~main~~ | ~~A 유지~~ | ✅ **완료 (세션 5차)** |
 | ~~M3~~ | ~~DICOM Conformance Statement v1.0~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
+| **M4** | **dicom CMakeLists.txt 작성** — `BUILD_DICOM=ON` 빌드 구성 | main | — | 🔴 **신규 발견** |
 
 #### Should (품질·점수 향상)
 
@@ -187,6 +199,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | S2 | xpe_ai.dll 구현 (AI governance) | Post-B | B +3 | 📋 Phase 3 |
 | ~~S3~~ | ~~PMS Plan v1.0 (AI 모니터링·필드 배포)~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
 | S4 | DICOMweb 상호운용성 | Post-B | B +2 | 📋 PS 3.4+ |
+| **S5** | **GUI dev/gui → main 통합** — GSVG/Advanced/AI workflow 3커밋 squash merge | GUI-C | — | 📋 **3커밋 선행** |
 
 #### Nice-to-Have (여력 확보 시)
 
@@ -197,9 +210,10 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N3 | Gate G2 → G3 준비 | main | Phase 3 진입 전제 |
 | N4 | DICOM Conformance PS 3.4+ 확장 | Post-B | Storage Commitment 등 |
 
-> **전체 진도율**: Must 항목 2/3 (67%), Should 항목 1/4 (25%), 완료된 달성 경로 11/14 (79%)
+> **전체 진도율**: Must 항목 2/4 (50%), Should 항목 1/5 (20%), 완료된 달성 경로 11/14 (79%)
 > **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~89 → 최대 ~96)
 > **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~79 → 최대 ~87)
+> **신규 발견 이슈**: dicom CMakeLists.txt 누락 (M4), GUI 3커밋 미통합 (S5)
 
 ## 범위 (Scope)
 
