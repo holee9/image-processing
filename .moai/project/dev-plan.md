@@ -1,7 +1,7 @@
 # XPE 개발 계획 (Living Document)
 
 **Document ID**: DEV-PLAN-001  
-**Version**: 1.9.0  
+**Version**: 2.0.0  
 **Date**: 2026-04-22  
 **Status**: Active — 지속적 갱신 대상
 
@@ -46,8 +46,17 @@ xpe-gui/ (Lane C, dev/gui)
 | xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
 | ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | Phase1b E2E fixture 완료 |
 | xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
-| gsvg.dll | Post-B | 2/2 ✅ (BP-06 + DegradedMode) | ✅ | BP-06~09 freeze 완료 |
+| gsvg.dll | Post-B | 2/2 (BP-06 + DegradedMode) | ✅ | BP-06~09 freeze 완료 |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
+
+### 1.0.1 SIMD Parity 테스트 현황 (SPEC-SIMD-001)
+
+| REQ | 테스트 | 상태 |
+|-----|--------|------|
+| REQ-SIMD-001 Offset | test_offset_correct_avx2_parity.cpp | SKIP (calibration 필요 — 의도적) |
+| REQ-SIMD-002 Gain | test_gain_correct_avx2_parity.cpp | SKIP (calibration 필요 — 의도적) |
+| REQ-SIMD-003 Defect | test_defect_correct_avx2_parity.cpp | ✅ NEW API 재작성 완료 |
+| REQ-SIMD-004 Runtime | test_runtime_detection_avx2_parity.cpp | ✅ 픽셀 포맷 수정 완료 |
 
 ### 1.1.1 Lane 브랜치 현황 (2026-04-22 기준)
 
@@ -61,15 +70,12 @@ xpe-gui/ (Lane C, dev/gui)
 
 | Framework | 이전 | 현재 실측 | 목표 |
 |-----------|:----:|:--------:|:----:|
-| A (Process/Compliance) | ~86 | **~85** | 85 ✅ |
-| B (Product/Delivery) | ~78 | **~75** | 85 |
+| A (Process/Compliance) | ~85 | **~88** | 85 ✅ (달성) |
+| B (Product/Delivery) | ~75 | **~78** | 85 |
 
-- 점수 재측정 (2026-04-22 v1.9.0): 항목별 실측 기반 재계산, AI governance 미반영으로 B 하향 조정
-- SPEC-BENCH-PRE/POST v1.0.0 작성 완료 — BP-01~09 freeze SPEC 정식화
-- SPEC-XPE-GSVG v1.0.0 작성 완료 — GSVG 26개 요구사항 정식화
-- api-spec.md v1.4.0 갱신 — AED 제거, SPEC-MASTER v3.0 참조
-- Post-B 재통합 (37파일) — GSVG API + BP freeze + E2E + MSVC 수정
-- OPS/IOP/SEC 리뷰: DICOM Conf/PMS = Minor, SECURITY/SPDF = Major 업데이트 필요
+- v2.0.0 갱신: M1 VVP-P1B-001 + M2 SECURITY/SPDF v1.0 반영 → A 상향
+- SPEC-SIMD-001 P0/P1 수정 통합 (parity 테스트 3개)
+- OPS/IOP/SEC v1.0 승인 완료 (SECURITY/SPDF Major 업그레이드)
 
 ---
 
@@ -141,9 +147,20 @@ main이 정의할 다음 Lane 작업 SPEC:
 
 | 항목 | Framework 기여 | 비고 |
 |------|:--------------:|------|
-| **SPEC-SIMD-001 구현** (scalar ref + parity) | **A +5** | ⚠️ 임계 경로 — CMakeLists TODO만 등록, 실구현 미착수 |
-| IEC 62304 VVP sync (P1A/P1B 항목 보강) | A +1 | 문서 품질 19→20 |
-| Gate G1b → G2 검증 | 게이트 통과 | 빌드 환경 필요, E2E 실측 |
+| **SPEC-SIMD-001 실검증** (리빌드 후 ctest) | **A +5** | P0/P1 수정 통합됨, 리빌드+검증 필요 |
+| **SPEC-SIMD-006** (scalar perf baseline) | A +? | timing assertion 추가 필요 |
+| **Gate G1b → G2 검증** | 게이트 통과 | 빌드 환경에서 전체 파이프라인 성능/메모리 실측 |
+| **S-OPS/IOP v1.0** (Minor 업데이트) | A +? | DICOM Conf + PMS Plan 검증절차 추가 |
+| **BP-10 cross-lane 실측** | A +? | 통합 후 degraded-mode stress |
+
+### v2.0.0 추가 완료 항목 (2026-04-22)
+
+| 항목 | Framework 기여 | 비고 |
+|------|:--------------:|------|
+| VVP-P1B-001 (ENH/DISP/DICOM) | A +1 | P1B 3모듈 VVP addendum 신규 작성 |
+| SECURITY.md v1.0 (사건대응+보안테스트) | A +? | Incident Response 7단계, 테스트 피라미드 8종 |
+| SPDF Plan v1.0 (위협모던+SLSA+IEC 81001) | A +? | STRIDE 5경계 19위협, IEC 81001 69% 준수 |
+| SPEC-SIMD-001 P0/P1 수정 통합 | A +? | Defect/RT parity 테스트 수정 반영 |
 
 ---
 
@@ -240,3 +257,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-22 | 1.7.0 | S-OPS/IOP/SEC CORE 문서 착수 — DICOM Conformance Statement v0.1 (PS 3.2), SECURITY.md (CVD), SPDF Plan v0.1 (§524B), PMS Plan v0.1 (EU MDR Art 83) |
 | 2026-04-22 | 1.8.0 | 3-Lane 전체 squash merge 완료 — GUI-C/Post-B/Pre-A 병합 (충돌 4개 해소); 점수 갱신 A ~83→~86, B ~77→~78; 잔여 임계경로: SPEC-SIMD-001 구현 (+5) |
 | 2026-04-22 | 1.9.0 | SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 작성; api-spec.md v1.4.0 갱신; Post-B 재통합 37파일; 점수 실측 재계산 A ~85, B ~75; OPS/IOP/SEC 리뷰 완료; P1B VVP 누락 확인 |
+| 2026-04-22 | 2.0.0 | M1 VVP-P1B-001 + M2 SECURITY/SPDF v1.0 + SPEC-SIMD-001 P0/P1 통합; 3-Lane 최종 squash merge 완료; 점수 A ~88 (목표달성), B ~78 |
