@@ -60,14 +60,19 @@ function Write-Result {
 $dllSearchRoot = Resolve-Path $BuildDir
 $binDir = Join-Path $dllSearchRoot 'bin'
 if (-not (Test-Path $binDir)) {
-    Write-Result -Passed $false `
-        -Summary 'Build output bin directory was not found' `
-        -Details @{
-            build_dir      = $dllSearchRoot.Path
-            expected_bin   = $binDir
-            harness_status = 'not_ready'
-        }
-    exit 1
+    $directDlls = @(Get-ChildItem -Path $dllSearchRoot -Filter '*.dll' -File)
+    $directExes = @(Get-ChildItem -Path $dllSearchRoot -Filter '*.exe' -File)
+    if (($directDlls.Count + $directExes.Count) -eq 0) {
+        Write-Result -Passed $false `
+            -Summary 'Build output bin directory was not found' `
+            -Details @{
+                build_dir      = $dllSearchRoot.Path
+                expected_bin   = $binDir
+                harness_status = 'not_ready'
+            }
+        exit 1
+    }
+    $binDir = $dllSearchRoot.Path
 }
 
 $allBuiltDlls = Get-ChildItem -Path $binDir -Filter '*.dll' -File
