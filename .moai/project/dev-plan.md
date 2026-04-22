@@ -33,7 +33,7 @@ xpe-gui/ (Lane C, dev/gui)
 
 ---
 
-## 1. 현재 상태 (2026-04-21 기준)
+## 1. 현재 상태 (2026-04-22 기준)
 
 ### 1.1 통합 현황 (main 기준)
 
@@ -49,13 +49,13 @@ xpe-gui/ (Lane C, dev/gui)
 | gsvg.dll | Post-B | 1/1 ✅ (BP-06) | ✅ | 착수 (CMakeLists + benchmark test) |
 | xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
 
-### 1.1.1 Lane 브랜치 현황 (2026-04-21 squash merge 완료)
+### 1.1.1 Lane 브랜치 현황 (2026-04-22 기준)
 
-| Lane | 브랜치 | 선행 커밋 | 최신 main 통합 내용 | 상태 |
+| Lane | 브랜치 | 선행 커밋 | 최신 내용 | 상태 |
 |------|--------|:---------:|---------|------|
-| Pre-A | dev/preprocess | 17 | runtime_detection 검증 보강 + TDD RED test_temp_nonlinearity_binning | main 병합 ✅ |
-| Post-B | dev/postprocess | 25 | BP-06~09 baseline + gsvg CMakeLists/test + MSVC 경고 정리 | main 병합 ✅ |
-| GUI-C | dev/gui | 13 | Phase1B readiness chain + DICOM/Display/GSVG P/Invoke 래퍼 | main 병합 ✅ |
+| Pre-A | dev/preprocess | +3 | BP-01~05 DegradedMode 6/6 PASS + SPEC-SIMD-001 CMakeLists TODO | 작업 중 (미병합) |
+| Post-B | dev/postprocess | +2 | BP-06~09 4/4 PASS + build_test2/ 아티팩트 정리 | 작업 중 (미병합) |
+| GUI-C | dev/gui | +1 | Phase1b E2E fixture + NativePresentation export 서비스 | 작업 중 (미병합) |
 
 ### 1.2 점수 현황
 
@@ -157,30 +157,29 @@ main 병합 후 전체 파이프라인 E2E 검증:
 
 ## 5. 다음 main 작업 계획 (우선순위 순)
 
-### P0: benchmark 동결 ← 임계경로 (+3점)
+### ✅ P0: benchmark 동결 ← 완료 (2026-04-22)
 
-현재 상태: SIMD 구현 완료. 기준 동결 미수행.
-
-| 팩 | 담당 Lane | 내용 |
+| 팩 | 담당 Lane | 상태 |
 |----|----------|------|
-| BP-01~05 | **Pre-A** | Preprocess 전용 — Offset/Gain/Defect/Ghost/Temp 측정값 동결 |
-| BP-06~09 | **Post-B** | Post 전용 — GSVG/Collimation/EI/DI 측정값 동결 |
-| BP-10 | **main** | Degraded-mode stress (cross-lane, 통합 후 측정) |
+| BP-01~05 | **Pre-A** | ✅ DegradedMode 6/6 PASS, manifest v1.1.0 Frozen |
+| BP-06~09 | **Post-B** | ✅ BenchmarkFreeze 4/4 PASS, manifest Frozen |
+| BP-10 | **main** | CI 워크플로우 완료 (benchmark-regression.yml) |
 
-- main: benchmark regression CI 잡 추가 (양 Lane 결과 통합 검증)
 - 기여: Framework A +3, Framework B (알고리즘 품질) +2
 
-### P0: EARS P1B 요구사항 작성 (+2점)
+### ✅ P0: EARS P1B 요구사항 작성 (+2점) — 완료 확인 (2026-04-22)
 
-S1-B1~B3 구현 완료됐으나 EARS 요구사항 문서 미작성.
-- 대상 SPEC: SPEC-XPE-P1B-ENH, SPEC-XPE-P1B-DISP, SPEC-XPE-P1B-DICOM
-- 내용: 각 모듈 EARS 요구사항 작성 → 요구사항 완전성 15→17점
+SPEC 문서 검토 결과 요구사항이 이미 완전히 작성된 상태임을 확인.
+- SPEC-XPE-P1B-ENH: 30 EARS 요구사항 ✅ (Status: Implemented)
+- SPEC-XPE-P1B-DISP: 35 EARS 요구사항 ✅ (Status: Completed)
+- SPEC-XPE-P1B-DICOM: 40 EARS 요구사항 ✅ (Released 2026-04-21)
+→ 요구사항 완전성 점수 이미 반영됨
 
 ### P1: IEC 62304 VVP sync (+1점)
 
-P2-ADV IEC 패키지는 완성됐으나 VVP (Validation/Verification Plan) 미완성.
-- 대상: docs/project/vvp_adv.md 작성
-- P1A/P1B 모듈 VVP 항목도 추가
+P2-ADV VVP 완성됨 (vvp_adv.md 작성 완료 2026-04-21).
+P1A/P1B 모듈 VVP 항목 추가 여부 별도 확인 필요.
+- 대상: vvp_adv.md 기반 P1A/P1B 항목 보강
 
 ### P1: Gate G1b → G2 준비
 
@@ -210,3 +209,4 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 | 2026-04-20 | 1.3.0 | benchmark Lane 할당 오류 수정 — BP-06~09(GSVG/Collimation/EI)는 Post-B 담당, Pre-A는 BP-01~05(Preprocess)만; BP-10은 main cross-lane |
 | 2026-04-21 | 1.4.0 | 3-Lane 전체 squash merge 반영 — runtime_detection 보강, gsvg 착수, BP-06~09 baseline 완료, GUI Phase1B chain; 점수 갱신 A=83, B=~77 |
 | 2026-04-21 | 1.5.0 | 비-AI 잔여 작업 일괄 처리 — VVP 문서 작성, EARS P1B-ENH/DISP 검증(완료 확인), GSVG API 구현(v0.2.0), DegradedMode GTest BP-01~09, Gate G1b→G2 검증 계획 수립 |
+| 2026-04-22 | 1.6.0 | 7개 검토사항 순차 완료 — xpe-gui 커밋(+7파일), build_test2 정리, BP-01~05 DegradedMode freeze(6/6 PASS), SPEC-SIMD-001 v1.0.0 작성(+5점 임계경로 문서화), BP-06~09 freeze(4/4 PASS), EARS P1B 완료 확인, Lane 브랜치 현황 갱신 |
