@@ -3,6 +3,14 @@
 Issue: `#55`
 Worktree: `xpe-post`
 Branch: `dev/postprocess`
+**Status**: Frozen — 4/4 PASS (2026-04-22)
+
+| BP | Test | Result | Date |
+|----|------|--------|------|
+| BP-06 | BenchmarkFreeze.BP06_GsvgVersionProbeBaseline | ✅ PASS (0 ms) | 2026-04-22 |
+| BP-07 | CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline | ✅ PASS (10 ms) | 2026-04-22 |
+| BP-08 | ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline | ✅ PASS (0 ms) | 2026-04-22 |
+| BP-09 | ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline | ✅ PASS (0 ms) | 2026-04-22 |
 
 This file freezes the first Post-B benchmark gates used by
 `.github/workflows/benchmark-regression.yml`. The thresholds are intentionally
