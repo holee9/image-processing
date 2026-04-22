@@ -37,14 +37,18 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* paramName,
  * ========================================================================= */
 
 /**
- * @brief Apply per-pixel dark offset subtraction in-place.
+ * @brief Apply per-pixel dark offset subtraction.
  *        corrected[i] = clamp(raw[i] - offsetMap[i], 0)
- * @param img       [in/out] Image to correct (uint16 format)
- * @param offsetMap [in]     Per-pixel offset map (must match img dimensions)
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on dimension mismatch or NULL input
+ *        Uses calibration offset map loaded via xpe_calib_load_offset().
+ * @param input   [in]  Input image (uint16 format)
+ * @param output  [out] Corrected output image (uint16 format, pre-allocated)
+ * @param metadata [in]  Image metadata (used for temperature interpolation)
+ * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on NULL/dimension mismatch,
+ *         XPE_ERR_NOT_INITIALIZED if calibration not loaded
  */
-XPE_API XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
-                                         const XpeImageBuffer* offsetMap);
+XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
+                                        XpeImageBuffer* output,
+                                        const XpeImageMetadata* metadata);
 
 /* =========================================================================
  * SWU-1.2: Gain Correction (PRE-03) + uint16->float32 domain transition
@@ -53,26 +57,19 @@ XPE_API XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
 
 /**
  * @brief Apply per-pixel flat-field gain normalization.
- *        corrected[i] = img[i] * gainMap[i]  (output: float32)
+ *        corrected[i] = input[i] / gainMap[i]  (output: float32)
  *        Domain transition: uint16 input -> float32 output occurs here (stage 2).
+ *        Uses calibration gain map loaded via xpe_calib_load_gain().
  *
- * @par Ownership Transfer
- *   This function allocates a new float32 pixel buffer (via malloc) and stores
- *   the pointer in img->data. The caller takes ownership of the new buffer and
- *   must call free(img->data) when done. The original uint16 buffer is NOT freed
- *   by this function — the caller retains ownership of the original buffer.
- *
- * @par Buffer Layout
- *   Both img and gainMap must be contiguous (stride == width * element_size).
- *   Non-contiguous (row-padded) buffers return XPE_ERR_INVALID_INPUT.
- *
- * @param img     [in/out] Image to correct (uint16 in, float32 out); data ptr replaced
- * @param gainMap [in]     Per-pixel gain map (float32, must match img dimensions)
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT (NULL/dim mismatch/non-contiguous),
- *         XPE_ERR_OUT_OF_MEMORY if allocation fails
+ * @param input    [in]  Input image (uint16 format)
+ * @param output   [out] Normalized output image (float32 format, pre-allocated)
+ * @param metadata [in]  Image metadata (used for multi-SID gain interpolation)
+ * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on NULL/dimension mismatch,
+ *         XPE_ERR_NOT_INITIALIZED if calibration not loaded
  */
-XPE_API XpeErrorCode xpe_gain_correct(XpeImageBuffer* img,
-                                       const XpeImageBuffer* gainMap);
+XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
+                                      XpeImageBuffer* output,
+                                      const XpeImageMetadata* metadata);
 
 /* =========================================================================
  * SWU-1.3: Defect Pixel Correction (PRE-06)
@@ -151,31 +148,28 @@ XPE_API void xpe_ghost_destroy(void* handle);
  * ========================================================================= */
 
 /**
- * @brief Load offset calibration map from file, verify CRC-32, populate offsetMapOut.
- * @param filePath     [in]  Path to calibration file
- * @param offsetMapOut [out] Populated by this function; caller owns the buffer
+ * @brief Load offset calibration map from file, verify CRC-32.
+ *        Populates internal g_calib state for subsequent pipeline calls.
+ * @param filePath [in] Path to calibration file
  * @return XPE_OK, XPE_ERR_IO_FAILED (CRC mismatch), XPE_ERR_CALIBRATION_EXPIRED
  */
-XPE_API XpeErrorCode xpe_calib_load_offset(const char* filePath,
-                                            XpeImageBuffer* offsetMapOut);
+XPE_API XpeErrorCode xpe_calib_load_offset(const char* filePath);
 
 /**
- * @brief Load gain calibration map from file, verify CRC-32, populate gainMapOut.
- * @param filePath  [in]  Path to calibration file
- * @param gainMapOut [out] Populated by this function; caller owns the buffer
+ * @brief Load gain calibration map from file, verify CRC-32.
+ *        Populates internal g_calib state for subsequent pipeline calls.
+ * @param filePath [in] Path to calibration file
  * @return XPE_OK, XPE_ERR_IO_FAILED (CRC mismatch), XPE_ERR_CALIBRATION_EXPIRED
  */
-XPE_API XpeErrorCode xpe_calib_load_gain(const char* filePath,
-                                          XpeImageBuffer* gainMapOut);
+XPE_API XpeErrorCode xpe_calib_load_gain(const char* filePath);
 
 /**
  * @brief Load static defect map from file.
- * @param filePath     [in]  Path to defect map file
- * @param defectMapOut [out] Non-zero pixels indicate defect locations
+ *        Populates internal g_calib state for subsequent pipeline calls.
+ * @param filePath [in] Path to defect map file
  * @return XPE_OK, XPE_ERR_IO_FAILED on read/CRC error
  */
-XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filePath,
-                                                XpeImageBuffer* defectMapOut);
+XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filePath);
 
 /**
  * @brief Compute per-pixel mean across frameCount dark-field frames.
