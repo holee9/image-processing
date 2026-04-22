@@ -49,11 +49,11 @@ namespace ImageProcTest
             new("gsvg", "(9)", "GSVG / virtual grid", "gsvg", "gsvg.dll", "2", "enhancement", "enhancement", "GSVG-SRS-001", "grid/no-grid benchmark", "optional", "gsvg-adapter-pending", 9.0, false, true, false, false, null, "Track C1/C2 readiness in the GUI and wait for #61 processing exports before enabling GSVG execution."),
             new("multiscale", "(10)", "Multiscale processing", "xpe_enhance_advanced", "xpe_enhance_advanced.dll", "2", "enhancement", "enhancement", "SRS-ENHANCE-ADV", "PSNR/SSIM/MTF gates", "optional", "advanced-adapter-pending", 10.0, false, true, false, false, null, "Add advanced enhancement adapter and quality gates."),
             new("fractional", "(11)", "Fractional processing", "xpe_enhance_advanced", "xpe_enhance_advanced.dll", "2", "enhancement", "enhancement", "pipeline-spec (11)", "advanced enhancement gates", "optional", "advanced-adapter-pending", 11.0, false, true, false, false, null, "Add fractional processing adapter and benchmark binding."),
-            new("ai-bodypart", "(5a)", "Body-part recognition advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-copy", "ai-advisory", "ALG-SPEC 6.7", "AI reporting rule", "optional branch", "adapter-pending", 12.0, false, true, false, true, null, "Add AI worker proxy and confidence/fallback report."),
-            new("ai-collimation", "(5c)", "AI collimation refinement advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-copy", "ai-advisory", "ALG-SPEC 6.7", "AI degraded-mode tests", "optional branch", "adapter-pending", 12.1, false, true, false, true, null, "Add non-blocking AI collimation proposal branch."),
-            new("stitching", "(12)", "Image stitching", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "multi-frame-set", "panorama", "pipeline-spec (12)", "stitching cases", "sequence branch", "adapter-pending", 12.2, false, true, true, true, null, "Add multi-frame study input and tagged panorama output."),
-            new("bone-suppression", "(13)", "Bone suppression", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assistive-secondary-image", "Regulatory hold/research gated", "observer/task-based evidence", "optional branch", "adapter-pending", 13.0, false, true, false, true, null, "Keep as assistive secondary output; do not overwrite deterministic baseline."),
-            new("dl-denoise", "(13b)", "DL denoising", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assistive-enhanced-image", "ALG-SPEC research-gated", "DL degraded-mode tests", "optional branch", "adapter-pending", 13.1, false, true, false, true, null, "Keep research-gated until task-based validation passes."),
+            new("ai-bodypart", "(5a)", "Body-part recognition advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-copy", "ai-advisory", "FR-AI-130, FR-AI-140", "TC-AI-130-01..04", "optional branch", "ai-adapter-pending", 12.0, false, true, false, true, null, "Add AI worker proxy, heartbeat smoke, confidence threshold evidence, and sidecar-only fallback report."),
+            new("ai-collimation", "(5c)", "AI collimation refinement advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-copy", "ai-advisory", "FR-AI-150, SAF-AI-130", "TC-AI-150-01..03", "optional branch", "ai-adapter-pending", 12.1, false, true, false, true, null, "Add non-blocking AI collimation proposal branch and original-ROI fallback evidence."),
+            new("stitching", "(12)", "Image stitching", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "multi-frame-set", "panorama", "FR-AI-160, PERF-AI-120", "TC-AI-160-01..03", "sequence branch", "ai-adapter-pending", 12.2, false, true, true, true, null, "Add multi-frame study input, reject/fallback evidence, and tagged panorama output."),
+            new("bone-suppression", "(13)", "Bone suppression", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assistive-secondary-image", "FR-AI-170, PERF-AI-130", "TC-AI-170-01..04", "optional branch", "ai-adapter-pending", 13.0, false, true, false, true, null, "Keep as assistive secondary output; do not overwrite deterministic baseline."),
+            new("dl-denoise", "(13b)", "DL denoising", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assistive-enhanced-image", "FR-AI-190, SAF-AI-130", "DL degraded-mode tests", "optional branch", "ai-adapter-pending", 13.1, false, true, false, true, null, "Keep research-gated and use classical noise reduction fallback until task-based validation passes."),
             new("modality-lut", "(14)", "Modality LUT", "xpe_display", "xpe_display.dll", "1b", "presentation", "presentation", "SRS-DISPLAY FR-MODAL", "display LUT tests", "mandatory", "adapter-pending", 14.0, true, false, false, false, null, "Add xpe_display modality LUT adapter."),
             new("voi-lut", "(15)", "VOI LUT", "xpe_display", "xpe_display.dll", "1b", "presentation", "presentation", "SRS-DISPLAY FR-VOI", "VOI LUT tests", "mandatory", "adapter-pending", 15.0, true, false, false, false, null, "Add xpe_display VOI/window adapter."),
             new("presentation-lut", "(16)", "Presentation LUT / GSDF", "xpe_display", "xpe_display.dll", "1b", "presentation", "display-ready", "SRS-DISPLAY FR-GSDF", "GSDF tests", "mandatory", "adapter-pending", 16.0, true, false, false, false, null, "Add xpe_display GSDF adapter."),
@@ -63,8 +63,9 @@ namespace ImageProcTest
         private static readonly string[] ProductCanonicalOrder =
         [
             "calib-folder", "readout", "temperature", "offset", "nonlinearity", "gain", "binning", "defect",
-            "lag-ghost", "ei-whole", "log", "basic-noise", "contrast", "edge", "collimation", "ei-roi",
-            "gsvg", "multiscale", "fractional", "modality-lut", "voi-lut", "presentation-lut", "dicom-write"
+            "lag-ghost", "ei-whole", "log", "basic-noise", "contrast", "edge", "ai-bodypart",
+            "collimation", "ai-collimation", "ei-roi", "gsvg", "multiscale", "fractional",
+            "stitching", "bone-suppression", "dl-denoise", "modality-lut", "voi-lut", "presentation-lut", "dicom-write"
         ];
 
         private static readonly string[] PreE2eProofOrder =
@@ -200,6 +201,10 @@ namespace ImageProcTest
                 .Where(step => IsAdvancedStage(step.StageKey))
                 .Select(step => step.StageKey)
                 .ToArray();
+            var aiOrder = steps
+                .Where(step => IsAiStage(step.StageKey))
+                .Select(step => step.StageKey)
+                .ToArray();
             var displayOrder = steps
                 .Where(step => IsDisplayStage(step.StageKey))
                 .Select(step => step.StageKey)
@@ -223,6 +228,7 @@ namespace ImageProcTest
                 nativeOrder,
                 enhanceBasicOrder,
                 advancedOrder,
+                aiOrder,
                 displayOrder,
                 dicomOrder,
                 isFolderAuditOnly,
@@ -234,6 +240,7 @@ namespace ImageProcTest
                 nativeOrder,
                 enhanceBasicOrder,
                 advancedOrder,
+                aiOrder,
                 displayOrder,
                 dicomOrder,
                 isFolderAuditOnly,
@@ -336,6 +343,15 @@ namespace ImageProcTest
                     continue;
                 }
 
+                if (IsAiStage(step.StageKey))
+                {
+                    findings.Add(Hard(
+                        "AI-ADAPTER-PENDING",
+                        $"{step.Node.Label} {step.Node.AlgorithmName} is selected, but AI C5/C6 execution is waiting on xpe_ai_worker heartbeat/IPC smoke and a GUI adapter contract.",
+                        step.Node.NextAction));
+                    continue;
+                }
+
                 findings.Add(Hard(
                     "ADAPTER-PENDING",
                     $"{step.Node.Label} {step.Node.AlgorithmName} is selected but its GUI execution adapter is not available yet.",
@@ -409,6 +425,18 @@ namespace ImageProcTest
             RequireBeforeIfBoth(steps, findings, "multiscale", "fractional", "ADV-MULTISCALE-BEFORE-FRACTIONAL",
                 "Fractional processing is canonical after multiscale processing when both are selected.",
                 "Phase 2 advanced workflow order: multiscale before fractional.");
+            RequireBeforeIfBoth(steps, findings, "collimation", "ai-collimation", "AI-COLLIMATION-REQ-BASELINE",
+                "AI collimation refinement expects the baseline ROI proposal before it runs.",
+                "SRS-AI FR-AI-150: AI ROI is a non-blocking refinement of the baseline collimation ROI.");
+            RequireBeforeIfBoth(steps, findings, "ai-bodypart", "bone-suppression", "AI-BODYPART-BEFORE-BONE",
+                "Bone suppression should preserve body-part advisory context when both AI branches are selected.",
+                "SRS-AI FR-AI-130/170: body-part confidence remains sidecar-only evidence for assistive AI outputs.");
+            RequireBeforeIfBoth(steps, findings, "ai-bodypart", "dl-denoise", "AI-BODYPART-BEFORE-DL-DENOISE",
+                "DL denoising should preserve body-part advisory context when both AI branches are selected.",
+                "SRS-AI SAF-AI-130: AI confidence and fallback state must stay explicit in sidecar evidence.");
+            RequireBeforeIfBoth(steps, findings, "basic-noise", "dl-denoise", "AI-DL-DENOISE-AFTER-CLASSICAL",
+                "DL denoising is canonical after the deterministic noise-reduction baseline when both are selected.",
+                "SRS-AI SWU-2.12: classical noise reduction is the fallback path.");
 
             RequirePresentBefore(steps, findings, "gain", "offset", "CAL-GAIN-REQ-OFFSET",
                 "Gain correction is selected without offset correction.",
@@ -593,6 +621,13 @@ namespace ImageProcTest
         private static bool IsGsvgStage(string stageKey) =>
             string.Equals(stageKey, "gsvg", StringComparison.OrdinalIgnoreCase);
 
+        private static bool IsAiStage(string stageKey) =>
+            string.Equals(stageKey, "ai-bodypart", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "ai-collimation", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "stitching", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "bone-suppression", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(stageKey, "dl-denoise", StringComparison.OrdinalIgnoreCase);
+
         private static bool IsDetectorOrLaterImageStage(string stageKey) =>
             !string.Equals(stageKey, "calib-folder", StringComparison.OrdinalIgnoreCase);
 
@@ -630,6 +665,7 @@ namespace ImageProcTest
             IReadOnlyList<string> nativeOrder,
             IReadOnlyList<string> enhanceBasicOrder,
             IReadOnlyList<string> advancedOrder,
+            IReadOnlyList<string> aiOrder,
             IReadOnlyList<string> displayOrder,
             IReadOnlyList<string> dicomOrder,
             bool isFolderAuditOnly,
@@ -650,11 +686,14 @@ namespace ImageProcTest
             var advanced = advancedOrder.Count == 0
                 ? "advanced=none"
                 : $"advanced selected: {string.Join(" -> ", advancedOrder)}";
+            var ai = aiOrder.Count == 0
+                ? "ai=none"
+                : $"ai selected: {string.Join(" -> ", aiOrder)}";
             var execution = canExecute
                 ? isFolderAuditOnly ? "folder audit runnable" : $"native runnable: {executableStages}"
                 : "blocked";
 
-            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; {advanced}; execution={execution}.";
+            return $"Chain: {order}; rules hard={hard}, soft={soft}, advisory={advisory}; {advanced}; {ai}; execution={execution}.";
         }
 
         private static AlgorithmDependencyFinding Hard(string ruleId, string message, string evidence) =>

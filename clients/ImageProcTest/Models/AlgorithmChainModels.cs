@@ -75,6 +75,7 @@ namespace ImageProcTest
         IReadOnlyList<string> NativeStageOrder,
         IReadOnlyList<string> EnhanceBasicStageOrder,
         IReadOnlyList<string> AdvancedStageOrder,
+        IReadOnlyList<string> AiStageOrder,
         IReadOnlyList<string> DisplayStageOrder,
         IReadOnlyList<string> DicomStageOrder,
         bool IsFolderAuditOnly,

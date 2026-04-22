@@ -24,7 +24,7 @@ namespace ImageProcTest
                 EvaluateDicom(dicom),
                 EvaluateDllPresence("xpe_enhance_advanced", "xpe_enhance_advanced.dll"),
                 EvaluateGsvg(gsvg),
-                EvaluateDllPresence("xpe_ai", "xpe_ai.dll")
+                EvaluateAi()
             ];
         }
 
@@ -286,6 +286,43 @@ namespace ImageProcTest
                 ProcessingEnabled: false,
                 RequiredLevel: "R3",
                 DegradedMode: "GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution.");
+        }
+
+        private static ModuleReadinessSnapshot EvaluateAi()
+        {
+            var found = NativeModuleLibraryLocator.TryFindDll(
+                "xpe_ai.dll",
+                "xpe_ai",
+                "image-processing",
+                "xpe-post",
+                "xpe-pre");
+
+            if (found != null)
+            {
+                var workerPath = Path.Combine(Path.GetDirectoryName(found) ?? "", "xpe_ai_worker.exe");
+                var workerEvidence = File.Exists(workerPath)
+                    ? $"worker={workerPath}"
+                    : "worker=xpe_ai_worker.exe not found next to DLL";
+                return new ModuleReadinessSnapshot(
+                    "xpe_ai",
+                    "R1",
+                    File.Exists(workerPath) ? "Proxy DLL and worker present" : "Proxy DLL found, worker absent",
+                    $"dll={found}; {workerEvidence}",
+                    "Add xpe_ai_worker heartbeat/IPC smoke and GUI adapter checks before enabling AI execution.",
+                    ProcessingEnabled: false,
+                    RequiredLevel: "R3",
+                    DegradedMode: "AI assistive workflow stays Off; GUI uses deterministic baseline, sidecar-only reporting, UNKNOWN/original/single-image/classical fallbacks until worker heartbeat and adapter smoke pass.");
+            }
+
+            return new ModuleReadinessSnapshot(
+                "xpe_ai",
+                "R0",
+                "DLL absent",
+                "xpe_ai.dll not found in search path",
+                "Build xpe_ai.dll and xpe_ai_worker.exe, then add heartbeat/IPC smoke before GUI execution.",
+                ProcessingEnabled: false,
+                RequiredLevel: "R3",
+                DegradedMode: "AI assistive workflow is unavailable, so the GUI leaves AI stages skipped without blocking deterministic Phase 1b execution.");
         }
 
         private static ModuleReadinessSnapshot EvaluateDllPresence(string moduleName, string dllName)

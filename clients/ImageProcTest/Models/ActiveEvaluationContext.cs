@@ -82,6 +82,7 @@ namespace ImageProcTest
                     $"stage switches=offset:{StageSelection.Offset}, gain:{StageSelection.Gain}, defect:{StageSelection.Defect}; " +
                     $"post stages={string.Join(" -> ", AlgorithmChain.EnhanceBasicStageOrder)}; " +
                     $"advanced stages={string.Join(" -> ", AlgorithmChain.AdvancedStageOrder)}; " +
+                    $"ai stages={string.Join(" -> ", AlgorithmChain.AiStageOrder)}; " +
                     $"display stages={string.Join(" -> ", AlgorithmChain.DisplayStageOrder)}; " +
                     $"dicom stages={string.Join(" -> ", AlgorithmChain.DicomStageOrder)}; " +
                     $"rule status={AlgorithmChain.Summary}";
