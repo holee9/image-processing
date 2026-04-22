@@ -34,6 +34,7 @@ namespace ImageProcTest
         private PreprocessHealthResult? lastPreprocessHealth;
         private NativePreprocessPreviewResult? lastNativePreviewResult;
         private NativeEnhanceBasicPreviewResult? lastEnhanceBasicPreviewResult;
+        private NativePresentationExportResult? lastPresentationExportResult;
         private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
         private IReadOnlyList<AlgorithmValidationItem> currentAlgorithmValidation = [];
         private IReadOnlyList<AlgorithmNode> currentAlgorithmNodes = [];
@@ -463,6 +464,7 @@ namespace ImageProcTest
                 catch (Exception ex)
                 {
                     lastEnhanceBasicPreviewResult = null;
+                    lastPresentationExportResult = null;
                     EvaluationViewer.ClearNativePreview();
                     lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
                         item.SwuId,
@@ -529,6 +531,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
                     item.SwuId,
@@ -606,6 +609,7 @@ namespace ImageProcTest
                 catch (Exception ex)
                 {
                     lastEnhanceBasicPreviewResult = null;
+                    lastPresentationExportResult = null;
                     EvaluationViewer.ClearNativePreview();
                     var fail = new AlgorithmValidationRunSnapshot(
                         item.SwuId,
@@ -675,6 +679,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 var fail = new AlgorithmValidationRunSnapshot(
                     item.SwuId,
@@ -794,6 +799,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 var fail = new AlgorithmValidationRunSnapshot(
                     "CHAIN",
@@ -930,6 +936,7 @@ namespace ImageProcTest
                     lastPreprocessHealth,
                     lastNativePreviewResult,
                     lastEnhanceBasicPreviewResult,
+                    lastPresentationExportResult,
                     GetStageModes(),
                     currentModuleReadiness,
                     currentAlgorithmValidation,
@@ -1045,6 +1052,7 @@ namespace ImageProcTest
                 currentPreview = null;
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
 
                 var preview = RawPreviewService.LoadUInt16Preview(path);
                 currentPreview = preview;
@@ -1058,6 +1066,7 @@ namespace ImageProcTest
                 currentPreview = null;
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearRawPreview($"Raw preview failed: {ex.Message}");
                 NativePreviewText.Text = "Native preview: unavailable";
                 UpdateNativePreviewControls();
@@ -1112,6 +1121,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 NativePreviewText.Text = $"Native preview failed: {ex.Message}";
                 SetStatus("Native pre/post preview failed", Brushes.OrangeRed);
@@ -1130,6 +1140,7 @@ namespace ImageProcTest
 
             lastNativePreviewResult = null;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.ClearNativePreview();
             var preprocessSelection = GetPreprocessSelection();
             var enhanceSelection = GetEnhanceBasicSelection();
@@ -1154,6 +1165,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 NativePreviewText.Text = $"Bypass preview: {reason} Load a target raw image to view the bypass output.";
                 WorkflowBeforeAfterText.Text = "Bypass preview: no target raw image is loaded.";
@@ -1163,6 +1175,7 @@ namespace ImageProcTest
             var bypass = NativePreprocessPreviewService.CreateBypass(currentPreview, reason);
             lastNativePreviewResult = bypass;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetBypassPreview(bypass, reason);
             NativePreviewText.Text =
                 $"Bypass preview: {reason} output buffer is copied from input; changed={bypass.Metrics.ChangedPixels}/{bypass.Metrics.PixelCount}; " +
@@ -1191,6 +1204,7 @@ namespace ImageProcTest
                 stageOrder);
             lastNativePreviewResult = result;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetNativePreview(result, selectedCase.CalibrationDirectoryPath);
             NativePreviewText.Text =
                 $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
@@ -1235,47 +1249,57 @@ namespace ImageProcTest
                 lastNativePreviewResult = null;
             }
 
-            var presentationRun = RunPresentationExportReadinessSmoke(displayStageOrder, dicomStageOrder);
-
+            NativeEnhanceBasicPreviewResult? enhanceResult = null;
+            IReadOnlyList<float>? finalPixels = preprocessResult?.OutputPixels;
+            var finalInputSource = preprocessResult is null
+                ? "raw-float-bypass"
+                : "preprocess-output";
             if (enhanceSelection.HasAnyStage)
             {
-                var inputPixels = preprocessResult?.OutputPixels;
-                var inputSource = preprocessResult is null
-                    ? "raw-float-bypass"
-                    : "preprocess-output";
-                var enhanceResult = RunNativeEnhanceBasicPreview(
+                enhanceResult = RunNativeEnhanceBasicPreview(
                     enhanceSelection,
                     GetEnhanceBasicParameters(),
-                    inputPixels,
-                    inputSource,
+                    finalPixels,
+                    finalInputSource,
                     statusLabel,
                     enhanceBasicStageOrder);
+                finalPixels = enhanceResult.OutputPixels;
+                finalInputSource = "enhance-basic-output";
+            }
+
+            NativePresentationExportResult? presentationResult = null;
+            if (HasPresentationExportStage(displayStageOrder, dicomStageOrder))
+            {
+                presentationResult = RunPresentationExportNative(
+                    finalPixels,
+                    finalInputSource,
+                    displayStageOrder,
+                    dicomStageOrder);
+            }
+
+            if (enhanceResult is not null)
+            {
                 var run = new AlgorithmValidationRunSnapshot(
                     "CHAIN",
                     currentAlgorithmChainPlan.DisplayName,
                     "Pass",
-                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}; {presentationRun.Summary}",
-                    ArtifactDirectory: null,
-                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0) + presentationRun.LatencyMs);
+                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}; {FormatPresentationSummary(presentationResult)}",
+                    presentationResult?.ArtifactDirectory,
+                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0) + (presentationResult?.TotalLatencyMs ?? 0));
                 lastAlgorithmValidationRun = run;
                 UpdateEvaluationDashboards();
                 return run;
             }
 
-            if (presentationRun.HasAnyStage)
+            if (presentationResult is not null)
             {
-                if (preprocessResult is null)
-                {
-                    ApplyBypassPreview("Presentation/export readiness smoke ran without image-domain native stages.");
-                }
-
                 var presentationOnlyRun = new AlgorithmValidationRunSnapshot(
                     "CHAIN",
                     currentAlgorithmChainPlan.DisplayName,
                     "Pass",
-                    $"{currentAlgorithmChainPlan.Summary} {presentationRun.Summary}",
-                    preprocessResult?.ArtifactDirectory,
-                    (preprocessResult?.TotalLatencyMs ?? 0) + presentationRun.LatencyMs);
+                    $"{currentAlgorithmChainPlan.Summary} {presentationResult.Summary}",
+                    presentationResult.ArtifactDirectory,
+                    (preprocessResult?.TotalLatencyMs ?? 0) + presentationResult.TotalLatencyMs);
                 lastAlgorithmValidationRun = presentationOnlyRun;
                 UpdateEvaluationDashboards();
                 return presentationOnlyRun;
@@ -1297,7 +1321,7 @@ namespace ImageProcTest
                 "CHAIN",
                 currentAlgorithmChainPlan.DisplayName,
                 "Pass",
-                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}; {presentationRun.Summary}",
+                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}; presentation/export=not selected",
                 preprocessResult.ArtifactDirectory,
                 preprocessResult.TotalLatencyMs);
             lastAlgorithmValidationRun = preprocessRun;
@@ -1305,65 +1329,69 @@ namespace ImageProcTest
             return preprocessRun;
         }
 
-        private static (string Summary, double LatencyMs, bool HasAnyStage) RunPresentationExportReadinessSmoke(
+        private NativePresentationExportResult RunPresentationExportNative(
+            IReadOnlyList<float>? inputPixels,
+            string inputSource,
             IReadOnlyList<string>? displayStageOrder,
             IReadOnlyList<string>? dicomStageOrder)
         {
-            var displayStages = displayStageOrder is { Count: > 0 }
-                ? displayStageOrder
-                : [];
-            var dicomStages = dicomStageOrder is { Count: > 0 }
-                ? dicomStageOrder
-                : [];
-
-            if (displayStages.Count == 0 && dicomStages.Count == 0)
+            if (currentPreview is null)
             {
-                return ("presentation/export readiness=not selected", 0, HasAnyStage: false);
+                throw new InvalidOperationException("Load a raw preview before running presentation/export.");
             }
 
-            var stopwatch = Stopwatch.StartNew();
-            var evidence = new List<string>();
-
-            if (displayStages.Count > 0)
+            SetStatus("Running native presentation/export stages...", Brushes.Goldenrod);
+            var result = NativePresentationExportService.Run(
+                currentPreview,
+                inputPixels,
+                inputSource,
+                displayStageOrder,
+                dicomStageOrder);
+            lastPresentationExportResult = result;
+            if (!string.IsNullOrWhiteSpace(result.DicomValidation?.DicomPath))
             {
-                var display = XpeDisplayVersionProbe.Check();
-                if (!display.IsSmokeReady)
-                {
-                    throw new InvalidOperationException($"xpe_display readiness smoke is not ready: {display.Status}; {display.Details}");
-                }
-
-                evidence.Add(
-                    $"display={string.Join("->", displayStages)}; dll={Path.GetFileName(display.DllPath)}; smoke={display.Smoke.Status}");
+                AddReportArtifact("DICOM", result.DicomValidation.DicomPath);
             }
 
-            if (dicomStages.Count > 0)
-            {
-                var dicom = XpeDicomReadinessProbe.Check();
-                if (!dicom.IsSmokeReady)
-                {
-                    throw new InvalidOperationException($"xpe_dicom readiness smoke is not ready: {dicom.Status}; {dicom.Details}");
-                }
+            NativePreviewText.Text =
+                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}";
+            SetStatus("Presentation/export complete", Brushes.ForestGreen);
+            UpdateEvaluationDashboards();
+            return result;
+        }
 
-                evidence.Add(
-                    $"dicom={string.Join("->", dicomStages)}; dll={Path.GetFileName(dicom.DllPath)}; smoke={dicom.Smoke.Status}");
-            }
+        private static bool HasPresentationExportStage(
+            IReadOnlyList<string>? displayStageOrder,
+            IReadOnlyList<string>? dicomStageOrder)
+        {
+            return (displayStageOrder?.Count ?? 0) > 0 || (dicomStageOrder?.Count ?? 0) > 0;
+        }
 
-            stopwatch.Stop();
-            return ($"presentation/export readiness: {string.Join("; ", evidence)}", stopwatch.Elapsed.TotalMilliseconds, HasAnyStage: true);
+        private static string FormatPresentationSummary(NativePresentationExportResult? result)
+        {
+            return result is null
+                ? "presentation/export=not selected"
+                : result.Summary;
         }
 
         private AlgorithmValidationRunSnapshot RunPresentationExportValidation(AlgorithmValidationItem item)
         {
             IReadOnlyList<string> displayStages = IsDisplayStageKey(item.StageKey) ? [item.StageKey!] : [];
             IReadOnlyList<string> dicomStages = IsDicomStageKey(item.StageKey) ? [item.StageKey!] : [];
-            var smoke = RunPresentationExportReadinessSmoke(displayStages, dicomStages);
+            var inputPixels = lastEnhanceBasicPreviewResult?.OutputPixels ?? lastNativePreviewResult?.OutputPixels;
+            var inputSource = lastEnhanceBasicPreviewResult is not null
+                ? "enhance-basic-output"
+                : lastNativePreviewResult is not null
+                    ? "preprocess-output"
+                    : "raw-float-bypass";
+            var result = RunPresentationExportNative(inputPixels, inputSource, displayStages, dicomStages);
             var pass = new AlgorithmValidationRunSnapshot(
                 item.SwuId,
                 item.AlgorithmName,
                 "Pass",
-                smoke.Summary,
-                ArtifactDirectory: null,
-                smoke.LatencyMs);
+                result.Summary,
+                result.ArtifactDirectory,
+                result.TotalLatencyMs);
             lastAlgorithmValidationRun = pass;
             UpdateEvaluationDashboards();
             return pass;
@@ -1392,6 +1420,7 @@ namespace ImageProcTest
                 preferredDllPath: null,
                 stageOrder);
             lastEnhanceBasicPreviewResult = result;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetAlgorithmPreview(
                 result.OutputPixels,
                 "Post after",
@@ -1417,10 +1446,10 @@ namespace ImageProcTest
                 ? "Native enhance_basic ABI smoke is available. Checked post stages execute on pre output or raw-float bypass input."
                 : "Native enhance_basic execution is disabled until xpe_enhance_basic.dll ABI smoke passes.";
             var displayReason = IsModuleReadinessAtLeast("xpe_display", 3)
-                ? "Native display readiness smoke is available. Selected display stages are included in Phase 1b E2E evidence."
+                ? "Native display readiness smoke is available. Selected display stages execute on the active preview buffer."
                 : "Native display readiness smoke is disabled until xpe_display.dll reaches R3.";
             var dicomReason = IsModuleReadinessAtLeast("xpe_dicom", 3)
-                ? "Native DICOM readiness smoke is available. Selected export stages are included in Phase 1b E2E evidence."
+                ? "Native DICOM readiness smoke is available. Selected export stages write and validate a DICOM artifact."
                 : "Native DICOM readiness smoke is disabled until xpe_dicom.dll reaches R3.";
 
             return
@@ -1750,9 +1779,32 @@ namespace ImageProcTest
                 rows.Add(new EvaluationMetricRow("Post Basic", "output range", $"{lastEnhanceBasicPreviewResult.OutputMin:0.###}..{lastEnhanceBasicPreviewResult.OutputMax:0.###}", "Functional"));
             }
 
+            if (lastPresentationExportResult is null)
+            {
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "native export", "not run", "PHASE1B-E2E-4"));
+            }
+            else
+            {
+                var metrics = lastPresentationExportResult.Metrics;
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "input source", lastPresentationExportResult.InputSource, "PHASE1B-E2E-4"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "total latency", $"{lastPresentationExportResult.TotalLatencyMs:0.###} ms", "Performance"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "throughput", CalculateThroughput(metrics.PixelCount, lastPresentationExportResult.TotalLatencyMs), "Performance"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "changed pixels", $"{metrics.ChangedPixels}/{metrics.PixelCount} ({metrics.ChangedPixelRatio:P2})", "Functional"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "NaN/Inf count", metrics.NaNInfCount.ToString(), "Safety"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "output range", $"{lastPresentationExportResult.OutputMin}..{lastPresentationExportResult.OutputMax}", "Functional"));
+                rows.Add(new EvaluationMetricRow(
+                    "Display/DICOM",
+                    "DICOM validation",
+                    lastPresentationExportResult.DicomValidation is null
+                        ? "not selected"
+                        : $"{lastPresentationExportResult.DicomValidation.Status}; {lastPresentationExportResult.DicomValidation.Details}",
+                    "DICOM"));
+            }
+
             EvaluationMetricsGrid.ItemsSource = rows;
             StageLatencyGrid.ItemsSource = (lastNativePreviewResult?.Stages ?? [])
                 .Concat(lastEnhanceBasicPreviewResult?.Stages ?? [])
+                .Concat(lastPresentationExportResult?.Stages ?? [])
                 .Select(stage => new StageLatencyRow(
                     stage.Stage,
                     stage.ErrorCode,
@@ -1783,7 +1835,10 @@ namespace ImageProcTest
             var postState = lastEnhanceBasicPreviewResult is null
                 ? "post preview not run"
                 : $"post preview {lastEnhanceBasicPreviewResult.TotalLatencyMs:0.###} ms";
-            MetricsSummaryText.Text = $"Metrics: {previewState}; {nativeState}; {postState}.";
+            var presentationState = lastPresentationExportResult is null
+                ? "display/dicom not run"
+                : $"display/dicom {lastPresentationExportResult.TotalLatencyMs:0.###} ms";
+            MetricsSummaryText.Text = $"Metrics: {previewState}; {nativeState}; {postState}; {presentationState}.";
             if (reportArtifacts.Count > 0 && ReportsSummaryText.Text.Contains("no report", StringComparison.OrdinalIgnoreCase))
             {
                 ReportsSummaryText.Text = $"Reports: {reportArtifacts.Count} artifact(s) generated in this session.";
