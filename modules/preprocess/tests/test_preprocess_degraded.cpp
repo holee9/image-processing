@@ -333,3 +333,107 @@ TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
             << "Null-config nonlinearity correction must be identity at pixel " << i;
     }
 }
+
+/* ==========================================================================
+ * REQ-SIMD-006: Scalar Reference Performance Baseline
+ *
+ * Performance budgets for 3072×3072 images on scalar-only path:
+ *   - Offset: < 55ms
+ *   - Gain: < 55ms
+ *   - Defect (bilinear): < 95ms
+ *
+ * Note: These tests are optional and require calibration data to run.
+ * They verify that the scalar path meets performance requirements.
+ * ========================================================================== */
+
+// REQ-SIMD-006: Full resolution offset timing test
+TEST(PreprocessPerformance, DISABLED_FullResOffsetTimingScalarBaseline) {
+    constexpr uint32_t W = 3072;
+    constexpr uint32_t H = 3072;
+    constexpr long long kOffsetBudgetMs = 55;
+
+    std::vector<uint16_t> input_data(W * H, 1000);
+    std::vector<uint16_t> output_data(W * H);
+
+    XpeImageBuffer input = make_uint16_buf(input_data, W, H);
+    XpeImageBuffer output = make_uint16_buf(output_data, W, H);
+    XpeImageMetadata meta{};
+
+    XpeErrorCode rc = XPE_OK;
+    const long long ms = time_ms([&] {
+        rc = xpe_offset_correct(&input, &output, &meta);
+    });
+
+    // Accept NOT_INITIALIZED if no calibration loaded
+    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_OK)
+        << "Unexpected error code: " << rc;
+
+    if (rc == XPE_OK) {
+        EXPECT_LT(ms, kOffsetBudgetMs)
+            << "Offset correction exceeded scalar baseline budget: " << ms << "ms >= " << kOffsetBudgetMs << "ms";
+    } else {
+        GTEST_SKIP() << "Offset calibration not loaded, skipping timing test";
+    }
+}
+
+// REQ-SIMD-006: Full resolution gain timing test
+TEST(PreprocessPerformance, DISABLED_FullResGainTimingScalarBaseline) {
+    constexpr uint32_t W = 3072;
+    constexpr uint32_t H = 3072;
+    constexpr long long kGainBudgetMs = 55;
+
+    std::vector<uint16_t> input_data(W * H, 2000);
+    std::vector<float> output_data(W * H);
+
+    XpeImageBuffer input = make_uint16_buf(input_data, W, H);
+    XpeImageBuffer output = make_float32_buf(output_data, W, H);
+    XpeImageMetadata meta{};
+    meta.kVp = 120.0f;
+    meta.SID_mm = 1200.0f;
+
+    XpeErrorCode rc = XPE_OK;
+    const long long ms = time_ms([&] {
+        rc = xpe_gain_correct(&input, &output, &meta);
+    });
+
+    // Accept NOT_INITIALIZED if no calibration loaded
+    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_OK)
+        << "Unexpected error code: " << rc;
+
+    if (rc == XPE_OK) {
+        EXPECT_LT(ms, kGainBudgetMs)
+            << "Gain correction exceeded scalar baseline budget: " << ms << "ms >= " << kGainBudgetMs << "ms";
+    } else {
+        GTEST_SKIP() << "Gain calibration not loaded, skipping timing test";
+    }
+}
+
+// REQ-SIMD-006: Full resolution defect timing test
+TEST(PreprocessPerformance, DISABLED_FullResDefectTimingScalarBaseline) {
+    constexpr uint32_t W = 3072;
+    constexpr uint32_t H = 3072;
+    constexpr long long kDefectBudgetMs = 95;
+
+    std::vector<float> input_data(W * H, 500.0f);
+    std::vector<float> output_data(W * H);
+
+    XpeImageBuffer input = make_float32_buf(input_data, W, H);
+    XpeImageBuffer output = make_float32_buf(output_data, W, H);
+    XpeImageMetadata meta{};
+
+    XpeErrorCode rc = XPE_OK;
+    const long long ms = time_ms([&] {
+        rc = xpe_defect_correct(&input, &output, &meta);
+    });
+
+    // Accept NOT_INITIALIZED if no calibration loaded
+    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_OK)
+        << "Unexpected error code: " << rc;
+
+    if (rc == XPE_OK) {
+        EXPECT_LT(ms, kDefectBudgetMs)
+            << "Defect correction exceeded scalar baseline budget: " << ms << "ms >= " << kDefectBudgetMs << "ms";
+    } else {
+        GTEST_SKIP() << "Defect calibration not loaded, skipping timing test";
+    }
+}

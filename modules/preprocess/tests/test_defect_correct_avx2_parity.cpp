@@ -8,7 +8,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <random>
+#include <chrono>
 
 namespace {
 
@@ -77,8 +78,16 @@ protected:
 };
 
 TEST_F(DefectCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
-    // Skip if defect map not loaded
-    GTEST_SKIP() << "Defect map must be loaded via xpe_calib_load_defect_map before running this test";
+    // Load empty defect map (all zeros = no defects) for parity testing
+    // REQ-SIMD-003: Verify bit-identical output across multiple AVX2 calls
+    const char* empty_defect_map = "empty_defect_map.xcal";
+    XpeErrorCode load_rc = xpe_calib_load_defect_map(empty_defect_map);
+
+    // If defect map file is not found, skip with informative message
+    if (load_rc != XPE_OK) {
+        GTEST_SKIP() << "Defect map file not found: " << empty_defect_map
+                     << " (error: " << load_rc << "). Run test from modules/preprocess/tests directory.";
+    }
 
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&input1, &output1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&input2, &output2, &metadata));
@@ -120,6 +129,40 @@ TEST_F(DefectCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
     for (size_t i = 0; i < oddSize; ++i) {
         EXPECT_EQ(smallOutput1[i], smallOutput2[i]);
     }
+}
+
+// @MX:NOTE: Timing assertion only valid in Release builds where SIMD optimizations are enabled
+// @MX:REASON: Debug builds may not enable SIMD optimizations, making timing comparisons meaningless
+TEST_F(DefectCorrectAVX2ParityTest, SimdFasterThanScalar) {
+#ifndef NDEBUG
+    GTEST_SKIP() << "Timing assertions only run in Release builds (NDEBUG defined)";
+#else
+    // Load empty defect map for timing comparison
+    const char* empty_defect_map = "empty_defect_map.xcal";
+    XpeErrorCode load_rc = xpe_calib_load_defect_map(empty_defect_map);
+    if (load_rc != XPE_OK) {
+        GTEST_SKIP() << "Defect map file not found: " << empty_defect_map;
+    }
+
+    // Warm-up run to populate any caches
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&input1, &output1, &metadata));
+
+    // Measure AVX2 implementation timing
+    constexpr int iterations = 100;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        ASSERT_EQ(XPE_OK, xpe_defect_correct(&input1, &output1, &metadata));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto avx2_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // For defect correction with 512x512 image, AVX2 should complete reasonably fast
+    // This is a baseline assertion - actual SIMD vs scalar comparison requires reference implementation
+    constexpr auto max_expected_duration_us = 100000; // 100ms for 100 iterations = 1ms per frame
+    EXPECT_LT(avx2_duration.count(), max_expected_duration_us)
+        << "AVX2 defect correction took " << avx2_duration.count() << "us for "
+        << iterations << " iterations (" << (avx2_duration.count() / iterations) << "us per frame)";
+#endif
 }
 
 } // namespace

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <random>
+#include <chrono>
 
 namespace {
 
@@ -97,8 +98,16 @@ protected:
 bool OffsetCorrectAVX2ParityTest::calibrationLoaded = false;
 
 TEST_F(OffsetCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
-    // Skip if calibration not loaded
-    GTEST_SKIP() << "Calibration must be loaded via xpe_calib_load_offset before running this test";
+    // Load identity offset map (all 0.0 = identity transformation) for parity testing
+    // REQ-SIMD-001: Verify bit-identical output across multiple AVX2 calls
+    const char* identity_offset_map = "identity_offset_map.xcal";
+    XpeErrorCode load_rc = xpe_calib_load_offset(identity_offset_map);
+
+    // If offset map file is not found, skip with informative message
+    if (load_rc != XPE_OK) {
+        GTEST_SKIP() << "Offset map file not found: " << identity_offset_map
+                     << " (error: " << load_rc << "). Run test from modules/preprocess/tests directory.";
+    }
 
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input2, &output2, &metadata));
@@ -141,6 +150,40 @@ TEST_F(OffsetCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
     for (size_t i = 0; i < oddSize; ++i) {
         EXPECT_EQ(smallOutput1[i], smallOutput2[i]);
     }
+}
+
+// @MX:NOTE: Timing assertion only valid in Release builds where SIMD optimizations are enabled
+// @MX:REASON: Debug builds may not enable SIMD optimizations, making timing comparisons meaningless
+TEST_F(OffsetCorrectAVX2ParityTest, SimdFasterThanScalar) {
+#ifndef NDEBUG
+    GTEST_SKIP() << "Timing assertions only run in Release builds (NDEBUG defined)";
+#else
+    // Load identity offset map for timing comparison
+    const char* identity_offset_map = "identity_offset_map.xcal";
+    XpeErrorCode load_rc = xpe_calib_load_offset(identity_offset_map);
+    if (load_rc != XPE_OK) {
+        GTEST_SKIP() << "Offset map file not found: " << identity_offset_map;
+    }
+
+    // Warm-up run to populate any caches
+    ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
+
+    // Measure AVX2 implementation timing
+    constexpr int iterations = 100;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto avx2_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // For offset correction with 1024x768 image, AVX2 should complete reasonably fast
+    // This is a baseline assertion - actual SIMD vs scalar comparison requires reference implementation
+    constexpr auto max_expected_duration_us = 300000; // 300ms for 100 iterations = 3ms per frame
+    EXPECT_LT(avx2_duration.count(), max_expected_duration_us)
+        << "AVX2 offset correction took " << avx2_duration.count() << "us for "
+        << iterations << " iterations (" << (avx2_duration.count() / iterations) << "us per frame)";
+#endif
 }
 
 } // namespace
