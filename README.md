@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-23 — 세션 6차)
+## 프로젝트 완성도 현황 (2026-04-23 — 세션 7차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -48,7 +48,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** (M2 API + BP-01~05 freeze + SIMD P0/P1 수정) |
 | xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** (30 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
 | xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** (35 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
-| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, Conformance v1.0; **CMakeLists.txt 누락 — 빌드 구성 필요**) |
+| xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, Conformance v1.0; **CMakeLists.txt 작성 완료 — BUILD_DICOM=ON 설정 필요**) |
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** (전수 GREEN, IEC 62304 4종) |
 | gsvg.dll | 2 | 2/2 ✅ | G2⏳ | SPEC-XPE-GSVG | **완료** (BP-06 + DegradedMode, v0.2.0) |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
@@ -56,7 +56,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 > **진도율**: Phase 0~2 구현 완료 기준 **8/9 모듈 (89%)**, C++ 테스트 **403/403 통과 (M1/M2 GREEN)**, GUI 통합테스트 78/78 통과, SPEC-BENCH-PRE/POST freeze 완료
 > **모듈 소스 현황**: common(3), preprocess(190), enhance_basic(6), enhance_advanced(12), display(5), gsvg(1), dicom(5), ai(1) — 총 223개 .cpp 소스파일
-> **발견 이슈**: dicom 모듈 CMakeLists.txt 누락 (`BUILD_DICOM=OFF` 상태, 빌드 구성 필요)
+> **해결된 이슈**: dicom 모듈 CMakeLists.txt 작성 완료 (`modules/dicom/CMakeLists.txt`, DCMTK 의존성 연결, 4개 테스트 실행 파일 설정)
 
 ### 게이트 현황
 
@@ -95,14 +95,14 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 3 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동** | **미통합 (3커밋 선행)** |
 
-**최근 진행 상황** (2026-04-23 세션 6차 — 정밀분석):
+**최근 진행 상황** (2026-04-23 세션 7차 — dicom CMakeLists.txt + Gate G1b→G2 준비):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
-| 1 | **정밀분석 수행** — 모듈 소스 223개, 테스트 파일 14개, 문서 139종 현황 교차 검증 | — | main |
-| 2 | **dicom CMakeLists.txt 누락 발견** — `BUILD_DICOM=OFF`, 빌드 구성 필요 이슈 기록 | — | main |
-| 3 | **PMS Plan v1.0 커밋 확인** — 세션 5차 미커밋 표시에서 `6aadca0` 포함 확정 | `6aadca0` | main |
-| 4 | **GUI workflow 확장 확인** — GSVG C1/C2 + Advanced C3/C4 + AI C5/C6 (335줄, 미통합) | `c669e85` `fcba184` `af0a738` | dev/gui |
+| 1 | **dicom CMakeLists.txt 작성** — DCMTK 의존성 연결, 4개 테스트 실행 파일 설정 | — | main |
+| 2 | **Gate G1b → G2 검증 계획 수립** — E2E < 3000ms, Memory <= 190MB, 4단계 검증 절차 문서화 | — | main |
+| 3 | **빌드 자동화 스크립트 작성** — Build-DicomModule.ps1, Clean/SkipConfigure/SkipBuild 옵션 | — | main |
+| 4 | **빠른 시작 가이드 작성** — Quick-Start-Gate-G1b-G2.md, 빌드 및 검증 실행 절차 | — | main |
 
 **이전 세션** (2026-04-23 세션 5차 — 3개 항목 완료):
 
