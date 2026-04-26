@@ -67,8 +67,7 @@ XML_NS_MEMB_FILE_SCOPE = NO
 HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
 HTML_EXTRA_STYLESHEET  = doxygen-awesome/doxygen-awesome.css
-HTML_EXTRA_FILES       = doxygen-awesome/doxygen-awesome-sidebar-only.js \
-                         doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
+HTML_EXTRA_FILES       = doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
                          doxygen-awesome/doxygen-awesome-interactive-toc.js
 HTML_COLORSTYLE        = LIGHT
 HTML_COLORSTYLE_HUE    = 209
