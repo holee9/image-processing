@@ -24,13 +24,13 @@ OUTPUT_DIRECTORY       = ../generated/doxygen
 # Input
 #---------------------------------------------------------------------------
 
-INPUT                  = ../../modules/common/include \
-                         ../../modules/preprocess/include \
-                         ../../modules/enhance_basic/include \
-                         ../../modules/display/include \
-                         ../../modules/dicom/include \
-                         ../../modules/enhance_advanced/include \
-                         ../../modules/gsvg/include
+INPUT                  = ../../../modules/common/include \
+                         ../../../modules/preprocess/include \
+                         ../../../modules/enhance_basic/include \
+                         ../../../modules/display/include \
+                         ../../../modules/dicom/include \
+                         ../../../modules/enhance_advanced/include \
+                         ../../../modules/gsvg/include
 
 FILE_PATTERNS          = *.h
 RECURSIVE              = YES
