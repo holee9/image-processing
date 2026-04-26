@@ -22,6 +22,11 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
+/**
+ * @defgroup xpe_dicom XPE DICOM
+ * @brief DICOM I/O module — read, write, validate, and network (SWU-4.1 to SWU-4.4).
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
