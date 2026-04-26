@@ -22,8 +22,8 @@
 
 namespace {
 
-constexpr uint32_t W = 16;
-constexpr uint32_t H = 16;
+constexpr uint32_t W = 256;
+constexpr uint32_t H = 256;
 
 // Build a UINT16 XpeImageBuffer from a flat vector.
 struct FrameHelper {
@@ -83,7 +83,7 @@ protected:
 // =============================================================================
 TEST_F(BpmGenerateTest, BpmGenerate_BasicDetection) {
     const uint32_t num_dark = 5;
-    const uint32_t num_bright = 5;
+    const uint32_t num_bright = 10;
 
     // Create uniform dark frames
     std::vector<FrameHelper> dark_frames;

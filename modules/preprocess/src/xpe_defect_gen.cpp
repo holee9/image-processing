@@ -167,7 +167,8 @@ void extract_window_reflect(const float* image,
                             uint32_t mask_size,
                             std::vector<float>& window_out) noexcept {
     const int half_size = static_cast<int>(mask_size / 2);
-    window_out.resize(static_cast<size_t>(mask_size) * static_cast<size_t>(mask_size));
+    const int actual_size = 2 * half_size + 1;
+    window_out.resize(static_cast<size_t>(actual_size) * static_cast<size_t>(actual_size));
 
     size_t win_idx = 0;
     for (int dy = -half_size; dy <= half_size; ++dy) {

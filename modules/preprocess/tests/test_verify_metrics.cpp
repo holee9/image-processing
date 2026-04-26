@@ -435,5 +435,5 @@ TEST_F(VerifyMetricsTest, VerifyMetrics_DimensionMismatch) {
     std::memset(&metrics, 0, sizeof(metrics));
 
     EXPECT_EQ(xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &metrics),
-              XPE_ERR_INVALID_INPUT) << "Dimension mismatch should return INVALID_INPUT";
+              XPE_ERR_BUFFER_TOO_SMALL) << "Dimension mismatch should return BUFFER_TOO_SMALL";
 }

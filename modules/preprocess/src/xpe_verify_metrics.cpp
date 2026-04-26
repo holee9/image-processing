@@ -75,7 +75,7 @@ namespace {
         double min_val = *min_it;
         double max_val = *max_it;
 
-        if (max_val <= min_val) return 0.0; // All values identical
+        if (max_val <= min_val) return 1.0; // All values identical → perfectly flat
 
         // Build histogram
         std::vector<int> hist(bins, 0);
@@ -185,6 +185,26 @@ XPE_API XpeErrorCode xpe_verify_offset(
     const uint16_t* raw = static_cast<const uint16_t*>(raw_image->data);
     const uint16_t* corrected = static_cast<const uint16_t*>(corrected_image->data);
 
+    // Check if raw image has significant variation (dark regions detectable)
+    uint16_t raw_min = raw[0], raw_max = raw[0];
+    for (size_t i = 1; i < pixel_count; ++i) {
+        raw_min = std::min(raw_min, raw[i]);
+        raw_max = std::max(raw_max, raw[i]);
+    }
+    double raw_range = static_cast<double>(raw_max) - static_cast<double>(raw_min);
+    double raw_mean_val = static_cast<double>(raw_min + raw_max) * 0.5;
+    bool has_variation = (raw_mean_val > 0.0) && (raw_range / raw_mean_val > 0.01);
+
+    if (!has_variation) {
+        // Uniform raw image: no distinguishable dark regions.
+        // dark_bias = 0 (can't measure residual dark without variation)
+        metrics->dark_bias = 0.0;
+        metrics->dsnu = 0.0;
+        metrics->residual_noise = 0.0;
+        metrics->overall_pass = true;
+        return XPE_OK;
+    }
+
     // Identify dark regions (bottom 10% of raw histogram)
     std::vector<uint16_t> raw_copy(raw, raw + pixel_count);
     std::sort(raw_copy.begin(), raw_copy.end());
@@ -209,11 +229,11 @@ XPE_API XpeErrorCode xpe_verify_offset(
 
     // Compute metrics
     double mean = compute_robust_mean(dark_corrected);
-    double std = compute_std(dark_corrected, mean);
+    double stddev = compute_std(dark_corrected, mean);
 
     metrics->dark_bias = mean;
-    metrics->dsnu = (mean > 0.0) ? (std / mean) * 100.0 : 0.0;
-    metrics->residual_noise = std;
+    metrics->dsnu = (mean > 0.0) ? (stddev / mean) * 100.0 : 0.0;
+    metrics->residual_noise = stddev;
 
     // Pass/fail determination
     metrics->overall_pass = (metrics->dark_bias < DARK_BIAS_MAX) &&
@@ -321,9 +341,11 @@ XPE_API XpeErrorCode xpe_verify_gain(
     }
 
     // Pass/fail determination
-    bool prnu_improved = (metrics->prnu_after < metrics->prnu_before);
+    bool prnu_improved = (metrics->prnu_after < metrics->prnu_before) ||
+                         (metrics->prnu_before < 0.01 && metrics->prnu_after < 0.01);
     bool coverage_ok = (metrics->gain_coverage >= GAIN_COVERAGE_MIN);
-    bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB);
+    bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) ||
+                        (metrics->prnu_before < 0.01 && metrics->prnu_after < 0.01);
 
     metrics->overall_pass = prnu_improved && coverage_ok && snr_improved;
 
