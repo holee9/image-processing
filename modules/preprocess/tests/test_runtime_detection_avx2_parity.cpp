@@ -73,8 +73,8 @@ protected:
 };
 
 TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
-    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &defectMapOut1, nullptr));
-    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input2, &defectMapOut2, nullptr));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &defectMapOut1));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input2, nullptr, &defectMapOut2));
 
     EXPECT_EQ(0, std::memcmp(defectOut1.data(), defectOut2.data(),
                              PIXEL_COUNT * sizeof(uint8_t)))
@@ -110,8 +110,8 @@ TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
     noisyOutBuf.format = XPE_PIXEL_UINT8;
     noisyOutBuf.dataSize = static_cast<uint32_t>(PIXEL_COUNT * 1);
 
-    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &defectMapOut1, nullptr));
-    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&noisyBuf, &noisyOutBuf, nullptr));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &defectMapOut1));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&noisyBuf, nullptr, &noisyOutBuf));
 
     bool anyDifference = (std::memcmp(defectOut1.data(), noisyOut.data(),
                                       PIXEL_COUNT * sizeof(uint8_t)) != 0);
@@ -131,7 +131,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
         outBufs[i].bitsStored = 8;
         outBufs[i].format = XPE_PIXEL_UINT8;
         outBufs[i].dataSize = static_cast<uint32_t>(PIXEL_COUNT * 1);
-        ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &outBufs[i], nullptr));
+        ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &outBufs[i]));
     }
 
     for (int i = 1; i < 5; ++i) {
@@ -142,7 +142,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
 }
 
 TEST_F(RuntimeDetectAVX2ParityTest, NullConfigUsesDefaults) {
-    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, &defectMapOut1, nullptr));
+    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &defectMapOut1));
 }
 
 } // namespace

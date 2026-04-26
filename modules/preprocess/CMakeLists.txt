@@ -154,6 +154,10 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_avx2_parity.cpp
         # TODO SPEC-SIMD-001: test_offset_correct_avx512_parity.cpp — blocked by xpe_simd_force_scalar API
         # TODO SPEC-SIMD-001: test_offset_correct_neon_parity.cpp — blocked by NEON dispatch API (ARM only)
+        # SWU-1.12: Calibration generation and verification tests (FUNC-022~027)
+        tests/test_calib_generate_gain.cpp
+        tests/test_defect_gen.cpp
+        tests/test_verify_metrics.cpp
     )
 
     add_executable(xpe_preprocess_tests
