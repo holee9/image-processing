@@ -32,6 +32,7 @@ set(XPE_PREPROCESS_SOURCES
     src/rle_codec.cpp            # RLE compression for defect maps
     src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
     src/xpe_defect_gen.cpp       # SWU-1.11 BPM Generation (FUNC-022~025)
+    src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
     # XCal v1 calibration API (T-006..T-009)
     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
     src/xpe_calib_load_offset.cpp   # T-006: 1-arg load offset (XCal v1)
@@ -158,6 +159,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_gain.cpp
         tests/test_defect_gen.cpp
         tests/test_verify_metrics.cpp
+        # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
+        tests/test_calib_mode.cpp
     )
 
     add_executable(xpe_preprocess_tests

@@ -891,4 +891,122 @@ XPE_API XpeErrorCode xpe_bpm_generate(
 }
 #endif
 
+/* =============================================================================
+ * Phase 13: Calibration Mode Selection (FUNC-031~033)
+ * SWU-1.12: Calibration Mode Selection API (PRE-13)
+ * ============================================================================ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Calibration mode selection for polynomial fitting
+ *
+ * Defines the number of dose points and polynomial degree for gain calibration.
+ *
+ * Mode specifications:
+ * - SINGLE_POINT: 1 point, degree 0 (constant)
+ * - DUAL_POINT: 2 points, degree 1 (linear)
+ * - MULTI_POINT_5: 5 points, degree 2 (quadratic)
+ * - MULTI_POINT_8: 8 points, degree 3 (cubic) — DEFAULT per Schmidgunst 2007
+ * - MULTI_POINT_10: 10 points, degree 3 (cubic)
+ * - AUTO: Adaptive selection (max 10 points, degree 3)
+ */
+typedef enum XpeCalibrationMode {
+    XPE_CALIB_SINGLE_POINT   = 0,  ///< 1 point, constant fit
+    XPE_CALIB_DUAL_POINT     = 1,  ///< 2 points, linear fit
+    XPE_CALIB_MULTI_POINT_5  = 2,  ///< 5 points, quadratic fit
+    XPE_CALIB_MULTI_POINT_8  = 3,  ///< 8 points, cubic fit (DEFAULT)
+    XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, cubic fit
+    XPE_CALIB_AUTO           = 5   ///< Adaptive mode (max 10 points)
+} XpeCalibrationMode;
+
+/**
+ * @brief Quality metadata for calibration output
+ *
+ * Populated by calibration generation functions to enable quality assessment
+ * and historical comparison.
+ *
+ * Fields:
+ * - calibration_mode: Active calibration mode (XpeCalibrationMode)
+ * - polynomial_degree: Fitted polynomial degree (0-3)
+ * - num_points: Number of dose points used (1-10)
+ * - r_squared: Coefficient of determination (0.0 to 1.0)
+ * - calibration_timestamp: Unix epoch milliseconds
+ * - detector_serial: Detector identifier (null-terminated)
+ * - firmware_version: Firmware version string (null-terminated)
+ * - calibration_pass: Quality gate result (0=fail, 1=pass)
+ * - previous_r_squared: R² from previous calibration (-1.0 if none)
+ */
+typedef struct XpeCalibQualityMeta {
+    uint8_t  calibration_mode;      ///< XpeCalibrationMode value
+    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic
+    uint8_t  num_points;            ///< Number of dose levels (1-10)
+    double   r_squared;             ///< Coefficient of determination (0.0 to 1.0)
+    uint64_t calibration_timestamp; ///< Unix epoch milliseconds
+    char     detector_serial[32];   ///< Detector serial number (null-terminated)
+    char     firmware_version[16];  ///< Firmware version (null-terminated)
+    uint8_t  calibration_pass;      ///< 0=failed R² gate, 1=passed
+    double   previous_r_squared;    ///< Previous calibration R² (-1.0 if none)
+} XpeCalibQualityMeta;
+
+/**
+ * @brief Set calibration mode for polynomial fitting
+ *
+ * FUNC-031: Mode Selection API
+ *
+ * Default mode: XPE_CALIB_MULTI_POINT_8 (8 points, cubic)
+ *
+ * @param mode Calibration mode to set
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT if mode value is invalid
+ */
+XPE_API XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode);
+
+/**
+ * @brief Get current calibration mode
+ *
+ * FUNC-031: Mode Selection API
+ *
+ * @return Current calibration mode (default: XPE_CALIB_MULTI_POINT_8)
+ */
+XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
+
+/**
+ * @brief Get quality metadata from last calibration
+ *
+ * FUNC-033: Quality Metadata API
+ *
+ * Returns the quality metadata structure populated during the last
+ * calibration generation operation.
+ *
+ * @param meta Output: Quality metadata (caller-owned)
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT if meta is NULL
+ */
+XPE_API XpeErrorCode xpe_calib_get_quality_meta(XpeCalibQualityMeta* meta);
+
+/**
+ * @brief Get maximum number of dose points for current mode
+ *
+ * FUNC-031: Mode-to-params mapping
+ *
+ * @return Maximum dose points (1, 2, 5, 8, or 10)
+ */
+XPE_API uint32_t xpe_calib_get_max_points(void);
+
+/**
+ * @brief Get polynomial degree for current mode
+ *
+ * FUNC-031: Mode-to-params mapping
+ *
+ * @return Polynomial degree (0, 1, 2, or 3)
+ */
+XPE_API uint32_t xpe_calib_get_poly_degree(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* XPE_PREPROCESS_API_H */
