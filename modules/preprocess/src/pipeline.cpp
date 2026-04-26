@@ -9,7 +9,7 @@
  * Calibration maps loaded via g_calib (xpe_calib_load_offset/gain/defect_map)
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdio>
