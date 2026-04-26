@@ -17,11 +17,10 @@
  * - xpe_gain_correct()
  * - xpe_defect_correct()
  *
- * Phase 4: Calibration Management (4 functions)
+ * Phase 4: Calibration Management (3 functions)
  * - xpe_calib_generate_offset()
  * - xpe_calib_check_expiry()
  * - xpe_calib_save()
- * - xpe_validate_readout_artifact()
  *
  * Phase 5: Utilities (2 functions)
  * - xpe_defect_detect_runtime()
@@ -315,23 +314,6 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  */
 XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
                                     const char* calib_type);
-
-/**
- * @brief Validate and mask readout artifacts
- *
- * REQ-P1A-041: Validate readout artifacts before correction
- *
- * @param image Image buffer to validate
- * @param metadata Image metadata
- * @param has_dropped_columns Output: true if dropped columns detected
- * @param has_nonuniform_gain Output: true if gain nonuniformity detected
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if NULL pointers
- */
-XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
-                                                   const XpeImageMetadata* metadata,
-                                                   bool* has_dropped_columns,
-                                                   bool* has_nonuniform_gain);
 
 /* =============================================================================
  * Phase 5: Utilities (REQ-P1A-013, REQ-P1A-042)
