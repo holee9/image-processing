@@ -76,7 +76,10 @@ typedef struct XpeUsmParams {
  * Module Version
  * ============================================================================ */
 
-/** Returns the xpe_enhance_basic module version string. */
+/**
+ * @brief Returns the xpe_enhance_basic module version string.
+ * @return Null-terminated version string. Lifetime: process. Never NULL.
+ */
 XPE_API const char* xpe_enhance_basic_version(void);
 
 /* ============================================================================

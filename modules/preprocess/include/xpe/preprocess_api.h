@@ -31,7 +31,7 @@
  * ABI Compliance:
  * - extern "C" linkage
  * - __cdecl calling convention (Windows)
- * - #pragma pack(push, 8) for C# P/Invoke compatibility
+ * - \#pragma pack(push, 8) for C# P/Invoke compatibility
  */
 
 #ifndef XPE_PREPROCESS_API_H
@@ -53,6 +53,8 @@ extern "C" {
  *
  * The returned pointer is owned by the module and remains valid for the process
  * lifetime. GUI readiness probes use this export for R1 binary health only.
+ *
+ * @return Null-terminated version string. Lifetime: process. Never NULL.
  */
 XPE_API const char* xpe_preprocess_version(void);
 

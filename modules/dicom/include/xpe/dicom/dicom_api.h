@@ -91,6 +91,7 @@ XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMeta
  *
  * Passing NULL is safe (no-op).
  *
+ * @param handle DICOM session handle to close (may be NULL).
  * @note REQ-DICOM-011..012
  */
 XPE_API void xpe_dicom_close(XpeDicomHandle* handle);

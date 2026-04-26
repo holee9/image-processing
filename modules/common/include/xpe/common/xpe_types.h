@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/** @brief DLL export/import visibility macro for the XPE public API. */
 #ifdef _WIN32
     #ifdef XPE_DLL_EXPORT
         #define XPE_API __declspec(dllexport)

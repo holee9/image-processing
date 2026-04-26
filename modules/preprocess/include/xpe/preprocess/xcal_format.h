@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-/* XCal calibration type codes */
+/** @brief XCal calibration data type selector. */
 typedef enum XCalType {
     XCAL_TYPE_OFFSET     = 0,  /* Dark/offset map (FLOAT32 payload) */
     XCAL_TYPE_GAIN       = 1,  /* Gain/flat-field map (FLOAT32 payload) */
@@ -44,26 +44,28 @@ typedef enum XCalType {
     XCAL_TYPE_GAIN_POLY  = 3   /* Gain polynomial coefficients (FLOAT32 payload) */
 } XCalType;
 
-/* XCal payload pixel format codes */
+/** @brief XCal payload pixel format codes. */
 typedef enum XCalPixelFormat {
     XCAL_FMT_UINT16    = 0,  /* 16-bit unsigned integer */
     XCAL_FMT_FLOAT32   = 1,  /* 32-bit IEEE 754 float */
     XCAL_FMT_UINT8_MASK = 2  /* 8-bit boolean mask (defect map) */
 } XCalPixelFormat;
 
-/* XCal v1 magic string (4 bytes, no NUL terminator in file) */
+/** @brief XCal v1 file magic identifier ("XCAL", 4 bytes, no NUL terminator). */
 #define XCAL_MAGIC "XCAL"
+/** @brief XCal file format version number (= 1). */
 #define XCAL_VERSION 1u
 
-/* Maximum allowed dimensions per axis (prevents runaway allocation) */
+/** @brief Maximum allowed image dimension per axis in pixels (prevents runaway allocation). */
 #define XCAL_MAX_DIM 4096u
 
-/* Maximum config JSON length (sanity cap: 1 MB) */
+/** @brief Maximum config JSON blob length in bytes (sanity cap: 1 MB). */
 #define XCAL_MAX_CONFIG_JSON_LEN (1024u * 1024u)
 
-/* Compression method constants (stored in config_json metadata) */
-#define XCAL_COMPRESSION_NONE 0u  /* No compression (default) */
-#define XCAL_COMPRESSION_RLE  1u  /* Run-Length Encoding (defect maps only) */
+/** @brief No payload compression (default). */
+#define XCAL_COMPRESSION_NONE 0u
+/** @brief Run-Length Encoding payload compression (defect maps only). */
+#define XCAL_COMPRESSION_RLE  1u
 
 /*
  * Compression metadata convention (stored inside config_json):
