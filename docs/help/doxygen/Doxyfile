@@ -44,6 +44,10 @@ EXCLUDE_PATTERNS       = *internal* \
 EXCLUDE_SYMLINKS       = NO
 USE_MDFILE_AS_MAINPAGE =
 
+# Silence @MX:* custom project-internal annotation tags so they do not
+# generate "unknown command" warnings under WARN_AS_ERROR=FAIL_ON_WARNINGS.
+ALIASES                += "MX="
+
 #---------------------------------------------------------------------------
 # Output formats
 #---------------------------------------------------------------------------
