@@ -10,7 +10,7 @@
  * IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdlib>
@@ -177,9 +177,29 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
         return XPE_OK;
     }
 
-    // Cache miss: load from file (caller must have pre-allocated offsetMapOut->data)
-    XpeErrorCode rc = xpe_calib_load_offset(filePath, offsetMapOut);
+    // Cache miss: load from file via 1-arg API (populates g_calib)
+    XpeErrorCode rc = xpe_calib_load_offset(filePath);
     if (rc != XPE_OK) return rc;
+
+    // Copy from g_calib to caller's buffer
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!g_calib.offset_map || g_calib.offset_width == 0) return XPE_ERR_NOT_INITIALIZED;
+
+        const size_t pixelCount = static_cast<size_t>(g_calib.offset_width) * g_calib.offset_height;
+        offsetMapOut->width         = g_calib.offset_width;
+        offsetMapOut->height        = g_calib.offset_height;
+        offsetMapOut->bitsAllocated = 32;
+        offsetMapOut->bitsStored    = 32;
+        offsetMapOut->format        = XPE_PIXEL_FLOAT32;
+        offsetMapOut->dataSize      = pixelCount * sizeof(float);
+
+        // Allocate or reallocate caller buffer
+        void* buf = std::realloc(offsetMapOut->data, offsetMapOut->dataSize);
+        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
+        offsetMapOut->data = buf;
+        std::memcpy(offsetMapOut->data, g_calib.offset_map.get(), offsetMapOut->dataSize);
+    }
 
     // Allocate a separate buffer for the cache and copy data
     // (The caller retains ownership of their original buffer)
@@ -214,8 +234,28 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
         return XPE_OK;
     }
 
-    XpeErrorCode rc = xpe_calib_load_gain(filePath, gainMapOut);
+    // Cache miss: load from file via 1-arg API (populates g_calib)
+    XpeErrorCode rc = xpe_calib_load_gain(filePath);
     if (rc != XPE_OK) return rc;
+
+    // Copy from g_calib to caller's buffer
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!g_calib.gain_map || g_calib.gain_width == 0) return XPE_ERR_NOT_INITIALIZED;
+
+        const size_t pixelCount = static_cast<size_t>(g_calib.gain_width) * g_calib.gain_height;
+        gainMapOut->width         = g_calib.gain_width;
+        gainMapOut->height        = g_calib.gain_height;
+        gainMapOut->bitsAllocated = 32;
+        gainMapOut->bitsStored    = 32;
+        gainMapOut->format        = XPE_PIXEL_FLOAT32;
+        gainMapOut->dataSize      = pixelCount * sizeof(float);
+
+        void* buf = std::realloc(gainMapOut->data, gainMapOut->dataSize);
+        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
+        gainMapOut->data = buf;
+        std::memcpy(gainMapOut->data, g_calib.gain_map.get(), gainMapOut->dataSize);
+    }
 
     XpeImageBuffer cacheEntry{};
     cacheEntry.width         = gainMapOut->width;
@@ -245,8 +285,28 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
         return XPE_OK;
     }
 
-    XpeErrorCode rc = xpe_calib_load_defect_map(filePath, defectMapOut);
+    // Cache miss: load from file via 1-arg API (populates g_calib)
+    XpeErrorCode rc = xpe_calib_load_defect_map(filePath);
     if (rc != XPE_OK) return rc;
+
+    // Copy from g_calib to caller's buffer
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!g_calib.defect_map || g_calib.defect_width == 0) return XPE_ERR_NOT_INITIALIZED;
+
+        const size_t pixelCount = static_cast<size_t>(g_calib.defect_width) * g_calib.defect_height;
+        defectMapOut->width         = g_calib.defect_width;
+        defectMapOut->height        = g_calib.defect_height;
+        defectMapOut->bitsAllocated = 8;
+        defectMapOut->bitsStored    = 8;
+        defectMapOut->format        = XPE_PIXEL_UINT8;
+        defectMapOut->dataSize      = pixelCount * sizeof(uint8_t);
+
+        void* buf = std::realloc(defectMapOut->data, defectMapOut->dataSize);
+        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
+        defectMapOut->data = buf;
+        std::memcpy(defectMapOut->data, g_calib.defect_map.get(), defectMapOut->dataSize);
+    }
 
     XpeImageBuffer cacheEntry{};
     cacheEntry.width         = defectMapOut->width;

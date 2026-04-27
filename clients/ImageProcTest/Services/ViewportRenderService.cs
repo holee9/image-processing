@@ -34,7 +34,8 @@ namespace ImageProcTest
             int height,
             ViewportRenderParams parameters)
         {
-            if (values.Length != checked(width * height))
+            var expectedPixelCount = ValidateDimensions(width, height);
+            if (values.Length != expectedPixelCount)
             {
                 throw new ArgumentException("Pixel count does not match viewport dimensions.", nameof(values));
             }
@@ -177,10 +178,26 @@ namespace ImageProcTest
 
         private static WriteableBitmap CreateGray8Bitmap(byte[] pixels, int width, int height)
         {
+            _ = ValidateDimensions(width, height);
             var bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Gray8, null);
             bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width, 0);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        private static int ValidateDimensions(int width, int height)
+        {
+            if (width <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(width), width, "Viewport width must be positive.");
+            }
+
+            if (height <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(height), height, "Viewport height must be positive.");
+            }
+
+            return checked(width * height);
         }
     }
 }

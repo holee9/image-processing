@@ -522,7 +522,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <Button Content="Runnable preprocess" Width="138" Height="28" Click="UseRunnablePreprocessChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Post basic" Width="92" Height="28" Click="UseRunnablePostBasicChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Pre + post" Width="92" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Phase 1b E2E" Width="116" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Product canonical" Width="132" Height="28" Click="UseProductCanonicalChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Pre-E2E proof" Width="110" Height="28" Click="UsePreE2eProofChain_Click" Margin="0,0,8,0"/>
                                         <Button Content="Clear" Width="72" Height="28" Click="ClearAlgorithmChain_Click"/>
@@ -657,6 +657,8 @@
                                 <TextBlock x:Name="MemoryAbiText" Text="Memory ABI: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="AlertText" Text="Alerts: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="DisplayHealthText" Text="Display health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="DicomHealthText" Text="DICOM health: Not checked" FontSize="13" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="GsvgHealthText" Text="GSVG health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessHealthText" Text="Preprocess health: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessSmokeText" Text="Preprocess smoke: Not checked" FontSize="13" Margin="0,0,0,5"/>
                                 <TextBlock x:Name="PreprocessParamRangeText" Text="Preprocess parameter ranges: Not checked" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap"/>
@@ -683,7 +685,7 @@
                         </Border>
 
                         <TextBlock Text="Integration policy" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,4"/>
-                        <TextBlock Text="This screen only verifies xpe_common native health. Preprocess and display image-processing controls must remain disabled until their DLL readiness gates pass." TextWrapping="Wrap" FontSize="13"/>
+                        <TextBlock Text="This screen verifies common, preprocess, enhance, display, DICOM, GSVG, and AI readiness. Missing DLLs or future modules stay Off and are skipped without stopping the available preview adapters." TextWrapping="Wrap" FontSize="13"/>
 
                         <Separator Margin="0,16,0,12"/>
 
@@ -694,7 +696,7 @@
 
                         <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means ABI smoke ready, and R3+ requires module exports plus oracle checks. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
+                                <TextBlock Text="R0 means not ready, R1 means version/binary health only, R2 means export/ABI smoke ready, and R3+ means executable oracle evidence. Processing controls stay disabled unless a module reaches the required gate." TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8"/>
                                 <DataGrid x:Name="ModuleReadinessGrid"
                                           AutoGenerateColumns="False"
                                           CanUserAddRows="False"
@@ -704,10 +706,12 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="130"/>
                                         <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
+                                        <DataGridTextColumn Header="Meaning" Binding="{Binding LevelDescription}" Width="150"/>
+                                        <DataGridTextColumn Header="Req" Binding="{Binding RequiredLevel}" Width="55"/>
                                         <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
                                         <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
-                                        <DataGridTextColumn Header="Next action" Binding="{Binding NextAction}" Width="260"/>
-                                        <DataGridCheckBoxColumn Header="Exec" Binding="{Binding ProcessingEnabled}" Width="60"/>
+                                        <DataGridTextColumn Header="Exec" Binding="{Binding ExecutionState}" Width="75"/>
+                                        <DataGridTextColumn Header="Degraded mode" Binding="{Binding DegradationReason}" Width="280"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <TextBlock x:Name="ModuleReadinessSummaryText"
@@ -719,349 +723,6 @@
                         </Border>
 
                         <Separator Margin="0,16,0,12"/>
-
-                        <DockPanel Margin="0,0,0,8" Visibility="Collapsed">
-                            <TextBlock Text="Preprocessing Fixture Test" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                <Button Content="Refresh Fixtures" Width="120" Click="RefreshFixturesButton_Click"/>
-                            </StackPanel>
-                        </DockPanel>
-
-                        <Border Background="#FFF6F8FA" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10" Visibility="Collapsed">
-                            <TextBlock Text="Select a prepared fixture case, load one raw image from that case, then run Offset/Gain/Defect preprocessing with the calibration raw files in the same case. The app converts those calibration raws to preview-sized XCal files, loads them into xpe_preprocess.dll, and reports before/after delta metrics so execution is verifiable." TextWrapping="Wrap" FontSize="13"/>
-                        </Border>
-
-                        <Grid Visibility="Collapsed">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="330"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
-                                <StackPanel>
-                                    <TextBlock Text="Calibration cases" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="LegacyFixtureCaseComboBox"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixtureCaseComboBox_SelectionChanged"
-                                              Margin="0,0,0,10"/>
-                                    <TextBlock x:Name="LegacySelectedCaseText"
-                                               Text="Selected case: none"
-                                               TextWrapping="Wrap"
-                                               FontSize="11"
-                                               Foreground="#FF57606A"
-                                               Margin="0,0,0,10"/>
-
-                                    <TextBlock Text="Images" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <ListBox x:Name="LegacyImageFilesListBox"
-                                             DisplayMemberPath="DisplayName"
-                                             Height="150"
-                                             SelectionChanged="ImageFilesListBox_SelectionChanged"/>
-
-                                    <TextBlock Text="Calibration files" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                                    <ListBox x:Name="LegacyCalibrationFilesListBox"
-                                             DisplayMemberPath="DisplayName"
-                                             Height="150"/>
-
-                                    <Button Content="Load Selected Raw"
-                                            Margin="0,12,0,0"
-                                            Height="30"
-                                            Click="LoadSelectedRawButton_Click"/>
-                                    <Button x:Name="LegacyApplyNativePreviewButton"
-                                            Content="Run Preprocessing Test"
-                                            Margin="0,6,0,0"
-                                            Height="30"
-                                            IsEnabled="False"
-                                            Click="ApplyNativePreviewButton_Click"/>
-
-                                    <Separator Margin="0,14,0,10"/>
-
-                                    <TextBlock Text="Stage switches" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="LegacyStageModesInfoText"
-                                               Text="Legacy hidden fixture controls are disabled in the deployable verification UI."
-                                               TextWrapping="Wrap"
-                                               FontSize="11"
-                                               Foreground="#FF57606A"
-                                               Margin="0,0,0,8"/>
-
-                                    <TextBlock Text="Offset" FontSize="12" FontWeight="SemiBold"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="LegacyOffsetOffRadio" Content="Off" GroupName="LegacyOffsetMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="LegacyOffsetOnRadio" Content="On" GroupName="LegacyOffsetMode" IsEnabled="False"/>
-                                    </StackPanel>
-
-                                    <TextBlock Text="Gain" FontSize="12" FontWeight="SemiBold"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="LegacyGainOffRadio" Content="Off" GroupName="LegacyGainMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="LegacyGainOnRadio" Content="On" GroupName="LegacyGainMode" IsEnabled="False"/>
-                                    </StackPanel>
-
-                                    <TextBlock Text="Defect" FontSize="12" FontWeight="SemiBold"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
-                                        <RadioButton x:Name="LegacyDefectOffRadio" Content="Off" GroupName="LegacyDefectMode" IsChecked="True" Margin="0,0,10,0"/>
-                                        <RadioButton x:Name="LegacyDefectOnRadio" Content="On" GroupName="LegacyDefectMode" IsEnabled="False"/>
-                                    </StackPanel>
-
-                                    <TextBlock x:Name="LegacyNativePreviewText"
-                                               Text="Native preview: unavailable"
-                                               FontSize="11"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,8"/>
-                                    <Button Content="Save E2E Report"
-                                            Height="30"
-                                            Click="SaveE2eReportButton_Click"/>
-                                    <TextBlock x:Name="LegacyE2eReportText"
-                                               Text="E2E report: not saved"
-                                               FontSize="11"
-                                               TextWrapping="Wrap"
-                                               Margin="0,6,0,0"/>
-                                </StackPanel>
-                            </Border>
-
-                            <Border x:Name="ComparisonViewerPanel" Grid.Column="2" BorderBrush="#FFD0D7DE" BorderThickness="1" CornerRadius="4" Padding="10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <StackPanel Grid.Row="0">
-                                        <TextBlock x:Name="RawPreviewTitleText" Text="Raw preview: no file loaded" FontSize="14" FontWeight="SemiBold"/>
-                                        <TextBlock x:Name="RawPreviewInfoText" Text="Load a target raw image from the Evaluation tab, then run the selected algorithm chain for verification." FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                        <TextBlock x:Name="RawPreviewHashText" Text="SHA-256: not calculated" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                    </StackPanel>
-
-                                    <DockPanel Grid.Row="1" Margin="0,10,0,8">
-                                        <TextBlock Text="Zoom" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="8,0,0,0">
-                                            <Button Content="Fit"
-                                                    Width="46"
-                                                    Margin="0,0,4,0"
-                                                    Click="ZoomFitButton_Click"
-                                                    AutomationProperties.AutomationId="XPE_Viewport_ZoomFit_Button"
-                                                    AutomationProperties.Name="Zoom fit"/>
-                                            <Button Content="100%"
-                                                    Width="50"
-                                                    Margin="0,0,4,0"
-                                                    Click="ZoomActualButton_Click"
-                                                    AutomationProperties.AutomationId="XPE_Viewport_ZoomActual_Button"
-                                                    AutomationProperties.Name="Zoom 100 percent"/>
-                                            <Button Content="+"
-                                                    Width="30"
-                                                    Margin="0,0,4,0"
-                                                    Click="ZoomInButton_Click"
-                                                    AutomationProperties.AutomationId="XPE_Viewport_ZoomIn_Button"
-                                                    AutomationProperties.Name="Zoom in"/>
-                                            <Button Content="-"
-                                                    Width="30"
-                                                    Margin="0,0,8,0"
-                                                    Click="ZoomOutButton_Click"
-                                                    AutomationProperties.AutomationId="XPE_Viewport_ZoomOut_Button"
-                                                    AutomationProperties.Name="Zoom out"/>
-                                            <TextBlock x:Name="ZoomValueText" Text="100%" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Slider x:Name="RawZoomSlider"
-                                                Minimum="0.1"
-                                                Maximum="8"
-                                                Value="1"
-                                                TickFrequency="0.1"
-                                                IsSnapToTickEnabled="False"
-                                                AutomationProperties.AutomationId="XPE_Viewport_Zoom_Slider"
-                                                AutomationProperties.Name="Viewport zoom"
-                                                ValueChanged="RawZoomSlider_ValueChanged"/>
-                                    </DockPanel>
-
-                                    <DockPanel Grid.Row="2" Margin="0,0,0,8">
-                                        <TextBlock Text="Swipe" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-                                        <TextBlock x:Name="SwipeValueText" Text="50%" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0"/>
-                                        <Slider x:Name="CompareSwipeSlider"
-                                                Minimum="0"
-                                                Maximum="1"
-                                                Value="0.5"
-                                                TickFrequency="0.01"
-                                                IsSnapToTickEnabled="False"
-                                                AutomationProperties.AutomationId="XPE_Viewport_CompareSwipe_Slider"
-                                                AutomationProperties.Name="Compare swipe divider"
-                                                ValueChanged="CompareSwipeSlider_ValueChanged"/>
-                                    </DockPanel>
-
-                                    <Border Grid.Row="3"
-                                            Background="#FFF6F8FA"
-                                            BorderBrush="#FFD0D7DE"
-                                            BorderThickness="1"
-                                            Padding="8"
-                                            Margin="0,0,0,8">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <WrapPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                                                <CheckBox x:Name="ViewerLinkCheckBox"
-                                                          Content="Link W/L"
-                                                          IsChecked="True"
-                                                          VerticalAlignment="Center"
-                                                          Checked="ViewerControl_Changed"
-                                                          Unchecked="ViewerControl_Changed"
-                                                          Margin="0,0,12,0"/>
-                                                <TextBlock Text="Target" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <ComboBox x:Name="ViewerTargetComboBox"
-                                                          Width="96"
-                                                          SelectedIndex="0"
-                                                          SelectionChanged="ViewerTargetComboBox_SelectionChanged"
-                                                          Margin="0,0,12,0">
-                                                    <ComboBoxItem Content="Original"/>
-                                                    <ComboBoxItem Content="After"/>
-                                                </ComboBox>
-                                                <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <ComboBox x:Name="ViewerPresetComboBox"
-                                                          Width="126"
-                                                          SelectedIndex="0"
-                                                          SelectionChanged="ViewerPresetComboBox_SelectionChanged"
-                                                          Margin="0,0,12,0">
-                                                    <ComboBoxItem Content="Auto Fit"/>
-                                                    <ComboBoxItem Content="Chest PA"/>
-                                                    <ComboBoxItem Content="Bone"/>
-                                                    <ComboBoxItem Content="Soft Tissue"/>
-                                                    <ComboBoxItem Content="Lung"/>
-                                                    <ComboBoxItem Content="Pediatric"/>
-                                                </ComboBox>
-                                                <TextBlock Text="LUT" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <ComboBox x:Name="ViewerLutComboBox"
-                                                          Width="86"
-                                                          SelectedIndex="0"
-                                                          SelectionChanged="ViewerControl_Changed"
-                                                          Margin="0,0,12,0">
-                                                    <ComboBoxItem Content="Linear"/>
-                                                    <ComboBoxItem Content="Sigmoid"/>
-                                                </ComboBox>
-                                                <CheckBox x:Name="ViewerInvertCheckBox"
-                                                          Content="Invert"
-                                                          VerticalAlignment="Center"
-                                                          Checked="ViewerControl_Changed"
-                                                          Unchecked="ViewerControl_Changed"/>
-                                            </WrapPanel>
-
-                                            <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="92"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="72"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Brightness" VerticalAlignment="Center"/>
-                                                <Slider x:Name="ViewerWindowCenterSlider"
-                                                        Grid.Row="0" Grid.Column="1"
-                                                        Minimum="0" Maximum="4096" Value="2048"
-                                                        TickFrequency="1"
-                                                        IsSnapToTickEnabled="False"
-                                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
-                                                <TextBlock x:Name="ViewerWindowCenterText"
-                                                           Grid.Row="0" Grid.Column="2"
-                                                           Text="2048"
-                                                           TextAlignment="Right"
-                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Contrast" VerticalAlignment="Center"/>
-                                                <Slider x:Name="ViewerWindowWidthSlider"
-                                                        Grid.Row="1" Grid.Column="1"
-                                                        Minimum="1" Maximum="8192" Value="4096"
-                                                        TickFrequency="1"
-                                                        IsSnapToTickEnabled="False"
-                                                        ValueChanged="ViewerWindowSlider_ValueChanged"/>
-                                                <TextBlock x:Name="ViewerWindowWidthText"
-                                                           Grid.Row="1" Grid.Column="2"
-                                                           Text="4096"
-                                                           TextAlignment="Right"
-                                                           VerticalAlignment="Center"/>
-                                            </Grid>
-
-                                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,4,0">
-                                                <TextBlock x:Name="OriginalHistogramText" Text="Original histogram: empty" FontSize="11" Margin="0,0,0,4"/>
-                                                <controls:HistogramControl x:Name="OriginalHistogramControl" Height="72"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="4,0,0,0">
-                                                <TextBlock x:Name="AfterHistogramText" Text="After histogram: empty" FontSize="11" Margin="0,0,0,4"/>
-                                                <controls:HistogramControl x:Name="AfterHistogramControl" Height="72"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border Grid.Row="4" Background="#FF101820" BorderBrush="#FF202A33" BorderThickness="1" MinHeight="420">
-                                        <ScrollViewer x:Name="RawImageScrollViewer"
-                                                      HorizontalScrollBarVisibility="Auto"
-                                                      VerticalScrollBarVisibility="Auto">
-                                            <Grid x:Name="ComparisonCanvas"
-                                                  Background="#FF101820"
-                                                  Cursor="SizeWE"
-                                                ToolTip="Drag left or right to move the before/after split."
-                                                SizeChanged="ComparisonCanvas_SizeChanged"
-                                                MouseLeftButtonDown="ComparisonCanvas_MouseLeftButtonDown"
-                                                MouseMove="ComparisonCanvas_MouseMove"
-                                                MouseLeftButtonUp="ComparisonCanvas_MouseLeftButtonUp"
-                                                  MouseLeave="ComparisonCanvas_MouseLeave"
-                                                  MouseWheel="ComparisonCanvas_MouseWheel">
-                                                <Grid.LayoutTransform>
-                                                    <ScaleTransform x:Name="RawImageScaleTransform" ScaleX="1" ScaleY="1"/>
-                                                </Grid.LayoutTransform>
-
-                                                <Image x:Name="BeforePreviewImage"
-                                                       Stretch="None"
-                                                       SnapsToDevicePixels="True"
-                                                       RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                                                <Image x:Name="AfterPreviewImage"
-                                                       Stretch="None"
-                                                       SnapsToDevicePixels="True"
-                                                       RenderOptions.BitmapScalingMode="NearestNeighbor">
-                                                    <Image.Clip>
-                                                        <RectangleGeometry x:Name="AfterPreviewClip"/>
-                                                    </Image.Clip>
-                                                </Image>
-                                                <Border x:Name="SwipeLine"
-                                                        HorizontalAlignment="Left"
-                                                        Width="2"
-                                                        Background="#FFFFD166"
-                                                        Opacity="0.9"/>
-                                                <TextBlock Text="Original"
-                                                           HorizontalAlignment="Left"
-                                                           VerticalAlignment="Top"
-                                                           Foreground="White"
-                                                           Background="#99000000"
-                                                           Padding="6,3"
-                                                           Margin="8"/>
-                                                <TextBlock x:Name="AfterPreviewLabelText"
-                                                           Text="After preview"
-                                                           HorizontalAlignment="Right"
-                                                           VerticalAlignment="Top"
-                                                           Foreground="White"
-                                                           Background="#99000000"
-                                                           Padding="6,3"
-                                                           Margin="8"/>
-                                            </Grid>
-                                        </ScrollViewer>
-                                    </Border>
-
-                                    <TextBlock Grid.Row="5"
-                                               x:Name="ProcessingScaffoldText"
-                                               Text="Calibration test: Before is the selected target raw image. After updates only after the selected calibration folder is loaded and native preprocessing stages execute."
-                                               FontSize="12"
-                                               TextWrapping="Wrap"
-                                               Margin="0,8,0,0"/>
-                                </Grid>
-                            </Border>
-                        </Grid>
 
                     </StackPanel>
                 </ScrollViewer>

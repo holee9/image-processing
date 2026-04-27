@@ -81,6 +81,8 @@ namespace ImageProcTest
                 return $"Calibration folder={calibrationFolder}; roles={roles}; raw={raw}; " +
                     $"stage switches=offset:{StageSelection.Offset}, gain:{StageSelection.Gain}, defect:{StageSelection.Defect}; " +
                     $"post stages={string.Join(" -> ", AlgorithmChain.EnhanceBasicStageOrder)}; " +
+                    $"display stages={string.Join(" -> ", AlgorithmChain.DisplayStageOrder)}; " +
+                    $"dicom stages={string.Join(" -> ", AlgorithmChain.DicomStageOrder)}; " +
                     $"rule status={AlgorithmChain.Summary}";
             }
         }

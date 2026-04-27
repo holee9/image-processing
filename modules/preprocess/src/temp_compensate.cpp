@@ -6,7 +6,7 @@
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cmath>

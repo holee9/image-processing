@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using ImageProcTest.PInvokeWrappers;
+using ImageProcTest.ViewModels;
 using Microsoft.Win32;
 
 namespace ImageProcTest
@@ -33,6 +34,7 @@ namespace ImageProcTest
         private PreprocessHealthResult? lastPreprocessHealth;
         private NativePreprocessPreviewResult? lastNativePreviewResult;
         private NativeEnhanceBasicPreviewResult? lastEnhanceBasicPreviewResult;
+        private NativePresentationExportResult? lastPresentationExportResult;
         private IReadOnlyList<ModuleReadinessSnapshot> currentModuleReadiness = [];
         private IReadOnlyList<AlgorithmValidationItem> currentAlgorithmValidation = [];
         private IReadOnlyList<AlgorithmNode> currentAlgorithmNodes = [];
@@ -45,16 +47,14 @@ namespace ImageProcTest
         private FixtureCaseInfo? currentCalibrationContext;
         private string? currentCalibrationFolderPath;
         private readonly EvaluationContextService evaluationContextService = new();
+        private readonly ModuleReadinessViewModel moduleReadinessViewModel = new();
         private ActiveEvaluationContext? activeEvaluationContext;
-        private bool isDraggingComparisonSwipe;
-        private bool isUpdatingViewerControls;
-        private ViewportRenderParams originalViewportParams = ViewportRenderParams.Default;
-        private ViewportRenderParams processedViewportParams = ViewportRenderParams.Default;
 
         public MainWindow()
         {
             InitializeComponent();
             SelectedAlgorithmChainListBox.ItemsSource = selectedAlgorithmChain;
+            ModuleReadinessGrid.ItemsSource = moduleReadinessViewModel.Modules;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -464,6 +464,7 @@ namespace ImageProcTest
                 catch (Exception ex)
                 {
                     lastEnhanceBasicPreviewResult = null;
+                    lastPresentationExportResult = null;
                     EvaluationViewer.ClearNativePreview();
                     lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
                         item.SwuId,
@@ -474,6 +475,31 @@ namespace ImageProcTest
                         LatencyMs: null);
                     AlgorithmValidationResultText.Text = $"Post validation: FAIL {item.SwuId}; {ex.Message}";
                     SetStatus("Post validation failed", Brushes.OrangeRed);
+                    UpdateEvaluationDashboards();
+                }
+
+                return;
+            }
+
+            if (IsDisplayStageKey(item.StageKey) || IsDicomStageKey(item.StageKey))
+            {
+                try
+                {
+                    var run = RunPresentationExportValidation(item);
+                    AlgorithmValidationResultText.Text =
+                        $"Presentation/export validation: PASS {item.SwuId}; latency={FormatNullableLatency(run.LatencyMs)}; {run.Details}";
+                }
+                catch (Exception ex)
+                {
+                    lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
+                        item.SwuId,
+                        item.AlgorithmName,
+                        "Fail",
+                        ex.Message,
+                        ArtifactDirectory: null,
+                        LatencyMs: null);
+                    AlgorithmValidationResultText.Text = $"Presentation/export validation: FAIL {item.SwuId}; {ex.Message}";
+                    SetStatus("Presentation/export validation failed", Brushes.OrangeRed);
                     UpdateEvaluationDashboards();
                 }
 
@@ -505,6 +531,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 lastAlgorithmValidationRun = new AlgorithmValidationRunSnapshot(
                     item.SwuId,
@@ -582,6 +609,7 @@ namespace ImageProcTest
                 catch (Exception ex)
                 {
                     lastEnhanceBasicPreviewResult = null;
+                    lastPresentationExportResult = null;
                     EvaluationViewer.ClearNativePreview();
                     var fail = new AlgorithmValidationRunSnapshot(
                         item.SwuId,
@@ -592,6 +620,28 @@ namespace ImageProcTest
                         LatencyMs: null);
                     lastAlgorithmValidationRun = fail;
                     SetStatus("Post validation failed", Brushes.OrangeRed);
+                    UpdateEvaluationDashboards();
+                    return fail;
+                }
+            }
+
+            if (IsDisplayStageKey(item.StageKey) || IsDicomStageKey(item.StageKey))
+            {
+                try
+                {
+                    return RunPresentationExportValidation(item);
+                }
+                catch (Exception ex)
+                {
+                    var fail = new AlgorithmValidationRunSnapshot(
+                        item.SwuId,
+                        item.AlgorithmName,
+                        "Fail",
+                        ex.Message,
+                        ArtifactDirectory: null,
+                        LatencyMs: null);
+                    lastAlgorithmValidationRun = fail;
+                    SetStatus("Presentation/export validation failed", Brushes.OrangeRed);
                     UpdateEvaluationDashboards();
                     return fail;
                 }
@@ -628,6 +678,8 @@ namespace ImageProcTest
             catch (Exception ex)
             {
                 lastNativePreviewResult = null;
+                lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 var fail = new AlgorithmValidationRunSnapshot(
                     item.SwuId,
@@ -733,7 +785,9 @@ namespace ImageProcTest
                     enhanceSelection,
                     $"algorithm chain {currentAlgorithmChainPlan.DisplayName}",
                     currentAlgorithmChainPlan.NativeStageOrder,
-                    currentAlgorithmChainPlan.EnhanceBasicStageOrder);
+                    currentAlgorithmChainPlan.EnhanceBasicStageOrder,
+                    currentAlgorithmChainPlan.DisplayStageOrder,
+                    currentAlgorithmChainPlan.DicomStageOrder);
                 lastAlgorithmValidationRun = pass;
                 AlgorithmValidationResultText.Text =
                     $"Algorithm chain: PASS; latency={FormatNullableLatency(pass.LatencyMs)}; " +
@@ -744,6 +798,8 @@ namespace ImageProcTest
             catch (Exception ex)
             {
                 lastNativePreviewResult = null;
+                lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 var fail = new AlgorithmValidationRunSnapshot(
                     "CHAIN",
@@ -860,94 +916,6 @@ namespace ImageProcTest
             UpdateWorkflowRunState();
         }
 
-        private void RawZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (RawImageScaleTransform is null || ZoomValueText is null)
-            {
-                return;
-            }
-
-            var scale = Math.Max(0.1, e.NewValue);
-            RawImageScaleTransform.ScaleX = scale;
-            RawImageScaleTransform.ScaleY = scale;
-            ZoomValueText.Text = $"{scale * 100:0}%";
-        }
-
-        private void ZoomFitButton_Click(object sender, RoutedEventArgs e)
-        {
-            FitComparisonToViewport();
-        }
-
-        private void ZoomActualButton_Click(object sender, RoutedEventArgs e)
-        {
-            SetComparisonZoom(1.0);
-        }
-
-        private void ZoomInButton_Click(object sender, RoutedEventArgs e)
-        {
-            AdjustComparisonZoom(1.25);
-        }
-
-        private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
-        {
-            AdjustComparisonZoom(0.8);
-        }
-
-        private void CompareSwipeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            UpdateComparisonClip();
-        }
-
-        private void ComparisonCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            UpdateComparisonClip();
-        }
-
-        private void ComparisonCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            isDraggingComparisonSwipe = true;
-            ComparisonCanvas.CaptureMouse();
-            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
-            e.Handled = true;
-        }
-
-        private void ComparisonCanvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (!isDraggingComparisonSwipe || e.LeftButton != MouseButtonState.Pressed)
-            {
-                return;
-            }
-
-            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
-            e.Handled = true;
-        }
-
-        private void ComparisonCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!isDraggingComparisonSwipe)
-            {
-                return;
-            }
-
-            UpdateComparisonSwipeFromPoint(e.GetPosition(ComparisonCanvas).X);
-            EndComparisonSwipeDrag();
-            e.Handled = true;
-        }
-
-        private void ComparisonCanvas_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (isDraggingComparisonSwipe && e.LeftButton != MouseButtonState.Pressed)
-            {
-                EndComparisonSwipeDrag();
-            }
-        }
-
-        private void ComparisonCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            AdjustComparisonZoom(e.Delta > 0 ? 1.1 : 1.0 / 1.1);
-            e.Handled = true;
-        }
-
         private void SaveE2eReportButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -968,6 +936,7 @@ namespace ImageProcTest
                     lastPreprocessHealth,
                     lastNativePreviewResult,
                     lastEnhanceBasicPreviewResult,
+                    lastPresentationExportResult,
                     GetStageModes(),
                     currentModuleReadiness,
                     currentAlgorithmValidation,
@@ -1013,6 +982,8 @@ namespace ImageProcTest
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
+                DicomHealthText.Text = $"DICOM health: {report.DicomSummary}";
+                GsvgHealthText.Text = $"GSVG health: {report.GsvgSummary}";
                 PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
                 PreprocessSmokeText.Text =
                     $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
@@ -1026,6 +997,8 @@ namespace ImageProcTest
             catch (Exception ex)
             {
                 DisplayHealthText.Text = "Display health: Report generation skipped";
+                DicomHealthText.Text = "DICOM health: Report generation skipped";
+                GsvgHealthText.Text = "GSVG health: Report generation skipped";
                 PreprocessHealthText.Text = "Preprocess health: Report generation skipped";
                 PreprocessSmokeText.Text = "Preprocess smoke: Report generation skipped";
                 PreprocessParamRangeText.Text = "Preprocess parameter ranges: Report generation skipped";
@@ -1079,6 +1052,7 @@ namespace ImageProcTest
                 currentPreview = null;
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
 
                 var preview = RawPreviewService.LoadUInt16Preview(path);
                 currentPreview = preview;
@@ -1092,6 +1066,7 @@ namespace ImageProcTest
                 currentPreview = null;
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearRawPreview($"Raw preview failed: {ex.Message}");
                 NativePreviewText.Text = "Native preview: unavailable";
                 UpdateNativePreviewControls();
@@ -1146,6 +1121,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 NativePreviewText.Text = $"Native preview failed: {ex.Message}";
                 SetStatus("Native pre/post preview failed", Brushes.OrangeRed);
@@ -1164,6 +1140,7 @@ namespace ImageProcTest
 
             lastNativePreviewResult = null;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.ClearNativePreview();
             var preprocessSelection = GetPreprocessSelection();
             var enhanceSelection = GetEnhanceBasicSelection();
@@ -1188,6 +1165,7 @@ namespace ImageProcTest
             {
                 lastNativePreviewResult = null;
                 lastEnhanceBasicPreviewResult = null;
+                lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
                 NativePreviewText.Text = $"Bypass preview: {reason} Load a target raw image to view the bypass output.";
                 WorkflowBeforeAfterText.Text = "Bypass preview: no target raw image is loaded.";
@@ -1197,6 +1175,7 @@ namespace ImageProcTest
             var bypass = NativePreprocessPreviewService.CreateBypass(currentPreview, reason);
             lastNativePreviewResult = bypass;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetBypassPreview(bypass, reason);
             NativePreviewText.Text =
                 $"Bypass preview: {reason} output buffer is copied from input; changed={bypass.Metrics.ChangedPixels}/{bypass.Metrics.PixelCount}; " +
@@ -1225,6 +1204,7 @@ namespace ImageProcTest
                 stageOrder);
             lastNativePreviewResult = result;
             lastEnhanceBasicPreviewResult = null;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetNativePreview(result, selectedCase.CalibrationDirectoryPath);
             NativePreviewText.Text =
                 $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
@@ -1241,7 +1221,9 @@ namespace ImageProcTest
             EnhanceBasicStageSelection enhanceSelection,
             string statusLabel,
             IReadOnlyList<string>? preprocessStageOrder = null,
-            IReadOnlyList<string>? enhanceBasicStageOrder = null)
+            IReadOnlyList<string>? enhanceBasicStageOrder = null,
+            IReadOnlyList<string>? displayStageOrder = null,
+            IReadOnlyList<string>? dicomStageOrder = null)
         {
             if (currentPreview is null)
             {
@@ -1267,29 +1249,60 @@ namespace ImageProcTest
                 lastNativePreviewResult = null;
             }
 
+            NativeEnhanceBasicPreviewResult? enhanceResult = null;
+            IReadOnlyList<float>? finalPixels = preprocessResult?.OutputPixels;
+            var finalInputSource = preprocessResult is null
+                ? "raw-float-bypass"
+                : "preprocess-output";
             if (enhanceSelection.HasAnyStage)
             {
-                var inputPixels = preprocessResult?.OutputPixels;
-                var inputSource = preprocessResult is null
-                    ? "raw-float-bypass"
-                    : "preprocess-output";
-                var enhanceResult = RunNativeEnhanceBasicPreview(
+                enhanceResult = RunNativeEnhanceBasicPreview(
                     enhanceSelection,
                     GetEnhanceBasicParameters(),
-                    inputPixels,
-                    inputSource,
+                    finalPixels,
+                    finalInputSource,
                     statusLabel,
                     enhanceBasicStageOrder);
+                finalPixels = enhanceResult.OutputPixels;
+                finalInputSource = "enhance-basic-output";
+            }
+
+            NativePresentationExportResult? presentationResult = null;
+            if (HasPresentationExportStage(displayStageOrder, dicomStageOrder))
+            {
+                presentationResult = RunPresentationExportNative(
+                    finalPixels,
+                    finalInputSource,
+                    displayStageOrder,
+                    dicomStageOrder);
+            }
+
+            if (enhanceResult is not null)
+            {
                 var run = new AlgorithmValidationRunSnapshot(
                     "CHAIN",
                     currentAlgorithmChainPlan.DisplayName,
                     "Pass",
-                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}",
-                    ArtifactDirectory: null,
-                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0));
+                    $"{currentAlgorithmChainPlan.Summary} postMetrics={FormatMetricSummary(enhanceResult.Metrics)}; input={enhanceResult.InputSource}; {FormatPresentationSummary(presentationResult)}",
+                    presentationResult?.ArtifactDirectory,
+                    enhanceResult.TotalLatencyMs + (preprocessResult?.TotalLatencyMs ?? 0) + (presentationResult?.TotalLatencyMs ?? 0));
                 lastAlgorithmValidationRun = run;
                 UpdateEvaluationDashboards();
                 return run;
+            }
+
+            if (presentationResult is not null)
+            {
+                var presentationOnlyRun = new AlgorithmValidationRunSnapshot(
+                    "CHAIN",
+                    currentAlgorithmChainPlan.DisplayName,
+                    "Pass",
+                    $"{currentAlgorithmChainPlan.Summary} {presentationResult.Summary}",
+                    presentationResult.ArtifactDirectory,
+                    (preprocessResult?.TotalLatencyMs ?? 0) + presentationResult.TotalLatencyMs);
+                lastAlgorithmValidationRun = presentationOnlyRun;
+                UpdateEvaluationDashboards();
+                return presentationOnlyRun;
             }
 
             if (preprocessResult is null)
@@ -1308,12 +1321,80 @@ namespace ImageProcTest
                 "CHAIN",
                 currentAlgorithmChainPlan.DisplayName,
                 "Pass",
-                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}",
+                $"{currentAlgorithmChainPlan.Summary} {FormatMetricSummary(preprocessResult.Metrics)}; presentation/export=not selected",
                 preprocessResult.ArtifactDirectory,
                 preprocessResult.TotalLatencyMs);
             lastAlgorithmValidationRun = preprocessRun;
             UpdateEvaluationDashboards();
             return preprocessRun;
+        }
+
+        private NativePresentationExportResult RunPresentationExportNative(
+            IReadOnlyList<float>? inputPixels,
+            string inputSource,
+            IReadOnlyList<string>? displayStageOrder,
+            IReadOnlyList<string>? dicomStageOrder)
+        {
+            if (currentPreview is null)
+            {
+                throw new InvalidOperationException("Load a raw preview before running presentation/export.");
+            }
+
+            SetStatus("Running native presentation/export stages...", Brushes.Goldenrod);
+            var result = NativePresentationExportService.Run(
+                currentPreview,
+                inputPixels,
+                inputSource,
+                displayStageOrder,
+                dicomStageOrder);
+            lastPresentationExportResult = result;
+            if (!string.IsNullOrWhiteSpace(result.DicomValidation?.DicomPath))
+            {
+                AddReportArtifact("DICOM", result.DicomValidation.DicomPath);
+            }
+
+            NativePreviewText.Text =
+                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}";
+            SetStatus("Presentation/export complete", Brushes.ForestGreen);
+            UpdateEvaluationDashboards();
+            return result;
+        }
+
+        private static bool HasPresentationExportStage(
+            IReadOnlyList<string>? displayStageOrder,
+            IReadOnlyList<string>? dicomStageOrder)
+        {
+            return (displayStageOrder?.Count ?? 0) > 0 || (dicomStageOrder?.Count ?? 0) > 0;
+        }
+
+        private static string FormatPresentationSummary(NativePresentationExportResult? result)
+        {
+            return result is null
+                ? "presentation/export=not selected"
+                : result.Summary;
+        }
+
+        private AlgorithmValidationRunSnapshot RunPresentationExportValidation(AlgorithmValidationItem item)
+        {
+            IReadOnlyList<string> displayStages = IsDisplayStageKey(item.StageKey) ? [item.StageKey!] : [];
+            IReadOnlyList<string> dicomStages = IsDicomStageKey(item.StageKey) ? [item.StageKey!] : [];
+            var inputPixels = lastEnhanceBasicPreviewResult?.OutputPixels ?? lastNativePreviewResult?.OutputPixels;
+            var inputSource = lastEnhanceBasicPreviewResult is not null
+                ? "enhance-basic-output"
+                : lastNativePreviewResult is not null
+                    ? "preprocess-output"
+                    : "raw-float-bypass";
+            var result = RunPresentationExportNative(inputPixels, inputSource, displayStages, dicomStages);
+            var pass = new AlgorithmValidationRunSnapshot(
+                item.SwuId,
+                item.AlgorithmName,
+                "Pass",
+                result.Summary,
+                result.ArtifactDirectory,
+                result.TotalLatencyMs);
+            lastAlgorithmValidationRun = pass;
+            UpdateEvaluationDashboards();
+            return pass;
         }
 
         private NativeEnhanceBasicPreviewResult RunNativeEnhanceBasicPreview(
@@ -1339,6 +1420,7 @@ namespace ImageProcTest
                 preferredDllPath: null,
                 stageOrder);
             lastEnhanceBasicPreviewResult = result;
+            lastPresentationExportResult = null;
             EvaluationViewer.SetAlgorithmPreview(
                 result.OutputPixels,
                 "Post after",
@@ -1363,6 +1445,12 @@ namespace ImageProcTest
             var postReason = IsEnhanceBasicPreviewReady()
                 ? "Native enhance_basic ABI smoke is available. Checked post stages execute on pre output or raw-float bypass input."
                 : "Native enhance_basic execution is disabled until xpe_enhance_basic.dll ABI smoke passes.";
+            var displayReason = IsModuleReadinessAtLeast("xpe_display", 3)
+                ? "Native display readiness smoke is available. Selected display stages execute on the active preview buffer."
+                : "Native display readiness smoke is disabled until xpe_display.dll reaches R3.";
+            var dicomReason = IsModuleReadinessAtLeast("xpe_dicom", 3)
+                ? "Native DICOM readiness smoke is available. Selected export stages write and validate a DICOM artifact."
+                : "Native DICOM readiness smoke is disabled until xpe_dicom.dll reaches R3.";
 
             return
             [
@@ -1373,7 +1461,11 @@ namespace ImageProcTest
                 new StageModeSnapshot("Log", GetMode(LogEnabledCheckBox), postReason),
                 new StageModeSnapshot("Noise", GetMode(NoiseEnabledCheckBox), postReason),
                 new StageModeSnapshot("Contrast", GetMode(ContrastEnabledCheckBox), postReason),
-                new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason)
+                new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason),
+                new StageModeSnapshot("Modality LUT", GetChainStageMode("modality-lut"), displayReason),
+                new StageModeSnapshot("VOI LUT", GetChainStageMode("voi-lut"), displayReason),
+                new StageModeSnapshot("Presentation LUT", GetChainStageMode("presentation-lut"), displayReason),
+                new StageModeSnapshot("DICOM write", GetChainStageMode("dicom-write"), dicomReason)
             ];
         }
 
@@ -1459,17 +1551,8 @@ namespace ImageProcTest
 
         private void RefreshModuleReadiness()
         {
-            currentModuleReadiness = ModuleReadinessService.Evaluate(lastBackendHealth);
-            ModuleReadinessGrid.ItemsSource = currentModuleReadiness;
-
-            var enabledCount = currentModuleReadiness.Count(module => module.ProcessingEnabled);
-            var nativeBlocked = string.Join(", ", currentModuleReadiness
-                .Where(module => !module.ProcessingEnabled && module.ModuleName != "xpe_common")
-                .Select(module => $"{module.ModuleName}:{module.Level}"));
-
-            ModuleReadinessSummaryText.Text =
-                $"Executable modules={enabledCount}; blocked modules={nativeBlocked}. " +
-                "Only modules marked Exec can run preview adapters; clinical processing remains gated by formal verification evidence.";
+            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth);
+            ModuleReadinessSummaryText.Text = moduleReadinessViewModel.SummaryText;
             RefreshAlgorithmValidation();
             UpdateNativePreviewControls();
             UpdateEvaluationDashboards();
@@ -1696,9 +1779,32 @@ namespace ImageProcTest
                 rows.Add(new EvaluationMetricRow("Post Basic", "output range", $"{lastEnhanceBasicPreviewResult.OutputMin:0.###}..{lastEnhanceBasicPreviewResult.OutputMax:0.###}", "Functional"));
             }
 
+            if (lastPresentationExportResult is null)
+            {
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "native export", "not run", "PHASE1B-E2E-4"));
+            }
+            else
+            {
+                var metrics = lastPresentationExportResult.Metrics;
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "input source", lastPresentationExportResult.InputSource, "PHASE1B-E2E-4"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "total latency", $"{lastPresentationExportResult.TotalLatencyMs:0.###} ms", "Performance"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "throughput", CalculateThroughput(metrics.PixelCount, lastPresentationExportResult.TotalLatencyMs), "Performance"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "changed pixels", $"{metrics.ChangedPixels}/{metrics.PixelCount} ({metrics.ChangedPixelRatio:P2})", "Functional"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "NaN/Inf count", metrics.NaNInfCount.ToString(), "Safety"));
+                rows.Add(new EvaluationMetricRow("Display/DICOM", "output range", $"{lastPresentationExportResult.OutputMin}..{lastPresentationExportResult.OutputMax}", "Functional"));
+                rows.Add(new EvaluationMetricRow(
+                    "Display/DICOM",
+                    "DICOM validation",
+                    lastPresentationExportResult.DicomValidation is null
+                        ? "not selected"
+                        : $"{lastPresentationExportResult.DicomValidation.Status}; {lastPresentationExportResult.DicomValidation.Details}",
+                    "DICOM"));
+            }
+
             EvaluationMetricsGrid.ItemsSource = rows;
             StageLatencyGrid.ItemsSource = (lastNativePreviewResult?.Stages ?? [])
                 .Concat(lastEnhanceBasicPreviewResult?.Stages ?? [])
+                .Concat(lastPresentationExportResult?.Stages ?? [])
                 .Select(stage => new StageLatencyRow(
                     stage.Stage,
                     stage.ErrorCode,
@@ -1729,7 +1835,10 @@ namespace ImageProcTest
             var postState = lastEnhanceBasicPreviewResult is null
                 ? "post preview not run"
                 : $"post preview {lastEnhanceBasicPreviewResult.TotalLatencyMs:0.###} ms";
-            MetricsSummaryText.Text = $"Metrics: {previewState}; {nativeState}; {postState}.";
+            var presentationState = lastPresentationExportResult is null
+                ? "display/dicom not run"
+                : $"display/dicom {lastPresentationExportResult.TotalLatencyMs:0.###} ms";
+            MetricsSummaryText.Text = $"Metrics: {previewState}; {nativeState}; {postState}; {presentationState}.";
             if (reportArtifacts.Count > 0 && ReportsSummaryText.Text.Contains("no report", StringComparison.OrdinalIgnoreCase))
             {
                 ReportsSummaryText.Text = $"Reports: {reportArtifacts.Count} artifact(s) generated in this session.";
@@ -1826,6 +1935,21 @@ namespace ImageProcTest
                 module.ProcessingEnabled);
         }
 
+        private bool IsModuleReadinessAtLeast(string moduleName, int requiredRank)
+        {
+            return currentModuleReadiness.Any(module =>
+                string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase) &&
+                module.LevelRank >= requiredRank);
+        }
+
+        private string GetChainStageMode(string stageKey)
+        {
+            return currentAlgorithmChainPlan.Steps.Any(step =>
+                string.Equals(step.StageKey, stageKey, StringComparison.OrdinalIgnoreCase))
+                ? "On"
+                : "Off";
+        }
+
         private PreprocessStageSelection GetPreprocessSelection()
         {
             return new PreprocessStageSelection(
@@ -1897,6 +2021,18 @@ namespace ImageProcTest
                 string.Equals(stageKey, "basic-noise", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(stageKey, "contrast", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(stageKey, "edge", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDisplayStageKey(string? stageKey)
+        {
+            return string.Equals(stageKey, "modality-lut", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stageKey, "voi-lut", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stageKey, "presentation-lut", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDicomStageKey(string? stageKey)
+        {
+            return string.Equals(stageKey, "dicom-write", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetMode(CheckBox enabled)
@@ -1972,444 +2108,6 @@ namespace ImageProcTest
             }
 
             return Math.Clamp(value, min, max);
-        }
-
-        private void ViewerWindowSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (isUpdatingViewerControls || ViewerWindowCenterText is null || ViewerWindowWidthText is null)
-            {
-                return;
-            }
-
-            ApplyViewerControlsToParams();
-            RenderComparisonViewports();
-        }
-
-        private void ViewerControl_Changed(object sender, RoutedEventArgs e)
-        {
-            if (isUpdatingViewerControls || ViewerWindowCenterSlider is null || ViewerWindowWidthSlider is null)
-            {
-                return;
-            }
-
-            ApplyViewerControlsToParams();
-            RenderComparisonViewports();
-        }
-
-        private void ViewerTargetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (isUpdatingViewerControls)
-            {
-                return;
-            }
-
-            SyncViewerControlsFromActive();
-        }
-
-        private void ViewerPresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (isUpdatingViewerControls || currentPreview is null)
-            {
-                return;
-            }
-
-            var selectedPreset = GetSelectedComboText(ViewerPresetComboBox);
-            if (string.IsNullOrWhiteSpace(selectedPreset))
-            {
-                return;
-            }
-
-            var current = GetActiveViewportParams();
-            var next = string.Equals(selectedPreset, "Auto Fit", StringComparison.OrdinalIgnoreCase)
-                ? CreateAutoFitForActiveTarget(current)
-                : ViewportRenderService.Presets.TryGetValue(selectedPreset, out var preset)
-                    ? PreserveRenderFlags(preset, current)
-                    : current;
-
-            if (IsViewerLinked())
-            {
-                originalViewportParams = next;
-                processedViewportParams = next;
-            }
-            else
-            {
-                SetActiveViewportParams(next);
-            }
-
-            ConfigureViewerSliderBounds();
-            SyncViewerControlsFromActive();
-            RenderComparisonViewports();
-        }
-
-        private void ResetViewerParamsForPreview(RawPreviewResult preview)
-        {
-            originalViewportParams = ViewportRenderService.AutoFit(preview.SampledPixels);
-            processedViewportParams = originalViewportParams;
-            ConfigureViewerSliderBounds();
-        }
-
-        private void ConfigureViewerSliderBounds()
-        {
-            if (ViewerWindowCenterSlider is null || ViewerWindowWidthSlider is null || currentPreview is null)
-            {
-                return;
-            }
-
-            var min = (double)currentPreview.MinValue;
-            var max = (double)currentPreview.MaxValue;
-            if (lastNativePreviewResult is not null)
-            {
-                min = Math.Min(min, lastNativePreviewResult.OutputMin);
-                max = Math.Max(max, lastNativePreviewResult.OutputMax);
-            }
-            if (lastEnhanceBasicPreviewResult is not null)
-            {
-                min = Math.Min(min, lastEnhanceBasicPreviewResult.OutputMin);
-                max = Math.Max(max, lastEnhanceBasicPreviewResult.OutputMax);
-            }
-
-            var range = Math.Max(1.0, max - min);
-            isUpdatingViewerControls = true;
-            try
-            {
-                ViewerWindowCenterSlider.Minimum = Math.Floor(min - range);
-                ViewerWindowCenterSlider.Maximum = Math.Ceiling(max + range);
-                ViewerWindowWidthSlider.Minimum = 1;
-                ViewerWindowWidthSlider.Maximum = Math.Ceiling(Math.Max(4096.0, range * 4.0));
-            }
-            finally
-            {
-                isUpdatingViewerControls = false;
-            }
-        }
-
-        private void ApplyViewerControlsToParams()
-        {
-            if (ViewerWindowCenterSlider is null || ViewerWindowWidthSlider is null)
-            {
-                return;
-            }
-
-            var next = new ViewportRenderParams(
-                (float)ViewerWindowCenterSlider.Value,
-                (float)Math.Max(1.0, ViewerWindowWidthSlider.Value),
-                ViewerInvertCheckBox?.IsChecked == true,
-                ViewerLutComboBox?.SelectedIndex == 1 ? ViewportLutType.Sigmoid : ViewportLutType.Linear).WithSafeWidth();
-
-            if (IsViewerLinked())
-            {
-                originalViewportParams = next;
-                processedViewportParams = next;
-            }
-            else
-            {
-                SetActiveViewportParams(next);
-            }
-
-            if (ViewerWindowCenterText is not null)
-            {
-                ViewerWindowCenterText.Text = $"{next.WindowCenter:0.###}";
-            }
-
-            if (ViewerWindowWidthText is not null)
-            {
-                ViewerWindowWidthText.Text = $"{next.WindowWidth:0.###}";
-            }
-        }
-
-        private void SyncViewerControlsFromActive()
-        {
-            if (ViewerWindowCenterSlider is null ||
-                ViewerWindowWidthSlider is null ||
-                ViewerWindowCenterText is null ||
-                ViewerWindowWidthText is null)
-            {
-                return;
-            }
-
-            var parameters = GetActiveViewportParams().WithSafeWidth();
-            var center = ClampSliderValue(ViewerWindowCenterSlider, parameters.WindowCenter);
-            var width = ClampSliderValue(ViewerWindowWidthSlider, parameters.WindowWidth);
-
-            isUpdatingViewerControls = true;
-            try
-            {
-                ViewerWindowCenterSlider.Value = center;
-                ViewerWindowWidthSlider.Value = width;
-                ViewerWindowCenterText.Text = $"{center:0.###}";
-                ViewerWindowWidthText.Text = $"{width:0.###}";
-                if (ViewerInvertCheckBox is not null)
-                {
-                    ViewerInvertCheckBox.IsChecked = parameters.Invert;
-                }
-
-                if (ViewerLutComboBox is not null)
-                {
-                    ViewerLutComboBox.SelectedIndex = parameters.Lut == ViewportLutType.Sigmoid ? 1 : 0;
-                }
-            }
-            finally
-            {
-                isUpdatingViewerControls = false;
-            }
-        }
-
-        private ViewportRenderParams GetActiveViewportParams()
-        {
-            return IsAfterViewportTarget() ? processedViewportParams : originalViewportParams;
-        }
-
-        private void SetActiveViewportParams(ViewportRenderParams parameters)
-        {
-            if (IsAfterViewportTarget())
-            {
-                processedViewportParams = parameters;
-            }
-            else
-            {
-                originalViewportParams = parameters;
-            }
-        }
-
-        private bool IsViewerLinked()
-        {
-            return ViewerLinkCheckBox?.IsChecked != false;
-        }
-
-        private bool IsAfterViewportTarget()
-        {
-            return ViewerTargetComboBox?.SelectedIndex == 1;
-        }
-
-        private void RenderComparisonViewports()
-        {
-            if (currentPreview is null)
-            {
-                ClearViewerRenderState();
-                return;
-            }
-
-            var before = ViewportRenderService.Render(
-                currentPreview.SampledPixels,
-                currentPreview.PreviewWidth,
-                currentPreview.PreviewHeight,
-                originalViewportParams);
-            originalViewportParams = before.Params;
-            BeforePreviewImage.Source = before.Bitmap;
-            OriginalHistogramControl.Data = before.Histogram;
-            OriginalHistogramText.Text = $"Original histogram: {before.Histogram.Summary}";
-
-            if (IsViewerLinked())
-            {
-                processedViewportParams = originalViewportParams;
-            }
-
-            ViewportRenderResult after;
-            if (TryGetProcessedOutputPixels(out var outputPixels))
-            {
-                after = ViewportRenderService.Render(
-                    outputPixels,
-                    currentPreview.PreviewWidth,
-                    currentPreview.PreviewHeight,
-                    processedViewportParams);
-            }
-            else
-            {
-                after = ViewportRenderService.Render(
-                    currentPreview.SampledPixels,
-                    currentPreview.PreviewWidth,
-                    currentPreview.PreviewHeight,
-                    processedViewportParams);
-            }
-
-            processedViewportParams = after.Params;
-            AfterPreviewImage.Source = after.Bitmap;
-            AfterHistogramControl.Data = after.Histogram;
-            AfterHistogramText.Text = $"After histogram: {after.Histogram.Summary}";
-            UpdateComparisonClip();
-        }
-
-        private bool TryGetProcessedOutputPixels(out float[] pixels)
-        {
-            if (lastEnhanceBasicPreviewResult?.OutputPixels is { Count: > 0 } postValues)
-            {
-                pixels = postValues as float[] ?? postValues.ToArray();
-                return true;
-            }
-
-            if (lastNativePreviewResult?.OutputPixels is { Count: > 0 } values)
-            {
-                pixels = values as float[] ?? values.ToArray();
-                return true;
-            }
-
-            pixels = [];
-            return false;
-        }
-
-        private ViewportRenderParams CreateAutoFitForActiveTarget(ViewportRenderParams current)
-        {
-            if (IsAfterViewportTarget() && TryGetProcessedOutputPixels(out var outputPixels))
-            {
-                return PreserveRenderFlags(ViewportRenderService.AutoFit(outputPixels), current);
-            }
-
-            return currentPreview is null
-                ? current
-                : PreserveRenderFlags(ViewportRenderService.AutoFit(currentPreview.SampledPixels), current);
-        }
-
-        private static ViewportRenderParams PreserveRenderFlags(
-            ViewportRenderParams next,
-            ViewportRenderParams current)
-        {
-            return next with
-            {
-                Invert = current.Invert,
-                Lut = current.Lut
-            };
-        }
-
-        private static float ClampSliderValue(Slider slider, float value)
-        {
-            return (float)Math.Clamp(value, slider.Minimum, slider.Maximum);
-        }
-
-        private static string GetSelectedComboText(ComboBox comboBox)
-        {
-            return (comboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
-        }
-
-        private void ClearViewerRenderState()
-        {
-            if (BeforePreviewImage is not null)
-            {
-                BeforePreviewImage.Source = null;
-            }
-
-            if (AfterPreviewImage is not null)
-            {
-                AfterPreviewImage.Source = null;
-            }
-
-            if (OriginalHistogramControl is not null)
-            {
-                OriginalHistogramControl.Data = HistogramData.Empty;
-            }
-
-            if (AfterHistogramControl is not null)
-            {
-                AfterHistogramControl.Data = HistogramData.Empty;
-            }
-
-            if (OriginalHistogramText is not null)
-            {
-                OriginalHistogramText.Text = "Original histogram: empty";
-            }
-
-            if (AfterHistogramText is not null)
-            {
-                AfterHistogramText.Text = "After histogram: empty";
-            }
-        }
-
-        private void UpdateComparisonClip()
-        {
-            if (AfterPreviewClip is null || SwipeLine is null || SwipeValueText is null || ComparisonCanvas is null)
-            {
-                return;
-            }
-
-            var width = GetComparisonCanvasWidth();
-            var height = GetComparisonCanvasHeight();
-
-            if (width <= 0 || height <= 0)
-            {
-                return;
-            }
-
-            var fraction = CompareSwipeSlider is null ? 0.5 : Math.Clamp(CompareSwipeSlider.Value, 0, 1);
-            var x = width * fraction;
-            AfterPreviewClip.Rect = new Rect(0, 0, x, height);
-            SwipeLine.Height = height;
-            SwipeLine.Margin = new Thickness(Math.Max(0, x - 1), 0, 0, 0);
-            SwipeValueText.Text = $"{fraction * 100:0}%";
-        }
-
-        private void FitComparisonToViewport()
-        {
-            if (currentPreview is null || RawImageScrollViewer is null || RawZoomSlider is null)
-            {
-                return;
-            }
-
-            var viewportWidth = RawImageScrollViewer.ViewportWidth > 0
-                ? RawImageScrollViewer.ViewportWidth
-                : RawImageScrollViewer.ActualWidth;
-            var viewportHeight = RawImageScrollViewer.ViewportHeight > 0
-                ? RawImageScrollViewer.ViewportHeight
-                : RawImageScrollViewer.ActualHeight;
-
-            if (viewportWidth <= 0 || viewportHeight <= 0)
-            {
-                return;
-            }
-
-            var widthScale = Math.Max(0.01, (viewportWidth - 24) / currentPreview.PreviewWidth);
-            var heightScale = Math.Max(0.01, (viewportHeight - 24) / currentPreview.PreviewHeight);
-            var fitScale = Math.Min(1.0, Math.Min(widthScale, heightScale));
-            RawZoomSlider.Value = Math.Clamp(fitScale, RawZoomSlider.Minimum, RawZoomSlider.Maximum);
-        }
-
-        private void AdjustComparisonZoom(double factor)
-        {
-            if (RawZoomSlider is null)
-            {
-                return;
-            }
-
-            SetComparisonZoom(RawZoomSlider.Value * factor);
-        }
-
-        private void SetComparisonZoom(double value)
-        {
-            if (RawZoomSlider is null)
-            {
-                return;
-            }
-
-            RawZoomSlider.Value = Math.Clamp(value, RawZoomSlider.Minimum, RawZoomSlider.Maximum);
-        }
-
-        private void UpdateComparisonSwipeFromPoint(double x)
-        {
-            var width = GetComparisonCanvasWidth();
-            if (width <= 0 || CompareSwipeSlider is null)
-            {
-                return;
-            }
-
-            CompareSwipeSlider.Value = Math.Clamp(x / width, 0, 1);
-        }
-
-        private void EndComparisonSwipeDrag()
-        {
-            isDraggingComparisonSwipe = false;
-            ComparisonCanvas.ReleaseMouseCapture();
-        }
-
-        private double GetComparisonCanvasWidth()
-        {
-            return !double.IsNaN(ComparisonCanvas.Width) && ComparisonCanvas.Width > 0
-                ? ComparisonCanvas.Width
-                : ComparisonCanvas.ActualWidth;
-        }
-
-        private double GetComparisonCanvasHeight()
-        {
-            return !double.IsNaN(ComparisonCanvas.Height) && ComparisonCanvas.Height > 0
-                ? ComparisonCanvas.Height
-                : ComparisonCanvas.ActualHeight;
         }
 
         private void SetStatus(string message, Brush brush)

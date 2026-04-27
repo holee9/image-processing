@@ -10,6 +10,7 @@
  */
 
 #include "runtime_detection.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <cstring>
 #include <cstdlib>
 
@@ -132,6 +133,23 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     if (img->format != XPE_PIXEL_FLOAT32) return XPE_ERR_INVALID_INPUT;
     if (defectMapOut->format != XPE_PIXEL_UINT8) return XPE_ERR_INVALID_INPUT;
 
+    size_t pixelCount = 0;
+    if (!xpe_pixel_count(img, &pixelCount)) return XPE_ERR_INVALID_INPUT;
+
+    size_t outPixelCount = 0;
+    if (!xpe_pixel_count(defectMapOut, &outPixelCount)) return XPE_ERR_INVALID_INPUT;
+    if (outPixelCount != pixelCount) return XPE_ERR_INVALID_INPUT;
+
+    size_t inputBytes = 0;
+    if (!xpe_required_bytes(img, sizeof(float), &inputBytes)) return XPE_ERR_INVALID_INPUT;
+    if (img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
+
+    size_t outputBytes = 0;
+    if (!xpe_required_bytes(defectMapOut, sizeof(uint8_t), &outputBytes)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    if (defectMapOut->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+
     // Parse configuration
     RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
     config.windowSize = ParseWindowSize(configJsonOrNull, config.windowSize);
@@ -142,7 +160,7 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     if (err != XPE_OK) return err;
 
     // Clear output defect map
-    std::memset(defectMapOut->data, 0, defectMapOut->dataSize);
+    std::memset(defectMapOut->data, 0, outputBytes);
 
     // Detect defective pixels
     uint8_t* defectMap = static_cast<uint8_t*>(defectMapOut->data);

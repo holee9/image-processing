@@ -23,6 +23,7 @@ namespace ImageProcTest
             PreprocessHealthResult? preprocessHealth,
             NativePreprocessPreviewResult? nativePreview,
             NativeEnhanceBasicPreviewResult? enhanceBasicPreview,
+            NativePresentationExportResult? presentationExport,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
             IReadOnlyList<AlgorithmValidationItem> algorithmValidation,
@@ -33,6 +34,9 @@ namespace ImageProcTest
             ViewportRenderStateSnapshot? viewerState)
         {
             var timestamp = DateTimeOffset.UtcNow;
+            var nativeProcessingApplied = IsNativeProcessingApplied(nativePreview);
+            var processingApplied = nativeProcessingApplied || enhanceBasicPreview is not null || presentationExport is not null;
+            var beforeAfterMode = GetBeforeAfterMode(nativePreview, enhanceBasicPreview, presentationExport);
             var report = new
             {
                 schema = "xpe-preprocess-gui-test-v1",
@@ -112,6 +116,20 @@ namespace ImageProcTest
                     enhanceBasicPreview.SigmaAfter,
                     enhanceBasicPreview.Stages
                 },
+                presentationExport = presentationExport is null ? null : new
+                {
+                    presentationExport.DisplayDllPath,
+                    presentationExport.DicomDllPath,
+                    presentationExport.CommonDllPath,
+                    presentationExport.InputSource,
+                    presentationExport.ArtifactDirectory,
+                    presentationExport.TotalLatencyMs,
+                    presentationExport.OutputMin,
+                    presentationExport.OutputMax,
+                    presentationExport.Metrics,
+                    presentationExport.Stages,
+                    presentationExport.DicomValidation
+                },
                 moduleReadiness,
                 algorithmValidation,
                 algorithmChain = algorithmChain is null ? null : new
@@ -122,6 +140,8 @@ namespace ImageProcTest
                     algorithmChain.IsFolderAuditOnly,
                     algorithmChain.NativeStageOrder,
                     algorithmChain.EnhanceBasicStageOrder,
+                    algorithmChain.DisplayStageOrder,
+                    algorithmChain.DicomStageOrder,
                     steps = algorithmChain.Steps.Select(step => new
                     {
                         step.Position,
@@ -146,22 +166,16 @@ namespace ImageProcTest
                 stageModes,
                 beforeAfter = new
                 {
-                    mode = enhanceBasicPreview is not null
-                        ? "native-pre-post-preview"
-                        : nativePreview is null ? "identity-mock" : "native-preprocess-preview",
-                    nativeProcessingEnabled = nativePreview is not null || enhanceBasicPreview is not null,
-                    reason = enhanceBasicPreview is not null
-                        ? "xpe_enhance_basic.dll was applied to preprocess output or raw-float bypass input."
-                        : nativePreview is null
-                            ? "Native processing has not been applied."
-                            : "Fixture calibration raw files were converted to XCal, loaded into xpe_preprocess.dll, and applied to the sampled preview buffer."
+                    mode = beforeAfterMode,
+                    nativeProcessingEnabled = processingApplied,
+                    reason = GetBeforeAfterReason(nativePreview, enhanceBasicPreview, presentationExport)
                 }
             };
 
             var directory = Path.Combine(AppContext.BaseDirectory, "preprocess-gui-reports");
             Directory.CreateDirectory(directory);
 
-            var name = $"preprocess-gui-{timestamp:yyyyMMdd-HHmmss}";
+            var name = $"preprocess-gui-{timestamp:yyyyMMdd-HHmmss-fff}";
             var jsonPath = Path.Combine(directory, $"{name}.json");
             var markdownPath = Path.Combine(directory, $"{name}.md");
 
@@ -179,6 +193,7 @@ namespace ImageProcTest
                 preprocessHealth,
                 nativePreview,
                 enhanceBasicPreview,
+                presentationExport,
                 stageModes,
                 moduleReadiness,
                 algorithmValidation,
@@ -201,6 +216,7 @@ namespace ImageProcTest
             PreprocessHealthResult? preprocessHealth,
             NativePreprocessPreviewResult? nativePreview,
             NativeEnhanceBasicPreviewResult? enhanceBasicPreview,
+            NativePresentationExportResult? presentationExport,
             IReadOnlyList<StageModeSnapshot> stageModes,
             IReadOnlyList<ModuleReadinessSnapshot> moduleReadiness,
             IReadOnlyList<AlgorithmValidationItem> algorithmValidation,
@@ -220,7 +236,7 @@ namespace ImageProcTest
             builder.AppendLine($"- Raw file: `{selectedRaw?.Path ?? "none"}`");
             builder.AppendLine($"- Readiness report: `{readinessReportPath ?? "none"}`");
             builder.AppendLine($"- Backend mode: `{backendHealth?.Mode ?? "unknown"}`");
-            builder.AppendLine($"- Native processing enabled: `{nativePreview is not null || enhanceBasicPreview is not null}`");
+            builder.AppendLine($"- Native processing enabled: `{IsNativeProcessingApplied(nativePreview) || enhanceBasicPreview is not null || presentationExport is not null}`");
             builder.AppendLine();
 
             builder.AppendLine("## Active Evaluation Context");
@@ -319,6 +335,45 @@ namespace ImageProcTest
 
             builder.AppendLine();
 
+            builder.AppendLine("## Display / DICOM Native Export");
+            if (presentationExport is null)
+            {
+                builder.AppendLine("- Native display/DICOM export was not applied.");
+            }
+            else
+            {
+                builder.AppendLine($"- Display DLL: `{presentationExport.DisplayDllPath}`");
+                builder.AppendLine($"- DICOM DLL: `{presentationExport.DicomDllPath}`");
+                builder.AppendLine($"- Common DLL: `{presentationExport.CommonDllPath}`");
+                builder.AppendLine($"- Input source: `{presentationExport.InputSource}`");
+                builder.AppendLine($"- Artifacts: `{presentationExport.ArtifactDirectory}`");
+                builder.AppendLine($"- Total latency ms: `{presentationExport.TotalLatencyMs:0.###}`");
+                builder.AppendLine($"- Output min/max: `{presentationExport.OutputMin}` / `{presentationExport.OutputMax}`");
+                builder.AppendLine($"- Mean absolute delta: `{presentationExport.Metrics.MeanAbsoluteDelta:0.###}`");
+                builder.AppendLine($"- RMSE: `{presentationExport.Metrics.Rmse:0.###}`");
+                builder.AppendLine($"- Changed pixels: `{presentationExport.Metrics.ChangedPixels}/{presentationExport.Metrics.PixelCount}` (`{presentationExport.Metrics.ChangedPixelRatio:P2}`)");
+                builder.AppendLine($"- NaN/Inf count: `{presentationExport.Metrics.NaNInfCount}`");
+                if (presentationExport.DicomValidation is null)
+                {
+                    builder.AppendLine("- DICOM validation: `not selected`");
+                }
+                else
+                {
+                    builder.AppendLine($"- DICOM validation: `{presentationExport.DicomValidation.Status}`");
+                    builder.AppendLine($"- DICOM path: `{presentationExport.DicomValidation.DicomPath ?? "none"}`");
+                    builder.AppendLine($"- DICOM SHA-256: `{presentationExport.DicomValidation.DicomSha256 ?? "none"}`");
+                    builder.AppendLine($"- DICOM details: {presentationExport.DicomValidation.Details}");
+                }
+
+                foreach (var stage in presentationExport.Stages)
+                {
+                    builder.AppendLine($"- `{stage.Stage}`: `{stage.ErrorCode}`, executed=`{stage.Executed}`, latency=`{stage.LatencyMs:0.###}` ms");
+                    builder.AppendLine($"  Details: {stage.Details}");
+                }
+            }
+
+            builder.AppendLine();
+
             builder.AppendLine("## Preprocess Native Gate");
             if (preprocessHealth is null)
             {
@@ -380,6 +435,8 @@ namespace ImageProcTest
                 builder.AppendLine($"- Can execute: `{algorithmChain.CanExecute}`");
                 builder.AppendLine($"- Preprocess native stage order: `{string.Join(" -> ", algorithmChain.NativeStageOrder)}`");
                 builder.AppendLine($"- Post basic native stage order: `{string.Join(" -> ", algorithmChain.EnhanceBasicStageOrder)}`");
+                builder.AppendLine($"- Display native stage order: `{string.Join(" -> ", algorithmChain.DisplayStageOrder)}`");
+                builder.AppendLine($"- DICOM native stage order: `{string.Join(" -> ", algorithmChain.DicomStageOrder)}`");
                 foreach (var step in algorithmChain.Steps)
                 {
                     builder.AppendLine($"- `{step.Position}` `{step.Label}` `{step.AlgorithmName}`: module=`{step.ModuleName}`, adapter=`{step.Adapter}`, status=`{step.Status}`, domain=`{step.Domain}`");
@@ -444,13 +501,71 @@ namespace ImageProcTest
 
             builder.AppendLine();
             builder.AppendLine("## Before/After Scaffold");
-            builder.AppendLine(enhanceBasicPreview is not null
+            builder.AppendLine(presentationExport is not null
+                ? "- Current evidence includes native display/DICOM export output."
+                : enhanceBasicPreview is not null
                 ? "- Current after image is native post-basic output."
-                : nativePreview is null
+                : IsNativeProcessingApplied(nativePreview)
+                    ? "- Current after image is fixture-calibrated native preprocess output."
+                    : nativePreview is null
                     ? "- Current after image is identity-mock output."
-                    : "- Current after image is fixture-calibrated native preprocess output.");
-            builder.AppendLine("- This GUI test is diagnostic preview execution on sampled buffers; clinical workflow release still needs formal fixture E2E acceptance.");
+                    : "- Current after image is bypass output without native correction execution.");
+            builder.AppendLine("- This GUI test is diagnostic preview execution on sampled buffers; DICOM artifacts are evidence outputs, not clinical release approval.");
             return builder.ToString();
+        }
+
+        private static string GetBeforeAfterMode(
+            NativePreprocessPreviewResult? nativePreview,
+            NativeEnhanceBasicPreviewResult? enhanceBasicPreview,
+            NativePresentationExportResult? presentationExport)
+        {
+            if (presentationExport is not null)
+            {
+                return "native-pre-post-display-dicom-preview";
+            }
+
+            if (enhanceBasicPreview is not null)
+            {
+                return "native-pre-post-preview";
+            }
+
+            if (IsNativeProcessingApplied(nativePreview))
+            {
+                return "native-preprocess-preview";
+            }
+
+            return nativePreview is null ? "identity-mock" : "bypass-preview";
+        }
+
+        private static bool IsNativeProcessingApplied(NativePreprocessPreviewResult? nativePreview)
+        {
+            return nativePreview is not null &&
+                !string.Equals(nativePreview.DllPath, "bypass", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetBeforeAfterReason(
+            NativePreprocessPreviewResult? nativePreview,
+            NativeEnhanceBasicPreviewResult? enhanceBasicPreview,
+            NativePresentationExportResult? presentationExport)
+        {
+            if (presentationExport is not null)
+            {
+                return "xpe_display.dll was applied to the active float preview and xpe_dicom.dll wrote/validated a DICOM artifact when selected.";
+            }
+
+            if (enhanceBasicPreview is not null)
+            {
+                return "xpe_enhance_basic.dll was applied to preprocess output or raw-float bypass input.";
+            }
+
+            if (IsNativeProcessingApplied(nativePreview))
+            {
+                return "Fixture calibration raw files were converted to XCal, loaded into xpe_preprocess.dll, and applied to the sampled preview buffer.";
+            }
+
+            return nativePreview is null
+                ? "Native processing has not been applied."
+                : "Bypass output was generated without executing native correction stages.";
         }
 
         private static string FormatNullableDays(double? days)

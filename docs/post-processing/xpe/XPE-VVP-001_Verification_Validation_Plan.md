@@ -222,6 +222,14 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 
 ---
 
+## Addendum Registry
+
+| Addendum | Scope | Document | Status |
+|----------|-------|----------|--------|
+| VVP-PREPROCESS-001 | Pre Lane (P1A: offset/gain/defect/SIMD) | `docs/post-processing/xpe/preprocess/VVP-PREPROCESS-001.md` | v1.1.0 |
+| VVP-P1B-001 | P1B Post-Processing (ENH/DISP/DICOM) | `docs/post-processing/xpe/VVP-P1B-001.md` | v1.0.0 |
+| XPE-VVP-P2ADV-001 | Advanced Post-Processing (P2-ADV) | `docs/project/vvp_adv.md` | v1.0.0 |
+
 ## Revision History
 
 | Rev | Date | Author | Description |
@@ -229,7 +237,8 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 | 1.0 | 2026-04-03 | XPE Team | Initial release |
 | 1.1 | 2026-04-15 | XPE Team | §4.1.1 Algorithm V&V References 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건). SWU-18.0/1.12/1.13/9.10/9.11/14.2/11.5/5.5/17.2/12.10 검증 기준 참조. |
 | 1.2 | 2026-04-15 | XPE Team | §4.1.2 Algorithm V&V References 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건). SWU-9.12/17.3/1.14/1.15/19.0/8.3.2/2.9/10.9/12.11/9.13 검증 기준 참조. |
+| 1.2 | 2026-04-22 | main | Addendum Registry 추가 (VVP-PREPROCESS-001, VVP-P1B-001, XPE-VVP-P2ADV-001). |
 
 ---
 
-*Document End — XPE-VVP-001 v1.1*
+*Document End — XPE-VVP-001 v1.2*

@@ -96,6 +96,7 @@ $configureArgs = @(
     '-DVCPKG_TARGET_TRIPLET=x64-windows',
     '-DBUILD_TESTS=ON',
     '-DBUILD_TESTING=ON',
+    '-DBUILD_PREPROCESS=OFF',
     '-DXPE_WARNINGS_AS_ERRORS=ON'
 )
 
