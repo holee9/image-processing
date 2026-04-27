@@ -1,7 +1,7 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.4.0  
-**Last Updated**: 2026-04-15  
+**Version**: 3.5.0
+**Last Updated**: 2026-04-22  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
 ---
@@ -48,16 +48,38 @@
 | Document | ID | Version | Lines | Description |
 |----------|-----|---------|:-----:|-------------|
 | [pipeline-spec.md](project/pipeline-spec.md) | PIPE-SPEC-001 | v1.3.0 | 666 | 17단계 파이프라인 시퀀스, 전처리 종속성 그래프, 우회 정책, 데이터 흐름 |
-| [api-spec.md](project/api-spec.md) | XPE-API-SPEC-001 | v1.2.0 | 1,469 | 8개 DLL에 걸친 82개 내보낸 C ABI 함수, 일반적인 타입, P/Invoke 정렬 |
+| [api-spec.md](project/api-spec.md) | XPE-API-SPEC-001 | v1.4.0 | 1,474 | 8개 DLL에 걸친 79개 내보낸 C ABI 함수 (AED 제거), 명시적 경로 API 패턴, P/Invoke 정렬 |
 | [xpe-algorithm-spec-deepsync.md](project/xpe-algorithm-spec-deepsync.md) | ALG-SPEC-001 | v3.2.0-ds4 | 573 | 알고리즘 계약: DeepSync 결정, 연구 검증 모델, 품질 게이트, EI-0 해결. 상세 구현은 XPE-ALG-001 참조 |
 
 ### 1.3 구현 계획
 
 | Document | ID | Version | Lines | Description |
 |----------|-----|---------|:-----:|-------------|
-| [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | SPEC-XPE-MASTER | v2.0.0 | 495 | 마스터 계획: 43개 SWU, Phase 0-3, 교차 검증 요약, 문서 업데이트 매트릭스 |
+| [SPEC-XPE-MASTER.md](project/SPEC-XPE-MASTER.md) | SPEC-XPE-MASTER | v3.0.0 | 495 | 마스터 계획: 43개 SWU, Phase 0-3, 교차 검증 요약, 문서 업데이트 매트릭스 |
 | [sprint-plan.md](project/sprint-plan.md) | XPE-SPRINT-PLAN-001 | v1.2.0 | 1,430 | 28개 sprint, 종속성 그래프, sprint별 범위/API/테스트 대상, 로깅/Alert 검증 기준 |
 | [xpe-implementation-reference.md](project/xpe-implementation-reference.md) | XPE-IMPL-REF-001 | v1.1.0 | 950 | Calibration 바이너리, 로깅/Alert JSON(§9), LUT 형식(§10), GSDF(§11), IPC(§12), 양자화(§13), session_id(§14) |
+
+### 1.4 SPEC 문서 (.moai/specs/)
+
+요구사항·인수기준·추적성을 정의하는 EARS 형식 SPEC 문서입니다.
+
+| Document | Version | REQ Count | Description |
+|----------|:-------:|:---------:|-------------|
+| [SPEC-XPE-P0](../.moai/specs/SPEC-XPE-P0/spec.md) | — | 11 | Phase 0 Foundation |
+| [SPEC-XPE-P1A](../.moai/specs/SPEC-XPE-P1A/spec.md) | v1.3.0 | 42 | Phase 1a 전처리 (Offset/Gain/Defect/Ghost) |
+| [SPEC-XPE-P1B-ENH](../.moai/specs/SPEC-XPE-P1B-ENH/spec.md) | — | 30 | Phase 1b 기본 향상 |
+| [SPEC-XPE-P1B-DISP](../.moai/specs/SPEC-XPE-P1B-DISP/spec.md) | — | 35 | Phase 1b 디스플레이 |
+| [SPEC-XPE-P1B-DICOM](../.moai/specs/SPEC-XPE-P1B-DICOM/spec.md) | v1.1.0 | 40 | Phase 1b DICOM (Released) |
+| [SPEC-XPE-P2-ADV](../.moai/specs/SPEC-XPE-P2-ADV/spec.md) | — | 65 tests | Phase 2 고급 향상 |
+| [SPEC-XPE-GSVG](../.moai/specs/SPEC-XPE-GSVG/spec.md) | v1.0.0 | 26 | Grid Suppression + Virtual Grid (GS 8 + VG 10 + 성능 3 + 안전 5) |
+| [SPEC-SIMD-001](../.moai/specs/SPEC-SIMD-001/spec.md) | v1.0.0 | 6 | SIMD Scalar Reference + Full-Operation Parity (+5점 임계경로) |
+| [SPEC-BENCH-PRE](../.moai/specs/SPEC-BENCH-PRE/spec.md) | v1.0.0 | 7 | Preprocessing Benchmark Freeze (BP-01~05, DegradedMode 6/6 PASS) |
+| [SPEC-BENCH-POST](../.moai/specs/SPEC-BENCH-POST/spec.md) | v1.0.0 | 6 | Post-Processing Benchmark Freeze (BP-06~09, 4/4 PASS) |
+| [SPEC-XPE-P3-AI](../.moai/specs/SPEC-XPE-P3-AI/spec.md) | v1.0.0 | — | Phase 3 AI 모듈 (Should, 미착수) |
+| [SPEC-XPE-REG](../.moai/specs/SPEC-XPE-REG/spec.md) | — | — | 규제 준수 |
+| [SPEC-XPE-SEC](../.moai/specs/SPEC-XPE-SEC/spec.md) | — | — | 사이버보안 |
+| [SPEC-XPE-IOP](../.moai/specs/SPEC-XPE-IOP/spec.md) | — | — | 상호운용성 |
+| [SPEC-XPE-OPS](../.moai/specs/SPEC-XPE-OPS/spec.md) | — | — | 운영·PMS |
 
 ---
 
@@ -425,6 +447,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-22 | 3.5.0 | **SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 추가** (Section 1.4 신규). api-spec v1.4.0 (AED 제거, 79개 함수). SPEC-XPE-MASTER v3.0.0. SPEC 문서 15종 인덱스 Section 1.4 추가. |
 | 2026-04-15 | 3.4.0 | XPE-ALG-001 v1.7 반영 (80건 GAP 해소). GAP-BM~BV: DICOM GSDF, Multi-Scale Retinex, U-Net 폐 분할, DLIR CNN, 늑골 억제, Body Part CNN, Lucas-Kanade 광학 흐름, 통합 비선형성, TV-ADMM §20 신설, BMD proxy. |
 | 2026-04-15 | 3.3.0 | XPE-ALG-001 v1.6 반영 (70건 GAP 해소). GAP-BC~BL: DAP/KERMA, JPEG2000, 모션블러 위너, 금속 마스크, 토모합성 FBP/SAA, RANSAC 스티칭, 라플라시안 피라미드, GPU CUDA, 팬텀 인식, Cross-FPD 정규화 신설. |
 | 2026-04-15 | 3.2.0 | XPE-ALG-001 v1.5 반영 (60건 GAP 해소). GAP-AS~BB: 지각적 IQM, 온도 보상, FFT 노치, AEC 피드백, SPC, ECC 정합, 양자 잡음 모델, 무아레 제거, DICOM SR, IEC61223 인수 시험 신설. |

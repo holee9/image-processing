@@ -95,6 +95,7 @@ $configureArgs = @(
     "-DVCPKG_MANIFEST_DIR=$repoRoot\third_party\common",
     '-DVCPKG_TARGET_TRIPLET=x64-windows',
     '-DBUILD_TESTS=ON',
+    '-DBUILD_PREPROCESS=ON',
     '-DXPE_WARNINGS_AS_ERRORS=ON'
 )
 

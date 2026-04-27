@@ -232,7 +232,6 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
-build_test/
 
 # Module test directories
 modules/*/tests/
@@ -300,7 +299,7 @@ tests/test_data/**/PositionMap.raw
 
 # ===========================================
 # XPE Dev Workspace & Build Scripts
-# ===========================================
+# ============================================
 _workspace/
 build_collimation_test/
 build_collimation_test2/
@@ -313,3 +312,17 @@ run_tests.bat
 build-and-test.ps1
 build-result.txt
 .moai/docs/MCP_OAUTH_SETUP.md
+
+# E2E and temporary build scripts
+*_build.bat
+*_build.sh
+*_build.ps1
+*_build.cmd
+*_output.txt
+*_error.txt
+build_*.txt
+build_*.bat
+build_*.sh
+build_*.ps1
+dev_*_*.txt
+fullpath_*

@@ -3,10 +3,13 @@
  * @brief Full pre-processing pipeline integration (stages 0.5-4)
  *        REQ-P1A-041 to REQ-P1A-047
  *        Extended: pre-loaded calibration state, batch processing
- * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ * SPEC: SPEC-XPE-P1A v1.0.0
+ *
+ * REFACTORED: Uses new 3-arg API (input, output, metadata)
+ * Calibration maps loaded via g_calib (xpe_calib_load_offset/gain/defect_map)
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdio>
@@ -14,6 +17,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <memory>
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
@@ -77,31 +81,29 @@ namespace {
     };
 
     /**
-     * @brief Internal pipeline core using pre-loaded calibration maps.
+     * @brief Internal pipeline core using new 3-arg API.
      *
-     * Shared by xpe_preprocess_pipeline (loads from files),
-     * xpe_preprocess_pipeline_ex (uses pre-loaded state), and
-     * xpe_preprocess_pipeline_batch (per-frame dispatch).
+     * Uses g_calib for calibration maps (loaded via xpe_calib_load_* functions).
+     * Manages buffer transitions: uint16 → uint16 (offset) → float32 (gain) → ...
      *
-     * @param img        [in/out] Image to process
-     * @param meta       [in/out] Metadata
-     * @param offsetMap  [in]     Pre-loaded offset map (may be nullptr)
-     * @param gainMap    [in]     Pre-loaded gain map (may be nullptr)
-     * @param defectMap  [in]     Pre-loaded defect map (may be nullptr)
-     * @param ghostHandle [in]    Ghost corrector handle
-     * @param cfg        [in]     Pipeline configuration
+     * @param img         [in]     Input image (uint16)
+     * @param meta        [in/out] Metadata
+     * @param defectMap   [in]     Pre-loaded defect map (may be nullptr)
+     * @param ghostHandle [in]     Ghost corrector handle
+     * @param cfg         [in]     Pipeline configuration
      * @return XPE_OK or error code
      */
     XpeErrorCode pipeline_core(
-        XpeImageBuffer* img,
+        const XpeImageBuffer* img,
         XpeImageMetadata* meta,
-        const XpeImageBuffer* offsetMap,
-        const XpeImageBuffer* gainMap,
         const XpeImageBuffer* defectMap,
         void* ghostHandle,
         const PipelineConfig& cfg)
     {
+        if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
+
         XpeErrorCode result = XPE_OK;
+        const size_t pixelCount = static_cast<size_t>(img->width) * img->height;
 
         // Stage 0.5: Readout Artifact Validation (PRE-01)
         if (!cfg.bypassReadout) {
@@ -115,60 +117,156 @@ namespace {
         }
 
         // Stage 1: Temperature Compensation (PRE-07)
+        XpeImageBuffer stage1 = *img; // Start with input
+        std::vector<uint16_t> stage1Data;
+
         if (!cfg.bypassTemp) {
-            result = xpe_temp_compensate(img, cfg.detectorTempC, nullptr);
+            stage1Data.resize(pixelCount);
+            std::memcpy(stage1Data.data(), img->data, img->dataSize);
+
+            stage1.data = stage1Data.data();
+            stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
+
+            result = xpe_temp_compensate(&stage1, cfg.detectorTempC, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_TEMP_COMPENSATED;
         }
 
-        // Stage 2: Offset Correction (PRE-02)
-        if (!cfg.bypassOffset && offsetMap && offsetMap->data) {
-            result = xpe_offset_correct(img, offsetMap);
+        // Stage 2: Offset Correction (PRE-02) - uint16 in/out
+        XpeImageBuffer stage2 = stage1;
+        std::vector<uint16_t> stage2Data;
+
+        if (!cfg.bypassOffset) {
+            stage2Data.resize(pixelCount);
+            stage2.data = stage2Data.data();
+            stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
+
+            // Use new 3-arg API: xpe_offset_correct(input, output, metadata)
+            result = xpe_offset_correct(&stage1, &stage2, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_OFFSET_CORRECTED;
         }
 
-        // Stage 3: Nonlinearity Correction (PRE-08)
+        // Stage 3: Nonlinearity Correction (PRE-08) - uint16 in/out
+        XpeImageBuffer stage3 = stage2;
+        std::vector<uint16_t> stage3Data;
+
         if (!cfg.bypassNonlinearity) {
-            result = xpe_nonlinearity_correct(img, nullptr);
+            stage3Data.resize(pixelCount);
+            stage3.data = stage3Data.data();
+            stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
+
+            // Copy input if we didn't have a dedicated buffer
+            if (stage2Data.empty()) {
+                stage3Data.assign(static_cast<const uint16_t*>(stage2.data),
+                                 static_cast<const uint16_t*>(stage2.data) + pixelCount);
+            }
+
+            result = xpe_nonlinearity_correct(&stage3, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_NONLINEARITY_CORRECTED;
         }
 
-        // Stage 4: Gain Correction (PRE-03)
-        if (!cfg.bypassGain && gainMap && gainMap->data) {
-            result = xpe_gain_correct(img, gainMap);
+        // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
+        XpeImageBuffer stage4;
+        std::vector<float> stage4Data;
+
+        if (!cfg.bypassGain) {
+            stage4Data.resize(pixelCount);
+            stage4.width = img->width;
+            stage4.height = img->height;
+            stage4.bitsAllocated = 32;
+            stage4.bitsStored = 32;
+            stage4.format = XPE_PIXEL_FLOAT32;
+            stage4.data = stage4Data.data();
+            stage4.dataSize = stage4Data.size() * sizeof(float);
+
+            // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
+            // This performs UINT16 → FLOAT32 domain transition
+            result = xpe_gain_correct(&stage3, &stage4, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+        } else {
+            // No gain correction: stage4 = stage3 (uint16)
+            stage4 = stage3;
         }
 
-        // Stage 5: Binning Correction (PRE-09)
+        // Stage 5: Binning Correction (PRE-09) - float32 in/out
+        XpeImageBuffer stage5 = stage4;
+        std::vector<float> stage5Data;
+
         if (!cfg.bypassBinning && cfg.binningMode > 1) {
-            result = xpe_binning_correct(img, cfg.binningMode, nullptr);
+            stage5Data.resize(pixelCount);
+            stage5.width = img->width;
+            stage5.height = img->height;
+            stage5.bitsAllocated = 32;
+            stage5.bitsStored = 32;
+            stage5.format = XPE_PIXEL_FLOAT32;
+            stage5.data = stage5Data.data();
+            stage5.dataSize = stage5Data.size() * sizeof(float);
+
+            result = xpe_binning_correct(&stage4, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_BINNING_CORRECTED;
         }
 
-        // Stage 6: Defect Correction (PRE-06)
+        // Stage 6: Defect Correction (PRE-06) - float32 in/out
+        XpeImageBuffer stage6 = stage5;
+        std::vector<float> stage6Data;
+
         if (!cfg.bypassDefect && defectMap && defectMap->data) {
-            result = xpe_defect_correct(img, defectMap, nullptr);
+            stage6Data.resize(pixelCount);
+            stage6.width = img->width;
+            stage6.height = img->height;
+            stage6.bitsAllocated = 32;
+            stage6.bitsStored = 32;
+            stage6.format = XPE_PIXEL_FLOAT32;
+            stage6.data = stage6Data.data();
+            stage6.dataSize = stage6Data.size() * sizeof(float);
+
+            // Defect correction: stage5(input) → stage6(output), defectMap for BPM lookup
+            result = xpe_defect_correct(&stage5, &stage6, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
         }
 
-        // Stage 7: Ghost Correction (PRE-04)
+        // Stage 7: Ghost Correction (PRE-04) - float32 in/out
+        XpeImageBuffer stage7 = stage6;
+        std::vector<float> stage7Data;
+
         if (!cfg.bypassGhost && ghostHandle) {
-            result = xpe_ghost_correct(ghostHandle, img, meta);
+            stage7Data.resize(pixelCount);
+            stage7.width = img->width;
+            stage7.height = img->height;
+            stage7.bitsAllocated = 32;
+            stage7.bitsStored = 32;
+            stage7.format = XPE_PIXEL_FLOAT32;
+            stage7.data = stage7Data.data();
+            stage7.dataSize = stage7Data.size() * sizeof(float);
+
+            result = xpe_ghost_correct(ghostHandle, &stage6, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
+
+        // Copy final result back to original img buffer.
+        // Preserves the output format (float32 after gain correction, uint16 otherwise).
+        // Caller must ensure img->data is large enough for the final stage data.
+        const XpeImageBuffer* finalStage = &stage7;
+        const size_t copySize = std::min(img->dataSize, finalStage->dataSize);
+        std::memcpy(const_cast<void*>(img->data), finalStage->data, copySize);
+
+        // Update img metadata to reflect actual output format
+        const_cast<XpeImageBuffer*>(img)->format = finalStage->format;
+        const_cast<XpeImageBuffer*>(img)->bitsAllocated = finalStage->bitsAllocated;
+        const_cast<XpeImageBuffer*>(img)->bitsStored = finalStage->bitsStored;
 
         return XPE_OK;
     }
@@ -186,112 +284,38 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
 {
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
-
-    // Load calibration maps from files when calibPath is provided
-    XpeImageBuffer offsetMap = {};
-    XpeImageBuffer gainMap = {};
-    XpeImageBuffer defectMap = {};
-
+    // Load calibration maps to g_calib (global calibration state)
     if (calibPath) {
-        // Determine required buffer size from the input image dimensions
-        // Offset map: uint16 (same as input)
-        // Gain map: float32
-        // Defect map: uint8
-        const size_t n = static_cast<size_t>(img->width) * img->height;
+        // Load offset calibration (1-arg: populates g_calib internally)
+        char offsetPath[512] = {0};
+        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
+        if (rc != XPE_OK) return rc;
 
-        // Offset map (uint16)
-        if (!cfg.bypassOffset) {
-            char offsetPath[512] = {0};
-            std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+        // Load gain calibration (1-arg: populates g_calib internally)
+        char gainPath[512] = {0};
+        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
+        rc = xpe_calib_load_gain(gainPath);
+        if (rc != XPE_OK) return rc;
 
-            std::vector<uint16_t> offsetData(n, 0);
-            offsetMap.data = offsetData.data();
-            offsetMap.width = img->width;
-            offsetMap.height = img->height;
-            offsetMap.bitsAllocated = 16;
-            offsetMap.bitsStored = 16;
-            offsetMap.format = XPE_PIXEL_UINT16;
-            offsetMap.dataSize = n * sizeof(uint16_t);
-
-            // Use raw data pointer that persists beyond the local vector
-            offsetMap.data = std::malloc(n * sizeof(uint16_t));
-            if (offsetMap.data) {
-                offsetMap.dataSize = n * sizeof(uint16_t);
-                XpeErrorCode rc = xpe_calib_load_offset(offsetPath, &offsetMap);
-                if (rc != XPE_OK) {
-                    std::free(offsetMap.data);
-                    offsetMap.data = nullptr;
-                }
-            }
-        }
-
-        // Gain map (float32)
-        if (!cfg.bypassGain) {
-            char gainPath[512] = {0};
-            std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-
-            gainMap.data = std::malloc(n * sizeof(float));
-            if (gainMap.data) {
-                gainMap.width = img->width;
-                gainMap.height = img->height;
-                gainMap.bitsAllocated = 32;
-                gainMap.bitsStored = 32;
-                gainMap.format = XPE_PIXEL_FLOAT32;
-                gainMap.dataSize = n * sizeof(float);
-
-                XpeErrorCode rc = xpe_calib_load_gain(gainPath, &gainMap);
-                if (rc != XPE_OK) {
-                    std::free(gainMap.data);
-                    gainMap.data = nullptr;
-                }
-            }
-        }
-
-        // Defect map (uint8)
-        if (!cfg.bypassDefect) {
-            char defectPath[512] = {0};
-            std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-
-            defectMap.data = std::malloc(n * sizeof(uint8_t));
-            if (defectMap.data) {
-                defectMap.width = img->width;
-                defectMap.height = img->height;
-                defectMap.bitsAllocated = 8;
-                defectMap.bitsStored = 8;
-                defectMap.format = XPE_PIXEL_UINT8;
-                defectMap.dataSize = n * sizeof(uint8_t);
-
-                XpeErrorCode rc = xpe_calib_load_defect_map(defectPath, &defectMap);
-                if (rc != XPE_OK) {
-                    std::free(defectMap.data);
-                    defectMap.data = nullptr;
-                }
-            }
-        }
+        // Load defect calibration (1-arg: populates g_calib internally)
+        char defectPath[512] = {0};
+        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
+        rc = xpe_calib_load_defect_map(defectPath);
+        if (rc != XPE_OK) return rc;
     }
 
-    // Execute pipeline core with loaded maps
-    XpeErrorCode result = pipeline_core(img, meta,
-                                         offsetMap.data ? &offsetMap : nullptr,
-                                         gainMap.data ? &gainMap : nullptr,
-                                         defectMap.data ? &defectMap : nullptr,
-                                         ghostHandle, cfg);
-
-    // Clean up loaded calibration maps
-    std::free(offsetMap.data);
-    std::free(gainMap.data);
-    std::free(defectMap.data);
-
-    return result;
+    // Execute pipeline core (g_calib is now populated)
+    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
+    return pipeline_core(img, meta, nullptr, ghostHandle, cfg);
 }
 
 /* =========================================================================
- * Pre-loaded Calibration State
+ * Pre-loaded Calibration State (LEGACY - Kept for compatibility)
  * ========================================================================= */
 
-// @MX:ANCHOR: [AUTO] xpe_calib_state_load — pre-load calibration maps
-// @MX:REASON: Eliminates per-frame file I/O for batch processing; fan_in >= 2
+// @MX:NOTE: [AUTO] xpe_calib_state_load — loads calibration to g_calib
+// @MX:REASON: Compatibility wrapper; maps to global g_calib state
 XpeErrorCode xpe_calib_state_load(void* state, const char* calibPath)
 {
     if (!state || !calibPath) return XPE_ERR_INVALID_INPUT;
@@ -299,65 +323,23 @@ XpeErrorCode xpe_calib_state_load(void* state, const char* calibPath)
     auto* cs = static_cast<XpeCalibrationState*>(state);
     // Assume state is already zero-initialized
 
-    // We don't know dimensions yet — load by calling the file loader
-    // which will populate width/height from file headers.
-    // We need to allocate sufficiently large buffers.
-    // Use a large default allocation for typical FPD sizes (up to 4096x4096).
-    static constexpr size_t kMaxPixels = 4096u * 4096u;
+    // Load offset calibration to g_calib (1-arg: populates g_calib internally)
+    char offsetPath[512] = {0};
+    std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+    XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
+    cs->offsetLoaded = (rc == XPE_OK);
 
-    // Offset map (uint16)
-    {
-        char offsetPath[512] = {0};
-        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+    // Load gain calibration to g_calib (1-arg: populates g_calib internally)
+    char gainPath[512] = {0};
+    std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
+    rc = xpe_calib_load_gain(gainPath);
+    cs->gainLoaded = (rc == XPE_OK);
 
-        cs->offsetMap.data = std::malloc(kMaxPixels * sizeof(uint16_t));
-        if (cs->offsetMap.data) {
-            cs->offsetMap.dataSize = kMaxPixels * sizeof(uint16_t);
-            XpeErrorCode rc = xpe_calib_load_offset(offsetPath, &cs->offsetMap);
-            cs->offsetLoaded = (rc == XPE_OK);
-            if (rc != XPE_OK) {
-                std::free(cs->offsetMap.data);
-                cs->offsetMap.data = nullptr;
-                cs->offsetMap.dataSize = 0;
-            }
-        }
-    }
-
-    // Gain map (float32)
-    {
-        char gainPath[512] = {0};
-        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-
-        cs->gainMap.data = std::malloc(kMaxPixels * sizeof(float));
-        if (cs->gainMap.data) {
-            cs->gainMap.dataSize = kMaxPixels * sizeof(float);
-            XpeErrorCode rc = xpe_calib_load_gain(gainPath, &cs->gainMap);
-            cs->gainLoaded = (rc == XPE_OK);
-            if (rc != XPE_OK) {
-                std::free(cs->gainMap.data);
-                cs->gainMap.data = nullptr;
-                cs->gainMap.dataSize = 0;
-            }
-        }
-    }
-
-    // Defect map (uint8)
-    {
-        char defectPath[512] = {0};
-        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-
-        cs->defectMap.data = std::malloc(kMaxPixels * sizeof(uint8_t));
-        if (cs->defectMap.data) {
-            cs->defectMap.dataSize = kMaxPixels * sizeof(uint8_t);
-            XpeErrorCode rc = xpe_calib_load_defect_map(defectPath, &cs->defectMap);
-            cs->defectLoaded = (rc == XPE_OK);
-            if (rc != XPE_OK) {
-                std::free(cs->defectMap.data);
-                cs->defectMap.data = nullptr;
-                cs->defectMap.dataSize = 0;
-            }
-        }
-    }
+    // Load defect calibration to g_calib (1-arg: populates g_calib internally)
+    char defectPath[512] = {0};
+    std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
+    rc = xpe_calib_load_defect_map(defectPath);
+    cs->defectLoaded = (rc == XPE_OK);
 
     return XPE_OK;
 }
@@ -370,15 +352,15 @@ void xpe_calib_state_release(void* state)
     auto* cs = static_cast<XpeCalibrationState*>(state);
 
     if (cs->offsetMap.data) {
-        std::free(cs->offsetMap.data);
+        std::free(const_cast<void*>(cs->offsetMap.data));
         cs->offsetMap.data = nullptr;
     }
     if (cs->gainMap.data) {
-        std::free(cs->gainMap.data);
+        std::free(const_cast<void*>(cs->gainMap.data));
         cs->gainMap.data = nullptr;
     }
     if (cs->defectMap.data) {
-        std::free(cs->defectMap.data);
+        std::free(const_cast<void*>(cs->defectMap.data));
         cs->defectMap.data = nullptr;
     }
 
@@ -401,21 +383,17 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
 {
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
+    // Calibration should already be loaded in g_calib via xpe_calib_state_load
     const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
 
-    const XpeImageBuffer* offsetMap = nullptr;
-    const XpeImageBuffer* gainMap = nullptr;
+    // Get defect map from calibState (other maps use g_calib)
     const XpeImageBuffer* defectMap = nullptr;
-
     if (calibState) {
         const auto* cs = static_cast<const XpeCalibrationState*>(calibState);
-        if (cs->offsetLoaded) offsetMap = &cs->offsetMap;
-        if (cs->gainLoaded)   gainMap = &cs->gainMap;
         if (cs->defectLoaded) defectMap = &cs->defectMap;
     }
 
-    return pipeline_core(img, meta, offsetMap, gainMap, defectMap,
-                         ghostHandle, cfg);
+    return pipeline_core(img, meta, defectMap, ghostHandle, cfg);
 }
 
 /* =========================================================================
@@ -433,40 +411,42 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
     void* ghostHandle,
     const char* configJsonOrNull)
 {
-    if (!images || imageCount == 0) return XPE_ERR_INVALID_INPUT;
-    if (imageCount > 0 && !metas) return XPE_ERR_INVALID_INPUT;
+    if (!images || !metas || imageCount == 0) return XPE_ERR_INVALID_INPUT;
+
+    // Load calibration once (to g_calib, 1-arg: populates g_calib internally)
+    if (calibPath) {
+        char offsetPath[512] = {0};
+        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
+        if (rc != XPE_OK) return rc;
+
+        char gainPath[512] = {0};
+        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
+        rc = xpe_calib_load_gain(gainPath);
+        if (rc != XPE_OK) return rc;
+
+        char defectPath[512] = {0};
+        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
+        rc = xpe_calib_load_defect_map(defectPath);
+        if (rc != XPE_OK) return rc;
+    }
 
     const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
 
-    // Load calibration state once for the entire batch
-    XpeCalibrationState calibState = {};
-    if (calibPath) {
-        XpeErrorCode loadRc = xpe_calib_state_load(&calibState, calibPath);
-        if (loadRc != XPE_OK) {
-            // Not fatal — proceed without calibration maps
-        }
-    }
-
-    const XpeImageBuffer* offsetMap = calibState.offsetLoaded ? &calibState.offsetMap : nullptr;
-    const XpeImageBuffer* gainMap = calibState.gainLoaded ? &calibState.gainMap : nullptr;
-    const XpeImageBuffer* defectMap = calibState.defectLoaded ? &calibState.defectMap : nullptr;
-
-    // Process each frame
+    // Process each image with graceful degradation:
+    // Continue processing remaining frames even if one frame fails.
+    // Return the first error encountered (or XPE_OK if all succeed).
     XpeErrorCode firstError = XPE_OK;
 
     for (uint32_t i = 0; i < imageCount; ++i) {
-        XpeErrorCode rc = pipeline_core(&images[i], &metas[i],
-                                         offsetMap, gainMap, defectMap,
-                                         ghostHandle, cfg);
-        if (rc != XPE_OK && firstError == XPE_OK) {
-            firstError = rc;
-            // Continue processing remaining frames even on error
-            // (IEC 62304 Class B: graceful degradation)
+        XpeErrorCode result = pipeline_core(&images[i], &metas[i], nullptr, ghostHandle, cfg);
+        if (result != XPE_OK) {
+            if (firstError == XPE_OK) {
+                firstError = result;
+            }
+            // Continue processing remaining frames
         }
     }
-
-    // Release calibration state
-    xpe_calib_state_release(&calibState);
 
     return firstError;
 }

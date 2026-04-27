@@ -1,11 +1,20 @@
 # XPE Secure Product Development Framework (SPDF) Plan
 
-**Document ID**: XPE-SEC-SPDF-001  
-**Version**: 0.1.0 (Draft)  
-**Date**: 2026-04-22  
-**SPEC Reference**: SPEC-XPE-SEC REQ-SEC-010~014  
-**Regulatory Basis**: FDA Section 524B, IEC 81001-5-1  
+**Document ID**: XPE-SEC-SPDF-001
+**Version**: 1.0.0
+**Date**: 2026-04-22
+**SPEC Reference**: SPEC-XPE-SEC REQ-SEC-010~014, REQ-SEC-040~046
+**Regulatory Basis**: FDA Section 524B, IEC 81001-5-1
 **IEC 62304 Class**: B
+
+---
+
+## HISTORY
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 0.1.0 | 2026-04-22 | Initial — Must 계층(§524B SPDF, SBOM 목록, 취약점 SLA, Phase 1 테스트) |
+| 1.0.0 | 2026-04-22 | Major upgrade — 위협 모델 5개 경계 완성, SLSA L2/L3 로드맵 구체화, IEC 81001-5-1 준수 매트릭스 추가 |
 
 ---
 
@@ -44,19 +53,59 @@ IEC 81001-5-1은 SPDF를 64개 보안 요건으로 세분화하고 있다.
 
 ## 3. 보안 요구사항 도출
 
-### 3.1 위협 모델링 (STRIDE + EMB3D)
+### 3.1 위협 모델링 (STRIDE + LINDDUN)
 
-각 신뢰 경계(Trust Boundary)에 대해 STRIDE 분석 수행:
+각 신뢰 경계(Trust Boundary)에 대해 STRIDE 분석 완료:
 
-| 경계 | 위협 유형 | 상태 |
-|------|-----------|------|
-| DICOM Network SCU/SCP | Spoofing, Tampering, DoS | 🔴 미완성 (Phase 2) |
-| C ABI P/Invoke 경계 | Tampering, Info Disclosure | 🔴 미완성 (Phase 2) |
-| 파일시스템 I/O (config, image, log) | Tampering, Info Disclosure | 🔴 미완성 (Phase 2) |
-| C# GUI 프로세스 경계 | Elevation of Privilege, Repudiation | 🔴 미완성 (Phase 2) |
-| vcpkg SOUP 의존성 | Supply Chain Tampering | 🔴 미완성 (Phase 2) |
+#### TB-1: DICOM Network SCU/SCP 경계
 
-위협모델 상세 문서: `docs/security/threat-model-*.md` (Phase 2 작성 예정)
+| ID | 위협 | 유형 | 영향 | 완화대책 | 상태 |
+|----|------|------|------|---------|------|
+| T-1.1 | 비인가 AE가 DICOM C-STORE 전송 | Spoofing | 위조 영상 주입 | AE Title 검증 + IP 화이트리스트 | Phase 2 |
+| T-1.2 | 전송 중 DICOM 데이터 변조 | Tampering | 진단 영상 변조 | DICOM digital signature (PS3.15) | Phase 3 |
+| T-1.3 | 대량 C-FIND 요청으로 자원 고갈 | DoS | 서비스 거부 | 연결 제한 + 타임아웃(REQ-DICOM-031) | 구현됨 |
+| T-1.4 | 네트워크 패킷 캡처로 환자 정보 노출 | Info Disclosure | PHI 유출 | TLS 전송 암호화 (DCMTK) | Phase 2 |
+
+#### TB-2: C ABI / P/Invoke 경계
+
+| ID | 위협 | 유형 | 영향 | 완화대책 | 상태 |
+|----|------|------|------|---------|------|
+| T-2.1 | P/Invoke 마샬링 버퍼 오버플로우 | Tampering | 힙 오염, 코드 실행 | blittable 타입만 사용 + Pack=8 | 구현됨 |
+| T-2.2 | C#에서 NULL 포인터 전달 | Tampering | 네이티브 크래시 | 모든 API NULL 체크 (REQ-SEC-060) | 구현됨 |
+| T-2.3 | 이미지 버퍼 크기 불일치 | Tampering | 버퍼 오버리드 | width*height*format 검증 | 구현됨 |
+| T-2.4 | DLL 교체 공격 | Spoofing | 악성 DLL 로드 | 디지털 서명 검증 | Phase 2 |
+
+#### TB-3: 파일시스템 I/O 경계
+
+| ID | 위협 | 유형 | 영향 | 완화대책 | 상태 |
+|----|------|------|------|---------|------|
+| T-3.1 | 설정 파일(JSON) 변조 | Tampering | 잘못된 처리 파라미터 | 스키마 검증 (REQ-SEC-061) | 구현됨 |
+| T-3.2 | 캘리브레이션 파일 변조 | Tampering | 영상 품질 저하 | SHA-256 무결성 검증 (XCal v1) | 구현됨 |
+| T-3.3 | 로그 파일에 민감 정보 기록 | Info Disclosure | PHI 유출 | 로그에 환자 정보 제외 | 구현됨 |
+| T-3.4 | 출력 DICOM 파일 변조 | Tampering | 진단 영상 변조 | 쓰기 후 읽기 검증 | Phase 2 |
+
+#### TB-4: C# GUI 프로세스 경계
+
+| ID | 위협 | 유형 | 영향 | 완화대책 | 상태 |
+|----|------|------|------|---------|------|
+| T-4.1 | 권한 상승 (관리자 권한 없이 DLL 로드) | Elevation | 무단 기능 실행 | 최소 권한 실행 | 구현됨 |
+| T-4.2 | GUI 크래시 시 처리 중 데이터 손실 | Repudiation | 감사 추적 단절 | 크래시 전 상태 로깅 | Phase 2 |
+| T-4.3 | UI 스푸핑 (화면 캡처) | Info Disclosure | 환자 영상 유출 | 화면 보호 기능 안내 | Phase 3 |
+
+#### TB-5: vcpkg SOUP 의존성 공급망
+
+| ID | 위협 | 유형 | 영향 | 완화대책 | 상태 |
+|----|------|------|------|---------|------|
+| T-5.1 | 악의적인 vcpkg 포트 업데이트 | Supply Chain | 백도어 삽입 | 고정 버전 + 해시 검증 | 구현됨 |
+| T-5.2 | DCMTK/OpenJPEG 알려진 취약점 | Supply Chain | 익스플로잇 가능 | SBOM + CVE 모니터링 | 구현됨 |
+| T-5.3 | FFTW3 GPL-2.0 라이선스 위반 | Legal | 법적 리스크 | 동적 링크만 허용, gsvg.dll 격리 | 구현됨 |
+| T-5.4 | 빌드 환경 오염 | Supply Chain | 재현 불가 빌드 | SLSA L2+ provenance | Phase 2 |
+
+위협모델 요약:
+- **총 위협**: 19개
+- **구현됨 (완화됨)**: 11개
+- **Phase 2 예정**: 6개
+- **Phase 3 예정**: 2개
 
 ### 3.2 보안 요구사항 → SPEC 추적
 
@@ -156,23 +205,81 @@ VEX 문서 생성 (CycloneDX VEX) → GitHub Security Advisory 발행
 
 ## 7. 빌드 보안 (SLSA)
 
-| 단계 | 목표 | 상태 |
-|------|------|------|
-| SLSA L1: Provenance 존재 | Build log retained | 🟡 CI 로그 보존 (기본) |
-| SLSA L2: 서명된 Provenance | GitHub Actions SLSA generator | 🔴 미구현 (Phase 2) |
-| SLSA L3: Isolated build | GitHub-hosted runner + in-toto | 🔴 미구현 (Phase 3) |
+### 7.1 SLSA 로드맵
 
-스크립트: `scripts/verify_reproducible.sh` (Phase 2)  
-CI 워크플로: `.github/workflows/slsa.yml` (Phase 2)
+| Level | 요구사항 | 구현 계획 | 상태 |
+|-------|---------|----------|------|
+| **L1** | Provenance 문서 존재 | CI 빌드 로그 + 아티팩트 해시 보존 | 구현됨 |
+| **L2** | 서명된 Provenance | GitHub Actions SLSA generator (`slsa-framework/slsa-github-generator`) | Phase 2 |
+| **L3** | Isolated, non-falsifiable build | GitHub-hosted runner + in-toto attestation | Phase 3 |
+
+### 7.2 SLSA L2 구현 계획 (Phase 2)
+
+```
+.github/workflows/build.yml
+  → MSBuild (Release/x64)
+  → Google Test 실행
+  → hash-of-artifacts 계산
+  → slsa-framework/slsa-github-generator@v2
+    → provenance SLSA v1.0 JSON 생성
+    → Sigstore cosign 서명
+    → GitHub Release에 attestation 업로드
+```
+
+아티팩트별 provenance:
+| 아티팩트 | 서명 방식 | 검증 방식 |
+|----------|----------|----------|
+| xpe_*.dll | Sigstore cosign | `cosign verify-blob` |
+| ImageProcTest.exe | Sigstore cosign | `cosign verify-blob` |
+| SBOM (SPDX) | Inline JSON signature | `slsa-verifier` |
+| VEX (CycloneDX) | Inline JSON signature | `slsa-verifier` |
+
+### 7.3 SLSA L3 구현 계획 (Phase 3)
+
+- GitHub-hosted runner (self-hosted runner 금지)
+- in-toto layout 정의 (빌드 단계별 attestation 체인)
+- Hermetic build (외부 네트워크 접근 차단)
+- 재현 가능 빌드 (reproducible build) 검증 스크립트
+
+스크립트: `scripts/verify_reproducible.sh`
+CI 워크플로: `.github/workflows/slsa.yml`
 
 ---
 
-## 8. 변경 이력
+## 8. IEC 81001-5-1 준수 매트릭스
+
+IEC 81001-5-1 Clause 5~9 핵심 요건에 대한 준수 상태:
+
+| Clause | 요건 | 준수 수준 | 증빙 |
+|--------|------|:---------:|------|
+| §5.1 | Security risk management process | 구현됨 | 본 문서 §3 (STRIDE 위협 모델) |
+| §5.2 | Security requirements specification | 구현됨 | SPEC-XPE-SEC REQ-SEC-001~092 |
+| §5.3 | Architecture security design | 구현됨 | 모듈 독립성 (xpe-module-principles.md), ABI 경계 검증 |
+| §5.4 | Secure coding standards | 구현됨 | MSVC `/W4` + `/analyze`, CodeQL (Phase 2) |
+| §5.5 | Security testing | Partial | L1 SAST 구현, L2 Fuzzing Phase 2 |
+| §5.6 | Vulnerability management | 구현됨 | SECURITY.md v1.0 (CVD + SLA) |
+| §5.7 | Security update process | Partial | SPDF Plan 본 문서, 자동화 Phase 2 |
+| §6.1 | Threat modeling | 구현됨 | 본 문서 §3.1 (5개 경계, 19개 위협) |
+| §6.2 | Attack surface analysis | Partial | DLL 경계 분석 완료, 네트워크 경계 Phase 2 |
+| §7.1 | SOUP vulnerability monitoring | 구현됨 | SBOM (§4), OSV-Scanner |
+| §7.2 | Patch management | 구현됨 | 패치 SLA (§5.2) |
+| §7.3 | Static code analysis | 구현됨 | MSVC `/analyze`, CodeQL (Phase 2) |
+| §8.1 | Incident response | 구현됨 | SECURITY.md §Incident Response |
+| §8.2 | Communications | 구현됨 | SECURITY.md §Communication Matrix |
+| §9.1 | Security labeling | Partial | SBOM + VEX, 라벨링 Phase 2 |
+| §9.2 | End-of-life security | Planned | 미정의 (Phase 3) |
+
+준수율: **11/16 완료 (69%), 4/16 Partial, 1/16 Planned**
+
+---
+
+## 9. 변경 이력
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
 | 0.1.0 | 2026-04-22 | 초기 작성 — Must 계층(§524B SPDF, SBOM 목록, 취약점 SLA, Phase 1 테스트) |
+| 1.0.0 | 2026-04-22 | Major upgrade — STRIDE 위협 모델 5개 경계 19개 위협 완성, SLSA L2/L3 로드맵 구체화, IEC 81001-5-1 준수 매트릭스 추가 (69% 준수) |
 
 ---
 
-*SPEC-XPE-SEC REQ-SEC-010~014, REQ-SEC-020~026, REQ-SEC-030~034 구현 계획*
+*SPEC-XPE-SEC REQ-SEC-010~014, REQ-SEC-020~026, REQ-SEC-030~034, REQ-SEC-040~046*

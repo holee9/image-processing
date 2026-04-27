@@ -1,8 +1,8 @@
 # VVP Addendum: Pre Lane (Preprocessing) Verification & Validation Plan
 
 **Document ID**: VVP-PREPROCESS-001
-**Version**: 1.0.0
-**Date**: 2026-04-18
+**Version**: 1.1.0
+**Date**: 2026-04-22
 **Parent**: XPE-VVP-001 v1.1 (docs/post-processing/xpe/)
 **Grandparent**: XPE-SVVP-001 v1.4.0 (docs/project/)
 **Scope**: Pre Lane only (SPEC-XPE-P1A, modules/preprocess/, modules/common/)
@@ -17,6 +17,7 @@
 | Version | Date       | Author         | Changes |
 |---------|------------|----------------|---------|
 | 1.0.0   | 2026-04-18 | manager-spec   | Initial Pre Lane-specific VVP addendum covering L1-L4 test strategy for REQ-P1A-010~013, SIMD parity, P/Invoke. |
+| 1.1.0   | 2026-04-22 | manager-spec   | SPEC-SIMD-001 반영: 4개 AVX2 parity test 파일 등록, REQ-SIMD-001~004 추가, BP-01~05 DegradedMode freeze(6/6 PASS) 반영, test count 202/202로 갱신. |
 
 ---
 
@@ -69,7 +70,11 @@ Follows `XPE-VVP-001` Section 2. Pre Lane-specific rules and targets:
 | REQ-P1A-014~019 | test_xpe_calib_*.cpp (6 files) | 56 currently passing |
 | REQ-P1A-020~022 | test_boundary.cpp, test_xpe_preprocess_init.cpp | 10+ |
 | REQ-P1A-030~033 | test_integration.cpp + test_xpe_preprocess.cpp | 15+ |
-| REQ-P1A-040 | **test_simd_parity.cpp (NEW)** | 1830 cases |
+| REQ-P1A-040 / REQ-SIMD-001 | test_offset_correct_avx2_parity.cpp | 6 cases (3-arg API) |
+| REQ-SIMD-002 | test_gain_correct_avx2_parity.cpp | 8 cases (1 ULP FLOAT32) |
+| REQ-SIMD-003 | test_defect_correct_avx2_parity.cpp | 6 cases (bit-identical) |
+| REQ-SIMD-004 | test_runtime_detection_avx2_parity.cpp | 4 cases (bit-identical) |
+| BP-01~05 DegradedMode | test_preprocess_degraded.cpp | 6/6 PASS (Frozen 2026-04-22) |
 | REQ-P1A-041~042 | test_readout_validate.cpp | 8+ |
 
 ### 3.2 Acceptance Criteria (from parent XPE-VVP-001 §2.2)
@@ -88,7 +93,8 @@ Follows `XPE-VVP-001` Section 2. Pre Lane-specific rules and targets:
 | REQ-P1A-011 no NaN/Inf | Zero violations | FLOAT32 isfinite() check on output |
 | REQ-P1A-012 no artificial edges | Gradient delta < 10% local contrast | Gradient analysis at defect boundaries |
 | REQ-P1A-013 TPR / FPR | TPR ≥ 99.9%, FPR < 0.001% | 1000-frame synthetic injection test |
-| REQ-P1A-040 SIMD parity | 1830/1830 cases pass | `test_simd_parity.cpp` |
+| REQ-SIMD-001~004 AVX2 parity | 4 files, 24 total cases | offset/gain/defect/runtime_detect parity tests |
+| BP-01~05 DegradedMode | 6/6 PASS (Frozen) | `test_preprocess_degraded.cpp` |
 
 ---
 
@@ -167,7 +173,12 @@ Per `XPE-SVVP-001` Section 5.1 and this module's `benchmark/BP-01-05-preprocess-
 | BP-02 (Multi-gain linearity) | REQ-P1A-011 | See manifest Section 3.4 |
 | BP-03 (Heel-effect SID) | REQ-P1A-011 | See manifest Section 4.4 |
 | BP-04 (Defect density) | REQ-P1A-012, 013 | See manifest Section 5.4 |
-| BP-SIMD (Parity harness) | REQ-P1A-040 | 1830/1830 pass (see simd-parity-harness.md) |
+| BP-01 (Temperature sweep) | REQ-P1A-010 | DegradedMode 6/6 PASS (Frozen 2026-04-22) |
+| BP-02 (Multi-gain linearity) | REQ-P1A-011 | See manifest Section 3.4 |
+| BP-03 (Heel-effect SID) | REQ-P1A-011 | See manifest Section 4.4 |
+| BP-04 (Defect density) | REQ-P1A-012, 013 | See manifest Section 5.4 |
+| BP-05 (DegradedMode stress) | REQ-P1A-013 | DegradedMode 6/6 PASS (Frozen 2026-04-22) |
+| SIMD Parity (SPEC-SIMD-001) | REQ-SIMD-001~004 | 24 parity test cases across 4 files (ctest -R Parity) |
 
 Pass criteria:
 - All Pre Lane benchmark packs frozen (SHA-256 hashes locked)
@@ -180,16 +191,17 @@ Pass criteria:
 
 Pre Lane M2 release gate is PASSED when all of the following are true:
 
-- [ ] L1: All 89 currently-passing tests remain passing + new L1 tests for REQ-P1A-010~013 all pass
-- [ ] L1: `test_simd_parity.cpp` reports 1830/1830 pass
+- [ ] L1: All 202 currently-passing tests remain passing (Pre Lane 202/202 GREEN as of 2026-04-22)
+- [ ] L1: `ctest -R Parity` passes — 24 AVX2 parity cases across offset/gain/defect/runtime_detect
+- [ ] L1: BP-01~05 DegradedMode 6/6 PASS (Frozen 2026-04-22)
 - [ ] L1: Statement coverage >= 85% on modules/preprocess/
 - [ ] L2: P/Invoke marshaling test matrix fully green
 - [ ] L2: xpe_common ↔ xpe_preprocess linkage tests fully green
 - [ ] L3: Full pipeline test passes at 3072x3072 within budget
 - [ ] L3: Concurrent access test passes on 4 threads
 - [ ] L3: 1000-cycle endurance test enabled AND passing (no leaks)
-- [ ] L4: BP-01 through BP-04 frozen AND passing
-- [ ] L4: BP-SIMD addendum passing (part of L1 already but also a release gate)
+- [ ] L4: BP-01 through BP-05 Frozen AND passing (DegradedMode 6/6 PASS confirmed 2026-04-22)
+- [ ] L4: SIMD parity suite (SPEC-SIMD-001) — ctest -R Parity GREEN in CI
 - [ ] Code review complete per TRUST 5 (see `.claude/rules/moai/core/moai-constitution.md`)
 - [ ] No MX:WARN without MX:REASON in modules/preprocess/
 
@@ -221,11 +233,12 @@ Pre Lane M2 release gate is FAILED when any of the following is true:
 - SPEC: `.moai/specs/SPEC-XPE-P1A/spec.md` v1.2.0
 - Acceptance: `.moai/specs/SPEC-XPE-P1A/acceptance.md`
 - Research: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0
-- SIMD harness: `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md` v1.0.0
-- Benchmark: `benchmark/BP-01-05-preprocess-manifest.md` v1.0.0
+- SIMD harness: `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md` v2.0.0
+- SIMD parity SPEC: `.moai/specs/SPEC-SIMD-001/spec.md` v1.0.0
+- Benchmark: `benchmark/BP-01-05-preprocess-manifest.md` v1.1.0 (Frozen)
 - IEC 62304 (2015+Amd1:2015) Clauses 5.5, 5.6, 5.7
 - TRUST 5 framework: `.claude/rules/moai/core/moai-constitution.md`
 
 ---
 
-*Document End - VVP-PREPROCESS-001 v1.0.0*
+*Document End - VVP-PREPROCESS-001 v1.1.0*

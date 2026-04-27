@@ -38,9 +38,10 @@ extern "C" {
 
 /* XCal calibration type codes */
 typedef enum XCalType {
-    XCAL_TYPE_OFFSET = 0,  /* Dark/offset map (FLOAT32 payload) */
-    XCAL_TYPE_GAIN   = 1,  /* Gain/flat-field map (FLOAT32 payload) */
-    XCAL_TYPE_DEFECT = 2   /* Defect pixel map (UINT8_MASK payload) */
+    XCAL_TYPE_OFFSET     = 0,  /* Dark/offset map (FLOAT32 payload) */
+    XCAL_TYPE_GAIN       = 1,  /* Gain/flat-field map (FLOAT32 payload) */
+    XCAL_TYPE_DEFECT     = 2,  /* Defect pixel map (UINT8_MASK payload) */
+    XCAL_TYPE_GAIN_POLY  = 3   /* Gain polynomial coefficients (FLOAT32 payload) */
 } XCalType;
 
 /* XCal payload pixel format codes */
