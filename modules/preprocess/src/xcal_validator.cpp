@@ -23,9 +23,9 @@
  */
 size_t xcal_bytes_per_pixel(uint32_t fmt) {
     switch (fmt) {
-        case XCAL_FMT_UINT16:    return sizeof(uint16_t);  // 2
-        case XCAL_FMT_FLOAT32:   return sizeof(float);     // 4
-        case XCAL_FMT_UINT8_MASK: return sizeof(uint8_t);  // 1
+        case static_cast<uint32_t>(XCAL_FMT_UINT16):    return sizeof(uint16_t);  // 2
+        case static_cast<uint32_t>(XCAL_FMT_FLOAT32):   return sizeof(float);     // 4
+        case static_cast<uint32_t>(XCAL_FMT_UINT8_MASK): return sizeof(uint8_t); // 1
         default:                 return 0;
     }
 }
