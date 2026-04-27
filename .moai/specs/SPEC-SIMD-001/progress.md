@@ -87,7 +87,7 @@ SPEC-SIMD-001 모든 요구사항이 구현 및 검증되었습니다. P0 작업
 
 ### API Migration Notes
 
-### OLD 3-arg API (Deprecated)
+#### OLD 3-arg API (Deprecated)
 Location: `xpe/preprocess/xpe_preprocess_api.h`
 ```cpp
 // OLD API - configJson based
@@ -96,7 +96,7 @@ XPE_API XpeErrorCode xpe_defect_correct(XpeImageBuffer* img,
                                          const char* configJsonOrNull);
 ```
 
-### NEW 3-arg API (Current)
+#### NEW 3-arg API (Current)
 Location: `xpe/preprocess_api.h`
 ```cpp
 // NEW API - metadata based, g_calib defect map
@@ -105,7 +105,7 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         const XpeImageMetadata* metadata);
 ```
 
-### Key Differences
+#### Key Differences
 | Aspect | OLD API | NEW API |
 |--------|---------|---------|
 | Defect map | Passed as parameter | Loaded via `xpe_calib_load_defect_map` |

@@ -7,7 +7,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
@@ -149,7 +149,7 @@ TEST(RuntimeDetection, HotPixelOnFlatFieldIsDetected) {
     XpeImageBuffer img = make_float32_buf(data, W, H);
     XpeImageBuffer out = make_uint8_buf(mask, W, H);
 
-    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &out, nullptr));
+    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, nullptr, &out));
     EXPECT_EQ(1u, mask[12]);
 }
 
@@ -163,7 +163,7 @@ TEST(RuntimeDetection, CleanImageClearsOnlyMaskPixelBytes) {
     XpeImageBuffer img = make_float32_buf(data, W, H);
     XpeImageBuffer out = make_uint8_buf(mask, W, H);
 
-    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &out, nullptr));
+    EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, nullptr, &out));
 
     for (size_t i = 0; i < N; ++i) {
         EXPECT_EQ(0u, mask[i]);
@@ -184,7 +184,7 @@ TEST(RuntimeDetection, OutputDataSizeTooSmallReturnsBufferTooSmall) {
     XpeImageBuffer out = make_uint8_buf(mask, W, H);
 
     EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
-              xpe_defect_detect_runtime(&img, &out, nullptr));
+              xpe_defect_detect_runtime(&img, nullptr, &out));
 }
 
 TEST(RuntimeDetection, InputDataSizeTooSmallReturnsInvalidInput) {
@@ -198,7 +198,7 @@ TEST(RuntimeDetection, InputDataSizeTooSmallReturnsInvalidInput) {
     XpeImageBuffer out = make_uint8_buf(mask, W, H);
 
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_defect_detect_runtime(&img, &out, nullptr));
+              xpe_defect_detect_runtime(&img, nullptr, &out));
 }
 
 TEST(RuntimeDetection, ZeroDimensionsReturnInvalidInput) {
@@ -213,7 +213,7 @@ TEST(RuntimeDetection, ZeroDimensionsReturnInvalidInput) {
     out.width = 0;
 
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_defect_detect_runtime(&img, &out, nullptr));
+              xpe_defect_detect_runtime(&img, nullptr, &out));
 }
 
 } // namespace

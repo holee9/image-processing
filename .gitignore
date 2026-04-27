@@ -232,7 +232,6 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
-build_test/
 
 # Module test directories
 modules/*/tests/

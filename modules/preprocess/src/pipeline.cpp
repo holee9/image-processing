@@ -9,7 +9,7 @@
  * Calibration maps loaded via g_calib (xpe_calib_load_offset/gain/defect_map)
  */
 
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdio>
@@ -229,8 +229,8 @@ namespace {
             stage6.data = stage6Data.data();
             stage6.dataSize = stage6Data.size() * sizeof(float);
 
-            // Defect correction still uses defectMap parameter
-            result = xpe_defect_correct(&stage5, defectMap, nullptr);
+            // Defect correction: stage5(input) → stage6(output), defectMap for BPM lookup
+            result = xpe_defect_correct(&stage5, &stage6, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;

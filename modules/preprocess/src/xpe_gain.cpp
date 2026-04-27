@@ -212,10 +212,11 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
         );
 
         // AC-GAIN-003: Return XPE_ERR_CONFIG_INVALID if gain map has invalid values
-        // This is a soft error - processing continues but warns about calibration quality
+        // This is a non-fatal error - images were processed but gain map has quality issues
+        // The output image is still valid (pass-through for invalid gain pixels)
+        // Caller must be informed about calibration data quality problems
         if (result == XPE_ERR_CONFIG_INVALID) {
-            // Log warning but still return XPE_OK (images were processed)
-            // In production, this would trigger an alert
+            return XPE_ERR_CONFIG_INVALID;  // Non-fatal: images processed but gain map has issues
         }
 
         return XPE_OK;

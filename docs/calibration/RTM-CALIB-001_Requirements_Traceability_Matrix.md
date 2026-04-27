@@ -1,9 +1,9 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.1  
+**Document ID:** RTM-CALIB-001 v1.3  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
-**Date:** 2026-04-14  
+**Date:** 2026-04-24  
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
 **Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
 **Acquisition Reference:** IAP-CALIB-001 (영상 취득 프로토콜) — 실제 영상 기반 테스트의 취득 조건 명세  
@@ -66,6 +66,14 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-FUNC-023** | BPM bright detection: 128×128 window, tolerance 5~9% (replaces MC 60×60, 15%) | SWU-1.10 | SAD §3.4 | UT-BPM-002 | IT-BPM-001 | ST-BPM-002 | -- | CalData_6 |
 | **SRS-CALIB-FUNC-024** | Multi-gain frame count: min 5~10, recommended 15~20 per dose level | SWU-1.10 | SAD §3.4 | UT-BPM-003 | IT-BPM-002 | ST-BPM-003 | -- | CalData_6 |
 | **SRS-CALIB-FUNC-025** | Grid artifact robustness: LineArtifactScore < 10% (Blue target: < 5%) | SWU-1.10 | SAD §3.4 | UT-BPM-004 | IT-BPM-002 | ST-BPM-004 | -- | Grid_abnormal |
+| **SRS-CALIB-FUNC-026** | Gain map generation from flat-field stack | SWU-1.12 | SAD §3.5 | UT-GAIN-GEN-001 | IT-GAIN-001 | ST-GAIN-001 | -- | CalData_6 |
+| **SRS-CALIB-FUNC-027** | Multi-point gain polynomial fitting (N ≥ 3 dose levels) | SWU-1.12 | SAD §3.5 | UT-GAIN-GEN-002~003 | IT-GAIN-002 | ST-GAIN-002 | -- | CalData_6, cyan_test |
+| **SRS-CALIB-FUNC-028** | Field calibration workflow (5 dark + 1 flat minimum) | SWU-1.13 | SAD §3.6 | UT-FIELD-001 | IT-FIELD-001 | ST-FIELD-001 | -- | CalData_6 subset |
+| **SRS-CALIB-FUNC-029** | Calibration drift detection (Quick Check) | SWU-1.13 | SAD §3.6 | UT-FIELD-002~003 | IT-FIELD-002 | ST-FIELD-002 | -- | Simulated drift |
+| **SRS-CALIB-FUNC-030** | Real-time offset adaptation for temperature changes | SWU-1.13 | SAD §3.6 | UT-DRIFT-001~002 | IT-FIELD-003 | ST-FIELD-003 | -- | Temp ramp simulation |
+| **SRS-CALIB-FUNC-031** | Calibration mode selection API (XpeCalibrationMode enum, 6 modes) | SWU-1.12 | SAD §3.5 | UT-MODE-001~003 | IT-MODE-001 | ST-MODE-001 | -- | Mode enforcement |
+| **SRS-CALIB-FUNC-032** | Multi-point calibration performance optimization (online fitting, SIMD, degree reduction) | SWU-1.12 | SAD §3.5 | UT-PERF-MP-001~003 | IT-MODE-002 | ST-MODE-002 | -- | Perf benchmark |
+| **SRS-CALIB-FUNC-033** | Calibration quality metadata recording (R² gate, comparison metrics, mode-specific fields) | SWU-1.12 | SAD §3.5 | UT-META-001~003 | IT-MODE-003 | ST-MODE-003 | -- | Metadata validation |
 
 ---
 
@@ -118,14 +126,14 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 
 | Coverage Dimension | Total | Traced | % | Status |
 |:---|:---:|:---:|:---:|:---|
-| **Functional Req (SRS-CALIB-FUNC)** | 21 | 21 | **100%** | ✓ All traced |
+| **Functional Req (SRS-CALIB-FUNC)** | 24 | 24 | **100%** | ✓ All traced |
 | **Safety Req (SRS-CALIB-SAFE)** | 5 | 5 | **100%** | ✓ All traced |
 | **Performance Req (SRS-CALIB-PERF)** | 3 | 3 | **100%** | ✓ All traced |
-| **Total SRS Reqs** | **29** | **29** | **100%** | ✓ Complete |
+| **Total SRS Reqs** | **32** | **32** | **100%** | ✓ Complete |
 
 ### Backward Traceability (Test → SRS)
 
-All test cases (23 UT + 4 UT-BPM + 5 IT + 2 IT-BPM) reference at least one SRS requirement. No orphaned tests.
+All test cases (23 UT + 4 UT-BPM + 9 UT-MODE/PERF-MP/META + 5 IT + 2 IT-BPM + 3 IT-MODE) reference at least one SRS requirement. No orphaned tests.
 
 ### Risk Control Traceability
 
@@ -153,6 +161,7 @@ Does every SRS requirement have a corresponding design section?
 | SRS-CALIB-SAFE-001..005 | Error handling | 3.1.5d | ✓ Designed |
 | SRS-CALIB-PERF-001..003 | Performance budgets | 3.1.5e | ✓ Designed |
 | SRS-CALIB-FUNC-022..025 | BPM generation algorithm | SAD §3.4 | ✓ Designed (2026-04-19) |
+| SRS-CALIB-FUNC-026..027, 031..033 | Gain generation, mode selection, optimization, metadata | SAD §3.5 | ✓ Designed (2026-04-24 v1.2) |
 
 ---
 
@@ -161,8 +170,8 @@ Does every SRS requirement have a corresponding design section?
 **Document Status**: Ready for formal review
 
 **Review Checklist**:
-- [ ] All 29 SRS requirements traced to architecture
-- [ ] All 29 SRS requirements traced to test cases
+- [ ] All 32 SRS requirements traced to architecture
+- [ ] All 32 SRS requirements traced to test cases
 - [ ] All 7 hazards have risk controls traced to SRS-SAFE
 - [ ] Forward & backward traceability complete (100%)
 - [ ] No orphaned requirements or tests

@@ -13,7 +13,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "xpe/preprocess/xpe_preprocess_api.h"
+#include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
