@@ -171,7 +171,7 @@ namespace {
                     int count = 0;
                     for (int dy = -1; dy <= 1; ++dy) {
                         for (int dx = -1; dx <= 1; ++dx) {
-                            const size_t ni = (y + dy) * W + (x + dx);
+                            const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
                             if (ni < n && std::isfinite(px[ni])) {
                                 localMean += px[ni];
                                 ++count;

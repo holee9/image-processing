@@ -45,7 +45,7 @@ constexpr int32_t MAX_ULP_DIFFERENCE = 1;
  * @param b Second float value
  * @return ULP difference (INT32_MAX if signs differ or NaN present)
  */
-static inline int32_t ulp_difference(float a, float b) noexcept {
+[[maybe_unused]] static inline int32_t ulp_difference(float a, float b) noexcept {
     if (std::isnan(a) || std::isnan(b)) return INT32_MAX;
     if (a == b) return 0;
 
@@ -70,7 +70,7 @@ static inline int32_t ulp_difference(float a, float b) noexcept {
  * @param simd SIMD path result
  * @return true if values match within 1 ULP
  */
-static inline bool check_parity(float scalar, float simd) noexcept {
+[[maybe_unused]] static inline bool check_parity(float scalar, float simd) noexcept {
     // Allow NaN/Inf to match exactly
     if (std::isnan(scalar) && std::isnan(simd)) return true;
     if (std::isinf(scalar) && std::isinf(simd)) return true;
@@ -118,7 +118,7 @@ static inline float apply_gain_scalar(uint16_t input, float reciprocal_gain) noe
  * @param reciprocal_gain Reciprocal gain value (broadcast to all 8 lanes)
  * @return Vector of 8 corrected float32 values
  */
-static inline __m256 apply_gain_fma(__m128i input, float reciprocal_gain) noexcept {
+[[maybe_unused]] static inline __m256 apply_gain_fma(__m128i input, float reciprocal_gain) noexcept {
     // Convert uint16 to float32 (8 uint16 -> 8 float32)
     // First: uint16 -> uint32 (zero extend)
     __m256i u32_lo = _mm256_cvtepu16_epi32(input);     // Lower 4 values

@@ -172,7 +172,7 @@ bool xpe_has_avx512f() noexcept
 
     // Check ZMM/YMM/XMM state saved by OS (XGETBV bits 7:5, 2:1, 0)
     unsigned long long xcr_mask = _xgetbv(0);
-    return (xcr_mask & 0xE6) == 0xE6;
+    return (xcr_mask & 0xE6ULL) == 0xE6ULL;
 #else
     // GCC/Clang: use __builtin_cpu_supports
     return __builtin_cpu_supports("avx512f");

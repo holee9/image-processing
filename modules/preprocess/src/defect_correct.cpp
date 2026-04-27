@@ -62,7 +62,7 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
         }
     }
 
-    info.isCluster = info.positions.size() >= 2;
+    info.isCluster = info.positions.size() >= 2u;
     return info;
 }
 
@@ -95,7 +95,7 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
     if (values.empty()) return 0.0f;
 
     std::sort(values.begin(), values.end());
-    size_t mid = values.size() / 2;
+    size_t mid = values.size() / 2u;
     return values[mid];
 }
 
