@@ -103,7 +103,7 @@ bool detect_avx512f() noexcept
     unsigned long long xcr_mask = ((unsigned long long)xcr0_hi << 32) | xcr0_lo;
 #endif
     // ZMM state (bits 7:5), YMM state (bits 2:1), XMM state (bit 0)
-    return (xcr_mask & 0xE6) == 0xE6;
+    return (xcr_mask & 0xE6ULL) == 0xE6ULL;
 #else
     // Not x86/x64
     return false;
@@ -143,7 +143,7 @@ bool detect_avx2() noexcept
     unsigned long long xcr_mask = ((unsigned long long)xcr0_hi << 32) | xcr0_lo;
 #endif
     // YMM state (bits 2:1), XMM state (bit 0)
-    return (xcr_mask & 0x06) == 0x06;
+    return (xcr_mask & 0x06ULL) == 0x06ULL;
 #else
     // Not x86/x64
     return false;
