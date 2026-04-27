@@ -84,7 +84,7 @@ namespace {
         for (double v : values) {
             int bin = static_cast<int>((v - min_val) / bin_width);
             if (bin >= bins) bin = bins - 1;
-            hist[bin]++;
+            hist[static_cast<size_t>(bin)]++;
         }
 
         // Compute entropy
