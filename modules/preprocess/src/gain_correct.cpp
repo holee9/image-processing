@@ -169,7 +169,7 @@ static void apply_gain_avx2(
 
     // Process 8 pixels at a time (AVX2 width)
     const size_t vec_width = 8;
-    const size_t vec_end = pixel_count & ~(vec_width - 1);  // Round down to 8
+    const size_t vec_end = pixel_count & ~(vec_width - size_t{1});  // Round down to 8
 
     for (; i < vec_end; i += vec_width) {
         // Load 8 uint16 values

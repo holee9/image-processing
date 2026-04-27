@@ -46,10 +46,10 @@ namespace {
 
         // Use median for robust estimation
         size_t n = sorted.size();
-        if (n % 2 == 0) {
-            return (sorted[n/2 - 1] + sorted[n/2]) / 2.0;
+        if (n % 2u == 0u) {
+            return (sorted[n/2u - 1u] + sorted[n/2u]) / 2.0;
         } else {
-            return sorted[n/2];
+            return sorted[n/2u];
         }
     }
 

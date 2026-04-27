@@ -393,7 +393,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
 
         // --- Fit polynomial for each pixel ---
         size_t n_pixels = static_cast<size_t>(width) * height;
-        const size_t sMaxCoeffsPoly = static_cast<size_t>(max_degree) + 1;
+        const size_t sMaxCoeffsPoly = static_cast<size_t>(max_degree) + size_t{1};
 
         // Output: (degree+1) × W × H coefficient array
         // Store as [c0_pixel0, c1_pixel0, ..., cd_pixel0, c0_pixel1, ...]
@@ -415,8 +415,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             size_t final_degree = 1;
             std::vector<double> coeffs(sMaxCoeffsPoly);
 
-            for (size_t deg = sMaxDegree; deg >= 1; --deg) {
-                size_t n_coeffs = deg + 1;
+            for (size_t deg = sMaxDegree; deg >= size_t{1}; --deg) {
+                size_t n_coeffs = deg + size_t{1};
                 std::vector<double> temp_coeffs(n_coeffs);
 
                 XpeErrorCode rc = fit_polynomial_ls(
@@ -459,7 +459,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 coeff_array[offset + j] = static_cast<float>(coeffs[j]);
             }
             // Pad remaining coefficients with zeros
-            for (size_t j = final_degree + 1; j < sMaxCoeffsPoly; ++j) {
+            for (size_t j = final_degree + size_t{1}; j < sMaxCoeffsPoly; ++j) {
                 coeff_array[offset + j] = 0.0f;
             }
         }
