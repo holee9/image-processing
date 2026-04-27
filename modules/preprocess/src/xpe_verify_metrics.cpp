@@ -162,6 +162,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
     if (!raw_image || !corrected_image || !metrics) {
         return XPE_ERR_INVALID_INPUT;
     }
+    (void)metadata;
 
     // Clear output
     *metrics = {};
@@ -460,6 +461,7 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
     if (!raw_image || !final_image || !metrics) {
         return XPE_ERR_INVALID_INPUT;
     }
+    (void)metadata;
 
     // Clear output
     *metrics = {};
