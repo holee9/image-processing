@@ -78,7 +78,7 @@ namespace {
         if (max_val <= min_val) return 1.0; // All values identical → perfectly flat
 
         // Build histogram
-        std::vector<int> hist(bins, 0);
+        std::vector<int> hist(static_cast<size_t>(bins), 0);
         double bin_width = (max_val - min_val) / bins;
 
         for (double v : values) {

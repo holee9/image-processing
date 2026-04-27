@@ -66,32 +66,33 @@ static XpeErrorCode fit_polynomial_ls(
 
     // Build normal equations: A^T * A * coeffs = A^T * y
     // where A[i][j] = x[i]^j
-    int32_t M = degree + 1; // Number of coefficients
+    const size_t sM = static_cast<size_t>(degree + 1); // Number of coefficients (size_t)
+    const size_t sN = static_cast<size_t>(N);
 
     // Allocate augmented matrix [A^T*A | A^T*y] of size M x (M+1)
-    std::vector<std::vector<double>> aug(M, std::vector<double>(M + 1, 0.0));
+    std::vector<std::vector<double>> aug(sM, std::vector<double>(sM + 1, 0.0));
 
     // Compute A^T*A and A^T*y
-    for (int32_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < sN; ++i) {
         double x_pow = 1.0;
-        for (int32_t j = 0; j < M; ++j) {
+        for (size_t j = 0; j < sM; ++j) {
             // A^T*A[j][k] += x[i]^(j+k)
             double x_pow_j = x_pow;
-            for (int32_t k = 0; k < M; ++k) {
-                aug[j][k] += x_pow_j * std::pow(x[i], k);
+            for (size_t k = 0; k < sM; ++k) {
+                aug[j][k] += x_pow_j * std::pow(x[i], static_cast<double>(k));
             }
             // A^T*y[j] += x[i]^j * y[i]
-            aug[j][M] += x_pow_j * y[i];
+            aug[j][sM] += x_pow_j * y[i];
             x_pow *= x[i];
         }
     }
 
     // Gaussian elimination with partial pivoting
-    for (int32_t col = 0; col < M; ++col) {
+    for (size_t col = 0; col < sM; ++col) {
         // Find pivot row
-        int32_t pivot_row = col;
+        size_t pivot_row = col;
         double max_val = std::abs(aug[col][col]);
-        for (int32_t row = col + 1; row < M; ++row) {
+        for (size_t row = col + 1; row < sM; ++row) {
             if (std::abs(aug[row][col]) > max_val) {
                 max_val = std::abs(aug[row][col]);
                 pivot_row = row;
@@ -108,18 +109,18 @@ static XpeErrorCode fit_polynomial_ls(
         }
 
         // Eliminate column
-        for (int32_t row = col + 1; row < M; ++row) {
+        for (size_t row = col + 1; row < sM; ++row) {
             double factor = aug[row][col] / aug[col][col];
-            for (int32_t j = col; j <= M; ++j) {
+            for (size_t j = col; j <= sM; ++j) {
                 aug[row][j] -= factor * aug[col][j];
             }
         }
     }
 
-    // Back substitution
-    for (int32_t i = M - 1; i >= 0; --i) {
-        double sum = aug[i][M];
-        for (int32_t j = i + 1; j < M; ++j) {
+    // Back substitution (reverse loop using size_t idiom)
+    for (size_t i = sM; i-- > 0; ) {
+        double sum = aug[i][sM];
+        for (size_t j = i + 1; j < sM; ++j) {
             sum -= aug[i][j] * coeffs_out[j];
         }
         coeffs_out[i] = sum / aug[i][i];
@@ -350,12 +351,13 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         }
 
         // --- Load all gain maps ---
-        std::vector<std::vector<float>> gain_maps(num_levels);
-        std::vector<XCalFileHeader> headers(num_levels);
+        std::vector<std::vector<float>> gain_maps(static_cast<size_t>(num_levels));
+        std::vector<XCalFileHeader> headers(static_cast<size_t>(num_levels));
         uint32_t width = 0;
         uint32_t height = 0;
 
-        for (int32_t i = 0; i < num_levels; ++i) {
+        const size_t sLevels = static_cast<size_t>(num_levels);
+        for (size_t i = 0; i < sLevels; ++i) {
             if (gain_file_paths[i] == nullptr) {
                 return XPE_ERR_INVALID_INPUT;
             }
@@ -384,39 +386,42 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             }
 
             // Extract float32 payload
-            size_t n_pixels = static_cast<size_t>(width) * height;
+            size_t n_pixels_frame = static_cast<size_t>(width) * height;
             const float* data = reinterpret_cast<const float*>(payload.data());
-            gain_maps[i].assign(data, data + n_pixels);
+            gain_maps[i].assign(data, data + n_pixels_frame);
         }
 
         // --- Fit polynomial for each pixel ---
         size_t n_pixels = static_cast<size_t>(width) * height;
-        int32_t max_coeffs = max_degree + 1;
+        const size_t sMaxCoeffsPoly = static_cast<size_t>(max_degree) + 1;
 
         // Output: (degree+1) × W × H coefficient array
         // Store as [c0_pixel0, c1_pixel0, ..., cd_pixel0, c0_pixel1, ...]
-        std::vector<float> coeff_array(n_pixels * max_coeffs);
+        std::vector<float> coeff_array(n_pixels * sMaxCoeffsPoly);
 
         // For each pixel: fit polynomial with degree reduction if needed
+        const size_t sNumLevels = static_cast<size_t>(num_levels);
+        const size_t sMaxDegree = static_cast<size_t>(max_degree);
+
         for (size_t pix = 0; pix < n_pixels; ++pix) {
             // Extract gain values across dose levels for this pixel
-            std::vector<double> y_vals(num_levels);
-            for (int32_t i = 0; i < num_levels; ++i) {
+            std::vector<double> y_vals(sNumLevels);
+            for (size_t i = 0; i < sNumLevels; ++i) {
                 y_vals[i] = static_cast<double>(gain_maps[i][pix]);
             }
 
             // Try fitting from max_degree down to degree 1
             bool fit_success = false;
-            int32_t final_degree = 1;
-            std::vector<double> coeffs(max_coeffs);
+            size_t final_degree = 1;
+            std::vector<double> coeffs(sMaxCoeffsPoly);
 
-            for (int32_t deg = max_degree; deg >= 1; --deg) {
-                int32_t n_coeffs = deg + 1;
+            for (size_t deg = sMaxDegree; deg >= 1; --deg) {
+                size_t n_coeffs = deg + 1;
                 std::vector<double> temp_coeffs(n_coeffs);
 
                 XpeErrorCode rc = fit_polynomial_ls(
                     dose_levels, y_vals.data(),
-                    num_levels, deg,
+                    num_levels, static_cast<int32_t>(deg),
                     temp_coeffs.data());
 
                 if (rc != XPE_OK) {
@@ -428,7 +433,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 double dose_max = dose_levels[num_levels - 1];
 
                 if (validate_monotonicity(
-                    temp_coeffs.data(), deg,
+                    temp_coeffs.data(), static_cast<int32_t>(deg),
                     dose_min, dose_max))
                 {
                     // Success: copy coefficients
@@ -443,18 +448,18 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             if (!fit_success) {
                 // Fallback: linear fit through first and last points
                 coeffs[0] = y_vals[0];
-                coeffs[1] = (y_vals[num_levels - 1] - y_vals[0]) /
+                coeffs[1] = (y_vals[sNumLevels - 1] - y_vals[0]) /
                            (dose_levels[num_levels - 1] - dose_levels[0]);
                 final_degree = 1;
             }
 
             // Store coefficients in output array
-            size_t offset = pix * max_coeffs;
-            for (int32_t j = 0; j <= final_degree; ++j) {
+            size_t offset = pix * sMaxCoeffsPoly;
+            for (size_t j = 0; j <= final_degree; ++j) {
                 coeff_array[offset + j] = static_cast<float>(coeffs[j]);
             }
             // Pad remaining coefficients with zeros
-            for (int32_t j = final_degree + 1; j < max_coeffs; ++j) {
+            for (size_t j = final_degree + 1; j < sMaxCoeffsPoly; ++j) {
                 coeff_array[offset + j] = 0.0f;
             }
         }
@@ -474,8 +479,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         hdr.height           = height;
         hdr.created_epoch_ms = now_ms;
         hdr.expiry_epoch_ms  = 0; // never expires
-        hdr.payload_len      = static_cast<uint64_t>(n_pixels * max_coeffs) *
-                               sizeof(float);
+        hdr.payload_len      = static_cast<uint64_t>(n_pixels * sMaxCoeffsPoly) * sizeof(float);
 
         // session_id: "generated" (null-padded)
         std::memcpy(hdr.session_id, "generated\0", 10);
@@ -485,7 +489,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         std::snprintf(meta, sizeof(meta),
             "{\"polynomial_degree\":%d,\"num_coefficients\":%d,\"num_dose_levels\":%d}",
             static_cast<int>(max_degree),
-            static_cast<int>(max_coeffs),
+            static_cast<int>(sMaxCoeffsPoly),
             static_cast<int>(num_levels));
         meta[sizeof(meta) - 1] = '\0';
 
