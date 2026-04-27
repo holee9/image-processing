@@ -217,6 +217,9 @@ dist-ssr/
 # C/C++ Build (XPE Native Modules)
 # ============================================
 cmake-build-*/
+build-debug/
+build-parity/
+buildsimd-parity/
 build_test/
 build_test2/
 build_test3/
