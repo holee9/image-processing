@@ -17,7 +17,7 @@ static uint32_t crc32_table[256] = {0};
 static bool     crc32_table_init = false;
 
 static void init_crc32_table() {
-    for (uint32_t i = 0; i < 256; ++i) {
+    for (uint32_t i = 0; i < 256u; ++i) {
         uint32_t c = i;
         for (int j = 0; j < 8; ++j)
             c = (c & 1u) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
