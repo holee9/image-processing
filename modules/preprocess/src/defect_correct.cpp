@@ -144,8 +144,8 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     }
     if (!hasDefects) {
         output->format        = XPE_PIXEL_FLOAT32;
-        output->bitsAllocated = 32;
-        output->bitsStored    = 32;
+        output->bitsAllocated = 32u;
+        output->bitsStored    = 32u;
         output->dataSize      = n * sizeof(float);
         return XPE_OK;
     }
@@ -176,8 +176,8 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     }
 
     output->format        = XPE_PIXEL_FLOAT32;
-    output->bitsAllocated = 32;
-    output->bitsStored    = 32;
+    output->bitsAllocated = 32u;
+    output->bitsStored    = 32u;
     output->dataSize      = n * sizeof(float);
     return XPE_OK;
 }

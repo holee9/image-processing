@@ -279,8 +279,8 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
         apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);
 
     output->format        = XPE_PIXEL_FLOAT32;
-    output->bitsAllocated = 32;
-    output->bitsStored    = 32;
+    output->bitsAllocated = 32u;
+    output->bitsStored    = 32u;
     output->dataSize      = n * sizeof(float);
     return XPE_OK;
 }

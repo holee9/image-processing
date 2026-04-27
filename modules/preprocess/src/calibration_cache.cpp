@@ -189,8 +189,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
         const size_t pixelCount = static_cast<size_t>(g_calib.offset_width) * g_calib.offset_height;
         offsetMapOut->width         = g_calib.offset_width;
         offsetMapOut->height        = g_calib.offset_height;
-        offsetMapOut->bitsAllocated = 32;
-        offsetMapOut->bitsStored    = 32;
+        offsetMapOut->bitsAllocated = 32u;
+        offsetMapOut->bitsStored    = 32u;
         offsetMapOut->format        = XPE_PIXEL_FLOAT32;
         offsetMapOut->dataSize      = pixelCount * sizeof(float);
 
@@ -246,8 +246,8 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
         const size_t pixelCount = static_cast<size_t>(g_calib.gain_width) * g_calib.gain_height;
         gainMapOut->width         = g_calib.gain_width;
         gainMapOut->height        = g_calib.gain_height;
-        gainMapOut->bitsAllocated = 32;
-        gainMapOut->bitsStored    = 32;
+        gainMapOut->bitsAllocated = 32u;
+        gainMapOut->bitsStored    = 32u;
         gainMapOut->format        = XPE_PIXEL_FLOAT32;
         gainMapOut->dataSize      = pixelCount * sizeof(float);
 
@@ -297,8 +297,8 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
         const size_t pixelCount = static_cast<size_t>(g_calib.defect_width) * g_calib.defect_height;
         defectMapOut->width         = g_calib.defect_width;
         defectMapOut->height        = g_calib.defect_height;
-        defectMapOut->bitsAllocated = 8;
-        defectMapOut->bitsStored    = 8;
+        defectMapOut->bitsAllocated = 8u;
+        defectMapOut->bitsStored    = 8u;
         defectMapOut->format        = XPE_PIXEL_UINT8;
         defectMapOut->dataSize      = pixelCount * sizeof(uint8_t);
 

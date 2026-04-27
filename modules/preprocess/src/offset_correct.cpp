@@ -268,8 +268,8 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     }
 
     output->format        = XPE_PIXEL_UINT16;
-    output->bitsAllocated = 16;
-    output->bitsStored    = 16;
+    output->bitsAllocated = 16u;
+    output->bitsStored    = 16u;
     output->dataSize      = n * sizeof(uint16_t);
     return XPE_OK;
 }

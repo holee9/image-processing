@@ -55,7 +55,7 @@ namespace {
 
     // Helper: Compute standard deviation
     double compute_std(const std::vector<double>& values, double mean) noexcept {
-        if (values.size() <= 1) return 0.0;
+        if (values.size() <= 1u) return 0.0;
 
         double sum_sq_diff = 0.0;
         for (double v : values) {
