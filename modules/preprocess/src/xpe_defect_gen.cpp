@@ -208,14 +208,14 @@ float compute_median(std::vector<float>& values) noexcept {
 
     if (n % 2 == 0) {
         // Even number: average of two middle values
-        std::nth_element(values.begin(), values.begin() + mid - 1, values.end());
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid) - 1, values.end());
         const float v1 = values[mid - 1];
-        std::nth_element(values.begin(), values.begin() + mid, values.end());
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
         const float v2 = values[mid];
         return (v1 + v2) * 0.5f;
     } else {
         // Odd number: middle value
-        std::nth_element(values.begin(), values.begin() + mid, values.end());
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
         return values[mid];
     }
 }
