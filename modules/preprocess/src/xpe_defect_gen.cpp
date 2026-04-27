@@ -362,7 +362,7 @@ void merge_bpm(const std::vector<uint8_t>& dark_bpm,
 
     for (size_t i = 0; i < num_pixels; ++i) {
         // Merge using logical OR: 0, 1, 2, or 3 (both)
-        bpm_out[i] = dark_bpm[i] | bright_bpm[i];
+        bpm_out[i] = static_cast<uint8_t>(dark_bpm[i] | bright_bpm[i]);
     }
 }
 

@@ -82,7 +82,7 @@ struct CalibFileHeader {
     uint32_t payloadCrc32;   // CRC-32 of pixel data
     uint32_t reserved[7];    // pad to 64 bytes
 };
-static_assert(sizeof(CalibFileHeader) == 64, "CalibFileHeader must be 64 bytes");
+static_assert(sizeof(CalibFileHeader) == 64u, "CalibFileHeader must be 64 bytes");
 
 /* =========================================================================
  * Bilinear interpolation helper (SWU-1.3 defect pixel correction)

@@ -448,7 +448,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             if (!fit_success) {
                 // Fallback: linear fit through first and last points
                 coeffs[0] = y_vals[0];
-                coeffs[1] = (y_vals[sNumLevels - 1] - y_vals[0]) /
+                coeffs[1] = (y_vals[sNumLevels - size_t{1}] - y_vals[0]) /
                            (dose_levels[num_levels - 1] - dose_levels[0]);
                 final_degree = 1;
             }
