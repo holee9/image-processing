@@ -28,13 +28,6 @@ dist/
 *.egg-info/
 *.egg
 
-# Test run artifacts (TRX, per-run logs)
-artifacts/
-
-# Standalone module build trees (CMake -S modules/X -B build_standalone)
-build_standalone/
-modules/**/build_standalone/
-
 # ===========================================
 # Python Cache & Bytecode
 # ===========================================
@@ -67,7 +60,6 @@ env/
 .coverage
 coverage.json
 htmlcov/
-build_coverage/
 
 # ===========================================
 # IDE & Editors
@@ -82,6 +74,7 @@ build_coverage/
 *.sublime-project
 *.sublime-workspace
 *.njsproj
+*.sln
 *.suo
 .#*
 
@@ -112,7 +105,6 @@ ehthumbs.db
 # ===========================================
 *.log
 logs/
-.cache/
 *.tmp
 *.temp
 *.bak
@@ -165,7 +157,7 @@ secret-*.*
 
 # ===========================================
 # Claude Code Configuration
-# ============================================
+# ===========================================
 .claude/settings.local.json
 .claude/settings.local.*.json
 .claude/.env.local*
@@ -185,10 +177,17 @@ secret-*.*
 
 # ===========================================
 # Local-Only Files (never sync via git pull)
-# ============================================
+# ===========================================
 .moai/status_line.sh
 .moai/memory/
 .moai/worktrees/
+
+# ===========================================
+# Evolution Telemetry (local-only usage data)
+# Learnings and new-skills are git-tracked for team sharing.
+# ===========================================
+.moai/evolution/telemetry/*.jsonl
+!.moai/evolution/telemetry/.gitkeep
 
 # ===========================================
 # Node.js (for docs/Nextra)
@@ -213,9 +212,12 @@ dist-ssr/
 .netlify/
 .firebase/
 
-# ===========================================
-# C/C++ Build (XPE Native Modules)
-# ============================================
+# User Custom Patterns (preserved by moai update)
+artifacts/
+build_standalone/
+modules/**/build_standalone/
+build_coverage/
+.cache/
 cmake-build-*/
 build_test/
 build_test2/
@@ -232,14 +234,8 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
-
-# Module test directories
 modules/*/tests/
 modules/*/build/
-
-# ===========================================
-# C# / .NET (ImageProcTest GUI)
-# ===========================================
 gui/**/bin/
 gui/**/obj/
 clients/**/bin/
@@ -249,37 +245,13 @@ gui/**/*.user
 !gui/**/*.sln
 gui/**/artifacts/
 gui/**/test_data/
-
-# ===========================================
-# .NET CLI
-# ===========================================
 .dotnet-cli/
-
-# ===========================================
-# Test Results
-# ===========================================
 test_results.json
 *.trx
 TestResults/
-
-# ===========================================
-# MCP Configuration
-# ===========================================
 .mcp.json
-
-# ===========================================
-# Claude Code Runtime
-# ============================================
 .claude/scheduled_tasks.lock
-
-# ===========================================
-# ONNX Models (use git-lfs or CI fetch)
-# ===========================================
 data/models/*.onnx
-
-# ===========================================
-# Test Data (large binary files)
-# ===========================================
 tests/test_data/*.raw
 tests/test_data/*.dcm
 tests/test_data/**/*.raw
@@ -288,18 +260,10 @@ tests/test_data/**/*.map
 tests/test_data/**/*.pptx
 tests/test_data/**/Cluster_position.txt
 tests/test_data/**/PositionMap.raw
-
-# ===========================================
-# MoAI Runtime (keep config, ignore runtime)
-# ============================================
 .moai/logs/
 .moai/state/
 .moai/reports/
 .moai/plans/
-
-# ===========================================
-# XPE Dev Workspace & Build Scripts
-# ============================================
 _workspace/
 build_collimation_test/
 build_collimation_test2/
@@ -312,8 +276,6 @@ run_tests.bat
 build-and-test.ps1
 build-result.txt
 .moai/docs/MCP_OAUTH_SETUP.md
-
-# E2E and temporary build scripts
 *_build.bat
 *_build.sh
 *_build.ps1

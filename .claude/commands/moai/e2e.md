@@ -1,6 +1,7 @@
 ---
-description: Chrome, Playwright 또는 Agent Browser로 E2E 테스트 생성 및 실행
+description: Create and run E2E tests with Chrome, Playwright, or Agent Browser
 argument-hint: "[--record] [--url URL] [--journey NAME]"
+allowed-tools: Skill
 ---
 
 Use Skill("moai") with arguments: e2e $ARGUMENTS
