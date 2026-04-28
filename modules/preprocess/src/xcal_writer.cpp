@@ -118,7 +118,7 @@ XpeErrorCode write_xcal_file_ex(
         // RLE compression for DEFECT maps
         std::vector<uint8_t> compressed_buf;
         if (compress_defect &&
-            hdr_template.type == XCAL_TYPE_DEFECT &&
+            hdr_template.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) &&
             payload != nullptr &&
             payload_len > 0)
         {

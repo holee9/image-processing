@@ -69,14 +69,6 @@ struct GhostCorrectorHandle {
 };
 
 /* =========================================================================
- * CRC-32 helpers (SWU-1.5 calibration manager)
- * REQ-P1A-036
- * ========================================================================= */
-
-// @MX:NOTE: [AUTO] CRC-32/ISO-HDLC (polynomial 0xEDB88320) — matches Python bindings
-uint32_t xpe_crc32(const uint8_t* data, size_t len) noexcept;
-
-/* =========================================================================
  * Calibration file I/O helpers
  * ========================================================================= */
 
@@ -90,7 +82,7 @@ struct CalibFileHeader {
     uint32_t payloadCrc32;   // CRC-32 of pixel data
     uint32_t reserved[7];    // pad to 64 bytes
 };
-static_assert(sizeof(CalibFileHeader) == 64, "CalibFileHeader must be 64 bytes");
+static_assert(sizeof(CalibFileHeader) == 64u, "CalibFileHeader must be 64 bytes");
 
 /* =========================================================================
  * Bilinear interpolation helper (SWU-1.3 defect pixel correction)

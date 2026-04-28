@@ -178,8 +178,8 @@ namespace {
             stage4Data.resize(pixelCount);
             stage4.width = img->width;
             stage4.height = img->height;
-            stage4.bitsAllocated = 32;
-            stage4.bitsStored = 32;
+            stage4.bitsAllocated = 32u;
+            stage4.bitsStored = 32u;
             stage4.format = XPE_PIXEL_FLOAT32;
             stage4.data = stage4Data.data();
             stage4.dataSize = stage4Data.size() * sizeof(float);
@@ -203,8 +203,8 @@ namespace {
             stage5Data.resize(pixelCount);
             stage5.width = img->width;
             stage5.height = img->height;
-            stage5.bitsAllocated = 32;
-            stage5.bitsStored = 32;
+            stage5.bitsAllocated = 32u;
+            stage5.bitsStored = 32u;
             stage5.format = XPE_PIXEL_FLOAT32;
             stage5.data = stage5Data.data();
             stage5.dataSize = stage5Data.size() * sizeof(float);
@@ -223,8 +223,8 @@ namespace {
             stage6Data.resize(pixelCount);
             stage6.width = img->width;
             stage6.height = img->height;
-            stage6.bitsAllocated = 32;
-            stage6.bitsStored = 32;
+            stage6.bitsAllocated = 32u;
+            stage6.bitsStored = 32u;
             stage6.format = XPE_PIXEL_FLOAT32;
             stage6.data = stage6Data.data();
             stage6.dataSize = stage6Data.size() * sizeof(float);
@@ -244,8 +244,8 @@ namespace {
             stage7Data.resize(pixelCount);
             stage7.width = img->width;
             stage7.height = img->height;
-            stage7.bitsAllocated = 32;
-            stage7.bitsStored = 32;
+            stage7.bitsAllocated = 32u;
+            stage7.bitsStored = 32u;
             stage7.format = XPE_PIXEL_FLOAT32;
             stage7.data = stage7Data.data();
             stage7.dataSize = stage7Data.size() * sizeof(float);

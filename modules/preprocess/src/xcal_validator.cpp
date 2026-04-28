@@ -23,9 +23,9 @@
  */
 size_t xcal_bytes_per_pixel(uint32_t fmt) {
     switch (fmt) {
-        case XCAL_FMT_UINT16:    return sizeof(uint16_t);  // 2
-        case XCAL_FMT_FLOAT32:   return sizeof(float);     // 4
-        case XCAL_FMT_UINT8_MASK: return sizeof(uint8_t);  // 1
+        case static_cast<uint32_t>(XCAL_FMT_UINT16):    return sizeof(uint16_t);  // 2
+        case static_cast<uint32_t>(XCAL_FMT_FLOAT32):   return sizeof(float);     // 4
+        case static_cast<uint32_t>(XCAL_FMT_UINT8_MASK): return sizeof(uint8_t); // 1
         default:                 return 0;
     }
 }
@@ -62,12 +62,12 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     }
 
     // Check 3: type range
-    if (header.type > XCAL_TYPE_DEFECT) {
+    if (header.type > static_cast<uint32_t>(XCAL_TYPE_DEFECT)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
     // Check 4: pixel_format range
-    if (header.pixel_format > XCAL_FMT_UINT8_MASK) {
+    if (header.pixel_format > static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
@@ -75,13 +75,13 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     //   OFFSET -> FLOAT32 (computed mean of UINT16 dark frames)
     //   GAIN   -> FLOAT32 (reciprocal gain map)
     //   DEFECT -> UINT8_MASK (boolean bad-pixel map)
-    if (header.type == XCAL_TYPE_OFFSET && header.pixel_format != XCAL_FMT_FLOAT32) {
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_OFFSET) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_FLOAT32)) {
         return XPE_ERR_CONFIG_INVALID;
     }
-    if (header.type == XCAL_TYPE_GAIN && header.pixel_format != XCAL_FMT_FLOAT32) {
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_FLOAT32)) {
         return XPE_ERR_CONFIG_INVALID;
     }
-    if (header.type == XCAL_TYPE_DEFECT && header.pixel_format != XCAL_FMT_UINT8_MASK) {
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 

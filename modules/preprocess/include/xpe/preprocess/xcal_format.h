@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-/* XCal calibration type codes */
+/** @brief XCal calibration data type selector. */
 typedef enum XCalType {
     XCAL_TYPE_OFFSET     = 0,  /* Dark/offset map (FLOAT32 payload) */
     XCAL_TYPE_GAIN       = 1,  /* Gain/flat-field map (FLOAT32 payload) */
@@ -44,26 +44,28 @@ typedef enum XCalType {
     XCAL_TYPE_GAIN_POLY  = 3   /* Gain polynomial coefficients (FLOAT32 payload) */
 } XCalType;
 
-/* XCal payload pixel format codes */
+/** @brief XCal payload pixel format codes. */
 typedef enum XCalPixelFormat {
     XCAL_FMT_UINT16    = 0,  /* 16-bit unsigned integer */
     XCAL_FMT_FLOAT32   = 1,  /* 32-bit IEEE 754 float */
     XCAL_FMT_UINT8_MASK = 2  /* 8-bit boolean mask (defect map) */
 } XCalPixelFormat;
 
-/* XCal v1 magic string (4 bytes, no NUL terminator in file) */
+/** @brief XCal v1 file magic identifier ("XCAL", 4 bytes, no NUL terminator). */
 #define XCAL_MAGIC "XCAL"
+/** @brief XCal file format version number (= 1). */
 #define XCAL_VERSION 1u
 
-/* Maximum allowed dimensions per axis (prevents runaway allocation) */
+/** @brief Maximum allowed image dimension per axis in pixels (prevents runaway allocation). */
 #define XCAL_MAX_DIM 4096u
 
-/* Maximum config JSON length (sanity cap: 1 MB) */
+/** @brief Maximum config JSON blob length in bytes (sanity cap: 1 MB). */
 #define XCAL_MAX_CONFIG_JSON_LEN (1024u * 1024u)
 
-/* Compression method constants (stored in config_json metadata) */
-#define XCAL_COMPRESSION_NONE 0u  /* No compression (default) */
-#define XCAL_COMPRESSION_RLE  1u  /* Run-Length Encoding (defect maps only) */
+/** @brief No payload compression (default). */
+#define XCAL_COMPRESSION_NONE 0u
+/** @brief Run-Length Encoding payload compression (defect maps only). */
+#define XCAL_COMPRESSION_RLE  1u
 
 /*
  * Compression metadata convention (stored inside config_json):
@@ -126,19 +128,19 @@ typedef struct XCalFileHeader {
  * Variable data starts at offset 0x98 = 152.
  */
 #ifdef __cplusplus
-static_assert(sizeof(XCalFileHeader) == 152,
+static_assert(sizeof(XCalFileHeader) == 152u,
     "XCalFileHeader must be exactly 152 bytes (pack=1 layout)");
-static_assert(offsetof(XCalFileHeader, version)          ==  4, "version offset");
-static_assert(offsetof(XCalFileHeader, type)             ==  8, "type offset");
-static_assert(offsetof(XCalFileHeader, pixel_format)     == 12, "pixel_format offset");
-static_assert(offsetof(XCalFileHeader, width)            == 16, "width offset");
-static_assert(offsetof(XCalFileHeader, height)           == 20, "height offset");
-static_assert(offsetof(XCalFileHeader, created_epoch_ms) == 24, "created_epoch_ms offset");
-static_assert(offsetof(XCalFileHeader, expiry_epoch_ms)  == 32, "expiry_epoch_ms offset");
-static_assert(offsetof(XCalFileHeader, session_id)       == 40, "session_id offset");
-static_assert(offsetof(XCalFileHeader, config_json_len)  == 104, "config_json_len offset");
-static_assert(offsetof(XCalFileHeader, payload_len)      == 112, "payload_len offset");
-static_assert(offsetof(XCalFileHeader, sha256)           == 120, "sha256 offset");
+static_assert(offsetof(XCalFileHeader, version)          ==  4u, "version offset");
+static_assert(offsetof(XCalFileHeader, type)             ==  8u, "type offset");
+static_assert(offsetof(XCalFileHeader, pixel_format)     == 12u, "pixel_format offset");
+static_assert(offsetof(XCalFileHeader, width)            == 16u, "width offset");
+static_assert(offsetof(XCalFileHeader, height)           == 20u, "height offset");
+static_assert(offsetof(XCalFileHeader, created_epoch_ms) == 24u, "created_epoch_ms offset");
+static_assert(offsetof(XCalFileHeader, expiry_epoch_ms)  == 32u, "expiry_epoch_ms offset");
+static_assert(offsetof(XCalFileHeader, session_id)       == 40u, "session_id offset");
+static_assert(offsetof(XCalFileHeader, config_json_len)  == 104u, "config_json_len offset");
+static_assert(offsetof(XCalFileHeader, payload_len)      == 112u, "payload_len offset");
+static_assert(offsetof(XCalFileHeader, sha256)           == 120u, "sha256 offset");
 #endif /* __cplusplus */
 
 #endif /* XPE_XCAL_FORMAT_H */

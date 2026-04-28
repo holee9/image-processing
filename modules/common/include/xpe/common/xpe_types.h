@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/** @brief DLL export/import visibility macro for the XPE public API. */
 #ifdef _WIN32
     #ifdef XPE_DLL_EXPORT
         #define XPE_API __declspec(dllexport)
@@ -124,21 +125,21 @@ typedef struct XpeImageMetadata {
 
 /* XpeImageBuffer size verification (Pack=8) */
 /* Layout: 5 scalar fields (20) + 4 bytes padding + data(8) + dataSize(8) = 40 bytes */
-static_assert(sizeof(XpeImageBuffer) == 40, "XpeImageBuffer must be 40 bytes for P/Invoke Pack=8 compatibility");
+static_assert(sizeof(XpeImageBuffer) == 40u, "XpeImageBuffer must be 40 bytes for P/Invoke Pack=8 compatibility");
 
 /* XpeImageMetadata size verification (Pack=8) */
 /* Layout: bodyPart(64) + 4 floats (16) + acquisitionTime(8) + flags(4) + 4 bytes tail padding = 96 bytes */
-static_assert(sizeof(XpeImageMetadata) == 96, "XpeImageMetadata must be 96 bytes for P/Invoke Pack=8 compatibility");
+static_assert(sizeof(XpeImageMetadata) == 96u, "XpeImageMetadata must be 96 bytes for P/Invoke Pack=8 compatibility");
 
 /* XpePixelFormat size verification (enum is 4 bytes in MSVC with Pack=8) */
-static_assert(sizeof(XpePixelFormat) == 4, "XpePixelFormat must be 4 bytes");
+static_assert(sizeof(XpePixelFormat) == 4u, "XpePixelFormat must be 4 bytes");
 
 /* Verify no padding between struct members (critical for C# marshaling) */
-static_assert(offsetof(XpeImageBuffer, width) == 0, "XpeImageBuffer.width offset must be 0");
-static_assert(offsetof(XpeImageBuffer, height) == 4, "XpeImageBuffer.height offset must be 4");
-static_assert(offsetof(XpeImageBuffer, data) == 24, "XpeImageBuffer.data offset must be 24");
-static_assert(offsetof(XpeImageMetadata, bodyPart) == 0, "XpeImageMetadata.bodyPart offset must be 0");
-static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80, "XpeImageMetadata.acquisitionTime offset must be 80");
+static_assert(offsetof(XpeImageBuffer, width) == 0u, "XpeImageBuffer.width offset must be 0");
+static_assert(offsetof(XpeImageBuffer, height) == 4u, "XpeImageBuffer.height offset must be 4");
+static_assert(offsetof(XpeImageBuffer, data) == 24u, "XpeImageBuffer.data offset must be 24");
+static_assert(offsetof(XpeImageMetadata, bodyPart) == 0u, "XpeImageMetadata.bodyPart offset must be 0");
+static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80u, "XpeImageMetadata.acquisitionTime offset must be 80");
 
 #endif
 

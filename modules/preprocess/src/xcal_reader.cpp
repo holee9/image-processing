@@ -152,10 +152,10 @@ XpeErrorCode read_xcal_file(
             if (hdr.version != XCAL_VERSION) {
                 return XPE_ERR_CONFIG_INVALID;
             }
-            if (hdr.type > XCAL_TYPE_DEFECT) {
+            if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_DEFECT)) {
                 return XPE_ERR_CONFIG_INVALID;
             }
-            if (hdr.pixel_format > XCAL_FMT_UINT8_MASK) {
+            if (hdr.pixel_format > static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {
                 return XPE_ERR_CONFIG_INVALID;
             }
             if (hdr.width == 0 || hdr.width > XCAL_MAX_DIM) {

@@ -64,7 +64,7 @@ constexpr ModeParams kModeParams[] = {
     /* XPE_CALIB_AUTO           */ {10, 3 }   // Adaptive (max 10, cubic)
 };
 
-static_assert(sizeof(kModeParams) / sizeof(kModeParams[0]) == 6,
+static_assert(sizeof(kModeParams) / sizeof(kModeParams[0]) == 6u,
               "Mode params table must have 6 entries");
 
 /* =============================================================================

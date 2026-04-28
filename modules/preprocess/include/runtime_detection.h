@@ -106,14 +106,14 @@ inline float ComputeMedian(std::vector<float>& values) {
     if (values.empty()) return 0.0f;
 
     size_t n = values.size();
-    size_t mid = n / 2;
+    size_t mid = n / 2u;
 
-    std::nth_element(values.begin(), values.begin() + mid, values.end());
+    std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
 
-    if (n % 2 == 0) {
+    if (n % 2u == 0u) {
         // Even number of elements: average of two middle values
         float median1 = values[mid];
-        float median2 = *std::max_element(values.begin(), values.begin() + mid);
+        float median2 = *std::max_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid));
         return (median1 + median2) * 0.5f;
     } else {
         // Odd number of elements: middle value
@@ -179,7 +179,7 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
     const float* pixels = static_cast<const float*>(img->data);
     for (int32_t y = startY; y <= endY; ++y) {
         for (int32_t x = startX; x <= endX; ++x) {
-            outValues.push_back(pixels[y * img->width + x]);
+            outValues.push_back(pixels[static_cast<uint32_t>(y) * img->width + static_cast<uint32_t>(x)]);
         }
     }
 }
