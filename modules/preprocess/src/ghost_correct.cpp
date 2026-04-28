@@ -162,16 +162,16 @@ namespace {
             float corrected = raw - a1 * gh->hist1[i] - a2 * gh->hist2[i];
 
             // Spatial context: blend with local neighborhood mean (3x3)
-            if (W >= 3 && H >= 3) {
+            if (W >= 3u && H >= 3u) {
                 const uint32_t x = static_cast<uint32_t>(i % W);
                 const uint32_t y = static_cast<uint32_t>(i / W);
 
-                if (x > 0 && x < W - 1 && y > 0 && y < H - 1) {
+                if (x > 0u && x < W - 1u && y > 0u && y < H - 1u) {
                     float localMean = 0.0f;
                     int count = 0;
                     for (int dy = -1; dy <= 1; ++dy) {
                         for (int dx = -1; dx <= 1; ++dx) {
-                            const size_t ni = (y + dy) * W + (x + dx);
+                            const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
                             if (ni < n && std::isfinite(px[ni])) {
                                 localMean += px[ni];
                                 ++count;

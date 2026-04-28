@@ -24,13 +24,13 @@ OUTPUT_DIRECTORY       = ../generated/doxygen
 # Input
 #---------------------------------------------------------------------------
 
-INPUT                  = ../../modules/common/include \
-                         ../../modules/preprocess/include \
-                         ../../modules/enhance_basic/include \
-                         ../../modules/display/include \
-                         ../../modules/dicom/include \
-                         ../../modules/enhance_advanced/include \
-                         ../../modules/gsvg/include
+INPUT                  = ../../../modules/common/include \
+                         ../../../modules/preprocess/include \
+                         ../../../modules/enhance_basic/include \
+                         ../../../modules/display/include \
+                         ../../../modules/dicom/include \
+                         ../../../modules/enhance_advanced/include \
+                         ../../../modules/gsvg/include
 
 FILE_PATTERNS          = *.h
 RECURSIVE              = YES
@@ -43,6 +43,10 @@ EXCLUDE_PATTERNS       = *internal* \
 
 EXCLUDE_SYMLINKS       = NO
 USE_MDFILE_AS_MAINPAGE =
+
+# Silence @MX:* custom project-internal annotation tags so they do not
+# generate "unknown command" warnings under WARN_AS_ERROR=FAIL_ON_WARNINGS.
+ALIASES                += "MX="
 
 #---------------------------------------------------------------------------
 # Output formats
@@ -67,8 +71,7 @@ XML_NS_MEMB_FILE_SCOPE = NO
 HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
 HTML_EXTRA_STYLESHEET  = doxygen-awesome/doxygen-awesome.css
-HTML_EXTRA_FILES       = doxygen-awesome/doxygen-awesome-sidebar-only.js \
-                         doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
+HTML_EXTRA_FILES       = doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
                          doxygen-awesome/doxygen-awesome-interactive-toc.js
 HTML_COLORSTYLE        = LIGHT
 HTML_COLORSTYLE_HUE    = 209

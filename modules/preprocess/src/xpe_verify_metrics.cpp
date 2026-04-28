@@ -46,16 +46,16 @@ namespace {
 
         // Use median for robust estimation
         size_t n = sorted.size();
-        if (n % 2 == 0) {
-            return (sorted[n/2 - 1] + sorted[n/2]) / 2.0;
+        if (n % 2u == 0u) {
+            return (sorted[n/2u - 1u] + sorted[n/2u]) / 2.0;
         } else {
-            return sorted[n/2];
+            return sorted[n/2u];
         }
     }
 
     // Helper: Compute standard deviation
     double compute_std(const std::vector<double>& values, double mean) noexcept {
-        if (values.size() <= 1) return 0.0;
+        if (values.size() <= 1u) return 0.0;
 
         double sum_sq_diff = 0.0;
         for (double v : values) {
@@ -78,13 +78,13 @@ namespace {
         if (max_val <= min_val) return 1.0; // All values identical → perfectly flat
 
         // Build histogram
-        std::vector<int> hist(bins, 0);
+        std::vector<int> hist(static_cast<size_t>(bins), 0);
         double bin_width = (max_val - min_val) / bins;
 
         for (double v : values) {
             int bin = static_cast<int>((v - min_val) / bin_width);
             if (bin >= bins) bin = bins - 1;
-            hist[bin]++;
+            hist[static_cast<size_t>(bin)]++;
         }
 
         // Compute entropy
@@ -162,6 +162,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
     if (!raw_image || !corrected_image || !metrics) {
         return XPE_ERR_INVALID_INPUT;
     }
+    (void)metadata;
 
     // Clear output
     *metrics = {};
@@ -460,6 +461,7 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
     if (!raw_image || !final_image || !metrics) {
         return XPE_ERR_INVALID_INPUT;
     }
+    (void)metadata;
 
     // Clear output
     *metrics = {};

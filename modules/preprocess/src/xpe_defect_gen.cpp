@@ -166,7 +166,7 @@ void extract_window_reflect(const float* image,
                             uint32_t cx, uint32_t cy,
                             uint32_t mask_size,
                             std::vector<float>& window_out) noexcept {
-    const int half_size = static_cast<int>(mask_size / 2);
+    const int half_size = static_cast<int>(mask_size / 2u);
     const int actual_size = 2 * half_size + 1;
     window_out.resize(static_cast<size_t>(actual_size) * static_cast<size_t>(actual_size));
 
@@ -204,18 +204,18 @@ float compute_median(std::vector<float>& values) noexcept {
     if (values.empty()) return 0.0f;
 
     const size_t n = values.size();
-    const size_t mid = n / 2;
+    const size_t mid = n / 2u;
 
-    if (n % 2 == 0) {
+    if (n % 2u == 0u) {
         // Even number: average of two middle values
-        std::nth_element(values.begin(), values.begin() + mid - 1, values.end());
-        const float v1 = values[mid - 1];
-        std::nth_element(values.begin(), values.begin() + mid, values.end());
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid) - 1, values.end());
+        const float v1 = values[mid - 1u];
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
         const float v2 = values[mid];
         return (v1 + v2) * 0.5f;
     } else {
         // Odd number: middle value
-        std::nth_element(values.begin(), values.begin() + mid, values.end());
+        std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
         return values[mid];
     }
 }
@@ -362,7 +362,7 @@ void merge_bpm(const std::vector<uint8_t>& dark_bpm,
 
     for (size_t i = 0; i < num_pixels; ++i) {
         // Merge using logical OR: 0, 1, 2, or 3 (both)
-        bpm_out[i] = dark_bpm[i] | bright_bpm[i];
+        bpm_out[i] = static_cast<uint8_t>(dark_bpm[i] | bright_bpm[i]);
     }
 }
 

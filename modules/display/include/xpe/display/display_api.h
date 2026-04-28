@@ -138,7 +138,10 @@ typedef struct XpePresentationLutParams {
  * Version
  * ========================================================================= */
 
-/** @brief Returns the xpe_display module version string (e.g. "1.0.0"). */
+/**
+ * @brief Returns the xpe_display module version string (e.g. "1.0.0").
+ * @return Null-terminated version string. Lifetime: process. Never NULL.
+ */
 XPE_API const char* xpe_display_version(void);
 
 /* =========================================================================

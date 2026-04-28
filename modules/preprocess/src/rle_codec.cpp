@@ -14,10 +14,10 @@
 
 // Little-endian write of uint32_t
 static inline void write_u32_le(uint8_t* dst, uint32_t val) {
-    dst[0] = static_cast<uint8_t>(val & 0xFF);
-    dst[1] = static_cast<uint8_t>((val >> 8) & 0xFF);
-    dst[2] = static_cast<uint8_t>((val >> 16) & 0xFF);
-    dst[3] = static_cast<uint8_t>((val >> 24) & 0xFF);
+    dst[0] = static_cast<uint8_t>(val & 0xFFu);
+    dst[1] = static_cast<uint8_t>((val >> 8) & 0xFFu);
+    dst[2] = static_cast<uint8_t>((val >> 16) & 0xFFu);
+    dst[3] = static_cast<uint8_t>((val >> 24) & 0xFFu);
 }
 
 // Little-endian read of uint32_t
@@ -44,7 +44,7 @@ int rle_encode(const uint8_t* data, size_t len, std::vector<uint8_t>& out) {
     try {
         // Worst case: 5 bytes per input byte. Reserve conservatively.
         // For typical defect maps (mostly zeros), compression ratio is >99%.
-        const size_t reserve_hint = (len < 1024) ? (len * 5) : 4096;
+        const size_t reserve_hint = (len < size_t{1024}) ? (len * size_t{5}) : size_t{4096};
         out.reserve(reserve_hint);
 
         uint8_t  current_val = data[0];
@@ -57,9 +57,9 @@ int rle_encode(const uint8_t* data, size_t len, std::vector<uint8_t>& out) {
             } else {
                 // Emit run: [value][count_le32]
                 size_t pos = out.size();
-                out.resize(pos + 5);
+                out.resize(pos + size_t{5});
                 out[pos] = current_val;
-                write_u32_le(&out[pos + 1], run_count);
+                write_u32_le(&out[pos + size_t{1}], run_count);
 
                 current_val = data[i];
                 run_count   = 1;
@@ -69,9 +69,9 @@ int rle_encode(const uint8_t* data, size_t len, std::vector<uint8_t>& out) {
         // Emit final run
         {
             size_t pos = out.size();
-            out.resize(pos + 5);
+            out.resize(pos + size_t{5});
             out[pos] = current_val;
-            write_u32_le(&out[pos + 1], run_count);
+            write_u32_le(&out[pos + size_t{1}], run_count);
         }
 
         return XPE_OK;
@@ -96,7 +96,7 @@ int rle_decode(const uint8_t* encoded, size_t enc_len,
 
     try {
         // Validate: encoded length must be a multiple of 5
-        if (enc_len % 5 != 0) {
+        if (enc_len % size_t{5} != 0u) {
             return XPE_ERR_CONFIG_INVALID;
         }
 
@@ -106,9 +106,9 @@ int rle_decode(const uint8_t* encoded, size_t enc_len,
         }
 
         size_t decoded_total = 0;
-        for (size_t i = 0; i < enc_len; i += 5) {
+        for (size_t i = 0; i < enc_len; i += size_t{5}) {
             uint8_t  value = encoded[i];
-            uint32_t count = read_u32_le(&encoded[i + 1]);
+            uint32_t count = read_u32_le(&encoded[i + size_t{1}]);
 
             // Overflow check
             if (decoded_total + count < decoded_total) {
@@ -147,12 +147,12 @@ int rle_decoded_size(const uint8_t* encoded, size_t enc_len, size_t& out_size) {
     }
 
     // Validate: encoded length must be a multiple of 5
-    if (enc_len % 5 != 0) {
+    if (enc_len % size_t{5} != 0u) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
-    for (size_t i = 0; i < enc_len; i += 5) {
-        uint32_t count = read_u32_le(&encoded[i + 1]);
+    for (size_t i = 0; i < enc_len; i += size_t{5}) {
+        uint32_t count = read_u32_le(&encoded[i + size_t{1}]);
 
         // Overflow check
         if (out_size + count < out_size) {
