@@ -8,9 +8,10 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <mutex>
 
 // @MX:NOTE: [AUTO] AVX2 intrinsics header — conditional include based on _MSC_VER
@@ -34,6 +35,16 @@ void offset_correct_scalar(uint16_t* dst, const uint16_t* off, size_t n) noexcep
 {
     for (size_t i = 0; i < n; ++i)
         dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
+}
+
+void offset_correct_float_scalar(const uint16_t* src, const float* off, uint16_t* dst, size_t n) noexcept
+{
+    for (size_t i = 0; i < n; ++i) {
+        float v = static_cast<float>(src[i]) - off[i];
+        if (v < 0.0f) v = 0.0f;
+        if (v > 65535.0f) v = 65535.0f;
+        dst[i] = static_cast<uint16_t>(v + 0.5f);
+    }
 }
 
 /* =========================================================================
@@ -124,6 +135,34 @@ void offset_correct_avx2(uint16_t* dst, const uint16_t* off, size_t n) noexcept
     for (; i < n; ++i) {
         dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
     }
+}
+
+void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* dst, size_t n) noexcept
+{
+    constexpr size_t kAVX2Stride = 8;
+    const __m256 zero = _mm256_setzero_ps();
+    const __m256 max_u16 = _mm256_set1_ps(65535.0f);
+    const __m256 round_bias = _mm256_set1_ps(0.5f);
+    const size_t avx2_limit = n - (n % kAVX2Stride);
+
+    size_t i = 0;
+    for (; i < avx2_limit; i += kAVX2Stride) {
+        __m128i raw_u16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i));
+        __m256 raw = _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(raw_u16));
+        __m256 offset = _mm256_loadu_ps(off + i);
+        __m256 corrected = _mm256_sub_ps(raw, offset);
+        corrected = _mm256_max_ps(corrected, zero);
+        corrected = _mm256_min_ps(corrected, max_u16);
+        corrected = _mm256_add_ps(corrected, round_bias);
+
+        __m256i u32 = _mm256_cvttps_epi32(corrected);
+        __m128i lo = _mm256_castsi256_si128(u32);
+        __m128i hi = _mm256_extracti128_si256(u32, 1);
+        __m128i u16 = _mm_packus_epi32(lo, hi);
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(dst + i), u16);
+    }
+
+    offset_correct_float_scalar(src + i, off + i, dst + i, n - i);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_has_avx2 — runtime AVX2 detection
@@ -251,21 +290,33 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     const size_t n = static_cast<size_t>(input->width) * input->height;
     if (output->dataSize < n * sizeof(uint16_t)) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    if (!g_calib.offset_map) return XPE_ERR_NOT_INITIALIZED;
-    if (g_calib.offset_width  != input->width ||
-        g_calib.offset_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+    const uint16_t* src = static_cast<const uint16_t*>(input->data);
+    uint16_t* dst = static_cast<uint16_t*>(output->data);
+    std::vector<float> offmap;
 
-    const uint16_t* src    = static_cast<const uint16_t*>(input->data);
-    uint16_t*       dst    = static_cast<uint16_t*>(output->data);
-    const float*    offmap = g_calib.offset_map.get();
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!g_calib.offset_map) return XPE_ERR_NOT_INITIALIZED;
+        if (g_calib.offset_width  != input->width ||
+            g_calib.offset_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    for (size_t i = 0; i < n; ++i) {
-        float v = static_cast<float>(src[i]) - offmap[i];
-        if (v < 0.0f) v = 0.0f;
-        if (v > 65535.0f) v = 65535.0f;
-        dst[i] = static_cast<uint16_t>(v + 0.5f);
+        offmap.assign(g_calib.offset_map.get(), g_calib.offset_map.get() + n);
     }
+
+#if defined(__AVX2__) || defined(_MSC_VER)
+    if (xpe_has_avx2()) {
+        offset_correct_float_avx2(src, offmap.data(), dst, n);
+    } else
+#endif
+#if defined(__aarch64__)
+    {
+        offset_correct_float_scalar(src, offmap.data(), dst, n);
+    }
+#else
+    {
+        offset_correct_float_scalar(src, offmap.data(), dst, n);
+    }
+#endif
 
     output->format        = XPE_PIXEL_UINT16;
     output->bitsAllocated = 16u;

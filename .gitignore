@@ -220,6 +220,9 @@ modules/**/build_standalone/
 build_coverage/
 .cache/
 cmake-build-*/
+build-debug/
+build-parity/
+buildsimd-parity/
 build_test/
 build_test2/
 build_test3/
@@ -297,3 +300,4 @@ build_*.sh
 build_*.ps1
 dev_*_*.txt
 fullpath_*
+nul

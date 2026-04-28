@@ -26,6 +26,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_reader.hpp"
+#include "xcal_writer.hpp"
 
 namespace {
 
@@ -61,17 +62,22 @@ class TempFile {
 public:
     explicit TempFile(const std::string& suffix = ".xcal") {
         path_ = fs::temp_directory_path() / ("test_gain_" + std::to_string(std::hash<size_t>{}(rand())) + suffix);
+        path_string_ = path_.string();
+        std::error_code ec;
+        fs::remove(path_, ec);
+        fs::remove(path_string_ + ".tmp", ec);
     }
     ~TempFile() {
         std::error_code ec;
         fs::remove(path_, ec);
         // Also remove .tmp file if it exists
-        fs::remove(path_.string() + ".tmp", ec);
+        fs::remove(path_string_ + ".tmp", ec);
     }
-    const char* c_str() const { return path_.string().c_str(); }
+    const char* c_str() const { return path_string_.c_str(); }
     bool exists() const { return fs::exists(path_); }
 private:
     fs::path path_;
+    std::string path_string_;
 };
 
 } // anonymous namespace
@@ -236,11 +242,16 @@ TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
     // First, create 3 gain maps at different dose levels
     const int num_levels = 3;
     std::vector<TempFile> gain_files;
+    gain_files.reserve(num_levels);
     std::vector<const char*> gain_paths;
+    gain_paths.reserve(num_levels);
     std::vector<double> dose_levels = {10.0, 20.0, 30.0};  // mGy
 
     for (int i = 0; i < num_levels; ++i) {
         gain_files.emplace_back("gain_poly_" + std::to_string(i) + ".xcal");
+        std::error_code ec;
+        fs::remove(gain_files.back().c_str(), ec);
+        fs::remove(std::string(gain_files.back().c_str()) + ".tmp", ec);
 
         // Create a simple gain map
         std::vector<float> gain_data(W * H, 1.0f + i * 0.1f);  // Increasing gain with dose
@@ -253,12 +264,19 @@ TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
         gain_buf.data = gain_data.data();
         gain_buf.dataSize = gain_data.size() * sizeof(float);
 
-        // Write gain map to file (simplified - in real test would use xpe_calib_save)
-        std::ofstream ofs(gain_files.back().c_str(), std::ios::binary);
-        if (ofs) {
-            ofs.write(reinterpret_cast<const char*>(gain_data.data()),
-                     gain_data.size() * sizeof(float));
-        }
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION;
+        hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = static_cast<uint64_t>(gain_data.size() * sizeof(float));
+        ASSERT_EQ(write_xcal_file(gain_files.back().c_str(), hdr,
+                                  nullptr, 0,
+                                  reinterpret_cast<const uint8_t*>(gain_data.data()),
+                                  hdr.payload_len),
+                  XPE_OK);
         gain_paths.push_back(gain_files.back().c_str());
     }
 
@@ -272,12 +290,8 @@ TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
         poly_output.c_str()
     );
 
-    // Note: This test may fail if xpe_calib_generate_gain_polynomial is not fully implemented
-    // Expected behavior: XPE_OK or XPE_ERR_IO_FAILED if gain files are not valid XCal format
-    if (rc == XPE_OK) {
-        EXPECT_TRUE(poly_output.exists()) << "Polynomial output file should exist";
-    }
-    // Allow IO_FAILED if the temporary gain files are not proper XCal format
+    ASSERT_EQ(rc, XPE_OK);
+    EXPECT_TRUE(poly_output.exists()) << "Polynomial output file should exist";
 }
 
 // =============================================================================

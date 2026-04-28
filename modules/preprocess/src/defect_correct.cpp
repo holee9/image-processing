@@ -92,7 +92,9 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
         }
     }
 
-    if (values.empty()) return 0.0f;
+    if (values.empty()) {
+        return pixels[static_cast<size_t>(y) * width + x];
+    }
 
     std::sort(values.begin(), values.end());
     size_t mid = values.size() / 2u;

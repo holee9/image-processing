@@ -11,10 +11,14 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
 
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
+#include <cstdio>
 #include <random>
 
 namespace {
@@ -30,6 +34,7 @@ protected:
     XpeImageBuffer output1{};
     XpeImageBuffer output2{};
     XpeImageMetadata metadata{};
+    const char* gainPath = "test_gain_avx2_parity_gain.xcal";
 
     void SetUp() override {
         // Try to initialize, but don't fail if already initialized
@@ -82,17 +87,41 @@ protected:
         output2.dataSize = outputPixels2.size() * sizeof(float);
 
         memset(&metadata, 0, sizeof(XpeImageMetadata));
+
+        std::vector<float> gainMap(pixelCount);
+        for (size_t i = 0; i < pixelCount; ++i) {
+            gainMap[i] = 0.5f + static_cast<float>(i % 17) * 0.03125f;
+        }
+        loadGainMap(gainMap, 1024, 768);
     }
 
     void TearDown() override {
-        // Module managed by global environment
+        std::remove(gainPath);
+        std::remove("test_gain_avx2_parity_gain.xcal.tmp");
+    }
+
+    void loadGainMap(const std::vector<float>& values, uint32_t width, uint32_t height) {
+        std::remove(gainPath);
+        std::remove("test_gain_avx2_parity_gain.xcal.tmp");
+
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION;
+        hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width = width;
+        hdr.height = height;
+        hdr.payload_len = static_cast<uint64_t>(values.size() * sizeof(float));
+
+        ASSERT_EQ(write_xcal_file(gainPath, hdr, nullptr, 0,
+                                  reinterpret_cast<const uint8_t*>(values.data()),
+                                  hdr.payload_len),
+                  XPE_OK);
+        ASSERT_EQ(xpe_calib_load_gain(gainPath), XPE_OK);
     }
 };
 
 TEST_F(GainCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
-    // Skip if calibration not loaded
-    GTEST_SKIP() << "Calibration must be loaded via xpe_calib_load_gain before running this test";
-
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&input1, &output1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&input2, &output2, &metadata));
 
@@ -102,7 +131,7 @@ TEST_F(GainCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     }
 }
 
-TEST_F(GainCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
+TEST_F(GainCorrectAVX2ParityTest, ParityWithNonMultipleStride) {
     const size_t oddSize = 1000;
     std::vector<uint16_t> smallInput1(oddSize);
     std::vector<uint16_t> smallInput2(oddSize);
@@ -126,6 +155,12 @@ TEST_F(GainCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
     out1.bitsAllocated = 32; out1.bitsStored = 32; out1.format = XPE_PIXEL_FLOAT32;
     out1.dataSize = oddSize * sizeof(float);
     out2 = out1; out2.data = smallOutput2.data();
+
+    std::vector<float> gainMap(oddSize);
+    for (size_t i = 0; i < oddSize; ++i) {
+        gainMap[i] = 0.75f + static_cast<float>(i % 11) * 0.0625f;
+    }
+    loadGainMap(gainMap, 1000, 1);
 
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&in1, &out1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&in2, &out2, &metadata));

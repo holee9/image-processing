@@ -1,9 +1,9 @@
 # SPEC-SIMD-001: SIMD Scalar Reference + Full-Operation Parity
 
 **Document ID**: SPEC-SIMD-001
-**Version**: 1.0.0
-**Date**: 2026-04-22
-**Status**: Active
+**Version**: 1.1.0
+**Date**: 2026-04-23
+**Status**: Completed
 **Owner Lane**: Pre-A (`dev/preprocess`)
 **Parent SPEC**: SPEC-XPE-P1A v1.3.0
 **Companion**: `.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md` v2.0.0
@@ -16,6 +16,7 @@
 
 | Version | Date       | Author       | Changes |
 |---------|------------|--------------|---------|
+| 1.1.0   | 2026-04-23 | MoAI Sync    | 구현 완료 — 모든 P0/P1 요구사항 구현 및 검증 |
 | 1.0.0   | 2026-04-22 | manager-spec | 초기 작성 — SIMD 전 연산 parity 확장 정의 |
 
 ---

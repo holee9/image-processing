@@ -14,6 +14,8 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
+#include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <chrono>
 
@@ -105,6 +107,24 @@ inline void init_quality_meta(XpeCalibQualityMeta* meta) noexcept {
 
     std::memset(meta, 0, sizeof(XpeCalibQualityMeta));
     meta->previous_r_squared = -1.0;  // Indicates no previous calibration
+}
+
+inline void copy_cstr(char* dst, size_t dst_size, const char* src) noexcept {
+    if (!dst || dst_size == 0) return;
+    dst[0] = '\0';
+    if (!src) return;
+
+    const size_t len = std::min(std::strlen(src), dst_size - 1);
+    std::memcpy(dst, src, len);
+    dst[len] = '\0';
+}
+
+inline void log_quality_regression(double previous_r_squared,
+                                   double r_squared) noexcept {
+    std::fprintf(stderr,
+                 "pre: calibration R2 regression detected: previous=%.6f current=%.6f\n",
+                 previous_r_squared,
+                 r_squared);
 }
 
 /**
@@ -242,17 +262,13 @@ void init_metadata(const char* detector_serial,
                    const char* firmware_version) noexcept {
     init_quality_meta(&g_quality_meta);
 
-    // Copy detector serial (if provided)
-    if (detector_serial) {
-        std::strncpy(g_quality_meta.detector_serial, detector_serial,
-                     sizeof(g_quality_meta.detector_serial) - 1);
-    }
+    copy_cstr(g_quality_meta.detector_serial,
+              sizeof(g_quality_meta.detector_serial),
+              detector_serial);
 
-    // Copy firmware version (if provided)
-    if (firmware_version) {
-        std::strncpy(g_quality_meta.firmware_version, firmware_version,
-                     sizeof(g_quality_meta.firmware_version) - 1);
-    }
+    copy_cstr(g_quality_meta.firmware_version,
+              sizeof(g_quality_meta.firmware_version),
+              firmware_version);
 }
 
 /**
@@ -285,6 +301,7 @@ XpeErrorCode update_metadata(uint32_t degree,
 
     // Warn if new R² is significantly worse than previous (regression detection)
     if (previous_r_squared >= 0.0 && r_squared < previous_r_squared - 0.01) {
+        log_quality_regression(previous_r_squared, r_squared);
         // TODO: Log warning: calibration quality regression detected
         // For now, this is just a warning; calibration still passes R² gate
     }

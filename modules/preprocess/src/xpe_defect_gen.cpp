@@ -170,22 +170,25 @@ void extract_window_reflect(const float* image,
     const int actual_size = 2 * half_size + 1;
     window_out.resize(static_cast<size_t>(actual_size) * static_cast<size_t>(actual_size));
 
+    auto reflect_index = [](int idx, uint32_t size) noexcept {
+        if (size <= 1u) return 0;
+        const int max_idx = static_cast<int>(size) - 1;
+        while (idx < 0 || idx > max_idx) {
+            if (idx < 0) {
+                idx = -idx;
+            } else {
+                idx = 2 * max_idx - idx;
+            }
+        }
+        return idx;
+    };
+
     size_t win_idx = 0;
     for (int dy = -half_size; dy <= half_size; ++dy) {
-        // Reflect Y coordinate
-        int ry = static_cast<int>(cy) + dy;
-        if (ry < 0) ry = -ry;                          // Mirror at top
-        else if (ry >= static_cast<int>(height)) {
-            ry = 2 * static_cast<int>(height) - ry - 1;  // Mirror at bottom
-        }
+        const int ry = reflect_index(static_cast<int>(cy) + dy, height);
 
         for (int dx = -half_size; dx <= half_size; ++dx) {
-            // Reflect X coordinate
-            int rx = static_cast<int>(cx) + dx;
-            if (rx < 0) rx = -rx;                          // Mirror at left
-            else if (rx >= static_cast<int>(width)) {
-                rx = 2 * static_cast<int>(width) - rx - 1;  // Mirror at right
-            }
+            const int rx = reflect_index(static_cast<int>(cx) + dx, width);
 
             const size_t img_idx = static_cast<size_t>(ry) * static_cast<size_t>(width) +
                                    static_cast<size_t>(rx);
@@ -361,8 +364,17 @@ void merge_bpm(const std::vector<uint8_t>& dark_bpm,
     bpm_out.resize(num_pixels);
 
     for (size_t i = 0; i < num_pixels; ++i) {
-        // Merge using logical OR: 0, 1, 2, or 3 (both)
-        bpm_out[i] = static_cast<uint8_t>(dark_bpm[i] | bright_bpm[i]);
+        const bool dark = dark_bpm[i] != BPM_PIXEL_GOOD;
+        const bool bright = bright_bpm[i] != BPM_PIXEL_GOOD;
+        if (dark && bright) {
+            bpm_out[i] = BPM_PIXEL_BOTH;
+        } else if (dark) {
+            bpm_out[i] = BPM_PIXEL_DEAD;
+        } else if (bright) {
+            bpm_out[i] = BPM_PIXEL_HOT;
+        } else {
+            bpm_out[i] = BPM_PIXEL_GOOD;
+        }
     }
 }
 
