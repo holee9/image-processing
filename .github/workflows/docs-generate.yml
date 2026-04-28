@@ -83,13 +83,13 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - name: Download Doxygen artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: api-reference-native
           path: help-bundle/doxygen/
 
       - name: Download DocFX artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: api-reference-managed
           path: help-bundle/docfx/
