@@ -1,5 +1,9 @@
 # Implementation guide — for Claude Code CLI
 
+**Last Updated**: 2026-04-28  
+**Status**: GUI-S0 Complete, Phase 1b Display Integration Complete  
+**Next Phase**: Evaluation Workbench (docs/design/evaluation-workbench/)
+
 This file is a step-by-step plan for the developer (or Claude Code) actually
 landing the redesign in the `ImageProcTest` solution. It assumes the existing
 solution layout described in `reference/gui-README.md`.
@@ -194,9 +198,33 @@ or extended.
 
 ---
 
-## Things to **not** add
+## Completed Slices (Phase 1b - 2026-04-28)
 
-These are explicit anti-goals based on the design review:
+**✅ Slice 1-7**: Display pipeline integration 완료
+- DisplayPipelineViewModel 및 하위 ViewModel 구조 완료
+- VOI LUT, Modality LUT, Presentation LUT 통합 완료
+- RealXpeBackend P/Invoke wrapper 완료
+- Display Settings panel 구현 완료
+
+**✅ Slice 4**: Large image comparison viewport 완료
+- 4096x4096 UInt16 RAW 비교 지원
+- Swipe, Split, Overlay, Difference 모드 구현
+
+**✅ Slice 9**: Calibration Settings modal 구현 완료
+- Per-stage Auto/On/Off controls 완료
+
+---
+
+## Remaining Work
+
+**Evaluation Workbench** (docs/design/evaluation-workbench/):
+- Study queue, verdict bar, analysis panel, focus mode
+- ROI tool, evidence bundle export
+- See `prototype/` variant designs for detailed specs
+
+---
+
+## Things to **not** add
 
 - ❌ Algorithm registry / catalog screen.
 - ❌ "NEW" / "UPDATED" / "EXPERIMENTAL" badges on algorithms.

@@ -1,9 +1,9 @@
 # XPE-GUI-COMPARE-001: Large Image Comparison Viewer Specification
 
-**Document ID**: XPE-GUI-COMPARE-001  
-**Version**: 0.2.0  
-**Date**: 2026-04-16  
-**Status**: Implemented / Verification Passed  
+**Document ID**: XPE-GUI-COMPARE-001
+**Version**: 1.0.0
+**Date**: 2026-04-28
+**Status**: Implemented / Verification Passed / Production Ready  
 **Owner**: GUI/System Integration  
 **Tracking Issue**: GitHub Issue #8  
 **Applies To**: `ImageProcTest.exe`, Phase 1b Display integration, Phase 2+ advanced review workflows  
@@ -183,6 +183,13 @@ Implemented in `gui/ImageProcTest`:
 - `ImageProcTest.E2E`,
 - `ImageProcTest.SelfCheck`,
 - offline Help and GUI README updates.
+
+**Phase 1b 완료 상태 (2026-04-28):**
+- 4096x4096 UInt16 RAW 비교 지원 완료
+- 모든 비교 모드 구현 완료 (Swipe, Split, Overlay, Difference, Source Only, Processed Only)
+- 동기화된 zoom/pan/cursor 상태 공유 완료
+- Detached viewer 상태 모델 재사용 완료
+- Calibration stage controls 연동 완료
 
 Committed test fixture:
 
