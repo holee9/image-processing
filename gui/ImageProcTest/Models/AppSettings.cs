@@ -37,6 +37,15 @@ public sealed class AppSettings : ObservableObject
     private double _comparisonPanY;
     private double _comparisonSwipePosition = 0.5;
     private double _comparisonOverlayOpacity = 0.5;
+    private string _laneAAlgorithm = "Production v1.2";
+    private string _laneBAlgorithm = "Candidate v1.4";
+    private bool _focusMode;
+    private bool _leftPanelOpen = true;
+    private bool _rightPanelOpen = true;
+    private string _analysisTab = "metrics";
+    private double _laneBSharpeningSigma = 0.85;
+    private double _laneBDenoiseStrength = 0.42;
+    private string _lastRunSetId = string.Empty;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -326,5 +335,68 @@ public sealed class AppSettings : ObservableObject
     {
         get => _comparisonOverlayOpacity;
         set => SetProperty(ref _comparisonOverlayOpacity, Math.Clamp(value, 0.0, 1.0));
+    }
+
+    [JsonPropertyName("laneAAlgorithm")]
+    public string LaneAAlgorithm
+    {
+        get => _laneAAlgorithm;
+        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Production v1.2" : value);
+    }
+
+    [JsonPropertyName("laneBAlgorithm")]
+    public string LaneBAlgorithm
+    {
+        get => _laneBAlgorithm;
+        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Candidate v1.4" : value);
+    }
+
+    [JsonPropertyName("focusMode")]
+    public bool FocusMode
+    {
+        get => _focusMode;
+        set => SetProperty(ref _focusMode, value);
+    }
+
+    [JsonPropertyName("leftPanelOpen")]
+    public bool LeftPanelOpen
+    {
+        get => _leftPanelOpen;
+        set => SetProperty(ref _leftPanelOpen, value);
+    }
+
+    [JsonPropertyName("rightPanelOpen")]
+    public bool RightPanelOpen
+    {
+        get => _rightPanelOpen;
+        set => SetProperty(ref _rightPanelOpen, value);
+    }
+
+    [JsonPropertyName("analysisTab")]
+    public string AnalysisTab
+    {
+        get => _analysisTab;
+        set => SetProperty(ref _analysisTab, string.IsNullOrWhiteSpace(value) ? "metrics" : value);
+    }
+
+    [JsonPropertyName("laneBSharpeningSigma")]
+    public double LaneBSharpeningSigma
+    {
+        get => _laneBSharpeningSigma;
+        set => SetProperty(ref _laneBSharpeningSigma, value);
+    }
+
+    [JsonPropertyName("laneBDenoiseStrength")]
+    public double LaneBDenoiseStrength
+    {
+        get => _laneBDenoiseStrength;
+        set => SetProperty(ref _laneBDenoiseStrength, value);
+    }
+
+    [JsonPropertyName("lastRunSetId")]
+    public string LastRunSetId
+    {
+        get => _lastRunSetId;
+        set => SetProperty(ref _lastRunSetId, value ?? string.Empty);
     }
 }
