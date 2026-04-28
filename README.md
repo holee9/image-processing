@@ -207,9 +207,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | # | 작업 | Worktree | Issue | 상태 |
 |:-:|------|:--------:|:-----:|:----:|
-| **A1** | **Offset 이중 구현 제거 + 라운딩 통일 + SIMD dispatch 활성화** — `offset_correct.cpp` vs `xpe_offset.cpp` 중복 정의 제거, 반올림/절삭 표준화, AVX2/AVX-512/NEON 커널 활성화 | Lane A (Pre) | [#68](https://github.com/holee9/image-processing/issues/68) | 🔴 P0 |
-| **B1** | **Calibration multi-method 구현 + Cache 스레드 안전성 + R² 로깅** — median/sigma_clip/winsor 구현, LRU 캐시 mutex 추가, defect map 만료 정책 | Lane B (Calib) | [#69](https://github.com/holee9/image-processing/issues/69) | 🔴 P0 |
-| **C1** | **Defect bilinear 보간 검증 + Hampel 검출 + Reflect padding** — 보간 구현 확인, Hampel 5-sigma 활성화, 경계 공식 수정 | Lane C (Defect) | [#70](https://github.com/holee9/image-processing/issues/70) | 🔴 P0 |
+| **A1** | **Offset 이중 구현 제거 + 라운딩 통일 + SIMD dispatch 활성화** — `offset_correct.cpp` vs `xpe_offset.cpp` 중복 정의 제거, 반올림/절삭 표준화, AVX2/AVX-512/NEON 커널 활성화 | xpe-pre | [#68](https://github.com/holee9/image-processing/issues/68) | 🔴 P0 |
+| **B1** | **Calibration multi-method 구현 + Cache 스레드 안전성 + R² 로깅** — median/sigma_clip/winsor 구현, LRU 캐시 mutex 추가, defect map 만료 정책 | xpe-pre | [#69](https://github.com/holee9/image-processing/issues/69) | 🔴 P0 |
+| **C1** | **Defect bilinear 보간 검증 + Hampel 검출 + Reflect padding** — 보간 구현 확인, Hampel 5-sigma 활성화, 경계 공식 수정 | xpe-pre | [#70](https://github.com/holee9/image-processing/issues/70) | 🔴 P0 |
 
 #### Should (품질·점수 향상)
 
@@ -226,9 +226,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | # | 작업 | Worktree | 상태 |
 |:-:|------|:--------:|:----:|
-| **A3** | **Offset 테스트 2-arg → 3-arg 전환 + AVX2 parity 활성화 + Gain 동작 통일** | Lane A (Pre) | [#68](https://github.com/holee9/image-processing/issues/68) | P1 |
-| **B3** | **Defect map 만료 정책 문서화 + Polynomial gain 검증** | Lane B (Calib) | [#69](https://github.com/holee9/image-processing/issues/69) | P1 |
-| **C2** | **Reflect padding 수정 + Hampel 검출 확인 + BPM merge 개선** | Lane C (Defect) | [#70](https://github.com/holee9/image-processing/issues/70) | P1 |
+| **A3** | **Offset 테스트 2-arg → 3-arg 전환 + AVX2 parity 활성화 + Gain 동작 통일** | xpe-pre | [#68](https://github.com/holee9/image-processing/issues/68) | P1 |
+| **B3** | **Defect map 만료 정책 문서화 + Polynomial gain 검증** | xpe-pre | [#69](https://github.com/holee9/image-processing/issues/69) | P1 |
+| **C2** | **Reflect padding 수정 + Hampel 검출 확인 + BPM merge 개선** | xpe-pre | [#70](https://github.com/holee9/image-processing/issues/70) | P1 |
 
 #### Nice-to-Have (여력 확보 시)
 
@@ -238,10 +238,10 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N2 | SLSA L2/L3 빌드 서명 | main | SPDF v1.0 로드맵 항목 |
 | N3 | Gate G2 → G3 준비 | main | Phase 3 진입 전제 |
 | N4 | DICOM Conformance PS 3.4+ 확장 | Post-B | Storage Commitment 등 |
-| N5 | BPM merge 명시적 매핑 | Lane C (Defect) | bitwise OR → explicit |
-| N6 | 전체 결함 이웃 엣지케이스 | Lane C (Defect) | median filter 0.0f 대안 |
-| N7 | Calibration 미사용 파라미터 정리 | Lane B (Calib) | integration_time_ms, temperature_c |
-| N8 | REQ-P1A-XXX 플레이스홀더 교체 | Lane A (Pre) | xpe_verify_metrics.cpp |
+| N5 | BPM merge 명시적 매핑 | xpe-pre | bitwise OR → explicit |
+| N6 | 전체 결함 이웃 엣지케이스 | xpe-pre | median filter 0.0f 대안 |
+| N7 | Calibration 미사용 파라미터 정리 | xpe-pre | integration_time_ms, temperature_c |
+| N8 | REQ-P1A-XXX 플레이스홀더 교체 | xpe-pre | xpe_verify_metrics.cpp |
 
 > **전체 진도율**: Must 항목 2/4 (50%), 전처리 감사 Must 0/5 (0%), Should 항목 1/6 (17%), 감사 Should 0/8 (0%), 완료된 달성 경로 11/14 (79%)
 > **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~90 → 최대 ~97)

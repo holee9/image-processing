@@ -43,7 +43,7 @@
 
 **영향**: 동일 입력에 대해 실행 환경에 따라 다른 결과 발생 가능
 
-**Worktree**: Lane A (Pre)
+**Worktree**: xpe-pre (`dev/preprocess`) — Issue [#68](https://github.com/holee9/image-processing/issues/68)
 
 ### P0-OFF-02: Offset SIMD 커널 정의되었으나 미사용
 
@@ -63,7 +63,7 @@
 
 **영향**: FUNC-032 무효, XpeCalibrationMode의 multi-method 옵션이 작동하지 않음
 
-**Worktree**: Lane B (Calib)
+**Worktree**: xpe-pre (`dev/preprocess`) — Issue [#69](https://github.com/holee9/image-processing/issues/69)
 
 ### P0-CAL-02: Calibration Cache 스레드 안전성 위반
 
@@ -86,7 +86,7 @@
 
 **영향**: 결함 보정 핵심 알고리즘이 미작동일 가능성
 
-**Worktree**: Lane C (Defect)
+**Worktree**: xpe-pre (`dev/preprocess`) — Issue [#70](https://github.com/holee9/image-processing/issues/70)
 
 ---
 
@@ -140,11 +140,13 @@ Offset/Gain/Defect 모두 `GTEST_SKIP()` 처리되어 SIMD-scalar 패리티가 C
 
 ## 5. Worktree 분류
 
-| Lane | Branch | 작업 범위 | P0 | P1 |
-|------|--------|----------|:--:|:--:|
-| **Lane A (Pre)** | `fix/pre-offset-simd` | Offset 이중구현 제거, SIMD dispatch 활성화, 테스트 3-arg 전환, AVX2 parity 활성화, Gain 동작 통일 | 2 | 3 |
-| **Lane B (Calib)** | `fix/pre-calibration` | Multi-method 구현, Cache mutex, Defect map 만료 정책, R² 로깅, Polynomial 검증 | 2 | 3 |
-| **Lane C (Defect)** | `fix/pre-defect-bpm` | Bilinear 보간 검증, Reflect padding 수정, Hampel 검출 확인, BPM merge 개선 | 1 | 2 |
+모든 이슈는 `modules/preprocess/`에 해당하므로 **xpe-pre** worktree에서 작업합니다.
+
+| Issue | Worktree | Branch | 작업 범위 | P0 | P1 |
+|:-----:|:--------:|--------|----------|:--:|:--:|
+| [#68](https://github.com/holee9/image-processing/issues/68) | **xpe-pre** | `dev/preprocess` | Offset 이중구현 제거, SIMD dispatch 활성화, 테스트 3-arg 전환, AVX2 parity 활성화, Gain 동작 통일 | 2 | 3 |
+| [#69](https://github.com/holee9/image-processing/issues/69) | **xpe-pre** | `dev/preprocess` | Multi-method 구현, Cache mutex, Defect map 만료 정책, R² 로깅, Polynomial 검증 | 2 | 3 |
+| [#70](https://github.com/holee9/image-processing/issues/70) | **xpe-pre** | `dev/preprocess` | Bilinear 보간 검증, Reflect padding 수정, Hampel 검출 확인, BPM merge 개선 | 1 | 2 |
 
 ---
 
