@@ -119,7 +119,7 @@ if(_XPE_BUILD_TESTS)
     include(GoogleTest)
 
     set(XPE_TEST_SOURCES
-        # tests/test_offset_correct.cpp  # disabled: uses old 2-arg API; incompatible with new 3-arg g_calib API
+        tests/test_offset_correct.cpp
         # tests/test_gain_correct.cpp    # disabled: uses old 2-arg API; incompatible with new 3-arg g_calib API
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp

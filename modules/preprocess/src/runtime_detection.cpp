@@ -117,8 +117,9 @@ extern "C" {
  * @note FPR < 0.001% for clean Gaussian noise images
  */
 XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
-                                                XpeImageBuffer* defectMapOut,
-                                                const char* configJsonOrNull) {
+                                                const XpeImageMetadata* metadata,
+                                                XpeImageBuffer* defectMapOut) {
+    (void)metadata;
     // Validate input parameters
     if (img == nullptr) return XPE_ERR_INVALID_INPUT;
     if (defectMapOut == nullptr) return XPE_ERR_INVALID_INPUT;
@@ -152,8 +153,8 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
 
     // Parse configuration
     RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
-    config.windowSize = ParseWindowSize(configJsonOrNull, config.windowSize);
-    config.sigmaThreshold = ParseSigmaThreshold(configJsonOrNull, config.sigmaThreshold);
+    config.windowSize = ParseWindowSize(nullptr, config.windowSize);
+    config.sigmaThreshold = ParseSigmaThreshold(nullptr, config.sigmaThreshold);
 
     // Validate configuration
     XpeErrorCode err = ValidateConfig(config);

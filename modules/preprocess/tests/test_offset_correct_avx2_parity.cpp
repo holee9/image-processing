@@ -11,10 +11,14 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
 
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
+#include <cstdio>
 #include <random>
 
 namespace {
@@ -31,12 +35,11 @@ protected:
     XpeImageBuffer output2{};
     XpeImageMetadata metadata{};
     static bool calibrationLoaded;
+    const char* offsetPath = "test_offset_avx2_parity_offset.xcal";
 
     void SetUp() override {
         if (!calibrationLoaded) {
             ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-            // Note: Calibration must be loaded externally before running these tests
-            // Use: xpe_calib_load_offset("path/to/offset.xcal", &map);
             calibrationLoaded = true;
         }
 
@@ -87,19 +90,43 @@ protected:
         output2.dataSize = outputPixels2.size() * sizeof(uint16_t);
 
         memset(&metadata, 0, sizeof(XpeImageMetadata));
+
+        std::vector<float> offsetMap(pixelCount);
+        for (size_t i = 0; i < pixelCount; ++i) {
+            offsetMap[i] = static_cast<float>(i % 257) + 0.25f;
+        }
+        loadOffsetMap(offsetMap, 1024, 768);
     }
 
     void TearDown() override {
-        // xpe_preprocess_shutdown() called in test suite teardown
+        std::remove(offsetPath);
+        std::remove("test_offset_avx2_parity_offset.xcal.tmp");
+    }
+
+    void loadOffsetMap(const std::vector<float>& values, uint32_t width, uint32_t height) {
+        std::remove(offsetPath);
+        std::remove("test_offset_avx2_parity_offset.xcal.tmp");
+
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION;
+        hdr.type = static_cast<uint32_t>(XCAL_TYPE_OFFSET);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width = width;
+        hdr.height = height;
+        hdr.payload_len = static_cast<uint64_t>(values.size() * sizeof(float));
+
+        ASSERT_EQ(write_xcal_file(offsetPath, hdr, nullptr, 0,
+                                  reinterpret_cast<const uint8_t*>(values.data()),
+                                  hdr.payload_len),
+                  XPE_OK);
+        ASSERT_EQ(xpe_calib_load_offset(offsetPath), XPE_OK);
     }
 };
 
 bool OffsetCorrectAVX2ParityTest::calibrationLoaded = false;
 
 TEST_F(OffsetCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
-    // Skip if calibration not loaded
-    GTEST_SKIP() << "Calibration must be loaded via xpe_calib_load_offset before running this test";
-
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input2, &output2, &metadata));
 
@@ -109,7 +136,7 @@ TEST_F(OffsetCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     }
 }
 
-TEST_F(OffsetCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
+TEST_F(OffsetCorrectAVX2ParityTest, ParityWithNonMultipleStride) {
     // Use size that forces tail processing: 1000 pixels
     const size_t oddSize = 1000;
     std::vector<uint16_t> smallInput1(oddSize);
@@ -134,6 +161,12 @@ TEST_F(OffsetCorrectAVX2ParityTest, DISABLED_ParityWithNonMultipleStride) {
     out1.bitsAllocated = 16; out1.bitsStored = 16; out1.format = XPE_PIXEL_UINT16;
     out1.dataSize = oddSize * sizeof(uint16_t);
     out2 = out1; out2.data = smallOutput2.data();
+
+    std::vector<float> offsetMap(oddSize);
+    for (size_t i = 0; i < oddSize; ++i) {
+        offsetMap[i] = static_cast<float>(i % 31) + 0.75f;
+    }
+    loadOffsetMap(offsetMap, 1000, 1);
 
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&in1, &out1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&in2, &out2, &metadata));

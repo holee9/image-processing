@@ -242,31 +242,15 @@ TEST_F(CalibLoadTest, LoadDefect_TamperedPayload_ReturnsConfigInvalid) {
     EXPECT_EQ(xpe_calib_load_defect_map(defect_path), XPE_ERR_CONFIG_INVALID);
 }
 
-// Test 19: DEFECT map with past expiry -> still XPE_OK (defect maps ignore expiry)
-TEST_F(CalibLoadTest, LoadDefect_ExpiredTimestamp_ReturnsOkBecauseNoExpiry) {
-    // MakeDefectXCal always writes expiry_epoch_ms=0 (never expires),
-    // and xpe_calib_load_defect_map passes check_expiry=false.
-    // So even if we manually set an old expiry we should still get XPE_OK.
+// Test 19: DEFECT map with past expiry -> CALIBRATION_EXPIRED
+TEST_F(CalibLoadTest, LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired) {
     ASSERT_EQ(MakeDefectXCal(defect_path, W, H, DVAL), XPE_OK);
-    // Manually overwrite expiry to 1 ms (far in the past)
     {
         std::fstream f(defect_path, std::ios::in | std::ios::out | std::ios::binary);
         ASSERT_TRUE(f.is_open());
-        // expiry_epoch_ms is at offset 32 in XCalFileHeader
         f.seekp(static_cast<std::streamoff>(offsetof(XCalFileHeader, expiry_epoch_ms)));
         int64_t past_expiry = 1LL;  // 1 ms since epoch = expired
         f.write(reinterpret_cast<const char*>(&past_expiry), sizeof(past_expiry));
-        // SHA-256 now mismatches! To make test valid we just check that
-        // defect load does NOT reject on expiry (check_expiry=false).
-        // The SHA mismatch will cause CONFIG_INVALID -- which is correct
-        // because we corrupted the file. So test only validates check_expiry logic
-        // is bypass via the implementation.
     }
-    // After patching expiry the sha256 now covers original payload
-    // but header changed => sha256 still matches (sha256 covers payload, not header).
-    // So we expect XPE_OK because SHA-256 is over payload only.
-    XpeErrorCode rc = xpe_calib_load_defect_map(defect_path);
-    // SHA-256 covers payload only (header excluded), so patching expiry
-    // in the header does NOT invalidate the SHA. Defect map load ignores expiry.
-    EXPECT_EQ(rc, XPE_OK);
+    EXPECT_EQ(xpe_calib_load_defect_map(defect_path), XPE_ERR_CALIBRATION_EXPIRED);
 }

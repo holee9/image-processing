@@ -3,8 +3,8 @@
  * @brief LRU cache for calibration maps to eliminate repeated file I/O.
  *
  * Keeps recently used calibration maps in memory. Cache key is the combination
- * of file path string. Thread-safety: NOT thread-safe. Caller must synchronize
- * if sharing across threads (IEC 62304 Class B).
+ * of file path string. Thread-safety: all LRU/index mutations are protected by
+ * an internal mutex (IEC 62304 Class B).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0
  * IEC 62304 Class B
@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <list>
+#include <mutex>
 #include <unordered_map>
 #include <string>
 #include <utility>
@@ -61,6 +62,7 @@ public:
      * @return true on cache hit, false on miss
      */
     bool get(const std::string& path, XpeImageBuffer* out) {
+        std::lock_guard<std::mutex> lock(mutex_);
         auto it = index_.find(path);
         if (it == index_.end()) return false;
 
@@ -88,6 +90,8 @@ public:
      */
     void put(const std::string& path, XpeImageBuffer* buffer) {
         if (!buffer || !buffer->data) return;
+
+        std::lock_guard<std::mutex> lock(mutex_);
 
         // Check if already cached — replace
         auto it = index_.find(path);
@@ -123,6 +127,7 @@ public:
      * @brief Remove all entries from the cache, freeing all buffers.
      */
     void clear() {
+        std::lock_guard<std::mutex> lock(mutex_);
         for (auto& entry : lru_) {
             std::free(entry.buffer.data);
         }
@@ -137,6 +142,7 @@ public:
      * excess entries are evicted (LRU first).
      */
     void setMaxSize(uint32_t maxSize) {
+        std::lock_guard<std::mutex> lock(mutex_);
         maxSize_ = (maxSize > 0) ? maxSize : 1;
         while (lru_.size() > maxSize_ && !lru_.empty()) {
             CachedMap& oldest = lru_.back();
@@ -146,10 +152,18 @@ public:
         }
     }
 
-    uint32_t getMaxSize() const { return maxSize_; }
-    size_t   size()       const { return lru_.size(); }
+    uint32_t getMaxSize() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return maxSize_;
+    }
+
+    size_t size() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return lru_.size();
+    }
 
 private:
+    mutable std::mutex                                  mutex_;
     std::list<CachedMap>                                lru_;
     std::unordered_map<std::string, ListIter>           index_;
     uint32_t                                            maxSize_{4};

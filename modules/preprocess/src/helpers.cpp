@@ -48,7 +48,9 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
         }
     }
 
-    return (count > 0) ? sum / static_cast<float>(count) : 0.0f;
+    return (count > 0)
+        ? sum / static_cast<float>(count)
+        : pixels[static_cast<size_t>(y) * width + x];
 }
 
 /* =========================================================================

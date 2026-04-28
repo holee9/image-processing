@@ -179,24 +179,9 @@ static void apply_gain_avx2(
         __m256 gain_vec = _mm256_loadu_ps(&reciprocal_gain[i]);
 
         // Convert uint16 to float32 and apply gain (per-pixel element-wise)
-        __m256i u32_lo = _mm256_cvtepu16_epi32(u16_data);
-        __m256i u32_hi = _mm256_cvtepu16_epi32(_mm_srli_si128(u16_data, 8));
-        __m256 f32_lo = _mm256_cvtepi32_ps(u32_lo);
-        __m256 f32_hi = _mm256_cvtepi32_ps(u32_hi);
-
-        // Extract low and high 128-bit lanes from the 256-bit gain vector
-        __m128 gain_lo = _mm256_castps256_ps128(gain_vec);
-        __m128 gain_hi = _mm256_extractf128_ps(gain_vec, 1);
-
-        // Broadcast 128-bit gain lanes to 256-bit (zero-extend high lane)
-        __m256 gain256_lo = _mm256_insertf128_ps(_mm256_castps128_ps256(gain_lo), gain_lo, 1);
-        __m256 gain256_hi = _mm256_insertf128_ps(_mm256_castps128_ps256(gain_hi), gain_hi, 1);
-
-        __m256 result_lo = _mm256_mul_ps(f32_lo, gain256_lo);
-        __m256 result_hi = _mm256_mul_ps(f32_hi, gain256_hi);
-
-        // Store results (combine lower and upper halves)
-        _mm256_storeu_ps(&output[i], _mm256_permute2f128_ps(result_lo, result_hi, 0x20));
+        __m256 input_vec = _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(u16_data));
+        __m256 result = _mm256_mul_ps(input_vec, gain_vec);
+        _mm256_storeu_ps(&output[i], result);
     }
 
     // Handle remaining pixels (scalar path)

@@ -24,15 +24,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
             return XPE_ERR_INVALID_INPUT;
         }
 
-        // Read and validate XCal v1 file (SHA-256 + magic + type)
-        // Defect maps never expire: pass check_expiry=false
+        // Read and validate XCal v1 file (SHA-256 + magic + type + expiry).
+        // Defect BPM is a safety-critical calibration artifact, so it follows
+        // the same expiry policy as offset/gain maps.
         XCalFileHeader hdr;
         std::vector<uint8_t> config_json;
         std::vector<uint8_t> payload;
 
         XpeErrorCode rc = read_xcal_file(
             filepath, hdr, config_json, payload,
-            /*check_expiry=*/false,
+            /*check_expiry=*/true,
             /*expected_type=*/XCAL_TYPE_DEFECT);
         if (rc != XPE_OK) {
             return rc;
