@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>XPE ImageProcTest — Redesign</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0b0f; height: 100%; font-family: -apple-system, system-ui, sans-serif; }
+  #root { width: 100%; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="variant-a.jsx"></script>
+<script type="text/babel" src="variant-b.jsx"></script>
+<script type="text/babel" src="variant-c.jsx"></script>
+<script type="text/babel" src="roi-local.jsx"></script>
+<script type="text/babel" src="calibration-dialog.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState } = React;
+
+function App() {
+  return (
+    <DesignCanvas title="XPE ImageProcTest — Redesign Concepts" subtitle="Algorithm evaluation workbench (v2) + earlier explorations">
+      <DCSection id="v2" title="v2 — Evaluation Workbench (recommended)">
+        <DCArtboard id="variant-c" label="C · Algorithm Evaluation Workbench — purpose-built for evaluating & adopting new algorithms" width={1560} height={920}>
+          <VariantC />
+        </DCArtboard>
+        <DCArtboard id="roi-local" label="C.1 · ROI Local Measurement — drilldown for local CNR & profile-line analysis" width={1560} height={920}>
+          <ROILocal />
+        </DCArtboard>
+        <DCArtboard id="calib-dialog" label="C.2 · Calibration Settings — modal for stage on/off, lookup files, fallback, per-detector overrides" width={1560} height={920}>
+          <CalibrationDialog />
+        </DCArtboard>
+      </DCSection>
+      <DCSection id="v1" title="v1 — earlier explorations">
+        <DCArtboard id="variant-a" label="A · Classic Pro Workstation — dense, structured, engineer-first" width={1560} height={920}>
+          <VariantA />
+        </DCArtboard>
+        <DCArtboard id="variant-b" label="B · Modern Medical Viewer — viewport-first, clinical, glassy panels" width={1560} height={920}>
+          <VariantB />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.5.0
-**Last Updated**: 2026-04-22  
+**Version**: 3.6.0
+**Last Updated**: 2026-04-28  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
 ---
@@ -393,7 +393,40 @@ Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, XPE Event Sy
 
 ---
 
-## 7. 문서 통계
+## 7. GUI Design (ImageProcTest Algorithm Evaluation Workbench)
+
+ImageProcTest GUI 리디자인을 위한 Claude Design handoff 산출물입니다. HTML/JSX 프로토타입과 WPF 구현 가이드를 포함합니다.
+
+### 7.1 Design Handoff
+
+| Document | Description |
+|----------|-------------|
+| [README.md](design/README.md) | GUI 리디자인 handoff — Algorithm Evaluation Workbench 설계, 3개 핵심 아이디어(Algorithm Lane, Study Queue, Analysis Panel) |
+| [IMPLEMENTATION_GUIDE.md](design/IMPLEMENTATION_GUIDE.md) | Claude Code CLI용 단계별 구현 가이드 — Slice 0~7, 기존 MVVM 패턴 재사용 |
+
+### 7.2 Prototype (고해상도 HTML/JSX)
+
+| File | Description |
+|------|-------------|
+| `prototype/XPE GUI Redesign.html` | 프로토타입 진입점 — 모든 아트보드를 포함하는 design canvas |
+| `prototype/variant-c.jsx` | **구현 대상**: Algorithm Evaluation Workbench (1560x920) |
+| `prototype/roi-local.jsx` | C.1 · ROI / profile-line 국소 측정 화면 |
+| `prototype/calibration-dialog.jsx` | C.2 · Calibration Settings 모달 (Off/On/Auto, lookup directory, fallback) |
+| `prototype/variant-a.jsx` | 탐색안 A (dense engineer workstation) — 참고용, 미구현 |
+| `prototype/variant-b.jsx` | 탐색안 B (clinical viewer) — 참고용, 미구현 |
+| `prototype/design-canvas.jsx` | 프로토타입 쉘용 canvas wrapper — 제품 미포함 |
+
+### 7.3 Reference (기존 GUI 소스)
+
+| File | Description |
+|------|-------------|
+| `reference/gui-README.md` | 기존 ImageProcTest 솔루션 구조 및 MVVM 패턴 설명 |
+| `reference/MainWindow.xaml` | 현재 MainWindow XAML (리디자인 대상) |
+| `reference/MainWindowViewModel.cs` | 현재 MainWindow ViewModel (리디자인 대상) |
+
+---
+
+## 8. 문서 통계
 
 | Category | Count | Total Lines (approx) |
 |----------|:-----:|:--------------------:|
@@ -410,13 +443,14 @@ Layer 0 `xpe_common.dll` (MemoryPool, Pack=8 TypeDef, ErrorHandler, XPE Event Sy
 | IEC 62304 Display (Section 3.9) | 6 | ~2,704 |
 | IEC 62304 DICOM I/O (Section 3.10) | 6 | ~2,700 |
 | IEC 62304 Common Infra (Section 3.11) | 6 | ~3,930 |
+| GUI Design (Section 6) | 12 | ~31,000 |
 | Research (Section 4) | 11 | ~14,310 |
 | Archive (Section 5) | 4 | ~1,158 |
-| **Total** | **~132** | **~67,699** |
+| **Total** | **~144** | **~98,699** |
 
 ---
 
-## 8. AI 에이전트용
+## 9. AI 에이전트용
 
 AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서:
 
@@ -433,7 +467,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 ---
 
-## 9. 문서 버전 관리 규칙
+## 10. 문서 버전 관리 규칙
 
 | Pattern | Example | Meaning |
 |---------|---------|---------|
@@ -447,6 +481,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-04-28 | 3.6.0 | **GUI Design 섹션 신규 추가** (Section 7): ImageProcTest Algorithm Evaluation Workbench Claude Design handoff. 프로토타입(HTML/JSX 6종), 구현 가이드, 기존 GUI 참조 파일 포함. 총 ~144개 문서. |
 | 2026-04-22 | 3.5.0 | **SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 추가** (Section 1.4 신규). api-spec v1.4.0 (AED 제거, 79개 함수). SPEC-XPE-MASTER v3.0.0. SPEC 문서 15종 인덱스 Section 1.4 추가. |
 | 2026-04-15 | 3.4.0 | XPE-ALG-001 v1.7 반영 (80건 GAP 해소). GAP-BM~BV: DICOM GSDF, Multi-Scale Retinex, U-Net 폐 분할, DLIR CNN, 늑골 억제, Body Part CNN, Lucas-Kanade 광학 흐름, 통합 비선형성, TV-ADMM §20 신설, BMD proxy. |
 | 2026-04-15 | 3.3.0 | XPE-ALG-001 v1.6 반영 (70건 GAP 해소). GAP-BC~BL: DAP/KERMA, JPEG2000, 모션블러 위너, 금속 마스크, 토모합성 FBP/SAA, RANSAC 스티칭, 라플라시안 피라미드, GPU CUDA, 팬텀 인식, Cross-FPD 정규화 신설. |

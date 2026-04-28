@@ -290,9 +290,10 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | **보안 문서** ✨ NEW | **2** | [docs/security/](docs/security/), [SECURITY.md](SECURITY.md) |
 | **상호운용성 문서** ✨ NEW | **1** | [docs/interop/](docs/interop/) |
 | **운영·PMS 문서** ✨ NEW | **1** | [docs/operations/](docs/operations/) |
+| **GUI Design 문서** ✨ NEW | **12** | [docs/design/](docs/design/) — Algorithm Evaluation Workbench 프로토타입, 구현 가이드, 기존 GUI 참조 |
 | Research (연구/전처리 알고리즘) | 11 | [docs/quality-eval/](docs/quality-eval/), [docs/references/](docs/references/), [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **139** | [docs/README.md v3.4.0](docs/README.md) |
+| **합계** | **151** | [docs/README.md v3.6.0](docs/README.md) |
 
 ---
 
@@ -387,6 +388,7 @@ docs/                       문서 체계 (Normative/Informational/Archive + IEC
   security/                 보안 문서 (SPDF Plan, 위협모델 등) ← NEW
   interop/                  상호운용성 문서 (DICOM CS, DICOMweb 등) ← NEW
   operations/               운영·PMS 문서 (PMS Plan, 런북 등) ← NEW
+  design/                   GUI Design handoff (ImageProcTest 리디자인 프로토타입, 구현 가이드) ← NEW
   quality-eval/             품질 평가 방법론 연구
   references/               외부 참고자료 및 기술 분류
   archive/                  대체된 문서 (감사 추적용)
