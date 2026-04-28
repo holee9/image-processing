@@ -9,7 +9,7 @@ Integration guide for MoAI Worktree and Claude Code Native Worktree systems.
 
 ## Overview
 
-MoAI-ADK supports three complementary worktree systems for isolated development:
+MoAI-ADK supports two complementary worktree systems for isolated development:
 
 **Claude Code Native Worktree** (`.claude/worktrees/`):
 - Ephemeral, session-scoped isolation
@@ -21,86 +21,6 @@ MoAI-ADK supports three complementary worktree systems for isolated development:
 - Persistent, SPEC-scoped workspaces in global home directory
 - Managed via `moai worktree` CLI commands
 - Used for multi-session SPEC development and team collaboration
-
-**XPE Lane-Based Worktree** (sibling directories to main repo):
-- Persistent, Lane-scoped parallel development workspaces
-- Created via `tools/setup-worktrees.sh --create`
-- Used for 3-Lane parallel development with separate branches
-- Follows official Git convention (sibling placement, not nested)
-
-## XPE Lane-Based Development Worktrees
-
-### Physical Layout
-
-```
-D:/workspace-github/
-├── image-processing/   ← main branch (orchestrator, shared .git)
-├── xpe-pre/            ← dev/preprocess branch (Lane A)
-├── xpe-post/           ← dev/postprocess branch (Lane B)
-└── xpe-gui/            ← dev/gui branch (Lane C)
-```
-
-All four directories share the **same `.git` repository** and are part of the **same image-processing project**. Sibling placement follows Git's official documentation convention (`git worktree add ../hotfix`).
-
-### Lane Ownership (via CODEOWNERS)
-
-| Lane | Branch | Owned Paths |
-|------|--------|------------|
-| Lane A (Pre) | `dev/preprocess` | `modules/common/`, `modules/preprocess/` |
-| Lane B (Post) | `dev/postprocess` | `modules/enhance_**/`, `modules/ai/`, `modules/display/`, `modules/dicom/`, `modules/gsvg/` |
-| Lane C (GUI) | `dev/gui` | `clients/` |
-| Shared | `main` only | Root `CMakeLists.txt`, `cmake/`, `CLAUDE.md`, `.moai/`, `.claude/` |
-
-### Shared vs Isolated State
-
-| Category | Shared Across Worktrees | Isolated Per Worktree |
-|----------|------------------------|----------------------|
-| `.git/` objects, refs, hooks, config | YES (same repo) | - |
-| Committed files (`.claude/`, `.moai/`, `CLAUDE.md`, SPECs) | YES (via git) | - |
-| Working directory | - | YES (per-Lane files) |
-| Branch HEAD | - | YES (one branch per worktree) |
-| Git index (staging) | - | YES (per worktree) |
-| Auto-memory (`~/.claude/projects/{path-hash}/memory/`) | - | YES (path-based) — see below |
-
-### Memory Synchronization
-
-auto-memory is keyed by filesystem path, so each worktree gets its own memory folder:
-```
-~/.claude/projects/D--workspace-github-image-processing/memory/   ← main
-~/.claude/projects/D--workspace-github-xpe-pre/memory/            ← Lane A (separate!)
-~/.claude/projects/D--workspace-github-xpe-post/memory/           ← Lane B (separate!)
-~/.claude/projects/D--workspace-github-xpe-gui/memory/            ← Lane C (separate!)
-```
-
-[HARD] To maintain unified project policy across all worktrees, create junction links so all Lane worktrees share the main project's memory:
-
-```cmd
-mklink /J "C:\Users\<user>\.claude\projects\D--workspace-github-xpe-pre\memory" ^
-           "C:\Users\<user>\.claude\projects\D--workspace-github-image-processing\memory"
-```
-
-Repeat for xpe-post and xpe-gui. Junction points (/J) do not require admin privileges on Windows.
-
-### Orchestration Authority
-
-`image-processing/` (main worktree) is the **orchestrator** with full authority:
-- Can read/write/execute in any worktree (filesystem access)
-- Owns shared files (root CMakeLists.txt, CLAUDE.md, .moai/, .claude/)
-- Performs Lane integration via `git merge --squash dev/{lane}`
-- Spawns cross-Lane subagents when needed
-
-Lane worktrees (`xpe-pre/`, `xpe-post/`, `xpe-gui/`) are **executors**:
-- Focus on Lane-owned files
-- Communicate Lane completion via branch pushes
-- Shared-file modification requests go to main
-
-### Lifecycle
-
-1. **Create**: `bash tools/setup-worktrees.sh --create` (from main worktree)
-2. **Develop**: Each Lane works in its own directory, independent Claude Code sessions optional
-3. **Integrate**: From main, `git merge --squash dev/{lane}` for each Lane
-4. **Cleanup**: `bash tools/setup-worktrees.sh --remove` deletes external folders
-5. **Final state**: Only `image-processing/` remains; all work preserved in main history
 
 ## Comparison Table
 

@@ -19,6 +19,7 @@ if(GTest_FOUND)
 
     # Module-specific test suites
     add_subdirectory(enhance_advanced_tests)
+    add_subdirectory(ai_tests)
 
     # E2E Integration tests
     add_subdirectory(e2e_post_pipeline)

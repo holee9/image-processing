@@ -95,7 +95,8 @@ $configureArgs = @(
     "-DVCPKG_MANIFEST_DIR=$repoRoot\third_party\common",
     '-DVCPKG_TARGET_TRIPLET=x64-windows',
     '-DBUILD_TESTS=ON',
-    '-DBUILD_PREPROCESS=ON',
+    '-DBUILD_TESTING=ON',
+    '-DBUILD_PREPROCESS=OFF',
     '-DXPE_WARNINGS_AS_ERRORS=ON'
 )
 
@@ -110,7 +111,7 @@ if ($PostBenchmark) {
         '-DBUILD_DICOM=OFF'
     )
 } else {
-    $configureArgs += '-DBUILD_GSVG=OFF'
+    $configureArgs += '-DBUILD_GSVG=ON'
 }
 
 Write-Host "Visual Studio: $vsInstall"

@@ -10,7 +10,7 @@ description: |
   ZH: 质量, TRUST 5, 代码审查, 合规, 质量门, lint
   NOT for: code implementation, architecture design, deployment, documentation writing, git operations
 tools: Read, Grep, Glob, Bash, Skill, mcp__sequential-thinking__sequentialthinking, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: haiku
+model: sonnet
 permissionMode: plan
 memory: project
 skills:
@@ -18,7 +18,7 @@ skills:
   - moai-foundation-quality
   - moai-tool-ast-grep
 hooks:
-  Stop:
+  SubagentStop:
     - hooks:
         - type: command
           command: "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-agent-hook.sh\" quality-completion"

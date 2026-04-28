@@ -47,6 +47,9 @@ if(_XPE_BUILD_TESTS)
     add_executable(gsvg_tests
         tests/test_gsvg_benchmark.cpp
         tests/test_gsvg_degraded.cpp
+        tests/test_gsvg_coverage.cpp
+        tests/test_gsvg_edge_cases.cpp
+        tests/test_gsvg_extended_coverage.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE
