@@ -167,14 +167,14 @@
 
                         <StackPanel Grid.Row="2">
                             <StackPanel Margin="0,0,0,10">
-                                <TextBlock x:Name="OriginalHistogramText" Text="Original histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="OriginalHistogramText" Text="Original histogram: empty" FontSize="12" Margin="0,0,0,4"/>
                                 <controls:HistogramControl x:Name="OriginalHistogramControl"
                                                            Height="92"
                                                            RangeChanged="OriginalHistogramControl_RangeChanged"
                                                            ToolTip="Drag either yellow handle to adjust the original render range."/>
                             </StackPanel>
                             <StackPanel>
-                                <TextBlock x:Name="AfterHistogramText" Text="After histogram: empty" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="AfterHistogramText" Text="After histogram: empty" FontSize="12" Margin="0,0,0,4"/>
                                 <controls:HistogramControl x:Name="AfterHistogramControl"
                                                            Height="92"
                                                            RangeChanged="AfterHistogramControl_RangeChanged"

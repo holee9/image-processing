@@ -1,8 +1,8 @@
 # XAML / MVVM Architecture Guide
 
 **Document ID**: XPE-GUI-ARCH-001
-**Version**: 1.0.0
-**Date**: 2026-04-18
+**Version**: 1.1.0
+**Date**: 2026-04-28
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
 **Target**: `clients/ImageProcTest/` WPF test GUI (.NET 8, C# 12, x64)
@@ -434,4 +434,13 @@ clients/ImageProcTest/
 
 ---
 
-*Document End — XPE-GUI-ARCH-001 v1.0.0*
+## 14. Change History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0.0 | 2026-04-18 | manager-spec (GUI Lane) | Initial MVVM architecture constitution |
+| 1.1.0 | 2026-04-28 | manager-docs (GUI Lane) | Phase 1b 구현 완료 반영, DisplayPipelineViewModel 추가, 네이티브 인터롭 계약 확장 |
+
+---
+
+*Document End — XPE-GUI-ARCH-001 v1.1.0*

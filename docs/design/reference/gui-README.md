@@ -1,5 +1,9 @@
 # ImageProcTest GUI
 
+**Last Updated**: 2026-04-28  
+**Status**: Phase 1b Display Integration Complete  
+**Documentation**: See XPE-GUI-ARCH-001, XPE-GUI-MENU-001, XPE-GUI-DISP-INT-001 for detailed specifications
+
 `ImageProcTest` is the GUI-first WPF shell for the XPE program. The current implementation covers GUI-S0 plus the Phase 1b display integration shell:
 
 - raw binary image viewer only
@@ -185,6 +189,14 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 
 ## Scope boundary
 
+**Phase 1b 완료 항목 (2026-04-28):**
+- ✅ Display pipeline integration (Modality LUT → VOI LUT → Presentation LUT)
+- ✅ Large image comparison viewer (4096x4096 지원)
+- ✅ VOI body-part preset (4개 기본 preset)
+- ✅ Calibration evaluation controls (Off/On/Auto)
+- ✅ Native backend P/Invoke wrapper with DLL validation
+
+**다음 Phase 항목:**
 - Real DICOM read/write remains owned by `xpe_dicom.dll` in Phase 1b.
 - Calibration `Off`/`On`/`Auto` controls are evaluation-only Test GUI controls. Product-mode mandatory offset/gain policy remains owned by `xpe_preprocess.dll`.
 - SWU-3.4 LUT Manager remains deferred; the GUI uses the four native quick presets from `xpe_voi_preset_create` only for Phase 1b display-pipeline validation.

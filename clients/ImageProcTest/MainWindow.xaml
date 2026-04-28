@@ -2,8 +2,30 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ImageProcTest.Controls"
-        Title="XPE Image Processing Test" Height="860" Width="1240"
+        Title="XPE Image Processing Test"
+        Height="800" Width="1120"
+        MinHeight="720" MinWidth="1040"
+        WindowStartupLocation="Manual"
+        Left="24" Top="24"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         Loaded="Window_Loaded" Closed="Window_Closed" KeyDown="Window_KeyDown">
+    <Window.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style TargetType="{x:Type DataGrid}">
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        </Style>
+        <Style x:Key="WrappingCellTextBlock" TargetType="{x:Type TextBlock}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -146,6 +168,8 @@
 
             <!-- ===== EVALUATION TAB (viewer-first) ===== -->
             <TabItem Header="Evaluation">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -176,37 +200,42 @@
                                            Margin="0,3,0,0"/>
                                 <TextBlock x:Name="ActiveContextDetailsText"
                                            Text="Use Calibration to select the acquired calibration folder, target raw image, and ordered algorithm chain."
-                                           FontSize="11"
+                                           FontSize="12"
                                            Foreground="#FF57606A"
                                            TextWrapping="Wrap"
                                            Margin="0,1,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <WrapPanel Grid.Row="0"
+                                       Grid.Column="1"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0">
                                 <Button Content="Calibration Setup"
                                         Width="136"
                                         Height="30"
                                         Click="OpenCalibrationSetupButton_Click"
-                                        Margin="0,0,8,0"/>
+                                        Margin="0,0,8,6"/>
                                 <Button x:Name="WorkflowRunButton"
                                         Content="Run Chain"
                                         Width="112"
                                         Height="30"
                                         IsEnabled="False"
                                         Click="WorkflowRunButton_Click"
-                                        Margin="0,0,8,0"/>
+                                        Margin="0,0,8,6"/>
                                 <Button x:Name="WorkflowCancelButton"
                                         Content="Cancel"
                                         Width="84"
                                         Height="30"
                                         IsEnabled="False"
                                         Click="WorkflowCancelButton_Click"
-                                        Margin="0,0,8,0"/>
+                                        Margin="0,0,8,6"/>
                                 <Button Content="Save Evidence"
                                         Width="116"
                                         Height="30"
-                                        Click="SaveE2eReportButton_Click"/>
-                            </StackPanel>
+                                        Click="SaveE2eReportButton_Click"
+                                        Margin="0,0,0,6"/>
+                            </WrapPanel>
 
                             <Border Grid.Row="1" Grid.ColumnSpan="2"
                                     BorderBrush="#FFD0D7DE"
@@ -231,7 +260,7 @@
                                                FontWeight="SemiBold"
                                                VerticalAlignment="Center"
                                                Margin="0,0,12,0"/>
-                                    <UniformGrid Grid.Row="0" Grid.Column="1" Columns="4" VerticalAlignment="Center">
+                                    <WrapPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
                                         <CheckBox x:Name="OffsetEnabledCheckBox"
                                                   Content="Pre Offset"
                                                   IsEnabled="False"
@@ -279,7 +308,7 @@
                                                   Checked="StageSelection_Changed"
                                                   Unchecked="StageSelection_Changed"
                                                   Margin="0,4,0,0"/>
-                                    </UniformGrid>
+                                    </WrapPanel>
                                     <Button x:Name="ApplyNativePreviewButton"
                                             Grid.Row="0"
                                             Grid.Column="2"
@@ -289,7 +318,7 @@
                                             IsEnabled="False"
                                             Click="ApplyNativePreviewButton_Click"
                                             Margin="12,0,0,0"/>
-                                    <UniformGrid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Columns="5" Margin="0,8,0,0">
+                                    <WrapPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
                                         <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
                                             <TextBlock Text="Log norm" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBox x:Name="LogNormFactorTextBox" Text="1000" Width="58"/>
@@ -309,12 +338,14 @@
                                             <TextBox x:Name="UsmRadiusTextBox" Text="2.0" Width="38" Margin="0,0,4,0"/>
                                             <TextBox x:Name="UsmThresholdTextBox" Text="10.0" Width="46"/>
                                         </StackPanel>
-                                        <TextBlock Text="Post uses pre output when selected, otherwise raw→float input."
-                                                   FontSize="11"
+                                        <TextBlock Text="Post uses preprocess output when selected, otherwise raw-float input."
+                                                   FontSize="12"
                                                    Foreground="#FF57606A"
                                                    VerticalAlignment="Center"
+                                                   MaxWidth="520"
+                                                   Margin="0,0,0,6"
                                                    TextWrapping="Wrap"/>
-                                    </UniformGrid>
+                                    </WrapPanel>
                                 </Grid>
                             </Border>
 
@@ -363,18 +394,19 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <TextBlock Text="User Evaluation" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Evaluator" Width="90" VerticalAlignment="Center"/>
-                                <TextBox x:Name="EvaluatorTextBox" Width="180" Margin="0,0,18,0"/>
-                                <TextBlock Text="Verdict" Width="70" VerticalAlignment="Center"/>
-                                <RadioButton x:Name="UserPassRadio" Content="Pass" GroupName="UserVerdict" Margin="0,0,10,0" IsChecked="True"/>
-                                <RadioButton x:Name="UserReviewRadio" Content="Needs review" GroupName="UserVerdict" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="UserFailRadio" Content="Fail" GroupName="UserVerdict" Margin="0,0,18,0"/>
+                            <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+                                <TextBlock Text="Evaluator" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                                <TextBox x:Name="EvaluatorTextBox" Width="180" Margin="0,0,18,6"/>
+                                <TextBlock Text="Verdict" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                                <RadioButton x:Name="UserPassRadio" Content="Pass" GroupName="UserVerdict" Margin="0,0,10,6" IsChecked="True"/>
+                                <RadioButton x:Name="UserReviewRadio" Content="Needs review" GroupName="UserVerdict" Margin="0,0,10,6"/>
+                                <RadioButton x:Name="UserFailRadio" Content="Fail" GroupName="UserVerdict" Margin="0,0,18,6"/>
                                 <Button Content="Record Evaluation"
                                         Width="140"
+                                        Height="30"
                                         Click="RecordUserEvaluationButton_Click"
-                                        Margin="0,0,8,0"/>
-                            </StackPanel>
+                                        Margin="0,0,8,6"/>
+                            </WrapPanel>
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -397,6 +429,7 @@
                         </Grid>
                     </Border>
                 </Grid>
+                </ScrollViewer>
             </TabItem>
 
             <!-- ===== CALIBRATION TAB ===== -->
@@ -519,20 +552,41 @@
                                          MinWidth="330"
                                          SelectionChanged="SelectedAlgorithmChainListBox_SelectionChanged"/>
                                 <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,8,0,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="Runnable preprocess" Width="138" Height="28" Click="UseRunnablePreprocessChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Post basic" Width="92" Height="28" Click="UseRunnablePostBasicChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Phase 1b E2E" Width="116" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Product canonical" Width="132" Height="28" Click="UseProductCanonicalChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Pre-E2E proof" Width="110" Height="28" Click="UsePreE2eProofChain_Click" Margin="0,0,8,0"/>
-                                        <Button Content="Clear" Width="72" Height="28" Click="ClearAlgorithmChain_Click"/>
-                                    </StackPanel>
+                                    <WrapPanel>
+                                        <Button Content="Runnable preprocess" Width="138" Height="28" Click="UseRunnablePreprocessChain_Click" Margin="0,0,8,6"/>
+                                        <Button Content="Post basic" Width="92" Height="28" Click="UseRunnablePostBasicChain_Click" Margin="0,0,8,6"/>
+                                        <Button Content="Phase 1b E2E" Width="116" Height="28" Click="UseRunnablePrePostBasicChain_Click" Margin="0,0,8,6"/>
+                                        <Button Content="Product canonical" Width="132" Height="28" Click="UseProductCanonicalChain_Click" Margin="0,0,8,6"/>
+                                        <Button Content="Pre-E2E proof" Width="110" Height="28" Click="UsePreE2eProofChain_Click" Margin="0,0,8,6"/>
+                                        <Button Content="Clear" Width="72" Height="28" Click="ClearAlgorithmChain_Click" Margin="0,0,0,6"/>
+                                    </WrapPanel>
                                     <TextBlock x:Name="WorkflowAlgorithmStatusText"
                                                Text="Algorithm chain: select one or more stages."
                                                FontSize="12"
                                                Foreground="#FF57606A"
                                                TextWrapping="Wrap"
                                                Margin="0,8,0,0"/>
+                                    <TextBlock x:Name="GsvgWorkflowStatusText"
+                                               AutomationProperties.AutomationId="GsvgWorkflowStatusText"
+                                               Text="GSVG UI: not checked"
+                                               FontSize="12"
+                                               Foreground="#FF57606A"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"/>
+                                    <TextBlock x:Name="AdvancedWorkflowStatusText"
+                                               AutomationProperties.AutomationId="AdvancedWorkflowStatusText"
+                                               Text="Advanced UI: not checked"
+                                               FontSize="12"
+                                               Foreground="#FF57606A"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"/>
+                                    <TextBlock x:Name="AiWorkflowStatusText"
+                                               AutomationProperties.AutomationId="AiWorkflowStatusText"
+                                               Text="AI UI: not checked"
+                                               FontSize="12"
+                                               Foreground="#FF57606A"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"/>
                                     <DataGrid x:Name="WorkflowRuleFindingsGrid"
                                               AutoGenerateColumns="False"
                                               CanUserAddRows="False"
@@ -544,8 +598,8 @@
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Severity" Binding="{Binding SeverityText}" Width="90"/>
                                             <DataGridTextColumn Header="Rule" Binding="{Binding RuleId}" Width="140"/>
-                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
-                                            <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="260"/>
+                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
+                                            <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="260" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </StackPanel>
@@ -594,14 +648,14 @@
                                         <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="125"/>
                                         <DataGridTextColumn Header="SWU" Binding="{Binding SwuId}" Width="90"/>
                                         <DataGridTextColumn Header="Calibration Unit" Binding="{Binding AlgorithmName}" Width="210"/>
-                                        <DataGridTextColumn Header="Req" Binding="{Binding RequirementIds}" Width="170"/>
-                                        <DataGridTextColumn Header="Tests" Binding="{Binding TestIds}" Width="190"/>
+                                        <DataGridTextColumn Header="Req" Binding="{Binding RequirementIds}" Width="170" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
+                                        <DataGridTextColumn Header="Tests" Binding="{Binding TestIds}" Width="190" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                         <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="90"/>
                                         <DataGridTextColumn Header="Adapter" Binding="{Binding Adapter}" Width="120"/>
                                         <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
-                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="140"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="140" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                         <DataGridCheckBoxColumn Header="Run" Binding="{Binding CanRun}" Width="55"/>
-                                        <DataGridTextColumn Header="Next" Binding="{Binding NextAction}" Width="*"/>
+                                        <DataGridTextColumn Header="Next" Binding="{Binding NextAction}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
 
@@ -676,7 +730,7 @@
                                         <DataGridTextColumn Header="Min" Binding="{Binding MinValue, StringFormat={}{0:0.###}}" Width="80"/>
                                         <DataGridTextColumn Header="Max" Binding="{Binding MaxValue, StringFormat={}{0:0.###}}" Width="80"/>
                                         <DataGridCheckBoxColumn Header="OK" Binding="{Binding Passed}" Width="50"/>
-                                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <TextBlock x:Name="ReportText" Text="Readiness report: Not generated" FontSize="13" Margin="0,0,0,5"/>
@@ -708,10 +762,10 @@
                                         <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="60"/>
                                         <DataGridTextColumn Header="Meaning" Binding="{Binding LevelDescription}" Width="150"/>
                                         <DataGridTextColumn Header="Req" Binding="{Binding RequiredLevel}" Width="55"/>
-                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210"/>
-                                        <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="210" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
+                                        <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                         <DataGridTextColumn Header="Exec" Binding="{Binding ExecutionState}" Width="75"/>
-                                        <DataGridTextColumn Header="Degraded mode" Binding="{Binding DegradationReason}" Width="280"/>
+                                        <DataGridTextColumn Header="Degraded mode" Binding="{Binding DegradationReason}" Width="280" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <TextBlock x:Name="ModuleReadinessSummaryText"
@@ -755,8 +809,8 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Area" Binding="{Binding Area}" Width="150"/>
                                 <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="210"/>
-                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
-                                <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
+                                <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -774,7 +828,7 @@
                                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
                                 <DataGridCheckBoxColumn Header="Exec" Binding="{Binding Executed}" Width="60"/>
                                 <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
-                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -793,7 +847,7 @@
                                 <DataGridCheckBoxColumn Header="Loaded" Binding="{Binding Loaded}" Width="70"/>
                                 <DataGridTextColumn Header="Latency" Binding="{Binding LatencyMs}" Width="100"/>
                                 <DataGridTextColumn Header="Expiry" Binding="{Binding Expiry}" Width="160"/>
-                                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*"/>
+                                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -812,7 +866,7 @@
                                 <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="180"/>
                                 <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="160"/>
                                 <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -831,7 +885,7 @@
                                 <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="180"/>
                                 <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="160"/>
                                 <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -849,7 +903,7 @@
                                 <DataGridTextColumn Header="Metric" Binding="{Binding Metric}" Width="180"/>
                                 <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="160"/>
                                 <DataGridTextColumn Header="Gate" Binding="{Binding Gate}" Width="180"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </StackPanel>
@@ -881,7 +935,7 @@
                                   MinHeight="180">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="210"/>
-                                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*"/>
+                                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </StackPanel>

@@ -1451,6 +1451,12 @@ namespace ImageProcTest
             var dicomReason = IsModuleReadinessAtLeast("xpe_dicom", 3)
                 ? "Native DICOM readiness smoke is available. Selected export stages write and validate a DICOM artifact."
                 : "Native DICOM readiness smoke is disabled until xpe_dicom.dll reaches R3.";
+            var advancedReason = IsModuleReadinessAtLeast("xpe_enhance_advanced", 3)
+                ? "Native enhance_advanced readiness smoke is available. Selected advanced stages execute on the active preview buffer."
+                : "Advanced C3/C4 execution is disabled until xpe_enhance_advanced.dll reaches R3 and a GUI adapter is approved.";
+            var aiReason = IsModuleReadinessAtLeast("xpe_ai", 3)
+                ? "AI worker heartbeat and IPC smoke are available. Selected AI branches execute as sidecar/assistive outputs."
+                : "AI C5/C6 execution is disabled until xpe_ai_worker heartbeat, IPC smoke, and GUI adapter checks pass.";
 
             return
             [
@@ -1462,6 +1468,15 @@ namespace ImageProcTest
                 new StageModeSnapshot("Noise", GetMode(NoiseEnabledCheckBox), postReason),
                 new StageModeSnapshot("Contrast", GetMode(ContrastEnabledCheckBox), postReason),
                 new StageModeSnapshot("Edge", GetMode(EdgeEnabledCheckBox), postReason),
+                new StageModeSnapshot("Collimation ROI", GetChainStageMode("collimation"), advancedReason),
+                new StageModeSnapshot("ROI EI", GetChainStageMode("ei-roi"), advancedReason),
+                new StageModeSnapshot("Multiscale", GetChainStageMode("multiscale"), advancedReason),
+                new StageModeSnapshot("Fractional", GetChainStageMode("fractional"), advancedReason),
+                new StageModeSnapshot("Body Part AI", GetChainStageMode("ai-bodypart"), aiReason),
+                new StageModeSnapshot("AI Collimation", GetChainStageMode("ai-collimation"), aiReason),
+                new StageModeSnapshot("Image Stitching", GetChainStageMode("stitching"), aiReason),
+                new StageModeSnapshot("Bone Suppression", GetChainStageMode("bone-suppression"), aiReason),
+                new StageModeSnapshot("DL Denoise", GetChainStageMode("dl-denoise"), aiReason),
                 new StageModeSnapshot("Modality LUT", GetChainStageMode("modality-lut"), displayReason),
                 new StageModeSnapshot("VOI LUT", GetChainStageMode("voi-lut"), displayReason),
                 new StageModeSnapshot("Presentation LUT", GetChainStageMode("presentation-lut"), displayReason),
@@ -1653,6 +1668,9 @@ namespace ImageProcTest
                         ? "ready"
                         : "blocked";
             WorkflowAlgorithmStatusText.Text = $"{currentAlgorithmChainPlan.Summary} Input: {inputState}.";
+            UpdateGsvgWorkflowStatus();
+            UpdateAdvancedWorkflowStatus();
+            UpdateAiWorkflowStatus();
             UpdateWorkflowRunState();
         }
 
@@ -1695,6 +1713,48 @@ namespace ImageProcTest
                 "rule status",
                 currentAlgorithmChainPlan.Summary,
                 currentAlgorithmChainPlan.HasHardBlocks ? "Blocked" : "Runnable"));
+
+            var gsvg = GetGsvgReadiness();
+            rows.Add(new EvaluationMetricRow(
+                "GSVG",
+                "C1/C2 UI gate",
+                gsvg is null
+                    ? "not checked"
+                    : $"{gsvg.Level} {gsvg.Status}; execution={gsvg.ExecutionState}; {gsvg.DegradedMode}",
+                "GSVG-SRS-001"));
+            rows.Add(new EvaluationMetricRow(
+                "GSVG",
+                "catalog coverage",
+                $"{currentAlgorithmValidation.Count(IsGsvgValidationItem)} C1/C2 row(s); selected={IsGsvgSelected()}",
+                "GSVG-RTM-001"));
+
+            var advanced = GetAdvancedReadiness();
+            rows.Add(new EvaluationMetricRow(
+                "Advanced",
+                "C3/C4 UI gate",
+                advanced is null
+                    ? "not checked"
+                    : $"{advanced.Level} {advanced.Status}; execution={advanced.ExecutionState}; {advanced.DegradedMode}",
+                "SRS-ENHANCE-ADV-001"));
+            rows.Add(new EvaluationMetricRow(
+                "Advanced",
+                "workflow coverage",
+                $"{currentAlgorithmValidation.Count(IsAdvancedValidationItem)} C3/C4 row(s); selected={currentAlgorithmChainPlan.AdvancedStageOrder.Count}",
+                "PR-FUNC-006/007"));
+
+            var ai = GetAiReadiness();
+            rows.Add(new EvaluationMetricRow(
+                "AI",
+                "C5/C6 UI gate",
+                ai is null
+                    ? "not checked"
+                    : $"{ai.Level} {ai.Status}; execution={ai.ExecutionState}; {ai.DegradedMode}",
+                "SRS-AI-001"));
+            rows.Add(new EvaluationMetricRow(
+                "AI",
+                "degraded workflow coverage",
+                $"{currentAlgorithmValidation.Count(IsAiValidationItem)} C5/C6 row(s); selected={currentAlgorithmChainPlan.AiStageOrder.Count}",
+                "RTM-AI-001"));
 
             rows.Add(new EvaluationMetricRow(
                 "Calibration",
@@ -1843,6 +1903,103 @@ namespace ImageProcTest
             {
                 ReportsSummaryText.Text = $"Reports: {reportArtifacts.Count} artifact(s) generated in this session.";
             }
+        }
+
+        private ModuleReadinessSnapshot? GetGsvgReadiness()
+        {
+            return currentModuleReadiness.FirstOrDefault(module =>
+                string.Equals(module.ModuleName, "gsvg", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsGsvgValidationItem(AlgorithmValidationItem item)
+        {
+            return string.Equals(item.ModuleName, "gsvg", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsGsvgSelected()
+        {
+            return currentAlgorithmChainPlan.Steps.Any(step =>
+                string.Equals(step.StageKey, "gsvg", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void UpdateGsvgWorkflowStatus()
+        {
+            var gsvg = GetGsvgReadiness();
+            var rowCount = currentAlgorithmValidation.Count(IsGsvgValidationItem);
+            var selected = IsGsvgSelected() ? "yes" : "no";
+            if (gsvg is null)
+            {
+                GsvgWorkflowStatusText.Text =
+                    $"GSVG UI: Phase 2 C1/C2 catalog rows={rowCount}; module readiness not checked; execution remains blocked until #61.";
+                return;
+            }
+
+            GsvgWorkflowStatusText.Text =
+                $"GSVG UI: Phase 2 C1/C2 rows={rowCount}; selected={selected}; " +
+                $"{gsvg.Level} {gsvg.Status}; execution={gsvg.ExecutionState}; " +
+                $"skip={gsvg.DegradedMode}; next={gsvg.NextAction}";
+        }
+
+        private ModuleReadinessSnapshot? GetAdvancedReadiness()
+        {
+            return currentModuleReadiness.FirstOrDefault(module =>
+                string.Equals(module.ModuleName, "xpe_enhance_advanced", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsAdvancedValidationItem(AlgorithmValidationItem item)
+        {
+            return string.Equals(item.ModuleName, "xpe_enhance_advanced", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateAdvancedWorkflowStatus()
+        {
+            var advanced = GetAdvancedReadiness();
+            var rowCount = currentAlgorithmValidation.Count(IsAdvancedValidationItem);
+            var selected = currentAlgorithmChainPlan.AdvancedStageOrder.Count == 0
+                ? "none"
+                : string.Join(" -> ", currentAlgorithmChainPlan.AdvancedStageOrder);
+            if (advanced is null)
+            {
+                AdvancedWorkflowStatusText.Text =
+                    $"Advanced UI: Phase 2 C3/C4 catalog rows={rowCount}; module readiness not checked; execution remains blocked until adapter smoke exists.";
+                return;
+            }
+
+            AdvancedWorkflowStatusText.Text =
+                $"Advanced UI: Phase 2 C3/C4 rows={rowCount}; selected={selected}; " +
+                $"{advanced.Level} {advanced.Status}; execution={advanced.ExecutionState}; " +
+                $"skip={advanced.DegradedMode}; next={advanced.NextAction}";
+        }
+
+        private ModuleReadinessSnapshot? GetAiReadiness()
+        {
+            return currentModuleReadiness.FirstOrDefault(module =>
+                string.Equals(module.ModuleName, "xpe_ai", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsAiValidationItem(AlgorithmValidationItem item)
+        {
+            return string.Equals(item.ModuleName, "xpe_ai", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateAiWorkflowStatus()
+        {
+            var ai = GetAiReadiness();
+            var rowCount = currentAlgorithmValidation.Count(IsAiValidationItem);
+            var selected = currentAlgorithmChainPlan.AiStageOrder.Count == 0
+                ? "none"
+                : string.Join(" -> ", currentAlgorithmChainPlan.AiStageOrder);
+            if (ai is null)
+            {
+                AiWorkflowStatusText.Text =
+                    $"AI UI: Phase 3 C5/C6 catalog rows={rowCount}; module readiness not checked; execution remains blocked until worker heartbeat/adapter smoke exists.";
+                return;
+            }
+
+            AiWorkflowStatusText.Text =
+                $"AI UI: Phase 3 C5/C6 rows={rowCount}; selected={selected}; " +
+                $"{ai.Level} {ai.Status}; execution={ai.ExecutionState}; " +
+                $"skip={ai.DegradedMode}; next={ai.NextAction}";
         }
 
         private void AddReportArtifact(string kind, string path)
