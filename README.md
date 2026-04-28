@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-26 — 세션 8차)
+## 프로젝트 완성도 현황 (2026-04-28 — 세션 9차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -95,14 +95,17 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 3 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동** | **미통합 (3커밋 선행)** |
 
-**최근 진행 상황** (2026-04-26 세션 8차 — Calibration Single/Multi-Point 모드 선택 설계):
+**최근 진행 상황** (2026-04-28 세션 9차 — 전처리(xpe-pre) 정밀 감사):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
-| 1 | **Calibration 실사용환경 고찰** — Offset/Gain 4개 Gap 발견 (온도보상 미작동, Gain 생성 API 부재, 만료 관리 모순, Field 미연결) | — | main |
-| 2 | **Calibration 7건 결함 수정** — API 헤더 3중 충돌→통합, 오프셋 온도보상 활성화, Gain/BPM 생성 API 구현, 검증 메트릭 추가 | — | main |
-| 3 | **FUNC-031~033 설계 (SRS-CALIB-001 v1.2)** — XpeCalibrationMode enum 6모드 (Single/Dual/Multi 5·8·10/Auto), Multi-point 최적화 (online fitting O(W×H×degree), SIMD, 10-point cap), 품질 메타데이터 (R²<0.999 gate, 이전 캘리브 비교) | — | main |
-| 4 | **RTM-CALIB-001 v1.3** — FUNC-031~033 추적성 행 추가, Coverage 21→24, Total 29→32 | — | main |
+| 1 | **전처리 모듈 33개 소스파일·39개 테스트파일 교차검증** — 5개 독립 에이전트로 Offset/Gain/Defect/Calibration/Pipeline 전수 검사 | — | main |
+| 2 | **P0 이슈 5건 발견** — Offset 이중구현/라운딩 불일치, Offset SIMD 미사용, Calibration multi-method 미구현, Cache 스레드 안전성 위반, Defect bilinear 보간 검증 필요 | — | main |
+| 3 | **P1 이슈 8건 발견** — Offset 테스트 API 불일치, Gain 이중구현 동작 분기, Calibration defect map 만료 우회, R² 회귀 로깅 미구현 등 | — | main |
+| 4 | **GitHub Issues 등록 + worktree 분류** — Lane A(Offset/SIMD), Lane B(Calibration), Lane C(Defect/BPM)로 분리하여 이슈 추적 | — | main |
+| 5 | **상세 감사 보고서 작성** — [docs/calibration/PREPROCESS-AUDIT-SESSION9.md](docs/calibration/PREPROCESS-AUDIT-SESSION9.md) | — | main |
+
+> **세션 9차 핵심 결론**: 파이프라인 아키텍처, Gain 보정, Ghost 보정, SIMD dispatch는 정상. Offset 보정의 이중 구현과 Calibration multi-method가 즉시 조치 필요.
 
 **이전 세션** (2026-04-23 세션 7차 — dicom CMakeLists.txt + Gate G1b→G2 준비):
 
@@ -189,7 +192,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 > **Framework A**: ~90/90 (목표 달성 ✅) | **Framework B**: ~80/85 (AI governance·상호운용성이 주요 갭)
 > 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
-### 잔여 작업 분류 (2026-04-23 세션 6차)
+### 잔여 작업 분류 (2026-04-28 세션 9차 갱신)
 
 #### Must (출시 블로커)
 
@@ -198,7 +201,15 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | M1 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | main | A +2 | ⏳ 빌드 환경 실측 |
 | ~~M2~~ | ~~P1B VVP addendum 커밋~~ | ~~main~~ | ~~A 유지~~ | ✅ **완료 (세션 5차)** |
 | ~~M3~~ | ~~DICOM Conformance Statement v1.0~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
-| **M4** | **dicom CMakeLists.txt 작성** — `BUILD_DICOM=ON` 빌드 구성 | main | — | 🔴 **신규 발견** |
+| ~~M4~~ | ~~dicom CMakeLists.txt 작성~~ | ~~main~~ | — | ✅ **완료 (세션 7차)** |
+
+#### 전처리 감사 파생 Must (세션 9차 신규)
+
+| # | 작업 | Worktree | Issue | 상태 |
+|:-:|------|:--------:|:-----:|:----:|
+| **A1** | **Offset 이중 구현 제거 + 라운딩 통일 + SIMD dispatch 활성화** — `offset_correct.cpp` vs `xpe_offset.cpp` 중복 정의 제거, 반올림/절삭 표준화, AVX2/AVX-512/NEON 커널 활성화 | Lane A (Pre) | [#68](https://github.com/holee9/image-processing/issues/68) | 🔴 P0 |
+| **B1** | **Calibration multi-method 구현 + Cache 스레드 안전성 + R² 로깅** — median/sigma_clip/winsor 구현, LRU 캐시 mutex 추가, defect map 만료 정책 | Lane B (Calib) | [#69](https://github.com/holee9/image-processing/issues/69) | 🔴 P0 |
+| **C1** | **Defect bilinear 보간 검증 + Hampel 검출 + Reflect padding** — 보간 구현 확인, Hampel 5-sigma 활성화, 경계 공식 수정 | Lane C (Defect) | [#70](https://github.com/holee9/image-processing/issues/70) | 🔴 P0 |
 
 #### Should (품질·점수 향상)
 
@@ -211,6 +222,14 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **S5** | **GUI dev/gui → main 통합** — GSVG/Advanced/AI workflow 3커밋 squash merge | GUI-C | — | 📋 **3커밋 선행** |
 | **S6** | **Calibration 모드 선택 구현 (FUNC-031~033)** — XpeCalibrationMode enum, online fitting, SIMD polynomial, 품질 메타데이터 | Pre-A | — | 🔴 **설계 완료, 구현 대기** |
 
+#### 전처리 감사 파생 Should (세션 9차 신규)
+
+| # | 작업 | Worktree | 상태 |
+|:-:|------|:--------:|:----:|
+| **A3** | **Offset 테스트 2-arg → 3-arg 전환 + AVX2 parity 활성화 + Gain 동작 통일** | Lane A (Pre) | [#68](https://github.com/holee9/image-processing/issues/68) | P1 |
+| **B3** | **Defect map 만료 정책 문서화 + Polynomial gain 검증** | Lane B (Calib) | [#69](https://github.com/holee9/image-processing/issues/69) | P1 |
+| **C2** | **Reflect padding 수정 + Hampel 검출 확인 + BPM merge 개선** | Lane C (Defect) | [#70](https://github.com/holee9/image-processing/issues/70) | P1 |
+
 #### Nice-to-Have (여력 확보 시)
 
 | # | 작업 | 담당 | 비고 |
@@ -219,11 +238,14 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N2 | SLSA L2/L3 빌드 서명 | main | SPDF v1.0 로드맵 항목 |
 | N3 | Gate G2 → G3 준비 | main | Phase 3 진입 전제 |
 | N4 | DICOM Conformance PS 3.4+ 확장 | Post-B | Storage Commitment 등 |
+| N5 | BPM merge 명시적 매핑 | Lane C (Defect) | bitwise OR → explicit |
+| N6 | 전체 결함 이웃 엣지케이스 | Lane C (Defect) | median filter 0.0f 대안 |
+| N7 | Calibration 미사용 파라미터 정리 | Lane B (Calib) | integration_time_ms, temperature_c |
+| N8 | REQ-P1A-XXX 플레이스홀더 교체 | Lane A (Pre) | xpe_verify_metrics.cpp |
 
-> **전체 진도율**: Must 항목 2/4 (50%), Should 항목 1/6 (17%), 완료된 달성 경로 11/14 (79%)
+> **전체 진도율**: Must 항목 2/4 (50%), 전처리 감사 Must 0/5 (0%), Should 항목 1/6 (17%), 감사 Should 0/8 (0%), 완료된 달성 경로 11/14 (79%)
 > **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~90 → 최대 ~97)
 > **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~80 → 최대 ~88)
-> **신규 발견 이슈**: dicom CMakeLists.txt 누락 (M4), GUI 3커밋 미통합 (S5), Calibration 모드 선택 구현 대기 (S6)
 
 ## 범위 (Scope)
 
