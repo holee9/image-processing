@@ -5,6 +5,8 @@
         xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:ImageProcTest.Views"
+        xmlns:converters="clr-namespace:ImageProcTest.Converters"
         mc:Ignorable="d"
         Title="ImageProcTest GUI-S0"
         Height="920"
@@ -14,9 +16,16 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
+        <converters:FocusPanelVisibilityConverter x:Key="FocusPanelVisibility" />
     </Window.Resources>
 
     <DockPanel>
+        <!-- Workbench TopBar (Slice 3) -->
+        <views:TopBar DockPanel.Dock="Top" />
+
+        <!-- Workbench AlgorithmBar (Slice 3) -->
+        <views:AlgorithmBar DockPanel.Dock="Top" />
+
         <Menu x:Name="MainMenu"
               AutomationProperties.AutomationId="MainMenu"
               DockPanel.Dock="Top">
@@ -350,469 +359,34 @@
             </ToolBar>
         </ToolBarTray>
 
-        <Grid Margin="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="360" MinWidth="320" />
-                <ColumnDefinition Width="*" MinWidth="520" />
-                <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="480" MinWidth="320" />
-            </Grid.ColumnDefinitions>
+        <!-- Workbench Study Queue (Slice 5) -->
+        <views:StudyQueue DockPanel.Dock="Left"
+                          AutomationProperties.AutomationId="StudyQueue">
+            <views:StudyQueue.Visibility>
+                <MultiBinding Converter="{StaticResource FocusPanelVisibility}">
+                    <Binding Path="FocusMode" />
+                    <Binding Path="LeftPanelOpen" />
+                </MultiBinding>
+            </views:StudyQueue.Visibility>
+        </views:StudyQueue>
 
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
-                <StackPanel>
-                    <GroupBox x:Name="RuntimeGroup"
-                              AutomationProperties.AutomationId="RuntimeGroup"
-                              Header="Runtime"
-                              Margin="0,0,0,12"
-                              Visibility="{Binding ShowRuntimePanel, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel Margin="10">
-                            <TextBlock FontWeight="Bold" Text="Requested Backend Mode" />
-                            <ComboBox x:Name="BackendModeComboBox"
-                                      AutomationProperties.AutomationId="BackendModeComboBox"
-                                      ItemsSource="{Binding BackendModeOptions}"
-                                      SelectedItem="{Binding Settings.BackendMode, UpdateSourceTrigger=PropertyChanged}"
-                                      Margin="0,4,0,8" />
+        <!-- Workbench Verdict Bar (Slice 6) -->
+        <views:VerdictBar DockPanel.Dock="Bottom"
+                          AutomationProperties.AutomationId="VerdictBar" />
 
-                            <TextBlock FontWeight="Bold" Text="Backend Name" />
-                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.BackendName}" />
+        <!-- Workbench Analysis Panel (Slice 7) -->
+        <views:AnalysisPanel DockPanel.Dock="Right"
+                             AutomationProperties.AutomationId="AnalysisPanel">
+            <views:AnalysisPanel.Visibility>
+                <MultiBinding Converter="{StaticResource FocusPanelVisibility}">
+                    <Binding Path="FocusMode" />
+                    <Binding Path="RightPanelOpen" />
+                </MultiBinding>
+            </views:AnalysisPanel.Visibility>
+        </views:AnalysisPanel>
 
-                            <TextBlock FontWeight="Bold" Text="Version" />
-                            <TextBlock x:Name="BackendVersionText"
-                                       AutomationProperties.AutomationId="BackendVersionText"
-                                       Margin="0,4,0,8"
-                                       Text="{Binding RuntimeInfo.Version}" />
-
-                            <TextBlock FontWeight="Bold" Text="State" />
-                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.State}" />
-
-                            <TextBlock FontWeight="Bold" Text="Supports Native Runtime" />
-                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.SupportsNativeRuntime}" />
-
-                            <TextBlock FontWeight="Bold" Text="Native DLL Detected" />
-                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.NativeDllDetected}" />
-
-                            <TextBlock FontWeight="Bold" Text="Native DLL Path" />
-                            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RuntimeInfo.NativeDllPath}" />
-
-                            <TextBlock FontWeight="Bold" Margin="0,8,0,0" Text="Display Version" />
-                            <TextBlock x:Name="DisplayVersionText"
-                                       AutomationProperties.AutomationId="DisplayVersionText"
-                                       Margin="0,4,0,8"
-                                       Text="{Binding RuntimeInfo.DisplayVersion}" />
-
-                            <TextBlock FontWeight="Bold" Text="Display DLL Detected" />
-                            <TextBlock Margin="0,4,0,8" Text="{Binding RuntimeInfo.DisplayDllDetected}" />
-
-                            <TextBlock FontWeight="Bold" Text="Display DLL Path" />
-                            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RuntimeInfo.DisplayDllPath}" />
-                        </StackPanel>
-                    </GroupBox>
-
-                    <GroupBox x:Name="RawImageSettingsGroup"
-                              AutomationProperties.AutomationId="RawImageSettingsGroup"
-                              Header="Raw Image Settings"
-                              Margin="0,0,0,12"
-                              Visibility="{Binding ShowRawSettingsPanel, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel Margin="10">
-                            <TextBlock FontWeight="Bold" Text="Raw Width" />
-                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawWidth, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Raw Height" />
-                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawHeight, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Raw Pixel Format" />
-                            <TextBox Margin="0,4,0,8" Text="{Binding Settings.RawPixelFormat, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Last Raw Directory" />
-                            <TextBox Margin="0,4,0,0" Text="{Binding Settings.LastRawDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
-                    </GroupBox>
-
-                    <GroupBox x:Name="CalibrationPathsGroup"
-                              AutomationProperties.AutomationId="CalibrationPathsGroup"
-                              Header="Calibration Evaluation"
-                              Margin="0,0,0,12"
-                              Visibility="{Binding ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel Margin="10">
-                            <TextBlock FontWeight="Bold" Text="Fixture / Calibration Paths" />
-                            <TextBlock Margin="0,2,0,8"
-                                       Foreground="#475569"
-                                       TextWrapping="Wrap"
-                                       Text="Test GUI evaluation records the selected Off/On/Auto stage mix. Product-mode mandatory policy is validated separately by xpe_preprocess.dll." />
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="88" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox Grid.Row="0" Grid.Column="0" Margin="0,0,8,8"
-                                         AutomationProperties.AutomationId="OffsetCalibrationPathTextBox"
-                                         Text="{Binding Settings.OffsetCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                                <Button Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
-                                        AutomationProperties.AutomationId="BrowseOffsetCalibrationDirectoryButton"
-                                        Command="{Binding BrowseOffsetCalibrationDirectoryCommand}"
-                                        Content="Browse" />
-
-                                <TextBox Grid.Row="1" Grid.Column="0" Margin="0,0,8,8"
-                                         AutomationProperties.AutomationId="GainCalibrationPathTextBox"
-                                         Text="{Binding Settings.GainCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                                <Button Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
-                                        AutomationProperties.AutomationId="BrowseGainCalibrationDirectoryButton"
-                                        Command="{Binding BrowseGainCalibrationDirectoryCommand}"
-                                        Content="Browse" />
-
-                                <TextBox Grid.Row="2" Grid.Column="0"
-                                         AutomationProperties.AutomationId="DefectCalibrationPathTextBox"
-                                         Text="{Binding Settings.DefectCalibrationDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                                <Button Grid.Row="2" Grid.Column="1"
-                                        AutomationProperties.AutomationId="BrowseDefectCalibrationDirectoryButton"
-                                        Command="{Binding BrowseDefectCalibrationDirectoryCommand}"
-                                        Content="Browse" />
-                            </Grid>
-
-                            <Separator Margin="0,10,0,10" />
-
-                            <TextBlock FontWeight="Bold" Text="Stage Modes" />
-                            <TextBlock Margin="0,2,0,8"
-                                       Foreground="#475569"
-                                       TextWrapping="Wrap"
-                                       Text="Auto follows fixture/native metadata, On forces a stage for A/B evaluation, and Off bypasses it for effect measurement." />
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="115" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Offset" />
-                                <UniformGrid Grid.Row="0" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="OffsetModeAutoRadioButton" AutomationProperties.AutomationId="OffsetModeAutoRadioButton" Content="Auto" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="OffsetModeOnRadioButton" AutomationProperties.AutomationId="OffsetModeOnRadioButton" Content="On" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="OffsetModeOffRadioButton" AutomationProperties.AutomationId="OffsetModeOffRadioButton" Content="Off" GroupName="OffsetCorrectionMode" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Gain" />
-                                <UniformGrid Grid.Row="1" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="GainModeAutoRadioButton" AutomationProperties.AutomationId="GainModeAutoRadioButton" Content="Auto" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="GainModeOnRadioButton" AutomationProperties.AutomationId="GainModeOnRadioButton" Content="On" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="GainModeOffRadioButton" AutomationProperties.AutomationId="GainModeOffRadioButton" Content="Off" GroupName="GainCorrectionMode" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Defect" />
-                                <UniformGrid Grid.Row="2" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="DefectModeAutoRadioButton" AutomationProperties.AutomationId="DefectModeAutoRadioButton" Content="Auto" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="DefectModeOnRadioButton" AutomationProperties.AutomationId="DefectModeOnRadioButton" Content="On" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="DefectModeOffRadioButton" AutomationProperties.AutomationId="DefectModeOffRadioButton" Content="Off" GroupName="DefectCorrectionMode" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Ghost/Lag" />
-                                <UniformGrid Grid.Row="3" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="GhostModeAutoRadioButton" AutomationProperties.AutomationId="GhostModeAutoRadioButton" Content="Auto" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="GhostModeOnRadioButton" AutomationProperties.AutomationId="GhostModeOnRadioButton" Content="On" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="GhostModeOffRadioButton" AutomationProperties.AutomationId="GhostModeOffRadioButton" Content="Off" GroupName="GhostCorrectionMode" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Temperature" />
-                                <UniformGrid Grid.Row="4" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="TemperatureModeAutoRadioButton" AutomationProperties.AutomationId="TemperatureModeAutoRadioButton" Content="Auto" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="TemperatureModeOnRadioButton" AutomationProperties.AutomationId="TemperatureModeOnRadioButton" Content="On" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="TemperatureModeOffRadioButton" AutomationProperties.AutomationId="TemperatureModeOffRadioButton" Content="Off" GroupName="TemperatureCompensationMode" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Nonlinearity" />
-                                <UniformGrid Grid.Row="5" Grid.Column="1" Columns="3" Margin="0,0,0,8">
-                                    <RadioButton x:Name="NonlinearityModeAutoRadioButton" AutomationProperties.AutomationId="NonlinearityModeAutoRadioButton" Content="Auto" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="NonlinearityModeOnRadioButton" AutomationProperties.AutomationId="NonlinearityModeOnRadioButton" Content="On" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="NonlinearityModeOffRadioButton" AutomationProperties.AutomationId="NonlinearityModeOffRadioButton" Content="Off" GroupName="NonlinearityCorrectionMode" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-
-                                <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Binning" />
-                                <UniformGrid Grid.Row="6" Grid.Column="1" Columns="3">
-                                    <RadioButton x:Name="BinningModeAutoRadioButton" AutomationProperties.AutomationId="BinningModeAutoRadioButton" Content="Auto" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" />
-                                    <RadioButton x:Name="BinningModeOnRadioButton" AutomationProperties.AutomationId="BinningModeOnRadioButton" Content="On" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" />
-                                    <RadioButton x:Name="BinningModeOffRadioButton" AutomationProperties.AutomationId="BinningModeOffRadioButton" Content="Off" GroupName="BinningCorrectionMode" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" />
-                                </UniformGrid>
-                            </Grid>
-
-                            <TextBlock x:Name="CalibrationEvaluationSummaryText"
-                                       AutomationProperties.AutomationId="CalibrationEvaluationSummaryText"
-                                       Margin="0,10,0,0"
-                                       TextWrapping="Wrap"
-                                       Text="{Binding CalibrationEvaluationSummary}" />
-                        </StackPanel>
-                    </GroupBox>
-
-                    <GroupBox x:Name="DisplaySettingsGroup"
-                              AutomationProperties.AutomationId="DisplaySettingsGroup"
-                              Header="Display Settings"
-                              Margin="0,0,0,12"
-                              Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel Margin="10">
-                            <TextBlock FontWeight="Bold" Text="VOI Mode" />
-                            <ComboBox x:Name="VoiLutModeComboBox"
-                                      AutomationProperties.AutomationId="VoiLutModeComboBox"
-                                      ItemsSource="{Binding VoiLutModeOptions}"
-                                      SelectedItem="{Binding Settings.VoiLutMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Margin="0,4,0,8" />
-
-                            <TextBlock FontWeight="Bold" Text="Window Center" />
-                            <TextBox x:Name="VoiWindowCenterTextBox"
-                                     AutomationProperties.AutomationId="VoiWindowCenterTextBox"
-                                     Margin="0,4,0,8"
-                                     Text="{Binding Settings.VoiWindowCenter, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Window Width" />
-                            <TextBox x:Name="VoiWindowWidthTextBox"
-                                     AutomationProperties.AutomationId="VoiWindowWidthTextBox"
-                                     Margin="0,4,0,8"
-                                     Text="{Binding Settings.VoiWindowWidth, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Body Part Preset" />
-                            <ComboBox x:Name="BodyPartPresetComboBox"
-                                      AutomationProperties.AutomationId="BodyPartPresetComboBox"
-                                      ItemsSource="{Binding BodyPartOptions}"
-                                      SelectedItem="{Binding Settings.SelectedBodyPart, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Margin="0,4,0,8" />
-
-                            <Button x:Name="ApplyBodyPartPresetButton"
-                                    AutomationProperties.AutomationId="ApplyBodyPartPresetButton"
-                                    Command="{Binding ApplyBodyPartPresetCommand}"
-                                    Content="Apply Body Part Preset"
-                                    Margin="0,0,0,8" />
-
-                            <CheckBox x:Name="GsdfEnabledCheckBox"
-                                      AutomationProperties.AutomationId="GsdfEnabledCheckBox"
-                                      Content="GSDF Enabled (validation pending)"
-                                      IsChecked="{Binding Settings.GsdfEnabled, Mode=TwoWay}"
-                                      Margin="0,0,0,8" />
-
-                            <TextBlock FontWeight="Bold" Text="Modality Rescale Slope" />
-                            <TextBox x:Name="ModalityRescaleSlopeTextBox"
-                                     AutomationProperties.AutomationId="ModalityRescaleSlopeTextBox"
-                                     Margin="0,4,0,8"
-                                     Text="{Binding Settings.ModalityRescaleSlope, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <TextBlock FontWeight="Bold" Text="Modality Rescale Intercept" />
-                            <TextBox x:Name="ModalityRescaleInterceptTextBox"
-                                     AutomationProperties.AutomationId="ModalityRescaleInterceptTextBox"
-                                     Margin="0,4,0,8"
-                                     Text="{Binding Settings.ModalityRescaleIntercept, UpdateSourceTrigger=PropertyChanged}" />
-
-                            <Button x:Name="ApplyDisplayPipelineButton"
-                                    AutomationProperties.AutomationId="ApplyDisplayPipelineButton"
-                                    Command="{Binding ApplyDisplayPipelineCommand}"
-                                    Content="Apply Display Pipeline"
-                                    Margin="0,0,0,8" />
-
-                            <TextBlock x:Name="DisplayPipelineSummaryText"
-                                       AutomationProperties.AutomationId="DisplayPipelineSummaryText"
-                                       TextWrapping="Wrap"
-                                       Text="{Binding DisplayPipelineSummary}" />
-
-                            <Separator Margin="0,10,0,10" />
-
-                            <TextBlock FontWeight="Bold" Text="Comparison Mode" />
-                            <ComboBox x:Name="ComparisonModeComboBox"
-                                      AutomationProperties.AutomationId="ComparisonModeComboBox"
-                                      ItemsSource="{Binding CompareModeOptions}"
-                                      SelectedItem="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Margin="0,4,0,8" />
-
-                            <TextBlock FontWeight="Bold" Text="Overlay Opacity" />
-                            <Slider x:Name="ComparisonOverlayOpacitySlider"
-                                    AutomationProperties.AutomationId="ComparisonOverlayOpacitySlider"
-                                    Minimum="0"
-                                    Maximum="1"
-                                    TickFrequency="0.1"
-                                    IsSnapToTickEnabled="False"
-                                    Value="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Margin="0,4,0,8" />
-
-                            <UniformGrid Columns="2" Margin="0,0,0,8">
-                                <Button x:Name="ZoomFitButton"
-                                        AutomationProperties.AutomationId="ZoomFitButton"
-                                        Command="{Binding ZoomFitCommand}"
-                                        Content="Fit"
-                                        Margin="0,0,4,4" />
-                                <Button x:Name="ZoomActualButton"
-                                        AutomationProperties.AutomationId="ZoomActualButton"
-                                        Command="{Binding ZoomActualCommand}"
-                                        Content="100%"
-                                        Margin="4,0,0,4" />
-                                <Button x:Name="ZoomInButton"
-                                        AutomationProperties.AutomationId="ZoomInButton"
-                                        Command="{Binding ZoomInCommand}"
-                                        Content="Zoom In"
-                                        Margin="0,4,4,0" />
-                                <Button x:Name="ZoomOutButton"
-                                        AutomationProperties.AutomationId="ZoomOutButton"
-                                        Command="{Binding ZoomOutCommand}"
-                                        Content="Zoom Out"
-                                        Margin="4,4,0,0" />
-                            </UniformGrid>
-
-                            <Button x:Name="DetachComparisonViewerButton"
-                                    AutomationProperties.AutomationId="DetachComparisonViewerButton"
-                                    Command="{Binding DetachComparisonViewerCommand}"
-                                    Content="Detach Comparison Viewer"
-                                    Margin="0,0,0,8" />
-
-                            <TextBlock x:Name="ComparisonStatusText"
-                                       AutomationProperties.AutomationId="ComparisonStatusText"
-                                       TextWrapping="Wrap"
-                                       Text="{Binding ComparisonStatus}" />
-                        </StackPanel>
-                    </GroupBox>
-
-                    <GroupBox x:Name="ImageSummaryGroup"
-                              AutomationProperties.AutomationId="ImageSummaryGroup"
-                              Header="Image Summary"
-                              Visibility="{Binding ShowImageSummaryPanel, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock x:Name="ImageSummaryText"
-                                   AutomationProperties.AutomationId="ImageSummaryText"
-                                   Margin="10"
-                                   TextWrapping="Wrap"
-                                   Text="{Binding ActiveImageSummary}" />
-                    </GroupBox>
-                </StackPanel>
-            </ScrollViewer>
-
-            <Grid Grid.Column="1" Margin="0,0,8,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="180" />
-                </Grid.RowDefinitions>
-
-                <GroupBox x:Name="ComparisonViewportGroup"
-                          AutomationProperties.AutomationId="ComparisonViewportGroup"
-                          Header="Source vs Processed Comparison"
-                          Margin="0,0,0,12">
-                    <Border Margin="10" BorderBrush="#334155" BorderThickness="1" Background="#0F172A">
-                        <controls:ImageComparisonViewport x:Name="ImageComparisonViewport"
-                                                          AutomationProperties.AutomationId="ImageComparisonViewport"
-                                                          SourceImage="{Binding SourceImage}"
-                                                          ProcessedImage="{Binding ProcessedImage}"
-                                                          CompareMode="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          ZoomScale="{Binding Settings.ComparisonZoomScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          PanX="{Binding Settings.ComparisonPanX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          PanY="{Binding Settings.ComparisonPanY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          SwipePosition="{Binding Settings.ComparisonSwipePosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          OverlayOpacity="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Border>
-                </GroupBox>
-
-                <GroupBox x:Name="MetadataNotesGroup"
-                          AutomationProperties.AutomationId="MetadataNotesGroup"
-                          Grid.Row="1"
-                          Header="Metadata / Notes"
-                          Visibility="{Binding ShowMetadataPanel, Converter={StaticResource BoolToVisibility}}">
-                    <ScrollViewer Margin="10" VerticalScrollBarVisibility="Auto">
-                        <TextBlock x:Name="MetadataTextBlock"
-                                   AutomationProperties.AutomationId="MetadataTextBlock"
-                                   TextWrapping="Wrap"
-                                   Text="{Binding MetadataText}" />
-                    </ScrollViewer>
-                </GroupBox>
-            </Grid>
-
-            <GridSplitter x:Name="DiagnosticsColumnSplitter"
-                          Grid.Column="2"
-                          AutomationProperties.AutomationId="DiagnosticsColumnSplitter"
-                          Width="6"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          Background="#2D3748"
-                          ResizeBehavior="PreviousAndNext"
-                          ResizeDirection="Columns"
-                          ShowsPreview="True"
-                          ToolTip="Drag to resize image preview and Logs/Alerts panels." />
-
-            <Grid Grid.Column="3" Margin="8,0,0,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" MinHeight="140" />
-                    <RowDefinition Height="6" />
-                    <RowDefinition Height="*" MinHeight="140" />
-                </Grid.RowDefinitions>
-
-                <GroupBox x:Name="LogsGroup"
-                          AutomationProperties.AutomationId="LogsGroup"
-                          Header="Logs"
-                          Margin="0,0,0,8"
-                          Visibility="{Binding ShowLogsPanel, Converter={StaticResource BoolToVisibility}}">
-                    <ListBox x:Name="LogsListBox"
-                             AutomationProperties.AutomationId="LogsListBox"
-                             Margin="10"
-                             ItemsSource="{Binding Logs}"
-                             FontFamily="Consolas"
-                             FontSize="12" />
-                </GroupBox>
-
-                <GridSplitter x:Name="LogsAlertsSplitter"
-                              Grid.Row="1"
-                              AutomationProperties.AutomationId="LogsAlertsSplitter"
-                              Height="6"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              Background="#2D3748"
-                              ResizeBehavior="PreviousAndNext"
-                              ResizeDirection="Rows"
-                              ShowsPreview="True"
-                              ToolTip="Drag to resize Logs and Alerts panels." />
-
-                <GroupBox x:Name="AlertsGroup"
-                          AutomationProperties.AutomationId="AlertsGroup"
-                          Grid.Row="2"
-                          Header="Alerts"
-                          Visibility="{Binding ShowAlertsPanel, Converter={StaticResource BoolToVisibility}}">
-                    <ListBox x:Name="AlertsListBox"
-                             AutomationProperties.AutomationId="AlertsListBox"
-                             Margin="10"
-                             ItemsSource="{Binding Alerts}"
-                             FontFamily="Consolas"
-                             FontSize="12">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="6" Margin="0,0,0,6" CornerRadius="4">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#223040" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Severity}" Value="INFO">
-                                                    <Setter Property="Background" Value="#1F3344" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Severity}" Value="WARN">
-                                                    <Setter Property="Background" Value="#4D3A18" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Severity}" Value="ERROR">
-                                                    <Setter Property="Background" Value="#4A1F24" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Foreground="#F8FAFC"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding}" />
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </GroupBox>
-            </Grid>
+        <Grid Margin="0">
+            <views:ViewportShell AutomationProperties.AutomationId="ViewportShell" />
         </Grid>
     </DockPanel>
 </Window>
