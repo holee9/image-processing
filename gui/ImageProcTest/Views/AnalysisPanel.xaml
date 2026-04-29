@@ -5,6 +5,7 @@
              Background="#14171e">
     <UserControl.Resources>
         <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
+        <local:StringEqualsConverter x:Key="StringEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
     </UserControl.Resources>
 
     <DockPanel>
