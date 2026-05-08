@@ -20,6 +20,7 @@
 // @MX:NOTE: Single-client design - only one pipe instance allowed per worker.
 
 #include <windows.h>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -33,7 +34,6 @@
 namespace {
     constexpr DWORD PIPE_BUFFER_SIZE = 512;
     constexpr DWORD PIPE_TIMEOUT_MS = 0;
-    constexpr size_t VERSION_STRING_MAX_SIZE = 32;
     constexpr const char* STUB_VERSION_STRING = "0.1.0-stub";
     constexpr const char* XPE_AI_WORKER_PIPE_NAME = "\\\\.\\pipe\\xpe_ai_worker";
 
@@ -48,14 +48,14 @@ namespace {
         HEARTBEAT_ACK = 4,
         SHUTDOWN = 5,
         SHUTDOWN_ACK = 6,
-        ERROR = 99
+        ERROR_RESPONSE = 99
     };
 
     // Stub worker status
     enum class WorkerStatus : uint32_t {
         IDLE = 0,
         BUSY = 1,
-        ERROR = 2
+        FAILED = 2
     };
 
     // Stub error codes
@@ -245,7 +245,7 @@ private:
      * @MX:ANCHOR: Initializes worker protocol session. Called once per client connection.
      * @MX:REASON: Protocol handshake - must respond with version and capabilities.
      */
-    void HandleInit(const WorkerMessage& msg) {
+    void HandleInit(const WorkerMessage&) {
         std::cout << "[Worker] Received INIT message" << std::endl;
 
         // Build INIT_ACK response
@@ -267,7 +267,7 @@ private:
      * @MX:ANCHOR: Health check for worker process. Called periodically by host process.
      * @MX:REASON: Liveness check - must respond quickly to indicate worker is alive.
      */
-    void HandleHeartbeat(const WorkerMessage& msg) {
+    void HandleHeartbeat(const WorkerMessage&) {
         std::cout << "[Worker] Received HEARTBEAT" << std::endl;
 
         WorkerMessage response{};
@@ -282,7 +282,7 @@ private:
      * @MX:ANCHOR: Graceful shutdown sequence. Sets running_ flag to false to exit Run() loop.
      * @MX:REASON: Clean shutdown - must acknowledge before terminating to prevent data loss.
      */
-    void HandleShutdown(const WorkerMessage& msg) {
+    void HandleShutdown(const WorkerMessage&) {
         std::cout << "[Worker] Received SHUTDOWN" << std::endl;
 
         WorkerMessage response{};
@@ -302,7 +302,7 @@ private:
         std::cerr << "[Worker] Unknown message type: " << static_cast<int>(msg.type) << std::endl;
 
         WorkerMessage response{};
-        response.type = MessageType::ERROR;
+        response.type = MessageType::ERROR_RESPONSE;
         response.error.code = static_cast<uint32_t>(ErrorCode::UNKNOWN_MESSAGE);
         std::strncpy(response.error.message, "Unknown message type",
                      sizeof(response.error.message) - 1);
