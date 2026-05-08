@@ -1,11 +1,12 @@
 <UserControl x:Class="ImageProcTest.Views.AnalysisPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
              Width="380"
              Background="#14171e">
     <UserControl.Resources>
         <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
-        <local:StringEqualsConverter x:Key="StringEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
+        <viewModels:StringEqualsConverter x:Key="StringEquals" />
     </UserControl.Resources>
 
     <DockPanel>
