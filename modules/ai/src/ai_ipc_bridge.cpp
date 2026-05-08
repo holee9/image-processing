@@ -103,13 +103,13 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // Check connection state
-    if (!bridge->connected || bridge->pipe_handle == INVALID_HANDLE_VALUE) {
-        return XPE_ERR_NOT_INITIALIZED;
-    }
-
     // Validate protocol fields
     if (header->magic != XPE_AI_MSG_MAGIC) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
+    if (header->payloadSize > XPE_AI_MAX_PAYLOAD_SIZE ||
+        payload_size > XPE_AI_MAX_PAYLOAD_SIZE) {
         return XPE_ERR_INVALID_INPUT;
     }
 
@@ -117,8 +117,14 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
         return XPE_ERR_INVALID_INPUT;
     }
 
-    if (payload_size > XPE_AI_MAX_PAYLOAD_SIZE) {
+    if (payload_size > 0 && payload == nullptr) {
         return XPE_ERR_INVALID_INPUT;
+    }
+
+    // Check connection state after protocol validation so callers get
+    // deterministic validation errors even before a worker is connected.
+    if (!bridge->connected || bridge->pipe_handle == INVALID_HANDLE_VALUE) {
+        return XPE_ERR_NOT_INITIALIZED;
     }
 
     // Write header
@@ -166,14 +172,15 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // Check connection state
-    if (!bridge->connected || bridge->pipe_handle == INVALID_HANDLE_VALUE) {
-        return XPE_ERR_NOT_INITIALIZED;
-    }
-
     // Initialize output
     *bytes_received = 0;
     std::memset(header_out, 0, sizeof(XpeAiMessageHeader));
+
+    // A receive call with no worker connection is treated as a timeout-like
+    // processing failure by the IPC contract.
+    if (!bridge->connected || bridge->pipe_handle == INVALID_HANDLE_VALUE) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 
     // Read header with timeout
     DWORD bytes_read = 0;
