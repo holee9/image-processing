@@ -11,4 +11,4 @@ statusline:
         model: true
         output_style: true
         worktree: true
-    theme: default
+    theme: catppuccin-mocha
