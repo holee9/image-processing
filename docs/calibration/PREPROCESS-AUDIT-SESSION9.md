@@ -160,6 +160,53 @@ Offset/Gain/Defect 모두 `GTEST_SKIP()` 처리되어 SIMD-scalar 패리티가 C
 
 ---
 
+## 7. Codex resolution update - 2026-04-28
+
+Scope: `feat/preprocessing`, Issues #68, #69, #70.
+
+### Resolved / verified
+
+| ID | Result |
+|----|--------|
+| P0-OFF-01 | Verified: no `xpe_offset.cpp` duplicate definition exists in this worktree; `xpe_offset_correct` is defined once in `offset_correct.cpp`. |
+| P0-OFF-02 | Offset public API dispatch now reaches the AVX2 float kernel when runtime AVX2 + OS state support is present; scalar fallback remains unchanged. |
+| P1-OFF-03 | Verified: active `test_offset_correct.cpp` uses the current 3-arg API. |
+| P1-OFF-04 | Offset/Gain/Defect AVX2 parity tests are active; Defect parity now loads a real XCal defect map instead of `GTEST_SKIP()`. |
+| P1-GAIN-01 | Verified/unified: active gain implementation returns `XPE_ERR_NOT_INITIALIZED` when no gain map is loaded; no `xpe_gain.cpp` duplicate exists in this worktree. |
+| P0-CAL-01 | Added offset generation methods: `mean`, `median`, `sigma_clip`, `winsor`; enabled `test_calib_generate_offset_multi.cpp`. |
+| P0-CAL-02 | Verified: `CalibrationLRUCache` already protects `lru_`/`index_` with an internal mutex. |
+| P1-CAL-03 | Verified: defect map loading uses `check_expiry=true`, matching offset/gain. |
+| P1-CAL-04 | R2 regression path logs an advisory warning via `stderr`; stale TODO removed. |
+| P1-CAL-05 | Verified: polynomial gain generation test requires `XPE_OK` and no longer permits `XPE_ERR_IO_FAILED`. |
+| P0-DEF-01 | Verified: `xpe_interpolate_pixel()` is implemented in `helpers.cpp` and used by `defect_correct.cpp`. |
+| P1-DEF-02 | Reflect padding changed to symmetric edge reflection so boundary rows/columns are not skipped. |
+| P1-DEF-03 | Verified: Hampel 5-sigma detection is implemented and active in runtime detection parity tests. |
+
+### P2 notes
+
+| ID | Result |
+|----|--------|
+| P2-DEF-04 | Verified: BPM merge already uses explicit mapping (`good/dead/hot/both`), not bitwise OR. |
+| P2-DEF-05 | Verified: all-defect neighbor fallback returns the original pixel, not `0.0f`. |
+| P2-CAL-06 | `integration_time_ms` and `temperature_c` are now recorded in generated offset XCal config JSON. |
+| P2-PIPE-01 | Nonlinearity correction remains the documented identity baseline when no coefficients are configured; implementation is deferred until detector coefficient/LUT source data is available. |
+| P2-PIPE-02 | Active `REQ-P1A-XXX` placeholders in `xpe_verify_metrics.cpp` and `preprocess_api.h` were replaced with concrete SRS/REQ trace IDs. |
+
+### Verification
+
+Command path: MSVC VS2022 environment with CMake/Ninja from VS install, build dir `build/ci-preprocess-codex6`.
+
+Result: `ctest --test-dir build\ci-preprocess-codex6 --build-config RelWithDebInfo --output-on-failure`
+
+Status: 341 executable tests passed, 0 failed. Existing skipped/disabled tests remained skipped, including the 3072x3072 disabled performance benchmark.
+
+### Remaining DoD gaps not closed by this change
+
+- Full 3072x3072 pipeline performance benchmarks (<500 ms and bypass <200 ms) were not refreshed because the existing performance benchmark remains disabled.
+- 1000-frame memory leak delta, C# P/Invoke integration, diagnostic JSON bypass logging, and coverage >=85% were not executed in this verification pass.
+
+---
+
 *Version: 1.0.0*
 *Classification: Informational*
 *Source: 세션 9차 전처리 정밀 감사 (2026-04-28)*

@@ -165,6 +165,24 @@ Does every SRS requirement have a corresponding design section?
 
 ---
 
+### 5.1 Codex Traceability Addendum - 2026-04-28
+
+Scope: `feat/preprocessing`, Issues #68, #69, #70.
+
+Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preprocessing API and verification metric declarations after this update. The original RTM file itself did not contain `REQ-P1A-XXX` placeholders.
+
+| Trace ID | Implementation Evidence | Verification Evidence | Status |
+|:---|:---|:---|:---|
+| SRS-CALIB-FUNC-016 / REQ-P1A-010 | `xpe_verify_offset`, `xpe_offset_correct` | Offset AVX2 parity tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-017 / REQ-P1A-011 | `xpe_verify_gain`, `xpe_gain_correct` | Gain AVX2 parity tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-019 / REQ-P1A-012 | `xpe_verify_defect`, `xpe_defect_correct` | Defect AVX2 parity tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047 | `xpe_verify_pipeline`, pipeline API comments | Pipeline verification metric tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`; ctest 341/341 passed | Added |
+| SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
+
+---
+
 ## 6. Sign-Off & Approval
 
 **Document Status**: Ready for formal review
@@ -180,4 +198,3 @@ Does every SRS requirement have a corresponding design section?
 ---
 
 **Document End**
-

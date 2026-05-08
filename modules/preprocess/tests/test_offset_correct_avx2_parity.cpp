@@ -34,14 +34,11 @@ protected:
     XpeImageBuffer output1{};
     XpeImageBuffer output2{};
     XpeImageMetadata metadata{};
-    static bool calibrationLoaded;
     const char* offsetPath = "test_offset_avx2_parity_offset.xcal";
 
     void SetUp() override {
-        if (!calibrationLoaded) {
-            ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-            calibrationLoaded = true;
-        }
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
 
         std::mt19937 rng(0x5EED);
         std::uniform_int_distribution<uint16_t> inputDist(0, 4000);
@@ -101,6 +98,7 @@ protected:
     void TearDown() override {
         std::remove(offsetPath);
         std::remove("test_offset_avx2_parity_offset.xcal.tmp");
+        xpe_preprocess_shutdown();
     }
 
     void loadOffsetMap(const std::vector<float>& values, uint32_t width, uint32_t height) {
@@ -123,8 +121,6 @@ protected:
         ASSERT_EQ(xpe_calib_load_offset(offsetPath), XPE_OK);
     }
 };
-
-bool OffsetCorrectAVX2ParityTest::calibrationLoaded = false;
 
 TEST_F(OffsetCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));

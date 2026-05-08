@@ -40,6 +40,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_load_defect_map.cpp # T-006: 1-arg load defect map (XCal v1)
     src/xpe_calib_save.cpp          # T-007: 2-arg save (XCal v1)
     src/xpe_calib_generate_offset.cpp # T-008: 5-arg generate offset (XCal v1)
+    src/xpe_calib_generate_offset_methods.cpp # shared offset generation methods
     src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026/027 gain generation
     # XCal v1 file format helpers (required by load/save/generate functions above)
     src/xcal_reader.cpp
@@ -136,6 +137,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_xpe_calib_check_expiry.cpp
         tests/test_xpe_calib_endurance.cpp
         tests/test_xpe_calib_generate_offset.cpp
+        tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp
         tests/test_xpe_calib_save.cpp
         # TODO: test_xpe_preprocess.cpp uses legacy 3-arg API (xpe_offset_correct/gain_correct)
@@ -166,6 +168,7 @@ if(_XPE_BUILD_TESTS)
     add_executable(xpe_preprocess_tests
         ${XPE_TEST_SOURCES}
         src/rle_codec.cpp
+        src/xpe_calib_generate_offset_methods.cpp
         src/xcal_writer.cpp
         src/xcal_reader.cpp
         src/xcal_validator.cpp

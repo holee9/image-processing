@@ -347,6 +347,18 @@ All requirements shall have traceability to corresponding test cases in:
 
 ---
 
+## Codex Requirements Addendum - 2026-04-28
+
+Scope: `feat/preprocessing`, Issues #68, #69, #70.
+
+| Req ID | Requirement | Rationale | Verification |
+|--------|-------------|-----------|--------------|
+| **SRS-CALIB-FUNC-034** | Offset calibration generation shall support deterministic `mean`, `median`, `sigma_clip`, and `winsor` methods from a stack of UINT16 dark frames. The default method shall remain `mean` for the stable C file-writing API. Generated XCal metadata shall record `method`, `integration_time_ms`, and `temperature_c` when available. Invalid frame counts, mismatched dimensions, unsupported formats, or too-small output buffers shall return an error instead of producing partial output. | Field and factory calibration workflows require robust dark-map generation under outliers while preserving backward compatibility with the existing mean-based API. | Unit: `test_calib_generate_offset_multi.cpp`; Integration: preprocessing ctest 341/341 passed on 2026-04-28. |
+| **SRS-CALIB-NFR-003-CACHE** | Calibration LRU cache implementations shall guard all cache list and index mutations with a mutex and shall not expose unsynchronized shared state across concurrent load/read paths. | Calibration state is shared process infrastructure in an IEC 62304 Class B preprocessing component; data races can corrupt calibration selection and break determinism. | Code review: `CalibrationLRUCache`; Regression: preprocessing ctest 341/341 passed on 2026-04-28. |
+| **SRS-CALIB-NFR-004-SIMD** | SIMD correction paths shall remain numerically equivalent to scalar correction paths within the documented tolerance for offset, gain, defect, and runtime-detection functions. Runtime dispatch shall validate CPU and OS SIMD state before selecting AVX2. | Medical image preprocessing must not trade deterministic clinical output for speed, and runtime dispatch must be safe on systems where CPU feature bits and OS register support differ. | Unit: Offset/Gain/Defect/Runtime AVX2 parity tests; Regression: preprocessing ctest 341/341 passed on 2026-04-28. |
+
+---
+
 ## References
 
 ### Standards and Regulations
