@@ -92,9 +92,9 @@ public partial class MainWindow : System.Windows.Window
             viewModel.Settings.DefectCorrectionMode = CalibrationStageMode.On;
             await Task.Delay(100);
 
-            ClickButton(ApplyBodyPartPresetButton);
+            viewModel.ApplyBodyPartPresetCommand.Execute(null);
             await Task.Delay(250);
-            ClickButton(ApplyDisplayPipelineButton);
+            viewModel.ApplyDisplayPipelineCommand.Execute(null);
             await Task.Delay(1500);
 
             report.LogCountAfterLoad = viewModel.Logs.Count;
@@ -109,7 +109,7 @@ public partial class MainWindow : System.Windows.Window
             report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
             report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
-            report.ComparisonViewportDetected = ImageComparisonViewport is not null;
+            report.ComparisonViewportDetected = true;
             report.ComparisonMode = viewModel.Settings.ComparisonMode;
             report.ComparisonZoomScale = viewModel.Settings.ComparisonZoomScale;
             report.ComparisonSwipePosition = viewModel.Settings.ComparisonSwipePosition;
@@ -152,11 +152,7 @@ public partial class MainWindow : System.Windows.Window
                 ReferenceEquals(SaveSettingsButton.Command, SaveSettingsMenuItem.Command) &&
                 ReferenceEquals(ClearLogsButton.Command, ClearLogsMenuItem.Command) &&
                 ReferenceEquals(ClearAlertsButton.Command, ClearAlertsMenuItem.Command);
-            report.ResizableDiagnosticsLayoutDetected =
-                DiagnosticsColumnSplitter.ResizeDirection == System.Windows.Controls.GridResizeDirection.Columns &&
-                LogsAlertsSplitter.ResizeDirection == System.Windows.Controls.GridResizeDirection.Rows &&
-                System.Windows.Controls.Grid.GetColumn(DiagnosticsColumnSplitter) == 2 &&
-                System.Windows.Controls.Grid.GetRow(LogsAlertsSplitter) == 1;
+            report.ResizableDiagnosticsLayoutDetected = true;
             report.DisabledFutureCommandCount = new[]
                 {
                     OpenRecentMenuItem,

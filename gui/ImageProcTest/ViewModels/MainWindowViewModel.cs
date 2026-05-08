@@ -37,6 +37,23 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showLogsPanel = true;
     private bool _showAlertsPanel = true;
 
+    // Slice 2 — workbench VM-only backing fields
+    private System.Windows.Media.ImageSource? _laneAImage;
+    private System.Windows.Media.ImageSource? _laneBImage;
+    private string _activeStudyId = string.Empty;
+    private RunSetState _runSet = new();
+    private Verdict? _activeVerdict;
+    private string _verdictNotes = string.Empty;
+    private bool _roiActive;
+
+    /// <summary>
+    /// Hard-coded algorithm names compiled into this build.
+    /// When a new algorithm is added to the project, add its name here and rebuild.
+    /// There is no runtime discovery.
+    /// </summary>
+    public static readonly string[] AlgorithmOptions =
+        ["Baseline v1.0", "Production v1.2", "Candidate v1.4", "Candidate v1.5-rc"];
+
     public MainWindowViewModel(
         AppSettings settings,
         AppSettingsService settingsService,
@@ -87,6 +104,17 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowCalibrationSettingsCommand = new RelayCommand(ShowCalibrationSettings);
         ShowFixtureManagerCommand = new RelayCommand(ShowFixtureManager);
         ExportAutomationReportCommand = new RelayCommand(ExportAutomationReport);
+
+        // Slice 2 — workbench commands
+        Studies = new ObservableCollection<StudyEntry>();
+        RunOnAllQueuedCommand = new RelayCommand(() => Log("RunOnAllQueuedCommand: not implemented (Slice 7)."));
+        RecordVerdictCommand = new RelayCommand<Verdict>(RecordVerdict);
+        SaveAndNextCommand = new RelayCommand(SaveAndNext);
+        ToggleFocusModeCommand = new RelayCommand(() => FocusMode = !FocusMode);
+        ToggleRoiCommand = new RelayCommand(() => RoiActive = !RoiActive);
+        ExportEvidenceBundleCommand = new RelayCommand(ExportEvidenceBundle);
+        SwitchAnalysisTabCommand = new RelayCommand<string>(tab => { if (!string.IsNullOrWhiteSpace(tab)) AnalysisTab = tab; });
+        ResetLaneBOverridesCommand = new RelayCommand(ResetLaneBOverrides);
 
         Log("GUI-S0 initialized.");
         InitializeBackend();
@@ -151,6 +179,16 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ShowFixtureManagerCommand { get; }
 
     public RelayCommand ExportAutomationReportCommand { get; }
+
+    // Slice 2 — workbench commands
+    public RelayCommand RunOnAllQueuedCommand { get; }
+    public RelayCommand<Verdict> RecordVerdictCommand { get; }
+    public RelayCommand SaveAndNextCommand { get; }
+    public RelayCommand ToggleFocusModeCommand { get; }
+    public RelayCommand ToggleRoiCommand { get; }
+    public RelayCommand ExportEvidenceBundleCommand { get; }
+    public RelayCommand<string> SwitchAnalysisTabCommand { get; }
+    public RelayCommand ResetLaneBOverridesCommand { get; }
 
     public string StatusText
     {
@@ -249,6 +287,100 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _showAlertsPanel;
         set => SetProperty(ref _showAlertsPanel, value);
+    }
+
+    // Slice 2 — settings-backed pass-through properties
+    public string LaneAAlgorithm
+    {
+        get => Settings.LaneAAlgorithm;
+        set { if (Settings.LaneAAlgorithm != value) { Settings.LaneAAlgorithm = value; OnPropertyChanged(); } }
+    }
+
+    public string LaneBAlgorithm
+    {
+        get => Settings.LaneBAlgorithm;
+        set { if (Settings.LaneBAlgorithm != value) { Settings.LaneBAlgorithm = value; OnPropertyChanged(); } }
+    }
+
+    public bool FocusMode
+    {
+        get => Settings.FocusMode;
+        set { if (Settings.FocusMode != value) { Settings.FocusMode = value; OnPropertyChanged(); } }
+    }
+
+    public bool LeftPanelOpen
+    {
+        get => Settings.LeftPanelOpen;
+        set { if (Settings.LeftPanelOpen != value) { Settings.LeftPanelOpen = value; OnPropertyChanged(); } }
+    }
+
+    public bool RightPanelOpen
+    {
+        get => Settings.RightPanelOpen;
+        set { if (Settings.RightPanelOpen != value) { Settings.RightPanelOpen = value; OnPropertyChanged(); } }
+    }
+
+    public string AnalysisTab
+    {
+        get => Settings.AnalysisTab;
+        set { if (Settings.AnalysisTab != value) { Settings.AnalysisTab = value; OnPropertyChanged(); } }
+    }
+
+    public double LaneBSharpeningSigma
+    {
+        get => Settings.LaneBSharpeningSigma;
+        set { if (Math.Abs(Settings.LaneBSharpeningSigma - value) > 0.0001) { Settings.LaneBSharpeningSigma = value; OnPropertyChanged(); } }
+    }
+
+    public double LaneBDenoiseStrength
+    {
+        get => Settings.LaneBDenoiseStrength;
+        set { if (Math.Abs(Settings.LaneBDenoiseStrength - value) > 0.0001) { Settings.LaneBDenoiseStrength = value; OnPropertyChanged(); } }
+    }
+
+    // Slice 2 — VM-only properties
+    public System.Windows.Media.ImageSource? LaneAImage
+    {
+        get => _laneAImage;
+        private set => SetProperty(ref _laneAImage, value);
+    }
+
+    public System.Windows.Media.ImageSource? LaneBImage
+    {
+        get => _laneBImage;
+        private set => SetProperty(ref _laneBImage, value);
+    }
+
+    public string ActiveStudyId
+    {
+        get => _activeStudyId;
+        set => SetProperty(ref _activeStudyId, value);
+    }
+
+    public ObservableCollection<StudyEntry> Studies { get; }
+
+    public RunSetState RunSet
+    {
+        get => _runSet;
+        set => SetProperty(ref _runSet, value);
+    }
+
+    public Verdict? ActiveVerdict
+    {
+        get => _activeVerdict;
+        set => SetProperty(ref _activeVerdict, value);
+    }
+
+    public string VerdictNotes
+    {
+        get => _verdictNotes;
+        set => SetProperty(ref _verdictNotes, value);
+    }
+
+    public bool RoiActive
+    {
+        get => _roiActive;
+        set => SetProperty(ref _roiActive, value);
     }
 
     public void ShutdownBackend()
@@ -733,6 +865,96 @@ public sealed class MainWindowViewModel : ObservableObject
             }
         }
         _drainedBackendAlertCount = alertCount;
+    }
+
+    private void RecordVerdict(Verdict verdict)
+    {
+        ActiveVerdict = verdict;
+
+        var dir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "verdicts.json");
+
+        var verdicts = new Dictionary<string, string>();
+        if (File.Exists(path))
+        {
+            var existing = File.ReadAllText(path);
+            var deserialized = JsonSerializer.Deserialize<Dictionary<string, string>>(existing);
+            if (deserialized is not null)
+                verdicts = deserialized;
+        }
+
+        if (!string.IsNullOrEmpty(ActiveStudyId))
+            verdicts[ActiveStudyId] = $"{verdict}|{_verdictNotes}|{DateTimeOffset.Now:O}";
+
+        File.WriteAllText(path, JsonSerializer.Serialize(verdicts, new JsonSerializerOptions { WriteIndented = true }));
+        Log($"Verdict recorded: {ActiveStudyId} = {verdict}.");
+    }
+
+    private void SaveAndNext()
+    {
+        var current = Studies.FirstOrDefault(s => s.Id == ActiveStudyId);
+        if (current is not null && ActiveVerdict.HasValue)
+        {
+            current.Status = ActiveVerdict.Value switch
+            {
+                Verdict.Pass => StudyStatus.Pass,
+                Verdict.Defer => StudyStatus.Defer,
+                Verdict.Fail => StudyStatus.Fail,
+                _ => StudyStatus.Queued
+            };
+        }
+
+        var next = Studies.FirstOrDefault(s => s.Status == StudyStatus.Queued);
+        ActiveStudyId = next?.Id ?? string.Empty;
+        ActiveVerdict = null;
+        VerdictNotes = string.Empty;
+
+        RunSet.Passed = Studies.Count(s => s.Status == StudyStatus.Pass);
+        RunSet.Failed = Studies.Count(s => s.Status == StudyStatus.Fail);
+        RunSet.Deferred = Studies.Count(s => s.Status == StudyStatus.Defer);
+        RunSet.Total = Studies.Count;
+
+        StatusText = next is not null ? $"Advanced to study '{next.Id}'." : "No more queued studies.";
+        Log(StatusText);
+    }
+
+    private void ResetLaneBOverrides()
+    {
+        LaneBSharpeningSigma = 0.85;
+        LaneBDenoiseStrength = 0.42;
+        StatusText = "Lane B overrides reset to defaults.";
+        Log(StatusText);
+    }
+
+    private void ExportEvidenceBundle()
+    {
+        try
+        {
+            var evidenceDir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            if (!Directory.Exists(evidenceDir))
+            {
+                StatusText = "No evidence directory found for current run-set.";
+                Log(StatusText);
+                return;
+            }
+
+            var bundleDir = Path.Combine(AppContext.BaseDirectory, "evidence", "bundles");
+            Directory.CreateDirectory(bundleDir);
+
+            var zipPath = Path.Combine(bundleDir, $"{RunSet.RunId}.zip");
+            if (File.Exists(zipPath))
+                File.Delete(zipPath);
+
+            System.IO.Compression.ZipFile.CreateFromDirectory(evidenceDir, zipPath);
+            StatusText = $"Evidence bundle exported: {zipPath}";
+            Log(StatusText);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Export failed: {ex.Message}";
+            Log(StatusText);
+        }
     }
 
     private void Log(string message)

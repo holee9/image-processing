@@ -297,48 +297,43 @@ public sealed class PipelineOrchestrator : IDisposable
     private Task<DicomReadResult> ReadDicomAsync(string path)
     {
         // TODO: xpe_dicom.dll P/Invoke 구현
-        return Task.FromResult(new DicomReadResult { Success = true });
+        return Task.FromResult(new DicomReadResult(true, IntPtr.Zero));
     }
 
     private Task<ProcessResult> PreprocessAsync(IntPtr imageBuffer, PipelineSettings settings)
     {
         // TODO: xpe_preprocess.dll P/Invoke 구현
-        return Task.FromResult(new ProcessResult { Success = true });
+        return Task.FromResult(new ProcessResult(true, IntPtr.Zero));
     }
 
     private Task<ProcessResult> EnhanceAsync(IntPtr imageBuffer, PipelineSettings settings)
     {
         // TODO: xpe_enhance_basic.dll P/Invoke 구현
-        return Task.FromResult(new ProcessResult { Success = true });
+        return Task.FromResult(new ProcessResult(true, IntPtr.Zero));
     }
 
     private Task<EiResult> CalculateExposureIndexAsync(IntPtr imageBuffer, PipelineSettings settings)
     {
         // TODO: xpe_enhance_basic.dll xpe_calc_exposure_index P/Invoke 구현
-        return Task.FromResult(new EiResult
-        {
-            Success = true,
-            ExposureIndex = 200.0,
-            DeviationIndex = -0.97
-        });
+        return Task.FromResult(new EiResult(true, 200.0, -0.97));
     }
 
     private Task<ProcessResult> ApplyDisplayPipelineAsync(IntPtr imageBuffer, PipelineSettings settings)
     {
         // TODO: xpe_display.dll P/Invoke 구현
-        return Task.FromResult(new ProcessResult { Success = true });
+        return Task.FromResult(new ProcessResult(true, IntPtr.Zero));
     }
 
     private Task<DicomWriteResult> WriteDicomAsync(IntPtr imageBuffer, string outputPath, PipelineSettings settings)
     {
         // TODO: xpe_dicom.dll P/Invoke 구현
-        return Task.FromResult(new DicomWriteResult { Success = true });
+        return Task.FromResult(new DicomWriteResult(true));
     }
 
     private Task<CalibrationImageResult> LoadCalibrationImageAsync(string path)
     {
         // TODO: 균일 보정 이미지 로드 구현
-        return Task.FromResult(new CalibrationImageResult { Success = true });
+        return Task.FromResult(new CalibrationImageResult(true, IntPtr.Zero));
     }
 
     private double CalculateSnr(IntPtr imageBuffer, Rectangle roi)

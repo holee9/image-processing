@@ -1,0 +1,131 @@
+<UserControl x:Class="ImageProcTest.Views.StudyQueue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:ImageProcTest.Models"
+             Width="280"
+             Background="#14171e">
+    <UserControl.Resources>
+        <models:StudyStatusToGlyphConverter x:Key="StatusGlyph" />
+        <models:StudyStatusToColorConverter x:Key="StatusColor" />
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" Margin="12,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Study queue" Foreground="#f0f2f5" FontSize="11" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                <Border Background="#1AFFFFFF" CornerRadius="8" Padding="6,2">
+                    <TextBlock Text="{Binding Studies.Count, FallbackValue=0}" Foreground="#8a909c"
+                               FontSize="10" VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+
+            <Button Grid.Column="1" Content="+"
+                    Command="{Binding LoadImageCommand}"
+                    Width="24" Height="24"
+                    FontSize="14" FontWeight="Bold"
+                    Foreground="#8a909c" Background="Transparent"
+                    BorderThickness="0" Cursor="Hand"
+                    ToolTip="Load fixture to add study" />
+        </Grid>
+
+        <!-- Filter segmented -->
+        <Grid DockPanel.Dock="Top" Margin="12,0,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <RadioButton x:Name="FilterAll" Content="All" GroupName="StudyFilter"
+                         IsChecked="True" Click="OnFilterChanged"
+                         HorizontalAlignment="Center"
+                         FontSize="11" Foreground="#f0f2f5"
+                         Background="#1A7dd3fc" BorderThickness="0"
+                         Padding="12,4" Cursor="Hand" />
+            <RadioButton Grid.Column="1" Content="Queued" GroupName="StudyFilter"
+                         Click="OnFilterChanged"
+                         HorizontalAlignment="Center"
+                         FontSize="11" Foreground="#8a909c"
+                         Background="Transparent" BorderThickness="0"
+                         Padding="12,4" Cursor="Hand" />
+            <RadioButton Grid.Column="2" Content="Done" GroupName="StudyFilter"
+                         Click="OnFilterChanged"
+                         HorizontalAlignment="Center"
+                         FontSize="11" Foreground="#8a909c"
+                         Background="Transparent" BorderThickness="0"
+                         Padding="12,4" Cursor="Hand" />
+        </Grid>
+
+        <!-- Study list -->
+        <ListBox x:Name="StudyListBox"
+                 AutomationProperties.AutomationId="StudyListBox"
+                 ItemsSource="{Binding Studies}"
+                 SelectedValue="{Binding ActiveStudyId, Mode=TwoWay}"
+                 SelectedValuePath="Id"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Foreground="#f0f2f5"
+                 SelectionChanged="OnStudySelected">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Thumbnail placeholder -->
+                        <Border Width="36" Height="36" CornerRadius="4" Background="#1AFFFFFF">
+                            <TextBlock Text="{Binding BodyPart, Converter={StaticResource StatusGlyph}}"
+                                       FontSize="12" Foreground="#5a5f6a"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <!-- Study info -->
+                        <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Id}" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#f0f2f5" />
+                            <TextBlock Text="{Binding BodyPart}" FontSize="10" Foreground="#5a5f6a" />
+                        </StackPanel>
+
+                        <!-- Status + delta -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <TextBlock FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{Binding Status, Converter={StaticResource StatusColor}}">
+                                <TextBlock.Text>
+                                    <Binding Path="Status" Converter="{StaticResource StatusGlyph}" />
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock Text="{Binding DeltaSummary}" FontSize="9"
+                                       Foreground="#5a5f6a" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="10,6,12,6" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#0DFFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#1A7dd3fc" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+    </DockPanel>
+</UserControl>
