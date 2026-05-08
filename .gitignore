@@ -239,6 +239,10 @@ CMakeFiles/
 vcpkg_installed/
 Testing/
 modules/*/tests/
+!modules/gsvg/tests/
+!modules/gsvg/tests/test_gsvg_coverage.cpp
+!modules/gsvg/tests/test_gsvg_edge_cases.cpp
+!modules/gsvg/tests/test_gsvg_extended_coverage.cpp
 modules/*/build/
 gui/**/bin/
 gui/**/obj/

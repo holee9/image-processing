@@ -22,6 +22,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe_calib_generate_offset_methods.hpp"
 
 #include <vector>
 #include <cstring>
@@ -33,6 +34,15 @@ namespace {
 constexpr uint32_t W = 8;
 constexpr uint32_t H = 8;
 constexpr size_t N = static_cast<size_t>(W) * H;
+
+XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
+                                       int32_t num_frames,
+                                       XpeImageBuffer* output,
+                                       const char* config_json_or_null)
+{
+    return xpe::preprocess::generate_offset_to_uint16_buffer(
+        dark_frames, num_frames, output, config_json_or_null);
+}
 
 // Helper to create a UINT16 frame buffer
 struct FrameHelper {

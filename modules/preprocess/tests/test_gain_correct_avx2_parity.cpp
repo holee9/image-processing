@@ -37,8 +37,8 @@ protected:
     const char* gainPath = "test_gain_avx2_parity_gain.xcal";
 
     void SetUp() override {
-        // Try to initialize, but don't fail if already initialized
-        xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
 
         std::mt19937 rng(0x5EED);
         std::uniform_int_distribution<uint16_t> inputDist(0, 4000);
@@ -98,6 +98,7 @@ protected:
     void TearDown() override {
         std::remove(gainPath);
         std::remove("test_gain_avx2_parity_gain.xcal.tmp");
+        xpe_preprocess_shutdown();
     }
 
     void loadGainMap(const std::vector<float>& values, uint32_t width, uint32_t height) {

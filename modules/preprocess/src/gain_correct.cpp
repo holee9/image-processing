@@ -16,7 +16,9 @@
 #include <vector>
 #include <mutex>
 #include <immintrin.h>
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
 #include <cstring>
 
 /* ============================================================================
@@ -91,6 +93,29 @@ static inline bool is_valid_gain(float gain) noexcept {
            gain > 0.0f &&
            gain >= MIN_GAIN_VALUE &&
            gain <= MAX_GAIN_VALUE;
+}
+
+static bool xpe_gain_has_avx2() noexcept {
+#if defined(_MSC_VER)
+    int cpuinfo[4];
+    __cpuidex(cpuinfo, 0, 0);
+    if (cpuinfo[0] < 7) return false;
+
+    __cpuidex(cpuinfo, 1, 0);
+    const bool osxsave = (cpuinfo[2] & (1 << 27)) != 0;
+    const bool avx = (cpuinfo[2] & (1 << 28)) != 0;
+    if (!osxsave || !avx) return false;
+
+    const unsigned long long xcr_mask = _xgetbv(0);
+    if ((xcr_mask & 0x6ULL) != 0x6ULL) return false;
+
+    __cpuidex(cpuinfo, 7, 0);
+    return (cpuinfo[1] & (1 << 5)) != 0;
+#elif defined(__GNUC__) || defined(__clang__)
+    return __builtin_cpu_supports("avx2");
+#else
+    return false;
+#endif
 }
 
 /**
@@ -234,14 +259,17 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     if (n > std::numeric_limits<size_t>::max() / sizeof(float)) return XPE_ERR_INVALID_INPUT;
     if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    if (!g_calib.gain_map) return XPE_ERR_NOT_INITIALIZED;
-    if (g_calib.gain_width  != input->width ||
-        g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
-
     const uint16_t* src     = static_cast<const uint16_t*>(input->data);
     float*          dst     = static_cast<float*>(output->data);
-    const float*    gainmap = g_calib.gain_map.get();
+    std::vector<float> gainmap;
+
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!g_calib.gain_map) return XPE_ERR_NOT_INITIALIZED;
+        if (g_calib.gain_width  != input->width ||
+            g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+        gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+    }
 
     // Validate gain map and precompute reciprocals
     std::vector<float> reciprocal(n);
@@ -251,14 +279,7 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     }
 
     // Apply: AVX2 when available, scalar fallback
-    int cpuinfo[4];
-    __cpuid(cpuinfo, 0);
-    bool has_avx2 = false;
-    if (cpuinfo[0] >= 7) {
-        __cpuidex(cpuinfo, 7, 0);
-        has_avx2 = (cpuinfo[1] & (1 << 5)) != 0;
-    }
-    if (has_avx2)
+    if (xpe_gain_has_avx2())
         apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
     else
         apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);

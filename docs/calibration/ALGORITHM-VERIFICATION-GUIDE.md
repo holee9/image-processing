@@ -639,6 +639,30 @@ jobs:
 
 ---
 
+## 10. Codex Verification Update - 2026-04-28
+
+Scope: `feat/preprocessing`, Issues #68, #69, #70.
+
+| Verification Item | Result |
+|-------------------|--------|
+| Offset SIMD dispatch and parity | AVX2 dispatch is wired behind CPU/OS state checks; offset parity tests passed. |
+| Gain SIMD parity | Gain AVX2 parity tests passed with the unified initialized-gain-map behavior. |
+| Defect interpolation and parity | `xpe_interpolate_pixel()` is implemented and defect AVX2 parity tests passed with a loaded XCal BPM. |
+| Runtime Hampel detection | Runtime detection AVX2 parity tests passed; Hampel 5-sigma path is active. |
+| Offset multi-method generation | `mean`, `median`, `sigma_clip`, and `winsor` tests were enabled and passed. |
+| Calibration cache thread safety | `CalibrationLRUCache` list/index mutation is mutex-protected; code review confirmed no unguarded mutation in the active cache implementation. |
+| Full 3072x3072 benchmark numbers | Not refreshed in this pass. The existing 3072x3072 performance benchmark remains disabled, so no new benchmark timing is claimed here. |
+
+Regression command:
+
+```powershell
+ctest --test-dir build\ci-preprocess-codex6 --build-config RelWithDebInfo --output-on-failure
+```
+
+Result: 341 executable tests passed, 0 failed. Existing skipped/disabled tests remained skipped.
+
+---
+
 *CALIB-VER-001 v1.0 — End of Document*  
 *작성: MoAI 자동화 교차검증 2026-04-19*  
 *다음 검토: SPEC-XPE-P2 구현 후*

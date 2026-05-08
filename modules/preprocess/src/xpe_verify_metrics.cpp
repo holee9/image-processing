@@ -144,7 +144,7 @@ namespace {
  *
  * Computes dark bias, DSNU, and residual noise metrics for offset-corrected images.
  *
- * REQ-P1A-XXX: Offset correction verification
+ * SRS-CALIB-FUNC-016 / REQ-P1A-010: Offset correction verification
  *
  * @param raw_image Original raw image (UINT16)
  * @param corrected_image Offset-corrected image (UINT16)
@@ -248,7 +248,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *
  * Computes PRNU before/after, flatness, gain coverage, and SNR improvement.
  *
- * REQ-P1A-XXX: Gain correction verification
+ * SRS-CALIB-FUNC-017 / REQ-P1A-011: Gain correction verification
  *
  * @param before_gain Offset-corrected image (UINT16)
  * @param after_gain Gain-corrected image (FLOAT32)
@@ -358,7 +358,7 @@ XPE_API XpeErrorCode xpe_verify_gain(
  *
  * Computes defect count, density, and correction error metrics.
  *
- * REQ-P1A-XXX: Defect correction verification
+ * SRS-CALIB-FUNC-019 / REQ-P1A-012: Defect correction verification
  *
  * @param corrected_image Defect-corrected image (FLOAT32)
  * @param defect_map BPM used (UINT8)
@@ -443,7 +443,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
  *
  * Computes overall SNR improvement between raw and final processed images.
  *
- * REQ-P1A-XXX: Pipeline verification
+ * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
  *
  * @param raw_image Original raw image
  * @param final_image Final processed image
