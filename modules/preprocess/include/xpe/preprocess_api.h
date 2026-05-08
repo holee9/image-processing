@@ -687,7 +687,7 @@ typedef struct {
  * Dark bias measures how well offset correction removes the dark current pedestal.
  * DSNU measures residual non-uniformity in dark regions.
  *
- * REQ-P1A-XXX: Offset correction verification
+ * SRS-CALIB-FUNC-016 / REQ-P1A-010: Offset correction verification
  *
  * @param raw_image Original raw image (UINT16)
  * @param corrected_image Offset-corrected image (UINT16)
@@ -710,7 +710,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * PRNU (Photo Response Non-Uniformity) measures pixel-to-pixel gain variation.
  * Flatness measures histogram uniformity (ideal flat-field response).
  *
- * REQ-P1A-XXX: Gain correction verification
+ * SRS-CALIB-FUNC-017 / REQ-P1A-011: Gain correction verification
  *
  * @param before_gain Offset-corrected image (UINT16)
  * @param after_gain Gain-corrected image (FLOAT32)
@@ -732,7 +732,7 @@ XPE_API XpeErrorCode xpe_verify_gain(
  * Computes defect count, density, and correction error metrics.
  * Correction error measures how well defective pixels are interpolated from neighbors.
  *
- * REQ-P1A-XXX: Defect correction verification
+ * SRS-CALIB-FUNC-019 / REQ-P1A-012: Defect correction verification
  *
  * @param corrected_image Defect-corrected image (FLOAT32)
  * @param defect_map BPM used (UINT8)
@@ -752,7 +752,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
  * Computes overall SNR improvement between raw and final processed images.
  * Provides end-to-end quality assessment for the entire preprocessing pipeline.
  *
- * REQ-P1A-XXX: Pipeline verification
+ * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
  *
  * @param raw_image Original raw image (UINT16)
  * @param final_image Final processed image (FLOAT32)
@@ -850,7 +850,7 @@ typedef struct {
  *   - Window extraction uses reflect mode at boundaries
  *   - Prevents false detections at image borders
  *
- * REQ-P1A-XXX: BPM generation for FPD calibration
+ * SRS-CALIB-FUNC-022..025: BPM generation for FPD calibration
  *
  * @param dark_frames Array of dark frames (UINT16, offset-uncorrected)
  * @param num_dark Number of dark frames (≥ min_frames_dark)

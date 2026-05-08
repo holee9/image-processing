@@ -302,8 +302,7 @@ XpeErrorCode update_metadata(uint32_t degree,
     // Warn if new R² is significantly worse than previous (regression detection)
     if (previous_r_squared >= 0.0 && r_squared < previous_r_squared - 0.01) {
         log_quality_regression(previous_r_squared, r_squared);
-        // TODO: Log warning: calibration quality regression detected
-        // For now, this is just a warning; calibration still passes R² gate
+        // Advisory only: the hard quality gate above still determines pass/fail.
     }
 
     return XPE_OK;

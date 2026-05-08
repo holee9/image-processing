@@ -173,11 +173,12 @@ void extract_window_reflect(const float* image,
     auto reflect_index = [](int idx, uint32_t size) noexcept {
         if (size <= 1u) return 0;
         const int max_idx = static_cast<int>(size) - 1;
+        const int period = static_cast<int>(size) * 2;
         while (idx < 0 || idx > max_idx) {
             if (idx < 0) {
-                idx = -idx;
+                idx = -idx - 1;
             } else {
-                idx = 2 * max_idx - idx;
+                idx = period - idx - 1;
             }
         }
         return idx;

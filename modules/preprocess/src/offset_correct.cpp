@@ -60,7 +60,7 @@ void offset_correct_float_scalar(const uint16_t* src, const float* off, uint16_t
  * REQ-P1A-010: Bit-identical to scalar baseline
  * ========================================================================= */
 
-#if defined(__AVX512F__) || defined(_MSC_VER)
+#if defined(__AVX512F__)
 // @MX:ANCHOR: [AUTO] offset_correct_avx512 — AVX-512 saturating subtraction kernel
 // @MX:REASON: Highest performance on Skylake-X/Ice Lake; processes 32 pixels per iteration; fan_in = 2
 // @MX:SPEC: REQ-P1A-010
@@ -178,6 +178,14 @@ bool xpe_has_avx2() noexcept
     int cpuInfo[4];
     __cpuidex(cpuInfo, 0, 0);  // Get max leaf
     if (cpuInfo[0] < 7) return false;
+
+    __cpuidex(cpuInfo, 1, 0);
+    const bool osxsave = (cpuInfo[2] & (1 << 27)) != 0;
+    const bool avx = (cpuInfo[2] & (1 << 28)) != 0;
+    if (!osxsave || !avx) return false;
+
+    const unsigned long long xcr_mask = _xgetbv(0);
+    if ((xcr_mask & 0x6ULL) != 0x6ULL) return false;
 
     __cpuidex(cpuInfo, 7, 0);  // Leaf 7, subleaf 0
     return (cpuInfo[1] & (1 << 5)) != 0;  // EBX bit 5 = AVX2
