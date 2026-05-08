@@ -16,8 +16,8 @@ if command -v moai &> /dev/null; then
 fi
 
 # Try detected Go bin path from initialization
-if [ -f "C:/Users/drake.lee/go/bin/moai" ]; then
-	exec "C:/Users/drake.lee/go/bin/moai" hook post-compact < "$temp_file" 2>/dev/null
+if [ -f "C:/Users/drake/go/bin/moai" ]; then
+	exec "C:/Users/drake/go/bin/moai" hook post-compact < "$temp_file" 2>/dev/null
 fi
 
 # Try default ~/go/bin/moai
