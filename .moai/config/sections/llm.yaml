@@ -1,6 +1,6 @@
 llm:
     mode: ""
-    team_mode: glm
+    team_mode: ""
     glm_env_var: GLM_API_KEY
     performance_tier: medium
     claude_models:
@@ -16,6 +16,6 @@ llm:
             opus: glm-5.1
             sonnet: glm-4.7
             haiku: glm-4.5-air
-    default_model: ""
-    quality_model: ""
-    speed_model: ""
+    default_model: sonnet
+    quality_model: opus
+    speed_model: haiku
