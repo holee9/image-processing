@@ -60,7 +60,6 @@ env/
 .coverage
 coverage.json
 htmlcov/
-build_coverage/
 
 # ===========================================
 # IDE & Editors
@@ -214,6 +213,7 @@ dist-ssr/
 .firebase/
 
 # User Custom Patterns (preserved by moai update)
+build_coverage/
 artifacts/
 build_standalone/
 modules/**/build_standalone/
@@ -238,9 +238,11 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
-
-# Module test directories
 modules/*/tests/
+!modules/gsvg/tests/
+!modules/gsvg/tests/test_gsvg_coverage.cpp
+!modules/gsvg/tests/test_gsvg_edge_cases.cpp
+!modules/gsvg/tests/test_gsvg_extended_coverage.cpp
 modules/*/build/
 gui/**/bin/
 gui/**/obj/
@@ -270,10 +272,6 @@ tests/test_data/**/PositionMap.raw
 .moai/state/
 .moai/reports/
 .moai/plans/
-
-# ===========================================
-# XPE Dev Workspace & Build Scripts
-# ============================================
 _workspace/
 build_collimation_test/
 build_collimation_test2/
@@ -286,8 +284,6 @@ run_tests.bat
 build-and-test.ps1
 build-result.txt
 .moai/docs/MCP_OAUTH_SETUP.md
-
-# E2E and temporary build scripts
 *_build.bat
 *_build.sh
 *_build.ps1
