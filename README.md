@@ -64,8 +64,8 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 |--------|------|:----:|--------|
 | G0 → G1a | Phase 0 Foundation 완료 | ✅ **PASSED** | 2026-04-18 |
 | G1a → G1b | Phase 1a 전처리 완료 + 메모리 누수 테스트 | ✅ **PASSED** | 2026-04-19 |
-| G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ⏳ **대기 중** | 빌드 환경 성능 실측 필요 (M1 잔여) |
-| G2 → G3 | Phase 2 + GSVG + 듀얼 게이트 | ⏳ **미착수** | G2 통과 후 |
+| G1b → G2 | Phase 1b 3개 DLL + 통합 파이프라인 < 3000ms | ✅ **PASSED** | 2026-05-09 (163ms / 3000ms, 5.4%) |
+| G2 → G3 | Phase 2 + GSVG + 듀얼 게이트 | ⏳ **대기 중** | G2 통과 완료, G3 진입 가능 |
 
 ### SPEC 문서 현황 (2026-04-26)
 
@@ -93,9 +93,21 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 |------|--------|:---------:|---------|:----:|
 | **A (Pre)** | dev/preprocess | 0 | SIMD P0/P1 수정 통합, BP-01~05 freeze, SPEC-SIMD-001 P0/P1 | **최종 통합 완료** |
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
-| **C (GUI)** | dev/gui | 3 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동** | **미통합 (3커밋 선행)** |
+| **C (GUI)** | dev/gui | 0 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동 (PR #86)** | **최종 통합 완료** |
 
-**최근 진행 상황** (2026-05-09 세션 10차 — 전처리 결함 수정 + GUI 통합 + 재검증):
+**최근 진행 상황** (2026-05-09 세션 11차 — Gate G2 실측 + must 전량 완료):
+
+| # | 작업 | PR | 결과 |
+|---|------|-----|------|
+| 1 | **SPEC-SIMD-001 VVP 완료 확인** — REQ-SIMD-001~004 VERIFIED, VVP-PREPROCESS-001.md v1.2.0 | #87 | ✅ |
+| 2 | **GSVG R2 ABI smoke test** — 6케이스, Gate G2 GSVG 의존성 충족 | #88 | ✅ |
+| 3 | **AI IPC Bridge UI C5/C6** — AiBridgeStatusComputer + 10 xUnit 테스트, graceful degraded mode | #86, #93 | ✅ |
+| 4 | **gsvg_version → xpe_gsvg_version 접두사 통일** | #92 | ✅ |
+| 5 | **Gate G2 E2E 실측** — 163ms / 3000ms budget (5.4%), PASSED | #94 | ✅ |
+
+> **세션 11 핵심 결론**: 3-Lane must 기능 전량 완료. **Gate G2 PASSED (163ms < 3000ms). 출시 블로커 없음.** G3(AI module) 진입 가능.
+
+**이전 세션** (2026-05-09 세션 10차 — 전처리 결함 수정 + GUI 통합 + 재검증):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
@@ -104,7 +116,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 3 | **GUI evaluation workbench UI 전체 구현 (slice 1-12)** — TopBar/AlgorithmBar/StudyQueue/VerdictBar/AnalysisPanel/ViewportShell + E2E 6뷰 검증, main 통합 완료 (#74 종결) | 54a3ae7 | feature/evaluation-workbench → **PR #78** |
 | 4 | **Post-B WIP 정리 + 세션 10 재검증 보고** — AI IPC bridge 검증 순서 수정, GSVG coverage 보강, workflow config 2.14.0 동기화 (#71 #75 업데이트) | fc2d2e6, 0f9d333 | feat/post-next → **PR #76, #80** |
 
-> **세션 10 핵심 결론**: Phase 1b 전처리 결함 (#68 #69 #70 #73) 전량 해소. GUI evaluation workbench main 통합 완료. 세션 10 종결 조건 달성. Gate G2 실측이 유일한 출시 블로커.
+> **세션 10 핵심 결론**: Phase 1b 전처리 결함 (#68 #69 #70 #73) 전량 해소. GUI evaluation workbench main 통합 완료. 세션 10 종결 조건 달성.
 
 **이전 세션** (2026-04-28 세션 9차 — 전처리(xpe-pre) 정밀 감사):
 

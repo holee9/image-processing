@@ -149,7 +149,7 @@ main이 정의할 다음 Lane 작업 SPEC:
 |------|:--------------:|------|
 | **SPEC-SIMD-001 실검증** (리빌드 후 ctest) | **A +5** | P0/P1 수정 통합됨, 리빌드+검증 필요 |
 | **SPEC-SIMD-006** (scalar perf baseline) | A +? | timing assertion 추가 필요 |
-| **Gate G1b → G2 검증** | 게이트 통과 | 빌드 환경에서 전체 파이프라인 성능/메모리 실측 |
+| **Gate G1b → G2 검증** | ✅ 완료 | 163ms / 3000ms (5.4%) — PR #94, 2026-05-09 |
 | **S-OPS/IOP v1.0** (Minor 업데이트) | A +? | DICOM Conf + PMS Plan 검증절차 추가 |
 | **BP-10 cross-lane 실측** | A +? | 통합 후 degraded-mode stress |
 
@@ -239,7 +239,14 @@ Phase 1b 파이프라인 성능 검증 (게이트 블로커):
 4. 메모리 프로파일: 1000프레임 연속 처리 피크 메모리 190MB 이하 확인
 5. GSVG 통합: GSVG 모듈 R2(ABI smoke test) 달성 후 G2 게이트 통과 가능
 
-**현재 상태**: GSVG API 구현 완료(v0.2.0), DegradedMode GTest 추가됨. 빌드 후 실측 필요.
+**실측 결과 (2026-05-09, ci-post RelWithDebInfo AVX2 MSVC 14.44):**
+
+| 테스트 | 측정값 | Budget | 결과 |
+|--------|--------|--------|------|
+| 3072×3072 E2E | **163ms** | 3000ms | **PASS** (5.4%) |
+| 512×512 smoke | **4ms** | 200ms | **PASS** |
+
+**Gate G2 ✅ PASSED** — PR #94 (tests/e2e_post_pipeline 활성화 + ABI 정정)
 
 ---
 
