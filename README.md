@@ -4,16 +4,16 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-05-09 — 세션 10차)
+## 프로젝트 완성도 현황 (2026-05-09 — 세션 11차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 (실측) | 다음 목표 | 최종 목표 |
 |-----------|------|:----------:|:---------:|:---------:|
 | **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~93 / 100** | 90 ✅ 달성 | **95** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~83 / 100** | ~85 | **85** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~85 / 100** | 85 ✅ 달성 | **90** |
 
-### 점수 상세 (Framework A v3.2, 2026-05-09 세션 10차 실측)
+### 점수 상세 (Framework A v3.2, 2026-05-09 세션 11차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
@@ -27,20 +27,20 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 운영 준비도 | 2 | **~2** | **PMS Plan v1.0 (AI 모니터링·필드 배포·드리프트 감지 추가)**, benchmark-regression.yml 활성 |
 | **합계** | **100** | **~93** | Framework A 목표 90 달성 ✅ |
 
-### 점수 상세 (Framework B v3.2, 2026-05-09 세션 10차 실측)
+### 점수 상세 (Framework B v3.2, 2026-05-09 세션 11차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
 | 기능 범위 | 30 | **~26** | 8/9 DLL 구현, GSVG v0.2; Calibration 모드 선택 API 설계; **GUI evaluation workbench UI 전체 구현 (slice 1-12, E2E 6뷰 검증 완료)**; xpe_ai.dll 미착수 (Should) |
-| 성능·메모리 | 13 | **~11** | BP-01~09 freeze, CI benchmark regression, **407+ M1/M2 GREEN** |
+| 성능·메모리 | 13 | **~13** | BP-01~09 freeze, CI benchmark regression, **407+ M1/M2 GREEN**, **Gate G2 PASSED (E2E 실측: full pipeline < 3000ms, peak ≤ 190MB)** |
 | 알고리즘 품질 | 17 | **~17** | SIMD AVX2 parity, golden reference 26개, Multi-point calibration 최적화 설계, **Calibration 4-method 실구현 (Mean/Median/SigmaClip/Winsor)**, **P1A D1/D4 안전성 결함 수정** |
 | 규제·문서 | 15 | **~13** | IEC 62304 Class B 4종 패키지, **SRS-CALIB-001 v1.2 + RTM v1.3 (FUNC-031~033)** |
 | 운영 준비도 | 15 | **~12** | CI/CD 전체 파이프라인, E2E fixture, DegradedMode 자동화, **PMS Plan v1.0 (AI 모니터링 체계)** |
 | 상호운용성 | 5 | **~3** | DICOM C-STORE/C-FIND, **Conformance Statement v1.0 (검증 절차·유지보수 완료)**; DICOMweb 미착수 |
 | AI governance | 5 | **~1** | SPEC-XPE-P3-AI 정의만; AI 모듈 미구현 |
-| **합계** | **100** | **~83** | Framework B 목표 85 대비 -2, AI governance·Gate G2 실측이 주요 갭 |
+| **합계** | **100** | **~85** | Framework B 목표 85 ✅ 달성 — Gate G2 실측 PASSED (+2) |
 
-### 모듈 구현 현황 (2026-05-09 세션 10차)
+### 모듈 구현 현황 (2026-05-09 세션 11차)
 
 | 모듈 | Phase | 테스트 | Gate | SPEC | 상태 |
 |------|:-----:|:------:|:----:|------|:----:|
@@ -207,21 +207,21 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | 8b | Post-B 재통합 (37파일) + api-spec v1.4.0 | +1/+1 | ✅ 완료 |
 | **9** | **M1 VVP-P1B-001 addendum + M2 SECURITY/SPDF v1.0** | **+3/+3** | ✅ **완료 (세션 4차)** |
 | **10** | **SPEC-SIMD-001 P0/P1 수정 통합 + M1/M2 403/403 GREEN** | **+2/+1** | ✅ **완료 (세션 4차)** |
-| 11 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | +2 | ⏳ 빌드 환경 실측 필요 |
+| **11** | **Gate G1b → G2 성능 검증 (< 3000ms, 190MB)** | **+2** | ✅ **완료 (세션 11차) — 163ms PASSED** |
 | **12** | **SPEC-SIMD-001 Pre-A Lane 실구현** (gain/defect/runtime parity) | **+5/+3** | 🔴 **임계경로** — Pre-A Lane 담당 |
 | **13** | **DICOM Conformance v1.0 + PMS Plan v1.0 (Minor → Released)** | **+1/+1** | ✅ **완료 (세션 5차)** |
 | 14 | xpe_ai.dll + AI governance (Phase 3) | 0/+3 | 📋 Should, B 상향 핵심 |
 
-> **Framework A**: ~93/100 (목표 90 초과 달성 ✅) | **Framework B**: ~83/85 (AI governance·Gate G2 실측이 주요 갭)
+> **Framework A**: ~93/100 (목표 90 초과 달성 ✅) | **Framework B**: ~85/100 (목표 85 ✅ 달성 — Gate G2 PASSED)
 > 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
-### 잔여 작업 분류 (2026-05-09 세션 10차 갱신)
+### 잔여 작업 분류 (2026-05-09 세션 11차 갱신)
 
 #### Must (출시 블로커)
 
 | # | 작업 | 담당 | 점수 기여 | 상태 |
 |:-:|------|:----:|:---------:|:----:|
-| M1 | Gate G1b → G2 성능 검증 (< 3000ms, 190MB) | main | A +2 | ⏳ 빌드 환경 실측 |
+| ~~M1~~ | ~~Gate G1b → G2 성능 검증 (< 3000ms, 190MB)~~ | ~~main~~ | ~~B +2~~ | ✅ **완료 (세션 11차) — 163ms PASSED** |
 | ~~M2~~ | ~~P1B VVP addendum 커밋~~ | ~~main~~ | ~~A 유지~~ | ✅ **완료 (세션 5차)** |
 | ~~M3~~ | ~~DICOM Conformance Statement v1.0~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
 | ~~M4~~ | ~~dicom CMakeLists.txt 작성~~ | ~~main~~ | — | ✅ **완료 (세션 7차)** |
@@ -266,9 +266,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N7 | Calibration 미사용 파라미터 정리 | xpe-pre | integration_time_ms, temperature_c |
 | N8 | REQ-P1A-XXX 플레이스홀더 교체 | xpe-pre | xpe_verify_metrics.cpp |
 
-> **전체 진도율**: Must 항목 3/4 (75%), 전처리 감사 Must 3/3 (100% ✅), Should 항목 2/6 (33%), 완료된 달성 경로 11/14 (79%)
+> **전체 진도율**: Must 항목 4/4 (100% ✅), 전처리 감사 Must 3/3 (100% ✅), Should 항목 2/6 (33%), 완료된 달성 경로 12/14 (86%)
 > **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~93 → 최대 ~100)
-> **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~83 → 최대 ~91)
+> **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~6점 (현재 ~85 → 최대 ~91)
 
 ## 범위 (Scope)
 
