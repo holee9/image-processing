@@ -2,7 +2,7 @@
 
 **작성일**: 2026-05-08
 **워크트리**: `D:/workspace-github/image-processing-postprocess`
-**브랜치**: `feat/postprocessing`
+**브랜치**: `feat/post-next`
 **소유 모듈**: `modules/{enhance_basic, enhance_advanced, display, dicom, gsvg, ai}`
 **연속 추적 이슈**: #71 (Post-B post-processing worktree 잔여 구현 및 검증 정리)
 
@@ -49,9 +49,8 @@ M  modules/ai/src/ai_worker_main.cpp
 
 ```powershell
 cd D:\workspace-github\image-processing-postprocess
-cmake --build build --config Release
-ctest --test-dir build -C Release --output-on-failure -R "ai|gsvg"
-git push origin feat/postprocessing
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\ci\Invoke-LocalVsCommonBuild.ps1 -BuildDir build\codex-session10
+git push -u origin feat/post-next
 ```
 
 ---
@@ -62,9 +61,9 @@ git push origin feat/postprocessing
 
 ```
 - [x] 잔여 구현 항목과 실제 코드 상태를 대조 (세션 9 README 모듈 표 참조)
-- [부분] 필요한 구현/테스트/문서 동기화 반영 (gsvg 테스트 3건 신규 — 본 세션 커밋 예정)
-- [ ] 로컬 VS2022 공통 빌드 (M1 Gate G1b→G2 의존, main 워크트리 #60에서 수행)
-- [x] git diff --check 통과 (WIP 커밋 시 검증)
+- [x] 필요한 구현/테스트/문서 동기화 반영 (PR #76 squash merge 완료, feat/post-next 재검증)
+- [x] 로컬 VS2022 공통 빌드 (build/codex-session10, CTest 306/306 passed)
+- [x] git diff --check 통과
 ```
 
 본 세션 종료 시 `gh issue comment 71 -b "post: 세션 10 WIP 정리 — gsvg coverage 3건 + ai bridge 보강 커밋. S2/S4는 차후 세션 진입."` 코멘트 권장.
@@ -85,12 +84,12 @@ git push origin feat/postprocessing
 
 본 워크트리의 세션 10 종결 조건 (간소):
 
-- [ ] WIP 5건 정리 (2 커밋 + push)
-- [ ] gsvg 신규 테스트 3건 GREEN, CMakeLists 등록 확인
-- [ ] ai 모듈 변경이 SPEC-XPE-P3-AI 범위 일관성 유지
-- [ ] 이슈 #71에 본 세션 진행 코멘트 추가
-- [ ] CI MSVC /W4 /WX 통과
-- [ ] 본 Brief 하단에 완료 보고 추가
+- [x] WIP 5건 정리 (PR #76 squash merge, feat/post-next 기준 clean)
+- [x] gsvg 신규 테스트 3건 GREEN, CMakeLists 등록 확인
+- [x] ai 모듈 변경이 SPEC-XPE-P3-AI 범위 일관성 유지
+- [x] 이슈 #71에 본 세션 진행 코멘트 추가
+- [x] CI MSVC /W4 /WX 통과
+- [x] 본 Brief 하단에 완료 보고 추가
 
 ---
 
@@ -114,3 +113,20 @@ git push origin feat/postprocessing
 - `pwsh`는 현재 PATH에 없어 Windows PowerShell로 동일 스크립트를 실행함.
 - 기존 `build/local-vs2022-common`은 과거 VS/vcpkg 캐시와 긴 경로 정리 문제로 clean 실패.
 - 신규 빌드 디렉터리 `build/codex-session10`에서 `tools/ci/Invoke-LocalVsCommonBuild.ps1 -BuildDir build/codex-session10` 통과.
+
+---
+
+## 8. 완료 보고 (2026-05-09, feat/post-next)
+
+```
+2026-05-09 post: 세션 분리 후 디스크 상태 재검증 완료
+  - 브랜치: feat/post-next
+  - HEAD: dbd5f8767706588ceccaa6be7ab02b70ebca8d82 (origin/main 동일)
+  - working tree: clean
+2026-05-09 post: Done Definition 재검증 완료
+  - gsvg 신규 테스트 3건 존재 및 modules/gsvg/CMakeLists.txt 등록 확인
+  - VS2022 공통 빌드 통과: build/codex-session10, CTest 306/306 passed
+  - 기존 degraded availability test 5건 skip 확인
+  - git diff --check 통과
+  - S2(xpe_ai.dll Phase 3), S4(DICOMweb)는 차후 세션 이관 유지
+```
