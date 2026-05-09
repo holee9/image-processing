@@ -262,7 +262,7 @@ TEST(GsvgAbiSmoke, RepeatedLifecycleDoesNotLeakOrCrash)
 // ---------------------------------------------------------------------------
 TEST(GsvgAbiSmoke, VersionStringLooksLikeSemver)
 {
-    const char* v = gsvg_version();
+    const char* v = xpe_gsvg_version();
     ASSERT_NE(v, nullptr);
     const std::string s(v);
     ASSERT_FALSE(s.empty());

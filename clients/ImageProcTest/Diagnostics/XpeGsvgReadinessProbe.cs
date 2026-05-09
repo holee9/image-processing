@@ -31,13 +31,13 @@ namespace ImageProcTest
 
                 try
                 {
-                    if (!NativeLibrary.TryGetExport(handle, "gsvg_version", out var symbol))
+                    if (!NativeLibrary.TryGetExport(handle, "xpe_gsvg_version", out var symbol))
                     {
                         return new GsvgHealthResult(
                             "Entry point mismatch",
                             "Unavailable",
                             candidate,
-                            "gsvg.dll exists but gsvg_version export was not found.",
+                            "gsvg.dll exists but xpe_gsvg_version export was not found.",
                             IsVersionReady: false);
                     }
 

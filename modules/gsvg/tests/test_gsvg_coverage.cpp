@@ -38,10 +38,10 @@ double row_mean(const std::vector<uint16_t>& image, int y)
 
 TEST(GsvgCoverage, VersionIsStableAndNonEmpty)
 {
-    const char* version = gsvg_version();
+    const char* version = xpe_gsvg_version();
     ASSERT_NE(version, nullptr);
     EXPECT_STRNE(version, "");
-    EXPECT_STREQ(version, gsvg_version());
+    EXPECT_STREQ(version, xpe_gsvg_version());
 }
 
 TEST(GsvgCoverage, GridSuppressionReducesPeriodicRowMeanDeviation)
