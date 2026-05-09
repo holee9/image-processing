@@ -7,7 +7,7 @@
 - `RealXpeBackend` P/Invoke wrapper for `xpe_common.dll` and `xpe_display.dll`
 - display pipeline command path: Modality LUT -> VOI LUT -> Presentation LUT
 - one-click calibration evaluation radio controls for preprocessing stages using `Off`, `On`, and `Auto`
-- display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale
+- display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale (defaults tuned for 16-bit flat-panel DR: C=32768, W=65535, intercept=0)
 - source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detached viewer
 - settings UI, log panel, alert panel
 - offline packaged Help window with quick-start and scope pages
@@ -38,11 +38,11 @@ The self-check validates the precreated fixture pack under `gui/ImageProcTest/fi
 - raw fixture SHA-256 integrity
 - mock backend version plus expected log/alert counts
 - wrist lateral 3072x3072 raw image loading and preview creation
-- display settings defaults
+- display settings defaults: `voiWindowCenter=32768`, `voiWindowWidth=65535`, `modalityRescaleIntercept=0` (flat-panel DR 16-bit range)
 - calibration stage mode defaults: Offset/Gain/Defect/Ghost/Temperature/Nonlinearity/Binning all start as `Auto`
 - mock display pipeline application
 - comparison viewport defaults, source preservation, and processed preview separation
-- VOI body-part preset values
+- VOI body-part preset values (flat-panel DR: Bone C=40000/W=30000, Lung C=25000/W=50000, Abdomen C=32768/W=65535, Head C=35000/W=40000)
 
 ## E2E
 
@@ -100,6 +100,21 @@ The emitted report includes:
 - `ComparisonViewportDetected`
 - `ComparisonSourcePreserved`
 - `ComparisonEvidenceExported`
+
+## Automation E2E with actual detector raw data
+
+Run end-to-end verification against a real flat-panel detector raw image:
+
+```powershell
+dotnet run --project gui\ImageProcTest\ImageProcTest.csproj -c Debug -- `
+  --automation-raw "tests\test_data\cyan_test\Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw" `
+  --automation-width 3072 --automation-height 3072 `
+  --automation-report gui\ImageProcTest\bin\Debug\net8.0-windows\e2e-test-report.json
+```
+
+Expected result: `Passed=true`, `ActiveImageSummary` starting with `RAW 3072x3072`, `VOI(Linear, C=32768, W=65535)`.
+
+> **Note**: Default VOI values are calibrated for flat-panel DR detectors (16-bit raw, no CT HU offset). Using CT-centric defaults (C=40, W=400, intercept=-1024) causes the entire image to clip to white because the raw pixel range (15000–65535) lies entirely above the VOI upper bound (240 HU).
 
 ## Large-image comparison check
 

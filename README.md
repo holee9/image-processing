@@ -4,7 +4,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-05-09 — 세션 11차)
+## 프로젝트 완성도 현황 (2026-05-09 — 세션 12차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
@@ -52,7 +52,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** (전수 GREEN, IEC 62304 4종) |
 | gsvg.dll | 2 | 2/2 ✅ | G2⏳ | SPEC-XPE-GSVG | **완료** (BP-06 + DegradedMode, v0.2.0) |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
-| ImageProcTest.exe | GUI | 84/84 ✅ | — | TASK-GUI-IA-001 | **완료** (evaluation workbench slice 1-12 + E2E 6뷰 검증, **main 통합 완료 PR #78**) |
+| ImageProcTest.exe | GUI | 84/84 ✅ | — | TASK-GUI-IA-001 | **완료** (evaluation workbench slice 1-12 + E2E 6뷰 검증, **main 통합 완료 PR #78**; **세션 12: 코드 리뷰 3건 critical fix + VOI 기본값 CT→DR 수정 + E2E 재검증 통과**) |
 
 > **진도율**: Phase 0~2 구현 완료 기준 **8/9 모듈 (89%)**, C++ 테스트 **407+ 통과 (M1/M2 GREEN)**, GUI 통합테스트 84/84 통과, SPEC-BENCH-PRE/POST freeze 완료
 > **모듈 소스 현황**: common(3), preprocess(192), enhance_basic(6), enhance_advanced(12), display(5), gsvg(1), dicom(5), ai(1) — 총 225개 .cpp 소스파일
@@ -95,7 +95,17 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 0 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동 (PR #86)** | **최종 통합 완료** |
 
-**최근 진행 상황** (2026-05-09 세션 11차 — Gate G2 실측 + must 전량 완료):
+**최근 진행 상황** (2026-05-09 세션 12차 — GUI 코드 리뷰 + VOI 기본값 수정 + E2E 재검증):
+
+| # | 작업 | 커밋 | 결과 |
+|---|------|------|------|
+| 1 | **GUI 코드 리뷰 3건 critical fix** — InitializeBackend() race condition (`lock(_telemetryLock)` 추가), ObservableCollection UI스레드 안전성 수정 (temp list outside lock), PipelineOrchestrator 음수 메모리 델타 마스킹 수정 | main | ✅ |
+| 2 | **VOI 기본값 CT HU → 평판 X선 DR 수정** — `voiWindowCenter: 40→32768`, `voiWindowWidth: 400→65535`, `modalityRescaleIntercept: -1024→0`; 바디파트 프리셋 전체 X선 DR 범위로 교체 (Bone/Lung/Abdomen/Head) | [3dc84f7](https://github.com/holee9/image-processing/commit/3dc84f7) | ✅ |
+| 3 | **E2E 재검증 통과** — `Passed: true`, `VOI(Linear, C=32768, W=65535)`, 실제 raw 파일(cyan_test 3072×3072 UInt16) 로드 및 영상 정상 표시 확인 | main | ✅ |
+
+> **세션 12 핵심 결론**: GUI 코드 품질 3건 critical fix 완료. 평판 X선 검출기 기본값으로 교정 완료 — raw 파일 오픈 시 영상이 정상 표시됨. E2E 전체 검증 통과.
+
+**이전 세션** (2026-05-09 세션 11차 — Gate G2 실측 + must 전량 완료):
 
 | # | 작업 | PR | 결과 |
 |---|------|-----|------|
