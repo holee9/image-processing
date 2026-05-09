@@ -159,3 +159,9 @@ endif()
 # if(BUILD_TESTS)
 #     xpe_add_optional_subdirectory(tests)
 # endif()
+
+# E2E integration tests — requires full post-processing stack (ci-post preset).
+# Guard prevents link failure on ci-common/ci-preprocess where post modules are OFF.
+if(BUILD_TESTS AND BUILD_ENHANCE_BASIC AND BUILD_ENHANCE_ADVANCED AND BUILD_GSVG AND BUILD_DISPLAY)
+    add_subdirectory(tests/e2e_post_pipeline)
+endif()

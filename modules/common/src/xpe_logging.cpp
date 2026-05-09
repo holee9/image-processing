@@ -72,9 +72,19 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
         }
 
         if (filePath == nullptr) {
-            // Revert to default console logger
-            spdlog::set_default_logger(spdlog::default_logger());
-            spdlog::set_level(to_spdlog_level(g_currentLevel));
+            // Install a fresh null-sink so the spdlog default is always valid.
+            // spdlog::set_default_logger(spdlog::default_logger()) is a no-op
+            // when g_logger was already null, leaving the old (possibly freed)
+            // logger as default.  Using a dedicated null-sink avoids the crash
+            // in xpe_log_flush() caused by a dangling default_logger_ pointer.
+            try {
+                spdlog::drop("xpe_null_revert");
+            } catch (...) {}
+            auto null_sink = std::make_shared<spdlog::logger>(
+                "xpe_null_revert",
+                std::make_shared<spdlog::sinks::null_sink_mt>());
+            null_sink->set_level(to_spdlog_level(g_currentLevel));
+            spdlog::set_default_logger(null_sink);
             return XPE_OK;
         }
 
@@ -133,7 +143,12 @@ XPE_API void xpe_log_flush(void) {
     if (g_logger) {
         g_logger->flush();
     } else {
-        spdlog::default_logger()->flush();
+        // Guard: default_logger() can be null if spdlog::drop() was called
+        // on the default logger name before set_default_logger() completed.
+        auto def = spdlog::default_logger();
+        if (def) {
+            def->flush();
+        }
     }
 }
 
