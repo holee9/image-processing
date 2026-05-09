@@ -18,7 +18,9 @@
 |---------|------------|----------------|---------|
 | 1.0.0   | 2026-04-18 | manager-spec   | Initial Pre Lane-specific VVP addendum covering L1-L4 test strategy for REQ-P1A-010~013, SIMD parity, P/Invoke. |
 | 1.1.0   | 2026-04-22 | manager-spec   | SPEC-SIMD-001 반영: 4개 AVX2 parity test 파일 등록, REQ-SIMD-001~004 추가, BP-01~05 DegradedMode freeze(6/6 PASS) 반영, test count 202/202로 갱신. |
-| 1.2.0   | 2026-05-09 | xpe-algorithm  | SPEC-SIMD-001 완전 구현 검증 — REQ-SIMD-001 (Offset AVX2 parity 2/2 PASS), REQ-SIMD-002 (Gain AVX2 parity 2/2 PASS), REQ-SIMD-003 (Defect AVX2 parity 2/2 PASS), REQ-SIMD-004 (RuntimeDetect AVX2 parity 4/4 PASS) → **VERIFIED**. ctest -R AVX2Parity 10/10 PASSED. Calibration 4-method dependency (Mean/Median/SigmaClip/Winsor) 해소 후 활성화 완료. |
+| 1.2.0   | 2026-05-09 | drake.lee (AI-assisted: xpe-algorithm) | SPEC-SIMD-001 완전 구현 검증 — REQ-SIMD-001 (Offset AVX2 parity 2/2 PASS), REQ-SIMD-002 (Gain AVX2 parity 2/2 PASS), REQ-SIMD-003 (Defect AVX2 parity 2/2 PASS), REQ-SIMD-004 (RuntimeDetect AVX2 parity 4/4 PASS) → **VERIFIED**. ctest -R AVX2Parity 10/10 PASSED. Calibration 4-method dependency (Mean/Median/SigmaClip/Winsor) 해소 후 활성화 완료. |
+
+> AI-assisted 변경 표기 정책: 변경 책임자는 human developer, AI agent는 괄호 내 보조 표기. (IEC 62304 §5.5.5 책임 추적성 준수)
 
 ---
 
