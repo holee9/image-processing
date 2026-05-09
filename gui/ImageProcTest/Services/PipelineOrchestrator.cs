@@ -69,7 +69,7 @@ public sealed class PipelineOrchestrator : IDisposable
     /// 1. PipelineOrchestrator loads Phase 1 DLLs dynamically with error handling
     /// 2. Phase 2/3 DLLs gracefully skipped when absent (log + degrade)
     /// </summary>
-    public async Task<PipelineLoadResult> LoadPhase1DllsAsync(string moduleDirectory)
+    public Task<PipelineLoadResult> LoadPhase1DllsAsync(string moduleDirectory)
     {
         Log("Loading Phase 1 DLLs from: " + moduleDirectory);
 
@@ -127,7 +127,7 @@ public sealed class PipelineOrchestrator : IDisposable
 
         Log("Phase 1 DLL loading complete: " + result.LoadedDlls.Count + "/" + Phase1DllExports.Length + " in " + result.LoadTimeMs + "ms");
 
-        return result;
+        return Task.FromResult(result);
     }
 
     /// <summary>
@@ -135,8 +135,8 @@ public sealed class PipelineOrchestrator : IDisposable
     ///
     /// Acceptance Criteria:
     /// 1. Full pipeline execution: Raw DICOM → Pre-process → Enhance → EI → Display → DICOM Write
-    /// 2. Pipeline timing < 3000ms for 3072x3072 end-to-end
-    /// 3. Memory peak <= 190MB during pipeline execution
+    /// 2. Pipeline timing &lt; 3000ms for 3072x3072 end-to-end
+    /// 3. Memory peak &lt;= 190MB during pipeline execution
     /// </summary>
     public async Task<PipelineExecutionResult> ExecuteFullPipelineAsync(
         string inputDicomPath,
