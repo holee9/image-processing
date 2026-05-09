@@ -80,6 +80,23 @@ namespace ImageProcTest.IntegrationTests.AiBridgeUi
         }
 
         [Fact]
+        public void Compute_AiModuleR2WithoutConnectRequest_ReturnsAvailable()
+        {
+            // R2 = ABI smoke passed; without explicit user connect request, UI must
+            // remain in Available state (Connect enabled, Disconnect disabled).
+            var modules = new List<ModuleReadinessSnapshot>
+            {
+                new("xpe_ai", "R2", "ABI smoke", "evidence", "next", false)
+            };
+
+            var snapshot = AiBridgeStatusComputer.Compute(modules, userRequestedConnect: false);
+
+            Assert.Equal(AiBridgeConnectionStatus.Available, snapshot.Status);
+            Assert.True(snapshot.ConnectButtonEnabled);
+            Assert.False(snapshot.DisconnectButtonEnabled);
+        }
+
+        [Fact]
         public void Compute_AiModuleR2UserRequestedConnect_ReturnsConnecting()
         {
             var modules = new List<ModuleReadinessSnapshot>
