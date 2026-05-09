@@ -95,15 +95,16 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 0 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동 (PR #86)** | **최종 통합 완료** |
 
-**최근 진행 상황** (2026-05-09 세션 12차 — GUI 코드 리뷰 + VOI 기본값 수정 + E2E 재검증):
+**최근 진행 상황** (2026-05-10 세션 12차 cont. — Codex 리뷰 + GUI 코드 리뷰 + VOI 기본값 수정):
 
 | # | 작업 | 커밋 | 결과 |
 |---|------|------|------|
 | 1 | **GUI 코드 리뷰 3건 critical fix** — InitializeBackend() race condition (`lock(_telemetryLock)` 추가), ObservableCollection UI스레드 안전성 수정 (temp list outside lock), PipelineOrchestrator 음수 메모리 델타 마스킹 수정 | main | ✅ |
 | 2 | **VOI 기본값 CT HU → 평판 X선 DR 수정** — `voiWindowCenter: 40→32768`, `voiWindowWidth: 400→65535`, `modalityRescaleIntercept: -1024→0`; 바디파트 프리셋 전체 X선 DR 범위로 교체 (Bone/Lung/Abdomen/Head) | [3dc84f7](https://github.com/holee9/image-processing/commit/3dc84f7) | ✅ |
 | 3 | **E2E 재검증 통과** — `Passed: true`, `VOI(Linear, C=32768, W=65535)`, 실제 raw 파일(cyan_test 3072×3072 UInt16) 로드 및 영상 정상 표시 확인 | main | ✅ |
+| 4 | **Codex review [P2] fix** — `PipelineOrchestrator`: 모듈 디렉터리 부재 시 `MissingDlls` 미등록 버그 수정 (4개 Phase1 DLL 전체 등록 후 반환) | [732a868](https://github.com/holee9/image-processing/commit/732a868) | ✅ |
 
-> **세션 12 핵심 결론**: GUI 코드 품질 3건 critical fix 완료. 평판 X선 검출기 기본값으로 교정 완료 — raw 파일 오픈 시 영상이 정상 표시됨. E2E 전체 검증 통과.
+> **세션 12 핵심 결론**: GUI 코드 품질 4건 fix (코드 리뷰 3건 + Codex 리뷰 1건) 완료. 평판 X선 검출기 기본값으로 교정 완료 — raw 파일 오픈 시 영상이 정상 표시됨. E2E 전체 검증 통과.
 
 **이전 세션** (2026-05-09 세션 11차 — Gate G2 실측 + must 전량 완료):
 

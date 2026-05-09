@@ -39,6 +39,8 @@ public sealed class RealXpeBackend : IXpeBackend
         _displayDllPath = displayDllPath;
     }
 
+    // @MX:ANCHOR: [AUTO] Factory guard: verifies both DLLs have all required exports before routing to RealXpeBackend
+    // @MX:REASON: Called by XpeBackendFactory.Create; must remain side-effect-free (loads DLL, checks exports, immediately frees); false → MockXpeBackend
     public static bool CanUseNative(string commonDllPath, string displayDllPath) =>
         HasExports(commonDllPath, RequiredCommonExports) &&
         HasExports(displayDllPath, RequiredDisplayExports);
@@ -89,6 +91,8 @@ public sealed class RealXpeBackend : IXpeBackend
         return _rawImageLoader.Load(path, settings);
     }
 
+    // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
+    // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings)
     {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
@@ -270,6 +274,7 @@ public sealed class RealXpeBackend : IXpeBackend
         return preview;
     }
 
+    // @MX:NOTE: [AUTO] XPE error convention: 0 = Ok, negative = error code; positive values reserved for future warnings
     private static void CheckNativeResult(int code, string functionName)
     {
         if (code < (int)XpeErrorCodeNative.Ok)

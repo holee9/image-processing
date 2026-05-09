@@ -46,6 +46,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _verdictNotes = string.Empty;
     private bool _roiActive;
     private bool _histogramActive;
+    private readonly object _telemetryLock = new();
 
     /// <summary>
     /// Hard-coded algorithm names compiled into this build.
@@ -415,6 +416,7 @@ public sealed class MainWindowViewModel : ObservableObject
         Log("Backend shutdown requested.");
     }
 
+    // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand
     private void InitializeBackend()
     {
         try
@@ -424,7 +426,11 @@ public sealed class MainWindowViewModel : ObservableObject
             _drainedBackendLogCount = 0;
             _drainedBackendAlertCount = 0;
 
-            _backend = _backendFactory(Settings);
+            lock (_telemetryLock)
+            {
+                (_backend as IDisposable)?.Dispose();
+                _backend = _backendFactory(Settings);
+            }
             RuntimeInfo = _backend.Initialize(Settings);
             DrainBackendTelemetry();
 
@@ -585,6 +591,8 @@ public sealed class MainWindowViewModel : ObservableObject
         Log($"{kind} calibration directory set to '{dialog.SelectedPath}'.");
     }
 
+    // @MX:WARN: [AUTO] async void; unhandled exceptions escape the WPF dispatcher and crash the application
+    // @MX:REASON: Bound to RelayCommand which cannot propagate async Task; inner try/catch is the only exception boundary
     private async void LoadImage()
     {
         try
@@ -647,6 +655,7 @@ public sealed class MainWindowViewModel : ObservableObject
         await ApplyDisplayPipelineAsync();
     }
 
+    // @MX:NOTE: [AUTO] Display pipeline runs on Task.Run (thread pool); await resumes on dispatcher thread, so ObservableCollection writes are safe
     private async Task ApplyDisplayPipelineAsync()
     {
         if (ActiveImageFrame is null)
@@ -695,7 +704,9 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void ApplyBodyPartPreset()
+    // @MX:WARN: [AUTO] async void; same crash risk as LoadImage; inner try/catch is the only safety net
+    // @MX:REASON: Bound to RelayCommand; must remain async void for command infrastructure compatibility
+    private async void ApplyBodyPartPreset()
     {
         if (!Enum.TryParse<XpeBodyPartEnum>(Settings.SelectedBodyPart, ignoreCase: true, out var bodyPart))
         {
@@ -713,7 +724,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             StatusText = $"Applied {bodyPart} VOI preset: C={preset.Center:0.###}, W={preset.Width:0.###}.";
             Log(StatusText);
-            _ = ApplyDisplayPipelineAsync();
+            await ApplyDisplayPipelineAsync();
         }
         catch (Exception ex)
         {
@@ -865,29 +876,40 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    // @MX:ANCHOR: [AUTO] Drains backend log and alert queues into ObservableCollections; lock guards against concurrent backend calls
+    // @MX:REASON: Called after every _backend operation; skipping leaves telemetry invisible in UI; fan_in >= 5 call sites
     private void DrainBackendTelemetry()
     {
-        var logCount = _backend.GetLogCount();
-        for (var i = _drainedBackendLogCount; i < logCount; i++)
-        {
-            var log = _backend.GetLog(i);
-            if (!string.IsNullOrWhiteSpace(log))
-            {
-                Logs.Insert(0, log);
-            }
-        }
-        _drainedBackendLogCount = logCount;
+        List<string> pendingLogs;
+        List<AlertEntry> pendingAlerts;
 
-        var alertCount = _backend.GetAlertCount();
-        for (var i = _drainedBackendAlertCount; i < alertCount; i++)
+        lock (_telemetryLock)
         {
-            var alert = _backend.GetAlert(i);
-            if (alert is not null)
+            pendingLogs = new List<string>();
+            var logCount = _backend.GetLogCount();
+            for (var i = _drainedBackendLogCount; i < logCount; i++)
             {
-                Alerts.Insert(0, alert);
+                var log = _backend.GetLog(i);
+                if (!string.IsNullOrWhiteSpace(log))
+                    pendingLogs.Add(log);
             }
+            _drainedBackendLogCount = logCount;
+
+            pendingAlerts = new List<AlertEntry>();
+            var alertCount = _backend.GetAlertCount();
+            for (var i = _drainedBackendAlertCount; i < alertCount; i++)
+            {
+                var alert = _backend.GetAlert(i);
+                if (alert is not null)
+                    pendingAlerts.Add(alert);
+            }
+            _drainedBackendAlertCount = alertCount;
         }
-        _drainedBackendAlertCount = alertCount;
+
+        foreach (var log in pendingLogs)
+            Logs.Insert(0, log);
+        foreach (var alert in pendingAlerts)
+            Alerts.Insert(0, alert);
     }
 
     private void RecordVerdict(Verdict verdict)
@@ -910,8 +932,22 @@ public sealed class MainWindowViewModel : ObservableObject
         if (!string.IsNullOrEmpty(ActiveStudyId))
             verdicts[ActiveStudyId] = $"{verdict}|{_verdictNotes}|{DateTimeOffset.Now:O}";
 
-        File.WriteAllText(path, JsonSerializer.Serialize(verdicts, new JsonSerializerOptions { WriteIndented = true }));
-        Log($"Verdict recorded: {ActiveStudyId} = {verdict}.");
+        try
+        {
+            File.WriteAllText(path, JsonSerializer.Serialize(verdicts, new JsonSerializerOptions { WriteIndented = true }));
+            Log($"Verdict recorded: {ActiveStudyId} = {verdict}.");
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to write verdict file: {ex.Message}");
+            Alerts.Insert(0, new AlertEntry
+            {
+                Severity = "ERROR",
+                Code = "VERDICT_WRITE_FAILED",
+                Message = ex.Message,
+                Timestamp = DateTimeOffset.Now
+            });
+        }
     }
 
     private void SaveAndNext()

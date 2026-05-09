@@ -2,6 +2,8 @@ using ImageProcTest.Models;
 
 namespace ImageProcTest.Services;
 
+// @MX:ANCHOR: [AUTO] Public contract between GUI shell and backend (Mock or Native); all backend operations route through this interface
+// @MX:REASON: Changing any method signature requires updating both MockXpeBackend and RealXpeBackend; fan_in: MainWindowViewModel + integration tests
 /// <summary>
 /// Defines the runtime contract used by the GUI shell to communicate with either
 /// a mock backend or a future native XPE adapter.

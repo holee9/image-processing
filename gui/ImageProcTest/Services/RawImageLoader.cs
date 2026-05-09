@@ -8,6 +8,8 @@ namespace ImageProcTest.Services;
 
 public sealed class RawImageLoader
 {
+    // @MX:ANCHOR: [AUTO] Entry point for all raw image loading; routes by file extension; unsupported types return placeholder preview
+    // @MX:REASON: Called by MockXpeBackend.LoadRawImage and RealXpeBackend.LoadRawImage; fan_in >= 2 backends
     public LoadedImageFrame Load(string path, AppSettings settings)
     {
         var extension = Path.GetExtension(path).ToLowerInvariant();
@@ -18,6 +20,7 @@ public sealed class RawImageLoader
         };
     }
 
+    // @MX:NOTE: [AUTO] Two-pass pixel scan: pass 1 collects min/max for normalization range, pass 2 maps to 8-bit preview; merging passes would require a full pixel buffer copy
     private static LoadedImageFrame LoadRaw(string path, AppSettings settings)
     {
         if (settings.RawWidth <= 0 || settings.RawHeight <= 0)

@@ -198,6 +198,16 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 - `comparisonSwipePosition`
 - `comparisonOverlayOpacity`
 
+## PipelineOrchestrator
+
+`PipelineOrchestrator` loads the Phase 1 native DLLs (`xpe_preprocess.dll`, `xpe_enhance_basic.dll`, `xpe_display.dll`, `xpe_dicom.dll`) via P/Invoke and reports the result through `PipelineLoadResult`:
+
+- `LoadedDlls` — DLLs found and export-verified successfully
+- `MissingDlls` — DLLs not found on disk (module directory absent or file missing)
+- `FailedDlls` — DLLs found but with one or more missing required exports
+
+**Degraded mode**: callers inspect `MissingDlls` and `FailedDlls` to decide whether to fall back to Mock backend. When the module directory does not exist, all four Phase 1 DLL names are added to `MissingDlls` before the early return so callers can detect the degraded state correctly.
+
 ## Scope boundary
 
 - Real DICOM read/write remains owned by `xpe_dicom.dll` in Phase 1b.

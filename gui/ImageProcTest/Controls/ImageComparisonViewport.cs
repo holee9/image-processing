@@ -128,6 +128,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
         set => SetValue(OverlayOpacityProperty, Math.Clamp(value, 0.0, 1.0));
     }
 
+    // @MX:NOTE: [AUTO] Renders 7 comparison modes via custom DrawingContext; DifferenceHeatmap is a visual tint approximation, not a true per-pixel difference image
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -302,6 +303,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
         return new Rect(x, y, width, height);
     }
 
+    // @MX:NOTE: [AUTO] ZoomScale == 0 means fit-to-viewport; returns min(fitX, fitY) to preserve aspect ratio; called by OnRender and OnMouseWheel
     private double GetEffectiveScale()
     {
         if (SourceImage is null || ActualWidth <= 0 || ActualHeight <= 0)

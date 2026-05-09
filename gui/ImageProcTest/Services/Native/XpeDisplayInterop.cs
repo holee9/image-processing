@@ -13,6 +13,8 @@ internal enum XpeErrorCodeNative
     Ok = 0
 }
 
+// @MX:ANCHOR: [AUTO] ABI contract struct for xpe_common.dll and xpe_display.dll; Pack=8 and field order must match the C DLL build exactly
+// @MX:REASON: Any layout mismatch causes silent data corruption or access violations; do not reorder fields or change Pack value
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal struct XpeImageBufferNative
 {
@@ -47,6 +49,8 @@ internal struct XpeVoiLutParamsNative
     public float MaxOut;
 }
 
+// @MX:WARN: [AUTO] SizeConst=1024 inline LUT array is load-bearing for the DLL ABI; struct is ~2KB; avoid stack-copying this struct
+// @MX:REASON: Changing SizeConst breaks the C ABI contract with xpe_display.dll; must exactly match the native struct size
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal struct XpePresentationLutParamsNative
 {
@@ -115,6 +119,7 @@ internal static class XpeDisplayNative
         uint count,
         ref XpePresentationLutParamsNative outParams);
 
+    // @MX:NOTE: [AUTO] PtrToStringAnsi returns null if DLL returns null pointer; ?? "unknown" guard is intentional
     internal static string GetVersion()
     {
         var versionPtr = xpe_display_version();
