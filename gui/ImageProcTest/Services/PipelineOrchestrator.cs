@@ -20,7 +20,6 @@ public sealed class PipelineOrchestrator : IDisposable
 {
     private readonly List<string> _logs = new();
     private readonly Dictionary<string, IntPtr> _loadedDlls = new();
-    private readonly Dictionary<string, object> _dllInstances = new();
     private bool _disposed;
 
     // Phase 1 DLL 필수 exports
@@ -60,8 +59,10 @@ public sealed class PipelineOrchestrator : IDisposable
         _logs.Add($"[{DateTime.Now:HH:mm:ss.fff}] [ERROR] {message}");
     }
 
-    public IReadOnlyList<string> GetLogs() => _logs.ToList();
+    public IReadOnlyList<string> GetLogs() => _logs.AsReadOnly();
 
+    // @MX:WARN: [AUTO] Calls kernel32 LoadLibrary/GetProcAddress directly; loaded handles stored in _loadedDlls, freed only in Dispose
+    // @MX:REASON: No SafeHandle wrapping; if Dispose is skipped, all loaded DLL handles leak per loaded DLL
     /// <summary>
     /// Phase 1 DLL 동적 로드
     ///
@@ -74,11 +75,27 @@ public sealed class PipelineOrchestrator : IDisposable
         Log("Loading Phase 1 DLLs from: " + moduleDirectory);
 
         var result = new PipelineLoadResult();
+
+        if (string.IsNullOrWhiteSpace(moduleDirectory))
+        {
+            LogError("Module directory is null or empty.");
+            return Task.FromResult(result);
+        }
+
+        var normalizedDir = Path.GetFullPath(moduleDirectory);
+        if (!Directory.Exists(normalizedDir))
+        {
+            LogError("Module directory does not exist: " + normalizedDir);
+            foreach (var dllInfo in Phase1DllExports)
+                result.MissingDlls.Add(dllInfo.DllName);
+            return Task.FromResult(result);
+        }
+
         var sw = Stopwatch.StartNew();
 
         foreach (var dllInfo in Phase1DllExports)
         {
-            var dllPath = Path.Combine(moduleDirectory, dllInfo.DllName);
+            var dllPath = Path.Combine(normalizedDir, dllInfo.DllName);
 
             if (!File.Exists(dllPath))
             {
@@ -130,6 +147,9 @@ public sealed class PipelineOrchestrator : IDisposable
         return Task.FromResult(result);
     }
 
+    // @MX:ANCHOR: [AUTO] 6-step full image processing pipeline: DICOM read → preprocess → enhance → EI → display LUT → DICOM write
+    // @MX:REASON: Public performance-budgeted entry point (< 3000ms / < 190MB); timing and memory post-run assertions are in the method body
+    // @MX:SPEC: SWU-5.7
     /// <summary>
     /// 전체 파이프라인 실행
     ///
@@ -210,7 +230,11 @@ public sealed class PipelineOrchestrator : IDisposable
             sw.Stop();
             result.Success = true;
             result.ExecutionTimeMs = sw.ElapsedMilliseconds;
-            result.PeakMemoryBytes = GC.GetTotalMemory(false) - memoryBefore;
+            var memoryAfter = GC.GetTotalMemory(false);
+            var memoryDelta = memoryAfter - memoryBefore;
+            if (memoryDelta < 0)
+                Log("Memory delta negative (GC ran during pipeline): " + memoryDelta + " bytes");
+            result.PeakMemoryBytes = Math.Max(0, memoryDelta);
 
             Log("Pipeline execution complete: " + result.ExecutionTimeMs + "ms, Memory: " + (result.PeakMemoryBytes / (1024.0 * 1024.0)).ToString("F2") + "MB");
 
@@ -294,6 +318,7 @@ public sealed class PipelineOrchestrator : IDisposable
 
     // Private helper methods
 
+    // @MX:TODO: [AUTO] All pipeline step methods below are stubs returning hardcoded success; P/Invoke implementations required for Phase 1b
     private Task<DicomReadResult> ReadDicomAsync(string path)
     {
         // TODO: xpe_dicom.dll P/Invoke 구현
@@ -354,6 +379,7 @@ public sealed class PipelineOrchestrator : IDisposable
         return 0; // 예시값
     }
 
+    // @MX:NOTE: [AUTO] Raw kernel32 P/Invoke without SafeHandle; handle lifecycle managed by _loadedDlls dict and Dispose()
     // Windows API
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr LoadLibrary(string lpFileName);
@@ -365,6 +391,7 @@ public sealed class PipelineOrchestrator : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
     private static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
 
+    // @MX:NOTE: [AUTO] Unloads all loaded Phase 1 DLLs via FreeLibrary; each call decrements DLL ref count; missing Dispose causes handle leak
     public void Dispose()
     {
         if (_disposed) return;
@@ -383,7 +410,6 @@ public sealed class PipelineOrchestrator : IDisposable
         }
 
         _loadedDlls.Clear();
-        _dllInstances.Clear();
         _disposed = true;
     }
 }
