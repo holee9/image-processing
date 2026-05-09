@@ -159,3 +159,10 @@ endif()
 # if(BUILD_TESTS)
 #     xpe_add_optional_subdirectory(tests)
 # endif()
+
+# E2E integration tests (separate from module tests to avoid target conflicts)
+# Added after all module subdirs so GTest::gtest_main target is already defined
+# by upstream module test setups (modules/common/CMakeLists.txt etc).
+if(BUILD_TESTS)
+    add_subdirectory(tests/e2e_post_pipeline)
+endif()

@@ -38,7 +38,7 @@ target_link_libraries(test_e2e_post_pipeline PRIVATE
     xpe_common
     xpe_enhance_basic
     xpe_enhance_advanced
-    xpe_gsvg
+    gsvg
     xpe_display
 )
 
