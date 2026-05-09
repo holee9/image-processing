@@ -36,6 +36,18 @@
   </ItemGroup>
 
   <!--
+    Linked source files for Phase 3 AI IPC Bridge UI logic (SPEC-XPE-P3-AI / Issue #83).
+    These files have no WPF dependencies so they compile cleanly in this net8.0 test project.
+    Tests live under AiBridgeUi/ and exercise the pure status-computer contract.
+  -->
+  <ItemGroup>
+    <Compile Include="..\ImageProcTest\Models\ModuleReadinessSnapshot.cs" Link="AiBridgeUi\Linked\ModuleReadinessSnapshot.cs" />
+    <Compile Include="..\ImageProcTest\Models\AiBridgeConnectionStatus.cs" Link="AiBridgeUi\Linked\AiBridgeConnectionStatus.cs" />
+    <Compile Include="..\ImageProcTest\Models\AiBridgePanelSnapshot.cs" Link="AiBridgeUi\Linked\AiBridgePanelSnapshot.cs" />
+    <Compile Include="..\ImageProcTest\Services\AiBridgeStatusComputer.cs" Link="AiBridgeUi\Linked\AiBridgeStatusComputer.cs" />
+  </ItemGroup>
+
+  <!--
     DLL staging: copy xpe_common.dll from build output to test output directory.
     Falls back gracefully if the build directory does not exist (CI prerequisite).
   -->

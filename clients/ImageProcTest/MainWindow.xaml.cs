@@ -46,6 +46,8 @@ namespace ImageProcTest
         private UserEvaluationSnapshot? lastUserEvaluation;
         private FixtureCaseInfo? currentCalibrationContext;
         private string? currentCalibrationFolderPath;
+        private bool aiBridgeConnectRequested;
+        private string? aiBridgeLastError;
         private readonly EvaluationContextService evaluationContextService = new();
         private readonly ModuleReadinessViewModel moduleReadinessViewModel = new();
         private ActiveEvaluationContext? activeEvaluationContext;
@@ -138,6 +140,11 @@ namespace ImageProcTest
         private void MenuShowDiagnostics_Click(object sender, RoutedEventArgs e)
         {
             SelectTab("Diagnostics");
+        }
+
+        private void MenuShowAiModule_Click(object sender, RoutedEventArgs e)
+        {
+            SelectTab("AI Module");
         }
 
         private void MenuZoomFit_Click(object sender, RoutedEventArgs e)
@@ -1671,6 +1678,7 @@ namespace ImageProcTest
             UpdateGsvgWorkflowStatus();
             UpdateAdvancedWorkflowStatus();
             UpdateAiWorkflowStatus();
+            UpdateAiBridgePanel();
             UpdateWorkflowRunState();
         }
 
@@ -2000,6 +2008,70 @@ namespace ImageProcTest
                 $"AI UI: Phase 3 C5/C6 rows={rowCount}; selected={selected}; " +
                 $"{ai.Level} {ai.Status}; execution={ai.ExecutionState}; " +
                 $"skip={ai.DegradedMode}; next={ai.NextAction}";
+        }
+
+        // @MX:NOTE: Drives the AI Module tab (C5 connection + C6 results placeholder) every refresh.
+        // @MX:REASON: xpe_ai.dll is a Phase 3 dependency that may be absent in current builds; the UI
+        // must remain functional in degraded mode without throwing or blocking the main pipeline.
+        private void UpdateAiBridgePanel()
+        {
+            if (AiBridgeStatusHeaderText is null)
+            {
+                return;
+            }
+
+            var snapshot = AiBridgeStatusComputer.Compute(
+                currentModuleReadiness,
+                aiBridgeConnectRequested,
+                aiBridgeLastError);
+
+            AiBridgeStatusHeaderText.Text = snapshot.HeaderText;
+            AiBridgeStatusDetailText.Text = snapshot.DetailText;
+            AiBridgeResultsText.Text = snapshot.ResultsText;
+            AiBridgeConnectButton.IsEnabled = snapshot.ConnectButtonEnabled;
+            AiBridgeConnectButton.ToolTip = snapshot.Tooltip;
+            AiBridgeDisconnectButton.IsEnabled = snapshot.DisconnectButtonEnabled;
+            AiBridgePortTextBox.IsEnabled = snapshot.ConnectionInputsEnabled;
+            AiBridgeTimeoutTextBox.IsEnabled = snapshot.ConnectionInputsEnabled;
+        }
+
+        private void AiBridgeConnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            aiBridgeLastError = null;
+            aiBridgeConnectRequested = true;
+
+            // @MX:WARN: xpe_ai.dll is a Phase 3 (Should priority) dependency and is not yet built.
+            // @MX:REASON: SPEC-XPE-P3-AI explicitly mandates graceful degradation when the AI worker
+            // is absent. We must surface the failure as a user-visible message rather than throwing.
+            try
+            {
+                if (!IsModuleReadinessAtLeast("xpe_ai", 1))
+                {
+                    aiBridgeLastError = "xpe_ai.dll absent (Phase 3 not yet deployed)";
+                }
+            }
+            catch (Exception ex)
+            {
+                aiBridgeLastError = $"Connect attempt threw: {ex.GetType().Name}";
+            }
+            finally
+            {
+                UpdateAiBridgePanel();
+            }
+        }
+
+        private void AiBridgeDisconnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            aiBridgeConnectRequested = false;
+            aiBridgeLastError = null;
+            UpdateAiBridgePanel();
+        }
+
+        private void AiBridgeRefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            aiBridgeLastError = null;
+            RefreshModuleReadiness();
+            UpdateEvaluationDashboards();
         }
 
         private void AddReportArtifact(string kind, string path)
