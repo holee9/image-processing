@@ -84,6 +84,10 @@
                           Click="MenuShowDiagnostics_Click"
                           AutomationProperties.AutomationId="XPE_Menu_View_ShowDiagnostics_MenuItem"
                           AutomationProperties.Name="Show diagnostics tab"/>
+                <MenuItem Header="_AI Module"
+                          Click="MenuShowAiModule_Click"
+                          AutomationProperties.AutomationId="XPE_Menu_View_ShowAiModule_MenuItem"
+                          AutomationProperties.Name="Show AI module tab"/>
                 <Separator/>
                 <MenuItem Header="Zoom _Fit"
                           Click="MenuZoomFit_Click"
@@ -938,6 +942,203 @@
                                 <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" ElementStyle="{StaticResource WrappingCellTextBlock}"/>
                             </DataGrid.Columns>
                         </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ===== AI MODULE TAB (C5/C6 - Phase 3 graceful degraded mode) ===== -->
+            <TabItem Header="AI Module"
+                     AutomationProperties.AutomationId="XPE_Tab_AiModule"
+                     AutomationProperties.Name="AI module tab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Text="AI IPC Bridge"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock Text="Phase 3 AI module surface. xpe_ai.dll is not yet implemented; this panel runs in graceful degraded mode and never blocks deterministic preprocess/enhance pipelines."
+                                   FontSize="12"
+                                   Foreground="#FF57606A"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <!-- C5: AI IPC Bridge connection panel -->
+                        <Border BorderBrush="#FFD0D7DE"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12"
+                                Margin="0,0,0,12"
+                                AutomationProperties.AutomationId="XPE_AiModule_ConnectionPanel">
+                            <StackPanel>
+                                <TextBlock Text="Connection (C5)"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock x:Name="AiBridgeStatusHeaderText"
+                                           AutomationProperties.AutomationId="AiBridgeStatusHeaderText"
+                                           AutomationProperties.Name="AI engine connection status"
+                                           Text="AI Engine: Not Connected"
+                                           FontSize="13"
+                                           FontWeight="Bold"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock x:Name="AiBridgeStatusDetailText"
+                                           AutomationProperties.AutomationId="AiBridgeStatusDetailText"
+                                           Text="xpe_ai.dll not detected. Phase 3 AI features remain disabled; deterministic preprocess/enhance pipeline continues unaffected."
+                                           FontSize="12"
+                                           Foreground="#FF57606A"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"/>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                               Text="Worker port"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,4"/>
+                                    <TextBox x:Name="AiBridgePortTextBox"
+                                             AutomationProperties.AutomationId="AiBridgePortTextBox"
+                                             Grid.Row="0" Grid.Column="1"
+                                             Text="51900"
+                                             IsEnabled="False"
+                                             Width="120"
+                                             HorizontalAlignment="Left"
+                                             Margin="0,0,0,4"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0"
+                                               Text="Timeout (ms)"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <TextBox x:Name="AiBridgeTimeoutTextBox"
+                                             AutomationProperties.AutomationId="AiBridgeTimeoutTextBox"
+                                             Grid.Row="1" Grid.Column="1"
+                                             Text="5000"
+                                             IsEnabled="False"
+                                             Width="120"
+                                             HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="AiBridgeConnectButton"
+                                            AutomationProperties.AutomationId="AiBridgeConnectButton"
+                                            AutomationProperties.Name="Connect AI engine"
+                                            Content="Connect"
+                                            Width="96"
+                                            Height="28"
+                                            IsEnabled="False"
+                                            ToolTip="Requires xpe_ai.dll - Phase 3 feature (SPEC-XPE-P3-AI)."
+                                            Click="AiBridgeConnectButton_Click"
+                                            Margin="0,0,8,0"/>
+                                    <Button x:Name="AiBridgeDisconnectButton"
+                                            AutomationProperties.AutomationId="AiBridgeDisconnectButton"
+                                            AutomationProperties.Name="Disconnect AI engine"
+                                            Content="Disconnect"
+                                            Width="96"
+                                            Height="28"
+                                            IsEnabled="False"
+                                            Click="AiBridgeDisconnectButton_Click"
+                                            Margin="0,0,8,0"/>
+                                    <Button x:Name="AiBridgeRefreshButton"
+                                            AutomationProperties.AutomationId="AiBridgeRefreshButton"
+                                            AutomationProperties.Name="Refresh AI module readiness"
+                                            Content="Refresh"
+                                            Width="96"
+                                            Height="28"
+                                            Click="AiBridgeRefreshButton_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- C6: AI Inference results panel -->
+                        <Border BorderBrush="#FFD0D7DE"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12"
+                                AutomationProperties.AutomationId="XPE_AiModule_ResultsPanel">
+                            <StackPanel>
+                                <TextBlock Text="Inference Results (C6)"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock x:Name="AiBridgeResultsText"
+                                           AutomationProperties.AutomationId="AiBridgeResultsText"
+                                           AutomationProperties.Name="AI inference results"
+                                           Text="No AI analysis available - inference score and anomaly map will appear here once the AI worker connects."
+                                           FontSize="12"
+                                           Foreground="#FF57606A"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0"
+                                            BorderBrush="#FFE5E9EE"
+                                            BorderThickness="1"
+                                            Background="#FFFAFBFC"
+                                            CornerRadius="3"
+                                            Padding="10"
+                                            Margin="0,0,4,0"
+                                            AutomationProperties.AutomationId="AiBridgeInferenceScorePlaceholder">
+                                        <StackPanel>
+                                            <TextBlock Text="Inference score"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,0,4"/>
+                                            <TextBlock x:Name="AiBridgeInferenceScoreText"
+                                                       Text="--"
+                                                       FontSize="18"
+                                                       FontFamily="Consolas"
+                                                       Foreground="#FF57606A"/>
+                                            <TextBlock Text="Populated after first successful inference."
+                                                       FontSize="11"
+                                                       Foreground="#FF8B949E"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1"
+                                            BorderBrush="#FFE5E9EE"
+                                            BorderThickness="1"
+                                            Background="#FFFAFBFC"
+                                            CornerRadius="3"
+                                            Padding="10"
+                                            Margin="4,0,0,0"
+                                            AutomationProperties.AutomationId="AiBridgeAnomalyMapPlaceholder">
+                                        <StackPanel>
+                                            <TextBlock Text="Anomaly map"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,0,4"/>
+                                            <Border BorderBrush="#FFE5E9EE"
+                                                    BorderThickness="1"
+                                                    Background="#FFEFF1F4"
+                                                    Height="120"
+                                                    CornerRadius="2">
+                                                <TextBlock x:Name="AiBridgeAnomalyMapPlaceholderText"
+                                                           Text="No anomaly map"
+                                                           Foreground="#FF8B949E"
+                                                           FontSize="12"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="Future: heatmap overlay rendering."
+                                                       FontSize="11"
+                                                       Foreground="#FF8B949E"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
