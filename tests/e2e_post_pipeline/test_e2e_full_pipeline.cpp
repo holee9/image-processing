@@ -28,6 +28,11 @@
 #include <chrono>
 #include <cstring>
 #include <vector>
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+#  pragma comment(lib, "Psapi.lib")
+#endif
 
 /* ============================================================================
  * Test Helpers
@@ -59,8 +64,12 @@ static void free_img(XpeImageBuffer& img) {
 }
 
 static void set_body_part(XpeImageMetadata& meta, const char* part) {
+#ifdef _MSC_VER
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), part, _TRUNCATE);
+#else
     std::strncpy(meta.bodyPart, part, sizeof(meta.bodyPart) - 1);
     meta.bodyPart[sizeof(meta.bodyPart) - 1] = '\0';
+#endif
 }
 
 /* ============================================================================
@@ -221,4 +230,42 @@ TEST(FullPipelineE2E, PostProcess_512x512_Within200ms) {
 
     EXPECT_LE(total_ms, 200)
         << "Full pipeline (512x512) took " << total_ms << "ms (budget: 200ms)";
+}
+
+/* ============================================================================
+ * Gate G1b→G2: Peak working-set memory budget (Windows only)
+ *
+ * Budget: <= 190 MB peak working set during 3072×3072 Phase 1 pipeline.
+ * Theoretical: ~60 MB (2× float32 frame + uint16 round-trip + LUT tables).
+ * ============================================================================ */
+TEST(FullPipelineE2E, PostProcess_3072x3072_PeakMemory190MB) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Peak working-set measurement requires Windows (GetProcessMemoryInfo)";
+#else
+    // Reset peak counter so we measure only this pipeline run.
+    SetProcessWorkingSetSizeEx(GetCurrentProcess(),
+                               static_cast<SIZE_T>(-1),
+                               static_cast<SIZE_T>(-1), 0);
+
+    constexpr uint32_t kWidth = 3072;
+    constexpr uint32_t kHeight = 3072;
+    constexpr size_t kBudgetMB = 190;
+    int64_t total_ms = 0;
+
+    XpeErrorCode err = run_pipeline(kWidth, kHeight, total_ms);
+    ASSERT_EQ(XPE_OK, err) << "Pipeline returned error code " << static_cast<int>(err);
+
+    PROCESS_MEMORY_COUNTERS pmc{};
+    pmc.cb = sizeof(pmc);
+    ASSERT_TRUE(GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+        << "GetProcessMemoryInfo failed (error " << GetLastError() << ")";
+
+    const size_t peak_mb = pmc.PeakWorkingSetSize / (1024u * 1024u);
+
+    std::cout << "[ E2E ] Peak working set: " << peak_mb
+              << " MB (budget: " << kBudgetMB << " MB)" << std::endl;
+
+    EXPECT_LE(peak_mb, kBudgetMB)
+        << "Peak working set " << peak_mb << " MB exceeds " << kBudgetMB << " MB budget";
+#endif
 }

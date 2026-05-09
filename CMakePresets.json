@@ -111,6 +111,26 @@
                 "BUILD_DICOM": "OFF",
                 "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
             }
+        },
+        {
+            "name": "ci-fullstack",
+            "displayName": "CI Fullstack (Pre+Post+DICOM) — Gate G1b→G2 Integration E2E",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "ON",
+                "BUILD_PREPROCESS": "ON",
+                "BUILD_ENHANCE_BASIC": "ON",
+                "BUILD_ENHANCE_ADVANCED": "ON",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "ON",
+                "BUILD_DICOM": "ON",
+                "XPE_WARNINGS_AS_ERRORS": "ON",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
+            }
         }
     ],
     "buildPresets": [
@@ -120,13 +140,44 @@
         { "name": "ci-common", "configurePreset": "ci-common" },
         { "name": "ci-post", "configurePreset": "ci-post" },
         { "name": "ci-preprocess", "configurePreset": "ci-preprocess" },
-        { "name": "coverage", "configurePreset": "coverage" }
+        { "name": "coverage", "configurePreset": "coverage" },
+        { "name": "ci-fullstack", "configurePreset": "ci-fullstack" }
     ],
     "testPresets": [
         {
             "name": "default",
             "configurePreset": "default",
             "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci-common",
+            "configurePreset": "ci-common",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci-post",
+            "configurePreset": "ci-post",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci-preprocess",
+            "configurePreset": "ci-preprocess",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci-fullstack",
+            "configurePreset": "ci-fullstack",
+            "output": { "outputOnFailure": true },
+            "filter": {
+                "include": {
+                    "label": "integration"
+                }
+            }
         },
         {
             "name": "coverage",
