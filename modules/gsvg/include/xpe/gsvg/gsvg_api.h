@@ -39,7 +39,7 @@ extern "C" {
  *
  * @return Null-terminated ASCII string. Lifetime: process. Never NULL.
  */
-XPE_API const char* gsvg_version(void);
+XPE_API const char* xpe_gsvg_version(void);
 
 /**
  * @brief Initialize a GSVG correction handle.

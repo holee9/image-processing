@@ -12,7 +12,7 @@ TEST(BenchmarkFreeze, BP06_GsvgVersionProbeBaseline)
     const char* version = nullptr;
     auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < kIterations; ++i) {
-        version = gsvg_version();
+        version = xpe_gsvg_version();
     }
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now() - start);

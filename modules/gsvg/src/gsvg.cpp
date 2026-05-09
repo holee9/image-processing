@@ -173,7 +173,7 @@ void suppress_grid_row_mean(uint16_t* pixels, int width, int height)
 
 } // namespace
 
-const char* gsvg_version(void)
+const char* xpe_gsvg_version(void)
 {
     return "0.2.0";
 }
