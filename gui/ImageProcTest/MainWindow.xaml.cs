@@ -118,8 +118,8 @@ public partial class MainWindow : System.Windows.Window
                 ReferenceEquals(viewModel.SourceImage, viewModel.ActiveImageFrame.Preview);
             report.VoiPresetApplied =
                 string.Equals(viewModel.Settings.SelectedBodyPart, "Abdomen", StringComparison.OrdinalIgnoreCase) &&
-                Math.Abs(viewModel.Settings.VoiWindowCenter - 40.0f) < 0.001f &&
-                Math.Abs(viewModel.Settings.VoiWindowWidth - 400.0f) < 0.001f;
+                Math.Abs(viewModel.Settings.VoiWindowCenter - 32768.0f) < 0.001f &&
+                Math.Abs(viewModel.Settings.VoiWindowWidth - 65535.0f) < 0.001f;
 
             ClickMenuItem(ZoomActualMenuItem);
             await Task.Delay(100);

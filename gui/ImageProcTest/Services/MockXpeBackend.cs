@@ -150,6 +150,7 @@ public sealed class MockXpeBackend : IXpeBackend
         return preview;
     }
 
+    // @MX:NOTE: [AUTO] 6-stage mock calibration applied in fixed order: Offset → Temperature → Nonlinearity → Gain → Binning → Defect → Ghost; stage order encodes physical dependencies
     private static double[] CreateMockCalibrationPixels(LoadedImageFrame rawFrame, AppSettings settings)
     {
         var count = checked(rawFrame.Width * rawFrame.Height);
@@ -280,6 +281,7 @@ public sealed class MockXpeBackend : IXpeBackend
         };
     }
 
+    // @MX:NOTE: [AUTO] Sigmoid steepness = 4 / range matches clinical VOI display behavior; Linear branch clamps to [0, 1]
     private static double NormalizeVoi(double value, double lower, double range, string mode)
     {
         if (string.Equals(mode, "Sigmoid", StringComparison.OrdinalIgnoreCase))
@@ -294,10 +296,10 @@ public sealed class MockXpeBackend : IXpeBackend
 
     public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart) => bodyPart switch
     {
-        XpeBodyPartEnum.Bone => new VoiPreset(500.0f, 2000.0f, "Linear"),
-        XpeBodyPartEnum.Lung => new VoiPreset(-600.0f, 1600.0f, "Linear"),
-        XpeBodyPartEnum.Abdomen => new VoiPreset(40.0f, 400.0f, "Linear"),
-        XpeBodyPartEnum.Head => new VoiPreset(40.0f, 80.0f, "Linear"),
+        XpeBodyPartEnum.Bone => new VoiPreset(40000.0f, 30000.0f, "Linear"),
+        XpeBodyPartEnum.Lung => new VoiPreset(25000.0f, 50000.0f, "Linear"),
+        XpeBodyPartEnum.Abdomen => new VoiPreset(32768.0f, 65535.0f, "Linear"),
+        XpeBodyPartEnum.Head => new VoiPreset(35000.0f, 40000.0f, "Linear"),
         _ => throw new ArgumentOutOfRangeException(nameof(bodyPart), bodyPart, "Unsupported body part preset.")
     };
 

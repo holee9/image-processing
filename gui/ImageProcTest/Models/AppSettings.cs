@@ -23,13 +23,13 @@ public sealed class AppSettings : ObservableObject
     private string _nonlinearityCorrectionMode = CalibrationStageMode.Auto;
     private string _binningCorrectionMode = CalibrationStageMode.Auto;
     private string _lastOpenedPath = string.Empty;
-    private float _voiWindowCenter = 40.0f;
-    private float _voiWindowWidth = 400.0f;
+    private float _voiWindowCenter = 32768.0f;
+    private float _voiWindowWidth = 65535.0f;
     private string _voiLutMode = "Linear";
     private string _selectedBodyPart = "Abdomen";
     private bool _gsdfEnabled;
     private float _modalityRescaleSlope = 1.0f;
-    private float _modalityRescaleIntercept = -1024.0f;
+    private float _modalityRescaleIntercept = 0.0f;
     private bool _showDisplayPanel = true;
     private string _comparisonMode = "SwipeVertical";
     private double _comparisonZoomScale;
