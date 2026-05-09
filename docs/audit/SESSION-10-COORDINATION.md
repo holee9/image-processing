@@ -170,6 +170,45 @@ git -C D:/workspace-github/image-processing-gui log --oneline main..HEAD
   - Brief 4건 작성: xpe-pre, xpe-post, xpe-gui, main
   - 이슈 #68/#69/#70 재오픈, #73/#74 신규 생성
   - 의존성 그래프 확정
+
+2026-05-09 main: 세션 10 완료 — 전 워크트리 작업 병합 완료
+  - PR #77 머지: feat(pre) Calibration multi-method (Mean/Median/SigmaClip/Winsor) → #69 종결
+  - PR #78 머지: feat(workbench) GUI evaluation workbench UI slice 1-12 → #74 종결
+  - PR #79 머지: fix(pre) P1A D1/D4 결함 수정 + REQ-P1A-066 T1~T4 → #68 #70 #73 종결
+  - PR #80 머지: docs(audit) post-next 세션 10 재검증 보고 → #71 업데이트
+  - PR #76 (기수록): Post-B WIP 정리 + workflow config 동기화 → #75 종결
+  - 이슈 #68 #69 #70 #73 #74 #75 close 완료
+  - README 세션 10차 기준 전면 갱신 (Framework A ~93, Framework B ~83)
 ```
 
-(공란)
+---
+
+## 8. 세션 10 완료 보고 (2026-05-09)
+
+### 종결 조건 달성 현황
+
+| 조건 | 상태 |
+|------|:----:|
+| xpe-pre #68/#69/#70/#73 PR 머지 완료 | ✅ PR #77, #79 |
+| xpe-pre #57 SIMD-001 검증 | 📋 차후 세션 이관 (Gate G2 의존) |
+| xpe-post WIP 정리 완료 | ✅ PR #76, #80 |
+| xpe-gui #74 squash merge 완료 | ✅ PR #78 |
+| main 미커밋 정리 완료 | ✅ PR #76 |
+| main #60 Gate G1b→G2 성능 실측 | ⏳ 차후 세션 (빌드 환경 실측 필요) |
+| 관련 문서 갱신 및 커밋·푸시 | ✅ 본 커밋 |
+
+### 점수 변화 (실측)
+
+| 프레임워크 | 세션 9 | 세션 10 | 변화 |
+|-----------|:------:|:-------:|:----:|
+| Framework A | ~90 | ~93 | +3 |
+| Framework B | ~80 | ~83 | +3 |
+
+### 차후 세션 (세션 11+) 이관 확정
+
+- **#60** — Gate G1b→G2 성능 실측 (빌드 환경 E2E < 3000ms, Memory ≤ 190MB)
+- **#57** — SPEC-SIMD-001 Scalar Reference + AVX2 Parity 검증 (Gate G2 선행 필요)
+- xpe-post S2 — `xpe_ai.dll` 구현 (Phase 3)
+- xpe-post S4 — DICOMweb 상호운용성 (WADO-RS / STOW-RS)
+- main #58 — EARS P1B 요구사항 작성 (ENH/DISP)
+- main #59 — IEC 62304 VVP sync

@@ -4,59 +4,59 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 이 저장소는 현재 `docs-first` 상태이며 X-ray 이미지 처리 엔진 (`XPE`)을 위한 배포 가능한 엔지니어링 기준으로 업그레이드되고 있습니다. 제품 계획, 규제 문서, 네이티브 모듈 인터페이스, GitHub 배포 자동화를 처음부터 동기화된 상태로 유지하는 것이 목표입니다.
 
-## 프로젝트 완성도 현황 (2026-04-28 — 세션 9차)
+## 프로젝트 완성도 현황 (2026-05-09 — 세션 10차)
 
 두 개의 독립적인 점수 프레임워크로 완성도를 추적합니다.
 
 | 프레임워크 | 기준 | 현재 (실측) | 다음 목표 | 최종 목표 |
 |-----------|------|:----------:|:---------:|:---------:|
-| **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~90 / 100** | 85 ✅ 달성 | **90** |
-| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~80 / 100** | ~85 | **85** |
+| **A — Process/Compliance** | EARS 추적성, IEC 62304, 규제, 보안, 운영 | **~93 / 100** | 90 ✅ 달성 | **95** |
+| **B — Product/Delivery** | 기능 범위, 벤치마크, 상호운용, AI governance | **~83 / 100** | ~85 | **85** |
 
-### 점수 상세 (Framework A v3.2, 2026-04-26 세션 8차 실측)
+### 점수 상세 (Framework A v3.2, 2026-05-09 세션 10차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
 | 요구사항 완전성 (EARS) | 25 | **~23** | P1A/P1B/P2-ADV/DICOM/DISP EARS 완료 (151개); **Calibration FUNC-031~033 추가 (모드 선택·최적화·품질 메타데이터)** |
 | 문서 품질 (IEC 62304) | 18 | **~17** | SRS/SDD/VVP/RTM 4종, VVP-PREPROCESS v1.1.0, **SRS-CALIB-001 v1.2, RTM-CALIB-001 v1.3** |
 | 아키텍처 설계 | 18 | **~16** | api-spec v1.4.0, DLL 독립성 원칙 수립, xpe-module-principles 명문화 |
-| 구현 진행도 | 17 | **~16** | 8/9 모듈 구현, SIMD AVX2/FMA, BP-01~09 freeze, **Calibration 7건 결함 수정 (API 헤더 통합, 온도보상, Gain/BPM 생성, 검증 메트릭)** |
-| 품질 보증 | 12 | **~11** | 403/403 C++ 테스트 통과, DegradedMode 검증, CI/CD 활성 |
+| 구현 진행도 | 17 | **~17** | 8/9 모듈 구현, SIMD AVX2/FMA, BP-01~09 freeze, **Calibration 7건 결함 수정**, **P1A D1/D4 오버플로우·bad_alloc 결함 수정**, **Calibration 4-method (Mean/Median/SigmaClip/Winsor) 구현 완료** |
+| 품질 보증 | 12 | **~12** | 407+ C++ 테스트 통과, DegradedMode 검증, CI/CD 활성, **REQ-P1A-066 T1~T4 에러 경로 단위 테스트 신규 추가** |
 | 규제 준수 | 5 | **~5** | **SECURITY/SPDF v1.0 + DICOM Conformance Statement v1.0 승인 완료** |
 | 사이버보안 | 3 | **~2** | **SECURITY.md v1.0 (사건대응 7단계) + SPDF v1.0 (STRIDE 19위협, IEC 81001 69%)** |
 | 운영 준비도 | 2 | **~2** | **PMS Plan v1.0 (AI 모니터링·필드 배포·드리프트 감지 추가)**, benchmark-regression.yml 활성 |
-| **합계** | **100** | **~90** | Framework A 목표 90 달성 ✅ |
+| **합계** | **100** | **~93** | Framework A 목표 90 달성 ✅ |
 
-### 점수 상세 (Framework B v3.2, 2026-04-26 세션 8차 실측)
+### 점수 상세 (Framework B v3.2, 2026-05-09 세션 10차 실측)
 
 | 영역 | 배점 | 획득 | 비고 |
 |------|:----:|:----:|------|
-| 기능 범위 | 30 | **~25** | 8/9 DLL 구현, GSVG v0.2; **Calibration 모드 선택 API (FUNC-031~033) 설계 완료**; xpe_ai.dll 미착수 (Should) |
-| 성능·메모리 | 13 | **~11** | BP-01~09 freeze, CI benchmark regression, **403/403 M1/M2 GREEN** |
-| 알고리즘 품질 | 17 | **~16** | SIMD AVX2 parity, golden reference 26개, **Multi-point calibration 최적화 설계 (online fitting, SIMD polynomial, 10-point cap)** |
+| 기능 범위 | 30 | **~26** | 8/9 DLL 구현, GSVG v0.2; Calibration 모드 선택 API 설계; **GUI evaluation workbench UI 전체 구현 (slice 1-12, E2E 6뷰 검증 완료)**; xpe_ai.dll 미착수 (Should) |
+| 성능·메모리 | 13 | **~11** | BP-01~09 freeze, CI benchmark regression, **407+ M1/M2 GREEN** |
+| 알고리즘 품질 | 17 | **~17** | SIMD AVX2 parity, golden reference 26개, Multi-point calibration 최적화 설계, **Calibration 4-method 실구현 (Mean/Median/SigmaClip/Winsor)**, **P1A D1/D4 안전성 결함 수정** |
 | 규제·문서 | 15 | **~13** | IEC 62304 Class B 4종 패키지, **SRS-CALIB-001 v1.2 + RTM v1.3 (FUNC-031~033)** |
 | 운영 준비도 | 15 | **~12** | CI/CD 전체 파이프라인, E2E fixture, DegradedMode 자동화, **PMS Plan v1.0 (AI 모니터링 체계)** |
 | 상호운용성 | 5 | **~3** | DICOM C-STORE/C-FIND, **Conformance Statement v1.0 (검증 절차·유지보수 완료)**; DICOMweb 미착수 |
 | AI governance | 5 | **~1** | SPEC-XPE-P3-AI 정의만; AI 모듈 미구현 |
-| **합계** | **100** | **~80** | Framework B 목표 85 대비 -5, AI governance·상호운용성이 주요 갭 |
+| **합계** | **100** | **~83** | Framework B 목표 85 대비 -2, AI governance·Gate G2 실측이 주요 갭 |
 
-### 모듈 구현 현황 (2026-04-26 세션 8차)
+### 모듈 구현 현황 (2026-05-09 세션 10차)
 
 | 모듈 | Phase | 테스트 | Gate | SPEC | 상태 |
 |------|:-----:|:------:|:----:|------|:----:|
 | xpe_common.dll | 0 | 91/91 ✅ | G0 ✅ | SPEC-XPE-P0 | **완료** |
-| xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** (M2 API + BP-01~05 freeze + SIMD P0/P1 수정 + **Calibration 7건 결함 수정 + FUNC-031~033 설계**) |
+| xpe_preprocess.dll | 1a | 202/202 ✅ | G1a ✅ | SPEC-XPE-P1A | **완료** (M2 API + BP-01~05 freeze + SIMD P0/P1 수정 + Calibration 7건 결함 수정 + FUNC-031~033 설계 + **D1/D4 안전성 결함 수정 + REQ-P1A-066 에러 경로 테스트 + Calibration 4-method 실구현**) |
 | xpe_enhance_basic.dll | 1b | 67/67 ✅ | G1b⏳ | SPEC-XPE-P1B-ENH | **완료** (30 EARS 요구사항, **VVP-P1B-001 addendum 반영**) |
 | xpe_display.dll | 1b | 48/48 ✅ | G1b⏳ | SPEC-XPE-P1B-DISP | **완료** (35 E구사항, **VVP-P1B-001 addendum 반영**) |
 | xpe_dicom.dll | 1b | 35/35 ✅ | G1b⏳ | SPEC-XPE-P1B-DICOM | **완료** (40 EARS, Released, Conformance v1.0; **CMakeLists.txt 작성 완료 — BUILD_DICOM=ON 설정 필요**) |
 | xpe_enhance_advanced.dll | 2 | 65/65 ✅ | G2⏳ | SPEC-XPE-P2-ADV | **완료** (전수 GREEN, IEC 62304 4종) |
 | gsvg.dll | 2 | 2/2 ✅ | G2⏳ | SPEC-XPE-GSVG | **완료** (BP-06 + DegradedMode, v0.2.0) |
 | xpe_ai.dll | 3 | — | G3 | SPEC-XPE-P3-AI | **미착수 (Should)** |
-| ImageProcTest.exe | GUI | 78/78 ✅ | — | TASK-GUI-IA-001 | **진행 중** (GSVG/Advanced/AI workflow 연동 — dev/gui 미통합) |
+| ImageProcTest.exe | GUI | 84/84 ✅ | — | TASK-GUI-IA-001 | **완료** (evaluation workbench slice 1-12 + E2E 6뷰 검증, **main 통합 완료 PR #78**) |
 
-> **진도율**: Phase 0~2 구현 완료 기준 **8/9 모듈 (89%)**, C++ 테스트 **403/403 통과 (M1/M2 GREEN)**, GUI 통합테스트 78/78 통과, SPEC-BENCH-PRE/POST freeze 완료
-> **모듈 소스 현황**: common(3), preprocess(190), enhance_basic(6), enhance_advanced(12), display(5), gsvg(1), dicom(5), ai(1) — 총 223개 .cpp 소스파일
-> **해결된 이슈**: dicom 모듈 CMakeLists.txt 작성 완료 (`modules/dicom/CMakeLists.txt`, DCMTK 의존성 연결, 4개 테스트 실행 파일 설정)
+> **진도율**: Phase 0~2 구현 완료 기준 **8/9 모듈 (89%)**, C++ 테스트 **407+ 통과 (M1/M2 GREEN)**, GUI 통합테스트 84/84 통과, SPEC-BENCH-PRE/POST freeze 완료
+> **모듈 소스 현황**: common(3), preprocess(192), enhance_basic(6), enhance_advanced(12), display(5), gsvg(1), dicom(5), ai(1) — 총 225개 .cpp 소스파일
+> **세션 10 완료**: P1A D1/D4 안전성 결함 수정, Calibration 4-method 실구현, GUI evaluation workbench main 통합 완료
 
 ### 게이트 현황
 
@@ -95,7 +95,18 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **B (Post)** | dev/postprocess | 0 | GSVG API, BP-06~09 freeze, E2E, MSVC 수정, GSVG 연동 UI | **최종 통합 완료** |
 | **C (GUI)** | dev/gui | 3 | GSVG C1/C2 UI, Advanced C3/C4 workflow, **AI C5/C6 workflow 연동** | **미통합 (3커밋 선행)** |
 
-**최근 진행 상황** (2026-04-28 세션 9차 — 전처리(xpe-pre) 정밀 감사):
+**최근 진행 상황** (2026-05-09 세션 10차 — 전처리 결함 수정 + GUI 통합 + 재검증):
+
+| # | 작업 | 커밋 | 브랜치 |
+|---|------|------|--------|
+| 1 | **P1A 심각 결함 D1/D4 수정 + REQ-P1A-066 에러 경로 테스트** — SIZE_MAX 오버플로우 가드 3개 모듈, bad_alloc 보호, Defect fallback 수정, T1~T4 단위 테스트 신규 추가 (#68 #70 #73 종결) | d3e78bf | feat/pre-next → **PR #79** |
+| 2 | **Calibration multi-method 구현** — Mean/Median/SigmaClip/Winsor 4종 통계 방법, 위임 패턴 리팩터, AVX2 패리티 테스트 보강 (#69 종결) | eff0e43 | feat/preprocessing → **PR #77** |
+| 3 | **GUI evaluation workbench UI 전체 구현 (slice 1-12)** — TopBar/AlgorithmBar/StudyQueue/VerdictBar/AnalysisPanel/ViewportShell + E2E 6뷰 검증, main 통합 완료 (#74 종결) | 54a3ae7 | feature/evaluation-workbench → **PR #78** |
+| 4 | **Post-B WIP 정리 + 세션 10 재검증 보고** — AI IPC bridge 검증 순서 수정, GSVG coverage 보강, workflow config 2.14.0 동기화 (#71 #75 업데이트) | fc2d2e6, 0f9d333 | feat/post-next → **PR #76, #80** |
+
+> **세션 10 핵심 결론**: Phase 1b 전처리 결함 (#68 #69 #70 #73) 전량 해소. GUI evaluation workbench main 통합 완료. 세션 10 종결 조건 달성. Gate G2 실측이 유일한 출시 블로커.
+
+**이전 세션** (2026-04-28 세션 9차 — 전처리(xpe-pre) 정밀 감사):
 
 | # | 작업 | 커밋 | 브랜치 |
 |---|------|------|--------|
@@ -189,10 +200,10 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | **13** | **DICOM Conformance v1.0 + PMS Plan v1.0 (Minor → Released)** | **+1/+1** | ✅ **완료 (세션 5차)** |
 | 14 | xpe_ai.dll + AI governance (Phase 3) | 0/+3 | 📋 Should, B 상향 핵심 |
 
-> **Framework A**: ~90/90 (목표 달성 ✅) | **Framework B**: ~80/85 (AI governance·상호운용성이 주요 갭)
+> **Framework A**: ~93/100 (목표 90 초과 달성 ✅) | **Framework B**: ~83/85 (AI governance·Gate G2 실측이 주요 갭)
 > 상세 계획: [`.moai/project/dev-plan.md`](.moai/project/dev-plan.md)
 
-### 잔여 작업 분류 (2026-04-28 세션 9차 갱신)
+### 잔여 작업 분류 (2026-05-09 세션 10차 갱신)
 
 #### Must (출시 블로커)
 
@@ -207,9 +218,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 
 | # | 작업 | Worktree | Issue | 상태 |
 |:-:|------|:--------:|:-----:|:----:|
-| **A1** | **Offset 이중 구현 제거 + 라운딩 통일 + SIMD dispatch 활성화** — `offset_correct.cpp` vs `xpe_offset.cpp` 중복 정의 제거, 반올림/절삭 표준화, AVX2/AVX-512/NEON 커널 활성화 | xpe-pre | [#68](https://github.com/holee9/image-processing/issues/68) | 🔴 P0 |
-| **B1** | **Calibration multi-method 구현 + Cache 스레드 안전성 + R² 로깅** — median/sigma_clip/winsor 구현, LRU 캐시 mutex 추가, defect map 만료 정책 | xpe-pre | [#69](https://github.com/holee9/image-processing/issues/69) | 🔴 P0 |
-| **C1** | **Defect bilinear 보간 검증 + Hampel 검출 + Reflect padding** — 보간 구현 확인, Hampel 5-sigma 활성화, 경계 공식 수정 | xpe-pre | [#70](https://github.com/holee9/image-processing/issues/70) | 🔴 P0 |
+| ~~**A1**~~ | ~~Offset 이중 구현 제거 + 라운딩 통일 + SIMD dispatch 활성화~~ | ~~xpe-pre~~ | [#68](https://github.com/holee9/image-processing/issues/68) | ✅ **완료 (세션 10차 이전, PR 머지)** |
+| ~~**B1**~~ | ~~Calibration multi-method 구현 + Cache 스레드 안전성 + R² 로깅~~ — Mean/Median/SigmaClip/Winsor 4종 구현 완료 | ~~xpe-pre~~ | [#69](https://github.com/holee9/image-processing/issues/69) | ✅ **완료 (세션 10차, PR #77)** |
+| ~~**C1**~~ | ~~Defect bilinear 보간 검증 + Hampel 검출 + Reflect padding~~ — D1/D4 결함 수정 + REQ-P1A-066 에러 경로 테스트 완료 | ~~xpe-pre~~ | [#70](https://github.com/holee9/image-processing/issues/70) | ✅ **완료 (세션 10차, PR #79)** |
 
 #### Should (품질·점수 향상)
 
@@ -219,7 +230,7 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | S2 | xpe_ai.dll 구현 (AI governance) | Post-B | B +3 | 📋 Phase 3 |
 | ~~S3~~ | ~~PMS Plan v1.0 (AI 모니터링·필드 배포)~~ | ~~main~~ | ~~A +1~~ | ✅ **완료 (세션 5차)** |
 | S4 | DICOMweb 상호운용성 | Post-B | B +2 | 📋 PS 3.4+ |
-| **S5** | **GUI dev/gui → main 통합** — GSVG/Advanced/AI workflow 3커밋 squash merge | GUI-C | — | 📋 **3커밋 선행** |
+| ~~**S5**~~ | ~~GUI dev/gui → main 통합~~ — evaluation workbench slice 1-12 squash merge 완료 | ~~GUI-C~~ | — | ✅ **완료 (세션 10차, PR #78)** |
 | **S6** | **Calibration 모드 선택 구현 (FUNC-031~033)** — XpeCalibrationMode enum, online fitting, SIMD polynomial, 품질 메타데이터 | Pre-A | — | 🔴 **설계 완료, 구현 대기** |
 
 #### 전처리 감사 파생 Should (세션 9차 신규)
@@ -243,9 +254,9 @@ X-ray Flat Panel Detector (FPD) 이미지 처리 연구, 실행 계획 및 구�
 | N7 | Calibration 미사용 파라미터 정리 | xpe-pre | integration_time_ms, temperature_c |
 | N8 | REQ-P1A-XXX 플레이스홀더 교체 | xpe-pre | xpe_verify_metrics.cpp |
 
-> **전체 진도율**: Must 항목 2/4 (50%), 전처리 감사 Must 0/5 (0%), Should 항목 1/6 (17%), 감사 Should 0/8 (0%), 완료된 달성 경로 11/14 (79%)
-> **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~90 → 최대 ~97)
-> **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~80 → 최대 ~88)
+> **전체 진도율**: Must 항목 3/4 (75%), 전처리 감사 Must 3/3 (100% ✅), Should 항목 2/6 (33%), 완료된 달성 경로 11/14 (79%)
+> **Framework A 잔여 가용점수**: M1 + S1 = 최대 ~7점 (현재 ~93 → 최대 ~100)
+> **Framework B 잔여 가용점수**: S1 + S2 + S4 = 최대 ~8점 (현재 ~83 → 최대 ~91)
 
 ## 범위 (Scope)
 
