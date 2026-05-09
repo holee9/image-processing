@@ -160,9 +160,8 @@ endif()
 #     xpe_add_optional_subdirectory(tests)
 # endif()
 
-# E2E integration tests (separate from module tests to avoid target conflicts)
-# Added after all module subdirs so GTest::gtest_main target is already defined
-# by upstream module test setups (modules/common/CMakeLists.txt etc).
-if(BUILD_TESTS)
+# E2E integration tests — requires full post-processing stack (ci-post preset).
+# Guard prevents link failure on ci-common/ci-preprocess where post modules are OFF.
+if(BUILD_TESTS AND BUILD_ENHANCE_BASIC AND BUILD_ENHANCE_ADVANCED AND BUILD_GSVG AND BUILD_DISPLAY)
     add_subdirectory(tests/e2e_post_pipeline)
 endif()
