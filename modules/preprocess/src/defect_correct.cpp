@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <vector>
 #include <algorithm>
 #include <queue>
@@ -28,7 +29,7 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
                            uint32_t startX, uint32_t startY)
 {
     ClusterInfo info;
-    std::vector<bool> visited(width * height, false);
+    std::vector<bool> visited(static_cast<size_t>(width) * height, false);
     std::queue<uint32_t> q;
 
     uint32_t startIdx = startY * width + startX;
@@ -93,7 +94,7 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
     }
 
     if (values.empty()) {
-        return pixels[static_cast<size_t>(y) * width + x];
+        return 0.0f;
     }
 
     std::sort(values.begin(), values.end());
@@ -115,6 +116,7 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
     if (input->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
     if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (input->width > std::numeric_limits<size_t>::max() / input->height) return XPE_ERR_INVALID_INPUT;
     if (output->width  != input->width ||
         output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 

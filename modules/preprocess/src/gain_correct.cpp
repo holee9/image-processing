@@ -252,6 +252,7 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
     if (input->format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
     if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (input->width > std::numeric_limits<size_t>::max() / input->height) return XPE_ERR_INVALID_INPUT;
     if (output->width  != input->width ||
         output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
@@ -259,34 +260,38 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     if (n > std::numeric_limits<size_t>::max() / sizeof(float)) return XPE_ERR_INVALID_INPUT;
     if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    const uint16_t* src     = static_cast<const uint16_t*>(input->data);
-    float*          dst     = static_cast<float*>(output->data);
-    std::vector<float> gainmap;
+    const uint16_t* src = static_cast<const uint16_t*>(input->data);
+    float*          dst = static_cast<float*>(output->data);
 
-    {
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        if (!g_calib.gain_map) return XPE_ERR_NOT_INITIALIZED;
-        if (g_calib.gain_width  != input->width ||
-            g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
-        gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+    try {
+        std::vector<float> gainmap;
+        {
+            std::lock_guard<std::mutex> lock(g_calib_mutex);
+            if (!g_calib.gain_map) return XPE_ERR_NOT_INITIALIZED;
+            if (g_calib.gain_width  != input->width ||
+                g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+            gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+        }
+
+        // Validate gain map and precompute reciprocals
+        std::vector<float> reciprocal(n);
+        for (size_t i = 0; i < n; ++i) {
+            if (!is_valid_gain(gainmap[i])) return XPE_ERR_CONFIG_INVALID;
+            reciprocal[i] = 1.0f / gainmap[i];
+        }
+
+        // Apply: AVX2 when available, scalar fallback
+        if (xpe_gain_has_avx2())
+            apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
+        else
+            apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);
+
+        output->format        = XPE_PIXEL_FLOAT32;
+        output->bitsAllocated = 32u;
+        output->bitsStored    = 32u;
+        output->dataSize      = n * sizeof(float);
+        return XPE_OK;
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
     }
-
-    // Validate gain map and precompute reciprocals
-    std::vector<float> reciprocal(n);
-    for (size_t i = 0; i < n; ++i) {
-        if (!is_valid_gain(gainmap[i])) return XPE_ERR_CONFIG_INVALID;
-        reciprocal[i] = 1.0f / gainmap[i];
-    }
-
-    // Apply: AVX2 when available, scalar fallback
-    if (xpe_gain_has_avx2())
-        apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
-    else
-        apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);
-
-    output->format        = XPE_PIXEL_FLOAT32;
-    output->bitsAllocated = 32u;
-    output->bitsStored    = 32u;
-    output->dataSize      = n * sizeof(float);
-    return XPE_OK;
 }

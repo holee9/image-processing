@@ -292,6 +292,7 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
     if (input->format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
     if (input->width == 0 || input->height == 0) return XPE_ERR_INVALID_INPUT;
+    if (input->width > std::numeric_limits<size_t>::max() / input->height) return XPE_ERR_INVALID_INPUT;
     if (output->width  != input->width ||
         output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
