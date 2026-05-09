@@ -63,6 +63,19 @@
                          Padding="12,4" Cursor="Hand" />
         </Grid>
 
+        <!-- Footer: FIXTURE SET -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="#1AFFFFFF" BorderThickness="0,1,0,0" Padding="12,8">
+            <StackPanel>
+                <TextBlock Text="FIXTURE SET" Foreground="#5a5f6a" FontSize="9"
+                           FontWeight="Medium" Margin="0,0,0,3" />
+                <TextBlock Text="gui-s0/golden-26.manifest" Foreground="#8a909c" FontSize="10"
+                           FontFamily="Consolas" />
+                <TextBlock Foreground="#5a5f6a" FontSize="10" Margin="0,2,0,0">
+                    <Run Text="{Binding Studies.Count, Mode=OneWay, FallbackValue=0}" /><Run Text=" studies loaded" />
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
         <!-- Study list -->
         <ListBox x:Name="StudyListBox"
                  AutomationProperties.AutomationId="StudyListBox"

@@ -71,6 +71,18 @@
                 <!-- Separator -->
                 <Rectangle Width="1" Fill="#1AFFFFFF" Margin="6,4" />
 
+                <!-- Histogram toggle -->
+                <ToggleButton x:Name="HistogramToggleButton"
+                              AutomationProperties.AutomationId="HistogramToggleButton"
+                              Content="Histogram"
+                              IsChecked="{Binding HistogramActive, Mode=TwoWay}"
+                              Padding="12,6"
+                              FontSize="11" FontWeight="Medium"
+                              Foreground="#f0f2f5"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              Cursor="Hand" />
+
                 <!-- ROI toggle -->
                 <ToggleButton x:Name="RoiToggleButton"
                               Content="ROI"
@@ -81,6 +93,58 @@
                               Background="Transparent"
                               BorderThickness="0"
                               Cursor="Hand" />
+            </StackPanel>
+        </Border>
+
+        <!-- HUD: STUDY block (top-left) -->
+        <Border HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="10,10,0,0"
+                CornerRadius="6"
+                Padding="10,8"
+                Background="#CC14171E">
+            <Border.Effect>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="STUDY" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
+                           Margin="0,0,0,3" />
+                <TextBlock Text="{Binding ActiveStudyId, FallbackValue=—}"
+                           FontSize="10" FontWeight="SemiBold" FontFamily="Consolas"
+                           Foreground="#f0f2f5" />
+                <TextBlock Text="{Binding ActiveImageSummary}"
+                           FontSize="10" FontFamily="Consolas" Foreground="#8a909c"
+                           TextWrapping="Wrap" MaxWidth="220" />
+            </StackPanel>
+        </Border>
+
+        <!-- HUD: WINDOW block (top-right) -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,10,10,0"
+                CornerRadius="6"
+                Padding="10,8"
+                Background="#CC14171E">
+            <Border.Effect>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="WINDOW" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
+                           Margin="0,0,0,3" />
+                <TextBlock FontSize="10" FontFamily="Consolas">
+                    <Run Text="C " Foreground="#8a909c" />
+                    <Run Text="{Binding Settings.VoiWindowCenter, StringFormat={}{0:0}}" Foreground="#f0f2f5" />
+                    <Run Text=" · W " Foreground="#8a909c" />
+                    <Run Text="{Binding Settings.VoiWindowWidth, StringFormat={}{0:0}}" Foreground="#f0f2f5" />
+                </TextBlock>
+                <TextBlock FontSize="10" FontFamily="Consolas">
+                    <Run Text="VOI: " Foreground="#8a909c" />
+                    <Run Text="{Binding Settings.VoiLutMode}" Foreground="#f0f2f5" />
+                </TextBlock>
+                <TextBlock FontSize="10" FontFamily="Consolas">
+                    <Run Text="Calib: " Foreground="#8a909c" />
+                    <Run Text="{Binding CalibStageCountDisplay, Mode=OneWay}" Foreground="#f0f2f5" />
+                </TextBlock>
             </StackPanel>
         </Border>
 
@@ -137,13 +201,22 @@
             </StackPanel>
         </Border>
 
-        <!-- Lane tags (bottom corners) -->
+        <!-- Lane tags (bottom corners) — hidden in DifferenceHeatmap mode -->
         <Border HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Margin="10,0,0,10"
                 CornerRadius="8"
                 Padding="10,6"
                 Background="#D914171E">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Border.Effect>
                 <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
             </Border.Effect>
@@ -162,6 +235,15 @@
                 CornerRadius="8"
                 Padding="10,6"
                 Background="#D914171E">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Border.Effect>
                 <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
             </Border.Effect>

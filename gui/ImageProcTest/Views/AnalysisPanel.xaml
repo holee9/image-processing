@@ -185,6 +185,30 @@
                         <RadioButton Content="Off" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
+                    <!-- Temperature -->
+                    <TextBlock Text="Temperature" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                        <RadioButton Content="Auto" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="On" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="Off" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                    </UniformGrid>
+
+                    <!-- Nonlinearity -->
+                    <TextBlock Text="Nonlinearity" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                        <RadioButton Content="Auto" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="On" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="Off" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                    </UniformGrid>
+
+                    <!-- Binning -->
+                    <TextBlock Text="Binning" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                        <RadioButton Content="Auto" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="On" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton Content="Off" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                    </UniformGrid>
+
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
 
                     <!-- VOI LUT -->

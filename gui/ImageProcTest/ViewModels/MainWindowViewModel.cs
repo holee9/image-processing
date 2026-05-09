@@ -45,6 +45,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private Verdict? _activeVerdict;
     private string _verdictNotes = string.Empty;
     private bool _roiActive;
+    private bool _histogramActive;
 
     /// <summary>
     /// Hard-coded algorithm names compiled into this build.
@@ -219,6 +220,22 @@ public sealed class MainWindowViewModel : ObservableObject
         $"Ghost={Settings.GhostCorrectionMode}, Temp={Settings.TemperatureCompensationMode}, " +
         $"Nonlinearity={Settings.NonlinearityCorrectionMode}, Binning={Settings.BinningCorrectionMode}";
 
+    public string CalibStageCountDisplay
+    {
+        get
+        {
+            string[] modes =
+            [
+                Settings.OffsetCorrectionMode, Settings.GainCorrectionMode,
+                Settings.DefectCorrectionMode, Settings.GhostCorrectionMode,
+                Settings.TemperatureCompensationMode, Settings.NonlinearityCorrectionMode,
+                Settings.BinningCorrectionMode
+            ];
+            var enabled = modes.Count(m => !string.Equals(m, "Off", StringComparison.OrdinalIgnoreCase));
+            return $"{enabled}/7 stages";
+        }
+    }
+
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
         $"Pan=({Settings.ComparisonPanX:0},{Settings.ComparisonPanY:0}), Swipe={Settings.ComparisonSwipePosition:P0}, Overlay={Settings.ComparisonOverlayOpacity:P0}";
@@ -381,6 +398,12 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _roiActive;
         set => SetProperty(ref _roiActive, value);
+    }
+
+    public bool HistogramActive
+    {
+        get => _histogramActive;
+        set => SetProperty(ref _histogramActive, value);
     }
 
     public void ShutdownBackend()

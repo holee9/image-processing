@@ -208,6 +208,30 @@ static void RunWpfE2E()
         var zoomPercentText = FindVisualChildByName<TextBlock>(viewportShell!, "ZoomPercentText");
         Assert(zoomPercentText is not null, "Zoom percent text should be present in ViewportShell.");
 
+        // --- Histogram toggle (handoff spec: Viewport toolbar) ---
+        var histogramToggle = FindVisualChildByName<ToggleButton>(viewportShell!, "HistogramToggleButton");
+        Assert(histogramToggle is not null, "Histogram toggle button should be present in ViewportShell.");
+        Assert(histogramToggle!.IsChecked == false, "Histogram toggle should be unchecked by default.");
+
+        // --- StudyQueue fixture set footer (handoff spec: Study Queue footer) ---
+        var fixtureSetLabel = FindVisualChildByPredicate<TextBlock>(studyQueue!, tb => tb.Text == "FIXTURE SET");
+        Assert(fixtureSetLabel is not null, "StudyQueue should display FIXTURE SET footer label.");
+
+        // --- AnalysisPanel: all 7 calibration stages (Temperature, Nonlinearity, Binning added) ---
+        var tempRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Temperature");
+        Assert(tempRadio is not null, "AnalysisPanel should have Temperature calibration stage controls.");
+        var nonlinearityRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Nonlinearity");
+        Assert(nonlinearityRadio is not null, "AnalysisPanel should have Nonlinearity calibration stage controls.");
+        var binningRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Binning");
+        Assert(binningRadio is not null, "AnalysisPanel should have Binning calibration stage controls.");
+
+        // --- ViewModel: CalibStageCountDisplay format ---
+        if (window.DataContext is MainWindowViewModel vmEarly)
+        {
+            Assert(vmEarly.CalibStageCountDisplay.EndsWith("/7 stages", StringComparison.Ordinal),
+                $"CalibStageCountDisplay should end with '/7 stages', got: {vmEarly.CalibStageCountDisplay}");
+        }
+
         // --- Help windows ---
         ExecuteMenuItem(quickStartMenuItem);
         DoEvents();
@@ -310,6 +334,26 @@ static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         }
 
         var result = FindVisualChild<T>(child);
+        if (result is not null)
+        {
+            return result;
+        }
+    }
+
+    return null;
+}
+
+static T? FindVisualChildByPredicate<T>(DependencyObject parent, Func<T, bool> predicate) where T : DependencyObject
+{
+    for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+    {
+        var child = VisualTreeHelper.GetChild(parent, i);
+        if (child is T typed && predicate(typed))
+        {
+            return typed;
+        }
+
+        var result = FindVisualChildByPredicate<T>(child, predicate);
         if (result is not null)
         {
             return result;
