@@ -117,8 +117,11 @@ double stddev_of(const std::vector<double>& values, double mean) noexcept
         const double d = v - mean;
         sum_sq += d * d;
     }
-    // Sample stddev (Bessel's correction, /N-1): more accurate for small frame counts.
-    return std::sqrt(sum_sq / static_cast<double>(values.size() - 1u));
+    // Population stddev (/N) per XPE-ALG-001 §9.8.2.1:
+    //   sigma = sqrt( (1/|S|) * sum_{k in S} (F_k - mu)^2 )
+    // Bessel's correction (/N-1) inflates sigma as |S| shrinks across clipping
+    // iterations, which over-clips valid samples (issue #97).
+    return std::sqrt(sum_sq / static_cast<double>(values.size()));
 }
 
 double median_of(std::vector<double>& values) noexcept
