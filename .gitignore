@@ -181,6 +181,15 @@ secret-*.*
 .moai/status_line.sh
 .moai/memory/
 .moai/worktrees/
+.moai/backups/
+
+# MoAI per-user / per-machine config (project-shared config stays tracked)
+.moai/config/sections/user.yaml
+.moai/config/sections/llm.yaml
+
+# Local agent tooling
+.agents/
+.codex/
 
 # ===========================================
 # Evolution Telemetry (local-only usage data)
@@ -297,3 +306,9 @@ build_*.ps1
 dev_*_*.txt
 fullpath_*
 nul
+
+# ===========================================
+# Tool output artifacts (repo hygiene, issue #96)
+# ===========================================
+lint_results.json
+test_results.json
