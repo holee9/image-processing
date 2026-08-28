@@ -50,7 +50,7 @@ jobs:
 
   common-build:
     needs: detect-lane
-    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'gui'
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
     timeout-minutes: 45
 
@@ -95,6 +95,15 @@ jobs:
           retention-days: 14
           path: build/ci-common/Testing/
 
+      - name: Upload common binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-common-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          path: build/ci-common/bin/
+
   preprocess-tests:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'preprocess'
@@ -137,6 +146,58 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
           path: build/ci-preprocess/Testing/
+
+  dotnet-tests:
+    needs: [detect-lane, common-build]
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      # CopyXpeDllsForTests (ImageProcTest.IntegrationTests.csproj) probes
+      # build/ci-common/bin[/Debug]/xpe_common.dll with Condition=Exists +
+      # ContinueOnError, and Fixtures/SkipHelper.cs early-returns when the DLL is
+      # absent. Without these binaries the suite is green but verifies nothing.
+      - name: Download common binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-common-binaries
+          path: build/ci-common/bin/
+
+      - name: Verify native binaries present
+        shell: pwsh
+        run: |
+          $dll = 'build/ci-common/bin/xpe_common.dll'
+          if (-not (Test-Path $dll)) {
+            Write-Error "xpe_common.dll not found at $dll - integration tests would silently skip native verification"
+            exit 1
+          }
+          Get-ChildItem build/ci-common/bin/ -Filter *.dll | Select-Object Name, Length
+
+      - name: Run C# integration tests
+        shell: pwsh
+        run: >
+          dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj
+          -c Debug
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory build/dotnet-test-results
+
+      - name: Upload C# test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-dotnet-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/dotnet-test-results/
 
   coverage:
     if: github.event_name == 'workflow_dispatch'
