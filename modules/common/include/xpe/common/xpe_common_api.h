@@ -4,7 +4,7 @@
  *
  * Aggregates the xpe_common module's 12 directly-declared exported functions
  * (the remaining 3 — xpe_alloc_image, xpe_free_image, xpe_copy_image — are
- * declared in xpe_memory.h and the 4 alert functions in xpe_error.h).
+ * declared in xpe_memory.h and the 5 alert functions in xpe_error.h).
  *
  * Call order: xpe_init() → use API → xpe_shutdown(). No XPE function may be
  * invoked before xpe_init() or after xpe_shutdown().
@@ -28,12 +28,20 @@ extern "C" {
  *
  * REQ-P0-008: xpe_common.dll SHALL export exactly 15 functions with C linkage.
  *
- * Exported function list (15 total):
+ * NOTE: the actual export count is 16, not the 15 stated above. xpe_test_inject_alert
+ * has been exported from the DLL since its introduction and is called from
+ * production code in other modules; it is now declared in xpe_error.h so the
+ * header matches the binary. Reconciling the REQ-P0-008 text (and the
+ * "18-function total" mentions below and in xpe_memory.h, which match neither
+ * count) is an SRS decision and is tracked separately.
+ *
+ * Exported function list (16 total):
  *   Lifecycle   (3): xpe_init, xpe_shutdown, xpe_version
  *   Config      (1): xpe_configure
  *   ParamRange  (1): xpe_get_param_range
- *   Error/Alert (4): xpe_error_string, xpe_get_pending_alert_count,
- *                    xpe_get_pending_alert, xpe_clear_alerts
+ *   Error/Alert (5): xpe_error_string, xpe_get_pending_alert_count,
+ *                    xpe_get_pending_alert, xpe_clear_alerts,
+ *                    xpe_test_inject_alert
  *   Logging     (3): xpe_log_set_level, xpe_log_set_file, xpe_log_flush
  *   Image Mem   (3): xpe_alloc_image, xpe_free_image, xpe_copy_image
  *                    (declared in xpe_memory.h, counted here)
@@ -144,7 +152,8 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath);
 XPE_API void xpe_log_flush(void);
 
 /* NOTE: xpe_error_string, xpe_get_pending_alert_count,
- *       xpe_get_pending_alert, xpe_clear_alerts are declared in xpe_error.h.
+ *       xpe_get_pending_alert, xpe_clear_alerts, xpe_test_inject_alert
+ *       are declared in xpe_error.h.
  *       xpe_alloc_image, xpe_free_image, xpe_copy_image are declared in xpe_memory.h.
  *       All are counted toward the 18-function total. */
 
