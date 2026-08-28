@@ -142,17 +142,42 @@ modules/** 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신�
 
 ---
 
-## 6. 빌드 환경 공유 (워크트리 중복 회피)
+## 6. 빌드 환경 (실측 확정 — 2026-08-28)
 
-각 레인 터미널에서 세션 시작 전 1회 설정:
+### 툴체인: 기존 헬퍼를 쓸 것. 직접 만들지 말 것.
+
+`tools/ci/Use-MsvcDevShell.ps1` 이 vswhere 로 VS 설치 경로를 탐색해
+`VsDevCmd.bat -arch=amd64` 환경을 현재 프로세스에 주입한다. 하드코딩 경로가 없고
+`ci.yml` 의 common-build / preprocess-tests 잡이 이미 이것을 쓴다.
 
 ```powershell
-$env:VCPKG_INSTALLED_DIR = "D:/workspace-github/image-processing/vcpkg_installed"
-$env:VCPKG_BINARY_SOURCES = "clear;files,D:/workspace-github/.vcpkg-cache,readwrite"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1
 ```
 
-미설정 시 워크트리마다 3.4GB를 새로 설치한다.
-**주의**: 위 설정은 미검증. 첫 레인 빌드에서 동작 확인 후 확정할 것.
+**PATH 함정** (Lane A · Lane B 가 각각 독립적으로 겪음): Git Bash 에서 cmd.exe 를 호출할 때
+`C:\Windows\System32` 가 PATH 에 없으면 `vcvars64.bat` 이 `vswhere.exe` 를 찾지 못해
+**조용히 실패**하고, 이어서 `rc.exe` / `mt.exe` 누락으로 CMake 컴파일러 테스트가 깨진다.
+배치로 직접 부를 수밖에 없다면 첫 줄에서 PATH 를 명시 초기화한다:
+
+```bat
+set "PATH=C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem"
+```
+
+`tools/ci/build_lane_{a1,b1,m1}.bat` 은 쓰지 말 것 — `VS_ROOT` 가 `D:\Program Files\...`
+로 하드코딩돼 있는데 이 환경의 VS 는 `C:` 에 있어 실행되지 않는다 (#102).
+
+### vcpkg: 필요 없다
+
+루트 `CMakeLists.txt:56-57` 이 FetchContent 폴백을 갖고 있어 vcpkg 없이 빌드된다.
+실측: Lane A `ci-preprocess`, Lane B `ci-post` 모두 `VCPKG_ROOT` · `CMAKE_TOOLCHAIN_FILE`
+없이 configure·빌드·ctest 성공 (nlohmann_json / fmt 11.0.2 / gtest / eigen 자동 확보).
+
+**`VCPKG_ROOT` 를 설정하지 말 것.** 3.4GB 콜드 설치를 유발하며 얻는 것이 없다.
+
+예외는 `dicom` 하나다. dcmtk 는 FetchContent 폴백이 없어 `find_package(DCMTK REQUIRED)` 로
+하드 요구된다. main 워크트리의 기존 `vcpkg_installed` 를 `CMAKE_PREFIX_PATH` 로
+**읽기 전용 참조**만 할 것 (설치 금지). 단 현재는 타깃명 문제로 generate 자체가 막혀 있다 (#99).
+
 
 ---
 
