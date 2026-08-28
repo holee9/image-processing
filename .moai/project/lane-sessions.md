@@ -21,10 +21,10 @@
 
 | 터미널 | 세션 이름 | 워크트리 |
 |---|---|---|
-| 1 | `xpe-main` | image-processing |
-| 2 | `xpe-pre`  | xpe-pre |
-| 3 | `xpe-post` | xpe-post |
-| 4 | `xpe-gui`  | xpe-gui |
+| 1 | `lead` | image-processing |
+| 2 | `pre`  | xpe-pre |
+| 3 | `post` | xpe-post |
+| 4 | `gui`  | xpe-gui |
 
 ---
 
@@ -96,7 +96,7 @@ branch: dev/<lane>  sha: <커밋>
 ultrathink. XPE main 세션. 역할: 통합·거버넌스·SPEC·게이트 판정.
 소유: 루트 CMakeLists.txt, cmake/, .moai/, .claude/, docs/. modules/**·clients/**·gui/** 직접 수정 금지.
 기준 문서: .moai/project/dev-plan.md §0/§4, .moai/project/lane-sessions.md
-먼저 /rename xpe-main 실행 후, ListAgents 로 레인 세션 3개 접속 확인.
+먼저 /rename lead 실행 후, ListAgents 로 레인 세션 3개 접속 확인.
 첫 작업: SPEC status 드리프트 정정 (4월 이후 미갱신 SPEC 실제 상태 반영).
 ```
 
@@ -104,27 +104,27 @@ ultrathink. XPE main 세션. 역할: 통합·거버넌스·SPEC·게이트 판�
 ```
 ultrathink. XPE Lane A 세션. 브랜치 dev/preprocess.
 소유: modules/common/**, modules/preprocess/**, tests/common*, tests/preprocess*
-그 외 경로 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+그 외 경로 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-pre 실행. 첫 작업: 소유 모듈 QA 게이트 6항목 현재 상태 실측.
+먼저 /rename pre 실행. 첫 작업: 소유 모듈 QA 게이트 6항목 현재 상태 실측.
 ```
 
 ### 터미널 3 — Lane B (postprocess)
 ```
 ultrathink. XPE Lane B 세션. 브랜치 dev/postprocess.
 소유: modules/{enhance_basic,enhance_advanced,ai,display,dicom,gsvg}/**, tests/{enhance_advanced_tests,ai_tests,e2e_post_pipeline}
-common/preprocess 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+common/preprocess 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-post 실행. 첫 작업: 6개 모듈 QA 게이트를 서브에이전트로 병렬 실측.
+먼저 /rename post 실행. 첫 작업: 6개 모듈 QA 게이트를 서브에이전트로 병렬 실측.
 ```
 
 ### 터미널 4 — Lane C (gui)
 ```
 ultrathink. XPE Lane C 세션. 브랜치 dev/gui.
 소유: clients/**, gui/**
-modules/** 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+modules/** 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-gui 실행.
+먼저 /rename gui 실행.
 첫 작업: clients/ImageProcTest 와 gui/ImageProcTest 중복(App.xaml, MainWindow.xaml, csproj 등 5파일 동일) 정리 방안 조사 후 main에 보고. 임의 삭제 금지.
 ```
 
