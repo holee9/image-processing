@@ -18,6 +18,7 @@
 # Lane C: Test GUI App (Codex)
 # Branch: dev/gui | Worktree: xpe-gui
 /clients/             @holee9
+/gui/                 @holee9
 
 # Shared — modify only on main branch during integration
 /CMakeLists.txt       @holee9
