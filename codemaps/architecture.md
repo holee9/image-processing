@@ -13,7 +13,7 @@ XPE-Post는 모듈형 C++ DLL 아키텍처로 구현된 의료용 X-ray 이미�
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Layer 2: Application Layer (C# WPF)                        │
-│ ImageProcTest GUI (clients/ImageProcTest/)                 │
+│ ImageProcTest apps (clients/ + gui/)                       │
 └───────────────────────┬─────────────────────────────────────┘
                         │ C ABI (DLL Import)
 ┌───────────────────────▼─────────────────────────────────────┐
