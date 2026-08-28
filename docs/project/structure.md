@@ -31,7 +31,7 @@ The structure document describes the target code and binary layout that all plan
 | `modules/display/` | not yet present | Phase 1b module |
 | `modules/dicom/` | not yet present | Phase 1b module |
 | `gsvg/` | not yet present in source tree | independent Phase 2 module |
-| `clients/` | present (C# WPF) | Native-integration and verification workbench (`Backends/`, `Diagnostics/`, `PInvokeWrappers/`) plus `ImageProcTest.IntegrationTests` (xUnit, 78 tests) |
+| `clients/` | present (C# WPF) | Native-integration and verification workbench (`Backends/`, `Diagnostics/`, `PInvokeWrappers/`) plus `ImageProcTest.IntegrationTests` (xUnit; 75 `[Fact]`/`[Theory]` attributes — executed count unverified, suite has never run in CI, see #98) |
 | `gui/` | present (C# WPF) | Operator-facing GUI-S0 shell (`Views/`, `help/`, `fixtures/`) plus `ImageProcTest.E2E` and `SelfCheck`; source tree consumed by docfx API generation |
 | `tests/common_smoke/` | present | initial native smoke test |
 | `docs/project/` | present | canonical design and plan set |
