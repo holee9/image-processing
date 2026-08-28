@@ -32,7 +32,7 @@ protected:
         img.bitsStored    = 32;
         img.format        = XPE_PIXEL_FLOAT32;
         img.dataSize      = imgPixels.size() * sizeof(float);
-        meta.acquisitionTime = 0.0;
+        meta.acquisitionTime = 0;
     }
 
     void TearDown() override {
