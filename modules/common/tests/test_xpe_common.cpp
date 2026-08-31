@@ -282,6 +282,8 @@ TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
     XpeImageBuffer buf;
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf);
 
+    void* dataPtr = buf.data;
+    EXPECT_NE(dataPtr, nullptr);
     EXPECT_EQ(xpe_free_image(&buf), XPE_OK);
     EXPECT_EQ(buf.data, nullptr);
     EXPECT_EQ(buf.dataSize, 0);
