@@ -1,7 +1,7 @@
 # Export Verification Guide (T-004)
 
 ## Purpose
-Verify that xpe_common.dll exports exactly 18 public API functions as required by SPEC-XPE-P0.
+Verify that xpe_common.dll exports exactly 15 public API functions as required by SPEC-XPE-P0.
 
 ## Verification Steps
 
@@ -18,7 +18,7 @@ cmake --build --preset release
 dumpbin /exports build/release/lib/xpe_common.dll
 ```
 
-### 3. Expected Output (18 public APIs)
+### 3. Expected Output (15 public APIs)
 
 **Lifecycle (3):**
 - xpe_init
@@ -59,8 +59,8 @@ The following internal test functions may also be exported:
 
 ### 5. Acceptance Criteria
 
-- [ ] dumpbin shows exactly 18 public API functions
-- [ ] All 18 function names match SPEC-XPE-P0 REQ-P0-008
+- [ ] dumpbin shows exactly 15 public API functions
+- [ ] All 15 function names match SPEC-XPE-P0 REQ-P0-008
 - [ ] Internal test functions are either:
   - Documented as test-only exports, OR
   - Removed from public API
