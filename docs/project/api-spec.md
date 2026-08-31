@@ -155,7 +155,7 @@ typedef int32_t GsvgErrorCode;
 |-----|--------------------|----|
 | xpe_common.dll | 15 | removed 3 AED functions; AED is detector hardware only |
 | xpe_preprocess.dll | 18 | no change |
-| xpe_enhance_basic.dll | 7 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
+| xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
 | xpe_ai.dll | 7 | no change |
 | xpe_display.dll | 11 | no change |
@@ -743,6 +743,18 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
 **SRS**: SRS-ADV-030, SRS-SAFE-016, SRS-EI-001  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
+
+
+### 7.8 xpe_enhance_basic_version
+
+```c
+XPE_API const char* xpe_enhance_basic_version(void);
+```
+
+**Description**: Returns a pointer to a static, null-terminated version string for `xpe_enhance_basic.dll`. The returned buffer is DLL-owned; do NOT free it.  
+**SRS**: SRS-VER-001  
+**Thread safety**: Thread-safe (read-only static storage).  
+**Error codes**: N/A (returns a pointer, never NULL)
 
 ---
 
