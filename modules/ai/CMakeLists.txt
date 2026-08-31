@@ -256,12 +256,18 @@ if(_XPE_AI_BUILD_TESTS)
             list(APPEND _XPE_AI_TEST_SOURCE_PATHS "${CMAKE_SOURCE_DIR}/tests/ai_tests/${_src}")
         endforeach()
 
+        # The IPC bridge is module-internal and is NOT exported from xpe_ai.dll
+        # (REQ-AI-003 keeps the named-pipe protocol private). Its tests therefore
+        # compile the implementation directly instead of linking it across the
+        # DLL boundary.
         add_executable(xpe_ai_tests
             ${_XPE_AI_TEST_SOURCE_PATHS}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp
         )
 
         target_include_directories(xpe_ai_tests
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src
         )
 
         target_link_libraries(xpe_ai_tests
