@@ -88,7 +88,7 @@ image-processing/
 **총 SWU: 38개 (C/C++ 36개 + C# 2개)**  
 `SWU-5.7`, `SWU-6.1`은 Layer 2 C# 구현이며, 나머지 36개만 네이티브 DLL SWU입니다.
 
-**참고**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: `gui/ImageProcTest.Tests/QaConstancyTests.cs`
+**참고**: SWU-6.1 QaConstancyTest는 C# ImageProcTest 내에 구현 (AAPM TG-151, IEC 61223 준수). 테스트 파일: 미구현 (2026-08-28 확인 — 해당 경로 부재)
 
 ## 의존성 방향성 (Architecture Boundaries)
 

@@ -14,6 +14,7 @@
 /modules/display/          @holee9
 /modules/dicom/            @holee9
 /modules/gsvg/             @holee9
+/gsvg/                @holee9
 
 # Lane C: Test GUI App (Codex)
 # Branch: dev/gui | Worktree: xpe-gui
