@@ -597,7 +597,6 @@
       "Bash(moai:*)"
     ],
     "ask": [
-      "Bash(rm:*)",
       "Bash(sudo:*)",
       "Bash(chmod:*)",
       "Bash(chown:*)",
