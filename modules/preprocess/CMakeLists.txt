@@ -76,6 +76,8 @@ else()
     )
 endif()
 
+xpe_target_warnings_as_errors(xpe_preprocess)
+
 # VERSION/SOVERSION only meaningful on Linux; guard for portability
 if(PROJECT_VERSION)
     set_target_properties(xpe_preprocess PROPERTIES
@@ -196,10 +198,11 @@ if(_XPE_BUILD_TESTS)
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)
 
     if(MSVC)
-        target_compile_options(xpe_preprocess_tests PRIVATE /W4 /WX-)
+        target_compile_options(xpe_preprocess_tests PRIVATE /W4)
     else()
         target_compile_options(xpe_preprocess_tests PRIVATE -Wall -Wextra)
     endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_tests)
 
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
