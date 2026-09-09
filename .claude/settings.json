@@ -12,8 +12,7 @@
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
     "ENABLE_TOOL_SEARCH": "1",
-    "MOAI_CONFIG_SOURCE": "sections",
-    "PATH": "C:\\Users\\drake\\.local\\bin;C:\\Users\\drake\\go\\bin;/usr/local/bin;/usr/local/sbin;/usr/bin;/bin;/usr/sbin;/sbin"
+    "MOAI_CONFIG_SOURCE": "sections"
   },
   "hooks": {
     "ConfigChange": [
@@ -22,7 +21,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-config-change.sh"
             ],
             "command": "bash",
@@ -39,7 +38,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-cwd-changed.sh"
             ],
             "command": "bash",
@@ -55,7 +54,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-file-changed.sh"
             ],
             "command": "bash",
@@ -72,7 +71,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-instructions-loaded.sh"
             ],
             "async": true,
@@ -89,7 +88,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-permission-denied.sh"
             ],
             "command": "bash",
@@ -105,7 +104,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-permission-request.sh"
             ],
             "command": "bash",
@@ -121,7 +120,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-post-compact.sh"
             ],
             "command": "bash",
@@ -138,7 +137,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-post-tool.sh"
             ],
             "async": true,
@@ -149,7 +148,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/status-transition-ownership.sh"
             ],
             "command": "bash",
@@ -160,7 +159,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/status-transition-ownership.sh"
             ],
             "command": "bash",
@@ -171,7 +170,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/status-transition-ownership.sh"
             ],
             "command": "bash",
@@ -182,7 +181,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-security-scan.sh"
             ],
             "async": true,
@@ -200,7 +199,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-post-tool-failure.sh"
             ],
             "command": "bash",
@@ -216,7 +215,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-compact.sh"
             ],
             "command": "bash",
@@ -233,7 +232,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-pre-tool.sh"
             ],
             "command": "bash",
@@ -248,7 +247,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-pre-tool.sh"
             ],
             "command": "bash",
@@ -265,7 +264,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-session-end.sh"
             ],
             "command": "bash",
@@ -281,7 +280,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-session-start.sh"
             ],
             "command": "bash",
@@ -311,7 +310,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-stop.sh"
             ],
             "async": true,
@@ -322,7 +321,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/sync-phase-quality-gate.sh"
             ],
             "command": "bash",
@@ -332,7 +331,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-stop-goal.sh"
             ],
             "command": "bash",
@@ -342,7 +341,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-security-turn.sh"
             ],
             "async": true,
@@ -353,7 +352,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-security-commit.sh"
             ],
             "async": true,
@@ -364,7 +363,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-codex-review-gate.sh"
             ],
             "command": "bash",
@@ -374,7 +373,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-multi-review-gate.sh"
             ],
             "command": "bash",
@@ -390,7 +389,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-stop-failure.sh"
             ],
             "command": "bash",
@@ -407,7 +406,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-subagent-start.sh"
             ],
             "command": "bash",
@@ -423,7 +422,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-subagent-stop.sh"
             ],
             "command": "bash",
@@ -433,7 +432,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/chain-event.sh"
             ],
             "command": "bash",
@@ -449,7 +448,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-task-completed.sh"
             ],
             "command": "bash",
@@ -465,7 +464,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-teammate-idle.sh"
             ],
             "command": "bash",
@@ -481,7 +480,7 @@
           {
             "args": [
               "-c",
-              "[ -f \"$0\" ] \u0026\u0026 exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2\u003e/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" \u003e\u003e \"$d/.moai/logs/hook-missing.log\" 2\u003e/dev/null; exit 0",
+              "[ -f \"$0\" ] && exec bash \"$0\"; d=\"${0%/.claude/hooks/moai/*}\"; mkdir -p \"$d/.moai/logs\" 2>/dev/null; printf \"%s %s\\n\" \"$(date -u +%FT%TZ)\" \"hook missing: $0\" >> \"$d/.moai/logs/hook-missing.log\" 2>/dev/null; exit 0",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/handle-user-prompt-submit.sh"
             ],
             "command": "bash",

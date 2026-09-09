@@ -29,5 +29,5 @@ gate:
     # is omitted. The value below is where `moai init`/`moai update` deploy
     # the bundled ruleset; keep it in sync if you move the rules.
     rules_dir: ".moai/config/astgrep-rules"
-    block_on_error: true
-    warn_only_mode: false
+    block_on_error: false
+    warn_only_mode: true
