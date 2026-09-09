@@ -122,6 +122,7 @@ if(BUILD_TESTS)
         tests/test_edge_enhancement_ext.cpp
         tests/test_exposure_index_ext.cpp
         tests/test_integration_ext.cpp
+        tests/test_coverage_ext.cpp   # #120 config/degenerate paths
     )
 
     # Link against Google Test and the module
