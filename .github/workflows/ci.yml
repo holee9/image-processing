@@ -190,9 +190,14 @@ jobs:
         shell: pwsh
         run: cmake --build --preset ci-post --parallel
 
-      - name: Run tests
+      # Wall-clock budget cases are excluded here for the same reason as in
+      # cmake/XpeCoverage.cmake (XPE_COVERAGE_EXCLUDE_TESTS): on a shared runner
+      # they measure the machine, not the code. First run (34417874089) failed
+      # exactly 3 such cases by 1-16 ms. Timing regressions are the benchmark
+      # workflow's gate. Keep this regex in sync with XpeCoverage.cmake.
+      - name: Run tests (timing-budget cases excluded)
         shell: pwsh
-        run: ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure
+        run: ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -E "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance"
 
       - name: Upload post test results
         if: always()
