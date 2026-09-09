@@ -217,3 +217,71 @@ TEST_F(DicomWriterTest, DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted) {
     EXPECT_NE(xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta),
               XPE_ERR_INVALID_INPUT);
 }
+
+// ---------------------------------------------------------------------------
+// #105 G3: working-set measurement, mirroring enhance_basic
+// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
+// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// (REQ-P0-008).
+// ---------------------------------------------------------------------------
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
+// WARMUP exists because the first cycles fault in fresh heap pages and grow the
+// CRT allocator arena; counting that one-time cost as "leak" would make the
+// threshold a measure of startup, not of retention. The baseline is snapshotted
+// after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
+// ---------------------------------------------------------------------------
+// #105 G3: heap growth over 1000 alloc -> write -> free cycles.
+//
+// dicom had no endurance loop and no heap measurement before this. The cycle
+// allocates a small UINT16 image, writes a DICOM Part 10 file to the same path
+// (overwriting), and frees it -- so DCMTK's dataset construction and teardown
+// runs 1000 times. If DCMTK holds an internal cache that grows, it surfaces
+// here as working-set growth; the number is reported, not tuned around.
+// ---------------------------------------------------------------------------
+TEST_F(DicomWriterTest, ThousandCycles_MemoryGrowthUnderOneMB) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    const auto path = (m_tempDir / "endurance.dcm").string();
+
+    auto one_cycle = [&](int i) {
+        XpeImageBuffer img{};
+        ASSERT_EQ(xpe_alloc_image(64, 64, XPE_PIXEL_UINT16, &img), XPE_OK) << "cycle " << i;
+        auto* px = static_cast<uint16_t*>(img.data);
+        for (uint32_t k = 0; k < img.width * img.height; ++k)
+            px[k] = static_cast<uint16_t>(k & 0xFFFF);
+
+        EXPECT_EQ(xpe_dicom_write(path.c_str(), &img, &m_meta), XPE_OK) << "cycle " << i;
+
+        xpe_free_image(&img);
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " dicom alloc/write/free cycles";
+    }
+}

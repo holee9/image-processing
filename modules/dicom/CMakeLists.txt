@@ -146,6 +146,12 @@ if(_XPE_BUILD_TESTS)
         xpe_dicom
         GTest::gtest_main
     )
+    # Windows: psapi.lib is required for GetProcessMemoryInfo
+    # (heap-growth endurance measurement, #105 G3)
+    if(WIN32)
+        target_link_libraries(test_dicom_writer PRIVATE psapi)
+    endif()
+
     target_compile_features(test_dicom_writer PRIVATE cxx_std_17)
     if(MSVC)
         target_compile_options(test_dicom_writer PRIVATE /W4)

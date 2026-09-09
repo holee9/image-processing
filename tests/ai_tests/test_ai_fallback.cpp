@@ -506,3 +506,75 @@ TEST_F(AiFallbackTest, DataSizeGuard_DlDenoise_ZeroAccepted) {
     XpeImageMetadata meta{};
     EXPECT_NE(xpe_dl_denoise(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
 }
+
+// ---------------------------------------------------------------------------
+// #105 G3: working-set measurement, mirroring enhance_basic
+// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
+// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// (REQ-P0-008).
+// ---------------------------------------------------------------------------
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
+// WARMUP exists because the first cycles fault in fresh heap pages and grow the
+// CRT allocator arena; counting that one-time cost as "leak" would make the
+// threshold a measure of startup, not of retention. The baseline is snapshotted
+// after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
+/* #105 G3: heap growth over 1000 init -> process -> shutdown cycles.
+ *
+ * ai is a stub build: the inference entry points return
+ * XPE_ERR_PROCESSING_FAILED without doing work, so this loop does NOT measure
+ * inference retention -- the ONNX path is unbuilt and unmeasured. What it does
+ * cover is the module lifecycle: xpe_ai_init / xpe_ai_shutdown, the config
+ * parse, and the per-call validation path, which is where a handle or arena
+ * leak would show up. */
+TEST(AiEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    std::vector<uint16_t> storage;
+
+    auto one_cycle = [&](int i) {
+        ASSERT_EQ(xpe_ai_init("dummy_model_dir", nullptr), XPE_OK) << "cycle " << i;
+
+        XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+        char label[64] = {};
+        float conf = 0.0f;
+        // Stub: PROCESSING_FAILED is the expected return, not a failure.
+        EXPECT_EQ(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
+                  XPE_ERR_PROCESSING_FAILED) << "cycle " << i;
+
+        XpeImageMetadata meta{};
+        EXPECT_EQ(xpe_dl_denoise(&img, &meta, nullptr),
+                  XPE_ERR_PROCESSING_FAILED) << "cycle " << i;
+
+        xpe_ai_shutdown();
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " ai init/process/shutdown cycles";
+    }
+}

@@ -275,6 +275,12 @@ if(_XPE_AI_BUILD_TESTS)
                     GTest::gtest_main
         )
 
+        # Windows: psapi.lib is required for GetProcessMemoryInfo
+        # (heap-growth endurance measurement, #105 G3)
+        if(WIN32)
+            target_link_libraries(xpe_ai_tests PRIVATE psapi)
+        endif()
+
         target_compile_features(xpe_ai_tests PRIVATE cxx_std_17)
 
         if(MSVC)
