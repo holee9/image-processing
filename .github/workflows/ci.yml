@@ -156,8 +156,64 @@ jobs:
           retention-days: 14
           path: build/ci-preprocess/bin/
 
+  # Post-processing lane build (ci-post preset: common + gsvg/enhance_basic/
+  # enhance_advanced/display; dicom/ai off). Until 2026-09-10 no push-triggered
+  # job built these DLLs at all, so Lane B code had no CI gate and
+  # xpe_enhance_basic.dll was never staged for the C# suite (GUI-C-10, #123).
+  post-build:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Configure CMake
+        shell: pwsh
+        run: cmake --preset ci-post
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-post --parallel
+
+      - name: Run tests
+        shell: pwsh
+        run: ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure
+
+      - name: Upload post test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-post-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/ci-post/Testing/
+
+      - name: Upload post binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-post-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          path: build/ci-post/bin/
+
   dotnet-tests:
-    needs: [detect-lane, common-build, preprocess-tests]
+    needs: [detect-lane, common-build, preprocess-tests, post-build]
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
     runs-on: windows-latest
     timeout-minutes: 30
@@ -190,11 +246,19 @@ jobs:
           name: xpe-ci-preprocess-binaries
           path: build/ci-common/bin/
 
+      # enhance_basic is exercised by DataSizeContractTests (GUI-C-10, #123);
+      # without this download those cases skip silently.
+      - name: Download post binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-post-binaries
+          path: build/ci-common/bin/
+
       - name: Verify native binaries present
         shell: pwsh
         run: |
           $missing = @()
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll')) {
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll')) {
             if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }
           }
           if ($missing.Count -gt 0) {
