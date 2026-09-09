@@ -86,7 +86,20 @@ TEST_F(EnduranceTest, ThousandCycles_MemoryGrowthUnderOneMB) {
     GTEST_SKIP() << "RSS measurement only supported on Windows in this build";
 #endif
     constexpr int CYCLES = 1000;
+    constexpr int WARMUP = 100;
     constexpr SIZE_T ONE_MB = 1024 * 1024;
+
+    // #105: the first cycles fault in pages and grow the CRT allocator arena.
+    // Snapshotting the baseline before that one-time cost makes the threshold a
+    // measure of startup rather than of retention, which is what produced the
+    // load-dependent CI failures (1,077,248 and 1,048,576 bytes -- both whole
+    // page counts). Warm up first, then take the baseline, so only steady-state
+    // growth is scored. Same remedy as enhance_basic ENDURANCE_WARMUP (92bcf17).
+    for (int i = 0; i < WARMUP; ++i) {
+        xpe_calib_load_offset(OFF_PATH);
+        xpe_calib_load_gain(GAIN_PATH);
+        xpe_calib_load_defect_map(DEF_PATH);
+    }
 
     SIZE_T before = get_working_set_bytes();
 
