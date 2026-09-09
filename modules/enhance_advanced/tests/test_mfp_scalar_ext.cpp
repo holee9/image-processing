@@ -108,7 +108,7 @@ void FreeImageBuffer(XpeImageBuffer& buf) {
 // Test Fixture
 // ============================================================================
 
-class MfpScalarTest : public ::testing::Test {
+class MfpScalarExtTest : public ::testing::Test {
 protected:
     void SetUp() override {
         XpeErrorCode err = xpe_enhance_advanced_init(nullptr);
@@ -124,18 +124,18 @@ protected:
 // REQ-ADV-022: NULL Pointer Input Guard
 // ============================================================================
 
-TEST_F(MfpScalarTest, NullImageReturnsInvalidInput) {
+TEST_F(MfpScalarExtTest, NullImageReturnsInvalidInput) {
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(nullptr, &meta, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(MfpScalarTest, NullMetaReturnsInvalidInput) {
+TEST_F(MfpScalarExtTest, NullMetaReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(64, 64, 0.5f);
     EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, NullImageAndMetaReturnsInvalidInput) {
+TEST_F(MfpScalarExtTest, NullImageAndMetaReturnsInvalidInput) {
     EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
@@ -143,7 +143,7 @@ TEST_F(MfpScalarTest, NullImageAndMetaReturnsInvalidInput) {
 // REQ-ADV-070: Dimension Validation
 // ============================================================================
 
-TEST_F(MfpScalarTest, ZeroWidthReturnsInvalidInput) {
+TEST_F(MfpScalarExtTest, ZeroWidthReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 0;
     img.height = 64;
@@ -152,7 +152,7 @@ TEST_F(MfpScalarTest, ZeroWidthReturnsInvalidInput) {
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(MfpScalarTest, ZeroHeightReturnsInvalidInput) {
+TEST_F(MfpScalarExtTest, ZeroHeightReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 64;
     img.height = 0;
@@ -165,7 +165,7 @@ TEST_F(MfpScalarTest, ZeroHeightReturnsInvalidInput) {
 // REQ-ADV-071: Format Validation
 // ============================================================================
 
-TEST_F(MfpScalarTest, Uint16FormatReturnsUnsupportedFormat) {
+TEST_F(MfpScalarExtTest, Uint16FormatReturnsUnsupportedFormat) {
     XpeImageBuffer img{};
     img.width = 64;
     img.height = 64;
@@ -181,7 +181,7 @@ TEST_F(MfpScalarTest, Uint16FormatReturnsUnsupportedFormat) {
 // REQ-ADV-050: Identity Reconstruction Fidelity
 // ============================================================================
 
-TEST_F(MfpScalarTest, IdentityReconstructionConstantImage) {
+TEST_F(MfpScalarExtTest, IdentityReconstructionConstantImage) {
     const uint32_t W = 128, H = 128;
     XpeImageBuffer img = MakeConstantImage(W, H, 1000.0f);
     float* original = new float[W * H];
@@ -209,7 +209,7 @@ TEST_F(MfpScalarTest, IdentityReconstructionConstantImage) {
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, IdentityReconstructionGradientImage) {
+TEST_F(MfpScalarExtTest, IdentityReconstructionGradientImage) {
     const uint32_t W = 64, H = 64;
     XpeImageBuffer img = MakeGradientImage(W, H);
     float* original = new float[W * H];
@@ -240,7 +240,7 @@ TEST_F(MfpScalarTest, IdentityReconstructionGradientImage) {
 // REQ-ADV-010: Frequency Band Enhancement (Non-Identity)
 // ============================================================================
 
-TEST_F(MfpScalarTest, NonIdentityConfigModifiesOutput) {
+TEST_F(MfpScalarExtTest, NonIdentityConfigModifiesOutput) {
     const uint32_t W = 64, H = 64;
     XpeImageBuffer img = MakeGradientImage(W, H);
     float* original = new float[W * H];
@@ -270,7 +270,7 @@ TEST_F(MfpScalarTest, NonIdentityConfigModifiesOutput) {
 // Body-Part Adaptive Gain
 // ============================================================================
 
-TEST_F(MfpScalarTest, MultipleBodyPartsSucceed) {
+TEST_F(MfpScalarExtTest, MultipleBodyPartsSucceed) {
     const uint32_t W = 32, H = 32;
     const char* bodyParts[] = {"CHEST", "ABDOMEN", "EXTREMITY", "SKULL", "SPINE"};
 
@@ -287,35 +287,35 @@ TEST_F(MfpScalarTest, MultipleBodyPartsSucceed) {
 // Config Parsing
 // ============================================================================
 
-TEST_F(MfpScalarTest, NullConfigUsesDefaults) {
+TEST_F(MfpScalarExtTest, NullConfigUsesDefaults) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, EmptyConfigStringUsesDefaults) {
+TEST_F(MfpScalarExtTest, EmptyConfigStringUsesDefaults) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, ""), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, MalformedJsonConfigReturnsConfigInvalid) {
+TEST_F(MfpScalarExtTest, MalformedJsonConfigReturnsConfigInvalid) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{invalid json"), XPE_ERR_CONFIG_INVALID);
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, CustomLevelsConfigSucceeds) {
+TEST_F(MfpScalarExtTest, CustomLevelsConfigSucceeds) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"mfp\":{\"num_levels\":3}}"), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarTest, SmallImageSucceeds) {
+TEST_F(MfpScalarExtTest, SmallImageSucceeds) {
     XpeImageBuffer img = MakeConstantImage(4, 4, 100.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"mfp\":{\"num_levels\":2}}"), XPE_OK);
@@ -326,7 +326,7 @@ TEST_F(MfpScalarTest, SmallImageSucceeds) {
 // REQ-ADV-032: NaN/Inf Output Guard
 // ============================================================================
 
-TEST_F(MfpScalarTest, NoNaNOrInfInOutput) {
+TEST_F(MfpScalarExtTest, NoNaNOrInfInOutput) {
     const uint32_t W = 64, H = 64;
     XpeImageBuffer img = MakeCheckerboardImage(W, H, 8);
     XpeImageMetadata meta = MakeMeta("CHEST");
@@ -350,7 +350,7 @@ TEST_F(MfpScalarTest, NoNaNOrInfInOutput) {
 // Reproducibility Test
 // ============================================================================
 
-TEST_F(MfpScalarTest, IdenticalInputProducesIdenticalOutput) {
+TEST_F(MfpScalarExtTest, IdenticalInputProducesIdenticalOutput) {
     const uint32_t W = 32, H = 32;
     XpeImageBuffer img1 = MakeGradientImage(W, H);
     XpeImageBuffer img2 = MakeGradientImage(W, H);
@@ -378,7 +378,7 @@ TEST_F(MfpScalarTest, IdenticalInputProducesIdenticalOutput) {
 // Sequential Processing Stability
 // ============================================================================
 
-TEST_F(MfpScalarTest, MultipleSequentialCallsStable) {
+TEST_F(MfpScalarExtTest, MultipleSequentialCallsStable) {
     const uint32_t W = 32, H = 32;
     for (int i = 0; i < 10; ++i) {
         XpeImageBuffer img = MakeConstantImage(W, H, 100.0f + i * 50.0f);

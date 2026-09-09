@@ -77,7 +77,7 @@ void FreeImageBuffer(XpeImageBuffer& buf) {
 // Test Fixture
 // ============================================================================
 
-class EdgeEnhancementTest : public ::testing::Test {
+class EdgeEnhancementExtTest : public ::testing::Test {
 protected:
     void SetUp() override {
         XpeErrorCode err = xpe_enhance_advanced_init(nullptr);
@@ -93,7 +93,7 @@ protected:
 // REQ-ADV-022: NULL Pointer Input Guard
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, NullImageReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, NullImageReturnsInvalidInput) {
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
@@ -101,7 +101,7 @@ TEST_F(EdgeEnhancementTest, NullImageReturnsInvalidInput) {
 // REQ-ADV-021: Order Range Validation
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, OrderZeroSucceeds) {
+TEST_F(EdgeEnhancementExtTest, OrderZeroSucceeds) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     float* original = new float[32 * 32];
     std::memcpy(original, img.data, 32 * 32 * sizeof(float));
@@ -120,50 +120,50 @@ TEST_F(EdgeEnhancementTest, OrderZeroSucceeds) {
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderOneSucceeds) {
+TEST_F(EdgeEnhancementExtTest, OrderOneSucceeds) {
     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderTwoSucceeds) {
+TEST_F(EdgeEnhancementExtTest, OrderTwoSucceeds) {
     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
     EXPECT_EQ(xpe_fractional_process(&img, 2.0f, nullptr), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderHalfSucceeds) {
+TEST_F(EdgeEnhancementExtTest, OrderHalfSucceeds) {
     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
     EXPECT_EQ(xpe_fractional_process(&img, 0.5f, nullptr), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderNegativeReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, OrderNegativeReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     EXPECT_EQ(xpe_fractional_process(&img, -0.1f, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderAboveTwoReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, OrderAboveTwoReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     EXPECT_EQ(xpe_fractional_process(&img, 2.1f, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderInfinityReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, OrderInfinityReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     EXPECT_EQ(xpe_fractional_process(&img, std::numeric_limits<float>::infinity(), nullptr),
               XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderLargeNegativeReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, OrderLargeNegativeReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     EXPECT_EQ(xpe_fractional_process(&img, -100.0f, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, OrderLargePositiveReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, OrderLargePositiveReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     EXPECT_EQ(xpe_fractional_process(&img, 100.0f, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
@@ -173,7 +173,7 @@ TEST_F(EdgeEnhancementTest, OrderLargePositiveReturnsInvalidInput) {
 // REQ-ADV-070: Dimension Validation
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, ZeroDimensionReturnsInvalidInput) {
+TEST_F(EdgeEnhancementExtTest, ZeroDimensionReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 0;
     img.height = 64;
@@ -185,7 +185,7 @@ TEST_F(EdgeEnhancementTest, ZeroDimensionReturnsInvalidInput) {
 // REQ-ADV-071: Format Validation
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, Uint16FormatReturnsUnsupportedFormat) {
+TEST_F(EdgeEnhancementExtTest, Uint16FormatReturnsUnsupportedFormat) {
     XpeImageBuffer img{};
     img.width = 32;
     img.height = 32;
@@ -200,7 +200,7 @@ TEST_F(EdgeEnhancementTest, Uint16FormatReturnsUnsupportedFormat) {
 // REQ-ADV-051: SAF-100 Overshoot Limiting
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, OvershootLimitingEnforced) {
+TEST_F(EdgeEnhancementExtTest, OvershootLimitingEnforced) {
     const uint32_t W = 64, H = 64;
     XpeImageBuffer img = MakeStepEdgeImage(W, H);
     float* original = new float[W * H];
@@ -240,7 +240,7 @@ TEST_F(EdgeEnhancementTest, OvershootLimitingEnforced) {
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, UniformImagePreserved) {
+TEST_F(EdgeEnhancementExtTest, UniformImagePreserved) {
     const uint32_t W = 32, H = 32;
     XpeImageBuffer img = MakeConstantImage(W, H, 500.0f);
     float* original = new float[W * H];
@@ -264,7 +264,7 @@ TEST_F(EdgeEnhancementTest, UniformImagePreserved) {
 // SAF-100: Config Disabling Attempts Must Fail
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, DisableOvershootViaConfigRejected) {
+TEST_F(EdgeEnhancementExtTest, DisableOvershootViaConfigRejected) {
     const uint32_t W = 64, H = 64;
     const char* forbiddenConfigs[] = {
         "{\"overshoot_limiting\": false}",
@@ -286,7 +286,7 @@ TEST_F(EdgeEnhancementTest, DisableOvershootViaConfigRejected) {
 // REQ-ADV-032: NaN/Inf Output Guard
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, NoNaNOrInfInOutput) {
+TEST_F(EdgeEnhancementExtTest, NoNaNOrInfInOutput) {
     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
     ASSERT_EQ(xpe_fractional_process(&img, 1.5f, nullptr), XPE_OK);
 
@@ -298,7 +298,7 @@ TEST_F(EdgeEnhancementTest, NoNaNOrInfInOutput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, NaNInputHandledGracefully) {
+TEST_F(EdgeEnhancementExtTest, NaNInputHandledGracefully) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 100.0f);
     float* data = static_cast<float*>(img.data);
     data[0] = std::nanf("");
@@ -317,7 +317,7 @@ TEST_F(EdgeEnhancementTest, NaNInputHandledGracefully) {
 // Repeated Application
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, MultipleIterationsSucceed) {
+TEST_F(EdgeEnhancementExtTest, MultipleIterationsSucceed) {
     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, "{\"iterations\":3}"), XPE_OK);
     FreeImageBuffer(img);
@@ -327,13 +327,13 @@ TEST_F(EdgeEnhancementTest, MultipleIterationsSucceed) {
 // Config Parsing
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, NullConfigUsesDefaults) {
+TEST_F(EdgeEnhancementExtTest, NullConfigUsesDefaults) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_OK);
     FreeImageBuffer(img);
 }
 
-TEST_F(EdgeEnhancementTest, MalformedJsonReturnsConfigInvalid) {
+TEST_F(EdgeEnhancementExtTest, MalformedJsonReturnsConfigInvalid) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, "{broken"), XPE_ERR_CONFIG_INVALID);
     FreeImageBuffer(img);
@@ -343,7 +343,7 @@ TEST_F(EdgeEnhancementTest, MalformedJsonReturnsConfigInvalid) {
 // Reproducibility Test
 // ============================================================================
 
-TEST_F(EdgeEnhancementTest, IdenticalInputProducesIdenticalOutput) {
+TEST_F(EdgeEnhancementExtTest, IdenticalInputProducesIdenticalOutput) {
     const uint32_t W = 32, H = 32;
     XpeImageBuffer img1 = MakeStepEdgeImage(W, H);
     XpeImageBuffer img2 = MakeStepEdgeImage(W, H);

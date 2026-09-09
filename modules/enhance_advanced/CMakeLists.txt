@@ -110,6 +110,18 @@ if(BUILD_TESTS)
         tests/test_edge_enhancement.cpp
         tests/test_exposure_index.cpp
         tests/test_integration.cpp
+        # Absorbed from tests/enhance_advanced_tests/ (#113 / QA-B-10). These were an
+        # independent suite over the same module — zero test-name overlap with the files
+        # above — that no build ever compiled. Suffixed _ext to keep both sets; four
+        # fixtures were renamed *ExtTest because gtest requires one fixture class per
+        # suite name and the originals collided.
+        tests/test_api_header_ext.cpp
+        tests/test_lifecycle_ext.cpp
+        tests/test_mfp_scalar_ext.cpp
+        tests/test_collimation_detect_ext.cpp
+        tests/test_edge_enhancement_ext.cpp
+        tests/test_exposure_index_ext.cpp
+        tests/test_integration_ext.cpp
     )
 
     # Link against Google Test and the module
@@ -138,7 +150,14 @@ if(BUILD_TESTS)
 
     # Discover tests automatically
     include(GoogleTest)
-    gtest_discover_tests(test_${MODULE_NAME})
+    # LABELS/TIMEOUT carried over from the absorbed registration. Semicolons are
+    # escaped: an unescaped "a;b;c" expands as a CMake list and only the first
+    # element binds to LABELS (observed in QA-B-09 on the ai target).
+    gtest_discover_tests(test_${MODULE_NAME}
+        PROPERTIES
+            LABELS "unit\;enhance_advanced\;SPEC-XPE-P2-ADV"
+            TIMEOUT 300
+    )
 
     message(STATUS "Enhance Advanced tests configured for ${MODULE_NAME}")
 endif()

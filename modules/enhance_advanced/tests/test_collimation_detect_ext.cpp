@@ -79,7 +79,7 @@ void FreeImageBuffer(XpeImageBuffer& buf) {
 // Test Fixture
 // ============================================================================
 
-class CollimationDetectTest : public ::testing::Test {
+class CollimationDetectExtTest : public ::testing::Test {
 protected:
     void SetUp() override {
         XpeErrorCode err = xpe_enhance_advanced_init(nullptr);
@@ -95,13 +95,13 @@ protected:
 // REQ-ADV-022: NULL Pointer Input Guard
 // ============================================================================
 
-TEST_F(CollimationDetectTest, NullImageReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, NullImageReturnsInvalidInput) {
     int32_t x0, y0, x1, y1;
     EXPECT_EQ(xpe_detect_collimation(nullptr, &x0, &y0, &x1, &y1, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(CollimationDetectTest, NullX0ReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, NullX0ReturnsInvalidInput) {
     XpeImageBuffer img = MakeUniformImage(64, 64, 500.0f);
     int32_t y0, x1, y1;
     EXPECT_EQ(xpe_detect_collimation(&img, nullptr, &y0, &x1, &y1, nullptr),
@@ -109,7 +109,7 @@ TEST_F(CollimationDetectTest, NullX0ReturnsInvalidInput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(CollimationDetectTest, NullY1ReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, NullY1ReturnsInvalidInput) {
     XpeImageBuffer img = MakeUniformImage(64, 64, 500.0f);
     int32_t x0, y0, x1;
     EXPECT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, nullptr, nullptr),
@@ -117,7 +117,7 @@ TEST_F(CollimationDetectTest, NullY1ReturnsInvalidInput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(CollimationDetectTest, AllOutputsNullReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, AllOutputsNullReturnsInvalidInput) {
     XpeImageBuffer img = MakeUniformImage(64, 64, 500.0f);
     EXPECT_EQ(xpe_detect_collimation(&img, nullptr, nullptr, nullptr, nullptr, nullptr),
               XPE_ERR_INVALID_INPUT);
@@ -128,7 +128,7 @@ TEST_F(CollimationDetectTest, AllOutputsNullReturnsInvalidInput) {
 // REQ-ADV-070: Dimension Validation
 // ============================================================================
 
-TEST_F(CollimationDetectTest, ZeroWidthReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, ZeroWidthReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 0;
     img.height = 64;
@@ -138,7 +138,7 @@ TEST_F(CollimationDetectTest, ZeroWidthReturnsInvalidInput) {
               XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(CollimationDetectTest, ZeroHeightReturnsInvalidInput) {
+TEST_F(CollimationDetectExtTest, ZeroHeightReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 64;
     img.height = 0;
@@ -152,7 +152,7 @@ TEST_F(CollimationDetectTest, ZeroHeightReturnsInvalidInput) {
 // REQ-ADV-071: Format Validation
 // ============================================================================
 
-TEST_F(CollimationDetectTest, Uint16FormatReturnsUnsupportedFormat) {
+TEST_F(CollimationDetectExtTest, Uint16FormatReturnsUnsupportedFormat) {
     XpeImageBuffer img{};
     img.width = 64;
     img.height = 64;
@@ -169,7 +169,7 @@ TEST_F(CollimationDetectTest, Uint16FormatReturnsUnsupportedFormat) {
 // REQ-ADV-052: Collimation Detection Accuracy (+-3 pixels)
 // ============================================================================
 
-TEST_F(CollimationDetectTest, SharpRectCollimationDetected) {
+TEST_F(CollimationDetectExtTest, SharpRectCollimationDetected) {
     const uint32_t W = 256, H = 256;
     const uint32_t rx0 = 30, ry0 = 30, rx1 = 225, ry1 = 225;
 
@@ -187,7 +187,7 @@ TEST_F(CollimationDetectTest, SharpRectCollimationDetected) {
     FreeImageBuffer(img);
 }
 
-TEST_F(CollimationDetectTest, OffCenterCollimationDetected) {
+TEST_F(CollimationDetectExtTest, OffCenterCollimationDetected) {
     const uint32_t W = 256, H = 256;
     XpeImageBuffer img = MakeCollimatedImage(W, H, 10, 50, 200, 240, 10.0f, 800.0f);
 
@@ -207,7 +207,7 @@ TEST_F(CollimationDetectTest, OffCenterCollimationDetected) {
 // REQ-ADV-041: Confidence-Based ROI Fallback
 // ============================================================================
 
-TEST_F(CollimationDetectTest, UniformImageReturnsFullExtent) {
+TEST_F(CollimationDetectExtTest, UniformImageReturnsFullExtent) {
     const uint32_t W = 128, H = 128;
     XpeImageBuffer img = MakeUniformImage(W, H, 500.0f);
 
@@ -228,7 +228,7 @@ TEST_F(CollimationDetectTest, UniformImageReturnsFullExtent) {
 // Output Coordinate Bounds
 // ============================================================================
 
-TEST_F(CollimationDetectTest, OutputCoordinatesWithinBounds) {
+TEST_F(CollimationDetectExtTest, OutputCoordinatesWithinBounds) {
     const uint32_t W = 128, H = 128;
     XpeImageBuffer img = MakeCollimatedImage(W, H, 20, 20, 107, 107, 0.0f, 500.0f);
 
@@ -250,7 +250,7 @@ TEST_F(CollimationDetectTest, OutputCoordinatesWithinBounds) {
 // Non-Destructive Verification
 // ============================================================================
 
-TEST_F(CollimationDetectTest, DoesNotModifyInputImage) {
+TEST_F(CollimationDetectExtTest, DoesNotModifyInputImage) {
     const uint32_t W = 64, H = 64;
     XpeImageBuffer img = MakeCollimatedImage(W, H, 10, 10, 53, 53, 0.0f, 500.0f);
     float* original = new float[W * H];
@@ -272,7 +272,7 @@ TEST_F(CollimationDetectTest, DoesNotModifyInputImage) {
 // Config Parsing
 // ============================================================================
 
-TEST_F(CollimationDetectTest, NullConfigUsesDefaults) {
+TEST_F(CollimationDetectExtTest, NullConfigUsesDefaults) {
     XpeImageBuffer img = MakeCollimatedImage(64, 64, 10, 10, 53, 53, 0.0f, 500.0f);
     int32_t x0, y0, x1, y1;
     EXPECT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK);
@@ -283,7 +283,7 @@ TEST_F(CollimationDetectTest, NullConfigUsesDefaults) {
 // Reproducibility Test
 // ============================================================================
 
-TEST_F(CollimationDetectTest, IdenticalInputProducesIdenticalOutput) {
+TEST_F(CollimationDetectExtTest, IdenticalInputProducesIdenticalOutput) {
     const uint32_t W = 128, H = 128;
     XpeImageBuffer img1 = MakeCollimatedImage(W, H, 20, 20, 107, 107, 0.0f, 500.0f);
     XpeImageBuffer img2 = MakeCollimatedImage(W, H, 20, 20, 107, 107, 0.0f, 500.0f);

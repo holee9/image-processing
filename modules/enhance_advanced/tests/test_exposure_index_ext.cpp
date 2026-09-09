@@ -70,7 +70,7 @@ void FreeImageBuffer(XpeImageBuffer& buf) {
 // Test Fixture
 // ============================================================================
 
-class ExposureIndexTest : public ::testing::Test {
+class ExposureIndexExtTest : public ::testing::Test {
 protected:
     void SetUp() override {
         XpeErrorCode err = xpe_enhance_advanced_init(nullptr);
@@ -86,20 +86,20 @@ protected:
 // REQ-ADV-022: NULL Pointer Input Guard
 // ============================================================================
 
-TEST_F(ExposureIndexTest, NullImageReturnsInvalidInput) {
+TEST_F(ExposureIndexExtTest, NullImageReturnsInvalidInput) {
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f, di = 0.0f;
     EXPECT_EQ(xpe_calc_exposure_index(nullptr, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(ExposureIndexTest, NullMetaReturnsInvalidInput) {
+TEST_F(ExposureIndexExtTest, NullMetaReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     float ei = 0.0f, di = 0.0f;
     EXPECT_EQ(xpe_calc_exposure_index(&img, nullptr, &ei, &di), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
-TEST_F(ExposureIndexTest, NullEiOutReturnsInvalidInput) {
+TEST_F(ExposureIndexExtTest, NullEiOutReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     float di = 0.0f;
@@ -107,7 +107,7 @@ TEST_F(ExposureIndexTest, NullEiOutReturnsInvalidInput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(ExposureIndexTest, NullDiOutReturnsInvalidInput) {
+TEST_F(ExposureIndexExtTest, NullDiOutReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f;
@@ -119,7 +119,7 @@ TEST_F(ExposureIndexTest, NullDiOutReturnsInvalidInput) {
 // REQ-ADV-013: Valid EI/DI Calculation
 // ============================================================================
 
-TEST_F(ExposureIndexTest, ValidInputReturnsPositiveEI) {
+TEST_F(ExposureIndexExtTest, ValidInputReturnsPositiveEI) {
     XpeImageBuffer img = MakeConstantImage(64, 64, 1000.0f);
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
@@ -141,7 +141,7 @@ TEST_F(ExposureIndexTest, ValidInputReturnsPositiveEI) {
 // Body-Part EI Target Lookup
 // ============================================================================
 
-TEST_F(ExposureIndexTest, DifferentBodyPartsProduceFiniteResults) {
+TEST_F(ExposureIndexExtTest, DifferentBodyPartsProduceFiniteResults) {
     const char* bodyParts[] = {"CHEST", "ABDOMEN", "EXTREMITY", "SKULL", "SPINE", "PELVIS"};
 
     for (const char* bp : bodyParts) {
@@ -158,7 +158,7 @@ TEST_F(ExposureIndexTest, DifferentBodyPartsProduceFiniteResults) {
     }
 }
 
-TEST_F(ExposureIndexTest, ChestLatVsChestPA) {
+TEST_F(ExposureIndexExtTest, ChestLatVsChestPA) {
     // Chest LAT should have different EI target than Chest PA
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
 
@@ -186,7 +186,7 @@ TEST_F(ExposureIndexTest, ChestLatVsChestPA) {
 // REQ-ADV-071: Format Validation
 // ============================================================================
 
-TEST_F(ExposureIndexTest, Uint16FormatReturnsUnsupportedFormat) {
+TEST_F(ExposureIndexExtTest, Uint16FormatReturnsUnsupportedFormat) {
     XpeImageBuffer img{};
     img.width = 32;
     img.height = 32;
@@ -205,7 +205,7 @@ TEST_F(ExposureIndexTest, Uint16FormatReturnsUnsupportedFormat) {
 // REQ-ADV-070: Dimension Validation
 // ============================================================================
 
-TEST_F(ExposureIndexTest, ZeroDimensionReturnsInvalidInput) {
+TEST_F(ExposureIndexExtTest, ZeroDimensionReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width = 0;
     img.height = 0;
@@ -221,7 +221,7 @@ TEST_F(ExposureIndexTest, ZeroDimensionReturnsInvalidInput) {
 // REQ-ADV-032: NaN/Inf Output Guard
 // ============================================================================
 
-TEST_F(ExposureIndexTest, ZeroImageProducesFiniteOutput) {
+TEST_F(ExposureIndexExtTest, ZeroImageProducesFiniteOutput) {
     XpeImageBuffer img = MakeConstantImage(64, 64, 0.0f);
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
@@ -234,7 +234,7 @@ TEST_F(ExposureIndexTest, ZeroImageProducesFiniteOutput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(ExposureIndexTest, ZeroKvpMasProducesFiniteOutput) {
+TEST_F(ExposureIndexExtTest, ZeroKvpMasProducesFiniteOutput) {
     XpeImageBuffer img = MakeConstantImage(64, 64, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST", 0.0f, 0.0f);
     float ei = 0.0f, di = 0.0f;
@@ -247,7 +247,7 @@ TEST_F(ExposureIndexTest, ZeroKvpMasProducesFiniteOutput) {
     FreeImageBuffer(img);
 }
 
-TEST_F(ExposureIndexTest, ImageWithNaNPixelsProducesFiniteOutput) {
+TEST_F(ExposureIndexExtTest, ImageWithNaNPixelsProducesFiniteOutput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 1.0f);
     float* data = static_cast<float*>(img.data);
     data[32 * 32 / 2] = std::numeric_limits<float>::quiet_NaN();
@@ -267,7 +267,7 @@ TEST_F(ExposureIndexTest, ImageWithNaNPixelsProducesFiniteOutput) {
 // EI/DI Scaling Verification
 // ============================================================================
 
-TEST_F(ExposureIndexTest, HigherMeanProducesHigherEI) {
+TEST_F(ExposureIndexExtTest, HigherMeanProducesHigherEI) {
     XpeImageBuffer imgLow = MakeConstantImage(32, 32, 100.0f);
     XpeImageBuffer imgHigh = MakeConstantImage(32, 32, 1000.0f);
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
@@ -284,7 +284,7 @@ TEST_F(ExposureIndexTest, HigherMeanProducesHigherEI) {
     FreeImageBuffer(imgHigh);
 }
 
-TEST_F(ExposureIndexTest, HigherKvpProducesHigherEI) {
+TEST_F(ExposureIndexExtTest, HigherKvpProducesHigherEI) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata metaLow = MakeMeta("CHEST", 60.0f, 10.0f);
     XpeImageMetadata metaHigh = MakeMeta("CHEST", 120.0f, 10.0f);
@@ -305,7 +305,7 @@ TEST_F(ExposureIndexTest, HigherKvpProducesHigherEI) {
 // Unknown Body Part Handling
 // ============================================================================
 
-TEST_F(ExposureIndexTest, UnknownBodyPartUsesDefault) {
+TEST_F(ExposureIndexExtTest, UnknownBodyPartUsesDefault) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("UNKNOWN_BODY_PART", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
