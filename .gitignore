@@ -266,10 +266,8 @@ CMakeFiles/
 *.pdb
 vcpkg_installed/
 Testing/
-modules/*/tests/
-!modules/gsvg/tests/
-!modules/gsvg/tests/test_gsvg_coverage.cpp
-!modules/gsvg/tests/test_gsvg_edge_cases.cpp
+# modules/*/tests/ was ignored here; removed 2026-09-09 (#could not add label: 'chore' not found) — it hid new test files
+# (72 tracked files stayed tracked, new ones needed `git add -f`).
 !modules/gsvg/tests/test_gsvg_extended_coverage.cpp
 modules/*/build/
 gui/**/bin/
