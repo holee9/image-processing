@@ -14,33 +14,61 @@ public sealed class NativeLibraryFixture : IDisposable
 {
     private static readonly string DllName = "xpe_common.dll";
 
-    /// <summary>Gets a value indicating whether xpe_common.dll was successfully resolved.</summary>
+    /// <summary>
+    /// Gets a value indicating whether xpe_common.dll was successfully LOADED.
+    /// File existence is not enough: the DLL links against spdlog.dll and fmt.dll, so a
+    /// present-but-unloadable binary must report false — otherwise dependent tests run and
+    /// fail with DllNotFoundException instead of skipping (observed in CI, #98).
+    /// </summary>
     public bool IsAvailable { get; }
 
     /// <summary>Gets the resolved path of xpe_common.dll, or a diagnostic message when unavailable.</summary>
     public string ResolvedPath { get; }
 
-    /// <summary>Gets the skip reason to use in [Fact(Skip=...)] when DLL is absent.</summary>
+    /// <summary>Gets the loader error message when the DLL was located but could not be loaded.</summary>
+    private string LoadError { get; } = string.Empty;
+
+    /// <summary>Gets the skip reason naming which DLL is missing, or why loading it failed.</summary>
     public string SkipReason => IsAvailable
         ? string.Empty
-        : $"xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: {ResolvedPath}";
+        : LoadError.Length > 0
+            ? $"xpe_common.dll found at {ResolvedPath} but failed to load (missing dependency such as spdlog.dll or fmt.dll?): {LoadError}"
+            : $"xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: {ResolvedPath}";
+
+    /// <summary>Process-wide handle of the loaded DLL, reused by <see cref="Resolver"/>.</summary>
+    private readonly IntPtr _handle;
 
     public NativeLibraryFixture()
     {
         NativeLibrary.SetDllImportResolver(typeof(NativeLibraryFixture).Assembly, Resolver);
 
         var (found, path) = TryLocateDll();
-        IsAvailable = found;
         ResolvedPath = path;
 
-        if (found)
+        if (!found)
         {
-            // Verify it is truly x64 by checking the PE header.
-            IsAvailable = VerifyX64Pe(path);
-            if (!IsAvailable)
-            {
-                ResolvedPath = $"Architecture mismatch: {path} is not x64";
-            }
+            IsAvailable = false;
+            return;
+        }
+
+        // Verify it is truly x64 by checking the PE header.
+        if (!VerifyX64Pe(path))
+        {
+            IsAvailable = false;
+            ResolvedPath = $"Architecture mismatch: {path} is not x64";
+            return;
+        }
+
+        // Existence and architecture are necessary but not sufficient — load it.
+        try
+        {
+            _handle = NativeLibrary.Load(path);
+            IsAvailable = true;
+        }
+        catch (Exception ex)
+        {
+            IsAvailable = false;
+            LoadError = ex.Message;
         }
     }
 
@@ -121,19 +149,17 @@ public sealed class NativeLibraryFixture : IDisposable
         }
     }
 
-    private static IntPtr Resolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    private IntPtr Resolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
         if (!string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
             return IntPtr.Zero;
 
-        var (found, path) = TryLocateDll();
-        if (found && NativeLibrary.TryLoad(path, out var handle))
-            return handle;
-
-        return IntPtr.Zero;
+        // Reuse the handle opened in the constructor. Zero when the DLL was never
+        // loaded, which keeps IsAvailable and P/Invoke resolution on one decision.
+        return _handle;
     }
 
-    public void Dispose() { /* DLL lifetime is process-scoped */ }
+    public void Dispose() { /* DLL lifetime is process-scoped; the handle is not freed */ }
 }
 
 /// <summary>xUnit collection definition that shares a single <see cref="NativeLibraryFixture"/>.</summary>
