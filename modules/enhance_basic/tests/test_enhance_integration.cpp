@@ -18,6 +18,22 @@
 #include <thread>
 #include <vector>
 
+// Windows-specific RSS measurement (mirrors preprocess T-010 endurance test)
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
 namespace {
 
 // Helper: create float32 image filled with a value
@@ -208,20 +224,102 @@ TEST(EnhanceIntegration, ThreadSafety_ConcurrentBilateral) {
     free_img(ref);
 }
 
+// Endurance measurement constants (shared by the two heap-growth tests below).
+// WARMUP exists because the first calls of a run fault in fresh heap pages and
+// grow the CRT allocator arena; counting that one-time cost as "leak" would make
+// the threshold a measure of startup, not of retention.  The baseline snapshot is
+// taken after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
 // REQ-ENH-CC-003: No heap leak -- 1000 iterations of log_transform
+// #105 G3: heap growth is now measured, not merely assumed from "did not crash".
 TEST(EnhanceIntegration, NoHeapLeak_1000Iterations) {
     auto img = make_f32(64, 64, 500.0f);
+    float* px = static_cast<float*>(img.data);
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < ENDURANCE_WARMUP; i++) {
+        std::fill(px, px + 64 * 64, 500.0f);
+        ASSERT_EQ(XPE_OK, xpe_log_transform(&img, 1000.0f)) << "warmup " << i;
+    }
+
+    const auto before = get_working_set_bytes();
+
+    for (int i = 0; i < ENDURANCE_CYCLES; i++) {
         // Reset pixel values each iteration to avoid overflow
-        float* px = static_cast<float*>(img.data);
         std::fill(px, px + 64 * 64, 500.0f);
 
         XpeErrorCode rc = xpe_log_transform(&img, 1000.0f);
         ASSERT_EQ(XPE_OK, rc) << "Iteration " << i << " failed";
     }
 
+    const auto after = get_working_set_bytes();
+
+#ifdef _WIN32
+    // log_transform is in-place and allocates nothing, so any growth here is a
+    // regression, not a tolerance.  The 1 MB bound matches preprocess T-010.
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " log_transform cycles";
+    }
+#else
+    (void)before; (void)after;  // RSS measurement is Windows-only in this build
+#endif
+
     // If we got here without crash/corruption, no double-free or heap corruption
+    free_img(img);
+}
+
+// REQ-ENH-CC-003 (#105 G3): heap growth over the *allocating* enhance paths.
+// log_transform above operates in place and never touches the heap, so on its own
+// it cannot detect a retention defect.  noise_reduce / contrast_enhance /
+// edge_enhance each allocate per-call std::vector scratch buffers (ring rows, LUT
+// tiles, output copies); this loop is the probe that can actually fail.
+TEST(EnhanceIntegration, NoHeapLeak_1000Iterations_AllocatingPaths) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    auto img = make_f32(64, 64, 500.0f);
+    float* px = static_cast<float*>(img.data);
+
+    XpeNoiseReduceParams nr_params{};
+    nr_params.mode = XPE_NOISE_BILATERAL;
+    nr_params.sigma_space = 3.0f;
+    nr_params.sigma_range = 50.0f;
+
+    XpeClaheParams clahe_params{};
+    clahe_params.clip_limit = 3.0f;
+    clahe_params.tile_width = 8;
+    clahe_params.tile_height = 8;
+
+    XpeUsmParams usm_params{};
+    usm_params.amount = 0.5f;
+    usm_params.radius = 2.0f;
+    usm_params.threshold = 10.0f;
+
+    auto one_cycle = [&](int i) {
+        std::fill(px, px + 64 * 64, 500.0f);
+        ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &nr_params))     << "cycle " << i;
+        ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &clahe_params)) << "cycle " << i;
+        ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &usm_params))    << "cycle " << i;
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; i++) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+
+    for (int i = 0; i < ENDURANCE_CYCLES; i++) one_cycle(i);
+
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " noise/contrast/edge cycles";
+    }
+
     free_img(img);
 }
 

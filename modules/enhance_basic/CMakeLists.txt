@@ -123,6 +123,12 @@ if(_XPE_BUILD_TESTS)
 
     target_compile_features(xpe_enhance_basic_tests PRIVATE cxx_std_17)
 
+    # Windows: psapi.lib is required for GetProcessMemoryInfo (heap-growth
+    # endurance measurement in test_enhance_integration.cpp, #105 G3)
+    if(WIN32)
+        target_link_libraries(xpe_enhance_basic_tests PRIVATE psapi)
+    endif()
+
     if(MSVC)
         target_compile_options(xpe_enhance_basic_tests PRIVATE /W4 /WX-)
     endif()
