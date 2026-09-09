@@ -86,11 +86,35 @@ XPE_API void xpe_dicom_close(XpeDicomHandle* handle) {
  * SWU-4.2: DicomWriter
  * -------------------------------------------------------------------------*/
 
+
+namespace {
+/**
+ * @brief api-spec "XpeImageBuffer.dataSize on input" size-consistency check (#123).
+ *
+ * `dataSize == 0` is unspecified and accepted; a smaller-than-declared value
+ * means the buffer cannot hold the image and is read past its allocation.
+ * File-local: dicom has no internal header, and xpe_common exports are fixed
+ * at 16 symbols (REQ-P0-008).
+ */
+bool data_size_is_consistent(const XpeImageBuffer* img) {
+    if (img == nullptr || img->dataSize == 0) return true;
+    uint32_t bpp = 0u;
+    if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
+    else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
+    if (bpp == 0u) return true;
+    const uint64_t required = static_cast<uint64_t>(img->width) *
+                              static_cast<uint64_t>(img->height) *
+                              static_cast<uint64_t>(bpp);
+    return static_cast<uint64_t>(img->dataSize) >= required;
+}
+} // namespace
+
 XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
                                       const XpeImageBuffer* img,
                                       const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::write(filePath, img, meta);
     } catch (...) {
@@ -104,6 +128,7 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
                                            const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::writeJ2K(filePath, img, meta);
     } catch (...) {

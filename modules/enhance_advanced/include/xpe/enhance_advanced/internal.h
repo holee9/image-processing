@@ -114,6 +114,46 @@ bool parse_collimation_config(const char* json,
                               int&   outBorderMargin);
 
 } // namespace config
+
+/**
+ * @brief Bytes per pixel for a supported pixel format, or 0 if unknown.
+ */
+inline uint32_t bytes_per_pixel(XpePixelFormat format) {
+    switch (format) {
+        case XPE_PIXEL_UINT16:  return 2u;
+        case XPE_PIXEL_FLOAT32: return 4u;
+        default:                return 0u;
+    }
+}
+
+/**
+ * @brief api-spec "XpeImageBuffer.dataSize on input" size-consistency check.
+ *
+ * `dataSize == 0` means unspecified and is accepted (legacy callers do not
+ * populate the field). A non-zero `dataSize` smaller than
+ * width * height * bytesPerPixel(format) means the buffer cannot hold the
+ * image it declares, and reading it overruns the allocation (#123, observed
+ * as an ASan heap-buffer-overflow READ). A larger value is accepted.
+ *
+ * Header-inline on purpose: one definition for the module without adding an
+ * export to xpe_common (REQ-P0-008 fixes that surface at 16 symbols).
+ *
+ * @return true when the declared size is consistent (or unspecified).
+ */
+inline bool data_size_is_consistent(const XpeImageBuffer* img) {
+    if (img == nullptr || img->dataSize == 0) {
+        return true;
+    }
+    const uint32_t bpp = bytes_per_pixel(img->format);
+    if (bpp == 0u) {
+        return true;   // unknown format is the format check's business, not this one
+    }
+    const uint64_t required = static_cast<uint64_t>(img->width) *
+                              static_cast<uint64_t>(img->height) *
+                              static_cast<uint64_t>(bpp);
+    return static_cast<uint64_t>(img->dataSize) >= required;
+}
+
 } // namespace enhance_advanced
 } // namespace xpe
 
