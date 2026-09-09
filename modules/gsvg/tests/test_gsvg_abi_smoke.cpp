@@ -311,3 +311,97 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
         EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
     }
 }
+
+// ---------------------------------------------------------------------------
+// #105 G3: working-set measurement, mirroring enhance_basic
+// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
+// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// (REQ-P0-008).
+// ---------------------------------------------------------------------------
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
+// WARMUP exists because the first cycles fault in fresh heap pages and grow the
+// CRT allocator arena; counting that one-time cost as "leak" would make the
+// threshold a measure of startup, not of retention. The baseline is snapshotted
+// after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
+// ---------------------------------------------------------------------------
+// #105 G3 (QA-B-23): heap growth over 1000 handle-lifecycle cycles.
+//
+// RepeatedLifecycleDoesNotLeakOrCrash above runs 32 cycles and measures
+// nothing -- it proves the module survives, not that it releases. This case
+// takes the same init/process/shutdown cycle, runs it 1000 times, and scores
+// the working-set delta against the 1 MB bound used by preprocess T-010,
+// enhance_basic and the four modules of QA-B-22.
+//
+// Size: 512x512, not the 3072x3072 of the REQ-GSVG-019 budget case. The gate
+// measures retention per lifecycle, which does not depend on frame size, and
+// 1100 cycles at 3072x3072 would dominate the suite's wall time. Recorded here
+// rather than left implicit.
+//
+// Both processing stages are switched ON deliberately. With a NULL config and a
+// NULL gain map, xpe_gsvg_process reduces to a memcpy (gsvg.cpp:218-228:
+// vignette_correction and grid_suppression both default to false), so the cycle
+// would have covered the handle lifecycle and nothing else. The config below
+// plus a real gain map puts apply_vignette_scalar and suppress_grid_row_mean
+// inside the measured loop.
+// ---------------------------------------------------------------------------
+TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
+{
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    constexpr int    kW = 512;
+    constexpr int    kH = 512;
+    constexpr size_t kN = static_cast<size_t>(kW) * kH;
+
+    const char* kConfig =
+        R"({"vignette_correction": true, "grid_suppression": true})";
+
+    const std::vector<uint16_t> src(kN, 12000);
+    std::vector<uint16_t>       dst(kN, 0);
+    const std::vector<float>    gain(kN, 1.05f);
+
+    auto one_cycle = [&](int i) {
+        void* handle = nullptr;
+        ASSERT_EQ(xpe_gsvg_init(&handle, kConfig), XPE_OK)
+            << "init failed on cycle " << i;
+        ASSERT_NE(handle, nullptr);
+
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kW, kH, gain.data()), XPE_OK)
+            << "process failed on cycle " << i;
+
+        ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK)
+            << "shutdown failed on cycle " << i;
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " gsvg init/process/shutdown cycles";
+    }
+
+    RecordProperty("cycles", ENDURANCE_CYCLES);
+    RecordProperty("requirement", "REQ-GSVG-021");
+}
