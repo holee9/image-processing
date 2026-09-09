@@ -1,10 +1,10 @@
 ﻿# XPE API Specification: Complete Exported C ABI Reference
 
-**Document ID**: XPE-API-SPEC-001  
-**Version**: 1.4.0  
-**Date**: 2026-04-18  
-**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.1.0  
-**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 xpe_common API 함수 15개로 정리.
+**Document ID**: XPE-API-SPEC-001
+**Version**: 1.4.0
+**Date**: 2026-04-22
+**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, GSVG-SRS-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v3.0.0
+**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents.
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -153,7 +153,7 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
-| xpe_common.dll | 15 | 15 API functions |
+| xpe_common.dll | 15 | removed 3 AED functions; AED is detector hardware only |
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
