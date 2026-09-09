@@ -9,6 +9,9 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <string>
 
 #include <vector>
 #include <cstdio>
@@ -19,6 +22,29 @@
 namespace fs = std::filesystem;
 
 namespace {
+
+// QA-A-15 (#120): xpe_calib_save no longer takes a buffer -- it saves the
+// calibration currently loaded in the module. These fixtures need arbitrary
+// maps on disk, so they write XCal v1 files directly, the same way
+// test_offset_correct.cpp does.
+static void writeXCalFixture(const std::string& path, XCalType type,
+                             XCalPixelFormat fmt, uint32_t w, uint32_t h,
+                             const void* payload, uint64_t payloadLen,
+                             uint64_t expiryMs) {
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version          = XCAL_VERSION;
+    hdr.type             = static_cast<uint32_t>(type);
+    hdr.pixel_format     = static_cast<uint32_t>(fmt);
+    hdr.width            = w;
+    hdr.height           = h;
+    hdr.expiry_epoch_ms  = static_cast<int64_t>(expiryMs);
+    hdr.payload_len      = payloadLen;
+
+    ASSERT_EQ(XPE_OK,
+              write_xcal_file(path.c_str(), hdr, nullptr, 0,
+                              static_cast<const uint8_t*>(payload), payloadLen));
+}
 
 class CalibrationCacheTest : public ::testing::Test {
 protected:
@@ -46,45 +72,26 @@ protected:
 
         // Offset map (uint16)
         {
-            std::vector<uint16_t> data(W * H, 100);
-            XpeImageBuffer buf{};
-            buf.data          = data.data();
-            buf.width         = W;
-            buf.height        = H;
-            buf.bitsAllocated = 16;
-            buf.bitsStored    = 16;
-            buf.format        = XPE_PIXEL_UINT16;
-            buf.dataSize      = data.size() * sizeof(uint16_t);
-            ASSERT_EQ(XPE_OK, xpe_calib_save(&buf, offsetFile.string().c_str(), expiry, nullptr));
+            // XCal v1 requires OFFSET payloads to be FLOAT32 (xcal_validator.cpp:78);
+            // the retired xpe_calib_save() converted, a direct write must not assume.
+            std::vector<float> data(W * H, 100.0f);
+            writeXCalFixture(offsetFile.string(), XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, W, H,
+                             data.data(), data.size() * sizeof(float), expiry);
         }
 
         // Gain map (float32)
         {
             std::vector<float> data(W * H, 1.5f);
-            XpeImageBuffer buf{};
-            buf.data          = data.data();
-            buf.width         = W;
-            buf.height        = H;
-            buf.bitsAllocated = 32;
-            buf.bitsStored    = 32;
-            buf.format        = XPE_PIXEL_FLOAT32;
-            buf.dataSize      = data.size() * sizeof(float);
-            ASSERT_EQ(XPE_OK, xpe_calib_save(&buf, gainFile.string().c_str(), expiry, nullptr));
+            writeXCalFixture(gainFile.string(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, W, H,
+                             data.data(), data.size() * sizeof(float), expiry);
         }
 
         // Defect map (uint8)
         {
             std::vector<uint8_t> data(W * H, 0);
-            data[0] = 1; // one defect pixel
-            XpeImageBuffer buf{};
-            buf.data          = data.data();
-            buf.width         = W;
-            buf.height        = H;
-            buf.bitsAllocated = 8;
-            buf.bitsStored    = 8;
-            buf.format        = XPE_PIXEL_UINT8;
-            buf.dataSize      = data.size() * sizeof(uint8_t);
-            ASSERT_EQ(XPE_OK, xpe_calib_save(&buf, defectFile.string().c_str(), expiry, nullptr));
+            data[0] = 1;  // one defect pixel
+            writeXCalFixture(defectFile.string(), XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, W, H,
+                             data.data(), data.size() * sizeof(uint8_t), expiry);
         }
 
         // Clear cache before each test

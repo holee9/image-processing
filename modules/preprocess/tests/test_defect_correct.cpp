@@ -158,7 +158,7 @@ TEST_F(DefectCorrectTest, CorrectionRecallOnSyntheticDefects) {
 TEST_F(DefectCorrectTest, DetectRuntimeNullImgReturnsError) {
     XpeImageBuffer outMap{};
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_defect_detect_runtime(nullptr, &outMap, nullptr));
+              xpe_defect_detect_runtime(nullptr, nullptr, &outMap));
 }
 
 TEST_F(DefectCorrectTest, DetectRuntimeNullOutReturnsError) {
@@ -177,7 +177,7 @@ TEST_F(DefectCorrectTest, DetectRuntimeCleanImageYieldsZeroDefects) {
     outMap.format        = XPE_PIXEL_UINT8;
     outMap.dataSize      = outData.size();
 
-    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &outMap, nullptr));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, nullptr, &outMap));
     // Uniform image should have no detected defects
     for (uint32_t i = 0; i < W * H; ++i)
         EXPECT_EQ(0, outData[i]) << "pixel " << i << " should not be defect";

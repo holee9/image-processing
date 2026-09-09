@@ -123,10 +123,20 @@ if(_XPE_BUILD_TESTS)
 
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
-        # tests/test_gain_correct.cpp    # disabled: uses old 2-arg API; incompatible with new 3-arg g_calib API
+        # QA-A-15 (#120): still unregistered. Not an argument-count mismatch --
+        # the file is written against the SPEC signature xpe_gain_correct(img,
+        # gainMap) with in-place ownership transfer, while the shipped API is
+        # xpe_gain_correct(input, output, metadata) over the global g_calib map.
+        # Migrating it means re-authoring all 10 cases, and which side is
+        # correct is what QA-A-12 (#117) judges. Register after that verdict.
+        # tests/test_gain_correct.cpp
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp
-        # tests/test_defect_correct.cpp  # disabled: uses old 3-arg API; incompatible with new 3-arg g_calib API
+        # QA-A-15 (#120): compiles, but xpe_defect_correct(&img, &defectMap, nullptr)
+        # passes the map where the shipped API expects the output buffer -- the
+        # types match so the compiler is silent and 5 cases fail at runtime.
+        # Same divergence as test_gain_correct; register after QA-A-12 (#117).
+        # tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
         tests/test_calibration_manager.cpp
         tests/test_integration.cpp
@@ -138,6 +148,18 @@ if(_XPE_BUILD_TESTS)
         tests/test_xpe_sha256.cpp
         tests/test_xpe_calib_check_expiry.cpp
         tests/test_xpe_calib_endurance.cpp
+        # QA-A-15 (#120): present on disk but never registered -- pipeline.cpp,
+        # rle_codec.cpp and calibration_cache.cpp measured 0%/6% coverage only
+        # because these suites were never compiled.
+        tests/test_xcal_compression.cpp
+        # test_pipeline_ex.cpp / test_calibration_cache.cpp compile now (their
+        # fixtures were migrated off the retired 4-arg xpe_calib_save) but their
+        # assertions do not hold against the shipped implementation, and the
+        # binary aborts partway. Findings are in .moai/reports/lane-pre/QA-A-15/.
+        # Register once QA-A-12 (#117) rules on the global-g_calib vs map-argument
+        # divergence, which is what these suites actually disagree about.
+        # tests/test_pipeline_ex.cpp
+        # tests/test_calibration_cache.cpp
         tests/test_xpe_calib_generate_offset.cpp
         tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp
