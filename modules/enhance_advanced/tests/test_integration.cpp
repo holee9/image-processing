@@ -767,3 +767,86 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     // - @MX:WARN on safety-critical sections
     // - @MX:TODO removed after implementation complete
 }
+
+// ---------------------------------------------------------------------------
+// #105 G3: working-set measurement, mirroring enhance_basic
+// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
+// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// (REQ-P0-008).
+// ---------------------------------------------------------------------------
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
+// WARMUP exists because the first cycles fault in fresh heap pages and grow the
+// CRT allocator arena; counting that one-time cost as "leak" would make the
+// threshold a measure of startup, not of retention. The baseline is snapshotted
+// after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
+/**
+ * @test T605b_MemoryGrowthUnderOneMB
+ * @brief #105 G3: heap growth over 1000 alloc-process-free cycles (AC-IEC-002).
+ *
+ * T605 above proves the module survives 1000 cycles; it measures nothing, so a
+ * retention defect passes it silently ("no actual memory measurement here").
+ * This case takes the same cycle and scores the working-set delta against the
+ * 1 MB bound used by preprocess T-010 and enhance_basic.
+ */
+TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
+
+    constexpr int IMG_SIZE = 128;
+
+    XpeImageMetadata meta;
+    std::memset(&meta, 0, sizeof(meta));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
+
+    auto one_cycle = [&](int i) {
+        XpeImageBuffer img{};
+        img.width    = IMG_SIZE;
+        img.height   = IMG_SIZE;
+        img.format   = XPE_PIXEL_FLOAT32;
+        img.data     = new float[IMG_SIZE * IMG_SIZE];
+        img.dataSize = static_cast<size_t>(IMG_SIZE) * IMG_SIZE * 4;
+        std::memset(img.data, 0, static_cast<size_t>(IMG_SIZE) * IMG_SIZE * sizeof(float));
+
+        ASSERT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK) << "cycle " << i;
+        ASSERT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_OK) << "cycle " << i;
+        int x0, y0, x1, y1;
+        ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK) << "cycle " << i;
+        float ei, di;
+        ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK) << "cycle " << i;
+
+        delete[] static_cast<float*>(img.data);
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " enhance_advanced alloc-process-free cycles";
+    }
+
+    xpe_enhance_advanced_shutdown();
+}

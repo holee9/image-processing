@@ -408,3 +408,69 @@ TEST(DisplayDataSizeGuardAsanProbe, ModalityLut_TrulyShortBuffer_RejectedBeforeR
     XpeModalityLutParams p = guard_modality_params();
     EXPECT_EQ(xpe_apply_modality_lut(&img, &p), XPE_ERR_INVALID_INPUT);
 }
+
+// ---------------------------------------------------------------------------
+// #105 G3: working-set measurement, mirroring enhance_basic
+// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
+// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// (REQ-P0-008).
+// ---------------------------------------------------------------------------
+#ifdef _WIN32
+#  include <windows.h>
+#  include <psapi.h>
+static SIZE_T get_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t get_working_set_bytes() { return 0; }
+#endif
+
+// WARMUP exists because the first cycles fault in fresh heap pages and grow the
+// CRT allocator arena; counting that one-time cost as "leak" would make the
+// threshold a measure of startup, not of retention. The baseline is snapshotted
+// after warm-up so only steady-state growth is scored.
+constexpr int    ENDURANCE_CYCLES = 1000;
+constexpr int    ENDURANCE_WARMUP = 100;
+constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+
+// #105 G3: heap growth over 1000 alloc-process-free cycles.
+// display had no endurance loop and no heap measurement before this. The cycle
+// exercises all three entry points; presentation_lut is included deliberately
+// because it frees the float32 buffer and allocates a uint16 one, which is the
+// path most likely to retain.
+TEST(DisplayEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
+#ifndef _WIN32
+    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
+#endif
+    XpeModalityLutParams mod = guard_modality_params();
+    XpeVoiLutParams      voi = guard_voi_params();
+    XpePresentationLutParams pres = guard_presentation_params();
+
+    auto one_cycle = [&](int i) {
+        XpeImageBuffer img = make_float32_image(64, 64, 0.5f);
+        ASSERT_EQ(xpe_apply_modality_lut(&img, &mod), XPE_OK) << "cycle " << i;
+        ASSERT_EQ(xpe_apply_voi_lut(&img, &voi), XPE_OK) << "cycle " << i;
+        // Renormalise into [0,1] before the presentation LUT: voi_lut maps into
+        // [minOut,maxOut] and the presentation stage clamps its input.
+        float* px = float_pixels(img);
+        for (size_t k = 0; k < 64u * 64u; ++k) px[k] = px[k] / 4095.0f;
+        ASSERT_EQ(xpe_apply_presentation_lut(&img, &pres), XPE_OK) << "cycle " << i;
+        free_image(img);  // frees the uint16 buffer presentation_lut installed
+    };
+
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+
+    const auto before = get_working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+    const auto after = get_working_set_bytes();
+
+    if (after > before) {
+        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
+            << "Working set grew by " << (after - before) / 1024 << " KB over "
+            << ENDURANCE_CYCLES << " display modality/voi/presentation cycles";
+    }
+}

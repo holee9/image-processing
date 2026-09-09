@@ -147,6 +147,12 @@ if(BUILD_TESTS)
     xpe_target_warnings_as_errors(test_${MODULE_NAME})
 
     # Enable C++17 for tests
+    # Windows: psapi.lib is required for GetProcessMemoryInfo
+    # (heap-growth endurance measurement, #105 G3)
+    if(WIN32)
+        target_link_libraries(test_${MODULE_NAME} PRIVATE psapi)
+    endif()
+
     target_compile_features(test_${MODULE_NAME} PRIVATE cxx_std_17)
 
     # Discover tests automatically
