@@ -138,4 +138,39 @@ TEST_F(OffsetCorrectTest, ZeroOffsetLeavesPixelsUnchanged) {
     EXPECT_EQ(1000u, out[0]);
 }
 
+/* --- #123: XpeImageBuffer.dataSize input contract (api-spec, 2026-09-10) --- */
+
+// A non-zero dataSize smaller than width*height*bytesPerPixel must be refused
+// before the kernel runs. Without the guard the kernel reads W*H pixels out of
+// a half-sized allocation -- an ASan heap-buffer-overflow READ (QA-B-18).
+TEST_F(OffsetCorrectTest, UndersizedInputBufferIsRejected) {
+    std::vector<uint16_t> shortPixels(W * H / 2, 1000);
+
+    XpeImageBuffer shortInput = input;
+    shortInput.data     = shortPixels.data();
+    shortInput.dataSize = shortPixels.size() * sizeof(uint16_t);
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_offset_correct(&shortInput, &output, &metadata));
+}
+
+// dataSize == 0 stays accepted: legacy callers do not populate the field.
+TEST_F(OffsetCorrectTest, InputDataSizeZeroIsUnspecifiedAndAccepted) {
+    XpeImageBuffer legacyInput = input;
+    legacyInput.dataSize = 0;
+
+    EXPECT_EQ(XPE_OK, xpe_offset_correct(&legacyInput, &output, &metadata));
+}
+
+// A larger dataSize is accepted -- the buffer merely has slack.
+TEST_F(OffsetCorrectTest, InputDataSizeLargerThanDimensionsIsAccepted) {
+    std::vector<uint16_t> roomyPixels(W * H * 2, 1000);
+
+    XpeImageBuffer roomyInput = input;
+    roomyInput.data     = roomyPixels.data();
+    roomyInput.dataSize = roomyPixels.size() * sizeof(uint16_t);
+
+    EXPECT_EQ(XPE_OK, xpe_offset_correct(&roomyInput, &output, &metadata));
+}
+
 } // namespace

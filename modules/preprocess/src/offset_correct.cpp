@@ -297,6 +297,13 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
         output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
     const size_t n = static_cast<size_t>(input->width) * input->height;
+
+    // #123 dataSize input contract (docs/project/api-spec.md, 2026-09-10):
+    // 0 means *unspecified* -- trust the dimensions. A non-zero value smaller
+    // than the dimensions require is refused here, before the kernel reads
+    // width*height pixels past the end of the allocation (QA-B-18).
+    if (input->dataSize != 0 && input->dataSize < n * sizeof(uint16_t))
+        return XPE_ERR_INVALID_INPUT;
     if (output->dataSize < n * sizeof(uint16_t)) return XPE_ERR_BUFFER_TOO_SMALL;
 
     const uint16_t* src = static_cast<const uint16_t*>(input->data);
