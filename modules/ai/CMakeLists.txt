@@ -278,8 +278,9 @@ if(_XPE_AI_BUILD_TESTS)
         target_compile_features(xpe_ai_tests PRIVATE cxx_std_17)
 
         if(MSVC)
-            target_compile_options(xpe_ai_tests PRIVATE /W4 /WX- /wd4996)
+            target_compile_options(xpe_ai_tests PRIVATE /W4)
         endif()
+        xpe_target_warnings_as_errors(xpe_ai_tests)
 
         gtest_discover_tests(xpe_ai_tests
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

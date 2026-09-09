@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <cstdio>
 #include <cstring>
 
 namespace fs = std::filesystem;
@@ -37,7 +38,7 @@ void DicomValidatorTest::SetUpTestSuite() {
     XpeImageBuffer img{};
     xpe_alloc_image(128, 128, XPE_PIXEL_UINT16, &img);
     XpeImageMetadata meta{};
-    std::strncpy(meta.bodyPart, "HAND", sizeof(meta.bodyPart));
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "HAND");
 
     s_conformantDcm = s_tempDir / "conformant.dcm";
     xpe_dicom_write(s_conformantDcm.string().c_str(), &img, &meta);

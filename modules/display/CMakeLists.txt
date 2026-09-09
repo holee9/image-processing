@@ -41,12 +41,13 @@ target_link_libraries(xpe_display
 target_compile_features(xpe_display PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_display PRIVATE /W4 /WX-)
+    target_compile_options(xpe_display PRIVATE /W4)
 else()
     target_compile_options(xpe_display PRIVATE
         -Wall -Wextra -Wpedantic
     )
 endif()
+xpe_target_warnings_as_errors(xpe_display)
 
 if(PROJECT_VERSION)
     set_target_properties(xpe_display PROPERTIES
@@ -99,8 +100,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_display_modality_lut PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_display_modality_lut PRIVATE /W4 /WX-)
+        target_compile_options(test_display_modality_lut PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_display_modality_lut)
     gtest_discover_tests(test_display_modality_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -118,8 +120,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_display_voi_lut PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_display_voi_lut PRIVATE /W4 /WX-)
+        target_compile_options(test_display_voi_lut PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_display_voi_lut)
     gtest_discover_tests(test_display_voi_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -137,8 +140,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_display_presentation_lut PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_display_presentation_lut PRIVATE /W4 /WX-)
+        target_compile_options(test_display_presentation_lut PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_display_presentation_lut)
     gtest_discover_tests(test_display_presentation_lut
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -156,8 +160,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_display_integration PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_display_integration PRIVATE /W4 /WX-)
+        target_compile_options(test_display_integration PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_display_integration)
     gtest_discover_tests(test_display_integration
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )

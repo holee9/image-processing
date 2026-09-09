@@ -43,7 +43,6 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
 
     // Try to parse the file — if it fails completely, it's not a DICOM
     ValidationResult result;
-    bool parseOk = false;
 
     DcmFileFormat dcmff;
     OFCondition status = dcmff.loadFile(

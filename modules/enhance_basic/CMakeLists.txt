@@ -130,8 +130,9 @@ if(_XPE_BUILD_TESTS)
     endif()
 
     if(MSVC)
-        target_compile_options(xpe_enhance_basic_tests PRIVATE /W4 /WX-)
+        target_compile_options(xpe_enhance_basic_tests PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(xpe_enhance_basic_tests)
 
     gtest_discover_tests(xpe_enhance_basic_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

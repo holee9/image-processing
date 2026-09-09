@@ -69,12 +69,13 @@ endif()
 target_compile_features(xpe_dicom PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(xpe_dicom PRIVATE /W4 /WX-)
+    target_compile_options(xpe_dicom PRIVATE /W4)
 else()
     target_compile_options(xpe_dicom PRIVATE
         -Wall -Wextra -Wpedantic
     )
 endif()
+xpe_target_warnings_as_errors(xpe_dicom)
 
 if(PROJECT_VERSION)
     set_target_properties(xpe_dicom PROPERTIES
@@ -127,8 +128,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_dicom_reader PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_dicom_reader PRIVATE /W4 /WX-)
+        target_compile_options(test_dicom_reader PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_dicom_reader)
     gtest_discover_tests(test_dicom_reader
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -146,8 +148,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_dicom_writer PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_dicom_writer PRIVATE /W4 /WX-)
+        target_compile_options(test_dicom_writer PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_dicom_writer)
     gtest_discover_tests(test_dicom_writer
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -165,8 +168,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_dicom_validator PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_dicom_validator PRIVATE /W4 /WX-)
+        target_compile_options(test_dicom_validator PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_dicom_validator)
     gtest_discover_tests(test_dicom_validator
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
@@ -184,8 +188,9 @@ if(_XPE_BUILD_TESTS)
     )
     target_compile_features(test_dicom_network_scu PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_dicom_network_scu PRIVATE /W4 /WX-)
+        target_compile_options(test_dicom_network_scu PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_dicom_network_scu)
     gtest_discover_tests(test_dicom_network_scu
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
