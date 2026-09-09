@@ -25,7 +25,7 @@ std::array<uint8_t, 32> HexToDigest(const char* hex) {
     std::array<uint8_t, 32> out = {};
     for (int i = 0; i < 32; ++i) {
         unsigned int byte = 0;
-        std::sscanf(hex + 2 * i, "%02x", &byte);
+        sscanf_s(hex + 2 * i, "%02x", &byte);
         out[i] = static_cast<uint8_t>(byte);
     }
     return out;

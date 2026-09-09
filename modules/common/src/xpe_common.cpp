@@ -296,10 +296,9 @@ XPE_API void xpe_clear_alerts(void)
 // Logging functions implemented in xpe_logging.cpp using spdlog
 
 /* ============================================================================
- * Internal test-support helpers (white-box linkage for unit tests).
+ * Alert producer (declared in xpe_error.h).
  * ============================================================================ */
 
-/** @cond INTERNAL */
 extern "C" {
 
 XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
@@ -308,4 +307,3 @@ XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
 }
 
 } // extern "C"
-/** @endcond */
