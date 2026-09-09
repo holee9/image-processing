@@ -23,7 +23,7 @@ extern "C" {
 
 // @MX:ANCHOR: Public API for IPC bridge creation (fan_in >= 3: connect, send, receive)
 // @MX:REASON: Entry point for all IPC operations, validated by multiple callers
-XPE_API XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t timeout_ms) {
+XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t timeout_ms) {
     // Validate input
     if (!pipe_name) {
         return nullptr;
@@ -42,7 +42,7 @@ XPE_API XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t
 
 // @MX:ANCHOR: Public API for pipe connection (fan_in >= 3: tests, send, receive)
 // @MX:REASON: Establishes IPC channel, required before send/receive operations
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge) {
+XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge) {
     // Validate input
     if (!bridge) {
         return XPE_ERR_INVALID_INPUT;
@@ -94,7 +94,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge) {
 
 // @MX:ANCHOR: Public API for message sending (fan_in >= 3: tests, multiple inference paths)
 // @MX:REASON: Validates protocol and writes to pipe, critical for IPC communication
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
+XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
                                              const XpeAiMessageHeader* header,
                                              const void* payload,
                                              uint32_t payload_size) {
@@ -162,7 +162,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
 
 // @MX:ANCHOR: Public API for message receiving (fan_in >= 3: tests, multiple inference paths)
 // @MX:REASON: Reads and validates protocol from pipe, critical for IPC communication
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
+XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
                                                 XpeAiMessageHeader* header_out,
                                                 void* payload_out,
                                                 uint32_t payload_size,
@@ -240,7 +240,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
     return XPE_OK;
 }
 
-XPE_API void xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge) {
+void xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge) {
     if (!bridge) {
         return;
     }

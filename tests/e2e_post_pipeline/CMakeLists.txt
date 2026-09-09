@@ -47,8 +47,9 @@ target_compile_features(test_e2e_post_pipeline PRIVATE cxx_std_17)
 
 # MSVC warnings
 if(MSVC)
-    target_compile_options(test_e2e_post_pipeline PRIVATE /W4 /WX-)
+    target_compile_options(test_e2e_post_pipeline PRIVATE /W4)
 endif()
+xpe_target_warnings_as_errors(test_e2e_post_pipeline)
 
 # Discover tests
 include(GoogleTest)

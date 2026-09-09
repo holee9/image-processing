@@ -20,6 +20,7 @@
 #include "xpe/common/xpe_error.h"
 #include <gtest/gtest.h>
 
+#include <cstdio>
 #include <cstring>
 #include <vector>
 #include <cstdint>
@@ -149,7 +150,7 @@ TEST_F(AiFallbackTest, DlDenoiseStubReturnsProcessingFailed) {
     XpeImageBuffer img = makeTestBuffer(64, 64, storage);
 
     XpeImageMetadata meta{};
-    std::strcpy(meta.bodyPart, "CHEST");
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
     meta.mAs = 2.0f;
 
     XpeErrorCode ec = xpe_dl_denoise(&img, &meta, nullptr);

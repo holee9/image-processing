@@ -256,12 +256,18 @@ if(_XPE_AI_BUILD_TESTS)
             list(APPEND _XPE_AI_TEST_SOURCE_PATHS "${CMAKE_SOURCE_DIR}/tests/ai_tests/${_src}")
         endforeach()
 
+        # The IPC bridge is module-internal and is NOT exported from xpe_ai.dll
+        # (REQ-AI-003 keeps the named-pipe protocol private). Its tests therefore
+        # compile the implementation directly instead of linking it across the
+        # DLL boundary.
         add_executable(xpe_ai_tests
             ${_XPE_AI_TEST_SOURCE_PATHS}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp
         )
 
         target_include_directories(xpe_ai_tests
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src
         )
 
         target_link_libraries(xpe_ai_tests
@@ -272,11 +278,22 @@ if(_XPE_AI_BUILD_TESTS)
         target_compile_features(xpe_ai_tests PRIVATE cxx_std_17)
 
         if(MSVC)
-            target_compile_options(xpe_ai_tests PRIVATE /W4 /WX- /wd4996)
+            target_compile_options(xpe_ai_tests PRIVATE /W4)
         endif()
+        xpe_target_warnings_as_errors(xpe_ai_tests)
 
+        # LABELS/TIMEOUT restored from tests/ai_tests/CMakeLists.txt, which was
+        # removed as a duplicate registration (#113 / QA-B-07). The SPEC label is
+        # the traceability carrier; the deletion must not drop it.
         gtest_discover_tests(xpe_ai_tests
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            PROPERTIES
+                # semicolons escaped: an unescaped "a;b;c" expands as a CMake list
+                # and only the first element survives as LABELS (verified: --print-labels
+                # showed only "unit"). The source file this was copied from was never
+                # built, so the defect had never surfaced.
+                LABELS "unit\;ai\;SPEC-XPE-P3-AI"
+                TIMEOUT 30
         )
 
         message(STATUS "xpe_ai tests configured")

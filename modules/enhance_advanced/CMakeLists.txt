@@ -47,10 +47,12 @@ endif()
 # Export symbols + MSVC math macros (M_PI etc. require _USE_MATH_DEFINES)
 target_compile_definitions(${MODULE_NAME} PRIVATE XPE_DLL_EXPORT _USE_MATH_DEFINES)
 
-# Warnings-as-errors per-target (SPEC-P2-ADV S1 audit 6c)
-# Applies to module only; avoids project-wide impact on other modules.
+# Warning suppressions for Eigen-heavy code (SPEC-P2-ADV S1 audit 6c).
+# Warnings-as-errors itself is delegated to xpe_target_warnings_as_errors()
+# below so XPE_WARNINGS_AS_ERRORS controls this module like every other one
+# (issue #106); the unconditional /WX that used to live here ignored it.
 if(MSVC)
-    target_compile_options(${MODULE_NAME} PRIVATE /W4 /WX
+    target_compile_options(${MODULE_NAME} PRIVATE /W4
         # Eigen 3.4.0 generates these with /W4 on MSVC; suppress without lowering overall level
         /wd4100   # unreferenced formal parameter (Eigen template specializations)
         /wd4127   # conditional expression is constant (Eigen compile-time checks)
@@ -62,10 +64,12 @@ if(MSVC)
     )
 else()
     target_compile_options(${MODULE_NAME} PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
+        -Wall -Wextra -Wpedantic
         -Wno-unused-parameter   # Eigen-heavy code triggers these spuriously
     )
 endif()
+
+xpe_target_warnings_as_errors(${MODULE_NAME})
 
 # Set version properties
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -106,6 +110,18 @@ if(BUILD_TESTS)
         tests/test_edge_enhancement.cpp
         tests/test_exposure_index.cpp
         tests/test_integration.cpp
+        # Absorbed from tests/enhance_advanced_tests/ (#113 / QA-B-10). These were an
+        # independent suite over the same module — zero test-name overlap with the files
+        # above — that no build ever compiled. Suffixed _ext to keep both sets; four
+        # fixtures were renamed *ExtTest because gtest requires one fixture class per
+        # suite name and the originals collided.
+        tests/test_api_header_ext.cpp
+        tests/test_lifecycle_ext.cpp
+        tests/test_mfp_scalar_ext.cpp
+        tests/test_collimation_detect_ext.cpp
+        tests/test_edge_enhancement_ext.cpp
+        tests/test_exposure_index_ext.cpp
+        tests/test_integration_ext.cpp
     )
 
     # Link against Google Test and the module
@@ -121,19 +137,27 @@ if(BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
 
-    # MSVC: lower test exe to /WX- (tests include xpe_types.h which has int→uint32_t
-    # assignments; keeping /WX on tests adds noise without safety gain since the
-    # module library itself is built with /WX).
+    # The /WX- here carried a stale rationale (xpe_types.h int→uint32_t noise);
+    # measured warning count on this target is now 0, so it joins the option-
+    # controlled path like every other target (issue #106).
     if(MSVC)
-        target_compile_options(test_${MODULE_NAME} PRIVATE /W4 /WX-)
+        target_compile_options(test_${MODULE_NAME} PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(test_${MODULE_NAME})
 
     # Enable C++17 for tests
     target_compile_features(test_${MODULE_NAME} PRIVATE cxx_std_17)
 
     # Discover tests automatically
     include(GoogleTest)
-    gtest_discover_tests(test_${MODULE_NAME})
+    # LABELS/TIMEOUT carried over from the absorbed registration. Semicolons are
+    # escaped: an unescaped "a;b;c" expands as a CMake list and only the first
+    # element binds to LABELS (observed in QA-B-09 on the ai target).
+    gtest_discover_tests(test_${MODULE_NAME}
+        PROPERTIES
+            LABELS "unit\;enhance_advanced\;SPEC-XPE-P2-ADV"
+            TIMEOUT 300
+    )
 
     message(STATUS "Enhance Advanced tests configured for ${MODULE_NAME}")
 endif()

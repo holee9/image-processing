@@ -19,8 +19,9 @@ set_target_properties(gsvg PROPERTIES
 )
 
 if(MSVC)
-    target_compile_options(gsvg PRIVATE /W4 /WX-)
+    target_compile_options(gsvg PRIVATE /W4)
 endif()
+xpe_target_warnings_as_errors(gsvg)
 
 set(_XPE_BUILD_TESTS OFF)
 if(BUILD_TESTING OR BUILD_TESTS)
@@ -63,8 +64,9 @@ if(_XPE_BUILD_TESTS)
     target_compile_features(gsvg_tests PRIVATE cxx_std_17)
 
     if(MSVC)
-        target_compile_options(gsvg_tests PRIVATE /W4 /WX-)
+        target_compile_options(gsvg_tests PRIVATE /W4)
     endif()
+    xpe_target_warnings_as_errors(gsvg_tests)
 
     gtest_discover_tests(gsvg_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

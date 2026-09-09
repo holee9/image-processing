@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_memory.h"
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 
@@ -48,7 +49,7 @@ void DicomReaderTest::SetUpTestSuite() {
     for (uint32_t i = 0; i < img.width * img.height; ++i) px[i] = static_cast<uint16_t>(i & 0xFFFF);
 
     XpeImageMetadata meta{};
-    std::strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
     meta.kVp = 80.0f;
     meta.mAs = 2.5f;
     meta.SID_mm = 1800.0f;

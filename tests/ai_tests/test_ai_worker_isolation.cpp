@@ -19,6 +19,7 @@
 #include "xpe/common/xpe_error.h"
 #include <gtest/gtest.h>
 
+#include <cstdio>
 #include <cstring>
 #include <vector>
 #include <thread>
@@ -105,7 +106,7 @@ TEST_F(AiWorkerIsolationTest, StubModeDlDenoiseFallsBackGracefully) {
     std::vector<uint16_t> storage;
     XpeImageBuffer img = makeTestBuffer(64, 64, storage);
     XpeImageMetadata meta{};
-    std::strcpy(meta.bodyPart, "CHEST");
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
 
     XpeErrorCode ec = xpe_dl_denoise(&img, &meta, nullptr);
     EXPECT_EQ(ec, XPE_ERR_PROCESSING_FAILED);

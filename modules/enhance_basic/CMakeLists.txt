@@ -56,6 +56,8 @@ else()
     )
 endif()
 
+xpe_target_warnings_as_errors(xpe_enhance_basic)
+
 target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 # VERSION/SOVERSION only meaningful on Linux; guard for portability
@@ -123,9 +125,16 @@ if(_XPE_BUILD_TESTS)
 
     target_compile_features(xpe_enhance_basic_tests PRIVATE cxx_std_17)
 
-    if(MSVC)
-        target_compile_options(xpe_enhance_basic_tests PRIVATE /W4 /WX-)
+    # Windows: psapi.lib is required for GetProcessMemoryInfo (heap-growth
+    # endurance measurement in test_enhance_integration.cpp, #105 G3)
+    if(WIN32)
+        target_link_libraries(xpe_enhance_basic_tests PRIVATE psapi)
     endif()
+
+    if(MSVC)
+        target_compile_options(xpe_enhance_basic_tests PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(xpe_enhance_basic_tests)
 
     gtest_discover_tests(xpe_enhance_basic_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

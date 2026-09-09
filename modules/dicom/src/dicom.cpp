@@ -7,7 +7,9 @@
  *
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-041..046
  */
+#ifndef XPE_DLL_EXPORT
 #define XPE_DLL_EXPORT
+#endif
 #include "xpe/dicom/dicom_api.h"
 
 #include "DicomReader.h"

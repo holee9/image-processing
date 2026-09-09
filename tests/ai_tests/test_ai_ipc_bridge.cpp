@@ -36,7 +36,7 @@ typedef struct XpeAiIpcBridge XpeAiIpcBridge;
  * @param timeout_ms Timeout in milliseconds for operations.
  * @return New bridge instance, or NULL on allocation failure.
  */
-XPE_API XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t timeout_ms);
+XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t timeout_ms);
 
 /**
  * @brief Connect to the worker process via named pipe.
@@ -44,7 +44,7 @@ XPE_API XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t
  * @param bridge Bridge instance.
  * @return XPE_OK on success, XPE_ERR_PROCESSING_FAILED on timeout.
  */
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge);
+XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge);
 
 /**
  * @brief Send a message to the worker.
@@ -55,7 +55,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge);
  * @param payload_size Size of payload in bytes.
  * @return XPE_OK on success, error code on failure.
  */
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
+XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
                                              const XpeAiMessageHeader* header,
                                              const void* payload,
                                              uint32_t payload_size);
@@ -70,7 +70,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
  * @param bytes_received Output: actual bytes received (including header).
  * @return XPE_OK on success, XPE_ERR_PROCESSING_FAILED on timeout.
  */
-XPE_API XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
+XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
                                                 XpeAiMessageHeader* header_out,
                                                 void* payload_out,
                                                 uint32_t payload_size,
@@ -81,7 +81,7 @@ XPE_API XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
  *
  * @param bridge Bridge instance (will be set to NULL).
  */
-XPE_API void xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge);
+void xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge);
 
 #ifdef __cplusplus
 }

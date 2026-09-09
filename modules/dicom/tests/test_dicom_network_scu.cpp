@@ -14,6 +14,7 @@
 #include <thread>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <cstdio>
 #include <cstring>
 
 namespace fs = std::filesystem;
@@ -45,7 +46,7 @@ void DicomNetworkTest::SetUpTestSuite() {
     XpeImageBuffer img{};
     xpe_alloc_image(64, 64, XPE_PIXEL_UINT16, &img);
     XpeImageMetadata meta{};
-    std::strncpy(meta.bodyPart, "CHEST", sizeof(meta.bodyPart));
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
     s_testDcm = s_tempDir / "test_cstore.dcm";
     xpe_dicom_write(s_testDcm.string().c_str(), &img, &meta);
     xpe_free_image(&img);

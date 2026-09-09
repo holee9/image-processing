@@ -7,6 +7,7 @@
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
+#include <cstdio>
 #include <cstring>
 #include <cstdint>
 
@@ -24,7 +25,7 @@ protected:
             px[i] = static_cast<uint16_t>(i & 0xFFFF);
 
         std::memset(&m_meta, 0, sizeof(m_meta));
-        std::strncpy(m_meta.bodyPart, "CHEST", sizeof(m_meta.bodyPart));
+        std::snprintf(m_meta.bodyPart, sizeof(m_meta.bodyPart), "%s", "CHEST");
         m_meta.kVp = 80.0f;
         m_meta.mAs = 2.5f;
         m_meta.SID_mm = 1800.0f;
