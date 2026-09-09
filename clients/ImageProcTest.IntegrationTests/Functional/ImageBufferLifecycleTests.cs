@@ -1,4 +1,4 @@
-// AC-3: DLL resolution, AC-4: PInvoke symbol functional tests (alloc/free/copy).
+﻿// AC-3: DLL resolution, AC-4: PInvoke symbol functional tests (alloc/free/copy).
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -34,10 +34,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// REQ-GUI-IT-023: xpe_alloc_image(16, 16, UInt16) returns OK with non-zero Data pointer
     /// and DataSize == 512 (16×16×2 bytes).
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void AllocImage_ValidDimensions_ReturnsOkAndNonZeroData()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         EnsureInitialized();
 
         var result = XpeCommonNative.xpe_alloc_image(16, 16, XpeCommonNative.XpePixelFormat.UInt16, out _allocatedBuffer);
@@ -53,10 +53,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-023: xpe_free_image after successful alloc returns OK and zeroes Data pointer.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void FreeImage_AfterAlloc_ReturnsOkAndZeroesData()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         EnsureInitialized();
 
         var allocResult = XpeCommonNative.xpe_alloc_image(16, 16, XpeCommonNative.XpePixelFormat.UInt16, out var buf);
@@ -70,10 +70,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-024: xpe_alloc_image with 0 dimensions returns INVALID_INPUT.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void AllocImage_ZeroDimensions_ReturnsInvalidInput()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         EnsureInitialized();
 
         var result = XpeCommonNative.xpe_alloc_image(0, 0, XpeCommonNative.XpePixelFormat.UInt16, out var buf);
@@ -86,10 +86,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-025: xpe_copy_image with matching src/dst dimensions returns OK.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void CopyImage_MatchingDimensions_ReturnsOk()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         EnsureInitialized();
 
         var allocSrc = XpeCommonNative.xpe_alloc_image(16, 16, XpeCommonNative.XpePixelFormat.UInt16, out var src);
@@ -113,10 +113,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// REQ-GUI-IT-025: xpe_copy_image with dst smaller than src returns BUFFER_TOO_SMALL
     /// (mismatched dimensions path). Verifies that the API does not silently truncate.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void CopyImage_MismatchedDimensions_ReturnsError()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         EnsureInitialized();
 
         // src 32x32 (2048 bytes) > dst 16x16 (512 bytes) — must NOT silently succeed.
@@ -144,10 +144,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     /// REQ-GUI-IT-021: After successful xpe_init(null), xpe_get_pending_alert_count()
     /// must return a non-negative integer (no implicit error signalling via negative count).
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void Init_Success_AlertCountIsNonNegative()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var initResult = XpeCommonNative.xpe_init(null);
         Assert.Equal(XpeCommonNative.XpeErrorCode.OK, initResult);

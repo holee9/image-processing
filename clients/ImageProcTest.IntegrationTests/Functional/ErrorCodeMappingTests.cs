@@ -1,4 +1,4 @@
-// AC-5: xpe_error_string parity for all XpeErrorCode values.
+﻿// AC-5: xpe_error_string parity for all XpeErrorCode values.
 using System.Runtime.InteropServices;
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
@@ -21,7 +21,7 @@ public sealed class ErrorCodeMappingTests
     }
 
     /// <summary>REQ-GUI-IT-009: xpe_error_string returns non-NULL non-empty for all defined error codes.</summary>
-    [Theory]
+    [SkippableTheory]
     [InlineData(XpeCommonNative.XpeErrorCode.OK)]
     [InlineData(XpeCommonNative.XpeErrorCode.INVALID_INPUT)]
     [InlineData(XpeCommonNative.XpeErrorCode.OUT_OF_MEMORY)]
@@ -35,7 +35,7 @@ public sealed class ErrorCodeMappingTests
     [InlineData(XpeCommonNative.XpeErrorCode.NETWORK_FAILED)]
     public void ErrorString_ForAllDefinedCodes_IsNonNullAndNonEmpty(XpeCommonNative.XpeErrorCode code)
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ptr = XpeCommonNative.xpe_error_string(code);
         Assert.NotEqual(IntPtr.Zero, ptr);
@@ -46,10 +46,10 @@ public sealed class ErrorCodeMappingTests
     }
 
     /// <summary>REQ-GUI-IT-009: Unknown code (-999) returns non-NULL fallback string.</summary>
-    [Fact]
+    [SkippableFact]
     public void ErrorString_ForUnknownCode_ReturnsFallbackNonNull()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ptr = XpeCommonNative.xpe_error_string((XpeCommonNative.XpeErrorCode)(-999));
         Assert.NotEqual(IntPtr.Zero, ptr);
@@ -61,10 +61,10 @@ public sealed class ErrorCodeMappingTests
     }
 
     /// <summary>REQ-GUI-IT-005: xpe_error_string returns same pointer for same code (static storage).</summary>
-    [Fact]
+    [SkippableFact]
     public void ErrorString_CalledTwice_ReturnsSamePointer()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ptr1 = XpeCommonNative.xpe_error_string(XpeCommonNative.XpeErrorCode.INVALID_INPUT);
         var ptr2 = XpeCommonNative.xpe_error_string(XpeCommonNative.XpeErrorCode.INVALID_INPUT);
