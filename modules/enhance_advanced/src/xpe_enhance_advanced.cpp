@@ -118,6 +118,20 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(
         return XPE_ERR_INVALID_INPUT;
     }
 
+    // Pixel storage validation (#122). Without this the calculator's own
+    // `data == nullptr` guard returns a neutral mean and the function reports
+    // XPE_OK with a plausible-looking EI/DI pair — an error that a caller would
+    // display as a measurement. The other three entry points in this module
+    // already rejected the same buffer with INVALID_INPUT.
+    //
+    // Only the pointer is checked, deliberately: dataSize is not reliably
+    // populated by existing callers (several test helpers set data alone and
+    // leave dataSize unset), so rejecting on it would fail valid inputs.
+    // multiscale_process.cpp applies the same single-pointer check.
+    if (img->data == nullptr) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     // REQ-ADV-013: Calculate IEC 62494-1 EI and DI
     // REQ-ADV-022: NULL pointer guard (already checked above)
     // REQ-ADV-032: No NaN/Inf in output
