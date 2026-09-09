@@ -221,8 +221,11 @@ jobs:
           path: build/dotnet-test-results/
 
   coverage:
+    # Dispatch-only and self-contained (own configure/build). Not gated on the
+    # test jobs: a single flaky assertion there must not skip the coverage
+    # measurement (#120, observed 2026-09-10 — EnduranceTest boundary failure
+    # skipped both coverage presets). Test pass/fail stays the test jobs' gate.
     if: github.event_name == 'workflow_dispatch'
-    needs: [common-build, preprocess-tests]
     runs-on: windows-2025
     timeout-minutes: 60
     strategy:
