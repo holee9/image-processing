@@ -290,6 +290,19 @@
           }
         ],
         "matcher": "startup|resume|clear|compact|fork"
+      },
+      {
+        "hooks": [
+          {
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/moai/set-lane-name.sh"
+            ],
+            "command": "bash",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|clear"
       }
     ],
     "Stop": [
