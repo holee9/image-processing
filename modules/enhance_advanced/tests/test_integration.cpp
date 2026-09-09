@@ -49,6 +49,7 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[512 * 512];
+    img.dataSize = static_cast<size_t>(512) * (512) * 4;
 
     // Initialize with test pattern
     float* data = static_cast<float*>(img.data);
@@ -119,6 +120,7 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[512 * 512];
+    img.dataSize = static_cast<size_t>(512) * (512) * 4;
     std::memset(img.data, 0, 512 * 512 * sizeof(float));
 
     XpeImageMetadata meta;
@@ -168,6 +170,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[512 * 512];
+    img.dataSize = static_cast<size_t>(512) * (512) * 4;
 
     // Initialize with realistic test pattern
     float* data = static_cast<float*>(img.data);
@@ -257,6 +260,7 @@ TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[512 * 512];
+    img.dataSize = static_cast<size_t>(512) * (512) * 4;
 
     float* data = static_cast<float*>(img.data);
     for (int y = 0; y < 512; ++y) {
@@ -326,6 +330,7 @@ TEST(IntegrationTest, T604_ThreadSafety) {
             img.height = IMG_SIZE;
             img.format = XPE_PIXEL_FLOAT32;
             img.data = new float[IMG_SIZE * IMG_SIZE];
+            img.dataSize = static_cast<size_t>(IMG_SIZE) * (IMG_SIZE) * 4;
 
             // Initialize with unique pattern per thread
             float* data = static_cast<float*>(img.data);
@@ -415,6 +420,7 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
         img.height = IMG_SIZE;
         img.format = XPE_PIXEL_FLOAT32;
         img.data = new float[IMG_SIZE * IMG_SIZE];
+        img.dataSize = static_cast<size_t>(IMG_SIZE) * (IMG_SIZE) * 4;
 
         // Initialize
         std::memset(img.data, 0, IMG_SIZE * IMG_SIZE * sizeof(float));
@@ -501,6 +507,7 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     img.width = 0;
     EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
     img.width = 512;
+    img.dataSize = static_cast<size_t>(512) * (512) * 4;
 
     // Path 4: Invalid order parameter
     EXPECT_EQ(xpe_fractional_process(&img, -0.1f, nullptr), XPE_ERR_INVALID_INPUT);
@@ -607,6 +614,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
     img.height = IMG_SIZE;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[IMG_SIZE * IMG_SIZE];
+    img.dataSize = static_cast<size_t>(IMG_SIZE) * (IMG_SIZE) * 4;
 
     // Initialize with realistic pattern
     float* data = static_cast<float*>(img.data);
@@ -690,6 +698,7 @@ TEST(IntegrationTest, T609_SIMIDispatchPreparation) {
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[256 * 256];
+    img.dataSize = static_cast<size_t>(256) * (256) * 4;
     std::memset(img.data, 0, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;
@@ -736,6 +745,7 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
     img.data = new float[256 * 256];
+    img.dataSize = static_cast<size_t>(256) * (256) * 4;
     std::memset(img.data, 0, 256 * 256 * sizeof(float));
 
     XpeImageMetadata meta;

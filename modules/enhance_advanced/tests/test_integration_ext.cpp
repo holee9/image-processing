@@ -292,6 +292,7 @@ TEST_F(IntegrationPipelineTest, ErrorPathsCovered) {
     img.width = 32;
     img.height = 32;
     img.format = XPE_PIXEL_UINT16;
+    img.dataSize = static_cast<size_t>(32) * (32) * 2;
     EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
 
     // Invalid order
@@ -299,6 +300,7 @@ TEST_F(IntegrationPipelineTest, ErrorPathsCovered) {
     img2.width = 32;
     img2.height = 32;
     img2.format = XPE_PIXEL_FLOAT32;
+    img2.dataSize = static_cast<size_t>(32) * (32) * 4;
     EXPECT_EQ(xpe_fractional_process(&img2, -1.0f, nullptr), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_fractional_process(&img2, 3.0f, nullptr), XPE_ERR_INVALID_INPUT);
 }

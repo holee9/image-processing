@@ -51,6 +51,7 @@ protected:
         std::vector<float> buffer(width * height, fillValue);
         imageData_.push_back(std::move(buffer));
         img.data = imageData_.back().data();
+        img.dataSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
 
         return img;
     }
@@ -331,6 +332,7 @@ TEST_F(EdgeEnhancementTest, T303_OvershootLimiterEnforcement) {
     beforeImg.height = img.height;
     beforeImg.format = img.format;
     beforeImg.data = before.data();
+    beforeImg.dataSize = img.dataSize;
 
     bool overshootLimited = verifyOvershootLimit(beforeImg, img);
 
@@ -400,6 +402,7 @@ TEST_F(EdgeEnhancementTest, T304_FractionalProcessIntegration) {
     beforeImg.height = img.height;
     beforeImg.format = img.format;
     beforeImg.data = before.data();
+    beforeImg.dataSize = img.dataSize;
 
     EXPECT_TRUE(verifyOvershootLimit(beforeImg, img))
         << "SAF-100: Overshoot limiting not applied in integration test";
@@ -736,6 +739,7 @@ TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
     beforeImg.height = img.height;
     beforeImg.format = img.format;
     beforeImg.data = before.data();
+    beforeImg.dataSize = img.dataSize;
 
     EXPECT_TRUE(verifyOvershootLimit(beforeImg, img));
 }

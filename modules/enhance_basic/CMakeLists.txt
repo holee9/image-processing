@@ -108,6 +108,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_exposure_index.cpp
         tests/test_enhance_integration.cpp
         tests/test_enh01_log_noise.cpp   # SPRINT-P1B-ENH-01 integration tests
+        tests/test_datasize_guard.cpp    # #123 dataSize guard regression (QA-B-21)
     )
 
     add_executable(xpe_enhance_basic_tests
