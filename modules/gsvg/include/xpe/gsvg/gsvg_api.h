@@ -86,8 +86,9 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  * @param gainMap Optional vignette gain map, width*height float32 pixels.
  *                NULL disables the vignette step regardless of config.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT on NULL pointer or non-positive dimension.
- * @return XPE_ERR_NOT_INITIALIZED if handle is NULL.
+ * @return XPE_ERR_INVALID_INPUT on a NULL pointer -- including a NULL handle,
+ *         which is a NULL required pointer like any other -- or on a
+ *         non-positive dimension.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,

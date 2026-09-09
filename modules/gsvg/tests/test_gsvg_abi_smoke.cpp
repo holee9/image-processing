@@ -194,7 +194,8 @@ TEST(GsvgAbiSmoke, Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact)
 }
 
 // ---------------------------------------------------------------------------
-// Error path: NULL handle on process. Documented to return NOT_INITIALIZED.
+// Error path: NULL handle on process. A NULL required pointer is
+// INVALID_INPUT, matching dicom and the api-spec precedence contract (#119).
 // ---------------------------------------------------------------------------
 TEST(GsvgAbiSmoke, ProcessRejectsNullHandle)
 {
@@ -205,7 +206,7 @@ TEST(GsvgAbiSmoke, ProcessRejectsNullHandle)
                                dst.data(),
                                4, 4,
                                nullptr),
-              XPE_ERR_NOT_INITIALIZED);
+              XPE_ERR_INVALID_INPUT);
 }
 
 // ---------------------------------------------------------------------------

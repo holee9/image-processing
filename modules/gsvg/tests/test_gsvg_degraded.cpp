@@ -197,13 +197,13 @@ TEST(GsvgDegradedMode, InitWithNullConfig_DefaultsToPassThrough)
     EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
 }
 
-TEST(GsvgDegradedMode, ProcessWithNullHandle_ReturnsNotInitialized)
+TEST(GsvgDegradedMode, ProcessWithNullHandle_ReturnsInvalidInput)
 {
     const auto src = make_synthetic_image();
     std::vector<uint16_t> dst(kCount, 0);
     EXPECT_EQ(xpe_gsvg_process(nullptr, src.data(), dst.data(),
                                kWidth, kHeight, nullptr),
-              XPE_ERR_NOT_INITIALIZED);
+              XPE_ERR_INVALID_INPUT);
 }
 
 TEST(GsvgDegradedMode, ShutdownNullHandle_NoOp)
