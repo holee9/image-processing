@@ -1,8 +1,8 @@
 # Validation and Verification Plan for xpe_enhance_advanced.dll
 
 **Document ID**: XPE-VVP-P2ADV-001  
-**Version**: 1.0.0  
-**Date**: 2026-04-21  
+**Version**: 1.1.0  
+**Date**: 2026-09-10  
 **Status**: Controlled Draft  
 **Classification**: Internal / IEC 62304 Compliance  
 **Safety Classification**: IEC 62304 Class B  
@@ -12,6 +12,8 @@
   - Software Requirements Specification (SRS): `docs/project/srs_adv.md`
   - System V&V Plan: `docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md`
   - Architecture Reference: `docs/project/tech.md`
+  - Requirements Traceability Matrix (RTM): `docs/project/rtm_adv.md` (RTM-ADV-001)
+  - Parent V&V Plan: `docs/post-processing/xpe/XPE-VVP-001_Verification_Validation_Plan.md`
 
 ---
 
@@ -32,8 +34,9 @@ This plan covers:
 
 - **Module**: xpe_enhance_advanced.dll (native C++ DLL)
 - **Software Units**: SWU-2.5 (Multiscale Frequency Processing), SWU-2.6 (Fractional-Order Edge Enhancement), SWU-2.8 (Collimation ROI Detection), SWU-2.10 (Exposure Index Refinement)
-- **API Functions**: 4 primary entry points with 64 total unit tests
-- **Test Coverage Target**: 85%+ statement and branch coverage
+- **API Functions**: 4 primary processing entry points plus lifecycle/config API
+- **Unit Test Inventory**: 196 `TEST`/`TEST_F` cases across 15 files in `modules/enhance_advanced/tests/` (counted 2026-09-10; see §3.1)
+- **Test Coverage Target**: `XPE_COVERAGE_MIN` = 0.85 line-rate per DLL (`cmake/XpeCoverage.cmake:22`, REQ-P0-006)
 - **Classification**: IEC 62304 Class B medical device software
 
 ### 1.3 Referenced Documents
@@ -58,7 +61,7 @@ The module is verified and validated across six complementary levels, aligned wi
 
 | Level | Scope | Primary Evidence | Responsibility |
 |-------|-------|------------------|-----------------|
-| **L1** | Unit Verification | Unit tests (64 tests), statement/branch coverage, static analysis, scalar-to-SIMD parity | Developer + QA |
+| **L1** | Unit Verification | Unit tests (196 cases, §3.1), statement/branch coverage, static analysis, scalar-to-SIMD parity | Developer + QA |
 | **L2** | Integration Verification | API contract tests, P/Invoke marshalling compatibility, binary loading, dependency validation | Integration QA |
 | **L3** | System Verification | End-to-end pipeline tests, benchmark processing, performance measurement, error recovery | System QA |
 | **L4** | Feature Verification | Algorithm validation (MFP accuracy, fractional derivative validation, ROI detection precision) | Algorithm QA |
@@ -73,41 +76,129 @@ The module is verified and validated across six complementary levels, aligned wi
 4. **Determinism validation**: Processing of identical images produces identical output (required for calibration workflows).
 5. **Benchmark integrity**: Frozen benchmark manifests and hashes prevent accidental test data corruption.
 
+### 2.3 IEC 62304 Clause Mapping of the Six-Level Hierarchy
+
+The six V&V levels of §2.1 are a project-internal decomposition. This subsection maps them onto the
+normative IEC 62304:2006+A1:2015 clauses so that each level has an identified regulatory home.
+Class B requires 5.5, 5.6 and 5.7 in full; 5.8 (release) and 6.x (maintenance) are referenced for the
+post-release levels.
+
+| Level (§2.1) | IEC 62304 Clause | Clause Title | Evidence Produced by This Plan |
+|---|---|---|---|
+| **L1** Unit Verification | **5.5.2 / 5.5.3 / 5.5.5** | Software unit verification process, acceptance criteria, unit verification | §3.1 unit-test inventory, §3.3 coverage metrics, §4.x.1 unit-test suites |
+| **L2** Integration Verification | **5.6.1 / 5.6.2 / 5.6.3** | Integrate software units, verify integration, test integrated software | §4.1.3 integration tests, P/Invoke ABI and dependency checks |
+| **L3** System Verification | **5.7.1 / 5.7.4 / 5.7.5** | Establish tests for software requirements, verify test procedures, test record contents | §4.1.3 pipeline tests, §7 performance validation, §8 error handling |
+| **L4** Feature Verification | **5.7.1** (algorithm-level system test) | Establish tests for software requirements | §4.x.2 algorithm-validation tables |
+| **L5** Validation (Clinical) | **5.7.1 + 5.8.x** | System testing feeding software release | §4.x.4 benchmark evidence, §5.3 clinical validation gate |
+| **L6** Field Performance | **6.1 / 6.2 (maintenance), 5.6.4 (regression)** | Software maintenance process, regression testing | §11 post-release validation |
+
+Cross-cutting clauses applied at every level: **5.5.4** (unit acceptance criteria applied before
+integration), **5.6.5** (test record contents), **5.6.6 / 5.7.2** (problem resolution via
+`XPE-SPR-001`), **5.6.7** (test-procedure verification), **5.7.3** (retest after change), and
+**7.3.3** (risk-control verification traceability, recorded in `docs/project/rtm_adv.md`).
+
 ---
 
 ## 3. Test Coverage Requirements
 
 ### 3.1 Unit Test Inventory
 
-| SWU | Function(s) | Purpose | Test Count | Coverage Target |
-|-----|-----------|---------|------------|-----------------|
-| SWU-2.5 | `xpe_mfp_process` | Multiscale frequency processing | 18 | 85%+ |
-| SWU-2.6 | `xpe_fractional_edge_enhance` | Fractional-order edge enhancement | 16 | 85%+ |
-| SWU-2.8 | `xpe_roi_detect_collimation` | Collimation ROI detection | 15 | 85%+ |
-| SWU-2.10 | `xpe_calc_exposure_index` (ROI variant) | EI calculation with ROI refinement | 12 | 85%+ |
-| **Cross-cutting** | Integration, error handling, performance | Multi-function validation | 8 | 85%+ |
-| **Total** | — | — | **65 tests** | **85%+** |
+Counts below are the actual `TEST` / `TEST_F` macro counts in `modules/enhance_advanced/tests/`,
+enumerated on 2026-09-10. They supersede the planning estimates carried in v1.0.0.
+
+| SWU | Function(s) | Purpose | Test Files | Test Count | Coverage Target |
+|-----|-----------|---------|------------|------------|-----------------|
+| SWU-2.5 | `xpe_mfp_process` | Multiscale frequency processing | `test_mfp_scalar.cpp`, `test_mfp_scalar_ext.cpp` | 31 | 85%+ |
+| SWU-2.6 | `xpe_edge_enhancement` (fractional-order) | Fractional-order edge enhancement | `test_edge_enhancement.cpp`, `test_edge_enhancement_ext.cpp` | 32 | 85%+ |
+| SWU-2.8 | `xpe_collimation_detect` | Collimation ROI detection | `test_collimation_detect.cpp`, `test_collimation_detect_ext.cpp` | 26 | 85%+ |
+| SWU-2.10 | `xpe_calc_exposure_index` (ROI variant) | EI calculation with ROI refinement | `test_exposure_index.cpp`, `test_exposure_index_ext.cpp` | 24 | 85%+ |
+| **Cross-cutting** | Lifecycle, config, ABI header, integration | Multi-function validation | `test_lifecycle*.cpp`, `test_coverage_ext.cpp`, `test_api_header*.cpp`, `test_integration*.cpp` | 83 | 85%+ |
+| **Total** | — | — | **15 files** | **196 cases** | **85%+** |
 
 ### 3.2 Test Organization
 
+Actual file inventory with per-file case counts (15 files, 196 cases):
+
 ```
 modules/enhance_advanced/tests/
-  test_mfp.cpp              -- SWU-2.5 (18 tests)
-  test_fractional_edge.cpp  -- SWU-2.6 (16 tests)
-  test_roi_detect.cpp       -- SWU-2.8 (15 tests)
-  test_exposure_index.cpp   -- SWU-2.10 (12 tests)
-  test_advanced_integration.cpp -- Cross-cutting (8 tests)
+  test_mfp_scalar.cpp                 -- SWU-2.5   (13)  MfpScalarTest
+  test_mfp_scalar_ext.cpp             -- SWU-2.5   (18)  MfpScalarExtTest
+  test_edge_enhancement.cpp           -- SWU-2.6   (11)  EdgeEnhancementTest
+  test_edge_enhancement_ext.cpp       -- SWU-2.6   (21)  EdgeEnhancementExtTest
+  test_collimation_detect.cpp         -- SWU-2.8   (12)  CollimationDetectTest
+  test_collimation_detect_ext.cpp     -- SWU-2.8   (14)  CollimationDetectExtTest
+  test_exposure_index.cpp             -- SWU-2.10  (9)   ExposureIndexTest
+  test_exposure_index_ext.cpp         -- SWU-2.10  (15)  ExposureIndexExtTest
+  test_lifecycle.cpp                  -- X-cutting (8)   EnhanceAdvancedLifecycleTest
+  test_lifecycle_ext.cpp              -- X-cutting (15)  LifecycleTest, NotInitializedGuardTest
+  test_coverage_ext.cpp               -- X-cutting (23)  EnhanceAdvancedConfigTest
+  test_api_header.cpp                 -- X-cutting (3)   EnhanceAdvancedApiHeaderTest
+  test_api_header_ext.cpp             -- X-cutting (12)  ApiHeaderTest
+  test_integration.cpp                -- X-cutting (12)  IntegrationTest
+  test_integration_ext.cpp            -- X-cutting (10)  IntegrationPipelineTest, ErrorPrecedenceTest
+
+Total: 196 TEST/TEST_F cases
 ```
+
+The `*_ext.cpp` files are coverage-extension suites added after the initial release; they exercise
+the same SWU through additional boundary, error-precedence and configuration paths.
 
 ### 3.3 Coverage Metrics
 
+#### 3.3.1 Targets
+
 | Metric | Target | Measurement Method |
 |--------|--------|-------------------|
+| Line Coverage (gate) | >= 85% | `XPE_COVERAGE_MIN` = 0.85 per DLL, checked by the `coverage_check` target (`cmake/XpeCoverage.cmake:22`, REQ-P0-006) |
 | Statement Coverage | >= 85% | gcov/llvm-cov per function |
 | Branch Coverage | >= 80% | gcov/llvm-cov per decision point |
 | Loop Coverage | >= 80% | Minimum 2x loop iterations in tests |
 | Error Path Coverage | 100% | All error return codes exercised |
 | Boundary Conditions | 100% | Min/max pixel values, image dimensions, parameters |
+
+#### 3.3.2 Measured Coverage State (2026-09-10)
+
+The following are measurements, not targets. Source: CI `workflow_dispatch` run `34414537575`,
+executed 2026-09-10.
+
+| Preset | DLLs in scope | Measured line-rate | Gate result vs. 0.85 |
+|--------|---------------|--------------------|----------------------|
+| `coverage` | xpe_common, xpe_preprocess | 0.649 | **FAIL** |
+| `coverage-post` | xpe_common, xpe_gsvg, xpe_enhance_basic, **xpe_enhance_advanced**, xpe_display | 0.898 | **PASS** |
+
+`xpe_enhance_advanced` is measured inside the `coverage-post` preset only; no per-DLL line-rate is
+broken out by the current tooling, so the 0.898 figure is the aggregate for that preset and is the
+only measured coverage evidence available for this module. A per-DLL breakdown remains an open item.
+
+#### 3.3.3 Timing-Budget Test Exclusion
+
+Coverage runs deliberately exclude timing-budget tests, because wall-clock assertions are not
+reproducible under an instrumented build. The exclusion is a ctest `-E` regex
+(`cmake/XpeCoverage.cmake:29`, `XPE_COVERAGE_EXCLUDE_TESTS`):
+
+```
+Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance
+```
+
+Consequence for this plan: the performance budgets of §7 are **not** verified by the coverage run
+and must be verified by a separate non-instrumented Release execution. Coverage figures in §3.3.2
+therefore describe a test subset, not the full suite.
+
+#### 3.3.4 Memory-Leak Gate (G3)
+
+Gate G3 (issue #105, closed 2026-09-10) applies to all 7 modules, `xpe_enhance_advanced` included:
+
+| Step | Definition |
+|------|------------|
+| Warm-up | 100 process cycles executed and discarded |
+| Baseline | Working-set size sampled after warm-up |
+| Measurement | 1000 further process cycles |
+| Pass criterion | Working-set growth over the 1000 cycles < 1 MB |
+| Sensitivity probe | A deliberate 4096 B/cycle leak is injected and must be detected by the same harness |
+
+AddressSanitizer (`/fsanitize=address`) is used as an **ad-hoc verification method** in QA scratch
+builds to localise leaks found by G3. It is not a CMake build option of this project and is not part
+of the standard build configuration.
 
 ---
 
@@ -165,6 +256,14 @@ modules/enhance_advanced/tests/
 | BP-06-MFP | Standard radiograph (3072x3072) | Reference output baseline | Output matches frozen manifest hash |
 | BP-06-MFP-noisy | Synthetic noisy image | Noise resilience | SNR improvement verified |
 
+#### RTM Cross-Reference (SWU-2.5)
+
+Traced in `docs/project/rtm_adv.md` (RTM-ADV-001) **§4 SWU-2.5: Multiscale Frequency Processing**.
+Requirement rows covered by this section: REQ-ADV-010, REQ-ADV-050, REQ-ADV-032, REQ-ADV-022,
+REQ-ADV-070, REQ-ADV-100, REQ-ADV-071, REQ-ADV-090, REQ-ADV-031. Those rows carry
+`XPE-VVP-P2ADV-001 §4.1` in their **VVP Ref** column; the link is bidirectional and any change to
+this section requires the matching RTM rows to be re-checked.
+
 ---
 
 ### 4.2 SWU-2.6: Fractional-Order Edge Enhancement
@@ -207,6 +306,13 @@ modules/enhance_advanced/tests/
 |---|---|---|
 | BP-06-FDE | Fractional edge enhancement | Output matches frozen manifest |
 | BP-06-FDE-artifact | Synthetic edge (sharp transition) | No halo/ringing artifacts detected |
+
+#### RTM Cross-Reference (SWU-2.6)
+
+Traced in `docs/project/rtm_adv.md` **§5 SWU-2.6: Fractional-Order Edge Enhancement**.
+Requirement rows covered: REQ-ADV-011, REQ-ADV-021, REQ-ADV-051, REQ-ADV-032, REQ-ADV-022,
+REQ-ADV-100, REQ-ADV-071, REQ-ADV-090. Those rows carry `XPE-VVP-P2ADV-001 §4.2` in their
+**VVP Ref** column.
 
 ---
 
@@ -252,6 +358,12 @@ modules/enhance_advanced/tests/
 | BP-06-ROI | Standard collimator image | ROI bounds match reference within 2 pixels |
 | BP-06-ROI-edge | Marginal collimation (edge-aligned) | Correctly identifies which edges present |
 
+#### RTM Cross-Reference (SWU-2.8)
+
+Traced in `docs/project/rtm_adv.md` **§6 SWU-2.8: Collimation ROI Detection**.
+Requirement rows covered: REQ-ADV-052, REQ-ADV-041, REQ-ADV-022, REQ-ADV-100, REQ-ADV-071,
+REQ-ADV-012, REQ-ADV-090. Those rows carry `XPE-VVP-P2ADV-001 §4.3` in their **VVP Ref** column.
+
 ---
 
 ### 4.4 SWU-2.10: Exposure Index Refinement (ROI Variant)
@@ -296,6 +408,16 @@ modules/enhance_advanced/tests/
 | BP-08 (EI baseline) | Full range exposure tests | DI within [-3, +3] for valid exposures |
 | BP-09 (EI edge cases) | Over/under-exposure scenarios | Correct warning/reject logic applied |
 
+#### RTM Cross-Reference (SWU-2.10)
+
+Traced in `docs/project/rtm_adv.md` **§7 SWU-2.10: Exposure Index Calculation**.
+Requirement rows covered: REQ-ADV-013, REQ-ADV-022, REQ-ADV-071, REQ-ADV-070. Those rows carry
+`XPE-VVP-P2ADV-001 §4.4` in their **VVP Ref** column.
+
+Cross-SWU rows in `rtm_adv.md` §8 map to §4.1.3 (pipeline integration) and §8 (error handling and
+graceful degradation) of this plan; RTM §2 (lifecycle) and §3 (not-initialized guard) have **no**
+covering section in this plan and are recorded as `—` pending a lifecycle verification section.
+
 ---
 
 ## 5. Validation Evidence
@@ -306,7 +428,7 @@ Upon completion of Run phase (implementation), validation evidence includes:
 
 | Evidence Type | Location | Acceptance Criteria |
 |---|---|---|
-| Google Test output | `build/test_results/` | All 65 tests pass (0 failures) |
+| Google Test output | `build/test_results/` | All 196 unit-test cases pass (0 failures) |
 | Code coverage report | `build/coverage/` | >= 85% statement and branch coverage |
 | Benchmark output hashes | `.moai/specs/SPEC-XPE-P2-ADV/benchmarks/` | Match frozen manifest values |
 | Performance log | `build/perf_results/` | Each SWU within performance budgets |
@@ -352,11 +474,16 @@ Prior to product release, SWU-2.5 and SWU-2.6 require clinical evidence:
 
 (Abbreviated for space; full matrix available in SPEC-XPE-P2-ADV Appendix C)
 
+The authoritative requirement→implementation→test matrix for this module is
+`docs/project/rtm_adv.md` (RTM-ADV-001). Since RTM-ADV-001 v1.4.0 each requirement row carries a
+**VVP Ref** column naming the section of this document that verifies it, which closes the
+IEC 62304 §5.7.4 SRS→test mapping loop in both directions.
+
 ### 6.2 Quality Attributes Traceability
 
 | Quality Attribute | TRUST 5 Pillar | Verification Method |
 |---|---|---|
-| Correctness | Tested | 65 unit tests, benchmark processing, algorithm validation |
+| Correctness | Tested | 196 unit-test cases (§3.1), benchmark processing, algorithm validation |
 | Clarity | Readable | Code review, Doxygen documentation generation |
 | Consistency | Unified | clang-format compliance, naming conventions |
 | Security | Secured | Input validation testing, buffer boundary checks, static analysis |
@@ -422,16 +549,16 @@ Prior to product release, SWU-2.5 and SWU-2.6 require clinical evidence:
 
 ### 9.1 Test File Locations
 
-```
-modules/enhance_advanced/tests/
-├── test_mfp.cpp              (18 tests)
-├── test_fractional_edge.cpp  (16 tests)
-├── test_roi_detect.cpp       (15 tests)
-├── test_exposure_index.cpp   (12 tests)
-└── test_advanced_integration.cpp (8 tests)
+See §3.2 for the authoritative per-file inventory. Summary by SWU:
 
-Total: 65 tests
-```
+| SWU | Files | Cases |
+|-----|-------|------:|
+| SWU-2.5 | `test_mfp_scalar.cpp`, `test_mfp_scalar_ext.cpp` | 31 |
+| SWU-2.6 | `test_edge_enhancement.cpp`, `test_edge_enhancement_ext.cpp` | 32 |
+| SWU-2.8 | `test_collimation_detect.cpp`, `test_collimation_detect_ext.cpp` | 26 |
+| SWU-2.10 | `test_exposure_index.cpp`, `test_exposure_index_ext.cpp` | 24 |
+| Cross-cutting | `test_lifecycle*.cpp`, `test_coverage_ext.cpp`, `test_api_header*.cpp`, `test_integration*.cpp` | 83 |
+| **Total** | **15 files** | **196** |
 
 ### 9.2 Test Execution Command
 
@@ -445,11 +572,14 @@ cmake --build . --config Release --target test
 ### 9.3 Coverage Report Generation
 
 ```bash
-# Enable coverage during build
-cmake -DCMAKE_BUILD_TYPE=Coverage ..
-cmake --build . --target coverage
-# Report available in build/coverage/index.html
+# Post-processing coverage preset (includes xpe_enhance_advanced)
+cmake --preset coverage-post
+cmake --build --preset coverage-post --target coverage
+cmake --build --preset coverage-post --target coverage_check   # fails below XPE_COVERAGE_MIN
 ```
+
+`coverage_check` compares the `coverage.xml` line-rate against `XPE_COVERAGE_MIN` (0.85). The
+coverage run excludes timing-budget tests via `XPE_COVERAGE_EXCLUDE_TESTS` — see §3.3.3.
 
 ---
 
@@ -469,14 +599,15 @@ cmake --build . --target coverage
 
 Verification and validation is complete when:
 
-1. ✓ All 65 unit tests pass (zero failures)
-2. ✓ Code coverage >= 85% for all SWUs
+1. ✓ All 196 unit-test cases pass (zero failures)
+2. ✓ Code coverage >= 85% (`XPE_COVERAGE_MIN`) — measured state as of 2026-09-10 in §3.3.2
 3. ✓ Performance budgets met for all functions
 4. ✓ No critical defects in code review
 5. ✓ IEC 62304 traceability matrix complete and verified
 6. ✓ Benchmark processing results match frozen manifest
 7. ✓ Algorithm validation evidence collected (L4 tests + benchmark data)
 8. ✓ V&V documentation complete and reviewed
+9. ✓ Memory-leak gate G3 passed for this module (§3.3.4)
 
 ---
 
@@ -504,6 +635,7 @@ After product release, validation continues via:
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-21 | XPE Documentation | Initial V&V Plan for xpe_enhance_advanced.dll, 65 tests, IEC 62304 Class B alignment |
+| 1.1.0 | 2026-09-10 | xpe-docs (issue #59) | §3.1/§3.2 corrected to the actual test inventory (15 files, 196 TEST/TEST_F cases) — the v1.0.0 "65 tests / 5 files" figures and filenames did not exist. Added §2.3 IEC 62304 §5.5/5.6/5.7 clause mapping of the six-level hierarchy. Added §3.3.2 measured coverage state (CI run 34414537575, `coverage` 0.649 FAIL / `coverage-post` 0.898 PASS), §3.3.3 timing-budget exclusion regex, §3.3.4 memory-leak gate G3. Added per-SWU RTM cross-reference subsections (§4.1–§4.4) and an RTM link in §6.1. Corrected test totals in §1.2, §2.1, §5.1, §6.2, §9.1, §10.2. |
 
 ---
 
@@ -520,4 +652,4 @@ After product release, validation continues via:
 
 ---
 
-**End of Document — XPE-VVP-P2ADV-001 v1.0.0**
+**End of Document — XPE-VVP-P2ADV-001 v1.1.0**

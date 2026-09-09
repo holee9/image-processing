@@ -5,9 +5,9 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | RTM-ADV-001 |
-| **Version** | 1.3.0 |
+| **Version** | 1.4.0 |
 | **Status** | Released |
-| **Date** | 2026-04-20 |
+| **Date** | 2026-09-10 |
 | **Author** | xpe-docs |
 | **IEC 62304 Class** | B |
 | **SPEC Reference** | SPEC-XPE-P2-ADV v1.0.0 |
@@ -20,8 +20,10 @@
 This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 - **Design reference**: SDD-ADV-001 section
 - **Implementation files**: Source code in `modules/enhance_advanced/`
-- **Test IDs**: Google Test cases in `tests/enhance_advanced_tests/`
+- **Test IDs**: Google Test cases in `modules/enhance_advanced/tests/`
 - **Verification status**: Written / Verified / Deferred
+- **VVP Ref**: the section of `docs/project/vvp_adv.md` (XPE-VVP-P2ADV-001) that defines the
+  verification method for the row. `—` means no VVP section currently covers the row.
 
 ### Status Legend
 
@@ -35,110 +37,110 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ## 2. Lifecycle and State Requirements
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-001 | Module initialization | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-001: InitWithNullConfigReturnsOK | Written |
-| REQ-ADV-001 | Module initialization (valid JSON) | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-002: InitWithValidJsonReturnsOK | Written |
-| REQ-ADV-001 | Module initialization (bad JSON) | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-003: InitWithMalformedJsonReturnsConfigInvalid | Written |
-| REQ-ADV-001 | Init idempotent | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-004: InitIdempotent | Written |
-| REQ-ADV-001 | Double shutdown safe | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-005: DoubleShutdownSafe | Written |
-| REQ-ADV-001 | Shutdown without init | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-006: ShutdownWithoutInitSafe | Written |
-| REQ-ADV-001 | Version returns non-null | SDD Sec 4.1 | `src/xpe_enhance_advanced.cpp` | TC-LC-007: VersionReturnsNonNull | Written |
-| REQ-ADV-001 | Version format "1.0.0" | SDD Sec 4.1 | `src/xpe_enhance_advanced.cpp` | TC-LC-008: VersionMatchesExpectedFormat | Written |
-| REQ-ADV-002 | P/Invoke ABI compliance | SDD Sec 4.2 | `include/xpe/enhance_advanced/enhance_advanced_api.h` | Static assert (compile-time) | Verified |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-001 | Module initialization | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-001: InitWithNullConfigReturnsOK | Written | — |
+| REQ-ADV-001 | Module initialization (valid JSON) | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-002: InitWithValidJsonReturnsOK | Written | — |
+| REQ-ADV-001 | Module initialization (bad JSON) | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-003: InitWithMalformedJsonReturnsConfigInvalid | Written | — |
+| REQ-ADV-001 | Init idempotent | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-004: InitIdempotent | Written | — |
+| REQ-ADV-001 | Double shutdown safe | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-005: DoubleShutdownSafe | Written | — |
+| REQ-ADV-001 | Shutdown without init | SDD Sec 5.2 | `src/xpe_enhance_advanced.cpp` | TC-LC-006: ShutdownWithoutInitSafe | Written | — |
+| REQ-ADV-001 | Version returns non-null | SDD Sec 4.1 | `src/xpe_enhance_advanced.cpp` | TC-LC-007: VersionReturnsNonNull | Written | — |
+| REQ-ADV-001 | Version format "1.0.0" | SDD Sec 4.1 | `src/xpe_enhance_advanced.cpp` | TC-LC-008: VersionMatchesExpectedFormat | Written | — |
+| REQ-ADV-002 | P/Invoke ABI compliance | SDD Sec 4.2 | `include/xpe/enhance_advanced/enhance_advanced_api.h` | Static assert (compile-time) | Verified | XPE-VVP-P2ADV-001 §2.1 (L2) |
 
 ---
 
 ## 3. Not-Initialized Guard
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-020 | Process without init returns NOT_INITIALIZED | SDD Sec 5.2 | All dispatch files | TC-INT-005a-d: ProcessWithoutInitReturnsNotInitialized (x4 functions) | Written |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-020 | Process without init returns NOT_INITIALIZED | SDD Sec 5.2 | All dispatch files | TC-INT-005a-d: ProcessWithoutInitReturnsNotInitialized (x4 functions) | Written | — |
 
 ---
 
 ## 4. SWU-2.5: Multiscale Frequency Processing
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-010 | MFP execution | SDD Sec 5.3 | `src/multiscale_process.cpp`, `src/mfp_scalar.cpp` | TC-MFP-003: NonIdentityConfigModifiesOutput, TC-MFP-004: BodyPartDefaultConfigSucceeds | Written |
-| REQ-ADV-050 | Identity reconstruction (constant) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-001: IdentityReconstructionConstantImage | Verified |
-| REQ-ADV-050 | Identity reconstruction (gradient) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-002: IdentityReconstructionGradientImage | Verified |
-| REQ-ADV-032 | No NaN/Inf in output | SDD Sec 6.1 | `src/mfp_scalar.cpp` | TC-MFP-005: NoNaNOrInfInOutput, TC-MFP-006: NaNInputHandledGracefully | Written |
-| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-007: NullImageReturnsInvalidInput | Written |
-| REQ-ADV-022 | NULL meta returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-008: NullMetaReturnsInvalidInput | Written |
-| REQ-ADV-070 | Zero width returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-009: ZeroWidthReturnsInvalidInput | Written |
-| REQ-ADV-070 | Zero height returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-010: ZeroHeightReturnsInvalidInput | Written |
-| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-011: OneByOneImageReturnsInvalidInput | Written |
-| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-012: Uint16FormatReturnsUnsupportedFormat | Written |
-| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-014: IdenticalInputProducesIdenticalOutput | Written |
-| REQ-ADV-031 | Multiple calls stable | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-015: MultipleSequentialCallsStable | Written |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-010 | MFP execution | SDD Sec 5.3 | `src/multiscale_process.cpp`, `src/mfp_scalar.cpp` | TC-MFP-003: NonIdentityConfigModifiesOutput, TC-MFP-004: BodyPartDefaultConfigSucceeds | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-050 | Identity reconstruction (constant) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-001: IdentityReconstructionConstantImage | Verified | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-050 | Identity reconstruction (gradient) | SDD Sec 5.3 | `src/mfp_scalar.cpp` | TC-MFP-002: IdentityReconstructionGradientImage | Verified | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-032 | No NaN/Inf in output | SDD Sec 6.1 | `src/mfp_scalar.cpp` | TC-MFP-005: NoNaNOrInfInOutput, TC-MFP-006: NaNInputHandledGracefully | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-007: NullImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-022 | NULL meta returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-008: NullMetaReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-070 | Zero width returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-009: ZeroWidthReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-070 | Zero height returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-010: ZeroHeightReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-011: OneByOneImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/multiscale_process.cpp` | TC-MFP-012: Uint16FormatReturnsUnsupportedFormat | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-014: IdenticalInputProducesIdenticalOutput | Written | XPE-VVP-P2ADV-001 §4.1 |
+| REQ-ADV-031 | Multiple calls stable | SDD Sec 5.2 | `src/multiscale_process.cpp` | TC-MFP-015: MultipleSequentialCallsStable | Written | XPE-VVP-P2ADV-001 §4.1 |
 
 ---
 
 ## 5. SWU-2.6: Fractional-Order Edge Enhancement
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-011 | Fractional process execution (order=0.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-001: OrderZeroSucceeds | Written |
-| REQ-ADV-011 | Fractional process execution (order=1.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-002: OrderOneSucceeds | Written |
-| REQ-ADV-011 | Fractional process execution (order=2.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-003: OrderTwoSucceeds | Written |
-| REQ-ADV-011 | Fractional process execution (order=0.5) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-004: OrderHalfSucceeds | Written |
-| REQ-ADV-011 | Fractional process execution (order=1.5) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-005: OrderOnePointFiveSucceeds | Written |
-| REQ-ADV-021 | Negative order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-007: OrderNegativeReturnsInvalidInput | Written |
-| REQ-ADV-021 | Order > 2.0 returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-008: OrderAboveTwoReturnsInvalidInput | Written |
-| REQ-ADV-021 | Large negative order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-009: OrderLargeNegativeReturnsInvalidInput | Written |
-| REQ-ADV-021 | Large positive order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-010: OrderLargePositiveReturnsInvalidInput | Written |
-| REQ-ADV-051 | Overshoot limiting enforced (SAF-100) | SDD Sec 5.4 | `src/fractional_derivative.cpp` | TC-FRAC-011: OvershootLimitingEnforced | Written |
-| REQ-ADV-051 | Uniform image preserved | SDD Sec 5.4 | `src/fractional_derivative.cpp` | TC-FRAC-012: UniformImagePreserved | Written |
-| REQ-ADV-032 | No NaN/Inf in output | SDD Sec 6.1 | `src/fractional_derivative.cpp` | TC-FRAC-013: NoNaNOrInfInOutput | Written |
-| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-016: NullImageReturnsInvalidInput | Written |
-| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-017: OneByOneImageReturnsInvalidInput | Written |
-| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-018: Uint16FormatReturnsUnsupportedFormat | Written |
-| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/fractional_process.cpp` | TC-FRAC-019: IdenticalInputProducesIdenticalOutput | Written |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-011 | Fractional process execution (order=0.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-001: OrderZeroSucceeds | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-011 | Fractional process execution (order=1.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-002: OrderOneSucceeds | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-011 | Fractional process execution (order=2.0) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-003: OrderTwoSucceeds | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-011 | Fractional process execution (order=0.5) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-004: OrderHalfSucceeds | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-011 | Fractional process execution (order=1.5) | SDD Sec 5.4 | `src/fractional_process.cpp`, `src/fractional_derivative.cpp` | TC-FRAC-005: OrderOnePointFiveSucceeds | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-021 | Negative order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-007: OrderNegativeReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-021 | Order > 2.0 returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-008: OrderAboveTwoReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-021 | Large negative order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-009: OrderLargeNegativeReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-021 | Large positive order returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-010: OrderLargePositiveReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-051 | Overshoot limiting enforced (SAF-100) | SDD Sec 5.4 | `src/fractional_derivative.cpp` | TC-FRAC-011: OvershootLimitingEnforced | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-051 | Uniform image preserved | SDD Sec 5.4 | `src/fractional_derivative.cpp` | TC-FRAC-012: UniformImagePreserved | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-032 | No NaN/Inf in output | SDD Sec 6.1 | `src/fractional_derivative.cpp` | TC-FRAC-013: NoNaNOrInfInOutput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-016: NullImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-017: OneByOneImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/fractional_process.cpp` | TC-FRAC-018: Uint16FormatReturnsUnsupportedFormat | Written | XPE-VVP-P2ADV-001 §4.2 |
+| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/fractional_process.cpp` | TC-FRAC-019: IdenticalInputProducesIdenticalOutput | Written | XPE-VVP-P2ADV-001 §4.2 |
 
 ---
 
 ## 6. SWU-2.8: Collimation ROI Detection
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-052 | Sharp rect collimation detected (+-3px) | SDD Sec 5.5 | `src/collimation_detect.cpp`, `src/detail/hough_transform.cpp` | TC-COL-001: SharpRectCollimationDetected | Written |
-| REQ-ADV-052 | Off-center collimation detected | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-002: OffCenterCollimationDetected | Written |
-| REQ-ADV-041 | Uniform image returns full extent (fallback) | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-003: UniformImageReturnsFullExtent | Written |
-| REQ-ADV-041 | Small rectangle fallback | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-004: SmallRectangleFallbackCheck | Written |
-| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-006: NullImageReturnsInvalidInput | Written |
-| REQ-ADV-022 | NULL output pointer returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-007: NullX0/Y0/X1/Y1ReturnsInvalidInput | Written |
-| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-009: OneByOneImageReturnsInvalidInput | Written |
-| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-008: Uint16FormatReturnsUnsupportedFormat | Written |
-| REQ-ADV-012 | Does not modify input image | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-010: DoesNotModifyInputImage | Written |
-| REQ-ADV-012 | Output coordinates within bounds | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-012: OutputCoordinatesWithinBounds | Written |
-| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/collimation_detect.cpp` | TC-COL-011: IdenticalInputProducesIdenticalOutput | Written |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-052 | Sharp rect collimation detected (+-3px) | SDD Sec 5.5 | `src/collimation_detect.cpp`, `src/detail/hough_transform.cpp` | TC-COL-001: SharpRectCollimationDetected | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-052 | Off-center collimation detected | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-002: OffCenterCollimationDetected | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-041 | Uniform image returns full extent (fallback) | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-003: UniformImageReturnsFullExtent | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-041 | Small rectangle fallback | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-004: SmallRectangleFallbackCheck | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-022 | NULL image returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-006: NullImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-022 | NULL output pointer returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-007: NullX0/Y0/X1/Y1ReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-100 | 1x1 image returns INVALID_INPUT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-009: OneByOneImageReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/collimation_detect.cpp` | TC-COL-008: Uint16FormatReturnsUnsupportedFormat | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-012 | Does not modify input image | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-010: DoesNotModifyInputImage | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-012 | Output coordinates within bounds | SDD Sec 5.5 | `src/collimation_detect.cpp` | TC-COL-012: OutputCoordinatesWithinBounds | Written | XPE-VVP-P2ADV-001 §4.3 |
+| REQ-ADV-090 | Deterministic output | SDD Sec 5.2 | `src/collimation_detect.cpp` | TC-COL-011: IdenticalInputProducesIdenticalOutput | Written | XPE-VVP-P2ADV-001 §4.3 |
 
 ---
 
 ## 7. SWU-2.10: Exposure Index Calculation
 
-| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status |
-|--------|------------|---------|---------------------|----------|--------|
-| REQ-ADV-013 | Valid input returns positive EI | SDD Sec 5.6 | `src/xpe_enhance_advanced.cpp`, `src/exposure_index.cpp` | TC-EI-002: ValidInputReturnsPositiveEI | Written |
-| REQ-ADV-013 | Different body parts different EI targets | SDD Sec 5.6 | `src/exposure_index.cpp` | TC-EI-003: DifferentBodyPartsDifferentEITargets | Written |
-| REQ-ADV-022 | NULL ptrs return INVALID_INPUT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-001: NullImage/Meta/EiOut/DiOutReturnsInvalidInput | Written |
-| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-003: Uint16FormatReturnsUnsupportedFormat | Written |
-| REQ-ADV-070 | Zero dimension returns INVALID_INPUT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-004: ZeroDimensionReturnsInvalidInput | Written |
+| Req ID | Requirement | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|---------------------|----------|--------|--------|
+| REQ-ADV-013 | Valid input returns positive EI | SDD Sec 5.6 | `src/xpe_enhance_advanced.cpp`, `src/exposure_index.cpp` | TC-EI-002: ValidInputReturnsPositiveEI | Written | XPE-VVP-P2ADV-001 §4.4 |
+| REQ-ADV-013 | Different body parts different EI targets | SDD Sec 5.6 | `src/exposure_index.cpp` | TC-EI-003: DifferentBodyPartsDifferentEITargets | Written | XPE-VVP-P2ADV-001 §4.4 |
+| REQ-ADV-022 | NULL ptrs return INVALID_INPUT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-001: NullImage/Meta/EiOut/DiOutReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.4 |
+| REQ-ADV-071 | UINT16 returns UNSUPPORTED_FORMAT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-003: Uint16FormatReturnsUnsupportedFormat | Written | XPE-VVP-P2ADV-001 §4.4 |
+| REQ-ADV-070 | Zero dimension returns INVALID_INPUT | SDD Sec 6.1 | `src/xpe_enhance_advanced.cpp` | TC-EI-004: ZeroDimensionReturnsInvalidInput | Written | XPE-VVP-P2ADV-001 §4.4 |
 
 ---
 
 ## 8. Cross-SWU Integration Tests
 
-| Req ID | Requirement | SDD Ref | Test IDs | Status |
-|--------|------------|---------|----------|--------|
-| REQ-ADV-062 | MFP then fractional pipeline | SDD Sec 7.1 | TC-INT-001: MfpThenFractionalPipeline | Written |
-| REQ-ADV-062 | Full pipeline with collimation and EI | SDD Sec 7.1 | TC-INT-002: FullPipelineWithCollimationAndEI | Written |
-| REQ-ADV-031 | Multiple pipelines stable (5 iterations) | SDD Sec 7.1 | TC-INT-003: MultiplePipelinesStable | Written |
-| REQ-ADV-031 | Repeated processing no leak (20 iterations) | SDD Sec 7.1 | TC-INT-004: RepeatedProcessingNoLeak | Written |
-| REQ-ADV-030 | Exception boundary no crash | SDD Sec 6.2 | TC-INT-005: ExceptionBoundaryNoCrash | Written |
-| REQ-ADV-090 | Sequential processing deterministic | SDD Sec 5.2 | TC-INT-006: SequentialProcessingDeterministic | Written |
+| Req ID | Requirement | SDD Ref | Test IDs | Status | **VVP Ref** |
+|--------|------------|---------|----------|--------|--------|
+| REQ-ADV-062 | MFP then fractional pipeline | SDD Sec 7.1 | TC-INT-001: MfpThenFractionalPipeline | Written | XPE-VVP-P2ADV-001 §4.1.3 |
+| REQ-ADV-062 | Full pipeline with collimation and EI | SDD Sec 7.1 | TC-INT-002: FullPipelineWithCollimationAndEI | Written | XPE-VVP-P2ADV-001 §4.1.3 |
+| REQ-ADV-031 | Multiple pipelines stable (5 iterations) | SDD Sec 7.1 | TC-INT-003: MultiplePipelinesStable | Written | — |
+| REQ-ADV-031 | Repeated processing no leak (20 iterations) | SDD Sec 7.1 | TC-INT-004: RepeatedProcessingNoLeak | Written | — |
+| REQ-ADV-030 | Exception boundary no crash | SDD Sec 6.2 | TC-INT-005: ExceptionBoundaryNoCrash | Written | XPE-VVP-P2ADV-001 §8.1 |
+| REQ-ADV-090 | Sequential processing deterministic | SDD Sec 5.2 | TC-INT-006: SequentialProcessingDeterministic | Written | XPE-VVP-P2ADV-001 §4.1.3 |
 
 ---
 
@@ -213,6 +215,17 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 ---
 
 ## 11. Change Log from Previous Versions
+
+### Version 1.4.0 (2026-09-10) — VVP Traceability Column (issue #59)
+
+- Added a **VVP Ref** column to §2–§8, naming the `XPE-VVP-P2ADV-001` section that verifies each row.
+  This closes the IEC 62304 §5.7.4 SRS→test mapping in both directions.
+- Rows recorded as `—` (no covering VVP section): §2 lifecycle rows REQ-ADV-001 (×8) and §3
+  REQ-ADV-020 (not-initialized guard); §8 REQ-ADV-031 (pipeline stability / no-leak, ×2). The
+  matching VVP §4.4 note records the same gap.
+- §1 test path corrected to `modules/enhance_advanced/tests/`.
+- Not changed in this revision: §10 coverage-summary totals still carry the 65-test figure, which
+  the measured inventory (196 cases, VVP §3.1) contradicts. Tracked separately.
 
 ### Version 1.3.0 (2026-04-20) -- Phase B(2) Complete: Collimation & Edge Enhancement Fixes
 
@@ -317,4 +330,4 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ---
 
-*Document End -- RTM-ADV-001 v1.3.0*
+*Document End -- RTM-ADV-001 v1.4.0*

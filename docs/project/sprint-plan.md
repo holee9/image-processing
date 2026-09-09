@@ -1,8 +1,8 @@
 ﻿# XPE Sprint-Level Decomposition Plan
 
 **Document ID**: XPE-SPRINT-PLAN-001
-**Version**: 1.7.0
-**Date**: 2026-05-09
+**Version**: 1.7.1
+**Date**: 2026-09-10
 **Source**: SPEC-XPE-MASTER v2.1.0, api-spec.md v1.3.0, pipeline-spec.md v1.5.0, xpe-algorithm-spec-deepsync.md v3.2.0-ds4, xpe-implementation-reference.md v1.2.0, XPE-Brainstorming-DeepSync-Execution.md v1.0.0
 **Total Sprints**: 29
 **Changelog**:
@@ -14,6 +14,7 @@
 - v1.5.0 -> v1.6.0: Test GUI evolution policy added. Early diagnostic-first health panels are transitional; release-level ImageProcTest shall be workflow-first with Diagnostics, Metrics, Reports, and Help as dedicated areas.
 - v1.6.0 -> v1.6.1 (2026-04-21): Gate status update — G0/G1a PASSED, G1b 구현 완료(성능 측정 대기), P2-ADV 65/65 전수 GREEN 반영.
 - v1.6.1 -> v1.7.0 (2026-05-09): Gate G1b→G2 ✅ PASSED — 전체 항목 실측 완료. 파이프라인 173ms/3000ms, VOI LUT 10ms/16ms, EI/DI IEC 62494-1 PASS, GSDF PASS, 메모리 54MB/190MB. ci-fullstack preset 추가. CompilerWarnings.cmake D9025 수정, E2E 메모리 측정 테스트 추가 (281/281 GREEN).
+- v1.7.0 -> v1.7.1 (2026-09-10, issue #59): P0-07 의 xpe_common export 개수 정정 — Acceptance Criteria 9 (18개) 와 Test Case 7 (15개) 를 모두 **16개**로 통일. 근거: REQ-P0-008 개정 (2026-09-09, #111), `docs/project/api-spec.md:390`.
 
 ---
 
@@ -503,7 +504,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 6. All 9 module directories created: `modules/preprocess/`, `modules/enhance_basic/`, `modules/enhance_advanced/`, `modules/display/`, `modules/dicom/`, `modules/ai/`, `modules/gsvg/`, `modules/common/`, `tests/`
 7. Each module directory has a stub `CMakeLists.txt` with correct target name
 8. `xpe_common_api.h` includes all 18 API functions and compiles as standalone header
-9. `dumpbin /exports xpe_common.dll` shows exactly 18 exported symbols
+9. `dumpbin /exports xpe_common.dll` shows exactly 16 exported symbols (REQ-P0-008 as revised 2026-09-09, #111)
 
 **Test Cases**:
 1. Launch with `xpe_common.dll` present → status bar shows real version string (matches `xpe_version()` output, format `X.Y.Z`)
@@ -512,7 +513,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 4. P/Invoke: `xpe_init(null)` then `xpe_shutdown()` → no crash, no leak
 5. P/Invoke: `xpe_log_set_level(2)` → `XPE_OK`; log panel shows DLL log output
 6. Verify all 9 module dirs exist: `ls modules/*/CMakeLists.txt` returns 9 files (including common)
-7. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 15 (base functions, no AED)
+7. `dumpbin /exports xpe_common.dll | grep -c "xpe_"` == 16 (REQ-P0-008 as revised 2026-09-09, #111)
 8. `Marshal.SizeOf<XpeImageBuffer>()` == 40; `Marshal.SizeOf<XpeImageMetadata>()` == 96
 
 **Definition of Done**:
@@ -1536,4 +1537,4 @@ Sprint fails validation
 
 ---
 
-*Document End -- XPE-SPRINT-PLAN-001 v1.1.0*
+*Document End -- XPE-SPRINT-PLAN-001 v1.7.1*

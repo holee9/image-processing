@@ -1,9 +1,23 @@
+> # ⛔ SUPERSEDED — 2026-09-10
+>
+> 이 문서는 **2026-09-10 부로 폐기(superseded)** 되었으며, 더 이상 통제 문서가 아니다.
+> P1B(ENH/DISP/DICOM) 모듈의 유효한 V&V 계획은
+> **`docs/post-processing/xpe/VVP-P1B-001.md` (v1.1.0 이상)** 하나뿐이다.
+> 본 문서의 §6 P/Invoke ABI 경계 검증은 VVP-P1B-001 §5.4 로, §9 검증 완료 기준은 §8.2 로
+> 병합되었다. 본문의 테스트 개수(67/48/35 = 150)와 파일명
+> (`test_dicom_network.cpp`, `test_dicom_integration.cpp` 등)은 소스 트리와 일치하지 않는
+> 계획 수치이며, 실측치(92/63/47 = 202)는 VVP-P1B-001 §2, §4.1 에 있다.
+> 아래 본문은 이력 보존 목적으로만 남겨 두며, 어떤 규제 증거로도 인용하지 않는다.
+> (issue #59)
+
+---
+
 # 검증 및 검증 계획 xpe_enhance_basic.dll, xpe_display.dll, xpe_dicom.dll
 
 **문서 ID**: XPE-VVP-P1B-001  
-**버전**: 1.0.0  
-**날짜**: 2026-04-22  
-**상태**: 제어 초안  
+**버전**: 1.0.1 (SUPERSEDED)  
+**날짜**: 2026-04-22 (폐기: 2026-09-10)  
+**상태**: 폐기됨 — `docs/post-processing/xpe/VVP-P1B-001.md` 로 대체  
 **분류**: 내부 / IEC 62304 준수  
 **안전 분류**: IEC 62304 Class B  
 **모듈**: xpe_enhance_basic.dll, xpe_display.dll, xpe_dicom.dll  
@@ -427,6 +441,7 @@ V&V가 완료된 것으로 간주되는 조건:
 | 버전 | 날짜 | 작성자 | 설명 |
 |------|------|--------|------|
 | 1.0.0 | 2026-04-22 | XPE QA Team | Phase 1B 모듈 VVP 추가 문서 생성 (150 테스트, IEC 62304 Class B 준수) |
+| 1.0.1 | 2026-09-10 | xpe-docs (issue #59) | 폐기 처리. 내용은 `docs/post-processing/xpe/VVP-P1B-001.md` v1.1.0 으로 통합(§6→§5.4, §9→§8.2). 본문 테스트 개수·파일명은 실측과 불일치하므로 인용 금지. 본문은 이력 보존을 위해 삭제하지 않음. |
 
 ---
 

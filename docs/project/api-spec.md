@@ -65,6 +65,8 @@ typedef struct XpeImageBuffer {
 - `dataSize != 0` and `dataSize < width × height × bytesPerPixel(format)` yields `XPE_ERR_INVALID_INPUT` (content validation, precedence class 2). A larger `dataSize` is accepted.
 - `data == NULL` yields `XPE_ERR_INVALID_INPUT` regardless of `dataSize` (precedence class 1).
 
+**Output buffers are not covered by this rule.** A caller-provided output `XpeImageBuffer` is written to, so its `dataSize` MUST be populated; an output `dataSize` smaller than the required byte count yields `XPE_ERR_BUFFER_TOO_SMALL`, and `0` is not treated as unspecified (leader decision 2026-09-10, QA-A-17).
+
 `bytesPerPixel` is 2 for `XPE_PIXEL_UINT16` and 4 for `XPE_PIXEL_FLOAT32`. Rationale: a non-NULL buffer smaller than its declared dimensions reads past its allocation (QA-B-18); `0` stays accepted because existing callers do not populate the field.
 
 typedef struct XpeImageMetadata {

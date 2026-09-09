@@ -1,9 +1,9 @@
 # Software Verification & Validation Plan
 
-**Document ID:** XPE-VVP-001 v1.1  
+**Document ID:** XPE-VVP-001 v1.3  
 **IEC 62304 Clause:** 5.5.1 — 5.5.5, 5.6.1 — 5.6.7, 5.7.1 — 5.7.5  
 **Safety Classification:** Class B  
-**Date:** 2026-04-15  
+**Date:** 2026-09-10  
 **Author:** XPE Development Team  
 **Approval:** __________________ Date: __________
 
@@ -226,9 +226,32 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 
 | Addendum | Scope | Document | Status |
 |----------|-------|----------|--------|
-| VVP-PREPROCESS-001 | Pre Lane (P1A: offset/gain/defect/SIMD) | `docs/post-processing/xpe/preprocess/VVP-PREPROCESS-001.md` | v1.1.0 |
-| VVP-P1B-001 | P1B Post-Processing (ENH/DISP/DICOM) | `docs/post-processing/xpe/VVP-P1B-001.md` | v1.0.0 |
-| XPE-VVP-P2ADV-001 | Advanced Post-Processing (P2-ADV) | `docs/project/vvp_adv.md` | v1.0.0 |
+| VVP-PREPROCESS-001 | Pre Lane (P1A: offset/gain/defect/SIMD) | `docs/post-processing/xpe/preprocess/VVP-PREPROCESS-001.md` | v1.2.0 |
+| VVP-P1B-001 | P1B Post-Processing (ENH/DISP/DICOM) | `docs/post-processing/xpe/VVP-P1B-001.md` | v1.1.0 |
+| XPE-VVP-P2ADV-001 | Advanced Post-Processing (P2-ADV) | `docs/project/vvp_adv.md` | v1.1.0 |
+
+Superseded: `docs/project/vvp-p1b-001-addendum.md` (Korean P1B draft) — 폐기 2026-09-10, 내용은
+VVP-P1B-001 v1.1.0 으로 병합. 규제 증거로 인용 금지.
+
+Lanes without a VVP addendum: `xpe_ai` (Phase 3, RTM-AI-001 만 존재), `xpe_gsvg` (R2 도달 시),
+ghost/lag correction (검증 계획은 `docs/ghost-correction/stp_stc_ghost_correction.md` STP/STC 가
+담당).
+
+## Verification Gate Status (measured 2026-09-10)
+
+측정값이며 목표치가 아니다. 커버리지 게이트 임계값은 DLL 당 line-rate
+`XPE_COVERAGE_MIN` = 0.85 (`cmake/XpeCoverage.cmake:22`, REQ-P0-006).
+
+| Gate | Scope | Definition | Measured state | Source |
+|------|-------|-----------|----------------|--------|
+| Coverage (`coverage` preset) | xpe_common, xpe_preprocess | line-rate ≥ 0.85 | **0.649 — FAIL** | CI workflow_dispatch run `34414537575`, 2026-09-10 |
+| Coverage (`coverage-post` preset) | xpe_common, xpe_gsvg, xpe_enhance_basic, xpe_enhance_advanced, xpe_display | line-rate ≥ 0.85 | **0.898 — PASS** | 동일 run |
+| Coverage (xpe_dicom, xpe_ai) | — | line-rate ≥ 0.85 | **미측정** — 어느 preset 에도 포함되지 않음 | — |
+| Timing-budget exclusion | 두 preset 공통 | ctest `-E "Performance\|Within[0-9]+ms\|PerformanceBudget\|LargeImagePerformance"` (`XPE_COVERAGE_EXCLUDE_TESTS`, `cmake/XpeCoverage.cmake:29`) | 적용 중 — 성능 예산은 커버리지 run 으로 검증되지 않음 | `cmake/XpeCoverage.cmake` |
+| G3 memory-leak gate | 7개 모듈 전체 | warm-up 100 cycle → baseline → 1000 cycle, working-set 증가 < 1 MB, 4096 B/cycle 주입 누수 민감도 프로브 | issue #105 종료 2026-09-10 | issue #105 |
+
+검증 증거 수집 시 AddressSanitizer(`/fsanitize=address`)는 QA 카드 스크래치 빌드에서
+누수 위치 특정용 **임시 검증 수단**으로 사용한다. 본 프로젝트의 CMake 빌드 옵션이 아니다.
 
 ## Revision History
 
@@ -238,7 +261,8 @@ System test procedure는 formal review로 검증한다. SRS → ST 1:1 매핑 �
 | 1.1 | 2026-04-15 | XPE Team | §4.1.1 Algorithm V&V References 추가 (XPE-ALG-001 v1.5 GAP-AS~BB 10건). SWU-18.0/1.12/1.13/9.10/9.11/14.2/11.5/5.5/17.2/12.10 검증 기준 참조. |
 | 1.2 | 2026-04-15 | XPE Team | §4.1.2 Algorithm V&V References 추가 (XPE-ALG-001 v1.6 GAP-BC~BL 10건). SWU-9.12/17.3/1.14/1.15/19.0/8.3.2/2.9/10.9/12.11/9.13 검증 기준 참조. |
 | 1.2 | 2026-04-22 | main | Addendum Registry 추가 (VVP-PREPROCESS-001, VVP-P1B-001, XPE-VVP-P2ADV-001). |
+| 1.3 | 2026-09-10 | xpe-docs (issue #59) | Addendum Registry 버전 정정 (VVP-PREPROCESS-001 v1.1.0→v1.2.0, VVP-P1B-001 →v1.1.0, XPE-VVP-P2ADV-001 →v1.1.0). 폐기 문서·VVP 미보유 lane 명시. "Verification Gate Status" 절 신설 — 커버리지 실측(0.649 FAIL / 0.898 PASS, CI run 34414537575), timing-budget 제외 정규식, G3 누수 게이트(#105). 헤더 버전 표기가 v1.1 로 고착되어 있던 문제도 정정. |
 
 ---
 
-*Document End — XPE-VVP-001 v1.2*
+*Document End — XPE-VVP-001 v1.3*
