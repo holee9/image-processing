@@ -433,7 +433,7 @@ The SPEC-XPE-P2-ADV implementation has been completed across all planned phases:
 ### 5.1 Implemented Features
 
 #### Multiscale Frequency Processing (SWU-2.5)
-- ✅ Laplacian pyramid decomposition with 4 levels (configurable 2-8)
+- ✅ Laplacian pyramid decomposition with 4 levels (configurable 2-8; the effective count is clamped to floor(log2(min(w,h)))+1 so the coarsest level is ≥ 1 px — HAZ-ADV-009, #121)
 - ✅ Body-part adaptive enhancement coefficients
 - ✅ Per-band enhancement with edge/texture/flat gains
 - ✅ Identity reconstruction verification (max error < 1e-5)

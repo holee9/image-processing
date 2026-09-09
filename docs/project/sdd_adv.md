@@ -193,7 +193,7 @@ tests/enhance_advanced_tests/
 
 | Parameter | Type | Range | Default |
 |-----------|------|-------|---------|
-| levels | int | 2-8 | 4 |
+| levels | int | 2-8, and ≤ floor(log2(min(w,h)))+1 (physical bound; clamped, #121) | 4 |
 | edge_gain | float | 0.0-5.0 | 1.5 |
 | texture_gain | float | 0.0-5.0 | 1.0 |
 | flat_gain | float | 0.0-5.0 | 0.8 |
