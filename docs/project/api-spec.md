@@ -55,8 +55,17 @@ typedef struct XpeImageBuffer {
     uint32_t       bitsStored;    /* Valid bit depth (e.g., 14) */
     XpePixelFormat format;        /* Pixel data type */
     void*          data;          /* Pixel data allocated via xpe_alloc_image */
-    size_t         dataSize;      /* Byte size of data buffer; max 64 MB (4096x4096x4) */
+    size_t         dataSize;      /* Byte size of data buffer; max 64 MB (4096x4096x4).
+                                     Input contract: see "XpeImageBuffer.dataSize on input" */
 } XpeImageBuffer;
+
+**`XpeImageBuffer.dataSize` on input (normative, 2026-09-10, #123).** Buffers returned by `xpe_alloc_image` always carry the exact byte size. A caller that builds the struct by hand MUST either zero-initialise it (`XpeImageBuffer img{};`) or fill every field; reading an entry point with an indeterminate `dataSize` is undefined behaviour. On input:
+
+- `dataSize == 0` means *unspecified*: the entry point trusts `width × height × bytesPerPixel(format)` and does not check the size (legacy behaviour).
+- `dataSize != 0` and `dataSize < width × height × bytesPerPixel(format)` yields `XPE_ERR_INVALID_INPUT` (content validation, precedence class 2). A larger `dataSize` is accepted.
+- `data == NULL` yields `XPE_ERR_INVALID_INPUT` regardless of `dataSize` (precedence class 1).
+
+`bytesPerPixel` is 2 for `XPE_PIXEL_UINT16` and 4 for `XPE_PIXEL_FLOAT32`. Rationale: a non-NULL buffer smaller than its declared dimensions reads past its allocation (QA-B-18); `0` stays accepted because existing callers do not populate the field.
 
 typedef struct XpeImageMetadata {
     char     bodyPart[64];     /* Null-terminated body part label (e.g., "CHEST") */
