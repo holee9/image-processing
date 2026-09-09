@@ -1427,6 +1427,8 @@ When several error conditions hold at once, every XPE entry point reports errors
 2. **After the null checks the order is implementation-defined** between `XPE_ERR_NOT_INITIALIZED` and content validation (`XPE_ERR_INVALID_INPUT` for zero sizes / out-of-range scalars, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`). Reference implementations differ here (`preprocess` validates format and dimensions before the initialization check; `common` and `enhance_advanced` check initialization first) and both are conforming. A test that wants to observe `XPE_ERR_NOT_INITIALIZED` must pass otherwise-valid, non-NULL arguments; a test that wants a content error must run on an initialized module.
 3. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY` — are reported only after 1 and 2 pass.
 
+Handle-based modules (`xpe_gsvg`, `xpe_dicom`) carry their state in the handle rather than in a module-global flag: a NULL handle is a NULL required pointer (`XPE_ERR_INVALID_INPUT`, rule 1) and these modules never return `XPE_ERR_NOT_INITIALIZED`. Using a handle after its `*_shutdown()` / `*_close()` is undefined behaviour and is not detected (#119, QA-B-14).
+
 `configJsonOrNull` parameters: `NULL` selects defaults; an empty string `""` is not valid JSON and yields `XPE_ERR_CONFIG_INVALID` (class 3).
 
 
