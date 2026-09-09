@@ -56,6 +56,8 @@ else()
     )
 endif()
 
+xpe_target_warnings_as_errors(xpe_enhance_basic)
+
 target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 # VERSION/SOVERSION only meaningful on Linux; guard for portability
