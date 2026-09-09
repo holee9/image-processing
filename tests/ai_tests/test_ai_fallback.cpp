@@ -334,3 +334,57 @@ TEST_F(AiErrorPrecedenceTest, ValidArgumentsReachNotInitialized) {
     XpeImageMetadata meta{};
     EXPECT_EQ(xpe_dl_denoise(&img, &meta, nullptr), XPE_ERR_NOT_INITIALIZED);
 }
+
+// The same pair for the other four entry points QA-B-13 reordered. Each pair
+// differs only in whether the required pointers are NULL, so a reversal shows
+// up as both arms returning NOT_INITIALIZED and a dropped init guard as both
+// returning INVALID_INPUT.
+
+TEST_F(AiErrorPrecedenceTest, BodypartRecognize_NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_bodypart_recognize(nullptr, nullptr, 0, nullptr),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiErrorPrecedenceTest, BodypartRecognize_ValidArgumentsReachNotInitialized) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
+              XPE_ERR_NOT_INITIALIZED);
+}
+
+TEST_F(AiErrorPrecedenceTest, StitchImages_NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_stitch_images(nullptr, 2, nullptr, nullptr),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiErrorPrecedenceTest, StitchImages_ValidArgumentsReachNotInitialized) {
+    std::vector<uint16_t> s0, s1;
+    XpeImageBuffer parts[2] = { makeTestBuffer(64, 64, s0),
+                                makeTestBuffer(64, 64, s1) };
+    XpeImageBuffer stitched{};
+    EXPECT_EQ(xpe_stitch_images(parts, 2, &stitched, nullptr),
+              XPE_ERR_NOT_INITIALIZED);
+}
+
+TEST_F(AiErrorPrecedenceTest, BoneSuppress_NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_bone_suppress(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiErrorPrecedenceTest, BoneSuppress_ValidArgumentsReachNotInitialized) {
+    std::vector<uint16_t> inStore, outStore;
+    XpeImageBuffer img = makeTestBuffer(64, 64, inStore);
+    XpeImageBuffer soft = makeTestBuffer(64, 64, outStore);
+    EXPECT_EQ(xpe_bone_suppress(&img, &soft, nullptr), XPE_ERR_NOT_INITIALIZED);
+}
+
+TEST_F(AiErrorPrecedenceTest, GetModelCard_NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_ai_get_model_card(nullptr, nullptr, 0), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiErrorPrecedenceTest, GetModelCard_ValidArgumentsReachNotInitialized) {
+    char buf[256] = {};
+    EXPECT_EQ(xpe_ai_get_model_card("denoise", buf, sizeof(buf)),
+              XPE_ERR_NOT_INITIALIZED);
+}
