@@ -282,8 +282,18 @@ if(_XPE_AI_BUILD_TESTS)
         endif()
         xpe_target_warnings_as_errors(xpe_ai_tests)
 
+        # LABELS/TIMEOUT restored from tests/ai_tests/CMakeLists.txt, which was
+        # removed as a duplicate registration (#113 / QA-B-07). The SPEC label is
+        # the traceability carrier; the deletion must not drop it.
         gtest_discover_tests(xpe_ai_tests
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            PROPERTIES
+                # semicolons escaped: an unescaped "a;b;c" expands as a CMake list
+                # and only the first element survives as LABELS (verified: --print-labels
+                # showed only "unit"). The source file this was copied from was never
+                # built, so the defect had never surfaced.
+                LABELS "unit\;ai\;SPEC-XPE-P3-AI"
+                TIMEOUT 30
         )
 
         message(STATUS "xpe_ai tests configured")
