@@ -37,7 +37,7 @@ constexpr uint32_t H = 8;
 // Build a UINT16 XpeImageBuffer from a flat vector.
 struct FrameHelper {
     std::vector<uint16_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit FrameHelper(uint32_t w, uint32_t h, uint16_t fill = 0) {
         pixels.assign(static_cast<size_t>(w) * h, fill);
@@ -201,7 +201,7 @@ TEST_F(GenerateOffsetTest, DimensionMismatch_ReturnsInvalidInput) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, UnsupportedFormat_ReturnsUnsupportedFormat) {
     std::vector<float> fdata(static_cast<size_t>(W) * H, 1.0f);
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     std::memset(&buf, 0, sizeof(buf));
     buf.width    = W;
     buf.height   = H;

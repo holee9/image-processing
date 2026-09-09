@@ -31,7 +31,7 @@ constexpr uint32_t H = 32;
 // Helper to create UINT16 image buffer
 struct U16ImageHelper {
     std::vector<uint16_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit U16ImageHelper(uint32_t w, uint32_t h, uint16_t fill = 0) {
         pixels.assign(static_cast<size_t>(w) * h, fill);
@@ -57,7 +57,7 @@ struct U16ImageHelper {
 // Helper to create FLOAT32 image buffer
 struct F32ImageHelper {
     std::vector<float> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit F32ImageHelper(uint32_t w, uint32_t h, float fill = 0.0f) {
         pixels.assign(static_cast<size_t>(w) * h, fill);
@@ -83,7 +83,7 @@ struct F32ImageHelper {
 // Helper to create UINT8 defect map buffer
 struct U8DefectHelper {
     std::vector<uint8_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit U8DefectHelper(uint32_t w, uint32_t h, uint8_t fill = 0) {
         pixels.assign(static_cast<size_t>(w) * h, fill);
