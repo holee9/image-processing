@@ -153,7 +153,7 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
-| xpe_common.dll | 15 | removed 3 AED functions; AED is detector hardware only |
+| xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_test_inject_alert` (test-support export, §5.16) |
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
@@ -369,6 +369,17 @@ XPE_API void xpe_log_flush(void);
 
 ---
 
+
+### 5.16 xpe_test_inject_alert (test-support export)
+
+```c
+XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
+```
+
+Injects a synthetic alert into the alert queue. Exported for the integration test suites and
+called from `modules/enhance_basic/src/exposure_index.cpp`; not part of the host-facing contract.
+Counted in the export total (16) because it is a real DLL export (REQ-P0-008 as revised 2026-09-09, #111).
+Renaming or demoting it to an internal symbol is tracked separately in #111.
 
 ## 6. xpe_preprocess.dll
 
