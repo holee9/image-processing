@@ -131,6 +131,9 @@ void xpe_log_internal_reset() {
 
     if (g_logger) {
         try {
+            g_logger->flush();
+        } catch (...) {}
+        try {
             spdlog::drop("xpe_file");
         } catch (...) {}
         g_logger.reset();

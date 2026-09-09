@@ -220,6 +220,51 @@ TEST_F(XpeCommonTest, LogSetFileReopensSink) {
     std::remove(logFile);
 }
 
+/* --- #116: xpe_shutdown must release the spdlog file sink --- */
+
+/**
+ * The custom file sink installed by xpe_log_set_file() keeps an open handle on
+ * the log file. On Windows that handle blocks deletion, so a host that shuts
+ * the library down and then rotates its logs fails. xpe_shutdown() must drop
+ * the sink; std::remove() succeeding is the observable proof.
+ */
+TEST_F(XpeCommonTest, ShutdownReleasesLogFileSink) {
+    const char* logFile = "test_shutdown_release.log";
+    std::remove(logFile);
+
+    ASSERT_EQ(xpe_log_set_file(logFile), XPE_OK);
+    xpe_log_flush();
+
+    xpe_shutdown();
+
+    EXPECT_EQ(std::remove(logFile), 0)
+        << "log file is still held open after xpe_shutdown()";
+
+    std::remove(logFile);  // best effort when the expectation above failed
+    ASSERT_EQ(xpe_init(nullptr), XPE_OK);
+}
+
+/**
+ * Guards the protection described at xpe_logging.cpp:74-81 -- after the sink is
+ * released the spdlog default logger must still be a valid (null-sink) logger,
+ * so xpe_log_flush() stays safe to call.
+ */
+TEST_F(XpeCommonTest, LogFlushAfterShutdownDoesNotCrash) {
+    const char* logFile = "test_flush_after_shutdown.log";
+    std::remove(logFile);
+
+    ASSERT_EQ(xpe_log_set_file(logFile), XPE_OK);
+    xpe_shutdown();
+
+    EXPECT_NO_THROW({
+        xpe_log_flush();
+        xpe_log_flush();
+    });
+
+    std::remove(logFile);
+    ASSERT_EQ(xpe_init(nullptr), XPE_OK);
+}
+
 /* ============================================================================
  * Memory Tests (REQ-P0-015, REQ-P0-016, REQ-P0-017)
  * ============================================================================ */

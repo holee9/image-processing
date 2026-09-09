@@ -24,6 +24,13 @@
 #include <mutex>
 #include <string>
 
+/* Defined in xpe_logging.cpp -- releases the custom spdlog file sink and
+ * installs a null-sink default logger. Declared here rather than in a public
+ * header: it is an internal lifecycle hook, not exported from the DLL.
+ * extern "C" matches its definition, which sits inside the extern "C" block
+ * of xpe_logging.cpp (lines 43-158). */
+extern "C" void xpe_log_internal_reset();
+
 /* ============================================================================
  * Internal types
  * ============================================================================ */
@@ -129,18 +136,26 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
 XPE_API void xpe_shutdown(void)
 {
     try {
-        std::lock_guard<std::mutex> lk(g_mutex);
-        if (!g_initialized) return;
+        {
+            std::lock_guard<std::mutex> lk(g_mutex);
+            if (!g_initialized) return;
 
-        g_initialized = false;
-        g_alertQueue.clear();
-        g_configJson.clear();
+            g_initialized = false;
+            g_alertQueue.clear();
+            g_configJson.clear();
 
-        // Flush and close log file
-        if (g_logFile.is_open()) {
-            g_logFile.flush();
-            g_logFile.close();
+            // Flush and close log file
+            if (g_logFile.is_open()) {
+                g_logFile.flush();
+                g_logFile.close();
+            }
         }
+
+        // Release the spdlog file sink installed by xpe_log_set_file(), so the
+        // host can delete or rotate the log file after shutdown. Called with
+        // g_mutex released: the helper takes the logging module's own mutex and
+        // the two are never held together.
+        xpe_log_internal_reset();
     } catch (...) {
         /* no-op -- shutdown must not throw */
     }
