@@ -22,6 +22,13 @@ endif()
 set(XPE_COVERAGE_MIN "0.85" CACHE STRING
     "Minimum statement coverage (line-rate, 0..1) required by coverage_check (REQ-P0-006: 85%)")
 
+# Performance-budget tests assert wall-clock limits that a Debug (unoptimized)
+# coverage build cannot meet; they cover no code path the functional tests do
+# not, and wall-clock regression is owned by the benchmark workflow. Measured
+# 2026-09-09: 13/389 ci-post tests fail under coverage-post for this reason only.
+set(XPE_COVERAGE_EXCLUDE_TESTS "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance" CACHE STRING
+    "ctest -E regex of tests skipped by the coverage target (timing-budget tests)")
+
 set(_xpe_cov_dir "${CMAKE_BINARY_DIR}/coverage")
 file(MAKE_DIRECTORY "${_xpe_cov_dir}")
 
@@ -61,6 +68,7 @@ if(MSVC)
                 --export_type "cobertura:${_cov_xml}"
                 --export_type "html:${_cov_html}"
                 -- "${_cov_ctest}" --test-dir "${_cov_bindir}" -C $<CONFIG> --output-on-failure
+                   -E "${XPE_COVERAGE_EXCLUDE_TESTS}"
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             COMMENT "Coverage: running ctest under OpenCppCoverage -> ${_xpe_cov_dir}/coverage.xml"
             VERBATIM)
@@ -81,6 +89,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     if(XPE_LCOV)
         add_custom_target(coverage
             COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --output-on-failure
+                -E "${XPE_COVERAGE_EXCLUDE_TESTS}"
             COMMAND "${XPE_LCOV}" --capture --directory "${CMAKE_BINARY_DIR}"
                 --output-file "${_xpe_cov_dir}/lcov.info" --quiet
             COMMAND "${XPE_LCOV}" --remove "${_xpe_cov_dir}/lcov.info" "*/tests/*" "*/_deps/*" "/usr/*"
