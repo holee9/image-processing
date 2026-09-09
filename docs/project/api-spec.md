@@ -1419,6 +1419,18 @@ GSVG_API GsvgErrorCode gsvg_load_scatter_lut(const char* filePath);
 | -9 | XPE_ERR_IO_FAILED | preprocess, dicom |
 | -10 | XPE_ERR_NETWORK_FAILED | dicom |
 
+### Error code precedence (normative, 2026-09-09)
+
+When several error conditions hold at once, every XPE entry point reports the **first** matching class below. Callers and tests must not assume any other order (#119).
+
+1. `XPE_ERR_INVALID_INPUT` — NULL pointers, zero sizes, out-of-range scalar arguments. Checked before anything else so an uninitialized module never dereferences caller memory.
+2. `XPE_ERR_NOT_INITIALIZED` — module `*_init()` not called or `*_shutdown()` already called.
+3. Content validation — `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL` (inspection of the pointed-to data).
+4. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY`.
+
+`configJsonOrNull` parameters: `NULL` selects defaults; an empty string `""` is not valid JSON and yields `XPE_ERR_CONFIG_INVALID` (class 3).
+
+
 GSVG error codes are separate and defined in Section 3.
 
 ---
