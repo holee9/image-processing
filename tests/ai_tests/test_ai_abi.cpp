@@ -162,7 +162,7 @@ TEST(AiAbi, StitchEstimateSizeDeterministic) {
     std::vector<uint16_t> storage1, storage2, storage3;
 
     auto run = [&]() -> std::pair<uint32_t, uint32_t> {
-        XpeImageBuffer parts[2];
+        XpeImageBuffer parts[2]{};
         parts[0] = makeTestBuffer(256, 512, storage1);
         parts[1] = makeTestBuffer(256, 512, storage2);
 
@@ -185,7 +185,7 @@ TEST(AiAbi, StitchEstimateSizeDeterministic) {
 TEST(AiAbi, StitchEstimateSizeReturnsValidDimensions) {
     std::vector<uint16_t> s1, s2;
 
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
 
@@ -207,7 +207,7 @@ TEST(AiAbi, StitchEstimateSizeNullPartsReturnsInvalid) {
 
 TEST(AiAbi, StitchEstimateSizeNullOutputsReturnInvalid) {
     std::vector<uint16_t> s1, s2;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
 
@@ -220,7 +220,7 @@ TEST(AiAbi, StitchEstimateSizeNullOutputsReturnInvalid) {
 
 TEST(AiAbi, StitchEstimateSizeSinglePartReturnsInvalid) {
     std::vector<uint16_t> s1;
-    XpeImageBuffer parts[1];
+    XpeImageBuffer parts[1]{};
     parts[0] = makeTestBuffer(256, 512, s1);
 
     uint32_t w = 0, h = 0;
@@ -241,7 +241,7 @@ TEST(AiAbi, StitchEstimateSizeInvalidBufferReturnsInvalid) {
 TEST(AiAbi, StitchEstimateSizeClampsToMax4096) {
     // Create parts large enough to exceed 4096 when combined
     std::vector<uint16_t> s1, s2;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(3000, 3000, s1);
     parts[1] = makeTestBuffer(3000, 3000, s2);
 

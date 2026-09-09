@@ -48,7 +48,7 @@ protected:
     int width_;
     int height_;
     std::vector<float> testData_;
-    XpeImageBuffer img_;
+    XpeImageBuffer img_{};  // value-initialised: an indeterminate dataSize is UB (#123)
     XpeImageMetadata meta_;
 };
 

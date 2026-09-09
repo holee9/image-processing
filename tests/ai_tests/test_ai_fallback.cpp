@@ -126,7 +126,7 @@ TEST_F(AiFallbackTest, BodypartRecognizeSetsUnknownLabel) {
 
 TEST_F(AiFallbackTest, StitchImagesStubReturnsProcessingFailed) {
     std::vector<uint16_t> s1, s2, s3;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
 
@@ -220,7 +220,7 @@ TEST_F(AiFallbackTest, StitchImagesNullPartsReturnsInvalid) {
 
 TEST_F(AiFallbackTest, StitchImagesPartCountOneReturnsInvalid) {
     std::vector<uint16_t> s1, s2;
-    XpeImageBuffer parts[1];
+    XpeImageBuffer parts[1]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     XpeImageBuffer out = makeTestBuffer(512, 512, s2);
 
@@ -230,7 +230,7 @@ TEST_F(AiFallbackTest, StitchImagesPartCountOneReturnsInvalid) {
 
 TEST_F(AiFallbackTest, StitchImagesNullOutputReturnsInvalid) {
     std::vector<uint16_t> s1, s2;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
 
@@ -240,7 +240,7 @@ TEST_F(AiFallbackTest, StitchImagesNullOutputReturnsInvalid) {
 
 TEST_F(AiFallbackTest, StitchImagesNullOutputDataReturnsTooSmall) {
     std::vector<uint16_t> s1, s2;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
 

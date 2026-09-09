@@ -69,4 +69,29 @@ inline int32_t xpe_round_to_int(float v) {
 
 #endif /* __cplusplus */
 
+
+/**
+ * @brief api-spec "XpeImageBuffer.dataSize on input" size-consistency check (#123).
+ *
+ * `dataSize == 0` means unspecified and is accepted (legacy callers do not
+ * populate the field). A non-zero `dataSize` smaller than
+ * width * height * bytesPerPixel(format) means the buffer cannot hold the image
+ * it declares, and reading it overruns the allocation. A larger value is fine.
+ *
+ * Header-inline: one definition per module without adding a xpe_common export
+ * (REQ-P0-008 fixes that surface at 16 symbols).
+ */
+static inline int xpe_data_size_is_consistent(const XpeImageBuffer* img) {
+    uint64_t required;
+    uint32_t bpp;
+    if (img == NULL || img->dataSize == 0) return 1;
+    switch (img->format) {
+        case XPE_PIXEL_UINT16:  bpp = 2u; break;
+        case XPE_PIXEL_FLOAT32: bpp = 4u; break;
+        default:                return 1;  /* unknown format is the format check's business */
+    }
+    required = (uint64_t)img->width * (uint64_t)img->height * (uint64_t)bpp;
+    return (uint64_t)img->dataSize >= required;
+}
+
 #endif /* XPE_DISPLAY_INTERNAL_H */

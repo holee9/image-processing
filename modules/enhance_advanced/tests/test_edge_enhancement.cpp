@@ -43,7 +43,7 @@ protected:
      * @return XpeImageBuffer structure
      */
     XpeImageBuffer createFloatImage(int width, int height, float fillValue = 0.0f) {
-        XpeImageBuffer img;
+        XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
         img.width = static_cast<uint32_t>(width);
         img.height = static_cast<uint32_t>(height);
         img.format = XPE_PIXEL_FLOAT32;
@@ -326,7 +326,7 @@ TEST_F(EdgeEnhancementTest, T303_OvershootLimiterEnforcement) {
 
     // CRITICAL: Verify overshoot limiting
     // Every pixel must be within +-3*sigma_local of its original value
-    XpeImageBuffer beforeImg;
+    XpeImageBuffer beforeImg{};  // value-initialised: an indeterminate dataSize is UB (#123)
     beforeImg.width = img.width;
     beforeImg.height = img.height;
     beforeImg.format = img.format;
@@ -395,7 +395,7 @@ TEST_F(EdgeEnhancementTest, T304_FractionalProcessIntegration) {
     EXPECT_FALSE(hasInvalidValues(img));
 
     // 2. Overshoot limiting applied (SAF-100)
-    XpeImageBuffer beforeImg;
+    XpeImageBuffer beforeImg{};  // value-initialised: an indeterminate dataSize is UB (#123)
     beforeImg.width = img.width;
     beforeImg.height = img.height;
     beforeImg.format = img.format;
@@ -731,7 +731,7 @@ TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
     EXPECT_FALSE(hasInvalidValues(img));
 
     // Verify overshoot limiting
-    XpeImageBuffer beforeImg;
+    XpeImageBuffer beforeImg{};  // value-initialised: an indeterminate dataSize is UB (#123)
     beforeImg.width = img.width;
     beforeImg.height = img.height;
     beforeImg.format = img.format;

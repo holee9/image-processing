@@ -40,7 +40,7 @@ protected:
      * @return XpeImageBuffer structure
      */
     XpeImageBuffer createFloatImage(int width, int height, float fillValue = 0.0f) {
-        XpeImageBuffer img;
+        XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
         img.width = static_cast<uint32_t>(width);
         img.height = static_cast<uint32_t>(height);
         img.format = XPE_PIXEL_FLOAT32;

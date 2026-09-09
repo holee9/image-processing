@@ -51,6 +51,13 @@ XPE_API XpeErrorCode xpe_multiscale_process(
         }
     }
 
+    // api-spec "XpeImageBuffer.dataSize on input" (#123): a non-zero dataSize
+    // smaller than the declared dimensions cannot hold the image and is read
+    // past its allocation. Content validation, so it sits with the checks below.
+    if (!xpe::enhance_advanced::data_size_is_consistent(img)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     // REQ-ADV-071: Format validation (FLOAT32 only)
     if (img->format != XPE_PIXEL_FLOAT32) {
         return XPE_ERR_UNSUPPORTED_FORMAT;

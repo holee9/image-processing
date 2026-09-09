@@ -150,6 +150,25 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
     // Maximum: 4096x4096x4 = 64 MB
     const size_t maxBytes = static_cast<size_t>(4096) * 4096 * 4;
     if (img->dataSize > maxBytes) return XPE_ERR_INVALID_INPUT;
+
+    // api-spec "XpeImageBuffer.dataSize on input" (#123): a dataSize smaller
+    // than the declared dimensions cannot hold the image and is read past its
+    // allocation. (This validator additionally rejects dataSize == 0, which the
+    // contract calls "unspecified"; that pre-existing divergence is reported,
+    // not changed here.)
+    {
+        uint32_t bpp = 0u;
+        if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
+        else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
+        if (bpp != 0u) {
+            const uint64_t required = static_cast<uint64_t>(img->width) *
+                                      static_cast<uint64_t>(img->height) *
+                                      static_cast<uint64_t>(bpp);
+            if (static_cast<uint64_t>(img->dataSize) < required) {
+                return XPE_ERR_INVALID_INPUT;
+            }
+        }
+    }
     return XPE_OK;
 }
 

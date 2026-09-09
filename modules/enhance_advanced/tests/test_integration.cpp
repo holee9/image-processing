@@ -44,7 +44,7 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Create test image
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
@@ -114,7 +114,7 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Create test image
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
@@ -163,7 +163,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Create test image (512x512 for faster testing)
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
@@ -252,7 +252,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
 TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
@@ -321,7 +321,7 @@ TEST(IntegrationTest, T604_ThreadSafety) {
     for (int t = 0; t < NUM_THREADS; ++t) {
         threads.emplace_back([t, IMG_SIZE, &successCount, &errorCount]() {
             // Create thread-local image buffer
-            XpeImageBuffer img;
+            XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
             img.width = IMG_SIZE;
             img.height = IMG_SIZE;
             img.format = XPE_PIXEL_FLOAT32;
@@ -410,7 +410,7 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
 
     for (int cycle = 0; cycle < CYCLES; ++cycle) {
         // Create image buffer
-        XpeImageBuffer img;
+        XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
         img.width = IMG_SIZE;
         img.height = IMG_SIZE;
         img.format = XPE_PIXEL_FLOAT32;
@@ -480,7 +480,7 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Exercise error paths
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 512;
     img.height = 512;
     img.format = XPE_PIXEL_FLOAT32;
@@ -534,7 +534,7 @@ TEST(IntegrationTest, T607_IndependentFunctionCalling) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Create independent test images for each function
-    XpeImageBuffer img1, img2, img3, img4;
+    XpeImageBuffer img1{}, img2{}, img3{}, img4{};
 
     for (auto* img : {&img1, &img2, &img3, &img4}) {
         img->width = 256;
@@ -602,7 +602,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
     // Use 512x512 image (approx 1/36 of 3072x3072)
     const int IMG_SIZE = 512;
 
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = IMG_SIZE;
     img.height = IMG_SIZE;
     img.format = XPE_PIXEL_FLOAT32;
@@ -685,7 +685,7 @@ TEST(IntegrationTest, T609_SIMIDispatchPreparation) {
 
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 256;
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;
@@ -731,7 +731,7 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     // Verify functions are callable
-    XpeImageBuffer img;
+    XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
     img.width = 256;
     img.height = 256;
     img.format = XPE_PIXEL_FLOAT32;

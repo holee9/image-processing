@@ -265,3 +265,79 @@ TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnTinyImages) {
             << "size " << n << "x" << n;
     }
 }
+
+/* ============================================================================
+ * dataSize size-consistency contract (#123)
+ *
+ * api-spec "XpeImageBuffer.dataSize on input":
+ *   dataSize == 0                        -> unspecified, not checked
+ *   0 < dataSize < w*h*bpp(format)       -> XPE_ERR_INVALID_INPUT
+ *   dataSize >= w*h*bpp(format)          -> accepted
+ *
+ * The short-buffer arms allocate only 16 floats while declaring 32x32, so
+ * without the guard the module reads past the allocation — ASan is the
+ * observation tool here, not the return code.
+ * ========================================================================= */
+
+namespace {
+// Declares 32x32 FLOAT32 but allocates only 16 floats.
+XpeImageBuffer MakeShortBuffer(std::vector<float>& storage) {
+    storage.assign(16, 500.0f);
+    XpeImageBuffer img{};
+    img.width  = 32;
+    img.height = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = 32;
+    img.bitsStored    = 32;
+    img.data     = storage.data();
+    img.dataSize = 16 * sizeof(float);   // < 32*32*4
+    return img;
+}
+} // namespace
+
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleRejectsShortBuffer) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeShortBuffer(storage);
+    XpeImageMetadata meta = MakeMeta();
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(EnhanceAdvancedConfigTest, FractionalRejectsShortBuffer) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeShortBuffer(storage);
+    EXPECT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(EnhanceAdvancedConfigTest, CollimationRejectsShortBuffer) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeShortBuffer(storage);
+    int32_t x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    EXPECT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(EnhanceAdvancedConfigTest, ExposureIndexRejectsShortBuffer) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeShortBuffer(storage);
+    XpeImageMetadata meta = MakeMeta();
+    float ei = 0.0f, di = 0.0f;
+    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+}
+
+// dataSize == 0 stays accepted (legacy callers do not populate the field).
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleAcceptsUnspecifiedDataSize) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeImage(32, 32, storage);
+    img.dataSize = 0;
+    XpeImageMetadata meta = MakeMeta();
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
+}
+
+// A larger dataSize than the declared dimensions is accepted.
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleAcceptsOversizedDataSize) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeImage(32, 32, storage);
+    img.dataSize *= 4;
+    XpeImageMetadata meta = MakeMeta();
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
+}

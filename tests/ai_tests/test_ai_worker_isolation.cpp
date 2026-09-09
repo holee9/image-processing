@@ -84,7 +84,7 @@ TEST_F(AiWorkerIsolationTest, StubModeBodypartRecognizeFallsBackGracefully) {
 
 TEST_F(AiWorkerIsolationTest, StubModeStitchImagesFallsBackGracefully) {
     std::vector<uint16_t> s1, s2, s3;
-    XpeImageBuffer parts[2];
+    XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
     parts[1] = makeTestBuffer(256, 512, s2);
     XpeImageBuffer out = makeTestBuffer(1024, 512, s3);
