@@ -1,4 +1,4 @@
-// AC-11: Alert queue never crashes on empty.
+﻿// AC-11: Alert queue never crashes on empty.
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -26,10 +26,10 @@ public sealed class AlertCallbackTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-027: empty queue → count == 0; get_pending_alert(0) → INVALID_INPUT.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_clear_alerts();
         var count = XpeCommonNative.xpe_get_pending_alert_count();
@@ -43,10 +43,10 @@ public sealed class AlertCallbackTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-028: clear_alerts called 3+ times on empty queue must not throw.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void ClearAlerts_CalledRepeatedly_DoesNotThrow()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ex = Record.Exception(() =>
         {

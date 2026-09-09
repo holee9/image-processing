@@ -23,6 +23,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,7 +49,11 @@
   </ItemGroup>
 
   <!--
-    DLL staging: copy xpe_common.dll from build output to test output directory.
+    DLL staging: copy xpe_common.dll and its runtime dependencies from the build output
+    to the test output directory. spdlog.dll and fmt.dll are required because the native
+    build links them as shared libraries (BUILD_SHARED_LIBS=ON); copying xpe_common.dll
+    alone produced a loadable-looking file that failed at P/Invoke with 0x8007007E (#98).
+    Dependencies are listed by name — a *.dll wildcard would also drag in gtest/gmock.
     Falls back gracefully if the build directory does not exist (CI prerequisite).
   -->
   <Target Name="CopyXpeDllsForTests" BeforeTargets="Build">
@@ -57,6 +62,14 @@
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\xpe_common.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\xpe_common.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\xpe_common.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\Debug\spdlog.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\spdlog.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\spdlog.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\spdlog.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\Debug\fmt.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\fmt.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\fmt.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\fmt.dll" />
     </ItemGroup>
     <Copy
       SourceFiles="@(_XpeDllCandidates)"

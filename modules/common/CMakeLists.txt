@@ -79,10 +79,11 @@ set_target_properties(xpe_common PROPERTIES
 
 # Warnings
 if(MSVC)
-    target_compile_options(xpe_common PRIVATE /W4 /WX-)
+    target_compile_options(xpe_common PRIVATE /W4)
 else()
     target_compile_options(xpe_common PRIVATE -Wall -Wextra)
 endif()
+xpe_target_warnings_as_errors(xpe_common)
 
 # ==========================================================================
 # Unit Tests (Google Test)
@@ -126,10 +127,11 @@ if(_XPE_BUILD_TESTS)
     target_compile_features(test_xpe_common PRIVATE cxx_std_17)
 
     if(MSVC)
-        target_compile_options(test_xpe_common PRIVATE /W4 /WX-)
+        target_compile_options(test_xpe_common PRIVATE /W4)
     else()
         target_compile_options(test_xpe_common PRIVATE -Wall -Wextra)
     endif()
+    xpe_target_warnings_as_errors(test_xpe_common)
 
     gtest_discover_tests(test_xpe_common
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

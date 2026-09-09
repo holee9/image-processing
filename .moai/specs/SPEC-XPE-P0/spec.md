@@ -49,7 +49,7 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 2.3 xpe_common.dll API
 
-**REQ-P0-008**: xpe_common.dll SHALL export exactly 15 functions with C linkage (extern "C") and __declspec(dllexport) using the XPE_API macro.
+**REQ-P0-008**: xpe_common.dll SHALL export exactly 16 functions with C linkage (extern "C") and __declspec(dllexport) using the XPE_API macro.
 
 **REQ-P0-009**: All functions SHALL use Pack=8 blittable types for P/Invoke compatibility. Struct types: XpeImageBuffer, XpeImageMetadata. Enum types: XpePixelFormat, XpeAlertSeverity, XpeErrorCode.
 
@@ -222,7 +222,7 @@ The following tasks can start immediately:
 | P0-02 | CMakePresets.json | REQ-P0-002 | S0-A | ✅ DONE |
 | P0-03 | vcpkg.json SOUP manifest | REQ-P0-003 | S0-A | ✅ DONE |
 | P0-04 | cmake/ helpers | REQ-P0-001 | S0-A | ✅ DONE |
-| P0-05 | xpe_common.dll 15 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
+| P0-05 | xpe_common.dll 16 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
 | P0-06 | Google Test + CTest + coverage | REQ-P0-005,006,007 | S0-A | ✅ DONE |
 | P0-07 | ImageProcTest WPF scaffolding | REQ-P0-029,030,031 | S0-C | ✅ DONE |
 | P0-08 | CI pipeline | REQ-P0-001 | S0-A | ✅ DONE |
@@ -283,7 +283,7 @@ All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
 
 ### 8.3 Quality Metrics
 
-- **API Count**: 15 functions (exactly as specified in REQ-P0-008)
+- **API Count**: 16 functions (exactly as specified in REQ-P0-008; 15 public API + `xpe_test_inject_alert`, a test-support export called by `enhance_basic/src/exposure_index.cpp`. Measured: dumpbin 16 == header 16, #111)
 - **Test Coverage**: Infrastructure ready for 85%+ coverage
 - **Export Verification**: dumpbin confirms 15 public API exports
 - **P/Invoke Compatibility**: static_assert ensures C#/C++ ABI match

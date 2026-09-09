@@ -31,18 +31,13 @@ include(cmake/Platform.cmake)
 include(cmake/CompilerWarnings.cmake)
 include(FetchContent)
 
-# Coverage instrumentation
-# On Windows with MSVC, use OpenCppCoverage externally:
-#   OpenCppCoverage --sources <src> -- ctest --preset default
-if(BUILD_COVERAGE)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        message(STATUS "Coverage: adding --coverage flags (GCC/Clang)")
-        add_compile_options(--coverage -O0 -g)
-        add_link_options(--coverage)
-    else()
-        message(WARNING "Coverage: BUILD_COVERAGE=ON is only supported on GCC/Clang. "
-                        "On MSVC/Windows use OpenCppCoverage externally.")
-    endif()
+# Coverage instrumentation (GCC/Clang). The `coverage` / `coverage_check`
+# targets for every platform live in cmake/XpeCoverage.cmake, included at the
+# end of this file once all module test targets exist (REQ-P0-006, #113).
+if(BUILD_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(STATUS "Coverage: adding --coverage flags (GCC/Clang)")
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
 endif()
 
 function(xpe_add_optional_subdirectory relative_dir)
@@ -155,18 +150,16 @@ if(BUILD_GSVG)
     xpe_add_optional_subdirectory(modules/gsvg)
 endif()
 
-# Tests aggregator (tests/CMakeLists.txt) is NOT added - see issue #113.
-#   Blocking conflict: target xpe_ai_tests is defined in BOTH
-#   modules/ai/CMakeLists.txt:259 and tests/ai_tests/CMakeLists.txt.
-#   Module-registered tests are the live path; tests/ is a parallel tree that was
-#   partially dismantled. Re-enabling requires resolving that duplicate first.
-#   The "GTest conflicts" note inside tests/CMakeLists.txt is inaccurate.
-# if(BUILD_TESTS)
-#     xpe_add_optional_subdirectory(tests)
-# endif()
+# Tests are registered by each module (modules/*/CMakeLists.txt); there is no
+# tests/ aggregator. The former tests/CMakeLists.txt was retired in #113: it was
+# never reachable and duplicated module targets (xpe_ai_tests, test_enhance_advanced).
+# tests/e2e_post_pipeline is the one directory the root adds directly (below).
 
 # E2E integration tests — requires full post-processing stack (ci-post preset).
 # Guard prevents link failure on ci-common/ci-preprocess where post modules are OFF.
 if(BUILD_TESTS AND BUILD_ENHANCE_BASIC AND BUILD_ENHANCE_ADVANCED AND BUILD_GSVG AND BUILD_DISPLAY)
     add_subdirectory(tests/e2e_post_pipeline)
 endif()
+
+# Coverage targets — after every module (and its tests) is registered.
+include(cmake/XpeCoverage.cmake)

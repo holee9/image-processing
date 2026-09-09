@@ -1,10 +1,10 @@
 ﻿# XPE API Specification: Complete Exported C ABI Reference
 
-**Document ID**: XPE-API-SPEC-001  
-**Version**: 1.4.0  
-**Date**: 2026-04-18  
-**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v2.1.0  
-**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 xpe_common API 함수 15개로 정리.
+**Document ID**: XPE-API-SPEC-001
+**Version**: 1.4.0
+**Date**: 2026-04-22
+**Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, GSVG-SRS-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v3.0.0
+**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents.
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -55,8 +55,17 @@ typedef struct XpeImageBuffer {
     uint32_t       bitsStored;    /* Valid bit depth (e.g., 14) */
     XpePixelFormat format;        /* Pixel data type */
     void*          data;          /* Pixel data allocated via xpe_alloc_image */
-    size_t         dataSize;      /* Byte size of data buffer; max 64 MB (4096x4096x4) */
+    size_t         dataSize;      /* Byte size of data buffer; max 64 MB (4096x4096x4).
+                                     Input contract: see "XpeImageBuffer.dataSize on input" */
 } XpeImageBuffer;
+
+**`XpeImageBuffer.dataSize` on input (normative, 2026-09-10, #123).** Buffers returned by `xpe_alloc_image` always carry the exact byte size. A caller that builds the struct by hand MUST either zero-initialise it (`XpeImageBuffer img{};`) or fill every field; reading an entry point with an indeterminate `dataSize` is undefined behaviour. On input:
+
+- `dataSize == 0` means *unspecified*: the entry point trusts `width × height × bytesPerPixel(format)` and does not check the size (legacy behaviour).
+- `dataSize != 0` and `dataSize < width × height × bytesPerPixel(format)` yields `XPE_ERR_INVALID_INPUT` (content validation, precedence class 2). A larger `dataSize` is accepted.
+- `data == NULL` yields `XPE_ERR_INVALID_INPUT` regardless of `dataSize` (precedence class 1).
+
+`bytesPerPixel` is 2 for `XPE_PIXEL_UINT16` and 4 for `XPE_PIXEL_FLOAT32`. Rationale: a non-NULL buffer smaller than its declared dimensions reads past its allocation (QA-B-18); `0` stays accepted because existing callers do not populate the field.
 
 typedef struct XpeImageMetadata {
     char     bodyPart[64];     /* Null-terminated body part label (e.g., "CHEST") */
@@ -153,7 +162,7 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
-| xpe_common.dll | 15 | 15 API functions |
+| xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_test_inject_alert` (test-support export, §5.16) |
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
@@ -369,6 +378,17 @@ XPE_API void xpe_log_flush(void);
 
 ---
 
+
+### 5.16 xpe_test_inject_alert (test-support export)
+
+```c
+XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
+```
+
+Injects a synthetic alert into the alert queue. Exported for the integration test suites and
+called from `modules/enhance_basic/src/exposure_index.cpp`; not part of the host-facing contract.
+Counted in the export total (16) because it is a real DLL export (REQ-P0-008 as revised 2026-09-09, #111).
+Renaming or demoting it to an internal symbol is tracked separately in #111.
 
 ## 6. xpe_preprocess.dll
 
@@ -1407,6 +1427,19 @@ GSVG_API GsvgErrorCode gsvg_load_scatter_lut(const char* filePath);
 | -8 | XPE_ERR_BUFFER_TOO_SMALL | common, display, dicom |
 | -9 | XPE_ERR_IO_FAILED | preprocess, dicom |
 | -10 | XPE_ERR_NETWORK_FAILED | dicom |
+
+### Error code precedence (normative, 2026-09-09; narrowed same day per #119)
+
+When several error conditions hold at once, every XPE entry point reports errors in this order. Callers and tests must not assume anything stricter (#119).
+
+1. **Required-pointer nullness first.** A NULL required pointer argument yields `XPE_ERR_INVALID_INPUT` before any other check, so an uninitialized module never dereferences caller memory. Optional pointers (`configJsonOrNull`, optional metadata) are not required and do not trigger this rule.
+2. **After the null checks the order is implementation-defined** between `XPE_ERR_NOT_INITIALIZED` and content validation (`XPE_ERR_INVALID_INPUT` for zero sizes / out-of-range scalars, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`). Reference implementations differ here (`preprocess` validates format and dimensions before the initialization check; `common` and `enhance_advanced` check initialization first) and both are conforming. A test that wants to observe `XPE_ERR_NOT_INITIALIZED` must pass otherwise-valid, non-NULL arguments; a test that wants a content error must run on an initialized module.
+3. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY` — are reported only after 1 and 2 pass.
+
+Handle-based modules (`xpe_gsvg`, `xpe_dicom`) carry their state in the handle rather than in a module-global flag: a NULL handle is a NULL required pointer (`XPE_ERR_INVALID_INPUT`, rule 1) and these modules never return `XPE_ERR_NOT_INITIALIZED`. Using a handle after its `*_shutdown()` / `*_close()` is undefined behaviour and is not detected (#119, QA-B-14).
+
+`configJsonOrNull` parameters: `NULL` selects defaults; an empty string `""` is not valid JSON and yields `XPE_ERR_CONFIG_INVALID` (class 3).
+
 
 GSVG error codes are separate and defined in Section 3.
 

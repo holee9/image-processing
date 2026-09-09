@@ -59,8 +59,8 @@ The following internal test functions may also be exported:
 
 ### 5. Acceptance Criteria
 
-- [ ] dumpbin shows exactly 15 public API functions
-- [ ] All 15 function names match SPEC-XPE-P0 REQ-P0-008
+- [x] dumpbin shows exactly 16 exported functions (15 public API + xpe_test_inject_alert) — Lane A QA-A-01/03, #111
+- [x] All 16 function names match SPEC-XPE-P0 REQ-P0-008 (as revised 2026-09-09)
 - [ ] Internal test functions are either:
   - Documented as test-only exports, OR
   - Removed from public API

@@ -1,4 +1,4 @@
-// AC-1: Test project exists and builds.
+﻿// AC-1: Test project exists and builds.
 // AC-2: ABI size parity, DLL resolution, version string, arch diagnostic.
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -26,11 +26,10 @@ public sealed class DllLoadSmokeTests
     /// REQ-GUI-IT-020: DLL resolver locates xpe_common.dll and xpe_version() returns
     /// a non-empty semver string matching ^\d+\.\d+\.\d+.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void XpeVersion_WhenDllLoaded_ReturnsSemverString()
     {
-        if (!_fixture.IsAvailable)
-            return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ptr = XpeCommonNative.xpe_version();
         Assert.NotEqual(IntPtr.Zero, ptr);
@@ -95,11 +94,10 @@ public sealed class DllLoadSmokeTests
     /// <summary>
     /// REQ-GUI-IT-005: xpe_version() returns a static pointer; consecutive calls return the same pointer.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void XpeVersion_CalledTwice_ReturnsSamePointer()
     {
-        if (!_fixture.IsAvailable)
-            return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var ptr1 = XpeCommonNative.xpe_version();
         var ptr2 = XpeCommonNative.xpe_version();

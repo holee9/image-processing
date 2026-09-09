@@ -273,6 +273,38 @@ In images with extreme noise (e.g., misaligned detector, severely saturated), bi
 
 ---
 
+### HAZ-ADV-009: Pyramid Level Count Exceeds Image Size → Heap Buffer Overflow → Memory Corruption
+
+#### 2.1 Hazard Description
+
+`xpe_multiscale_process` accepted a configured `levels` value bounded only by `XPE_MFP_MAX_LEVELS` (8), independent of image size. For images smaller than 2^(levels-1) pixels on a side, the coarsest Laplacian buffer had zero size while `upsample()` still wrote a 2×2 block: a heap-buffer-overflow **write** (observed with AddressSanitizer at `mfp_scalar.cpp:261`). 32×32 crashed in the call; 64×64 returned `XPE_OK` and corrupted the heap silently — the process failed later, after every test had reported PASS. A silent heap corruption in a Class B module can alter unrelated image data or crash the host at an arbitrary later point.
+
+#### 2.2 Risk Assessment
+
+| Factor | Value | Justification |
+|--------|-------|---------------|
+| **Severity** | Major | Undefined behaviour in the host process; corrupted memory may reach displayed data |
+| **Probability (Pre-mitigation)** | Low | Requires a small image (< 128 px side) with a high configured level count; defaults (4 levels) are safe above 8 px |
+| **Risk Score** | Low | Major × Low |
+
+#### 2.3 Mitigation Controls
+
+| ID | Control | Type | Verification |
+|----|---------|------|--------------|
+| **CTL-ADV-009.1** | Level count is clamped to `floor(log2(min(width, height))) + 1` so the coarsest level always has at least one pixel; clamping is logged at debug level. | Implementation | Boundary tests 1/2/3/5/32/64/128/256 px (`test_coverage_ext.cpp`), AddressSanitizer clean |
+| **CTL-ADV-009.2** | Return value and process exit code are not accepted as evidence of memory safety; memory-safety regressions are verified with AddressSanitizer (`/fsanitize=address`) on the enhance_advanced test target. | Verification | ASan RED/GREEN record, QA-B-17 (#121) |
+| **CTL-ADV-009.3** | The documented `levels` range 2–8 (SRS/SDD) is a quality range; the physical bound above takes precedence and may clamp below 2 for images under 4 px. | Design | SDD parameter table note |
+
+#### 2.4 Post-Mitigation Risk
+
+| Factor | Value | Justification |
+|--------|-------|---------------|
+| **Probability (Post-mitigation)** | Very Low | Bound derived from image geometry; ASan-verified |
+| **Risk Score** | Very Low | Major × Very Low |
+| **Status** | Mitigated | Fixed in `9f8507d` (main `2e5aef5`), 2026-09-10 |
+
+---
+
 ## 3. Risk Summary Table
 
 | Hazard ID | Hazard | Pre-Risk | Post-Risk | Status | Notes |
@@ -285,6 +317,7 @@ In images with extreme noise (e.g., misaligned detector, severely saturated), bi
 | HAZ-ADV-006 | NLM hallucination → false finding | Medium | Very Low | Mitigated | Mode selection |
 | HAZ-ADV-007 | Sidecar I/O failure → missing alert | Low | Very Low | Mitigated | Graceful fallback |
 | HAZ-ADV-008 | Bilateral divergence → pixel runaway | Low | Very Low | Mitigated | Bounds-checking |
+| HAZ-ADV-009 | Pyramid levels > image size → heap overflow | Low | Very Low | Mitigated | Geometry-derived clamp, ASan (#121) |
 
 ---
 

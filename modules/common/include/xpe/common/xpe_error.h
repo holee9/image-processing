@@ -133,6 +133,27 @@ XPE_API XpeErrorCode xpe_get_pending_alert(int32_t index, char* msg, size_t msgL
  */
 XPE_API void xpe_clear_alerts(void);
 
+/**
+ * @brief Post an alert onto the internal alert queue.
+ *
+ * Producer counterpart to the alert polling API above: processing code calls
+ * this when it detects a condition worth reporting to the operator that does
+ * not warrant a hard error return. The alert becomes visible to
+ * xpe_get_pending_alert_count() / xpe_get_pending_alert().
+ *
+ * @param msg      Null-terminated message. Truncated if longer than the
+ *                 internal alert buffer. Must not be NULL.
+ * @param severity An @c XpeAlertSeverity value.
+ *
+ * @note Thread-safe; the alert queue is protected by a critical section.
+ * @note The @c test_ prefix is historical. This symbol has been exported from
+ *       xpe_common.dll since its introduction and is called from production
+ *       code in other XPE modules; it is declared here so callers no longer
+ *       need a local @c extern declaration. Renaming requires a coordinated
+ *       change across every calling module and is tracked separately.
+ */
+XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="ImageProcTest/ImageProcTest.csproj" />
   <Project Path="ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj" />
 </Solution>

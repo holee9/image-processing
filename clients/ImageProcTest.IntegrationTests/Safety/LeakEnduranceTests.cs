@@ -1,4 +1,4 @@
-// AC-7: 1000-cycle init/shutdown no leak.
+﻿// AC-7: 1000-cycle init/shutdown no leak.
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -32,10 +32,10 @@ public sealed class LeakEnduranceTests
     /// REQ-GUI-IT-051: 1000 init/shutdown cycles — GC memory delta &lt; 5 MiB,
     /// WorkingSet delta &lt; 20 MiB. Must complete within 90 seconds.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void InitShutdown_1000Cycles_NoLeak()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         // Warm-up: one cycle before measurement.
         XpeCommonNative.xpe_init(null);
@@ -80,10 +80,10 @@ public sealed class LeakEnduranceTests
     /// REQ-GUI-IT-010: No outstanding GCHandle.Alloc(Pinned) after test run.
     /// Verified by confirming GC can collect freely.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void AfterTests_NoOutstandingPinnedHandles()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         // Force a full GC — if there were outstanding pinned handles from test code,
         // the GC would report them via diagnostics. We verify no exception is thrown.

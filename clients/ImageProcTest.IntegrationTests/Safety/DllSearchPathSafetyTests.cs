@@ -1,4 +1,4 @@
-// AC-3: DLL resolution is deterministic; AC-8: DLL path within build tree.
+﻿// AC-3: DLL resolution is deterministic; AC-8: DLL path within build tree.
 using ImageProcTest.IntegrationTests.Fixtures;
 
 namespace ImageProcTest.IntegrationTests.Safety;
@@ -23,10 +23,10 @@ public sealed class DllSearchPathSafetyTests
     /// REQ-GUI-IT-008: ResolvedDllPath must point to the test output dir or repo build/** tree.
     /// A system PATH load (e.g. C:\Windows\System32) is not acceptable.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void ResolvedDllPath_IsUnderBuildTreeOrTestOutput()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var path = _fixture.ResolvedPath;
         Assert.False(string.IsNullOrEmpty(path), "ResolvedPath must be set when DLL is available.");
@@ -45,10 +45,10 @@ public sealed class DllSearchPathSafetyTests
     /// that is on the PATH, the fixture's resolver must still win (env var or AppContext takes priority).
     /// This test creates a temp decoy, adds it to PATH, and verifies our DLL path is unchanged.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void DllImportResolver_WinsOverSystemPath_WhenEnvVarOrAppContextHasDll()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var tempDir = Path.Combine(Path.GetTempPath(), $"xpe_decoy_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);

@@ -1,4 +1,4 @@
-// AC-5, AC-6: Error code enum parity; AC-9: No managed exception from ABI boundary.
+﻿// AC-5, AC-6: Error code enum parity; AC-9: No managed exception from ABI boundary.
 using System.Runtime.InteropServices;
 using System.Text;
 using ImageProcTest.IntegrationTests.Fixtures;
@@ -27,10 +27,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     // REQ-GUI-IT-040: Uninitialized guard tests are covered here too.
 
     /// <summary>REQ-GUI-IT-040: xpe_get_param_range before init returns NOT_INITIALIZED.</summary>
-    [Fact]
+    [SkippableFact]
     public void GetParamRange_BeforeInit_ReturnsNotInitialized()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_shutdown();
         var result = XpeCommonNative.xpe_get_param_range("CHEST", "window_center", out _, out _, out _);
@@ -38,10 +38,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-040: xpe_version() before init is safe (read-only, no crash).</summary>
-    [Fact]
+    [SkippableFact]
     public void Version_BeforeInit_DoesNotCrash()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_shutdown();
         var ex = Record.Exception(() =>
@@ -54,10 +54,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-040: xpe_error_string before init is safe.</summary>
-    [Fact]
+    [SkippableFact]
     public void ErrorString_BeforeInit_DoesNotCrash()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_shutdown();
         var ex = Record.Exception(() =>
@@ -69,10 +69,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-040: xpe_log_flush before init is safe.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogFlush_BeforeInit_DoesNotCrash()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_shutdown();
         var ex = Record.Exception(() => XpeCommonNative.xpe_log_flush());
@@ -82,10 +82,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     // -- Negative input scenarios (REQ-GUI-IT-006, REQ-GUI-IT-050, REQ-GUI-IT-052) --
 
     /// <summary>Nefarious JSON (very long) must not crash — returns CONFIG_INVALID or INVALID_INPUT.</summary>
-    [Fact]
+    [SkippableFact]
     public void Configure_VeryLongMalformedJson_DoesNotThrowManagedException()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var badJson = "{" + new string('x', 65536); // 64 KB malformed JSON
@@ -99,10 +99,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     }
 
     /// <summary>xpe_get_pending_alert with tiny buffer must return BUFFER_TOO_SMALL or INVALID_INPUT — not crash.</summary>
-    [Fact]
+    [SkippableFact]
     public void GetPendingAlert_TinyBuffer_ReturnsErrorCodeNotException()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var ex = Record.Exception(() =>
@@ -119,10 +119,10 @@ public sealed class NativeErrorTranslationTests : IDisposable
     }
 
     /// <summary>xpe_alloc_image with very large dimensions must return error — not crash.</summary>
-    [Fact]
+    [SkippableFact]
     public void AllocImage_HugeDimensions_ReturnsErrorNotException()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var ex = Record.Exception(() =>

@@ -64,7 +64,7 @@ XpeImageMetadata* CreateTestMetadata() {
     XpeImageMetadata* meta = new XpeImageMetadata();
     std::memset(meta, 0, sizeof(XpeImageMetadata));
 
-    std::strncpy(meta->bodyPart, "CHEST", sizeof(meta->bodyPart) - 1);
+    strncpy_s(meta->bodyPart, sizeof(meta->bodyPart), "CHEST", _TRUNCATE);
     meta->kVp = 120.0f;
     meta->mAs = 100.0f;
     meta->SID_mm = 1200.0f;

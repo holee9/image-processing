@@ -221,10 +221,20 @@ jobs:
           path: build/dotnet-test-results/
 
   coverage:
+    # Dispatch-only and self-contained (own configure/build). Not gated on the
+    # test jobs: a single flaky assertion there must not skip the coverage
+    # measurement (#120, observed 2026-09-10 — EnduranceTest boundary failure
+    # skipped both coverage presets). Test pass/fail stays the test jobs' gate.
     if: github.event_name == 'workflow_dispatch'
-    needs: [common-build, preprocess-tests]
     runs-on: windows-2025
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # coverage      = common + preprocess (REQ-P0-006 scope)
+        # coverage-post = common + gsvg/enhance_basic/enhance_advanced/display (ci-post scope)
+        preset: [coverage, coverage-post]
+    name: coverage (${{ matrix.preset }})
 
     steps:
       - name: Checkout
@@ -248,16 +258,28 @@ jobs:
 
       - name: Configure coverage build
         shell: pwsh
-        run: cmake --preset coverage
+        run: cmake --preset ${{ matrix.preset }}
 
-      - name: Build coverage target
+      - name: Build coverage configuration
         shell: pwsh
-        run: cmake --build --preset coverage --parallel
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+
+      # REQ-P0-006: the `coverage` target runs the whole ctest suite under
+      # OpenCppCoverage and writes build/coverage/coverage/coverage.xml;
+      # `coverage_check` fails the job when line-rate < 0.85 (#113).
+      - name: Run coverage (OpenCppCoverage over ctest)
+        shell: pwsh
+        run: cmake --build --preset ${{ matrix.preset }} --target coverage
+
+      - name: Enforce coverage threshold (85%)
+        shell: pwsh
+        run: cmake --build --preset ${{ matrix.preset }} --target coverage_check
 
       - name: Upload coverage artifacts
+        if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: coverage-build-artifacts
+          name: coverage-${{ matrix.preset }}
           if-no-files-found: ignore
           retention-days: 14
-          path: build/coverage/
+          path: build/${{ matrix.preset }}/coverage/

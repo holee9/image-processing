@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 
 #include <cstring>
+#include <string>
 #include <fstream>
 #include <thread>
 #include <cstdio>
@@ -282,6 +283,8 @@ TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
     XpeImageBuffer buf;
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf);
 
+    void* dataPtr = buf.data;
+    EXPECT_NE(dataPtr, nullptr);
     EXPECT_EQ(xpe_free_image(&buf), XPE_OK);
     EXPECT_EQ(buf.data, nullptr);
     EXPECT_EQ(buf.dataSize, 0);
@@ -363,6 +366,28 @@ TEST_F(XpeCommonTest, ConfigureAfterReinitSucceeds) {
     xpe_shutdown();
     EXPECT_EQ(xpe_init(nullptr), XPE_OK);
     EXPECT_EQ(xpe_configure("{\"test\":1}"), XPE_OK);
+}
+
+/* --- #115: syntactic JSON validation (mirrors the C# integration tests) --- */
+
+/**
+ * Mirrors REQ-GUI-IT-022 (MetadataMarshallingTests): a payload that opens with
+ * '{' but is not valid JSON must be rejected, not stored.
+ */
+TEST_F(XpeCommonTest, ConfigureWithMalformedJsonBodyReturnsInvalid) {
+    EXPECT_EQ(xpe_configure("{not json"), XPE_ERR_CONFIG_INVALID);
+}
+
+/**
+ * Mirrors REQ-GUI-IT-006 (NativeErrorTranslationTests): a 64 KB malformed
+ * payload must return a negative code and must not let an exception escape
+ * across the C ABI.
+ */
+TEST_F(XpeCommonTest, ConfigureWithVeryLongMalformedJsonReturnsNegative) {
+    const std::string badJson = "{" + std::string(65536, 'x');
+    XpeErrorCode result = XPE_OK;
+    EXPECT_NO_THROW({ result = xpe_configure(badJson.c_str()); });
+    EXPECT_LT(static_cast<int>(result), 0);
 }
 
 /* ============================================================================

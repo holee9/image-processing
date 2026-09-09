@@ -1,5 +1,6 @@
-// AC-14: Optional P1A tests skip cleanly when xpe_preprocess.dll absent.
+﻿// AC-14: Optional P1A tests skip cleanly when xpe_preprocess.dll absent.
 using System.Runtime.InteropServices;
+using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
 namespace ImageProcTest.IntegrationTests.P1AReady;
@@ -18,13 +19,12 @@ public sealed class PreprocessHandshakeTests
         : string.Empty;
 
     /// <summary>REQ-GUI-IT-060: xpe_preprocess_version export exists and returns non-empty string.</summary>
-    [Fact]
+    [SkippableFact]
     public void PreprocessVersion_WhenDllStaged_ReturnsNonEmptyString()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
-        if (!NativeLibrary.TryLoad(DllPath, out var handle))
-            return; // DLL load failed — test skipped
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {
@@ -45,13 +45,12 @@ public sealed class PreprocessHandshakeTests
     }
 
     /// <summary>REQ-GUI-IT-060: xpe_preprocess_init / xpe_preprocess_shutdown lifecycle works.</summary>
-    [Fact]
+    [SkippableFact]
     public void PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
-        if (!NativeLibrary.TryLoad(DllPath, out var handle))
-            return; // DLL load failed — test skipped
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {
@@ -72,13 +71,12 @@ public sealed class PreprocessHandshakeTests
     }
 
     /// <summary>REQ-GUI-IT-060: All 9 required exports are present when DLL is staged.</summary>
-    [Fact]
+    [SkippableFact]
     public void PreprocessDll_WhenStaged_HasAllRequiredExports()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
-        if (!NativeLibrary.TryLoad(DllPath, out var handle))
-            return; // DLL load failed — test skipped
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {

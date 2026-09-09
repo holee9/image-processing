@@ -13,6 +13,8 @@
 
 #include "xpe/common/xpe_common_api.h"
 
+#include <nlohmann/json.hpp>
+
 #include <array>
 #include <chrono>
 #include <cstdlib>
@@ -154,7 +156,17 @@ XPE_API XpeErrorCode xpe_configure(const char* jsonConfig)
     if (!jsonConfig || jsonConfig[0] == '\0') return XPE_ERR_INVALID_INPUT;
 
     try {
-        // Minimal JSON validity check: must start with '{'
+        // Full syntactic validation. accept() reports well-formedness without
+        // building a DOM and without throwing, so a 64 KB malformed payload
+        // costs one scan and never unwinds across the C ABI. Schema validation
+        // (which keys must be present) is a separate requirement -- not here.
+        if (!nlohmann::json::accept(std::string(jsonConfig))) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+
+        // The configuration document must be an object, as it was before this
+        // check was tightened -- a bare array or scalar is valid JSON but is
+        // not a configuration.
         const char* p = jsonConfig;
         while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
         if (*p != '{') return XPE_ERR_CONFIG_INVALID;
@@ -296,10 +308,9 @@ XPE_API void xpe_clear_alerts(void)
 // Logging functions implemented in xpe_logging.cpp using spdlog
 
 /* ============================================================================
- * Internal test-support helpers (white-box linkage for unit tests).
+ * Alert producer (declared in xpe_error.h).
  * ============================================================================ */
 
-/** @cond INTERNAL */
 extern "C" {
 
 XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
@@ -308,4 +319,3 @@ XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
 }
 
 } // extern "C"
-/** @endcond */
