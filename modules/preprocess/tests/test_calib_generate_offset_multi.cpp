@@ -47,7 +47,7 @@ XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
 // Helper to create a UINT16 frame buffer
 struct FrameHelper {
     std::vector<uint16_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit FrameHelper(uint32_t w, uint32_t h, uint16_t fill = 0) {
         pixels.assign(static_cast<size_t>(w) * h, fill);
@@ -73,7 +73,7 @@ struct FrameHelper {
 // Helper to create output buffer
 struct OutputHelper {
     std::vector<uint16_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit OutputHelper(uint32_t w, uint32_t h) {
         pixels.assign(static_cast<size_t>(w) * h, 0);

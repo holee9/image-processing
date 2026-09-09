@@ -161,7 +161,13 @@ inline bool xpe_buffer_has_format(const XpeImageBuffer* buf,
 
     size_t requiredBytes = 0;
     if (!xpe_required_bytes(buf, elementSize, &requiredBytes)) return false;
-    if (buf->dataSize < requiredBytes) return false;
+
+    // #123 dataSize input contract (docs/project/api-spec.md, 2026-09-10):
+    // 0 means *unspecified* -- trust the dimensions and skip the size check,
+    // because existing callers do not populate the field. A non-zero value
+    // smaller than the dimensions require is rejected: reading width*height
+    // pixels out of it would run past the allocation. Larger is accepted.
+    if (buf->dataSize != 0 && buf->dataSize < requiredBytes) return false;
 
     if (countOut) {
         *countOut = requiredBytes / elementSize;

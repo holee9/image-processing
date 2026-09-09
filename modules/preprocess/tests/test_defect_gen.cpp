@@ -28,7 +28,7 @@ constexpr uint32_t H = 256;
 // Build a UINT16 XpeImageBuffer from a flat vector.
 struct FrameHelper {
     std::vector<uint16_t> pixels;
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
 
     explicit FrameHelper(uint32_t w, uint32_t h, uint16_t fill = 0) {
         pixels.assign(static_cast<size_t>(w) * h, fill);

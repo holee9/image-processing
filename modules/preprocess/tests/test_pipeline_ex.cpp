@@ -167,7 +167,7 @@ TEST_F(PipelineExTest, PipelineExWithState) {
     ASSERT_EQ(XPE_OK, xpe_calib_state_load(&state, tmpDir.string().c_str()));
 
     // Create test image (uint16, value = 200)
-    XpeImageBuffer img;
+    XpeImageBuffer img{};
     auto imgData = makeTestImage(200, img);
 
     XpeImageMetadata meta = {};
@@ -204,7 +204,7 @@ TEST_F(PipelineExTest, PipelineExNullImgReturnsError) {
 }
 
 TEST_F(PipelineExTest, PipelineExNullStateSkipsCalibration) {
-    XpeImageBuffer img;
+    XpeImageBuffer img{};
     auto imgData = makeTestImage(200, img);
     XpeImageMetadata meta = {};
 
@@ -291,7 +291,7 @@ TEST_F(PipelineExTest, BatchNullMetasReturnsError) {
 }
 
 TEST_F(PipelineExTest, BatchSingleFrameWorks) {
-    XpeImageBuffer img;
+    XpeImageBuffer img{};
     auto imgData = makeTestImage(200, img);
     XpeImageMetadata meta = {};
     meta.flags = 0;

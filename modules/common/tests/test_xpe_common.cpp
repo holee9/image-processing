@@ -276,7 +276,7 @@ TEST_F(XpeCommonTest, AllocImageWithNullPtrReturnsInvalid) {
 }
 
 TEST_F(XpeCommonTest, AllocImageWithZeroDimensionsReturnsInvalid) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(0, 100, XPE_PIXEL_UINT16, &buf),
               XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_alloc_image(100, 0, XPE_PIXEL_UINT16, &buf),
@@ -284,13 +284,13 @@ TEST_F(XpeCommonTest, AllocImageWithZeroDimensionsReturnsInvalid) {
 }
 
 TEST_F(XpeCommonTest, AllocImageWithLargeDimensionsReturnsInvalid) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(5000, 5000, XPE_PIXEL_UINT16, &buf),
               XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(XpeCommonTest, AllocImageSucceedsForValidInput) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf), XPE_OK);
     EXPECT_EQ(buf.width, 100);
     EXPECT_EQ(buf.height, 100);
@@ -301,7 +301,7 @@ TEST_F(XpeCommonTest, AllocImageSucceedsForValidInput) {
 }
 
 TEST_F(XpeCommonTest, AllocImageForFloat32Format) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(50, 50, XPE_PIXEL_FLOAT32, &buf), XPE_OK);
     EXPECT_EQ(buf.bitsAllocated, 32);
     EXPECT_EQ(buf.format, XPE_PIXEL_FLOAT32);
@@ -310,7 +310,7 @@ TEST_F(XpeCommonTest, AllocImageForFloat32Format) {
 }
 
 TEST_F(XpeCommonTest, AllocImageForUint8Format) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(32, 16, XPE_PIXEL_UINT8, &buf), XPE_OK);
     EXPECT_EQ(buf.bitsAllocated, 8);
     EXPECT_EQ(buf.bitsStored, 8);
@@ -325,7 +325,7 @@ TEST_F(XpeCommonTest, FreeImageWithNullPtrReturnsInvalid) {
 }
 
 TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf);
 
     void* dataPtr = buf.data;
@@ -336,13 +336,13 @@ TEST_F(XpeCommonTest, FreeImageReleasesMemory) {
 }
 
 TEST_F(XpeCommonTest, CopyImageWithNullPtrReturnsInvalid) {
-    XpeImageBuffer src, dst;
+    XpeImageBuffer src{}, dst{};
     EXPECT_EQ(xpe_copy_image(nullptr, &dst), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_copy_image(&src, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(XpeCommonTest, CopyImageSucceeds) {
-    XpeImageBuffer src, dst;
+    XpeImageBuffer src{}, dst{};
 
     xpe_alloc_image(10, 10, XPE_PIXEL_UINT16, &src);
     xpe_alloc_image(10, 10, XPE_PIXEL_UINT16, &dst);
@@ -360,7 +360,7 @@ TEST_F(XpeCommonTest, CopyImageSucceeds) {
 }
 
 TEST_F(XpeCommonTest, CopyImageWithSmallBufferReturnsBufferTooSmall) {
-    XpeImageBuffer src, dst;
+    XpeImageBuffer src{}, dst{};
 
     xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &src);
     xpe_alloc_image(10, 10, XPE_PIXEL_UINT16, &dst);  // Smaller buffer
@@ -489,7 +489,7 @@ TEST_F(XpeCommonTest, LogFlushDoesNotCrash) {
  * ============================================================================ */
 
 TEST_F(XpeCommonTest, AllocImageZeroInitializesMemory) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(10, 10, XPE_PIXEL_UINT16, &buf), XPE_OK);
 
     // Verify all bytes are zero
@@ -502,7 +502,7 @@ TEST_F(XpeCommonTest, AllocImageZeroInitializesMemory) {
 }
 
 TEST_F(XpeCommonTest, AllocImageUint16Format) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     EXPECT_EQ(xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf), XPE_OK);
     EXPECT_EQ(buf.bitsAllocated, 16);
     EXPECT_EQ(buf.format, XPE_PIXEL_UINT16);
@@ -512,7 +512,7 @@ TEST_F(XpeCommonTest, AllocImageUint16Format) {
 }
 
 TEST_F(XpeCommonTest, FreeImageNullDataDoesNotCrash) {
-    XpeImageBuffer buf;
+    XpeImageBuffer buf{};
     buf.data = nullptr;
     buf.dataSize = 0;
 
@@ -521,7 +521,7 @@ TEST_F(XpeCommonTest, FreeImageNullDataDoesNotCrash) {
 }
 
 TEST_F(XpeCommonTest, CopyImageWithNullDataReturnsInvalid) {
-    XpeImageBuffer src, dst;
+    XpeImageBuffer src{}, dst{};
     src.data = nullptr;
     dst.data = nullptr;
 
@@ -653,7 +653,7 @@ TEST_F(XpeCommonTest, ConcurrentAlertQueueAccess) {
 TEST_F(XpeCommonTest, MemoryLeakTestThousandCycles) {
     // Allocate and free 1000 times to detect memory leaks
     for (int i = 0; i < 1000; ++i) {
-        XpeImageBuffer buf;
+        XpeImageBuffer buf{};
         EXPECT_EQ(xpe_alloc_image(100, 100, XPE_PIXEL_UINT16, &buf), XPE_OK);
         EXPECT_EQ(xpe_free_image(&buf), XPE_OK);
     }

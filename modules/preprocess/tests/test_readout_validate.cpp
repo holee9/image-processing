@@ -76,3 +76,27 @@ TEST_F(ReadoutValidateTest, NullNonuniformOutReturnsError) {
 }
 
 } // namespace
+
+/* --- #123: XpeImageBuffer.dataSize input contract (api-spec, 2026-09-10) --- */
+
+// dataSize == 0 means "unspecified": the entry point trusts the dimensions.
+TEST_F(ReadoutValidateTest, DataSizeZeroIsUnspecifiedAndAccepted) {
+    img.dataSize = 0;
+    EXPECT_EQ(XPE_OK,
+              xpe_validate_readout_artifact(&img, &meta, &dropped, &nonuniform));
+}
+
+// A non-zero dataSize smaller than width*height*bytesPerPixel is rejected:
+// reading the declared dimensions would run past the allocation.
+TEST_F(ReadoutValidateTest, DataSizeSmallerThanDimensionsIsRejected) {
+    img.dataSize = static_cast<size_t>(W) * H * sizeof(uint16_t) - sizeof(uint16_t);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_validate_readout_artifact(&img, &meta, &dropped, &nonuniform));
+}
+
+// A larger dataSize is accepted -- the buffer merely has slack.
+TEST_F(ReadoutValidateTest, DataSizeLargerThanDimensionsIsAccepted) {
+    img.dataSize = static_cast<size_t>(W) * H * sizeof(uint16_t) + 4096;
+    EXPECT_EQ(XPE_OK,
+              xpe_validate_readout_artifact(&img, &meta, &dropped, &nonuniform));
+}
