@@ -201,7 +201,11 @@ XpeErrorCode xpe_gsvg_process(void* handle,
                               int height,
                               const float* gainMap)
 {
-    if (!handle) return XPE_ERR_NOT_INITIALIZED;
+    // A NULL handle is a NULL required pointer, so it is INVALID_INPUT — the
+    // same code dicom returns for a NULL handle (dicom.cpp:56,67) and what the
+    // api-spec precedence contract requires (#119). "Not initialised" would be
+    // use-after-shutdown, which is a dangling pointer here, not a NULL one.
+    if (!handle) return XPE_ERR_INVALID_INPUT;
     if (!src || !dst) return XPE_ERR_INVALID_INPUT;
     if (width <= 0 || height <= 0) return XPE_ERR_INVALID_INPUT;
 

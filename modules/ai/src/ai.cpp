@@ -324,12 +324,15 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              float* confidenceOut)
 {
     // Pre-conditions
-    XpeErrorCode ec = checkInitialized();
-    if (ec != XPE_OK) return ec;
-
-    ec = checkNotNull(img);
+    // Required-pointer NULL checks run before the initialisation guard, per
+    // the api-spec error-code precedence contract (#119). Order only; the
+    // checks themselves are unchanged.
+    XpeErrorCode ec = checkNotNull(img);
     if (ec != XPE_OK) return ec;
     ec = checkNotNull(bodyPartOut);
+    if (ec != XPE_OK) return ec;
+
+    ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
     ec = validateImageBuffer(img);
@@ -367,10 +370,13 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
                                         const char* configJsonOrNull)
 {
     // Pre-conditions
+    // Required-pointer NULL checks run before the initialisation guard, per
+    // the api-spec error-code precedence contract (#119). Order only; the
+    // checks themselves are unchanged.
+    if (!parts || partCount < 2 || !stitchedOut) return XPE_ERR_INVALID_INPUT;
+
     XpeErrorCode ec = checkInitialized();
     if (ec != XPE_OK) return ec;
-
-    if (!parts || partCount < 2 || !stitchedOut) return XPE_ERR_INVALID_INPUT;
 
     // Validate all input parts
     for (uint32_t i = 0; i < partCount; ++i) {
@@ -442,12 +448,15 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
                                         const char* configJsonOrNull)
 {
     // Pre-conditions
-    XpeErrorCode ec = checkInitialized();
-    if (ec != XPE_OK) return ec;
-
-    ec = checkNotNull(img);
+    // Required-pointer NULL checks run before the initialisation guard, per
+    // the api-spec error-code precedence contract (#119). Order only; the
+    // checks themselves are unchanged.
+    XpeErrorCode ec = checkNotNull(img);
     if (ec != XPE_OK) return ec;
     ec = checkNotNull(softTissueOut);
+    if (ec != XPE_OK) return ec;
+
+    ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
     ec = validateImageBuffer(img);
@@ -476,12 +485,15 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
                                      const char* configJsonOrNull)
 {
     // Pre-conditions
-    XpeErrorCode ec = checkInitialized();
-    if (ec != XPE_OK) return ec;
-
-    ec = checkNotNull(img);
+    // Required-pointer NULL checks run before the initialisation guard, per
+    // the api-spec error-code precedence contract (#119). Order only; the
+    // checks themselves are unchanged.
+    XpeErrorCode ec = checkNotNull(img);
     if (ec != XPE_OK) return ec;
     ec = checkNotNull(meta);
+    if (ec != XPE_OK) return ec;
+
+    ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
     ec = validateImageBuffer(img);
@@ -502,10 +514,14 @@ XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
                                              char* buf, size_t bufSize)
 {
     // Pre-conditions
+    // Required-pointer NULL checks run before the initialisation guard, per
+    // the api-spec error-code precedence contract (#119). Order only; the
+    // checks themselves are unchanged.
+    if (!modelId || !buf) return XPE_ERR_INVALID_INPUT;
+
     XpeErrorCode ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
-    if (!modelId || !buf) return XPE_ERR_INVALID_INPUT;
     if (bufSize < 1) return XPE_ERR_BUFFER_TOO_SMALL;
 
     // Look up model in loaded models list

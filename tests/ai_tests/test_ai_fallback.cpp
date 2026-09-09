@@ -299,3 +299,38 @@ TEST_F(AiFallbackTest, BodypartRecognizeInvalidBufferReturnsInvalid) {
     EXPECT_EQ(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
               XPE_ERR_INVALID_INPUT);
 }
+
+/* ============================================================================
+ * Error-code precedence regression guard (#119)
+ *
+ * QA-B-13 moved the required-pointer NULL checks ahead of the initialisation
+ * guard in five xpe_ai entry points, but nothing pinned that order — the 108
+ * existing cases all pass with either order, so a refactor could silently undo
+ * it. The two assertions below differ only in whether the arguments are NULL,
+ * so they fail if the order is reversed (both would return NOT_INITIALIZED)
+ * and equally if the initialisation guard is dropped (both INVALID_INPUT).
+ * ============================================================================ */
+
+class AiErrorPrecedenceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Ensure the module is NOT initialised.
+        xpe_ai_shutdown();
+    }
+
+    void TearDown() override {
+        // Restore initialised state for subsequent tests.
+        xpe_ai_init("dummy_model_dir", nullptr);
+    }
+};
+
+TEST_F(AiErrorPrecedenceTest, NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_dl_denoise(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiErrorPrecedenceTest, ValidArgumentsReachNotInitialized) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+    XpeImageMetadata meta{};
+    EXPECT_EQ(xpe_dl_denoise(&img, &meta, nullptr), XPE_ERR_NOT_INITIALIZED);
+}
