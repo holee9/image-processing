@@ -250,11 +250,23 @@ jobs:
         shell: pwsh
         run: cmake --preset coverage
 
-      - name: Build coverage target
+      - name: Build coverage configuration
         shell: pwsh
         run: cmake --build --preset coverage --parallel
 
+      # REQ-P0-006: the `coverage` target runs the whole ctest suite under
+      # OpenCppCoverage and writes build/coverage/coverage/coverage.xml;
+      # `coverage_check` fails the job when line-rate < 0.85 (#113).
+      - name: Run coverage (OpenCppCoverage over ctest)
+        shell: pwsh
+        run: cmake --build --preset coverage --target coverage
+
+      - name: Enforce coverage threshold (85%)
+        shell: pwsh
+        run: cmake --build --preset coverage --target coverage_check
+
       - name: Upload coverage artifacts
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: coverage-build-artifacts
