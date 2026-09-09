@@ -115,10 +115,9 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PassThroughIsByteEqual)
                                      /*gainMap=*/nullptr);
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
+    (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
 
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_LT(elapsed.count(), kAbiMaxMs)
-        << "ABI smoke pass-through exceeded " << kAbiMaxMs << " ms ceiling.";
 
     // Pass-through: every pixel must be a byte-perfect copy. memcmp gives
     // O(N) coverage with a single assertion message on mismatch.
@@ -158,10 +157,9 @@ TEST(GsvgAbiSmoke, Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact)
                                      gain.data());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
+    (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
 
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_LT(elapsed.count(), kAbiMaxMs)
-        << "ABI smoke vignette+grid exceeded " << kAbiMaxMs << " ms ceiling.";
 
     // REQ-GSVG-022: the source buffer is never mutated when src != dst.
     EXPECT_EQ(std::memcmp(src.data(),
@@ -269,4 +267,47 @@ TEST(GsvgAbiSmoke, VersionStringLooksLikeSemver)
     ASSERT_FALSE(s.empty());
     ASSERT_NE(s.find('.'), std::string::npos)
         << "version string '" << s << "' missing a dot separator.";
+}
+
+// ---------------------------------------------------------------------------
+// Time budget for both 3072x3072 lifecycle paths, separated from the functional
+// cases above (#120). Mixing the two meant a slow build erased the byte-equality
+// and clamping assertions, which are the part that says the module is correct.
+// ---------------------------------------------------------------------------
+TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
+{
+    const auto src = make_large_frame();
+    std::vector<uint16_t> dst(kAbiCount, 0);
+
+    {   // pass-through (no config)
+        void* handle = nullptr;
+        ASSERT_EQ(xpe_gsvg_init(&handle, /*configJsonOrNull=*/nullptr), XPE_OK);
+        const auto start = std::chrono::steady_clock::now();
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
+                                   kAbiWidth, kAbiHeight, /*gainMap=*/nullptr),
+                  XPE_OK);
+        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start);
+        EXPECT_LT(elapsed.count(), kAbiMaxMs)
+            << "ABI smoke pass-through exceeded " << kAbiMaxMs << " ms ceiling.";
+        EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
+    }
+
+    {   // vignette + grid
+        const auto gain = make_gain_map();
+        void* handle = nullptr;
+        ASSERT_EQ(xpe_gsvg_init(&handle,
+                                "{\"vignette_correction\":true,"
+                                "\"grid_suppression\":true}"),
+                  XPE_OK);
+        const auto start = std::chrono::steady_clock::now();
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
+                                   kAbiWidth, kAbiHeight, gain.data()),
+                  XPE_OK);
+        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start);
+        EXPECT_LT(elapsed.count(), kAbiMaxMs)
+            << "ABI smoke vignette+grid exceeded " << kAbiMaxMs << " ms ceiling.";
+        EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
+    }
 }

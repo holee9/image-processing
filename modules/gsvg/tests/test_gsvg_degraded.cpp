@@ -72,10 +72,9 @@ TEST(GsvgDegradedMode, BP07_NullVignetteMap_IdentityOutput)
                                      /*gainMap=*/nullptr);
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
+    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
 
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-07-DEG exceeded " << kMaxMs << " ms wall clock budget.";
 
     // Identity: dst byte-equal to src.
     EXPECT_EQ(std::memcmp(dst.data(), src.data(), kCount * sizeof(uint16_t)), 0);
@@ -113,10 +112,9 @@ TEST(GsvgDegradedMode, BP08_AllOnesVignetteMap_OutputEqualsInput)
                                      gain.data());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
+    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
 
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-08-DEG exceeded " << kMaxMs << " ms wall clock budget.";
 
     // All pixels must stay inside the uint16 range (they were by construction,
     // and gain 1.0 preserves that).
@@ -155,10 +153,9 @@ TEST(GsvgDegradedMode, BP09_GridDisabled_VignetteOnly)
                                      gain.data());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
+    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
 
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-09-DEG exceeded " << kMaxMs << " ms wall clock budget.";
 
     // Vignette-only expectation: dst[i] == clamp(src[i] * 2, 0..65535).
     // Synthetic pixels top out at 1000 + 10*63 + 63 = 1693 so 2x fits.
@@ -209,4 +206,40 @@ TEST(GsvgDegradedMode, ProcessWithNullHandle_ReturnsInvalidInput)
 TEST(GsvgDegradedMode, ShutdownNullHandle_NoOp)
 {
     EXPECT_EQ(xpe_gsvg_shutdown(nullptr), XPE_OK);
+}
+
+// ---------------------------------------------------------------------------
+// Time budget for the three degraded-mode paths, separated from the functional
+// cases above (#120). All three share the same module configuration and differ
+// only in the vignette gain map (absent / all-ones / all-twos), so the arms
+// below vary exactly that — no timing coverage is lost by the split.
+// ---------------------------------------------------------------------------
+TEST(GsvgDegradedMode, DegradedMode_PerformanceBudget)
+{
+    const auto src = make_synthetic_image();
+    const std::vector<float> gainOnes(kCount, 1.0f);
+    const std::vector<float> gainTwos(kCount, 2.0f);
+
+    const float* gainMaps[] = { nullptr, gainOnes.data(), gainTwos.data() };
+    const char*  labels[]   = { "BP-07-DEG", "BP-08-DEG", "BP-09-DEG" };
+
+    for (int i = 0; i < 3; ++i) {
+        std::vector<uint16_t> dst(kCount, 0xBEEF);
+        void* handle = nullptr;
+        ASSERT_EQ(xpe_gsvg_init(
+                      &handle,
+                      "{\"vignette_correction\":true,\"grid_suppression\":false}"),
+                  XPE_OK) << labels[i];
+
+        const auto start = std::chrono::steady_clock::now();
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
+                                   kWidth, kHeight, gainMaps[i]),
+                  XPE_OK) << labels[i];
+        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start);
+
+        EXPECT_LT(elapsed.count(), kMaxMs)
+            << labels[i] << " exceeded " << kMaxMs << " ms wall clock budget.";
+        EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK) << labels[i];
+    }
 }

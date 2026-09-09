@@ -235,9 +235,57 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
     EXPECT_TRUE(std::isfinite(di)) << "DI is not finite: " << di;
     EXPECT_GT(ei, 0.0f) << "EI should be positive: " << ei;
 
-    // 4. Total time within budget (relaxed for 512x512)
-    // Full spec: < 2500ms for 3072x3072
-    // Test target: < 500ms for 512x512 (approximately proportional)
+    // The time budget lives in T603b_FullPipeline_PerformanceBudget below (#120).
+    // Keeping it here made a slow build erase the fifteen functional assertions
+    // above, which are the part that says the pipeline is correct.
+    (void)totalDuration;
+
+    delete[] data;
+    xpe_enhance_advanced_shutdown();
+}
+
+/**
+ * T603b: time budget for the same pipeline, separated from the functional case.
+ * Full spec: < 2500ms for 3072x3072; test target < 500ms for 512x512
+ * (approximately proportional).
+ */
+TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
+    ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
+
+    XpeImageBuffer img;
+    img.width = 512;
+    img.height = 512;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.data = new float[512 * 512];
+
+    float* data = static_cast<float*>(img.data);
+    for (int y = 0; y < 512; ++y) {
+        for (int x = 0; x < 512; ++x) {
+            float cx = x - 256.0f;
+            float cy = y - 256.0f;
+            float r = std::sqrt(cx*cx + cy*cy);
+            data[y * 512 + x] = 0.3f + 0.1f * std::exp(-r * r / 10000.0f);
+        }
+    }
+
+    XpeImageMetadata meta;
+    std::memset(&meta, 0, sizeof(meta));
+    strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
+    meta.kVp = 120.0f;
+    meta.mAs = 100.0f;
+
+    auto pipelineStart = high_resolution_clock::now();
+
+    ASSERT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
+    ASSERT_EQ(xpe_fractional_process(&img, 1.2f, nullptr), XPE_OK);
+    int x0, y0, x1, y1;
+    ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK);
+    float ei, di;
+    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+
+    auto pipelineEnd = high_resolution_clock::now();
+    auto totalDuration = duration_cast<milliseconds>(pipelineEnd - pipelineStart).count();
+
     EXPECT_LT(totalDuration, 500) << "Pipeline exceeded time budget: " << totalDuration << "ms";
 
     delete[] data;
