@@ -1,4 +1,5 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
 namespace ImageProcTest.IntegrationTests.P1AReady;
@@ -11,12 +12,15 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 public sealed class PreprocessCorrectionChainSmokeTests
 {
     private static readonly string? DllPath = XpePreprocessNative.TryFindDll();
+    private static readonly string SkipReason = DllPath is null
+        ? "Skipped: xpe_preprocess.dll not staged"
+        : string.Empty;
 
-    [Fact]
+    [SkippableFact]
     public void CorrectionChain_WithoutCalibration_PreservesSyntheticInput()
     {
-        if (DllPath is null) return;
-        if (!NativeLibrary.TryLoad(DllPath, out var handle)) return;
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {
@@ -33,11 +37,11 @@ public sealed class PreprocessCorrectionChainSmokeTests
     /// identical input MUST produce bit-identical output — RMSE between runs == 0.
     /// Any non-determinism would break reproducibility guarantees for regulated workflows.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void CorrectionChain_RunTwice_DeterministicRmseIsZero()
     {
-        if (DllPath is null) return;
-        if (!NativeLibrary.TryLoad(DllPath, out var handle)) return;
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {
@@ -61,11 +65,11 @@ public sealed class PreprocessCorrectionChainSmokeTests
     /// or Infinity values. Such sentinels would propagate through downstream algorithms
     /// (windowing, edge enhancement) and corrupt diagnostic output.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void CorrectionChain_Output_HasNoNanOrInf()
     {
-        if (DllPath is null) return;
-        if (!NativeLibrary.TryLoad(DllPath, out var handle)) return;
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {

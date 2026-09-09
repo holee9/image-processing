@@ -1,4 +1,4 @@
-// REQ-GUI-IT-053: Version pin — xpe_version() major must match pinned_major in expected-versions.json.
+﻿// REQ-GUI-IT-053: Version pin — xpe_version() major must match pinned_major in expected-versions.json.
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using ImageProcTest.IntegrationTests.Fixtures;
@@ -24,10 +24,10 @@ public sealed class VersionPinTests
         _fixture = fixture;
     }
 
-    [Fact]
+    [SkippableFact]
     public void XpeVersion_MajorMatchesPinnedVersion()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var pinnedMajor = LoadPinnedMajor();
 

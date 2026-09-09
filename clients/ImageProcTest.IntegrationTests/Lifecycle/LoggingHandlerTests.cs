@@ -1,4 +1,4 @@
-// AC-12: Log subsystem bounds.
+﻿// AC-12: Log subsystem bounds.
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -21,10 +21,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-031: xpe_log_flush pre-init must not throw managed exception.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogFlush_PreInit_DoesNotThrow()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         // Intentionally called without xpe_init
         var ex = Record.Exception(() => XpeCommonNative.xpe_log_flush());
@@ -32,7 +32,7 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-029: xpe_log_set_level with valid levels {0..5} returns OK.</summary>
-    [Theory]
+    [SkippableTheory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
@@ -41,7 +41,7 @@ public sealed class LoggingHandlerTests : IDisposable
     [InlineData(5)]
     public void LogSetLevel_ValidLevels_ReturnsOk(int level)
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var result = XpeCommonNative.xpe_log_set_level(level);
@@ -49,10 +49,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-029: xpe_log_set_level(-1) returns INVALID_INPUT.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogSetLevel_NegativeOne_ReturnsInvalidInput()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var result = XpeCommonNative.xpe_log_set_level(-1);
@@ -60,10 +60,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-029: xpe_log_set_level(6) returns INVALID_INPUT.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogSetLevel_Six_ReturnsInvalidInput()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var result = XpeCommonNative.xpe_log_set_level(6);
@@ -71,10 +71,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-030: xpe_log_set_file with a writable temp path returns OK.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogSetFile_WritableTempPath_ReturnsOk()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"xpe_it_log_{Guid.NewGuid():N}.log");
@@ -85,10 +85,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-030: xpe_log_set_file with non-existent directory returns IO_FAILED.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogSetFile_NonExistentDirectory_ReturnsIoFailed()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
         XpeCommonNative.xpe_init(null);
 
         var invalidPath = Path.Combine(Path.GetTempPath(), $"nonexistent_{Guid.NewGuid():N}", "log.txt");
@@ -97,10 +97,10 @@ public sealed class LoggingHandlerTests : IDisposable
     }
 
     /// <summary>REQ-GUI-IT-031: xpe_log_flush post-shutdown must not throw managed exception.</summary>
-    [Fact]
+    [SkippableFact]
     public void LogFlush_PostShutdown_DoesNotThrow()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         XpeCommonNative.xpe_init(null);
         XpeCommonNative.xpe_shutdown();

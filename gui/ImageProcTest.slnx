@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ImageProcTest/ImageProcTest.csproj" />
+  <Project Path="ImageProcTest.E2E/ImageProcTest.E2E.csproj" />
+  <Project Path="ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj" />
+</Solution>

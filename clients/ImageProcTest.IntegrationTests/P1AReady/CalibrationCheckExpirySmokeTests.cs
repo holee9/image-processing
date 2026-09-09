@@ -1,5 +1,6 @@
-// AC-14: Optional P1A calibration loader tests.
+﻿// AC-14: Optional P1A calibration loader tests.
 using System.Runtime.InteropServices;
+using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
 namespace ImageProcTest.IntegrationTests.P1AReady;
@@ -18,38 +19,35 @@ public sealed class CalibrationCheckExpirySmokeTests
         : string.Empty;
 
     /// <summary>REQ-GUI-IT-062: xpe_calib_load_offset with non-existent path returns IO_FAILED.</summary>
-    [Fact]
+    [SkippableFact]
     public void CalibLoadOffset_NonExistentPath_ReturnsIoFailed()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
         RunCalibLoadTest("xpe_calib_load_offset");
     }
 
     /// <summary>REQ-GUI-IT-062: xpe_calib_load_gain with non-existent path returns IO_FAILED.</summary>
-    [Fact]
+    [SkippableFact]
     public void CalibLoadGain_NonExistentPath_ReturnsIoFailed()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
         RunCalibLoadTest("xpe_calib_load_gain");
     }
 
     /// <summary>REQ-GUI-IT-062: xpe_calib_load_defect_map with non-existent path returns IO_FAILED.</summary>
-    [Fact]
+    [SkippableFact]
     public void CalibLoadDefectMap_NonExistentPath_ReturnsIoFailed()
     {
-        if (DllPath is null) return; // P1A DLL not staged — test skipped
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
 
         RunCalibLoadTest("xpe_calib_load_defect_map");
     }
 
     private static void RunCalibLoadTest(string exportName)
     {
-        if (!NativeLibrary.TryLoad(DllPath!, out var handle))
-        {
-            return; // DLL load failed — test skipped
-        }
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
 
         try
         {

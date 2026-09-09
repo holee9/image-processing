@@ -1,4 +1,4 @@
-// AC-4: Functional coverage for xpe_configure, xpe_get_param_range.
+﻿// AC-4: Functional coverage for xpe_configure, xpe_get_param_range.
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -24,10 +24,10 @@ public sealed class MetadataMarshallingTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-022: xpe_configure with valid JSON returns OK.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void Configure_ValidJson_ReturnsOk()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var result = XpeCommonNative.xpe_configure(TestDataLoader.ValidConfigJson);
         Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
@@ -36,10 +36,10 @@ public sealed class MetadataMarshallingTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-022: xpe_configure with malformed JSON returns CONFIG_INVALID.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void Configure_MalformedJson_ReturnsConfigInvalid()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var result = XpeCommonNative.xpe_configure(TestDataLoader.MalformedConfigJson);
         Assert.Equal(XpeCommonNative.XpeErrorCode.CONFIG_INVALID, result);
@@ -48,10 +48,10 @@ public sealed class MetadataMarshallingTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-026: xpe_get_param_range("CHEST", "window_center") returns OK with min &lt;= default &lt;= max.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void GetParamRange_ChestWindowCenter_ReturnsValidRange()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var result = XpeCommonNative.xpe_get_param_range("CHEST", "window_center", out var min, out var max, out var dflt);
         Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
@@ -62,10 +62,10 @@ public sealed class MetadataMarshallingTests : IDisposable
     /// <summary>
     /// REQ-GUI-IT-026: xpe_get_param_range with unknown body part returns error code (not crash).
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void GetParamRange_UnknownBodyPart_ReturnsErrorCode()
     {
-        if (!_fixture.IsAvailable) return; // DLL not available — test skipped
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         var result = XpeCommonNative.xpe_get_param_range("UNKNOWN_BODY_PART_XYZ", "window_center",
             out _, out _, out _);
