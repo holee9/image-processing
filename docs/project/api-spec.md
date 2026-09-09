@@ -1419,14 +1419,13 @@ GSVG_API GsvgErrorCode gsvg_load_scatter_lut(const char* filePath);
 | -9 | XPE_ERR_IO_FAILED | preprocess, dicom |
 | -10 | XPE_ERR_NETWORK_FAILED | dicom |
 
-### Error code precedence (normative, 2026-09-09)
+### Error code precedence (normative, 2026-09-09; narrowed same day per #119)
 
-When several error conditions hold at once, every XPE entry point reports the **first** matching class below. Callers and tests must not assume any other order (#119).
+When several error conditions hold at once, every XPE entry point reports errors in this order. Callers and tests must not assume anything stricter (#119).
 
-1. `XPE_ERR_INVALID_INPUT` — NULL pointers, zero sizes, out-of-range scalar arguments. Checked before anything else so an uninitialized module never dereferences caller memory.
-2. `XPE_ERR_NOT_INITIALIZED` — module `*_init()` not called or `*_shutdown()` already called.
-3. Content validation — `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL` (inspection of the pointed-to data).
-4. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY`.
+1. **Required-pointer nullness first.** A NULL required pointer argument yields `XPE_ERR_INVALID_INPUT` before any other check, so an uninitialized module never dereferences caller memory. Optional pointers (`configJsonOrNull`, optional metadata) are not required and do not trigger this rule.
+2. **After the null checks the order is implementation-defined** between `XPE_ERR_NOT_INITIALIZED` and content validation (`XPE_ERR_INVALID_INPUT` for zero sizes / out-of-range scalars, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`). Reference implementations differ here (`preprocess` validates format and dimensions before the initialization check; `common` and `enhance_advanced` check initialization first) and both are conforming. A test that wants to observe `XPE_ERR_NOT_INITIALIZED` must pass otherwise-valid, non-NULL arguments; a test that wants a content error must run on an initialized module.
+3. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY` — are reported only after 1 and 2 pass.
 
 `configJsonOrNull` parameters: `NULL` selects defaults; an empty string `""` is not valid JSON and yields `XPE_ERR_CONFIG_INVALID` (class 3).
 
