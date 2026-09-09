@@ -57,18 +57,24 @@ if(MSVC)
         file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}"                _cov_bindir)
         # --cover_children follows the ctest → test executable process tree.
         # Sources are restricted to modules/ minus test code so tests do not inflate the rate.
+        # The run goes through XpeCoverageRun.cmake so a failing test does not
+        # suppress the report (OpenCppCoverage propagates the child exit code).
+        set(_cov_cmd
+            "${XPE_OPENCPPCOVERAGE}" --quiet --cover_children
+            --sources "${_cov_src}"
+            --excluded_sources "${_cov_excl_mod_tests}"
+            --excluded_sources "${_cov_excl_tests}"
+            --modules "${_cov_bin}"
+            --export_type "cobertura:${_cov_xml}"
+            --export_type "html:${_cov_html}"
+            -- "${_cov_ctest}" --test-dir "${_cov_bindir}" -C $<CONFIG> --output-on-failure
+               -E "${XPE_COVERAGE_EXCLUDE_TESTS}")
         add_custom_target(coverage
-            COMMAND "${XPE_OPENCPPCOVERAGE}"
-                --quiet
-                --cover_children
-                --sources "${_cov_src}"
-                --excluded_sources "${_cov_excl_mod_tests}"
-                --excluded_sources "${_cov_excl_tests}"
-                --modules "${_cov_bin}"
-                --export_type "cobertura:${_cov_xml}"
-                --export_type "html:${_cov_html}"
-                -- "${_cov_ctest}" --test-dir "${_cov_bindir}" -C $<CONFIG> --output-on-failure
-                   -E "${XPE_COVERAGE_EXCLUDE_TESTS}"
+            COMMAND "${CMAKE_COMMAND}"
+                "-DXPE_COV_CMD=${_cov_cmd}"
+                "-DXPE_COV_REPORT=${_xpe_cov_dir}/coverage.xml"
+                "-DXPE_COV_WORKDIR=${CMAKE_BINARY_DIR}"
+                -P "${CMAKE_SOURCE_DIR}/cmake/XpeCoverageRun.cmake"
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             COMMENT "Coverage: running ctest under OpenCppCoverage -> ${_xpe_cov_dir}/coverage.xml"
             VERBATIM)
