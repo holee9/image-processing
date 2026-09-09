@@ -16,6 +16,15 @@
  *
  * @ingroup xpe_preprocess
  */
+
+/**
+ * @defgroup xpe_preprocess XPE Preprocess
+ * @brief Calibration-mode selection and XCal v1 calibration file handling.
+ *
+ * This group covers the preprocessing stage that runs before image enhancement:
+ * multi-point gain calibration mode selection and the on-disk XCal v1 format.
+ * Depends on @ref xpe_common for shared types and error codes.
+ */
 #ifndef XPE_PREPROCESS_MODE_SELECTOR_H
 #define XPE_PREPROCESS_MODE_SELECTOR_H
 
