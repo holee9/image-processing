@@ -13,7 +13,10 @@ enable_testing()
 # Test subdirectories (GTest required for all test targets)
 if(GTest_FOUND)
     add_subdirectory(common_smoke)
-    # Temporarily disabled due to GTest conflicts
+    # NOT a GTest conflict - see issue #113. tests/common has no CMakeLists.txt
+    # (deleted in f057d9e) and tests/ai_tests duplicates the xpe_ai_tests target
+    # from modules/ai. This whole file is unreachable anyway: the root
+    # CMakeLists does not add tests/ (only tests/e2e_post_pipeline directly).
     # add_subdirectory(common)
     # add_subdirectory(common_unit)
 
