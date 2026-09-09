@@ -144,6 +144,23 @@ TEST_F(EnhanceAdvancedConfigTest, MultiscaleRejectsNullPixelData) {
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
 }
 
+// A buffer with valid dimensions but no pixel storage is invalid input — the
+// same contract the other three entry points already applied (#122). Measured
+// before the fix: multiscale/fractional/collimation returned INVALID_INPUT and
+// only this one returned XPE_OK with a plausible-looking EI/DI pair, which is
+// worse than an error because a caller would display it as a measurement.
+TEST_F(EnhanceAdvancedConfigTest, ExposureIndexRejectsNullPixelData) {
+    XpeImageBuffer img{};
+    img.width  = 32;
+    img.height = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.data   = nullptr;
+    img.dataSize = 0;
+    XpeImageMetadata meta = MakeMeta();
+    float ei = 0.0f, di = 0.0f;
+    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+}
+
 // REQ-ADV-032: outputs stay finite even when the exposure inputs are not.
 TEST_F(EnhanceAdvancedConfigTest, ExposureIndexNonFiniteTechniqueFactorsStayFinite) {
     std::vector<float> storage;
@@ -222,6 +239,19 @@ TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsAcrossSizes) {
         XpeImageMetadata meta = MakeMeta();
         EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK)
             << "size " << n << "x" << n;
+    }
+}
+
+// The derived bound uses min(w,h); these confirm that is the right dimension by
+// exercising non-square and extreme aspect ratios under ASan (#121 follow-up).
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnNonSquareImages) {
+    const uint32_t sizes[][2] = { {256u, 32u}, {32u, 256u}, {1024u, 8u} };
+    for (const auto& wh : sizes) {
+        std::vector<float> storage;
+        XpeImageBuffer img = MakeImage(wh[0], wh[1], storage);
+        XpeImageMetadata meta = MakeMeta();
+        EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK)
+            << "size " << wh[0] << "x" << wh[1];
     }
 }
 
