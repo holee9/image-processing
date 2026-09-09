@@ -388,3 +388,121 @@ TEST_F(AiErrorPrecedenceTest, GetModelCard_ValidArgumentsReachNotInitialized) {
     EXPECT_EQ(xpe_ai_get_model_card("denoise", buf, sizeof(buf)),
               XPE_ERR_NOT_INITIALIZED);
 }
+
+/* ============================================================================
+ * #123 (QA-B-21): XpeImageBuffer.dataSize size-consistency guard, per entry point
+ *
+ * Contract (api-spec "XpeImageBuffer.dataSize on input"):
+ *   dataSize == 0                           -> unspecified, accepted
+ *   0 < dataSize < width*height*bpp(format) -> XPE_ERR_INVALID_INPUT
+ *   dataSize >= width*height*bpp(format)    -> accepted
+ *
+ * All five ai image entry points route through validateImageBuffer() (ai.cpp).
+ * Each gets a short-dataSize case and a dataSize==0 case, so the guard is
+ * proven to fire on that path rather than merely to compile.
+ *
+ * The storage is always fully allocated (64x64 uint16); only the declared
+ * dataSize is short, so a case that reaches the stub stays inside its own
+ * allocation. The stubs return XPE_ERR_PROCESSING_FAILED, so "accepted" is
+ * asserted as "not XPE_ERR_INVALID_INPUT".
+ * ========================================================================= */
+
+namespace {
+
+constexpr uint32_t kGuardW = 64;
+constexpr uint32_t kGuardH = 64;
+/* 64x64 UINT16 declared; room claimed for 16 pixels only. */
+constexpr size_t   kGuardShortBytes = static_cast<size_t>(16) * 2;
+
+/* Fully allocated buffer whose declared dataSize the caller chooses. */
+static XpeImageBuffer makeGuardBuffer(std::vector<uint16_t>& storage,
+                                      size_t declaredDataSize)
+{
+    XpeImageBuffer img = makeTestBuffer(kGuardW, kGuardH, storage);
+    img.dataSize = declaredDataSize;
+    return img;
+}
+
+}  // namespace
+
+TEST_F(AiFallbackTest, DataSizeGuard_BodypartRecognize_ShortReturnsInvalid) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeGuardBuffer(storage, kGuardShortBytes);
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_StitchImages_ShortReturnsInvalid) {
+    std::vector<uint16_t> s1, s2, sOut;
+    XpeImageBuffer parts[2]{};
+    parts[0] = makeGuardBuffer(s1, kGuardShortBytes);
+    parts[1] = makeTestBuffer(kGuardW, kGuardH, s2);
+    XpeImageBuffer out = makeTestBuffer(1024, 512, sOut);
+    EXPECT_EQ(xpe_stitch_images(parts, 2, &out, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid) {
+    std::vector<uint16_t> s1, s2;
+    XpeImageBuffer parts[2]{};
+    parts[0] = makeGuardBuffer(s1, kGuardShortBytes);
+    parts[1] = makeTestBuffer(kGuardW, kGuardH, s2);
+    uint32_t w = 0, h = 0;
+    EXPECT_EQ(xpe_stitch_estimate_size(parts, 2, &w, &h), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_BoneSuppress_ShortReturnsInvalid) {
+    std::vector<uint16_t> sIn, sOut;
+    XpeImageBuffer img = makeGuardBuffer(sIn, kGuardShortBytes);
+    XpeImageBuffer out = makeTestBuffer(kGuardW, kGuardH, sOut);
+    EXPECT_EQ(xpe_bone_suppress(&img, &out, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_DlDenoise_ShortReturnsInvalid) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeGuardBuffer(storage, kGuardShortBytes);
+    XpeImageMetadata meta{};
+    EXPECT_EQ(xpe_dl_denoise(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_BodypartRecognize_ZeroAccepted) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeGuardBuffer(storage, 0);
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_NE(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_StitchImages_ZeroAccepted) {
+    std::vector<uint16_t> s1, s2, sOut;
+    XpeImageBuffer parts[2]{};
+    parts[0] = makeGuardBuffer(s1, 0);
+    parts[1] = makeGuardBuffer(s2, 0);
+    XpeImageBuffer out = makeTestBuffer(1024, 512, sOut);
+    EXPECT_NE(xpe_stitch_images(parts, 2, &out, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_StitchEstimateSize_ZeroAccepted) {
+    std::vector<uint16_t> s1, s2;
+    XpeImageBuffer parts[2]{};
+    parts[0] = makeGuardBuffer(s1, 0);
+    parts[1] = makeGuardBuffer(s2, 0);
+    uint32_t w = 0, h = 0;
+    EXPECT_EQ(xpe_stitch_estimate_size(parts, 2, &w, &h), XPE_OK);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_BoneSuppress_ZeroAccepted) {
+    std::vector<uint16_t> sIn, sOut;
+    XpeImageBuffer img = makeGuardBuffer(sIn, 0);
+    XpeImageBuffer out = makeTestBuffer(kGuardW, kGuardH, sOut);
+    EXPECT_NE(xpe_bone_suppress(&img, &out, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(AiFallbackTest, DataSizeGuard_DlDenoise_ZeroAccepted) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeGuardBuffer(storage, 0);
+    XpeImageMetadata meta{};
+    EXPECT_NE(xpe_dl_denoise(&img, &meta, nullptr), XPE_ERR_INVALID_INPUT);
+}

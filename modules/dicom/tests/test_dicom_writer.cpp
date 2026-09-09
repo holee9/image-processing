@@ -171,3 +171,49 @@ TEST_F(DicomWriterTest, WriteJ2KNullImg_ReturnsInvalidInput) {
               xpe_dicom_write_j2k(path.string().c_str(), nullptr, &m_meta));
     EXPECT_FALSE(fs::exists(path)) << "Partial file must not be created on error";
 }
+
+// ---------------------------------------------------------------------------
+// #123 (QA-B-21): XpeImageBuffer.dataSize size-consistency guard, per entry point
+//
+// Contract (api-spec "XpeImageBuffer.dataSize on input"):
+//   dataSize == 0                           -> unspecified, accepted
+//   0 < dataSize < width*height*bpp(format) -> XPE_ERR_INVALID_INPUT
+//   dataSize >= width*height*bpp(format)    -> accepted
+//
+// Both dicom write entry points call data_size_is_consistent() (dicom.cpp).
+// The fixture image stays fully allocated (256*256 uint16); only the declared
+// dataSize is altered, so a case that reaches the writer reads inside its own
+// allocation and the RED run fails on the return code, not on memory.
+// ---------------------------------------------------------------------------
+
+TEST_F(DicomWriterTest, DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput) {
+    XpeImageBuffer shortImg = m_img;
+    shortImg.dataSize = static_cast<size_t>(16) * 2;  // declares 256x256 UINT16
+    auto path = m_tempDir / "short.dcm";
+    EXPECT_EQ(xpe_dicom_write(path.string().c_str(), &shortImg, &m_meta),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(DicomWriterTest, DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput) {
+    XpeImageBuffer shortImg = m_img;
+    shortImg.dataSize = static_cast<size_t>(16) * 2;
+    auto path = m_tempDir / "short_j2k.dcm";
+    EXPECT_EQ(xpe_dicom_write_j2k(path.string().c_str(), &shortImg, &m_meta),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(DicomWriterTest, DataSizeGuard_Write_ZeroDataSize_Accepted) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;  // unspecified per the contract
+    auto path = m_tempDir / "zero.dcm";
+    EXPECT_NE(xpe_dicom_write(path.string().c_str(), &img, &m_meta),
+              XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(DicomWriterTest, DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;
+    auto path = m_tempDir / "zero_j2k.dcm";
+    EXPECT_NE(xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta),
+              XPE_ERR_INVALID_INPUT);
+}

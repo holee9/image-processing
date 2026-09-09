@@ -53,6 +53,7 @@ protected:
         std::vector<float> buffer(width * height, fillValue);
         imageData_.push_back(std::move(buffer));
         img.data = imageData_.back().data();
+        img.dataSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
 
         return img;
     }

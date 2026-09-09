@@ -211,6 +211,7 @@ TEST_F(MfpScalarTest, SmallImage) {
     smallImg.height = 64;
     smallImg.format = XPE_PIXEL_FLOAT32;
     smallImg.data = smallData.data();
+    smallImg.dataSize = static_cast<size_t>(64) * (64) * 4;
 
     XpeErrorCode result = xpe_multiscale_process(&smallImg, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);
@@ -232,6 +233,7 @@ TEST_F(MfpScalarTest, NonPowerOf2Dimensions) {
     np2Img.height = 150;
     np2Img.format = XPE_PIXEL_FLOAT32;
     np2Img.data = np2Data.data();
+    np2Img.dataSize = static_cast<size_t>(100) * (150) * 4;
 
     XpeErrorCode result = xpe_multiscale_process(&np2Img, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);
@@ -297,6 +299,7 @@ TEST_F(MfpScalarTest, MinimalImage32x32) {
     tinyImg.height = 32;
     tinyImg.format = XPE_PIXEL_FLOAT32;
     tinyImg.data = tinyData.data();
+    tinyImg.dataSize = static_cast<size_t>(32) * (32) * 4;
 
     XpeErrorCode result = xpe_multiscale_process(&tinyImg, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);
@@ -317,6 +320,7 @@ TEST_F(MfpScalarTest, NonSquareImage) {
     rectImg.height = 64;
     rectImg.format = XPE_PIXEL_FLOAT32;
     rectImg.data = rectData.data();
+    rectImg.dataSize = static_cast<size_t>(128) * (64) * 4;
 
     XpeErrorCode result = xpe_multiscale_process(&rectImg, &meta_, nullptr);
     EXPECT_EQ(result, XPE_OK);

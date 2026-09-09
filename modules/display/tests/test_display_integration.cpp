@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <vector>
 
 #include "xpe/display/display_api.h"
 
@@ -287,4 +288,123 @@ TEST(DisplayIntegration, VersionString_NotNull) {
     const char* ver = xpe_display_version();
     ASSERT_NE(ver, nullptr);
     EXPECT_GT(strlen(ver), 0u);
+}
+
+// =============================================================================
+// #123 (QA-B-21): XpeImageBuffer.dataSize size-consistency guard, per entry point
+//
+// Contract (api-spec "XpeImageBuffer.dataSize on input"):
+//   dataSize == 0                           -> unspecified, accepted
+//   0 < dataSize < width*height*bpp(format) -> XPE_ERR_INVALID_INPUT
+//   dataSize >= width*height*bpp(format)    -> accepted
+//
+// All three display entry points route through xpe_validate_float32()
+// (display_helpers.cpp). Each gets a short-dataSize case and a dataSize==0
+// case so the guard is proven to fire on that path, not merely to compile.
+// The allocation is always full (32*32 floats); only the declared dataSize is
+// short, so a case that reaches the implementation stays inside its buffer.
+// =============================================================================
+
+namespace {
+
+constexpr uint32_t kGuardW = 32;
+constexpr uint32_t kGuardH = 32;
+constexpr size_t   kGuardShortBytes = static_cast<size_t>(16) * sizeof(float);
+
+// Fully allocated 32x32 FLOAT32 image with a caller-chosen declared dataSize.
+static XpeImageBuffer make_guard_image(size_t declaredDataSize) {
+    XpeImageBuffer img = make_float32_image(kGuardW, kGuardH, 100.0f);
+    img.dataSize = declaredDataSize;
+    return img;
+}
+
+static XpeModalityLutParams guard_modality_params() {
+    XpeModalityLutParams p{};
+    p.mode             = XPE_MODALITY_LUT_LINEAR;
+    p.rescaleSlope     = 1.0f;
+    p.rescaleIntercept = 0.0f;
+    return p;
+}
+
+static XpeVoiLutParams guard_voi_params() {
+    XpeVoiLutParams p{};
+    p.mode   = XPE_VOI_LINEAR;
+    p.center = 100.0f;
+    p.width  = 200.0f;
+    p.minOut = 0.0f;
+    p.maxOut = 4095.0f;
+    return p;
+}
+
+static XpePresentationLutParams guard_presentation_params() {
+    XpePresentationLutParams p{};
+    for (int i = 0; i < 1024; ++i) {
+        p.lutData[i] = static_cast<uint16_t>(i * 4);
+    }
+    p.gsdfEnabled = 0;
+    return p;
+}
+
+}  // namespace
+
+TEST(DisplayDataSizeGuard, ModalityLut_ShortDataSize_ReturnsInvalidInput) {
+    XpeImageBuffer img = make_guard_image(kGuardShortBytes);
+    XpeModalityLutParams p = guard_modality_params();
+    EXPECT_EQ(xpe_apply_modality_lut(&img, &p), XPE_ERR_INVALID_INPUT);
+    free_image(img);
+}
+
+TEST(DisplayDataSizeGuard, VoiLut_ShortDataSize_ReturnsInvalidInput) {
+    XpeImageBuffer img = make_guard_image(kGuardShortBytes);
+    XpeVoiLutParams p = guard_voi_params();
+    EXPECT_EQ(xpe_apply_voi_lut(&img, &p), XPE_ERR_INVALID_INPUT);
+    free_image(img);
+}
+
+TEST(DisplayDataSizeGuard, PresentationLut_ShortDataSize_ReturnsInvalidInput) {
+    XpeImageBuffer img = make_guard_image(kGuardShortBytes);
+    XpePresentationLutParams p = guard_presentation_params();
+    EXPECT_EQ(xpe_apply_presentation_lut(&img, &p), XPE_ERR_INVALID_INPUT);
+    free_image(img);
+}
+
+TEST(DisplayDataSizeGuard, ModalityLut_ZeroDataSize_Accepted) {
+    XpeImageBuffer img = make_guard_image(0);
+    XpeModalityLutParams p = guard_modality_params();
+    EXPECT_EQ(xpe_apply_modality_lut(&img, &p), XPE_OK);
+    free_image(img);
+}
+
+TEST(DisplayDataSizeGuard, VoiLut_ZeroDataSize_Accepted) {
+    XpeImageBuffer img = make_guard_image(0);
+    XpeVoiLutParams p = guard_voi_params();
+    EXPECT_EQ(xpe_apply_voi_lut(&img, &p), XPE_OK);
+    free_image(img);
+}
+
+TEST(DisplayDataSizeGuard, PresentationLut_ZeroDataSize_Accepted) {
+    XpeImageBuffer img = make_guard_image(0);
+    XpePresentationLutParams p = guard_presentation_params();
+    // On success the entry point replaces img.data with a freshly allocated
+    // uint16 buffer, so free_image() below releases that one.
+    EXPECT_EQ(xpe_apply_presentation_lut(&img, &p), XPE_OK);
+    free_image(img);
+}
+
+// ASan probe (#123 QA-B-21 step 4): a GENUINELY short allocation. With the
+// guard in place this is rejected before any pixel is read; with the guard
+// removed the LUT loop reads 32*32 floats out of a 16-float allocation, which
+// is the heap-buffer-overflow READ the ASan run observes.
+TEST(DisplayDataSizeGuardAsanProbe, ModalityLut_TrulyShortBuffer_RejectedBeforeRead) {
+    std::vector<float> tiny(16, 100.0f);
+    XpeImageBuffer img{};
+    img.width         = kGuardW;
+    img.height        = kGuardH;
+    img.bitsAllocated = 32;
+    img.bitsStored    = 32;
+    img.format        = XPE_PIXEL_FLOAT32;
+    img.data          = tiny.data();
+    img.dataSize      = tiny.size() * sizeof(float);
+    XpeModalityLutParams p = guard_modality_params();
+    EXPECT_EQ(xpe_apply_modality_lut(&img, &p), XPE_ERR_INVALID_INPUT);
 }
