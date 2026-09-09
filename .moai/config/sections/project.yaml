@@ -2,7 +2,7 @@
 # Project-specific information and settings
 project:
   # Project name (derived from directory name or user input)
-  name: image-processing
+  name: ""
   # Project description (optional, user-provided)
   description: ""
   # Project mode: personal or team

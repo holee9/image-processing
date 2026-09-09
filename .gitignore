@@ -298,6 +298,7 @@ tests/test_data/**/Cluster_position.txt
 tests/test_data/**/PositionMap.raw
 .moai/logs/
 .moai/reports/
+.moai/lanes/
 .moai/plans/
 _workspace/
 build_collimation_test/
@@ -330,3 +331,4 @@ nul
 # ===========================================
 lint_results.json
 test_results.json
+CLAUDE.local.md

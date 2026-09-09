@@ -155,7 +155,12 @@ if(BUILD_GSVG)
     xpe_add_optional_subdirectory(modules/gsvg)
 endif()
 
-# Tests (disabled - use BUILD_TESTING instead to avoid conflicts)
+# Tests aggregator (tests/CMakeLists.txt) is NOT added - see issue #113.
+#   Blocking conflict: target xpe_ai_tests is defined in BOTH
+#   modules/ai/CMakeLists.txt:259 and tests/ai_tests/CMakeLists.txt.
+#   Module-registered tests are the live path; tests/ is a parallel tree that was
+#   partially dismantled. Re-enabling requires resolving that duplicate first.
+#   The "GTest conflicts" note inside tests/CMakeLists.txt is inaccurate.
 # if(BUILD_TESTS)
 #     xpe_add_optional_subdirectory(tests)
 # endif()
