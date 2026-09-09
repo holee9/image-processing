@@ -193,15 +193,45 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexZeroSignalStaysFinite) {
  * Larger sizes were not observed to fault, but a clean exit is weak evidence
  * for the same reason — no size is asserted safe here.
  *
- * DISABLED because enabling it takes down the whole executable rather than
- * failing one case. Fixing it (bound the level count by image size, or reject
- * the combination) is a separate card; the case is kept so the defect stays
- * visible instead of being deleted.
+ * Fixed in #121 (QA-B-17): LaplacianPyramid now bounds the level count by
+ * floor(log2(min(w,h))) + 1. The cases above are the regression guard; ASan is
+ * the observation tool, because the 64x64 arm returned XPE_OK while corrupting
+ * the heap — a return code cannot detect this class of defect.
  * ========================================================================= */
-TEST_F(EnhanceAdvancedConfigTest, DISABLED_MultiscaleMaxLevelsOnSmallImage) {
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnSmallImage) {
     std::vector<float> storage;
     XpeImageBuffer img = MakeImage(32, 32, storage);
     XpeImageMetadata meta = MakeMeta();
-    // Expected once bounded: either success or a documented error, never a crash.
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK);
+}
+
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOn64x64) {
+    std::vector<float> storage;
+    XpeImageBuffer img = MakeImage(64, 64, storage);
+    XpeImageMetadata meta = MakeMeta();
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK);
+}
+
+// Boundary sweep: the level count is bounded by floor(log2(min(w,h))) + 1, so
+// the configured maximum (8) is affordable from 128x128 up and clamped below it.
+// Every size must complete without corrupting memory — verified under ASan.
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsAcrossSizes) {
+    for (uint32_t n : {32u, 64u, 128u, 256u}) {
+        std::vector<float> storage;
+        XpeImageBuffer img = MakeImage(n, n, storage);
+        XpeImageMetadata meta = MakeMeta();
+        EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK)
+            << "size " << n << "x" << n;
+    }
+}
+
+// The smallest images the API accepts must also survive the maximum level count.
+TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnTinyImages) {
+    for (uint32_t n : {1u, 2u, 3u, 5u}) {
+        std::vector<float> storage;
+        XpeImageBuffer img = MakeImage(n, n, storage);
+        XpeImageMetadata meta = MakeMeta();
+        EXPECT_EQ(xpe_multiscale_process(&img, &meta, "{\"levels\": 99}"), XPE_OK)
+            << "size " << n << "x" << n;
+    }
 }
