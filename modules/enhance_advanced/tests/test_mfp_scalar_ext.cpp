@@ -294,10 +294,14 @@ TEST_F(MfpScalarExtTest, NullConfigUsesDefaults) {
     FreeImageBuffer(img);
 }
 
-TEST_F(MfpScalarExtTest, EmptyConfigStringUsesDefaults) {
+// Per api-spec "Error code precedence": configJsonOrNull treats NULL as "use
+// defaults"; an empty string is not a valid JSON document and is rejected.
+// (This suite already asserted the same thing for the init entry point in
+// LifecycleTest.InitWithEmptyStringReturnsConfigInvalid.)
+TEST_F(MfpScalarExtTest, EmptyConfigStringIsConfigInvalid) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
-    EXPECT_EQ(xpe_multiscale_process(&img, &meta, ""), XPE_OK);
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, ""), XPE_ERR_CONFIG_INVALID);
     FreeImageBuffer(img);
 }
 

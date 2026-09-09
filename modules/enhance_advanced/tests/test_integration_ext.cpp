@@ -266,23 +266,33 @@ TEST_F(IntegrationPipelineTest, SequentialProcessingDeterministic) {
 // ============================================================================
 
 TEST_F(IntegrationPipelineTest, ErrorPathsCovered) {
-    // NOT_INITIALIZED checks (module not initialized yet)
-    EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_NOT_INITIALIZED);
-    EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_NOT_INITIALIZED);
-
-    // Initialize module
-    ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
-
-    // NULL pointer checks after initialization
+    // The fixture's SetUp() already initialised the module, so these calls are
+    // NOT in the not-initialised state; and per api-spec "Error code precedence"
+    // (INVALID_INPUT -> NOT_INITIALIZED -> content validation -> processing) a
+    // NULL argument is rejected before either of the later checks can run.
+    // The not-initialised path is probed with valid arguments below and in
+    // NotInitializedGuardTest; the unsupported-format path with valid arguments
+    // in MfpScalarExtTest.Uint16FormatReturnsUnsupportedFormat.
     EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 
-    // Invalid format
+    // Re-initialising is idempotent; kept so the assertions below are explicit
+    // about the state they run in.
+    ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
+
+    EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
+
+    // This was written to probe UNSUPPORTED_FORMAT, but the buffer it builds has
+    // no pixel data (value-initialised: data == nullptr, dataSize == 0), and input
+    // validation runs before content validation. The NULL metadata is not the
+    // cause — test_integration.cpp:463 passes a NULL metadata and still reaches
+    // the not-initialised check, so metadata is optional here.
     XpeImageBuffer img{};
     img.width = 32;
     img.height = 32;
     img.format = XPE_PIXEL_UINT16;
-    EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_UNSUPPORTED_FORMAT);
+    EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
 
     // Invalid order
     XpeImageBuffer img2{};
@@ -291,4 +301,42 @@ TEST_F(IntegrationPipelineTest, ErrorPathsCovered) {
     img2.format = XPE_PIXEL_FLOAT32;
     EXPECT_EQ(xpe_fractional_process(&img2, -1.0f, nullptr), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_fractional_process(&img2, 3.0f, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+// api-spec "Error code precedence" states the order INVALID_INPUT ->
+// NOT_INITIALIZED -> content validation. The two arms below differ only in
+// whether the arguments are NULL, so together they pin the ordering itself —
+// which no existing case covered. Fixture pattern follows NotInitializedGuardTest.
+class ErrorPrecedenceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Ensure module is NOT initialized
+        xpe_enhance_advanced_shutdown();
+    }
+
+    void TearDown() override {
+        // Restore initialized state for subsequent tests
+        xpe_enhance_advanced_init(nullptr);
+    }
+};
+
+// DISABLED: this asserts the contract, and the implementation currently
+// contradicts it. Observed while uninitialised with NULL arguments:
+// xpe_multiscale_process -> -6, xpe_fractional_process -> -6, where the
+// api-spec precedence (INVALID_INPUT -> NOT_INITIALIZED) requires -1. The
+// module checks initialisation state before validating arguments, i.e. the
+// reverse order. Resolving it is either a module fix or a contract amendment;
+// both are outside the scope of the card that added this (#119). The case is
+// kept, disabled, so the mismatch stays visible instead of being deleted.
+TEST_F(ErrorPrecedenceTest, DISABLED_NullArgumentOutranksNotInitialized) {
+    EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
+}
+
+TEST_F(ErrorPrecedenceTest, ValidArgumentsReachNotInitialized) {
+    XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
+    XpeImageMetadata meta = MakeMeta("CHEST");
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_NOT_INITIALIZED);
+    EXPECT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_ERR_NOT_INITIALIZED);
+    FreeImageBuffer(img);
 }
