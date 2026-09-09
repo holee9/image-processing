@@ -320,15 +320,10 @@ protected:
     }
 };
 
-// DISABLED: this asserts the contract, and the implementation currently
-// contradicts it. Observed while uninitialised with NULL arguments:
-// xpe_multiscale_process -> -6, xpe_fractional_process -> -6, where the
-// api-spec precedence (INVALID_INPUT -> NOT_INITIALIZED) requires -1. The
-// module checks initialisation state before validating arguments, i.e. the
-// reverse order. Resolving it is either a module fix or a contract amendment;
-// both are outside the scope of the card that added this (#119). The case is
-// kept, disabled, so the mismatch stays visible instead of being deleted.
-TEST_F(ErrorPrecedenceTest, DISABLED_NullArgumentOutranksNotInitialized) {
+// Pins the api-spec precedence: a NULL argument is rejected before the
+// initialisation state is consulted. This failed when first written (the module
+// checked init state first, #119); QA-B-12 reordered the five guards.
+TEST_F(ErrorPrecedenceTest, NullArgumentOutranksNotInitialized) {
     EXPECT_EQ(xpe_multiscale_process(nullptr, nullptr, nullptr), XPE_ERR_INVALID_INPUT);
     EXPECT_EQ(xpe_fractional_process(nullptr, 1.0f, nullptr), XPE_ERR_INVALID_INPUT);
 }

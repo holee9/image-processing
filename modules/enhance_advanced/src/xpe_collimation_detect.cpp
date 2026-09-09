@@ -93,17 +93,23 @@ XPE_API XpeErrorCode xpe_detect_collimation(
     // @MX:REASON: Hough transform pipeline with confidence-based fallback
 
     try {
+        // The NULL guard runs before the initialisation guard, per the api-spec
+        // "Error code precedence" contract (#119). Only the order changed; the
+        // checks are untouched. The dimension check is deliberately left with the
+        // content checks below: whether "range" in the contract covers image
+        // dimensions is unresolved, and preprocess (the compliant reference) also
+        // validates format before dimensions.
+        // REQ-ADV-022: NULL pointer guard
+        if (img == nullptr || x0Out == nullptr || y0Out == nullptr ||
+            x1Out == nullptr || y1Out == nullptr) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+
         // REQ-ADV-020: Not-initialized guard
         // Simple check: if version function returns nullptr, not initialized
         const char* version = xpe_enhance_advanced_version();
         if (version == nullptr || strlen(version) == 0) {
             return XPE_ERR_NOT_INITIALIZED;
-        }
-
-        // REQ-ADV-022: NULL pointer guard
-        if (img == nullptr || x0Out == nullptr || y0Out == nullptr ||
-            x1Out == nullptr || y1Out == nullptr) {
-            return XPE_ERR_INVALID_INPUT;
         }
 
         // REQ-ADV-071: Format validation

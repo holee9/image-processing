@@ -43,18 +43,24 @@ XPE_API XpeErrorCode xpe_detect_collimation(
     // @MX:ANCHOR: [AUTO] Collimation detection public API entry -- REQ-ADV-012
     // @MX:REASON: High fan_in; Hough pipeline with confidence-based fallback
 
+    // The NULL guard runs before the initialisation guard, per the api-spec
+    // "Error code precedence" contract (#119). Only the order changed; the
+    // checks are untouched. The dimension check is deliberately left with the
+    // content checks below: whether "range" in the contract covers image
+    // dimensions is unresolved, and preprocess (the compliant reference) also
+    // validates format before dimensions.
+    // REQ-ADV-022: NULL pointer guard
+    if (img == nullptr || x0Out == nullptr || y0Out == nullptr ||
+        x1Out == nullptr || y1Out == nullptr) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     // REQ-ADV-020: Not-initialized guard
     {
         std::lock_guard<std::mutex> lock(g_initMutex);
         if (!g_initialized) {
             return XPE_ERR_NOT_INITIALIZED;
         }
-    }
-
-    // REQ-ADV-022: NULL pointer guard
-    if (img == nullptr || x0Out == nullptr || y0Out == nullptr ||
-        x1Out == nullptr || y1Out == nullptr) {
-        return XPE_ERR_INVALID_INPUT;
     }
 
     // REQ-ADV-071: Format validation

@@ -92,14 +92,20 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(
 
     std::lock_guard<std::mutex> lock(g_initMutex);
 
-    // REQ-ADV-020: Not-initialized guard
-    if (!g_initialized) {
-        return XPE_ERR_NOT_INITIALIZED;
-    }
-
+    // The NULL guard runs before the initialisation guard, per the api-spec
+    // "Error code precedence" contract (#119). Only the order changed; the
+    // checks are untouched. The dimension check is deliberately left with the
+    // content checks below: whether "range" in the contract covers image
+    // dimensions is unresolved, and preprocess (the compliant reference) also
+    // validates format before dimensions.
     // REQ-ADV-022: NULL pointer guard
     if (img == nullptr || meta == nullptr || eiOut == nullptr || deviationIndexOut == nullptr) {
         return XPE_ERR_INVALID_INPUT;
+    }
+
+    // REQ-ADV-020: Not-initialized guard
+    if (!g_initialized) {
+        return XPE_ERR_NOT_INITIALIZED;
     }
 
     // REQ-ADV-071: Format validation

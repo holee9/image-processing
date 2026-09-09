@@ -459,8 +459,11 @@ TEST(IntegrationTest, T606_CoverageMeasurement) {
     EXPECT_EQ(xpe_fractional_process(&img, 2.1f, nullptr), XPE_ERR_INVALID_INPUT);
 
     // Path 5: Not initialized
+    // Metadata must be non-NULL here: per the api-spec error-code precedence a
+    // NULL argument is rejected before the initialisation state is consulted,
+    // so passing nullptr would probe input validation instead of this path.
     xpe_enhance_advanced_shutdown();
-    EXPECT_EQ(xpe_multiscale_process(&img, nullptr, nullptr), XPE_ERR_NOT_INITIALIZED);
+    EXPECT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_ERR_NOT_INITIALIZED);
 
     delete[] static_cast<float*>(img.data);
 }
