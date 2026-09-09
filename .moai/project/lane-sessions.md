@@ -21,10 +21,10 @@
 
 | 터미널 | 세션 이름 | 워크트리 |
 |---|---|---|
-| 1 | `xpe-main` | image-processing |
-| 2 | `xpe-pre`  | xpe-pre |
-| 3 | `xpe-post` | xpe-post |
-| 4 | `xpe-gui`  | xpe-gui |
+| 1 | `lead` | image-processing |
+| 2 | `pre`  | xpe-pre |
+| 3 | `post` | xpe-post |
+| 4 | `gui`  | xpe-gui |
 
 ---
 
@@ -64,6 +64,23 @@
 
 오가는 것은 세 종류뿐. 메시지는 **알림**이고, 판정 근거는 항상 **디스크의 증거 파일**이다.
 
+### 채널 원칙 — 디스크가 채널이고 메시지는 알림이다 (양방향)
+
+승인 보류·거부·만료로 메시지가 막혀도 작업은 멈추지 않아야 한다. 그러려면 지시와 결과가
+둘 다 디스크에 있어야 한다. 메시지에 실린 작업은 메시지가 막히면 같이 막힌다.
+
+| 방향 | 채널 (권위) | 알림 |
+|---|---|---|
+| lead → Lane | `.moai/lanes/<lane>/inbox/<카드>.md` (main 체크아웃 절대경로) | SendMessage 한 줄 |
+| Lane → lead | `.moai/reports/lane-<lane>/<카드>/` (레인 워크트리) | SendMessage 요약 |
+
+- **레인**: 신고 후 inbox 를 확인한다. 메시지가 오지 않아도 새 카드가 있으면 진행한다.
+- **lead**: 메시지를 기다리지 않는다. 레인 워크트리의 증거 디렉터리와 `git log` 를 직접 읽고
+  진행 상황을 판단한다. 회신이 없다고 작업이 없는 것이 아니다.
+- `.moai/lanes/` 와 `.moai/reports/` 는 둘 다 gitignore 대상이다. 브랜치와 무관하게 같은
+  디스크의 절대경로로 읽는다 — 머지 불필요.
+
+
 ### main → Lane (작업 지시 — 고정 필드, 산문 금지, 10줄 이내)
 ```
 card: <작업 id>
@@ -96,7 +113,7 @@ branch: dev/<lane>  sha: <커밋>
 ultrathink. XPE main 세션. 역할: 통합·거버넌스·SPEC·게이트 판정.
 소유: 루트 CMakeLists.txt, cmake/, .moai/, .claude/, docs/. modules/**·clients/**·gui/** 직접 수정 금지.
 기준 문서: .moai/project/dev-plan.md §0/§4, .moai/project/lane-sessions.md
-먼저 /rename xpe-main 실행 후, ListAgents 로 레인 세션 3개 접속 확인.
+먼저 /rename lead 실행 후, ListAgents 로 레인 세션 3개 접속 확인.
 첫 작업: SPEC status 드리프트 정정 (4월 이후 미갱신 SPEC 실제 상태 반영).
 ```
 
@@ -104,27 +121,27 @@ ultrathink. XPE main 세션. 역할: 통합·거버넌스·SPEC·게이트 판�
 ```
 ultrathink. XPE Lane A 세션. 브랜치 dev/preprocess.
 소유: modules/common/**, modules/preprocess/**, tests/common*, tests/preprocess*
-그 외 경로 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+그 외 경로 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-pre 실행. 첫 작업: 소유 모듈 QA 게이트 6항목 현재 상태 실측.
+먼저 /rename pre 실행. 첫 작업: 소유 모듈 QA 게이트 6항목 현재 상태 실측.
 ```
 
 ### 터미널 3 — Lane B (postprocess)
 ```
 ultrathink. XPE Lane B 세션. 브랜치 dev/postprocess.
 소유: modules/{enhance_basic,enhance_advanced,ai,display,dicom,gsvg}/**, tests/{enhance_advanced_tests,ai_tests,e2e_post_pipeline}
-common/preprocess 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+common/preprocess 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-post 실행. 첫 작업: 6개 모듈 QA 게이트를 서브에이전트로 병렬 실측.
+먼저 /rename post 실행. 첫 작업: 6개 모듈 QA 게이트를 서브에이전트로 병렬 실측.
 ```
 
 ### 터미널 4 — Lane C (gui)
 ```
 ultrathink. XPE Lane C 세션. 브랜치 dev/gui.
 소유: clients/**, gui/**
-modules/** 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 신고.
+modules/** 수정 금지. 완료 시 main(lead)에 증거 경로 포함해 신고.
 기준 문서: .moai/project/lane-sessions.md §1·§2·§3
-먼저 /rename xpe-gui 실행.
+먼저 /rename gui 실행.
 첫 작업: clients/ImageProcTest 와 gui/ImageProcTest 중복(App.xaml, MainWindow.xaml, csproj 등 5파일 동일) 정리 방안 조사 후 main에 보고. 임의 삭제 금지.
 ```
 
@@ -142,17 +159,42 @@ modules/** 수정 금지. 완료 시 main(xpe-main)에 증거 경로 포함해 �
 
 ---
 
-## 6. 빌드 환경 공유 (워크트리 중복 회피)
+## 6. 빌드 환경 (실측 확정 — 2026-08-28)
 
-각 레인 터미널에서 세션 시작 전 1회 설정:
+### 툴체인: 기존 헬퍼를 쓸 것. 직접 만들지 말 것.
+
+`tools/ci/Use-MsvcDevShell.ps1` 이 vswhere 로 VS 설치 경로를 탐색해
+`VsDevCmd.bat -arch=amd64` 환경을 현재 프로세스에 주입한다. 하드코딩 경로가 없고
+`ci.yml` 의 common-build / preprocess-tests 잡이 이미 이것을 쓴다.
 
 ```powershell
-$env:VCPKG_INSTALLED_DIR = "D:/workspace-github/image-processing/vcpkg_installed"
-$env:VCPKG_BINARY_SOURCES = "clear;files,D:/workspace-github/.vcpkg-cache,readwrite"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1
 ```
 
-미설정 시 워크트리마다 3.4GB를 새로 설치한다.
-**주의**: 위 설정은 미검증. 첫 레인 빌드에서 동작 확인 후 확정할 것.
+**PATH 함정** (Lane A · Lane B 가 각각 독립적으로 겪음): Git Bash 에서 cmd.exe 를 호출할 때
+`C:\Windows\System32` 가 PATH 에 없으면 `vcvars64.bat` 이 `vswhere.exe` 를 찾지 못해
+**조용히 실패**하고, 이어서 `rc.exe` / `mt.exe` 누락으로 CMake 컴파일러 테스트가 깨진다.
+배치로 직접 부를 수밖에 없다면 첫 줄에서 PATH 를 명시 초기화한다:
+
+```bat
+set "PATH=C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem"
+```
+
+`tools/ci/build_lane_{a1,b1,m1}.bat` 은 쓰지 말 것 — `VS_ROOT` 가 `D:\Program Files\...`
+로 하드코딩돼 있는데 이 환경의 VS 는 `C:` 에 있어 실행되지 않는다 (#102).
+
+### vcpkg: 필요 없다
+
+루트 `CMakeLists.txt:56-57` 이 FetchContent 폴백을 갖고 있어 vcpkg 없이 빌드된다.
+실측: Lane A `ci-preprocess`, Lane B `ci-post` 모두 `VCPKG_ROOT` · `CMAKE_TOOLCHAIN_FILE`
+없이 configure·빌드·ctest 성공 (nlohmann_json / fmt 11.0.2 / gtest / eigen 자동 확보).
+
+**`VCPKG_ROOT` 를 설정하지 말 것.** 3.4GB 콜드 설치를 유발하며 얻는 것이 없다.
+
+예외는 `dicom` 하나다. dcmtk 는 FetchContent 폴백이 없어 `find_package(DCMTK REQUIRED)` 로
+하드 요구된다. main 워크트리의 기존 `vcpkg_installed` 를 `CMAKE_PREFIX_PATH` 로
+**읽기 전용 참조**만 할 것 (설치 금지). 단 현재는 타깃명 문제로 generate 자체가 막혀 있다 (#99).
+
 
 ---
 

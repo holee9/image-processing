@@ -222,7 +222,7 @@ The following tasks can start immediately:
 | P0-02 | CMakePresets.json | REQ-P0-002 | S0-A | ✅ DONE |
 | P0-03 | vcpkg.json SOUP manifest | REQ-P0-003 | S0-A | ✅ DONE |
 | P0-04 | cmake/ helpers | REQ-P0-001 | S0-A | ✅ DONE |
-| P0-05 | xpe_common.dll 18 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
+| P0-05 | xpe_common.dll 15 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
 | P0-06 | Google Test + CTest + coverage | REQ-P0-005,006,007 | S0-A | ✅ DONE |
 | P0-07 | ImageProcTest WPF scaffolding | REQ-P0-029,030,031 | S0-C | ✅ DONE |
 | P0-08 | CI pipeline | REQ-P0-001 | S0-A | ✅ DONE |
@@ -259,7 +259,7 @@ All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
 **C# Integration** (P0-07):
 - ImageProcTest WPF application (.NET 8)
 - P/Invoke wrapper with [StructLayout(LayoutKind.Sequential, Pack=8)]
-- All 18 functions declared with correct signatures
+- All 15 functions declared with correct signatures
 - Version display and lifecycle management (init/shutdown)
 
 **Module Scaffolding** (P0-09):

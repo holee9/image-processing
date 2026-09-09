@@ -1,11 +1,11 @@
 # Git Strategy Settings
 # Workflow configuration for Manual/Personal/Team modes
 git_strategy:
-  mode: team
-  provider: github
-  github_username: holee9
+  mode: "manual" # manual, personal, team
+  provider: "github" # github, gitlab
+  github_username: "" # GitHub username (for personal/team modes)
   gitlab:
-    instance_url: ""
+    instance_url: "" # GitLab instance URL
   # Manual Mode Settings (Local Git)
   manual:
     workflow: github-flow
@@ -55,7 +55,7 @@ git_strategy:
     # Git hooks policy
     hooks:
       pre_commit: enforce
-      pre_push: warn
+      pre_push: enforce
       commit_msg: warn
     # Commit message style
     commit_style:
@@ -78,18 +78,18 @@ git_strategy:
     merge_method: squash # PR merge method: squash, merge, rebase
     # Branch creation policy
     branch_creation:
-      prompt_always: false
-      auto_enabled: true
+      prompt_always: true
+      auto_enabled: false
     # Automation settings
     automation:
-      auto_branch: true
+      auto_branch: false
       auto_commit: true
-      auto_pr: true
+      auto_pr: false
       auto_push: true
     # Git hooks policy
     hooks:
       pre_commit: enforce
-      pre_push: warn
+      pre_push: enforce
       commit_msg: warn
     # Commit message style
     commit_style:

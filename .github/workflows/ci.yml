@@ -50,7 +50,7 @@ jobs:
 
   common-build:
     needs: detect-lane
-    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'gui'
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
     timeout-minutes: 45
 
@@ -95,9 +95,18 @@ jobs:
           retention-days: 14
           path: build/ci-common/Testing/
 
+      - name: Upload common binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-common-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          path: build/ci-common/bin/
+
   preprocess-tests:
     needs: detect-lane
-    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'preprocess'
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
     timeout-minutes: 30
 
@@ -137,6 +146,79 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
           path: build/ci-preprocess/Testing/
+
+      - name: Upload preprocess binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-preprocess-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          path: build/ci-preprocess/bin/
+
+  dotnet-tests:
+    needs: [detect-lane, common-build, preprocess-tests]
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      # Two native axes gate this suite, and neither uses SkipHelper.cs
+      # (that helper has zero callers — the guards are inline early returns):
+      #   1. IsAvailable  -> xpe_common.dll      (51 of 90 cases)
+      #   2. DllPath      -> xpe_preprocess.dll  (9 of 90 cases, P1AReady/)
+      # Both probe build/ci-common/bin, so staging the two DLLs there covers
+      # the csproj CopyXpeDllsForTests target and TryFindDll at once. Without
+      # them the suite reports 90/90 pass with 0 skipped while verifying nothing.
+      - name: Download common binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-common-binaries
+          path: build/ci-common/bin/
+
+      - name: Download preprocess binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-preprocess-binaries
+          path: build/ci-common/bin/
+
+      - name: Verify native binaries present
+        shell: pwsh
+        run: |
+          $missing = @()
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll')) {
+            if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Error "Native DLLs missing from build/ci-common/bin: $($missing -join ', ') - the suite would report 90/90 pass with 0 skipped while verifying nothing"
+            exit 1
+          }
+          Get-ChildItem build/ci-common/bin/ -Filter *.dll | Select-Object Name, Length
+
+      - name: Run C# integration tests
+        shell: pwsh
+        run: >
+          dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj
+          -c Debug
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory build/dotnet-test-results
+
+      - name: Upload C# test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-dotnet-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/dotnet-test-results/
 
   coverage:
     if: github.event_name == 'workflow_dispatch'

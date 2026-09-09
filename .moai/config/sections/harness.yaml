@@ -41,9 +41,9 @@ harness:
   # Maps harness depth to CLAUDE_CODE_EFFORT_LEVEL for Opus 4.7 adaptive thinking.
   # Deeper harness = more extended reasoning budget for evaluator and planner agents.
   effort_mapping:
-    minimal: medium
-    standard: high
-    thorough: xhigh
+    minimal: "low" # Fast iteration: no extended reasoning
+    standard: "medium" # Balanced quality: moderate reasoning budget
+    thorough: "high" # Critical features: maximum reasoning budget
   # [HARD] Global plan_audit override — prevents incident recurrence
   #
   # In a prior incident, 30 SPECs were generated without going through the plan-auditor
@@ -68,7 +68,7 @@ harness:
       plan_audit:
         # NOTE: plan_audit_global.always_enabled overrides this to true.
         # This field now controls max_iterations defaults only.
-        enabled: false
+        enabled: true
         max_iterations: 1 # Minimal level: single-pass audit (fast)
         require_must_pass: false # Relaxed for minimal: warn but do not block
     standard:

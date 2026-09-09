@@ -43,11 +43,11 @@ xpe-gui/ (Lane C, dev/gui)
 | xpe_preprocess.dll | Pre-A | 202/202 ✅ | ✅ | PASS (M2 API + BP-01~05 freeze) |
 | xpe_enhance_basic.dll | Post-B | 67/67 ✅ | ✅ | PASS |
 | xpe_display.dll | Post-B | 48/48 ✅ | ✅ | PASS |
-| xpe_dicom.dll | Post-B | 35/35 ✅ | ✅ | PASS |
+| xpe_dicom.dll | Post-B | 측정 불가 | ✅ | **BLOCKED** — CMakeLists:45 `dcmtk::dcmtk` 타깃 부재로 generate 실패 (#99). 과거 35/35 기록은 현 HEAD 에서 재현 안 됨 |
 | ImageProcTest.exe | GUI-C | 78/78 ✅ | ✅ | Phase1b E2E fixture 완료 |
 | xpe_enhance_advanced.dll | Post-B | 65/65 ✅ | ✅ | PASS (전수 GREEN) |
 | gsvg.dll | Post-B | 2/2 (BP-06 + DegradedMode) | ✅ | BP-06~09 freeze 완료 |
-| xpe_ai.dll | Post-B | - | ❌ | 미착수 (Should) |
+| xpe_ai.dll | Post-B | 108/108 ✅ (stub) | ✅ | 4/6 — stub 모드(XPE_AI_STUB_BUILD 기본 ON) 빌드·테스트 통과. G3 누수 1000프레임 미달(10회), G5 ABI export 15 vs 헤더 10 (#100). ONNX 실경로 미검증 |
 
 ### 1.0.1 SIMD Parity 테스트 현황 (SPEC-SIMD-001)
 
