@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace xpe {
 namespace enhance_advanced {
@@ -68,6 +69,38 @@ LaplacianPyramid::LaplacianPyramid(const float* data, int width, int height, int
     //             With blur-on-copy, L(i) = G(i) - upsample(G(i+1)) where G(i) is the
     //             unblurred level, so round-trip with gain=1 is mathematically exact.
     // @MX:SPEC: REQ-ADV-050 identity reconstruction fidelity
+
+    // @MX:WARN: [AUTO] Level count must be bounded by the image size (#121).
+    // @MX:REASON: `width >> level` below is NOT floored at 1 (unlike nextW/nextH),
+    //             so once a level reaches zero extent the Laplacian buffer is empty
+    //             while upsample() still writes a 2x2 block into it — a heap write
+    //             overflow. ASan located it at mfp_scalar.cpp upsample() for 32x32
+    //             and 64x64 images with the configured maximum of 8 levels.
+    //
+    // SPEC-XPE-P2-ADV fixes the configurable range at 2-8 (sdd_adv.md:196,
+    // srs_adv.md:436) and states no relationship to image size, so the bound is
+    // derived here: the coarsest level index is numLevels-1, and it must still
+    // have at least one pixel, i.e. min(w,h) >> (numLevels-1) >= 1, which gives
+    // numLevels <= floor(log2(min(w,h))) + 1.
+    //
+    // Clamping rather than rejecting: a processing pipeline should not stop on a
+    // configuration value it did not choose, and the SPEC treats levels as a
+    // quality knob, not a correctness precondition.
+    const int minDim = std::max(1, std::min(width, height));
+    int affordableLevels = 1;
+    while ((minDim >> affordableLevels) >= 1) {
+        ++affordableLevels;
+    }
+    if (numLevels > affordableLevels) {
+        spdlog::debug("LaplacianPyramid: levels {} exceeds what {}x{} can carry; "
+                      "clamped to {}", numLevels, width, height, affordableLevels);
+        numLevels = affordableLevels;
+    }
+    if (numLevels < 1) {
+        numLevels = 1;
+    }
+    numLevels_ = numLevels;
+
     levels_.resize(numLevels);
 
     // Build Gaussian pyramid first
