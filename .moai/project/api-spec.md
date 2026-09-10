@@ -1337,6 +1337,26 @@ XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* queryJson,
 
 ---
 
+### 11.11 xpe_dicom_validate
+
+```c
+XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJson, uint32_t reportBufLen);
+```
+
+**Description**: Validate a DICOM file for DX IOD conformance and produce a JSON report. **File meta information (PS3.10 group 0002) is required (decision #139, 2026-09-11 / QA-B-36):** the file must carry a Part 10 file meta information group whose content agrees with the dataset. The result is `valid: false` when any of the following holds:
+
+- the file has no meta information group (a bare dataset written without a Part 10 header — DCMTK synthesises an empty `DcmMetaInfo` for such files, so the check is on the group being empty, not on a null pointer);
+- `TransferSyntaxUID (0002,0010)` is absent or is not a well-formed UID (presence and format only — the parser trusts the meta transfer syntax to read the dataset, so an encoding comparison cannot detect anything);
+- `MediaStorageSOPClassUID (0002,0002)` is absent or differs from the dataset's `SOPClassUID (0008,0016)`;
+- `MediaStorageSOPInstanceUID (0002,0003)` is absent or differs from the dataset's `SOPInstanceUID (0008,0018)`.
+
+Each failing condition contributes one entry to the error report, tagged with the group-0002 element it concerns. When a dataset-side tag is itself missing, the missing-Type-1 report covers it and no separate meta mismatch is reported. Files written by `xpe_dicom_write` / `xpe_dicom_write_j2k` satisfy these rules (round-trip verified).  
+**SRS**: SRS-IF-002  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`
+
+---
+
 ## 12. gsvg.dll
 
 Provides anti-scatter grid detection and virtual grid suppression. This independent module does not depend on `xpe_common` types.
