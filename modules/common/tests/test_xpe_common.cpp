@@ -705,6 +705,41 @@ TEST_F(XpeCommonTest, HeaderDeclaresSixteenExportedFunctions) {
 }
 
 /* ============================================================================
+ * Ported from tests/common_smoke (QA-A-13, #109)
+ *
+ * The three unregistered trees under tests/ (common, common_unit, common_smoke)
+ * were deleted by this card. Everything they asserted was already covered here
+ * except the two assertions below, which are stronger than their counterparts:
+ *   - ErrorStringMapsKnownCode pinned the exact text, where
+ *     ErrorStringReturnsNonNullForAllCodes only requires each code to have a
+ *     string of its own
+ *   - CopyImagePreservesContents compared the whole buffer, where
+ *     CopyImageSucceeds compares element [0]
+ * ============================================================================ */
+
+TEST_F(XpeCommonTest, ErrorStringForInvalidInputHasExactText) {
+    EXPECT_STREQ(xpe_error_string(XPE_ERR_INVALID_INPUT), "Invalid input parameter");
+}
+
+TEST_F(XpeCommonTest, CopyImageReproducesEveryByte) {
+    XpeImageBuffer src{}, dst{};
+    ASSERT_EQ(xpe_alloc_image(4, 4, XPE_PIXEL_UINT16, &src), XPE_OK);
+    ASSERT_EQ(xpe_alloc_image(4, 4, XPE_PIXEL_UINT16, &dst), XPE_OK);
+
+    auto* pixels = static_cast<uint16_t*>(src.data);
+    for (size_t i = 0; i < 16; ++i) {
+        pixels[i] = static_cast<uint16_t>(i * 3);
+    }
+
+    ASSERT_EQ(xpe_copy_image(&src, &dst), XPE_OK);
+    EXPECT_EQ(std::memcmp(src.data, dst.data, src.dataSize), 0)
+        << "the copy must match byte for byte, not only at element 0";
+
+    xpe_free_image(&src);
+    xpe_free_image(&dst);
+}
+
+/* ============================================================================
  * Main
  * ============================================================================ */
 
