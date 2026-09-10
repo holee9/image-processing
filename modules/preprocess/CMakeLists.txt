@@ -207,6 +207,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_correct_avx2_parity.cpp
         tests/test_defect_correct_avx2_parity.cpp
         tests/test_runtime_detection_avx2_parity.cpp
+        # QA-A-33 (#120 #112): correctness half deleted by QA-A-27
+        tests/test_runtime_detection_functional.cpp
+        tests/test_runtime_detection_errors.cpp
         # TODO SPEC-SIMD-001: test_offset_correct_avx512_parity.cpp — blocked by xpe_simd_force_scalar API
         # TODO SPEC-SIMD-001: test_offset_correct_neon_parity.cpp — blocked by NEON dispatch API (ARM only)
         # SWU-1.12: Calibration generation and verification tests (FUNC-022~027)
