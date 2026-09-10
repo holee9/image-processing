@@ -45,6 +45,8 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 **REQ-P0-006**: The test framework SHALL support coverage reporting (gcov/lcov) with a minimum statement coverage threshold of 85% for xpe_common.dll.
 
+> **Coverage threshold per DLL (decision 2026-09-11, #120)** — `xpe_common.dll` and `xpe_preprocess.dll` (preset `coverage`) and the post-processing DLLs (preset `coverage-post`) are gated at **0.85**. `xpe_dicom.dll` (preset `coverage-dicom`) is gated at **0.80**: of its 229 uncovered instrumented lines at the 7th measurement (0.804), 75 are `catch(...)` handlers in `DicomValidator.cpp`/`dicom.cpp` proven unreachable through the public API (QA-B-34), 40 in `DicomNetworkSCU.cpp` are dead code, cancel-race or negotiation-impossible paths (QA-B-34 §6), and most of the rest are openjpeg failure callbacks reachable only by fault injection. The requirement text itself binds only `xpe_common.dll`; the per-DLL gates above are the project policy. Revisit when fault injection is introduced.
+
 **REQ-P0-007**: Each API function SHALL have at minimum: (a) a happy-path test, (b) a null/invalid parameter test, and (c) a boundary condition test.
 
 ### 2.3 xpe_common.dll API
