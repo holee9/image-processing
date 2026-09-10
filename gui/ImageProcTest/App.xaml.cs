@@ -1,9 +1,15 @@
 using System.IO;
+using System.Text.Json;
+using ImageProcTest.Models;
+using ImageProcTest.Services;
 
 namespace ImageProcTest;
 
 public partial class App : System.Windows.Application
 {
+    /// <summary>Process exit code for a command line the automation refused to run.</summary>
+    public const int InvalidAutomationArgsExitCode = 2;
+
     public static string? AutomationRawPath { get; private set; }
 
     public static string? AutomationReportPath { get; private set; }
@@ -24,7 +30,23 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
-        ParseAutomationArgs(e.Args);
+        // #136: parsing lives in AutomationArgs so it can be tested; this class only applies it.
+        var parsed = AutomationArgs.Parse(e.Args);
+
+        AutomationRawPath = parsed.RawPath;
+        AutomationReportPath = parsed.ReportPath;
+        AutomationBackendMode = parsed.BackendMode;
+        AutomationRawWidth = parsed.RawWidth;
+        AutomationRawHeight = parsed.RawHeight;
+
+        if (!parsed.IsValid)
+        {
+            // Refuse rather than start: an unusable switch used to be skipped, which produced a run
+            // that looked requested but measured something else.
+            WriteRejectionReport(parsed.ReportPath, parsed.Error!);
+            Environment.Exit(InvalidAutomationArgsExitCode);
+            return;
+        }
 
         DispatcherUnhandledException += (_, args) =>
         {
@@ -39,50 +61,32 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
     }
 
-    private static void ParseAutomationArgs(string[] args)
+    /// <summary>
+    /// Records the refusal where the caller asked for the report. Best effort: when the command line
+    /// was rejected before naming a report path, or the path cannot be written, the exit code is the
+    /// only signal.
+    /// </summary>
+    private static void WriteRejectionReport(string? reportPath, string reason)
     {
-        for (var i = 0; i < args.Length; i++)
+        if (string.IsNullOrWhiteSpace(reportPath))
         {
-            if (string.Equals(args[i], "--automation-raw", StringComparison.OrdinalIgnoreCase) &&
-                i + 1 < args.Length)
-            {
-                AutomationRawPath = Path.GetFullPath(args[i + 1]);
-                i++;
-                continue;
-            }
+            return;
+        }
 
-            if (string.Equals(args[i], "--automation-report", StringComparison.OrdinalIgnoreCase) &&
-                i + 1 < args.Length)
-            {
-                AutomationReportPath = Path.GetFullPath(args[i + 1]);
-                i++;
-                continue;
-            }
-
-            if (string.Equals(args[i], "--automation-backend", StringComparison.OrdinalIgnoreCase) &&
-                i + 1 < args.Length)
-            {
-                AutomationBackendMode = args[i + 1];
-                i++;
-                continue;
-            }
-
-            if (string.Equals(args[i], "--automation-width", StringComparison.OrdinalIgnoreCase) &&
-                i + 1 < args.Length &&
-                int.TryParse(args[i + 1], out var width))
-            {
-                AutomationRawWidth = width;
-                i++;
-                continue;
-            }
-
-            if (string.Equals(args[i], "--automation-height", StringComparison.OrdinalIgnoreCase) &&
-                i + 1 < args.Length &&
-                int.TryParse(args[i + 1], out var height))
-            {
-                AutomationRawHeight = height;
-                i++;
-            }
+        try
+        {
+            var report = new GuiAutomationReport { Passed = false, Error = reason };
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+            File.WriteAllText(
+                reportPath,
+                JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (IOException)
+        {
+            // Nothing better to do while shutting down; the exit code still carries the refusal.
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
     }
 }
