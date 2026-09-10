@@ -52,7 +52,7 @@ public partial class MainWindow : System.Windows.Window
     /// conditional on automation mode. A launch selection is not a stored value.
     ///
     /// Every field of <see cref="AutomationArgs"/> that selects run behaviour must be consumed by
-    /// this method; <c>AutomationArgsConsumptionGuardTests</c> fails when one is not.
+    /// this method; <c>AutomationRunSelectionConsumptionTests</c> fails when one is not.
     /// </summary>
     private static void ApplyRunSelection(AppSettings settings)
     {
