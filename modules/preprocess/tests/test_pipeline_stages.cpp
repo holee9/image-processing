@@ -177,17 +177,16 @@ TEST_F(PipelineStageTest, AllStagesEnabledRunInSequence) {
     EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
 }
 
-// MEASURED ASYMMETRY, not a conformance assertion. Offset and gain return
-// XPE_ERR_CALIB_NOT_LOADED when their map is missing (the two cases above), but
-// the defect stage is GATED on map presence instead: with no defect map loaded
-// the pipeline returns XPE_OK and the stage simply does not run. An earlier
-// draft of this case expected an error and measured 0 vs 0.
+// CONFORMANCE, since QA-A-34. api-spec.md 6 rule 3 (decision #120): the three
+// correction stages behave alike -- a stage that is not bypassed and whose map
+// is not loaded stops the pipeline with XPE_ERR_CALIB_NOT_LOADED. Skipping is
+// only ever the result of an explicit bypass flag.
 //
-// So a caller that enables the defect stage without loading a map gets a
-// success it may read as "defects were corrected". The flag is the only signal
-// that they were not -- which is what this case pins. Reported in QA-A-32 rather
-// than changed here: altering it is a production-branch decision.
-TEST_F(PipelineStageTest, DefectStageIsSkippedRatherThanFailingWithoutAMap) {
+// QA-A-32 measured the opposite here (XPE_OK, stage silently skipped) and
+// pinned it as an asymmetry. The leader ruled it a defect rather than a
+// contract: a caller would otherwise read "success" for a frame that was never
+// defect-corrected (SRS-ALERT-001). This case is the RED that flipped it.
+TEST_F(PipelineStageTest, DefectStageFailsWhenItsMapIsNotLoaded) {
     const char* config =
         "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
         "\"bypassOffset\":true,\"bypassGain\":true,\"bypassGhost\":true,"
@@ -196,9 +195,23 @@ TEST_F(PipelineStageTest, DefectStageIsSkippedRatherThanFailingWithoutAMap) {
     const XpeErrorCode rc =
         xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config);
 
-    EXPECT_EQ(XPE_OK, rc) << "the defect stage is skipped, not failed";
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, rc)
+        << "an enabled stage with no map must stop the pipeline, like offset and gain";
     EXPECT_FALSE(meta.flags & XPE_FLAG_DEFECT_CORRECTED)
-        << "and the flag is the only evidence that it did not run";
+        << "a failed stage must not claim it ran";
+}
+
+// The bypass flag still skips the stage — that is the ONLY way to skip it.
+// Existing cases rely on this, so it is asserted rather than assumed.
+TEST_F(PipelineStageTest, BypassDefectStillSkipsTheStageCleanly) {
+    const char* config =
+        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+        "\"bypassOffset\":true,\"bypassGain\":true,\"bypassGhost\":true,"
+        "\"bypassBinning\":true,\"bypassDefect\":true}";
+
+    EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config))
+        << "an explicitly bypassed stage needs no map";
+    EXPECT_FALSE(meta.flags & XPE_FLAG_DEFECT_CORRECTED);
 }
 
 } // namespace
