@@ -56,7 +56,7 @@ public sealed class DegradedModeReadinessTests : IDisposable
 
         using var _ = new NativeSearchScope(dir);
 
-        var removedPath = NativeModuleLibraryLocator.TryFindDll(removedDll, "image-processing");
+        var removedPath = Resolve(removedDll);
         Assert.True(
             removedPath is null,
             $"{caseId}: {removedDll} was removed from {dir} but still resolved to {removedPath}. " +
@@ -69,7 +69,7 @@ public sealed class DegradedModeReadinessTests : IDisposable
 
         foreach (var other in ModuleDlls.Where(d => d != removedDll))
         {
-            var otherPath = NativeModuleLibraryLocator.TryFindDll(other, "image-processing");
+            var otherPath = Resolve(other);
             Assert.True(
                 otherPath is not null,
                 $"{caseId}: removing {removedDll} also made {other} unresolvable — degradation is not isolated.");
@@ -92,7 +92,7 @@ public sealed class DegradedModeReadinessTests : IDisposable
 
         using var _ = new NativeSearchScope(empty);
 
-        var path = NativeModuleLibraryLocator.TryFindDll("xpe_dicom.dll", "image-processing");
+        var path = Resolve("xpe_dicom.dll");
         Assert.Null(path);
         Assert.Equal(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
     }
@@ -110,11 +110,20 @@ public sealed class DegradedModeReadinessTests : IDisposable
 
         foreach (var dll in ModuleDlls)
         {
-            var path = NativeModuleLibraryLocator.TryFindDll(dll, "image-processing");
+            var path = Resolve(dll);
             Assert.True(path is not null, $"{dll} did not resolve from a complete staging directory {dir}.");
             Assert.NotEqual(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
         }
     }
+
+    /// <summary>
+    /// Resolves through the locator the app actually uses for that module. enhance_basic has its
+    /// own (#128 BP-08): routing it through the generic one would have tested a stand-in.
+    /// </summary>
+    private static string? Resolve(string dllName) =>
+        dllName == "xpe_enhance_basic.dll"
+            ? XpeEnhanceBasicLibraryLocator.TryFindDll()
+            : NativeModuleLibraryLocator.TryFindDll(dllName, "image-processing");
 
     // ---------- helpers ----------
 

@@ -15,18 +15,25 @@ namespace ImageProcTest
             var gsvg = XpeGsvgReadinessProbe.Check();
             var enhanceBasic = XpeEnhanceBasicReadinessProbe.Check();
 
-            return
-            [
+            // #129: record WHICH file backed each module, so "which build was that?" has an
+            // answer after the fact. The probes put the bare DLL name in DllPath when they found
+            // nothing, so only a rooted path is treated as a real resolution.
+            var snapshots = new[]
+            {
                 EvaluateCommon(commonHealth),
-                EvaluateDisplay(display),
+                EvaluateDisplay(display) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(display.DllPath) },
                 EvaluatePreprocess(root),
-                EvaluateEnhanceBasic(enhanceBasic),
-                EvaluateDicom(dicom),
+                EvaluateEnhanceBasic(enhanceBasic) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(enhanceBasic.DllPath) },
+                EvaluateDicom(dicom) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(dicom.DllPath) },
                 EvaluateDllPresence("xpe_enhance_advanced", "xpe_enhance_advanced.dll"),
-                EvaluateGsvg(gsvg),
+                EvaluateGsvg(gsvg) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(gsvg.DllPath) },
                 EvaluateAi()
-            ];
+            };
+
+            System.Diagnostics.Trace.WriteLine(ModuleReadinessReporting.DescribeResolvedModules(snapshots));
+            return snapshots;
         }
+
 
         private static ModuleReadinessSnapshot EvaluateCommon(BackendHealthResult? health)
         {

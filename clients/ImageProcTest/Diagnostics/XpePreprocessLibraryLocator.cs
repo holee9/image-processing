@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,10 +18,23 @@ namespace ImageProcTest
         {
             yield return Path.Combine(AppContext.BaseDirectory, DllName);
 
-            var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
-            if (!string.IsNullOrWhiteSpace(envDir))
+            var envDir = NativeSearchPolicy.InjectedDirectory;
+            if (envDir is not null)
             {
                 yield return Path.Combine(envDir, DllName);
+
+                // #128: stop here when the caller pinned the search to one directory.
+                if (NativeSearchPolicy.StopAtInjectedDirectory)
+                {
+                    yield break;
+                }
+            }
+
+            // #129: build directories and sibling checkouts are opt-in. A DLL found there has no
+            // recorded provenance, so the default search does not reach them.
+            if (!NativeSearchPolicy.DeveloperSearchEnabled)
+            {
+                yield break;
             }
 
             var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);
