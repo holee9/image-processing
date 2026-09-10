@@ -319,7 +319,7 @@ XPE_AI_STUB_BUILD              1          Set when ONNX Runtime unavailable
 
 | Target | Type | Location |
 |--------|------|----------|
-| `test_ai` | EXECUTABLE | `tests/ai_tests/` |
+| `test_ai` | EXECUTABLE | `modules/ai/tests/` |
 | Links: xpe_ai, xpe_common, GTest::gtest, GTest::gtest_main |
 
 ---
@@ -446,7 +446,7 @@ modules/ai/
     ai.cpp                -- Skeleton implementation (stub + routing)
   CMakeLists.txt          -- Build configuration (stub/full modes)
 
-tests/ai_tests/
+modules/ai/tests/
   CMakeLists.txt           -- Test target registration
   test_ai_abi.cpp          -- 24 ABI smoke tests
   test_ai_fallback.cpp     -- 23 Fallback routing tests

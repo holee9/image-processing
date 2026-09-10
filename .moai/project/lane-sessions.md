@@ -39,7 +39,7 @@
 
 `tests/` 는 해당 모듈 테스트 디렉터리를 소유 레인이 함께 가진다.
 - Lane A: `tests/common*`, `tests/preprocess*`
-- Lane B: `tests/enhance_advanced_tests`, `tests/ai_tests`, `tests/e2e_post_pipeline`
+- Lane B: `tests/enhance_advanced_tests`, `modules/ai/tests`(2026-09-10 이동), `tests/e2e_post_pipeline`
 - Lane C: `clients/ImageProcTest.IntegrationTests`, `gui/ImageProcTest.E2E`
 
 ---

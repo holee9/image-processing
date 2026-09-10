@@ -56,10 +56,10 @@ This plan covers:
   SWU-AI-03 (Image Stitching), SWU-AI-04 (Stitch Size Estimation), SWU-AI-05 (Bone Suppression),
   SWU-AI-06 (DL Denoising), SWU-AI-07 (Model Card API), SWU-AI-08 (Fallback Router)
   — unit list per `docs/project/srs_ai.md:34-41`
-- **Unit Test Inventory**: 129 `TEST`/`TEST_F` cases across 6 files in `tests/ai_tests/`
+- **Unit Test Inventory**: 129 `TEST`/`TEST_F` cases across 6 files in `modules/ai/tests/`
   (counted 2026-09-10; see §3.1)
 - **Test binary**: `xpe_ai_tests`, declared in `modules/ai/CMakeLists.txt` (test sources live in
-  `tests/ai_tests/`, not `modules/ai/tests/`; the IPC bridge implementation is compiled directly
+  `modules/ai/tests/` (moved from `modules/ai/tests/` by QA-B-33, 2026-09-10); the IPC bridge implementation is compiled directly
   into the test binary because it is not exported from the DLL)
 - **Coverage**: **none measured** — see §3.3
 - **Classification**: IEC 62304 Class B medical device software
@@ -140,7 +140,7 @@ release-eligible. This plan records that state; it does not close it.
 
 ### 3.1 Unit Test Inventory
 
-Counts below are the actual `TEST` / `TEST_F` macro counts in `tests/ai_tests/`, enumerated
+Counts below are the actual `TEST` / `TEST_F` macro counts in `modules/ai/tests/`, enumerated
 2026-09-10. They supersede the 4-file / 78-case figures previously carried in RTM-AI-001 v0.1.0.
 
 | Area | Test File | Cases | Primary SWU |
@@ -158,7 +158,7 @@ Counts below are the actual `TEST` / `TEST_F` macro counts in `tests/ai_tests/`,
 Actual file inventory with per-file case counts and the fixture/suite names, 6 files, 129 cases:
 
 ```
-tests/ai_tests/
+modules/ai/tests/
   test_ai_abi.cpp                 (25)  AiAbi
                                         - version (4), init (6), shutdown (2),
                                           stitch_estimate_size (7), not-initialized guards (6)
@@ -230,7 +230,7 @@ the Lane B worktree on 2026-09-10**. No CI run of this suite exists.
 
 Gate G3 (issue #105, closed 2026-09-10) applies to all 7 modules, `xpe_ai` included. Its case in
 this module is `AiEndurance.ThousandCycles_MemoryGrowthUnderOneMB`
-(`tests/ai_tests/test_ai_fallback.cpp:546`); `psapi` is linked into `xpe_ai_tests` for
+(`modules/ai/tests/test_ai_fallback.cpp:546`); `psapi` is linked into `xpe_ai_tests` for
 `GetProcessMemoryInfo` (`modules/ai/CMakeLists.txt`, comment cites #105 G3).
 
 | Step | Definition |
@@ -639,12 +639,12 @@ See §3.2 for the authoritative per-file inventory.
 
 | Area | File | Cases |
 |---|---|---:|
-| C ABI | `tests/ai_tests/test_ai_abi.cpp` | 25 |
-| Fallback / validation / precedence / dataSize / endurance | `tests/ai_tests/test_ai_fallback.cpp` | 47 |
-| Model card | `tests/ai_tests/test_ai_model_card.cpp` | 20 |
-| Worker isolation | `tests/ai_tests/test_ai_worker_isolation.cpp` | 16 |
-| Model versioning | `tests/ai_tests/test_ai_model_versioning.cpp` | 11 |
-| IPC bridge | `tests/ai_tests/test_ai_ipc_bridge.cpp` | 10 |
+| C ABI | `modules/ai/tests/test_ai_abi.cpp` | 25 |
+| Fallback / validation / precedence / dataSize / endurance | `modules/ai/tests/test_ai_fallback.cpp` | 47 |
+| Model card | `modules/ai/tests/test_ai_model_card.cpp` | 20 |
+| Worker isolation | `modules/ai/tests/test_ai_worker_isolation.cpp` | 16 |
+| Model versioning | `modules/ai/tests/test_ai_model_versioning.cpp` | 11 |
+| IPC bridge | `modules/ai/tests/test_ai_ipc_bridge.cpp` | 10 |
 | **Total** | **6 files** | **129** |
 
 ### 9.2 Test Execution Command

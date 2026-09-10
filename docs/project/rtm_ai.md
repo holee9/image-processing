@@ -20,7 +20,7 @@
 This matrix traces every requirement (REQ-AI-XXX) from SRS-AI-001 to:
 - **Design reference**: SDD-AI-001 section
 - **Implementation files**: Source code in `modules/ai/`
-- **Test IDs**: Google Test cases in `tests/ai_tests/`
+- **Test IDs**: Google Test cases in `modules/ai/tests/`
 - **Verification status**: Written / Verified / Deferred
 - **VVP Ref**: the V&V Plan section that defines the verification method for the row.
   Since v0.3.0 these point at **`XPE-VVP-AI-001` v1.0.0** (`docs/project/vvp_ai.md`), registered in
@@ -202,7 +202,7 @@ The following SPEC requirements have no test coverage in the current skeleton:
 
 ### Current (Skeleton / Stub Build)
 
-Counts below are the actual `TEST` / `TEST_F` macro counts in `tests/ai_tests/`, enumerated
+Counts below are the actual `TEST` / `TEST_F` macro counts in `modules/ai/tests/`, enumerated
 2026-09-10. They supersede the 4-file / 78-case figures carried in v0.1.0, which predated
 `test_ai_ipc_bridge.cpp`, `test_ai_model_versioning.cpp`, and the suites added by QA-B-19~B-22.
 
