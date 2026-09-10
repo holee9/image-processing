@@ -131,6 +131,19 @@ TEST_F(XpeCommonTest, ErrorStringReturnsNonNullForAllCodes) {
 
     msg = xpe_error_string(static_cast<XpeErrorCode>(9999));
     ASSERT_NE(msg, nullptr);
+
+    // #117: every defined code must map to its own string, not the
+    // "Unknown error" default. Walk the whole range rather than a hand-picked
+    // few, so a code added later is covered without editing this test.
+    const char* unknown = xpe_error_string(static_cast<XpeErrorCode>(9999));
+    for (int code = 0; code >= XPE_ERR_CALIB_NOT_LOADED; --code) {
+        const char* text = xpe_error_string(static_cast<XpeErrorCode>(code));
+        ASSERT_NE(text, nullptr) << "code " << code;
+        EXPECT_STRNE(text, "") << "code " << code;
+        if (code != XPE_ERR_NOT_IMPLEMENTED) {
+            EXPECT_STRNE(text, unknown) << "code " << code << " has no string of its own";
+        }
+    }
 }
 
 /* ============================================================================

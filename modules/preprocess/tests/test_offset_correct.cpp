@@ -173,4 +173,37 @@ TEST_F(OffsetCorrectTest, InputDataSizeLargerThanDimensionsIsAccepted) {
     EXPECT_EQ(XPE_OK, xpe_offset_correct(&roomyInput, &output, &metadata));
 }
 
+/* --- #117 decision B: "not initialized" and "calibration absent" are distinct --- */
+
+// The two codes must not be the same value, or the distinction this card
+// introduces cannot be observed by a caller at all.
+TEST_F(OffsetCorrectTest, CalibNotLoadedIsDistinctFromNotInitialized) {
+    EXPECT_NE(static_cast<int>(XPE_ERR_CALIB_NOT_LOADED),
+              static_cast<int>(XPE_ERR_NOT_INITIALIZED));
+    EXPECT_STRNE(xpe_error_string(XPE_ERR_CALIB_NOT_LOADED),
+                 xpe_error_string(XPE_ERR_NOT_INITIALIZED));
+    // A new code must not fall through to the "Unknown error" default.
+    EXPECT_STRNE(xpe_error_string(XPE_ERR_CALIB_NOT_LOADED),
+                 xpe_error_string(static_cast<XpeErrorCode>(-999)));
+}
+
+// Module initialized, offset map never loaded -> XPE_ERR_CALIB_NOT_LOADED.
+TEST_F(OffsetCorrectTest, InitializedWithoutCalibrationReturnsCalibNotLoaded) {
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED,
+              xpe_offset_correct(&input, &output, &metadata));
+}
+
+// Module not initialized -> XPE_ERR_NOT_INITIALIZED, per SPEC-XPE-P1A REQ-P1A-020.
+TEST_F(OffsetCorrectTest, NotInitializedReturnsNotInitialized) {
+    xpe_preprocess_shutdown();
+
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED,
+              xpe_offset_correct(&input, &output, &metadata));
+
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+}
+
 } // namespace

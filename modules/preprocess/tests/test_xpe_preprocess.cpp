@@ -709,7 +709,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_BasicSubtraction) {
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
     // Assert
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -740,7 +740,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FloorAtZeroClamping) {
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
     // Assert
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Verify no negative values (UINT16 can't be negative, but check floor behavior)
     if (result == XPE_OK) {
@@ -774,7 +774,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_TemperatureInterpolation) {
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
     // Assert
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -800,7 +800,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_PREPTimeModel) {
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
     // Assert
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -827,7 +827,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_DimensionMismatch) {
     // Assert
     EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
                 result == XPE_ERR_INVALID_INPUT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -874,7 +875,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_UINT16ToFLOAT32Conversion) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED ||
                 result == XPE_ERR_UNSUPPORTED_FORMAT);
 
     // Verify output format
@@ -906,7 +907,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_GainMapDivision) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED ||
                 result == XPE_ERR_UNSUPPORTED_FORMAT);
 
     // Cleanup
@@ -934,7 +935,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_MultiSIDInterpolation) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED ||
                 result == XPE_ERR_UNSUPPORTED_FORMAT);
 
     // Cleanup
@@ -963,7 +964,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_NaNInfValidation) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED ||
                 result == XPE_ERR_UNSUPPORTED_FORMAT);
 
     // If successful, verify no NaN/Inf in output
@@ -998,7 +999,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_EdgeAwareInterpolation) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -1024,7 +1026,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_StaticBPMPriority) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -1050,7 +1053,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_TransientDefectDetection) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -1084,7 +1088,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_ClusterDefect) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -1113,7 +1118,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_EmptyBPM) {
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(input);
@@ -1338,7 +1344,8 @@ TEST_F(PreprocessCalibrationManagementTest, Save_XCalFormatWrite) {
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_NOT_IMPLEMENTED ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Verify file exists if save was successful
     if (result == XPE_OK) {
@@ -1366,7 +1373,8 @@ TEST_F(PreprocessCalibrationManagementTest, Save_FileCreationSuccess) {
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_NOT_IMPLEMENTED ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 }
 
 /**
@@ -1487,7 +1495,8 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StatisticalOutlierDetection) {
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_NOT_IMPLEMENTED ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(image);
@@ -1521,7 +1530,8 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_HotPixelDetection) {
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_NOT_IMPLEMENTED ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(image);
@@ -1554,7 +1564,8 @@ TEST_F(PreprocessUtilityTest, DefectDetectRuntime_StuckPixelDetection) {
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_NOT_IMPLEMENTED ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Cleanup
     FreeTestImage(image);

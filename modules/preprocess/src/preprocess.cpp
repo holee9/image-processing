@@ -26,6 +26,16 @@ constexpr ParamRange kParamRanges[] = {
 };
 } // namespace
 
+/* Module lifecycle predicate declared in xpe_preprocess_internal.h.
+ * g_initialized lives in this translation unit's anonymous namespace, so the
+ * predicate has to be defined here. A same-named definition exists in the dead
+ * xpe_preprocess.cpp, which is deliberately absent from XPE_TEST_SOURCES and
+ * from the library sources (#112) -- adding it back collides at link time. */
+bool xpe_preprocess_is_initialized() noexcept
+{
+    return g_initialized.load(std::memory_order_acquire);
+}
+
 extern "C" XPE_API const char* xpe_preprocess_version(void)
 {
     return "0.1.0";

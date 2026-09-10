@@ -45,7 +45,7 @@ TEST(Boundary, OffsetCorrect1x1) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_UINT16, 2);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_offset_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
 }
 
 TEST(Boundary, GainCorrect1x1) {
@@ -55,7 +55,7 @@ TEST(Boundary, GainCorrect1x1) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_FLOAT32, 4);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_gain_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
 }
 
 TEST(Boundary, DefectCorrect1x1NoDefect) {
@@ -64,7 +64,7 @@ TEST(Boundary, DefectCorrect1x1NoDefect) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_FLOAT32, 4);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_defect_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
 }
 
 /* === Overflow / max value === */
@@ -76,7 +76,7 @@ TEST(Boundary, OffsetCorrectMaxUint16NoCrash) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_UINT16, 2);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_offset_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
     if (rc == XPE_OK) EXPECT_EQ(0u, out_px); // clamped to 0
 }
 

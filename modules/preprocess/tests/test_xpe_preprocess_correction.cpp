@@ -121,7 +121,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_BasicSubtraction) {
 
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -148,7 +148,7 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FloorAtZeroClamping) {
 
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
-    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(result == XPE_OK || result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED);
 
     // Verify no negative values (UINT16 can't be negative, but check floor behavior)
     if (result == XPE_OK) {
@@ -179,7 +179,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_DimensionMismatch) {
 
     EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
                 result == XPE_ERR_INVALID_INPUT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -237,7 +238,8 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FormatMismatch) {
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_ERR_UNSUPPORTED_FORMAT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -263,7 +265,7 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_UINT16ToFLOAT32Conversion) {
     XpeErrorCode result = xpe_gain_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_NOT_INITIALIZED || result == XPE_ERR_CALIB_NOT_LOADED ||
                 result == XPE_ERR_UNSUPPORTED_FORMAT);
 
     // Verify output format
@@ -292,7 +294,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_DimensionMismatch) {
 
     EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
                 result == XPE_ERR_INVALID_INPUT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -331,7 +334,8 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_FormatMismatch) {
     XpeErrorCode result = xpe_gain_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_ERR_UNSUPPORTED_FORMAT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -383,7 +387,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_BasicInterpolation) {
     XpeErrorCode result = xpe_defect_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -406,7 +411,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_DimensionMismatch) {
 
     EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
                 result == XPE_ERR_INVALID_INPUT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -445,7 +451,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_FormatMismatch) {
     XpeErrorCode result = xpe_defect_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_ERR_UNSUPPORTED_FORMAT ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -475,7 +482,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_ClusterDefectHandling) {
     XpeErrorCode result = xpe_defect_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -504,7 +512,8 @@ TEST_F(PreprocessCorrectionTest, DefectCorrect_EdgeDefectHandling) {
     XpeErrorCode result = xpe_defect_correct(input, output, metadata);
 
     EXPECT_TRUE(result == XPE_OK ||
-                result == XPE_ERR_NOT_INITIALIZED);
+                result == XPE_ERR_NOT_INITIALIZED ||
+                result == XPE_ERR_CALIB_NOT_LOADED);
 
     FreeTestImage(input);
     FreeTestImage(output);

@@ -88,7 +88,6 @@ namespace {
      *
      * @param img         [in]     Input image (uint16)
      * @param meta        [in/out] Metadata
-     * @param defectMap   [in]     Pre-loaded defect map (may be nullptr)
      * @param ghostHandle [in]     Ghost corrector handle
      * @param cfg         [in]     Pipeline configuration
      * @return XPE_OK or error code
@@ -96,7 +95,6 @@ namespace {
     XpeErrorCode pipeline_core(
         const XpeImageBuffer* img,
         XpeImageMetadata* meta,
-        const XpeImageBuffer* defectMap,
         void* ghostHandle,
         const PipelineConfig& cfg)
     {
@@ -219,7 +217,17 @@ namespace {
         XpeImageBuffer stage6 = stage5;
         std::vector<float> stage6Data;
 
-        if (!cfg.bypassDefect && defectMap && defectMap->data) {
+        // #117 decision B: the defect map lives in the global calibration, not in
+        // a caller-supplied struct. The old gate tested XpeCalibrationState::
+        // defectMap, which xpe_calib_state_load never fills, so this stage never
+        // ran from either entry point. xpe_defect_correct() itself reads g_calib.
+        bool defectAvailable = false;
+        {
+            std::lock_guard<std::mutex> calibLock(g_calib_mutex);
+            defectAvailable = (g_calib.defect_map != nullptr);
+        }
+
+        if (!cfg.bypassDefect && defectAvailable) {
             stage6Data.resize(pixelCount);
             stage6.width = img->width;
             stage6.height = img->height;
@@ -307,7 +315,7 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
 
     // Execute pipeline core (g_calib is now populated)
     const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
-    return pipeline_core(img, meta, nullptr, ghostHandle, cfg);
+    return pipeline_core(img, meta, ghostHandle, cfg);
 }
 
 /* =========================================================================
@@ -386,14 +394,12 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
     // Calibration should already be loaded in g_calib via xpe_calib_state_load
     const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
 
-    // Get defect map from calibState (other maps use g_calib)
-    const XpeImageBuffer* defectMap = nullptr;
-    if (calibState) {
-        const auto* cs = static_cast<const XpeCalibrationState*>(calibState);
-        if (cs->defectLoaded) defectMap = &cs->defectMap;
-    }
+    // calibState is accepted for source compatibility but carries no maps:
+    // xpe_calib_state_load() loads into g_calib and leaves the struct empty by
+    // contract (#117 decision B). Every stage reads g_calib.
+    (void)calibState;
 
-    return pipeline_core(img, meta, defectMap, ghostHandle, cfg);
+    return pipeline_core(img, meta, ghostHandle, cfg);
 }
 
 /* =========================================================================
@@ -439,7 +445,7 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
     XpeErrorCode firstError = XPE_OK;
 
     for (uint32_t i = 0; i < imageCount; ++i) {
-        XpeErrorCode result = pipeline_core(&images[i], &metas[i], nullptr, ghostHandle, cfg);
+        XpeErrorCode result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg);
         if (result != XPE_OK) {
             if (firstError == XPE_OK) {
                 firstError = result;

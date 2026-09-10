@@ -85,20 +85,20 @@ TEST(Integration, FullPipelineSmallImage) {
     // Stage 4: Offset correction — accepts NOT_INITIALIZED when no calibration loaded
     {
         auto rc = xpe_offset_correct(&buf.rawBuf, &buf.offsetBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
     }
 
     // Stage 5: Gain correction — accepts NOT_INITIALIZED when no calibration loaded
     {
         auto rc = xpe_gain_correct(&buf.rawBuf, &buf.gainBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
     }
 
     // Stage 6: Defect correction — accepts NOT_INITIALIZED when no calibration loaded
     // Note: new API requires FLOAT32 input; defect stage runs after gain conversion
     {
         auto rc = xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_UNSUPPORTED_FORMAT);
+        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_ERR_UNSUPPORTED_FORMAT);
     }
 
     // Stage 7: Ghost correction (requires FLOAT32 input from gain stage)

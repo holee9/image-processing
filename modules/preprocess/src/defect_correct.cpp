@@ -131,7 +131,17 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
     std::unique_lock<std::mutex> lock(g_calib_mutex);
-    if (!g_calib.defect_map) return XPE_ERR_NOT_INITIALIZED;
+    // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
+    // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
+    // before #117 decision B the missing calibration map stood in for this, which
+    // is why the two states could not be told apart.
+    if (!xpe_preprocess_is_initialized()) return XPE_ERR_NOT_INITIALIZED;
+
+    // #117 decision B: the module is initialized -- what is missing is the
+    // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
+    // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
+    // REQ-P1A-020), so the caller can tell the two apart.
+    if (!g_calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
     if (g_calib.defect_width  != input->width ||
         g_calib.defect_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
 
