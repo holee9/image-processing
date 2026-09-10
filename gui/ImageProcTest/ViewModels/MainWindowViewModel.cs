@@ -130,6 +130,27 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string[] VoiLutModeOptions { get; }
 
+    /// <summary>
+    /// The body part shown in the toolbar selector. Setting it applies the backend's preset —
+    /// GUI-C-34 measured that no control invoked ApplyBodyPartPresetCommand at all, so the preset
+    /// was reachable only from the automation harness.
+    /// </summary>
+    public string SelectedBodyPart
+    {
+        get => Settings.SelectedBodyPart;
+        set
+        {
+            if (string.Equals(Settings.SelectedBodyPart, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Settings.SelectedBodyPart = value;
+            OnPropertyChanged();
+            ApplyBodyPartPresetCommand.Execute(null);
+        }
+    }
+
     public string[] BodyPartOptions { get; }
 
     public string[] CompareModeOptions { get; }
