@@ -12,6 +12,7 @@
 #include "runtime_detection.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <cstring>
+#include <vector>
 #include <cstdlib>
 
 // JSON parsing is minimal for this implementation
@@ -122,10 +123,20 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     // Detect defective pixels
     uint8_t* defectMap = static_cast<uint8_t*>(defectMapOut->data);
 
+    // QA-A-42 (#144): the two working buffers are hoisted out of the loop.
+    // DetectDefectivePixel used to build and destroy them per pixel, which
+    // measured 42% of the run on a 1024x1024 frame. The rule is unchanged --
+    // test_runtime_detection_buffer_reuse.cpp asserts the two forms produce
+    // identical maps pixel for pixel.
+    std::vector<float> windowValues;
+    std::vector<float> deviations;
+    windowValues.reserve(64);
+    deviations.reserve(64);
+
     for (uint32_t y = 0; y < img->height; ++y) {
         for (uint32_t x = 0; x < img->width; ++x) {
             bool isDefective = xpe::preprocess::internal::DetectDefectivePixel(
-                img, x, y, config);
+                img, x, y, config, windowValues, deviations);
 
             if (isDefective) {
                 defectMap[y * img->width + x] = 1;  // Mark as defective

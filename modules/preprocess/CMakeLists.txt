@@ -291,6 +291,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_offset_config.cpp
         # QA-A-40 (#120 #112): REQ-P1A-013 TPR/FPR quantitative harness
         tests/test_runtime_detection_rates.cpp
+        # QA-A-42 (#144): buffer-reuse parity for the detection loop
+        tests/test_runtime_detection_buffer_reuse.cpp
     )
 
     add_executable(xpe_preprocess_tests

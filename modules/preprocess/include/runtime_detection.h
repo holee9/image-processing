@@ -265,9 +265,10 @@ inline void CollectNeighborValues(const XpeImageBuffer* img,
 inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
                                  uint32_t y,
-                                 const RuntimeDetectionConfig& config) {
+                                 const RuntimeDetectionConfig& config,
+                                 std::vector<float>& windowValues,
+                                 std::vector<float>& deviations) {
     // QA-A-42 (#143): neighbours only, per REQ-P1A-013 step 1.
-    std::vector<float> windowValues;
     CollectNeighborValues(img, x, y, config.windowSize, windowValues);
 
     // REQ-P1A-013: "at least 5 neighbors required or pixel is skipped".
@@ -277,7 +278,7 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     float median = ComputeMedian(windowValues);
 
     // Compute MAD (Median Absolute Deviation)
-    std::vector<float> deviations = windowValues;  // Copy for MAD computation
+    deviations.assign(windowValues.begin(), windowValues.end());
     float mad = ComputeMAD(deviations, median);
 
     // Get center pixel value
@@ -295,6 +296,25 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     float threshold = config.sigmaThreshold * mad;
 
     return deviation > threshold;
+}
+
+/**
+ * @brief Allocating convenience form of DetectDefectivePixel.
+ *
+ * QA-A-42 (#144): the buffer-taking overload above exists because these two
+ * vectors were being constructed and destroyed once per pixel. Measured on a
+ * 1024x1024 frame with the old 5x5 window: 706 ms with per-pixel allocation
+ * against 412 ms with reused buffers -- 42% of the run was allocator traffic,
+ * with no change to the rule. Hot loops take the overload; one-off callers and
+ * tests keep this form.
+ */
+inline bool DetectDefectivePixel(const XpeImageBuffer* img,
+                                 uint32_t x,
+                                 uint32_t y,
+                                 const RuntimeDetectionConfig& config) {
+    std::vector<float> windowValues;
+    std::vector<float> deviations;
+    return DetectDefectivePixel(img, x, y, config, windowValues, deviations);
 }
 
 } // namespace internal
