@@ -442,3 +442,44 @@ TEST_F(DicomReaderTest, GetMetadataNullOutput_ReturnsInvalidInput) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_get_metadata(handle, nullptr));
     xpe_dicom_close(handle);
 }
+
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-44): what actually happens to a JPEG-Lossless-labelled file.
+//
+// open() accepts three transfer syntaxes, JPEG-LL (1.2.840.10008.1.2.4.70)
+// among them (DicomReader.cpp:98-100), and readImage has a branch for it
+// (:139-147). QA-B-44 tried to reach that branch by relabelling an uncompressed
+// file's meta TransferSyntaxUID. It does not work, and the reason is worth
+// pinning rather than leaving as a Gap: DCMTK's loadFile itself refuses the
+// file, so open() answers XPE_ERR_DICOM_INVALID and readImage is never called.
+//
+// Two facts follow, both recorded in the QA-B-44 report:
+//   - the JPEG-LL branch cannot be covered by relabelling; it needs a genuinely
+//     JPEG-encoded fixture;
+//   - no DCMTK codec is ever registered in this module (no
+//     DJDecoderRegistration call exists), so a genuine JPEG-LL file would not
+//     decode either -- open()'s accepted-syntax list promises more than the
+//     build delivers.
+//
+// This case pins the first fact. The second is a defect report, not a test.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid) {
+    auto path = s_tempDir / "reader_jpegll_label.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        ASSERT_TRUE(meta->putAndInsertString(DCM_TransferSyntaxUID,
+                                             "1.2.840.10008.1.2.4.70").good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID,
+              xpe_dicom_open(path.string().c_str(), &handle));
+    xpe_dicom_close(handle);   // NULL-safe by contract
+}
