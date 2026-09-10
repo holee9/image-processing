@@ -268,6 +268,7 @@ XPE_API const char* xpe_error_string(XpeErrorCode code)
         case XPE_ERR_INTERNAL:             return "Internal processing error";
         case XPE_ERR_DICOM_INVALID:        return "Invalid or malformed DICOM file";
         case XPE_ERR_DICOM_CONFORMANCE:    return "DICOM conformance validation failed";
+        case XPE_ERR_NOT_IMPLEMENTED:      return "Function not implemented in this version";
         case XPE_ERR_CALIB_NOT_LOADED:     return "Calibration data not loaded";
         default:                           return "Unknown error";
     }

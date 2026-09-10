@@ -140,9 +140,7 @@ TEST_F(XpeCommonTest, ErrorStringReturnsNonNullForAllCodes) {
         const char* text = xpe_error_string(static_cast<XpeErrorCode>(code));
         ASSERT_NE(text, nullptr) << "code " << code;
         EXPECT_STRNE(text, "") << "code " << code;
-        if (code != XPE_ERR_NOT_IMPLEMENTED) {
-            EXPECT_STRNE(text, unknown) << "code " << code << " has no string of its own";
-        }
+        EXPECT_STRNE(text, unknown) << "code " << code << " has no string of its own";
     }
 }
 

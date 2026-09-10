@@ -152,6 +152,7 @@ if(_XPE_BUILD_TESTS)
         # rle_codec.cpp and calibration_cache.cpp measured 0%/6% coverage only
         # because these suites were never compiled.
         tests/test_xcal_compression.cpp
+        tests/test_json_helpers.cpp
         # QA-A-21 (#120): present on disk but never named in this list -- 54
         # cases that had never been compiled or run. Registering all three
         # produced 110 compile errors, all from the retired map-argument API
