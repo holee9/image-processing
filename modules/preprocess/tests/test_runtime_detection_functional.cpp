@@ -36,6 +36,7 @@
 
 #include <cmath>
 #include <random>
+#include <string>
 #include <vector>
 
 namespace {
@@ -105,6 +106,17 @@ TEST_F(RuntimeDetectionFunctionalTest, UniformImageFlagsNothing) {
 
 // Gaussian noise is not a defect. With a fixed seed this is deterministic, so
 // the bound is a real assertion rather than a flake.
+//
+// History, because the name changed twice and neither change was a correction
+// of a wrong expectation -- each was a SUPERSEDING measurement:
+//   - QA-A-42 (#143) applied the SPEC algorithm clause (3x3 excluding centre)
+//     and this went to 90 of 4096 (2.2%), breaching the SPEC's own 1% ceiling.
+//     The case was renamed KnownDivergence_... and pinned at the breach rather
+//     than relaxed.
+//   - QA-A-43 (#143) added the frame-wide sigma floor and the breach is gone:
+//     0 of 4096. The original expectation is restored under its original name.
+// The QA-A-42 expectation was not wrong when it was written; it described the
+// tree at that commit. It has been replaced, not corrected.
 TEST_F(RuntimeDetectionFunctionalTest, GaussianNoiseKeepsFalsePositivesLow) {
     Scene s(64, 64, 0.0f);
     std::mt19937 gen(12345u);                    // fixed seed: reproducible
@@ -114,7 +126,10 @@ TEST_F(RuntimeDetectionFunctionalTest, GaussianNoiseKeepsFalsePositivesLow) {
     ASSERT_EQ(XPE_OK, s.detect());
     const uint32_t total = 64u * 64u;
     EXPECT_LE(s.flaggedCount(), total / 100u)
-        << "clean noise must not read as a defect field";
+        << "REQ-P1A-013: clean input must not exceed 1% of the frame";
+
+    RecordProperty("flagged", std::to_string(s.flaggedCount()));
+    RecordProperty("of_total", std::to_string(total));
 }
 
 /* ------------------------------------------------------------------ detection */
@@ -157,21 +172,31 @@ TEST_F(RuntimeDetectionFunctionalTest, MultipleSeparatedOutliersAreAllFlagged) {
         << "no pixel other than the injected ones may be flagged";
 }
 
-// Edge and corner pixels have a truncated window. They must still be testable
-// rather than skipped -- a detector that ignores the border leaves a defective
-// column undetected.
-TEST_F(RuntimeDetectionFunctionalTest, EdgeAndCornerOutliersAreFlagged) {
+// Edge and corner pixels have a truncated neighbourhood, and the SPEC says what
+// to do about it. REQ-P1A-013 Pixel Accuracy, verbatim:
+//
+//   "Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed
+//    with available subset; at least 5 neighbors required or pixel is skipped
+//    (defectMapOut = 0)"
+//
+// Under 3x3-excluding-centre a corner has 3 neighbours and an edge has 5, so
+// the rule separates them: corners are skipped, edges are judged. This case
+// used to assert that corners ARE flagged, which contradicted the clause above;
+// it passed only because the old 5x5 window left a corner with 8 samples and
+// the minimum was never enforced. QA-A-42 (#143) implements the clause and this
+// case now pins it.
+TEST_F(RuntimeDetectionFunctionalTest, CornersAreSkippedAndEdgesAreJudged) {
     Scene s(32, 32, 1000.0f);
-    s.inject(0, 0, 60000.0f);      // corner
-    s.inject(31, 0, 60000.0f);     // corner
-    s.inject(0, 15, 60000.0f);     // left edge
-    s.inject(15, 31, 60000.0f);    // bottom edge
+    s.inject(0, 0, 60000.0f);      // corner: 3 neighbours -> skipped
+    s.inject(31, 0, 60000.0f);     // corner: 3 neighbours -> skipped
+    s.inject(0, 15, 60000.0f);     // left edge: 5 neighbours -> judged
+    s.inject(15, 31, 60000.0f);    // bottom edge: 5 neighbours -> judged
 
     ASSERT_EQ(XPE_OK, s.detect());
-    EXPECT_TRUE(s.flagged(0, 0));
-    EXPECT_TRUE(s.flagged(31, 0));
-    EXPECT_TRUE(s.flagged(0, 15));
-    EXPECT_TRUE(s.flagged(15, 31));
+    EXPECT_FALSE(s.flagged(0, 0))  << "3 neighbours is below the minimum of 5";
+    EXPECT_FALSE(s.flagged(31, 0)) << "3 neighbours is below the minimum of 5";
+    EXPECT_TRUE(s.flagged(0, 15))  << "5 neighbours meets the minimum";
+    EXPECT_TRUE(s.flagged(15, 31)) << "5 neighbours meets the minimum";
 }
 
 // Sparse defects in a low-noise field: all found, nothing else.

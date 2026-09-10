@@ -42,6 +42,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <random>
@@ -206,7 +207,12 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprAtFiveSigmaIsBelowTheRequir
     // Brackets, not equalities: the measurement is deterministic for a fixed
     // seed, but pinning an exact ratio would break on any compiler-level
     // floating-point difference.
-    EXPECT_GT(low.tpr(), 0.30) << "and it is not near-zero either";
+    // 0.500520 (pre-QA-A-42) -> 0.610822 (QA-A-42) -> 0.553590 (QA-A-43).
+    // The sigma floor costs 9% of the detection rate and buys a 168x reduction
+    // in false positives. Still nowhere near 0.999 -- the lambda = 5 vs
+    // TPR-at-5-sigma contradiction in REQ-P1A-013 is untouched by this card and
+    // is awaiting a decision.
+    EXPECT_GT(low.tpr(), 0.40) << "and it is not near-zero either";
     EXPECT_LT(low.tpr(), 0.90);
 
     RecordProperty("spec_clause", "REQ-P1A-013 TPR >= 99.9% at 5 sigma");
@@ -233,8 +239,15 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_FprOnCleanFramesExceedsTheRequ
         << "REQ-P1A-013 asks for < 1e-5; this records that it is not met";
     EXPECT_GT(high.fpr(), kFprCap);
 
-    // Bracketed around the measurement, not pinned to an exact ratio.
-    EXPECT_LT(low.fpr(), 0.001) << "and it is two orders below the 1% hard ceiling";
+    // Three measurements: 4.730e-4 (pre-QA-A-42) -> 1.718e-2 (QA-A-42, SPEC
+    // neighbourhood rule) -> 1.020e-4 (QA-A-43, global sigma floor). The floor
+    // put the 1% ceiling back within reach -- see
+    // CleanFrameStaysUnderTheOnePercentCeiling -- but the REQUIREMENT here is
+    // 1e-5, and 1.02e-4 is still an order of magnitude above it. Still a
+    // divergence, with a much smaller gap.
+    EXPECT_GT(low.fpr(), kFprCap) << "1.02e-4 is still above the 1e-5 requirement";
+    EXPECT_LT(low.fpr(), 0.001)   << "bracket: an order below the old 1.7e-2";
+    EXPECT_GT(high.fpr(), kFprCap);
     EXPECT_LT(high.fpr(), 0.001);
 
     RecordProperty("spec_clause", "REQ-P1A-013 FPR < 0.001% on clean frames");
@@ -262,9 +275,16 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprStaysBelowTheFloorThroughTe
         if (r.tpr() > best) best = r.tpr();
     }
 
+    // QA-A-42 (#143) then QA-A-43: 6 sigma 0.711759 -> 0.761707 -> 0.753382,
+    // 8 sigma 0.955255 -> 0.927159 -> 0.927159, 10 sigma 0.998959 -> 0.986472
+    // -> 0.986472. The floor costs a little at 6 sigma and nothing above it:
+    // a transient that clears 8 sigma clears the floored threshold too.
+    // The low end improves and the high end gets WORSE: eight samples make the
+    // sigma estimate noisier, which helps a marginal transient clear the
+    // threshold and hurts one that should clear it comfortably.
     EXPECT_LT(best, kTprFloor)
         << "no amplitude up to 10 sigma reaches 99.9%";
-    EXPECT_GT(best, 0.99) << "but 10 sigma comes within one site of it";
+    EXPECT_GT(best, 0.95) << "but 10 sigma is close";
 }
 
 // The two noise levels are NOT independent evidence, and saying so is part of
@@ -278,16 +298,34 @@ TEST_F(RuntimeDetectionRatesTest, RatesAreInvariantUnderNoiseScaling) {
     const Rates high = measure(50.0f, 5.0f, 20260911u);
 
     EXPECT_EQ(low.truePos, high.truePos);
-    EXPECT_EQ(low.falsePos, high.falsePos);
+
+    // QA-A-42 (#143): the false-positive counts are no longer EXACTLY equal
+    // (18011 vs 18009 measured). Scale invariance is a property of the rule,
+    // not of float32 arithmetic: with eight samples the median and MAD land on
+    // different rounding boundaries at 10 ADU than at 50 ADU. The invariance
+    // still holds to about one part in ten thousand.
+    const double rel = std::fabs(static_cast<double>(low.falsePos) -
+                                 static_cast<double>(high.falsePos)) /
+                       static_cast<double>(low.falsePos);
+    EXPECT_LT(rel, 1e-3) << "low=" << low.falsePos << " high=" << high.falsePos;
 }
 
-// The frame is otherwise untouched: a clean frame must not be flagged wholesale.
-// REQ-P1A-013: "sum(defectMapOut) does not exceed width*height * 0.01 for clean
-// input".
-TEST_F(RuntimeDetectionRatesTest, CleanFrameStaysFarUnderTheOnePercentCeiling) {
+// REQ-P1A-013, verbatim: "Output is boolean-like UINT8 (0 or 1); guaranteed
+// sum(defectMapOut) does not exceed width*height * 0.01 for clean input".
+//
+// Three measurements, in order:
+//   pre-QA-A-42 (5x5, centre included)   496 of 1,048,576  = 0.047%   under
+//   QA-A-42     (3x3, SPEC rule)      18,011 of 1,048,576  = 1.72%    BREACH
+//   QA-A-43     (+ global sigma floor)   107 of 1,048,576  = 0.0102%  under
+//
+// QA-A-42's KnownDivergence_ form was not a wrong expectation being fixed here;
+// it recorded the tree as it stood between the two commits. The floor removed
+// the breach, so the normal expectation is restored under its original name.
+TEST_F(RuntimeDetectionRatesTest, CleanFrameStaysUnderTheOnePercentCeiling) {
     const Rates r = measure(10.0f, 5.0f, 20260911u);
     EXPECT_LT(r.falsePos, static_cast<size_t>(kN / 100))
         << "REQ-P1A-013 hard ceiling: 1% of the frame";
+    RecordProperty("flagged_clean", std::to_string(r.falsePos));
 }
 
 } // namespace
