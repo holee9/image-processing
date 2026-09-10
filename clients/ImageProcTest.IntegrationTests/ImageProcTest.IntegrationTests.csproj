@@ -54,6 +54,10 @@
     -->
     <Compile Include="..\ImageProcTest\Diagnostics\NativeModuleLibraryLocator.cs" Link="DegradedMode\Linked\NativeModuleLibraryLocator.cs" />
     <Compile Include="..\ImageProcTest\Services\ModuleReadinessGrading.cs" Link="DegradedMode\Linked\ModuleReadinessGrading.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeSearchPolicy.cs" Link="DegradedMode\Linked\NativeSearchPolicy.cs" />
+    <!-- #129: the enhance_basic locator, now free of the wrapper const that used to drag XpeCommonApi in. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\XpeEnhanceBasicLibraryLocator.cs" Link="DegradedMode\Linked\XpeEnhanceBasicLibraryLocator.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessLibraryLocator.cs" Link="DegradedMode\Linked\XpePreprocessLibraryLocator.cs" />
   </ItemGroup>
 
   <!--
