@@ -35,8 +35,11 @@ public static class XpeCommonNative
         BUFFER_TOO_SMALL = -8,
         IO_FAILED = -9,
         NETWORK_FAILED = -10,
-        // -11..-15 (SAFETY_VIOLATION, INTERNAL, DICOM_INVALID, DICOM_CONFORMANCE,
-        // NOT_IMPLEMENTED) exist natively but are not surfaced here yet — see GUI-C-11 report.
+        SAFETY_VIOLATION = -11,
+        INTERNAL = -12,
+        DICOM_INVALID = -13,
+        DICOM_CONFORMANCE = -14,
+        NOT_IMPLEMENTED = -15,
         CALIB_NOT_LOADED = -16,
     }
 
