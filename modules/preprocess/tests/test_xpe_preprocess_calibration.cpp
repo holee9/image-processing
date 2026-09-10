@@ -472,7 +472,7 @@ TEST_F(PreprocessCalibrationTest, Save_OffsetCalibration) {
     }
     ASSERT_EQ(xpe_calib_load_offset("test_offset.xcal"), XPE_OK);
 
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", "offset");
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", "offset", 0);
 
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_INVALID_INPUT ||
@@ -492,7 +492,7 @@ TEST_F(PreprocessCalibrationTest, Save_GainCalibration) {
     }
     ASSERT_EQ(xpe_calib_load_gain("test_gain.xcal"), XPE_OK);
 
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", "gain");
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", "gain", 0);
 
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_INVALID_INPUT ||
@@ -507,7 +507,7 @@ TEST_F(PreprocessCalibrationTest, Save_GainCalibration) {
  * Then returns XPE_ERR_INVALID_INPUT
  */
 TEST_F(PreprocessCalibrationTest, Save_NullFilePath) {
-    XpeErrorCode result = xpe_calib_save(nullptr, "offset");
+    XpeErrorCode result = xpe_calib_save(nullptr, "offset", 0);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 }
@@ -520,7 +520,7 @@ TEST_F(PreprocessCalibrationTest, Save_NullFilePath) {
  * Then returns XPE_ERR_INVALID_INPUT
  */
 TEST_F(PreprocessCalibrationTest, Save_NullCalibType) {
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", nullptr);
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", nullptr, 0);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 }
@@ -533,7 +533,7 @@ TEST_F(PreprocessCalibrationTest, Save_NullCalibType) {
  * Then returns XPE_ERR_INVALID_INPUT
  */
 TEST_F(PreprocessCalibrationTest, Save_InvalidCalibType) {
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", "invalid_type");
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", "invalid_type", 0);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 }

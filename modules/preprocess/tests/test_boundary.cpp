@@ -95,11 +95,11 @@ TEST(Boundary, GhostUseAfterDestroyReturnsError) {
 /* === Calibration: save with null args (new 2-arg API) === */
 
 TEST(Boundary, CalibSaveNullPathReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(nullptr, "offset"));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(nullptr, "offset", 0));
 }
 
 TEST(Boundary, CalibSaveNullTypeReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save("/tmp/x.xcal", nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save("/tmp/x.xcal", nullptr, 0));
 }
 
 /* === Validate readout: single-pixel image === */

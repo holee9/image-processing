@@ -23,7 +23,8 @@
 #include <chrono>
 
 extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
-                                               const char* calib_type) {
+                                               const char* calib_type,
+                                               uint64_t    expiry_epoch_ms) {
     try {
         if (filepath == nullptr || calib_type == nullptr) {
             return XPE_ERR_INVALID_INPUT;
@@ -54,7 +55,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
                 hdr.width           = g_calib.offset_width;
                 hdr.height          = g_calib.offset_height;
                 hdr.created_epoch_ms = g_calib.offset_timestamp;
-                hdr.expiry_epoch_ms  = 0;
+                hdr.expiry_epoch_ms  = static_cast<int64_t>(expiry_epoch_ms);
                 std::memcpy(hdr.session_id, g_calib.offset_session_id,
                             sizeof(g_calib.offset_session_id));
 
@@ -74,7 +75,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
                 hdr.width           = g_calib.gain_width;
                 hdr.height          = g_calib.gain_height;
                 hdr.created_epoch_ms = g_calib.gain_timestamp;
-                hdr.expiry_epoch_ms  = 0;
+                hdr.expiry_epoch_ms  = static_cast<int64_t>(expiry_epoch_ms);
                 std::memcpy(hdr.session_id, g_calib.gain_session_id,
                             sizeof(g_calib.gain_session_id));
 
@@ -94,7 +95,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
                 hdr.width           = g_calib.defect_width;
                 hdr.height          = g_calib.defect_height;
                 hdr.created_epoch_ms = 0;
-                hdr.expiry_epoch_ms  = 0;
+                hdr.expiry_epoch_ms  = static_cast<int64_t>(expiry_epoch_ms);
                 std::memcpy(hdr.session_id, "defect_map\0", 11);
 
             } else {

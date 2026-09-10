@@ -10,6 +10,7 @@
 #define FIXTURES_MAKE_XCAL_HPP
 
 #include <cstring>
+#include <fstream>   // MakeBadMagicFile uses std::ofstream
 #include <vector>
 #include <chrono>
 #include "xpe/preprocess/xcal_format.h"

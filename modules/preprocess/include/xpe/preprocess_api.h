@@ -318,15 +318,22 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  *
  * REQ-P1A-019: Save calibration with SHA-256 integrity
  *
+ * Decision #132 (api-spec.md 6.14): the previous two-argument form always wrote
+ * expiry_epoch_ms = 0, so no API path could produce an expiring calibration file
+ * and SRS-ALERT-005 / REQ-P1A-018 were unreachable. The expiry policy itself
+ * (30 days, and so on) belongs to the caller; this function records the value.
+ *
  * @param filepath Output XCal file path
  * @param calib_type Calibration type (offset, gain, defect)
+ * @param expiry_epoch_ms Expiry timestamp in Unix milliseconds; 0 = never expires
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_IO_FAILED on file write error
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  */
 XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
-                                    const char* calib_type);
+                                    const char* calib_type,
+                                    uint64_t expiry_epoch_ms);
 
 /* =============================================================================
  * Phase 5: Utilities (REQ-P1A-013, REQ-P1A-042)
