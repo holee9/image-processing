@@ -43,6 +43,12 @@ namespace ImageProcTest
             BUFFER_TOO_SMALL = -8,
             IO_FAILED = -9,
             NETWORK_FAILED = -10,
+            SAFETY_VIOLATION = -11,
+            INTERNAL = -12,
+            DICOM_INVALID = -13,
+            DICOM_CONFORMANCE = -14,
+            NOT_IMPLEMENTED = -15,
+            CALIB_NOT_LOADED = -16,
         }
 
         public enum XpeAlertSeverity : int
