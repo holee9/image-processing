@@ -103,6 +103,18 @@ std::string xpe_json_get_string(const char* configJson, const char* key);
 double xpe_json_get_double(const char* configJson, const char* key, double defaultVal);
 
 /* =========================================================================
+ * Module lifecycle predicate (defined in xpe_preprocess.cpp)
+ *
+ * SPEC-XPE-P1A REQ-P1A-020 requires every processing function to return
+ * XPE_ERR_NOT_INITIALIZED while the module is not initialized. #117 decision B
+ * split that from "calibration map absent" (XPE_ERR_CALIB_NOT_LOADED), so the
+ * correction entry points need the predicate rather than inferring the state
+ * from a missing map.
+ * ========================================================================= */
+
+bool xpe_preprocess_is_initialized() noexcept;
+
+/* =========================================================================
  * Dimension / null guard inline helpers
  * ========================================================================= */
 

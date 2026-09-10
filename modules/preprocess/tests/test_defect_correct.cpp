@@ -3,13 +3,23 @@
  * @brief TDD RED tests for SWU-1.3:
  *        xpe_defect_correct, xpe_defect_detect_runtime (REQ-P1A-024 to REQ-P1A-028)
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ *
+ * #117 decision B (QA-A-20): the defect map is not a parameter. It is loaded
+ * into the global calibration by xpe_calib_load_defect_map() and the entry
+ * point is xpe_defect_correct(input, output, metadata) -- argument 2 is the
+ * output buffer. The old calls passed the map there; the types matched, so the
+ * compiler stayed silent and the cases failed at run time.
  */
 
 #include <gtest/gtest.h>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
 
+#include <cstdio>
+#include <cstring>
 #include <vector>
 
 namespace {
@@ -20,12 +30,18 @@ protected:
     static constexpr uint32_t H = 32;
 
     std::vector<float>   imgPixels;
+    std::vector<float>   outPixels;
     std::vector<uint8_t> defectPixels;
-    XpeImageBuffer img{};
-    XpeImageBuffer defectMap{};
+    XpeImageBuffer   img{};
+    XpeImageBuffer   output{};
+    XpeImageMetadata metadata{};
+    const char* defectPath = "test_defect_correct_defect.xcal";
 
     void SetUp() override {
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+
         imgPixels.assign(W * H, 1000.0f);
+        outPixels.assign(W * H, 0.0f);
         defectPixels.assign(W * H, 0); // no defects by default
 
         img.data          = imgPixels.data();
@@ -36,20 +52,48 @@ protected:
         img.format        = XPE_PIXEL_FLOAT32;
         img.dataSize      = imgPixels.size() * sizeof(float);
 
-        defectMap.data          = defectPixels.data();
-        defectMap.width         = W;
-        defectMap.height        = H;
-        defectMap.bitsAllocated = 8;
-        defectMap.bitsStored    = 8;
-        defectMap.format        = XPE_PIXEL_UINT8;
-        defectMap.dataSize      = defectPixels.size();
+        output.data          = outPixels.data();
+        output.width         = W;
+        output.height        = H;
+        output.bitsAllocated = 32;
+        output.bitsStored    = 32;
+        output.format        = XPE_PIXEL_FLOAT32;
+        output.dataSize      = outPixels.size() * sizeof(float);
+    }
+
+    void TearDown() override {
+        std::remove(defectPath);
+        std::remove("test_defect_correct_defect.xcal.tmp");
+        xpe_preprocess_shutdown();
+    }
+
+    // Publishes the current defectPixels into the global calibration. Cases
+    // mutate defectPixels first, so this runs immediately before the call.
+    void loadDefectMap() {
+        std::remove(defectPath);
+        std::remove("test_defect_correct_defect.xcal.tmp");
+
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version      = XCAL_VERSION;
+        hdr.type         = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK);
+        hdr.width        = W;
+        hdr.height       = H;
+        hdr.payload_len  = static_cast<uint64_t>(defectPixels.size());
+
+        ASSERT_EQ(XPE_OK,
+                  write_xcal_file(defectPath, hdr, nullptr, 0,
+                                  defectPixels.data(), hdr.payload_len));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defectPath));
     }
 };
 
 // REQ-P1A-024: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
-    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.data);
+    loadDefectMap();
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(1000.0f, out[W + 1], 1e-3f); // interior pixel
 }
 
@@ -60,25 +104,32 @@ TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     imgPixels[cy * W + cx] = 0.0f; // broken pixel
     defectPixels[cy * W + cx] = 1; // mark as defect
 
-    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.data);
+    loadDefectMap();
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
     // Replaced value should be close to neighbours (1000.0f)
     EXPECT_NEAR(1000.0f, out[cy * W + cx], 100.0f);
 }
 
 // REQ-P1A-027: float32 format required
-TEST_F(DefectCorrectTest, NullImgReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(nullptr, &defectMap, nullptr));
+TEST_F(DefectCorrectTest, NullInputReturnsError) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(nullptr, &output, &metadata));
 }
 
-TEST_F(DefectCorrectTest, NullDefectMapReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(&img, nullptr, nullptr));
+TEST_F(DefectCorrectTest, NullOutputReturnsError) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(&img, nullptr, &metadata));
 }
 
+// Output dimensions must match the input.
 TEST_F(DefectCorrectTest, DimensionMismatchReturnsError) {
-    XpeImageBuffer badMap = defectMap;
-    badMap.width = W + 1;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(&img, &badMap, nullptr));
+    output.width = W + 1;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_defect_correct(&img, &output, &metadata));
+}
+
+// #117: with the module up but no defect map loaded, the call reports the
+// missing calibration rather than pretending the module was never initialized.
+TEST_F(DefectCorrectTest, DefectMapNotLoadedReturnsCalibNotLoaded) {
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, xpe_defect_correct(&img, &output, &metadata));
 }
 
 // REQ-P1A-012: defect cluster (2x2) handled by median filter
@@ -101,8 +152,9 @@ TEST_F(DefectCorrectTest, DefectClusterUsesMedianFilter) {
     imgPixels[cy * W + (cx - 1)] = 800.0f;   // left
     imgPixels[cy * W + (cx + 2)] = 1200.0f;  // right
 
-    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.data);
+    loadDefectMap();
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
 
     // All defects should be corrected to values near neighbors
     EXPECT_GT(out[cy * W + cx], 400.0f);
@@ -119,8 +171,9 @@ TEST_F(DefectCorrectTest, EdgeDefectUsesInBoundsNeighbors) {
     imgPixels[1] = 800.0f;          // right
     imgPixels[W] = 1200.0f;         // bottom
 
-    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.data);
+    loadDefectMap();
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
 
     // Corner should be interpolated from in-bounds neighbors
     EXPECT_NEAR(1000.0f, out[0], 500.0f);
@@ -137,8 +190,9 @@ TEST_F(DefectCorrectTest, CorrectionRecallOnSyntheticDefects) {
         defectPixels[pos] = 1;
     }
 
-    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &defectMap, nullptr));
-    const auto* out = static_cast<const float*>(img.data);
+    loadDefectMap();
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
 
     // Count corrected defects (value changed from 0.0f)
     int correctedCount = 0;

@@ -1,18 +1,27 @@
 /**
  * @file test_gain_correct.cpp
- * @brief TDD RED tests for SWU-1.2: xpe_gain_correct (REQ-P1A-016 to REQ-P1A-019)
+ * @brief Tests for SWU-1.2: xpe_gain_correct (REQ-P1A-016 to REQ-P1A-019)
  *        Validates uint16->float32 domain transition.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ *
+ * #117 decision B (QA-A-20): the gain map is not a parameter. It is loaded into
+ * the global calibration by xpe_calib_load_gain() and the entry point is
+ * xpe_gain_correct(input, output, metadata). This suite was originally written
+ * against the map-argument signature and was unregistered from XPE_TEST_SOURCES
+ * for that reason; it is rewritten here against the shipped contract.
  */
 
 #include <gtest/gtest.h>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
 
-#include <vector>
 #include <cmath>
-#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <vector>
 
 namespace {
 
@@ -22,100 +31,130 @@ protected:
     static constexpr uint32_t H = 4;
 
     std::vector<uint16_t> rawPixels;
-    std::vector<float>    gainPixels;
-    XpeImageBuffer img{};
-    XpeImageBuffer gainMap{};
+    std::vector<float>    outPixels;
+    XpeImageBuffer   input{};
+    XpeImageBuffer   output{};
+    XpeImageMetadata metadata{};
+    const char* gainPath = "test_gain_correct_gain.xcal";
 
     void SetUp() override {
+        xpe_preprocess_init(nullptr);
+
         rawPixels.assign(W * H, 2000);
-        gainPixels.assign(W * H, 1.5f);
+        outPixels.assign(W * H, 0.0f);
 
-        img.data          = rawPixels.data();
-        img.width         = W;
-        img.height        = H;
-        img.bitsAllocated = 16;
-        img.bitsStored    = 16;
-        img.format        = XPE_PIXEL_UINT16;
-        img.dataSize      = rawPixels.size() * sizeof(uint16_t);
+        input.data          = rawPixels.data();
+        input.width         = W;
+        input.height        = H;
+        input.bitsAllocated = 16;
+        input.bitsStored    = 16;
+        input.format        = XPE_PIXEL_UINT16;
+        input.dataSize      = rawPixels.size() * sizeof(uint16_t);
 
-        gainMap.data          = gainPixels.data();
-        gainMap.width         = W;
-        gainMap.height        = H;
-        gainMap.bitsAllocated = 32;
-        gainMap.bitsStored    = 32;
-        gainMap.format        = XPE_PIXEL_FLOAT32;
-        gainMap.dataSize      = gainPixels.size() * sizeof(float);
+        output.data          = outPixels.data();
+        output.width         = W;
+        output.height        = H;
+        output.bitsAllocated = 32;
+        output.bitsStored    = 32;
+        output.format        = XPE_PIXEL_FLOAT32;
+        output.dataSize      = outPixels.size() * sizeof(float);
+
+        loadGainMap(1.5f);
     }
 
     void TearDown() override {
-        // xpe_gain_correct replaces img.data with a malloc'd float buffer.
-        // Free it if the pointer was replaced (ownership transferred to us).
-        if (img.data && img.data != rawPixels.data()) {
-            std::free(img.data);
-            img.data = nullptr;
-        }
+        std::remove(gainPath);
+        std::remove("test_gain_correct_gain.xcal.tmp");
+        xpe_preprocess_shutdown();
+    }
+
+    // Writes a uniform gain map and loads it into the global calibration.
+    void loadGainMap(float value) {
+        std::remove(gainPath);
+        std::remove("test_gain_correct_gain.xcal.tmp");
+
+        const std::vector<float> values(W * H, value);
+
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version      = XCAL_VERSION;
+        hdr.type         = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width        = W;
+        hdr.height       = H;
+        hdr.payload_len  = static_cast<uint64_t>(values.size() * sizeof(float));
+
+        ASSERT_EQ(XPE_OK,
+                  write_xcal_file(gainPath, hdr, nullptr, 0,
+                                  reinterpret_cast<const uint8_t*>(values.data()),
+                                  hdr.payload_len));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath));
     }
 };
 
-// REQ-P1A-016: corrected[i] = img[i] / gainMap[i] (flat-field normalization)
+// REQ-P1A-016: corrected[i] = img[i] / gain[i] (flat-field normalization).
 TEST_F(GainCorrectTest, AppliesGainCorrection) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&input, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f / 1.5f, out[0], 1e-3f);
 }
 
-// REQ-P1A-017: output format must be float32 after conversion
+// REQ-P1A-017: the output buffer carries float32 after conversion.
 TEST_F(GainCorrectTest, OutputFormatIsFloat32) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_EQ(XPE_PIXEL_FLOAT32, img.format);
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&input, &output, &metadata));
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, output.format);
 }
 
-// NULL checks
-TEST_F(GainCorrectTest, NullImgReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(nullptr, &gainMap));
+TEST_F(GainCorrectTest, NullInputReturnsError) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(nullptr, &output, &metadata));
 }
 
-TEST_F(GainCorrectTest, NullGainMapReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, nullptr));
+TEST_F(GainCorrectTest, NullOutputReturnsError) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&input, nullptr, &metadata));
 }
 
-// Dimension mismatch
+// Output dimensions must match the input; a mismatch is a buffer problem.
 TEST_F(GainCorrectTest, DimensionMismatchReturnsError) {
-    XpeImageBuffer badGain = gainMap;
-    badGain.height = H + 1;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &badGain));
+    output.height = H + 1;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_gain_correct(&input, &output, &metadata));
 }
 
-// Unity gain map: pixels converted to float but values unchanged (as float)
+// Unity gain: values pass through unchanged, in float.
 TEST_F(GainCorrectTest, UnityGainPreservesValues) {
-    std::fill(gainPixels.begin(), gainPixels.end(), 1.0f);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    loadGainMap(1.0f);
+
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&input, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f, out[0], 1e-3f);
 }
 
-// Zero dimensions must be rejected before any buffer access
+// Zero dimensions are rejected before any buffer access.
 TEST_F(GainCorrectTest, ZeroWidthReturnsError) {
-    img.width = 0;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &gainMap));
+    input.width = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&input, &output, &metadata));
 }
 
-// Truncated input buffers must be rejected before any read.
-TEST_F(GainCorrectTest, TruncatedImgDataSizeReturnsError) {
-    img.dataSize = rawPixels.size() * sizeof(uint16_t) - 1;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &gainMap));
+// #123: a non-zero dataSize smaller than the dimensions require is refused
+// before the kernel reads past the allocation.
+TEST_F(GainCorrectTest, TruncatedInputDataSizeReturnsError) {
+    input.dataSize = rawPixels.size() * sizeof(uint16_t) - sizeof(uint16_t);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&input, &output, &metadata));
 }
 
-// Truncated gain maps must also be rejected.
-TEST_F(GainCorrectTest, TruncatedGainDataSizeReturnsError) {
-    gainMap.dataSize = gainPixels.size() * sizeof(float) - 1;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &gainMap));
+// #117: the map is global state, so "no gain map" is its own condition --
+// distinct from "the module was never initialized". Replaces the old
+// truncated-gain-argument case, which no longer has an argument to truncate.
+TEST_F(GainCorrectTest, GainMapNotLoadedReturnsCalibNotLoaded) {
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, xpe_gain_correct(&input, &output, &metadata));
 }
 
-// Output byte size is updated correctly after conversion.
+// The output byte size reflects the float32 conversion.
 TEST_F(GainCorrectTest, OutputDataSizeEqualsPixelCountTimesFloat) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_EQ(W * H * sizeof(float), img.dataSize);
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&input, &output, &metadata));
+    EXPECT_EQ(W * H * sizeof(float), output.dataSize);
 }
 
 } // namespace

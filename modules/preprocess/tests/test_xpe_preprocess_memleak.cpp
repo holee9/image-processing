@@ -109,7 +109,7 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
 
     // Accepts NOT_INITIALIZED when calibration not loaded (memleak test, not functional test)
     auto rc = xpe_offset_correct(&rawBuf, &offsetBuf, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
 
     xpe_preprocess_shutdown();
 }

@@ -124,7 +124,7 @@ TEST(PreprocessDegraded, BP01_OffsetNullCalibrationReturnsNotInitialized) {
     // Must return a defined error code, not crash.
     // Accept NOT_INITIALIZED (no calibration loaded) or OK (if a prior test
     // populated g_calib). Both paths are graceful degradation.
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_OK)
+    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
         << "Unexpected error code: " << rc;
 
     // Timing budget for 64x64 image.
@@ -173,7 +173,7 @@ TEST(PreprocessDegraded, BP02_GainIdentityPreservesInputStatistics) {
         rc = xpe_gain_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_OK)
+    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
         << "Unexpected error code: " << rc;
 
     EXPECT_LT(ms, kDegradedBudgetMs);
@@ -220,7 +220,7 @@ TEST(PreprocessDegraded, BP03_DefectEmptyListIsNoOp) {
         rc = xpe_defect_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED)
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)
         << "Unexpected error code: " << rc;
 
     EXPECT_LT(ms, kDegradedBudgetMs);
