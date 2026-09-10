@@ -138,6 +138,8 @@ if(_XPE_BUILD_TESTS)
         # Same divergence as test_gain_correct; register after QA-A-12 (#117).
         tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
+        # QA-A-32 (#120): ghost Tier2/Tier3 coverage
+        tests/test_ghost_tiers.cpp
         tests/test_calibration_manager.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
