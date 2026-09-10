@@ -421,6 +421,8 @@ The store is guarded by a module-internal mutex (`g_calib_mutex`). Loaders take 
 
 **`xpe_calib_state_load` contract.** `xpe_calib_state_load(state, calibPath)` is a compatibility wrapper: it composes `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath` and calls the three single-path loaders, so **the maps land in the global store, not in the caller's struct**. It sets only the three `*Loaded` boolean flags on `XpeCalibrationState`; the `offsetMap` / `gainMap` / `defectMap` buffer fields are **not required to be filled** and callers must not read them as if they were. Missing files are skipped (that map's flag stays `false`) and the call still returns `XPE_OK`. `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` correspondingly takes offset and gain from the global store; it consults `calibState` only for a defect map, and passing `NULL` for `calibState` is valid.
 
+**Cached loaders — ownership (normative, 2026-09-10, #127).** `xpe_calib_load_offset_cached` / `xpe_calib_load_gain_cached` / `xpe_calib_load_defect_cached` return a *cache-owned view*: the returned `XpeImageBuffer.data` belongs to the calibration cache on both the hit and the miss path. Callers MUST NOT free it, and it stays valid only until `xpe_calib_cache_clear()`, eviction by `xpe_calib_cache_set_max_size()`, or module shutdown. A caller that needs a longer-lived map takes a copy with `xpe_copy_image`. (The miss path did not follow this rule before QA-A-22.)
+
 ### 6.1 xpe_offset_correct
 
 ```c
