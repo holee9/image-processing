@@ -152,6 +152,39 @@ public sealed class WorkflowScenarios
         });
     }
 
+    /// <summary>
+    /// W-07: choosing a body part in the UI applies that backend's preset to the VOI window.
+    ///
+    /// The values are the ACTIVE backend's, not a constant — GUI-C-23 measured that the mock preset
+    /// (Lung 25000/50000) and the native one differ, and hard-coding either is how a check ends up
+    /// measuring which backend is running instead of whether the preset was applied. This run is
+    /// Mock, so the mock values are expected and named as such.
+    ///
+    /// The status bar carries the applied window ("… VOI(Linear, C=…, W=…) …"), which is readable
+    /// without opening the Analysis tab (GUI-C-34).
+    /// </summary>
+    [SkippableFact]
+    public void W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow()
+    {
+        Measure("W-07", window =>
+        {
+            var selector = window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"));
+            Assert.True(selector is not null, "BodyPartSelector was not found.");
+
+            var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
+            Assert.True(status is not null, "StatusBarText was not found.");
+
+            var combo = selector!.AsComboBox();
+            combo.Select("Lung");
+            Thread.Sleep(1500);
+
+            // Mock's Lung preset (MockXpeBackend.cs): centre 25000, width 50000.
+            var text = status!.Name;
+            Assert.Contains("C=25000", text, StringComparison.Ordinal);
+            Assert.Contains("W=50000", text, StringComparison.Ordinal);
+        });
+    }
+
     /// <summary>Polls briefly for an element the UI creates lazily. Returns null when it never appears.</summary>
     private static AutomationElement? WaitFor(Func<AutomationElement?> find)
     {

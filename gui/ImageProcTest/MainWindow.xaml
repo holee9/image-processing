@@ -353,6 +353,18 @@
                         Command="{Binding SaveSettingsCommand}"
                         Content="Save Settings" />
                 <Separator />
+                <!--
+                  #10 / GUI-C-35: body-part preset selector. It sits in the toolbar rather than the
+                  Analysis panel because that panel's contents live in tabs, and WPF does not put a
+                  tab's children in the UIA tree until the tab is selected (measured in GUI-C-34).
+                -->
+                <TextBlock Text="Body Part" VerticalAlignment="Center" Margin="4,0,6,0" />
+                <ComboBox x:Name="BodyPartSelector"
+                          AutomationProperties.AutomationId="BodyPartSelector"
+                          ItemsSource="{Binding BodyPartOptions}"
+                          SelectedItem="{Binding SelectedBodyPart, Mode=TwoWay}"
+                          MinWidth="110" />
+                <Separator />
                 <Button x:Name="ClearLogsButton"
                         AutomationProperties.AutomationId="ClearLogsButton"
                         Command="{Binding ClearLogsCommand}"
