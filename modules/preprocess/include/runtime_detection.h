@@ -100,12 +100,37 @@ extern "C" {
 #define RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR 0.8f
 
 /**
+ * @brief Multiple of the frame-wide robust sigma used as a per-pixel CEILING.
+ *
+ * QA-A-46 (#143), the mirror of RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR.
+ *
+ * QA-A-45 examined every injected 10-sigma transient the detector missed and
+ * found one cause for all thirteen: the local MAD, built from eight samples,
+ * came out 1.60x to 2.63x the true sigma at those sites, so kappa * sigma rose
+ * above the transient. Not clustering, not a truncated neighbourhood, not
+ * saturation -- all three measured zero. The floor cannot help, because the
+ * floor bounds the estimate from BELOW and these sites strayed ABOVE. A ceiling
+ * is the matching device, and it costs nothing extra: the frame-wide sigma is
+ * already computed for the floor, so this adds one comparison per pixel.
+ *
+ * DISABLED BY DEFAULT (0.0f). A ceiling lowers the threshold wherever the local
+ * estimate is high, so it trades false negatives for false positives -- and
+ * QA-A-43 spent a whole card getting the false-positive rate under the SPEC's
+ * 1% ceiling. Enabling this without measuring that trade would undo it.
+ * QA-A-46's table measures it; the value stays 0 until someone decides on the
+ * evidence. Bound from the QA-A-45 data: catching all thirteen needs
+ * beta < 78.76 / (5 * 10.023838) = 1.5714.
+ */
+#define RUNTIME_DETECTION_GLOBAL_SIGMA_CAP 0.0f
+
+/**
  * @brief Configuration parameters for runtime detection.
  */
 struct RuntimeDetectionConfig {
     int32_t windowSize;       /**< Sliding window size (odd number: 3, 5, 7, ...) */
     float sigmaThreshold;     /**< Sigma threshold for outlier detection (default: 5.0) */
     float globalSigmaFloor;   /**< Lower bound on the local sigma estimate; 0 = none */
+    float globalSigmaCap;     /**< Upper bound on the local sigma estimate; 0 = none */
 };
 
 /**
@@ -120,6 +145,7 @@ inline RuntimeDetectionConfig RuntimeDetection_DefaultConfig() {
     // 0 by default: the floor is a frame-wide quantity, so only a caller that
     // has seen the whole frame can fill it in. xpe_defect_detect_runtime does.
     config.globalSigmaFloor = 0.0f;
+    config.globalSigmaCap = 0.0f;
     return config;
 }
 
@@ -342,6 +368,11 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     float sigmaEstimate = mad;
     if (config.globalSigmaFloor > sigmaEstimate) {
         sigmaEstimate = config.globalSigmaFloor;
+    }
+    // QA-A-46 (#143): and cap it from above. Disabled (0) unless a caller sets
+    // it -- see RUNTIME_DETECTION_GLOBAL_SIGMA_CAP for why the default is off.
+    if (config.globalSigmaCap > 0.0f && sigmaEstimate > config.globalSigmaCap) {
+        sigmaEstimate = config.globalSigmaCap;
     }
 
     // Flat-field windows produce MAD == 0. In that case, any non-trivial
