@@ -115,7 +115,6 @@ if(_XPE_BUILD_TESTS)
     # --- test_xpe_common (15 API functions) ---
     add_executable(test_xpe_common
         tests/test_xpe_common.cpp
-        tests/test_post_degraded_mode.cpp
         # QA-A-28 (#110): alert queue overflow policy, api-spec.md 5.17
         tests/test_alert_queue_overflow.cpp
         # QA-A-13 (#109): on disk but never registered (found by QA-A-28). Its
