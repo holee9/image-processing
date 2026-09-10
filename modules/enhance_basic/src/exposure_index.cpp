@@ -113,7 +113,7 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
         char alertMsg[256];
         std::snprintf(alertMsg, sizeof(alertMsg),
                       "Exposure deviation: DI=%.2f (outside [-3.0, +3.0] range)", di);
-        xpe_test_inject_alert(alertMsg, XPE_ALERT_WARNING);
+        xpe_alert_push(alertMsg, XPE_ALERT_WARNING);
     }
 
     return XPE_OK;

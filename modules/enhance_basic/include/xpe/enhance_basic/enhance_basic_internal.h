@@ -51,12 +51,11 @@ inline const float* const_float_pixels(const XpeImageBuffer* img) {
 }
 
 /*
- * Post an alert to the xpe_common alert queue.
- * xpe_test_inject_alert is exported from xpe_common.dll but not declared
- * in a public header. We declare it here for internal use by enhance_basic.
+ * Alerts are posted with xpe_alert_push(), declared in xpe/common/xpe_error.h
+ * (included above). The local extern declaration that used to sit here dated
+ * from when the symbol had no public declaration; #111 gave it one, so the
+ * duplicate is gone -- do not reintroduce it.
  */
-extern "C" XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
-
 
 
 #endif /* XPE_ENHANCE_BASIC_INTERNAL_H */
