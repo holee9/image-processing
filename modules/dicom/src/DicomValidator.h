@@ -36,7 +36,6 @@ private:
         std::string warningsJson;  // JSON array fragment
     };
 
-    static ValidationResult checkConformance(const std::string& filePath);
     static bool isValidUID(const std::string& uid);
     static std::string buildReport(const ValidationResult& result);
 };
