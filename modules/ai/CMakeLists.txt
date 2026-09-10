@@ -213,7 +213,10 @@ endif()
 if(_XPE_AI_BUILD_TESTS)
     # Only add tests if source files exist (avoids configure errors when
     # test files have not been generated yet -- tests are written by xpe-qa).
-    # Note: Test files are in tests/ai_tests/ directory, not modules/ai/tests/
+    # Test sources live in modules/ai/tests/, like every other module.
+    # They used to sit in the repository-root tests/ai_tests/ and were pulled in
+    # from here by absolute path, which made the tree read as orphaned from the
+    # root CMakeLists (#109). Moved in QA-B-33; the target is unchanged.
     set(XPE_AI_TEST_SOURCES
         test_ai_abi.cpp
         test_ai_fallback.cpp
@@ -223,12 +226,12 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_model_versioning.cpp
     )
 
-    # Check if test files exist in tests/ai_tests directory
+    # Check if test files exist in this module's tests/ directory
     set(_ALL_TEST_SOURCES_EXIST TRUE)
     foreach(_src ${XPE_AI_TEST_SOURCES})
-        if(NOT EXISTS "${CMAKE_SOURCE_DIR}/tests/ai_tests/${_src}")
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${_src}")
             set(_ALL_TEST_SOURCES_EXIST FALSE)
-            message(STATUS "xpe_ai test source missing: tests/ai_tests/${_src}")
+            message(STATUS "xpe_ai test source missing: modules/ai/tests/${_src}")
         endif()
     endforeach()
 
@@ -253,7 +256,7 @@ if(_XPE_AI_BUILD_TESTS)
         # Build full paths to test sources
         set(_XPE_AI_TEST_SOURCE_PATHS "")
         foreach(_src ${XPE_AI_TEST_SOURCES})
-            list(APPEND _XPE_AI_TEST_SOURCE_PATHS "${CMAKE_SOURCE_DIR}/tests/ai_tests/${_src}")
+            list(APPEND _XPE_AI_TEST_SOURCE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${_src}")
         endforeach()
 
         # The IPC bridge is module-internal and is NOT exported from xpe_ai.dll
