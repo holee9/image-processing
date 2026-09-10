@@ -68,12 +68,26 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
 
     // Skip past "key":
     pos += std::strlen(needle);
-    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == ':')) ++pos;
-    if (*pos != '"') return {};
+    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == '\n' ||
+                    *pos == '\r' || *pos == ':')) ++pos;
 
-    ++pos; // skip opening quote
-    const char* end = std::strchr(pos, '"');
-    if (!end) return {};
+    if (*pos == '"') {
+        ++pos; // skip opening quote
+        const char* end = std::strchr(pos, '"');
+        if (!end) return {};
+        return std::string(pos, end);
+    }
+
+    // #126: unquoted scalar (true / false / number). The pipeline writes its
+    // bypass flags as JSON booleans, and requiring quotes made those configs
+    // silently do nothing -- the stage ran and failed later on missing
+    // calibration instead. A nested object or array is not a scalar; this
+    // extractor does not descend into one.
+    if (*pos == '{' || *pos == '[' || *pos == '\0') return {};
+
+    const char* end = pos;
+    while (*end && *end != ',' && *end != '}' && *end != ']' &&
+           *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r') ++end;
 
     return std::string(pos, end);
 }

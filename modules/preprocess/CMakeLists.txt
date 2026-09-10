@@ -152,6 +152,7 @@ if(_XPE_BUILD_TESTS)
         # rle_codec.cpp and calibration_cache.cpp measured 0%/6% coverage only
         # because these suites were never compiled.
         tests/test_xcal_compression.cpp
+        tests/test_json_helpers.cpp
         # QA-A-21 (#120): present on disk but never named in this list -- 54
         # cases that had never been compiled or run. Registering all three
         # produced 110 compile errors, all from the retired map-argument API
@@ -169,24 +170,7 @@ if(_XPE_BUILD_TESTS)
         # tests/test_golden_reference.cpp
         # tests/test_gain_correct_reciprocal_fma.cpp
         # tests/test_calibration_roundtrip.cpp
-        # test_pipeline_ex.cpp / test_calibration_cache.cpp compile now (their
-        # fixtures were migrated off the retired 4-arg xpe_calib_save) but their
-        # assertions do not hold against the shipped implementation, and the
-        # binary aborts partway. Findings are in .moai/reports/lane-pre/QA-A-15/.
-        # Register once QA-A-12 (#117) rules on the global-g_calib vs map-argument
-        # divergence, which is what these suites actually disagree about.
-        # QA-A-20 (#117/#120): migrated off the retired ownership contract (the
-        # double-free at :207 is gone) and off the XpeCalibrationState fill
-        # expectation, but two cases still fail against the shipped pipeline and
-        # both look like implementation defects rather than test drift:
-        #   - PipelineExNullStateSkipsCalibration: bypass flags given as JSON
-        #     booleans are ignored. xpe_json_get_string (helpers.cpp:72) requires
-        #     a quoted value, so {"bypassOffset":true} silently does nothing.
-        #   - PipelineExWithState: the final buffer reads as uint16, not the
-        #     float32 the gain stage produced. Not diagnosed further here.
-        # Findings are in .moai/reports/lane-pre/QA-A-20/. Register once they are
-        # resolved; the other three suites are registered and green.
-        # tests/test_pipeline_ex.cpp
+        tests/test_pipeline_ex.cpp
         tests/test_calibration_cache.cpp
         tests/test_xpe_calib_generate_offset.cpp
         tests/test_calib_generate_offset_multi.cpp
