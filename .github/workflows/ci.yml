@@ -322,11 +322,13 @@ jobs:
           $p = Start-Process -FilePath $exe -WindowStyle Hidden -Wait -PassThru -ArgumentList @(
             '--automation-raw', 'fixtures/gui-s0/raw/synthetic_1024x1024.raw',
             '--automation-report', $report,
+            '--automation-backend', 'Mock',
             '--automation-width', '1024', '--automation-height', '1024')
           Write-Host "exit=$($p.ExitCode)"
           if (-not (Test-Path $report)) { Write-Error 'automation report not written'; exit 1 }
           $r = Get-Content $report -Raw | ConvertFrom-Json
-          Write-Host ("BackendVersion={0} Passed={1}" -f $r.BackendVersion, $r.Passed)
+          Write-Host ("BackendMode={0} source={1} BackendVersion={2} Passed={3}" -f $r.BackendMode, $r.BackendModeSource, $r.BackendVersion, $r.Passed)
+          if ($r.BackendModeSource -ne 'arg') { Write-Error 'backend did not come from --automation-backend'; exit 1 }
           if ($p.ExitCode -ne 0 -or -not $r.Passed) { Write-Error 'automation Passed=false or non-zero exit'; exit 1 }
 
       - name: Upload automation report
