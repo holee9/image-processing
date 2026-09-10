@@ -29,6 +29,20 @@ public sealed record NativeProvenance(
     public const string FileName = "provenance.json";
 
     /// <summary>
+    /// What this record does and does not establish, printed with every Native run.
+    ///
+    /// It is written by whichever procedure staged the files — ci.yml or the lane's staging script —
+    /// so it says what that procedure OBSERVED, not what an independent party verified. There is no
+    /// signature: a hand-written provenance.json passes exactly like a produced one. That is a
+    /// deliberate boundary (a signing chain is not what this guard is for), and stating it here is
+    /// what keeps a Native pass from being read as more than it is.
+    /// </summary>
+    public const string TrustBoundary =
+        "note: this record is written by the staging procedure (ci.yml or Stage-NativeArtifacts.ps1), " +
+        "not independently verified — there is no signature, so it attests what was staged, not that " +
+        "the binaries are genuine.";
+
+    /// <summary>
     /// Reads the record from a pinned native directory.
     ///
     /// A missing or unreadable file returns null WITH a reason. The caller turns that into a
@@ -80,6 +94,10 @@ public sealed record NativeProvenance(
     {
         var lines = new List<string>
         {
+            // GUI-C-42: the trust boundary is printed, not left in a comment. A reader of this
+            // output is deciding how much a Native pass is worth, and a caveat they must open a
+            // source file to find is a caveat they will not read.
+            TrustBoundary,
             $"native provenance: source={Source} run={RunId} head={HeadSha}",
             $"  directory: {nativeDirectory}",
         };
