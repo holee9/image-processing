@@ -79,11 +79,33 @@ extern "C" {
 #define RUNTIME_DETECTION_MAD_SCALE 1.4826f
 
 /**
+ * @brief Fraction of the frame-wide robust sigma used as a per-pixel floor.
+ *
+ * QA-A-43 (#143): the SPEC algorithm clause (3x3 excluding centre, 8 values)
+ * and the SPEC Pixel Accuracy clause (clean input flags <= 1% of the frame)
+ * could not both hold without this. Eight samples estimate sigma coarsely, and
+ * every under-estimate becomes a false flag: measured 1.72% of a clean 1024x1024
+ * frame, against a 1% ceiling. Flooring the local estimate at 0.8x the
+ * frame-wide robust sigma brings it to 1.06e-4 -- 1/94 of the ceiling -- while
+ * keeping the SPEC's neighbourhood rule and the same runtime.
+ *
+ * 0.8 rather than 1.0: at 1.0 the floor dominates the local estimate almost
+ * everywhere and TPR at 5 sigma drops from 0.64 to 0.38 (QA-A-41/42 sweeps).
+ * 0.8 keeps 91% of the detection rate. Evidence:
+ * .moai/reports/lane-pre/QA-A-43/.
+ *
+ * A floor of 0 disables the mechanism, which is the default for
+ * RuntimeDetectionConfig so that direct callers see the unfloored rule.
+ */
+#define RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR 0.8f
+
+/**
  * @brief Configuration parameters for runtime detection.
  */
 struct RuntimeDetectionConfig {
     int32_t windowSize;       /**< Sliding window size (odd number: 3, 5, 7, ...) */
     float sigmaThreshold;     /**< Sigma threshold for outlier detection (default: 5.0) */
+    float globalSigmaFloor;   /**< Lower bound on the local sigma estimate; 0 = none */
 };
 
 /**
@@ -95,6 +117,9 @@ inline RuntimeDetectionConfig RuntimeDetection_DefaultConfig() {
     RuntimeDetectionConfig config;
     config.windowSize = RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE;
     config.sigmaThreshold = RUNTIME_DETECTION_DEFAULT_SIGMA_THRESHOLD;
+    // 0 by default: the floor is a frame-wide quantity, so only a caller that
+    // has seen the whole frame can fill it in. xpe_defect_detect_runtime does.
+    config.globalSigmaFloor = 0.0f;
     return config;
 }
 
@@ -204,6 +229,31 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
 }
 
 /**
+ * @brief Frame-wide robust sigma: MAD of the whole frame, scaled.
+ *
+ * QA-A-43 (#143). Two selection passes over a copy of the frame, so O(n) and
+ * measured at a few tens of milliseconds for 1024x1024 -- see the report's
+ * timing table. Returns 0 for an empty or malformed frame, which disables the
+ * floor rather than fabricating one.
+ */
+inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
+    if (img == nullptr || img->data == nullptr) return 0.0f;
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    if (n == 0u) return 0.0f;
+
+    const float* pixels = static_cast<const float*>(img->data);
+    std::vector<float> work(pixels, pixels + n);
+
+    const size_t mid = n / 2u;
+    std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
+    const float median = work[mid];
+
+    for (size_t i = 0; i < n; ++i) work[i] = std::abs(work[i] - median);
+    std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
+    return work[mid] * RUNTIME_DETECTION_MAD_SCALE;
+}
+
+/**
  * @brief Collect the neighbourhood of a pixel, EXCLUDING the centre.
  *
  * REQ-P1A-013 step 1 counts 8 values for a 3x3 neighbourhood, which is the
@@ -285,15 +335,24 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     const float* pixels = static_cast<const float*>(img->data);
     float centerValue = pixels[y * img->width + x];
 
+    // QA-A-43 (#143): floor the local estimate at a fraction of the frame-wide
+    // robust sigma. Eight samples under-estimate sigma often enough to breach
+    // the SPEC's 1% clean-input ceiling; the floor removes those flags without
+    // touching the neighbourhood rule. Zero floor = mechanism off.
+    float sigmaEstimate = mad;
+    if (config.globalSigmaFloor > sigmaEstimate) {
+        sigmaEstimate = config.globalSigmaFloor;
+    }
+
     // Flat-field windows produce MAD == 0. In that case, any non-trivial
     // deviation from the local median is an outlier rather than noise.
-    if (mad < 1e-6f) {
+    if (sigmaEstimate < 1e-6f) {
         return std::abs(centerValue - median) > 1e-6f;
     }
 
     // Hampel identifier test
     float deviation = std::abs(centerValue - median);
-    float threshold = config.sigmaThreshold * mad;
+    float threshold = config.sigmaThreshold * sigmaEstimate;
 
     return deviation > threshold;
 }

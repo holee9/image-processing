@@ -111,7 +111,14 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     // threshold to be set from outside, so the parsers were removed rather than
     // wired up. Callers that need other values use the internal
     // DetectDefectivePixel(img, x, y, config) directly.
-    const RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
+    RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
+
+    // QA-A-43 (#143): the floor is frame-wide, so it is computed here -- this is
+    // the only layer that sees the whole frame. RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR
+    // names the fraction; the rationale lives on that constant.
+    config.globalSigmaFloor =
+        RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR *
+        xpe::preprocess::internal::ComputeGlobalSigma(img);
 
     // Validate configuration
     XpeErrorCode err = ValidateConfig(config);

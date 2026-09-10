@@ -278,7 +278,7 @@ void profile(int32_t window) {
     }
     const auto t1 = std::chrono::steady_clock::now();
     std::printf("  %-34s %8.1f ms  (flagged %zu)\n",
-                "shipped DetectDefectivePixel", 
+                "shipped DetectDefectivePixel",
                 std::chrono::duration<double, std::milli>(t1 - t0).count(), flagged);
     std::printf("\n");
     std::fflush(stdout);

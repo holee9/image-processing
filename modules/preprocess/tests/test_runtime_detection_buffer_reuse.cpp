@@ -77,7 +77,18 @@ protected:
         img.format = XPE_PIXEL_FLOAT32;
         img.dataSize = static_cast<uint32_t>(pixels.size() * sizeof(float));
 
-        const std::vector<uint8_t> ref = referenceMap(img, RuntimeDetection_DefaultConfig());
+        // QA-A-43 (#143): the reference must use the SAME configuration as the
+        // entry point, which now fills in a frame-wide sigma floor. The default
+        // config leaves it at 0 (no floor) because only a caller that has seen
+        // the whole frame can compute it -- so the reference computes it the
+        // same way the entry point does. Without this the two sides would
+        // differ for a reason that has nothing to do with buffer reuse.
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.globalSigmaFloor =
+            RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR *
+            xpe::preprocess::internal::ComputeGlobalSigma(&img);
+
+        const std::vector<uint8_t> ref = referenceMap(img, cfg);
         const std::vector<uint8_t> got = shippedMap(img);
 
         ASSERT_EQ(ref.size(), got.size());

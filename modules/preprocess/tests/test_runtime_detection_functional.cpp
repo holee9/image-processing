@@ -107,17 +107,17 @@ TEST_F(RuntimeDetectionFunctionalTest, UniformImageFlagsNothing) {
 // Gaussian noise is not a defect. With a fixed seed this is deterministic, so
 // the bound is a real assertion rather than a flake.
 //
-// QA-A-42 (#143): this case USED to assert the SPEC's own hard ceiling
-// ("sum(defectMapOut) does not exceed width*height * 0.01 for clean input")
-// and it passed under the pre-QA-A-42 rule (5x5, centre included). Applying the
-// SPEC's ALGORITHM clause -- 3x3 excluding centre, 8 values -- breaks it:
-// 90 of 4096 pixels are flagged, 2.2%, against a 1% ceiling.
-//
-// The two clauses are in direct conflict at lambda = 5.0. Eight samples give a
-// much noisier MAD than twenty-five, and the flagging rate follows. The
-// assertion is not relaxed to hide it; the measured number is pinned and the
-// name says what the case now records. Leader decision pending (#143).
-TEST_F(RuntimeDetectionFunctionalTest, KnownDivergence_GaussianNoiseExceedsTheOnePercentCeiling) {
+// History, because the name changed twice and neither change was a correction
+// of a wrong expectation -- each was a SUPERSEDING measurement:
+//   - QA-A-42 (#143) applied the SPEC algorithm clause (3x3 excluding centre)
+//     and this went to 90 of 4096 (2.2%), breaching the SPEC's own 1% ceiling.
+//     The case was renamed KnownDivergence_... and pinned at the breach rather
+//     than relaxed.
+//   - QA-A-43 (#143) added the frame-wide sigma floor and the breach is gone:
+//     0 of 4096. The original expectation is restored under its original name.
+// The QA-A-42 expectation was not wrong when it was written; it described the
+// tree at that commit. It has been replaced, not corrected.
+TEST_F(RuntimeDetectionFunctionalTest, GaussianNoiseKeepsFalsePositivesLow) {
     Scene s(64, 64, 0.0f);
     std::mt19937 gen(12345u);                    // fixed seed: reproducible
     std::normal_distribution<float> dist(1000.0f, 10.0f);
@@ -125,12 +125,9 @@ TEST_F(RuntimeDetectionFunctionalTest, KnownDivergence_GaussianNoiseExceedsTheOn
 
     ASSERT_EQ(XPE_OK, s.detect());
     const uint32_t total = 64u * 64u;
-    EXPECT_GT(s.flaggedCount(), total / 100u)
-        << "REQ-P1A-013 caps clean input at 1%; this records that it is exceeded";
-    EXPECT_LT(s.flaggedCount(), total / 20u)
-        << "bracket: it is over 1% but well under 5%";
+    EXPECT_LE(s.flaggedCount(), total / 100u)
+        << "REQ-P1A-013: clean input must not exceed 1% of the frame";
 
-    RecordProperty("spec_clause", "REQ-P1A-013 sum(defectMapOut) <= 1% for clean input");
     RecordProperty("flagged", std::to_string(s.flaggedCount()));
     RecordProperty("of_total", std::to_string(total));
 }
