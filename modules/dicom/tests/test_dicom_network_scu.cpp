@@ -16,6 +16,7 @@
 #include <nlohmann/json.hpp>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -170,4 +171,28 @@ TEST_F(DicomNetworkTest, CFindNullQueryJson_ReturnsInvalidInput) {
     char buf[256] = {};
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_cfind_mwl(
         "localhost", 104, "TESTSCU", nullptr, buf, sizeof(buf), 1000));
+}
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-27): SCU branches that run before any association, so they need
+// no mock PACS (see #124 for why none is started).
+//   - a non-DICOM file fails DcmFileFormat::loadFile  (DicomNetworkSCU.cpp:53-54)
+//   - a cancel latched before the call returns early  (DicomNetworkSCU.cpp:101-102)
+// ---------------------------------------------------------------------------
+TEST_F(DicomNetworkTest, CStoreNonDicomFile_ReturnsIoFailed) {
+    auto notDicom = s_tempDir / "not_dicom_for_cstore.bin";
+    {
+        std::ofstream f(notDicom, std::ios::binary);
+        f.write("NOT A DICOM FILE", 16);
+    }
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_cstore(
+        "localhost", 19999, "TESTSCU",
+        notDicom.string().c_str(), 500));
+}
+
+TEST_F(DicomNetworkTest, CStoreMissingFile_ReturnsIoFailed) {
+    auto missing = s_tempDir / "does_not_exist.dcm";
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_cstore(
+        "localhost", 19999, "TESTSCU",
+        missing.string().c_str(), 500));
 }
