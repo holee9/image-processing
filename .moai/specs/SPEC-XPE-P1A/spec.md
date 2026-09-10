@@ -225,7 +225,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-017: Calibration Offset Generation
 
-**When** `xpe_calib_generate_offset(frames, frameCount, offsetMapOut, configJsonOrNull)` is called, the module **shall** compute the pixel-wise mean of `frameCount` dark-field frames and write the result to `offsetMapOut`.
+**When** `xpe_calib_generate_offset(dark_frames, num_frames, integration_time_ms, temperature_c, output_path, config_json_or_null)` is called, the module **shall** combine the dark frames per pixel using the method selected by `config_json_or_null` (XPE-ALG-001 §9.8: `mean` default when `NULL`, `sigma_clip`, `median`, …), write the result as an XCal offset file to `output_path`, and — for `sigma_clip` — mark pixels with fewer than `N_min = max(3, ⌊N/4⌋)` surviving samples as static defects merged into the global defect map (§9.8.2.1). *(Corrected 2026-09-11, decision #138 / QA-A-38·A-39: the previous `(frames, frameCount, offsetMapOut, configJsonOrNull)` form never existed in the header; before A-39 the public entry point had no config argument and always used `mean`.)*
 
 - **SRS**: SRS-CALIB-020
 - **Traceability**: SUP-01
