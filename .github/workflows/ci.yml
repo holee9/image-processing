@@ -401,6 +401,30 @@ jobs:
           if ($leak) { Write-Error "app folder must not contain xpe_*.dll (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
           Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
 
+      # GUI-C-41: a Native pass only means something if you know WHICH native
+      # binaries ran. Locally the lane stages artifacts from an older CI run
+      # (#98 forbids native builds there), so "Native 9/9" can silently be a
+      # pass against stale DLLs. The E2E fixture requires this manifest and
+      # prints its runId/headSha; here both are the current run by construction.
+      - name: Record staged-DLL provenance
+        shell: pwsh
+        run: |
+          $dir = 'build/e2e-native-dlls'
+          $files = Get-ChildItem $dir -Filter xpe_*.dll | ForEach-Object {
+            [pscustomobject]@{
+              name   = $_.Name
+              md5    = (Get-FileHash $_.FullName -Algorithm MD5).Hash.ToLower()
+              length = $_.Length
+            }
+          }
+          [pscustomobject]@{
+            source  = 'ci'
+            runId   = '${{ github.run_id }}'
+            headSha = '${{ github.sha }}'
+            files   = $files
+          } | ConvertTo-Json -Depth 4 | Set-Content "$dir/provenance.json" -Encoding utf8
+          Get-Content "$dir/provenance.json"
+
       - name: Run FlaUI E2E smoke (Native)
         shell: pwsh
         env:
