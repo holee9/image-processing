@@ -165,3 +165,45 @@ TEST_F(DicomValidatorTest, ValidateBadUID_ReportsWarning) {
     EXPECT_FALSE(j["warnings"].empty())
         << "expected an Invalid UID format warning, report: " << report;
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-27): report-buffer sizing on the DICOM_INVALID early-return path.
+//
+// DicomValidator::validate builds the report BEFORE returning DICOM_INVALID and
+// does its own buffer-size check there (DicomValidator.cpp:66-74). That branch
+// was never executed: the existing invalid-file test always passes an 8 KB
+// buffer, so only the success-path sizing check ran.
+// ---------------------------------------------------------------------------
+TEST_F(DicomValidatorTest, ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall) {
+    char tiny[8] = {};
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_validate(
+        s_notDicom.string().c_str(), tiny, sizeof(tiny)));
+}
+
+TEST_F(DicomValidatorTest, ValidateConformant_SmallBuffer_ReturnsBufferTooSmall) {
+    char tiny[8] = {};
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_validate(
+        s_conformantDcm.string().c_str(), tiny, sizeof(tiny)));
+}
+
+// A file that parses but carries none of the four required Type 1 tags
+// exercises the missing-tag loop for every tag at once, plus the
+// warnings-empty branch of buildReport (DicomValidator.cpp:232-238).
+TEST_F(DicomValidatorTest, ValidateStrippedTags_ReportsAllMissing) {
+    auto stripped = s_tempDir / "stripped.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        DcmDataset* ds = ff.getDataset();
+        ds->findAndDeleteElement(DCM_PatientID);
+        ds->findAndDeleteElement(DCM_StudyInstanceUID);
+        ds->findAndDeleteElement(DCM_SeriesInstanceUID);
+        ds->findAndDeleteElement(DCM_SOPInstanceUID);
+        ASSERT_TRUE(ff.saveFile(stripped.string().c_str(), EXS_LittleEndianExplicit).good());
+    }
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(stripped.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["valid"].get<bool>());
+    EXPECT_GE(j["errors"].size(), 4u) << report;
+}

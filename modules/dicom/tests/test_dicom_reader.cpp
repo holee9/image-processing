@@ -259,3 +259,33 @@ TEST_F(DicomReaderTest, GetMetadataNullHandle_ReturnsInvalidInput) {
     XpeImageMetadata meta{};
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_get_metadata(nullptr, &meta));
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-27): J2K decode error branches, reached with derived bad files
+// rather than fault injection. Each case removes exactly one thing from a file
+// that otherwise reads correctly, so a failure names its own cause.
+// ---------------------------------------------------------------------------
+
+// PixelData absent entirely: DicomReader.cpp:294-297 findAndGetElement fails.
+TEST_F(DicomReaderTest, ReadJ2K_NoPixelData_ReturnsDicomInvalid) {
+    auto path = s_tempDir / "j2k_no_pixeldata.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_j2kDcm.string().c_str()).good());
+        ff.getDataset()->findAndDeleteElement(DCM_PixelData);
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_JPEG2000LosslessOnly).good());
+    }
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, xpe_dicom_read_image(handle, &img));
+    xpe_dicom_close(handle);
+}
+
+// NOT REACHABLE BY RELABELLING (attempted, QA-B-27): taking the Explicit LE file,
+// rewriting its meta TransferSyntaxUID to J2K and saving produces a file the reader
+// reads normally (xpe_dicom_read_image returned XPE_OK), so the
+// getEncapsulatedRepresentation failure branch at DicomReader.cpp:311-319 was not
+// entered. DCMTK appears to rewrite the meta transfer syntax to match the encoding
+// actually used by saveFile. Reaching that branch needs a file whose declared J2K
+// syntax survives the write -- left uncovered rather than asserted falsely.
