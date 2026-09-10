@@ -303,7 +303,16 @@ TEST_F(DicomWriterTest, WriteEmptyBodyPart_StillWritesFile) {
     EXPECT_TRUE(fs::exists(path));
 }
 
-TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
+// Renamed and re-asserted by QA-B-41. It used to expect
+// XPE_ERR_PROCESSING_FAILED, which was the old behaviour: the NULL data pointer
+// passed every guard and surfaced from inside the J2K compressor as a generic
+// processing failure. #142 decided that a NULL data pointer is INVALID_INPUT
+// across every post module, so the answer now names the actual problem and is
+// the same one xpe_dicom_write gives for the same input.
+//
+// The old expectation is superseded, not wrong-then: it recorded what the code
+// did before the contract existed.
+TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width         = 64;
     img.height        = 64;
@@ -313,7 +322,7 @@ TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
     img.data          = nullptr;   // passes the dicom.cpp null-struct check
     img.dataSize      = 0;         // 0 = unspecified, so the #123 guard stays quiet
     auto path = m_tempDir / "j2k_nodata.dcm";
-    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED,
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
 }
 
