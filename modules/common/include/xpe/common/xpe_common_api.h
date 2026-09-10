@@ -28,13 +28,12 @@ extern "C" {
  *
  * REQ-P0-008: xpe_common.dll SHALL export exactly 15 functions with C linkage.
  *
- * NOTE: the actual export count is 17 during the #111 rename (step 1/3), not the 15
- * stated above. The alert producer has been exported from the DLL since its
- * introduction and is called from production code in other modules; it is
- * declared in xpe_error.h so the header matches the binary. It is exported
- * under two names for the duration of the rename -- xpe_alert_push and the
- * deprecated alias xpe_test_inject_alert -- and the alias is removed in step
- * 3/3, restoring the count to 16. Reconciling the REQ-P0-008 text (and the
+ * NOTE: the actual export count is 16, not the 15 stated above. The alert
+ * producer has been exported from the DLL since its introduction and is called
+ * from production code in other modules; it is declared in xpe_error.h so the
+ * header matches the binary. The #111 rename to xpe_alert_push is complete and
+ * the deprecated xpe_test_inject_alert alias is gone, so the count is back to
+ * the REQ-P0-008 value of 16. Reconciling the REQ-P0-008 text (and the
  * "18-function total" mentions below and in xpe_memory.h, which match neither
  * count) is an SRS decision and is tracked separately.
  *
@@ -44,7 +43,7 @@ extern "C" {
  *   ParamRange  (1): xpe_get_param_range
  *   Error/Alert (5): xpe_error_string, xpe_get_pending_alert_count,
  *                    xpe_get_pending_alert, xpe_clear_alerts,
- *                    xpe_alert_push, xpe_test_inject_alert (deprecated alias)
+ *                    xpe_alert_push
  *   Logging     (3): xpe_log_set_level, xpe_log_set_file, xpe_log_flush
  *   Image Mem   (3): xpe_alloc_image, xpe_free_image, xpe_copy_image
  *                    (declared in xpe_memory.h, counted here)
@@ -155,8 +154,7 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath);
 XPE_API void xpe_log_flush(void);
 
 /* NOTE: xpe_error_string, xpe_get_pending_alert_count,
- *       xpe_get_pending_alert, xpe_clear_alerts, xpe_alert_push,
- *       xpe_test_inject_alert (deprecated alias, removed in #111 step 3/3)
+ *       xpe_get_pending_alert, xpe_clear_alerts, xpe_alert_push
  *       are declared in xpe_error.h.
  *       xpe_alloc_image, xpe_free_image, xpe_copy_image are declared in xpe_memory.h.
  *       All are counted toward the 18-function total. */

@@ -17,8 +17,8 @@
 #include <cstdio>
 
 /* The alert producer is declared in xpe_error.h (reached via xpe_common_api.h);
- * no local extern declaration is needed. #111 step 1/3 renamed it to
- * xpe_alert_push and kept xpe_test_inject_alert as a deprecated alias. */
+ * no local extern declaration is needed. #111 renamed it to xpe_alert_push;
+ * the deprecated alias was removed in step 3/3. */
 
 /* ============================================================================
  * Test Fixtures
@@ -673,37 +673,13 @@ TEST_F(XpeCommonTest, MemoryLeakTestThousandCycles) {
     SUCCEED();
 }
 
-/* --- #111 step 1/3: xpe_alert_push rename, xpe_test_inject_alert alias --- */
+/* --- #111: xpe_alert_push rename, step 3/3 (alias removed) --- */
 
-// The deprecated alias must reach the same queue as the new name. This is the
-// one place the old name is still called; QA-A-19 removes both it and the alias.
-TEST_F(XpeCommonTest, DeprecatedAliasPushesOntoTheSameQueue) {
-    xpe_clear_alerts();
-
-    xpe_alert_push("via new name", XPE_ALERT_WARNING);
-    xpe_test_inject_alert("via deprecated alias", XPE_ALERT_ERROR);
-
-    ASSERT_EQ(2, xpe_get_pending_alert_count());
-
-    char    msg[256] = {0};
-    int32_t severity = -1;
-
-    ASSERT_EQ(XPE_OK, xpe_get_pending_alert(0, msg, sizeof(msg), &severity));
-    EXPECT_STREQ("via new name", msg);
-    EXPECT_EQ(XPE_ALERT_WARNING, severity);
-
-    ASSERT_EQ(XPE_OK, xpe_get_pending_alert(1, msg, sizeof(msg), &severity));
-    EXPECT_STREQ("via deprecated alias", msg);
-    EXPECT_EQ(XPE_ALERT_ERROR, severity);
-
-    xpe_clear_alerts();
-}
-
-// Locks the export surface to what the headers declare: 17 during the rename,
-// back to 16 once QA-A-19 drops the alias. Taking each address forces the
-// linker to resolve every one, so a header/binary mismatch fails the build
-// rather than surfacing later as a missing entry point in a consumer module.
-TEST_F(XpeCommonTest, HeaderDeclaresSeventeenExportedFunctions) {
+// Locks the export surface to what the headers declare: 16, the REQ-P0-008
+// count, now that the #111 alias is gone. Taking each address forces the linker
+// to resolve every one, so a header/binary mismatch fails the build rather than
+// surfacing later as a missing entry point in a consumer module.
+TEST_F(XpeCommonTest, HeaderDeclaresSixteenExportedFunctions) {
     const void* const exports[] = {
         reinterpret_cast<const void*>(&xpe_init),
         reinterpret_cast<const void*>(&xpe_shutdown),
@@ -715,7 +691,6 @@ TEST_F(XpeCommonTest, HeaderDeclaresSeventeenExportedFunctions) {
         reinterpret_cast<const void*>(&xpe_get_pending_alert),
         reinterpret_cast<const void*>(&xpe_clear_alerts),
         reinterpret_cast<const void*>(&xpe_alert_push),
-        reinterpret_cast<const void*>(&xpe_test_inject_alert),
         reinterpret_cast<const void*>(&xpe_log_set_level),
         reinterpret_cast<const void*>(&xpe_log_set_file),
         reinterpret_cast<const void*>(&xpe_log_flush),
@@ -724,15 +699,11 @@ TEST_F(XpeCommonTest, HeaderDeclaresSeventeenExportedFunctions) {
         reinterpret_cast<const void*>(&xpe_copy_image),
     };
 
-    EXPECT_EQ(17u, sizeof(exports) / sizeof(exports[0]));
+    EXPECT_EQ(16u, sizeof(exports) / sizeof(exports[0]));
 
     for (size_t i = 0; i < sizeof(exports) / sizeof(exports[0]); ++i) {
         EXPECT_NE(nullptr, exports[i]) << "export slot " << i;
     }
-
-    // The alias forwards, so the two names are distinct entry points.
-    EXPECT_NE(reinterpret_cast<const void*>(&xpe_alert_push),
-              reinterpret_cast<const void*>(&xpe_test_inject_alert));
 }
 
 /* ============================================================================
