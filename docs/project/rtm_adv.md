@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | RTM-ADV-001 |
-| **Version** | 1.4.0 |
+| **Version** | 1.5.0 |
 | **Status** | Released |
 | **Date** | 2026-09-10 |
 | **Author** | xpe-docs |
@@ -157,20 +157,40 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ---
 
-## 10. Coverage Summary (Updated)
+## 10. Coverage Summary (measured 2026-09-10)
 
-| SWU | Test Count | Statement Coverage | Branch Coverage | Pass Rate |
-|-----|-----------|-------------------|-----------------|-----------|
-| SWU-2.5 (MFP) | 11 | 85% | 75% | 100% |
-| SWU-2.6 (Fractional) | 11 | 92% | 85% | 100% |
-| SWU-2.8 (Collimation) | 11 | 82% | 78% | 100% |
-| SWU-2.10 (EI) | 11 | 95% | 90% | 100% |
-| Lifecycle/Config | 10 | 98% | 92% | 100% |
-| Integration | 10 | N/A | N/A | 100% |
-| Smoke | 1 | N/A | N/A | 100% |
-| **Total** | **65** | **90.4%** | **84%** | **100%** |
+The figures below are **measurements, not targets**. The v1.3.0 table that stood here
+("65 tests / 90.4% statement / 84% branch", per-SWU statement and branch percentages) was a
+planning artefact: it counted a 5-file inventory that no longer matches the tree, and the per-SWU
+coverage percentages were never produced by any tooling this project runs. It is removed rather
+than adjusted.
 
-**IEC 62304 Class B Compliance**: ✅ Met (90.4% statement coverage exceeds 85% requirement)
+### 10.0 Measured state
+
+| Item | Measured value | Source |
+|------|----------------|--------|
+| Unit-test inventory | **196** `TEST`/`TEST_F` cases across **15 files** in `modules/enhance_advanced/tests/` | `XPE-VVP-P2ADV-001` §3.1 / §3.2, counted 2026-09-10 |
+| Coverage, `coverage-post` preset | **line-rate 0.898 — PASS** against `XPE_COVERAGE_MIN` 0.85 | CI `workflow_dispatch` run `34414537575`, 2026-09-10 (`XPE-VVP-P2ADV-001` §3.3.2) |
+| Per-DLL line-rate for `xpe_enhance_advanced` | **not broken out** — 0.898 is the aggregate for the whole `coverage-post` preset (xpe_common, xpe_gsvg, xpe_enhance_basic, xpe_enhance_advanced, xpe_display) | same run; per-DLL breakdown is an open item |
+| Branch coverage | **not measured** — the project's coverage tooling reports line-rate only | `cmake/XpeCoverage.cmake` |
+| Statement coverage per SWU | **not measured** | — |
+| Timing-budget tests in the coverage run | **excluded** via `XPE_COVERAGE_EXCLUDE_TESTS` (`cmake/XpeCoverage.cmake:29`), so the coverage figure describes a test subset | `XPE-VVP-P2ADV-001` §3.3.3 |
+
+Per-SWU case counts (from `XPE-VVP-P2ADV-001` §3.1):
+
+| SWU | Test Files | Cases |
+|-----|-----------|------:|
+| SWU-2.5 (MFP) | `test_mfp_scalar.cpp`, `test_mfp_scalar_ext.cpp` | 31 |
+| SWU-2.6 (Fractional edge) | `test_edge_enhancement.cpp`, `test_edge_enhancement_ext.cpp` | 32 |
+| SWU-2.8 (Collimation) | `test_collimation_detect.cpp`, `test_collimation_detect_ext.cpp` | 26 |
+| SWU-2.10 (Exposure index) | `test_exposure_index.cpp`, `test_exposure_index_ext.cpp` | 24 |
+| Cross-cutting (lifecycle, config, ABI header, integration) | `test_lifecycle*.cpp`, `test_coverage_ext.cpp`, `test_api_header*.cpp`, `test_integration*.cpp` | 83 |
+| **Total** | **15 files** | **196** |
+
+**IEC 62304 Class B compliance**: the `coverage-post` preset containing this module measures
+line-rate 0.898 against the 0.85 gate. Because that figure is a preset aggregate rather than a
+per-DLL rate, it is evidence that the preset passes — it is not, on its own, proof that
+`xpe_enhance_advanced` alone passes. A per-DLL breakdown is required to make that claim.
 
 ### 10.1 Verification Results by Requirement Category
 
@@ -187,34 +207,41 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ### 10.2 Test Coverage Analysis
 
-#### High Coverage Areas (95%+)
-- ✅ Lifecycle management (100%)
-- ✅ Fractional-order processing (100%)
-- ✅ Exposure index calculation (100%)
-- ✅ Basic error handling (98%)
-- ✅ Input validation (95%)
-
-#### Medium Coverage Areas (80-94%)
-- ⚠️ MFP processing with identity reconstruction (85%) -- identity test now verified
-- ⚠️ Collimation detection edge cases (82%)
-- ⚠ Hough transform accumulator paths (78%)
-
-#### Areas Needing Attention (< 80%)
-- 🔴 Memory leak detection (66.7%) - Environment setup needed
-- 🔴 Performance benchmarking (80%) - Reference hardware calibration needed
+Removed 2026-09-10 (issue #125). This subsection listed per-area statement-coverage percentages
+("Lifecycle 100%", "Collimation detection edge cases 82%", "Memory leak detection 66.7%", …). No
+tooling in this project produces per-area or per-file coverage: the `coverage_check` target compares
+a single `coverage.xml` line-rate per preset against `XPE_COVERAGE_MIN`
+(`cmake/XpeCoverage.cmake:22`). The figures were therefore unattributable and are withdrawn rather
+than restated. The only measured coverage evidence for this module is §10.0.
 
 ### 10.3 Critical Requirements Verification
 
 | Critical Requirement | Test ID | Status | Evidence |
 |---------------------|---------|--------|----------|
 | REQ-ADV-030 (No exceptions across C ABI) | TC-INT-005 | ✅ Pass | Exception boundary test |
-| REQ-ADV-031 (No memory leaks) | TC-INT-004 | ✅ Pass | 1000-cycle leak test |
+| REQ-ADV-031 (No memory leaks) | G3 endurance case | Gate defined 2026-09-10; result not recorded in this document | Memory-leak gate **G3** introduced 2026-09-10 by QA-B-22 (issue #105): warm-up 100 cycles → baseline → 1000 cycles → working-set growth < 1 MB, plus a 4096 B/cycle injected-leak sensitivity probe. Definition: `XPE-VVP-P2ADV-001` §3.3.4. The former "TC-INT-004 ✅ Pass / 1000-cycle leak test" entry predates the gate and cited no run. |
 | REQ-ADV-051 (SAF-100 overshoot limiting) | TC-FRAC-011 | ✅ Pass | Pixel-by-pixel verification |
 | REQ-ADV-090 (Deterministic output) | TC-MFP-014 | ✅ Pass | Identity test |
 
 ---
 
 ## 11. Change Log from Previous Versions
+
+### Version 1.5.0 (2026-09-10) — §10 stale-figure correction (issue #125)
+
+- **§10 rewritten as measured state.** The v1.3.0 totals ("65 tests / 90.4% statement / 84% branch",
+  and the per-SWU statement/branch percentage columns) were stale and unattributable. Replaced with:
+  **196 cases across 15 files** (`XPE-VVP-P2ADV-001` §3.1, counted 2026-09-10) and **CI-measured
+  `coverage-post` line-rate 0.898** (run `34414537575`, 2026-09-10), stated explicitly as a
+  DLL-aggregate figure, not a per-file or per-DLL rate. Branch coverage is recorded as **not
+  measured** — the project's tooling reports line-rate only.
+- **§10.2 withdrawn.** The per-area coverage percentages had no producing tool; they are removed
+  rather than adjusted, with the reason recorded in place.
+- **§10.3 REQ-ADV-031 row corrected.** The former "TC-INT-004 ✅ Pass / 1000-cycle leak test" entry
+  cited no run. Replaced with the G3 memory-leak gate as introduced 2026-09-10 by QA-B-22
+  (issue #105) — gate definition only; no pass is claimed here, because no run is cited in this
+  document.
+- Not changed in this revision: §2–§8 requirement rows and their **VVP Ref** column.
 
 ### Version 1.4.0 (2026-09-10) — VVP Traceability Column (issue #59)
 
@@ -330,4 +357,4 @@ This matrix traces every requirement (REQ-ADV-XXX) from SRS-ADV-001 to:
 
 ---
 
-*Document End -- RTM-ADV-001 v1.4.0*
+*Document End -- RTM-ADV-001 v1.5.0*

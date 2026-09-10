@@ -137,6 +137,28 @@
             }
         },
         {
+            "name": "coverage-dicom",
+            "displayName": "Coverage Analysis (dicom, vcpkg DCMTK/OpenJPEG)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_COVERAGE": "ON",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "OFF",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "ON",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/dicom"
+            }
+        },
+        {
             "name": "ci-fullstack",
             "displayName": "CI Fullstack (Pre+Post+DICOM) — Gate G1b→G2 Integration E2E",
             "generator": "Ninja",
@@ -189,6 +211,10 @@
         {
             "name": "coverage-post",
             "configurePreset": "coverage-post"
+        },
+        {
+            "name": "coverage-dicom",
+            "configurePreset": "coverage-dicom"
         },
         {
             "name": "ci-fullstack",

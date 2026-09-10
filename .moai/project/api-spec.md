@@ -4,7 +4,7 @@
 **Version**: 1.4.0
 **Date**: 2026-04-22
 **Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, GSVG-SRS-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v3.0.0
-**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents.
+**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents. Section 6 revised 2026-09-10 per #117: documents converged on the implemented global-calibration design introduced by SPEC-XPE-P1A M2, commit e9b8ed4 — the calibration loaders take a single path and populate a module-global store, the correction functions take `(input, output, metadata)` and read that store, and `XPE_ERR_CALIB_NOT_LOADED` was added for "initialised but map not loaded".
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -115,6 +115,12 @@ typedef int32_t XpeErrorCode;
 #define XPE_ERR_IO_FAILED           -9   /* File read/write error */
 #define XPE_ERR_NETWORK_FAILED      -10  /* DICOM network (C-STORE / C-FIND) failure */
 ```
+
+Additional codes defined in the same header and referenced by this document:
+
+| Code | Value | Meaning |
+|------|-------|---------|
+| `XPE_ERR_CALIB_NOT_LOADED` | Not yet present in `xpe_error.h` as of 2026-09-10; assigned in QA-A-20 as the next code after the current last entry (`XPE_ERR_NOT_IMPLEMENTED = -15`) | The module is initialised, but the calibration map required by the requested correction has not been loaded into the module-global calibration store. Returned by `xpe_offset_correct`, `xpe_gain_correct`, `xpe_defect_correct` and the pipeline entry points. Distinct from `XPE_ERR_NOT_INITIALIZED`, which means `xpe_preprocess_init()` was never called (or the module was shut down). |
 
 ---
 
@@ -404,46 +410,59 @@ Provides offline calibration (offset / gain / defect map), runtime correction, a
 
 Dependencies: xpe_common.dll.
 
+### Calibration state model (normative)
+
+Calibration is a **two-step, load-then-correct** model; the correction functions do not take a map argument.
+
+1. **Load.** `xpe_calib_load_offset` / `xpe_calib_load_gain` / `xpe_calib_load_defect_map` each take a single file path and read the map into a **module-global calibration store** (SAD-CALIB-001 SWU-1.5, "LoadedCalibration global cache"). There is one store per loaded `xpe_preprocess.dll` instance, not one per caller.
+2. **Correct.** `xpe_offset_correct` / `xpe_gain_correct` / `xpe_defect_correct` take `(input, output, metadata)` and read the corresponding map from that global store. If the module is initialised but the required map has not been loaded, they return `XPE_ERR_CALIB_NOT_LOADED`.
+
+The store is guarded by a module-internal mutex (`g_calib_mutex`). Loaders take the lock to write; correction calls take it only to read the map they need, then release it before running the pixel kernel. Concurrent correction calls are therefore safe against each other; a load concurrent with a correction is serialised but the ordering between them is the caller's responsibility.
+
+**`xpe_calib_state_load` contract.** `xpe_calib_state_load(state, calibPath)` is a compatibility wrapper: it composes `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath` and calls the three single-path loaders, so **the maps land in the global store, not in the caller's struct**. It sets only the three `*Loaded` boolean flags on `XpeCalibrationState`; the `offsetMap` / `gainMap` / `defectMap` buffer fields are **not required to be filled** and callers must not read them as if they were. Missing files are skipped (that map's flag stays `false`) and the call still returns `XPE_OK`. `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` correspondingly takes offset and gain from the global store; it consults `calibState` only for a defect map, and passing `NULL` for `calibState` is valid.
+
 ### 6.1 xpe_offset_correct
 
 ```c
-XPE_API XpeErrorCode xpe_offset_correct(XpeImageBuffer* img,
-                                         const XpeImageBuffer* offsetMap);
+XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
+                                        XpeImageBuffer* output,
+                                        const XpeImageMetadata* metadata);
 ```
 
-**Description**: Subtracts the per-pixel dark offset map from `img` in-place. Both buffers must have identical dimensions and format.  
+**Description**: Applies `I_offset = max(I_raw - I_dark, 0)` using the offset map held in the module-global calibration store (loaded beforehand by `xpe_calib_load_offset`). `input` is `XPE_PIXEL_UINT16`; `output` is written as `XPE_PIXEL_UINT16` with `bitsAllocated`/`bitsStored` set to 16 and `dataSize` set to `width × height × 2`. `output` must be a caller-allocated buffer of the same dimensions as `input`; the store's map must match those dimensions too. In-place operation (`input == output`) is not part of the contract — pass distinct buffers. `metadata` is required (not optional) and supplies temperature and acquisition time for temperature interpolation and PREP-time decay.  
 **SRS**: SRS-CALIB-001  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`
+**Thread safety**: Reentrant; reads the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_CALIB_NOT_LOADED`
 
 ---
 
 ### 6.2 xpe_gain_correct
 
 ```c
-XPE_API XpeErrorCode xpe_gain_correct(XpeImageBuffer* img,
-                                       const XpeImageBuffer* gainMap);
+XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
+                                      XpeImageBuffer* output,
+                                      const XpeImageMetadata* metadata);
 ```
 
-**Description**: Applies per-pixel flat-field gain correction to `img` in-place. Both buffers must share dimensions and format.  
+**Description**: Applies per-pixel flat-field gain correction using the gain map held in the module-global calibration store (loaded beforehand by `xpe_calib_load_gain`), converting `XPE_PIXEL_UINT16` input to `XPE_PIXEL_FLOAT32` output. `output` must be a caller-allocated buffer of the same dimensions as `input`; pass distinct buffers. `metadata` is required and supplies kVp and SID for multi-SID gain interpolation.  
 **SRS**: SRS-CALIB-002  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`
+**Thread safety**: Reentrant; reads the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_CALIB_NOT_LOADED`
 
 ---
 
 ### 6.3 xpe_defect_correct
 
 ```c
-XPE_API XpeErrorCode xpe_defect_correct(XpeImageBuffer* img,
-                                         const XpeImageBuffer* defectMap,
-                                         const char* configJsonOrNull);
+XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
+                                        XpeImageBuffer* output,
+                                        const XpeImageMetadata* metadata);
 ```
 
-**Description**: Replaces bad pixel values identified in `defectMap` with interpolated neighbours. `configJsonOrNull` may specify interpolation mode (nearest/bilinear/median).  
+**Description**: Replaces defective pixels using the defect map (BPM) held in the module-global calibration store. Isolated defects (no 4-connected defective neighbour) take the unweighted mean of their valid N/S/E/W neighbours, falling back to the nearest valid pixels in Chebyshev rings of radius 1–3 when all four are defective; clustered defects (2+ 4-connected) take the median of the valid pixels in their 3×3 neighbourhood, centre and other defects excluded. Edge and corner pixels use in-bounds neighbours only. (Wording corrected 2026-09-10 per #125 from a reading of `defect_correct.cpp:164-186` / `helpers.cpp:18-53`; the previous "5×5 edge-aware bilinear" text matched no kernel.)
 **SRS**: SRS-CALIB-003, SRS-CALIB-004  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_NOT_INITIALIZED`
+**Thread safety**: Reentrant; reads the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_CALIB_NOT_LOADED`
 
 ---
 
@@ -520,42 +539,39 @@ XPE_API void xpe_ghost_destroy(void* handle);
 ### 6.9 xpe_calib_load_offset
 
 ```c
-XPE_API XpeErrorCode xpe_calib_load_offset(const char* filePath,
-                                            XpeImageBuffer* offsetMapOut);
+XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
 ```
 
-**Description**: Loads an offset (dark) calibration image from `filePath` into a pre-allocated `offsetMapOut`. File format is determined by extension (.raw, .dcm).  
+**Description**: Loads an offset (dark) calibration map in XCal format from `filepath` into the module-global calibration store (see "Calibration state model"). The map is validated on load: SHA-256 integrity, session matching, and expiry. There is no output-buffer parameter — the loaded map is subsequently used by `xpe_offset_correct` and by the pipeline entry points. A separate LRU-cached variant, `xpe_calib_load_offset_cached(filePath, offsetMapOut)`, does return the map to the caller.  
 **SRS**: SRS-CALIB-010  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`
+**Thread safety**: Reentrant; writes the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`, `XPE_ERR_CONFIG_INVALID` (session mismatch)
 
 ---
 
 ### 6.10 xpe_calib_load_gain
 
 ```c
-XPE_API XpeErrorCode xpe_calib_load_gain(const char* filePath,
-                                          XpeImageBuffer* gainMapOut);
+XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 ```
 
-**Description**: Loads a flat-field gain calibration image from `filePath` into a pre-allocated `gainMapOut`.  
+**Description**: Loads a flat-field gain calibration map in XCal format from `filepath` into the module-global calibration store, together with its interpolation table for kVp-specific gain. There is no output-buffer parameter; the LRU-cached variant `xpe_calib_load_gain_cached(filePath, gainMapOut)` returns the map to the caller.  
 **SRS**: SRS-CALIB-011  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`
+**Thread safety**: Reentrant; writes the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`
 
 ---
 
 ### 6.11 xpe_calib_load_defect_map
 
 ```c
-XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filePath,
-                                                XpeImageBuffer* defectMapOut);
+XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 ```
 
-**Description**: Loads a static defect pixel map from `filePath` into a pre-allocated `defectMapOut`. Map pixels are non-zero where defects exist.  
+**Description**: Loads a static defect pixel map (BPM) in XCal format from `filepath` into the module-global calibration store; defect locations and file integrity are validated on load. Map pixels are non-zero where defects exist. There is no output-buffer parameter; the LRU-cached variant `xpe_calib_load_defect_cached(filePath, defectMapOut)` returns the map to the caller.  
 **SRS**: SRS-CALIB-012  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`
+**Thread safety**: Reentrant; writes the global calibration store under the module mutex.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`
 
 ---
 
@@ -1441,7 +1457,7 @@ GSVG_API GsvgErrorCode gsvg_load_scatter_lut(const char* filePath);
 When several error conditions hold at once, every XPE entry point reports errors in this order. Callers and tests must not assume anything stricter (#119).
 
 1. **Required-pointer nullness first.** A NULL required pointer argument yields `XPE_ERR_INVALID_INPUT` before any other check, so an uninitialized module never dereferences caller memory. Optional pointers (`configJsonOrNull`, optional metadata) are not required and do not trigger this rule.
-2. **After the null checks the order is implementation-defined** between `XPE_ERR_NOT_INITIALIZED` and content validation (`XPE_ERR_INVALID_INPUT` for zero sizes / out-of-range scalars, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`). Reference implementations differ here (`preprocess` validates format and dimensions before the initialization check; `common` and `enhance_advanced` check initialization first) and both are conforming. A test that wants to observe `XPE_ERR_NOT_INITIALIZED` must pass otherwise-valid, non-NULL arguments; a test that wants a content error must run on an initialized module.
+2. **After the null checks the order is implementation-defined** between `XPE_ERR_NOT_INITIALIZED` and content validation (`XPE_ERR_INVALID_INPUT` for zero sizes / out-of-range scalars, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`). Reference implementations differ here (`preprocess` validates format and dimensions before the initialization check; `common` and `enhance_advanced` check initialization first) and both are conforming. A test that wants to observe `XPE_ERR_NOT_INITIALIZED` must pass otherwise-valid, non-NULL arguments; a test that wants a content error must run on an initialized module. `XPE_ERR_CALIB_NOT_LOADED` belongs to this class: on an initialized `preprocess` module whose required calibration map has not been loaded, it may be reported before or after the other class-2 content errors, and a test that wants to observe it must pass otherwise-valid, non-NULL arguments with matching dimensions.
 3. Processing errors — `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY` — are reported only after 1 and 2 pass.
 
 Handle-based modules (`xpe_gsvg`, `xpe_dicom`) carry their state in the handle rather than in a module-global flag: a NULL handle is a NULL required pointer (`XPE_ERR_INVALID_INPUT`, rule 1) and these modules never return `XPE_ERR_NOT_INITIALIZED`. Using a handle after its `*_shutdown()` / `*_close()` is undefined behaviour and is not detected (#119, QA-B-14).
