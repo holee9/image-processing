@@ -97,7 +97,8 @@ public sealed class WorkflowScenarios
             try
             {
                 var apply = WaitFor(() =>
-                    window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem")));
+                    pipelineMenu.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"))
+                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem")));
                 Assert.True(apply is not null, "ApplyDisplayPipelineMenuItem was not found.");
                 Assert.True(apply!.IsEnabled, "Apply Display Pipeline is disabled in Mock mode.");
                 apply.AsMenuItem().Invoke();
@@ -136,8 +137,13 @@ public sealed class WorkflowScenarios
             pipelineMenu!.AsMenuItem().Expand();
             try
             {
+                // Search INSIDE the menu, not the window. A WPF submenu renders in its own popup
+                // window, so whether its items appear as descendants of the main window depends on
+                // how the popup is parented — measured: locally they do, on the CI runner they did
+                // not, and W-02 failed there with "not found" while W-01b (same menu) passed.
                 var run = WaitFor(() =>
-                    window.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem")));
+                    pipelineMenu.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem"))
+                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem")));
 
                 Assert.True(run is not null, "RunPreprocessingMenuItem was not found.");
                 Assert.False(
@@ -178,10 +184,17 @@ public sealed class WorkflowScenarios
             combo.Select("Lung");
             Thread.Sleep(1500);
 
-            // Mock's Lung preset (MockXpeBackend.cs): centre 25000, width 50000.
+            // The expected numbers ARE backend-specific, and the first version of this scenario
+            // asserted the mock ones unconditionally — which passed locally (Mock) and failed in the
+            // CI Native job. Reading them from the active backend is what the comment always
+            // claimed and the code did not do.
+            var (center, width) = _app.BackendMode == "Native"
+                ? ("C=-600", "W=1600")      // modules/display/src/voi_lut.cpp XPE_BODY_LUNG (HU)
+                : ("C=25000", "W=50000");   // MockXpeBackend.cs XpeBodyPartEnum.Lung
+
             var text = status!.Name;
-            Assert.Contains("C=25000", text, StringComparison.Ordinal);
-            Assert.Contains("W=50000", text, StringComparison.Ordinal);
+            Assert.Contains(center, text, StringComparison.Ordinal);
+            Assert.Contains(width, text, StringComparison.Ordinal);
         });
     }
 

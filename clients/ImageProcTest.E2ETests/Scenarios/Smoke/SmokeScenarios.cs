@@ -108,7 +108,8 @@ public sealed class SmokeScenarios
             try
             {
                 var helpHome = WaitFor(() =>
-                    window.FindFirstDescendant(cf => cf.ByAutomationId("OpenHelpIndexMenuItem")));
+                    helpMenu.FindFirstDescendant(cf => cf.ByAutomationId("OpenHelpIndexMenuItem"))
+                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("OpenHelpIndexMenuItem")));
 
                 Assert.True(helpHome is not null, "OpenHelpIndexMenuItem was not found after expanding HelpMenu.");
                 Assert.True(helpHome!.IsEnabled, "The offline Help Home entry is disabled.");
