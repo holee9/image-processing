@@ -130,17 +130,17 @@ XPE_API void xpe_ai_shutdown(void);
  *                       dataSize smaller than the declared dimensions (#123)
  *                       are all rejected.
  * @param bodyPartOut    Caller-allocated buffer for the label string.
- *                       Must not be NULL. Only bufLen < 1 is treated as too
- *                       small; a larger-but-still-short buffer receives a
- *                       TRUNCATED, null-terminated label without an error.
+ *                       Must not be NULL.
  * @param bufLen         Size of @p bodyPartOut in bytes. Recommended >= 64.
  * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. On the
  *                       stub path it is set to 0.0 before returning.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
- * @return XPE_ERR_INVALID_INPUT if img or bodyPartOut is NULL, or the image
- *         buffer is invalid.
- * @return XPE_ERR_BUFFER_TOO_SMALL if bufLen < 1.
+ * @return XPE_ERR_INVALID_INPUT if img or bodyPartOut is NULL, the image
+ *         buffer is invalid, or bufLen is 0 -- a zero-length output buffer is a
+ *         missing argument, not a small one (#142).
+ * @return XPE_ERR_BUFFER_TOO_SMALL if the buffer is real but cannot hold the
+ *         label and its terminator. The label is never truncated silently.
  * @return XPE_ERR_PROCESSING_FAILED if inference fails (use fallback). In a
  *         stub build this is the unconditional outcome, with "UNKNOWN" written
  *         to @p bodyPartOut.
@@ -170,9 +170,11 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
  *                          blend mode). NULL for defaults. Currently ignored.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
  * @return XPE_ERR_INVALID_INPUT if parts or stitchedOut is NULL, partCount < 2,
- *         or any element of @p parts is an invalid image buffer.
- * @return XPE_ERR_BUFFER_TOO_SMALL if stitchedOut->data is NULL or its
- *         dataSize is 0.
+ *         any element of @p parts is an invalid image buffer, or stitchedOut
+ *         has a NULL data pointer or a dataSize of 0 (#142 -- a missing output
+ *         argument, the same answer xpe_bone_suppress gives).
+ * @return XPE_ERR_BUFFER_TOO_SMALL if the output buffer is real but cannot hold
+ *         the stitched result.
  * @return XPE_ERR_PROCESSING_FAILED if stitching fails. In a stub build this is
  *         the unconditional outcome once validation passes.
  *
@@ -299,9 +301,10 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
  * @param buf        Caller-allocated buffer for JSON output. Must not be NULL.
  * @param bufSize    Size of @p buf in bytes. Recommended >= 4096.
  * @return XPE_OK if the model is known and the card fits.
- * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL.
- * @return XPE_ERR_BUFFER_TOO_SMALL if bufSize < 1, or if the card does not fit;
- *         in the latter case @p buf still holds the truncated JSON.
+ * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, or bufSize is 0
+ *         (#142).
+ * @return XPE_ERR_BUFFER_TOO_SMALL if the card does not fit; @p buf still holds
+ *         the truncated JSON in that case.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_IO_FAILED if model is not found or not loaded.
  *
