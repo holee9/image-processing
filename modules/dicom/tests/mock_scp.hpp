@@ -44,6 +44,11 @@ namespace xpe_test {
  */
 class MockScp : public DcmSCP {
 public:
+    /// Association negotiation trace (#124, QA-B-30). Each association appends
+    /// what the SCU proposed and what negotiation left accepted, so a C-STORE
+    /// association and a C-FIND association can be compared side by side.
+    std::string negotiationLog;
+
     /// Requests answered; readable by tests as a liveness check.
     std::atomic<int> findRequests{0};
     std::atomic<int> storeRequests{0};
@@ -59,12 +64,30 @@ public:
     void requestStop() { m_stopRequested = true; }
 
 protected:
+    /// Record what the SCU proposed, before this SCP decides anything.
+    void notifyAssociationRequest(const T_ASC_Parameters& params,
+                                  DcmSCPActionType& desiredAction) override;
+
+    /// Record what survived negotiation (accepted vs refused, with reasons).
+    OFCondition negotiateAssociation() override;
+
     OFBool stopAfterCurrentAssociation() override { return m_stopRequested ? OFTrue : OFFalse; }
     OFBool stopAfterConnectionTimeout()  override { return m_stopRequested ? OFTrue : OFFalse; }
 
     OFCondition handleIncomingCommand(T_DIMSE_Message* incomingMsg,
                                       const DcmPresentationContextInfo& presInfo) override
     {
+        // QA-B-30: record every command that actually reaches a handler, with
+        // the context it arrived on. A service whose association was refused
+        // never appears here -- absence is the signal.
+        if (incomingMsg != nullptr) {
+            negotiationLog += "handleIncomingCommand: CommandField=0x"
+                            + to_hex(incomingMsg->CommandField)
+                            + " presID=" + std::to_string(presInfo.presentationContextID)
+                            + " as=" + presInfo.abstractSyntax.c_str()
+                            + " ts=" + presInfo.acceptedTransferSyntax.c_str() + "\n";
+        }
+
         if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_FIND_RQ) {
             ++findRequests;
             T_DIMSE_C_FindRQ& req = incomingMsg->msg.CFindRQ;
@@ -110,6 +133,13 @@ protected:
     }
 
 private:
+    static std::string to_hex(unsigned v) {
+        static const char* d = "0123456789abcdef";
+        std::string out(4, '0');
+        for (int i = 3; i >= 0; --i) { out[i] = d[v & 0xF]; v >>= 4; }
+        return out;
+    }
+
     std::atomic<bool> m_stopRequested{false};
 };
 

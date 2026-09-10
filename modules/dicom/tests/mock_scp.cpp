@@ -154,6 +154,11 @@ uint16_t MockScpRunner::start(const std::string& aeTitle, const std::string& sto
     // "DIMSE No valid Presentation Context ID" (observed, QA-B-29).
     m_scp.getConfig().setAlwaysAcceptDefaultRole(OFTrue);
 
+    // QA-B-30 observation 3 used setVerbosePCMode(OFTrue) here to make DCMTK log
+    // its own per-context accept/refuse decision; that is what showed the MWL
+    // context being accepted. Left off by default because it prints on every
+    // association -- turn it on when diagnosing negotiation again.
+
     m_scp.setConnectionBlockingMode(DUL_NOBLOCK);
     m_scp.setConnectionTimeout(1);
 
@@ -209,6 +214,49 @@ bool MockScpRunner::stop(std::chrono::milliseconds timeout)
 
     m_thread.join();
     return true;
+}
+
+void MockScp::notifyAssociationRequest(const T_ASC_Parameters& params,
+                                       DcmSCPActionType& desiredAction)
+{
+    // QA-B-30 observation 2 + 3: the abstract syntaxes the SCU actually put on
+    // the wire, and the role it asked for -- read from the request itself, not
+    // inferred from the SCU's source.
+    std::ostringstream os;
+    os << "--- association request ---\n";
+    const int count = ASC_countPresentationContexts(OFconst_cast(T_ASC_Parameters*, &params));
+    os << "proposed presentation contexts: " << count << "\n";
+    for (int i = 0; i < count; ++i) {
+        T_ASC_PresentationContext pc;
+        if (ASC_getPresentationContext(OFconst_cast(T_ASC_Parameters*, &params), i, &pc).good()) {
+            os << "  PC id=" << static_cast<int>(pc.presentationContextID)
+               << " as=" << pc.abstractSyntax
+               << " role=" << static_cast<int>(pc.proposedRole)
+               << " ts=";
+            for (unsigned long k = 0; k < pc.transferSyntaxCount; ++k) {
+                os << pc.proposedTransferSyntaxes[k] << (k + 1 < pc.transferSyntaxCount ? "," : "");
+            }
+            os << "\n";
+        }
+    }
+    negotiationLog += os.str();
+
+    DcmSCP::notifyAssociationRequest(params, desiredAction);
+}
+
+OFCondition MockScp::negotiateAssociation()
+{
+    const OFCondition rc = DcmSCP::negotiateAssociation();
+
+    // QA-B-30 observation 1: DcmSCP keeps m_assoc private, so a subclass cannot
+    // read the post-negotiation context list. What is observable from here is
+    // the negotiation verdict itself, plus (below, in handleIncomingCommand)
+    // whether any request ever arrives on an accepted context.
+    std::ostringstream os;
+    os << "negotiateAssociation -> " << (rc.good() ? "OK" : rc.text()) << "\n";
+    negotiationLog += os.str();
+
+    return rc;
 }
 
 }  // namespace xpe_test
