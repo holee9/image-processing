@@ -37,10 +37,8 @@ XpeCalibQualityMeta g_quality_meta = []{
 }();
 
 // R² quality gate threshold (0.999 = 99.9% fit quality required)
-constexpr double R_SQUARED_QUALITY_GATE = 0.999;
 
 // 10-point hard cap to prevent excessive calibration points
-constexpr uint32_t MAX_POINTS_HARD_CAP = 10;
 
 /* =============================================================================
  * Mode-to-Parameters Mapping
@@ -95,70 +93,6 @@ inline ModeParams get_mode_params(XpeCalibrationMode mode) noexcept {
     }
     // Invalid mode: return safest defaults (1 point, constant)
     return {1, 0};
-}
-
-/**
- * @brief Initialize quality metadata with defaults
- *
- * @param meta Metadata structure to initialize
- */
-inline void init_quality_meta(XpeCalibQualityMeta* meta) noexcept {
-    if (!meta) return;
-
-    std::memset(meta, 0, sizeof(XpeCalibQualityMeta));
-    meta->previous_r_squared = -1.0;  // Indicates no previous calibration
-}
-
-inline void copy_cstr(char* dst, size_t dst_size, const char* src) noexcept {
-    if (!dst || dst_size == 0) return;
-    dst[0] = '\0';
-    if (!src) return;
-
-    const size_t len = std::min(std::strlen(src), dst_size - 1);
-    std::memcpy(dst, src, len);
-    dst[len] = '\0';
-}
-
-inline void log_quality_regression(double previous_r_squared,
-                                   double r_squared) noexcept {
-    std::fprintf(stderr,
-                 "pre: calibration R2 regression detected: previous=%.6f current=%.6f\n",
-                 previous_r_squared,
-                 r_squared);
-}
-
-/**
- * @brief Update quality metadata after calibration
- *
- * @param meta Metadata to update
- * @param mode Calibration mode used
- * @param degree Polynomial degree fitted
- * @param num_points Number of dose points
- * @param r_squared Coefficient of determination
- */
-inline void update_quality_meta(XpeCalibQualityMeta* meta,
-                                XpeCalibrationMode mode,
-                                uint32_t degree,
-                                uint32_t num_points,
-                                double r_squared) noexcept {
-    if (!meta) return;
-
-    meta->calibration_mode = static_cast<uint8_t>(mode);
-    meta->polynomial_degree = static_cast<uint8_t>(degree);
-    meta->num_points = static_cast<uint8_t>(num_points);
-    meta->r_squared = r_squared;
-
-    // Set timestamp (unix epoch milliseconds)
-    using namespace std::chrono;
-    auto now = system_clock::now();
-    auto duration = now.time_since_epoch();
-    meta->calibration_timestamp = static_cast<uint64_t>(
-        duration_cast<milliseconds>(duration).count());
-
-    // R² quality gate: pass if R² >= 0.999
-    meta->calibration_pass = (r_squared >= R_SQUARED_QUALITY_GATE) ? 1 : 0;
-
-    // Previous R² is preserved from last calibration (already in meta)
 }
 
 } // anonymous namespace
@@ -248,89 +182,20 @@ uint32_t xpe_calib_get_poly_degree(void) {
  * Internal API for Calibration Generation
  * ============================================================================ */
 
-namespace xpe::calib::mode {
-
-/**
- * @brief Initialize quality metadata before calibration
+/* =============================================================================
+ * Internal API for Calibration Generation — REMOVED (QA-A-34, #120)
  *
- * Called by calibration generation functions to prepare metadata.
+ * `xpe::calib::mode::{init_metadata, update_metadata, get_max_points,
+ * get_poly_degree}` lived here. QA-A-32 measured that nothing called them
+ * (repo-wide grep: zero hits outside this file) and that they were declared in
+ * no header, so no consumer could reach them; they accounted for 52 of this
+ * file's 82 instrumented lines, all uncovered.
  *
- * @param detector_serial Detector serial number (may be NULL)
- * @param firmware_version Firmware version (may be NULL)
- */
-void init_metadata(const char* detector_serial,
-                   const char* firmware_version) noexcept {
-    init_quality_meta(&g_quality_meta);
-
-    copy_cstr(g_quality_meta.detector_serial,
-              sizeof(g_quality_meta.detector_serial),
-              detector_serial);
-
-    copy_cstr(g_quality_meta.firmware_version,
-              sizeof(g_quality_meta.firmware_version),
-              firmware_version);
-}
-
-/**
- * @brief Update metadata after polynomial fitting
+ * Deleting them also retired the four static helpers they alone used
+ * (`init_quality_meta`, `copy_cstr`, `log_quality_regression`,
+ * `update_quality_meta`).
  *
- * Called by calibration generation functions after fitting completes.
- *
- * @param degree Polynomial degree fitted
- * @param num_points Number of dose points used
- * @param r_squared Coefficient of determination
- * @return XPE_OK on success, XPE_ERR_CALIBRATION_POOR_QUALITY if R² < 0.999
- */
-XpeErrorCode update_metadata(uint32_t degree,
-                             uint32_t num_points,
-                             double r_squared) noexcept {
-    // Preserve previous R² for comparison
-    double previous_r_squared = g_quality_meta.r_squared;
-
-    // Update metadata with new calibration results
-    update_quality_meta(&g_quality_meta, g_calib_mode, degree,
-                        num_points, r_squared);
-
-    // Restore previous R² for comparison
-    g_quality_meta.previous_r_squared = previous_r_squared;
-
-    // R² quality gate: fail if R² < 0.999
-    if (r_squared < R_SQUARED_QUALITY_GATE) {
-        return XPE_ERR_PROCESSING_FAILED;  // Calibration quality below threshold
-    }
-
-    // Warn if new R² is significantly worse than previous (regression detection)
-    if (previous_r_squared >= 0.0 && r_squared < previous_r_squared - 0.01) {
-        log_quality_regression(previous_r_squared, r_squared);
-        // Advisory only: the hard quality gate above still determines pass/fail.
-    }
-
-    return XPE_OK;
-}
-
-/**
- * @brief Get max points for current mode (internal)
- *
- * @return Maximum dose points (enforces 10-point hard cap)
- */
-uint32_t get_max_points(void) noexcept {
-    uint32_t max_points = xpe_calib_get_max_points();
-
-    // Enforce 10-point hard cap (FUNC-032 requirement)
-    if (max_points > MAX_POINTS_HARD_CAP) {
-        max_points = MAX_POINTS_HARD_CAP;
-    }
-
-    return max_points;
-}
-
-/**
- * @brief Get polynomial degree for current mode (internal)
- *
- * @return Polynomial degree for fitting
- */
-uint32_t get_poly_degree(void) noexcept {
-    return xpe_calib_get_poly_degree();
-}
-
-} // namespace xpe::calib::mode
+ * The public exports `xpe_calib_get_max_points` / `xpe_calib_get_poly_degree`
+ * are NOT affected: they are defined separately above and the dependency ran
+ * the other way — the dead wrappers called them, not the reverse.
+ * ============================================================================ */
