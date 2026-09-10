@@ -93,7 +93,41 @@ public:
         if (!buffer || !buffer->data) return;
 
         std::lock_guard<std::mutex> lock(mutex_);
+        put_locked(path, buffer);
+    }
 
+    /**
+     * @brief Insert an entry and return the cache's view of it, atomically.
+     *
+     * QA-A-31 (#127): the miss path used to call put() and then get() as two
+     * separate lock scopes. A cache_clear() or an eviction landing between them
+     * left nothing to read back, and the loader returned
+     * XPE_ERR_PROCESSING_FAILED for a call that had in fact succeeded. Holding
+     * the lock across both halves closes that window.
+     *
+     * @param path   File path (cache key)
+     * @param buffer Image buffer to cache (takes ownership of buffer.data)
+     * @param out    [out] Populated with the cache-owned view on success
+     * @return true when the entry was inserted and read back
+     */
+    bool put_and_get(const std::string& path, XpeImageBuffer* buffer,
+                     XpeImageBuffer* out) {
+        if (!buffer || !buffer->data) return false;
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        put_locked(path, buffer);
+
+        auto it = index_.find(path);
+        if (it == index_.end()) return false;
+        if (out) {
+            std::memcpy(out, &it->second->buffer, sizeof(XpeImageBuffer));
+        }
+        return true;
+    }
+
+private:
+    /** put(), with the caller already holding mutex_. */
+    void put_locked(const std::string& path, XpeImageBuffer* buffer) {
         // Check if already cached — replace
         auto it = index_.find(path);
         if (it != index_.end()) {
@@ -124,6 +158,7 @@ public:
         index_[path] = lru_.begin();
     }
 
+public:
     /**
      * @brief Remove all entries from the cache, freeing all buffers.
      */
@@ -199,12 +234,12 @@ XpeErrorCode publish_and_view(const std::string& path,
     if (!entry.data) return XPE_ERR_OUT_OF_MEMORY;
     std::memcpy(entry.data, src, static_cast<size_t>(entry.dataSize));
 
-    // put() takes ownership of entry.data and nulls it.
-    g_calibCache.put(path, &entry);
-
-    // Read back the cache's own pointer. put() evicts before inserting, so the
-    // entry just added is present at any capacity >= 1.
-    if (!g_calibCache.get(path, out)) {
+    // Insert and read back under ONE lock (QA-A-31, #127). Splitting these into
+    // put() + get() left a window in which another thread's cache_clear() or an
+    // eviction could remove the entry between the two calls, turning a
+    // successful load into XPE_ERR_PROCESSING_FAILED. put_and_get takes
+    // ownership of entry.data and nulls it, exactly as put() did.
+    if (!g_calibCache.put_and_get(path, &entry, out)) {
         return XPE_ERR_PROCESSING_FAILED;
     }
     return XPE_OK;
