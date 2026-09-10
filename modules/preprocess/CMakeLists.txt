@@ -222,6 +222,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_verify_metrics_edges.cpp
         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
         tests/test_calib_mode.cpp
+        # QA-A-35 (#140): FUNC-033 quality metadata, wired to production
+        tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
         tests/test_req_p1a_066.cpp
     )
