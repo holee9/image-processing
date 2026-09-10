@@ -140,6 +140,10 @@ public static class XpeCommonNative
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern void xpe_clear_alerts();
 
+    /// <summary>Producer side of the alert queue (xpe_error.h). Needed to drive overflow from a test.</summary>
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern void xpe_alert_push(string msg, int severity);
+
     #endregion
 
     #region Memory
