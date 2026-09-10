@@ -5,11 +5,17 @@
  * @file enhance_basic_api.h
  * @brief XPE Basic Enhancement Module API (SPEC-XPE-P1B-ENH)
  *
- * Provides 7 exported C API functions for log transform, noise reduction,
- * contrast enhancement (CLAHE), edge enhancement (USM), and exposure index
- * computation per IEC 62494-1.
+ * Provides 8 exported C API functions for log transform, noise reduction,
+ * contrast enhancement (CLAHE), edge enhancement (USM), exposure index
+ * computation per IEC 62494-1, and the module version string.
  *
- * All functions operate in-place on float32 images (XPE_PIXEL_FLOAT32).
+ * The five processing functions operate in-place on float32 images
+ * (XPE_PIXEL_FLOAT32); xpe_noise_estimate_sigma() reads without modifying and
+ * xpe_enhance_basic_version() takes no image. Every function that takes an
+ * image returns XPE_ERR_UNSUPPORTED_FORMAT when the buffer is not FLOAT32, and
+ * XPE_ERR_INVALID_INPUT when img or img->data is NULL or dataSize is
+ * inconsistent with width * height * bytes-per-pixel (#123).
+ *
  * Thread-safe for concurrent calls on independent image buffers.
  */
 
@@ -92,9 +98,11 @@ XPE_API const char* xpe_enhance_basic_version(void);
  * output[i] = normFactor * log10(input[i] + 1.0)
  * Negative pixels are clamped to 0 before log. (REQ-ENH-002)
  *
- * @param img        Float32 image buffer (modified in-place).
+ * @param img        Float32 image buffer (modified in-place). NULL is rejected.
  * @param normFactor Normalization factor; must be positive. (REQ-ENH-003)
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT if normFactor <= 0 or img invalid.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if normFactor <= 0, img or
+ *         img->data is NULL, or dataSize is inconsistent;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  */
 XPE_API XpeErrorCode xpe_log_transform(XpeImageBuffer* img, float normFactor);
 
@@ -103,9 +111,11 @@ XPE_API XpeErrorCode xpe_log_transform(XpeImageBuffer* img, float normFactor);
  *
  * output[i] = pow(10.0, input[i] / normFactor) - 1.0
  *
- * @param img        Float32 image buffer (modified in-place).
+ * @param img        Float32 image buffer (modified in-place). NULL is rejected.
  * @param normFactor Normalization factor; must be positive. (REQ-ENH-005)
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT if normFactor <= 0 or img invalid.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if normFactor <= 0, img or
+ *         img->data is NULL, or dataSize is inconsistent;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  */
 XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
 
@@ -119,9 +129,14 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * Supports bilateral filter (XPE_NOISE_BILATERAL) and Non-Local Means
  * (XPE_NOISE_NLM). (REQ-ENH-007, REQ-ENH-008)
  *
- * @param img    Float32 image buffer (modified in-place).
+ * @param img    Float32 image buffer (modified in-place). A zero-sized image is
+ *               accepted and returns XPE_OK without touching the buffer.
  * @param params Noise reduction parameters. NULL returns XPE_ERR_INVALID_INPUT. (REQ-ENH-009)
- * @return XPE_OK on success.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
+ *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
+ *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0;
+ *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */
 XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceParams* params);
 
@@ -130,9 +145,12 @@ XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceP
  *
  * sigma = 1.4826 * MAD(pixel_values) on a center ROI. (REQ-ENH-011)
  *
- * @param img      Float32 image buffer (read-only).
- * @param outSigma Output: estimated noise sigma.
- * @return XPE_OK on success.
+ * @param img      Float32 image buffer (read-only). NULL is rejected. Unlike the
+ *                 in-place functions, a zero-sized image is an error here.
+ * @param outSigma Output: estimated noise sigma. NULL is rejected.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if outSigma is NULL, the
+ *         image is invalid, or width/height is 0;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  */
 XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* outSigma);
 
@@ -146,9 +164,14 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  * If params is NULL, defaults are used (clip_limit=3.0, tile_width=8,
  * tile_height=8). (REQ-ENH-014)
  *
- * @param img    Float32 image buffer (modified in-place).
+ * @param img    Float32 image buffer (modified in-place). A zero-sized image is
+ *               accepted and returns XPE_OK; a flat image (no value range) also
+ *               returns XPE_OK unchanged.
  * @param params CLAHE parameters, or NULL for defaults.
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT if clip_limit < 1.0 or tiles < 2.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if clip_limit < 1.0, either
+ *         tile count < 2, the image is invalid, or the image is smaller than
+ *         twice the tile grid (width < tile_width * 2 or height < tile_height * 2);
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  */
 XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClaheParams* params);
 
@@ -163,9 +186,14 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  * Overshoot is clamped per REQ-ENH-021.
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
- * @param img    Float32 image buffer (modified in-place).
+ * @param img    Float32 image buffer (modified in-place). A zero-sized image is
+ *               accepted and returns XPE_OK; amount == 0.0 also returns XPE_OK
+ *               without modifying the buffer.
  * @param params USM parameters, or NULL for defaults.
- * @return XPE_OK on success, XPE_ERR_INVALID_INPUT if params out of range. (REQ-ENH-020)
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if amount is outside
+ *         [0.0, 5.0], radius outside [0.5, 10.0], threshold < 0.0, or the image
+ *         is invalid; XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
+ *         (REQ-ENH-020)
  */
 XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* params);
 
@@ -180,11 +208,18 @@ XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* p
  * DI = 10.0 * log10(EI / EIT)
  * Posts WARNING alert if |DI| > 3.0. (REQ-ENH-026)
  *
- * @param img   Float32 detector-domain image (read-only). (REQ-ENH-027, REQ-ENH-028)
- * @param meta  Image metadata with bodyPart for EIT lookup. (REQ-ENH-025)
- * @param outEI Output: computed Exposure Index.
- * @param outDI Output: computed Deviation Index.
- * @return XPE_OK on success, XPE_ERR_PROCESSING_FAILED if mean <= 0. (REQ-ENH-030)
+ * @param img   Float32 detector-domain image (read-only). NULL or zero-sized is
+ *              rejected. (REQ-ENH-027, REQ-ENH-028)
+ * @param meta  Image metadata with bodyPart for EIT lookup. NULL is rejected.
+ *              An unknown or empty bodyPart falls back to the default EIT
+ *              (200.0), it is not an error. (REQ-ENH-025)
+ * @param outEI Output: computed Exposure Index. NULL is rejected.
+ * @param outDI Output: computed Deviation Index. NULL is rejected.
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if any pointer is NULL, the
+ *         image is zero-sized, or the buffer is invalid;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
+ *         XPE_ERR_PROCESSING_FAILED if the mean pixel value is <= 0, in which
+ *         case *outEI and *outDI are set to 0.0. (REQ-ENH-030)
  */
 XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
                                               const XpeImageMetadata* meta,
