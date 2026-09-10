@@ -420,3 +420,25 @@ TEST_F(DicomReaderTest, OpenEmptyPath_ReturnsIoFailed) {
     XpeDicomHandle* handle = nullptr;
     EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_open("", &handle));
 }
+
+// ---------------------------------------------------------------------------
+// #142 (QA-B-42): the output-pointer half of the contract on the reader.
+//
+// The existing cases above cover a NULL *handle*; the NULL *output* argument
+// was never asserted. The implementation already answers INVALID_INPUT for it
+// (dicom.cpp:56, :67), so this is a fix to the test surface, not to the code --
+// the rule is now pinned rather than merely true today.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, ReadImageNullOutput_ReturnsInvalidInput) {
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &handle));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_read_image(handle, nullptr));
+    xpe_dicom_close(handle);
+}
+
+TEST_F(DicomReaderTest, GetMetadataNullOutput_ReturnsInvalidInput) {
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &handle));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_get_metadata(handle, nullptr));
+    xpe_dicom_close(handle);
+}

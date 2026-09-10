@@ -191,12 +191,16 @@ TEST_F(AiFallbackTest, BodypartRecognizeNullLabelReturnsInvalid) {
               XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(AiFallbackTest, BodypartRecognizeZeroBufLenReturnsTooSmall) {
+// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+// which was the behaviour before #142 drew the line between a missing output
+// argument and a short one. The old expectation recorded what the code did;
+// it is superseded, not wrong-then.
+TEST_F(AiFallbackTest, BodypartRecognizeZeroBufLenReturnsInvalidInput) {
     std::vector<uint16_t> storage;
     XpeImageBuffer img = makeTestBuffer(64, 64, storage);
     char label[64] = {};
     EXPECT_EQ(xpe_bodypart_recognize(&img, label, 0, nullptr),
-              XPE_ERR_BUFFER_TOO_SMALL);
+              XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(AiFallbackTest, BodypartRecognizeNullConfOutIsAcceptable) {
@@ -238,7 +242,11 @@ TEST_F(AiFallbackTest, StitchImagesNullOutputReturnsInvalid) {
               XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(AiFallbackTest, StitchImagesNullOutputDataReturnsTooSmall) {
+// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+// which was the behaviour before #142 drew the line between a missing output
+// argument and a short one. The old expectation recorded what the code did;
+// it is superseded, not wrong-then.
+TEST_F(AiFallbackTest, StitchImagesNullOutputDataReturnsInvalidInput) {
     std::vector<uint16_t> s1, s2;
     XpeImageBuffer parts[2]{};
     parts[0] = makeTestBuffer(256, 512, s1);
@@ -249,7 +257,7 @@ TEST_F(AiFallbackTest, StitchImagesNullOutputDataReturnsTooSmall) {
     out.dataSize = 0;
 
     EXPECT_EQ(xpe_stitch_images(parts, 2, &out, nullptr),
-              XPE_ERR_BUFFER_TOO_SMALL);
+              XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(AiFallbackTest, BoneSuppressNullImgReturnsInvalid) {
@@ -682,4 +690,87 @@ TEST_F(AiFallbackTest, EmptyImageContract_ValidImageStillAccepted) {
     EXPECT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
     EXPECT_GT(w, 0u);
     EXPECT_GT(h, 0u);
+}
+
+/* ============================================================================
+ * #142 (QA-B-42): the output-buffer contract.
+ *
+ * leader's decision: a NULL output pointer or a declared size of 0 is
+ * XPE_ERR_INVALID_INPUT -- the argument does not exist. XPE_ERR_BUFFER_TOO_SMALL
+ * is reserved for a buffer that is real but short. NULL/0 is judged first.
+ *
+ * This module disagreed with itself before QA-B-42: xpe_bone_suppress ran its
+ * output image through validateImageBuffer and answered INVALID_INPUT, while
+ * xpe_stitch_images answered BUFFER_TOO_SMALL for the same shape of fault. A
+ * caller had to write two branches for one condition.
+ * ============================================================================ */
+
+TEST_F(AiFallbackTest, OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_bodypart_recognize(&img, label, 0, &conf));
+}
+
+// A real but short buffer is the other half of the contract. The stub writes
+// "UNKNOWN", so 4 bytes cannot hold it -- and silently truncating was the trap
+// QA-B-39 documented.
+TEST_F(AiFallbackTest, OutputBufferContract_ShortLabelBufferIsBufferTooSmall) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+
+    char label[4] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_bodypart_recognize(&img, label, sizeof(label), &conf));
+}
+
+TEST_F(AiFallbackTest, OutputBufferContract_EmptyStitchOutputIsInvalidInput) {
+    std::vector<uint16_t> a;
+    std::vector<uint16_t> b;
+    XpeImageBuffer parts[2] = {makeTestBuffer(64, 64, a), makeTestBuffer(64, 64, b)};
+
+    std::vector<uint16_t> outStorage;
+    XpeImageBuffer out = makeTestBuffer(128, 64, outStorage);
+    out.data = nullptr;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(parts, 2, &out, nullptr))
+        << "a NULL output data pointer is a missing argument, not a small buffer";
+
+    XpeImageBuffer out2 = makeTestBuffer(128, 64, outStorage);
+    out2.dataSize = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(parts, 2, &out2, nullptr))
+        << "a declared size of 0 is a missing argument, not a small buffer";
+}
+
+TEST_F(AiFallbackTest, OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput) {
+    char buf[64] = {};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_get_model_card("bodypart_cnn_v1", buf, 0));
+}
+
+// The complement: buffers that are big enough must still work, so the guards
+// above cannot be satisfied by rejecting everything.
+TEST_F(AiFallbackTest, OutputBufferContract_AdequateBuffersStillAccepted) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+
+    char label[64] = {};
+    float conf = 0.0f;
+    const XpeErrorCode labelRc = xpe_bodypart_recognize(&img, label, sizeof(label), &conf);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, labelRc);
+    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, labelRc);
+
+    char card[4096] = {};
+    EXPECT_EQ(XPE_OK, xpe_ai_get_model_card("bodypart_cnn_v1", card, sizeof(card)));
+
+    std::vector<uint16_t> a;
+    std::vector<uint16_t> b;
+    XpeImageBuffer parts[2] = {makeTestBuffer(64, 64, a), makeTestBuffer(64, 64, b)};
+    std::vector<uint16_t> outStorage;
+    XpeImageBuffer out = makeTestBuffer(128, 64, outStorage);
+    const XpeErrorCode stitchRc = xpe_stitch_images(parts, 2, &out, nullptr);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, stitchRc);
+    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, stitchRc);
 }

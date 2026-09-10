@@ -359,7 +359,12 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
     ec = validateImageBuffer(img);
     if (ec != XPE_OK) return ec;
 
-    if (bufLen < 1) return XPE_ERR_BUFFER_TOO_SMALL;
+    // #142 (QA-B-42): a declared size of 0 means the output argument does not
+    // exist -- INVALID_INPUT. BUFFER_TOO_SMALL is for a buffer that is real but
+    // short, and is decided below against the label actually produced. Before
+    // this, a short-but-non-zero buffer received a TRUNCATED label with no error
+    // at all (the trap QA-B-39 documented).
+    if (bufLen == 0) return XPE_ERR_INVALID_INPUT;
 
     // --- Stub implementation ---
     // Full implementation: send BODYPART_RECOGNIZE over IPC, await response.
@@ -375,10 +380,12 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
     // Return placeholder result indicating no inference performed.
     // Caller should fall back to deterministic body-part lookup.
     if (confidenceOut) *confidenceOut = 0.0f;
-    std::strncpy(bodyPartOut, "UNKNOWN", bufLen);
-    if (bufLen > 0) {
-        bodyPartOut[bufLen - 1] = '\0';
+
+    static const char kStubLabel[] = "UNKNOWN";
+    if (bufLen < sizeof(kStubLabel)) {
+        return XPE_ERR_BUFFER_TOO_SMALL;
     }
+    std::memcpy(bodyPartOut, kStubLabel, sizeof(kStubLabel));
 
     // In stub mode, we signal that AI is not available.
     // The caller should use deterministic fallback.
@@ -405,9 +412,15 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
         if (ec != XPE_OK) return ec;
     }
 
-    // Validate output buffer
+    // Validate output buffer.
+    // #142 (QA-B-42): a NULL data pointer or a declared size of 0 is a missing
+    // argument, not a small one -- INVALID_INPUT, matching what
+    // xpe_bone_suppress already answered for the same shape of fault. The two
+    // used to disagree, so a caller needed two branches for one condition.
+    // BUFFER_TOO_SMALL stays reserved for a real buffer that cannot hold the
+    // result.
     if (!stitchedOut->data || stitchedOut->dataSize == 0) {
-        return XPE_ERR_BUFFER_TOO_SMALL;
+        return XPE_ERR_INVALID_INPUT;
     }
 
     // --- Stub implementation ---
@@ -543,7 +556,8 @@ XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
     XpeErrorCode ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
-    if (bufSize < 1) return XPE_ERR_BUFFER_TOO_SMALL;
+    // #142 (QA-B-42): zero-length output buffer is a missing argument.
+    if (bufSize == 0) return XPE_ERR_INVALID_INPUT;
 
     // Look up model in loaded models list
     auto* state = g_aiState;
