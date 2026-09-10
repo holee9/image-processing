@@ -173,6 +173,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_offset_multi.cpp
         # QA-A-26 (#97): SigmaClip conformance to XPE-ALG-001 9.8.2.1
         tests/test_sigma_clip_conformance.cpp
+        # QA-A-27 (#112): ported from the deleted tests/preprocess_smoke orphan
+        tests/test_param_range_names.cpp
         tests/test_xpe_calib_load.cpp
         tests/test_xpe_calib_save.cpp
         # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
