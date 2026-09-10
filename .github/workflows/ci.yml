@@ -347,9 +347,14 @@ jobs:
           "VCPKG_DISABLE_METRICS=1" >> $env:GITHUB_ENV
           & (Join-Path $root 'vcpkg.exe') --version
 
+      # restore/save are split on purpose: actions/cache's combined form saves
+      # only when the job succeeds, and coverage-dicom fails on the threshold
+      # today, so DCMTK (18-20 min) was rebuilt on every dispatch (runs
+      # 34444576614, 34447732961: "Cache not found" twice with the same key).
       - name: Restore vcpkg binary cache (dicom only)
         if: matrix.preset == 'coverage-dicom'
-        uses: actions/cache@v4
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/vcpkg-bincache
           key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
@@ -386,6 +391,13 @@ jobs:
       - name: Run coverage and enforce threshold (85%)
         shell: pwsh
         run: cmake --build --preset ${{ matrix.preset }} --target coverage_check
+
+      - name: Save vcpkg binary cache (dicom only)
+        if: always() && matrix.preset == 'coverage-dicom' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
 
       - name: Upload coverage artifacts
         if: always()
