@@ -84,9 +84,9 @@ protected:
         // same way the entry point does. Without this the two sides would
         // differ for a reason that has nothing to do with buffer reuse.
         RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
-        cfg.globalSigmaFloor =
-            RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR *
-            xpe::preprocess::internal::ComputeGlobalSigma(&img);
+        const float sigmaGlobal = xpe::preprocess::internal::ComputeGlobalSigma(&img);
+        cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
+        cfg.globalSigmaCap   = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
 
         const std::vector<uint8_t> ref = referenceMap(img, cfg);
         const std::vector<uint8_t> got = shippedMap(img);

@@ -116,9 +116,10 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     // QA-A-43 (#143): the floor is frame-wide, so it is computed here -- this is
     // the only layer that sees the whole frame. RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR
     // names the fraction; the rationale lives on that constant.
-    config.globalSigmaFloor =
-        RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR *
-        xpe::preprocess::internal::ComputeGlobalSigma(img);
+    const float sigmaGlobal = xpe::preprocess::internal::ComputeGlobalSigma(img);
+    config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
+    // QA-A-46 (#143): the ceiling shares that one measurement -- no second pass.
+    config.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
 
     // Validate configuration
     XpeErrorCode err = ValidateConfig(config);
