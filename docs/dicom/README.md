@@ -573,6 +573,9 @@ typedef struct {
     char accession_number[32];
 } XpeMwlResult;
 
+
+> **Stale (2026-09-11, QA-B-39 audit):** the struct-based `xpe_dicom_cfind_mwl` shown below and the error code `XPE_ERR_LOSSY_COMPRESSION_NOT_ALLOWED` do not exist in the code. The real API is `xpe_dicom_cfind_mwl(host, port, aet, queryJson, outJson, outBufLen, timeoutMs)` (api-spec §11.10); lossy-compression rejection is not implemented as an error code. This README section is kept for history only.
+
 int xpe_dicom_cfind_mwl(
     const char *ris_hostname,
     int ris_port,
