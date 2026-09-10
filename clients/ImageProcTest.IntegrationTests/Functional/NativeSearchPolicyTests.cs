@@ -1,4 +1,4 @@
-// #129: the default DLL search must not reach repository build directories or sibling checkouts.
+﻿// #129: the default DLL search must not reach repository build directories or sibling checkouts.
 using ImageProcTest.IntegrationTests.Fixtures;
 
 namespace ImageProcTest.IntegrationTests.Functional;
@@ -10,10 +10,10 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// then SIBLING CHECKOUTS (../image-processing, ../xpe-post, ../xpe-pre). A DLL found that way had
 /// no recorded provenance: GUI-C-14 measured a load from another repository entirely.
 ///
-/// The xpe_common list lives in PInvokeWrapper.cs, which cannot be linked here (its static
-/// constructor registers a DllImport resolver and this assembly already has one — measured in
-/// GUI-C-13), so it is covered by the app build plus the shared policy rather than by a case here.
-/// That gap is named in the GUI-C-16 report.
+/// All four are covered here. The xpe_common list used to sit inside PInvokeWrapper.cs, which this
+/// assembly cannot compile (its static constructor registers a DllImport resolver and one is already
+/// registered — measured in GUI-C-13); GUI-C-17 split it into XpeCommonLibraryLocator so the same
+/// regression applies to the module every other one depends on.
 /// </summary>
 [Trait("Category", "Functional")]
 public sealed class NativeSearchPolicyTests
@@ -24,6 +24,7 @@ public sealed class NativeSearchPolicyTests
         ["NativeModuleLibraryLocator"],
         ["XpeEnhanceBasicLibraryLocator"],
         ["XpePreprocessLibraryLocator"],
+        ["XpeCommonLibraryLocator"],
     ];
 
     private static IEnumerable<string> Candidates(string locator) => locator switch
@@ -32,6 +33,7 @@ public sealed class NativeSearchPolicyTests
             NativeModuleLibraryLocator.GetDllCandidates("gsvg.dll", "image-processing", "xpe-post", "xpe-pre"),
         "XpeEnhanceBasicLibraryLocator" => XpeEnhanceBasicLibraryLocator.GetDllCandidates(),
         "XpePreprocessLibraryLocator" => XpePreprocessLibraryLocator.GetDllCandidates(),
+        "XpeCommonLibraryLocator" => XpeCommonLibraryLocator.GetDllCandidates(),
         _ => throw new ArgumentOutOfRangeException(nameof(locator), locator, "Unknown locator."),
     };
 
