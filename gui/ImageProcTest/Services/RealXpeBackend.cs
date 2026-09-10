@@ -272,7 +272,12 @@ public sealed class RealXpeBackend : IXpeBackend
             settings.SelectedBodyPart));
 
         AddLog(result.Summary);
-        return result;
+
+        // The preview is built here rather than in the runner: CreatePreview is this backend's, and
+        // the runner deliberately knows nothing about WPF.
+        return result.Ran && result.Pixels is not null
+            ? result with { ProcessedPreview = CreatePreview(result.Pixels, rawFrame.Width, rawFrame.Height) }
+            : result;
     }
 
     public int GetAlertCount() => _alerts.Count;

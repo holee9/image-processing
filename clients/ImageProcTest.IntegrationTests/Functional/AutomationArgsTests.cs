@@ -93,6 +93,21 @@ public sealed class AutomationArgsTests
         Assert.Contains("--automation-backends", parsed.Error);
     }
 
+    /// <summary>
+    /// #141: --automation-calib names the directory holding the generated XCal set. It must be a
+    /// RECOGNISED switch — GUI-C-28 made every unknown --automation-* an error, so adding a switch
+    /// to the app without adding it here would make the app refuse its own command line.
+    /// </summary>
+    [Fact]
+    public void CalibrationSwitch_IsRecognisedAndResolvedToAFullPath()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-calib", "calib-set"]);
+
+        Assert.True(parsed.IsValid, parsed.Error);
+        Assert.NotNull(parsed.CalibrationDirectory);
+        Assert.True(Path.IsPathRooted(parsed.CalibrationDirectory), parsed.CalibrationDirectory);
+    }
+
     /// <summary>Arguments outside the --automation- namespace stay ignored — they are not ours.</summary>
     [Fact]
     public void NonAutomationArguments_AreStillIgnored()

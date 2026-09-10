@@ -19,6 +19,7 @@ public sealed record AutomationArgs(
     string? RawPath,
     string? ReportPath,
     string? BackendMode,
+    string? CalibrationDirectory,
     int? RawWidth,
     int? RawHeight,
     string? Error)
@@ -42,7 +43,7 @@ public sealed record AutomationArgs(
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        string? rawPath = null, reportPath = null, backendMode = null, error = null;
+        string? rawPath = null, reportPath = null, backendMode = null, calibrationDirectory = null, error = null;
         int? rawWidth = null, rawHeight = null;
 
         for (var i = 0; i < args.Length; i++)
@@ -83,6 +84,12 @@ public sealed record AutomationArgs(
 
                 backendMode = canonical;
             }
+            else if (Is(switchName, "--automation-calib"))
+            {
+                // #141: the XCal set is generated at run time (xpe_calib_fixture_gen), so the
+                // directory cannot be a compiled-in default — the caller names it.
+                calibrationDirectory = Path.GetFullPath(value);
+            }
             else if (Is(switchName, "--automation-width"))
             {
                 if (!int.TryParse(value, out var width))
@@ -117,9 +124,10 @@ public sealed record AutomationArgs(
         // start a run that looks like the requested one. When the rejection happened before
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
-            ? new AutomationArgs(rawPath, reportPath, backendMode, rawWidth, rawHeight, Error: null)
+            ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null)
             : new AutomationArgs(
-                RawPath: null, reportPath, BackendMode: null, RawWidth: null, RawHeight: null, error);
+                RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
+                RawWidth: null, RawHeight: null, error);
     }
 
     private static bool Is(string argument, string switchName) =>

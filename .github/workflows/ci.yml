@@ -413,6 +413,20 @@ jobs:
           --logger "trx;LogFileName=e2e-smoke-native.trx"
           --results-directory build/e2e-native-results
 
+      # GUI-C-37: when the XCal generator is absent the Native W-02 scenario SKIPs rather
+      # than failing (so an unmeasured run is not reported as "measured fine"). The
+      # generator is part of xpe-ci-preprocess-binaries staged above, so here a skip is
+      # never legitimate - treat any skipped E2E case as a failure of this job.
+      - name: Assert no skipped Native E2E cases
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
+          if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
+          [xml]$x = Get-Content $trx.FullName
+          $c = $x.TestRun.ResultSummary.Counters
+          Write-Host ("total={0} passed={1} failed={2} notExecuted={3}" -f $c.total, $c.passed, $c.failed, $c.notExecuted)
+          if ([int]$c.notExecuted -gt 0) { Write-Error 'skipped E2E case(s) in the Native run - generator/staging problem hidden as green'; exit 1 }
+
       - name: Upload Native E2E results
         if: always()
         uses: actions/upload-artifact@v6
