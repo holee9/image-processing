@@ -4,17 +4,19 @@
  *        Validates cache hit/miss, LRU eviction, size limits, and thread safety.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  *
- * Buffer ownership (QA-A-20, #120). The xpe_calib_load_*_cached() entry points
- * do NOT fill a caller-provided buffer:
- *   - on a cache miss they std::realloc(out->data, ...), so out->data must be
- *     nullptr or a malloc'd block; passing a std::vector's storage there is
- *     undefined behaviour, which is what the original version of this suite did;
- *   - on a cache hit they overwrite the struct with the cache's own pointer,
- *     which the caller must not free (calibration_cache.cpp:74-77).
- * A caller cannot tell the two apart, so it can neither free safely nor keep
- * ownership. These tests therefore start from nullptr and never free; the miss
- * path leaks inside the test process. The inconsistency is reported as a
- * finding rather than papered over here.
+ * Buffer ownership (settled by QA-A-22, #127). The xpe_calib_load_*_cached()
+ * entry points return a CACHE-OWNED VIEW: the returned data pointer belongs to
+ * the calibration cache on both the hit and the miss path, and the caller's
+ * XpeImageBuffer is filled by value only. So the absence of any free() below is
+ * the contract, not an omission -- freeing would be a double free. The pointer
+ * stays valid until xpe_calib_cache_clear(), eviction by
+ * xpe_calib_cache_set_max_size(), or module shutdown; a caller that needs it
+ * longer takes a copy with xpe_copy_image (api-spec.md 6 "Cached loaders").
+ *
+ * QA-A-20 (#120) had measured the earlier inconsistency: the miss path used to
+ * std::realloc(out->data, ...) and hand back a caller-owned buffer while the hit
+ * path handed back the cache's, which no caller could tell apart. The pointer
+ * identity that replaced it is pinned in test_calib_cache_ownership.cpp.
  */
 
 #include <gtest/gtest.h>
@@ -107,7 +109,7 @@ protected:
         fs::remove_all(tmpDir);
     }
 
-    // An out-parameter the loaders may realloc. Never freed -- see the file note.
+    // A cache-owned view. Never freed -- see the ownership note at the top.
     static XpeImageBuffer emptyOut() { return XpeImageBuffer{}; }
 };
 
