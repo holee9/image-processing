@@ -154,10 +154,25 @@ public sealed class SmokeScenarios
             Assert.False(string.IsNullOrWhiteSpace(text), "The runtime version label is empty.");
             Assert.Contains("mode=", text, StringComparison.Ordinal);
 
-            // A version the backend actually reported: either dotted digits, or the mock marker.
-            Assert.True(
-                Regex.IsMatch(text, @"\d+\.\d+\.\d+") || text.Contains("mock", StringComparison.OrdinalIgnoreCase),
-                $"The label shows no version — expected a semver or a mock marker, got '{text}'.");
+            var hasSemver = Regex.IsMatch(text, @"\d+\.\d+\.\d+");
+            var looksMock = text.Contains("mock", StringComparison.OrdinalIgnoreCase);
+
+            if (_app.BackendMode == "Native")
+            {
+                // #136 / GUI-C-30 Gap 1: a Native run that shows the mock marker means the app fell
+                // back without saying so — exactly the case the Mock-only rule could not catch. Here
+                // only a real version counts.
+                Assert.True(
+                    hasSemver && !looksMock,
+                    $"Native run: expected a semver from the native backend, got '{text}'. " +
+                    "A mock marker here means the backend silently fell back.");
+            }
+            else
+            {
+                Assert.True(
+                    hasSemver || looksMock,
+                    $"The label shows no version — expected a semver or a mock marker, got '{text}'.");
+            }
         });
     }
 

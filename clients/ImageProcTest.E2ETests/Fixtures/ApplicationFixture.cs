@@ -40,18 +40,56 @@ public sealed class ApplicationFixture : IDisposable
             return;
         }
 
+        BackendMode = ResolveBackendMode();
+        if (BackendMode is null)
+        {
+            SkipReason =
+                $"XPE_E2E_BACKEND='{Environment.GetEnvironmentVariable(BackendVariable)}' is not one of " +
+                $"{string.Join(" | ", AcceptedBackendModes)}.";
+            return;
+        }
+
         var startInfo = new ProcessStartInfo(exePath)
         {
             WorkingDirectory = Path.GetDirectoryName(exePath)!,
             UseShellExecute = false,
         };
         startInfo.ArgumentList.Add("--automation-backend");
-        startInfo.ArgumentList.Add("Mock");
+        startInfo.ArgumentList.Add(BackendMode);
+
+        if (BackendMode == "Native")
+        {
+            // The app resolves native DLLs through XPE_NATIVE_DIR; pinning it EXCLUSIVE keeps the
+            // search from wandering into build directories or sibling checkouts (GUI-C-16/#129), so
+            // a Native run names exactly which binaries it exercised.
+            var nativeDir = Environment.GetEnvironmentVariable(NativeDirVariable);
+            if (!string.IsNullOrWhiteSpace(nativeDir))
+            {
+                startInfo.Environment[NativeDirVariable] = nativeDir;
+                startInfo.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
+                NativeDirectory = nativeDir;
+            }
+        }
 
         _application = Application.Launch(startInfo);
         MainWindow = _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30));
         ExecutablePath = exePath;
     }
+
+    /// <summary>Environment variable selecting which backend the suite exercises.</summary>
+    public const string BackendVariable = "XPE_E2E_BACKEND";
+
+    /// <summary>Environment variable naming the directory the app loads native DLLs from.</summary>
+    public const string NativeDirVariable = "XPE_NATIVE_DIR";
+
+    /// <summary>Accepted values, matching the app's own rule (GUI-C-27).</summary>
+    public static readonly string[] AcceptedBackendModes = ["Mock", "Native"];
+
+    /// <summary>The backend this run drives, or null when the variable held an unusable value.</summary>
+    public string? BackendMode { get; }
+
+    /// <summary>The pinned native directory, when one was supplied for a Native run.</summary>
+    public string? NativeDirectory { get; }
 
     /// <summary>The UIA layer, shared by every scenario in the class.</summary>
     public UIA3Automation Automation { get; }
@@ -83,6 +121,24 @@ public sealed class ApplicationFixture : IDisposable
             _application?.Dispose();
             Automation.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Reads XPE_E2E_BACKEND, defaulting to Mock. An unrecognised value is REFUSED rather than
+    /// silently treated as Mock: the whole point of the Native variant is to know which backend was
+    /// measured, and a typo that quietly downgrades makes the run report the wrong thing
+    /// (the same hazard GUI-C-27 removed from --automation-backend).
+    /// </summary>
+    private static string? ResolveBackendMode()
+    {
+        var requested = Environment.GetEnvironmentVariable(BackendVariable);
+        if (string.IsNullOrWhiteSpace(requested))
+        {
+            return "Mock";
+        }
+
+        return AcceptedBackendModes.FirstOrDefault(
+            m => string.Equals(m, requested, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
