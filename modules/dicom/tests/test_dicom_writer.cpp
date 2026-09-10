@@ -285,3 +285,34 @@ TEST_F(DicomWriterTest, ThousandCycles_MemoryGrowthUnderOneMB) {
             << ENDURANCE_CYCLES << " dicom alloc/write/free cycles";
     }
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-27): writer branches reachable without fault injection.
+//
+// Most of DicomWriter's uncovered lines are openjpeg failure handlers that only
+// a faulty library run reaches. These two are ordinary inputs:
+//   - an empty bodyPart takes the else-branch at DicomWriter.cpp:169
+//   - a null data pointer makes compressJ2K return {} (DicomWriter.cpp:232),
+//     which is the J2K "compression failed" path at :80-81
+// ---------------------------------------------------------------------------
+TEST_F(DicomWriterTest, WriteEmptyBodyPart_StillWritesFile) {
+    XpeImageMetadata meta = m_meta;
+    meta.bodyPart[0] = '\0';
+    auto path = m_tempDir / "empty_bodypart.dcm";
+    EXPECT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &m_img, &meta));
+    EXPECT_TRUE(fs::exists(path));
+}
+
+TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
+    XpeImageBuffer img{};
+    img.width         = 64;
+    img.height        = 64;
+    img.bitsAllocated = 16;
+    img.bitsStored    = 12;
+    img.format        = XPE_PIXEL_UINT16;
+    img.data          = nullptr;   // passes the dicom.cpp null-struct check
+    img.dataSize      = 0;         // 0 = unspecified, so the #123 guard stays quiet
+    auto path = m_tempDir / "j2k_nodata.dcm";
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED,
+              xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
+}
