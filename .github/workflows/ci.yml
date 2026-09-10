@@ -296,13 +296,15 @@ jobs:
     # skipped both coverage presets). Test pass/fail stays the test jobs' gate.
     if: github.event_name == 'workflow_dispatch'
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        # coverage      = common + preprocess (REQ-P0-006 scope)
-        # coverage-post = common + gsvg/enhance_basic/enhance_advanced/display (ci-post scope)
-        preset: [coverage, coverage-post]
+        # coverage       = common + preprocess (REQ-P0-006 scope)
+        # coverage-post  = common + gsvg/enhance_basic/enhance_advanced/display (ci-post scope)
+        # coverage-dicom = common + dicom; the only preset that needs vcpkg
+        #                  (DCMTK + OpenJPEG have no FetchContent fallback, #124)
+        preset: [coverage, coverage-post, coverage-dicom]
     name: coverage (${{ matrix.preset }})
 
     steps:
@@ -325,6 +327,35 @@ jobs:
         shell: pwsh
         run: choco install opencppcoverage -y --no-progress
 
+      # vcpkg is used ONLY by coverage-dicom. The runner image ships vcpkg at
+      # $env:VCPKG_INSTALLATION_ROOT; the preset reads $env{VCPKG_ROOT}. DCMTK is
+      # a long build, so its binary packages are cached across dispatches keyed
+      # by the dicom manifest.
+      - name: Point VCPKG_ROOT at the runner vcpkg (dicom only)
+        if: matrix.preset == 'coverage-dicom'
+        shell: pwsh
+        run: |
+          $root = $env:VCPKG_INSTALLATION_ROOT
+          if (-not $root -or -not (Test-Path $root)) { $root = 'C:\vcpkg' }
+          if (-not (Test-Path (Join-Path $root 'scripts\buildsystems\vcpkg.cmake'))) {
+            Write-Error "vcpkg toolchain not found under $root"; exit 1
+          }
+          $cache = Join-Path $env:RUNNER_TEMP 'vcpkg-bincache'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
+          "VCPKG_DEFAULT_BINARY_CACHE=$cache" >> $env:GITHUB_ENV
+          "VCPKG_DISABLE_METRICS=1" >> $env:GITHUB_ENV
+          & (Join-Path $root 'vcpkg.exe') --version
+
+      - name: Restore vcpkg binary cache (dicom only)
+        if: matrix.preset == 'coverage-dicom'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-bincache-${{ runner.os }}-dicom-
+
       - name: Configure coverage build
         shell: pwsh
         run: cmake --preset ${{ matrix.preset }}
@@ -336,6 +367,17 @@ jobs:
       # REQ-P0-006: the `coverage` target runs the whole ctest suite under
       # OpenCppCoverage and writes build/coverage/coverage/coverage.xml;
       # `coverage_check` fails the job when line-rate < 0.85 (#113).
+      # dicom tests load dcmtk/openjpeg DLLs; vcpkg applocal usually copies them
+      # next to the test binaries, but the manifest-mode install dir is put on
+      # PATH as well so a missing copy fails loudly in ctest, not as 0xc0000135.
+      - name: Put vcpkg runtime DLLs on PATH (dicom only)
+        if: matrix.preset == 'coverage-dicom'
+        shell: pwsh
+        run: |
+          $bin = Join-Path (Get-Location) 'build\${{ matrix.preset }}\vcpkg_installed\x64-windows\bin'
+          $dbg = Join-Path (Get-Location) 'build\${{ matrix.preset }}\vcpkg_installed\x64-windows\debug\bin'
+          "$dbg;$bin;$env:PATH" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
       - name: Run coverage (OpenCppCoverage over ctest)
         shell: pwsh
         run: cmake --build --preset ${{ matrix.preset }} --target coverage
