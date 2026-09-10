@@ -9,6 +9,11 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+
+#include <cstdio>
+#include <string>
 
 #include <vector>
 #include <cstdint>
@@ -38,13 +43,19 @@ protected:
     static constexpr uint32_t H = 4;
 
     std::vector<uint16_t> rawPixels;
-    std::vector<float>    gainPixels;
-    XpeImageBuffer img{};
-    XpeImageBuffer gainMap{};
+    std::vector<float>    gainPixels;   // stored sensitivity S; correction divides by it
+    std::vector<float>    outPixels;
+    XpeImageBuffer   img{};
+    XpeImageBuffer   output{};
+    XpeImageMetadata metadata{};
+    const char* gainPath = "fma_gain.xcal";
 
     void SetUp() override {
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+
         rawPixels.assign(W * H, 2000);
         gainPixels.assign(W * H, 1.5f);
+        outPixels.assign(W * H, 0.0f);
 
         img.data          = rawPixels.data();
         img.width         = W;
@@ -54,22 +65,53 @@ protected:
         img.format        = XPE_PIXEL_UINT16;
         img.dataSize      = rawPixels.size() * sizeof(uint16_t);
 
-        gainMap.data          = gainPixels.data();
-        gainMap.width         = W;
-        gainMap.height        = H;
-        gainMap.bitsAllocated = 32;
-        gainMap.bitsStored    = 32;
-        gainMap.format        = XPE_PIXEL_FLOAT32;
-        gainMap.dataSize      = gainPixels.size() * sizeof(float);
+        output.data          = outPixels.data();
+        output.width         = W;
+        output.height        = H;
+        output.bitsAllocated = 32;
+        output.bitsStored    = 32;
+        output.format        = XPE_PIXEL_FLOAT32;
+        output.dataSize      = outPixels.size() * sizeof(float);
     }
 
     void TearDown() override {
-        // xpe_gain_correct replaces img.data with malloc'd float buffer
-        if (img.data && img.data != rawPixels.data()) {
-            std::free(img.data);
-            img.data = nullptr;
-        }
+        std::remove(gainPath);
+        std::remove("fma_gain.xcal.tmp");
+        xpe_preprocess_shutdown();
     }
+
+    // #117 decision B: the map is loaded into the global calibration, not passed
+    // in. Cases mutate gainPixels first, so this publishes on the way through.
+    static void publish(const char* path, const std::vector<float>& values,
+                        uint32_t w, uint32_t h) {
+        std::remove(path);
+        std::remove((std::string(path) + ".tmp").c_str());
+
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version      = XCAL_VERSION;
+        hdr.type         = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width        = w;
+        hdr.height       = h;
+        hdr.payload_len  = static_cast<uint64_t>(values.size() * sizeof(float));
+
+        ASSERT_EQ(XPE_OK,
+                  write_xcal_file(path, hdr, nullptr, 0,
+                                  reinterpret_cast<const uint8_t*>(values.data()),
+                                  hdr.payload_len));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path));
+    }
+
+    XpeErrorCode correct() {
+        publish(gainPath, gainPixels, W, H);
+        return xpe_gain_correct(&img, &output, &metadata);
+    }
+
+    // The old TearDown freed img.data on the assumption that gain_correct
+    // replaced it with a malloc'd buffer and handed ownership over. The shipped
+    // API writes into the caller-supplied output buffer, so img.data still
+    // belongs to rawPixels and must not be freed here.
 };
 
 // =========================================================================
@@ -78,8 +120,8 @@ protected:
 
 // REQ-P1A-011: Precompute R(x,y) = 1/G(x,y) before pixel loop
 TEST_F(GainCorrectReciprocalFMATest, ReciprocalPrecomputationIsValid) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
 
     // AC-GAIN-001: corrected = input / gain (flat-field normalization)
     // 2000 / 1.5 = 1333.33...
@@ -96,45 +138,45 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalPrecomputationIsValid) {
 // AC-GAIN-005: Gain = 0 should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, ZeroGainReturnsConfigInvalid) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0f);
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // AC-GAIN-005: Negative gain should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, NegativeGainReturnsConfigInvalid) {
     std::fill(gainPixels.begin(), gainPixels.end(), -1.0f);
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // AC-GAIN-005: NaN in gain map should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, NaNGainReturnsConfigInvalid) {
     gainPixels[0] = std::numeric_limits<float>::quiet_NaN();
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // AC-GAIN-005: Inf in gain map should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, InfGainReturnsConfigInvalid) {
     gainPixels[0] = std::numeric_limits<float>::infinity();
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // AC-GAIN-005: Gain below MIN_GAIN_VALUE (0.001) should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, GainBelowMinimumReturnsConfigInvalid) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0005f);  // Below 0.001
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // AC-GAIN-005: Gain above MAX_GAIN_VALUE (1000) should return CONFIG_INVALID
 TEST_F(GainCorrectReciprocalFMATest, GainAboveMaximumReturnsConfigInvalid) {
     std::fill(gainPixels.begin(), gainPixels.end(), 1001.0f);  // Above 1000
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
 }
 
 // Boundary: Gain at MIN_GAIN_VALUE should succeed
 TEST_F(GainCorrectReciprocalFMATest, GainAtMinimumValueSucceeds) {
     constexpr float MIN_GAIN = 0.001f;
     std::fill(gainPixels.begin(), gainPixels.end(), MIN_GAIN);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f / MIN_GAIN, out[0], 1e-3f);
 }
 
@@ -142,16 +184,16 @@ TEST_F(GainCorrectReciprocalFMATest, GainAtMinimumValueSucceeds) {
 TEST_F(GainCorrectReciprocalFMATest, GainAtMaximumValueSucceeds) {
     constexpr float MAX_GAIN = 1000.0f;
     std::fill(gainPixels.begin(), gainPixels.end(), MAX_GAIN);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f / MAX_GAIN, out[0], 1e-3f);
 }
 
 // Boundary: Gain near epsilon should produce large but finite output
 TEST_F(GainCorrectReciprocalFMATest, SmallGainProducesLargeOutput) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.01f);  // Valid but small
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_TRUE(std::isfinite(out[0]));
     EXPECT_NEAR(200000.0f, out[0], 1.0f);  // 2000 / 0.01 = 200000
 }
@@ -163,8 +205,8 @@ TEST_F(GainCorrectReciprocalFMATest, SmallGainProducesLargeOutput) {
 // AC-GAIN-004: Scalar and AVX2/FMA paths must match within 1 ULP
 TEST_F(GainCorrectReciprocalFMATest, UnityGainProducesIdentityConversion) {
     std::fill(gainPixels.begin(), gainPixels.end(), 1.0f);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
 
     for (size_t i = 0; i < W * H; ++i) {
         EXPECT_NEAR(static_cast<float>(rawPixels[i]), out[i], 1e-6f)
@@ -178,20 +220,16 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalAccuracyAcrossGainRange) {
 
     for (float gain : testGains) {
         std::fill(gainPixels.begin(), gainPixels.end(), gain);
-        ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-        const auto* out = static_cast<const float*>(img.data);
+        ASSERT_EQ(XPE_OK, correct());
+        const auto* out = static_cast<const float*>(output.data);
 
         // Verify: output = input * (1/gain) = input / gain
         float expected = static_cast<float>(rawPixels[0]) / gain;
         EXPECT_NEAR(expected, out[0], std::abs(expected) * 1e-5f)
             << "Reciprocal accuracy failed for gain = " << gain;
 
-        // Cleanup for next iteration
-        std::free(img.data);
-        img.data = rawPixels.data();
-        img.format = XPE_PIXEL_UINT16;
-        img.bitsAllocated = 16;
-        img.dataSize = rawPixels.size() * sizeof(uint16_t);
+        // No cleanup needed: the correction writes into `output` and leaves the
+        // input buffer alone, so `img` is still valid for the next iteration.
     }
 }
 
@@ -201,16 +239,16 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalAccuracyAcrossGainRange) {
 
 // REQ-P1A-011: Output format must be float32 after conversion
 TEST_F(GainCorrectReciprocalFMATest, OutputFormatIsFloat32) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_EQ(XPE_PIXEL_FLOAT32, img.format);
-    EXPECT_EQ(32, img.bitsAllocated);
-    EXPECT_EQ(32, img.bitsStored);
+    ASSERT_EQ(XPE_OK, correct());
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, output.format);
+    EXPECT_EQ(32, output.bitsAllocated);
+    EXPECT_EQ(32, output.bitsStored);
 }
 
 // REQ-P1A-011: Data size must be updated correctly
 TEST_F(GainCorrectReciprocalFMATest, OutputDataSizeIsCorrect) {
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    EXPECT_EQ(W * H * sizeof(float), img.dataSize);
+    ASSERT_EQ(XPE_OK, correct());
+    EXPECT_EQ(W * H * sizeof(float), output.dataSize);
 }
 
 // =========================================================================
@@ -221,8 +259,8 @@ TEST_F(GainCorrectReciprocalFMATest, OutputDataSizeIsCorrect) {
 TEST_F(GainCorrectReciprocalFMATest, SmallInputWithSmallGain) {
     std::fill(rawPixels.begin(), rawPixels.end(), 100);
     std::fill(gainPixels.begin(), gainPixels.end(), 0.1f);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(1000.0f, out[0], 1e-3f);  // 100 / 0.1 = 1000
 }
 
@@ -230,8 +268,8 @@ TEST_F(GainCorrectReciprocalFMATest, SmallInputWithSmallGain) {
 TEST_F(GainCorrectReciprocalFMATest, LargeInputWithLargeGain) {
     std::fill(rawPixels.begin(), rawPixels.end(), UINT16_MAX);
     std::fill(gainPixels.begin(), gainPixels.end(), 100.0f);
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
     EXPECT_TRUE(std::isfinite(out[0]));
     EXPECT_NEAR(static_cast<float>(UINT16_MAX) / 100.0f, out[0], 1.0f);
 }
@@ -255,24 +293,26 @@ TEST_F(GainCorrectReciprocalFMATest, NonAVX2AlignedImageSize) {
     oddImg.format = XPE_PIXEL_UINT16;
     oddImg.dataSize = oddSize * sizeof(uint16_t);
 
-    XpeImageBuffer oddGainMap{};
-    oddGainMap.data = oddGain.data();
-    oddGainMap.width = 1000;
-    oddGainMap.height = 1;
-    oddGainMap.bitsAllocated = 32;
-    oddGainMap.bitsStored = 32;
-    oddGainMap.format = XPE_PIXEL_FLOAT32;
-    oddGainMap.dataSize = oddSize * sizeof(float);
+    std::vector<float> oddOut(oddSize, 0.0f);
+    XpeImageBuffer oddOutput{};
+    oddOutput.data = oddOut.data();
+    oddOutput.width = 1000;
+    oddOutput.height = 1;
+    oddOutput.bitsAllocated = 32;
+    oddOutput.bitsStored = 32;
+    oddOutput.format = XPE_PIXEL_FLOAT32;
+    oddOutput.dataSize = oddOut.size() * sizeof(float);
 
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&oddImg, &oddGainMap));
-    const auto* out = static_cast<const float*>(oddImg.data);
+    publish(gainPath, oddGain, 1000, 1);
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&oddImg, &oddOutput, &metadata));
+    const auto* out = static_cast<const float*>(oddOutput.data);
 
     // Verify all pixels processed correctly
     for (size_t i = 0; i < oddSize; ++i) {
         EXPECT_NEAR(2000.0f / 1.5f, out[i], 1e-3f) << "Failed at pixel " << i;
     }
 
-    std::free(oddImg.data);
+    // No free(): the correction writes into oddOutput, which the vector owns.
 }
 
 // =========================================================================
@@ -281,25 +321,26 @@ TEST_F(GainCorrectReciprocalFMATest, NonAVX2AlignedImageSize) {
 
 // NULL img returns INVALID_INPUT
 TEST_F(GainCorrectReciprocalFMATest, NullImgReturnsInvalidInput) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(nullptr, &gainMap));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(nullptr, &output, &metadata));
 }
 
-// NULL gainMap returns INVALID_INPUT
-TEST_F(GainCorrectReciprocalFMATest, NullGainMapReturnsInvalidInput) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, nullptr));
+// NULL output buffer returns INVALID_INPUT (the map is no longer an argument)
+TEST_F(GainCorrectReciprocalFMATest, NullOutputReturnsInvalidInput) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, nullptr, &metadata));
 }
 
 // Dimension mismatch returns INVALID_INPUT
 TEST_F(GainCorrectReciprocalFMATest, DimensionMismatchReturnsInvalidInput) {
-    XpeImageBuffer badGain = gainMap;
-    badGain.width = W + 1;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &badGain));
+    publish(gainPath, gainPixels, W, H);
+    output.width = W + 1;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_gain_correct(&img, &output, &metadata));
 }
 
 // Zero width returns INVALID_INPUT
 TEST_F(GainCorrectReciprocalFMATest, ZeroWidthReturnsInvalidInput) {
     img.width = 0;
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&img, &gainMap));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, correct());
 }
 
 // =========================================================================
@@ -312,8 +353,8 @@ TEST_F(GainCorrectReciprocalFMATest, PerPixelGainMapVariation) {
         gainPixels[i] = 1.0f + (i % 10) * 0.1f;  // Varying gain: 1.0 to 1.9
     }
 
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&img, &gainMap));
-    const auto* out = static_cast<const float*>(img.data);
+    ASSERT_EQ(XPE_OK, correct());
+    const auto* out = static_cast<const float*>(output.data);
 
     for (size_t i = 0; i < W * H; ++i) {
         float expected = static_cast<float>(rawPixels[i]) / gainPixels[i];

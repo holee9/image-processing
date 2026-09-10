@@ -153,23 +153,16 @@ if(_XPE_BUILD_TESTS)
         # because these suites were never compiled.
         tests/test_xcal_compression.cpp
         tests/test_json_helpers.cpp
-        # QA-A-21 (#120): present on disk but never named in this list -- 54
-        # cases that had never been compiled or run. Registering all three
-        # produced 110 compile errors, all from the retired map-argument API
-        # family (xpe_calib_save/load_*/generate_offset/check_expiry,
-        # xpe_offset_correct, xpe_gain_correct, xpe_validate_readout_artifact).
-        # Two of them additionally assert contracts that no longer exist, so
-        # migrating them would mean choosing a convention rather than adapting
-        # a call:
-        #   - GoldenGainTest asserts output = raw * gain (16 golden values),
-        #     while gain_correct.cpp:296 computes raw * (1/gain). Whether the
-        #     stored map is gain or reciprocal gain is a spec decision.
-        #   - GoldenReadoutTest asserts a 0..100 score; the shipped
-        #     xpe_validate_readout_artifact reports two booleans instead.
-        # Findings are in .moai/reports/lane-pre/QA-A-21/.
-        # tests/test_golden_reference.cpp
-        # tests/test_gain_correct_reciprocal_fma.cpp
-        # tests/test_calibration_roundtrip.cpp
+        # QA-A-25 (#120): the three suites below were on disk but never named
+        # here -- 54 cases that had never been compiled. All three are now
+        # migrated to the shipped file/global-store calibration API (issue #117
+        # decision B) and the two contract conflicts were resolved against the
+        # implementation: gain_correct.cpp:296 divides by the stored map, and
+        # xpe_validate_readout_artifact reports two booleans rather than a
+        # 0..100 score. Findings: .moai/reports/lane-pre/QA-A-21/, QA-A-25/.
+        tests/test_golden_reference.cpp
+        tests/test_gain_correct_reciprocal_fma.cpp
+        tests/test_calibration_roundtrip.cpp
         tests/test_pipeline_ex.cpp
         tests/test_calibration_cache.cpp
         tests/test_xpe_calib_generate_offset.cpp
