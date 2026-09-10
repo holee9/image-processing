@@ -116,6 +116,8 @@ if(_XPE_BUILD_TESTS)
     add_executable(test_xpe_common
         tests/test_xpe_common.cpp
         tests/test_post_degraded_mode.cpp
+        # QA-A-28 (#110): alert queue overflow policy, api-spec.md 5.17
+        tests/test_alert_queue_overflow.cpp
     )
     target_include_directories(test_xpe_common PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
