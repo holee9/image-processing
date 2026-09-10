@@ -213,6 +213,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_gain.cpp
         tests/test_defect_gen.cpp
         tests/test_verify_metrics.cpp
+        # QA-A-32 (#120): verify_* edge paths (format/fallback/median branches)
+        tests/test_verify_metrics_edges.cpp
         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
         tests/test_calib_mode.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
