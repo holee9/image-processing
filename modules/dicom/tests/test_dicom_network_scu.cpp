@@ -320,3 +320,17 @@ TEST_F(DicomNetworkTest, CFindOutBufferTooSmall_ReturnsBufferTooSmall) {
         R"({"Modality":"DX"})",
         outJson, sizeof(outJson), 5000));
 }
+
+// ---------------------------------------------------------------------------
+// #142 (QA-B-42): the output-buffer contract on the C-FIND result buffer.
+// A declared length of 0 means the argument does not exist -- INVALID_INPUT,
+// not BUFFER_TOO_SMALL. Checked before the association is attempted, so a
+// caller with a broken buffer does not cost a network round trip.
+// ---------------------------------------------------------------------------
+TEST_F(DicomNetworkTest, CFindOutBufferZeroLength_ReturnsInvalidInput) {
+    char outJson[64] = {};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_cfind_mwl(
+        "localhost", 19998, "TESTSCU",
+        R"({"Modality":"DX"})",
+        outJson, 0, 500));
+}

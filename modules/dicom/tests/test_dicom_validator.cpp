@@ -449,3 +449,63 @@ TEST_F(DicomValidatorTest, ValidateMetaTransferSyntaxAbsent_ReportsMissingTransf
     EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
     EXPECT_TRUE(hasErrorTagged(j, "0002,0010")) << j.dump();
 }
+
+// ---------------------------------------------------------------------------
+// #142 (QA-B-42): the output-buffer contract.
+//
+// leader's decision: an output pointer that is NULL, or a declared size of 0,
+// is XPE_ERR_INVALID_INPUT -- the argument does not exist, which is a different
+// fault from "it exists but is too small" (XPE_ERR_BUFFER_TOO_SMALL). NULL/0 is
+// judged first so the two can never overlap.
+//
+// The size-report protocol makes this more than a naming question. On
+// BUFFER_TOO_SMALL the validator writes the required size as a uint32_t into
+// the first 4 bytes of the caller's buffer -- unconditionally, without checking
+// that 4 bytes exist. A caller passing a 2-byte buffer therefore had 2 bytes
+// written past its end. The cases below use an over-allocated block with a
+// known fill so that overflow lands in the test's own memory and is detectable
+// instead of corrupting the heap.
+// ---------------------------------------------------------------------------
+
+TEST_F(DicomValidatorTest, OutputBufferZeroLength_ReturnsInvalidInput) {
+    char guarded[64];
+    std::memset(guarded, static_cast<int>(0xAB), sizeof(guarded));
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_dicom_validate(s_conformantDcm.string().c_str(), guarded, 0));
+
+    for (size_t i = 0; i < sizeof(guarded); ++i) {
+        ASSERT_EQ(static_cast<unsigned char>(0xAB),
+                  static_cast<unsigned char>(guarded[i]))
+            << "byte " << i << " written despite a declared length of 0";
+    }
+}
+
+TEST_F(DicomValidatorTest, OutputBufferTooSmallForSizeReport_DoesNotOverflow) {
+    char guarded[64];
+    std::memset(guarded, static_cast<int>(0xAB), sizeof(guarded));
+
+    // 2 bytes is a real buffer, so this is BUFFER_TOO_SMALL -- but it cannot
+    // hold the 4-byte required-size report either.
+    const XpeErrorCode rc =
+        xpe_dicom_validate(s_conformantDcm.string().c_str(), guarded, 2);
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, rc);
+
+    for (size_t i = 2; i < sizeof(guarded); ++i) {
+        ASSERT_EQ(static_cast<unsigned char>(0xAB),
+                  static_cast<unsigned char>(guarded[i]))
+            << "byte " << i << " written past a 2-byte buffer";
+    }
+}
+
+// The complement: a buffer that IS big enough for the size report must still
+// receive it, so the fix above does not silently drop the protocol.
+TEST_F(DicomValidatorTest, OutputBufferTooSmall_StillReportsRequiredSize) {
+    char buf[8] = {};
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_dicom_validate(s_conformantDcm.string().c_str(), buf, sizeof(buf)));
+
+    uint32_t required = 0;
+    std::memcpy(&required, buf, sizeof(required));
+    EXPECT_GT(required, sizeof(buf)) << "required size must exceed the buffer given";
+}

@@ -201,12 +201,16 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
  *
  * @return XPE_OK on success (check "valid" field in report). XPE_OK means the
  *         report was produced, NOT that the file is conformant.
- * @return XPE_ERR_INVALID_INPUT if filePath or outReportJson is NULL.
+ * @return XPE_ERR_INVALID_INPUT if filePath or outReportJson is NULL, or if
+ *         reportBufLen is 0 -- a zero-length output buffer is a missing
+ *         argument, not a small one (#142).
  * @return XPE_ERR_DICOM_INVALID if the file cannot be parsed at all. A report is
  *         still written to the buffer on this path.
  * @return XPE_ERR_BUFFER_TOO_SMALL if buffer is too small; required size written
  *         as uint32_t to the first 4 bytes of outReportJson. The buffer does NOT
- *         hold a valid JSON string in that case.
+ *         hold a valid JSON string in that case. A buffer shorter than 4 bytes
+ *         still returns this code but receives no size report -- nothing is
+ *         written past its end (#142).
  *
  * @note REQ-DICOM-023..028, #139
  */
@@ -267,7 +271,9 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
  * @param outBufLen  Size of outJson in bytes.
  * @param timeoutMs  Timeout in milliseconds (0 = no timeout).
  * @return XPE_OK on success (empty result writes "[]").
- * @return XPE_ERR_INVALID_INPUT if host, aet, queryJson, or outJson is NULL.
+ * @return XPE_ERR_INVALID_INPUT if host, aet, queryJson, or outJson is NULL, or
+ *         if outBufLen is 0 (#142). Judged before the association, so a broken
+ *         output buffer costs no network round trip.
  * @return XPE_ERR_NETWORK_FAILED on connection failure, timeout, C-FIND failure,
  *         or when the peer accepts the association but not the Modality
  *         Worklist presentation context.
