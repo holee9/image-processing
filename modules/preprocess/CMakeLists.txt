@@ -262,6 +262,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_gain_poly_load.cpp
         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking
         tests/test_sigma_clip_nmin.cpp
+        # QA-A-39 (#138 #97): public config_json_or_null on generate_offset
+        tests/test_calib_generate_offset_config.cpp
     )
 
     add_executable(xpe_preprocess_tests
