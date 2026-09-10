@@ -102,7 +102,11 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  * @return XPE_OK on success, including the case where every step was skipped.
  * @return XPE_ERR_INVALID_INPUT on a NULL pointer -- including a NULL handle,
  *         which is a NULL required pointer like any other -- or on a
- *         non-positive dimension.
+ *         non-positive dimension. This is the module's half of the shared
+ *         empty-image contract (#142): an empty image is an error everywhere in
+ *         the post modules, never a silent no-op. gsvg takes loose dimensions
+ *         rather than an XpeImageBuffer, so it rejects NEGATIVE dimensions too,
+ *         a shape the struct-based modules cannot express.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,
