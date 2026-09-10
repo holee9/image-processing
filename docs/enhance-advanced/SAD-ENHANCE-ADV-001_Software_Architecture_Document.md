@@ -521,6 +521,18 @@ For EI ROI correction (SWU-2.10):
 
 ### 6.1 Configuration Structure
 
+> **Measured divergence (2026-09-11, leader).** The JSON below is *design intent*, not the
+> surface the shipped code reads. Grepping `modules/enhance_advanced/src/` for the keys it
+> actually parses yields: `border_margin`, `disable_overshoot_limit`, `edge_gain`, `flat_gain`,
+> `iterations`, `levels`, `min_area_ratio`, `noise_threshold`, `num_levels`, `order`,
+> `overshoot`, `overshoot_factor`, `overshoot_limit`, `overshoot_limiting`, `range`, `safety`,
+> `sensitivity`, `step_size`, `texture_gain`. Six keys named below — `gaussian_sigma`,
+> `overshoot_limit_enabled`, `canny_threshold_low`, `canny_threshold_high`,
+> `hough_peak_threshold_ratio`, `ei_ref` — appear in **no file under `modules/`**. This block
+> is retained as design intent rather than deleted; a caller that writes it today is configuring
+> nothing. Tracked as an open item; do not cite §6.1 as the current config contract.
+
+
 ```json
 {
   "enhance_advanced": {
