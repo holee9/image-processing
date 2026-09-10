@@ -316,3 +316,29 @@ TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED,
               xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-29): the size guard's "unknown bits-per-pixel" branch
+// (dicom.cpp:100-104). UINT8 is a declared XpePixelFormat that the dicom
+// size check has no bytes-per-pixel entry for, so it returns "consistent"
+// without comparing anything and the call proceeds to the writer. The guard
+// must not reject on a format it cannot size -- that is the format check's job.
+// ---------------------------------------------------------------------------
+TEST_F(DicomWriterTest, WriteUint8Format_NotRejectedBySizeGuard) {
+    std::vector<uint8_t> pixels(64 * 64, 0u);
+    XpeImageBuffer img{};
+    img.width         = 64;
+    img.height        = 64;
+    img.bitsAllocated = 8;
+    img.bitsStored    = 8;
+    img.format        = XPE_PIXEL_UINT8;
+    img.data          = pixels.data();
+    img.dataSize      = pixels.size();   // non-zero, so the guard does run
+
+    auto path = m_tempDir / "uint8.dcm";
+    // Whatever the writer decides, it must not be the size guard's
+    // XPE_ERR_INVALID_INPUT: reaching the writer at all is the point.
+    const XpeErrorCode rc = xpe_dicom_write(path.string().c_str(), &img, &m_meta);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, rc)
+        << "size guard rejected a format it cannot size; rc=" << rc;
+}

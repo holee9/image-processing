@@ -212,6 +212,7 @@ if(_XPE_BUILD_TESTS)
     # --- test_dicom_network_scu (SWU-4.4: REQ-DICOM-029..040) ---
     add_executable(test_dicom_network_scu
         tests/test_dicom_network_scu.cpp
+        tests/mock_scp.cpp
     )
     target_include_directories(test_dicom_network_scu PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -220,6 +221,23 @@ if(_XPE_BUILD_TESTS)
         xpe_dicom
         GTest::gtest_main
     )
+    # #120 (QA-B-29): the suite runs an in-process SCP (tests/mock_scp.cpp), so
+    # it links DCMTK directly -- dcmnet for DcmStorageSCP, the same way
+    # xpe_dicom links it above.
+    if(dcmtk_FOUND)
+        target_link_libraries(test_dicom_network_scu PRIVATE DCMTK::DCMTK)
+    else()
+        if(DCMTK_INCLUDE_DIRS)
+            target_include_directories(test_dicom_network_scu PRIVATE ${DCMTK_INCLUDE_DIRS})
+        endif()
+        if(DCMTK_LIBRARIES)
+            target_link_libraries(test_dicom_network_scu PRIVATE ${DCMTK_LIBRARIES})
+        endif()
+    endif()
+    if(WIN32)
+        target_link_libraries(test_dicom_network_scu PRIVATE ws2_32)
+    endif()
+
     target_compile_features(test_dicom_network_scu PRIVATE cxx_std_17)
     if(MSVC)
         target_compile_options(test_dicom_network_scu PRIVATE /W4)

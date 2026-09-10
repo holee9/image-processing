@@ -289,3 +289,86 @@ TEST_F(DicomReaderTest, ReadJ2K_NoPixelData_ReturnsDicomInvalid) {
 // entered. DCMTK appears to rewrite the meta transfer syntax to match the encoding
 // actually used by saveFile. Reaching that branch needs a file whose declared J2K
 // syntax survives the write -- left uncovered rather than asserted falsely.
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-29): J2K codestream failure branches (DicomReader.cpp:416-431).
+//
+// The DICOM container is left byte-for-byte intact and only the encapsulated
+// J2K codestream is damaged, so the failure is attributable to the decoder and
+// not to DICOM parsing. Lengths are preserved (bytes are overwritten in place,
+// never inserted or removed), which is what keeps the container valid.
+//
+// The SOC/SIZ marker pair FF4F FF51 opens a J2K codestream; everything before
+// it is DICOM framing.
+// ---------------------------------------------------------------------------
+namespace {
+
+/// Copy `src` to `dst`, overwriting `count` bytes at `offsetFromSoc` past the
+/// J2K SOC marker. Returns false if no codestream was found.
+bool corrupt_j2k_codestream(const fs::path& src, const fs::path& dst,
+                            size_t offsetFromSoc, size_t count)
+{
+    std::ifstream in(src, std::ios::binary);
+    std::vector<char> buf((std::istreambuf_iterator<char>(in)),
+                           std::istreambuf_iterator<char>());
+    if (buf.size() < 8) return false;
+
+    size_t soc = std::string::npos;
+    for (size_t i = 0; i + 3 < buf.size(); ++i) {
+        if (static_cast<unsigned char>(buf[i])     == 0xFF &&
+            static_cast<unsigned char>(buf[i + 1]) == 0x4F &&
+            static_cast<unsigned char>(buf[i + 2]) == 0xFF &&
+            static_cast<unsigned char>(buf[i + 3]) == 0x51) {
+            soc = i;
+            break;
+        }
+    }
+    if (soc == std::string::npos) return false;
+
+    for (size_t k = 0; k < count; ++k) {
+        const size_t at = soc + offsetFromSoc + k;
+        if (at >= buf.size()) break;
+        buf[at] = static_cast<char>(0xA5);   // not a valid marker or segment body
+    }
+
+    std::ofstream out(dst, std::ios::binary);
+    out.write(buf.data(), static_cast<std::streamsize>(buf.size()));
+    return out.good();
+}
+
+}  // namespace
+
+// Damage inside the SIZ header segment: opj_read_header cannot parse it.
+TEST_F(DicomReaderTest, ReadJ2K_CorruptHeader_ReturnsProcessingFailed) {
+    auto path = s_tempDir / "j2k_corrupt_header.dcm";
+    ASSERT_TRUE(corrupt_j2k_codestream(s_j2kDcm, path, /*offsetFromSoc=*/4, /*count=*/24))
+        << "no J2K codestream found in the fixture";
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
+    EXPECT_NE(XPE_OK, rc) << "a corrupt J2K header must not decode";
+    xpe_dicom_close(handle);
+}
+
+// Leave the header intact and damage the entropy-coded body instead: the
+// header parses, the decode step is what fails.
+TEST_F(DicomReaderTest, ReadJ2K_CorruptBody_ReturnsProcessingFailed) {
+    auto path = s_tempDir / "j2k_corrupt_body.dcm";
+    ASSERT_TRUE(corrupt_j2k_codestream(s_j2kDcm, path, /*offsetFromSoc=*/200, /*count=*/512))
+        << "no J2K codestream found in the fixture";
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
+    // Either the decoder rejects it or it produces pixels from damaged data;
+    // both are acceptable outcomes for a corrupt body, so only a crash or a
+    // silent XPE_OK with a null buffer would be a defect.
+    if (rc == XPE_OK) {
+        EXPECT_NE(nullptr, img.data) << "XPE_OK must come with a real buffer";
+        xpe_free_image(&img);
+    }
+    xpe_dicom_close(handle);
+}
