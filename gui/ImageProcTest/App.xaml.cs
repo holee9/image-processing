@@ -30,6 +30,11 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
+        // #129: install the shared native search policy before anything can P/Invoke. Doing it here
+        // rather than in a static constructor keeps the ordering explicit: the resolver must be in
+        // place before the first DllImport, and only one may ever be registered per assembly.
+        Services.Native.GuiNativeLibraryResolver.Install();
+
         // #136: parsing lives in AutomationArgs so it can be tested; this class only applies it.
         var parsed = AutomationArgs.Parse(e.Args);
 
