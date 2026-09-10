@@ -184,19 +184,30 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
                                       const XpeImageMetadata* metadata);
 
 /**
- * @brief Execute defect correction using edge-aware bilinear interpolation
+ * @brief Execute defect correction from the loaded defect map
  *
- * REQ-P1A-012: Defect correction with 5x5 neighborhood
- * AC-DEF-001: Edge-aware bilinear interpolation excluding center
+ * REQ-P1A-012: Defect correction. The description below is the shipped
+ * behaviour (#125); the earlier "edge-aware bilinear, 5x5 neighbourhood"
+ * wording described an algorithm this module does not implement.
+ *  - Isolated defect: mean of the valid 4-connected neighbours (N/S/E/W). When
+ *    all four are defective, the nearest complete Chebyshev ring (r = 1..3)
+ *    supplies the neighbours instead (helpers.cpp:22-48).
+ *  - Cluster (2+ pixels, 4-connectivity): median of the valid neighbours in the
+ *    3x3 window, excluding the centre and other defective pixels
+ *    (defect_correct.cpp:70-72).
  * AC-DEF-002: Static BPM priority over runtime detection
  * AC-DEF-003: Runtime transient defect detection
  * REQ-P1A-021: Validate dimension mismatch
+ *
+ * The defect map is not a parameter: it is loaded into the global calibration
+ * by xpe_calib_load_defect_map() (#117 decision B).
  *
  * @param input Input image buffer (gain-corrected, FLOAT32)
  * @param output Output image buffer (defect-corrected, FLOAT32)
  * @param metadata Image metadata for dose-dependent threshold
  * @return XPE_OK on success
- *         XPE_ERR_NOT_INITIALIZED if module not initialized
+ *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
+ *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
  *         XPE_ERR_INVALID_INPUT if NULL pointers
  *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
  */

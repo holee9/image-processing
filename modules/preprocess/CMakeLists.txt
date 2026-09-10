@@ -152,6 +152,23 @@ if(_XPE_BUILD_TESTS)
         # rle_codec.cpp and calibration_cache.cpp measured 0%/6% coverage only
         # because these suites were never compiled.
         tests/test_xcal_compression.cpp
+        # QA-A-21 (#120): present on disk but never named in this list -- 54
+        # cases that had never been compiled or run. Registering all three
+        # produced 110 compile errors, all from the retired map-argument API
+        # family (xpe_calib_save/load_*/generate_offset/check_expiry,
+        # xpe_offset_correct, xpe_gain_correct, xpe_validate_readout_artifact).
+        # Two of them additionally assert contracts that no longer exist, so
+        # migrating them would mean choosing a convention rather than adapting
+        # a call:
+        #   - GoldenGainTest asserts output = raw * gain (16 golden values),
+        #     while gain_correct.cpp:296 computes raw * (1/gain). Whether the
+        #     stored map is gain or reciprocal gain is a spec decision.
+        #   - GoldenReadoutTest asserts a 0..100 score; the shipped
+        #     xpe_validate_readout_artifact reports two booleans instead.
+        # Findings are in .moai/reports/lane-pre/QA-A-21/.
+        # tests/test_golden_reference.cpp
+        # tests/test_gain_correct_reciprocal_fma.cpp
+        # tests/test_calibration_roundtrip.cpp
         # test_pipeline_ex.cpp / test_calibration_cache.cpp compile now (their
         # fixtures were migrated off the retired 4-arg xpe_calib_save) but their
         # assertions do not hold against the shipped implementation, and the
@@ -175,9 +192,18 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp
         tests/test_xpe_calib_save.cpp
-        # TODO: test_xpe_preprocess.cpp uses legacy 3-arg API (xpe_offset_correct/gain_correct)
-        # and outdated struct fields (stride, temperature_c, kvp, ma, sid_mm).
-        # Needs full rewrite to match current API before re-enabling.
+        # QA-A-21 (#120) judgement. The "legacy 3-arg API" half of the previous
+        # note was stale: the shipped API *is* 3-arg and this file has zero
+        # 2-argument correction calls. Registering it produces 14 errors, all
+        # struct fields, but they are not a rename job:
+        #   XpeImageBuffer::stride  -> removed (2 uses, derivable from width)
+        #   kvp -> kVp, sid_mm -> SID_mm                    (rename)
+        #   ma -> mAs                 (mA vs mA*s -- different quantity)
+        #   acquisition_time_s -> acquisitionTime  (seconds vs epoch ms)
+        #   temperature_c, integration_time_ms -> no field exists
+        # The last three change what the affected cases assert, so registering
+        # needs a contract decision, not an edit. Details in
+        # .moai/reports/lane-pre/QA-A-21/.
         # tests/test_xpe_preprocess.cpp
         tests/test_xpe_preprocess_calibration.cpp
         tests/test_xpe_preprocess_correction.cpp
