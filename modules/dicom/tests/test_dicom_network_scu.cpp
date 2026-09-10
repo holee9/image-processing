@@ -285,7 +285,15 @@ TEST_F(DicomNetworkTest, CStoreCalledAeInHost_NegotiatesAndStores) {
 // A query body that is not JSON fails in buildFindRequest
 // (DicomNetworkSCU.cpp:337-339) after the association is already up, so the
 // caller sees the release-and-fail path (:213-214).
-TEST_F(DicomNetworkTest, CFindMalformedQueryJson_ReturnsProcessingFailed) {
+// KnownDivergence_ (QA-B-43): this records what the current implementation
+// does, not what any requirement asks for. No SPEC, api-spec or header
+// sentence states this value; if the implementation changed it, that would
+// be a change, not a defect. The prefix keeps the distinction visible in the
+// ctest listing, where a reader sees only the name.
+// Specifically: PROCESSING_FAILED here comes from buildFindRequest failing
+// deep inside cfindMwl. INVALID_INPUT would be a defensible answer too --
+// nothing decides between them, which is exactly the point.
+TEST_F(DicomNetworkTest, KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed) {
     if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
     char outJson[256] = {};
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_dicom_cfind_mwl(

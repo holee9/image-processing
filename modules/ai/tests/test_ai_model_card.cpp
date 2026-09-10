@@ -99,7 +99,15 @@ TEST_F(AiModelCardTest, GetModelCardContainsModelId) {
     EXPECT_EQ(modelId, "bodypart_cnn_v1");
 }
 
-TEST_F(AiModelCardTest, GetModelCardContainsModelVersion) {
+// KnownDivergence_ (QA-B-43): this records what the current implementation
+// does, not what any requirement asks for. No SPEC, api-spec or header
+// sentence states this value; if the implementation changed it, that would
+// be a change, not a defect. The prefix keeps the distinction visible in the
+// ctest listing, where a reader sees only the name.
+// Specifically: the "stub" substring in model_version is a build artefact.
+// The requirement (REQ-AI-008) asks the card to carry a model version at
+// all, which the first assertion below covers on its own.
+TEST_F(AiModelCardTest, KnownDivergence_GetModelCardStubVersionSaysStub) {
     char buf[4096] = {};
     xpe_ai_get_model_card("bodypart_cnn_v1", buf, sizeof(buf));
 

@@ -114,7 +114,15 @@ TEST_F(AiFallbackTest, BodypartRecognizeSetsConfidenceToZero) {
     EXPECT_FLOAT_EQ(confidence, 0.0f);
 }
 
-TEST_F(AiFallbackTest, BodypartRecognizeSetsUnknownLabel) {
+// KnownDivergence_ (QA-B-43): this records what the current implementation
+// does, not what any requirement asks for. No SPEC, api-spec or header
+// sentence states this value; if the implementation changed it, that would
+// be a change, not a defect. The prefix keeps the distinction visible in the
+// ctest listing, where a reader sees only the name.
+// Specifically: "UNKNOWN" is the stub placeholder (ai.cpp). An ONNX build
+// writes a real label, and this case would then fail without anything being
+// broken.
+TEST_F(AiFallbackTest, KnownDivergence_BodypartRecognizeStubSetsUnknownLabel) {
     std::vector<uint16_t> storage;
     XpeImageBuffer img = makeTestBuffer(64, 64, storage);
 
@@ -563,13 +571,17 @@ TEST(AiEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
         XpeImageBuffer img = makeTestBuffer(64, 64, storage);
         char label[64] = {};
         float conf = 0.0f;
-        // Stub: PROCESSING_FAILED is the expected return, not a failure.
-        EXPECT_EQ(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
-                  XPE_ERR_PROCESSING_FAILED) << "cycle " << i;
+        // QA-B-43: this case measures working set, not the return code. It used
+        // to pin XPE_ERR_PROCESSING_FAILED, which is the stub's answer -- an ONNX
+        // build returning XPE_OK would have failed a memory test for a reason
+        // that has nothing to do with memory. What the loop needs is that the
+        // call was accepted and did its work, so that is what it asserts.
+        EXPECT_NE(xpe_bodypart_recognize(&img, label, sizeof(label), &conf),
+                  XPE_ERR_INVALID_INPUT) << "cycle " << i;
 
         XpeImageMetadata meta{};
-        EXPECT_EQ(xpe_dl_denoise(&img, &meta, nullptr),
-                  XPE_ERR_PROCESSING_FAILED) << "cycle " << i;
+        EXPECT_NE(xpe_dl_denoise(&img, &meta, nullptr),
+                  XPE_ERR_INVALID_INPUT) << "cycle " << i;
 
         xpe_ai_shutdown();
     };
@@ -773,4 +785,42 @@ TEST_F(AiFallbackTest, OutputBufferContract_AdequateBuffersStillAccepted) {
     const XpeErrorCode stitchRc = xpe_stitch_images(parts, 2, &out, nullptr);
     EXPECT_NE(XPE_ERR_INVALID_INPUT, stitchRc);
     EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, stitchRc);
+}
+
+/* ============================================================================
+ * #142 (QA-B-43): the BUFFER_TOO_SMALL threshold is bound to a stub constant.
+ *
+ * QA-B-42 made xpe_bodypart_recognize report BUFFER_TOO_SMALL rather than
+ * silently truncating. That is the contract. What is NOT a contract is WHERE
+ * the boundary sits: it is strlen(label) + 1, and in a stub build the label is
+ * the fixed string "UNKNOWN", so the boundary is 8 bytes. An ONNX build writing
+ * a longer label moves the boundary, and the same caller buffer that works
+ * today starts failing -- correctly, per the contract, but differently.
+ *
+ * QA-B-42 listed this as a Gap. This case turns it into something visible: it
+ * pins both sides of the current boundary so a change announces itself here
+ * instead of surfacing at a caller. It is KnownDivergence_ because the NUMBER
+ * is a record of the stub, not a requirement.
+ * ============================================================================ */
+TEST_F(AiFallbackTest, KnownDivergence_LabelBufferThresholdFollowsStubLabelLength) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+
+    static const char kStubLabel[] = "UNKNOWN";
+    constexpr size_t kExact = sizeof(kStubLabel);   // 8 = 7 chars + terminator
+
+    // One byte short of the label: the buffer is real, so BUFFER_TOO_SMALL.
+    std::vector<char> justShort(kExact - 1, '\0');
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_bodypart_recognize(&img, justShort.data(), justShort.size(), &conf))
+        << "threshold moved below " << kExact << " bytes";
+
+    // Exactly enough: accepted, and the label arrives whole rather than cut.
+    std::vector<char> exact(kExact, '\0');
+    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_bodypart_recognize(&img, exact.data(), exact.size(), &conf))
+        << "threshold moved above " << kExact << " bytes";
+    EXPECT_STREQ(kStubLabel, exact.data())
+        << "the label must not be truncated at the exact boundary";
 }
