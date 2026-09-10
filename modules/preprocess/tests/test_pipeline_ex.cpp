@@ -58,6 +58,10 @@ protected:
     fs::path defectFile;
 
     void SetUp() override {
+        // #117 decision B / QA-A-20: the correction entry points now check the
+        // module lifecycle flag for real, so the suite has to initialize.
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+
         tmpDir = fs::temp_directory_path() / "xpe_pipeline_ex_test";
         fs::create_directories(tmpDir);
 
@@ -95,6 +99,7 @@ protected:
     }
 
     void TearDown() override {
+        xpe_preprocess_shutdown();
         fs::remove_all(tmpDir);
     }
 
@@ -124,12 +129,22 @@ TEST_F(PipelineExTest, StateLoadPopulatesAllMaps) {
     EXPECT_TRUE(state.gainLoaded);
     EXPECT_TRUE(state.defectLoaded);
 
-    EXPECT_NE(nullptr, state.offsetMap.data);
-    EXPECT_NE(nullptr, state.gainMap.data);
-    EXPECT_NE(nullptr, state.defectMap.data);
+    // #117 decision B: xpe_calib_state_load loads into the global calibration and
+    // leaves the struct's map buffers empty by contract. The observable effect is
+    // that a correction call now succeeds instead of reporting CALIB_NOT_LOADED.
+    XpeImageBuffer   probeIn{}, probeOut{};
+    std::vector<uint16_t> probeInData = makeTestImage(200, probeIn);
+    std::vector<float>    probeOutData(W * H, 0.0f);
+    probeOut.data          = probeOutData.data();
+    probeOut.width         = W;
+    probeOut.height        = H;
+    probeOut.bitsAllocated = 32;
+    probeOut.bitsStored    = 32;
+    probeOut.format        = XPE_PIXEL_FLOAT32;
+    probeOut.dataSize      = probeOutData.size() * sizeof(float);
 
-    EXPECT_EQ(W, state.offsetMap.width);
-    EXPECT_EQ(H, state.offsetMap.height);
+    XpeImageMetadata probeMeta{};
+    EXPECT_EQ(XPE_OK, xpe_gain_correct(&probeIn, &probeOut, &probeMeta));
 
     xpe_calib_state_release(&state);
 }
@@ -203,8 +218,11 @@ TEST_F(PipelineExTest, PipelineExWithState) {
     const float* result = static_cast<const float*>(img.data);
     EXPECT_NEAR(50.0f, result[0], 0.01f);
 
-    // Clean up: gain_correct allocated a new buffer
-    std::free(img.data);
+    // No free() here. The old map-argument gain_correct replaced img.data with a
+    // malloc'd float buffer and handed ownership to the caller; the shipped one
+    // writes into a caller-supplied output buffer, so img.data still belongs to
+    // the vector that allocated it. Freeing it here double-freed and aborted the
+    // whole test binary (QA-A-12 ASan: attempting double-free).
     xpe_calib_state_release(&state);
 }
 

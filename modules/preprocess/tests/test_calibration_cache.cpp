@@ -3,6 +3,18 @@
  * @brief TDD tests for SWU-1.10: Calibration LRU Cache
  *        Validates cache hit/miss, LRU eviction, size limits, and thread safety.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ *
+ * Buffer ownership (QA-A-20, #120). The xpe_calib_load_*_cached() entry points
+ * do NOT fill a caller-provided buffer:
+ *   - on a cache miss they std::realloc(out->data, ...), so out->data must be
+ *     nullptr or a malloc'd block; passing a std::vector's storage there is
+ *     undefined behaviour, which is what the original version of this suite did;
+ *   - on a cache hit they overwrite the struct with the cache's own pointer,
+ *     which the caller must not free (calibration_cache.cpp:74-77).
+ * A caller cannot tell the two apart, so it can neither free safely nor keep
+ * ownership. These tests therefore start from nullptr and never free; the miss
+ * path leaks inside the test process. The inconsistency is reported as a
+ * finding rather than papered over here.
  */
 
 #include <gtest/gtest.h>
@@ -11,35 +23,33 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
-#include <string>
 
-#include <vector>
-#include <cstdio>
-#include <filesystem>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
 namespace {
 
-// QA-A-15 (#120): xpe_calib_save no longer takes a buffer -- it saves the
-// calibration currently loaded in the module. These fixtures need arbitrary
-// maps on disk, so they write XCal v1 files directly, the same way
-// test_offset_correct.cpp does.
+// xpe_calib_save() no longer writes an arbitrary buffer (it saves the loaded
+// calibration), so fixtures write XCal v1 files directly.
 static void writeXCalFixture(const std::string& path, XCalType type,
                              XCalPixelFormat fmt, uint32_t w, uint32_t h,
                              const void* payload, uint64_t payloadLen,
                              uint64_t expiryMs) {
     XCalFileHeader hdr{};
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version          = XCAL_VERSION;
-    hdr.type             = static_cast<uint32_t>(type);
-    hdr.pixel_format     = static_cast<uint32_t>(fmt);
-    hdr.width            = w;
-    hdr.height           = h;
-    hdr.expiry_epoch_ms  = static_cast<int64_t>(expiryMs);
-    hdr.payload_len      = payloadLen;
+    hdr.version         = XCAL_VERSION;
+    hdr.type            = static_cast<uint32_t>(type);
+    hdr.pixel_format    = static_cast<uint32_t>(fmt);
+    hdr.width           = w;
+    hdr.height          = h;
+    hdr.expiry_epoch_ms = static_cast<int64_t>(expiryMs);
+    hdr.payload_len     = payloadLen;
 
     ASSERT_EQ(XPE_OK,
               write_xcal_file(path.c_str(), hdr, nullptr, 0,
@@ -57,44 +67,37 @@ protected:
     fs::path defectFile;
 
     void SetUp() override {
-        // Create temp directory for test calibration files
         tmpDir = fs::temp_directory_path() / "xpe_cache_test";
+        fs::remove_all(tmpDir);   // an earlier aborted run can leave this behind
         fs::create_directories(tmpDir);
         offsetFile = tmpDir / "offset.xcal";
         gainFile   = tmpDir / "gain.xcal";
         defectFile = tmpDir / "defect.xcal";
 
-        // Create calibration files with valid expiry
         const uint64_t expiry = static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count()
         ) + 365ULL * 24 * 3600 * 1000;
 
-        // Offset map (uint16)
+        // XCal v1 requires OFFSET and GAIN payloads to be FLOAT32 and DEFECT to
+        // be UINT8_MASK (xcal_validator.cpp:78-86).
         {
-            // XCal v1 requires OFFSET payloads to be FLOAT32 (xcal_validator.cpp:78);
-            // the retired xpe_calib_save() converted, a direct write must not assume.
-            std::vector<float> data(W * H, 100.0f);
-            writeXCalFixture(offsetFile.string(), XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, W, H,
-                             data.data(), data.size() * sizeof(float), expiry);
+            const std::vector<float> data(W * H, 100.0f);
+            writeXCalFixture(offsetFile.string(), XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32,
+                             W, H, data.data(), data.size() * sizeof(float), expiry);
         }
-
-        // Gain map (float32)
         {
-            std::vector<float> data(W * H, 1.5f);
-            writeXCalFixture(gainFile.string(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, W, H,
-                             data.data(), data.size() * sizeof(float), expiry);
+            const std::vector<float> data(W * H, 1.5f);
+            writeXCalFixture(gainFile.string(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32,
+                             W, H, data.data(), data.size() * sizeof(float), expiry);
         }
-
-        // Defect map (uint8)
         {
             std::vector<uint8_t> data(W * H, 0);
             data[0] = 1;  // one defect pixel
-            writeXCalFixture(defectFile.string(), XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, W, H,
-                             data.data(), data.size() * sizeof(uint8_t), expiry);
+            writeXCalFixture(defectFile.string(), XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK,
+                             W, H, data.data(), data.size(), expiry);
         }
 
-        // Clear cache before each test
         xpe_calib_cache_clear();
         xpe_calib_cache_set_max_size(4);
     }
@@ -103,111 +106,67 @@ protected:
         xpe_calib_cache_clear();
         fs::remove_all(tmpDir);
     }
+
+    // An out-parameter the loaders may realloc. Never freed -- see the file note.
+    static XpeImageBuffer emptyOut() { return XpeImageBuffer{}; }
 };
 
 // --- Basic Cache Operations ---
 
 TEST_F(CalibrationCacheTest, CacheMissLoadsFromFile) {
-    std::vector<uint16_t> data(W * H, 0);
-    XpeImageBuffer out{};
-    out.data          = data.data();
-    out.width         = W;
-    out.height        = H;
-    out.bitsAllocated = 16;
-    out.bitsStored    = 16;
-    out.format        = XPE_PIXEL_UINT16;
-    out.dataSize      = data.size() * sizeof(uint16_t);
+    XpeImageBuffer out = emptyOut();
 
     EXPECT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out));
     EXPECT_EQ(W, out.width);
     EXPECT_EQ(H, out.height);
-    EXPECT_EQ(100u, data[0]); // Value from the saved file
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, out.format);
+
+    ASSERT_NE(nullptr, out.data);
+    EXPECT_NEAR(100.0f, static_cast<const float*>(out.data)[0], 1e-6f);
 }
 
 TEST_F(CalibrationCacheTest, CacheHitReturnsSameData) {
-    // First load (miss)
-    std::vector<uint16_t> data1(W * H, 0);
-    XpeImageBuffer out1{};
-    out1.data          = data1.data();
-    out1.width         = W;
-    out1.height        = H;
-    out1.bitsAllocated = 16;
-    out1.bitsStored    = 16;
-    out1.format        = XPE_PIXEL_UINT16;
-    out1.dataSize      = data1.size() * sizeof(uint16_t);
+    XpeImageBuffer out1 = emptyOut();
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out1));
+    ASSERT_NE(nullptr, out1.data);
 
-    // Second load (hit) — returns cached buffer pointer
-    XpeImageBuffer out2{};
-    out2.data          = data1.data(); // pre-allocate for initial miss attempt
-    out2.width         = W;
-    out2.height        = H;
-    out2.bitsAllocated = 16;
-    out2.bitsStored    = 16;
-    out2.format        = XPE_PIXEL_UINT16;
-    out2.dataSize      = data1.size() * sizeof(uint16_t);
+    XpeImageBuffer out2 = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out2));
+    ASSERT_NE(nullptr, out2.data);
 
-    // On cache hit, out2.data points to cached data — copy to verify
-    const auto* cached = static_cast<const uint16_t*>(out2.data);
-    ASSERT_NE(nullptr, cached);
+    const auto* first  = static_cast<const float*>(out1.data);
+    const auto* second = static_cast<const float*>(out2.data);
     for (size_t i = 0; i < W * H; ++i) {
-        EXPECT_EQ(data1[i], cached[i]) << "Mismatch at pixel " << i;
+        EXPECT_NEAR(first[i], second[i], 1e-6f) << "Mismatch at pixel " << i;
     }
 }
 
 TEST_F(CalibrationCacheTest, GainCacheMissAndHit) {
-    std::vector<float> data(W * H, 0.0f);
-    XpeImageBuffer out{};
-    out.data          = data.data();
-    out.width         = W;
-    out.height        = H;
-    out.bitsAllocated = 32;
-    out.bitsStored    = 32;
-    out.format        = XPE_PIXEL_FLOAT32;
-    out.dataSize      = data.size() * sizeof(float);
-
+    XpeImageBuffer out = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_gain_cached(gainFile.string().c_str(), &out));
-    EXPECT_NEAR(1.5f, data[0], 1e-6f);
+    ASSERT_NE(nullptr, out.data);
+    EXPECT_NEAR(1.5f, static_cast<const float*>(out.data)[0], 1e-6f);
 
-    // Second load (hit) — returns cached buffer pointer
-    std::vector<float> tmpBuf(W * H, 0.0f);
-    XpeImageBuffer out2{};
-    out2.data          = tmpBuf.data();
-    out2.width         = W;
-    out2.height        = H;
-    out2.bitsAllocated = 32;
-    out2.bitsStored    = 32;
-    out2.format        = XPE_PIXEL_FLOAT32;
-    out2.dataSize      = tmpBuf.size() * sizeof(float);
+    XpeImageBuffer out2 = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_gain_cached(gainFile.string().c_str(), &out2));
-
-    // On cache hit, out2.data points to cached data
-    const auto* cached = static_cast<const float*>(out2.data);
-    ASSERT_NE(nullptr, cached);
-    EXPECT_NEAR(1.5f, cached[0], 1e-6f);
+    ASSERT_NE(nullptr, out2.data);
+    EXPECT_NEAR(1.5f, static_cast<const float*>(out2.data)[0], 1e-6f);
 }
 
 TEST_F(CalibrationCacheTest, DefectCacheMissAndHit) {
-    std::vector<uint8_t> data(W * H, 0);
-    XpeImageBuffer out{};
-    out.data          = data.data();
-    out.width         = W;
-    out.height        = H;
-    out.bitsAllocated = 8;
-    out.bitsStored    = 8;
-    out.format        = XPE_PIXEL_UINT8;
-    out.dataSize      = data.size() * sizeof(uint8_t);
-
+    XpeImageBuffer out = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(defectFile.string().c_str(), &out));
-    EXPECT_EQ(1u, data[0]); // defect pixel
-    EXPECT_EQ(0u, data[1]); // normal pixel
+    ASSERT_NE(nullptr, out.data);
+
+    const auto* mask = static_cast<const uint8_t*>(out.data);
+    EXPECT_EQ(1u, mask[0]);  // defect pixel
+    EXPECT_EQ(0u, mask[1]);  // normal pixel
 }
 
 // --- NULL Input Validation ---
 
 TEST_F(CalibrationCacheTest, NullPathReturnsError) {
-    XpeImageBuffer out{};
+    XpeImageBuffer out = emptyOut();
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_load_offset_cached(nullptr, &out));
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_load_gain_cached(nullptr, &out));
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_load_defect_cached(nullptr, &out));
@@ -225,94 +184,45 @@ TEST_F(CalibrationCacheTest, NullOutReturnsError) {
 // --- Cache Clear ---
 
 TEST_F(CalibrationCacheTest, ClearEvictsAllEntries) {
-    // Load into cache
-    std::vector<uint16_t> data(W * H, 0);
-    XpeImageBuffer out{};
-    out.data          = data.data();
-    out.width         = W;
-    out.height        = H;
-    out.bitsAllocated = 16;
-    out.bitsStored    = 16;
-    out.format        = XPE_PIXEL_UINT16;
-    out.dataSize      = data.size() * sizeof(uint16_t);
+    XpeImageBuffer out = emptyOut();
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out));
 
-    // Clear
     xpe_calib_cache_clear();
 
-    // Next load should be a cache miss (loads from file again)
-    // This is verified by the function returning XPE_OK after clear
-    std::vector<uint16_t> data2(W * H, 0);
-    XpeImageBuffer out2{};
-    out2.data          = data2.data();
-    out2.width         = W;
-    out2.height        = H;
-    out2.bitsAllocated = 16;
-    out2.bitsStored    = 16;
-    out2.format        = XPE_PIXEL_UINT16;
-    out2.dataSize      = data2.size() * sizeof(uint16_t);
+    // A load after the clear is a miss again and must still succeed.
+    XpeImageBuffer out2 = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out2));
-    EXPECT_EQ(100u, data2[0]);
+    ASSERT_NE(nullptr, out2.data);
+    EXPECT_NEAR(100.0f, static_cast<const float*>(out2.data)[0], 1e-6f);
 }
 
 // --- Max Size Limits ---
 
 TEST_F(CalibrationCacheTest, SetMaxSizeEvictsExcess) {
-    // Set max to 1
     xpe_calib_cache_set_max_size(1);
 
-    // Load offset (cache size = 1)
-    std::vector<uint16_t> offData(W * H, 0);
-    XpeImageBuffer offOut{};
-    offOut.data          = offData.data();
-    offOut.width         = W;
-    offOut.height        = H;
-    offOut.bitsAllocated = 16;
-    offOut.bitsStored    = 16;
-    offOut.format        = XPE_PIXEL_UINT16;
-    offOut.dataSize      = offData.size() * sizeof(uint16_t);
+    XpeImageBuffer offOut = emptyOut();
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &offOut));
 
-    // Load gain (cache size = 1, offset should be evicted)
-    std::vector<float> gainData(W * H, 0.0f);
-    XpeImageBuffer gainOut{};
-    gainOut.data          = gainData.data();
-    gainOut.width         = W;
-    gainOut.height        = H;
-    gainOut.bitsAllocated = 32;
-    gainOut.bitsStored    = 32;
-    gainOut.format        = XPE_PIXEL_FLOAT32;
-    gainOut.dataSize      = gainData.size() * sizeof(float);
+    // With room for one entry, loading gain evicts the offset entry.
+    XpeImageBuffer gainOut = emptyOut();
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached(gainFile.string().c_str(), &gainOut));
 
-    // Loading offset again should be a cache miss
-    // (verified by successful load from file)
-    std::vector<uint16_t> offData2(W * H, 0);
-    XpeImageBuffer offOut2{};
-    offOut2.data          = offData2.data();
-    offOut2.width         = W;
-    offOut2.height        = H;
-    offOut2.bitsAllocated = 16;
-    offOut2.bitsStored    = 16;
-    offOut2.format        = XPE_PIXEL_UINT16;
-    offOut2.dataSize      = offData2.size() * sizeof(uint16_t);
+    // Offset is a miss again and reloads from file.
+    XpeImageBuffer offOut2 = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &offOut2));
-    EXPECT_EQ(100u, offData2[0]);
+    ASSERT_NE(nullptr, offOut2.data);
+    EXPECT_NEAR(100.0f, static_cast<const float*>(offOut2.data)[0], 1e-6f);
 }
 
 TEST_F(CalibrationCacheTest, SetMaxSizeZeroClampsToOne) {
     xpe_calib_cache_set_max_size(0);
-    // Should not crash; max size should be clamped to 1
-    std::vector<uint16_t> data(W * H, 0);
-    XpeImageBuffer out{};
-    out.data          = data.data();
-    out.width         = W;
-    out.height        = H;
-    out.bitsAllocated = 16;
-    out.bitsStored    = 16;
-    out.format        = XPE_PIXEL_UINT16;
-    out.dataSize      = data.size() * sizeof(uint16_t);
+
+    // Must not crash; the limit is clamped to one entry.
+    XpeImageBuffer out = emptyOut();
     EXPECT_EQ(XPE_OK, xpe_calib_load_offset_cached(offsetFile.string().c_str(), &out));
+    ASSERT_NE(nullptr, out.data);
+    EXPECT_NEAR(100.0f, static_cast<const float*>(out.data)[0], 1e-6f);
 }
 
 } // namespace

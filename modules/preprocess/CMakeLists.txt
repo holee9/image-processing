@@ -129,14 +129,14 @@ if(_XPE_BUILD_TESTS)
         # xpe_gain_correct(input, output, metadata) over the global g_calib map.
         # Migrating it means re-authoring all 10 cases, and which side is
         # correct is what QA-A-12 (#117) judges. Register after that verdict.
-        # tests/test_gain_correct.cpp
+        tests/test_gain_correct.cpp
         tests/test_readout_validate.cpp
         tests/test_temp_nonlinearity_binning.cpp
         # QA-A-15 (#120): compiles, but xpe_defect_correct(&img, &defectMap, nullptr)
         # passes the map where the shipped API expects the output buffer -- the
         # types match so the compiler is silent and 5 cases fail at runtime.
         # Same divergence as test_gain_correct; register after QA-A-12 (#117).
-        # tests/test_defect_correct.cpp
+        tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
         tests/test_calibration_manager.cpp
         tests/test_integration.cpp
@@ -158,8 +158,19 @@ if(_XPE_BUILD_TESTS)
         # binary aborts partway. Findings are in .moai/reports/lane-pre/QA-A-15/.
         # Register once QA-A-12 (#117) rules on the global-g_calib vs map-argument
         # divergence, which is what these suites actually disagree about.
+        # QA-A-20 (#117/#120): migrated off the retired ownership contract (the
+        # double-free at :207 is gone) and off the XpeCalibrationState fill
+        # expectation, but two cases still fail against the shipped pipeline and
+        # both look like implementation defects rather than test drift:
+        #   - PipelineExNullStateSkipsCalibration: bypass flags given as JSON
+        #     booleans are ignored. xpe_json_get_string (helpers.cpp:72) requires
+        #     a quoted value, so {"bypassOffset":true} silently does nothing.
+        #   - PipelineExWithState: the final buffer reads as uint16, not the
+        #     float32 the gain stage produced. Not diagnosed further here.
+        # Findings are in .moai/reports/lane-pre/QA-A-20/. Register once they are
+        # resolved; the other three suites are registered and green.
         # tests/test_pipeline_ex.cpp
-        # tests/test_calibration_cache.cpp
+        tests/test_calibration_cache.cpp
         tests/test_xpe_calib_generate_offset.cpp
         tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp

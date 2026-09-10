@@ -238,7 +238,10 @@ namespace {
             stage6.dataSize = stage6Data.size() * sizeof(float);
 
             // Defect correction: stage5(input) → stage6(output), defectMap for BPM lookup
-            result = xpe_defect_correct(&stage5, &stage6, nullptr);
+            // meta, not nullptr: xpe_defect_correct rejects a null metadata
+            // pointer. This stage never ran before the gate was fixed above, so
+            // the malformed call had never been reached.
+            result = xpe_defect_correct(&stage5, &stage6, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
