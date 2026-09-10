@@ -228,6 +228,36 @@ if(_XPE_BUILD_TESTS)
         tests/test_req_p1a_066.cpp
     )
 
+# =============================================================================
+# QA-A-36 (#141): deterministic XCal fixture generator
+#
+# The repository ships no XCal fixtures and binaries are not committed, so GUI,
+# E2E and CI build a set at run time with this tool. It links the module it
+# ships with and adds no export.
+# =============================================================================
+add_executable(xpe_calib_fixture_gen tools/xpe_calib_fixture_gen.cpp)
+
+target_include_directories(xpe_calib_fixture_gen
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party  # picosha2, via xpe_sha256.hpp
+)
+
+target_link_libraries(xpe_calib_fixture_gen PRIVATE xpe_preprocess xpe_common)
+target_compile_features(xpe_calib_fixture_gen PRIVATE cxx_std_17)
+
+if(MSVC)
+    target_compile_options(xpe_calib_fixture_gen PRIVATE /W4)
+else()
+    target_compile_options(xpe_calib_fixture_gen PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_calib_fixture_gen)
+
+# Same output directory as the test binaries so the CI artifact picks it up.
+set_target_properties(xpe_calib_fixture_gen PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
     add_executable(xpe_preprocess_tests
         ${XPE_TEST_SOURCES}
         src/rle_codec.cpp
