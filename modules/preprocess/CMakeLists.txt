@@ -167,6 +167,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calibration_cache.cpp
         # QA-A-22 (#127): cached-loader buffer ownership (cache-owned view)
         tests/test_calib_cache_ownership.cpp
+        # QA-A-14 (#119): error-code precedence rule 1 probe
+        tests/test_error_precedence.cpp
         tests/test_xpe_calib_generate_offset.cpp
         tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp

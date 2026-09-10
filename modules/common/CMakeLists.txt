@@ -122,6 +122,8 @@ if(_XPE_BUILD_TESTS)
         # two cases are unique -- the exact XPE_ERR_SAFETY_VIOLATION value and
         # the exact "Safety violation" text, neither pinned elsewhere.
         tests/test_xpe_error_safety_violation.cpp
+        # QA-A-14 (#119): error-code precedence rule 1 probe
+        tests/test_error_precedence.cpp
     )
     target_include_directories(test_xpe_common PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
