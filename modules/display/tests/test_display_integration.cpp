@@ -474,3 +474,123 @@ TEST(DisplayEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
             << ENDURANCE_CYCLES << " display modality/voi/presentation cycles";
     }
 }
+
+
+// =============================================================================
+// #142 — one empty-image answer across the display entry points.
+//
+// QA-B-40 settled the rule for enhance_basic: width == 0, height == 0, or a
+// NULL data pointer is XPE_ERR_INVALID_INPUT. QA-B-41 carries it here. Before
+// this, xpe_validate_float32() checked neither dimensions nor the data pointer,
+// so a zero-sized image walked through all three functions and returned XPE_OK
+// after looping zero times -- and a NULL data pointer with non-zero dimensions
+// reached a dereference.
+//
+// The pixel buffer here is malloc'd rather than owned by a std::vector, because
+// xpe_apply_presentation_lut takes ownership: it frees the incoming buffer with
+// std::free and installs its own. A vector-backed fixture made the RED run
+// abort the whole test binary with STATUS_HEAP_CORRUPTION (0xc0000374) -- the
+// crash was the fixture violating the ownership contract, not the defect under
+// test. Each case therefore frees whatever pointer the call left behind.
+// =============================================================================
+namespace {
+
+constexpr uint32_t kEmptyW = 32;
+constexpr uint32_t kEmptyH = 32;
+
+// Caller owns the returned data pointer until an entry point takes it.
+XpeImageBuffer make_contract_image() {
+    const size_t count = static_cast<size_t>(kEmptyW) * kEmptyH;
+    XpeImageBuffer img{};
+    img.width         = kEmptyW;
+    img.height        = kEmptyH;
+    img.format        = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = 32;
+    img.bitsStored    = 32;
+    img.dataSize      = count * sizeof(float);
+    img.data          = std::malloc(img.dataSize);
+    float* px = static_cast<float*>(img.data);
+    for (size_t i = 0; i < count; ++i) px[i] = 0.5f;
+    return img;
+}
+
+XpeErrorCode run_modality(XpeImageBuffer* img) {
+    XpeModalityLutParams p{};
+    p.mode             = XPE_MODALITY_LUT_LINEAR;
+    p.rescaleSlope     = 1.0f;
+    p.rescaleIntercept = 0.0f;
+    return xpe_apply_modality_lut(img, &p);
+}
+
+XpeErrorCode run_voi(XpeImageBuffer* img) {
+    XpeVoiLutParams p{};
+    p.mode   = XPE_VOI_LINEAR;
+    p.center = 0.5f;
+    p.width  = 1.0f;
+    p.minOut = 0.0f;
+    p.maxOut = 1.0f;
+    return xpe_apply_voi_lut(img, &p);
+}
+
+XpeErrorCode run_presentation(XpeImageBuffer* img) {
+    XpePresentationLutParams p{};
+    for (int i = 0; i < 1024; ++i) {
+        p.lutData[i] = static_cast<uint16_t>(i * 64);
+    }
+    p.gsdfEnabled = 0;
+    return xpe_apply_presentation_lut(img, &p);
+}
+
+struct NamedDisplayEntry {
+    const char* name;
+    XpeErrorCode (*fn)(XpeImageBuffer*);
+};
+
+const NamedDisplayEntry kDisplayEntries[] = {
+    {"xpe_apply_modality_lut",     run_modality},
+    {"xpe_apply_voi_lut",          run_voi},
+    {"xpe_apply_presentation_lut", run_presentation},
+};
+
+}  // namespace
+
+TEST(DisplayEmptyImageContract, ZeroWidthIsInvalidInput) {
+    for (const auto& e : kDisplayEntries) {
+        XpeImageBuffer img = make_contract_image();
+        img.width    = 0;
+        img.dataSize = 0;   // 0 means unspecified (#123), so it is not what fails
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, e.fn(&img)) << e.name << " accepted width == 0";
+        std::free(img.data);
+    }
+}
+
+TEST(DisplayEmptyImageContract, ZeroHeightIsInvalidInput) {
+    for (const auto& e : kDisplayEntries) {
+        XpeImageBuffer img = make_contract_image();
+        img.height   = 0;
+        img.dataSize = 0;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, e.fn(&img)) << e.name << " accepted height == 0";
+        std::free(img.data);
+    }
+}
+
+TEST(DisplayEmptyImageContract, NullDataIsInvalidInput) {
+    for (const auto& e : kDisplayEntries) {
+        XpeImageBuffer img = make_contract_image();
+        std::free(img.data);
+        img.data = nullptr;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, e.fn(&img))
+            << e.name << " accepted a NULL data pointer";
+    }
+}
+
+// The complement: without it a validator that rejected everything would satisfy
+// the three cases above.
+TEST(DisplayEmptyImageContract, ValidImageStillAccepted) {
+    for (const auto& e : kDisplayEntries) {
+        XpeImageBuffer img = make_contract_image();
+        EXPECT_NE(XPE_ERR_INVALID_INPUT, e.fn(&img))
+            << e.name << " rejected a well-formed image";
+        std::free(img.data);
+    }
+}

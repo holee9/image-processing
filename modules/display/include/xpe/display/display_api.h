@@ -13,12 +13,15 @@
  * Domain transition: xpe_apply_presentation_lut converts float32 -> uint16.
  *
  * Every processing function routes its image through one shared validator, so
- * three checks apply uniformly and are not repeated per function below:
- * a NULL img is XPE_ERR_INVALID_INPUT, a non-FLOAT32 format is
- * XPE_ERR_UNSUPPORTED_FORMAT, and a dataSize inconsistent with the declared
- * dimensions (#123) is XPE_ERR_INVALID_INPUT. Note the ordering: format is
- * judged before dataSize, so a UINT16 buffer reports UNSUPPORTED_FORMAT even
- * when its dataSize is also wrong.
+ * these checks apply uniformly and are not repeated per function below:
+ * a NULL img or img->data is XPE_ERR_INVALID_INPUT, a zero width or height is
+ * XPE_ERR_INVALID_INPUT (#142 -- an empty image is an error, not a no-op
+ * success), a non-FLOAT32 format is XPE_ERR_UNSUPPORTED_FORMAT, and a dataSize
+ * inconsistent with the declared dimensions (#123) is XPE_ERR_INVALID_INPUT.
+ * Note the ordering: dimensions are judged before the format, so an empty
+ * UINT16 buffer reports INVALID_INPUT rather than UNSUPPORTED_FORMAT, while a
+ * correctly sized UINT16 buffer reports UNSUPPORTED_FORMAT even when its
+ * dataSize is also wrong.
  */
 
 #ifndef XPE_DISPLAY_API_H

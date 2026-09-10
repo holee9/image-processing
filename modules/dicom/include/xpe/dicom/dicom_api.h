@@ -130,14 +130,15 @@ XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
  * SOP Class: Digital X-Ray Image Storage - For Presentation (1.2.840.10008.5.1.4.1.1.1.1).
  *
  * @param filePath  Destination file path. Must not be NULL.
- * @param img       Source pixel buffer (XPE_PIXEL_UINT16). Must not be NULL.
- *                  A non-zero dataSize smaller than width * height * bytes-per-
- *                  pixel is rejected (#123); dataSize == 0 means unspecified
- *                  and is accepted.
+ * @param img       Source pixel buffer (XPE_PIXEL_UINT16). Must not be NULL,
+ *                  and must not be empty: a zero width or height, or a NULL
+ *                  data pointer, is rejected (#142). A non-zero dataSize
+ *                  smaller than width * height * bytes-per-pixel is rejected
+ *                  (#123); dataSize == 0 means unspecified and is accepted.
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, or img->dataSize is
- *         inconsistent with its dimensions.
+ * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty, or
+ *         img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
  * @return XPE_ERR_PROCESSING_FAILED if the dataset cannot be assembled.
  *
@@ -158,12 +159,14 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
  *
  * @param filePath  Destination file path. Must not be NULL.
  * @param img       Source pixel buffer (XPE_PIXEL_UINT16). Must not be NULL.
- *                  The same dataSize consistency rule as xpe_dicom_write()
- *                  applies (#123).
+ *                  The same empty-image (#142) and dataSize consistency (#123)
+ *                  rules as xpe_dicom_write() apply. An empty image is reported
+ *                  as INVALID_INPUT here rather than surfacing as a compressor
+ *                  PROCESSING_FAILED, which is what it used to do.
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, or img->dataSize is
- *         inconsistent with its dimensions.
+ * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty, or
+ *         img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
  * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails.
  *

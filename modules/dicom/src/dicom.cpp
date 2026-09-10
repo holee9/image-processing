@@ -96,6 +96,15 @@ namespace {
  * File-local: dicom has no internal header, and xpe_common exports are fixed
  * at 16 symbols (REQ-P0-008).
  */
+// #142 (QA-B-41): the empty-image contract. width == 0, height == 0 or a NULL
+// data pointer is INVALID_INPUT rather than a file with no pixels (write) or a
+// compressor failure reported as PROCESSING_FAILED (write_j2k). Both writer
+// entry points route through here so the module keeps one definition.
+bool image_is_non_empty(const XpeImageBuffer* img) {
+    return img != nullptr && img->data != nullptr &&
+           img->width != 0u && img->height != 0u;
+}
+
 bool data_size_is_consistent(const XpeImageBuffer* img) {
     if (img == nullptr || img->dataSize == 0) return true;
     uint32_t bpp = 0u;
@@ -114,6 +123,7 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
                                       const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::write(filePath, img, meta);
@@ -128,6 +138,7 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
                                            const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::writeJ2K(filePath, img, meta);
