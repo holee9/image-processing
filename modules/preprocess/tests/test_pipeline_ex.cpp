@@ -63,6 +63,10 @@ protected:
         ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
 
         tmpDir = fs::temp_directory_path() / "xpe_pipeline_ex_test";
+        // write_xcal_file() renames <path>.tmp onto <path>, and std::rename()
+        // fails when the destination exists (Windows). A run that ended early
+        // leaves the fixture files behind, so start from an empty directory.
+        fs::remove_all(tmpDir);
         fs::create_directories(tmpDir);
 
         offsetFile = tmpDir / "offset.xcal";
@@ -294,8 +298,10 @@ TEST_F(PipelineExTest, BatchProcessesMultipleFrames) {
         EXPECT_NEAR(50.0f, result[0], 0.01f)
             << "Frame " << i << " pixel value mismatch";
 
-        // Clean up float buffer allocated by gain correction
-        std::free(images[i].data);
+        // No free(): the pipeline writes into the caller's buffer, so
+        // images[i].data still belongs to the vector that allocated it.
+        // Freeing here double-freed and aborted the binary (QA-A-23 ASan:
+        // attempting double-free, test_pipeline_ex.cpp:312 then :314).
     }
 }
 
@@ -339,7 +345,8 @@ TEST_F(PipelineExTest, BatchSingleFrameWorks) {
     EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
     EXPECT_EQ(XPE_PIXEL_FLOAT32, img.format);
 
-    std::free(img.data);
+    // No free(): the pipeline writes into the caller's buffer, so the data
+    // pointer still belongs to the vector that allocated it (#117 decision B).
 }
 
 TEST_F(PipelineExTest, BatchContinuesOnError) {
@@ -382,9 +389,9 @@ TEST_F(PipelineExTest, BatchContinuesOnError) {
     EXPECT_TRUE(metas[2].flags & XPE_FLAG_OFFSET_CORRECTED);
 
     // Clean up float buffers from successful frames
-    if (images[0].format == XPE_PIXEL_FLOAT32) std::free(images[0].data);
     // images[1] failed, no new buffer
-    if (images[2].format == XPE_PIXEL_FLOAT32) std::free(images[2].data);
+    // No free(): the pipeline writes into the caller's buffer, so the data
+    // pointer still belongs to the vector that allocated it (#117 decision B).
 }
 
 } // namespace
