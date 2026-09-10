@@ -578,3 +578,108 @@ TEST(AiEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
             << ENDURANCE_CYCLES << " ai init/process/shutdown cycles";
     }
 }
+
+/* ============================================================================
+ * #142 (QA-B-41): the empty-image contract.
+ *
+ * Unlike enhance_basic (QA-B-40), display and dicom (QA-B-41), this module
+ * ALREADY held the contract: validateImageBuffer() rejects a zero width or
+ * height and a NULL data pointer (ai.cpp). There was no RED phase here, and
+ * nothing to fix. These cases exist so that stays true -- the rule is now
+ * asserted rather than merely present in the code.
+ *
+ * Ordering matters and is asserted implicitly: every inference entry point
+ * checks initialisation BEFORE the buffer, so these cases run initialised (the
+ * fixture does that). Uninitialised, the same input answers NOT_INITIALIZED,
+ * which is a different contract and not what is under test here.
+ * ============================================================================ */
+
+TEST_F(AiFallbackTest, EmptyImageContract_ZeroWidthIsInvalidInput) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+    img.width    = 0;
+    img.dataSize = 0;   // 0 means unspecified (#123), so it is not what fails
+
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_bodypart_recognize(&img, label, sizeof(label), &conf));
+
+    XpeImageBuffer out = makeTestBuffer(64, 64, storage);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bone_suppress(&img, &out, nullptr));
+
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&img, &meta, nullptr));
+}
+
+TEST_F(AiFallbackTest, EmptyImageContract_ZeroHeightIsInvalidInput) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+    img.height   = 0;
+    img.dataSize = 0;
+
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_bodypart_recognize(&img, label, sizeof(label), &conf));
+
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&img, &meta, nullptr));
+}
+
+TEST_F(AiFallbackTest, EmptyImageContract_NullDataIsInvalidInput) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+    img.data = nullptr;
+
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+              xpe_bodypart_recognize(&img, label, sizeof(label), &conf));
+
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&img, &meta, nullptr));
+}
+
+// The stitch entry points take an ARRAY of images; the contract must reach the
+// elements, not just the array pointer.
+TEST_F(AiFallbackTest, EmptyImageContract_StitchRejectsEmptyElement) {
+    std::vector<uint16_t> a;
+    std::vector<uint16_t> b;
+    XpeImageBuffer parts[2] = {makeTestBuffer(64, 64, a), makeTestBuffer(64, 64, b)};
+    parts[1].width    = 0;
+    parts[1].dataSize = 0;
+
+    uint32_t w = 0;
+    uint32_t h = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(parts, 2, &w, &h));
+
+    std::vector<uint16_t> outStorage;
+    XpeImageBuffer out = makeTestBuffer(128, 64, outStorage);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(parts, 2, &out, nullptr));
+}
+
+// The complement. A well-formed image must not be rejected as invalid input --
+// in a stub build the inference functions answer PROCESSING_FAILED, which is
+// the documented fallback signal, not a validation failure.
+TEST_F(AiFallbackTest, EmptyImageContract_ValidImageStillAccepted) {
+    std::vector<uint16_t> storage;
+    XpeImageBuffer img = makeTestBuffer(64, 64, storage);
+
+    char label[64] = {};
+    float conf = 0.0f;
+    EXPECT_NE(XPE_ERR_INVALID_INPUT,
+              xpe_bodypart_recognize(&img, label, sizeof(label), &conf));
+
+    XpeImageMetadata meta{};
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&img, &meta, nullptr));
+
+    std::vector<uint16_t> a;
+    std::vector<uint16_t> b;
+    XpeImageBuffer parts[2] = {makeTestBuffer(64, 64, a), makeTestBuffer(64, 64, b)};
+    uint32_t w = 0;
+    uint32_t h = 0;
+    EXPECT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
+    EXPECT_GT(w, 0u);
+    EXPECT_GT(h, 0u);
+}
