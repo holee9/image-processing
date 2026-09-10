@@ -49,15 +49,20 @@ public sealed class WorkflowScenarios
                 viewport!.BoundingRectangle.Width > 0 && viewport.BoundingRectangle.Height > 0,
                 $"ViewportShell has an empty rectangle ({viewport.BoundingRectangle}).");
 
-            // The status bar shows the LATEST status, which by now is the display-pipeline summary —
-            // measured, and the reason this does not assert on "RAW" there. The load itself is
-            // evidenced by the log the loader writes.
             var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
             Assert.True(status is not null, "StatusBarText was not found.");
             Assert.False(string.IsNullOrWhiteSpace(status!.Name), "StatusBarText is empty after the load.");
 
+            // Re-run the pipeline rather than reading whatever the status bar happens to hold.
+            // Measured: with W-02 wired (GUI-C-36) it runs first under xUnit's ordering and leaves a
+            // preprocess line there, which made this scenario fail on residue — the order dependency
+            // flagged as a risk in GUI-C-34/35 actually biting. A scenario must establish the state
+            // it asserts.
+            InvokePipelineItem(window, "ApplyDisplayPipelineMenuItem");
+            Thread.Sleep(1500);
+
             // "CalibrationEval(...)" is written only after a frame has been loaded AND run through
-            // the pipeline, so its presence is evidence the raw image arrived. The log list would say
+            // the pipeline, so its presence is evidence the raw image arrived and is usable. The log list would say
             // it more directly, but it lives inside the Analysis panel's "log" tab and is not in the
             // UIA tree until that tab is selected — measured, same lazy-realisation trap as the menus
             // in GUI-C-29.
@@ -97,7 +102,8 @@ public sealed class WorkflowScenarios
             try
             {
                 var apply = WaitFor(() =>
-                    window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem")));
+                    pipelineMenu.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"))
+                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem")));
                 Assert.True(apply is not null, "ApplyDisplayPipelineMenuItem was not found.");
                 Assert.True(apply!.IsEnabled, "Apply Display Pipeline is disabled in Mock mode.");
                 apply.AsMenuItem().Invoke();
@@ -115,21 +121,25 @@ public sealed class WorkflowScenarios
     }
 
     /// <summary>
-    /// W-02, NARROWED to what the app actually offers.
+    /// W-02: Run Preprocessing, per backend.
     ///
-    /// Measured (GUI-C-34): <c>RunPreprocessingMenuItem</c> carries <c>IsEnabled="False"</c> and no
-    /// Command or Click handler at all — it is a Phase-1a placeholder whose tooltip states the
-    /// prerequisite. So "run preprocessing and see a processed image" cannot happen in Mock OR
-    /// Native today; there is nothing behind the menu item.
+    /// Mock has no preprocess module, so the entry stays disabled and the tooltip says why — the
+    /// contract GUI-C-34 pinned, kept because it is still the truth for that backend.
     ///
-    /// What is asserted is that contract: the entry exists and is disabled. When preprocessing
-    /// lands, this scenario fails — which is the right way for a placeholder assertion to expire.
+    /// Native: the entry is now wired (GUI-C-36) and invoking it must produce a preprocess line.
+    /// WHICH line depends on whether a calibration set exists: the fixtures are generated at run
+    /// time by xpe_calib_fixture_gen and none is staged here, so today the observable outcome is the
+    /// refusal ("calibration file(s) not found"). Both outcomes are asserted through the same
+    /// substring, and the report names the success path as unverified rather than pretending.
     /// </summary>
     [SkippableFact]
-    public void W02_RunPreprocessing_IsAnUnimplementedPlaceholder()
+    public void W02_RunPreprocessing_MatchesTheBackendItRunsOn()
     {
         Measure("W-02", window =>
         {
+            var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
+            Assert.True(status is not null, "StatusBarText was not found.");
+
             var pipelineMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
             Assert.True(pipelineMenu is not null, "PipelineMenu was not found.");
 
@@ -137,18 +147,28 @@ public sealed class WorkflowScenarios
             try
             {
                 var run = WaitFor(() =>
-                    window.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem")));
-
+                    pipelineMenu.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem"))
+                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("RunPreprocessingMenuItem")));
                 Assert.True(run is not null, "RunPreprocessingMenuItem was not found.");
-                Assert.False(
-                    run!.IsEnabled,
-                    "Run Preprocessing is now enabled — preprocessing has landed and this placeholder " +
-                    "assertion must be replaced by the real W-02 from the plan (load → run → processed image).");
+
+                if (_app.BackendMode != "Native")
+                {
+                    Assert.False(
+                        run!.IsEnabled,
+                        "Run Preprocessing is enabled on the Mock backend, which has no preprocess module.");
+                    return;
+                }
+
+                Assert.True(run!.IsEnabled, "Run Preprocessing is disabled on the native backend.");
+                run.AsMenuItem().Invoke();
             }
             finally
             {
-                pipelineMenu.AsMenuItem().Collapse();
+                try { pipelineMenu.AsMenuItem().Collapse(); } catch (Exception) { /* popup already closed by Invoke */ }
             }
+
+            Thread.Sleep(1500);
+            Assert.Contains("Preprocess", status!.Name, StringComparison.OrdinalIgnoreCase);
         });
     }
 
@@ -178,11 +198,41 @@ public sealed class WorkflowScenarios
             combo.Select("Lung");
             Thread.Sleep(1500);
 
-            // Mock's Lung preset (MockXpeBackend.cs): centre 25000, width 50000.
+            // The expected numbers ARE backend-specific, and the first version of this scenario
+            // asserted the mock ones unconditionally — which passed locally (Mock) and failed in the
+            // CI Native job. Reading them from the active backend is what the comment always
+            // claimed and the code did not do.
+            var (center, width) = _app.BackendMode == "Native"
+                ? ("C=-600", "W=1600")      // modules/display/src/voi_lut.cpp XPE_BODY_LUNG (HU)
+                : ("C=25000", "W=50000");   // MockXpeBackend.cs XpeBodyPartEnum.Lung
+
             var text = status!.Name;
-            Assert.Contains("C=25000", text, StringComparison.Ordinal);
-            Assert.Contains("W=50000", text, StringComparison.Ordinal);
+            Assert.Contains(center, text, StringComparison.Ordinal);
+            Assert.Contains(width, text, StringComparison.Ordinal);
         });
+    }
+
+    /// <summary>Expands the Pipeline menu, invokes one of its items, and closes the menu again.</summary>
+    private static void InvokePipelineItem(Window window, string automationId)
+    {
+        var pipelineMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
+        Assert.True(pipelineMenu is not null, "PipelineMenu was not found.");
+
+        pipelineMenu!.AsMenuItem().Expand();
+        try
+        {
+            var item = WaitFor(() =>
+                pipelineMenu.FindFirstDescendant(cf => cf.ByAutomationId(automationId))
+                ?? window.FindFirstDescendant(cf => cf.ByAutomationId(automationId)));
+
+            Assert.True(item is not null, $"{automationId} was not found.");
+            Assert.True(item!.IsEnabled, $"{automationId} is disabled.");
+            item.AsMenuItem().Invoke();
+        }
+        finally
+        {
+            try { pipelineMenu.AsMenuItem().Collapse(); } catch (Exception) { /* closed by Invoke */ }
+        }
     }
 
     /// <summary>Polls briefly for an element the UI creates lazily. Returns null when it never appears.</summary>

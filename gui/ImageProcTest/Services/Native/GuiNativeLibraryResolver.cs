@@ -23,6 +23,7 @@ internal static class GuiNativeLibraryResolver
 {
     private const string CommonDll = "xpe_common.dll";
     private const string DisplayDll = "xpe_display.dll";
+    private const string PreprocessDll = "xpe_preprocess.dll";
 
     private static readonly object Gate = new();
     private static bool _installed;
@@ -120,6 +121,8 @@ internal static class GuiNativeLibraryResolver
             _ when Is(libraryName, CommonDll) => XpeCommonLibraryLocator.GetDllCandidates(),
             _ when Is(libraryName, DisplayDll) =>
                 NativeModuleLibraryLocator.GetDllCandidates(DisplayDll, "image-processing"),
+            // #141: preprocess has its own locator in clients, linked alongside the others.
+            _ when Is(libraryName, PreprocessDll) => XpePreprocessLibraryLocator.GetDllCandidates(),
             _ => null,
         };
 

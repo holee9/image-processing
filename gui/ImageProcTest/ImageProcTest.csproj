@@ -39,6 +39,8 @@
              Link="Services\Native\Linked\NativeModuleLibraryLocator.cs" />
     <Compile Include="..\..\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs"
              Link="Services\Native\Linked\NativeDependencyLoader.cs" />
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\XpePreprocessLibraryLocator.cs"
+             Link="Services\Native\Linked\XpePreprocessLibraryLocator.cs" />
   </ItemGroup>
 
   <ItemGroup>

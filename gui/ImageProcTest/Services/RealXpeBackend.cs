@@ -248,6 +248,33 @@ public sealed class RealXpeBackend : IXpeBackend
         return code;
     }
 
+    /// <summary>#141: native preprocessing is available; whether calibration exists is decided per run.</summary>
+    public bool SupportsPreprocessing => true;
+
+    // @MX:WARN: [AUTO] Native buffers are allocated inside GuiPreprocessRunner and freed in its finally
+    // @MX:REASON: #141 — the runner owns every xpe_alloc_image it makes; do not hoist allocation out
+    public PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        {
+            return new PreprocessRunResult(false, "Preprocessing needs a loaded UInt16 raw frame.", null);
+        }
+
+        // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
+        // failure paths — a stage that refuses is exactly when the queue holds something to show.
+        var result = InvokeNative(() => Native.GuiPreprocessRunner.Run(
+            rawFrame.RawPixels,
+            rawFrame.Width,
+            rawFrame.Height,
+            settings.OffsetCalibrationDirectory,
+            settings.GainCalibrationDirectory,
+            settings.DefectCalibrationDirectory,
+            settings.SelectedBodyPart));
+
+        AddLog(result.Summary);
+        return result;
+    }
+
     public int GetAlertCount() => _alerts.Count;
 
     public AlertEntry? GetAlert(int index) => index >= 0 && index < _alerts.Count ? _alerts[index] : null;

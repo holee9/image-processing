@@ -303,6 +303,12 @@ public sealed class MockXpeBackend : IXpeBackend
         _ => throw new ArgumentOutOfRangeException(nameof(bodyPart), bodyPart, "Unsupported body part preset.")
     };
 
+    /// <summary>#141: the mock has no preprocess module. It says so rather than pretending.</summary>
+    public bool SupportsPreprocessing => false;
+
+    public PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings) =>
+        new(false, "Preprocessing requires the native backend (xpe_preprocess.dll).", null);
+
     public int GetAlertCount() => _alerts.Count;
 
     public AlertEntry? GetAlert(int index) => index >= 0 && index < _alerts.Count ? _alerts[index] : null;
