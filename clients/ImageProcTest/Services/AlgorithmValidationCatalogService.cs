@@ -71,7 +71,7 @@ namespace ImageProcTest
             IReadOnlyDictionary<string, ModuleReadinessSnapshot> readiness)
         {
             readiness.TryGetValue(definition.ModuleName, out var module);
-            var level = module?.Level ?? "R0";
+            var level = module?.Level ?? ModuleReadinessGrading.NotReady;
             var moduleStatus = module?.Status ?? "Module not registered";
             var isFolderAudit = string.Equals(definition.Adapter, "folder-audit", StringComparison.OrdinalIgnoreCase);
             var isNativeAdapter =
