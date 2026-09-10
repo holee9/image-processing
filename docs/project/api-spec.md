@@ -63,6 +63,7 @@ typedef struct XpeImageBuffer {
 
 - `dataSize == 0` means *unspecified*: the entry point trusts `width × height × bytesPerPixel(format)` and does not check the size (legacy behaviour).
 - `dataSize != 0` and `dataSize < width × height × bytesPerPixel(format)` yields `XPE_ERR_INVALID_INPUT` (content validation, precedence class 2). A larger `dataSize` is accepted.
+- **Empty image (decision 2026-09-11, #142 D1):** `width == 0`, `height == 0`, or `data == NULL` is rejected with `XPE_ERR_INVALID_INPUT` by every export that takes an image buffer, uniformly across DLLs (enhance_basic: QA-B-40; display/dicom/ai/gsvg: QA-B-41). The dimension check runs after the null checks and before the pixel-format check, so an empty UINT16 buffer reports "empty", not "unsupported format".
 - `data == NULL` yields `XPE_ERR_INVALID_INPUT` regardless of `dataSize` (precedence class 1).
 
 **Output buffers are not covered by this rule.** A caller-provided output `XpeImageBuffer` is written to, so its `dataSize` MUST be populated; an output `dataSize` smaller than the required byte count yields `XPE_ERR_BUFFER_TOO_SMALL`, and `0` is not treated as unspecified (leader decision 2026-09-10, QA-A-17).
