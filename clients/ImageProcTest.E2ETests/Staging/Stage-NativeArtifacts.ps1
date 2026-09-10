@@ -67,6 +67,15 @@ foreach ($artifact in $Artifacts) {
 
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 
+# Drop any existing record BEFORE the first copy. A copy can fail part-way (a locked DLL, a full
+# disk, a name collision), and the state that leaves behind — new binaries beside a record naming
+# the PREVIOUS run — is worse than no record at all: the guard would pass and attribute these files
+# to a run that never produced them. Measured on this script before the removal was added: eight
+# files staged, the copy failed, and provenance.json still named the earlier run.
+# With the record gone first, a mid-copy failure leaves a directory the guard REFUSES.
+$provenancePath = Join-Path $Destination 'provenance.json'
+if (Test-Path $provenancePath) { Remove-Item -Force $provenancePath }
+
 $staged = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 foreach ($file in Get-ChildItem -Path $staging -Recurse -Include '*.dll', '*.exe') {
     $target = Join-Path $Destination $file.Name
@@ -106,7 +115,6 @@ $provenance = [pscustomobject]@{
     files       = $records
 }
 
-$provenancePath = Join-Path $Destination 'provenance.json'
 $provenance | ConvertTo-Json -Depth 5 | Set-Content -Path $provenancePath -Encoding utf8
 
 Write-Host ""
