@@ -12,6 +12,9 @@ public sealed class GuiAutomationReport
     /// <summary>#136: where that mode came from — "arg" (--automation-backend) or "file" (appsettings.json).</summary>
     public string BackendModeSource { get; set; } = string.Empty;
 
+    /// <summary>#129: directory the native library resolved from, or "loader"/empty. See RuntimeInfo.NativeSource.</summary>
+    public string NativeSource { get; set; } = string.Empty;
+
     public int InitialLogCount { get; set; }
 
     public int InitialAlertCount { get; set; }

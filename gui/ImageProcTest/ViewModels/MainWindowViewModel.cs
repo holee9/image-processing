@@ -289,6 +289,13 @@ public sealed class MainWindowViewModel : ObservableObject
                 parts.Add($"display={RuntimeInfo.DisplayVersion}");
             }
 
+            // #129 (GUI-C-33): where the library actually came from. "loader" means the DllImport
+            // resolver did not supply it — the observation C-32 could not make. Absent for Mock.
+            if (!string.IsNullOrWhiteSpace(RuntimeInfo.NativeSource))
+            {
+                parts.Add($"src={RuntimeInfo.NativeSource}");
+            }
+
             return string.Join("  |  ", parts);
         }
     }
