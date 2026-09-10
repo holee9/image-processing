@@ -258,6 +258,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_req_p1a_066.cpp
         # QA-A-36 (#141): fixture generator determinism + pipeline acceptance
         tests/test_calib_fixture_gen.cpp
+        # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
+        tests/test_calib_gain_poly_load.cpp
     )
 
     add_executable(xpe_preprocess_tests

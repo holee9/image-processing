@@ -238,6 +238,16 @@ struct CalibrationData {
     int64_t  gain_timestamp{0};
     char     gain_session_id[64]{};
 
+    // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
+    // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
+    // is the layout xpe_calib_generate_gain_polynomial() writes.
+    //
+    // A polynomial calibration and a scalar map are alternatives, never both:
+    // loading either clears the other, so the store always describes exactly
+    // one gain model and xpe_gain_correct() cannot silently apply a stale map.
+    std::unique_ptr<float[]>   gain_poly_coeffs;
+    uint32_t gain_poly_num_coeffs{0};
+
     std::unique_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};

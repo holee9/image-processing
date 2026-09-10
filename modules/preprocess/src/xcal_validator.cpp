@@ -62,7 +62,10 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     }
 
     // Check 3: type range
-    if (header.type > static_cast<uint32_t>(XCAL_TYPE_DEFECT)) {
+    // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY (= 3) sits above XCAL_TYPE_DEFECT
+    // (= 2), so the old ceiling rejected every polynomial gain file the public
+    // generator writes -- the file was writable and unreadable.
+    if (header.type > static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
@@ -84,6 +87,9 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     if (header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {
         return XPE_ERR_CONFIG_INVALID;
     }
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_FLOAT32)) {
+        return XPE_ERR_CONFIG_INVALID;
+    }
 
     // Check 6: width in valid range
     if (header.width == 0 || header.width > XCAL_MAX_DIM) {
@@ -103,7 +109,16 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     uint64_t expected_payload = static_cast<uint64_t>(header.width) *
                                 static_cast<uint64_t>(header.height) *
                                 static_cast<uint64_t>(bpp);
-    if (header.payload_len != expected_payload) {
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
+        // A polynomial gain file carries (degree + 1) coefficient planes, so
+        // its payload is a whole positive multiple of one plane rather than
+        // exactly one. The degree itself is derived from that multiple.
+        if (expected_payload == 0 ||
+            header.payload_len == 0 ||
+            header.payload_len % expected_payload != 0) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    } else if (header.payload_len != expected_payload) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
