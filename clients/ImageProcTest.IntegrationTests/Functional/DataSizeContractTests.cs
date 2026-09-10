@@ -1,4 +1,4 @@
-// REQ #123: client-side regression for the XpeImageBuffer.dataSize input contract.
+﻿// REQ #123: client-side regression for the XpeImageBuffer.dataSize input contract.
 using System.Runtime.InteropServices;
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
@@ -38,9 +38,9 @@ public sealed class DataSizeContractTests
 
     /// <summary>
     /// #123: exact input dataSize passes the size gate in xpe_offset_correct.
-    /// Without calibration loaded the call then stops at the NEXT gate and returns
-    /// NOT_INITIALIZED — that is still an observation that the size gate did not
-    /// reject, because the size check precedes the calibration check in the native
+    /// With no offset map loaded the call then stops at the NEXT gate and returns
+    /// CALIB_NOT_LOADED — still an observation that the size gate did not reject,
+    /// because the size check precedes the calibration check in the native
     /// implementation. Either outcome proves the same thing; INVALID_INPUT would not.
     /// </summary>
     [SkippableFact]
@@ -68,13 +68,20 @@ public sealed class DataSizeContractTests
 
     /// <summary>
     /// The size gate rejects with INVALID_INPUT and nothing else, so any other code
-    /// means the call got past it. Naming the two codes we actually expect keeps this
-    /// from degenerating into "not INVALID_INPUT", which would pass on any failure.
+    /// means the call got past it. Naming the codes we actually expect keeps this from
+    /// degenerating into "not INVALID_INPUT", which would pass on any failure.
+    ///
+    /// CALIB_NOT_LOADED (-16) is the normal outcome here: the module is initialised but
+    /// no offset map is loaded, and the calibration gate sits after the size gate
+    /// (api-spec "Calibration state model", #117). NOT_INITIALIZED stays accepted for
+    /// the case where init itself did not take.
     /// </summary>
     private static void AssertPassedSizeGate(XpeCommonNative.XpeErrorCode code) =>
         Assert.True(
-            code is XpeCommonNative.XpeErrorCode.OK or XpeCommonNative.XpeErrorCode.NOT_INITIALIZED,
-            $"Expected the dataSize gate to accept (OK, or NOT_INITIALIZED at the next gate), got {code}");
+            code is XpeCommonNative.XpeErrorCode.OK
+                 or XpeCommonNative.XpeErrorCode.CALIB_NOT_LOADED
+                 or XpeCommonNative.XpeErrorCode.NOT_INITIALIZED,
+            $"Expected the dataSize gate to accept (OK, or CALIB_NOT_LOADED / NOT_INITIALIZED at a later gate), got {code}");
 
     // ---------- axis 2: xpe_enhance_basic.dll / xpe_log_transform (FLOAT32) ----------
 

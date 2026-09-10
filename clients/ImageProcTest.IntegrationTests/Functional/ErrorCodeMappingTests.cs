@@ -33,6 +33,7 @@ public sealed class ErrorCodeMappingTests
     [InlineData(XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL)]
     [InlineData(XpeCommonNative.XpeErrorCode.IO_FAILED)]
     [InlineData(XpeCommonNative.XpeErrorCode.NETWORK_FAILED)]
+    [InlineData(XpeCommonNative.XpeErrorCode.CALIB_NOT_LOADED)]
     public void ErrorString_ForAllDefinedCodes_IsNonNullAndNonEmpty(XpeCommonNative.XpeErrorCode code)
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
