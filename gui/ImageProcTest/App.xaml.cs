@@ -8,6 +8,12 @@ public partial class App : System.Windows.Application
 
     public static string? AutomationReportPath { get; private set; }
 
+    /// <summary>
+    /// #136: the backend an automation run should exercise, supplied as an argument rather than read
+    /// from the shipped settings file. Null when the argument was absent — the file still decides then.
+    /// </summary>
+    public static string? AutomationBackendMode { get; private set; }
+
     public static int? AutomationRawWidth { get; private set; }
 
     public static int? AutomationRawHeight { get; private set; }
@@ -49,6 +55,14 @@ public partial class App : System.Windows.Application
                 i + 1 < args.Length)
             {
                 AutomationReportPath = Path.GetFullPath(args[i + 1]);
+                i++;
+                continue;
+            }
+
+            if (string.Equals(args[i], "--automation-backend", StringComparison.OrdinalIgnoreCase) &&
+                i + 1 < args.Length)
+            {
+                AutomationBackendMode = args[i + 1];
                 i++;
                 continue;
             }

@@ -51,8 +51,14 @@ public partial class MainWindow : System.Windows.Window
             Path.GetTempPath(),
             $"xpe_gui_automation_{Guid.NewGuid():N}");
 
+        // #136: the argument wins when present. C-25 had to carry BackendMode over from the shipped
+        // file because nothing else could select it — that was the one hole left in the isolation.
+        var backendMode = string.IsNullOrWhiteSpace(App.AutomationBackendMode)
+            ? persisted.BackendMode
+            : App.AutomationBackendMode;
+
         return (
-            new AppSettings { BackendMode = persisted.BackendMode },
+            new AppSettings { BackendMode = backendMode },
             new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")));
     }
 
@@ -105,6 +111,8 @@ public partial class MainWindow : System.Windows.Window
             }
 
             report.BackendVersion = viewModel.RuntimeInfo.Version;
+            report.BackendMode = viewModel.Settings.BackendMode;
+            report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 
