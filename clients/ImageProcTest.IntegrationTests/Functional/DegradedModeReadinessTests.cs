@@ -1,4 +1,4 @@
-// #128 (BP-06..BP-10): a module DLL missing must leave that module undiscoverable while the
+﻿// #128 (BP-06..BP-10): a module DLL missing must leave that module undiscoverable while the
 // others stay discoverable, and must not throw.
 using ImageProcTest.IntegrationTests.Fixtures;
 
@@ -30,13 +30,17 @@ public sealed class DegradedModeReadinessTests : IDisposable
     [
         ["BP-06", "gsvg.dll"],
         ["BP-07", "xpe_enhance_advanced.dll"],
+        ["BP-08", "xpe_enhance_basic.dll"],
         ["BP-09", "xpe_dicom.dll"],
         ["BP-10", "xpe_display.dll"],
     ];
 
     /// <summary>All names the cases above manipulate, so "the others still resolve" has something to check.</summary>
     private static readonly string[] ModuleDlls =
-        ["gsvg.dll", "xpe_enhance_advanced.dll", "xpe_dicom.dll", "xpe_display.dll"];
+        ["gsvg.dll", "xpe_enhance_advanced.dll", "xpe_enhance_basic.dll", "xpe_dicom.dll", "xpe_display.dll"];
+
+    /// <summary>Level a discovered module would be graded; the value is irrelevant, only "not R0" is.</summary>
+    private const string ReadyLevel = "R1";
 
     private readonly List<string> _tempDirs = [];
 
@@ -58,12 +62,21 @@ public sealed class DegradedModeReadinessTests : IDisposable
             $"{caseId}: {removedDll} was removed from {dir} but still resolved to {removedPath}. " +
             "The search escaped the injected directory — XPE_NATIVE_DIR_EXCLUSIVE did not take.");
 
+        // The grade the app derives from that discovery result — the point of #128.
+        Assert.Equal(
+            ModuleReadinessGrading.NotReady,
+            ModuleReadinessGrading.GradeDiscovery(removedPath, ReadyLevel));
+
         foreach (var other in ModuleDlls.Where(d => d != removedDll))
         {
             var otherPath = NativeModuleLibraryLocator.TryFindDll(other, "image-processing");
             Assert.True(
                 otherPath is not null,
                 $"{caseId}: removing {removedDll} also made {other} unresolvable — degradation is not isolated.");
+
+            Assert.NotEqual(
+                ModuleReadinessGrading.NotReady,
+                ModuleReadinessGrading.GradeDiscovery(otherPath, ReadyLevel));
         }
     }
 
@@ -79,7 +92,9 @@ public sealed class DegradedModeReadinessTests : IDisposable
 
         using var _ = new NativeSearchScope(empty);
 
-        Assert.Null(NativeModuleLibraryLocator.TryFindDll("xpe_dicom.dll", "image-processing"));
+        var path = NativeModuleLibraryLocator.TryFindDll("xpe_dicom.dll", "image-processing");
+        Assert.Null(path);
+        Assert.Equal(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
     }
 
     /// <summary>
@@ -94,9 +109,11 @@ public sealed class DegradedModeReadinessTests : IDisposable
         using var _ = new NativeSearchScope(dir);
 
         foreach (var dll in ModuleDlls)
-            Assert.True(
-                NativeModuleLibraryLocator.TryFindDll(dll, "image-processing") is not null,
-                $"{dll} did not resolve from a complete staging directory {dir}.");
+        {
+            var path = NativeModuleLibraryLocator.TryFindDll(dll, "image-processing");
+            Assert.True(path is not null, $"{dll} did not resolve from a complete staging directory {dir}.");
+            Assert.NotEqual(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
+        }
     }
 
     // ---------- helpers ----------

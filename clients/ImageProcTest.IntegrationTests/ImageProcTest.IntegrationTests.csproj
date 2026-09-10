@@ -53,6 +53,7 @@
       a second DllImport resolver on this assembly and throw (measured in GUI-C-13).
     -->
     <Compile Include="..\ImageProcTest\Diagnostics\NativeModuleLibraryLocator.cs" Link="DegradedMode\Linked\NativeModuleLibraryLocator.cs" />
+    <Compile Include="..\ImageProcTest\Services\ModuleReadinessGrading.cs" Link="DegradedMode\Linked\ModuleReadinessGrading.cs" />
   </ItemGroup>
 
   <!--

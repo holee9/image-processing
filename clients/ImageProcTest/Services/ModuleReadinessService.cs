@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -43,7 +43,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "xpe_common",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 "Unavailable",
                 health?.Details ?? "No backend health result.",
                 "Restore xpe_common.dll before native module adapters can be trusted.",
@@ -93,7 +93,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "xpe_display",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 display.Status,
                 display.Details,
                 "Build xpe_display.dll with required display pipeline exports.",
@@ -149,7 +149,7 @@ namespace ImageProcTest
             {
                 return new ModuleReadinessSnapshot(
                     "xpe_preprocess",
-                    sourceExists ? "R0" : "R0",
+                    ModuleReadinessGrading.NotReady,
                     sourceExists ? "Source present, binary not ready" : "Missing",
                     sourceExists ? "preprocess source exists but readiness build has no xpe_preprocess.dll." : "No preprocess source evidence.",
                     "Fix native build, verify exports, then run synthetic oracle before GUI execution.",
@@ -203,7 +203,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "xpe_enhance_basic",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 health.Status,
                 health.Details,
                 "Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.",
@@ -253,7 +253,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "xpe_dicom",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 health.Status,
                 health.Details,
                 "Build xpe_dicom.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.",
@@ -279,7 +279,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "gsvg",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 health.Status,
                 health.Details,
                 "Complete #61, then add GSVG processing export and GUI adapter smoke checks.",
@@ -316,7 +316,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 "xpe_ai",
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 "DLL absent",
                 "xpe_ai.dll not found in search path",
                 "Build xpe_ai.dll and xpe_ai_worker.exe, then add heartbeat/IPC smoke before GUI execution.",
@@ -334,7 +334,7 @@ namespace ImageProcTest
                 "xpe-post",
                 "xpe-pre");
 
-            if (found != null)
+            if (ModuleReadinessGrading.GradeDiscovery(found, "R1") != ModuleReadinessGrading.NotReady)
                 return new ModuleReadinessSnapshot(
                     moduleName,
                     "R1",
@@ -345,7 +345,7 @@ namespace ImageProcTest
 
             return new ModuleReadinessSnapshot(
                 moduleName,
-                "R0",
+                ModuleReadinessGrading.NotReady,
                 "DLL absent",
                 $"{dllName} not found in search path",
                 "Build and place the DLL to enable this module.",
