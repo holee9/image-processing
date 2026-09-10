@@ -18,6 +18,19 @@ namespace ImageProcTest
             if (!string.IsNullOrWhiteSpace(envDir))
             {
                 yield return Path.Combine(envDir, dllName);
+
+                // #128: with XPE_NATIVE_DIR_EXCLUSIVE=1 the search stops at the directory the
+                // caller named. Without it the repository build directories below are always
+                // tried, so a "module DLL absent" state cannot be produced for a test: a staged
+                // build tree would satisfy the lookup no matter what directory was injected.
+                // Unset in normal operation, so the app's search order is unchanged.
+                if (string.Equals(
+                        Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE"),
+                        "1",
+                        StringComparison.Ordinal))
+                {
+                    yield break;
+                }
             }
 
             var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);

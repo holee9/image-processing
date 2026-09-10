@@ -46,6 +46,13 @@
     <Compile Include="..\ImageProcTest\Models\AiBridgeConnectionStatus.cs" Link="AiBridgeUi\Linked\AiBridgeConnectionStatus.cs" />
     <Compile Include="..\ImageProcTest\Models\AiBridgePanelSnapshot.cs" Link="AiBridgeUi\Linked\AiBridgePanelSnapshot.cs" />
     <Compile Include="..\ImageProcTest\Services\AiBridgeStatusComputer.cs" Link="AiBridgeUi\Linked\AiBridgeStatusComputer.cs" />
+    <!--
+      #128: the native-module search used by the readiness probes. Linked (not referenced) because
+      the app is a net8.0-windows WinExe this net8.0 project cannot reference, and because the file
+      is free of WPF and of XpeCommonApi — linking anything that touches XpeCommonApi would register
+      a second DllImport resolver on this assembly and throw (measured in GUI-C-13).
+    -->
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeModuleLibraryLocator.cs" Link="DegradedMode\Linked\NativeModuleLibraryLocator.cs" />
   </ItemGroup>
 
   <!--
