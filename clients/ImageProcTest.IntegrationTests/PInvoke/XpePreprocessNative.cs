@@ -34,8 +34,13 @@ internal static class XpePreprocessNative
         [MarshalAs(UnmanagedType.LPStr)] string path);
 
     /// <summary>
-    /// xpe_calib_generate_offset(dark_frames[], num_frames, integration_ms, temperature_c, output_path).
+    /// xpe_calib_generate_offset(dark_frames[], num_frames, integration_ms, temperature_c,
+    /// output_path, config_json_or_null).
     /// The frame array is a blittable struct array, so it marshals as a pointer to its first element.
+    ///
+    /// The sixth parameter arrived with QA-A-39 (#138). Passing null selects the defaults, which the
+    /// header states behave exactly as the function did before the parameter existed — so the
+    /// existing callers keep their measured behaviour ("mean") without naming it.
     /// </summary>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public delegate XpeCommonNative.XpeErrorCode CalibGenerateOffsetDelegate(
@@ -43,7 +48,8 @@ internal static class XpePreprocessNative
         int numFrames,
         float integrationTimeMs,
         float temperatureC,
-        [MarshalAs(UnmanagedType.LPStr)] string outputPath);
+        [MarshalAs(UnmanagedType.LPStr)] string outputPath,
+        [MarshalAs(UnmanagedType.LPStr)] string? configJsonOrNull);
 
     /// <summary>
     /// xpe_calib_generate_gain(flat_frames[], num_frames, dark_reference, output_path, metadata_json).
