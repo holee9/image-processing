@@ -262,7 +262,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_DarkFrameAveraging) {
         100.0f,  // integration_time_ms
         25.0f,   // temperature_c
         "test_output.xcal"
-    );
+    , nullptr);
 
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_IO_FAILED ||
@@ -293,7 +293,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_SingleFrame) {
         100.0f,
         25.0f,
         "test_output.xcal"
-    );
+    , nullptr);
 
     EXPECT_TRUE(result == XPE_OK ||
                 result == XPE_ERR_IO_FAILED ||
@@ -316,7 +316,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_NullFrames) {
         100.0f,
         25.0f,
         "test_output.xcal"
-    );
+    , nullptr);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 }
@@ -339,7 +339,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_InvalidFrameCount) {
         100.0f,
         25.0f,
         "test_output.xcal"
-    );
+    , nullptr);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 
@@ -366,7 +366,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_DimensionMismatch) {
         100.0f,
         25.0f,
         "test_output.xcal"
-    );
+    , nullptr);
 
     EXPECT_EQ(result, XPE_ERR_INVALID_INPUT);
 

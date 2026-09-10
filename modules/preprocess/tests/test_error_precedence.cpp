@@ -106,11 +106,11 @@ TEST_F(PreprocessErrorPrecedenceTest, NullRequiredPointerWinsOverInitializationS
     });
 
     probe("xpe_calib_generate_offset", "dark_frames", [] {
-        return xpe_calib_generate_offset(nullptr, 1, 100.0f, 25.0f, "a14_probe.xcal");
+        return xpe_calib_generate_offset(nullptr, 1, 100.0f, 25.0f, "a14_probe.xcal", nullptr);
     });
     probe("xpe_calib_generate_offset", "output_path", [] {
         Frame f;
-        return xpe_calib_generate_offset(&f.buf, 1, 100.0f, 25.0f, nullptr);
+        return xpe_calib_generate_offset(&f.buf, 1, 100.0f, 25.0f, nullptr, nullptr);
     });
 
     probe("xpe_calib_check_expiry", "filepath", [] {

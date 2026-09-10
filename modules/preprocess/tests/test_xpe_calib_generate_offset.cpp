@@ -74,7 +74,7 @@ protected:
 // =============================================================================
 TEST_F(GenerateOffsetTest, SingleFrame_OutputEqualsInput) {
     FrameHelper f(W, H, 1000);
-    XpeErrorCode rc = xpe_calib_generate_offset(&f.buf, 1, 10.0f, 25.0f, out_path);
+    XpeErrorCode rc = xpe_calib_generate_offset(&f.buf, 1, 10.0f, 25.0f, out_path, nullptr);
     ASSERT_EQ(rc, XPE_OK);
 
     XCalFileHeader hdr;
@@ -97,7 +97,7 @@ TEST_F(GenerateOffsetTest, TwoFrames_AverageIsCorrect) {
     FrameHelper f2(W, H, 200);
     XpeImageBuffer frames[2] = { f1.buf, f2.buf };
 
-    ASSERT_EQ(xpe_calib_generate_offset(frames, 2, 10.0f, 25.0f, out_path), XPE_OK);
+    ASSERT_EQ(xpe_calib_generate_offset(frames, 2, 10.0f, 25.0f, out_path, nullptr), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -120,7 +120,7 @@ TEST_F(GenerateOffsetTest, ThreeFrames_AverageIsCorrect) {
     FrameHelper f3(W, H, 600);
     XpeImageBuffer frames[3] = { f1.buf, f2.buf, f3.buf };
 
-    ASSERT_EQ(xpe_calib_generate_offset(frames, 3, 10.0f, 25.0f, out_path), XPE_OK);
+    ASSERT_EQ(xpe_calib_generate_offset(frames, 3, 10.0f, 25.0f, out_path, nullptr), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -140,7 +140,7 @@ TEST_F(GenerateOffsetTest, ThreeFrames_AverageIsCorrect) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, OutputFile_PassesSHA256AndTypeVerification) {
     FrameHelper f(W, H, 500);
-    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path), XPE_OK);
+    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -153,7 +153,7 @@ TEST_F(GenerateOffsetTest, OutputFile_PassesSHA256AndTypeVerification) {
 // Test 5: Null dark_frames -> INVALID_INPUT
 // =============================================================================
 TEST_F(GenerateOffsetTest, NullFrames_ReturnsInvalidInput) {
-    EXPECT_EQ(xpe_calib_generate_offset(nullptr, 1, 0.0f, 0.0f, out_path),
+    EXPECT_EQ(xpe_calib_generate_offset(nullptr, 1, 0.0f, 0.0f, out_path, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -162,7 +162,7 @@ TEST_F(GenerateOffsetTest, NullFrames_ReturnsInvalidInput) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, NullOutputPath_ReturnsInvalidInput) {
     FrameHelper f(W, H, 0);
-    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, nullptr),
+    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, nullptr, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -171,7 +171,7 @@ TEST_F(GenerateOffsetTest, NullOutputPath_ReturnsInvalidInput) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, ZeroFrames_ReturnsInvalidInput) {
     FrameHelper f(W, H, 0);
-    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 0, 0.0f, 0.0f, out_path),
+    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 0, 0.0f, 0.0f, out_path, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -180,7 +180,7 @@ TEST_F(GenerateOffsetTest, ZeroFrames_ReturnsInvalidInput) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, NegativeFrames_ReturnsInvalidInput) {
     FrameHelper f(W, H, 0);
-    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, -5, 0.0f, 0.0f, out_path),
+    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, -5, 0.0f, 0.0f, out_path, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -192,7 +192,7 @@ TEST_F(GenerateOffsetTest, DimensionMismatch_ReturnsInvalidInput) {
     FrameHelper f2(W + 1, H, 200);  // different width
     XpeImageBuffer frames[2] = { f1.buf, f2.buf };
 
-    EXPECT_EQ(xpe_calib_generate_offset(frames, 2, 0.0f, 0.0f, out_path),
+    EXPECT_EQ(xpe_calib_generate_offset(frames, 2, 0.0f, 0.0f, out_path, nullptr),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -209,7 +209,7 @@ TEST_F(GenerateOffsetTest, UnsupportedFormat_ReturnsUnsupportedFormat) {
     buf.data     = fdata.data();
     buf.dataSize = fdata.size() * sizeof(float);
 
-    EXPECT_EQ(xpe_calib_generate_offset(&buf, 1, 0.0f, 0.0f, out_path),
+    EXPECT_EQ(xpe_calib_generate_offset(&buf, 1, 0.0f, 0.0f, out_path, nullptr),
               XPE_ERR_UNSUPPORTED_FORMAT);
 }
 
@@ -218,7 +218,7 @@ TEST_F(GenerateOffsetTest, UnsupportedFormat_ReturnsUnsupportedFormat) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, OutputHeader_WidthHeightMatchInput) {
     FrameHelper f(W, H, 42);
-    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path), XPE_OK);
+    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -233,7 +233,7 @@ TEST_F(GenerateOffsetTest, OutputHeader_WidthHeightMatchInput) {
 // =============================================================================
 TEST_F(GenerateOffsetTest, OutputHeader_PixelFormatIsFloat32) {
     FrameHelper f(W, H, 0);
-    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path), XPE_OK);
+    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;

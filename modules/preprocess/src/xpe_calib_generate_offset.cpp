@@ -92,15 +92,20 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(
     int32_t               num_frames,
     float                 integration_time_ms,
     float                 temperature_c,
-    const char*           output_path)
+    const char*           output_path,
+    const char*           config_json_or_null)
 {
     try {
         if (output_path == nullptr) {
             return XPE_ERR_INVALID_INPUT;
         }
 
+        // QA-A-39 (#138): the caller now chooses the method. NULL parses to the
+        // same defaults this function used before the parameter existed, so an
+        // existing caller passing NULL is unaffected.
         xpe::preprocess::OffsetGenerationConfig config;
-        XpeErrorCode rc = xpe::preprocess::parse_offset_generation_config(nullptr, &config);
+        XpeErrorCode rc = xpe::preprocess::parse_offset_generation_config(
+            config_json_or_null, &config);
         if (rc != XPE_OK) return rc;
 
         std::vector<float> result;
@@ -115,10 +120,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(
         // XPE-ALG-001 9.8.2.1 static-defect marks, routed to the global defect
         // map per leader decision #138 (a).
         //
-        // Reachability note: this entry point parses a null config, so it always
-        // runs the Mean method and the mask is always empty here today. The call
-        // is present so the two paths cannot drift -- the moment this entry gains
-        // a config argument, the marks travel with it.
+        // Reachable as of QA-A-39: with {"method":"sigma_clip"} the mask carries
+        // the 9.8.2.1 marks and they land in the global defect map here.
         rc = xpe::preprocess::merge_static_defect_mask(defect_mask, width, height);
         if (rc != XPE_OK) return rc;
 

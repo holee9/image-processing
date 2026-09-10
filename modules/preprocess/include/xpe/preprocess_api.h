@@ -229,16 +229,37 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  * @param integration_time_ms Integration time in milliseconds
  * @param temperature_c Temperature in Celsius
  * @param output_path Output XCal file path for generated offset map
+ * @param config_json_or_null Generation parameters as JSON, or NULL for the
+ *        defaults. NULL behaves exactly as this function did before the
+ *        parameter existed (QA-A-39, #138), so an existing caller that passes
+ *        NULL sees no change.
+ *
+ *        Recognised keys (values are the defaults):
+ *          "method"            "mean" | "median" | "sigma_clip" | "winsor"
+ *          "sigma"             3.0    kappa for sigma_clip, must be > 0
+ *          "max_iter"          5      sigma_clip iteration cap, 1..100
+ *          "lower_percentile"  5.0    winsor lower bound, 0..100
+ *          "upper_percentile"  95.0   winsor upper bound, >= lower
+ *
+ *        An unrecognised "method", or a value outside the ranges above, is
+ *        reported as XPE_ERR_CONFIG_INVALID rather than silently defaulted.
+ *
+ *        With "sigma_clip", XPE-ALG-001 9.8.2.1 also applies: a pixel whose
+ *        surviving frame count falls below N_min = max(3, floor(N/4)) is marked
+ *        a static defect and OR-merged into the global defect map (#138
+ *        decision (a)). Its offset value is unaffected.
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
+ *         XPE_ERR_CONFIG_INVALID if config_json_or_null is malformed
  *         XPE_ERR_IO_FAILED on file write error
  */
 XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
                                                int32_t num_frames,
                                                float integration_time_ms,
                                                float temperature_c,
-                                               const char* output_path);
+                                               const char* output_path,
+                                               const char* config_json_or_null);
 
 /**
  * @brief Generate flat-field gain map from flat frames (FUNC-026)
