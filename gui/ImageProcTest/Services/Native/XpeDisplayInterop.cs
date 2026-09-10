@@ -86,6 +86,21 @@ internal static class XpeCommonNative
 
     [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
     internal static extern int xpe_free_image(ref XpeImageBufferNative buffer);
+
+    // #110 alert queue. Signatures mirror xpe_common.h verbatim (also declared in
+    // clients/ImageProcTest/PInvokeWrapper.cs) — no native change, only a binding gui lacked.
+    [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal static extern int xpe_get_pending_alert_count();
+
+    [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal static extern int xpe_get_pending_alert(
+        int index,
+        System.Text.StringBuilder message,
+        UIntPtr messageLength,
+        out int severity);
+
+    [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal static extern void xpe_clear_alerts();
 }
 
 internal static class XpeDisplayNative
