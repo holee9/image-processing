@@ -275,16 +275,50 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
             }
         }
 
-        // --- Single-frame mode: compute uncertainty (optional) ---
-        std::string config_json;
-        if (num_frames == 1 && metadata_json != nullptr) {
-            // Parse metadata_json for kVp, mAs, etc. (pass-through)
-            // Compute variance estimate: σ² = signal × (quantum_noise² + readout_noise²)
-            // This is a simplified model; actual implementation depends on detector characteristics
-            config_json = metadata_json;
-        } else if (metadata_json != nullptr) {
-            config_json = metadata_json;
+        // --- FUNC-033 (1): quality metadata for a single-dose calibration ---
+        //
+        // SRS-CALIB-001 SRS-CALIB-FUNC-033 (1): "Every generated XCal gain file
+        // shall include: calibration_mode, actual_dose_levels, polynomial_degree
+        // (fitted polynomial degree; 0 for single-point), fit_r_squared
+        // (coefficient of determination; 1.0 for single-point by definition),
+        // max_residual_pct, mean_residual_pct, ...".
+        //
+        // This entry point acquires at ONE dose level (num_frames frames of the
+        // same exposure are averaged), so actual_dose_levels is 1 and the degree
+        // is 0. No curve is fitted, so there is no residual to report: the SRS
+        // states no single-point value for the two residual fields, and 0 is the
+        // arithmetic consequence of an exact one-point fit rather than an
+        // invented threshold.
+        //
+        // acquisition_duration_s and detector_temperature_c are also named by
+        // FUNC-033 (1) and are NOT written here -- neither value reaches this
+        // function through its current signature. Recorded as residual on #140.
+        XpeCalibQualityMeta quality{};
+        quality.calibration_mode   = static_cast<uint8_t>(xpe_calib_get_mode());
+        quality.polynomial_degree  = 0;
+        quality.num_points         = 1;
+        quality.r_squared          = 1.0;
+        const bool gate_passed = xpe_calib_record_quality_meta(quality);
+
+        char meta[512];
+        std::snprintf(meta, sizeof(meta),
+            "{\"calibration_mode\":%d,\"actual_dose_levels\":1,"
+            "\"polynomial_degree\":0,\"fit_r_squared\":1.000000000,"
+            "\"max_residual_pct\":0.000000,\"mean_residual_pct\":0.000000,"
+            "\"calibration_pass\":%d",
+            static_cast<int>(xpe_calib_get_mode()),
+            gate_passed ? 1 : 0);
+        meta[sizeof(meta) - 1] = '\0';
+
+        std::string config_json = meta;
+        if (metadata_json != nullptr && metadata_json[0] != '\0') {
+            // The caller's metadata used to BE the whole config JSON. It is
+            // nested rather than merged so it survives verbatim whatever shape
+            // it has, and so a caller key can never shadow a FUNC-033 field.
+            config_json += ",\"source_metadata\":";
+            config_json += metadata_json;
         }
+        config_json += "}";
 
         // --- Build XCal v1 header ---
         using namespace std::chrono;

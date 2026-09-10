@@ -10,7 +10,8 @@
  *  3.  Valid DEFECT header -> XPE_OK
  *  4.  Bad magic -> XPE_ERR_CONFIG_INVALID
  *  5.  Bad version (version=2) -> XPE_ERR_CONFIG_INVALID
- *  6.  type out of range (3) -> XPE_ERR_CONFIG_INVALID
+ *  6.  type out of range (4) -> XPE_ERR_CONFIG_INVALID
+ *  6b. GAIN_POLY payload = whole number of coefficient planes (QA-A-37)
  *  7.  pixel_format out of range (5) -> XPE_ERR_CONFIG_INVALID
  *  8.  width = 0 -> XPE_ERR_CONFIG_INVALID
  *  9.  height > XCAL_MAX_DIM -> XPE_ERR_CONFIG_INVALID
@@ -118,8 +119,33 @@ TEST(XCalValidatorTest, BadVersion_ReturnsConfigInvalid) {
 // =============================================================================
 TEST(XCalValidatorTest, TypeOutOfRange_ReturnsConfigInvalid) {
     XCalFileHeader hdr = MakeValidOffsetHeader();
-    hdr.type = 3;  // Only 0,1,2 are valid
+    // QA-A-37 (#140): 3 is XCAL_TYPE_GAIN_POLY, declared in xcal_format.h since
+    // the format was written -- the "only 0,1,2 are valid" premise this case
+    // used to encode never matched the header. 4 is the first value with no
+    // type behind it.
+    hdr.type = 4;
     EXPECT_EQ(validate_xcal_header(hdr), XPE_ERR_CONFIG_INVALID);
+}
+
+// =============================================================================
+// Test 6b: XCAL_TYPE_GAIN_POLY is a real type, and its payload is a whole
+// number of coefficient planes rather than exactly one (QA-A-37, #140).
+// =============================================================================
+TEST(XCalValidatorTest, GainPolyAcceptsWholeNumberOfPlanes) {
+    XCalFileHeader hdr = MakeValidOffsetHeader();
+    hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY);
+
+    const uint64_t plane = hdr.payload_len;  // W * H * sizeof(float)
+    EXPECT_EQ(validate_xcal_header(hdr), XPE_OK) << "one plane = degree 0";
+
+    hdr.payload_len = plane * 3;
+    EXPECT_EQ(validate_xcal_header(hdr), XPE_OK) << "three planes = degree 2";
+
+    hdr.payload_len = plane + 4;
+    EXPECT_EQ(validate_xcal_header(hdr), XPE_ERR_CONFIG_INVALID) << "ragged";
+
+    hdr.payload_len = 0;
+    EXPECT_EQ(validate_xcal_header(hdr), XPE_ERR_CONFIG_INVALID) << "no planes";
 }
 
 // =============================================================================

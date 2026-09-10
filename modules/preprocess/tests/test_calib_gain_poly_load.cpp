@@ -27,6 +27,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -100,6 +101,37 @@ protected:
             static_cast<int32_t>(values.size()), maxDegree,
             (tmpDir / outName).string().c_str());
     }
+
+    /** Reads the config JSON block back out of an XCal file. */
+    std::string readConfigJson(const std::string& path) {
+        std::ifstream f(path, std::ios::binary);
+        EXPECT_TRUE(f.is_open());
+        XCalFileHeader hdr{};
+        f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+        std::string json(static_cast<size_t>(hdr.config_json_len), '\0');
+        if (hdr.config_json_len > 0) f.read(&json[0], hdr.config_json_len);
+        return json;
+    }
+
+    /** Runs the single-dose generator over @p count identical flat frames. */
+    XpeErrorCode generateSingleDose(const std::string& outName,
+                                    const char* metadataJson = nullptr,
+                                    int32_t count = 4) {
+        flatStore.assign(static_cast<size_t>(count), std::vector<uint16_t>(N, 3000));
+        std::vector<XpeImageBuffer> frames(static_cast<size_t>(count));
+        for (int32_t i = 0; i < count; ++i) {
+            XpeImageBuffer& b = frames[static_cast<size_t>(i)];
+            b.data = flatStore[static_cast<size_t>(i)].data();
+            b.width = W; b.height = H;
+            b.bitsAllocated = 16; b.bitsStored = 16;
+            b.format = XPE_PIXEL_UINT16;
+            b.dataSize = static_cast<uint32_t>(N * sizeof(uint16_t));
+        }
+        return xpe_calib_generate_gain(frames.data(), count, nullptr,
+                                       (tmpDir / outName).string().c_str(),
+                                       metadataJson);
+    }
+    std::vector<std::vector<uint16_t>> flatStore;
 
     /** A hand-built POLY file with an arbitrary payload length. */
     std::string writePolyRaw(const std::string& name, uint64_t payloadLen,
@@ -198,6 +230,52 @@ TEST_F(GainPolyLoadTest, PayloadThatIsNotAWholeNumberOfPlanesIsRejected) {
     // One plane is degree 0 -- a constant term only, which is well formed.
     EXPECT_EQ(XPE_OK,
               xpe_calib_load_gain(writePolyRaw("one_plane.xcal", plane).c_str()));
+}
+
+// --- FUNC-033 (1) for the single-dose generator ---------------------------
+//
+// SRS-CALIB-FUNC-033 (1): "Every generated XCal gain file shall include:
+// calibration_mode, actual_dose_levels, polynomial_degree (0 for single-point),
+// fit_r_squared (1.0 for single-point by definition), max_residual_pct,
+// mean_residual_pct, ...". Until QA-A-37 only the polynomial generator wrote
+// them, so a scalar gain file satisfied none of it.
+
+TEST_F(GainPolyLoadTest, SingleDoseGainFileCarriesTheMandatoryFields) {
+    ASSERT_EQ(XPE_OK, generateSingleDose("single.xcal"));
+
+    const std::string json = readConfigJson((tmpDir / "single.xcal").string());
+    for (const char* key : {"calibration_mode", "actual_dose_levels",
+                            "polynomial_degree", "fit_r_squared",
+                            "max_residual_pct", "mean_residual_pct",
+                            "calibration_pass"}) {
+        EXPECT_NE(std::string::npos, json.find(key))
+            << "SRS-CALIB-FUNC-033 (1) field missing from the file: " << key;
+    }
+    EXPECT_NE(std::string::npos, json.find("\"polynomial_degree\":0"));
+    EXPECT_NE(std::string::npos, json.find("\"actual_dose_levels\":1"));
+}
+
+TEST_F(GainPolyLoadTest, SingleDoseMetadataSurvivesTheRoundTrip) {
+    ASSERT_EQ(XPE_OK, generateSingleDose("single_rt.xcal"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((tmpDir / "single_rt.xcal").string().c_str()));
+
+    XpeCalibQualityMeta meta{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&meta));
+    EXPECT_NEAR(1.0, meta.r_squared, 1e-9) << "1.0 for single-point by definition";
+    EXPECT_EQ(1u, meta.num_points);
+    EXPECT_EQ(0u, meta.polynomial_degree);
+    EXPECT_EQ(1u, meta.calibration_pass) << "1.0 >= the 0.999 gate";
+}
+
+// The caller's own metadata used to be the whole config JSON. It must survive
+// the FUNC-033 fields being added around it, or callers lose data.
+TEST_F(GainPolyLoadTest, CallerMetadataIsNotDiscarded) {
+    ASSERT_EQ(XPE_OK, generateSingleDose("with_meta.xcal",
+                                         "{\"kVp\":80,\"mAs\":2.5}"));
+
+    const std::string json = readConfigJson((tmpDir / "with_meta.xcal").string());
+    EXPECT_NE(std::string::npos, json.find("kVp"));
+    EXPECT_NE(std::string::npos, json.find("fit_r_squared"));
 }
 
 } // namespace
