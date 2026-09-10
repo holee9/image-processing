@@ -36,12 +36,31 @@ extern "C" {
 #endif
 
 /**
- * @brief Default sliding window size (5x5 pixels).
+ * @brief Default neighbourhood size (3x3 pixels, centre excluded -> 8 values).
  *
- * Chosen to balance spatial localization with statistical robustness.
- * Larger windows improve statistical accuracy but reduce spatial resolution.
+ * QA-A-42 (#143): SPEC-XPE-P1A REQ-P1A-013, algorithm step 1, verbatim:
+ *
+ *   "For each pixel p(x,y), compute local median m(x,y) over 3x3 neighborhood
+ *    excluding center (8 values)"
+ *
+ * This was 5 with the centre INCLUDED (25 values), which diverged from the SPEC
+ * in two ways at once. Including the centre is the more consequential half: a
+ * defective pixel contributes to the median and the MAD it is then compared
+ * against, pulling both toward itself and masking the defect.
  */
-#define RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE 5
+#define RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE 3
+
+/**
+ * @brief Minimum neighbours required before a pixel is judged.
+ *
+ * REQ-P1A-013 Pixel Accuracy, verbatim: "Edge-of-image pixels (where 3x3
+ * neighborhood is incomplete): processed with available subset; at least 5
+ * neighbors required or pixel is skipped (defectMapOut = 0)".
+ *
+ * Load-bearing only now: with the old 5x5 window even a corner had 8 remaining
+ * samples, so the rule never bit. Under 3x3-excluding-centre a corner has 3.
+ */
+#define RUNTIME_DETECTION_MIN_NEIGHBORS 5
 
 /**
  * @brief Default sigma threshold for outlier detection (5-sigma).
@@ -185,6 +204,47 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
 }
 
 /**
+ * @brief Collect the neighbourhood of a pixel, EXCLUDING the centre.
+ *
+ * REQ-P1A-013 step 1 counts 8 values for a 3x3 neighbourhood, which is the
+ * window minus its own centre. Edge pixels get the available subset, per the
+ * Pixel Accuracy clause.
+ *
+ * @param img Input image
+ * @param centerX Centre pixel X coordinate
+ * @param centerY Centre pixel Y coordinate
+ * @param windowSize Window size (must be odd)
+ * @param[out] outValues Collected neighbour values, centre omitted
+ */
+inline void CollectNeighborValues(const XpeImageBuffer* img,
+                                  uint32_t centerX,
+                                  uint32_t centerY,
+                                  int32_t windowSize,
+                                  std::vector<float>& outValues) {
+    outValues.clear();
+
+    const int32_t halfWindow = windowSize / 2;
+    int32_t startX = std::max(0, static_cast<int32_t>(centerX) - halfWindow);
+    int32_t startY = std::max(0, static_cast<int32_t>(centerY) - halfWindow);
+    int32_t endX = std::min(static_cast<int32_t>(img->width) - 1,
+                            static_cast<int32_t>(centerX) + halfWindow);
+    int32_t endY = std::min(static_cast<int32_t>(img->height) - 1,
+                            static_cast<int32_t>(centerY) + halfWindow);
+
+    const float* pixels = static_cast<const float*>(img->data);
+    for (int32_t y = startY; y <= endY; ++y) {
+        for (int32_t x = startX; x <= endX; ++x) {
+            if (static_cast<uint32_t>(x) == centerX &&
+                static_cast<uint32_t>(y) == centerY) {
+                continue;  // the centre is the sample under test, not a neighbour
+            }
+            outValues.push_back(
+                pixels[static_cast<uint32_t>(y) * img->width + static_cast<uint32_t>(x)]);
+        }
+    }
+}
+
+/**
  * @brief Detect defective pixel using Hampel 5-sigma filter.
  *
  * Algorithm:
@@ -206,11 +266,12 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
                                  uint32_t y,
                                  const RuntimeDetectionConfig& config) {
-    // Collect window values
+    // QA-A-42 (#143): neighbours only, per REQ-P1A-013 step 1.
     std::vector<float> windowValues;
-    CollectWindowValues(img, x, y, config.windowSize, windowValues);
+    CollectNeighborValues(img, x, y, config.windowSize, windowValues);
 
-    if (windowValues.empty()) return false;
+    // REQ-P1A-013: "at least 5 neighbors required or pixel is skipped".
+    if (windowValues.size() < RUNTIME_DETECTION_MIN_NEIGHBORS) return false;
 
     // Compute median
     float median = ComputeMedian(windowValues);
