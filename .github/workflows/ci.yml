@@ -360,6 +360,63 @@ jobs:
           retention-days: 14
           path: gui/ImageProcTest/automation-report.json
 
+  gui-e2e-native:
+    # FlaUI smoke against the REAL native DLLs (GUI-C-31). The gui app resolves
+    # DllImport from its own output folder (it does not read XPE_NATIVE_DIR -
+    # that locator policy belongs to clients/), so the CI artifacts are staged
+    # straight into gui/ImageProcTest/bin/Debug/net8.0-windows/. S-05 then
+    # demands a real semver and fails if the app silently fell back to Mock.
+    needs: [detect-lane, common-build, preprocess-tests, post-build]
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build gui app
+        shell: pwsh
+        run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+
+      - name: Stage native DLLs into the gui output folder
+        uses: actions/download-artifact@v6
+        with:
+          pattern: xpe-ci-{common,preprocess,post}-binaries
+          merge-multiple: true
+          path: gui/ImageProcTest/bin/Debug/net8.0-windows/
+
+      - name: Verify staged DLLs
+        shell: pwsh
+        run: |
+          $dir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll')) {
+            if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
+          }
+          Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
+
+      - name: Run FlaUI E2E smoke (Native)
+        shell: pwsh
+        env:
+          XPE_E2E_BACKEND: Native
+        run: >
+          dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
+          -c Debug
+          --logger "trx;LogFileName=e2e-smoke-native.trx"
+          --results-directory build/e2e-native-results
+
+      - name: Upload Native E2E results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-gui-e2e-native-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/e2e-native-results/
+
   coverage:
     # Dispatch-only and self-contained (own configure/build). Not gated on the
     # test jobs: a single flaky assertion there must not skip the coverage

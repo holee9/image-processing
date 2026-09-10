@@ -372,3 +372,51 @@ TEST_F(DicomReaderTest, ReadJ2K_CorruptBody_ReturnsProcessingFailed) {
     }
     xpe_dicom_close(handle);
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-34): reader branches outside the J2K decode path.
+// ---------------------------------------------------------------------------
+
+// A dataset written without a Part 10 meta header carries no TransferSyntaxUID,
+// which is the "no TS in meta -- treat as Explicit LE" branch
+// (DicomReader.cpp:105-107).
+TEST_F(DicomReaderTest, OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE) {
+    auto path = s_tempDir / "reader_no_meta.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dataset).good());
+    }
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    EXPECT_NE(nullptr, handle);
+    xpe_dicom_close(handle);
+}
+
+// PixelData absent from an uncompressed file: findAndGetUint16Array fails and
+// the already-allocated output buffer must be released before returning
+// (DicomReader.cpp:164-168). The free is the part worth exercising -- a leak
+// here would be invisible to a return-code-only test.
+TEST_F(DicomReaderTest, ReadImage_NoPixelData_ReturnsDicomInvalid) {
+    auto path = s_tempDir / "no_pixeldata.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        ff.getDataset()->findAndDeleteElement(DCM_PixelData);
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit).good());
+    }
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, xpe_dicom_read_image(handle, &img));
+    xpe_dicom_close(handle);
+}
+
+// An empty path is EC_IllegalParameter / EC_InvalidFilename territory for
+// DCMTK, which the reader maps to IO_FAILED (DicomReader.cpp:61-62).
+TEST_F(DicomReaderTest, OpenEmptyPath_ReturnsIoFailed) {
+    XpeDicomHandle* handle = nullptr;
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_open("", &handle));
+}

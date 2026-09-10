@@ -207,3 +207,43 @@ TEST_F(DicomValidatorTest, ValidateStrippedTags_ReportsAllMissing) {
     EXPECT_FALSE(j["valid"].get<bool>());
     EXPECT_GE(j["errors"].size(), 4u) << report;
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-34): the two null-object guards in validate().
+//
+// DicomValidator checks getMetaInfo() and getDataset() for null after a
+// successful loadFile (DicomValidator.cpp:77-117, 30 instrumented lines). B-27
+// classified those as unreachable from source reading alone; this case tests
+// that judgement instead of repeating it. A file written with EWM_dataset has
+// no Part 10 meta header, which is the nearest thing to "meta info absent"
+// the public API can produce.
+// ---------------------------------------------------------------------------
+TEST_F(DicomValidatorTest, ValidateDatasetWithoutMetaHeader_IsHandled) {
+    auto path = s_tempDir / "no_meta_header.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        // EWM_dataset writes the dataset alone -- no preamble, no meta group.
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dataset).good());
+    }
+
+    char report[8192] = {};
+    const XpeErrorCode rc = xpe_dicom_validate(path.string().c_str(), report, sizeof(report));
+
+    // OBSERVED (QA-B-34): DCMTK's loadFile accepts the dataset-only file and
+    // synthesises a meta-info object, so getMetaInfo() is non-null and the
+    // guard at :78 is not entered. The validator then finds all four required
+    // Type 1 tags and reports valid=true.
+    //
+    // This case therefore asserts only what the contract states: the validator
+    // answers and produces a parseable report. It deliberately does NOT assert
+    // valid==false -- no api-spec text says a missing Part 10 meta header makes
+    // a file non-conformant, and asserting an undocumented expectation is how a
+    // test starts encoding one reader's opinion. The behaviour is reported in
+    // the QA-B-34 gate report instead.
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_DICOM_INVALID)
+        << "unexpected rc=" << rc << " report=" << report;
+    EXPECT_NO_THROW((void)json::parse(report));
+}

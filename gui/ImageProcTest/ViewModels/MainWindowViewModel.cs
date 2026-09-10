@@ -256,7 +256,41 @@ public sealed class MainWindowViewModel : ObservableObject
     public BackendRuntimeInfo RuntimeInfo
     {
         get => _runtimeInfo;
-        private set => SetProperty(ref _runtimeInfo, value);
+        private set
+        {
+            if (SetProperty(ref _runtimeInfo, value))
+            {
+                OnPropertyChanged(nameof(RuntimeVersionSummary));
+            }
+        }
+    }
+
+    /// <summary>
+    /// One line naming the backend mode and the versions behind it, for the status bar.
+    ///
+    /// #136 / XPE-GUI-E2E-001 S-05: until GUI-C-30 no element rendered a version at all — the
+    /// operator could not tell from the screen which native build was running, and the E2E scenario
+    /// had nothing to assert. Only versions the backend actually reported are listed; a Mock run
+    /// shows its own marker rather than pretending a native version exists.
+    /// </summary>
+    public string RuntimeVersionSummary
+    {
+        get
+        {
+            var parts = new List<string> { $"mode={Settings.BackendMode}" };
+
+            if (!string.IsNullOrWhiteSpace(RuntimeInfo.Version))
+            {
+                parts.Add($"common={RuntimeInfo.Version}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(RuntimeInfo.DisplayVersion))
+            {
+                parts.Add($"display={RuntimeInfo.DisplayVersion}");
+            }
+
+            return string.Join("  |  ", parts);
+        }
     }
 
     public LoadedImageFrame? ActiveImageFrame

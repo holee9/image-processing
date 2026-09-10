@@ -327,6 +327,10 @@
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
                            Content="{Binding StatusText}" />
+            <Separator />
+            <StatusBarItem x:Name="RuntimeCommonVersionText"
+                           AutomationProperties.AutomationId="RuntimeCommonVersionText"
+                           Content="{Binding RuntimeVersionSummary}" />
         </StatusBar>
 
         <ToolBarTray DockPanel.Dock="Top">

@@ -42,20 +42,28 @@ public partial class MainWindow : System.Windows.Window
         var shipped = new AppSettingsService();
         var persisted = shipped.Load();
 
+        // #136: the argument wins when present. C-25 had to carry BackendMode over from the shipped
+        // file because nothing else could select it — that was the one hole left in the isolation.
+        var backendMode = string.IsNullOrWhiteSpace(App.AutomationBackendMode)
+            ? persisted.BackendMode
+            : App.AutomationBackendMode;
+
         if (!App.IsAutomationMode)
         {
+            // GUI-C-31: --automation-backend selects the backend even outside a full automation run.
+            // It used to apply only when --automation-report was ALSO given, so the E2E fixture —
+            // which deliberately omits the report so the self-driving scenario stays off — passed the
+            // switch and silently got whatever the shipped file said. Measured: a Native E2E run
+            // rendered "mode=Mock".
+            //
+            // Settings isolation stays automation-only: this is a launch selection, not a stored value.
+            persisted.BackendMode = backendMode;
             return (persisted, shipped);
         }
 
         var isolatedDirectory = Path.Combine(
             Path.GetTempPath(),
             $"xpe_gui_automation_{Guid.NewGuid():N}");
-
-        // #136: the argument wins when present. C-25 had to carry BackendMode over from the shipped
-        // file because nothing else could select it — that was the one hole left in the isolation.
-        var backendMode = string.IsNullOrWhiteSpace(App.AutomationBackendMode)
-            ? persisted.BackendMode
-            : App.AutomationBackendMode;
 
         return (
             new AppSettings { BackendMode = backendMode },
