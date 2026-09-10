@@ -169,6 +169,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_offset_multi.cpp
         tests/test_xpe_calib_load.cpp
         tests/test_xpe_calib_save.cpp
+        # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
+        tests/test_calib_save_expiry.cpp
         # QA-A-21 (#120) judgement. The "legacy 3-arg API" half of the previous
         # note was stale: the shipped API *is* 3-arg and this file has zero
         # 2-argument correction calls. Registering it produces 14 errors, all

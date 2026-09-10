@@ -1339,7 +1339,7 @@ TEST_F(PreprocessCalibrationManagementTest, CheckExpiry_NullFilePath) {
  */
 TEST_F(PreprocessCalibrationManagementTest, Save_XCalFormatWrite) {
     // Act
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", "offset");
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", "offset", 0);
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||
@@ -1368,7 +1368,7 @@ TEST_F(PreprocessCalibrationManagementTest, Save_XCalFormatWrite) {
  */
 TEST_F(PreprocessCalibrationManagementTest, Save_FileCreationSuccess) {
     // Act
-    XpeErrorCode result = xpe_calib_save("test_output.xcal", "gain");
+    XpeErrorCode result = xpe_calib_save("test_output.xcal", "gain", 0);
 
     // Assert
     EXPECT_TRUE(result == XPE_OK ||

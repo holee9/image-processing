@@ -126,16 +126,16 @@ TEST_F(CalibManagerTest, GenerateOffsetNullOutputPathReturnsError) {
 // --- xpe_calib_save (2-arg new API) ---
 
 TEST_F(CalibManagerTest, CalibSaveNullPathReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(nullptr, "offset"));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(nullptr, "offset", 0));
 }
 
 TEST_F(CalibManagerTest, CalibSaveNullTypeReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(tmpFile.string().c_str(), nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(tmpFile.string().c_str(), nullptr, 0));
 }
 
 TEST_F(CalibManagerTest, CalibSaveInvalidTypeReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_calib_save(tmpFile.string().c_str(), "unknown_type"));
+              xpe_calib_save(tmpFile.string().c_str(), "unknown_type", 0));
 }
 
 TEST_F(CalibManagerTest, CalibSaveUnloadedOffsetReturnsError) {
@@ -143,7 +143,7 @@ TEST_F(CalibManagerTest, CalibSaveUnloadedOffsetReturnsError) {
     xpe_preprocess_shutdown();
     xpe_preprocess_init(nullptr);
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_calib_save(tmpFile.string().c_str(), "offset"));
+              xpe_calib_save(tmpFile.string().c_str(), "offset", 0));
     xpe_preprocess_shutdown();
 }
 

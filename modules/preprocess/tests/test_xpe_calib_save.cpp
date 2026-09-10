@@ -64,7 +64,7 @@ TEST_F(CalibSaveTest, RoundTrip_Offset_BitIdentical) {
     ASSERT_EQ(MakeOffsetXCal(src_offset, W, H, OVAL), XPE_OK);
     ASSERT_EQ(xpe_calib_load_offset(src_offset), XPE_OK);
 
-    ASSERT_EQ(xpe_calib_save(dst_offset, "offset"), XPE_OK);
+    ASSERT_EQ(xpe_calib_save(dst_offset, "offset", 0), XPE_OK);
 
     // Read back and compare
     XCalFileHeader hdr;
@@ -87,7 +87,7 @@ TEST_F(CalibSaveTest, RoundTrip_Gain_BitIdentical) {
     ASSERT_EQ(MakeGainXCal(src_gain, W, H, GVAL), XPE_OK);
     ASSERT_EQ(xpe_calib_load_gain(src_gain), XPE_OK);
 
-    ASSERT_EQ(xpe_calib_save(dst_gain, "gain"), XPE_OK);
+    ASSERT_EQ(xpe_calib_save(dst_gain, "gain", 0), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -109,7 +109,7 @@ TEST_F(CalibSaveTest, RoundTrip_Defect_BitIdentical) {
     ASSERT_EQ(MakeDefectXCal(src_defect, W, H, DVAL), XPE_OK);
     ASSERT_EQ(xpe_calib_load_defect_map(src_defect), XPE_OK);
 
-    ASSERT_EQ(xpe_calib_save(dst_defect, "defect"), XPE_OK);
+    ASSERT_EQ(xpe_calib_save(dst_defect, "defect", 0), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -127,21 +127,21 @@ TEST_F(CalibSaveTest, RoundTrip_Defect_BitIdentical) {
 // Test 4: Null filepath -> INVALID_INPUT
 // =============================================================================
 TEST_F(CalibSaveTest, NullFilepath_ReturnsInvalidInput) {
-    EXPECT_EQ(xpe_calib_save(nullptr, "offset"), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_calib_save(nullptr, "offset", 0), XPE_ERR_INVALID_INPUT);
 }
 
 // =============================================================================
 // Test 5: Null calib_type -> INVALID_INPUT
 // =============================================================================
 TEST_F(CalibSaveTest, NullCalibType_ReturnsInvalidInput) {
-    EXPECT_EQ(xpe_calib_save(dst_offset, nullptr), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_calib_save(dst_offset, nullptr, 0), XPE_ERR_INVALID_INPUT);
 }
 
 // =============================================================================
 // Test 6: Invalid calib_type string -> INVALID_INPUT
 // =============================================================================
 TEST_F(CalibSaveTest, InvalidCalibType_ReturnsInvalidInput) {
-    EXPECT_EQ(xpe_calib_save(dst_offset, "bogus_type"), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_calib_save(dst_offset, "bogus_type", 0), XPE_ERR_INVALID_INPUT);
 }
 
 // =============================================================================
@@ -165,7 +165,7 @@ TEST_F(CalibSaveTest, SaveOffset_WhenNotLoaded_ReturnsInvalidInput) {
 TEST_F(CalibSaveTest, SaveOffset_HeaderFieldsAreCorrect) {
     ASSERT_EQ(MakeOffsetXCal(src_offset, W, H, OVAL), XPE_OK);
     ASSERT_EQ(xpe_calib_load_offset(src_offset), XPE_OK);
-    ASSERT_EQ(xpe_calib_save(dst_offset, "offset"), XPE_OK);
+    ASSERT_EQ(xpe_calib_save(dst_offset, "offset", 0), XPE_OK);
 
     XCalFileHeader hdr;
     std::vector<uint8_t> cfg, payload;
@@ -186,7 +186,7 @@ TEST_F(CalibSaveTest, SaveOffset_HeaderFieldsAreCorrect) {
 TEST_F(CalibSaveTest, SaveOffset_SHA256Verifies) {
     ASSERT_EQ(MakeOffsetXCal(src_offset, W, H, OVAL), XPE_OK);
     ASSERT_EQ(xpe_calib_load_offset(src_offset), XPE_OK);
-    ASSERT_EQ(xpe_calib_save(dst_offset, "offset"), XPE_OK);
+    ASSERT_EQ(xpe_calib_save(dst_offset, "offset", 0), XPE_OK);
 
     // read_xcal_file internally verifies SHA-256; if it returns XPE_OK the hash matches
     XCalFileHeader hdr;

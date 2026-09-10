@@ -14,13 +14,16 @@
  *   - xpe_calib_generate_offset(frames, n, integration_ms, temp_c, out_path)
  *     writes an XCal v1 OFFSET file (FLOAT32 payload) instead of filling a buffer
  *   - xpe_calib_load_offset/gain(path) load into the global calibration store
- *   - xpe_calib_save(path, "offset"|"gain"|"defect") serialises that store and
- *     always writes expiry_epoch_ms = 0 (xpe_calib_save.cpp:56)
+ *   - xpe_calib_save(path, "offset"|"gain"|"defect", expiryEpochMs) serialises
+ *     that store; QA-A-29 (#132) added the third argument, and these cases pass
+ *     0 ("never expires") because they verify payload round-tripping, not expiry
  *   - xpe_calib_check_expiry(path, &is_expired, &remaining_days) returns XPE_OK
  *     for an expired file and reports expiry through its out-parameters
  *   - xpe_offset_correct(input, output, metadata) writes into a caller buffer
- * Expiry therefore has to be set by writing the XCal file directly; the
- * assertions below follow the shipped contract, not the retired one.
+ * The expiry cases below still write the XCal file directly rather than going
+ * through xpe_calib_save: that keeps the reader's expiry enforcement verifiable
+ * independently of the writer. The API path is covered in
+ * test_calib_save_expiry.cpp (QA-A-29).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  * REQ coverage: REQ-P1A-035 to REQ-P1A-040
@@ -232,7 +235,7 @@ TEST_F(SaveLoadRoundtripTest, OffsetRoundtripPreservesPixels) {
 
     ASSERT_NO_FATAL_FAILURE(writeXCal(src.c_str(), XCAL_TYPE_OFFSET, original, W, H, 0));
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset(src.c_str()));
-    ASSERT_EQ(XPE_OK, xpe_calib_save(dst.c_str(), "offset"));
+    ASSERT_EQ(XPE_OK, xpe_calib_save(dst.c_str(), "offset", 0));
 
     std::vector<float> loaded;
     ASSERT_NO_FATAL_FAILURE(readXCalPayload(dst.c_str(), &loaded));
@@ -251,7 +254,7 @@ TEST_F(SaveLoadRoundtripTest, GainFloat32RoundtripPreservesPixels) {
 
     ASSERT_NO_FATAL_FAILURE(writeXCal(src.c_str(), XCAL_TYPE_GAIN, original, W, H, 0));
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(src.c_str()));
-    ASSERT_EQ(XPE_OK, xpe_calib_save(dst.c_str(), "gain"));
+    ASSERT_EQ(XPE_OK, xpe_calib_save(dst.c_str(), "gain", 0));
 
     std::vector<float> loaded;
     ASSERT_NO_FATAL_FAILURE(readXCalPayload(dst.c_str(), &loaded));
