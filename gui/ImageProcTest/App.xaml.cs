@@ -20,6 +20,9 @@ public partial class App : System.Windows.Application
     /// </summary>
     public static string? AutomationBackendMode { get; private set; }
 
+    /// <summary>#141: directory holding the generated XCal set for this run, when one was supplied.</summary>
+    public static string? AutomationCalibrationDirectory { get; private set; }
+
     public static int? AutomationRawWidth { get; private set; }
 
     public static int? AutomationRawHeight { get; private set; }
@@ -41,6 +44,7 @@ public partial class App : System.Windows.Application
         AutomationRawPath = parsed.RawPath;
         AutomationReportPath = parsed.ReportPath;
         AutomationBackendMode = parsed.BackendMode;
+        AutomationCalibrationDirectory = parsed.CalibrationDirectory;
         AutomationRawWidth = parsed.RawWidth;
         AutomationRawHeight = parsed.RawHeight;
 

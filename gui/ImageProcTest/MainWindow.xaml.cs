@@ -65,8 +65,17 @@ public partial class MainWindow : System.Windows.Window
             Path.GetTempPath(),
             $"xpe_gui_automation_{Guid.NewGuid():N}");
 
+        var settings = new AppSettings { BackendMode = backendMode };
+        if (!string.IsNullOrWhiteSpace(App.AutomationCalibrationDirectory))
+        {
+            // #141: all three stages read from the one generated set.
+            settings.OffsetCalibrationDirectory = App.AutomationCalibrationDirectory;
+            settings.GainCalibrationDirectory = App.AutomationCalibrationDirectory;
+            settings.DefectCalibrationDirectory = App.AutomationCalibrationDirectory;
+        }
+
         return (
-            new AppSettings { BackendMode = backendMode },
+            settings,
             new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")));
     }
 
@@ -122,6 +131,8 @@ public partial class MainWindow : System.Windows.Window
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
             report.NativeSource = viewModel.RuntimeInfo.NativeSource;
+            report.PreprocessRan = viewModel.PreprocessRan;
+            report.PreprocessStages = viewModel.PreprocessStages;
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 

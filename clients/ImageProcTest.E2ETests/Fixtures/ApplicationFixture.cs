@@ -91,6 +91,15 @@ public class ApplicationFixture : IDisposable
 
         if (BackendMode == "Native")
         {
+            CalibrationDirectory = GenerateCalibrationSet(out var calibrationNote);
+            CalibrationNote = calibrationNote;
+
+            if (CalibrationDirectory is not null)
+            {
+                startInfo.ArgumentList.Add("--automation-calib");
+                startInfo.ArgumentList.Add(CalibrationDirectory);
+            }
+
             // The app resolves native DLLs through XPE_NATIVE_DIR; pinning it EXCLUSIVE keeps the
             // search from wandering into build directories or sibling checkouts (GUI-C-16/#129), so
             // a Native run names exactly which binaries it exercised.
@@ -129,6 +138,12 @@ public class ApplicationFixture : IDisposable
     /// <summary>What the pre-launch sweep found and did. Empty when nothing was left behind.</summary>
     public string LeftoverNote { get; } = string.Empty;
 
+    /// <summary>Directory holding this run's generated XCal set, or null when none was produced.</summary>
+    public string? CalibrationDirectory { get; }
+
+    /// <summary>How the calibration set was obtained, or why it was not. Reported by scenarios.</summary>
+    public string CalibrationNote { get; } = string.Empty;
+
     /// <summary>The UIA layer, shared by every scenario in the class.</summary>
     public UIA3Automation Automation { get; }
 
@@ -159,6 +174,81 @@ public class ApplicationFixture : IDisposable
             _application?.Dispose();
             Automation.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Produces an XCal set for this run with <c>xpe_calib_fixture_gen</c> (QA-A-36).
+    ///
+    /// The repository carries no calibration fixtures and this lane does not build native binaries
+    /// (CI owns that, #98), so the generator is used only when a CI-staged copy is already present.
+    /// When it is not, this returns null and the preprocess scenario SKIPS with the reason — a
+    /// missing tool is "not measured", never "measured and fine".
+    /// </summary>
+    private static string? GenerateCalibrationSet(out string note)
+    {
+        var generator = ResolveRepositoryFile(Path.Combine("build", "ci-common", "bin", "xpe_calib_fixture_gen.exe"));
+        if (generator is null)
+        {
+            note = "xpe_calib_fixture_gen.exe was not found under build/ci-common/bin — stage the " +
+                   "xpe-ci-preprocess-binaries artifact to exercise the preprocess success path.";
+            return null;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe_calib_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        var startInfo = new ProcessStartInfo(generator)
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (var argument in new[]
+                 {
+                     "--out", directory, "--width", "1024", "--height", "1024", "--seed", "0",
+                 })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            note = $"Could not start {generator}.";
+            return null;
+        }
+
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit(60_000);
+
+        var produced = Directory.Exists(directory)
+            ? Directory.GetFiles(directory, "*.xcal").Select(Path.GetFileName).Order().ToArray()
+            : [];
+
+        if (process.ExitCode != 0 || produced.Length == 0)
+        {
+            note = $"{Path.GetFileName(generator)} exit={process.ExitCode}, files=[{string.Join(", ", produced)}]. " +
+                   $"stdout: {stdout.Trim()} stderr: {stderr.Trim()}";
+            return null;
+        }
+
+        note = $"{Path.GetFileName(generator)} produced [{string.Join(", ", produced)}] in {directory}.";
+        return directory;
+    }
+
+    /// <summary>Walks up from the test output directory to a repository-relative file, or null.</summary>
+    private static string? ResolveRepositoryFile(string relativePath)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, relativePath);
+            if (File.Exists(candidate)) return candidate;
+            dir = dir.Parent;
+        }
+
+        return null;
     }
 
     /// <summary>
