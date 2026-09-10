@@ -35,11 +35,26 @@ static const std::pair<DcmTagKey, const char*> s_requiredTags[] = {
     { DCM_PixelData,        "7FE0,0010" },
 };
 
+// #142 (QA-B-42): report the required size through the caller's buffer, but
+// only when it can actually hold the 4-byte value. The unguarded memcpy this
+// replaces wrote past any buffer shorter than a uint32_t -- observed for a
+// 2-byte buffer in QA-B-42's RED run. A buffer too short even for the report
+// still returns BUFFER_TOO_SMALL; the caller simply learns no size from it.
+static void report_required_size(char* outBuf, uint32_t bufLen, size_t reportSize) {
+    if (bufLen < sizeof(uint32_t)) return;
+    const uint32_t required = static_cast<uint32_t>(reportSize + 1);
+    std::memcpy(outBuf, &required, sizeof(uint32_t));
+}
+
 XpeErrorCode DicomValidator::validate(const char* filePath,
                                        char* outBuf,
                                        uint32_t bufLen) {
     spdlog::debug("[DicomValidator] validate: {}", filePath ? filePath : "(null)");
     if (!filePath || !outBuf) return XPE_ERR_INVALID_INPUT;
+    // #142 (QA-B-42): a declared length of 0 means the output argument does not
+    // exist. That is INVALID_INPUT, not BUFFER_TOO_SMALL -- "too small" is for a
+    // buffer that is real but short. Checked first so the two cannot overlap.
+    if (bufLen == 0u) return XPE_ERR_INVALID_INPUT;
 
     // Try to parse the file — if it fails completely, it's not a DICOM
     ValidationResult result;
@@ -65,8 +80,7 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
 
         // Even for DICOM_INVALID, write report before returning
         if (bufLen < static_cast<uint32_t>(report.size() + 1)) {
-            uint32_t required = static_cast<uint32_t>(report.size() + 1);
-            std::memcpy(outBuf, &required, sizeof(uint32_t));
+            report_required_size(outBuf, bufLen, report.size());
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
         std::strncpy(outBuf, report.c_str(), bufLen - 1);
@@ -87,8 +101,7 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
 
         std::string report = buildReport(result);
         if (bufLen < static_cast<uint32_t>(report.size() + 1)) {
-            uint32_t required = static_cast<uint32_t>(report.size() + 1);
-            std::memcpy(outBuf, &required, sizeof(uint32_t));
+            report_required_size(outBuf, bufLen, report.size());
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
         std::strncpy(outBuf, report.c_str(), bufLen - 1);
@@ -108,8 +121,7 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
 
         std::string report = buildReport(result);
         if (bufLen < static_cast<uint32_t>(report.size() + 1)) {
-            uint32_t required = static_cast<uint32_t>(report.size() + 1);
-            std::memcpy(outBuf, &required, sizeof(uint32_t));
+            report_required_size(outBuf, bufLen, report.size());
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
         std::strncpy(outBuf, report.c_str(), bufLen - 1);
@@ -224,8 +236,7 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
 
     // Check buffer size
     if (bufLen < static_cast<uint32_t>(report.size() + 1)) {
-        uint32_t required = static_cast<uint32_t>(report.size() + 1);
-        std::memcpy(outBuf, &required, sizeof(uint32_t));
+        report_required_size(outBuf, bufLen, report.size());
         return XPE_ERR_BUFFER_TOO_SMALL;
     }
 

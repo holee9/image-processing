@@ -159,6 +159,10 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
                                         uint32_t timeoutMs) {
     spdlog::debug("[DicomNetworkSCU] cfindMwl -> {}:{}", host ? host : "(null)", port);
     if (!host || !aet || !queryJson || !outJson) return XPE_ERR_INVALID_INPUT;
+    // #142 (QA-B-42): a declared length of 0 is a missing argument, not a small
+    // one. Judged here, before the association, so a caller with a broken output
+    // buffer does not pay a network round trip to find out.
+    if (outBufLen == 0u) return XPE_ERR_INVALID_INPUT;
 
     s_cancelRequested.store(false);
 

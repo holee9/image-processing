@@ -1,10 +1,21 @@
 /**
- * @file test_runtime_detection_avx2_parity.cpp
- * @brief AVX2 parity: runtime defect detection must be bit-identical across calls
+ * @file test_runtime_detection_determinism.cpp
+ * @brief Runtime defect detection is deterministic across repeated calls.
  * SPEC: SPEC-SIMD-001 REQ-SIMD-004  IEC 62304 Class B
  *
- * Verifies that xpe_defect_detect_runtime produces identical TPR/FPR (and defect map)
- * when called twice with the same input — confirming deterministic AVX2 dispatch.
+ * Renamed by QA-A-42 (#144). The file was called
+ * test_runtime_detection_avx2_parity.cpp and its own description claimed to
+ * confirm "deterministic AVX2 dispatch", but there is no AVX2 dispatch to
+ * confirm: xpe_defect_detect_runtime calls the scalar DetectDefectivePixel in a
+ * double loop, and a grep for avx2 / __m256 / immintrin across
+ * src/runtime_detection.cpp and include/runtime_detection.h returns nothing
+ * (measured, QA-A-41: reports/lane-pre/QA-A-41/a41-avx2-evidence.txt).
+ *
+ * What the four cases actually assert is worth keeping: the same input produces
+ * the same defect map every time, and different inputs produce different maps.
+ * That is a determinism contract, and it is what the name now says. If an AVX2
+ * path is ever added, THIS suite becomes the natural place to assert scalar/AVX2
+ * parity -- but it must then compare the two paths, not one path against itself.
  */
 
 #include <gtest/gtest.h>
@@ -19,7 +30,7 @@
 
 namespace {
 
-class RuntimeDetectAVX2ParityTest : public ::testing::Test {
+class RuntimeDetectDeterminismTest : public ::testing::Test {
 protected:
     std::vector<float>   inputPixels1;
     std::vector<float>   inputPixels2;
@@ -72,7 +83,7 @@ protected:
     }
 };
 
-TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
+TEST_F(RuntimeDetectDeterminismTest, DefectMapBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &defectMapOut1));
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&input2, nullptr, &defectMapOut2));
 
@@ -81,7 +92,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
         << "Runtime detection AVX2 output differs between identical calls";
 }
 
-TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
+TEST_F(RuntimeDetectDeterminismTest, DifferentInputProducesDifferentOutput) {
     // Flat image with sparse extreme outliers: Hampel window median=2000, MAD≈0,
     // so extreme pixels (65535) are always flagged regardless of threshold.
     // Regular input1 is uniform [0,4095] — Hampel threshold >>2047 so no defects.
@@ -119,7 +130,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
         << "Flat image with extreme outliers should produce different defect map from uniform input";
 }
 
-TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
+TEST_F(RuntimeDetectDeterminismTest, RepeatedCallParity_5x) {
     std::vector<std::vector<uint8_t>> outputs(5, std::vector<uint8_t>(PIXEL_COUNT, 0));
     std::vector<XpeImageBuffer> outBufs(5);
 
@@ -141,7 +152,7 @@ TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
     }
 }
 
-TEST_F(RuntimeDetectAVX2ParityTest, NullConfigUsesDefaults) {
+TEST_F(RuntimeDetectDeterminismTest, NullConfigUsesDefaults) {
     EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&input1, nullptr, &defectMapOut1));
 }
 

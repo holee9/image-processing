@@ -8,12 +8,17 @@
  * compared row by row with that report.
  *
  * The candidates reuse the SHIPPED primitives from runtime_detection.h --
- * CollectWindowValues, ComputeMedian, ComputeMAD -- so a difference in the
+ * CollectNeighborValues, ComputeMedian, ComputeMAD -- so a difference in the
  * table is a difference in the candidate's rule, not in a reimplemented median.
  * The baseline row calls the shipped DetectDefectivePixel unchanged.
  *
  * Candidates (leader's list, QA-A-41 section 1):
- *   (a) larger window   5x5 -> 7x7 / 9x9, to shrink the MAD estimate's spread
+ *   (a) larger window   3x3 -> 5x5 / 7x7, to shrink the MAD estimate's spread
+ *
+ * QA-A-42 (#143) re-baselined every row: the shipped rule is now 3x3 EXCLUDING
+ * the centre (8 values) with a 5-neighbour minimum, per REQ-P1A-013. The
+ * candidates follow the same collection rule, so the table still compares
+ * detection rules rather than neighbourhood conventions.
  *   (b) global sigma floor   sigma_use = max(sigma_local, alpha * sigma_global)
  *   (c) two stage   loose local pass (kappa = 4) then a 9x9 re-judge of the
  *                   candidates only
@@ -50,7 +55,7 @@ constexpr size_t   kN = static_cast<size_t>(kW) * kH;
 constexpr float    kMean  = 3000.0f;
 constexpr float    kSigma = 10.0f;
 
-using xpe::preprocess::internal::CollectWindowValues;
+using xpe::preprocess::internal::CollectNeighborValues;
 using xpe::preprocess::internal::ComputeMedian;
 using xpe::preprocess::internal::ComputeMAD;
 using xpe::preprocess::internal::DetectDefectivePixel;
@@ -119,8 +124,8 @@ bool decide(const XpeImageBuffer* img, uint32_t x, uint32_t y,
     const float  center = pixels[static_cast<size_t>(y) * img->width + x];
 
     auto localStats = [&](int32_t window, float* medianOut, float* madOut) {
-        CollectWindowValues(img, x, y, window, scratch);
-        if (scratch.empty()) return false;
+        CollectNeighborValues(img, x, y, window, scratch);
+        if (scratch.size() < RUNTIME_DETECTION_MIN_NEIGHBORS) return false;
         *medianOut = ComputeMedian(scratch);
         scratch2 = scratch;
         *madOut = ComputeMAD(scratch2, *medianOut);
@@ -239,7 +244,7 @@ void profile(int32_t window) {
         const auto t0 = std::chrono::steady_clock::now();
         for (uint32_t y = 0; y < kH; ++y) {
             for (uint32_t x = 0; x < kW; ++x) {
-                CollectWindowValues(&img, x, y, window, scratch);
+                CollectNeighborValues(&img, x, y, window, scratch);
                 if (stage == 0) { sink = sink + scratch[0]; continue; }
                 const float median = ComputeMedian(scratch);
                 if (stage == 1) { sink = sink + median; continue; }
@@ -273,19 +278,64 @@ void profile(int32_t window) {
     }
     const auto t1 = std::chrono::steady_clock::now();
     std::printf("  %-34s %8.1f ms  (flagged %zu)\n",
-                "shipped DetectDefectivePixel", 
+                "shipped DetectDefectivePixel",
                 std::chrono::duration<double, std::milli>(t1 - t0).count(), flagged);
     std::printf("\n");
+    std::fflush(stdout);
+}
+
+/**
+ * Times the shipped entry point at the two frame sizes REQ-P1A-013 names, so
+ * the SPEC performance row can be read against a measurement rather than an
+ * extrapolation.
+ */
+void timeEntryPoint(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    std::vector<uint8_t> map(n, 0);
+    XpeImageBuffer out{};
+    out.data = map.data();
+    out.width = w; out.height = h;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8;
+    out.dataSize = static_cast<uint32_t>(n);
+
+    XpeImageMetadata meta{};
+    double best = 1e30;
+    for (int rep = 0; rep < 3; ++rep) {
+        const auto t0 = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = xpe_defect_detect_runtime(&img, &meta, &out);
+        const auto t1 = std::chrono::steady_clock::now();
+        if (rc != XPE_OK) { std::fprintf(stderr, "detect failed %d\n", (int)rc); return; }
+        const double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (ms < best) best = ms;
+    }
+    size_t flagged = 0;
+    for (uint8_t v : map) if (v) ++flagged;
+    std::printf("[time] %ux%u  best of 3: %8.1f ms   flagged %zu (%.3f%%)\n",
+                w, h, best, flagged, 100.0 * (double)flagged / (double)n);
     std::fflush(stdout);
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
-    bool quick = false, profileOnly = false;
+    bool quick = false, profileOnly = false, timeOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
+        if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
     }
 
     if (xpe_preprocess_init(nullptr) != XPE_OK) {
@@ -293,30 +343,37 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    if (timeOnly) {
+        timeEntryPoint(1024, 1024);
+        timeEntryPoint(3072, 3072);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
     if (profileOnly) {
-        profile(5);
-        profile(9);
+        profile(3);
+        profile(7);
         xpe_preprocess_shutdown();
         return 0;
     }
 
     const std::vector<Variant> variants = {
-        {"baseline 5x5 k=5",      Kind::Baseline,    5, 5.0f, 0.0f, 0, 0.0f},
+        {"baseline 3x3 k=5",      Kind::Baseline,    3, 5.0f, 0.0f, 0, 0.0f},
         // Same rule as the baseline, but through this TU's buffer-reusing loop.
         // The gap between this row and the one above is allocation cost, not
         // detection behaviour -- without it the window rows would look faster
         // than they are for the wrong reason.
-        {"    5x5 k=5 (reuse)",   Kind::Window,      5, 5.0f, 0.0f, 0, 0.0f},
+        {"    3x3 k=5 (reuse)",   Kind::Window,      3, 5.0f, 0.0f, 0, 0.0f},
+        {"(a) 5x5 k=5",           Kind::Window,      5, 5.0f, 0.0f, 0, 0.0f},
         {"(a) 7x7 k=5",           Kind::Window,      7, 5.0f, 0.0f, 0, 0.0f},
-        {"(a) 9x9 k=5",           Kind::Window,      9, 5.0f, 0.0f, 0, 0.0f},
-        {"(b) 5x5 floor a=0.8",   Kind::GlobalFloor, 5, 5.0f, 0.8f, 0, 0.0f},
-        {"(b) 5x5 floor a=1.0",   Kind::GlobalFloor, 5, 5.0f, 1.0f, 0, 0.0f},
-        {"(c) 2-stage 5->9 k1=4", Kind::TwoStage,    5, 5.0f, 0.0f, 9, 4.0f},
+        {"(b) 3x3 floor a=0.8",   Kind::GlobalFloor, 3, 5.0f, 0.8f, 0, 0.0f},
+        {"(b) 3x3 floor a=1.0",   Kind::GlobalFloor, 3, 5.0f, 1.0f, 0, 0.0f},
+        {"(c) 2-stage 3->7 k1=4", Kind::TwoStage,    3, 5.0f, 0.0f, 7, 4.0f},
         // Diagnostic, not one of the leader's three: the only lever that moves
         // TPR at exactly 5 sigma is kappa, and these rows show what it costs in
         // false positives.
-        {"(d) 9x9 k=4 [diag]",    Kind::Window,      9, 4.0f, 0.0f, 0, 0.0f},
-        {"(d) 5x5 k=4 [diag]",    Kind::Window,      5, 4.0f, 0.0f, 0, 0.0f},
+        {"(d) 7x7 k=4 [diag]",    Kind::Window,      7, 4.0f, 0.0f, 0, 0.0f},
+        {"(d) 3x3 k=4 [diag]",    Kind::Window,      3, 4.0f, 0.0f, 0, 0.0f},
     };
 
     const std::vector<uint32_t> seeds = quick ? std::vector<uint32_t>{0u}
