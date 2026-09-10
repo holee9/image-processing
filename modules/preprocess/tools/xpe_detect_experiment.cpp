@@ -328,19 +328,121 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+/* ------------------------------------------------ QA-A-45 false negatives */
+
+/**
+ * Reproduces the QA-A-40/43/44 TPR@10-sigma case exactly and dumps every
+ * injected site the shipped detector did NOT flag, with the numbers that
+ * decided it.
+ *
+ * The conditions are copied from test_runtime_detection_rates.cpp so the FN set
+ * is the same 13 pixels the rates suite reports -- 1024x1024, mean 3000 ADU,
+ * sigma 10, the 32-pixel lattice, amplitude +10 sigma, seed 20260911.
+ *
+ * Nothing here changes the detector. It re-derives the same decision from the
+ * same header primitives so the left and right sides of the comparison can be
+ * printed.
+ */
+void reportFalseNegatives(uint32_t seed, float amplitudeSigma) {
+    const std::vector<size_t> sites = defectSites();
+    std::vector<float> frame = cleanFrame(seed);
+    for (size_t site : sites) frame[site] += amplitudeSigma * kSigma;
+
+    XpeImageBuffer img = wrap(frame);
+    std::vector<uint8_t> map(kN, 0);
+    XpeImageBuffer out{};
+    out.data = map.data();
+    out.width = kW; out.height = kH;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8;
+    out.dataSize = static_cast<uint32_t>(kN);
+
+    XpeImageMetadata meta{};
+    if (xpe_defect_detect_runtime(&img, &meta, &out) != XPE_OK) {
+        std::fprintf(stderr, "detect failed\n");
+        return;
+    }
+
+    // The same floor the entry point computed, re-derived for reporting.
+    const float sigmaGlobalRaw = xpe::preprocess::internal::ComputeGlobalSigma(&img);
+    const float floor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobalRaw;
+    const float kappa = RUNTIME_DETECTION_DEFAULT_SIGMA_THRESHOLD;
+    const int32_t window = RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE;
+
+    std::printf("[fn] seed=%u amplitude=%.1f sigma  frame=%ux%u  sites=%zu\n",
+                seed, amplitudeSigma, kW, kH, sites.size());
+    std::printf("[fn] global sigma (MAD*1.4826) = %.6f, floor = %.6f * it = %.6f\n",
+                sigmaGlobalRaw, RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR, floor);
+    std::printf("[fn] kappa = %.1f, window = %dx%d excluding centre\n\n",
+                kappa, window, window);
+    std::printf("  idx      x     y   nbrs   value    median    |c-m|   "
+                "mad*1.4826  sigma_use  kappa*sigma   margin  verdict\n");
+
+    const float* pixels = static_cast<const float*>(img.data);
+    std::vector<float> nbrs, dev;
+    size_t missed = 0;
+
+    for (size_t site : sites) {
+        if (map[site]) continue;
+        ++missed;
+
+        const uint32_t x = static_cast<uint32_t>(site % kW);
+        const uint32_t y = static_cast<uint32_t>(site / kW);
+
+        xpe::preprocess::internal::CollectNeighborValues(&img, x, y, window, nbrs);
+        const size_t nbrCount = nbrs.size();
+        float median = 0.0f, mad = 0.0f;
+        if (nbrCount >= RUNTIME_DETECTION_MIN_NEIGHBORS) {
+            median = xpe::preprocess::internal::ComputeMedian(nbrs);
+            dev = nbrs;
+            mad = xpe::preprocess::internal::ComputeMAD(dev, median);
+        }
+        const float sigmaUse = (mad > floor) ? mad : floor;
+        const float centre = pixels[site];
+        const float lhs = std::fabs(centre - median);
+        const float rhs = kappa * sigmaUse;
+
+        const char* verdict = (nbrCount < RUNTIME_DETECTION_MIN_NEIGHBORS)
+            ? "SKIPPED(min-nbrs)"
+            : (lhs > rhs ? "flagged?!" : "below threshold");
+
+        std::printf("  %3zu  %5u %5u   %4zu  %8.2f  %8.2f  %7.2f  %10.4f  %9.4f  "
+                    "%11.4f  %7.2f  %s\n",
+                    missed, x, y, nbrCount, centre, median, lhs, mad, sigmaUse,
+                    rhs, lhs - rhs, verdict);
+
+        // The eight neighbours, so the reader can check the median by hand.
+        xpe::preprocess::internal::CollectNeighborValues(&img, x, y, window, nbrs);
+        std::printf("        nbrs:");
+        for (float v : nbrs) std::printf(" %.2f", v);
+        std::printf("\n");
+        std::fflush(stdout);
+    }
+
+    std::printf("\n[fn] missed %zu of %zu sites\n", missed, sites.size());
+    std::fflush(stdout);
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
-    bool quick = false, profileOnly = false, timeOnly = false;
+    bool quick = false, profileOnly = false, timeOnly = false, fnOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
         if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
+        if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
     if (xpe_preprocess_init(nullptr) != XPE_OK) {
         std::fprintf(stderr, "xpe_preprocess_init failed\n");
         return 1;
+    }
+
+    if (fnOnly) {
+        reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
     }
 
     if (timeOnly) {
