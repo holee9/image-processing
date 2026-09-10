@@ -31,6 +31,15 @@ public interface IXpeBackend
     LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings);
 
     /// <summary>
+    /// Runs the Phase-1a preprocess stages (offset → gain → defect) against a loaded frame.
+    /// #141. Backends without native preprocessing report why instead of throwing.
+    /// </summary>
+    PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings);
+
+    /// <summary>True when this backend can actually run preprocessing (#141: native only).</summary>
+    bool SupportsPreprocessing { get; }
+
+    /// <summary>
     /// Returns the display module version string shown in the runtime panel.
     /// </summary>
     string GetDisplayVersion();

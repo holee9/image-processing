@@ -89,6 +89,7 @@ public sealed class MainWindowViewModel : ObservableObject
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
+        RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
         ZoomInCommand = new RelayCommand(ZoomIn);
@@ -168,6 +169,15 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ApplyDisplayPipelineCommand { get; }
 
     public RelayCommand ApplyBodyPartPresetCommand { get; }
+
+    /// <summary>#141: runs the Phase-1a preprocess stages on the loaded frame.</summary>
+    public RelayCommand RunPreprocessingCommand { get; }
+
+    /// <summary>
+    /// #141: whether the menu entry is usable. False on Mock, which has no preprocess module —
+    /// the entry stays visible with a tooltip rather than disappearing, so the reason is on screen.
+    /// </summary>
+    public bool CanRunPreprocessing => _backend.SupportsPreprocessing;
 
     public RelayCommand ZoomFitCommand { get; }
 
@@ -773,6 +783,36 @@ public sealed class MainWindowViewModel : ObservableObject
     /// DLL — whose abdomen window (C=40/W=400, HU) is the clinically validated one.
     /// </summary>
     public VoiPreset? LastAppliedVoiPreset { get; private set; }
+
+    /// <summary>
+    /// #141: Phase-1a preprocessing. A refusal (no calibration, Mock backend) is surfaced as an
+    /// alert and a log line — not an exception — because both are expected states.
+    /// </summary>
+    private void RunPreprocessing()
+    {
+        if (ActiveImageFrame is null)
+        {
+            StatusText = "Load a raw image before running preprocessing.";
+            Log(StatusText);
+            return;
+        }
+
+        var result = _backend.RunPreprocessing(ActiveImageFrame, Settings);
+        StatusText = result.Summary;
+        Log(result.Summary);
+        DrainBackendTelemetry();
+
+        if (!result.Ran)
+        {
+            Alerts.Insert(0, new AlertEntry
+            {
+                Severity = "WARN",
+                Code = "PREPROCESS_NOT_RUN",
+                Message = result.Summary,
+                Timestamp = DateTimeOffset.Now,
+            });
+        }
+    }
 
     // @MX:WARN: [AUTO] async void; same crash risk as LoadImage; inner try/catch is the only safety net
     // @MX:REASON: Bound to RelayCommand; must remain async void for command infrastructure compatibility

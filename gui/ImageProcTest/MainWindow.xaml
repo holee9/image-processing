@@ -207,8 +207,9 @@
                 <MenuItem x:Name="RunPreprocessingMenuItem"
                           AutomationProperties.AutomationId="RunPreprocessingMenuItem"
                           Header="Run _Preprocessing (Phase 1a)"
-                          IsEnabled="False"
-                          ToolTip="Requires xpe_preprocess.dll." />
+                          Command="{Binding RunPreprocessingCommand}"
+                          IsEnabled="{Binding CanRunPreprocessing}"
+                          ToolTip="Requires the native backend and a calibration set (xpe_calib_fixture_gen)." />
                 <MenuItem x:Name="RunDeterministicBaselineMenuItem"
                           AutomationProperties.AutomationId="RunDeterministicBaselineMenuItem"
                           Header="Run _Deterministic Baseline (Phase 1b)"

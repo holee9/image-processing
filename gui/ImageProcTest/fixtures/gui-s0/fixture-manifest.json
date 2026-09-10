@@ -24,5 +24,16 @@
     "backendVersion": "v0.0.0-mock",
     "initialLogCount": 5,
     "initialAlertCount": 3
+  },
+  "calibrationSource": {
+    "kind": "generated-at-run-time",
+    "tool": "xpe_calib_fixture_gen",
+    "usage": "xpe_calib_fixture_gen --out <dir> [--width 1024] [--height 1024] [--seed 0] [--expiry-ms 0]",
+    "files": [
+      "offset.xcal",
+      "gain.xcal",
+      "defect.xcal"
+    ],
+    "note": "XCal fixtures are NOT committed (#141). Generate a set, then point calibOffsetDir/calibGainDir/calibDefectDir at it. The generator is deterministic: same arguments produce byte-identical files."
   }
 }
