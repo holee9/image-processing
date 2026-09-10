@@ -378,11 +378,12 @@ jobs:
           $dbg = Join-Path (Get-Location) 'build\${{ matrix.preset }}\vcpkg_installed\x64-windows\debug\bin'
           "$dbg;$bin;$env:PATH" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
-      - name: Run coverage (OpenCppCoverage over ctest)
-        shell: pwsh
-        run: cmake --build --preset ${{ matrix.preset }} --target coverage
-
-      - name: Enforce coverage threshold (85%)
+      # One step, not two: coverage_check DEPENDS on coverage, so a separate
+      # `--target coverage` step made the whole ctest run under OpenCppCoverage
+      # execute twice (observed 2026-09-10 in run 34444576614 — every skip/pass
+      # line appeared doubled). The report from the single run is what the
+      # threshold is checked against.
+      - name: Run coverage and enforce threshold (85%)
         shell: pwsh
         run: cmake --build --preset ${{ matrix.preset }} --target coverage_check
 
