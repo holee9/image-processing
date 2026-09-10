@@ -148,7 +148,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-002
 - **Traceability**: PRE-03, SWU-1.2
-- **Algorithm**: `I_corrected(x,y) = I_offset(x,y) * G(x,y)` where `G(x,y) = mean(I_flat) / (I_flat(x,y) - I_dark(x,y))`. Production path uses precomputed reciprocal gain map `R(x,y) = 1/G(x,y)` and `_mm256_mul_ps` (multiplication 3-5x faster than division on modern CPUs).
+- **Algorithm**: `I_corrected(x,y) = I_offset(x,y) * G(x,y)` where `G(x,y) = mean(I_flat) / (I_flat(x,y) - I_dark(x,y))`. **Storage convention (2026-09-10, #120):** the XCal gain file stores the *normalized sensitivity* `S = 1/G` (mean ≈ 1, what `xpe_calib_generate_gain` writes); the correction divides by the stored map, i.e. multiplies by the precomputed `1/S = G`. Tests MUST NOT multiply the input by the stored map. Production path uses precomputed reciprocal gain map `R(x,y) = 1/G(x,y)` and `_mm256_mul_ps` (multiplication 3-5x faster than division on modern CPUs).
 - **Performance**: < 55ms for 3072x3072 UINT16 frame (scalar); < 15ms (AVX2)
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.2):
   - Flat-field residual: sigma/mean < 0.5% over 90% FOV
