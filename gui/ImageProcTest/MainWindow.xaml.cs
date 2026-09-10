@@ -13,14 +13,47 @@ public partial class MainWindow : System.Windows.Window
 {
     private readonly HelpBundleService _helpBundleService = new();
 
+    /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
+    private readonly string _settingsFilePath;
+
     public MainWindow()
     {
         InitializeComponent();
 
-        var settingsService = new AppSettingsService();
-        var settings = settingsService.Load();
+        var (settings, settingsService) = CreateSettings();
+        _settingsFilePath = settingsService.FilePath;
         DataContext = new MainWindowViewModel(settings, settingsService, XpeBackendFactory.Create);
         Loaded += OnLoaded;
+    }
+
+    /// <summary>
+    /// #136: an automation run starts from defaults and writes to a throwaway file.
+    ///
+    /// Settings are persisted, so without this a check could be decided by whatever a PREVIOUS run
+    /// (or a human sitting at the app) happened to leave behind: measured — with the identical
+    /// binary and scenario, a leftover selectedBodyPart of "Lung" fails the run and "Abdomen"
+    /// passes it, while the scenario never sets that value at all.
+    ///
+    /// BackendMode is the one value carried over: it is the operator's input selecting WHICH backend
+    /// this run exercises, not state the run produced.
+    /// </summary>
+    private static (AppSettings Settings, AppSettingsService Service) CreateSettings()
+    {
+        var shipped = new AppSettingsService();
+        var persisted = shipped.Load();
+
+        if (!App.IsAutomationMode)
+        {
+            return (persisted, shipped);
+        }
+
+        var isolatedDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"xpe_gui_automation_{Guid.NewGuid():N}");
+
+        return (
+            new AppSettings { BackendMode = persisted.BackendMode },
+            new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")));
     }
 
     protected override void OnClosed(System.EventArgs e)
@@ -206,7 +239,8 @@ public partial class MainWindow : System.Windows.Window
                 report.MenuCommandReportCreated &&
                 File.ReadAllText(menuCommandReportPath).Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
 
-            var settingsFile = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            // #136: read the file THIS run wrote, which under automation is the isolated one.
+            var settingsFile = _settingsFilePath;
             if (File.Exists(settingsFile))
             {
                 using var document = JsonDocument.Parse(File.ReadAllText(settingsFile));
