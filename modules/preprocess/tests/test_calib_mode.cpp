@@ -196,87 +196,28 @@ TEST_F(CalibModeTest, MaxPoints_HardCap_10) {
 }
 
 /* =============================================================================
- * FUNC-033: R² Quality Gate Tests
+ * FUNC-033: R² Quality Gate Tests — REMOVED (QA-A-34, #120)
+ *
+ * Four cases lived here: R2QualityGate_Pass_WhenAboveThreshold,
+ * R2QualityGate_Fail_WhenBelowThreshold,
+ * PreviousCalibration_Comparison_Regression and _Stable.
+ *
+ * None of them called production code. Each declared local doubles and compared
+ * them to each other:
+ *
+ *     constexpr double r_squared_good = 0.9995;
+ *     EXPECT_GE(r_squared_good, 0.999);   // a constant against a constant
+ *
+ * The `xpe_calib_get_quality_meta(&meta)` call above each comparison read the
+ * metadata and then ignored it — the assertions never touched `meta`. Four
+ * green rows named after a safety gate, testing arithmetic.
+ *
+ * The gate they claimed to cover lived in `xpe::calib::mode::update_metadata`,
+ * which QA-A-34 deleted as dead code (zero callers, zero declarations). There is
+ * now NO R² quality gate in this module to point them at, so they are removed
+ * rather than rewritten. Should the gate return as a reachable API, its tests
+ * belong here and must call it.
  * ============================================================================ */
-
-/**
- * @test R² quality gate: pass when R² >= 0.999
- *
- * Calibration should pass when R² meets or exceeds 0.999 (99.9% fit quality).
- */
-TEST_F(CalibModeTest, R2QualityGate_Pass_WhenAboveThreshold) {
-    // Simulate calibration with R² = 0.9995 (above threshold)
-    // Note: This test verifies the API behavior; actual R² computation
-    // is tested in the polynomial fitting module tests.
-
-    XpeCalibQualityMeta meta;
-    xpe_calib_get_quality_meta(&meta);
-
-    // Verify quality gate logic
-    constexpr double r_squared_good = 0.9995;
-    EXPECT_GE(r_squared_good, 0.999);  // Should pass quality gate
-}
-
-/**
- * @test R² quality gate: fail when R² < 0.999
- *
- * Calibration should fail when R² is below 0.999 threshold.
- */
-TEST_F(CalibModeTest, R2QualityGate_Fail_WhenBelowThreshold) {
-    // Simulate calibration with R² = 0.998 (below threshold)
-    XpeCalibQualityMeta meta;
-    xpe_calib_get_quality_meta(&meta);
-
-    // Verify quality gate logic
-    constexpr double r_squared_bad = 0.998;
-    EXPECT_LT(r_squared_bad, 0.999);  // Should fail quality gate
-}
-
-/* =============================================================================
- * FUNC-033: Previous Calibration Comparison Tests
- * ============================================================================ */
-
-/**
- * @test Previous calibration comparison: regression detection
- *
- * Warn when new R² is significantly worse than previous calibration
- * (regression more than 0.01).
- */
-TEST_F(CalibModeTest, PreviousCalibration_Comparison_Regression) {
-    XpeCalibQualityMeta meta;
-
-    // Simulate first calibration with good R²
-    xpe_calib_get_quality_meta(&meta);
-    meta.r_squared = 0.9995;
-    meta.calibration_pass = 1;
-
-    // Simulate second calibration with degraded R² (regression > 0.01)
-    double previous_r_squared = meta.r_squared;
-    double new_r_squared = 0.9800;  // Regression of 0.0195
-
-    EXPECT_LT(new_r_squared, previous_r_squared - 0.01);
-    // Should trigger regression warning
-}
-
-/**
- * @test Previous calibration comparison: no regression warning when stable
- *
- * No warning when new R² is within acceptable range of previous.
- */
-TEST_F(CalibModeTest, PreviousCalibration_Comparison_Stable) {
-    XpeCalibQualityMeta meta;
-
-    // Simulate first calibration
-    xpe_calib_get_quality_meta(&meta);
-    meta.r_squared = 0.9995;
-
-    // Simulate second calibration with similar R² (regression < 0.01)
-    double previous_r_squared = meta.r_squared;
-    double new_r_squared = 0.9992;  // Regression of only 0.0003
-
-    EXPECT_GE(new_r_squared, previous_r_squared - 0.01);
-    // Should NOT trigger regression warning
-}
 
 /* =============================================================================
  * Main Test Runner
