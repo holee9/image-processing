@@ -263,7 +263,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct_avx2_parity.cpp
         tests/test_defect_correct_avx2_parity.cpp
-        tests/test_runtime_detection_avx2_parity.cpp
+        # QA-A-42 (#144): renamed from test_runtime_detection_avx2_parity.cpp --
+        # it asserts determinism, not AVX2 parity; there is no AVX2 path here.
+        tests/test_runtime_detection_determinism.cpp
         # QA-A-33 (#120 #112): correctness half deleted by QA-A-27
         tests/test_runtime_detection_functional.cpp
         tests/test_runtime_detection_errors.cpp
