@@ -264,6 +264,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_sigma_clip_nmin.cpp
         # QA-A-39 (#138 #97): public config_json_or_null on generate_offset
         tests/test_calib_generate_offset_config.cpp
+        # QA-A-40 (#120 #112): REQ-P1A-013 TPR/FPR quantitative harness
+        tests/test_runtime_detection_rates.cpp
     )
 
     add_executable(xpe_preprocess_tests
