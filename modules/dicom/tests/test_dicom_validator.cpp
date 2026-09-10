@@ -289,3 +289,92 @@ TEST_F(DicomValidatorTest, ValidateWriterOutput_IsConformant) {
     auto j = json::parse(report);
     EXPECT_TRUE(j["valid"].get<bool>()) << report;
 }
+
+// ---------------------------------------------------------------------------
+// #139 (QA-B-37): the three branches QA-B-36 implemented but did not test.
+// B-36 listed them as Gaps rather than claiming them covered; these cases turn
+// that judgement into observation.
+// ---------------------------------------------------------------------------
+
+// (0002,0003) is the second half of the meta/dataset identity pair. B-36 tested
+// only the SOP *Class* axis and recorded "same code path" as the reason the
+// Instance axis was believed to work -- a reason, not evidence.
+TEST_F(DicomValidatorTest, ValidateMetaSopInstanceMismatch_ReportsInconsistency) {
+    auto path = s_tempDir / "meta_sopinstance_mismatch.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        // A well-formed UID that is simply not the dataset's SOP Instance UID.
+        ASSERT_TRUE(meta->putAndInsertString(
+            DCM_MediaStorageSOPInstanceUID, "1.2.826.0.1.3680043.9.7133.1.99").good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
+
+    // The tag must be named: an error that says "something disagrees" sends the
+    // caller back to the file to find out which half.
+    bool taggedInstance = false;
+    for (const auto& e : j["errors"]) {
+        if (e.value("tag", std::string()) == "0002,0003") taggedInstance = true;
+    }
+    EXPECT_TRUE(taggedInstance) << "no error tagged 0002,0003: " << report;
+}
+
+// A TransferSyntaxUID that is present but not a UID. "1.2.abc" is well-formed
+// as a string and malformed as a UID, which is exactly the case a presence-only
+// check would wave through.
+TEST_F(DicomValidatorTest, ValidateMetaMalformedTransferSyntax_ReportsInvalidUid) {
+    auto path = s_tempDir / "meta_bad_transfer_syntax.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        ASSERT_TRUE(meta->putAndInsertString(DCM_TransferSyntaxUID, "1.2.abc").good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
+
+    bool taggedTs = false;
+    for (const auto& e : j["errors"]) {
+        if (e.value("tag", std::string()) == "0002,0010") taggedTs = true;
+    }
+    EXPECT_TRUE(taggedTs) << "no error tagged 0002,0010: " << report;
+}
+
+// The meta rule is a consistency rule, not a DX rule. A file relabelled as CT
+// on BOTH sides must still pass -- if it did not, the check would be quietly
+// enforcing "DX only", which no requirement states.
+TEST_F(DicomValidatorTest, ValidateNonDxSopClass_RoundTripsAsConformant) {
+    auto path = s_tempDir / "ct_roundtrip.dcm";
+    static const char* const kCtStorage = "1.2.840.10008.5.1.4.1.1.2";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+        ASSERT_TRUE(ds->putAndInsertString(DCM_SOPClassUID, kCtStorage).good());
+        // Default write mode regenerates the meta group from the dataset, so
+        // both sides move together -- that is the point of the case.
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit).good());
+    }
+
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_TRUE(j["valid"].get<bool>()) << report;
+}
