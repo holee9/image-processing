@@ -64,6 +64,12 @@ public sealed class GuiAutomationReport
 
     public bool VoiPresetApplied { get; set; }
 
+    /// <summary>#135: the center the active backend's preset actually produced (Mock 32768 / native 40).</summary>
+    public float VoiPresetCenter { get; set; }
+
+    /// <summary>#135: the width the active backend's preset actually produced (Mock 65535 / native 400).</summary>
+    public float VoiPresetWidth { get; set; }
+
     public bool ComparisonViewportDetected { get; set; }
 
     public string ComparisonMode { get; set; } = string.Empty;

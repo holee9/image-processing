@@ -704,6 +704,14 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The preset the active backend last produced, kept so a caller can check that it was applied
+    /// without knowing which backend produced it. #135: the automation harness used to compare the
+    /// settings against MockXpeBackend's literal values, which made the check fail under the real
+    /// DLL — whose abdomen window (C=40/W=400, HU) is the clinically validated one.
+    /// </summary>
+    public VoiPreset? LastAppliedVoiPreset { get; private set; }
+
     // @MX:WARN: [AUTO] async void; same crash risk as LoadImage; inner try/catch is the only safety net
     // @MX:REASON: Bound to RelayCommand; must remain async void for command infrastructure compatibility
     private async void ApplyBodyPartPreset()
@@ -717,6 +725,7 @@ public sealed class MainWindowViewModel : ObservableObject
         try
         {
             var preset = _backend.CreateVoiPreset(bodyPart);
+            LastAppliedVoiPreset = preset;
             Settings.VoiWindowCenter = preset.Center;
             Settings.VoiWindowWidth = preset.Width;
             Settings.VoiLutMode = preset.Mode;
