@@ -121,6 +121,71 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
     nlohmann::json errors = nlohmann::json::array();
     nlohmann::json warnings = nlohmann::json::array();
 
+    auto addError = [&](const char* tag, const std::string& message) {
+        result.valid = false;
+        nlohmann::json errEntry;
+        errEntry["tag"] = tag;
+        errEntry["message"] = message;
+        errors.push_back(errEntry);
+    };
+
+    // #139: the Part 10 file meta information group (0002) is required, and its
+    // content must agree with the dataset.
+    //
+    // The null guard at :78 does not catch a missing meta header: DCMTK
+    // synthesises a DcmMetaInfo object during loadFile even for a dataset-only
+    // file, so getMetaInfo() is non-null there (observed, QA-B-34). What
+    // distinguishes the two is that the synthesised object carries no elements,
+    // so card() is the observation this check keys on -- not the pointer.
+    if (meta->card() == 0) {
+        addError("0002,0000",
+                 "Missing DICOM Part 10 file meta information group (0002)");
+    } else {
+        auto metaString = [&](const DcmTagKey& key) {
+            OFString value;
+            return meta->findAndGetOFString(key, value).good()
+                 ? std::string(value.c_str()) : std::string();
+        };
+        auto datasetString = [&](const DcmTagKey& key) {
+            OFString value;
+            return ds->findAndGetOFString(key, value).good()
+                 ? std::string(value.c_str()) : std::string();
+        };
+
+        const std::string metaTs = metaString(DCM_TransferSyntaxUID);
+        if (metaTs.empty()) {
+            addError("0002,0010", "File meta information has no TransferSyntaxUID");
+        } else if (!isValidUID(metaTs)) {
+            addError("0002,0010",
+                     "Invalid UID format in file meta TransferSyntaxUID: " + metaTs);
+        }
+
+        // Media Storage SOP Class/Instance UID must equal the dataset's own
+        // SOPClassUID/SOPInstanceUID (PS3.10). A mismatch means the file
+        // describes itself as something its content is not. When the dataset
+        // tag is absent the required-Type-1 loop below already reports it, so
+        // only the meta side is judged here.
+        struct { DcmTagKey metaKey; DcmTagKey dsKey; const char* tag; const char* name; }
+        const kPairs[] = {
+            { DCM_MediaStorageSOPClassUID,    DCM_SOPClassUID,    "0002,0002", "SOPClassUID"    },
+            { DCM_MediaStorageSOPInstanceUID, DCM_SOPInstanceUID, "0002,0003", "SOPInstanceUID" },
+        };
+        for (const auto& p : kPairs) {
+            const std::string metaValue = metaString(p.metaKey);
+            if (metaValue.empty()) {
+                addError(p.tag, std::string("File meta information has no MediaStorage")
+                              + p.name);
+                continue;
+            }
+            const std::string dsValue = datasetString(p.dsKey);
+            if (!dsValue.empty() && metaValue != dsValue) {
+                addError(p.tag, std::string("File meta MediaStorage") + p.name
+                              + " (" + metaValue + ") does not match dataset "
+                              + p.name + " (" + dsValue + ")");
+            }
+        }
+    }
+
     for (const auto& tagPair : s_requiredTags) {
         DcmElement* elem = nullptr;
         OFCondition findStatus = ds->findAndGetElement(tagPair.first, elem);
