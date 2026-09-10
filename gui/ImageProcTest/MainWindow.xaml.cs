@@ -37,6 +37,22 @@ public partial class MainWindow : System.Windows.Window
     /// BackendMode is the one value carried over: it is the operator's input selecting WHICH backend
     /// this run exercises, not state the run produced.
     /// </summary>
+    /// <summary>
+    /// #141: points all three calibration stages at the directory named by --automation-calib.
+    /// One generated set feeds offset, gain and defect.
+    /// </summary>
+    private static void ApplyCalibrationOverride(AppSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(App.AutomationCalibrationDirectory))
+        {
+            return;
+        }
+
+        settings.OffsetCalibrationDirectory = App.AutomationCalibrationDirectory;
+        settings.GainCalibrationDirectory = App.AutomationCalibrationDirectory;
+        settings.DefectCalibrationDirectory = App.AutomationCalibrationDirectory;
+    }
+
     private static (AppSettings Settings, AppSettingsService Service) CreateSettings()
     {
         var shipped = new AppSettingsService();
@@ -58,6 +74,13 @@ public partial class MainWindow : System.Windows.Window
             //
             // Settings isolation stays automation-only: this is a launch selection, not a stored value.
             persisted.BackendMode = backendMode;
+
+            // GUI-C-37: the calibration override applies here too. It used to sit only in the
+            // isolation branch below, which runs when --automation-report is ALSO given — the E2E
+            // fixture deliberately omits that, so the generated XCal set never reached the app and
+            // the run reported "calibration file(s) not found" while the files existed. Same shape
+            // as the --automation-backend defect measured in GUI-C-31.
+            ApplyCalibrationOverride(persisted);
             return (persisted, shipped);
         }
 
@@ -66,13 +89,7 @@ public partial class MainWindow : System.Windows.Window
             $"xpe_gui_automation_{Guid.NewGuid():N}");
 
         var settings = new AppSettings { BackendMode = backendMode };
-        if (!string.IsNullOrWhiteSpace(App.AutomationCalibrationDirectory))
-        {
-            // #141: all three stages read from the one generated set.
-            settings.OffsetCalibrationDirectory = App.AutomationCalibrationDirectory;
-            settings.GainCalibrationDirectory = App.AutomationCalibrationDirectory;
-            settings.DefectCalibrationDirectory = App.AutomationCalibrationDirectory;
-        }
+        ApplyCalibrationOverride(settings);
 
         return (
             settings,
@@ -131,8 +148,6 @@ public partial class MainWindow : System.Windows.Window
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
             report.NativeSource = viewModel.RuntimeInfo.NativeSource;
-            report.PreprocessRan = viewModel.PreprocessRan;
-            report.PreprocessStages = viewModel.PreprocessStages;
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 
@@ -170,6 +185,23 @@ public partial class MainWindow : System.Windows.Window
             report.StatusAfterLoad = viewModel.StatusText;
             report.LastRawDirectory = viewModel.Settings.LastRawDirectory;
             report.DisplayPipelineApplied = viewModel.ActiveImageFrame?.DisplayPipelineApplied ?? false;
+
+            // #141: preprocessing needs a loaded frame, so it runs HERE — measured: placed earlier
+            // it reported "menu enabled=True, frame loaded=False" and never attempted.
+            if (RunPreprocessingMenuItem.IsEnabled)
+            {
+                ClickMenuItem(RunPreprocessingMenuItem);
+                await Task.Delay(3000);
+            }
+
+            report.PreprocessRan = viewModel.PreprocessRan;
+
+            // Record WHY when nothing ran: "entry disabled" (backend has no preprocessing) is a
+            // different fact from "it ran and refused". Reporting them alike hides one behind the other.
+            report.PreprocessStages = string.IsNullOrEmpty(viewModel.PreprocessStages)
+                ? $"not attempted (menu enabled={RunPreprocessingMenuItem.IsEnabled}, " +
+                  $"frame loaded={viewModel.ActiveImageFrame is not null})"
+                : viewModel.PreprocessStages;
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
             report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
             report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
@@ -239,7 +271,9 @@ public partial class MainWindow : System.Windows.Window
                     PInvokeSmokeTestMenuItem,
                     ZoomFitMenuItem,
                     ZoomActualMenuItem,
-                    RunPreprocessingMenuItem,
+                    // RunPreprocessingMenuItem is no longer a placeholder (#141, GUI-C-36): it is
+                    // enabled on the native backend, so counting it as a disabled future command
+                    // would make this report claim the opposite of what the app now does.
                     RunDeterministicBaselineMenuItem,
                     RunFullPipelineMenuItem,
                     StopProcessingMenuItem,
