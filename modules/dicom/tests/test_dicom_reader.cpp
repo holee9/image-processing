@@ -9,6 +9,13 @@
  */
 #include <gtest/gtest.h>
 #include "xpe/dicom/dicom_api.h"
+
+// #124 (QA-B-25): the Implicit VR LE fixture is derived from the written
+// Explicit LE file with DCMTK, so the test links DCMTK directly. Before this,
+// s_implicitLEDcm was only ever assigned a path -- the file was never written,
+// so the guard skipped everywhere, CI and local alike.
+#include <dcmtk/dcmdata/dctk.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include "xpe/common/xpe_memory.h"
 #include <cstdio>
 #include <filesystem>
@@ -69,8 +76,15 @@ void DicomReaderTest::SetUpTestSuite() {
 
     xpe_free_image(&img);
 
-    // TODO: create implicit LE DICOM for AC-04 unsupported TS test
+    // AC-04 fixture: the same content re-encoded as Implicit VR Little Endian,
+    // which the reader is expected to reject as an unsupported transfer syntax.
     s_implicitLEDcm = s_tempDir / "implicit_le.dcm";
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            ff.saveFile(s_implicitLEDcm.string().c_str(), EXS_LittleEndianImplicit);
+        }
+    }
 }
 
 void DicomReaderTest::TearDownTestSuite() {
@@ -140,7 +154,7 @@ TEST_F(DicomReaderTest, ReadJ2KLossless_Succeeds) {
 // REQ-DICOM-005: Unsupported transfer syntax
 // ---------------------------------------------------------------------------
 TEST_F(DicomReaderTest, UnsupportedTS_ReturnsUnsupportedFormat) {
-    if (!fs::exists(s_implicitLEDcm)) GTEST_SKIP() << "Implicit LE test file not created yet";
+    ASSERT_TRUE(fs::exists(s_implicitLEDcm)) << "Implicit LE fixture was not written";
     XpeDicomHandle* handle = nullptr;
     EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT,
               xpe_dicom_open(s_implicitLEDcm.string().c_str(), &handle));

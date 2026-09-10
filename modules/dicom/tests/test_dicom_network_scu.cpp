@@ -51,9 +51,18 @@ void DicomNetworkTest::SetUpTestSuite() {
     xpe_dicom_write(s_testDcm.string().c_str(), &img, &meta);
     xpe_free_image(&img);
 
-    // TODO: launch DCMTK storescp and wlmscpfs mock servers
-    // s_serverAvailable = launchMockServers(s_storePort, s_findPort);
-    s_serverAvailable = false; // will be set to true after server integration
+    // #124 (QA-B-25): no mock PACS is started, so the four association tests
+    // below cannot run. This is a hardcoded false, NOT a probe -- the DCMTK
+    // storescp / wlmscpfs executables are not part of the dependency set
+    // (the vcpkg tree ships storescp.cfg but no binary), and adding them
+    // would be a manifest change, which this lane does not own. Starting a
+    // long-lived listener from a unit test is also the background-process
+    // hazard the lane rules forbid.
+    //
+    // The skip messages below therefore state that no server was started,
+    // rather than the previous "not available", which read as a probe result
+    // that never happened.
+    s_serverAvailable = false;
 }
 
 void DicomNetworkTest::TearDownTestSuite() {
@@ -65,7 +74,7 @@ void DicomNetworkTest::TearDownTestSuite() {
 // AC-06: C-STORE success with mock PACS
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CStoreSuccess_ReturnsOK) {
-    if (!s_serverAvailable) GTEST_SKIP() << "DCMTK storescp not available";
+    if (!s_serverAvailable) GTEST_SKIP() << "no mock C-STORE SCP is started by this suite (#124)";
     EXPECT_EQ(XPE_OK, xpe_dicom_cstore(
         "localhost", s_storePort, "TESTSCU",
         s_testDcm.string().c_str(), 5000));
@@ -85,7 +94,7 @@ TEST_F(DicomNetworkTest, CStoreTimeout_ReturnsNetworkFailed) {
 // AC-07: C-FIND returns results from mock MWL server
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CFindResults_ReturnsJsonArray) {
-    if (!s_serverAvailable) GTEST_SKIP() << "DCMTK wlmscpfs not available";
+    if (!s_serverAvailable) GTEST_SKIP() << "no mock C-FIND SCP is started by this suite (#124)";
     char outJson[4096] = {};
     EXPECT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
         "localhost", s_findPort, "TESTSCU",
@@ -100,7 +109,7 @@ TEST_F(DicomNetworkTest, CFindResults_ReturnsJsonArray) {
 // AC-07: C-FIND empty result returns [] and XPE_OK
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CFindEmpty_ReturnsEmptyArray) {
-    if (!s_serverAvailable) GTEST_SKIP() << "DCMTK wlmscpfs not available";
+    if (!s_serverAvailable) GTEST_SKIP() << "no mock C-FIND SCP is started by this suite (#124)";
     char outJson[256] = {};
     EXPECT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
         "localhost", s_findPort, "TESTSCU",
@@ -124,7 +133,7 @@ TEST_F(DicomNetworkTest, CFindTimeout_ReturnsNetworkFailed) {
 // AC-08: Cancel in-progress C-STORE
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
-    if (!s_serverAvailable) GTEST_SKIP() << "DCMTK storescp not available";
+    if (!s_serverAvailable) GTEST_SKIP() << "no mock C-STORE SCP is started by this suite (#124)";
 
     XpeErrorCode result = XPE_OK;
     std::thread storeThread([&]() {
