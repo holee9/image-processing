@@ -20,23 +20,30 @@ public sealed class ErrorCodeMappingTests
         _fixture = fixture;
     }
 
-    /// <summary>REQ-GUI-IT-009: xpe_error_string returns non-NULL non-empty for all defined error codes.</summary>
+    /// <summary>
+    /// All XpeErrorCode members, taken from the enum itself rather than a hand-written list.
+    /// A code added to the enum joins this run automatically; GUI-C-12's drift test keeps the
+    /// enum itself honest against xpe_error.h.
+    /// </summary>
+    public static IEnumerable<object[]> AllErrorCodes() =>
+        Enum.GetValues<XpeCommonNative.XpeErrorCode>().Select(code => new object[] { code });
+
+    /// <summary>
+    /// REQ-GUI-IT-009: xpe_error_string returns a real message — non-NULL, non-empty, and not the
+    /// "Unknown error" fallback — for every code the enum declares. The fallback is what an
+    /// unmapped code returns, so accepting it here would let a missing mapping pass silently.
+    /// </summary>
     [SkippableTheory]
-    [InlineData(XpeCommonNative.XpeErrorCode.OK)]
-    [InlineData(XpeCommonNative.XpeErrorCode.INVALID_INPUT)]
-    [InlineData(XpeCommonNative.XpeErrorCode.OUT_OF_MEMORY)]
-    [InlineData(XpeCommonNative.XpeErrorCode.PROCESSING_FAILED)]
-    [InlineData(XpeCommonNative.XpeErrorCode.CONFIG_INVALID)]
-    [InlineData(XpeCommonNative.XpeErrorCode.CALIBRATION_EXPIRED)]
-    [InlineData(XpeCommonNative.XpeErrorCode.NOT_INITIALIZED)]
-    [InlineData(XpeCommonNative.XpeErrorCode.UNSUPPORTED_FORMAT)]
-    [InlineData(XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL)]
-    [InlineData(XpeCommonNative.XpeErrorCode.IO_FAILED)]
-    [InlineData(XpeCommonNative.XpeErrorCode.NETWORK_FAILED)]
-    [InlineData(XpeCommonNative.XpeErrorCode.CALIB_NOT_LOADED)]
-    public void ErrorString_ForAllDefinedCodes_IsNonNullAndNonEmpty(XpeCommonNative.XpeErrorCode code)
+    [MemberData(nameof(AllErrorCodes))]
+    public void ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(XpeCommonNative.XpeErrorCode code)
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
+
+        // XPE_ERR_NOT_IMPLEMENTED (-15) has no case in the native switch yet, so it returns the
+        // fallback. #126 / QA-A-23 adds the string; remove this skip when that lands.
+        SkipHelper.SkipIf(
+            code == XpeCommonNative.XpeErrorCode.NOT_IMPLEMENTED,
+            "Skipped: xpe_error_string has no mapping for XPE_ERR_NOT_IMPLEMENTED (-15) yet — #126 / QA-A-23");
 
         var ptr = XpeCommonNative.xpe_error_string(code);
         Assert.NotEqual(IntPtr.Zero, ptr);
@@ -44,6 +51,7 @@ public sealed class ErrorCodeMappingTests
         var text = Marshal.PtrToStringAnsi(ptr);
         Assert.NotNull(text);
         Assert.NotEmpty(text);
+        Assert.NotEqual("Unknown error", text);
     }
 
     /// <summary>REQ-GUI-IT-009: Unknown code (-999) returns non-NULL fallback string.</summary>
