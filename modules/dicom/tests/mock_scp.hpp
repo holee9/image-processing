@@ -27,6 +27,7 @@
 #include <dcmtk/dcmdata/dctk.h>
 
 #include <atomic>
+#include <memory>
 #include <chrono>
 #include <string>
 #include <thread>
@@ -97,23 +98,50 @@ protected:
             T_ASC_PresentationContextID presID = presInfo.presentationContextID;
             DcmDataset* query = nullptr;
             OFCondition rc = receiveDIMSEDataset(&presID, &query);
-            delete query;
+            const std::unique_ptr<DcmDataset> queryOwned(query);
+            DcmDataset* const queryCopy = queryOwned.get();
             if (rc.bad()) {
                 return rc;
             }
 
-            // One fixed worklist item, then the terminating success response.
-            DcmDataset item;
-            item.putAndInsertString(DCM_PatientName, "MOCK^WORKLIST");
-            item.putAndInsertString(DCM_PatientID, "MOCK-0001");
-            item.putAndInsertString(DCM_Modality, "DX");
-            item.putAndInsertString(DCM_AccessionNumber, "ACC-0001");
-
-            rc = sendFINDResponse(presID, req.MessageID,
-                                  req.AffectedSOPClassUID, &item, STATUS_Pending);
-            if (rc.bad()) {
-                return rc;
+            // A worklist the tests can distinguish: three DX entries for a
+            // general query, none when the query names a patient that is not
+            // on it. Matching is deliberately minimal -- only PatientID is
+            // honoured, which is what the empty-result case needs.
+            OFString queryPatientId;
+            if (queryCopy != nullptr) {
+                queryCopy->findAndGetOFString(DCM_PatientID, queryPatientId);
             }
+            const bool patientIdRequested =
+                !queryPatientId.empty() && queryPatientId != "*";
+            const bool patientIdOnWorklist =
+                patientIdRequested && (queryPatientId == "MOCK-0001" ||
+                                       queryPatientId == "MOCK-0002" ||
+                                       queryPatientId == "MOCK-0003");
+
+            if (!patientIdRequested || patientIdOnWorklist) {
+                static const char* const kIds[]   = {"MOCK-0001", "MOCK-0002", "MOCK-0003"};
+                static const char* const kNames[] = {"MOCK^WORKLIST", "MOCK^SECOND", "MOCK^THIRD"};
+                static const char* const kAcc[]   = {"ACC-0001", "ACC-0002", "ACC-0003"};
+
+                for (int n = 0; n < 3; ++n) {
+                    if (patientIdRequested && queryPatientId != kIds[n]) {
+                        continue;
+                    }
+                    DcmDataset item;
+                    item.putAndInsertString(DCM_PatientName, kNames[n]);
+                    item.putAndInsertString(DCM_PatientID, kIds[n]);
+                    item.putAndInsertString(DCM_Modality, "DX");
+                    item.putAndInsertString(DCM_AccessionNumber, kAcc[n]);
+
+                    rc = sendFINDResponse(presID, req.MessageID,
+                                          req.AffectedSOPClassUID, &item, STATUS_Pending);
+                    if (rc.bad()) {
+                        return rc;
+                    }
+                }
+            }
+
             return sendFINDResponse(presID, req.MessageID,
                                     req.AffectedSOPClassUID, nullptr,
                                     STATUS_FIND_Success_MatchingIsComplete);

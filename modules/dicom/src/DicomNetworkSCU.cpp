@@ -220,10 +220,27 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
         return XPE_ERR_PROCESSING_FAILED;
     }
 
-    // Send C-FIND request and collect responses
+    // Send C-FIND request and collect responses.
+    //
+    // #137: the presentation context ID must be looked up, not passed as 0.
+    // DcmSCU::sendFINDRequest documents "Must be an odd number" (scu.h:461),
+    // and 0 is neither odd nor a valid context ID, so it always failed with
+    // "DIMSE No valid Presentation Context ID" -- the association negotiated
+    // fine, the request was simply never sent. This differs from
+    // sendSTORERequest above, which does accept 0 as auto-select; the two
+    // DCMTK APIs have different contracts.
+    const T_ASC_PresentationContextID findPresID =
+        scu.findPresentationContextID(OFString(UID_FINDModalityWorklistInformationModel),
+                                      OFString(""));
+    if (findPresID == 0) {
+        spdlog::warn("[DicomNetworkSCU] cfind: no accepted presentation context for MWL");
+        scu.releaseAssociation();
+        return XPE_ERR_NETWORK_FAILED;
+    }
+
     OFList<QRResponse*> responses;
 
-    cond = scu.sendFINDRequest(0, &requestDS, &responses);
+    cond = scu.sendFINDRequest(findPresID, &requestDS, &responses);
     scu.releaseAssociation();
 
     if (cond.bad()) {

@@ -63,11 +63,6 @@ xpe_test::MockScpRunner DicomNetworkTest::s_scp;
 //    about a millisecond, so the cancel always arrives after completion and the
 //    call returns XPE_OK. Asserting PROCESSING_FAILED here would be asserting a
 //    race, not a behaviour.
-static const char* const kFindNotNegotiated =
-    "blocked in product code, not in this mock: DicomNetworkSCU.cpp:226 passes "
-    "presID 0 to DcmSCU::sendFINDRequest, whose contract requires an odd "
-    "presentation context ID. The mock accepts the MWL context (DCMTK logs "
-    "'Context ID: 1 (Accepted)'). See the QA-B-30 report";
 static const char* const kCancelRaceUnobservable =
     "C-STORE against the in-process SCP completes in ~1 ms, so a cancel issued "
     "afterwards cannot interrupt it -- see QA-B-29 report";
@@ -142,7 +137,6 @@ TEST_F(DicomNetworkTest, CStoreTimeout_ReturnsNetworkFailed) {
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CFindResults_ReturnsJsonArray) {
     if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
-    GTEST_SKIP() << kFindNotNegotiated;
     char outJson[4096] = {};
     EXPECT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
         "localhost", s_findPort, "TESTSCU",
@@ -158,7 +152,6 @@ TEST_F(DicomNetworkTest, CFindResults_ReturnsJsonArray) {
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CFindEmpty_ReturnsEmptyArray) {
     if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
-    GTEST_SKIP() << kFindNotNegotiated;
     char outJson[256] = {};
     EXPECT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
         "localhost", s_findPort, "TESTSCU",
