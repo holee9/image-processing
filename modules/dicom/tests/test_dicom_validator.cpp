@@ -5,6 +5,13 @@
  */
 #include <gtest/gtest.h>
 #include "xpe/dicom/dicom_api.h"
+
+// #124 (QA-B-25): the negative-path fixtures below are derived from the
+// conformant file with DCMTK, so the test links DCMTK directly. Before this,
+// s_missingTagDcm was only ever assigned a path -- the file was never written,
+// so the guard skipped everywhere, CI and local alike.
+#include <dcmtk/dcmdata/dctk.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
 #include <fstream>
@@ -22,12 +29,14 @@ protected:
 
     static fs::path s_conformantDcm;    // Written by xpe_dicom_write (known conformant)
     static fs::path s_missingTagDcm;    // Patient ID removed
+    static fs::path s_badUidDcm;        // malformed SOPInstanceUID
     static fs::path s_notDicom;
     static fs::path s_tempDir;
 };
 
 fs::path DicomValidatorTest::s_conformantDcm;
 fs::path DicomValidatorTest::s_missingTagDcm;
+fs::path DicomValidatorTest::s_badUidDcm;
 fs::path DicomValidatorTest::s_notDicom;
 fs::path DicomValidatorTest::s_tempDir;
 
@@ -43,8 +52,28 @@ void DicomValidatorTest::SetUpTestSuite() {
     s_conformantDcm = s_tempDir / "conformant.dcm";
     xpe_dicom_write(s_conformantDcm.string().c_str(), &img, &meta);
 
-    // TODO: create a DICOM with Patient ID removed for AC-05 negative test
+    // AC-05 negative fixture: the conformant file with PatientID (0010,0020)
+    // removed. Derived rather than hand-authored so it differs from the
+    // conformant file in exactly the one tag under test.
     s_missingTagDcm = s_tempDir / "missing_patient_id.dcm";
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_conformantDcm.string().c_str()).good()) {
+            ff.getDataset()->findAndDeleteElement(DCM_PatientID);
+            ff.saveFile(s_missingTagDcm.string().c_str(), EXS_LittleEndianExplicit);
+        }
+    }
+
+    // REQ-DICOM-024 fixture: SOPInstanceUID set to a value that is not a
+    // dot-separated numeric string, which is what isValidUID() rejects.
+    s_badUidDcm = s_tempDir / "bad_uid.dcm";
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_conformantDcm.string().c_str()).good()) {
+            ff.getDataset()->putAndInsertString(DCM_SOPInstanceUID, "not.a.valid.uid");
+            ff.saveFile(s_badUidDcm.string().c_str(), EXS_LittleEndianExplicit);
+        }
+    }
 
     s_notDicom = s_tempDir / "not_dicom.dcm";
     std::ofstream f(s_notDicom, std::ios::binary);
@@ -73,7 +102,7 @@ TEST_F(DicomValidatorTest, ValidateConformant_ReturnsValid) {
 // AC-05: Missing required tag produces error in report
 // ---------------------------------------------------------------------------
 TEST_F(DicomValidatorTest, ValidateMissingPatientID_ReportsError) {
-    if (!fs::exists(s_missingTagDcm)) GTEST_SKIP() << "Missing tag test file not created yet";
+    ASSERT_TRUE(fs::exists(s_missingTagDcm)) << "missing-PatientID fixture was not written";
     char report[8192] = {};
     EXPECT_EQ(XPE_OK, xpe_dicom_validate(
         s_missingTagDcm.string().c_str(), report, sizeof(report)));
@@ -128,6 +157,11 @@ TEST_F(DicomValidatorTest, NullOutBuf_ReturnsInvalidInput) {
 // REQ-DICOM-024: UID format validation
 // ---------------------------------------------------------------------------
 TEST_F(DicomValidatorTest, ValidateBadUID_ReportsWarning) {
-    // TODO: create a DICOM with a malformed UID (too long or non-numeric)
-    GTEST_SKIP() << "Bad UID test file not yet created";
+    ASSERT_TRUE(fs::exists(s_badUidDcm)) << "bad-UID fixture was not written";
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(
+        s_badUidDcm.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["warnings"].empty())
+        << "expected an Invalid UID format warning, report: " << report;
 }
