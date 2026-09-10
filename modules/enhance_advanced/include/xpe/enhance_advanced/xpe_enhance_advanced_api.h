@@ -13,10 +13,19 @@ extern "C" {
  * ============================================================================ */
 
 /**
- * Initialize the enhance_advanced module with default or custom configuration
+ * Initialize the enhance_advanced module
  *
- * @param configJsonOrNull Optional JSON configuration string (NULL for defaults)
- * @return XPE_OK on success, error code on failure
+ * NOTE: a supplied configuration string is currently only checked for being
+ * parseable JSON; its values are not stored and do not affect any processing
+ * function (xpe_enhance_advanced.cpp:46-54 carries the TODO). Per-call
+ * configuration is passed through each processing function's own
+ * configJsonOrNull argument.
+ *
+ * @param configJsonOrNull Optional JSON configuration string, or NULL. An empty
+ *                         string is rejected -- pass NULL instead.
+ * @return XPE_OK on success; XPE_ERR_CONFIG_INVALID if the string is empty or
+ *         is not parseable JSON; otherwise whatever xpe_init() returned, except
+ *         that XPE_ERR_NOT_INITIALIZED from xpe_init() is treated as success.
  *
  * REQ-ADV-001: Module initialization
  * AC-LC-001: Initialization with default config
@@ -24,7 +33,11 @@ extern "C" {
 XPE_API XpeErrorCode xpe_enhance_advanced_init(const char* configJsonOrNull);
 
 /**
- * Shutdown the enhance_advanced module and release all resources
+ * Shutdown the enhance_advanced module
+ *
+ * Clears the initialized flag under the init mutex. The module owns no
+ * resources of its own to release, and it does not shut down xpe_common.
+ * Calling it when the module was never initialized is a no-op, not an error.
  *
  * REQ-ADV-020: Not-initialized guard
  * AC-LC-003: Shutdown after init
@@ -34,7 +47,9 @@ XPE_API void xpe_enhance_advanced_shutdown(void);
 /**
  * Get the enhance_advanced module version string
  *
- * @return Version string (e.g., "1.0.0")
+ * @return Null-terminated version string ("1.0.0", from
+ *         XPE_ENHANCE_ADVANCED_VERSION). Lifetime: process. Never NULL.
+ *         Callable before init.
  */
 XPE_API const char* xpe_enhance_advanced_version(void);
 
@@ -45,10 +60,19 @@ XPE_API const char* xpe_enhance_advanced_version(void);
 /**
  * Apply multiscale frequency processing using Laplacian pyramid decomposition
  *
- * @param img Input/output image buffer (FLOAT32 format required)
- * @param meta Image metadata including body part information
+ * @param img Input/output image buffer (FLOAT32 format required). NULL, a NULL
+ *            data pointer, a zero width or height, or a dataSize inconsistent
+ *            with the declared dimensions (#123) are all rejected.
+ * @param meta Image metadata including body part information. NULL is rejected.
  * @param configJsonOrNull Optional JSON configuration for enhancement coefficients
- * @return XPE_OK on success, error code on failure
+ * @return XPE_OK on success;
+ *         XPE_ERR_INVALID_INPUT for a NULL img/meta, NULL img->data, zero
+ *         dimensions, or inconsistent dataSize;
+ *         XPE_ERR_NOT_INITIALIZED if xpe_enhance_advanced_init() has not been
+ *         called -- checked after the NULL guard but before the buffer contents;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
+ *         XPE_ERR_CONFIG_INVALID if configJsonOrNull does not parse;
+ *         XPE_ERR_INTERNAL if processing throws.
  *
  * REQ-ADV-010: MFP execution
  * REQ-ADV-050: Identity reconstruction fidelity
@@ -66,12 +90,22 @@ XPE_API XpeErrorCode xpe_multiscale_process(
 /**
  * Apply fractional-order differentiation for edge enhancement
  *
- * @param img Input/output image buffer (FLOAT32 format required)
+ * @param img Input/output image buffer (FLOAT32 format required). NULL, a NULL
+ *            data pointer, a zero width or height, or a dataSize inconsistent
+ *            with the declared dimensions (#123) are all rejected.
  * @param order Fractional derivative order in range [0.0, 2.0]
  *              - Near 1.0: Preserves edges
  *              - Near 2.0: Emphasizes fine texture
  * @param configJsonOrNull Optional JSON configuration
- * @return XPE_OK on success, error code on failure
+ * @return XPE_OK on success;
+ *         XPE_ERR_INVALID_INPUT for a NULL img, NULL img->data, zero
+ *         dimensions, inconsistent dataSize, or order outside [0.0, 2.0];
+ *         XPE_ERR_NOT_INITIALIZED if the module was not initialized;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
+ *         XPE_ERR_CONFIG_INVALID if configJsonOrNull does not parse;
+ *         XPE_ERR_SAFETY_VIOLATION if the configuration would disable overshoot
+ *         limiting, or if the limiter reports a violation (SAF-100);
+ *         XPE_ERR_INTERNAL if processing throws.
  *
  * REQ-ADV-011: Fractional-order process execution
  * REQ-ADV-021: Invalid order parameter guard
@@ -90,13 +124,22 @@ XPE_API XpeErrorCode xpe_fractional_process(
 /**
  * Detect collimation boundaries using Hough transform
  *
- * @param img Input image buffer (FLOAT32 format required)
- * @param x0Out Output left boundary pixel coordinate
- * @param y0Out Output top boundary pixel coordinate
- * @param x1Out Output right boundary pixel coordinate
- * @param y1Out Output bottom boundary pixel coordinate
+ * @param img Input image buffer (FLOAT32 format required). NULL, a NULL data
+ *            pointer, a zero width or height, or a dataSize inconsistent with
+ *            the declared dimensions (#123) are all rejected.
+ * @param x0Out Output left boundary pixel coordinate. NULL is rejected.
+ * @param y0Out Output top boundary pixel coordinate. NULL is rejected.
+ * @param x1Out Output right boundary pixel coordinate. NULL is rejected.
+ * @param y1Out Output bottom boundary pixel coordinate. NULL is rejected.
  * @param configJsonOrNull Optional JSON configuration
- * @return XPE_OK on success, error code on failure
+ * @return XPE_OK on success -- including the low-confidence fallback, which
+ *         reports the full image extent rather than an error (REQ-ADV-041);
+ *         XPE_ERR_INVALID_INPUT for a NULL img or any NULL output pointer, NULL
+ *         img->data, zero dimensions, or inconsistent dataSize;
+ *         XPE_ERR_NOT_INITIALIZED if the module was not initialized;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
+ *         XPE_ERR_CONFIG_INVALID if configJsonOrNull does not parse;
+ *         XPE_ERR_INTERNAL if detection throws.
  *
  * REQ-ADV-012: Collimation detection execution
  * REQ-ADV-041: Confidence-based fallback
@@ -118,11 +161,25 @@ XPE_API XpeErrorCode xpe_detect_collimation(
 /**
  * Calculate IEC 62494-1 Exposure Index (EI) and Deviation Index (DI)
  *
- * @param img Input detector-domain image buffer (FLOAT32 format required)
- * @param meta Image metadata including body part and acquisition parameters
- * @param eiOut Output calculated Exposure Index
- * @param deviationIndexOut Output calculated Deviation Index
- * @return XPE_OK on success, error code on failure
+ * NOTE: this symbol has the same name as xpe_calc_exposure_index() exported by
+ * xpe_enhance_basic. They are separate implementations in separate DLLs with
+ * different contracts -- this one requires the module to be initialized, the
+ * enhance_basic one does not. A consumer loading both must resolve explicitly
+ * rather than by name alone.
+ *
+ * @param img Input detector-domain image buffer (FLOAT32 format required).
+ *            NULL, NULL data, zero dimensions, or a dataSize inconsistent with
+ *            the declared dimensions (#123) are all rejected.
+ * @param meta Image metadata including body part and acquisition parameters.
+ *             NULL is rejected.
+ * @param eiOut Output calculated Exposure Index. NULL is rejected.
+ * @param deviationIndexOut Output calculated Deviation Index. NULL is rejected.
+ * @return XPE_OK on success;
+ *         XPE_ERR_INVALID_INPUT for a NULL argument, zero dimensions, or
+ *         inconsistent dataSize;
+ *         XPE_ERR_NOT_INITIALIZED if the module was not initialized;
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
+ *         XPE_ERR_INTERNAL if the computation throws.
  *
  * REQ-ADV-013: Exposure index calculation
  * AC-EI-001~AC-EI-004: Exposure index acceptance criteria

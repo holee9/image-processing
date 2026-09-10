@@ -49,6 +49,15 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
     }
 
     // REQ-DISP-019: domain transition — free old float32 buffer, update metadata
+    //
+    // #142 D5: this frees a buffer xpe_common allocated and installs one this
+    // module allocated, so ownership crosses the DLL boundary in both
+    // directions. Measured safe because both DLLs link the shared UCRT --
+    // dumpbin shows VCRUNTIME140.dll + api-ms-win-crt-heap-l1-1-0.dll for
+    // xpe_common.dll and xpe_display.dll alike (QA-B-40, _d5_crt.log), which is
+    // CMake's MSVC default (MultiThreadedDLL) since no MSVC_RUNTIME_LIBRARY is
+    // set anywhere in the project. A static-CRT switch would break this line
+    // silently; PresentationLutCrossDllTest is the standing check.
     std::free(img->data);
     img->data          = out_buf;
     img->format        = XPE_PIXEL_UINT16;

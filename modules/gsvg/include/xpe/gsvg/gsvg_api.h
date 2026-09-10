@@ -44,7 +44,15 @@ XPE_API const char* xpe_gsvg_version(void);
 /**
  * @brief Initialize a GSVG correction handle.
  *
- * Parses the config JSON for feature toggles and allocates internal state.
+ * Reads the two feature toggles out of the config string and allocates internal
+ * state.
+ *
+ * The config is NOT parsed by a JSON parser. Each toggle is located by scanning
+ * for the quoted key followed by a colon and the token true or false; anything
+ * else -- a missing key, a non-boolean value, or a string that is not JSON at
+ * all -- leaves that toggle at its default of FALSE. Malformed config is
+ * therefore never an error, and a typo in a key name silently disables the
+ * feature it was meant to enable.
  *
  * Config JSON schema (all fields optional):
  * @code
@@ -60,9 +68,11 @@ XPE_API const char* xpe_gsvg_version(void);
  * argument of @c xpe_gsvg_process. When @c gainMap is NULL the vignette step
  * becomes an identity no-op even if it was enabled in the config.
  *
- * @param handleOut        Output: receives the opaque handle pointer.
- * @param configJsonOrNull Null-terminated JSON string, or NULL for defaults.
- * @return XPE_OK on success.
+ * @param handleOut        Output: receives the opaque handle pointer. Written
+ *                         only on success.
+ * @param configJsonOrNull Null-terminated config string, or NULL for defaults.
+ * @return XPE_OK on success -- including when the config string was
+ *         unparseable and both features fell back to FALSE.
  * @return XPE_ERR_INVALID_INPUT if handleOut is NULL.
  * @return XPE_ERR_OUT_OF_MEMORY on allocation failure.
  */
@@ -75,7 +85,8 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *   1. Vignette gain correction: dst[i] = clamp(src[i] * gainMap[i], 0, 65535)
  *   2. Grid shadow suppression:  row-mean-deviation subtraction on dst in-place.
  *
- * When both steps are disabled, dst is an exact bitwise copy of src.
+ * When both steps are disabled, dst ends up holding exactly the pixels of src:
+ * copied when the two buffers differ, and left untouched when dst aliases src.
  *
  * @param handle  GSVG handle returned by xpe_gsvg_init. Must not be NULL.
  * @param src     Source image, width*height uint16 pixels. Must not be NULL.
@@ -84,11 +95,18 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  * @param width   Image width in pixels. Must be > 0.
  * @param height  Image height in pixels. Must be > 0.
  * @param gainMap Optional vignette gain map, width*height float32 pixels.
- *                NULL disables the vignette step regardless of config.
- * @return XPE_OK on success.
+ *                NULL disables the vignette step regardless of config. Its
+ *                length is NOT validated -- it is trusted to hold
+ *                width * height entries, and a shorter map is read past its
+ *                end.
+ * @return XPE_OK on success, including the case where every step was skipped.
  * @return XPE_ERR_INVALID_INPUT on a NULL pointer -- including a NULL handle,
  *         which is a NULL required pointer like any other -- or on a
- *         non-positive dimension.
+ *         non-positive dimension. This is the module's half of the shared
+ *         empty-image contract (#142): an empty image is an error everywhere in
+ *         the post modules, never a silent no-op. gsvg takes loose dimensions
+ *         rather than an XpeImageBuffer, so it rejects NEGATIVE dimensions too,
+ *         a shape the struct-based modules cannot express.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,

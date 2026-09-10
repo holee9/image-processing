@@ -13,6 +13,7 @@
 #include <algorithm>
 
 #include "xpe/display/display_api.h"
+#include "xpe/common/xpe_memory.h"
 
 // =============================================================================
 // Test Helpers
@@ -250,4 +251,46 @@ TEST(PresentationLut, Performance_3072x3072) {
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_LE(ms, 30) << "PresentationLUT 3072x3072 took " << ms << "ms (limit 30ms, Release target 25ms per REQ-DISP-028)";
     free_image(img);
+}
+
+// =============================================================================
+// #142 D5 — cross-DLL allocate/free round trip
+//
+// xpe_apply_presentation_lut() frees a buffer that xpe_common allocated and
+// hands back one that xpe_display allocated, so ownership crosses the DLL
+// boundary twice in one call. That is safe only while both modules use the
+// same C runtime heap. QA-B-40 measured that they do: dumpbin reports
+// VCRUNTIME140.dll and api-ms-win-crt-heap-l1-1-0.dll -- the shared UCRT --
+// for xpe_common.dll and xpe_display.dll alike (evidence: _d5_crt.log).
+//
+// The measurement is a snapshot of the current link settings; this case is the
+// standing check. If a future build switched either module to a static CRT the
+// free below would corrupt a foreign heap, and this test is where it surfaces.
+// =============================================================================
+TEST(PresentationLutCrossDllTest, CommonAllocatedBufferSurvivesDisplayConversion) {
+    // Allocated by xpe_common.dll.
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(16, 16, XPE_PIXEL_FLOAT32, &img));
+    ASSERT_NE(nullptr, img.data);
+
+    float* px = static_cast<float*>(img.data);
+    for (uint32_t i = 0; i < 16u * 16u; ++i) {
+        px[i] = static_cast<float>(i) / 255.0f;
+    }
+
+    XpePresentationLutParams params{};
+    for (int i = 0; i < 1024; ++i) {
+        params.lutData[i] = static_cast<uint16_t>(i * 64);
+    }
+    params.gsdfEnabled = 0;
+
+    // Frees the xpe_common buffer, installs an xpe_display one.
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&img, &params));
+    EXPECT_EQ(XPE_PIXEL_UINT16, img.format);
+    EXPECT_EQ(16u * 16u * sizeof(uint16_t), img.dataSize);
+    ASSERT_NE(nullptr, img.data);
+
+    // Freed by xpe_common.dll -- the other direction of the same crossing.
+    EXPECT_EQ(XPE_OK, xpe_free_image(&img));
+    EXPECT_EQ(nullptr, img.data);
 }

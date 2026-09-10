@@ -34,6 +34,14 @@ static inline int xpe_data_size_is_consistent(const XpeImageBuffer* img) {
 
 inline XpeErrorCode validate_float32_image(const XpeImageBuffer* img) {
     if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
+    // #142 D1: one empty-image answer for the whole module. Three entry points
+    // used to treat a zero-sized image as "nothing to do" and return XPE_OK
+    // while two others rejected it, so the same input got different answers
+    // depending on which function the caller reached for (QA-B-39). Checked
+    // here, before the format test, because a dimension is a property of the
+    // descriptor rather than of the pixel type -- an empty UINT16 image is
+    // reported as empty, not as the wrong format.
+    if (img->width == 0 || img->height == 0) return XPE_ERR_INVALID_INPUT;
     if (img->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
     // api-spec "XpeImageBuffer.dataSize on input" (#123). Every enhance_basic
     // entry point routes through here, so the module keeps one definition of

@@ -123,6 +123,10 @@ if(BUILD_TESTS)
         tests/test_exposure_index_ext.cpp
         tests/test_integration_ext.cpp
         tests/test_coverage_ext.cpp   # #120 config/degenerate paths
+        # #142 D2: a translation unit that includes BOTH public header names.
+        # The two used to share one include guard, so this combination silently
+        # lost declarations; this file fails to compile if that returns.
+        tests/test_header_guards.cpp
     )
 
     # Link against Google Test and the module

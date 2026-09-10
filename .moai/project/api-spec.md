@@ -63,6 +63,7 @@ typedef struct XpeImageBuffer {
 
 - `dataSize == 0` means *unspecified*: the entry point trusts `width × height × bytesPerPixel(format)` and does not check the size (legacy behaviour).
 - `dataSize != 0` and `dataSize < width × height × bytesPerPixel(format)` yields `XPE_ERR_INVALID_INPUT` (content validation, precedence class 2). A larger `dataSize` is accepted.
+- **Empty image (decision 2026-09-11, #142 D1):** `width == 0`, `height == 0`, or `data == NULL` is rejected with `XPE_ERR_INVALID_INPUT` by every export that takes an image buffer, uniformly across DLLs (enhance_basic: QA-B-40; display/dicom/ai/gsvg: QA-B-41). The dimension check runs after the null checks and before the pixel-format check, so an empty UINT16 buffer reports "empty", not "unsupported format".
 - `data == NULL` yields `XPE_ERR_INVALID_INPUT` regardless of `dataSize` (precedence class 1).
 
 **Output buffers are not covered by this rule.** A caller-provided output `XpeImageBuffer` is written to, so its `dataSize` MUST be populated; an output `dataSize` smaller than the required byte count yields `XPE_ERR_BUFFER_TOO_SMALL`, and `0` is not treated as unspecified (leader decision 2026-09-10, QA-A-17).
@@ -126,7 +127,7 @@ Additional codes defined in the same header and referenced by this document:
 
 ## 3. GSVG Types
 
-Defined independently. GSVG does not depend on `xpe_common` types:
+Defined in `gsvg_api.h`. GSVG uses `XPE_API` and `XpeErrorCode` from `xpe_common` (corrected 2026-09-11, QA-B-39 — the earlier "does not depend on `xpe_common` types" statement was false):
 
 ```c
 #pragma pack(push, 8)
@@ -173,11 +174,11 @@ typedef int32_t GsvgErrorCode;
 | xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_alert_push` (§5.16; renamed from `xpe_test_inject_alert` in #111, alias removed QA-A-19) |
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
-| xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
-| xpe_ai.dll | 7 | no change |
-| xpe_display.dll | 11 | no change |
+| xpe_enhance_advanced.dll | 7 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
+| xpe_ai.dll | 10 | count corrected 2026-09-11 (QA-B-39); stub build unless `XPE_AI_USE_ONNXRUNTIME` — inference entry points return `XPE_ERR_PROCESSING_FAILED` after argument validation |
+| xpe_display.dll | 6 | count corrected 2026-09-11 (QA-B-39) |
 | xpe_dicom.dll | 10 | no change |
-| gsvg.dll | 8 | no change |
+| gsvg.dll | 4 | count corrected 2026-09-11 (QA-B-39) |
 | **Total** | **79** | **-3 from v1.3.0** |
 
 ---
@@ -611,16 +612,18 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 ### 6.12 xpe_calib_generate_offset
 
 ```c
-XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* frames,
-                                                uint32_t frameCount,
-                                                XpeImageBuffer* offsetMapOut,
-                                                const char* configJsonOrNull);
+XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
+                                                int32_t num_frames,
+                                                float integration_time_ms,
+                                                float temperature_c,
+                                                const char* output_path,
+                                                const char* config_json_or_null);
 ```
 
-**Description**: Averages `frameCount` dark-field `frames` to generate an offset calibration map in `offsetMapOut`. `frames` is a contiguous array of `XpeImageBuffer` structs.  
+**Description**: Combines `num_frames` dark-field frames into an offset calibration map and writes it as XCal to `output_path` (with `integration_time_ms` / `temperature_c` recorded in the header). `config_json_or_null` selects the per-pixel combination method per XPE-ALG-001 §9.8 (`{"method":"mean"|"sigma_clip"|"median"|…, "kappa":3.0, "max_iter":5}` — keys as accepted by the module's offset-generation config parser); `NULL` keeps the default (`mean`), so existing callers are unchanged. With `sigma_clip`, pixels whose surviving sample count falls below `N_min = max(3, ⌊N/4⌋)` are marked as static defects and OR-merged into the module-global defect map (§9.8.2.1, decision #138 / QA-A-38); the offset value itself stays the clipped mean (§9.8.3). **Corrected 2026-09-11 (QA-A-38/A-39):** this section previously documented a `(frames, frameCount, offsetMapOut, configJsonOrNull)` form that never existed in the header; the six-argument form is canonical. Before QA-A-39 the public entry point had no config argument and always used `mean`, so `sigma_clip` was unreachable from the public API.
 **SRS**: SRS-CALIB-020  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_PROCESSING_FAILED`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
@@ -1321,19 +1324,15 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* filePath,
 ### 11.10 xpe_dicom_cfind_mwl
 
 ```c
-XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* queryJson,
-                                           const char* remoteAeTitle,
-                                           const char* remoteHost,
-                                           uint16_t    remotePort,
-                                           const char* localAeTitle,
-                                           char*       resultsJsonOut,
-                                           size_t      resultsBufLen);
+XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet,
+                                          const char* queryJson, char* outJson,
+                                          uint32_t outBufLen, uint32_t timeoutMs);
 ```
 
-**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array of matching worklist items in `resultsJsonOut`.  
+**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array of matching worklist items in `resultsJsonOut`.   **Corrected 2026-09-11 (QA-B-39):** argument order/names above match the header (`dicom_api.h`); the earlier `(queryJson, remoteAeTitle, remoteHost, remotePort, localAeTitle, resultsJsonOut, resultsBufLen)` form never existed. Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).
 **SRS**: SRS-DICOM-031  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`
+**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
@@ -1359,18 +1358,16 @@ Each failing condition contributes one entry to the error report, tagged with th
 
 ## 12. gsvg.dll
 
-Provides anti-scatter grid detection and virtual grid suppression. This independent module does not depend on `xpe_common` types.
+Provides anti-scatter grid detection and virtual grid suppression. This module links against `xpe_common` for `XPE_API` / `XpeErrorCode` (corrected 2026-09-11, QA-B-39).
 
-### 12.1 gsvg_process
+### 12.1 xpe_gsvg_process
 
 ```c
-GSVG_API GsvgErrorCode gsvg_process(uint16_t* pixels,
-                                     uint32_t  width,
-                                     uint32_t  height,
-                                     const GsvgConfig* config);
+XPE_API XpeErrorCode xpe_gsvg_process(void* handle, const uint16_t* src, uint16_t* dst,
+                                      int width, int height, const float* gainMap);
 ```
 
-**Description**: Suppresses anti-scatter grid artifacts from the raw 16-bit pixel buffer `pixels` (width x height, row-major) in-place using parameters in `config`. Auto-detects grid frequency if `config->gridFrequency_lp_per_mm == 0`.  
+**Description**: Suppresses anti-scatter grid artifacts from the raw 16-bit pixel buffer `pixels` (width x height, row-major) in-place using parameters in `config`. Auto-detects grid frequency if `config->gridFrequency_lp_per_mm == 0`.   **Corrected 2026-09-11 (QA-B-39):** the function is `xpe_gsvg_process` returning `XpeErrorCode` on a handle from `xpe_gsvg_init`; the earlier `gsvg_process(pixels, width, height, config) -> GsvgErrorCode` form never existed. Four exports total: `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_process_ex`, `xpe_gsvg_shutdown` (see header).
 **SRS**: SRS-GSVG-001, SRS-GSVG-002, GSVG-SDD-001  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`, `GSVG_ERR_PROCESSING_FAILED`

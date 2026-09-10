@@ -303,7 +303,16 @@ TEST_F(DicomWriterTest, WriteEmptyBodyPart_StillWritesFile) {
     EXPECT_TRUE(fs::exists(path));
 }
 
-TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
+// Renamed and re-asserted by QA-B-41. It used to expect
+// XPE_ERR_PROCESSING_FAILED, which was the old behaviour: the NULL data pointer
+// passed every guard and surfaced from inside the J2K compressor as a generic
+// processing failure. #142 decided that a NULL data pointer is INVALID_INPUT
+// across every post module, so the answer now names the actual problem and is
+// the same one xpe_dicom_write gives for the same input.
+//
+// The old expectation is superseded, not wrong-then: it recorded what the code
+// did before the contract existed.
+TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsInvalidInput) {
     XpeImageBuffer img{};
     img.width         = 64;
     img.height        = 64;
@@ -313,7 +322,7 @@ TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsProcessingFailed) {
     img.data          = nullptr;   // passes the dicom.cpp null-struct check
     img.dataSize      = 0;         // 0 = unspecified, so the #123 guard stays quiet
     auto path = m_tempDir / "j2k_nodata.dcm";
-    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED,
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
 }
 
@@ -341,4 +350,70 @@ TEST_F(DicomWriterTest, WriteUint8Format_NotRejectedBySizeGuard) {
     const XpeErrorCode rc = xpe_dicom_write(path.string().c_str(), &img, &m_meta);
     EXPECT_NE(XPE_ERR_INVALID_INPUT, rc)
         << "size guard rejected a format it cannot size; rc=" << rc;
+}
+
+// ---------------------------------------------------------------------------
+// #142 (QA-B-41): the empty-image contract QA-B-40 set for enhance_basic and
+// QA-B-41 carried to display now applies to the writer entry points too.
+// width == 0, height == 0, or a NULL data pointer is XPE_ERR_INVALID_INPUT.
+//
+// Before this, xpe_dicom_write accepted a zero-sized image and produced a file
+// with no pixels, while xpe_dicom_write_j2k reported XPE_ERR_PROCESSING_FAILED
+// from deep inside the compressor -- two different answers to one bad input,
+// neither of them naming the actual problem.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct NamedWriter {
+    const char* name;
+    XpeErrorCode (*fn)(const char*, const XpeImageBuffer*, const XpeImageMetadata*);
+};
+
+const NamedWriter kWriters[] = {
+    {"xpe_dicom_write",     xpe_dicom_write},
+    {"xpe_dicom_write_j2k", xpe_dicom_write_j2k},
+};
+
+}  // namespace
+
+TEST_F(DicomWriterTest, EmptyImage_ZeroWidth_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.width    = 0;
+        img.dataSize = 0;   // 0 means unspecified (#123), so it is not what fails
+        const auto path = m_tempDir / "empty_w.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted width == 0";
+    }
+}
+
+TEST_F(DicomWriterTest, EmptyImage_ZeroHeight_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.height   = 0;
+        img.dataSize = 0;
+        const auto path = m_tempDir / "empty_h.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted height == 0";
+    }
+}
+
+TEST_F(DicomWriterTest, EmptyImage_NullData_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.data = nullptr;   // the fixture still owns m_img.data
+        const auto path = m_tempDir / "empty_null.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted a NULL data pointer";
+    }
+}
+
+// The complement: without it a guard that rejected everything would satisfy
+// the three cases above.
+TEST_F(DicomWriterTest, EmptyImageContract_ValidImageStillAccepted) {
+    for (const auto& w : kWriters) {
+        const auto path = m_tempDir / "contract_valid.dcm";
+        EXPECT_EQ(XPE_OK, w.fn(path.string().c_str(), &m_img, &m_meta))
+            << w.name << " rejected a well-formed image";
+    }
 }

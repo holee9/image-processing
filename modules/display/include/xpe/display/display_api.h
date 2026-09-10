@@ -1,6 +1,6 @@
 /**
  * @file display_api.h
- * @brief XPE Phase 1b Display DLL public C API (5 exported functions)
+ * @brief XPE Phase 1b Display DLL public C API (6 exported functions)
  *
  * All functions use C linkage (__cdecl) and blittable types for P/Invoke compatibility.
  * SPEC: SPEC-XPE-P1B-DISP v1.0.0
@@ -11,6 +11,17 @@
  *
  * Input format requirement: all processing functions require XPE_PIXEL_FLOAT32.
  * Domain transition: xpe_apply_presentation_lut converts float32 -> uint16.
+ *
+ * Every processing function routes its image through one shared validator, so
+ * these checks apply uniformly and are not repeated per function below:
+ * a NULL img or img->data is XPE_ERR_INVALID_INPUT, a zero width or height is
+ * XPE_ERR_INVALID_INPUT (#142 -- an empty image is an error, not a no-op
+ * success), a non-FLOAT32 format is XPE_ERR_UNSUPPORTED_FORMAT, and a dataSize
+ * inconsistent with the declared dimensions (#123) is XPE_ERR_INVALID_INPUT.
+ * Note the ordering: dimensions are judged before the format, so an empty
+ * UINT16 buffer reports INVALID_INPUT rather than UNSUPPORTED_FORMAT, while a
+ * correctly sized UINT16 buffer reports UNSUPPORTED_FORMAT even when its
+ * dataSize is also wrong.
  */
 
 #ifndef XPE_DISPLAY_API_H
@@ -163,9 +174,14 @@ XPE_API const char* xpe_display_version(void);
  *               For TABLE mode: lutData must not be NULL, lutLength must be > 0.
  *               For LINEAR mode: rescaleSlope must not be 0.0f.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if img or params is NULL; or TABLE mode validation fails;
- *         or LINEAR mode rescaleSlope == 0.0f.
+ * @return XPE_ERR_INVALID_INPUT if img or params is NULL; if img->dataSize is
+ *         inconsistent with its dimensions; if TABLE mode validation fails
+ *         (lutData NULL or lutLength == 0); if LINEAR mode rescaleSlope == 0.0f;
+ *         or if params->mode is neither LINEAR nor TABLE.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if img->format != XPE_PIXEL_FLOAT32.
+ *
+ * @note Mode-specific validation happens AFTER the image is accepted, so an
+ *       invalid slope or LUT is reported even for a zero-pixel image.
  *
  * @note Performance target: <= 20 ms for 3072x3072 image (REQ-DISP-008).
  * @note Thread-safe when called with independent buffers (REQ-DISP-033).
@@ -190,8 +206,13 @@ XPE_API XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*            img,
  * @param params [in]     VOI LUT parameters. Must not be NULL.
  *               width must be > 0.0f.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if img or params is NULL, or width <= 0.0f.
+ * @return XPE_ERR_INVALID_INPUT if img or params is NULL, if img->dataSize is
+ *         inconsistent with its dimensions, if width <= 0.0f, or if params->mode
+ *         is not one of LINEAR / LINEAR_EXACT / SIGMOID.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if img->format != XPE_PIXEL_FLOAT32.
+ *
+ * @note An unknown mode is detected inside the per-pixel dispatch, so pixels are
+ *       not modified before the error is returned.
  *
  * @note Performance target: <= 16 ms for 3072x3072 image (REQ-DISP-016).
  * @note Thread-safe when called with independent buffers (REQ-DISP-033).
@@ -202,7 +223,12 @@ XPE_API XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*          img,
 /**
  * @brief Populate XpeVoiLutParams with clinically validated preset values.
  *
- * @param params   [out] Params struct to populate. Must not be NULL.
+ * Every field of @p params is overwritten, not just center and width: mode is
+ * set to XPE_VOI_LINEAR, minOut to 0.0f and maxOut to 255.0f for all four
+ * presets. A caller that set mode or an output range before calling loses it.
+ *
+ * @param params   [out] Params struct to populate. Must not be NULL. Left
+ *                       untouched when bodyPart is invalid.
  * @param bodyPart [in]  Body part selector (XPE_BODY_BONE, XPE_BODY_LUNG, etc.)
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if params is NULL or bodyPart is not a valid enum value.
@@ -229,10 +255,20 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  * the 1024-entry LUT, frees the old float32 buffer, and updates img->format,
  * bitsAllocated, bitsStored, and dataSize.
  *
+ * The old buffer is released with the same allocator xpe_alloc_image() used, so
+ * the converted image stays valid input for xpe_free_image(). Input pixels are
+ * clamped to [0.0, 1.0] before indexing, so out-of-range values saturate rather
+ * than being rejected.
+ *
  * @param img    [in/out] Float32 image. On success, converted to uint16 in-place.
- * @param params [in]     Presentation LUT parameters. Must not be NULL.
+ *                        On ANY error the image is left exactly as it was --
+ *                        allocation happens before the old buffer is freed.
+ * @param params [in]     Presentation LUT parameters. Must not be NULL. Its
+ *                        lutData is a fixed 1024-entry array, so there is no
+ *                        length to validate and no LUT-shape error to report.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if img or params is NULL.
+ * @return XPE_ERR_INVALID_INPUT if img or params is NULL, or img->dataSize is
+ *         inconsistent with its dimensions.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if img->format != XPE_PIXEL_FLOAT32.
  * @return XPE_ERR_OUT_OF_MEMORY if uint16 buffer allocation fails.
  *
@@ -258,10 +294,20 @@ XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 
  * Sets outParams->gsdfEnabled = 1 on success.
  *
  * @param luminanceValues [in]  Array of measured luminance values (cd/m^2), count >= 2.
+ *                              Only the minimum and maximum of the array are
+ *                              used; intermediate measurements do not affect
+ *                              the resulting LUT.
  * @param count           [in]  Number of entries in luminanceValues (must be >= 2).
  * @param outParams       [out] Populated with GSDF LUT; gsdfEnabled set to 1.
+ *                              Requires xpe_apply_presentation_lut to be called
+ *                              separately -- this function computes the LUT only.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL, or count < 2.
+ *
+ * @note Degenerate luminance input is silently coerced, not rejected: a
+ *       non-positive minimum becomes 0.01 cd/m^2, and a maximum not above the
+ *       minimum becomes minimum + 1.0. A caller passing measurement garbage
+ *       therefore receives XPE_OK and a plausible-looking LUT.
  *
  * @note count >= 2 is required to define a luminance range (REQ-DISP-027).
  */

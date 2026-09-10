@@ -37,46 +37,84 @@ public partial class MainWindow : System.Windows.Window
     /// BackendMode is the one value carried over: it is the operator's input selecting WHICH backend
     /// this run exercises, not state the run produced.
     /// </summary>
+    /// <summary>
+    /// Applies every run-selection switch to a settings object — one place, every launch mode.
+    ///
+    /// GUI-C-38. The two that came before it were the same defect twice: <c>--automation-backend</c>
+    /// (GUI-C-31) and <c>--automation-calib</c> (GUI-C-37) were each applied only inside the
+    /// isolation branch, which runs when <c>--automation-report</c> is ALSO given. The E2E fixture
+    /// deliberately omits the report, so both switches were passed and silently ignored there —
+    /// once producing "mode=Mock" on a Native run, once "calibration file(s) not found" while the
+    /// files existed.
+    ///
+    /// The split that caused it is now gone: WHAT the run selects is applied here unconditionally,
+    /// and only WHERE settings are stored (the isolated file, and starting from defaults) stays
+    /// conditional on automation mode. A launch selection is not a stored value.
+    ///
+    /// Every field of <see cref="AutomationArgs"/> that selects run behaviour must be consumed by
+    /// this method; <c>AutomationRunSelectionConsumptionTests</c> fails when one is not.
+    /// </summary>
+    private static void ApplyRunSelection(AppSettings settings)
+    {
+        if (!string.IsNullOrWhiteSpace(App.AutomationBackendMode))
+        {
+            settings.BackendMode = App.AutomationBackendMode;
+        }
+
+        if (!string.IsNullOrWhiteSpace(App.AutomationCalibrationDirectory))
+        {
+            // One generated set feeds all three stages (#141).
+            settings.OffsetCalibrationDirectory = App.AutomationCalibrationDirectory;
+            settings.GainCalibrationDirectory = App.AutomationCalibrationDirectory;
+            settings.DefectCalibrationDirectory = App.AutomationCalibrationDirectory;
+        }
+
+        if (App.AutomationRawWidth is > 0)
+        {
+            settings.RawWidth = App.AutomationRawWidth.Value;
+        }
+
+        if (App.AutomationRawHeight is > 0)
+        {
+            settings.RawHeight = App.AutomationRawHeight.Value;
+        }
+    }
+
+    /// <summary>
+    /// Builds this run's settings and the service that persists them.
+    ///
+    /// Two decisions, deliberately separate:
+    ///  - WHAT the run selects → <see cref="ApplyRunSelection"/>, applied in every launch mode.
+    ///  - WHERE settings live → isolated to a throwaway file, and started from defaults, ONLY under
+    ///    automation (#136): settings are persisted, so a check could otherwise be decided by
+    ///    whatever a previous run left behind.
+    /// </summary>
     private static (AppSettings Settings, AppSettingsService Service) CreateSettings()
     {
         var shipped = new AppSettingsService();
-        var persisted = shipped.Load();
-
-        // #136: the argument wins when present. C-25 had to carry BackendMode over from the shipped
-        // file because nothing else could select it — that was the one hole left in the isolation.
-        var backendMode = string.IsNullOrWhiteSpace(App.AutomationBackendMode)
-            ? persisted.BackendMode
-            : App.AutomationBackendMode;
 
         if (!App.IsAutomationMode)
         {
-            // GUI-C-31: --automation-backend selects the backend even outside a full automation run.
-            // It used to apply only when --automation-report was ALSO given, so the E2E fixture —
-            // which deliberately omits the report so the self-driving scenario stays off — passed the
-            // switch and silently got whatever the shipped file said. Measured: a Native E2E run
-            // rendered "mode=Mock".
-            //
-            // Settings isolation stays automation-only: this is a launch selection, not a stored value.
-            persisted.BackendMode = backendMode;
+            var persisted = shipped.Load();
+            ApplyRunSelection(persisted);
             return (persisted, shipped);
+        }
+
+        var isolated = new AppSettings();
+        ApplyRunSelection(isolated);
+
+        // BackendMode carries over from the shipped file when no switch named one — it is the
+        // operator's input selecting WHICH backend this run exercises, not state the run produced.
+        if (string.IsNullOrWhiteSpace(App.AutomationBackendMode))
+        {
+            isolated.BackendMode = shipped.Load().BackendMode;
         }
 
         var isolatedDirectory = Path.Combine(
             Path.GetTempPath(),
             $"xpe_gui_automation_{Guid.NewGuid():N}");
 
-        var settings = new AppSettings { BackendMode = backendMode };
-        if (!string.IsNullOrWhiteSpace(App.AutomationCalibrationDirectory))
-        {
-            // #141: all three stages read from the one generated set.
-            settings.OffsetCalibrationDirectory = App.AutomationCalibrationDirectory;
-            settings.GainCalibrationDirectory = App.AutomationCalibrationDirectory;
-            settings.DefectCalibrationDirectory = App.AutomationCalibrationDirectory;
-        }
-
-        return (
-            settings,
-            new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")));
+        return (isolated, new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")));
     }
 
     protected override void OnClosed(System.EventArgs e)
@@ -99,19 +137,9 @@ public partial class MainWindow : System.Windows.Window
 
         if (!string.IsNullOrWhiteSpace(App.AutomationRawPath))
         {
-            if (DataContext is MainWindowViewModel viewModel)
-            {
-                if (App.AutomationRawWidth is > 0)
-                {
-                    viewModel.Settings.RawWidth = App.AutomationRawWidth.Value;
-                }
-
-                if (App.AutomationRawHeight is > 0)
-                {
-                    viewModel.Settings.RawHeight = App.AutomationRawHeight.Value;
-                }
-            }
-
+            // Dimensions are applied by ApplyRunSelection at construction (GUI-C-38); re-applying
+            // them here duplicated the rule in a second place, which is how the two earlier
+            // switch-wiring defects survived.
             ClickButton(LoadRawImageButton);
         }
     }
@@ -131,21 +159,10 @@ public partial class MainWindow : System.Windows.Window
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
             report.NativeSource = viewModel.RuntimeInfo.NativeSource;
-            report.PreprocessRan = viewModel.PreprocessRan;
-            report.PreprocessStages = viewModel.PreprocessStages;
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 
-            if (App.AutomationRawWidth is > 0)
-            {
-                viewModel.Settings.RawWidth = App.AutomationRawWidth.Value;
-            }
-
-            if (App.AutomationRawHeight is > 0)
-            {
-                viewModel.Settings.RawHeight = App.AutomationRawHeight.Value;
-            }
-
+            // Dimensions come from ApplyRunSelection (GUI-C-38) — one rule, one place.
             ClickButton(LoadRawImageButton);
             await Task.Delay(1500);
 
@@ -170,6 +187,23 @@ public partial class MainWindow : System.Windows.Window
             report.StatusAfterLoad = viewModel.StatusText;
             report.LastRawDirectory = viewModel.Settings.LastRawDirectory;
             report.DisplayPipelineApplied = viewModel.ActiveImageFrame?.DisplayPipelineApplied ?? false;
+
+            // #141: preprocessing needs a loaded frame, so it runs HERE — measured: placed earlier
+            // it reported "menu enabled=True, frame loaded=False" and never attempted.
+            if (RunPreprocessingMenuItem.IsEnabled)
+            {
+                ClickMenuItem(RunPreprocessingMenuItem);
+                await Task.Delay(3000);
+            }
+
+            report.PreprocessRan = viewModel.PreprocessRan;
+
+            // Record WHY when nothing ran: "entry disabled" (backend has no preprocessing) is a
+            // different fact from "it ran and refused". Reporting them alike hides one behind the other.
+            report.PreprocessStages = string.IsNullOrEmpty(viewModel.PreprocessStages)
+                ? $"not attempted (menu enabled={RunPreprocessingMenuItem.IsEnabled}, " +
+                  $"frame loaded={viewModel.ActiveImageFrame is not null})"
+                : viewModel.PreprocessStages;
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
             report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
             report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
@@ -239,7 +273,9 @@ public partial class MainWindow : System.Windows.Window
                     PInvokeSmokeTestMenuItem,
                     ZoomFitMenuItem,
                     ZoomActualMenuItem,
-                    RunPreprocessingMenuItem,
+                    // RunPreprocessingMenuItem is no longer a placeholder (#141, GUI-C-36): it is
+                    // enabled on the native backend, so counting it as a disabled future command
+                    // would make this report claim the opposite of what the app now does.
                     RunDeterministicBaselineMenuItem,
                     RunFullPipelineMenuItem,
                     StopProcessingMenuItem,
