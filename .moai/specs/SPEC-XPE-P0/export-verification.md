@@ -51,7 +51,7 @@ dumpbin /exports build/release/lib/xpe_common.dll
 
 The following internal test functions may also be exported:
 - xpe_initialized_flag
-- xpe_test_inject_alert
+- xpe_alert_push  (renamed from xpe_test_inject_alert, #111; alias exported until QA-A-19)
 
 **Decision Required:**
 - Option A: Keep test functions exported (document as XPE_TEST_API)
@@ -59,7 +59,7 @@ The following internal test functions may also be exported:
 
 ### 5. Acceptance Criteria
 
-- [x] dumpbin shows exactly 16 exported functions (15 public API + xpe_test_inject_alert) — Lane A QA-A-01/03, #111
+- [x] dumpbin shows exactly 16 exported functions (15 public API + xpe_alert_push; 17 while the #111 alias exists, back to 16 at QA-A-19) — Lane A QA-A-01/03, #111
 - [x] All 16 function names match SPEC-XPE-P0 REQ-P0-008 (as revised 2026-09-09)
 - [ ] Internal test functions are either:
   - Documented as test-only exports, OR
