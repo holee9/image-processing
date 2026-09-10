@@ -650,16 +650,16 @@ XPE_API XpeErrorCode xpe_calib_save(const XpeImageBuffer* calibMap,
 ### 6.15 xpe_validate_readout_artifact
 
 ```c
-XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg,
-                                                    int32_t* artifactScoreOut,
-                                                    char* msgOut,
-                                                    size_t msgLen);
+XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
+                                                    const XpeImageMetadata* metadata,
+                                                    bool* has_dropped_columns,
+                                                    bool* has_nonuniform_gain);
 ```
 
-**Description**: Validates the raw readout frame for detector-side line noise, dropped columns, and ADC saturation patterns before correction begins. Writes a normalized artifact score to `*artifactScoreOut` and an operator-readable summary to `msgOut`. Non-destructive.  
+**Description**: Validates the raw uint16 readout frame before any correction stage. Sets `*has_dropped_columns` when any column is all-zero and `*has_nonuniform_gain` when any row mean exceeds 0.9 x UINT16_MAX (ADC saturation pattern). Both outputs are plain flags; there is no artifact score or message. All four pointers are required. **Corrected 2026-09-10 (QA-A-25):** this section previously documented a `(rawImg, int32_t* artifactScoreOut, char* msgOut, size_t msgLen)` form that never existed in the header (`preprocess_api.h`), the implementation, the pipeline caller, or the GUI export list; the flag form is canonical. Line-noise detection named in REQ-P1A-041 is not implemented by this function (open gap, tracked separately).
 **Traceability**: PRE-01, SRS-PERF-001  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer or non-uint16 buffer)
 
 ---
 
