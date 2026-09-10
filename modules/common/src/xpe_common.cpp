@@ -38,6 +38,10 @@ extern "C" void xpe_log_internal_reset();
 struct AlertEntry {
     std::string  message;
     int32_t      severity{0};
+    /* The synthetic overflow-loss alert (api-spec.md 5.17 rule 2). Marked
+     * rather than matched by message text: a module could legitimately push an
+     * alert whose text starts the same way, and that one must stay evictable. */
+    bool         isLossAlert{false};
 };
 
 /* ============================================================================
@@ -51,9 +55,11 @@ static std::mutex        g_mutex;
 static bool              g_initialized{false};
 static std::string       g_configJson;
 
-// Alert queue (bounded ring -- max 64 entries)
+// Alert queue (bounded -- max 64 entries; overflow policy: api-spec.md 5.17)
 static constexpr std::size_t kAlertQueueMax = 64;
 static std::deque<AlertEntry> g_alertQueue;
+// Cumulative evictions since the last xpe_clear_alerts. Drives the loss alert.
+static uint64_t g_alertsDropped{0};
 
 // Logging
 static int32_t           g_logLevel{2};      // default INFO
@@ -86,17 +92,81 @@ static void internal_log(int32_t level, const char* msg)
     }
 }
 
-/** Enqueue an alert, evicting oldest entry when queue is full. */
+/* Alert queue overflow policy -- api-spec.md 5.17 (SRS-ALERT-007, HAZ-006).
+ *
+ * Callers below already hold g_mutex; the *_locked suffix marks that.
+ *
+ * @MX:ANCHOR: eviction order is Info -> Warning -> Error, FIFO within a class.
+ * @MX:REASON: [AUTO] HAZ-006 -- a burst of Info alerts must never silently
+ *             discard an Error, and no eviction may go unreported.
+ * @MX:SPEC: api-spec.md 5.17
+ */
+
+/** Frees one slot by evicting the oldest evictable alert; counts the loss.
+ *  Returns false when nothing is evictable (only the loss alert remains). */
+static bool evict_one_locked()
+{
+    for (int32_t sev : {XPE_ALERT_INFO, XPE_ALERT_WARNING, XPE_ALERT_ERROR}) {
+        for (auto it = g_alertQueue.begin(); it != g_alertQueue.end(); ++it) {
+            if (it->isLossAlert || it->severity != sev) continue;
+            g_alertQueue.erase(it);   // first match == oldest: the deque is FIFO
+            ++g_alertsDropped;
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Brings the loss alert in line with g_alertsDropped: updates it in place when
+ *  present, otherwise makes room and appends it. Never creates a second one. */
+static void sync_loss_alert_locked()
+{
+    if (g_alertsDropped == 0) return;
+
+    AlertEntry* loss = nullptr;
+    for (auto& e : g_alertQueue) {
+        if (e.isLossAlert) { loss = &e; break; }
+    }
+
+    if (loss == nullptr) {
+        // The loss alert occupies one of the 64 slots, so making room for it is
+        // itself an eviction and is counted as one.
+        while (g_alertQueue.size() >= kAlertQueueMax) {
+            if (!evict_one_locked()) return;  // nothing but the loss alert left
+        }
+        g_alertQueue.push_back(AlertEntry{});
+        loss = &g_alertQueue.back();
+        loss->severity    = XPE_ALERT_ERROR;
+        loss->isLossAlert = true;
+    }
+
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "alert queue overflow: %llu alert(s) dropped",
+                  static_cast<unsigned long long>(g_alertsDropped));
+    loss->message = buf;
+}
+
+/** Enqueue an alert under the 5.17 overflow policy. */
 static void enqueue_alert(const char* msg, int32_t severity)
 {
     std::lock_guard<std::mutex> lk(g_mutex);
-    if (g_alertQueue.size() >= kAlertQueueMax) {
-        g_alertQueue.pop_front();
+
+    while (g_alertQueue.size() >= kAlertQueueMax) {
+        if (!evict_one_locked()) {
+            // Only the loss alert is left and the incoming alert cannot fit;
+            // record it as dropped rather than displacing the loss report.
+            ++g_alertsDropped;
+            sync_loss_alert_locked();
+            return;
+        }
     }
+
     AlertEntry e;
     e.message  = msg ? msg : "";
     e.severity = severity;
     g_alertQueue.push_back(std::move(e));
+
+    sync_loss_alert_locked();
 }
 
 /* ============================================================================
@@ -119,6 +189,7 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
             g_initialized   = true;
             g_logLevel      = 2;  // INFO
             g_alertQueue.clear();
+            g_alertsDropped = 0;
 
             if (configJsonOrNull) {
                 g_configJson = configJsonOrNull;
@@ -142,6 +213,7 @@ XPE_API void xpe_shutdown(void)
 
             g_initialized = false;
             g_alertQueue.clear();
+            g_alertsDropped = 0;
             g_configJson.clear();
 
             // Flush and close log file
@@ -309,6 +381,7 @@ XPE_API void xpe_clear_alerts(void)
 {
     std::lock_guard<std::mutex> lk(g_mutex);
     g_alertQueue.clear();
+    g_alertsDropped = 0;
 }
 
 /* ============================================================================
