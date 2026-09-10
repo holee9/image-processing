@@ -328,9 +328,16 @@ XPE_API void xpe_clear_alerts(void)
 
 extern "C" {
 
-XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
+XPE_API void xpe_alert_push(const char* msg, int32_t severity)
 {
     enqueue_alert(msg, severity);
+}
+
+/* Deprecated alias -- #111 step 1/3. Removed in step 3/3 (QA-A-19), which
+ * brings the export count back to the REQ-P0-008 value of 16. */
+XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity)
+{
+    xpe_alert_push(msg, severity);
 }
 
 } // extern "C"
