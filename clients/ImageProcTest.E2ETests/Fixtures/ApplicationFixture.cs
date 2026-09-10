@@ -60,6 +60,8 @@ public class ApplicationFixture : IDisposable
             return;
         }
 
+        LeftoverNote = KillLeftovers(exePath);
+
         var startInfo = new ProcessStartInfo(exePath)
         {
             WorkingDirectory = Path.GetDirectoryName(exePath)!,
@@ -124,6 +126,9 @@ public class ApplicationFixture : IDisposable
     /// <summary>The raw image this run was launched with, when the fixture asked for one.</summary>
     public string? RawImagePath { get; }
 
+    /// <summary>What the pre-launch sweep found and did. Empty when nothing was left behind.</summary>
+    public string LeftoverNote { get; } = string.Empty;
+
     /// <summary>The UIA layer, shared by every scenario in the class.</summary>
     public UIA3Automation Automation { get; }
 
@@ -154,6 +159,50 @@ public class ApplicationFixture : IDisposable
             _application?.Dispose();
             Automation.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Kills app instances left over from an earlier run BEFORE launching a new one.
+    ///
+    /// GUI-C-35 measured the damage: one surviving instance held ImageProcTest.exe, which made the
+    /// solution build fail with MSB3027 and took four E2E scenarios down with it — a failure that
+    /// looks like a code defect and is not one.
+    ///
+    /// Only processes running THIS exe are touched. Matching by name alone would kill a developer's
+    /// own session of the app, and a test suite must not do that.
+    /// </summary>
+    private static string KillLeftovers(string exePath)
+    {
+        var killed = new List<int>();
+
+        foreach (var process in Process.GetProcessesByName(
+                     Path.GetFileNameWithoutExtension(exePath)))
+        {
+            try
+            {
+                if (!string.Equals(process.MainModule?.FileName, exePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;   // A different build or a different app with the same name.
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(5000);
+                killed.Add(process.Id);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // Already gone, or its module is not readable (elevated / exiting). Not fatal:
+                // the launch below will fail loudly if the file is still locked.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        return killed.Count == 0
+            ? string.Empty
+            : $"Killed {killed.Count} leftover instance(s) before launch: {string.Join(", ", killed)}";
     }
 
     /// <summary>
