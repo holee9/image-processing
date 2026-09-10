@@ -48,6 +48,25 @@ jobs:
           Write-Output "is_main=$isMain" >> $env:GITHUB_OUTPUT
           Write-Output "Detected: lane=$lane, is_main=$isMain"
 
+  text-lint:
+    # Split out of common-build (2026-09-11). A single trailing-whitespace error
+    # in common-build failed the job, and because dotnet-tests and gui-e2e-native
+    # need it, BOTH were skipped - one whitespace character silently withheld all
+    # C# and Native E2E evidence for that commit (run 34535620953 on 83ffa7a).
+    # A formatting gate must not be able to hide test evidence, so it stands alone
+    # and gates nothing.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate tracked text files
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
+
   common-build:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
@@ -57,10 +76,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Validate tracked text files
-        shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
 
       - name: Ensure Ninja is available
         shell: pwsh
