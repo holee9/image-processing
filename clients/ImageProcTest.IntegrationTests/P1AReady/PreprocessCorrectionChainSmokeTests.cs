@@ -229,7 +229,9 @@ public sealed class PreprocessCorrectionChainSmokeTests
 
             Assert.Equal(
                 XpeCommonNative.XpeErrorCode.OK,
-                generateOffset(new[] { darkFrame }, 1, 100.0f, 25.0f, offsetPath));
+                // null config (#138): the defaults, which the header defines as the pre-parameter
+                // behaviour — this smoke test measures the chain, not the generation method.
+                generateOffset(new[] { darkFrame }, 1, 100.0f, 25.0f, offsetPath, null));
             Assert.Equal(XpeCommonNative.XpeErrorCode.OK, loadOffset(offsetPath));
 
             Assert.Equal(
