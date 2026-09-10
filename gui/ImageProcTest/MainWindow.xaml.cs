@@ -92,6 +92,12 @@ public partial class MainWindow : System.Windows.Window
             viewModel.Settings.DefectCorrectionMode = CalibrationStageMode.On;
             await Task.Delay(100);
 
+            // #135: park the window at a sentinel no preset produces, so "applied" below means the
+            // command actually wrote the backend's values HERE — settings are persisted between
+            // runs, so a previous run's window would otherwise satisfy the check on its own.
+            viewModel.Settings.VoiWindowCenter = -1.0f;
+            viewModel.Settings.VoiWindowWidth = 1.0f;
+
             viewModel.ApplyBodyPartPresetCommand.Execute(null);
             await Task.Delay(250);
             viewModel.ApplyDisplayPipelineCommand.Execute(null);
@@ -116,10 +122,19 @@ public partial class MainWindow : System.Windows.Window
             report.ComparisonSourcePreserved =
                 viewModel.ActiveImageFrame?.Preview is not null &&
                 ReferenceEquals(viewModel.SourceImage, viewModel.ActiveImageFrame.Preview);
+            // #135: compare against what the ACTIVE backend produced, not against MockXpeBackend's
+            // literals. The native abdomen preset is C=40/W=400 (HU, "clinically validated" per
+            // display_api.h), so hard-coded mock values made this false for every native run while
+            // the preset had in fact been applied correctly.
+            var appliedPreset = viewModel.LastAppliedVoiPreset;
+            report.VoiPresetCenter = appliedPreset?.Center ?? 0.0f;
+            report.VoiPresetWidth = appliedPreset?.Width ?? 0.0f;
             report.VoiPresetApplied =
                 string.Equals(viewModel.Settings.SelectedBodyPart, "Abdomen", StringComparison.OrdinalIgnoreCase) &&
-                Math.Abs(viewModel.Settings.VoiWindowCenter - 32768.0f) < 0.001f &&
-                Math.Abs(viewModel.Settings.VoiWindowWidth - 65535.0f) < 0.001f;
+                appliedPreset is not null &&
+                appliedPreset.Width > 0.0f &&
+                Math.Abs(viewModel.Settings.VoiWindowCenter - appliedPreset.Center) < 0.001f &&
+                Math.Abs(viewModel.Settings.VoiWindowWidth - appliedPreset.Width) < 0.001f;
 
             ClickMenuItem(ZoomActualMenuItem);
             await Task.Delay(100);
