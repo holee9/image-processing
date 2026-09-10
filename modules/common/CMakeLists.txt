@@ -118,6 +118,10 @@ if(_XPE_BUILD_TESTS)
         tests/test_post_degraded_mode.cpp
         # QA-A-28 (#110): alert queue overflow policy, api-spec.md 5.17
         tests/test_alert_queue_overflow.cpp
+        # QA-A-13 (#109): on disk but never registered (found by QA-A-28). Its
+        # two cases are unique -- the exact XPE_ERR_SAFETY_VIOLATION value and
+        # the exact "Safety violation" text, neither pinned elsewhere.
+        tests/test_xpe_error_safety_violation.cpp
     )
     target_include_directories(test_xpe_common PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
