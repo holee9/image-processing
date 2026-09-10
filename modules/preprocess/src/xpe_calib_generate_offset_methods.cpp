@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <limits>
 #include <string>
 #include <vector>
@@ -145,7 +146,8 @@ size_t percentile_index(double percentile, size_t n) noexcept
 }
 
 double sigma_clip_value(const std::vector<double>& samples,
-                        const OffsetGenerationConfig& config)
+                        const OffsetGenerationConfig& config,
+                        size_t* surviving_out)
 {
     std::vector<double> clipped = samples;
     for (int32_t iter = 0; iter < config.max_iter && clipped.size() > 1u; ++iter) {
@@ -159,6 +161,8 @@ double sigma_clip_value(const std::vector<double>& samples,
         if (new_end == clipped.end()) break;
         clipped.erase(new_end, clipped.end());
     }
+
+    if (surviving_out) *surviving_out = clipped.size();
 
     if (clipped.empty()) {
         return mean_of(samples);
@@ -251,13 +255,43 @@ XpeErrorCode parse_offset_generation_config(const char* config_json,
 }
 
 // @MX:NOTE: [AUTO] generate_offset_values -- per-pixel statistical aggregation dispatcher
+size_t sigma_clip_min_frames(size_t num_frames) noexcept
+{
+    // XPE-ALG-001 9.8.2.1: N_min = max(3, floor(N/4)).
+    const size_t floor_quarter = num_frames / 4u;
+    size_t n_min = floor_quarter > 3u ? floor_quarter : 3u;
+    // 9.8.5 edge case, "N < 4 -> min_frames = N". Only observable below 3,
+    // since max(3, 0) already equals N at N = 3. The clause's other half
+    // (max_iter = 1) is deliberately NOT applied here: it changes the clipping
+    // result itself, which this card does not touch.
+    if (num_frames < n_min) n_min = num_frames;
+    return n_min;
+}
+
+size_t or_merge_defect_bits(uint8_t* dst,
+                            const std::vector<uint8_t>& mask,
+                            size_t n_pixels) noexcept
+{
+    if (dst == nullptr || mask.size() != n_pixels) return 0u;
+
+    size_t newly_set = 0u;
+    for (size_t i = 0; i < n_pixels; ++i) {
+        if (mask[i] && !dst[i]) {
+            dst[i] = 1u;
+            ++newly_set;
+        }
+    }
+    return newly_set;
+}
+
 // @MX:REASON: fan_in=2 (generate_offset_to_uint16_buffer, xpe_calib_generate_offset); not noexcept — vector alloc may throw
 XpeErrorCode generate_offset_values(const XpeImageBuffer* dark_frames,
                                     int32_t num_frames,
                                     const OffsetGenerationConfig& config,
                                     std::vector<float>* result_out,
                                     uint32_t* width_out,
-                                    uint32_t* height_out)
+                                    uint32_t* height_out,
+                                    std::vector<uint8_t>* defect_mask_out)
 {
     if (!result_out || !width_out || !height_out) {
         return XPE_ERR_INVALID_INPUT;
@@ -271,6 +305,12 @@ XpeErrorCode generate_offset_values(const XpeImageBuffer* dark_frames,
     if (rc != XPE_OK) return rc;
 
     result_out->assign(n_pixels, 0.0f);
+    if (defect_mask_out != nullptr) {
+        // Zero-filled for every method. Only SigmaClip carries an N_min clause;
+        // the other three leave the mask empty rather than inventing marks.
+        defect_mask_out->assign(n_pixels, 0u);
+    }
+    const size_t min_frames = sigma_clip_min_frames(static_cast<size_t>(num_frames));
 
     if (config.method == OffsetGenerationMethod::Mean) {
         std::vector<double> accum(n_pixels, 0.0);
@@ -301,9 +341,17 @@ XpeErrorCode generate_offset_values(const XpeImageBuffer* dark_frames,
                 value = median_of(sorted);
                 break;
             }
-            case OffsetGenerationMethod::SigmaClip:
-                value = sigma_clip_value(samples, config);
+            case OffsetGenerationMethod::SigmaClip: {
+                size_t surviving = samples.size();
+                value = sigma_clip_value(samples, config, &surviving);
+                // XPE-ALG-001 9.8.2.1: "유효 프레임 수 |S| < N_min 이면 해당
+                // 픽셀을 정적 결함으로 마킹." The value is left alone -- 9.8.3
+                // computes cal_map for every pixel regardless of the mark.
+                if (defect_mask_out != nullptr && surviving < min_frames) {
+                    (*defect_mask_out)[pixel] = 1u;
+                }
                 break;
+            }
             case OffsetGenerationMethod::Winsor: {
                 std::vector<double> sorted = samples;
                 value = winsor_value(sorted, config);
@@ -329,7 +377,8 @@ XpeErrorCode generate_offset_values(const XpeImageBuffer* dark_frames,
 XpeErrorCode generate_offset_to_uint16_buffer(const XpeImageBuffer* dark_frames,
                                               int32_t num_frames,
                                               XpeImageBuffer* output,
-                                              const char* config_json_or_null) noexcept
+                                              const char* config_json_or_null,
+                                              std::vector<uint8_t>* defect_mask_out) noexcept
 {
     try {
         if (!output || !output->data) {
@@ -346,9 +395,18 @@ XpeErrorCode generate_offset_to_uint16_buffer(const XpeImageBuffer* dark_frames,
         std::vector<float> result;
         uint32_t width = 0;
         uint32_t height = 0;
+        std::vector<uint8_t> defect_mask;
         rc = generate_offset_values(dark_frames, num_frames, config,
-                                    &result, &width, &height);
+                                    &result, &width, &height, &defect_mask);
         if (rc != XPE_OK) return rc;
+
+        // The 9.8.2.1 marks are handed back rather than merged here: this TU is
+        // compiled into the test binary as well as the DLL, and the global
+        // store it would have to write is DLL-internal. The DLL-side caller
+        // performs the merge (decision #138 (a)).
+        if (defect_mask_out != nullptr) {
+            *defect_mask_out = std::move(defect_mask);
+        }
 
         if (output->width != width || output->height != height) {
             return XPE_ERR_BUFFER_TOO_SMALL;

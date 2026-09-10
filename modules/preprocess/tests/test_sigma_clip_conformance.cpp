@@ -19,14 +19,14 @@
  *     half of #97: the sample form inflated sigma as |S| shrank and kept
  *     clipping valid frames. The first case below pins that.
  *
- *  2. The N_min clause is NOT IMPLEMENTED. `sigma_clip_value` loops while
- *     `clipped.size() > 1` and always returns a mean; nothing computes N_min and
- *     there is no channel to report a static defect -- the offset generator
- *     writes one map and has no defect-mask output. The second case
- *     CHARACTERIZES that divergence rather than asserting it is correct: it
- *     records the value the shipped code returns for a set that §9.8.2.1 says
- *     should have been flagged instead. Closing the gap needs an API decision
- *     (where the defect mask goes), which is the leader's call, not this card's.
+ *  2. The N_min clause is IMPLEMENTED as of QA-A-38 (#138, leader decision (a)):
+ *     `generate_offset_values` reports a static-defect mask alongside the map,
+ *     and the DLL-side caller OR-merges it into the global defect map. The
+ *     second case below is no longer a characterization of a divergence -- it
+ *     pins the half that decision (a) deliberately did NOT change: the marked
+ *     pixel's calibration value stays the clipped mean, exactly as §9.8.3's
+ *     reference implementation computes it. The marking itself is covered by
+ *     test_sigma_clip_nmin.cpp.
  */
 
 #include <gtest/gtest.h>
@@ -116,28 +116,27 @@ TEST_F(SigmaClipConformanceTest, NoOutlierIsPlainMean) {
     EXPECT_DOUBLE_EQ(104.0, clipTo({100, 102, 104, 106, 108}, 3.0));
 }
 
-// Clause 2 -- N_min is NOT implemented. CHARACTERIZATION, not conformance.
+// Clause 2 -- N_min marks the pixel WITHOUT changing its value.
 //
 // For N = 5 the spec sets N_min = max(3, floor(5/4)) = 3. The kappa = 1.0 run
-// above ends with |S| = 2, which is below that floor, so §9.8.2.1 requires the
-// pixel to be marked a static defect rather than averaged. The shipped code has
-// no N_min test and no defect-mask output, so it returns the 2-sample mean.
+// above ends with |S| = 2, which is below that floor, so §9.8.2.1 marks the
+// pixel a static defect. §9.8.3 computes cal_map for every pixel with
+// max(valid_count, 1) and never substitutes a sentinel for a marked one, so the
+// value this function returns is unchanged by QA-A-38.
 //
 // 106.5 is reachable only from {105, 108}: it is the observable evidence that
-// |S| = 2. This case exists so the divergence fails loudly if someone later
-// implements N_min without updating the contract -- it is a marker, not an
-// endorsement. Leader decision pending (#97).
-TEST_F(SigmaClipConformanceTest, KnownDivergence_NMinFloorIsNotEnforced) {
+// |S| = 2. Keeping it pinned here is what makes a future "zero out defective
+// pixels" change fail loudly instead of silently altering every offset map.
+// The mark itself is asserted in test_sigma_clip_nmin.cpp.
+TEST_F(SigmaClipConformanceTest, NMinMarkDoesNotAlterTheClippedMean) {
     const double value = clipTo({100, 110, 105, 108, 500}, 1.0);
 
     EXPECT_DOUBLE_EQ(106.5, value)
         << "106.5 is the mean of {105, 108} -- i.e. |S| = 2";
-    EXPECT_LT(2, 3) << "N_min = max(3, floor(5/4)) = 3 > |S| = 2, so "
-                       "XPE-ALG-001 9.8.2.1 would mark this pixel defective";
 
     RecordProperty("spec_clause", "XPE-ALG-001 9.8.2.1 N_min");
-    RecordProperty("spec_requires", "static defect mark");
-    RecordProperty("implementation_returns", "2-sample mean 106.5");
+    RecordProperty("spec_requires", "static defect mark, value unchanged");
+    RecordProperty("implemented_by", "QA-A-38 (#138 decision (a))");
 }
 
 } // namespace
