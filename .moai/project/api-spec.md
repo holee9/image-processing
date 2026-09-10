@@ -164,7 +164,7 @@ typedef int32_t GsvgErrorCode;
 
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
-| xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_test_inject_alert` (test-support export, §5.16) |
+| xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_alert_push` (§5.16; alias `xpe_test_inject_alert` exported temporarily during the #111 rename, 17 until QA-A-19) |
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 3 | `xpe_calc_exposure_index` moved to enhance_basic |
@@ -381,16 +381,22 @@ XPE_API void xpe_log_flush(void);
 ---
 
 
-### 5.16 xpe_test_inject_alert (test-support export)
+### 5.16 xpe_alert_push (alert queue producer)
 
 ```c
-XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
+XPE_API void xpe_alert_push(const char* msg, int32_t severity);
 ```
 
-Injects a synthetic alert into the alert queue. Exported for the integration test suites and
-called from `modules/enhance_basic/src/exposure_index.cpp`; not part of the host-facing contract.
-Counted in the export total (16) because it is a real DLL export (REQ-P0-008 as revised 2026-09-09, #111).
-Renaming or demoting it to an internal symbol is tracked separately in #111.
+Pushes an alert onto the alert queue read by `xpe_get_pending_alert`. Called from
+`modules/enhance_basic/src/exposure_index.cpp` (a cross-DLL producer, not a test hook) and by the
+integration test suites. Counted in the export total (16) because it is a real DLL export
+(REQ-P0-008 as revised 2026-09-09, #111).
+
+**Rename in progress (#111, 2026-09-10).** This function was exported as `xpe_test_inject_alert`; the
+`test_` prefix misdescribed a production ABI. Stage 1/3 (QA-A-18) added `xpe_alert_push` and kept
+`xpe_test_inject_alert` as a one-line alias, so the DLL temporarily exports **17** symbols. Stage 2/3
+(QA-B-24) moves the enhance_basic caller; stage 3/3 (QA-A-19) removes the alias and restores the
+count to 16. Hosts MUST NOT bind to `xpe_test_inject_alert`.
 
 ## 6. xpe_preprocess.dll
 

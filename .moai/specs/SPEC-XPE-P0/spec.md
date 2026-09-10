@@ -283,7 +283,7 @@ All 12 deliverables for SPEC-XPE-P0 have been successfully implemented:
 
 ### 8.3 Quality Metrics
 
-- **API Count**: 16 functions (exactly as specified in REQ-P0-008; 15 public API + `xpe_test_inject_alert`, a test-support export called by `enhance_basic/src/exposure_index.cpp`. Measured: dumpbin 16 == header 16, #111)
+- **API Count**: 16 functions (exactly as specified in REQ-P0-008; 15 public API + `xpe_alert_push` (renamed from `xpe_test_inject_alert`, #111), a test-support export called by `enhance_basic/src/exposure_index.cpp`. Measured: dumpbin 16 == header 16, #111)
 - **Test Coverage**: Infrastructure ready for 85%+ coverage
 - **Export Verification**: dumpbin confirms 15 public API exports
 - **P/Invoke Compatibility**: static_assert ensures C#/C++ ABI match

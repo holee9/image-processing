@@ -88,7 +88,7 @@ C# WPF 클라이언트 `clients/ImageProcTest/`가 P/Invoke로 호출하는 XPE 
 | 14 | `xpe_log_set_file(string) -> XpeErrorCode` | `xpe_log_set_file` | xpe_common_api.h:26 |
 | 15 | `xpe_log_flush() -> void` | `xpe_log_flush` | xpe_common_api.h:27 |
 
-총 **15개 공개 API 함수 = api-spec.md Section 5.1–5.15 와 일치**. DLL export 는 16 — `xpe_test_inject_alert`(테스트 지원 export, api-spec §5.16) 가 추가로 있으며 REQ-P0-008 은 2026-09-09 에 16 으로 개정됐다 (#111).
+총 **15개 공개 API 함수 = api-spec.md Section 5.1–5.15 와 일치**. DLL export 는 16 — `xpe_alert_push`(구 `xpe_test_inject_alert`, #111 개명 중; 알림 큐 생산자 export, api-spec §5.16) 가 추가로 있으며 REQ-P0-008 은 2026-09-09 에 16 으로 개정됐다 (#111).
 
 ### 3.2 NativeLibrary.TryGetExport 동적 바인딩 (별도 경로)
 
