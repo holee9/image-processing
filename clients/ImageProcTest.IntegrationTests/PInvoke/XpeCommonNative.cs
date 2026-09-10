@@ -1,4 +1,4 @@
-// @MX:NOTE Mirror of clients/ImageProcTest/PInvokeWrapper.cs — kept in sync intentionally.
+﻿// @MX:NOTE Mirror of clients/ImageProcTest/PInvokeWrapper.cs — kept in sync intentionally.
 // Tests call this directly to avoid WPF/WinExe compilation dependency.
 using System.Runtime.InteropServices;
 using System.Text;
@@ -35,6 +35,9 @@ public static class XpeCommonNative
         BUFFER_TOO_SMALL = -8,
         IO_FAILED = -9,
         NETWORK_FAILED = -10,
+        // -11..-15 (SAFETY_VIOLATION, INTERNAL, DICOM_INVALID, DICOM_CONFORMANCE,
+        // NOT_IMPLEMENTED) exist natively but are not surfaced here yet — see GUI-C-11 report.
+        CALIB_NOT_LOADED = -16,
     }
 
     public enum XpeAlertSeverity : int

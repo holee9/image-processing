@@ -33,6 +33,30 @@ internal static class XpePreprocessNative
     public delegate XpeCommonNative.XpeErrorCode CalibLoadDelegate(
         [MarshalAs(UnmanagedType.LPStr)] string path);
 
+    /// <summary>
+    /// xpe_calib_generate_offset(dark_frames[], num_frames, integration_ms, temperature_c, output_path).
+    /// The frame array is a blittable struct array, so it marshals as a pointer to its first element.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public delegate XpeCommonNative.XpeErrorCode CalibGenerateOffsetDelegate(
+        [In] XpeCommonNative.XpeImageBuffer[] darkFrames,
+        int numFrames,
+        float integrationTimeMs,
+        float temperatureC,
+        [MarshalAs(UnmanagedType.LPStr)] string outputPath);
+
+    /// <summary>
+    /// xpe_calib_generate_gain(flat_frames[], num_frames, dark_reference, output_path, metadata_json).
+    /// dark_reference and metadata_json may be null.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public delegate XpeCommonNative.XpeErrorCode CalibGenerateGainDelegate(
+        [In] XpeCommonNative.XpeImageBuffer[] flatFrames,
+        int numFrames,
+        IntPtr darkReferenceOrNull,
+        [MarshalAs(UnmanagedType.LPStr)] string outputPath,
+        [MarshalAs(UnmanagedType.LPStr)] string? metadataJsonOrNull);
+
     // -- Required export names --
     public static readonly string[] RequiredExports =
     {
