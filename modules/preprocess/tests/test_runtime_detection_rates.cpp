@@ -175,17 +175,96 @@ protected:
     void TearDown() override { xpe_preprocess_shutdown(); }
 };
 
-// Commit 1 of QA-A-40 measures and prints; it asserts nothing about the
-// requirement yet. The numbers this case emits are what the assertions in the
-// next commit are written against -- measured first, asserted second.
-TEST_F(RuntimeDetectionRatesTest, MeasureAndReportTheRateTable) {
-    report("low noise, 5 sigma",  measure(10.0f, 5.0f, 20260911u));
-    report("high noise, 5 sigma", measure(50.0f, 5.0f, 20260911u));
+// --- The requirement, asserted at the amplitude it names --------------------
+//
+// KnownDivergence_ prefix: the measured TPR at exactly 5 sigma does NOT reach
+// 99.9%, and the assertion is deliberately NOT relaxed to make it pass. The
+// case pins the CURRENT numbers so a later algorithm change is visible, exactly
+// as test_sigma_clip_conformance.cpp did for the N_min clause before QA-A-38.
+//
+// Why 5 sigma is the hard case: the detector flags when
+// |value - median| > 5.0 * (MAD * 1.4826), and MAD * 1.4826 estimates the local
+// standard deviation. A transient of exactly 5 sigma therefore sits ON the
+// threshold, and the local sigma estimate fluctuates around the true value from
+// the 24 neighbours in the window -- so roughly half the sites fall on either
+// side. The requirement's ">= 99.9% on injected 5-sigma transients" is only
+// reachable if the transient clears the threshold by a margin.
+//
+// The exact figures are recorded in the report; the bounds asserted here are
+// loose brackets around the measurement so the case fails if the behaviour
+// moves materially, not on run-to-run noise.
+TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement) {
+    const Rates low  = measure(10.0f, 5.0f, 20260911u);
+    const Rates high = measure(50.0f, 5.0f, 20260911u);
+    report("low noise, 5 sigma", low);
+    report("high noise, 5 sigma", high);
+
+    EXPECT_LT(low.tpr(), kTprFloor)
+        << "REQ-P1A-013 asks for >= 0.999 at 5 sigma; this records that it is not met";
+    EXPECT_LT(high.tpr(), kTprFloor);
+
+    // Brackets, not equalities: the measurement is deterministic for a fixed
+    // seed, but pinning an exact ratio would break on any compiler-level
+    // floating-point difference.
+    EXPECT_GT(low.tpr(), 0.30) << "and it is not near-zero either";
+    EXPECT_LT(low.tpr(), 0.90);
+
+    RecordProperty("spec_clause", "REQ-P1A-013 TPR >= 99.9% at 5 sigma");
+    RecordProperty("measured_tpr_low_noise", std::to_string(low.tpr()));
+    RecordProperty("measured_tpr_high_noise", std::to_string(high.tpr()));
+}
+
+// FPR is measured on the clean frame the SPEC names, and is NOT met.
+//
+// Measured: 496 flagged pixels out of 1,048,576 -> FPR = 4.73e-4, which is
+// 0.047% against a 0.001% requirement -- 47x over. The header's own comment
+// (runtime_detection.h:47-51) reasons that "5-sigma corresponds to
+// approximately 1 in 3.5 million false positives for normally distributed
+// data"; that holds for a KNOWN sigma, but the detector estimates sigma from
+// 24 neighbours per pixel, and the estimate's own spread is what produces
+// these flags. The assertion is not relaxed to fit; the number is pinned.
+TEST_F(RuntimeDetectionRatesTest, KnownDivergence_FprOnCleanFramesExceedsTheRequirement) {
+    const Rates low  = measure(10.0f, 5.0f, 20260911u);
+    const Rates high = measure(50.0f, 5.0f, 20260911u);
+    report("low noise, clean FPR", low);
+    report("high noise, clean FPR", high);
+
+    EXPECT_GT(low.fpr(), kFprCap)
+        << "REQ-P1A-013 asks for < 1e-5; this records that it is not met";
+    EXPECT_GT(high.fpr(), kFprCap);
+
+    // Bracketed around the measurement, not pinned to an exact ratio.
+    EXPECT_LT(low.fpr(), 0.001) << "and it is two orders below the 1% hard ceiling";
+    EXPECT_LT(high.fpr(), 0.001);
+
+    RecordProperty("spec_clause", "REQ-P1A-013 FPR < 0.001% on clean frames");
+    RecordProperty("measured_fpr_low_noise", std::to_string(low.fpr()));
+    RecordProperty("measured_fpr_high_noise", std::to_string(high.fpr()));
+    RecordProperty("false_positives_low_noise", std::to_string(low.falsePos));
+}
+
+// How far the amplitude has to go before the requirement is met -- and the
+// finding that it is not met even at 10 sigma.
+//
+// Measured (low noise, 961 sites): 6 sigma -> 0.7118, 8 sigma -> 0.9553,
+// 10 sigma -> 0.9990 (960 of 961). The last is 0.998959, just under the 0.999
+// floor: one site short. So no amplitude in this sweep satisfies
+// "TPR >= 99.9%", and the requirement as written is not met at any tested
+// amplitude, not merely at 5 sigma.
+TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprStaysBelowTheFloorThroughTenSigma) {
+    double best = 0.0;
     for (float amp : {6.0f, 8.0f, 10.0f}) {
+        const Rates r = measure(10.0f, amp, 20260911u, /*alsoMeasureFpr=*/false);
         report(("low noise, " + std::to_string(static_cast<int>(amp)) +
-                " sigma").c_str(),
-               measure(10.0f, amp, 20260911u, /*alsoMeasureFpr=*/false));
+                " sigma").c_str(), r);
+        RecordProperty("tpr_at_" + std::to_string(static_cast<int>(amp)) + "_sigma",
+                       std::to_string(r.tpr()));
+        if (r.tpr() > best) best = r.tpr();
     }
+
+    EXPECT_LT(best, kTprFloor)
+        << "no amplitude up to 10 sigma reaches 99.9%";
+    EXPECT_GT(best, 0.99) << "but 10 sigma comes within one site of it";
 }
 
 // The two noise levels are NOT independent evidence, and saying so is part of
