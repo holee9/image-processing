@@ -686,7 +686,7 @@ endif()
 | HAZ-003 | 메모리 풀 고갈 | 중간 | **MEDIUM** | 흐름 제어 (동기식 파이프라인) |
 | HAZ-004 | JSON 설정 손상 | 중간 | **LOW** | 스키마 검증 + 기본값 폴백 |
 | HAZ-005 | XPE_FLAG 오류 | 높음 | **MEDIUM** | 플래그 설정 규칙 + 의존성 검증 |
-| HAZ-006 | Event Queue 오버플로우 | 중간 | **LOW** | FIFO 대체 + 우선도 기반 선택 |
+| HAZ-006 | Event Queue 오버플로우 | 중간 | **LOW** | FIFO 대체 + 우선도 기반 선택 + 유실 알림 보장 (SRS-ALERT-007, api-spec §5.17) |
 | HAZ-007 | C# 콜백 크래시 | 높음 | **MEDIUM** | 예외 처리 래퍼 (SEH/try-catch) |
 
 ### 위험 제어 검증

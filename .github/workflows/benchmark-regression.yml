@@ -59,7 +59,7 @@ jobs:
       - name: Run BP-06~09 benchmark freeze GTests
         shell: pwsh
         run: |
-          $pattern = 'BenchmarkFreeze|CollimationDetectTest\.BenchmarkFreeze_BP07_CollimationDetectionBaseline|ExposureIndex\.BenchmarkFreeze_BP0[89]_(EI|DI)CalcTimeBaseline'
+          $pattern = 'FullPipelineE2E\.PostProcess_3072x3072_Within3000ms|BenchmarkFreeze|CollimationDetectTest\.BenchmarkFreeze_BP07_CollimationDetectionBaseline|ExposureIndex\.BenchmarkFreeze_BP0[89]_(EI|DI)CalcTimeBaseline'
           ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -R $pattern
 
       - name: Upload build artifacts

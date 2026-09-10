@@ -268,7 +268,6 @@ vcpkg_installed/
 Testing/
 # modules/*/tests/ was ignored here; removed 2026-09-09 (#118) — it hid new test files
 # (72 tracked files stayed tracked, new ones needed `git add -f`).
-!modules/gsvg/tests/test_gsvg_extended_coverage.cpp
 modules/*/build/
 gui/**/bin/
 gui/**/obj/

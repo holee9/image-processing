@@ -393,12 +393,39 @@ XPE_API void xpe_log_flush(void);
 XPE_API void xpe_alert_push(const char* msg, int32_t severity);
 ```
 
-Pushes an alert onto the alert queue read by `xpe_get_pending_alert`. Called from
+Pushes an alert onto the alert queue read by `xpe_get_pending_alert` (overflow behaviour: §5.17 / SRS-ALERT-007). Called from
 `modules/enhance_basic/src/exposure_index.cpp` (a cross-DLL producer, not a test hook) and by the
 integration test suites. Counted in the export total (16) because it is a real DLL export
 (REQ-P0-008 as revised 2026-09-09, #111).
 
 **Renamed (#111, completed 2026-09-10).** This function was exported as `xpe_test_inject_alert`; the `test_` prefix misdescribed a production ABI. The rename landed in three stages (QA-A-18 added `xpe_alert_push` with a temporary alias, QA-B-24 moved the enhance_basic caller, QA-A-19 removed the alias). `xpe_test_inject_alert` is no longer exported; the DLL exports exactly 16 symbols (REQ-P0-008). Hosts binding to the old name fail to load.
+
+### 5.17 Alert queue overflow policy (normative — SRS-ALERT-007, HAZ-006, decision #110)
+
+The alert queue in `xpe_common` has a fixed capacity (`kAlertQueueMax`, currently 64 entries;
+an implementation constant, not an exported symbol). When `xpe_alert_push` is called on a full
+queue the following rules apply, in order:
+
+1. **Priority-protected FIFO eviction.** Evict the oldest queued alert whose severity is
+   `XPE_ALERT_INFO`. Only when no Info alert remains, evict the oldest `XPE_ALERT_WARNING`;
+   only when neither remains, evict the oldest `XPE_ALERT_ERROR`. Within one severity class the
+   order is strictly FIFO. Pushing a Warning/Error therefore never silently drops another
+   Warning/Error while an Info entry is still queued.
+2. **Guaranteed loss alert.** The queue keeps a cumulative count of evicted alerts since the
+   last `xpe_clear_alerts`. While that count is greater than zero, exactly one synthetic alert
+   with severity `XPE_ALERT_ERROR` and message
+   `"alert queue overflow: <N> alert(s) dropped"` (N = cumulative count, ASCII decimal) is
+   retrievable through `xpe_get_pending_alert` / counted by `xpe_get_pending_alert_count`.
+   It is updated in place (never duplicated), is never selected for eviction, and occupies one
+   of the 64 slots. `xpe_clear_alerts` removes it and resets the count to zero.
+3. **No new export.** The policy is observable only through the existing §5.9–§5.11 and §5.16
+   functions; `xpe_common.dll` stays at 16 exports (REQ-P0-008). The producer-side signature of
+   `xpe_alert_push` is unchanged.
+
+Consumers (Lane C display) MUST render the loss alert like any other Error alert; its message
+prefix `alert queue overflow:` is stable and may be used to distinguish it from module alerts.
+
+---
 
 ## 6. xpe_preprocess.dll
 

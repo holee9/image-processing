@@ -102,6 +102,7 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-ALERT-004 | DL processing 적용됨 | Info | "AI-processed" label 표시 |
 | SRS-ALERT-005 | Calibration data 만료/누락 | Error | 촬영 차단 또는 강한 경고 |
 | SRS-ALERT-006 | DICOM write 실패 | Error | 재시도 + 임시 저장 |
+| SRS-ALERT-007 | Alert queue 오버플로 (용량 64 초과 push) | Error | 가장 오래된 Info 부터 폐기(Info 가 남아 있는 한 Warning/Error 는 보존, 같은 심각도 안에서는 FIFO). 유실 누적 건수를 담은 Error 알림 1건을 큐에 항상 보장(제자리 갱신, 폐기 대상 제외, `xpe_clear_alerts` 에서 초기화). 새 export 없음. Hazard: HAZ-006. 결정 #110 (2026-09-10) |
 
 ## 7. Safety Requirements — Risk Control Measures (5.2.3)
 
