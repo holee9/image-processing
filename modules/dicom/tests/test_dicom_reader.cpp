@@ -16,6 +16,8 @@
 // so the guard skipped everywhere, CI and local alike.
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmjpeg/djencode.h>
+#include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
 #include <cstdio>
 #include <filesystem>
@@ -482,4 +484,178 @@ TEST_F(DicomReaderTest, OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid) 
     EXPECT_EQ(XPE_ERR_DICOM_INVALID,
               xpe_dicom_open(path.string().c_str(), &handle));
     xpe_dicom_close(handle);   // NULL-safe by contract
+}
+
+// ---------------------------------------------------------------------------
+// #146 (QA-B-45): JPEG Lossless is a requirement, not an option.
+//
+//   REQ-DICOM-004: "The system SHALL support the following Transfer Syntaxes
+//     for reading: ... 1.2.840.10008.1.2.4.70 (JPEG Lossless, Non-Hierarchical,
+//     First-Order Prediction)"
+//   REQ-DICOM-008: "IF the DICOM file contains JPEG 2000 or JPEG Lossless
+//     compressed pixel data, THEN the system SHALL decompress the data to raw
+//     uint16"
+//
+// QA-B-44 found that no DCMTK codec was ever registered, so the accepted-syntax
+// list promised more than the build delivered. The fixture below produces a
+// GENUINE JPEG-LL file with DCMTK's own encoder rather than relabelling one --
+// relabelling does not reach the decode path at all (QA-B-44 observed loadFile
+// rejecting it outright).
+//
+// The pixel comparison is the point. "It read without error" is not evidence of
+// lossless behaviour; only a byte-exact match against the source is.
+// ---------------------------------------------------------------------------
+namespace {
+
+// Encode s_validDcm as JPEG-LL. Returns false when DCMTK's encoder cannot
+// produce the syntax, so the test says which half failed.
+bool WriteJpegLosslessCopy(const fs::path& src, const fs::path& dst) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            // EXS_JPEGProcess14SV1 == 1.2.840.10008.1.2.4.70
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess14SV1, nullptr).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess14SV1)) {
+                ok = ff.saveFile(dst.string().c_str(), EXS_JPEGProcess14SV1).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, ReadJpegLossless_DecodesPixelExact) {
+    // Baseline pixels from the uncompressed original.
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+
+    const auto jpegPath = s_tempDir / "reader_jpegll_real.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegPath))
+        << "DCMTK could not encode the fixture as JPEG-LL; the case below would "
+           "not be testing the reader";
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(jpegPath.string().c_str(), &handle))
+        << "REQ-DICOM-004 lists JPEG-LL as supported for reading";
+
+    XpeImageBuffer actual{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual))
+        << "REQ-DICOM-008 requires JPEG Lossless pixel data to be decompressed";
+    xpe_dicom_close(handle);
+
+    ASSERT_EQ(expected.width, actual.width);
+    ASSERT_EQ(expected.height, actual.height);
+    ASSERT_NE(nullptr, actual.data);
+
+    // Lossless means exactly equal, not approximately.
+    const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                         sizeof(uint16_t);
+    EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
+        << "JPEG Lossless round trip must be bit-exact";
+
+    xpe_free_image(&expected);
+    xpe_free_image(&actual);
+}
+
+// ---------------------------------------------------------------------------
+// #146 (QA-B-45): the accepted-syntax list must match what the module can read.
+//
+// This is the guard that would have caught the original defect. It walks
+// kSupportedTransferSyntaxes (DicomReader.h -- the same table open() checks
+// against) and requires each entry to survive a real round trip: write a file
+// in that syntax, open it, read the pixels, compare byte-for-byte against the
+// uncompressed original.
+//
+// A syntax added to the table with no decode support fails here. So does one
+// added with no fixture: the switch below has no silent default, because
+// "we did not test it" and "it works" must not look the same.
+// ---------------------------------------------------------------------------
+namespace {
+
+// Produce a copy of src encoded in the given transfer syntax.
+// Returns false when this test does not know how to build that syntax.
+bool WriteInTransferSyntax(const char* tsUid,
+                           const fs::path& src,
+                           const fs::path& dst,
+                           std::string& whyNot) {
+    const std::string uid(tsUid);
+
+    if (uid == "1.2.840.10008.1.2.1") {          // Explicit VR Little Endian
+        DcmFileFormat ff;
+        if (!ff.loadFile(src.string().c_str()).good()) { whyNot = "loadFile failed"; return false; }
+        return ff.saveFile(dst.string().c_str(), EXS_LittleEndianExplicit).good();
+    }
+    if (uid == "1.2.840.10008.1.2.4.90") {       // JPEG 2000 Lossless
+        XpeDicomHandle* h = nullptr;
+        if (xpe_dicom_open(src.string().c_str(), &h) != XPE_OK) { whyNot = "open failed"; return false; }
+        XpeImageBuffer img{};
+        const XpeErrorCode rc = xpe_dicom_read_image(h, &img);
+        XpeImageMetadata meta{};
+        xpe_dicom_get_metadata(h, &meta);
+        xpe_dicom_close(h);
+        if (rc != XPE_OK) { whyNot = "read failed"; return false; }
+        const XpeErrorCode wrc = xpe_dicom_write_j2k(dst.string().c_str(), &img, &meta);
+        xpe_free_image(&img);
+        return wrc == XPE_OK;
+    }
+    if (uid == "1.2.840.10008.1.2.4.70") {       // JPEG Lossless, First-Order
+        return WriteJpegLosslessCopy(src, dst);
+    }
+
+    whyNot = "this test has no fixture builder for " + uid;
+    return false;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, EverySupportedTransferSyntaxActuallyReads) {
+    // Baseline pixels, read from the uncompressed original once.
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+
+    ASSERT_GT(xpe::dicom::kSupportedTransferSyntaxCount, 0u);
+
+    for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
+        const auto& ts = xpe::dicom::kSupportedTransferSyntaxes[i];
+        SCOPED_TRACE(std::string(ts.name) + " (" + ts.uid + ")");
+
+        const auto path = s_tempDir / ("ts_" + std::to_string(i) + ".dcm");
+        std::string whyNot;
+        ASSERT_TRUE(WriteInTransferSyntax(ts.uid, s_validDcm, path, whyNot))
+            << "cannot build a fixture: " << whyNot
+            << " -- either teach this test to write that syntax, or remove it "
+               "from kSupportedTransferSyntaxes";
+
+        XpeDicomHandle* handle = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle))
+            << "listed as supported but open() rejected it";
+
+        XpeImageBuffer actual{};
+        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual))
+            << "listed as supported but the pixels could not be decoded";
+        xpe_dicom_close(handle);
+
+        ASSERT_EQ(expected.width, actual.width);
+        ASSERT_EQ(expected.height, actual.height);
+        const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                             sizeof(uint16_t);
+        EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
+            << "every supported syntax here is lossless, so the round trip must "
+               "be bit-exact";
+        xpe_free_image(&actual);
+    }
+
+    xpe_free_image(&expected);
 }

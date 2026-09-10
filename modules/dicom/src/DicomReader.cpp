@@ -10,6 +10,7 @@
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmjpeg/djdecode.h>
 #include <openjpeg.h>
 
 #include "xpe/common/xpe_memory.h"
@@ -17,10 +18,37 @@
 #include <spdlog/spdlog.h>
 #include <cstring>
 #include <ctime>
+#include <mutex>
 #include <vector>
 
 namespace xpe {
 namespace dicom {
+
+namespace {
+
+// #146: DCMTK decodes JPEG only through codecs that must be registered first.
+// REQ-DICOM-004 lists JPEG Lossless (1.2.840.10008.1.2.4.70) among the transfer
+// syntaxes this module SHALL read, and REQ-DICOM-008 requires the pixel data to
+// be decompressed -- but no registration existed, so open() accepted the syntax
+// and readImage then failed on a dataset it could not convert (QA-B-44 found
+// this; QA-B-45 fixes it).
+//
+// Registered once per process, on the first open(). DCMTK's registration
+// mutates global codec tables, so it is guarded by call_once rather than left
+// to whichever thread arrives first.
+//
+// There is no matching cleanup() call: this module exports no shutdown entry
+// point, and the codec tables live as long as the process. That is a deliberate
+// asymmetry, recorded in the QA-B-45 report rather than hidden.
+//
+// J2K is unaffected -- that path calls OpenJPEG directly and never consults
+// DCMTK's codec tables.
+void ensure_jpeg_codecs_registered() {
+    static std::once_flag once;
+    std::call_once(once, []() { DJDecoderRegistration::registerCodecs(); });
+}
+
+}  // namespace
 
 // Supported Transfer Syntax UIDs
 static constexpr const char* TS_EXPLICIT_LE  = "1.2.840.10008.1.2.1";
@@ -38,6 +66,7 @@ DicomReader::DicomReader(const std::string& filePath)
 DicomReader::~DicomReader() = default;
 
 XpeErrorCode DicomReader::open() {
+    ensure_jpeg_codecs_registered();
     spdlog::debug("[DicomReader] open: {}", m_filePath);
 
     // Load the DICOM file with unknown transfer syntax (auto-detect)
@@ -95,9 +124,14 @@ XpeErrorCode DicomReader::open() {
     // Check Transfer Syntax UID from meta-header
     OFString tsUID;
     if (meta->findAndGetOFString(DCM_TransferSyntaxUID, tsUID).good()) {
-        if (tsUID != TS_EXPLICIT_LE &&
-            tsUID != TS_J2K_LOSSLESS &&
-            tsUID != TS_JPEG_LL) {
+        bool accepted = false;
+        for (size_t i = 0; i < kSupportedTransferSyntaxCount; ++i) {
+            if (tsUID == kSupportedTransferSyntaxes[i].uid) {
+                accepted = true;
+                break;
+            }
+        }
+        if (!accepted) {
             spdlog::warn("[DicomReader] Unsupported Transfer Syntax: {}", tsUID.c_str());
             return XPE_ERR_UNSUPPORTED_FORMAT;
         }
