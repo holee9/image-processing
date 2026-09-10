@@ -80,6 +80,29 @@ public sealed class AutomationArgsTests
         Assert.False(parsed.IsAutomationMode);
     }
 
+    /// <summary>
+    /// #136: an --automation-* switch nobody recognises is refused. A typo in the SWITCH name is the
+    /// same hazard as one in its value — the run starts and the option silently did nothing.
+    /// </summary>
+    [Fact]
+    public void UnknownAutomationSwitch_IsRefused()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-backends", "Mock"]);
+
+        Assert.False(parsed.IsValid);
+        Assert.Contains("--automation-backends", parsed.Error);
+    }
+
+    /// <summary>Arguments outside the --automation- namespace stay ignored — they are not ours.</summary>
+    [Fact]
+    public void NonAutomationArguments_AreStillIgnored()
+    {
+        var parsed = AutomationArgs.Parse(["--verbose", "somefile.raw", "--automation-backend", "Mock"]);
+
+        Assert.True(parsed.IsValid, parsed.Error);
+        Assert.Equal("Mock", parsed.BackendMode);
+    }
+
     /// <summary>Non-integer dimensions are refused too — the same silent-skip shape.</summary>
     [Fact]
     public void NonIntegerDimension_IsRefused()

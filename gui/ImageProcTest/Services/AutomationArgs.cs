@@ -103,6 +103,13 @@ public sealed record AutomationArgs(
 
                 rawHeight = height;
             }
+            else
+            {
+                // #136: an --automation-* switch nobody recognises is refused, not skipped. A typo in
+                // the SWITCH name is the same hazard as one in its value: the run starts, the report
+                // looks like the requested one, and the option silently did nothing.
+                error ??= $"{switchName} is not a recognised automation switch.";
+            }
         }
 
         // A rejection keeps only the report destination: writing the reason somewhere the caller
