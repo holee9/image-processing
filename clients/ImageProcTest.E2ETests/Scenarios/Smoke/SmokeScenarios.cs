@@ -166,6 +166,18 @@ public sealed class SmokeScenarios
                     hasSemver && !looksMock,
                     $"Native run: expected a semver from the native backend, got '{text}'. " +
                     "A mock marker here means the backend silently fell back.");
+
+                // #129 (GUI-C-33): WHERE it came from, not just that a version exists. When the
+                // suite pinned a directory, the label must name that directory — "src=loader" means
+                // the DllImport resolver never supplied the handle and the Windows loader did.
+                var pinned = Environment.GetEnvironmentVariable(ApplicationFixture.NativeDirVariable);
+                if (!string.IsNullOrWhiteSpace(pinned))
+                {
+                    var expected = new DirectoryInfo(pinned.TrimEnd(
+                        Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).Name;
+
+                    Assert.Contains($"src={expected}", text, StringComparison.Ordinal);
+                }
             }
             else
             {
