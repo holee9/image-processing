@@ -138,6 +138,8 @@ if(_XPE_BUILD_TESTS)
         # Same divergence as test_gain_correct; register after QA-A-12 (#117).
         tests/test_defect_correct.cpp
         tests/test_ghost_correct.cpp
+        # QA-A-32 (#120): ghost Tier2/Tier3 coverage
+        tests/test_ghost_tiers.cpp
         tests/test_calibration_manager.cpp
         tests/test_integration.cpp
         tests/test_boundary.cpp
@@ -164,6 +166,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_correct_reciprocal_fma.cpp
         tests/test_calibration_roundtrip.cpp
         tests/test_pipeline_ex.cpp
+        # QA-A-32 (#120): pipeline stage bodies + failure propagation
+        tests/test_pipeline_stages.cpp
         tests/test_calibration_cache.cpp
         # QA-A-22 (#127): cached-loader buffer ownership (cache-owned view)
         tests/test_calib_cache_ownership.cpp
@@ -209,6 +213,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_gain.cpp
         tests/test_defect_gen.cpp
         tests/test_verify_metrics.cpp
+        # QA-A-32 (#120): verify_* edge paths (format/fallback/median branches)
+        tests/test_verify_metrics_edges.cpp
         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
         tests/test_calib_mode.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
