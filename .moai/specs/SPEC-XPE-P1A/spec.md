@@ -164,8 +164,8 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **SRS**: SRS-CALIB-003, SRS-CALIB-004
 - **Traceability**: PRE-06, SWU-1.3
 - **Algorithm** (baseline):
-  - Isolated single-pixel defect: edge-aware bilinear interpolation using 4-neighborhood weighted by inverse gradient magnitude
-  - 2+ adjacent defects (cluster): median-of-valid-neighbors (8-neighborhood excluding other defects)
+  - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
+  - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
 - **Performance**: < 95ms for 3072x3072 UINT16 frame (scalar); < 30ms (AVX2)
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):

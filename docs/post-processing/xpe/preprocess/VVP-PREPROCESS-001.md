@@ -1,7 +1,7 @@
 # VVP Addendum: Pre Lane (Preprocessing) Verification & Validation Plan
 
 **Document ID**: VVP-PREPROCESS-001
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Date**: 2026-05-09
 **Parent**: XPE-VVP-001 v1.1 (docs/post-processing/xpe/)
 **Grandparent**: XPE-SVVP-001 v1.4.0 (docs/project/)
@@ -19,6 +19,8 @@
 | 1.0.0   | 2026-04-18 | manager-spec   | Initial Pre Lane-specific VVP addendum covering L1-L4 test strategy for REQ-P1A-010~013, SIMD parity, P/Invoke. |
 | 1.1.0   | 2026-04-22 | manager-spec   | SPEC-SIMD-001 반영: 4개 AVX2 parity test 파일 등록, REQ-SIMD-001~004 추가, BP-01~05 DegradedMode freeze(6/6 PASS) 반영, test count 202/202로 갱신. |
 | 1.2.0   | 2026-05-09 | drake.lee (AI-assisted: xpe-algorithm) | SPEC-SIMD-001 완전 구현 검증 — REQ-SIMD-001 (Offset AVX2 parity 2/2 PASS), REQ-SIMD-002 (Gain AVX2 parity 2/2 PASS), REQ-SIMD-003 (Defect AVX2 parity 2/2 PASS), REQ-SIMD-004 (RuntimeDetect AVX2 parity 4/4 PASS) → **VERIFIED**. ctest -R AVX2Parity 10/10 PASSED. Calibration 4-method dependency (Mean/Median/SigmaClip/Winsor) 해소 후 활성화 완료. |
+
+| 1.3.0   | 2026-09-10 | xpe-docs (issue #125) | §3.1 "Target Count" 열을 실측으로 교체 — `modules/preprocess/tests/` 의 실제 `TEST`/`TEST_F`/`TEST_P` 매크로 수(2026-09-10 계수): 디스크 40파일 **457 케이스**, 그중 `XPE_TEST_SOURCES` 등록분 32파일 **308 케이스**. 미등록 8파일을 두 부류로 분리 기록: §3.1.1 QA-A-20(#117/#120) 대기 4파일(`test_gain_correct.cpp`, `test_defect_correct.cpp`, `test_pipeline_ex.cpp`, `test_calibration_cache.cpp`, 사유는 CMakeLists 주석 원문), §3.1.2 그 외 4파일(`test_xpe_preprocess.cpp` 는 자체 TODO, 나머지 3파일은 CMakeLists 에 언급조차 없음). 실행 결과는 이 개정에서 재측정하지 않았다 — 케이스 수와 등록 여부만 실측이다. |
 
 > AI-assisted 변경 표기 정책: 변경 책임자는 human developer, AI agent는 괄호 내 보조 표기. (IEC 62304 §5.5.5 책임 추적성 준수)
 
@@ -62,23 +64,72 @@ Out of scope (covered elsewhere):
 
 Follows `XPE-VVP-001` Section 2. Pre Lane-specific rules and targets:
 
-### 3.1 Test Suite Mapping
+### 3.1 Test Suite Mapping (measured 2026-09-10)
 
-| REQ ID | Test File (modules/preprocess/tests/) | Target Count |
-|--------|---------------------------------------|--------------|
-| REQ-P1A-010 | test_offset_correct.cpp | 15+ |
-| REQ-P1A-011 | test_gain_correct.cpp | 15+ |
-| REQ-P1A-012 | test_defect_correct.cpp | 20+ |
-| REQ-P1A-013 | test_defect_correct.cpp (runtime section) + new test_runtime_detect.cpp | 10+ |
-| REQ-P1A-014~019 | test_xpe_calib_*.cpp (6 files) | 56 currently passing |
-| REQ-P1A-020~022 | test_boundary.cpp, test_xpe_preprocess_init.cpp | 10+ |
-| REQ-P1A-030~033 | test_integration.cpp + test_xpe_preprocess.cpp | 15+ |
-| REQ-P1A-040 / REQ-SIMD-001 | test_offset_correct_avx2_parity.cpp | 2 cases (3-arg API) — **VERIFIED 2026-05-09** |
-| REQ-SIMD-002 | test_gain_correct_avx2_parity.cpp | 2 cases (1 ULP FLOAT32) — **VERIFIED 2026-05-09** |
-| REQ-SIMD-003 | test_defect_correct_avx2_parity.cpp | 2 cases (bit-identical) — **VERIFIED 2026-05-09** |
-| REQ-SIMD-004 | test_runtime_detection_avx2_parity.cpp | 4 cases (bit-identical) — **VERIFIED 2026-05-09** |
-| BP-01~05 DegradedMode | test_preprocess_degraded.cpp | 6/6 PASS (Frozen 2026-04-22) |
-| REQ-P1A-041~042 | test_readout_validate.cpp | 8+ |
+Counts below are the actual `TEST`/`TEST_F`/`TEST_P` macro counts in `modules/preprocess/tests/`,
+enumerated 2026-09-10. They replace the "Target Count" column carried through v1.2.0, which stated
+planning aspirations (`15+`, `20+`, `10+`) rather than measurements.
+
+**Registration status is part of the measurement.** 40 test files exist on disk; only **32** are
+registered in `XPE_TEST_SOURCES` (`modules/preprocess/CMakeLists.txt`) and therefore compiled into
+`xpe_preprocess_tests`. Registered files contribute **308** cases; the whole directory contains
+**457**. An unregistered file's cases are never executed and are not verification evidence.
+
+| REQ ID | Test File (modules/preprocess/tests/) | Cases on disk | Registered? |
+|--------|---------------------------------------|--------------:|-------------|
+| REQ-P1A-010 | `test_offset_correct.cpp` | 10 | Yes |
+| REQ-P1A-011 | `test_gain_correct.cpp` | 10 | **No — pending QA-A-20** |
+| REQ-P1A-012 | `test_defect_correct.cpp` | 11 | **No — pending QA-A-20** |
+| REQ-P1A-013 | runtime-detection cases (`test_runtime_detection_avx2_parity.cpp`) | 4 | Yes |
+| REQ-P1A-014~019 | `test_xpe_calib_check_expiry.cpp` (8), `test_xpe_calib_endurance.cpp` (5), `test_xpe_calib_generate_offset.cpp` (12), `test_xpe_calib_load.cpp` (19), `test_xpe_calib_save.cpp` (9), `test_calib_generate_offset_multi.cpp` (20) | 73 | Yes (6 files) |
+| REQ-P1A-020~022 | `test_boundary.cpp` (8), `test_xpe_preprocess_init.cpp` (18) | 26 | Yes |
+| REQ-P1A-030~033 | `test_integration.cpp` (2) | 2 | Yes |
+| REQ-P1A-030~033 | `test_xpe_preprocess.cpp` (51) | 51 | **No — legacy 3-arg API, full rewrite required** |
+| REQ-P1A-040 / REQ-SIMD-001 | `test_offset_correct_avx2_parity.cpp` | 2 (3-arg API) — **VERIFIED 2026-05-09** | Yes |
+| REQ-SIMD-002 | `test_gain_correct_avx2_parity.cpp` | 2 (1 ULP FLOAT32) — **VERIFIED 2026-05-09** | Yes |
+| REQ-SIMD-003 | `test_defect_correct_avx2_parity.cpp` | 2 (bit-identical) — **VERIFIED 2026-05-09** | Yes |
+| REQ-SIMD-004 | `test_runtime_detection_avx2_parity.cpp` | 4 (bit-identical) — **VERIFIED 2026-05-09** | Yes |
+| BP-01~05 DegradedMode | `test_preprocess_degraded.cpp` | 6 — 6/6 PASS (Frozen 2026-04-22) | Yes |
+| REQ-P1A-041~042 | `test_readout_validate.cpp` | 9 | Yes |
+| REQ-P1A-066 | `test_req_p1a_066.cpp` | 4 | Yes |
+| **Directory total** | 40 files | **457** | **32 files / 308 cases registered** |
+
+The per-REQ rows above are a **mapping, not a partition**: they name the suites each requirement
+relies on and do not sum to the directory total. Files outside the REQ mapping (calibration
+manager, ghost correction, xcal reader/writer/validator/compression, SHA-256, temperature
+non-linearity binning, defect/gain generation, verify metrics, calibration mode, memleak) are
+registered and executed but are traced through `docs/project/` RTM rows rather than this table.
+
+
+#### 3.1.1 Unregistered files pending QA-A-20 (#117 / #120)
+
+Four suites are commented out of `XPE_TEST_SOURCES` with a rationale that names the QA-A-12 (#117)
+verdict as the blocker. They are listed here verbatim from the CMakeLists comments:
+
+| File | Cases | Reason recorded in `modules/preprocess/CMakeLists.txt` |
+|------|------:|--------------------------------------------------------|
+| `test_gain_correct.cpp` | 10 | "still unregistered. Not an argument-count mismatch — the file is written against the SPEC signature `xpe_gain_correct(img, gainMap)` with in-place ownership transfer, while the shipped API is `xpe_gain_correct(input, output, metadata)` over the global `g_calib` map. … Register after that verdict." (QA-A-15, #120) |
+| `test_defect_correct.cpp` | 11 | "compiles, but `xpe_defect_correct(&img, &defectMap, nullptr)` passes the map where the shipped API expects the output buffer — the types match so the compiler is silent and 5 cases fail at runtime. Same divergence as `test_gain_correct`; register after QA-A-12 (#117)." |
+| `test_pipeline_ex.cpp` | 14 | "compile[s] now … but their assertions do not hold against the shipped implementation, and the binary aborts partway. … Register once QA-A-12 (#117) rules on the global-`g_calib` vs map-argument divergence." |
+| `test_calibration_cache.cpp` | 9 | same comment block as `test_pipeline_ex.cpp` |
+
+QA-A-20 (issued 2026-09-10, Refs #117 #120) is the card that rewrites and registers exactly these
+four suites, introducing `XPE_ERR_CALIB_NOT_LOADED` so that "initialised but map not loaded" is
+distinguishable from "not initialised".
+
+#### 3.1.2 Other unregistered files (not covered by QA-A-20)
+
+Measured, and recorded so the 40-vs-32 gap is fully accounted for:
+
+| File | Cases | Status |
+|------|------:|--------|
+| `test_xpe_preprocess.cpp` | 51 | Commented out with its own TODO: "uses legacy 3-arg API … and outdated struct fields (stride, temperature_c, kvp, ma, sid_mm). Needs full rewrite to match current API before re-enabling." |
+| `test_golden_reference.cpp` | 20 | **Never mentioned in `CMakeLists.txt`** — no registration, no rationale recorded |
+| `test_gain_correct_reciprocal_fma.cpp` | 22 | **Never mentioned in `CMakeLists.txt`** |
+| `test_calibration_roundtrip.cpp` | 12 | **Never mentioned in `CMakeLists.txt`** |
+
+The last three are a distinct gap from QA-A-20: they are neither registered nor explained. Until
+they are triaged, 54 cases sit on disk with no recorded reason for their exclusion.
 
 ### 3.2 Acceptance Criteria (from parent XPE-VVP-001 §2.2)
 
@@ -244,4 +295,4 @@ Pre Lane M2 release gate is FAILED when any of the following is true:
 
 ---
 
-*Document End - VVP-PREPROCESS-001 v1.2.0*
+*Document End - VVP-PREPROCESS-001 v1.3.0*
