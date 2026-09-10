@@ -44,6 +44,16 @@
 
 ### AC-04: Transfer Syntax Support (REQ-DICOM-004, 005) ✅ PASS
 
+> **Record correction (2026-09-11, leader).** This criterion carried a `✅ PASS` mark while
+> JPEG Lossless had **never been executed**. `xpe_dicom` registered no DCMTK codec
+> (`DJDecoderRegistration` call count: 0), so `open()` admitted `1.2.840.10008.1.2.4.70`
+> and `read_image` then failed on it — the allow-list was wider than the build could handle
+> (#146, found by QA-B-44). The criterion became true only with QA-B-45 (`5731fa8`), which
+> registers the decoder and asserts a **byte-exact `memcmp` against the source pixels**
+> rather than a return code. The mark is retained because it is now accurate; this note
+> records that it once preceded its evidence.
+
+
 **Given** DICOM files encoded in each of the three supported Transfer Syntaxes (Explicit LE, JPEG 2000 Lossless, JPEG Lossless First-Order)
 **When** each file is opened with `xpe_dicom_open` and pixel data read with `xpe_dicom_read_image`
 **Then** all three SHALL succeed with `XPE_OK` and produce valid uint16 XpeImageBuffer output.
