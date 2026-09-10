@@ -487,7 +487,7 @@ The fixture E2E command writes JSON and Markdown reports under `clients/ImagePro
 | `Repository Guard` | 필수 파일, 백로그/PRD 일관성, ABI 플래그 고유성, 마크다운 링크, 병합 충돌 표시, 후행 공백 검증 |
 | `Windows Common Build` | 경량 공통 매니페스트 복원, 컴파일러 경고를 오류로 처리, `xpe_common` 빌드 및 스모크 테스트 |
 | `Preprocess Tests` | `xpe_preprocess` 전용 빌드 — Golden Reference 수식 검증 26개 + Calibration round-trip 테스트 |
-| `Benchmark Regression (BP-10)` | degraded-mode stress — optional DLL 5개 시나리오, `Test-DegradedMode.ps1` 드라이버, bp10-aggregate 집계 |
+| `Benchmark Regression (BP-06~09 + 3000ms)` | 수동 dispatch — 벤치마크 동결 GTest + `FullPipelineE2E.PostProcess_3072x3072_Within3000ms` 예산. BP-10(저하 모드)은 `ci.yml` dotnet-tests 의 `DegradedModeReadinessTests` 가 담당(2026-09-10, #56 #128) |
 | `Delivery Bundle` | `main` 브랜치에 현재 프로젝트 기준을 아티팩트로 패키징 |
 | `Release Bundle` | `v*` 태그에서 배포 번들을 GitHub Releases에 게시 |
 | `CodeQL` | C/C++ 기준에 대한 정적 보안 및 품질 분석 (주간 반복) |

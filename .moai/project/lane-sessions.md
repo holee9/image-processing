@@ -21,7 +21,7 @@
 
 | 터미널 | 세션 이름 | 워크트리 |
 |---|---|---|
-| 1 | `leader` | image-processing |
+| 1 | `xpe-leader` | image-processing |
 | 2 | `xpe-pre`  | xpe-pre |
 | 3 | `xpe-post` | xpe-post |
 | 4 | `xpe-gui`  | xpe-gui |
