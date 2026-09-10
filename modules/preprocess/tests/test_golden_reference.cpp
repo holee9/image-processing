@@ -533,55 +533,68 @@ TEST_F(GoldenBinningTest, UnknownModeReturnsError) {
 // ==========================================================================
 class GoldenReadoutTest : public ::testing::Test {
 protected:
-    static constexpr uint32_t W = 16, H = 8, N = W * H;
-    static constexpr uint16_t kSat   = 65535u;
-    static constexpr double   kNoisy = 0.9 * 65535.0;  // row-mean threshold
+    static constexpr uint32_t W = 8, H = 8, N = W * H;
+    static constexpr uint16_t kSat = 65535u;
 
     std::vector<uint16_t> pixels;
-    XpeImageBuffer img{};
-    int32_t score{-1};
-    char msg[256]{};
+    XpeImageBuffer   img{};
+    XpeImageMetadata metadata{};
+    bool dropped{false};
+    bool nonuniform{false};
 
     void SetUp() override {
         pixels.assign(N, 1000u);
         img = makeU16Buf(pixels, W, H);
+        dropped = false;
+        nonuniform = false;
+    }
+
+    XpeErrorCode validate() {
+        return xpe_validate_readout_artifact(&img, &metadata, &dropped, &nonuniform);
     }
 };
 
-// REQ-P1A-001: clean image (no artifacts) → score == 0
-TEST_F(GoldenReadoutTest, CleanImageScoresZero) {
-    ASSERT_EQ(XPE_OK, xpe_validate_readout_artifact(&img, &score, msg, sizeof(msg)));
-    EXPECT_EQ(0, score) << "clean image must score 0";
+// REQ-P1A-041: a clean frame reports neither artifact.
+//
+// This suite previously asserted a 0..100 "artifact score". api-spec 6.15
+// described that shape, but the shipped contract -- preprocess_api.h:510,
+// readout_validate.cpp:17, pipeline.cpp:111 and the GUI export list -- reports
+// two booleans, and REQ-P1A-041 does not constrain the output shape. The
+// document was the stale side (leader ruling, QA-A-25), so the cases below
+// assert the shipped contract.
+TEST_F(GoldenReadoutTest, CleanImageReportsNoArtifacts) {
+    ASSERT_EQ(XPE_OK, validate());
+    EXPECT_FALSE(dropped)    << "uniform frame has no all-zero column";
+    EXPECT_FALSE(nonuniform) << "row mean 1000 is far below the 0.9*65535 threshold";
 }
 
-// REQ-P1A-003: fully saturated image → maximum score
-TEST_F(GoldenReadoutTest, FullySaturatedImageScoresMax) {
+// A fully saturated frame trips the row-mean threshold (readout_validate.cpp:43).
+TEST_F(GoldenReadoutTest, FullySaturatedImageReportsNonuniformGain) {
     std::fill(pixels.begin(), pixels.end(), kSat);
-    ASSERT_EQ(XPE_OK, xpe_validate_readout_artifact(&img, &score, msg, sizeof(msg)));
-    // sat_frac=1.0, every row mean = 65535 > 0.9*65535 → noise_frac=1.0
-    // score = min((1.0 + 1.0)*50, 100) = 100
-    EXPECT_EQ(100, score) << "all-saturated image must score 100";
+
+    ASSERT_EQ(XPE_OK, validate());
+    EXPECT_TRUE(nonuniform) << "every row mean is 65535 > 0.9*65535";
+    EXPECT_FALSE(dropped)   << "no column is all zero";
 }
 
-// REQ-P1A-002: single row with high mean contributes to noise_frac
-TEST_F(GoldenReadoutTest, SingleNoiseRowGivesNonZeroScore) {
-    // Row 0: set all pixels to 62000 (> 0.9*65535 = 58981)
+// One row above the threshold is enough; the flag is per-frame, not a count.
+TEST_F(GoldenReadoutTest, SingleSaturatedRowReportsNonuniformGain) {
     for (uint32_t col = 0; col < W; ++col)
-        pixels[col] = 62000u;
+        pixels[col] = 62000u;  // > 0.9*65535 = 58981
 
-    ASSERT_EQ(XPE_OK, xpe_validate_readout_artifact(&img, &score, msg, sizeof(msg)));
-    // noise_frac = 1/H = 1/8 = 0.125; sat_frac ≈ 0
-    // score ≈ 0.125 * 50 = 6 (not zero)
-    EXPECT_GT(score, 0)  << "single noise row must produce non-zero score";
-    EXPECT_LT(score, 20) << "single noise row should not produce high score";
+    ASSERT_EQ(XPE_OK, validate());
+    EXPECT_TRUE(nonuniform) << "row 0 mean 62000 exceeds the threshold";
+    EXPECT_FALSE(dropped);
 }
 
-// Score is clamped to [0, 100]
-TEST_F(GoldenReadoutTest, ScoreIsClamped) {
-    std::fill(pixels.begin(), pixels.end(), kSat);
-    ASSERT_EQ(XPE_OK, xpe_validate_readout_artifact(&img, &score, msg, sizeof(msg)));
-    EXPECT_GE(score, 0);
-    EXPECT_LE(score, 100);
+// An all-zero column is the dropped-column signal (readout_validate.cpp:33-40).
+TEST_F(GoldenReadoutTest, AllZeroColumnReportsDroppedColumn) {
+    for (uint32_t row = 0; row < H; ++row)
+        pixels[static_cast<size_t>(row) * W + 3] = 0u;
+
+    ASSERT_EQ(XPE_OK, validate());
+    EXPECT_TRUE(dropped)     << "column 3 is entirely zero";
+    EXPECT_FALSE(nonuniform) << "row means stay well below the threshold";
 }
 
 } // namespace

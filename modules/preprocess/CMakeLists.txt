@@ -167,7 +167,7 @@ if(_XPE_BUILD_TESTS)
         #   - GoldenReadoutTest asserts a 0..100 score; the shipped
         #     xpe_validate_readout_artifact reports two booleans instead.
         # Findings are in .moai/reports/lane-pre/QA-A-21/.
-        # tests/test_golden_reference.cpp
+        tests/test_golden_reference.cpp
         # tests/test_gain_correct_reciprocal_fma.cpp
         # tests/test_calibration_roundtrip.cpp
         tests/test_pipeline_ex.cpp
