@@ -418,6 +418,11 @@ queue the following rules apply, in order:
    retrievable through `xpe_get_pending_alert` / counted by `xpe_get_pending_alert_count`.
    It is updated in place (never duplicated), is never selected for eviction, and occupies one
    of the 64 slots. `xpe_clear_alerts` removes it and resets the count to zero.
+   **Counting note (observed by QA-A-28):** N counts entries actually evicted, not overflowing pushes. The first overflow on a
+   full queue evicts two entries (one to admit the incoming alert, one to seat the loss alert), so the first loss alert
+   reports N = 2, and the effective capacity for module alerts is 63 for as long as the loss alert is present.
+   Identification is by an internal flag, not by the message prefix, so a module alert that happens to start with the
+   same text is an ordinary (evictable) entry.
 3. **No new export.** The policy is observable only through the existing §5.9–§5.11 and §5.16
    functions; `xpe_common.dll` stays at 16 exports (REQ-P0-008). The producer-side signature of
    `xpe_alert_push` is unchanged.
