@@ -14,6 +14,12 @@ public sealed class BackendRuntimeInfo
 
     public string NativeDllPath { get; init; } = string.Empty;
 
+    /// <summary>
+    /// #129: which directory the native library actually came from (last segment), or
+    /// <c>loader</c> when the DllImport resolver did not supply it. Empty for a Mock run.
+    /// </summary>
+    public string NativeSource { get; init; } = string.Empty;
+
     public string DisplayVersion { get; init; } = string.Empty;
 
     public bool DisplayDllDetected { get; init; }

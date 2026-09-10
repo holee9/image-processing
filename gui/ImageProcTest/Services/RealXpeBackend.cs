@@ -59,6 +59,7 @@ public sealed class RealXpeBackend : IXpeBackend
             SupportsNativeRuntime = true,
             NativeDllDetected = File.Exists(_commonDllPath),
             NativeDllPath = _commonDllPath,
+            NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
             DisplayVersion = displayVersion,
             DisplayDllDetected = File.Exists(_displayDllPath),
             DisplayDllPath = _displayDllPath
@@ -268,6 +269,7 @@ public sealed class RealXpeBackend : IXpeBackend
             SupportsNativeRuntime = true,
             NativeDllDetected = File.Exists(_commonDllPath),
             NativeDllPath = _commonDllPath,
+            NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
             DisplayVersion = _runtimeInfo.DisplayVersion,
             DisplayDllDetected = File.Exists(_displayDllPath),
             DisplayDllPath = _displayDllPath

@@ -121,6 +121,7 @@ public partial class MainWindow : System.Windows.Window
             report.BackendVersion = viewModel.RuntimeInfo.Version;
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
+            report.NativeSource = viewModel.RuntimeInfo.NativeSource;
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 

@@ -59,6 +59,27 @@ internal static class GuiNativeLibraryResolver
         }
     }
 
+    /// <summary>
+    /// Where a DLL came from, as one short token for the runtime summary.
+    ///
+    /// <c>loader</c> means this resolver did NOT supply the handle — the Windows loader did, from
+    /// the application directory. That is the observation GUI-C-32 could not make: "it loaded from
+    /// the injected directory" was a result, not evidence that the resolver ran.
+    /// </summary>
+    public static string SourceLabel(string dllName)
+    {
+        var path = ResolvedPath(dllName);
+        if (path is null)
+        {
+            return "loader";
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        return string.IsNullOrEmpty(directory)
+            ? "loader"
+            : new DirectoryInfo(directory).Name;
+    }
+
     private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
         var candidates = CandidatesFor(libraryName);
