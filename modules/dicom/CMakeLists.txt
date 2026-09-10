@@ -121,6 +121,10 @@ if(_XPE_BUILD_TESTS)
     )
     target_include_directories(test_dicom_reader PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        # #146 (QA-B-45): the accepted transfer-syntax table lives in the
+        # module-internal DicomReader.h. The test iterates it so the list and the
+        # module's real decode capability cannot drift apart again.
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
     target_link_libraries(test_dicom_reader PRIVATE
         xpe_dicom

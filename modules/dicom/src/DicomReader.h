@@ -21,6 +21,33 @@ class DcmFileFormat;
 namespace xpe {
 namespace dicom {
 
+/**
+ * @brief Transfer syntaxes this module accepts for reading (REQ-DICOM-004).
+ *
+ * #146 (QA-B-45): this list used to live as three file-static constants inside
+ * DicomReader.cpp, where nothing connected it to the module's actual decode
+ * capability. JPEG Lossless sat in the list for months while no DCMTK codec was
+ * ever registered, so open() accepted files readImage could not decode.
+ *
+ * It is a single table now, and test_dicom_reader.cpp iterates it: every entry
+ * must have a fixture that round-trips. Adding a syntax here without teaching
+ * the reader to decode it — or the test to build a file in it — fails the
+ * build's test run rather than shipping another promise the code cannot keep.
+ */
+struct SupportedTransferSyntax {
+    const char* uid;
+    const char* name;
+};
+
+inline constexpr SupportedTransferSyntax kSupportedTransferSyntaxes[] = {
+    { "1.2.840.10008.1.2.1",     "Explicit VR Little Endian" },
+    { "1.2.840.10008.1.2.4.90",  "JPEG 2000 Lossless Only" },
+    { "1.2.840.10008.1.2.4.70",  "JPEG Lossless, Non-Hierarchical, First-Order" },
+};
+
+inline constexpr size_t kSupportedTransferSyntaxCount =
+    sizeof(kSupportedTransferSyntaxes) / sizeof(kSupportedTransferSyntaxes[0]);
+
 // @MX:ANCHOR: [AUTO] Public API boundary — maps to XpeDicomHandle opaque pointer
 // @MX:REASON: fan_in >= 3: xpe_dicom_open, xpe_dicom_read_image, xpe_dicom_get_metadata, xpe_dicom_close
 // @MX:SPEC: SPEC-XPE-P1B-DICOM SWU-4.1
