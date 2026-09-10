@@ -39,6 +39,12 @@ public sealed class DegradedModeReadinessTests : IDisposable
     private static readonly string[] ModuleDlls =
         ["gsvg.dll", "xpe_enhance_advanced.dll", "xpe_enhance_basic.dll", "xpe_dicom.dll", "xpe_display.dll"];
 
+    /// <summary>
+    /// The two DLLs the app cannot degrade past. Kept apart from <see cref="ModuleDlls"/>: those are
+    /// optional modules whose absence is a grade, these are the floor the old BP-10 CI job staged.
+    /// </summary>
+    private static readonly string[] RequiredDlls = ["xpe_common.dll", "xpe_preprocess.dll"];
+
     /// <summary>Level a discovered module would be graded; the value is irrelevant, only "not R0" is.</summary>
     private const string ReadyLevel = "R1";
 
@@ -77,6 +83,57 @@ public sealed class DegradedModeReadinessTests : IDisposable
             Assert.NotEqual(
                 ModuleReadinessGrading.NotReady,
                 ModuleReadinessGrading.GradeDiscovery(otherPath, ReadyLevel));
+        }
+    }
+
+    /// <summary>
+    /// #56 (BP-10 scenario "all_optional_absent"): every optional module DLL missing at once, with
+    /// only the required floor (xpe_common / xpe_preprocess) staged. All five must grade R0, both
+    /// required ones must still resolve, and nothing may throw.
+    ///
+    /// The single-removal cases above cannot show this: each of them leaves the other four present,
+    /// so "the app survives losing all optional modules" was never observed.
+    ///
+    /// Resolution of the required pair is pinned to a path, not merely to non-null. xpe_common.dll is
+    /// copied into the test output directory by the build (csproj target CopyXpeDllsForTests) and the
+    /// locator checks that directory BEFORE the injected one, so a bare "not null" would pass for it
+    /// even with an empty staging — a vacuous assertion. Accepting exactly two roots (the staging, or
+    /// the app output directory) keeps the case honest and still fails if the search escapes to a
+    /// build directory or a sibling checkout.
+    /// </summary>
+    [Fact]
+    public void AllOptionalDllsAbsent_RequiredFloorStillResolves()
+    {
+        var dir = CreateTempDir();
+        foreach (var dll in RequiredDlls)
+            File.WriteAllBytes(Path.Combine(dir, dll), [0x4D, 0x5A]);
+
+        using var _ = new NativeSearchScope(dir);
+
+        foreach (var dll in ModuleDlls)
+        {
+            var path = Resolve(dll);
+            Assert.True(
+                path is null,
+                $"all_optional_absent: no optional DLL was staged in {dir}, but {dll} resolved to {path}.");
+            Assert.Equal(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
+        }
+
+        foreach (var dll in RequiredDlls)
+        {
+            var path = ResolveRequired(dll);
+            Assert.True(
+                path is not null,
+                $"all_optional_absent: required {dll} was staged in {dir} but did not resolve — " +
+                "losing the optional modules took the required floor with it.");
+
+            var allowed = new[] { Path.Combine(dir, dll), Path.Combine(AppContext.BaseDirectory, dll) };
+            Assert.True(
+                allowed.Contains(path, StringComparer.OrdinalIgnoreCase),
+                $"all_optional_absent: required {dll} resolved to {path}, which is neither the staging " +
+                $"directory nor the app output directory. The search escaped its two allowed roots.");
+
+            Assert.NotEqual(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, ReadyLevel));
         }
     }
 
@@ -124,6 +181,12 @@ public sealed class DegradedModeReadinessTests : IDisposable
         dllName == "xpe_enhance_basic.dll"
             ? XpeEnhanceBasicLibraryLocator.TryFindDll()
             : NativeModuleLibraryLocator.TryFindDll(dllName, "image-processing");
+
+    /// <summary>Required-floor DLLs have their own locators (each with its own candidate list).</summary>
+    private static string? ResolveRequired(string dllName) =>
+        dllName == "xpe_common.dll"
+            ? XpeCommonLibraryLocator.TryFindDll()
+            : XpePreprocessLibraryLocator.TryFindDll();
 
     // ---------- helpers ----------
 
