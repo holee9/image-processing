@@ -166,6 +166,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_correct_reciprocal_fma.cpp
         tests/test_calibration_roundtrip.cpp
         tests/test_pipeline_ex.cpp
+        # QA-A-32 (#120): pipeline stage bodies + failure propagation
+        tests/test_pipeline_stages.cpp
         tests/test_calibration_cache.cpp
         # QA-A-22 (#127): cached-loader buffer ownership (cache-owned view)
         tests/test_calib_cache_ownership.cpp
