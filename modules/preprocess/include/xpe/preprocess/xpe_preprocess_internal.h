@@ -271,4 +271,21 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept;
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 
+/**
+ * @brief Restore FUNC-033 metadata from an XCal file's config JSON.
+ *
+ * SRS-CALIB-FUNC-033 (5): "All metadata shall be stored in XCal file header
+ * section (JSON-encoded in reserved header bytes)." This reads the fields back
+ * into the store that xpe_calib_get_quality_meta() serves.
+ *
+ * Backward compatible by construction: a file written before QA-A-35 carries
+ * none of these keys, and each missing field takes its "no data" value
+ * (r_squared / previous_r_squared -1.0, the rest 0) rather than failing the
+ * load.
+ *
+ * @param configJson NUL-terminated config JSON, or nullptr for none.
+ * @return true when at least one FUNC-033 field was present.
+ */
+bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
+
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */

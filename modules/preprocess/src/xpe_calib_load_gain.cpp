@@ -16,6 +16,7 @@
 
 #include <mutex>
 #include <cstring>
+#include <string>
 #include <vector>
 
 extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
@@ -60,6 +61,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                         sizeof(hdr.session_id) < sizeof(g_calib.gain_session_id)
                             ? sizeof(hdr.session_id)
                             : sizeof(g_calib.gain_session_id) - 1);
+        }
+
+        // FUNC-033 (5): restore the quality metadata the file carries, so
+        // xpe_calib_get_quality_meta() describes the calibration now in use.
+        // A file written before QA-A-35 has no such fields and is loaded
+        // unchanged -- the call simply reports that it found none.
+        {
+            std::string json(config_json.begin(), config_json.end());
+            xpe_calib_apply_quality_meta_json(json.c_str());
         }
 
         return XPE_OK;

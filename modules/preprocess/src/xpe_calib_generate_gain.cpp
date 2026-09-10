@@ -565,12 +565,22 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         std::memcpy(hdr.session_id, "generated\0", 10);
 
         // --- Build config JSON with polynomial metadata ---
-        char meta[256];
+        // FUNC-033 (5): the quality metadata rides in the XCal config JSON.
+        // Field names follow the SRS wording (fit_r_squared, actual_dose_levels,
+        // max_residual_pct, mean_residual_pct), not the C struct's member names.
+        char meta[512];
         std::snprintf(meta, sizeof(meta),
-            "{\"polynomial_degree\":%d,\"num_coefficients\":%d,\"num_dose_levels\":%d}",
+            "{\"polynomial_degree\":%d,\"num_coefficients\":%d,\"num_dose_levels\":%d,"
+            "\"calibration_mode\":%d,\"actual_dose_levels\":%d,"
+            "\"fit_r_squared\":%.9f,\"max_residual_pct\":%.6f,"
+            "\"mean_residual_pct\":%.6f,\"calibration_pass\":%d}",
             static_cast<int>(max_degree),
             static_cast<int>(sMaxCoeffsPoly),
-            static_cast<int>(num_levels));
+            static_cast<int>(num_levels),
+            static_cast<int>(xpe_calib_get_mode()),
+            static_cast<int>(num_levels),
+            r_squared, max_residual_pct, mean_residual_pct,
+            gate_passed ? 1 : 0);
         meta[sizeof(meta) - 1] = '\0';
 
         std::string config_json = meta;

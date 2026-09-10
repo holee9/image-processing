@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <string>
 #include <chrono>
 
 /* =============================================================================
@@ -207,6 +209,52 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     const bool passed = (g_quality_meta.r_squared >= XPE_CALIB_R_SQUARED_GATE);
     g_quality_meta.calibration_pass = passed ? 1u : 0u;
     return passed;
+}
+
+bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept
+{
+    if (configJson == nullptr) return false;
+
+    // A file from before QA-A-35 has none of these keys. Each absent field
+    // keeps its no-data value instead of failing the load.
+    XpeCalibQualityMeta meta{};
+    meta.r_squared          = -1.0;
+    meta.previous_r_squared = -1.0;
+
+    bool anyPresent = false;
+
+    const std::string r2 = xpe_json_get_string(configJson, "fit_r_squared");
+    if (!r2.empty()) {
+        meta.r_squared = std::atof(r2.c_str());
+        anyPresent = true;
+    }
+    const std::string degree = xpe_json_get_string(configJson, "polynomial_degree");
+    if (!degree.empty()) {
+        meta.polynomial_degree = static_cast<uint8_t>(std::atoi(degree.c_str()));
+        anyPresent = true;
+    }
+    const std::string levels = xpe_json_get_string(configJson, "actual_dose_levels");
+    if (!levels.empty()) {
+        meta.num_points = static_cast<uint8_t>(std::atoi(levels.c_str()));
+        anyPresent = true;
+    }
+    const std::string mode = xpe_json_get_string(configJson, "calibration_mode");
+    if (!mode.empty()) {
+        meta.calibration_mode = static_cast<uint8_t>(std::atoi(mode.c_str()));
+        anyPresent = true;
+    }
+
+    if (!anyPresent) return false;
+
+    // The gate verdict is derived, never read from the file: a file claiming it
+    // passed does not make it so.
+    meta.calibration_pass =
+        (meta.r_squared >= XPE_CALIB_R_SQUARED_GATE) ? 1u : 0u;
+
+    const double previous = g_quality_meta.r_squared;
+    g_quality_meta = meta;
+    g_quality_meta.previous_r_squared = previous;
+    return true;
 }
 
 /* =============================================================================
