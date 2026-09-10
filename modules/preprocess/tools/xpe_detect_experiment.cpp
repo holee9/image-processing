@@ -1,0 +1,352 @@
+/**
+ * @file xpe_detect_experiment.cpp
+ * @brief QA-A-41 (#143 #144 #120): candidate detector comparison harness.
+ *
+ * EXPERIMENT ONLY. Nothing here ships and nothing in modules/preprocess/src is
+ * changed by this card: the three candidates live in this translation unit and
+ * are measured against the same conditions QA-A-40 used, so the numbers can be
+ * compared row by row with that report.
+ *
+ * The candidates reuse the SHIPPED primitives from runtime_detection.h --
+ * CollectWindowValues, ComputeMedian, ComputeMAD -- so a difference in the
+ * table is a difference in the candidate's rule, not in a reimplemented median.
+ * The baseline row calls the shipped DetectDefectivePixel unchanged.
+ *
+ * Candidates (leader's list, QA-A-41 section 1):
+ *   (a) larger window   5x5 -> 7x7 / 9x9, to shrink the MAD estimate's spread
+ *   (b) global sigma floor   sigma_use = max(sigma_local, alpha * sigma_global)
+ *   (c) two stage   loose local pass (kappa = 4) then a 9x9 re-judge of the
+ *                   candidates only
+ *
+ * Conditions (identical to QA-A-40): 1024x1024, mean 3000 ADU, sigma = 10,
+ * 961 injected sites on a 32-pixel lattice with a 16-pixel margin, seeded
+ * std::mt19937. Amplitudes +5 sigma and +10 sigma, plus one dead-pixel
+ * combination at -5 sigma. Seeds 0, 1, 2.
+ *
+ * Usage: xpe_detect_experiment [--quick]
+ *        --quick runs seed 0 only (for a smoke check, not for the report).
+ */
+
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "runtime_detection.h"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <random>
+#include <string>
+#include <vector>
+
+namespace {
+
+constexpr uint32_t kW = 1024;
+constexpr uint32_t kH = 1024;
+constexpr size_t   kN = static_cast<size_t>(kW) * kH;
+constexpr float    kMean  = 3000.0f;
+constexpr float    kSigma = 10.0f;
+
+using xpe::preprocess::internal::CollectWindowValues;
+using xpe::preprocess::internal::ComputeMedian;
+using xpe::preprocess::internal::ComputeMAD;
+using xpe::preprocess::internal::DetectDefectivePixel;
+
+/* ---------------------------------------------------------------- frames */
+
+std::vector<size_t> defectSites() {
+    std::vector<size_t> sites;
+    for (uint32_t y = 16; y < kH - 16; y += 32) {
+        for (uint32_t x = 16; x < kW - 16; x += 32) {
+            sites.push_back(static_cast<size_t>(y) * kW + x);
+        }
+    }
+    return sites;
+}
+
+std::vector<float> cleanFrame(uint32_t seed) {
+    std::mt19937 rng(seed);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(kN);
+    for (size_t i = 0; i < kN; ++i) frame[i] = noise(rng);
+    return frame;
+}
+
+XpeImageBuffer wrap(std::vector<float>& frame) {
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = kW; img.height = kH;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(kN * sizeof(float));
+    return img;
+}
+
+/* ------------------------------------------------------------ candidates */
+
+/** Frame-wide robust sigma: MAD of the whole frame, scaled to a sigma. */
+float globalSigma(const std::vector<float>& frame) {
+    std::vector<float> work = frame;
+    const size_t mid = work.size() / 2;
+    std::nth_element(work.begin(), work.begin() + static_cast<long>(mid), work.end());
+    const float median = work[mid];
+
+    for (float& v : work) v = std::fabs(v - median);
+    std::nth_element(work.begin(), work.begin() + static_cast<long>(mid), work.end());
+    return work[mid] * RUNTIME_DETECTION_MAD_SCALE;
+}
+
+enum class Kind { Baseline, Window, GlobalFloor, TwoStage };
+
+struct Variant {
+    std::string label;
+    Kind        kind;
+    int32_t     windowSize;   // Baseline / Window / GlobalFloor
+    float       kappa;
+    float       alpha;        // GlobalFloor
+    int32_t     stage2Window; // TwoStage
+    float       stage1Kappa;  // TwoStage
+};
+
+/** One pixel decision under @p v. sigmaGlobal is used only by GlobalFloor. */
+bool decide(const XpeImageBuffer* img, uint32_t x, uint32_t y,
+            const Variant& v, float sigmaGlobal,
+            std::vector<float>& scratch, std::vector<float>& scratch2) {
+    const float* pixels = static_cast<const float*>(img->data);
+    const float  center = pixels[static_cast<size_t>(y) * img->width + x];
+
+    auto localStats = [&](int32_t window, float* medianOut, float* madOut) {
+        CollectWindowValues(img, x, y, window, scratch);
+        if (scratch.empty()) return false;
+        *medianOut = ComputeMedian(scratch);
+        scratch2 = scratch;
+        *madOut = ComputeMAD(scratch2, *medianOut);
+        return true;
+    };
+
+    float median = 0.0f, mad = 0.0f;
+
+    switch (v.kind) {
+    case Kind::Baseline: {
+        RuntimeDetectionConfig cfg;
+        cfg.windowSize = v.windowSize;
+        cfg.sigmaThreshold = v.kappa;
+        return DetectDefectivePixel(img, x, y, cfg);
+    }
+    case Kind::Window: {
+        if (!localStats(v.windowSize, &median, &mad)) return false;
+        if (mad < 1e-6f) return std::fabs(center - median) > 1e-6f;
+        return std::fabs(center - median) > v.kappa * mad;
+    }
+    case Kind::GlobalFloor: {
+        if (!localStats(v.windowSize, &median, &mad)) return false;
+        // mad here is already MAD * 1.4826 (ComputeMAD applies the scale), so
+        // it is directly comparable to sigmaGlobal.
+        const float sigmaUse = std::max(mad, v.alpha * sigmaGlobal);
+        if (sigmaUse < 1e-6f) return std::fabs(center - median) > 1e-6f;
+        return std::fabs(center - median) > v.kappa * sigmaUse;
+    }
+    case Kind::TwoStage: {
+        if (!localStats(v.windowSize, &median, &mad)) return false;
+        const bool stage1 = (mad < 1e-6f)
+            ? std::fabs(center - median) > 1e-6f
+            : std::fabs(center - median) > v.stage1Kappa * mad;
+        if (!stage1) return false;
+
+        if (!localStats(v.stage2Window, &median, &mad)) return false;
+        if (mad < 1e-6f) return std::fabs(center - median) > 1e-6f;
+        return std::fabs(center - median) > v.kappa * mad;
+    }
+    }
+    return false;
+}
+
+/** Runs @p v over the whole frame; returns the flagged map and the elapsed ms. */
+std::vector<uint8_t> run(std::vector<float>& frame, const Variant& v, double* msOut) {
+    XpeImageBuffer img = wrap(frame);
+    const float sigmaGlobal =
+        (v.kind == Kind::GlobalFloor) ? globalSigma(frame) : 0.0f;
+
+    std::vector<uint8_t> map(kN, 0);
+    std::vector<float> scratch, scratch2;
+    scratch.reserve(128); scratch2.reserve(128);
+
+    const auto t0 = std::chrono::steady_clock::now();
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            if (decide(&img, x, y, v, sigmaGlobal, scratch, scratch2)) {
+                map[static_cast<size_t>(y) * kW + x] = 1;
+            }
+        }
+    }
+    const auto t1 = std::chrono::steady_clock::now();
+    *msOut = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    return map;
+}
+
+/* ------------------------------------------------------------- measuring */
+
+struct Row {
+    double tpr5 = 0.0, tpr10 = 0.0, tprDead = 0.0, fpr = 0.0;
+    size_t fp = 0;
+    double msTpr = 0.0, msClean = 0.0;
+};
+
+Row measureOne(const Variant& v, uint32_t seed, bool withDead) {
+    Row row;
+    const std::vector<size_t> sites = defectSites();
+
+    auto tprFor = [&](float amplitudeSigma, double* msOut) {
+        std::vector<float> frame = cleanFrame(seed);
+        for (size_t s : sites) frame[s] += amplitudeSigma * kSigma;
+        const std::vector<uint8_t> map = run(frame, v, msOut);
+        size_t tp = 0;
+        for (size_t s : sites) if (map[s]) ++tp;
+        return static_cast<double>(tp) / static_cast<double>(sites.size());
+    };
+
+    double ms = 0.0;
+    row.tpr5  = tprFor(5.0f, &row.msTpr);
+    row.tpr10 = tprFor(10.0f, &ms);
+    if (withDead) row.tprDead = tprFor(-5.0f, &ms);
+
+    std::vector<float> clean = cleanFrame(seed);
+    const std::vector<uint8_t> cleanMap = run(clean, v, &row.msClean);
+    for (size_t i = 0; i < kN; ++i) if (cleanMap[i]) ++row.fp;
+    row.fpr = static_cast<double>(row.fp) / static_cast<double>(kN);
+    return row;
+}
+
+/* ------------------------------------------------------------- profiling */
+
+/**
+ * Stage decomposition for #144. Each stage is the previous one plus one more
+ * piece of work, so the differences are the per-stage costs. Measured rather
+ * than reasoned about: no profiler is installed in this environment.
+ */
+void profile(int32_t window) {
+    std::vector<float> frame = cleanFrame(0u);
+    XpeImageBuffer img = wrap(frame);
+    std::vector<float> scratch, scratch2;
+    scratch.reserve(128); scratch2.reserve(128);
+
+    volatile float sink = 0.0f;
+
+    auto timeIt = [&](const char* what, int stage) {
+        const auto t0 = std::chrono::steady_clock::now();
+        for (uint32_t y = 0; y < kH; ++y) {
+            for (uint32_t x = 0; x < kW; ++x) {
+                CollectWindowValues(&img, x, y, window, scratch);
+                if (stage == 0) { sink = sink + scratch[0]; continue; }
+                const float median = ComputeMedian(scratch);
+                if (stage == 1) { sink = sink + median; continue; }
+                scratch2 = scratch;
+                sink = sink + ComputeMAD(scratch2, median);
+            }
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+        std::printf("  %-34s %8.1f ms\n", what,
+                    std::chrono::duration<double, std::milli>(t1 - t0).count());
+        std::fflush(stdout);
+    };
+
+    std::printf("[profile] window %dx%d, 1024x1024, buffer-reusing loop\n",
+                window, window);
+    timeIt("gather only", 0);
+    timeIt("gather + median", 1);
+    timeIt("gather + median + copy + MAD", 2);
+
+    // The allocating form, for the same window: this is what the shipped
+    // DetectDefectivePixel does per pixel.
+    RuntimeDetectionConfig cfg;
+    cfg.windowSize = window;
+    cfg.sigmaThreshold = 5.0f;
+    const auto t0 = std::chrono::steady_clock::now();
+    size_t flagged = 0;
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            if (DetectDefectivePixel(&img, x, y, cfg)) ++flagged;
+        }
+    }
+    const auto t1 = std::chrono::steady_clock::now();
+    std::printf("  %-34s %8.1f ms  (flagged %zu)\n",
+                "shipped DetectDefectivePixel", 
+                std::chrono::duration<double, std::milli>(t1 - t0).count(), flagged);
+    std::printf("\n");
+    std::fflush(stdout);
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+    bool quick = false, profileOnly = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--quick") == 0) quick = true;
+        if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
+    }
+
+    if (xpe_preprocess_init(nullptr) != XPE_OK) {
+        std::fprintf(stderr, "xpe_preprocess_init failed\n");
+        return 1;
+    }
+
+    if (profileOnly) {
+        profile(5);
+        profile(9);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    const std::vector<Variant> variants = {
+        {"baseline 5x5 k=5",      Kind::Baseline,    5, 5.0f, 0.0f, 0, 0.0f},
+        // Same rule as the baseline, but through this TU's buffer-reusing loop.
+        // The gap between this row and the one above is allocation cost, not
+        // detection behaviour -- without it the window rows would look faster
+        // than they are for the wrong reason.
+        {"    5x5 k=5 (reuse)",   Kind::Window,      5, 5.0f, 0.0f, 0, 0.0f},
+        {"(a) 7x7 k=5",           Kind::Window,      7, 5.0f, 0.0f, 0, 0.0f},
+        {"(a) 9x9 k=5",           Kind::Window,      9, 5.0f, 0.0f, 0, 0.0f},
+        {"(b) 5x5 floor a=0.8",   Kind::GlobalFloor, 5, 5.0f, 0.8f, 0, 0.0f},
+        {"(b) 5x5 floor a=1.0",   Kind::GlobalFloor, 5, 5.0f, 1.0f, 0, 0.0f},
+        {"(c) 2-stage 5->9 k1=4", Kind::TwoStage,    5, 5.0f, 0.0f, 9, 4.0f},
+        // Diagnostic, not one of the leader's three: the only lever that moves
+        // TPR at exactly 5 sigma is kappa, and these rows show what it costs in
+        // false positives.
+        {"(d) 9x9 k=4 [diag]",    Kind::Window,      9, 4.0f, 0.0f, 0, 0.0f},
+        {"(d) 5x5 k=4 [diag]",    Kind::Window,      5, 4.0f, 0.0f, 0, 0.0f},
+    };
+
+    const std::vector<uint32_t> seeds = quick ? std::vector<uint32_t>{0u}
+                                              : std::vector<uint32_t>{0u, 1u, 2u};
+
+    std::printf("variant                  seed   TPR@5s    TPR@10s   TPR@dead   "
+                "FP        FPR         ms(tpr)  ms(clean)\n");
+    std::printf("-------------------------------------------------------------"
+                "-------------------------------------------\n");
+
+    for (const Variant& v : variants) {
+        double sumTpr5 = 0.0, sumFpr = 0.0, sumMs = 0.0;
+        for (size_t i = 0; i < seeds.size(); ++i) {
+            // The dead-pixel combination is run on seed 0 only -- one extra
+            // full-frame pass per variant, which is what "1 조합" asks for.
+            const Row r = measureOne(v, seeds[i], /*withDead=*/i == 0);
+            std::printf("%-24s %4u  %8.6f  %8.6f  %8.6f  %8zu  %.3e  %7.1f  %7.1f\n",
+                        v.label.c_str(), seeds[i], r.tpr5, r.tpr10,
+                        (i == 0 ? r.tprDead : -1.0), r.fp, r.fpr,
+                        r.msTpr, r.msClean);
+            std::fflush(stdout);
+            sumTpr5 += r.tpr5; sumFpr += r.fpr; sumMs += r.msTpr;
+        }
+        const double n = static_cast<double>(seeds.size());
+        std::printf("%-24s  AVG  %8.6f  %8s  %8s  %.3e  %7.1f\n\n",
+                    v.label.c_str(), sumTpr5 / n, "-", "-",
+                    sumFpr / n, sumMs / n);
+        std::fflush(stdout);
+    }
+
+    xpe_preprocess_shutdown();
+    return 0;
+}

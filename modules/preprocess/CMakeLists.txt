@@ -127,6 +127,31 @@ set_target_properties(xpe_calib_fixture_gen PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
+# =============================================================================
+# QA-A-41 (#143 #144): candidate detector experiment (EXPERIMENT ONLY)
+#
+# Not registered with ctest: it runs six full-frame variants over three seeds
+# and takes minutes. It ships no production code -- the candidates live in the
+# tool's own TU and reuse the shipped detection primitives.
+# =============================================================================
+add_executable(xpe_detect_experiment tools/xpe_detect_experiment.cpp)
+
+target_include_directories(xpe_detect_experiment
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(xpe_detect_experiment PRIVATE xpe_preprocess xpe_common)
+target_compile_features(xpe_detect_experiment PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(xpe_detect_experiment PRIVATE /W4)
+else()
+    target_compile_options(xpe_detect_experiment PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_detect_experiment)
+set_target_properties(xpe_detect_experiment PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 set(_XPE_BUILD_TESTS OFF)
 if(BUILD_TESTING OR BUILD_TESTS)
     set(_XPE_BUILD_TESTS ON)
