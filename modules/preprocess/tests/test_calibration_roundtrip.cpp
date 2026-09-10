@@ -11,7 +11,7 @@
  * QA-A-25 (#120) migration note. This suite was written against the retired
  * map-as-argument API family and had never been compiled. The shipped API
  * (issue #117 decision B) is file- and global-store based:
- *   - xpe_calib_generate_offset(frames, n, integration_ms, temp_c, out_path)
+ *   - xpe_calib_generate_offset(frames, n, integration_ms, temp_c, out_path, nullptr)
  *     writes an XCal v1 OFFSET file (FLOAT32 payload) instead of filling a buffer
  *   - xpe_calib_load_offset/gain(path) load into the global calibration store
  *   - xpe_calib_save(path, "offset"|"gain"|"defect", expiryEpochMs) serialises
@@ -154,7 +154,7 @@ TEST_F(RoundtripGenerateOffsetTest, SingleFrameMeanEqualsFrame) {
     XpeImageBuffer frame = makeU16Buf(framePixels, W, H);
 
     ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&frame, 1, kIntegrationMs,
-                                                kTempC, tmp.c_str()));
+                                                kTempC, tmp.c_str(), nullptr));
 
     std::vector<float> generated;
     ASSERT_NO_FATAL_FAILURE(readXCalPayload(tmp.c_str(), &generated));
@@ -175,7 +175,7 @@ TEST_F(RoundtripGenerateOffsetTest, MultiFrameSameValueMeanEqualsValue) {
         frames[f] = makeU16Buf(fd[f], W, H);
 
     ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames.data(), frameCount,
-                                                kIntegrationMs, kTempC, tmp.c_str()));
+                                                kIntegrationMs, kTempC, tmp.c_str(), nullptr));
 
     std::vector<float> generated;
     ASSERT_NO_FATAL_FAILURE(readXCalPayload(tmp.c_str(), &generated));
@@ -197,7 +197,7 @@ TEST_F(RoundtripGenerateOffsetTest, ThreeFramesMeanIsCorrect) {
                                 makeU16Buf(f2, SW, SH)};
 
     ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames, 3, kIntegrationMs,
-                                                kTempC, tmp.c_str()));
+                                                kTempC, tmp.c_str(), nullptr));
 
     std::vector<float> generated;
     ASSERT_NO_FATAL_FAILURE(readXCalPayload(tmp.c_str(), &generated));
@@ -213,7 +213,7 @@ TEST_F(RoundtripGenerateOffsetTest, ZeroFrameCountReturnsError) {
     XpeImageBuffer frame = makeU16Buf(dummy, W, H);
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_calib_generate_offset(&frame, 0, kIntegrationMs,
-                                        kTempC, tmp.c_str()));
+                                        kTempC, tmp.c_str(), nullptr));
 }
 
 // ==========================================================================
@@ -369,7 +369,7 @@ protected:
             frames[f] = makeU16Buf(fd[f], W, H);
 
         ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames.data(), frameCount,
-                                                    100.0f, 25.0f, path));
+                                                    100.0f, 25.0f, path, nullptr));
 
         std::vector<float> generated;
         ASSERT_NO_FATAL_FAILURE(readXCalPayload(path, &generated));

@@ -262,7 +262,7 @@ TEST_F(SigmaClipNMinTest, PublicEntryPointCreatesNoDefectMap) {
 
     ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(
         bufs.data(), static_cast<int32_t>(bufs.size()), 100.0f, 25.0f,
-        (tmpDir / "offset.xcal").string().c_str()));
+        (tmpDir / "offset.xcal").string().c_str(), nullptr));
 
     // No defect map exists, so there is nothing to save. The shipped code
     // reports XPE_ERR_INVALID_INPUT for that (xpe_calib_save.cpp:84), not

@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
         // The shipped generator does the averaging; it writes its own file with
         // a wall-clock stamp, so the result is reloaded and rewritten fixed.
         if (xpe_calib_generate_offset(bufs.data(), static_cast<int32_t>(bufs.size()),
-                                      100.0f, 25.0f, offsetScratch.c_str()) != XPE_OK) {
+                                      100.0f, 25.0f, offsetScratch.c_str(), nullptr) != XPE_OK) {
             std::fprintf(stderr, "xpe_calib_generate_offset failed\n");
             return 5;
         }

@@ -89,7 +89,7 @@ TEST_F(CalibManagerTest, CheckExpiryNonExistentFileReturnsError) {
 TEST_F(CalibManagerTest, GenerateOffsetNullFramesReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_calib_generate_offset(nullptr, 1, 10.0f, 20.0f,
-                                         tmpFile.string().c_str()));
+                                         tmpFile.string().c_str(), nullptr));
 }
 
 TEST_F(CalibManagerTest, GenerateOffsetZeroFramesReturnsError) {
@@ -105,7 +105,7 @@ TEST_F(CalibManagerTest, GenerateOffsetZeroFramesReturnsError) {
 
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_calib_generate_offset(&frame, 0, 10.0f, 20.0f,
-                                         tmpFile.string().c_str()));
+                                         tmpFile.string().c_str(), nullptr));
 }
 
 TEST_F(CalibManagerTest, GenerateOffsetNullOutputPathReturnsError) {
@@ -120,7 +120,7 @@ TEST_F(CalibManagerTest, GenerateOffsetNullOutputPathReturnsError) {
     frame.dataSize      = frameData.size() * sizeof(uint16_t);
 
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
-              xpe_calib_generate_offset(&frame, 1, 10.0f, 20.0f, nullptr));
+              xpe_calib_generate_offset(&frame, 1, 10.0f, 20.0f, nullptr, nullptr));
 }
 
 // --- xpe_calib_save (2-arg new API) ---
