@@ -186,11 +186,17 @@ public class ApplicationFixture : IDisposable
     /// </summary>
     private static string? GenerateCalibrationSet(out string note)
     {
-        var generator = ResolveRepositoryFile(Path.Combine("build", "ci-common", "bin", "xpe_calib_fixture_gen.exe"));
+        var generator = ResolveGenerator(out var searched);
         if (generator is null)
         {
-            note = "xpe_calib_fixture_gen.exe was not found under build/ci-common/bin — stage the " +
-                   "xpe-ci-preprocess-binaries artifact to exercise the preprocess success path.";
+            // The searched paths are named, not just the outcome. GUI-C-44: this skip fired on
+            // EVERY CI run — CI stages into build/e2e-native-dlls while this looked only under
+            // build/ci-common/bin — and the reason said "not found under build/ci-common/bin",
+            // which reads as "nothing was staged" rather than "I looked in the wrong place".
+            note = "xpe_calib_fixture_gen.exe was not found, so the preprocess success path is NOT " +
+                   $"measured. Looked in: {string.Join(" ; ", searched)}. Stage the " +
+                   "xpe-ci-preprocess-binaries artifact into one of these, or point " +
+                   $"{NativeDirVariable} at a directory holding the generator.";
             return null;
         }
 
@@ -238,6 +244,43 @@ public class ApplicationFixture : IDisposable
     }
 
     /// <summary>Walks up from the test output directory to a repository-relative file, or null.</summary>
+    /// <summary>
+    /// Finds <c>xpe_calib_fixture_gen.exe</c>, preferring the directory the run actually pinned.
+    ///
+    /// GUI-C-44. The generator used to be looked up only under <c>build/ci-common/bin</c> — the path
+    /// this lane stages into locally. CI stages into <c>build/e2e-native-dlls</c> and names it via
+    /// <see cref="NativeDirVariable"/>, so the lookup missed every time and W-02 skipped on every CI
+    /// run since it was written. The skip was correct behaviour (a missing tool is "not measured");
+    /// what was wrong was looking in one lane's directory and calling that "not staged".
+    ///
+    /// <paramref name="searched"/> carries every candidate so a failure names where it looked.
+    /// </summary>
+    private static string? ResolveGenerator(out IReadOnlyList<string> searched)
+    {
+        const string generatorName = "xpe_calib_fixture_gen.exe";
+        var candidates = new List<string>();
+
+        // The pinned native directory first: it is what THIS run exercises, and CI supplies it.
+        var nativeDir = Environment.GetEnvironmentVariable(NativeDirVariable);
+        if (!string.IsNullOrWhiteSpace(nativeDir))
+        {
+            candidates.Add(Path.Combine(nativeDir, generatorName));
+        }
+
+        // Then the lane's own staging path, walked up from the test output directory. Kept as a
+        // fallback rather than replaced: a local run without the variable set must keep working.
+        var relative = Path.Combine("build", "ci-common", "bin", generatorName);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            candidates.Add(Path.Combine(dir.FullName, relative));
+            dir = dir.Parent;
+        }
+
+        searched = candidates;
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
     private static string? ResolveRepositoryFile(string relativePath)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
