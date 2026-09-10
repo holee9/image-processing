@@ -295,11 +295,15 @@ Measurements, not targets. Coverage gate: `XPE_COVERAGE_MIN` = 0.85 line-rate pe
 
 | Preset | DLLs in scope | Measured line-rate | Gate vs. 0.85 |
 |--------|---------------|--------------------|---------------|
-| `coverage` | xpe_common, xpe_preprocess | 0.649 | **FAIL** |
+| `coverage` | xpe_common, xpe_preprocess | 0.725 | **FAIL** |
 | `coverage-post` | xpe_common, xpe_gsvg, xpe_enhance_basic, xpe_enhance_advanced, xpe_display | 0.898 | **PASS** |
+| `coverage-dicom` | xpe_common, xpe_dicom | 0.696 | **FAIL** |
 
-Source: CI `workflow_dispatch` run `34414537575`, 2026-09-10. Note that **`xpe_dicom` appears in
-neither preset** — no coverage figure exists for it; this is an open gap, not a pass.
+Source: CI `workflow_dispatch` run `34444576614`, 2026-09-10 (earlier run `34414537575` measured
+`coverage` 0.649 before test_xcal_compression was registered). `coverage-dicom` was added on
+2026-09-10 (#124, vcpkg DCMTK/OpenJPEG); its first run skipped 24 of 111 ctest cases on the CI
+runner (DegradedMode 10, DicomNetwork 8, Validator 4, Reader 2), which is the leading suspect for
+the low rate — QA-B-25 tracks the cause.
 
 Timing-budget tests are excluded from the coverage run by the ctest `-E` regex
 `XPE_COVERAGE_EXCLUDE_TESTS` (`cmake/XpeCoverage.cmake:29`):
@@ -360,8 +364,8 @@ Absorbed and corrected from the superseded Korean addendum §9. P1B V&V is compl
 the following hold:
 
 1. All 202 L1 unit-test cases (§4.1) execute with zero failures.
-2. Line coverage ≥ `XPE_COVERAGE_MIN` (0.85) for each P1B DLL — including `xpe_dicom`, which is
-   currently in no coverage preset (§6.5).
+2. Line coverage ≥ `XPE_COVERAGE_MIN` (0.85) for each P1B DLL — `xpe_dicom` is measured by
+   `coverage-dicom` since 2026-09-10 and currently fails at 0.696 (§6.5).
 3. Performance budgets of §6.2 met in a non-instrumented Release run (the coverage run excludes
    timing tests — §6.5).
 4. Memory-leak gate G3 passed for all three P1B modules (§6.5).

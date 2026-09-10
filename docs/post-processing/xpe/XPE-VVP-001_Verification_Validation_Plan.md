@@ -250,7 +250,8 @@ Lanes without a VVP addendum: `xpe_gsvg` (R2 도달 시), ghost/lag correction (
 |------|-------|-----------|----------------|--------|
 | Coverage (`coverage` preset) | xpe_common, xpe_preprocess | line-rate ≥ 0.85 | **0.649 — FAIL** | CI workflow_dispatch run `34414537575`, 2026-09-10 |
 | Coverage (`coverage-post` preset) | xpe_common, xpe_gsvg, xpe_enhance_basic, xpe_enhance_advanced, xpe_display | line-rate ≥ 0.85 | **0.898 — PASS** | 동일 run |
-| Coverage (xpe_dicom, xpe_ai) | — | line-rate ≥ 0.85 | **미측정** — 어느 preset 에도 포함되지 않음 | — |
+| Coverage (xpe_dicom) | `coverage-dicom` (#124) | line-rate ≥ 0.85 | **0.696 FAIL** — CI dispatch 34444576614 (2026-09-10 첫 측정; ctest 111 중 Skipped 24, 복구는 QA-B-25) | #120 |
+| Coverage (xpe_ai) | — | line-rate ≥ 0.85 | **미측정** — 스텁 빌드, preset 없음 (XPE-VVP-AI-001 §10) | #120 |
 | Timing-budget exclusion | 두 preset 공통 | ctest `-E "Performance\|Within[0-9]+ms\|PerformanceBudget\|LargeImagePerformance"` (`XPE_COVERAGE_EXCLUDE_TESTS`, `cmake/XpeCoverage.cmake:29`) | 적용 중 — 성능 예산은 커버리지 run 으로 검증되지 않음 | `cmake/XpeCoverage.cmake` |
 | G3 memory-leak gate | 7개 모듈 전체 | warm-up 100 cycle → baseline → 1000 cycle, working-set 증가 < 1 MB, 4096 B/cycle 주입 누수 민감도 프로브 | issue #105 종료 2026-09-10 | issue #105 |
 

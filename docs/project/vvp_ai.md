@@ -204,7 +204,7 @@ This is a measurement of absence, not a target. `xpe_ai` is built in **no covera
 Consequently **no line-rate figure exists for `xpe_ai`**, the 0.85 gate has never been evaluated
 against it, and the CI coverage run `34414537575` (2026-09-10) that produced the `coverage` 0.649
 and `coverage-post` 0.898 figures did not include this module. The same absence is recorded in
-`XPE-VVP-001` §Verification Gate Status ("xpe_dicom, xpe_ai — 미측정"). Closing it is tracked as
+`XPE-VVP-001` §Verification Gate Status ("xpe_ai — 미측정"; xpe_dicom 은 2026-09-10 coverage-dicom 으로 첫 측정 0.696). Closing it is tracked as
 **issue #124**.
 
 No statement anywhere in this plan may be read as asserting a coverage percentage for `xpe_ai`.
