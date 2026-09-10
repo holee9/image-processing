@@ -170,43 +170,6 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
     return XPE_OK;
 }
 
-DicomValidator::ValidationResult DicomValidator::checkConformance(const std::string& filePath) {
-    ValidationResult result;
-
-    DcmFileFormat dcmff;
-    OFCondition status = dcmff.loadFile(filePath.c_str(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength);
-    if (status.bad()) {
-        result.valid = false;
-        nlohmann::json errors = nlohmann::json::array();
-        nlohmann::json err;
-        err["tag"] = "0000,0000";
-        err["message"] = std::string("Parse error: ") + status.text();
-        errors.push_back(err);
-        result.errorsJson = errors.dump();
-        return result;
-    }
-
-    DcmDataset* ds = dcmff.getDataset();
-    if (!ds) {
-        result.valid = false;
-        return result;
-    }
-
-    nlohmann::json errors = nlohmann::json::array();
-    for (const auto& tagPair : s_requiredTags) {
-        DcmElement* elem = nullptr;
-        if (ds->findAndGetElement(tagPair.first, elem).bad() || !elem) {
-            result.valid = false;
-            nlohmann::json err;
-            err["tag"] = tagPair.second;
-            err["message"] = std::string("Missing tag: ") + tagPair.second;
-            errors.push_back(err);
-        }
-    }
-    result.errorsJson = errors.dump();
-    return result;
-}
-
 bool DicomValidator::isValidUID(const std::string& uid) {
     // DICOM UID: dot-separated numeric components, max 64 chars
     if (uid.empty() || uid.size() > 64) return false;
