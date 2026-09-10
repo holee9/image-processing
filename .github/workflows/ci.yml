@@ -361,11 +361,12 @@ jobs:
           path: gui/ImageProcTest/automation-report.json
 
   gui-e2e-native:
-    # FlaUI smoke against the REAL native DLLs (GUI-C-31). The gui app resolves
-    # DllImport from its own output folder (it does not read XPE_NATIVE_DIR -
-    # that locator policy belongs to clients/), so the CI artifacts are staged
-    # straight into gui/ImageProcTest/bin/Debug/net8.0-windows/. S-05 then
-    # demands a real semver and fails if the app silently fell back to Mock.
+    # FlaUI smoke against the REAL native DLLs (GUI-C-31/C-32). Since GUI-C-32
+    # the gui app resolves native DLLs through the shared NativeSearchPolicy
+    # locator, so the artifacts are staged into a SEPARATE directory and handed
+    # over with XPE_NATIVE_DIR + XPE_NATIVE_DIR_EXCLUSIVE=1 - the app folder holds
+    # no xpe_*.dll, so a pass here proves the locator path, not the OS loader.
+    # S-05 demands a real semver and fails if the app silently fell back to Mock.
     needs: [detect-lane, common-build, preprocess-tests, post-build]
     runs-on: windows-2025
     timeout-minutes: 20
@@ -382,26 +383,30 @@ jobs:
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
 
-      - name: Stage native DLLs into the gui output folder
+      - name: Stage native DLLs into a locator-only directory
         uses: actions/download-artifact@v6
         with:
           pattern: xpe-ci-{common,preprocess,post}-binaries
           merge-multiple: true
-          path: gui/ImageProcTest/bin/Debug/net8.0-windows/
+          path: build/e2e-native-dlls/
 
-      - name: Verify staged DLLs
+      - name: Verify staged DLLs and that the app folder holds none
         shell: pwsh
         run: |
-          $dir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
+          $dir = 'build/e2e-native-dlls'
           foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
+          $leak = Get-ChildItem 'gui/ImageProcTest/bin/Debug/net8.0-windows' -Filter xpe_*.dll -ErrorAction SilentlyContinue
+          if ($leak) { Write-Error "app folder must not contain xpe_*.dll (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
           Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
 
       - name: Run FlaUI E2E smoke (Native)
         shell: pwsh
         env:
           XPE_E2E_BACKEND: Native
+          XPE_NATIVE_DIR: ${{ github.workspace }}/build/e2e-native-dlls
+          XPE_NATIVE_DIR_EXCLUSIVE: "1"
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug

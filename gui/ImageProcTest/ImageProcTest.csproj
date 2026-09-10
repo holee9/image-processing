@@ -26,6 +26,19 @@
   <ItemGroup>
     <Compile Include="..\..\clients\ImageProcTest\Services\AlertDisplayFormatter.cs"
              Link="Services\AlertDisplayFormatter.cs" />
+    <!--
+      #129/#136: the native DLL search policy, shared rather than re-implemented. gui used to rely on
+      the Windows loader (app directory only), so XPE_NATIVE_DIR was inert here while clients obeyed
+      it — measured in GUI-C-31.
+    -->
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\NativeSearchPolicy.cs"
+             Link="Services\Native\Linked\NativeSearchPolicy.cs" />
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\XpeCommonLibraryLocator.cs"
+             Link="Services\Native\Linked\XpeCommonLibraryLocator.cs" />
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\NativeModuleLibraryLocator.cs"
+             Link="Services\Native\Linked\NativeModuleLibraryLocator.cs" />
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs"
+             Link="Services\Native\Linked\NativeDependencyLoader.cs" />
   </ItemGroup>
 
   <ItemGroup>

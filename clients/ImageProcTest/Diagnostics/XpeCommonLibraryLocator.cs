@@ -8,7 +8,7 @@ namespace ImageProcTest
     /// <summary>
     /// Where <c>xpe_common.dll</c> may be looked for (#129).
     ///
-    /// This list used to live inside <see cref="XpeCommonApi"/>, next to the DllImport resolver.
+    /// This list used to live inside <c>XpeCommonApi</c>, next to the DllImport resolver.
     /// That put it out of reach of the search-policy regression: a test project cannot compile
     /// <c>PInvokeWrapper.cs</c>, because <c>XpeCommonApi</c>'s static constructor registers a
     /// DllImport resolver and one assembly may only have one (measured in GUI-C-13). So xpe_common —
