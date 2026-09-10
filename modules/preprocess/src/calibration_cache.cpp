@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <string>
 #include <utility>
+#include <vector>
 
 /* =========================================================================
  * Internal cache structures
@@ -172,6 +173,43 @@ private:
 // @MX:NOTE: [AUTO] Singleton cache instance — module-scoped, not thread-safe
 CalibrationLRUCache g_calibCache;
 
+/**
+ * @brief Completes a cache miss under the cache-owned-view contract (#127).
+ *
+ * Allocates exactly one buffer, hands ownership to the cache, then reads the
+ * entry back so the caller receives the CACHE's pointer -- the same pointer a
+ * later hit returns.
+ *
+ * The caller's XpeImageBuffer is filled by value only. Its incoming `data` is
+ * never freed or reallocated: under this contract the caller never owned one,
+ * and a stale value there may be another live cache entry's pointer.
+ *
+ * @MX:ANCHOR: [AUTO] single ownership seam for all three cached loaders
+ * @MX:REASON: the previous per-loader miss path reallocated the caller pointer,
+ *             so hit and miss returned differently-owned buffers (#127).
+ * @MX:SPEC: api-spec.md 6 "Cached loaders - ownership"
+ */
+XpeErrorCode publish_and_view(const std::string& path,
+                              const XpeImageBuffer& desc,
+                              const void* src,
+                              XpeImageBuffer* out)
+{
+    XpeImageBuffer entry = desc;
+    entry.data = std::malloc(static_cast<size_t>(entry.dataSize));
+    if (!entry.data) return XPE_ERR_OUT_OF_MEMORY;
+    std::memcpy(entry.data, src, static_cast<size_t>(entry.dataSize));
+
+    // put() takes ownership of entry.data and nulls it.
+    g_calibCache.put(path, &entry);
+
+    // Read back the cache's own pointer. put() evicts before inserting, so the
+    // entry just added is present at any capacity >= 1.
+    if (!g_calibCache.get(path, out)) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+    return XPE_OK;
+}
+
 } // anonymous namespace
 
 /* =========================================================================
@@ -195,45 +233,27 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
     XpeErrorCode rc = xpe_calib_load_offset(filePath);
     if (rc != XPE_OK) return rc;
 
-    // Copy from g_calib to caller's buffer
+    // Snapshot the freshly loaded map, then publish it to the cache and hand
+    // back the cache's view of it (#127).
+    XpeImageBuffer desc{};
+    std::vector<uint8_t> staging;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.offset_map || g_calib.offset_width == 0) return XPE_ERR_NOT_INITIALIZED;
 
         const size_t pixelCount = static_cast<size_t>(g_calib.offset_width) * g_calib.offset_height;
-        offsetMapOut->width         = g_calib.offset_width;
-        offsetMapOut->height        = g_calib.offset_height;
-        offsetMapOut->bitsAllocated = 32u;
-        offsetMapOut->bitsStored    = 32u;
-        offsetMapOut->format        = XPE_PIXEL_FLOAT32;
-        offsetMapOut->dataSize      = pixelCount * sizeof(float);
+        desc.width         = g_calib.offset_width;
+        desc.height        = g_calib.offset_height;
+        desc.bitsAllocated = 32u;
+        desc.bitsStored    = 32u;
+        desc.format        = XPE_PIXEL_FLOAT32;
+        desc.dataSize      = pixelCount * sizeof(float);
 
-        // Allocate or reallocate caller buffer
-        void* buf = std::realloc(offsetMapOut->data, offsetMapOut->dataSize);
-        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
-        offsetMapOut->data = buf;
-        std::memcpy(offsetMapOut->data, g_calib.offset_map.get(), offsetMapOut->dataSize);
+        staging.resize(static_cast<size_t>(desc.dataSize));
+        std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
     }
 
-    // Allocate a separate buffer for the cache and copy data
-    // (The caller retains ownership of their original buffer)
-    XpeImageBuffer cacheEntry{};
-    cacheEntry.width         = offsetMapOut->width;
-    cacheEntry.height        = offsetMapOut->height;
-    cacheEntry.bitsAllocated = offsetMapOut->bitsAllocated;
-    cacheEntry.bitsStored    = offsetMapOut->bitsStored;
-    cacheEntry.format        = offsetMapOut->format;
-    cacheEntry.dataSize      = offsetMapOut->dataSize;
-
-    cacheEntry.data = std::malloc(cacheEntry.dataSize);
-    if (!cacheEntry.data) {
-        // Cache insert failed — not an error, caller still has valid data
-        return XPE_OK;
-    }
-    std::memcpy(cacheEntry.data, offsetMapOut->data, cacheEntry.dataSize);
-
-    g_calibCache.put(std::string(filePath), &cacheEntry);
-    return XPE_OK;
+    return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_gain_cached — cached gain map loader
@@ -252,39 +272,27 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
     XpeErrorCode rc = xpe_calib_load_gain(filePath);
     if (rc != XPE_OK) return rc;
 
-    // Copy from g_calib to caller's buffer
+    // Snapshot the freshly loaded map, then publish it to the cache and hand
+    // back the cache's view of it (#127).
+    XpeImageBuffer desc{};
+    std::vector<uint8_t> staging;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.gain_map || g_calib.gain_width == 0) return XPE_ERR_NOT_INITIALIZED;
 
         const size_t pixelCount = static_cast<size_t>(g_calib.gain_width) * g_calib.gain_height;
-        gainMapOut->width         = g_calib.gain_width;
-        gainMapOut->height        = g_calib.gain_height;
-        gainMapOut->bitsAllocated = 32u;
-        gainMapOut->bitsStored    = 32u;
-        gainMapOut->format        = XPE_PIXEL_FLOAT32;
-        gainMapOut->dataSize      = pixelCount * sizeof(float);
+        desc.width         = g_calib.gain_width;
+        desc.height        = g_calib.gain_height;
+        desc.bitsAllocated = 32u;
+        desc.bitsStored    = 32u;
+        desc.format        = XPE_PIXEL_FLOAT32;
+        desc.dataSize      = pixelCount * sizeof(float);
 
-        void* buf = std::realloc(gainMapOut->data, gainMapOut->dataSize);
-        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
-        gainMapOut->data = buf;
-        std::memcpy(gainMapOut->data, g_calib.gain_map.get(), gainMapOut->dataSize);
+        staging.resize(static_cast<size_t>(desc.dataSize));
+        std::memcpy(staging.data(), g_calib.gain_map.get(), staging.size());
     }
 
-    XpeImageBuffer cacheEntry{};
-    cacheEntry.width         = gainMapOut->width;
-    cacheEntry.height        = gainMapOut->height;
-    cacheEntry.bitsAllocated = gainMapOut->bitsAllocated;
-    cacheEntry.bitsStored    = gainMapOut->bitsStored;
-    cacheEntry.format        = gainMapOut->format;
-    cacheEntry.dataSize      = gainMapOut->dataSize;
-
-    cacheEntry.data = std::malloc(cacheEntry.dataSize);
-    if (!cacheEntry.data) return XPE_OK;
-
-    std::memcpy(cacheEntry.data, gainMapOut->data, cacheEntry.dataSize);
-    g_calibCache.put(std::string(filePath), &cacheEntry);
-    return XPE_OK;
+    return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_defect_cached — cached defect map loader
@@ -303,39 +311,27 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
     XpeErrorCode rc = xpe_calib_load_defect_map(filePath);
     if (rc != XPE_OK) return rc;
 
-    // Copy from g_calib to caller's buffer
+    // Snapshot the freshly loaded map, then publish it to the cache and hand
+    // back the cache's view of it (#127).
+    XpeImageBuffer desc{};
+    std::vector<uint8_t> staging;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.defect_map || g_calib.defect_width == 0) return XPE_ERR_NOT_INITIALIZED;
 
         const size_t pixelCount = static_cast<size_t>(g_calib.defect_width) * g_calib.defect_height;
-        defectMapOut->width         = g_calib.defect_width;
-        defectMapOut->height        = g_calib.defect_height;
-        defectMapOut->bitsAllocated = 8u;
-        defectMapOut->bitsStored    = 8u;
-        defectMapOut->format        = XPE_PIXEL_UINT8;
-        defectMapOut->dataSize      = pixelCount * sizeof(uint8_t);
+        desc.width         = g_calib.defect_width;
+        desc.height        = g_calib.defect_height;
+        desc.bitsAllocated = 8u;
+        desc.bitsStored    = 8u;
+        desc.format        = XPE_PIXEL_UINT8;
+        desc.dataSize      = pixelCount * sizeof(uint8_t);
 
-        void* buf = std::realloc(defectMapOut->data, defectMapOut->dataSize);
-        if (!buf) return XPE_ERR_OUT_OF_MEMORY;
-        defectMapOut->data = buf;
-        std::memcpy(defectMapOut->data, g_calib.defect_map.get(), defectMapOut->dataSize);
+        staging.resize(static_cast<size_t>(desc.dataSize));
+        std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
     }
 
-    XpeImageBuffer cacheEntry{};
-    cacheEntry.width         = defectMapOut->width;
-    cacheEntry.height        = defectMapOut->height;
-    cacheEntry.bitsAllocated = defectMapOut->bitsAllocated;
-    cacheEntry.bitsStored    = defectMapOut->bitsStored;
-    cacheEntry.format        = defectMapOut->format;
-    cacheEntry.dataSize      = defectMapOut->dataSize;
-
-    cacheEntry.data = std::malloc(cacheEntry.dataSize);
-    if (!cacheEntry.data) return XPE_OK;
-
-    std::memcpy(cacheEntry.data, defectMapOut->data, cacheEntry.dataSize);
-    g_calibCache.put(std::string(filePath), &cacheEntry);
-    return XPE_OK;
+    return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut);
 }
 
 XPE_API void xpe_calib_cache_clear(void)
