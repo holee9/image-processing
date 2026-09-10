@@ -118,7 +118,16 @@ TEST_F(AiWorkerIsolationTest, StubModeDlDenoiseFallsBackGracefully) {
  * Multiple calls should consistently fall back without state corruption.
  * ============================================================================ */
 
-TEST_F(AiWorkerIsolationTest, RepeatedFallbackIsConsistent) {
+// KnownDivergence_ (QA-B-43): this records what the current implementation
+// does, not what any requirement asks for. No SPEC, api-spec or header
+// sentence states this value; if the implementation changed it, that would
+// be a change, not a defect. The prefix keeps the distinction visible in the
+// ctest listing, where a reader sees only the name.
+// Specifically: the loop pins the stub's label and confidence as well as the
+// return code. What a requirement actually asks for is that repeated calls
+// answer consistently -- which this still checks, because every iteration
+// compares against the same values.
+TEST_F(AiWorkerIsolationTest, KnownDivergence_RepeatedStubFallbackIsConsistent) {
     std::vector<uint16_t> storage;
     XpeImageBuffer img = makeTestBuffer(64, 64, storage);
 
