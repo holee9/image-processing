@@ -17,6 +17,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.3.1   | 2026-09-10 | manager-docs (lead) | #117: converged the SPEC on the implemented global-calibration design (SPEC-XPE-P1A M2, commit e9b8ed4). REQ-P1A-010~012 restated with the `(input, output, metadata)` signatures reading the module-global calibration store; REQ-P1A-014~016 restated as single-path loaders that populate that store; REQ-P1A-016a added (`xpe_calib_state_load` contract); REQ-P1A-020 narrowed to "module not initialized"; REQ-P1A-020a added for `XPE_ERR_CALIB_NOT_LOADED`; REQ-P1A-003 annotated (loaders write the store, processing calls only read it). |
 | 1.3.0   | 2026-04-19 | manager-ddd (MoAI Team Mode) | M2 (REQ-P1A-010~013) implementation complete. Offset correction (AVX2 bit-identical), Gain correction (Reciprocal + FMA, 1 ULP parity), Defect correction (Bilinear + cluster fallback), Runtime detection (Hampel 5-sigma). 657 lines added across 7 files. Integration tests added. MX tags applied. |
 | 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Strengthen REQ-P1A-010~013 with pixel-accuracy tolerances from research.md v2.0.0. Add REQ-P1A-013 algorithmic recipe (Hampel 5-sigma). Add Section 4.6 (SIMD Parity Contract) referencing simd-parity-harness.md. Research references refreshed to 2022-2026 survey. |
 | 1.1.0   | 2026-04-18 | manager-docs | SUP-01 (REQ-P1A-014~019) implemented and tested. 89/90 tests pass. XCal v1 format finalized. PicoSHA2 vendored. |
@@ -109,6 +110,7 @@ All processing functions **shall** be reentrant with independent caller-supplied
 
 - **SRS**: SRS-THREAD-001
 - **Traceability**: All SWUs
+- **Note (2026-09-10, #117)**: This requirement remains true under the global-calibration design. The module-global calibration store (SWU-1.5 `LoadedCalibration`) is written **only** by the calibration loaders (`xpe_calib_load_offset` / `_gain` / `_defect_map`, and `xpe_calib_state_load` which delegates to them); processing calls only **read** it, under the module mutex `g_calib_mutex`, and copy the map they need before running the pixel kernel. Loading is therefore a configuration act, not a processing call.
 
 #### REQ-P1A-004: Error Code Consistency
 
@@ -128,7 +130,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-010: Offset Correction Execution
 
-**When** `xpe_offset_correct(img, offsetMap)` is called with valid inputs of matching dimensions and format, the module **shall** subtract the per-pixel dark offset from `img` in-place, clamping the result to zero (floor-at-zero behavior).
+**When** `xpe_offset_correct(input, output, metadata)` is called on an initialized module with a previously loaded offset map, valid non-NULL arguments and matching dimensions, the module **shall** subtract the per-pixel dark offset held in the module-global calibration store from `input` and write the result to the caller-allocated `output`, clamping to zero (floor-at-zero behavior). **While** the module is initialized but no offset map has been loaded, the call **shall** return `XPE_ERR_CALIB_NOT_LOADED`.
 
 - **SRS**: SRS-CALIB-001
 - **Traceability**: PRE-02, SWU-1.1
@@ -142,7 +144,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-011: Gain Correction Execution
 
-**When** `xpe_gain_correct(img, gainMap)` is called with valid inputs of matching dimensions and format, the module **shall** multiply each pixel by the corresponding gain factor in-place.
+**When** `xpe_gain_correct(input, output, metadata)` is called on an initialized module with a previously loaded gain map, valid non-NULL arguments and matching dimensions, the module **shall** multiply each pixel of `input` by the corresponding gain factor from the module-global calibration store and write the FLOAT32 result to the caller-allocated `output`. **While** the module is initialized but no gain map has been loaded, the call **shall** return `XPE_ERR_CALIB_NOT_LOADED`.
 
 - **SRS**: SRS-CALIB-002
 - **Traceability**: PRE-03, SWU-1.2
@@ -157,7 +159,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-012: Defect Correction Execution
 
-**When** `xpe_defect_correct(img, defectMap, configJsonOrNull)` is called with valid inputs, the module **shall** replace all defective pixel values (where defectMap is non-zero) with interpolated values from valid neighboring pixels using the configured interpolation method (nearest/bilinear/median, default: bilinear).
+**When** `xpe_defect_correct(input, output, metadata)` is called on an initialized module with a previously loaded defect map, valid non-NULL arguments and matching dimensions, the module **shall** replace all defective pixel values (where the defect map held in the module-global calibration store is non-zero) with values interpolated from valid neighboring pixels, writing the result to the caller-allocated `output`. **While** the module is initialized but no defect map has been loaded, the call **shall** return `XPE_ERR_CALIB_NOT_LOADED`. Interpolation behavior is fixed at this entry point (no per-call `configJsonOrNull` parameter); it is configured at the pipeline level.
 
 - **SRS**: SRS-CALIB-003, SRS-CALIB-004
 - **Traceability**: PRE-06, SWU-1.3
@@ -195,24 +197,31 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
 
-**When** `xpe_calib_load_offset(filePath, offsetMapOut)` is called with a valid XCal file path, the module **shall** parse the XCal header, validate SHA-256 integrity, check expiry, and load the offset map data into the pre-allocated `offsetMapOut`.
+**When** `xpe_calib_load_offset(filepath)` is called with a valid XCal file path, the module **shall** parse the XCal header, validate SHA-256 integrity, check session matching and expiry, and load the offset map data into the module-global calibration store (SWU-1.5 `LoadedCalibration`) under `g_calib_mutex`. The function takes no output-buffer parameter; the loaded map is consumed by `xpe_offset_correct` and by the pipeline entry points. The LRU-cached variant `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is the form that returns a map to the caller.
 
 - **SRS**: SRS-CALIB-010
 - **Traceability**: SUP-01
 
 #### REQ-P1A-015: Calibration File Loading (Gain)
 
-**When** `xpe_calib_load_gain(filePath, gainMapOut)` is called with a valid XCal file path, the module **shall** parse, validate, and load the gain map data into `gainMapOut`.
+**When** `xpe_calib_load_gain(filepath)` is called with a valid XCal file path, the module **shall** parse, validate, and load the gain map data (with its kVp interpolation table) into the module-global calibration store under `g_calib_mutex`. No output-buffer parameter; the caller-returning form is `xpe_calib_load_gain_cached(filePath, gainMapOut)`.
 
 - **SRS**: SRS-CALIB-011
 - **Traceability**: SUP-01
 
 #### REQ-P1A-016: Calibration File Loading (Defect Map)
 
-**When** `xpe_calib_load_defect_map(filePath, defectMapOut)` is called with a valid XCal file path, the module **shall** load the boolean defect map into `defectMapOut`.
+**When** `xpe_calib_load_defect_map(filepath)` is called with a valid XCal file path, the module **shall** load the boolean defect map into the module-global calibration store under `g_calib_mutex`. No output-buffer parameter; the caller-returning form is `xpe_calib_load_defect_cached(filePath, defectMapOut)`.
 
 - **SRS**: SRS-CALIB-012
 - **Traceability**: SUP-01
+
+#### REQ-P1A-016a: Calibration State Load Contract
+
+**When** `xpe_calib_state_load(state, calibPath)` is called with a non-NULL zero-initialized `state` and a valid directory path, the module **shall** compose `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath`, delegate to the three single-path loaders — so that the maps land in the **module-global calibration store, not in the caller's struct** — and set only the three `offsetLoaded` / `gainLoaded` / `defectLoaded` flags on `XpeCalibrationState`. The `offsetMap` / `gainMap` / `defectMap` buffer fields of the struct **are not required to be filled**, and callers **shall not** read them as loaded data. A missing file leaves the corresponding flag `false` and the call still returns `XPE_OK`; a NULL `state` or `calibPath` returns `XPE_ERR_INVALID_INPUT`. Correspondingly, `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` **shall** take offset and gain from the global store and consult `calibState` only for a defect map, accepting `NULL` for `calibState`.
+
+- **SRS**: SRS-CALIB-010, SRS-CALIB-011, SRS-CALIB-012
+- **Traceability**: SUP-01, SWU-1.5, SWU-1.11
 
 #### REQ-P1A-017: Calibration Offset Generation
 
@@ -239,10 +248,18 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-020: Not-Initialized Guard
 
-**While** the module is not initialized (`xpe_preprocess_init()` not called or after `xpe_preprocess_shutdown()`), all processing functions **shall** return `XPE_ERR_NOT_INITIALIZED` without modifying any output parameters.
+**While** the module is not initialized (`xpe_preprocess_init()` not called or after `xpe_preprocess_shutdown()`), all processing functions **shall** return `XPE_ERR_NOT_INITIALIZED` without modifying any output parameters. `XPE_ERR_NOT_INITIALIZED` means exactly that — the module was never initialized or has been shut down. It **shall not** be used to report loaded-calibration state.
 
 - **SRS**: SRS-INIT-003
 - **Traceability**: All SWUs
+
+#### REQ-P1A-020a: Calibration-Not-Loaded Guard
+
+**While** the module is initialized but the calibration map required by the requested correction has not been loaded into the module-global store, `xpe_offset_correct`, `xpe_gain_correct`, `xpe_defect_correct` and the pipeline entry points **shall** return `XPE_ERR_CALIB_NOT_LOADED` without modifying any output parameters. Precedence follows the api-spec "Error code precedence" section: a NULL required pointer yields `XPE_ERR_INVALID_INPUT` (class 1) first; `XPE_ERR_CALIB_NOT_LOADED` sits in class 2 alongside `XPE_ERR_NOT_INITIALIZED` and the other content validations, whose relative order is implementation-defined.
+
+- **SRS**: SRS-INIT-003, SRS-CALIB-001, SRS-CALIB-002, SRS-CALIB-003
+- **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3, SWU-1.5
+- **Note**: `XPE_ERR_CALIB_NOT_LOADED` is added to `modules/common/include/xpe/common/xpe_error.h` by QA-A-20 as the next code after the current last entry; until it lands, the reference implementation returns `XPE_ERR_NOT_INITIALIZED` for this condition.
 
 #### REQ-P1A-021: Dimension Mismatch Guard
 
