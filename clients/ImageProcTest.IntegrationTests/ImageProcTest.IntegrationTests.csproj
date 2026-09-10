@@ -59,6 +59,8 @@
     <Compile Include="..\ImageProcTest\Diagnostics\XpeEnhanceBasicLibraryLocator.cs" Link="DegradedMode\Linked\XpeEnhanceBasicLibraryLocator.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessLibraryLocator.cs" Link="DegradedMode\Linked\XpePreprocessLibraryLocator.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\XpeCommonLibraryLocator.cs" Link="DegradedMode\Linked\XpeCommonLibraryLocator.cs" />
+    <!-- #110: alert-queue loss notice formatting (api-spec 5.17). Pure string logic, no native calls. -->
+    <Compile Include="..\ImageProcTest\Services\AlertDisplayFormatter.cs" Link="Alerts\Linked\AlertDisplayFormatter.cs" />
   </ItemGroup>
 
   <!--
