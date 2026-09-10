@@ -68,6 +68,16 @@ typedef struct XpeImageBuffer {
 
 **Output buffers are not covered by this rule.** A caller-provided output `XpeImageBuffer` is written to, so its `dataSize` MUST be populated; an output `dataSize` smaller than the required byte count yields `XPE_ERR_BUFFER_TOO_SMALL`, and `0` is not treated as unspecified (leader decision 2026-09-10, QA-A-17).
 
+**Caller-supplied output buffers (`ptr` + `len` pairs) — normative, decision 2026-09-11, #142.** Entry points that write a string or a serialised report into a caller buffer (`xpe_dicom_validate`, `xpe_dicom_cfind*`, `xpe_ai_bodypart_recognize`, `xpe_ai_get_model_card`, and their siblings) follow one rule, checked in this order:
+
+1. The output pointer is `NULL`, **or** the declared length is `0` -> `XPE_ERR_INVALID_INPUT`. The argument does not exist; this is not a size problem.
+2. The buffer exists but is smaller than the required byte count -> `XPE_ERR_BUFFER_TOO_SMALL`.
+
+Because the checks are ordered, the two outcomes can never overlap. Where an entry point reports the required size by writing a `uint32_t` into the head of the caller buffer, it MUST verify that four bytes are actually available first; a buffer shorter than four bytes receives no size report (QA-B-42 observed the unguarded form writing past a two-byte buffer in `DicomValidator::validate`). Callers MUST NOT assume a size is always written back.
+
+Truncation is never a success path: an entry point that cannot fit its full output returns `XPE_ERR_BUFFER_TOO_SMALL` rather than writing a truncated value (QA-B-42 removed the `strncpy` truncation in `xpe_ai_bodypart_recognize`).
+
+
 `bytesPerPixel` is 2 for `XPE_PIXEL_UINT16` and 4 for `XPE_PIXEL_FLOAT32`. Rationale: a non-NULL buffer smaller than its declared dimensions reads past its allocation (QA-B-18); `0` stays accepted because existing callers do not populate the field.
 
 typedef struct XpeImageMetadata {
