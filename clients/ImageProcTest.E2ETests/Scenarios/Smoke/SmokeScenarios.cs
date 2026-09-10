@@ -1,5 +1,6 @@
 // XPE-GUI-E2E-001 §4.1: the smoke suite. Gate: the five scenarios together under 30 s.
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using ImageProcTest.E2ETests.Fixtures;
@@ -134,22 +135,29 @@ public sealed class SmokeScenarios
     }
 
     /// <summary>
-    /// S-05, NARROWED. The plan asserts a Runtime Panel version label (XPE_Runtime_CommonVersion).
-    /// Measured: no element in any XAML renders a backend version — RuntimeInfo is not bound to the
-    /// view at all (report §2). Adding such a label would be a UI change this card excludes, so what
-    /// is asserted instead is the status bar the app does have: present, and carrying text.
-    /// The absent version display is reported as the finding.
+    /// S-05 (plan §4.1, restored): the runtime version is visible on screen.
+    ///
+    /// GUI-C-29 measured that nothing rendered a version — RuntimeInfo was not bound to the view —
+    /// so the scenario was narrowed and the absence reported. GUI-C-30 added the label, and this is
+    /// the plan's assertion put back: the text names the backend mode and carries a version that is
+    /// either a semver or the mock marker.
     /// </summary>
     [SkippableFact]
-    public void S05_StatusBar_IsPresentAndCarriesText()
+    public void S05_RuntimePanel_ShowsBackendVersion()
     {
         Measure("S-05", window =>
         {
-            var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
-            Assert.True(status is not null, "StatusBarText was not found.");
-            Assert.False(
-                string.IsNullOrWhiteSpace(status!.Name),
-                "StatusBarText is present but shows nothing.");
+            var label = window.FindFirstDescendant(cf => cf.ByAutomationId("RuntimeCommonVersionText"));
+            Assert.True(label is not null, "RuntimeCommonVersionText was not found.");
+
+            var text = label!.Name;
+            Assert.False(string.IsNullOrWhiteSpace(text), "The runtime version label is empty.");
+            Assert.Contains("mode=", text, StringComparison.Ordinal);
+
+            // A version the backend actually reported: either dotted digits, or the mock marker.
+            Assert.True(
+                Regex.IsMatch(text, @"\d+\.\d+\.\d+") || text.Contains("mock", StringComparison.OrdinalIgnoreCase),
+                $"The label shows no version — expected a semver or a mock marker, got '{text}'.");
         });
     }
 
