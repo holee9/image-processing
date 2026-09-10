@@ -17,10 +17,14 @@
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmjpeg/djencode.h>
+#include <dcmtk/dcmjpeg/djrplol.h>
+#include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
+#include <atomic>
 #include <cstdio>
 #include <filesystem>
+#include <thread>
 #include <fstream>
 
 namespace fs = std::filesystem;
@@ -656,6 +660,176 @@ TEST_F(DicomReaderTest, EverySupportedTransferSyntaxActuallyReads) {
                "be bit-exact";
         xpe_free_image(&actual);
     }
+
+    xpe_free_image(&expected);
+}
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-46): JPEG-LL input variety.
+//
+// QA-B-45 verified exactly one JPEG-LL file: DCMTK's encoder at its default
+// settings. "Lossless works" was therefore a claim about one encoder
+// configuration. JPEG Lossless (Process 14, first-order) admits several
+// predictor selection values, and a real device uses whichever its vendor
+// chose, so the reader must handle more than the one we happened to produce.
+//
+// Each variant is compared byte-for-byte against the uncompressed original --
+// the standard QA-B-45 set. A lossless round trip that differs anywhere is a
+// failure, however plausible the image looks.
+// ---------------------------------------------------------------------------
+namespace {
+
+// Encode with an explicit predictor selection value. Returns false when DCMTK
+// declines to produce that variant; the caller reports it rather than
+// pretending the case ran.
+bool WriteJpegLosslessVariant(const fs::path& src, const fs::path& dst,
+                              int predictor, std::string& whyNot) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (!ff.loadFile(src.string().c_str()).good()) {
+            whyNot = "loadFile failed";
+        } else {
+            DcmDataset* ds = ff.getDataset();
+            const DJ_RPLossless params(predictor, 0);
+            const OFCondition rc =
+                ds ? ds->chooseRepresentation(EXS_JPEGProcess14SV1, &params)
+                   : EC_IllegalCall;
+            if (!rc.good()) {
+                whyNot = std::string("chooseRepresentation: ") + rc.text();
+            } else if (!ds->canWriteXfer(EXS_JPEGProcess14SV1)) {
+                whyNot = "canWriteXfer said no";
+            } else if (!ff.saveFile(dst.string().c_str(), EXS_JPEGProcess14SV1).good()) {
+                whyNot = "saveFile failed";
+            } else {
+                ok = true;
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, ReadJpegLosslessPredictorVariants_AllPixelExact) {
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+
+    const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                         sizeof(uint16_t);
+
+    // Selection values 1..7 are the first-order predictors of the JPEG lossless
+    // process. Any that DCMTK will not encode is reported, not skipped silently.
+    int produced = 0;
+    for (int predictor = 1; predictor <= 7; ++predictor) {
+        SCOPED_TRACE("predictor selection value " + std::to_string(predictor));
+        const auto path = s_tempDir / ("jpegll_pred" + std::to_string(predictor) + ".dcm");
+
+        std::string whyNot;
+        if (!WriteJpegLosslessVariant(s_validDcm, path, predictor, whyNot)) {
+            // Recorded, not asserted: an encoder that cannot produce a variant
+            // says nothing about whether the reader could decode it.
+            GTEST_LOG_(INFO) << "predictor " << predictor
+                             << ": fixture not produced (" << whyNot << ")";
+            continue;
+        }
+        ++produced;
+
+        XpeDicomHandle* handle = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+        XpeImageBuffer actual{};
+        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual));
+        xpe_dicom_close(handle);
+
+        ASSERT_EQ(expected.width, actual.width);
+        ASSERT_EQ(expected.height, actual.height);
+        EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
+            << "lossless round trip must be bit-exact for this predictor";
+        xpe_free_image(&actual);
+    }
+
+    // Printed rather than inferred: the count is the evidence for how much
+    // wider this case is than QA-B-45, and a reader of the log should not have
+    // to deduce it from the absence of skip messages.
+    GTEST_LOG_(INFO) << "predictor variants produced and verified: " << produced
+                     << " of 7";
+    EXPECT_GT(produced, 1)
+        << "only one predictor variant could be produced; the case would then be "
+           "no broader than QA-B-45";
+
+    xpe_free_image(&expected);
+}
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-46): concurrent open().
+//
+// QA-B-45 guarded the codec registration with std::call_once because DCMTK's
+// registerCodecs mutates global tables. That reasoning came from reading the
+// code; this case runs it.
+//
+// WHAT THIS TEST DOES NOT PROVE: passing is not evidence that the code is
+// thread-safe. A data race can stay invisible across many runs. What a pass
+// establishes is narrower -- that the obvious failure modes (crash, decode
+// failure, corrupted pixels under contention) did not occur here. The QA-B-46
+// report states the same limit rather than letting a green tick imply more.
+//
+// The threads are joined inside the case. Nothing is left running: no detached
+// thread, no background load, no spawned process.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, ConcurrentOpenOfJpegLossless_NoCorruption) {
+    const auto jpegPath = s_tempDir / "jpegll_concurrent.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegPath))
+        << "the concurrent path must exercise the codec, not plain Explicit LE";
+
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+    const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                         sizeof(uint16_t);
+
+    constexpr int kThreads = 8;
+    constexpr int kRounds  = 8;
+    std::atomic<int> openFailures{0};
+    std::atomic<int> readFailures{0};
+    std::atomic<int> mismatches{0};
+
+    std::vector<std::thread> workers;
+    workers.reserve(kThreads);
+    for (int t = 0; t < kThreads; ++t) {
+        workers.emplace_back([&]() {
+            for (int r = 0; r < kRounds; ++r) {
+                XpeDicomHandle* h = nullptr;
+                if (xpe_dicom_open(jpegPath.string().c_str(), &h) != XPE_OK) {
+                    ++openFailures;
+                    continue;
+                }
+                XpeImageBuffer img{};
+                if (xpe_dicom_read_image(h, &img) != XPE_OK) {
+                    ++readFailures;
+                } else {
+                    if (std::memcmp(expected.data, img.data, bytes) != 0) {
+                        ++mismatches;
+                    }
+                    xpe_free_image(&img);
+                }
+                xpe_dicom_close(h);
+            }
+        });
+    }
+    for (auto& w : workers) {
+        w.join();   // every thread joined here; none outlives the case
+    }
+
+    EXPECT_EQ(0, openFailures.load()) << "open failed under contention";
+    EXPECT_EQ(0, readFailures.load()) << "decode failed under contention";
+    EXPECT_EQ(0, mismatches.load())   << "pixels differed under contention";
 
     xpe_free_image(&expected);
 }
