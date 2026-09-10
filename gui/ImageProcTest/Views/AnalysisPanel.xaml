@@ -230,13 +230,15 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Center" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox Text="{Binding Settings.VoiWindowCenter, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="VoiWindowCenterInput"
+                                     Text="{Binding Settings.VoiWindowCenter, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#0DFFFFFF" Foreground="#f0f2f5"
                                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Width" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox Text="{Binding Settings.VoiWindowWidth, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="VoiWindowWidthInput"
+                                     Text="{Binding Settings.VoiWindowWidth, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#0DFFFFFF" Foreground="#f0f2f5"
                                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
                         </StackPanel>
@@ -347,7 +349,8 @@
                                 Padding="8,2" />
                     </Grid>
 
-                    <ListBox ItemsSource="{Binding Logs}"
+                    <ListBox AutomationProperties.AutomationId="LogListBox"
+                             ItemsSource="{Binding Logs}"
                              Background="Transparent" BorderThickness="0"
                              Foreground="#f0f2f5" MaxHeight="600"
                              FontFamily="Consolas" FontSize="11">

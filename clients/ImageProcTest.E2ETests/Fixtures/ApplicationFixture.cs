@@ -23,11 +23,22 @@ namespace ImageProcTest.E2ETests.Fixtures;
 /// A leaked app process holds a window that the next test class would find and drive, so disposal
 /// kills rather than asks: <c>Close()</c> on a WPF window can be refused or blocked by a dialog.
 /// </summary>
-public sealed class ApplicationFixture : IDisposable
+public class ApplicationFixture : IDisposable
 {
     private readonly Application? _application;
 
     public ApplicationFixture()
+        : this(rawImageRelativePath: null)
+    {
+    }
+
+    /// <summary>
+    /// #136 (GUI-C-34): a workflow run needs an image on screen. The app already loads one when
+    /// given <c>--automation-raw</c>, and that path is reused rather than driving the file dialog
+    /// through UIA — a modal Win32 dialog is the most brittle thing a suite can automate, and the
+    /// app offers a supported way in.
+    /// </summary>
+    protected ApplicationFixture(string? rawImageRelativePath)
     {
         Automation = new UIA3Automation();
 
@@ -56,6 +67,25 @@ public sealed class ApplicationFixture : IDisposable
         };
         startInfo.ArgumentList.Add("--automation-backend");
         startInfo.ArgumentList.Add(BackendMode);
+
+        if (rawImageRelativePath is not null)
+        {
+            var raw = Path.Combine(Path.GetDirectoryName(exePath)!, rawImageRelativePath);
+            if (!File.Exists(raw))
+            {
+                SkipReason = $"Fixture image not found: {raw}";
+                return;
+            }
+
+            // Width/height must accompany the path — the loader reads raw bytes and cannot infer them.
+            startInfo.ArgumentList.Add("--automation-raw");
+            startInfo.ArgumentList.Add(raw);
+            startInfo.ArgumentList.Add("--automation-width");
+            startInfo.ArgumentList.Add("1024");
+            startInfo.ArgumentList.Add("--automation-height");
+            startInfo.ArgumentList.Add("1024");
+            RawImagePath = raw;
+        }
 
         if (BackendMode == "Native")
         {
@@ -90,6 +120,9 @@ public sealed class ApplicationFixture : IDisposable
 
     /// <summary>The pinned native directory, when one was supplied for a Native run.</summary>
     public string? NativeDirectory { get; }
+
+    /// <summary>The raw image this run was launched with, when the fixture asked for one.</summary>
+    public string? RawImagePath { get; }
 
     /// <summary>The UIA layer, shared by every scenario in the class.</summary>
     public UIA3Automation Automation { get; }
