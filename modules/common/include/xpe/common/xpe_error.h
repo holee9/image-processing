@@ -146,11 +146,22 @@ XPE_API void xpe_clear_alerts(void);
  * @param severity An @c XpeAlertSeverity value.
  *
  * @note Thread-safe; the alert queue is protected by a critical section.
- * @note The @c test_ prefix is historical. This symbol has been exported from
- *       xpe_common.dll since its introduction and is called from production
- *       code in other XPE modules; it is declared here so callers no longer
- *       need a local @c extern declaration. Renaming requires a coordinated
- *       change across every calling module and is tracked separately.
+ */
+XPE_API void xpe_alert_push(const char* msg, int32_t severity);
+
+/**
+ * @brief Deprecated alias for xpe_alert_push().
+ *
+ * @deprecated Use xpe_alert_push(). The @c test_ prefix was historical: this
+ *             symbol has always been a production ABI, called from other XPE
+ *             modules. Renaming across a DLL boundary cannot land in one
+ *             commit, so both names are exported during the transition and
+ *             xpe_common.dll exports 17 functions instead of 16. Callers move
+ *             to the new name in #111 step 2/3; this alias and the 17th export
+ *             are removed in step 3/3, restoring the REQ-P0-008 count of 16.
+ *
+ * @param msg      Null-terminated message. Must not be NULL.
+ * @param severity An @c XpeAlertSeverity value.
  */
 XPE_API void xpe_test_inject_alert(const char* msg, int32_t severity);
 
