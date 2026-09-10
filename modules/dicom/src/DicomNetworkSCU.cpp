@@ -341,31 +341,5 @@ bool DicomNetworkSCU::buildFindRequest(const std::string& queryJson, void* outDa
     return true;
 }
 
-std::string DicomNetworkSCU::responseToJson(void* responseList) {
-    if (!responseList) return "[]";
-
-    OFList<QRResponse*>* list = static_cast<OFList<QRResponse*>*>(responseList);
-    nlohmann::json resultArray = nlohmann::json::array();
-
-    for (const auto* r : *list) {
-        if (r && r->m_dataset) {
-            nlohmann::json entry = nlohmann::json::object();
-            OFString val;
-            if (r->m_dataset->findAndGetOFString(DCM_PatientID, val).good()) {
-                entry["PatientID"] = std::string(val.c_str());
-            }
-            if (r->m_dataset->findAndGetOFString(DCM_PatientName, val).good()) {
-                entry["PatientName"] = std::string(val.c_str());
-            }
-            if (r->m_dataset->findAndGetOFString(DCM_Modality, val).good()) {
-                entry["Modality"] = std::string(val.c_str());
-            }
-            resultArray.push_back(entry);
-        }
-    }
-
-    return resultArray.dump();
-}
-
 } // namespace dicom
 } // namespace xpe

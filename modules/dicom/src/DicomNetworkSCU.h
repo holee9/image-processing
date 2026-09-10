@@ -64,9 +64,6 @@ private:
 
     /** Convert queryJson to DCMTK C-FIND request dataset. */
     static bool buildFindRequest(const std::string& queryJson, void* outDataset);
-
-    /** Serialize C-FIND response dataset list to JSON array string. */
-    static std::string responseToJson(void* responseList);
 };
 
 } // namespace dicom
