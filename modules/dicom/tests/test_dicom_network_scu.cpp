@@ -238,3 +238,85 @@ TEST_F(DicomNetworkTest, CStoreMissingFile_ReturnsIoFailed) {
         "localhost", 19999, "TESTSCU",
         missing.string().c_str(), 500));
 }
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-34, item 4): SCU branches the 7th coverage dispatch
+// (34486857040) still shows uncovered. Only the reachable ones are here; the
+// classification of the rest -- dead code, cancel races, fault-injection-only
+// handlers -- is in .moai/reports/lane-post/QA-B-34/_scu_classification.txt.
+// ---------------------------------------------------------------------------
+
+// A file with no Part 10 meta header and no SOPClassUID/SOPInstanceUID in the
+// dataset drives all three UID fallbacks in cstore (DicomNetworkSCU.cpp:69, 72,
+// 76). Those run before initNetwork, so no peer is needed -- the call is aimed
+// at a dead port and the network failure afterwards is the expected outcome.
+TEST_F(DicomNetworkTest, CStoreFileWithoutSopUids_FallsBackToDxDefault) {
+    auto path = s_tempDir / "cstore_no_sop_uids.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_testDcm.string().c_str()).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+        ds->findAndDeleteElement(DCM_SOPClassUID);
+        ds->findAndDeleteElement(DCM_SOPInstanceUID);
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dataset).good());
+    }
+    // Nothing listens on 19999; reaching the connection attempt at all means
+    // the UID fallbacks above it ran.
+    EXPECT_EQ(XPE_ERR_NETWORK_FAILED, xpe_dicom_cstore(
+        "localhost", 19999, "TESTSCU", path.string().c_str(), 500));
+}
+
+// "CALLED_AE@host" splits into called AE title + hostname
+// (DicomNetworkSCU.cpp:300-302). Sent to the real listener so the parse is
+// shown to produce a usable association, not just to execute the branch.
+TEST_F(DicomNetworkTest, CStoreCalledAeInHost_NegotiatesAndStores) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    const int before = s_scp.scp().storeRequests.load();
+    EXPECT_EQ(XPE_OK, xpe_dicom_cstore(
+        ("XPEMOCKSCP@localhost"), s_storePort, "TESTSCU",
+        s_testDcm.string().c_str(), 5000));
+    EXPECT_GT(s_scp.scp().storeRequests.load(), before)
+        << "the called-AE form must reach the SCP, not just parse";
+}
+
+// A query body that is not JSON fails in buildFindRequest
+// (DicomNetworkSCU.cpp:337-339) after the association is already up, so the
+// caller sees the release-and-fail path (:213-214).
+TEST_F(DicomNetworkTest, CFindMalformedQueryJson_ReturnsProcessingFailed) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[256] = {};
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_dicom_cfind_mwl(
+        "localhost", s_findPort, "TESTSCU",
+        "{not json",
+        outJson, sizeof(outJson), 5000));
+}
+
+// PatientName and AccessionNumber are the two query keys no existing case
+// sends (DicomNetworkSCU.cpp:328, 334). The mock matches on PatientID only, so
+// the full worklist comes back -- the assertion is that the call succeeds with
+// these keys present, not that they filter.
+TEST_F(DicomNetworkTest, CFindQueryWithNameAndAccession_ReturnsJsonArray) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[4096] = {};
+    EXPECT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
+        "localhost", s_findPort, "TESTSCU",
+        R"({"PatientName":"MOCK^WORKLIST","AccessionNumber":"ACC-0001"})",
+        outJson, sizeof(outJson), 5000));
+    auto j = json::parse(outJson);
+    EXPECT_TRUE(j.is_array());
+    EXPECT_EQ(3u, j.size());
+}
+
+// The serialized worklist does not fit the caller's buffer
+// (DicomNetworkSCU.cpp:281). Three DX entries are far larger than 8 bytes.
+TEST_F(DicomNetworkTest, CFindOutBufferTooSmall_ReturnsBufferTooSmall) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[8] = {};
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_cfind_mwl(
+        "localhost", s_findPort, "TESTSCU",
+        R"({"Modality":"DX"})",
+        outJson, sizeof(outJson), 5000));
+}
