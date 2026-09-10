@@ -160,6 +160,12 @@ public sealed class WorkflowScenarios
                 }
 
                 Assert.True(run!.IsEnabled, "Run Preprocessing is disabled on the native backend.");
+
+                // #141: without a calibration set the only observable outcome is the refusal, and a
+                // scenario that accepts it would report "measured and fine" for something it never
+                // measured. Not measured is a SKIP.
+                Skip.If(_app.CalibrationDirectory is null, _app.CalibrationNote);
+
                 run.AsMenuItem().Invoke();
             }
             finally
@@ -167,8 +173,21 @@ public sealed class WorkflowScenarios
                 try { pipelineMenu.AsMenuItem().Collapse(); } catch (Exception) { /* popup already closed by Invoke */ }
             }
 
-            Thread.Sleep(1500);
-            Assert.Contains("Preprocess", status!.Name, StringComparison.OrdinalIgnoreCase);
+            Thread.Sleep(3000);
+
+            // Success-only. GUI-C-36 asserted a substring both the success and the refusal line
+            // share, which its own report flagged as a risk: the scenario would keep passing once
+            // calibration existed without ever proving the stages ran.
+            var text = status!.Name;
+            Assert.Contains("offset -> gain -> defect", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("skipped", text, StringComparison.OrdinalIgnoreCase);
+
+            // The corrected frame must reach the viewport, not just the log.
+            var viewport = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("ViewportShell")));
+            Assert.True(viewport is not null, "ViewportShell was not found after preprocessing.");
+            Assert.True(
+                viewport!.BoundingRectangle.Width > 0,
+                "ViewportShell is empty after preprocessing.");
         });
     }
 

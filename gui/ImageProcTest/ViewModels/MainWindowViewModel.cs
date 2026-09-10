@@ -170,6 +170,12 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public RelayCommand ApplyBodyPartPresetCommand { get; }
 
+    /// <summary>#141: true once a preprocess run completed every stage.</summary>
+    public bool PreprocessRan { get; private set; }
+
+    /// <summary>#141: the summary line of the last preprocess attempt (success or refusal).</summary>
+    public string PreprocessStages { get; private set; } = string.Empty;
+
     /// <summary>#141: runs the Phase-1a preprocess stages on the loaded frame.</summary>
     public RelayCommand RunPreprocessingCommand { get; }
 
@@ -801,6 +807,17 @@ public sealed class MainWindowViewModel : ObservableObject
         StatusText = result.Summary;
         Log(result.Summary);
         DrainBackendTelemetry();
+
+        PreprocessRan = result.Ran;
+        PreprocessStages = result.Summary;
+
+        if (result.Ran && result.ProcessedPreview is not null)
+        {
+            // #141: the corrected frame reaches the processed viewport. Without this the run is
+            // observable only in the log, and "it ran" could not be told from "it ran and produced
+            // something the operator can see".
+            ProcessedImage = result.ProcessedPreview ?? ProcessedImage;
+        }
 
         if (!result.Ran)
         {

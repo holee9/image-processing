@@ -10,4 +10,9 @@ namespace ImageProcTest.Models;
 /// <param name="Ran">True only when every stage returned XPE_OK.</param>
 /// <param name="Summary">One line for the log and the status bar.</param>
 /// <param name="Pixels">Corrected pixels, scaled to UInt16 for the preview.</param>
-public sealed record PreprocessRunResult(bool Ran, string Summary, ushort[]? Pixels);
+/// <param name="ProcessedPreview">Preview built from those pixels, or null when the run refused.</param>
+public sealed record PreprocessRunResult(
+    bool Ran,
+    string Summary,
+    ushort[]? Pixels,
+    System.Windows.Media.Imaging.BitmapSource? ProcessedPreview = null);

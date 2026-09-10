@@ -15,6 +15,12 @@ public sealed class GuiAutomationReport
     /// <summary>#129: directory the native library resolved from, or "loader"/empty. See RuntimeInfo.NativeSource.</summary>
     public string NativeSource { get; set; } = string.Empty;
 
+    /// <summary>#141: true when a preprocess run completed every stage during this automation run.</summary>
+    public bool PreprocessRan { get; set; }
+
+    /// <summary>#141: the summary line of that attempt — the success stages, or the refusal reason.</summary>
+    public string PreprocessStages { get; set; } = string.Empty;
+
     public int InitialLogCount { get; set; }
 
     public int InitialAlertCount { get; set; }
