@@ -101,6 +101,8 @@ clients/
 
 ### 4.1 Smoke Test Suite (Gate: < 30s)
 
+> **실측 정정 (GUI-C-29, 2026-09-10)**: 앱은 `XPE_*` 접두 AutomationId 를 쓰지 않는다 — 요소명 규칙(`FileMenu`, `LoadRawImageButton` 등 76개, `x:Name` 과 동일)이 이미 있고 코드비하인드와 짝이다. 이 계획서의 `XPE_*` Id 는 **채택하지 않는다**; 실제 매핑 12행은 `xpe-gui/.moai/reports/lane-gui/GUI-C-29/report.md` §1. 창에는 Id 가 없어 `MainWindow` 하나만 추가했다. S-05 의 버전 라벨은 어느 XAML 에도 없었다(`RuntimeInfo` 미바인딩) — GUI-C-30 에서 라벨을 추가한 뒤 S-05 를 원문대로 되돌린다. WPF 하위 메뉴는 UIA 트리에 지연 생성되므로 Expand 후 폴링이 필요하다(S-04 관측). 스모크 5건 실측 합 584 ms.
+
 | # | Scenario | AutomationId(s) | Expected |
 |---|----------|------------------|----------|
 | S-01 | 앱 실행 후 MainWindow 가시 | `XPE_Main_Window` | Window 있음, title 포함 "ImageProcTest" |

@@ -1,4 +1,14 @@
 <Solution>
   <Project Path="ImageProcTest/ImageProcTest.csproj" />
   <Project Path="ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj" />
+  <Project Path="ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj" />
+  <!--
+    #136: the WPF app. Kept out until now, which made "app rebuild" mean clients only (GUI-C-22).
+    It sits in a solution folder because both projects are named ImageProcTest and a flat slnx
+    rejects the duplicate name ("Project name 'ImageProcTest' already exists in the 'Root'
+    solution folder").
+  -->
+  <Folder Name="/gui/">
+    <Project Path="../gui/ImageProcTest/ImageProcTest.csproj" />
+  </Folder>
 </Solution>

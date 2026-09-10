@@ -289,6 +289,77 @@ jobs:
           retention-days: 14
           path: build/dotnet-test-results/
 
+  gui-automation:
+    # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
+    # runner. GUI-C-25 (#136) showed a hidden-window non-interactive run works
+    # locally (exit 0, ~6 s, Passed=true) but could not prove it survives a
+    # session-0 style CI desktop - this job IS that experiment. Mock backend,
+    # so no native DLLs are needed; the Native variant follows GUI-C-26
+    # (--automation-backend). A failure here is one red job, not a gate on
+    # the native lanes.
+    needs: [detect-lane]
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build gui app
+        shell: pwsh
+        run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+
+      - name: Run automation (hidden window, Mock backend)
+        shell: pwsh
+        working-directory: gui/ImageProcTest
+        run: |
+          $exe = Resolve-Path 'bin/Debug/net8.0-windows/ImageProcTest.exe'
+          $report = Join-Path $PWD 'automation-report.json'
+          $p = Start-Process -FilePath $exe -WindowStyle Hidden -Wait -PassThru -ArgumentList @(
+            '--automation-raw', 'fixtures/gui-s0/raw/synthetic_1024x1024.raw',
+            '--automation-report', $report,
+            '--automation-backend', 'Mock',
+            '--automation-width', '1024', '--automation-height', '1024')
+          Write-Host "exit=$($p.ExitCode)"
+          if (-not (Test-Path $report)) { Write-Error 'automation report not written'; exit 1 }
+          $r = Get-Content $report -Raw | ConvertFrom-Json
+          Write-Host ("BackendMode={0} source={1} BackendVersion={2} Passed={3}" -f $r.BackendMode, $r.BackendModeSource, $r.BackendVersion, $r.Passed)
+          if ($r.BackendModeSource -ne 'arg') { Write-Error 'backend did not come from --automation-backend'; exit 1 }
+          if ($p.ExitCode -ne 0 -or -not $r.Passed) { Write-Error 'automation Passed=false or non-zero exit'; exit 1 }
+
+      # FlaUI smoke S-01..S-05 (GUI-C-29, XPE-GUI-E2E-001 4.1). The fixture walks up
+      # from the test bin dir to gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe
+      # (built above) and launches it with --automation-backend Mock. Gate < 30 s; local 584 ms.
+      - name: Run FlaUI E2E smoke (Mock)
+        shell: pwsh
+        run: >
+          dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
+          -c Debug
+          --logger "trx;LogFileName=e2e-smoke.trx"
+          --results-directory build/e2e-test-results
+
+      - name: Upload E2E smoke results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-gui-e2e-smoke-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/e2e-test-results/
+
+      - name: Upload automation report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-gui-automation-report
+          if-no-files-found: ignore
+          retention-days: 14
+          path: gui/ImageProcTest/automation-report.json
+
   coverage:
     # Dispatch-only and self-contained (own configure/build). Not gated on the
     # test jobs: a single flaky assertion there must not skip the coverage

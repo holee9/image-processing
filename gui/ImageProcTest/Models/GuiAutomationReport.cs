@@ -6,6 +6,12 @@ public sealed class GuiAutomationReport
 
     public string BackendVersion { get; set; } = string.Empty;
 
+    /// <summary>#136: the backend mode this run used.</summary>
+    public string BackendMode { get; set; } = string.Empty;
+
+    /// <summary>#136: where that mode came from — "arg" (--automation-backend) or "file" (appsettings.json).</summary>
+    public string BackendModeSource { get; set; } = string.Empty;
+
     public int InitialLogCount { get; set; }
 
     public int InitialAlertCount { get; set; }

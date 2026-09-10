@@ -83,7 +83,7 @@ public sealed class RealXpeBackend : IXpeBackend
 
     public string GetVersion() => _runtimeInfo.Version;
 
-    public string GetDisplayVersion() => XpeDisplayNative.GetVersion();
+    public string GetDisplayVersion() => InvokeNative(XpeDisplayNative.GetVersion);
 
     public LoadedImageFrame LoadRawImage(string path, AppSettings settings)
     {
@@ -93,7 +93,10 @@ public sealed class RealXpeBackend : IXpeBackend
 
     // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
     // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings)
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings) =>
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, settings));
+
+    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, AppSettings settings)
     {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -163,8 +166,6 @@ public sealed class RealXpeBackend : IXpeBackend
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
-            DrainNativeAlerts();
-
             var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
@@ -191,15 +192,21 @@ public sealed class RealXpeBackend : IXpeBackend
         }
     }
 
-    public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart)
-    {
-        var nativeParams = new XpeVoiLutParamsNative();
-        CheckNativeResult(
-            XpeDisplayNative.xpe_voi_preset_create(ref nativeParams, ToNativeBodyPart(bodyPart)),
-            "xpe_voi_preset_create");
+    public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart) =>
+        InvokeNative(() =>
+        {
+            var nativeParams = new XpeVoiLutParamsNative();
+            CheckNativeResult(
+                XpeDisplayNative.xpe_voi_preset_create(ref nativeParams, ToNativeBodyPart(bodyPart)),
+                "xpe_voi_preset_create");
 
-        return new VoiPreset(nativeParams.Center, nativeParams.Width, "Linear");
-    }
+            return new VoiPreset(nativeParams.Center, nativeParams.Width, "Linear");
+        });
+
+    // #134: every native entry point of this backend goes through here, so the alert drain is a
+    // property of "calling native" rather than of one call site. The alert-queue calls inside
+    // DrainNativeAlerts are deliberately NOT wrapped — that would recurse.
+    private T InvokeNative<T>(Func<T> call) => NativeAlertDrain.InvokeWithDrain(call, DrainNativeAlerts);
 
     // #110 / SRS-ALERT-007: pull whatever the native layer queued during the processing call into
     // the list the UI reads (MainWindowViewModel.DrainBackendTelemetry). Synchronous, no timer.
