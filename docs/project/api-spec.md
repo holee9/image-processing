@@ -611,16 +611,18 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 ### 6.12 xpe_calib_generate_offset
 
 ```c
-XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* frames,
-                                                uint32_t frameCount,
-                                                XpeImageBuffer* offsetMapOut,
-                                                const char* configJsonOrNull);
+XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
+                                                int32_t num_frames,
+                                                float integration_time_ms,
+                                                float temperature_c,
+                                                const char* output_path,
+                                                const char* config_json_or_null);
 ```
 
-**Description**: Averages `frameCount` dark-field `frames` to generate an offset calibration map in `offsetMapOut`. `frames` is a contiguous array of `XpeImageBuffer` structs.  
+**Description**: Combines `num_frames` dark-field frames into an offset calibration map and writes it as XCal to `output_path` (with `integration_time_ms` / `temperature_c` recorded in the header). `config_json_or_null` selects the per-pixel combination method per XPE-ALG-001 §9.8 (`{"method":"mean"|"sigma_clip"|"median"|…, "kappa":3.0, "max_iter":5}` — keys as accepted by the module's offset-generation config parser); `NULL` keeps the default (`mean`), so existing callers are unchanged. With `sigma_clip`, pixels whose surviving sample count falls below `N_min = max(3, ⌊N/4⌋)` are marked as static defects and OR-merged into the module-global defect map (§9.8.2.1, decision #138 / QA-A-38); the offset value itself stays the clipped mean (§9.8.3). **Corrected 2026-09-11 (QA-A-38/A-39):** this section previously documented a `(frames, frameCount, offsetMapOut, configJsonOrNull)` form that never existed in the header; the six-argument form is canonical. Before QA-A-39 the public entry point had no config argument and always used `mean`, so `sigma_clip` was unreachable from the public API.
 **SRS**: SRS-CALIB-020  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_PROCESSING_FAILED`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_IO_FAILED`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
