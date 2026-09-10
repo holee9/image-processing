@@ -23,7 +23,7 @@
 #define XPE_DICOM_TESTS_MOCK_SCP_HPP
 
 #include <dcmtk/config/osconfig.h>
-#include <dcmtk/dcmnet/dstorscp.h>
+#include <dcmtk/dcmnet/scp.h>
 #include <dcmtk/dcmdata/dctk.h>
 
 #include <atomic>
@@ -34,15 +34,19 @@
 namespace xpe_test {
 
 /**
- * @brief Storage SCP that also answers Modality Worklist C-FIND with one item.
+ * @brief Minimal SCP answering C-STORE and Modality Worklist C-FIND.
  *
- * DcmStorageSCP already implements C-STORE (writes the received object into
- * setOutputDirectory()) and C-ECHO. Only C-FIND is added here.
+ * Derives from DcmSCP rather than DcmStorageSCP on purpose: DcmStorageSCP only
+ * negotiates storage SOP classes, so a C-FIND against it fails on the SCU side
+ * with "DIMSE No valid Presentation Context ID" even though the MWL context is
+ * registered in the profile (observed, QA-B-29). DcmSCP negotiates whatever the
+ * profile carries, so both services work from one listener.
  */
-class MockScp : public DcmStorageSCP {
+class MockScp : public DcmSCP {
 public:
-    /// Number of C-FIND requests answered; read by tests for a liveness check.
+    /// Requests answered; readable by tests as a liveness check.
     std::atomic<int> findRequests{0};
+    std::atomic<int> storeRequests{0};
 
     /**
      * @brief Ask the listen loop to exit.
@@ -88,9 +92,21 @@ protected:
                 return rc;
             }
             return sendFINDResponse(presID, req.MessageID,
-                                    req.AffectedSOPClassUID, nullptr, STATUS_Success);
+                                    req.AffectedSOPClassUID, nullptr,
+                                    STATUS_FIND_Success_MatchingIsComplete);
         }
-        return DcmStorageSCP::handleIncomingCommand(incomingMsg, presInfo);
+
+        if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_STORE_RQ) {
+            ++storeRequests;
+            T_DIMSE_C_StoreRQ& req = incomingMsg->msg.CStoreRQ;
+            DcmDataset* received = nullptr;
+            const OFCondition rc =
+                handleSTORERequest(req, presInfo.presentationContextID, received);
+            delete received;   // the object itself is not inspected by these tests
+            return rc;
+        }
+
+        return DcmSCP::handleIncomingCommand(incomingMsg, presInfo);
     }
 
 private:

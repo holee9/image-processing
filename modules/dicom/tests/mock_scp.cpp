@@ -116,10 +116,7 @@ uint16_t MockScpRunner::start(const std::string& aeTitle, const std::string& sto
     // own AE title would reject the association before any SCU code under test
     // ran, so accept the called title the SCU chose and echo it back.
     m_scp.setRespondWithCalledAETitle(OFTrue);
-    m_scp.setOutputDirectory(OFString(storageDir.c_str()));
-    // Received objects are throwaway; keep names unique so a second C-STORE in
-    // the same suite does not collide with the first.
-    m_scp.setFilenameGenerationMode(DcmStorageSCP::FGM_ShortUniquePseudoRandom);
+    (void)storageDir;  // objects are consumed in memory, not written to disk
 
     // Presentation contexts the SCU under test proposes (DicomNetworkSCU.cpp:
     // cstore uses the file's SOP class, defaulting to DX; cfindMwl uses MWL).
@@ -135,7 +132,6 @@ uint16_t MockScpRunner::start(const std::string& aeTitle, const std::string& sto
         UID_DigitalXRayImageStorageForPresentation,
         UID_SecondaryCaptureImageStorage,
         UID_FINDModalityWorklistInformationModel,
-        UID_VerificationSOPClass,
     };
     for (const char* as : kAbstractSyntaxes) {
         const OFCondition rc = m_scp.getConfig().addPresentationContext(OFString(as), ts);
@@ -143,16 +139,6 @@ uint16_t MockScpRunner::start(const std::string& aeTitle, const std::string& sto
             m_listenError = std::string("addPresentationContext(") + as + "): " + rc.text();
             return 0;
         }
-    }
-
-    // setEnableVerification() is DcmSCP's own entry point into the DEFAULT
-    // profile. It succeeds, and the dump below confirms the profile carries the
-    // contexts -- yet listen() still reports NET_EC_InvalidSCPAssociationProfile.
-    // That contradiction is the open blocker recorded in the QA-B-29 report.
-    const OFCondition verRc = m_scp.setEnableVerification();
-    if (verRc.bad()) {
-        m_listenError = std::string("setEnableVerification: ") + verRc.text();
-        return 0;
     }
 
     {
@@ -163,6 +149,11 @@ uint16_t MockScpRunner::start(const std::string& aeTitle, const std::string& sto
     }
     // Non-blocking accept with a short timeout, so the stop predicates are
     // polled promptly instead of only after a connection arrives.
+    // Accept the default role for every proposed context. Without this the MWL
+    // C-FIND context is not accepted and the SCU reports
+    // "DIMSE No valid Presentation Context ID" (observed, QA-B-29).
+    m_scp.getConfig().setAlwaysAcceptDefaultRole(OFTrue);
+
     m_scp.setConnectionBlockingMode(DUL_NOBLOCK);
     m_scp.setConnectionTimeout(1);
 
