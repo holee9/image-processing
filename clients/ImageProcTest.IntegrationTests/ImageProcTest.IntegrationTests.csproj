@@ -64,6 +64,8 @@
     <!-- #110: the gui-side drain decision logic + the alert record it produces. Delegate-driven, no P/Invoke. -->
     <Compile Include="..\..\gui\ImageProcTest\Models\AlertEntry.cs" Link="Alerts\Linked\AlertEntry.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\NativeAlertDrain.cs" Link="Alerts\Linked\NativeAlertDrain.cs" />
+    <!-- #136: automation command-line parsing. No WPF dependency, so the guard runs in CI. -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\AutomationArgs.cs" Link="Automation\Linked\AutomationArgs.cs" />
   </ItemGroup>
 
   <!--
