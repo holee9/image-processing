@@ -90,6 +90,40 @@ public static class NativeAlertDrain
         };
     }
 
+    /// <summary>
+    /// Runs a native call and drains the alert queue afterwards, exactly once, on every path.
+    ///
+    /// #134: the drain used to sit at one call site (the display pipeline), which left every other
+    /// native entry point unable to surface an alert. Making it a common post-step means a new call
+    /// site cannot forget it. The drain runs in a finally, so a native call that throws still
+    /// surfaces whatever it queued before failing — that is usually when alerts matter most.
+    ///
+    /// A drain that throws is not allowed to replace the call's own exception; the caller supplies a
+    /// drain that swallows its own faults (RealXpeBackend.DrainNativeAlerts does).
+    /// </summary>
+    public static T InvokeWithDrain<T>(Func<T> call, Action drain)
+    {
+        ArgumentNullException.ThrowIfNull(call);
+        ArgumentNullException.ThrowIfNull(drain);
+
+        try
+        {
+            return call();
+        }
+        finally
+        {
+            drain();
+        }
+    }
+
+    /// <summary>Void-returning counterpart of <see cref="InvokeWithDrain{T}"/>.</summary>
+    public static void InvokeWithDrain(Action call, Action drain)
+    {
+        ArgumentNullException.ThrowIfNull(call);
+
+        InvokeWithDrain<object?>(() => { call(); return null; }, drain);
+    }
+
     /// <summary>XpeAlertSeverity → the app's severity strings. Unknown values do not get lowered.</summary>
     public static string MapSeverity(int nativeSeverity) => nativeSeverity switch
     {

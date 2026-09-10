@@ -116,6 +116,57 @@ public sealed class NativeAlertDrainTests
         Assert.Equal("ERROR", NativeAlertDrain.MapSeverity(-1));
     }
 
+    /// <summary>
+    /// #134 (a): any native call routed through the wrapper drains afterwards — the drain is a
+    /// property of calling native, not of one call site.
+    /// </summary>
+    [Fact]
+    public void InvokeWithDrain_DrainsAfterTheCall()
+    {
+        var order = new List<string>();
+
+        var result = NativeAlertDrain.InvokeWithDrain(
+            () => { order.Add("call"); return 42; },
+            () => order.Add("drain"));
+
+        Assert.Equal(42, result);
+        Assert.Equal(["call", "drain"], order);
+    }
+
+    /// <summary>
+    /// #134 (b): a native call that throws still drains, and the call's exception is what reaches
+    /// the caller. A failing call is often exactly when the queue holds something worth showing.
+    /// </summary>
+    [Fact]
+    public void InvokeWithDrain_DrainsEvenWhenTheCallThrows()
+    {
+        var drained = 0;
+
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            NativeAlertDrain.InvokeWithDrain<int>(
+                () => throw new InvalidOperationException("xpe_apply_voi_lut failed"),
+                () => drained++));
+
+        Assert.Equal("xpe_apply_voi_lut failed", thrown.Message);
+        Assert.Equal(1, drained);
+    }
+
+    /// <summary>
+    /// #134 (c): one call, one drain. The display pipeline used to drain on its own; folding it into
+    /// the wrapper must not leave both in place.
+    /// </summary>
+    [Fact]
+    public void InvokeWithDrain_DrainsExactlyOncePerCall()
+    {
+        var drained = 0;
+
+        NativeAlertDrain.InvokeWithDrain(() => "first", () => drained++);
+        Assert.Equal(1, drained);
+
+        NativeAlertDrain.InvokeWithDrain(() => { }, () => drained++);
+        Assert.Equal(2, drained);
+    }
+
     private static NativeAlertDrain.ReadAlert Reader((string Message, int Severity)[] queue) =>
         (int index, int bufferLength, out string? message, out int severity) =>
         {
