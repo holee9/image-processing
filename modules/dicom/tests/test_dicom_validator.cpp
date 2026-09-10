@@ -18,6 +18,7 @@
 #include <nlohmann/json.hpp>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -377,4 +378,74 @@ TEST_F(DicomValidatorTest, ValidateNonDxSopClass_RoundTripsAsConformant) {
     ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
     auto j = json::parse(report);
     EXPECT_TRUE(j["valid"].get<bool>()) << report;
+}
+
+// ---------------------------------------------------------------------------
+// #139 (QA-B-38): the "absent" half of the meta checks. B-36/B-37 exercised
+// only the "present but different" branches; the implementation has a separate
+// path for a meta element that carries no value, and nothing had entered it.
+// ---------------------------------------------------------------------------
+
+namespace {
+// Rewrite one meta element of the conformant fixture and save without letting
+// DCMTK regenerate the meta group. Returns the path written.
+fs::path writeWithMetaEdit(const fs::path& src,
+                           const fs::path& dst,
+                           const std::function<void(DcmMetaInfo&)>& edit) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(src.string().c_str()).good());
+    DcmMetaInfo* meta = ff.getMetaInfo();
+    EXPECT_NE(nullptr, meta);
+    if (meta != nullptr) edit(*meta);
+    EXPECT_TRUE(ff.saveFile(dst.string().c_str(), EXS_LittleEndianExplicit,
+                            EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                            0, 0, EWM_dontUpdateMeta).good());
+    return dst;
+}
+
+// Validate and return the parsed report; asserts the call itself succeeded.
+json validateReport(const fs::path& path) {
+    char report[8192] = {};
+    EXPECT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    return json::parse(report);
+}
+
+bool hasErrorTagged(const json& report, const char* tag) {
+    for (const auto& e : report["errors"]) {
+        if (e.value("tag", std::string()) == tag) return true;
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomValidatorTest, ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass) {
+    const auto path = writeWithMetaEdit(
+        s_conformantDcm, s_tempDir / "meta_sopclass_empty.dcm",
+        [](DcmMetaInfo& m) { m.putAndInsertString(DCM_MediaStorageSOPClassUID, ""); });
+
+    const auto j = validateReport(path);
+    EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+    EXPECT_TRUE(hasErrorTagged(j, "0002,0002")) << j.dump();
+}
+
+TEST_F(DicomValidatorTest, ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance) {
+    const auto path = writeWithMetaEdit(
+        s_conformantDcm, s_tempDir / "meta_sopinstance_empty.dcm",
+        [](DcmMetaInfo& m) { m.putAndInsertString(DCM_MediaStorageSOPInstanceUID, ""); });
+
+    const auto j = validateReport(path);
+    EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+    EXPECT_TRUE(hasErrorTagged(j, "0002,0003")) << j.dump();
+}
+
+// The element is removed outright, not emptied: this is the one case where the
+// meta group exists (so card() != 0) yet says nothing about the encoding.
+TEST_F(DicomValidatorTest, ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax) {
+    const auto path = writeWithMetaEdit(
+        s_conformantDcm, s_tempDir / "meta_no_transfer_syntax.dcm",
+        [](DcmMetaInfo& m) { m.findAndDeleteElement(DCM_TransferSyntaxUID); });
+
+    const auto j = validateReport(path);
+    EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+    EXPECT_TRUE(hasErrorTagged(j, "0002,0010")) << j.dump();
 }
