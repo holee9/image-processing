@@ -239,7 +239,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-019: Calibration Save
 
-**When** `xpe_calib_save(calibMap, filePath, expiryEpochMs, configJsonOrNull)` is called, the module **shall** write the calibration map to `filePath` in XCal format with the specified expiry timestamp.
+**When** `xpe_calib_save(filePath, calibType, expiryEpochMs)` is called, the module **shall** write the calibration map of `calibType` (`"offset"` / `"gain"` / `"defect"`) currently held in the global calibration store (decision #117) to `filePath` in XCal format with SHA-256 integrity and the embedded expiry timestamp `expiryEpochMs` (Unix ms; `0` = never expires). `XPE_ERR_CALIB_NOT_LOADED` if that map is not loaded. *(Decision #132, 2026-09-10: the third parameter restores the expiry embedding lost when the signature moved to the global-store form; the implementation before this decision always wrote 0.)*
 
 - **SRS**: SRS-CALIB-021
 - **Traceability**: SUP-01
