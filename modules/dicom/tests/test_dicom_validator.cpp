@@ -209,16 +209,17 @@ TEST_F(DicomValidatorTest, ValidateStrippedTags_ReportsAllMissing) {
 }
 
 // ---------------------------------------------------------------------------
-// #120 (QA-B-34): the two null-object guards in validate().
+// #139 (QA-B-36): the Part 10 meta group (0002) is now part of the contract.
 //
-// DicomValidator checks getMetaInfo() and getDataset() for null after a
-// successful loadFile (DicomValidator.cpp:77-117, 30 instrumented lines). B-27
-// classified those as unreachable from source reading alone; this case tests
-// that judgement instead of repeating it. A file written with EWM_dataset has
-// no Part 10 meta header, which is the nearest thing to "meta info absent"
-// the public API can produce.
+// QA-B-34 observed that a dataset-only file validates as valid=true, and
+// deliberately did NOT assert otherwise -- no api-spec text made a missing
+// meta header non-conformant, so asserting it would have turned one reader's
+// opinion into a norm. #139 closed that gap: leader decided (a) Part 10 meta
+// is required and its content must agree with the dataset. The case withdrawn
+// in B-34 is restored here as a real assertion, now that a decision backs it.
 // ---------------------------------------------------------------------------
-TEST_F(DicomValidatorTest, ValidateDatasetWithoutMetaHeader_IsHandled) {
+
+TEST_F(DicomValidatorTest, ValidateDatasetWithoutMetaHeader_ReportsMissingMeta) {
     auto path = s_tempDir / "no_meta_header.dcm";
     {
         DcmFileFormat ff;
@@ -230,20 +231,61 @@ TEST_F(DicomValidatorTest, ValidateDatasetWithoutMetaHeader_IsHandled) {
     }
 
     char report[8192] = {};
-    const XpeErrorCode rc = xpe_dicom_validate(path.string().c_str(), report, sizeof(report));
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
 
-    // OBSERVED (QA-B-34): DCMTK's loadFile accepts the dataset-only file and
-    // synthesises a meta-info object, so getMetaInfo() is non-null and the
-    // guard at :78 is not entered. The validator then finds all four required
-    // Type 1 tags and reports valid=true.
-    //
-    // This case therefore asserts only what the contract states: the validator
-    // answers and produces a parseable report. It deliberately does NOT assert
-    // valid==false -- no api-spec text says a missing Part 10 meta header makes
-    // a file non-conformant, and asserting an undocumented expectation is how a
-    // test starts encoding one reader's opinion. The behaviour is reported in
-    // the QA-B-34 gate report instead.
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_DICOM_INVALID)
-        << "unexpected rc=" << rc << " report=" << report;
-    EXPECT_NO_THROW((void)json::parse(report));
+    // The reason must name the meta header, not merely fail: a caller that has
+    // to guess why is no better off than one told nothing.
+    bool mentionsMeta = false;
+    for (const auto& e : j["errors"]) {
+        const std::string msg = e.value("message", std::string());
+        if (msg.find("meta") != std::string::npos ||
+            msg.find("Meta") != std::string::npos) {
+            mentionsMeta = true;
+        }
+    }
+    EXPECT_TRUE(mentionsMeta) << "no error names the meta header: " << report;
+}
+
+// The meta group exists but its MediaStorageSOPClassUID disagrees with the
+// dataset's SOPClassUID. PS3.10 requires the two to match; a file where they
+// differ describes itself as something it is not.
+TEST_F(DicomValidatorTest, ValidateMetaSopClassMismatch_ReportsInconsistency) {
+    auto path = s_tempDir / "meta_sopclass_mismatch.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_conformantDcm.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        // Relabel the meta as Secondary Capture while the dataset stays DX.
+        ASSERT_TRUE(meta->putAndInsertString(
+            DCM_MediaStorageSOPClassUID, UID_SecondaryCaptureImageStorage).good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
+}
+
+// Round trip: what this project's own writer produces must satisfy the new
+// check. A conformance rule that rejects our own output is a defect in the
+// rule, and this case is what would catch it.
+TEST_F(DicomValidatorTest, ValidateWriterOutput_IsConformant) {
+    auto path = s_tempDir / "writer_roundtrip.dcm";
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(32, 32, XPE_PIXEL_UINT16, &img));
+    XpeImageMetadata meta{};
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &meta));
+    xpe_free_image(&img);
+
+    char report[8192] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_validate(path.string().c_str(), report, sizeof(report)));
+    auto j = json::parse(report);
+    EXPECT_TRUE(j["valid"].get<bool>()) << report;
 }
