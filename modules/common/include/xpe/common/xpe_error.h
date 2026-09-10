@@ -84,7 +84,7 @@ typedef enum XpeAlertSeverity {
  *
  * @param code  Any XpeErrorCode value, including unknown codes.
  * @return      Null-terminated ASCII string. Never returns NULL.
- *              Returns "Unknown error code" for unrecognized values.
+ *              Returns "Unknown error" for unrecognized values.
  */
 XPE_API const char* xpe_error_string(XpeErrorCode code);
 
@@ -98,6 +98,9 @@ XPE_API const char* xpe_error_string(XpeErrorCode code);
  *
  * @note Poll this after each processing call if your integration requires
  *       operator-visible quality feedback (SRS-ALERT-001).
+ * @note When the queue has overflowed, the count includes one synthetic
+ *       XPE_ALERT_ERROR entry reporting how many alerts were dropped
+ *       (api-spec.md 5.17). It occupies one of the queue's slots.
  */
 XPE_API int32_t xpe_get_pending_alert_count(void);
 
@@ -110,13 +113,20 @@ XPE_API int32_t xpe_get_pending_alert_count(void);
  * @param index    Zero-based index into the pending alert queue.
  *                 Valid range: [0, xpe_get_pending_alert_count() - 1].
  * @param msg      Caller-supplied buffer to receive the null-terminated message.
- *                 If the message is longer than @p msgLen - 1 bytes, it is
- *                 truncated and null-terminated. Must not be NULL.
- * @param msgLen   Size of the @p msg buffer in bytes. Recommended: >= 256.
+ *                 The message is NOT truncated to fit: a buffer smaller than
+ *                 the message plus its terminator is rejected with
+ *                 XPE_ERR_BUFFER_TOO_SMALL and nothing is written.
+ *                 Must not be NULL.
+ * @param msgLen   Size of the @p msg buffer in bytes. Must be greater than 0.
+ *                 Recommended: >= 256.
  * @param severity Output: receives the @c XpeAlertSeverity of the alert.
- *                 May be NULL if the caller does not need severity.
+ *                 Must not be NULL — this is a required out-parameter, not an
+ *                 optional one.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if @p msg is NULL or @p index is out of range.
+ * @return XPE_ERR_INVALID_INPUT if @p msg or @p severity is NULL, @p msgLen is
+ *         0, or @p index is negative or out of range.
+ * @return XPE_ERR_BUFFER_TOO_SMALL if @p msgLen cannot hold the message and its
+ *         null terminator.
  *
  * @note This function is thread-safe (SRS-ALERT-003).
  * @note Designed for direct P/Invoke from C# (SRS-ALERT-006).
@@ -126,7 +136,10 @@ XPE_API XpeErrorCode xpe_get_pending_alert(int32_t index, char* msg, size_t msgL
 /**
  * @brief Clear all pending alerts from the internal alert queue.
  *
- * After this call, xpe_get_pending_alert_count() returns 0.
+ * After this call, xpe_get_pending_alert_count() returns 0. The cumulative
+ * overflow-drop counter behind the synthetic loss alert is reset at the same
+ * time, so a later overflow starts counting from the beginning
+ * (api-spec.md 5.17).
  * Typically called by the host after processing and displaying all alerts.
  *
  * @note Thread-safe. Safe to call even when the queue is already empty.
@@ -142,11 +155,17 @@ XPE_API void xpe_clear_alerts(void);
  * not warrant a hard error return. The alert becomes visible to
  * xpe_get_pending_alert_count() / xpe_get_pending_alert().
  *
- * @param msg      Null-terminated message. Truncated if longer than the
- *                 internal alert buffer. Must not be NULL.
- * @param severity An @c XpeAlertSeverity value.
+ * @param msg      Null-terminated message. Stored whole — the queue holds a
+ *                 std::string per entry, so the message is not truncated.
+ *                 NULL is accepted and recorded as an empty message.
+ * @param severity An @c XpeAlertSeverity value. Values outside that enum are
+ *                 stored as given; they are not validated or clamped.
  *
- * @note Thread-safe; the alert queue is protected by a critical section.
+ * @note Thread-safe; the alert queue is protected by a mutex.
+ * @note On a full queue the oldest XPE_ALERT_INFO entry is evicted first, then
+ *       the oldest XPE_ALERT_WARNING, then the oldest XPE_ALERT_ERROR, and the
+ *       eviction is reported through a synthetic loss alert
+ *       (api-spec.md 5.17).
  */
 XPE_API void xpe_alert_push(const char* msg, int32_t severity);
 
