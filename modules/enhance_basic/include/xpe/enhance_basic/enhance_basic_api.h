@@ -13,8 +13,15 @@
  * (XPE_PIXEL_FLOAT32); xpe_noise_estimate_sigma() reads without modifying and
  * xpe_enhance_basic_version() takes no image. Every function that takes an
  * image returns XPE_ERR_UNSUPPORTED_FORMAT when the buffer is not FLOAT32, and
- * XPE_ERR_INVALID_INPUT when img or img->data is NULL or dataSize is
- * inconsistent with width * height * bytes-per-pixel (#123).
+ * XPE_ERR_INVALID_INPUT when img or img->data is NULL, when width or height is
+ * 0, or when dataSize is inconsistent with width * height * bytes-per-pixel
+ * (#123).
+ *
+ * An empty image is an error everywhere, not a no-op (#142). Three functions
+ * used to accept a zero-sized image and return XPE_OK while two others
+ * rejected it; the answer is now XPE_ERR_INVALID_INPUT from all of them. The
+ * dimension is judged before the pixel format, so an empty UINT16 buffer is
+ * reported as empty rather than as the wrong format.
  *
  * Thread-safe for concurrent calls on independent image buffers.
  */
@@ -130,7 +137,7 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * (XPE_NOISE_NLM). (REQ-ENH-007, REQ-ENH-008)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
- *               accepted and returns XPE_OK without touching the buffer.
+ *               rejected (#142).
  * @param params Noise reduction parameters. NULL returns XPE_ERR_INVALID_INPUT. (REQ-ENH-009)
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
  *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
@@ -145,8 +152,8 @@ XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceP
  *
  * sigma = 1.4826 * MAD(pixel_values) on a center ROI. (REQ-ENH-011)
  *
- * @param img      Float32 image buffer (read-only). NULL is rejected. Unlike the
- *                 in-place functions, a zero-sized image is an error here.
+ * @param img      Float32 image buffer (read-only). NULL or zero-sized is
+ *                 rejected.
  * @param outSigma Output: estimated noise sigma. NULL is rejected.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if outSigma is NULL, the
  *         image is invalid, or width/height is 0;
@@ -165,7 +172,7 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  * tile_height=8). (REQ-ENH-014)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
- *               accepted and returns XPE_OK; a flat image (no value range) also
+ *               rejected (#142); a flat image (no value range) is accepted and
  *               returns XPE_OK unchanged.
  * @param params CLAHE parameters, or NULL for defaults.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if clip_limit < 1.0, either
@@ -187,7 +194,7 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
- *               accepted and returns XPE_OK; amount == 0.0 also returns XPE_OK
+ *               rejected (#142); amount == 0.0 is accepted and returns XPE_OK
  *               without modifying the buffer.
  * @param params USM parameters, or NULL for defaults.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if amount is outside

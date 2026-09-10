@@ -72,7 +72,6 @@ XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* p
 
     int w = static_cast<int>(img->width);
     int h = static_cast<int>(img->height);
-    if (w == 0 || h == 0) return XPE_OK;
 
     // amount == 0 means no sharpening (no-op)
     if (p->amount == 0.0f) return XPE_OK;

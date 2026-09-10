@@ -275,7 +275,6 @@ XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceP
     XpeErrorCode err = validate_float32_image(img);
     if (err != XPE_OK) return err;
 
-    if (img->width == 0 || img->height == 0) return XPE_OK;
 
     if (params->mode == XPE_NOISE_BILATERAL) {
         // REQ-ENH-010: sigma_space and sigma_range must be positive
@@ -312,7 +311,6 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
 
     int w = static_cast<int>(img->width);
     int h = static_cast<int>(img->height);
-    if (w == 0 || h == 0) return XPE_ERR_INVALID_INPUT;
 
     const float* px = const_float_pixels(img);
 

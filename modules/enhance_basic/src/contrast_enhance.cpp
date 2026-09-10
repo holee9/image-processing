@@ -130,7 +130,6 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
 
     int w = static_cast<int>(img->width);
     int h = static_cast<int>(img->height);
-    if (w == 0 || h == 0) return XPE_OK;
 
     // Image must be large enough for the tile grid
     if (w < p->tile_width * 2 || h < p->tile_height * 2) {
