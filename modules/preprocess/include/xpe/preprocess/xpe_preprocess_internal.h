@@ -12,6 +12,7 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess_api.h"   // XpeCalibQualityMeta (FUNC-033, QA-A-35)
 
 #include <cstdint>
 #include <cstddef>
@@ -244,5 +245,30 @@ struct CalibrationData {
 
 extern CalibrationData g_calib;
 extern std::mutex      g_calib_mutex;
+
+/* =========================================================================
+ * FUNC-033 quality metadata (QA-A-35, #140)
+ *
+ * SRS-CALIB-001 SRS-CALIB-FUNC-033 requires every generated XCal gain file to
+ * carry fit-quality metadata, and the R2 gate to fire below 0.999. The store
+ * lives in xpe_calib_mode.cpp behind xpe_calib_get_quality_meta(); generation
+ * code writes it through the two functions below.
+ *
+ * Internal, NOT exported: xpe_preprocess.dll stays at 50 exports.
+ * ========================================================================= */
+
+/**
+ * @brief Record the quality metadata of a freshly generated calibration.
+ *
+ * Moves the current r_squared into previous_r_squared, then overwrites the
+ * store with @p meta and stamps calibration_timestamp. Applies the
+ * FUNC-033 (2) gate: calibration_pass = (r_squared >= 0.999).
+ *
+ * @return true when the gate passed, false when it did not (the caller logs).
+ */
+bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept;
+
+/** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
+constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */

@@ -399,6 +399,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         // Store as [c0_pixel0, c1_pixel0, ..., cd_pixel0, c0_pixel1, ...]
         std::vector<float> coeff_array(n_pixels * sMaxCoeffsPoly);
 
+        // FUNC-033 (1): fit-quality accumulators, filled as each pixel is fitted.
+        //   R2 = 1 - SS_res / SS_tot, pooled over every pixel and dose level.
+        //   residual_pct is |residual| as a percentage of that pixel's mean gain.
+        double   ss_res_total   = 0.0;
+        double   ss_tot_total   = 0.0;
+        double   residual_pct_sum = 0.0;
+        double   max_residual_pct = 0.0;
+        size_t   residual_count = 0;
+        uint32_t highest_degree = 0;
+
         // For each pixel: fit polynomial with degree reduction if needed
         const size_t sNumLevels = static_cast<size_t>(num_levels);
         const size_t sMaxDegree = static_cast<size_t>(max_degree);
@@ -453,6 +463,35 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 final_degree = 1;
             }
 
+            // FUNC-033 (1): score this pixel's fit before storing it.
+            {
+                double y_mean = 0.0;
+                for (size_t i = 0; i < sNumLevels; ++i) y_mean += y_vals[i];
+                y_mean /= static_cast<double>(sNumLevels);
+
+                for (size_t i = 0; i < sNumLevels; ++i) {
+                    // Horner evaluation of the fitted polynomial at this dose.
+                    double predicted = 0.0;
+                    for (size_t j = final_degree + size_t{1}; j-- > size_t{0};) {
+                        predicted = predicted * dose_levels[i] + coeffs[j];
+                    }
+                    const double residual = y_vals[i] - predicted;
+                    ss_res_total += residual * residual;
+                    const double dev = y_vals[i] - y_mean;
+                    ss_tot_total += dev * dev;
+
+                    if (y_mean != 0.0) {
+                        const double pct = std::abs(residual / y_mean) * 100.0;
+                        residual_pct_sum += pct;
+                        if (pct > max_residual_pct) max_residual_pct = pct;
+                        ++residual_count;
+                    }
+                }
+                if (static_cast<uint32_t>(final_degree) > highest_degree) {
+                    highest_degree = static_cast<uint32_t>(final_degree);
+                }
+            }
+
             // Store coefficients in output array
             size_t offset = pix * sMaxCoeffsPoly;
             for (size_t j = 0; j <= final_degree; ++j) {
@@ -462,6 +501,47 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             for (size_t j = final_degree + size_t{1}; j < sMaxCoeffsPoly; ++j) {
                 coeff_array[offset + j] = 0.0f;
             }
+        }
+
+        // --- FUNC-033: score the whole fit and record the metadata ---
+        //
+        // SRS-CALIB-001 SRS-CALIB-FUNC-033 (2): "If fit_r_squared < 0.999 after
+        // fitting, system shall log XPE_WARN_CALIB_POOR_FIT and include
+        // recommendation to increase dose levels or check detector stability."
+        // No XPE_WARN_* code exists in xpe_error.h, so the warning is raised on
+        // the alert queue -- the module's only operator-visible channel -- with
+        // that identifier as the message prefix (QA-A-35 note).
+        //
+        // A perfectly flat input has SS_tot == 0: every sample equals the mean,
+        // the fit reproduces it exactly, and R2 is 1.0 by definition rather than
+        // 0/0.
+        const double r_squared = (ss_tot_total > 0.0)
+                                 ? (1.0 - ss_res_total / ss_tot_total)
+                                 : 1.0;
+
+        // Named `quality`, not `meta`: the config-JSON buffer below already
+        // owns that name in this scope.
+        XpeCalibQualityMeta quality{};
+        quality.polynomial_degree = static_cast<uint8_t>(highest_degree);
+        quality.num_points        = static_cast<uint8_t>(num_levels);
+        quality.r_squared         = r_squared;
+
+        const bool gate_passed = xpe_calib_record_quality_meta(quality);
+        const double mean_residual_pct =
+            (residual_count > 0) ? (residual_pct_sum / static_cast<double>(residual_count)) : 0.0;
+
+        if (!gate_passed) {
+            // The SRS asks for the recommendation to travel with the warning, so
+            // the residual figures go in the message: they are what tells the
+            // operator whether a few pixels or the whole field is the problem.
+            char warn[256];
+            std::snprintf(warn, sizeof(warn),
+                          "XPE_WARN_CALIB_POOR_FIT: fit_r_squared=%.6f below %.3f "
+                          "(max_residual=%.3f%%, mean_residual=%.3f%%); "
+                          "increase dose levels or check detector stability",
+                          r_squared, XPE_CALIB_R_SQUARED_GATE,
+                          max_residual_pct, mean_residual_pct);
+            xpe_alert_push(warn, XPE_ALERT_WARNING);
         }
 
         // --- Build XCal v1 header ---

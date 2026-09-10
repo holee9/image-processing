@@ -183,6 +183,33 @@ uint32_t xpe_calib_get_poly_degree(void) {
  * ============================================================================ */
 
 /* =============================================================================
+ * FUNC-033 quality metadata recording (QA-A-35, #140)
+ *
+ * Declared in xpe_preprocess_internal.h. This is the live wiring that replaces
+ * the dead xpe::calib::mode namespace QA-A-34 deleted: same requirement, a path
+ * that is actually reachable.
+ * ============================================================================ */
+
+bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
+{
+    const double previous = g_quality_meta.r_squared;
+
+    g_quality_meta = meta;
+    g_quality_meta.calibration_mode = static_cast<uint8_t>(g_calib_mode);
+    g_quality_meta.previous_r_squared =
+        (g_quality_meta.calibration_timestamp == 0 && previous == 0.0) ? -1.0 : previous;
+
+    using namespace std::chrono;
+    g_quality_meta.calibration_timestamp = static_cast<uint64_t>(
+        duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
+
+    // FUNC-033 (2): the gate is R2 >= 0.999 (SRS-CALIB-001 SRS-CALIB-FUNC-033).
+    const bool passed = (g_quality_meta.r_squared >= XPE_CALIB_R_SQUARED_GATE);
+    g_quality_meta.calibration_pass = passed ? 1u : 0u;
+    return passed;
+}
+
+/* =============================================================================
  * Internal API for Calibration Generation — REMOVED (QA-A-34, #120)
  *
  * `xpe::calib::mode::{init_metadata, update_metadata, get_max_points,
