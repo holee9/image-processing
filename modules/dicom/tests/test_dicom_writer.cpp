@@ -342,3 +342,69 @@ TEST_F(DicomWriterTest, WriteUint8Format_NotRejectedBySizeGuard) {
     EXPECT_NE(XPE_ERR_INVALID_INPUT, rc)
         << "size guard rejected a format it cannot size; rc=" << rc;
 }
+
+// ---------------------------------------------------------------------------
+// #142 (QA-B-41): the empty-image contract QA-B-40 set for enhance_basic and
+// QA-B-41 carried to display now applies to the writer entry points too.
+// width == 0, height == 0, or a NULL data pointer is XPE_ERR_INVALID_INPUT.
+//
+// Before this, xpe_dicom_write accepted a zero-sized image and produced a file
+// with no pixels, while xpe_dicom_write_j2k reported XPE_ERR_PROCESSING_FAILED
+// from deep inside the compressor -- two different answers to one bad input,
+// neither of them naming the actual problem.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct NamedWriter {
+    const char* name;
+    XpeErrorCode (*fn)(const char*, const XpeImageBuffer*, const XpeImageMetadata*);
+};
+
+const NamedWriter kWriters[] = {
+    {"xpe_dicom_write",     xpe_dicom_write},
+    {"xpe_dicom_write_j2k", xpe_dicom_write_j2k},
+};
+
+}  // namespace
+
+TEST_F(DicomWriterTest, EmptyImage_ZeroWidth_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.width    = 0;
+        img.dataSize = 0;   // 0 means unspecified (#123), so it is not what fails
+        const auto path = m_tempDir / "empty_w.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted width == 0";
+    }
+}
+
+TEST_F(DicomWriterTest, EmptyImage_ZeroHeight_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.height   = 0;
+        img.dataSize = 0;
+        const auto path = m_tempDir / "empty_h.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted height == 0";
+    }
+}
+
+TEST_F(DicomWriterTest, EmptyImage_NullData_ReturnsInvalidInput) {
+    for (const auto& w : kWriters) {
+        XpeImageBuffer img = m_img;
+        img.data = nullptr;   // the fixture still owns m_img.data
+        const auto path = m_tempDir / "empty_null.dcm";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, w.fn(path.string().c_str(), &img, &m_meta))
+            << w.name << " accepted a NULL data pointer";
+    }
+}
+
+// The complement: without it a guard that rejected everything would satisfy
+// the three cases above.
+TEST_F(DicomWriterTest, EmptyImageContract_ValidImageStillAccepted) {
+    for (const auto& w : kWriters) {
+        const auto path = m_tempDir / "contract_valid.dcm";
+        EXPECT_EQ(XPE_OK, w.fn(path.string().c_str(), &m_img, &m_meta))
+            << w.name << " rejected a well-formed image";
+    }
+}
