@@ -456,6 +456,11 @@ jobs:
       # than failing (so an unmeasured run is not reported as "measured fine"). The
       # generator is part of xpe-ci-preprocess-binaries staged above, so here a skip is
       # never legitimate - treat any skipped E2E case as a failure of this job.
+      # Counters.notExecuted is NOT reliable: a run-time xUnit skip lands as a
+      # UnitTestResult with outcome="NotExecuted" while Counters.notExecuted stays 0
+      # (observed 2026-09-11, run 34538498373: total=13 executed=12 notExecuted=0 with
+      # W-02 skipped). Read total-vs-executed AND the per-result outcomes instead, and
+      # print each skip reason - a silent skip is exactly what this gate exists to catch.
       - name: Assert no skipped Native E2E cases
         shell: pwsh
         run: |
@@ -463,8 +468,16 @@ jobs:
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
           [xml]$x = Get-Content $trx.FullName
           $c = $x.TestRun.ResultSummary.Counters
-          Write-Host ("total={0} passed={1} failed={2} notExecuted={3}" -f $c.total, $c.passed, $c.failed, $c.notExecuted)
-          if ([int]$c.notExecuted -gt 0) { Write-Error 'skipped E2E case(s) in the Native run - generator/staging problem hidden as green'; exit 1 }
+          $results = @($x.TestRun.Results.UnitTestResult)
+          $skipped = @($results | Where-Object { $_.outcome -ne 'Passed' -and $_.outcome -ne 'Failed' })
+          Write-Host ("total={0} executed={1} passed={2} failed={3} notExecuted={4}" -f $c.total, $c.executed, $c.passed, $c.failed, $c.notExecuted)
+          foreach ($s in $skipped) {
+            Write-Host ("NOT RUN: {0} [{1}] {2}" -f $s.testName, $s.outcome, $s.Output.ErrorInfo.Message)
+          }
+          if ($skipped.Count -gt 0 -or [int]$c.total -ne [int]$c.executed) {
+            Write-Error ('{0} E2E case(s) did not run in the Native job - a generator/staging problem hidden as green' -f $skipped.Count)
+            exit 1
+          }
 
       - name: Upload Native E2E results
         if: always()
