@@ -634,16 +634,15 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filePath,
 ### 6.14 xpe_calib_save
 
 ```c
-XPE_API XpeErrorCode xpe_calib_save(const XpeImageBuffer* calibMap,
-                                     const char* filePath,
-                                     uint64_t expiryEpochMs,
-                                     const char* configJsonOrNull);
+XPE_API XpeErrorCode xpe_calib_save(const char* filePath,
+                                     const char* calibType,
+                                     uint64_t expiryEpochMs);
 ```
 
-**Description**: Writes `calibMap` to `filePath` with an embedded expiry timestamp `expiryEpochMs`. `configJsonOrNull` may specify output format (raw/dcm).  
-**SRS**: SRS-CALIB-021  
+**Description**: Writes the calibration map of `calibType` (`"offset"`, `"gain"`, `"defect"`) held in the global calibration store (§6 state model, #117) to `filePath` as XCal with SHA-256 integrity and the embedded expiry `expiryEpochMs` (Unix milliseconds; `0` = never expires, which `xpe_calib_check_expiry` reports as not expired). Returns `XPE_ERR_CALIB_NOT_LOADED` when that map is not loaded. **Decision #132 (2026-09-10):** the previous two-argument form `(filePath, calibType)` always wrote `expiry_epoch_ms = 0`, so no API path could produce an expiring file and SRS-ALERT-005 / REQ-P1A-018 were unreachable through the public API; the third parameter restores the requirement. Implemented by QA-A-29.  
+**SRS**: SRS-CALIB-021, SRS-ALERT-005  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CALIB_NOT_LOADED`, `XPE_ERR_IO_FAILED`
 
 ---
 
