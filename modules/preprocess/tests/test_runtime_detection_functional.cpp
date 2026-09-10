@@ -20,9 +20,10 @@
  * window at 5 sigma; a flat window (MAD == 0) flags any non-trivial deviation.
  *
  * Window size and sigma threshold are NOT reachable through the public entry
- * point: the shipped `xpe_defect_detect_runtime` calls `ParseWindowSize(nullptr,
- * ...)` and `ParseSigmaThreshold(nullptr, ...)` (runtime_detection.cpp:156-157),
- * so it always runs the defaults. Those cases therefore drive
+ * point: it takes no config argument and runs `RuntimeDetection_DefaultConfig()`
+ * unchanged. (Until QA-A-34 it called two JSON parsers with a literal nullptr,
+ * which looked configurable and was not; those parsers were removed.) Those
+ * cases therefore drive
  * `xpe::preprocess::internal::DetectDefectivePixel` directly, which is the
  * function the public path itself calls per pixel.
  */

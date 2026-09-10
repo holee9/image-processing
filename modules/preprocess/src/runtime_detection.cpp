@@ -18,62 +18,6 @@
 // Full nlohmann/json integration can be added if needed
 
 /**
- * @brief Parse window size from JSON config string.
- *
- * @param configJson JSON configuration string (can be nullptr)
- * @param defaultValue Default value if parsing fails
- * @return Parsed window size or default
- */
-static int32_t ParseWindowSize(const char* configJson, int32_t defaultValue) {
-    if (configJson == nullptr) return defaultValue;
-
-    // Minimal JSON parsing for windowSize
-    const char* windowKey = "\"windowSize\"";
-    const char* pos = strstr(configJson, windowKey);
-    if (pos == nullptr) return defaultValue;
-
-    pos = strchr(pos, ':');
-    if (pos == nullptr) return defaultValue;
-
-    // Skip whitespace
-    ++pos;
-    while (*pos == ' ' || *pos == '\t') ++pos;
-
-    // Parse integer value
-    return static_cast<int32_t>(atoi(pos));
-}
-
-/**
- * @brief Parse sigma threshold from JSON config string.
- *
- * @param configJson JSON configuration string (can be nullptr)
- * @param defaultValue Default value if parsing fails
- * @return Parsed sigma threshold or default
- */
-static float ParseSigmaThreshold(const char* configJson, float defaultValue) {
-    if (configJson == nullptr) return defaultValue;
-
-    // Minimal JSON parsing for sigmaThreshold
-    const char* sigmaKey = "\"sigmaThreshold\"";
-    const char* pos = strstr(configJson, sigmaKey);
-    if (pos == nullptr) return defaultValue;
-
-    pos = strchr(pos, ':');
-    if (pos == nullptr) return defaultValue;
-
-    // Skip whitespace
-    ++pos;
-    while (*pos == ' ' || *pos == '\t') ++pos;
-
-    // Parse float value
-    #ifdef _WIN32
-        return static_cast<float>(atof(pos));
-    #else
-        return strtof(pos, nullptr);
-    #endif
-}
-
-/**
  * @brief Validate runtime detection configuration.
  *
  * @param config Configuration to validate
@@ -104,8 +48,11 @@ extern "C" {
  *
  * @param img Input image (float32 format required)
  * @param defectMapOut Output defect map (non-zero = defective, must match img dimensions)
- * @param configJsonOrNull Optional JSON config with windowSize and sigmaThreshold
+ * @param defectMapOut Output defect map (non-zero = defective)
  * @return XPE_OK on success, XPE_ERR_INVALID_INPUT on parameter errors
+ *
+ * @note Window size and sigma threshold are fixed at their defaults; this entry
+ *       point takes no configuration (QA-A-34, #120).
  *
  * @note Algorithm: Hampel identifier with sliding window
  *       1. Collect values in window (default 5x5)
@@ -151,10 +98,19 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     }
     if (defectMapOut->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
 
-    // Parse configuration
-    RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
-    config.windowSize = ParseWindowSize(nullptr, config.windowSize);
-    config.sigmaThreshold = ParseSigmaThreshold(nullptr, config.sigmaThreshold);
+    // Detection parameters.
+    //
+    // QA-A-34 (#120): this used to read
+    //     config.windowSize     = ParseWindowSize(nullptr, config.windowSize);
+    //     config.sigmaThreshold = ParseSigmaThreshold(nullptr, config.sigmaThreshold);
+    // Both parsers were handed a literal nullptr, so they returned the default
+    // they were given and their JSON-scanning bodies never executed -- dead code
+    // that made the parameters look configurable. This entry point has no config
+    // argument (api-spec 6.x), and no SPEC requires window size or sigma
+    // threshold to be set from outside, so the parsers were removed rather than
+    // wired up. Callers that need other values use the internal
+    // DetectDefectivePixel(img, x, y, config) directly.
+    const RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
 
     // Validate configuration
     XpeErrorCode err = ValidateConfig(config);

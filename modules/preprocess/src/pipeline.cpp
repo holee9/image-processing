@@ -221,13 +221,22 @@ namespace {
         // a caller-supplied struct. The old gate tested XpeCalibrationState::
         // defectMap, which xpe_calib_state_load never fills, so this stage never
         // ran from either entry point. xpe_defect_correct() itself reads g_calib.
-        bool defectAvailable = false;
-        {
-            std::lock_guard<std::mutex> calibLock(g_calib_mutex);
-            defectAvailable = (g_calib.defect_map != nullptr);
+        //
+        // QA-A-34 (#120, api-spec 6 rule 3): map presence is NOT a gate. An
+        // enabled stage whose map is missing stops the pipeline, exactly as
+        // offset and gain do -- otherwise the caller reads XPE_OK for a frame
+        // that was never defect-corrected (SRS-ALERT-001). Skipping is only ever
+        // the result of the explicit bypass flag.
+        if (!cfg.bypassDefect) {
+            bool defectAvailable = false;
+            {
+                std::lock_guard<std::mutex> calibLock(g_calib_mutex);
+                defectAvailable = (g_calib.defect_map != nullptr);
+            }
+            if (!defectAvailable) return XPE_ERR_CALIB_NOT_LOADED;
         }
 
-        if (!cfg.bypassDefect && defectAvailable) {
+        if (!cfg.bypassDefect) {
             stage6Data.resize(pixelCount);
             stage6.width = img->width;
             stage6.height = img->height;
