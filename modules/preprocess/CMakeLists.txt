@@ -97,6 +97,36 @@ endif()
 #                by the root project via enable_testing())
 # BUILD_TESTS:   XPE root project option
 # ---------------------------------------------------------------------------
+# =============================================================================
+# QA-A-36 (#141): deterministic XCal fixture generator
+#
+# The repository ships no XCal fixtures and binaries are not committed, so GUI,
+# E2E and CI build a set at run time with this tool. It links the module it
+# ships with and adds no export.
+# =============================================================================
+add_executable(xpe_calib_fixture_gen tools/xpe_calib_fixture_gen.cpp)
+
+target_include_directories(xpe_calib_fixture_gen
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party  # picosha2, via xpe_sha256.hpp
+)
+
+target_link_libraries(xpe_calib_fixture_gen PRIVATE xpe_preprocess xpe_common)
+target_compile_features(xpe_calib_fixture_gen PRIVATE cxx_std_17)
+
+if(MSVC)
+    target_compile_options(xpe_calib_fixture_gen PRIVATE /W4)
+else()
+    target_compile_options(xpe_calib_fixture_gen PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_calib_fixture_gen)
+
+# Same output directory as the test binaries so the CI artifact picks it up.
+set_target_properties(xpe_calib_fixture_gen PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 set(_XPE_BUILD_TESTS OFF)
 if(BUILD_TESTING OR BUILD_TESTS)
     set(_XPE_BUILD_TESTS ON)
@@ -226,6 +256,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
         tests/test_req_p1a_066.cpp
+        # QA-A-36 (#141): fixture generator determinism + pipeline acceptance
+        tests/test_calib_fixture_gen.cpp
     )
 
     add_executable(xpe_preprocess_tests
@@ -262,6 +294,19 @@ if(_XPE_BUILD_TESTS)
         target_compile_options(xpe_preprocess_tests PRIVATE -Wall -Wextra)
     endif()
     xpe_target_warnings_as_errors(xpe_preprocess_tests)
+
+    # QA-A-36 (#141): test_calib_fixture_gen.cpp runs the tool as a subprocess.
+    # The path is handed over through a generated header rather than a compile
+    # definition -- on Windows the path contains backslashes, which a plain
+    # -D"..." string turns into invalid escapes. A raw string literal does not.
+    add_dependencies(xpe_preprocess_tests xpe_calib_fixture_gen)
+    file(GENERATE
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_fixture_gen_path.h
+        CONTENT "#pragma once
+#define XPE_FIXTURE_GEN_EXE R\"($<TARGET_FILE:xpe_calib_fixture_gen>)\"
+"
+    )
+    target_include_directories(xpe_preprocess_tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
