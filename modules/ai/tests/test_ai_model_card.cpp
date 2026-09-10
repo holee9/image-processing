@@ -228,10 +228,14 @@ TEST_F(AiModelCardTest, GetModelCardNullBufReturnsInvalid) {
               XPE_ERR_INVALID_INPUT);
 }
 
-TEST_F(AiModelCardTest, GetModelCardZeroBufSizeReturnsTooSmall) {
+// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+// which was the behaviour before #142 drew the line between a missing output
+// argument and a short one. The old expectation recorded what the code did;
+// it is superseded, not wrong-then.
+TEST_F(AiModelCardTest, GetModelCardZeroBufSizeReturnsInvalidInput) {
     char buf[1] = {};
     EXPECT_EQ(xpe_ai_get_model_card("bodypart_cnn_v1", buf, 0),
-              XPE_ERR_BUFFER_TOO_SMALL);
+              XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(AiModelCardTest, GetModelCardSmallBufferReturnsTooSmall) {
