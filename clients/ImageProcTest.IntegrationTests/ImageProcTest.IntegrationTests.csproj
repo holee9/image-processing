@@ -61,6 +61,9 @@
     <Compile Include="..\ImageProcTest\Diagnostics\XpeCommonLibraryLocator.cs" Link="DegradedMode\Linked\XpeCommonLibraryLocator.cs" />
     <!-- #110: alert-queue loss notice formatting (api-spec 5.17). Pure string logic, no native calls. -->
     <Compile Include="..\ImageProcTest\Services\AlertDisplayFormatter.cs" Link="Alerts\Linked\AlertDisplayFormatter.cs" />
+    <!-- #110: the gui-side drain decision logic + the alert record it produces. Delegate-driven, no P/Invoke. -->
+    <Compile Include="..\..\gui\ImageProcTest\Models\AlertEntry.cs" Link="Alerts\Linked\AlertEntry.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\NativeAlertDrain.cs" Link="Alerts\Linked\NativeAlertDrain.cs" />
   </ItemGroup>
 
   <!--

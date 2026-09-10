@@ -135,6 +135,58 @@ public sealed class ModuleReadinessReportingTests
         Assert.DoesNotContain("\n", line);
     }
 
+    /// <summary>
+    /// #56 / #128 (BP-10 "all_optional_absent"): with only the required floor staged, the grade the
+    /// report carries for each optional module is R0 and the grade for each required one is not.
+    ///
+    /// DegradedModeReadinessTests observes the same staging one level lower (does the DLL resolve?).
+    /// This case is the level the old BP-10 CI job actually reported at: what the app SAYS about that
+    /// discovery. Without it, a grading regression that turned every module into R1 would be invisible
+    /// here — resolution would still be null and the lower test would still pass.
+    /// </summary>
+    [Fact]
+    public void AllOptionalDllsAbsent_GradesEveryOptionalR0_AndNoRequiredOne()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"xpe_grades_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        foreach (var dll in new[] { "xpe_common.dll", "xpe_preprocess.dll" })
+            File.WriteAllBytes(Path.Combine(dir, dll), [0x4D, 0x5A]);
+
+        var previousDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var previousExclusive = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE");
+        Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", dir);
+        Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+        try
+        {
+            foreach (var dll in new[]
+                     { "gsvg.dll", "xpe_enhance_advanced.dll", "xpe_dicom.dll", "xpe_display.dll" })
+            {
+                var path = NativeModuleLibraryLocator.TryFindDll(dll, "image-processing");
+                Assert.Equal("R0", ModuleReadinessGrading.GradeDiscovery(path, "R1"));
+                Assert.Equal(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(path, "R1"));
+                Assert.Equal(string.Empty, ModuleReadinessReporting.ResolvedPathOrEmpty(path));
+            }
+
+            var basicPath = XpeEnhanceBasicLibraryLocator.TryFindDll();
+            Assert.Equal(ModuleReadinessGrading.NotReady, ModuleReadinessGrading.GradeDiscovery(basicPath, "R1"));
+
+            foreach (var required in new[]
+                     { XpeCommonLibraryLocator.TryFindDll(), XpePreprocessLibraryLocator.TryFindDll() })
+            {
+                Assert.NotEqual(
+                    ModuleReadinessGrading.NotReady,
+                    ModuleReadinessGrading.GradeDiscovery(required, "R1"));
+                Assert.NotEqual(string.Empty, ModuleReadinessReporting.ResolvedPathOrEmpty(required));
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", previousDir);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", previousExclusive);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* temp dir, best effort */ }
+        }
+    }
+
     private static ModuleReadinessSnapshot Snapshot(string module, string resolvedPath) =>
         new(module, "R1", "status", "evidence", "next", ProcessingEnabled: false,
             ResolvedDllPath: resolvedPath);

@@ -18,6 +18,16 @@
     <Using Remove="System.Drawing" />
   </ItemGroup>
 
+  <!--
+    #110: the alert display formatter is owned by clients/ImageProcTest (which owns the native
+    alert API surface). gui consumes it as linked source rather than a project reference — both
+    projects are WinExe and neither is a library, so the file stays in one place with one author.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\clients\ImageProcTest\Services\AlertDisplayFormatter.cs"
+             Link="Services\AlertDisplayFormatter.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

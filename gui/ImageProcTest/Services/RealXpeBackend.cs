@@ -163,6 +163,8 @@ public sealed class RealXpeBackend : IXpeBackend
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
+            DrainNativeAlerts();
+
             var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
@@ -197,6 +199,45 @@ public sealed class RealXpeBackend : IXpeBackend
             "xpe_voi_preset_create");
 
         return new VoiPreset(nativeParams.Center, nativeParams.Width, "Linear");
+    }
+
+    // #110 / SRS-ALERT-007: pull whatever the native layer queued during the processing call into
+    // the list the UI reads (MainWindowViewModel.DrainBackendTelemetry). Synchronous, no timer.
+    private void DrainNativeAlerts()
+    {
+        int pending;
+        try
+        {
+            pending = XpeCommonNative.xpe_get_pending_alert_count();
+        }
+        catch (DllNotFoundException)
+        {
+            return;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // Older xpe_common.dll without the alert queue — degrade quietly, do not fail the pipeline.
+            return;
+        }
+
+        if (pending <= 0)
+        {
+            return;
+        }
+
+        var drained = NativeAlertDrain.Drain(pending, ReadNativeAlert, DateTimeOffset.Now);
+        _alerts.AddRange(drained);
+        AddLog($"Drained {drained.Count} native alert(s) from the xpe_common queue.");
+
+        XpeCommonNative.xpe_clear_alerts();
+    }
+
+    private static int ReadNativeAlert(int index, int bufferLength, out string? message, out int severity)
+    {
+        var buffer = new System.Text.StringBuilder(bufferLength);
+        var code = XpeCommonNative.xpe_get_pending_alert(index, buffer, (UIntPtr)bufferLength, out severity);
+        message = code == NativeAlertDrain.Ok ? buffer.ToString() : null;
+        return code;
     }
 
     public int GetAlertCount() => _alerts.Count;
