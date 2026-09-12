@@ -16,6 +16,9 @@
 // so the guard skipped everywhere, CI and local alike.
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcpixel.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmjpeg/djencode.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
@@ -832,4 +835,249 @@ TEST_F(DicomReaderTest, ConcurrentOpenOfJpegLossless_NoCorruption) {
     EXPECT_EQ(0, mismatches.load())   << "pixels differed under contention";
 
     xpe_free_image(&expected);
+}
+
+// ===========================================================================
+// #120 (QA-B-47): the J2K decode FAILURE paths.
+//
+// QA-B-46 confirmed what QA-B-44 predicted: widening the success path leaves
+// these lines untouched. They only run when decoding fails, and until now
+// nothing made it fail. For medical-device software that is not a coverage
+// number -- it means nobody has checked what the reader RETURNS when
+// decompression fails, or what it RELEASES on the way out.
+//
+// Fixtures are built by replacing the encapsulated pixel data of a real J2K
+// file, so each case differs from a working file in exactly one way.
+// ===========================================================================
+#if defined(_WIN32)
+#  include <windows.h>
+#  include <psapi.h>
+static size_t b47_working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc{};
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+}
+#else
+static size_t b47_working_set_bytes() { return 0; }
+#endif
+
+namespace {
+
+// What goes into the pixel sequence of the crafted file.
+enum class FragmentShape {
+    kGarbage,        // bytes that are not a J2K codestream at all
+    kTruncated,      // the real codestream, cut in half
+    kEmptyFragment,  // a fragment of length 0
+    kOffsetTableOnly // no data fragment at all
+};
+
+// Pull the real J2K codestream out of a file this project wrote.
+bool ExtractJ2kBitstream(const fs::path& j2kFile, std::vector<uint8_t>& out) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(j2kFile.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+
+    DcmElement* elem = nullptr;
+    if (!ds->findAndGetElement(DCM_PixelData, elem).good() || elem == nullptr) return false;
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, elem);
+
+    DcmPixelSequence* seq = nullptr;
+    E_TransferSyntax repKey = EXS_JPEG2000LosslessOnly;
+    const DcmRepresentationParameter* repParam = nullptr;
+    if (!pd->getEncapsulatedRepresentation(repKey, repParam, seq).good() || seq == nullptr) {
+        return false;
+    }
+
+    DcmPixelItem* item = nullptr;
+    if (!seq->getItem(item, 1).good() || item == nullptr) return false;
+    Uint8* bytes = nullptr;
+    if (!item->getUint8Array(bytes).good() || bytes == nullptr) return false;
+    const Uint32 len = static_cast<Uint32>(item->getLength());
+    if (len == 0) return false;
+
+    out.assign(bytes, bytes + len);
+    return true;
+}
+
+// Write a file that declares J2K Lossless and carries the requested fragment.
+bool WriteCraftedJ2kFile(const fs::path& src, const fs::path& dst,
+                         const std::vector<uint8_t>& bitstream,
+                         FragmentShape shape) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+
+    ds->findAndDeleteElement(DCM_PixelData);
+
+    // Offset table first, exactly as an encapsulated dataset requires.
+    DcmPixelSequence* seq = new DcmPixelSequence(DcmTag(DCM_PixelData, EVR_OB));
+    seq->insert(new DcmPixelItem(DcmTag(DCM_Item, EVR_OB)));
+
+    if (shape != FragmentShape::kOffsetTableOnly) {
+        DcmPixelItem* frag = new DcmPixelItem(DcmTag(DCM_Item, EVR_OB));
+        switch (shape) {
+            case FragmentShape::kGarbage: {
+                std::vector<uint8_t> junk(256);
+                for (size_t i = 0; i < junk.size(); ++i) {
+                    junk[i] = static_cast<uint8_t>(0xA5 ^ (i & 0xFF));
+                }
+                frag->putUint8Array(junk.data(), static_cast<Uint32>(junk.size()));
+                break;
+            }
+            case FragmentShape::kTruncated: {
+                const Uint32 half = static_cast<Uint32>(bitstream.size() / 2);
+                frag->putUint8Array(bitstream.data(), half);
+                break;
+            }
+            case FragmentShape::kEmptyFragment:
+                break;   // inserted with no value at all
+            default:
+                break;
+        }
+        seq->insert(frag);
+    }
+
+    DcmPixelData* pd = new DcmPixelData(DcmTag(DCM_PixelData, EVR_OB));
+    // putOriginalRepresentation returns void and takes ownership of seq.
+    pd->putOriginalRepresentation(EXS_JPEG2000LosslessOnly, nullptr, seq);
+    if (!ds->insert(pd, OFTrue).good()) {
+        delete pd;
+        return false;
+    }
+
+    return ff.saveFile(dst.string().c_str(), EXS_JPEG2000LosslessOnly).good();
+}
+
+// Open + read one crafted file. Returns the read_image result; XPE_OK cases
+// free the buffer so the caller can loop without leaking on the success path.
+XpeErrorCode ReadCrafted(const fs::path& path) {
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode openRc = xpe_dicom_open(path.string().c_str(), &handle);
+    if (openRc != XPE_OK) return openRc;
+    XpeImageBuffer img{};
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
+    if (rc == XPE_OK) xpe_free_image(&img);
+    xpe_dicom_close(handle);
+    return rc;
+}
+
+}  // namespace
+
+class DicomJ2kFailureTest : public DicomReaderTest {
+protected:
+    static std::vector<uint8_t> s_bitstream;
+    static fs::path s_j2kSource;
+
+    void SetUp() override {
+        DicomReaderTest::SetUp();
+        if (s_bitstream.empty()) {
+            // One real J2K file, written by this project, is the donor for every
+            // crafted fixture below.
+            s_j2kSource = s_tempDir / "j2k_donor.dcm";
+            XpeDicomHandle* h = nullptr;
+            ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &h));
+            XpeImageBuffer img{};
+            ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &img));
+            XpeImageMetadata meta{};
+            xpe_dicom_get_metadata(h, &meta);
+            xpe_dicom_close(h);
+            ASSERT_EQ(XPE_OK, xpe_dicom_write_j2k(s_j2kSource.string().c_str(), &img, &meta));
+            xpe_free_image(&img);
+            ASSERT_TRUE(ExtractJ2kBitstream(s_j2kSource, s_bitstream));
+            ASSERT_GT(s_bitstream.size(), 64u);
+        }
+    }
+};
+
+std::vector<uint8_t> DicomJ2kFailureTest::s_bitstream;
+fs::path DicomJ2kFailureTest::s_j2kSource;
+
+// A codestream that is not a codestream: opj_read_header rejects it
+// (DicomReader.cpp:451-457).
+TEST_F(DicomJ2kFailureTest, GarbageBitstream_ReturnsProcessingFailed) {
+    const auto path = s_tempDir / "j2k_garbage.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream,
+                                    FragmentShape::kGarbage));
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, ReadCrafted(path));
+}
+
+// Header present, data cut short. Which of the two handlers catches it
+// (read_header or decode) is an OpenJPEG detail, so the assertion names the
+// contract -- a failure is reported, not a half-decoded image.
+TEST_F(DicomJ2kFailureTest, TruncatedBitstream_ReturnsProcessingFailed) {
+    const auto path = s_tempDir / "j2k_truncated.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream,
+                                    FragmentShape::kTruncated));
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, ReadCrafted(path));
+}
+
+// A fragment carrying no bytes: rejected before OpenJPEG is involved
+// (DicomReader.cpp:367-370).
+TEST_F(DicomJ2kFailureTest, EmptyFragment_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "j2k_empty_frag.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream,
+                                    FragmentShape::kEmptyFragment));
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadCrafted(path));
+}
+
+// Only the offset table, no data fragment. The reader falls back from item 1 to
+// item 0 and finds the empty offset table, so this lands on the same guard.
+TEST_F(DicomJ2kFailureTest, OffsetTableOnly_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "j2k_no_frag.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream,
+                                    FragmentShape::kOffsetTableOnly));
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadCrafted(path));
+}
+
+// ---------------------------------------------------------------------------
+// The part that matters more than the return codes: does the failure path
+// RELEASE what it allocated?
+//
+// Each failing decode allocates an OpenJPEG codec, a stream, and (for the
+// decode-failure branch) an image. The handlers destroy them in a particular
+// order; a missing destroy leaks once per failed read, which in a viewer that
+// retries a bad study is a leak per retry.
+//
+// Method: working-set growth across many repetitions, the same #105 G3 gate the
+// other modules use -- warm up so first-touch and allocator arenas settle, take
+// a baseline, then loop. It measures the process, so it cannot name which
+// object leaked; what it can do is fail when one does. The sensitivity probe
+// below is what keeps that claim honest.
+// ---------------------------------------------------------------------------
+TEST_F(DicomJ2kFailureTest, FailurePathsDoNotGrowWorkingSet) {
+#if !defined(_WIN32)
+    GTEST_SKIP() << "working-set measurement is Windows-only in this build";
+#endif
+    const auto garbage   = s_tempDir / "j2k_leak_garbage.dcm";
+    const auto truncated = s_tempDir / "j2k_leak_truncated.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, garbage, s_bitstream,
+                                    FragmentShape::kGarbage));
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, truncated, s_bitstream,
+                                    FragmentShape::kTruncated));
+
+    constexpr int kWarmup = 100;
+    constexpr int kCycles = 1000;
+
+    for (int i = 0; i < kWarmup; ++i) {
+        (void)ReadCrafted(garbage);
+        (void)ReadCrafted(truncated);
+    }
+
+    const size_t baseline = b47_working_set_bytes();
+    ASSERT_GT(baseline, 0u) << "working-set query failed; the gate would be blind";
+
+    for (int i = 0; i < kCycles; ++i) {
+        (void)ReadCrafted(garbage);
+        (void)ReadCrafted(truncated);
+    }
+
+    const size_t after = b47_working_set_bytes();
+    const size_t growth = (after > baseline) ? (after - baseline) : 0;
+    EXPECT_LT(growth, 1u * 1024u * 1024u)
+        << "working set grew " << growth << " bytes over " << kCycles
+        << " failed decodes -- a failure path is not releasing what it allocated";
 }
