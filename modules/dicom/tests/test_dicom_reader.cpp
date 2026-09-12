@@ -1461,40 +1461,55 @@ TEST_F(DicomReaderTest, CompressedMatchedSize_StillReadsNormally) {
 }
 
 // ---------------------------------------------------------------------------
-// KnownDivergence_ (QA-B-50): the OTHER direction -- codestream LARGER than the
-// dataset declares. Not part of HAZ-DCM-002 (nothing is missing), so #150 does
-// not reject it, and this card does not change it. What the two paths do differs,
-// which is the part worth recording:
+// #150 (QA-B-51): the OTHER direction -- a decoded frame LARGER than the dataset
+// declares is a rejection too.
 //
-//   j2k-oversized     rc=0   declared 256x128 -> returned 256x256
-//   jpegll-oversized  rc=-3  (PROCESSING_FAILED, from DCMTK's decoder)
+// This case existed in QA-B-50 as KnownDivergence_CompressedLargerThanDeclared,
+// which pinned two different answers to one malformed shape:
 //
-// So the same malformed shape is a success on one path and a failure on the
-// other, and the J2K success hands back a buffer LARGER than the metadata
-// describes. Neither is obviously right; deciding it is a contract question,
-// raised in the QA-B-50 report rather than settled here. These assertions pin
-// today's behaviour so the decision shows up as a change.
+//     j2k-oversized     rc=0   declared 256x128 -> returned 256x256
+//     jpegll-oversized  rc=-3  (PROCESSING_FAILED, from DCMTK's decoder)
+//
+// That record was not wrong when it was written -- no contract existed, so it
+// held the ground rather than guessing at one. The contract now exists, and it
+// REPLACES the record: Rows/Columns are the file's own description of its
+// pixels, so a decoded frame that is larger means the file contradicts itself,
+// and handing that image onward (to a PACS, to a viewer) propagates the lie. The
+// path-dependent split was itself the clearest evidence something was undecided:
+// one malformed shape, two answers.
+//
+// The boundary this does NOT cross: on the NATIVE path, surplus trailing BYTES
+// remain a success (SurplusPixelData_IsIgnoredAndReadSucceeds, unchanged) --
+// surplus bytes are ordinary DICOM padding and contradict no dimension claim,
+// whereas surplus DIMENSIONS contradict one.
 // ---------------------------------------------------------------------------
-TEST_F(DicomReaderTest, KnownDivergence_CompressedLargerThanDeclared) {
-    {
-        const auto path = s_tempDir / "j2k_oversized.dcm";
-        std::string whyNot;
-        ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/true, 256, 256, 128, whyNot))
-            << whyNot;
-        XpeImageBuffer img{};
-        EXPECT_EQ(XPE_OK, ReadWithSentinel(path, &img))
-            << "today: J2K accepts a codestream larger than declared";
-        EXPECT_EQ(256u, img.height)
-            << "today: the returned image is TALLER than the dataset declares";
-        xpe_free_image(&img);
-    }
-    {
-        const auto path = s_tempDir / "jpegll_oversized.dcm";
-        std::string whyNot;
-        ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/false, 256, 256, 128, whyNot))
-            << whyNot;
-        XpeImageBuffer img{};
-        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, ReadWithSentinel(path, &img))
-            << "today: DCMTK's decoder refuses the same shape JPEG-LL side";
-    }
+TEST_F(DicomReaderTest, J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "j2k_oversized.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/true, 256, 256, 128, whyNot))
+        << whyNot;
+
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadWithSentinel(path, &img))
+        << "before #150/QA-B-51 this returned XPE_OK with a 256x256 buffer while "
+           "the dataset declared 256x128";
+    EXPECT_EQ(nullptr, img.data);
+    EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
+    EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
+}
+
+TEST_F(DicomReaderTest, JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "jpegll_oversized.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/false, 256, 256, 128, whyNot))
+        << whyNot;
+
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadWithSentinel(path, &img))
+        << "this shape used to surface as XPE_ERR_PROCESSING_FAILED from DCMTK's "
+           "decoder -- a decoder fault, which is not what is wrong with the file; "
+           "the SOF check now names it as the dimension mismatch it is";
+    EXPECT_EQ(nullptr, img.data);
+    EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
+    EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
 }

@@ -218,9 +218,11 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     if (isJPEGLL) {
         // #150: check the encoded frame against the declared size BEFORE letting
-        // DCMTK decompress. Afterwards the padding hides the shortfall (see
-        // jpeg_frame_dimensions). Judged here, nothing has been allocated yet, so
-        // the QA-B-48 contract holds on this path: outImg is not touched at all.
+        // DCMTK decompress. Afterwards the padding hides a shortfall (see
+        // jpeg_frame_dimensions), and an oversized frame surfaces only as a
+        // decoder fault (PROCESSING_FAILED), which misnames what is wrong with
+        // the file. Judged here, nothing has been allocated yet, so the QA-B-48
+        // contract holds on this path: outImg is not touched at all.
         DcmElement* encElem = nullptr;
         if (ds->findAndGetElement(DCM_PixelData, encElem).good() && encElem != nullptr) {
             DcmPixelData* encPd = OFstatic_cast(DcmPixelData*, encElem);
@@ -237,9 +239,9 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                     if (frag->getUint8Array(fragData).good() && fragData != nullptr &&
                         jpeg_frame_dimensions(fragData, static_cast<size_t>(frag->getLength()),
                                               frameW, frameH)) {
-                        if (frameW < cols || frameH < rows) {
-                            spdlog::error("[DicomReader] JPEG frame is smaller than declared: "
-                                          "dataset says {}x{}, frame carries {}x{}",
+                        if (frameW != cols || frameH != rows) {
+                            spdlog::error("[DicomReader] JPEG frame size does not match the "
+                                          "declared size: dataset says {}x{}, frame carries {}x{}",
                                           cols, rows, frameW, frameH);
                             return XPE_ERR_DICOM_INVALID;
                         }
@@ -570,15 +572,19 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     uint32_t imgW = image->comps[0].w;
     uint32_t imgH = image->comps[0].h;
 
-    // #150: a codestream smaller than the header declares is a corrupt file, not
-    // a readable one -- the same HAZ-DCM-002 hazard the native path rejects.
+    // #150: a codestream whose size does not match the header is a corrupt file,
+    // not a readable one -- the HAZ-DCM-002 hazard when it is smaller, and a file
+    // contradicting its own description when it is larger (QA-B-51). Rows and
+    // Columns are the dataset's claim ABOUT these pixels; decoding something else
+    // and passing it on hands the next consumer a wrong claim.
+    //
     // Distinct from the decode failures above: those mean OpenJPEG could not
     // decode and return XPE_ERR_PROCESSING_FAILED; this means it decoded fine and
     // the result does not match what the dataset promised, which is a DICOM
     // consistency fault. The two are not merged into one code on purpose.
-    if (imgW < cols || imgH < rows) {
-        spdlog::error("[DicomReader] J2K codestream is smaller than declared: "
-                      "dataset says {}x{}, codestream carries {}x{}",
+    if (imgW != cols || imgH != rows) {
+        spdlog::error("[DicomReader] J2K codestream size does not match the declared "
+                      "size: dataset says {}x{}, codestream carries {}x{}",
                       cols, rows, imgW, imgH);
         opj_image_destroy(image);
         return XPE_ERR_DICOM_INVALID;
