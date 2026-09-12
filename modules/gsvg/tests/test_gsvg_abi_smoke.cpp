@@ -107,12 +107,7 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PassThroughIsByteEqual)
     ASSERT_NE(handle, nullptr);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto rc = xpe_gsvg_process(handle,
-                                     src.data(),
-                                     dst.data(),
-                                     kAbiWidth,
-                                     kAbiHeight,
-                                     /*gainMap=*/nullptr);
+    const auto rc = xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kAbiWidth, kAbiHeight, nullptr, 0);
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
     (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
@@ -149,12 +144,7 @@ TEST(GsvgAbiSmoke, Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact)
     ASSERT_NE(handle, nullptr);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto rc = xpe_gsvg_process(handle,
-                                     src.data(),
-                                     dst.data(),
-                                     kAbiWidth,
-                                     kAbiHeight,
-                                     gain.data());
+    const auto rc = xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kAbiWidth, kAbiHeight, gain.data(), gain.size());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
     (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
@@ -199,11 +189,7 @@ TEST(GsvgAbiSmoke, ProcessRejectsNullHandle)
 {
     const std::vector<uint16_t> src(16, 1000);
     std::vector<uint16_t> dst(16, 0);
-    EXPECT_EQ(xpe_gsvg_process(/*handle=*/nullptr,
-                               src.data(),
-                               dst.data(),
-                               4, 4,
-                               nullptr),
+    EXPECT_EQ(xpe_gsvg_process(/*handle=*/nullptr, src.data(), src.size(), dst.data(), dst.size(), 4, 4, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -238,12 +224,7 @@ TEST(GsvgAbiSmoke, RepeatedLifecycleDoesNotLeakOrCrash)
             << "init failed on cycle " << i;
         ASSERT_NE(handle, nullptr);
 
-        ASSERT_EQ(xpe_gsvg_process(handle,
-                                   src.data(),
-                                   dst.data(),
-                                   kSmallW,
-                                   kSmallH,
-                                   nullptr),
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kSmallW, kSmallH, nullptr, 0),
                   XPE_OK) << "process failed on cycle " << i;
 
         ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK)
@@ -283,8 +264,7 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
         void* handle = nullptr;
         ASSERT_EQ(xpe_gsvg_init(&handle, /*configJsonOrNull=*/nullptr), XPE_OK);
         const auto start = std::chrono::steady_clock::now();
-        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
-                                   kAbiWidth, kAbiHeight, /*gainMap=*/nullptr),
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kAbiWidth, kAbiHeight, nullptr, 0),
                   XPE_OK);
         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start);
@@ -301,8 +281,7 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
                                 "\"grid_suppression\":true}"),
                   XPE_OK);
         const auto start = std::chrono::steady_clock::now();
-        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
-                                   kAbiWidth, kAbiHeight, gain.data()),
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kAbiWidth, kAbiHeight, gain.data(), gain.size()),
                   XPE_OK);
         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start);
@@ -383,7 +362,7 @@ TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
             << "init failed on cycle " << i;
         ASSERT_NE(handle, nullptr);
 
-        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kW, kH, gain.data()), XPE_OK)
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kW, kH, gain.data(), gain.size()), XPE_OK)
             << "process failed on cycle " << i;
 
         ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK)

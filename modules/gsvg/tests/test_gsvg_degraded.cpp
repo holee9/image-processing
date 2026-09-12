@@ -66,10 +66,7 @@ TEST(GsvgDegradedMode, BP07_NullVignetteMap_IdentityOutput)
     ASSERT_NE(handle, nullptr);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto rc = xpe_gsvg_process(handle,
-                                     src.data(), dst.data(),
-                                     kWidth, kHeight,
-                                     /*gainMap=*/nullptr);
+    const auto rc = xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0);
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
@@ -106,10 +103,7 @@ TEST(GsvgDegradedMode, BP08_AllOnesVignetteMap_OutputEqualsInput)
     ASSERT_NE(handle, nullptr);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto rc = xpe_gsvg_process(handle,
-                                     src.data(), dst.data(),
-                                     kWidth, kHeight,
-                                     gain.data());
+    const auto rc = xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gain.data(), gain.size());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
@@ -147,10 +141,7 @@ TEST(GsvgDegradedMode, BP09_GridDisabled_VignetteOnly)
     ASSERT_NE(handle, nullptr);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto rc = xpe_gsvg_process(handle,
-                                     src.data(), dst.data(),
-                                     kWidth, kHeight,
-                                     gain.data());
+    const auto rc = xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gain.data(), gain.size());
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
@@ -184,8 +175,7 @@ TEST(GsvgDegradedMode, InitWithNullConfig_DefaultsToPassThrough)
     ASSERT_EQ(xpe_gsvg_init(&handle, nullptr), XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
-                               kWidth, kHeight, /*gainMap=*/nullptr),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_OK);
 
     // Defaults should be full pass-through (both steps OFF).
@@ -198,8 +188,7 @@ TEST(GsvgDegradedMode, ProcessWithNullHandle_ReturnsInvalidInput)
 {
     const auto src = make_synthetic_image();
     std::vector<uint16_t> dst(kCount, 0);
-    EXPECT_EQ(xpe_gsvg_process(nullptr, src.data(), dst.data(),
-                               kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(nullptr, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
 }
 
@@ -232,8 +221,7 @@ TEST(GsvgDegradedMode, DegradedMode_PerformanceBudget)
                   XPE_OK) << labels[i];
 
         const auto start = std::chrono::steady_clock::now();
-        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(),
-                                   kWidth, kHeight, gainMaps[i]),
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gainMaps[i], (gainMaps[i] ? kCount : 0u)),
                   XPE_OK) << labels[i];
         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start);

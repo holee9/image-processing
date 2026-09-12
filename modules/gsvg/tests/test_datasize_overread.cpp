@@ -94,7 +94,7 @@ constexpr size_t kPixels = static_cast<size_t>(kW) * kH;
 
 #if defined(_WIN32)
 
-// Control: full-length buffers process normally. Without this, an over-read
+// Control: full-length buffers process normally. Without this, a rejection
 // below could be blamed on the fixture rather than on the module.
 TEST(GsvgDataSizeProbe, FullLengthBuffersProcessNormally) {
     void* handle = nullptr;
@@ -105,8 +105,9 @@ TEST(GsvgDataSizeProbe, FullLengthBuffersProcessNormally) {
     ASSERT_TRUE(src.valid() && dst.valid());
 
     const ProbeResult r = RunProbe([&] {
-        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()),
-                                static_cast<uint16_t*>(dst.data()), kW, kH, nullptr);
+        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()), kPixels,
+                                static_cast<uint16_t*>(dst.data()), kPixels,
+                                kW, kH, nullptr, 0u);
     });
     GTEST_LOG_(INFO) << "gsvg CONTROL full-length rc=" << r.rc
                      << " overread=" << (r.overread ? "YES" : "no");
@@ -116,11 +117,21 @@ TEST(GsvgDataSizeProbe, FullLengthBuffersProcessNormally) {
     xpe_gsvg_shutdown(handle);
 }
 
-// KnownDivergence_ (QA-B-52): gsvg trusts src to hold width * height entries.
-// Handing it half that reads past the end -- recorded, not fixed. The module has
-// no length parameter to check against, so this is a signature-level contract
-// question, raised in the report.
-TEST(GsvgDataSizeProbe, KnownDivergence_ShortSourceBufferIsReadPastItsEnd) {
+// ---------------------------------------------------------------------------
+// #152 (QA-B-53): a short src is now REJECTED, and the guard page confirms it is
+// not read on the way to the rejection.
+//
+// This case existed in QA-B-52 as KnownDivergence_ShortSourceBufferIsReadPast-
+// ItsEnd, asserting rc == XPE_OK with overread == YES. That record was not
+// wrong when it was written: the function had no length argument, so there was
+// nothing to check against and nothing to fix without changing the signature.
+// The signature changed (#152), so the record is REPLACED -- not corrected.
+//
+// The return code alone would not settle this. A check placed after the first
+// read returns the right code and still over-reads, so the second assertion is
+// the one that carries the claim.
+// ---------------------------------------------------------------------------
+TEST(GsvgDataSizeProbe, ShortSourceBufferIsRejectedWithoutBeingRead) {
     void* handle = nullptr;
     ASSERT_EQ(XPE_OK, xpe_gsvg_init(&handle, nullptr));
 
@@ -129,33 +140,27 @@ TEST(GsvgDataSizeProbe, KnownDivergence_ShortSourceBufferIsReadPastItsEnd) {
     ASSERT_TRUE(src.valid() && dst.valid());
 
     const ProbeResult r = RunProbe([&] {
-        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()),
-                                static_cast<uint16_t*>(dst.data()), kW, kH, nullptr);
+        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()), kPixels / 2u,
+                                static_cast<uint16_t*>(dst.data()), kPixels,
+                                kW, kH, nullptr, 0u);
     });
     GTEST_LOG_(INFO) << "gsvg short-src pixels_promised=" << kPixels
-                     << " pixels_mapped=" << (kPixels / 2)
+                     << " srcCount=" << (kPixels / 2)
                      << " rc=" << r.rc
                      << " overread=" << (r.overread ? "YES" : "no");
 
-    // Today's behaviour, pinned so a future length check shows up as a change.
-    EXPECT_TRUE(r.overread)
-        << "if this now passes, gsvg has gained a length check -- update the "
-           "expectation and the QA-B-52 record rather than deleting the case";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
+    EXPECT_FALSE(r.overread) << "rejected, but only after reading past the buffer";
 
     xpe_gsvg_shutdown(handle);
 }
 
-// Same question for the gainMap, which the header calls out by name.
-//
-// First attempt used a DEFAULT handle and observed no over-read -- which would
-// have read as "the header is wrong". It is not: the vignette step runs only
-// when BOTH the config flag is set and a gainMap is supplied
-// (gsvg.cpp:218), and `vignette_correction` defaults to false (gsvg.cpp:190),
-// so a default handle never touches the map. The header's sentence is true
-// under the condition it does not state. The probe therefore enables the step
-// explicitly; enabling it is what makes the measurement about gsvg rather than
+// Same for the gainMap. The vignette step runs only when the config flag is set
+// (gsvg.cpp:218) and the flag defaults to false (gsvg.cpp:190), so a default
+// handle never touches the map -- QA-B-52 nearly read that as "the header is
+// wrong". The flag is enabled here so the measurement is about gsvg rather than
 // about the default config.
-TEST(GsvgDataSizeProbe, KnownDivergence_ShortGainMapIsReadPastItsEnd) {
+TEST(GsvgDataSizeProbe, ShortGainMapIsRejectedWithoutBeingRead) {
     void* handle = nullptr;
     ASSERT_EQ(XPE_OK, xpe_gsvg_init(&handle, "{\"vignette_correction\": true}"));
 
@@ -165,20 +170,78 @@ TEST(GsvgDataSizeProbe, KnownDivergence_ShortGainMapIsReadPastItsEnd) {
     ASSERT_TRUE(src.valid() && dst.valid() && gain.valid());
 
     const ProbeResult r = RunProbe([&] {
-        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()),
-                                static_cast<uint16_t*>(dst.data()), kW, kH,
-                                static_cast<const float*>(gain.data()));
+        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()), kPixels,
+                                static_cast<uint16_t*>(dst.data()), kPixels,
+                                kW, kH,
+                                static_cast<const float*>(gain.data()), kPixels / 2u);
     });
     GTEST_LOG_(INFO) << "gsvg short-gainMap entries_promised=" << kPixels
-                     << " entries_mapped=" << (kPixels / 2)
+                     << " gainCount=" << (kPixels / 2)
                      << " rc=" << r.rc
                      << " overread=" << (r.overread ? "YES" : "no");
 
-    // The header states this outcome; the assertion is what keeps the statement
-    // true, or tells us when it stops being.
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
+    EXPECT_FALSE(r.overread) << "rejected, but only after reading past the map";
+
+    xpe_gsvg_shutdown(handle);
+}
+
+// A NULL gainMap carries no length, and passing 0 for it must stay a success --
+// otherwise every caller that skips the vignette step would have to invent a
+// number to get past the new check.
+TEST(GsvgDataSizeProbe, NullGainMapWithZeroLengthIsAccepted) {
+    void* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_gsvg_init(&handle, "{\"vignette_correction\": true}"));
+
+    GuardedBuffer src(kPixels * sizeof(uint16_t));
+    GuardedBuffer dst(kPixels * sizeof(uint16_t));
+    ASSERT_TRUE(src.valid() && dst.valid());
+
+    const ProbeResult r = RunProbe([&] {
+        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()), kPixels,
+                                static_cast<uint16_t*>(dst.data()), kPixels,
+                                kW, kH, nullptr, 0u);
+    });
+    GTEST_LOG_(INFO) << "gsvg null-gainMap gainCount=0 rc=" << r.rc
+                     << " overread=" << (r.overread ? "YES" : "no");
+    EXPECT_EQ(XPE_OK, r.rc) << "a length of 0 for a buffer that does not exist is not a fault";
+    EXPECT_FALSE(r.overread);
+
+    xpe_gsvg_shutdown(handle);
+}
+
+// ---------------------------------------------------------------------------
+// KnownDivergence_ (QA-B-53): what the length argument does NOT fix.
+//
+// A caller that MISSTATES the length -- hands over a half-size buffer while
+// claiming the full count -- is back where QA-B-52 started: the function is told
+// the buffer is long enough, believes it, and reads past the end. This is not a
+// gap in the check; it is the boundary of what any length parameter can do. It
+// is asserted so the limit lives in the suite rather than only in prose, and so
+// that a future bounds mechanism that DOES catch it shows up as a change.
+// ---------------------------------------------------------------------------
+TEST(GsvgDataSizeProbe, KnownDivergence_MisstatedLengthIsStillReadPastItsEnd) {
+    void* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_gsvg_init(&handle, nullptr));
+
+    GuardedBuffer src(kPixels * sizeof(uint16_t) / 2u);   // half the pixels...
+    GuardedBuffer dst(kPixels * sizeof(uint16_t));
+    ASSERT_TRUE(src.valid() && dst.valid());
+
+    const ProbeResult r = RunProbe([&] {
+        // ...but the caller claims the full count.
+        return xpe_gsvg_process(handle, static_cast<const uint16_t*>(src.data()), kPixels,
+                                static_cast<uint16_t*>(dst.data()), kPixels,
+                                kW, kH, nullptr, 0u);
+    });
+    GTEST_LOG_(INFO) << "gsvg misstated-length claimed=" << kPixels
+                     << " actually_mapped=" << (kPixels / 2)
+                     << " rc=" << r.rc
+                     << " overread=" << (r.overread ? "YES" : "no");
+
     EXPECT_TRUE(r.overread)
-        << "the header says a shorter gainMap is read past its end; if that is "
-           "no longer so, the header and this case both need updating";
+        << "if this now passes, something other than the declared length is "
+           "bounding the read -- record what, rather than deleting the case";
 
     xpe_gsvg_shutdown(handle);
 }

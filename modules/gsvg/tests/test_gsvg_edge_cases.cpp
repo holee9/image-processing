@@ -37,9 +37,9 @@ TEST(GsvgEdgeCases, ProcessRejectsNullImagePointers)
     auto src = make_image();
     std::vector<uint16_t> dst(kCount, 0);
 
-    EXPECT_EQ(xpe_gsvg_process(handle, nullptr, dst.data(), kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, nullptr, 0, dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), nullptr, kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), nullptr, 0, kWidth, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
 
     EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
@@ -54,13 +54,13 @@ TEST(GsvgEdgeCases, ProcessRejectsNonPositiveDimensions)
     auto src = make_image();
     std::vector<uint16_t> dst(kCount, 0);
 
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), 0, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), 0, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, 0, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, 0, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), -1, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), -1, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, -1, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, -1, nullptr, 0),
               XPE_ERR_INVALID_INPUT);
 
     EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
@@ -75,7 +75,7 @@ TEST(GsvgEdgeCases, MalformedConfigFallsBackToPassThrough)
     ASSERT_EQ(xpe_gsvg_init(&handle, "{\"vignette_correction\":maybe}"), XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, nullptr),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_OK);
     EXPECT_EQ(std::memcmp(dst.data(), src.data(), kCount * sizeof(uint16_t)), 0);
 
@@ -91,12 +91,7 @@ TEST(GsvgEdgeCases, InPlaceVignetteProcessingIsSupported)
     ASSERT_EQ(xpe_gsvg_init(&handle, "{\"vignette_correction\":true}"), XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle,
-                               image.data(),
-                               image.data(),
-                               static_cast<int>(image.size()),
-                               1,
-                               gain.data()),
+    ASSERT_EQ(xpe_gsvg_process(handle, image.data(), image.size(), image.data(), image.size(), static_cast<int>(image.size()), 1, gain.data(), gain.size()),
               XPE_OK);
 
     const std::vector<uint16_t> expected = {2, 4, 6, 8};
@@ -127,13 +122,13 @@ TEST(GsvgEmptyImageContract, ZeroAndNegativeDimensionsAreInvalidInput)
     std::vector<uint16_t> src = make_image();
     std::vector<uint16_t> dst(static_cast<size_t>(kCount), 0);
 
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), 0, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), 0, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "width == 0 accepted";
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, 0, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, 0, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "height == 0 accepted";
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), -1, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), -1, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "negative width accepted";
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, -1, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, -1, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "negative height accepted";
 
     EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
@@ -147,9 +142,9 @@ TEST(GsvgEmptyImageContract, NullPixelPointersAreInvalidInput)
     std::vector<uint16_t> src = make_image();
     std::vector<uint16_t> dst(static_cast<size_t>(kCount), 0);
 
-    EXPECT_EQ(xpe_gsvg_process(handle, nullptr, dst.data(), kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, nullptr, 0, dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "NULL src accepted";
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), nullptr, kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), nullptr, 0, kWidth, kHeight, nullptr, 0),
               XPE_ERR_INVALID_INPUT) << "NULL dst accepted";
 
     EXPECT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
@@ -165,7 +160,7 @@ TEST(GsvgEmptyImageContract, ValidImageStillAccepted)
     std::vector<uint16_t> src = make_image();
     std::vector<uint16_t> dst(static_cast<size_t>(kCount), 0);
 
-    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, nullptr),
+    EXPECT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_OK);
     EXPECT_EQ(std::memcmp(src.data(), dst.data(), src.size() * sizeof(uint16_t)), 0)
         << "pass-through config must copy src to dst unchanged";
