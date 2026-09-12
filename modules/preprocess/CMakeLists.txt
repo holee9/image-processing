@@ -376,6 +376,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
+        tests/test_runtime_detection_median8_parity.cpp
     )
 
     add_executable(xpe_preprocess_tests

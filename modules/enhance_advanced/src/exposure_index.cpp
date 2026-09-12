@@ -23,7 +23,7 @@ namespace enhance_advanced {
  * ============================================================================ */
 
 // @MX:ANCHOR: [AUTO] Body-part EI target lookup implementation
-// @MX:REASON: Core lookup function, called by xpe_calc_exposure_index
+// @MX:REASON: Core lookup function, called by xpe_adv_calc_exposure_index
 // @MX:SPEC: REQ-ADV-013
 float EITargetTable::getTarget(const char* bodyPartStr) {
     if (bodyPartStr == nullptr || strlen(bodyPartStr) == 0) {

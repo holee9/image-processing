@@ -78,7 +78,7 @@ TEST(IntegrationTest, T601_ExceptionBoundaryGuard) {
 
         // Function 4: Exposure index
         float ei, di;
-        XpeErrorCode result4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
         EXPECT_TRUE(result4 == XPE_OK || result4 == XPE_ERR_INTERNAL);
 
         // If we reach here, no exceptions were thrown - PASS
@@ -207,7 +207,7 @@ TEST(IntegrationTest, T603_FullPipelineIntegration) {
 
     // Stage 4: Exposure Index Calculation
     float ei, di;
-    XpeErrorCode result4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode result4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     ASSERT_EQ(result4, XPE_OK);
 
     auto pipelineEnd = high_resolution_clock::now();
@@ -285,7 +285,7 @@ TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
     int x0, y0, x1, y1;
     ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK);
     float ei, di;
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
 
     auto pipelineEnd = high_resolution_clock::now();
     auto totalDuration = duration_cast<milliseconds>(pipelineEnd - pipelineStart).count();
@@ -350,7 +350,7 @@ TEST(IntegrationTest, T604_ThreadSafety) {
             XpeErrorCode r3 = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
 
             float ei, di;
-            XpeErrorCode r4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+            XpeErrorCode r4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
             // Verify results
             if (r1 == XPE_OK && r2 == XPE_OK && r3 == XPE_OK && r4 == XPE_OK) {
@@ -441,7 +441,7 @@ TEST(IntegrationTest, T605_MemoryLeakEndurance) {
         EXPECT_EQ(r3, XPE_OK);
 
         float ei, di;
-        XpeErrorCode r4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode r4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
         EXPECT_EQ(r4, XPE_OK);
 
         // Release image buffer
@@ -572,7 +572,7 @@ TEST(IntegrationTest, T607_IndependentFunctionCalling) {
 
     // Function 4: Only exposure index (no preprocessing first)
     float ei, di;
-    XpeErrorCode r4 = xpe_calc_exposure_index(&img4, &meta, &ei, &di);
+    XpeErrorCode r4 = xpe_adv_calc_exposure_index(&img4, &meta, &ei, &di);
     EXPECT_EQ(r4, XPE_OK);
 
     // Cleanup
@@ -661,7 +661,7 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
     // Budget: < 50ms for 3072x3072 -> ~1.4ms for 512x512
     start = high_resolution_clock::now();
     float ei, di;
-    XpeErrorCode r4 = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode r4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     end = high_resolution_clock::now();
     auto eiTime = duration_cast<microseconds>(end - start).count();
     EXPECT_EQ(r4, XPE_OK);
@@ -831,7 +831,7 @@ TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {
         int x0, y0, x1, y1;
         ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK) << "cycle " << i;
         float ei, di;
-        ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK) << "cycle " << i;
+        ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK) << "cycle " << i;
 
         delete[] static_cast<float*>(img.data);
     };

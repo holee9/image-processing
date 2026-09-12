@@ -162,7 +162,7 @@ TEST_F(ExposureIndexTest, T501_BodyPartEITargetLookup) {
         float di = 0.0f;
 
         // Act: Calculate EI and DI
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Assert:
         EXPECT_EQ(XPE_OK, result) << "Failed for body part: " << tc.description;
@@ -208,7 +208,7 @@ TEST_F(ExposureIndexTest, T502_EIComputationIEC62494) {
     float di = 0.0f;
 
     // Act: Calculate EI
-    XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
     // Assert:
     EXPECT_EQ(XPE_OK, result);
@@ -249,7 +249,7 @@ TEST_F(ExposureIndexTest, T503_DIComputation) {
     float di = 0.0f;
 
     // Act: Calculate EI and DI
-    XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
     // Assert:
     EXPECT_EQ(XPE_OK, result);
@@ -306,7 +306,7 @@ TEST_F(ExposureIndexTest, T504_QCAlertForHighDI) {
         float di = 0.0f;
 
         // Act: Calculate EI and DI
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Assert:
         EXPECT_EQ(XPE_OK, result) << "Failed for " << tc.description;
@@ -365,7 +365,7 @@ TEST_F(ExposureIndexTest, T505_ROIAwareMasking) {
     float di = 0.0f;
 
     // Act: Calculate EI (should use ROI if detected)
-    XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
     // Assert:
     EXPECT_EQ(XPE_OK, result);
@@ -419,7 +419,7 @@ TEST_F(ExposureIndexTest, T506_NULLPointerRejection) {
     };
 
     for (const auto& tc : testCases) {
-        XpeErrorCode result = xpe_calc_exposure_index(
+        XpeErrorCode result = xpe_adv_calc_exposure_index(
             tc.imgPtr, tc.metaPtr, tc.eiPtr, tc.diPtr);
 
         EXPECT_EQ(tc.expectedResult, result)
@@ -451,7 +451,7 @@ TEST_F(ExposureIndexTest, T507_NaNInfHandling) {
         float ei = 0.0f;
         float di = 0.0f;
 
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Should handle gracefully
         if (result == XPE_OK) {
@@ -471,7 +471,7 @@ TEST_F(ExposureIndexTest, T507_NaNInfHandling) {
         float ei = 0.0f;
         float di = 0.0f;
 
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Should handle gracefully - either reject or sanitize
         if (result == XPE_OK) {
@@ -491,7 +491,7 @@ TEST_F(ExposureIndexTest, T507_NaNInfHandling) {
         float ei = 0.0f;
         float di = 0.0f;
 
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Should handle gracefully
         if (result == XPE_OK) {
@@ -508,7 +508,7 @@ TEST_F(ExposureIndexTest, T507_NaNInfHandling) {
         float ei = 0.0f;
         float di = 0.0f;
 
-        XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
         // Should handle gracefully
         if (result == XPE_OK) {
@@ -544,7 +544,7 @@ TEST_F(ExposureIndexTest, T508_PerformanceBudget) {
     // Act: Time the execution
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    XpeErrorCode result = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);

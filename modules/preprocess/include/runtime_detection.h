@@ -172,7 +172,7 @@ namespace internal {
  * @param values Vector of values (modified during computation)
  * @return Median value
  */
-inline float ComputeMedian(std::vector<float>& values) {
+inline float ComputeMedianGeneric(std::vector<float>& values) {
     if (values.empty()) return 0.0f;
 
     size_t n = values.size();
@@ -189,6 +189,70 @@ inline float ComputeMedian(std::vector<float>& values) {
         // Odd number of elements: middle value
         return values[mid];
     }
+}
+
+/** One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss). */
+inline void MedianSortCE(float& a, float& b) {
+    const bool swap = (b < a);
+    const float lo = swap ? b : a;
+    const float hi = swap ? a : b;
+    a = lo;
+    b = hi;
+}
+
+/**
+ * @brief Exact median of exactly 8 values, via a sorting network.
+ *
+ * QA-A-54 (#144). An interior pixel of the 3x3 window has exactly 8 neighbours,
+ * so this is the shape the detector asks for on all but the frame border. The
+ * generic path pays std::nth_element plus std::max_element -- two passes with
+ * branches and, on MSVC, an insertion sort underneath for a range this small.
+ * A Batcher odd-even network is 19 compare-exchanges with no data-dependent
+ * branches and the whole array in registers.
+ *
+ * This is NOT an approximation. The network fully sorts the eight values, so
+ * v[3] and v[4] are the same two order statistics the generic path selects
+ * (values[mid] and the maximum of the lower half), and the returned expression
+ * is the same sum times the same constant. For every input on which the generic
+ * path is defined, this returns the identical float --
+ * test_runtime_detection_median8_parity.cpp asserts it bit for bit.
+ *
+ * The caveat is NaN: a NaN makes `<` inconsistent, which already breaks
+ * std::nth_element's strict-weak-ordering precondition, so the generic path is
+ * undefined there rather than merely different. Neither path is trustworthy on
+ * NaN input, and the parity claim is scoped to inputs where the old one was
+ * defined.
+ */
+inline float MedianOfEight(const float* v) {
+    float a0 = v[0], a1 = v[1], a2 = v[2], a3 = v[3];
+    float a4 = v[4], a5 = v[5], a6 = v[6], a7 = v[7];
+
+    MedianSortCE(a0, a1); MedianSortCE(a2, a3); MedianSortCE(a4, a5); MedianSortCE(a6, a7);
+    MedianSortCE(a0, a2); MedianSortCE(a1, a3); MedianSortCE(a4, a6); MedianSortCE(a5, a7);
+    MedianSortCE(a1, a2); MedianSortCE(a5, a6);
+    MedianSortCE(a0, a4); MedianSortCE(a1, a5); MedianSortCE(a2, a6); MedianSortCE(a3, a7);
+    MedianSortCE(a2, a4); MedianSortCE(a3, a5);
+    MedianSortCE(a1, a2); MedianSortCE(a3, a4); MedianSortCE(a5, a6);
+
+    return (a3 + a4) * 0.5f;
+}
+
+/**
+ * @brief Median, with an exact fast path for the 8-value case.
+ *
+ * QA-A-54 (#144): the two selections per pixel (median, then median of the
+ * absolute deviations) measured 91.7% of the per-pixel loop at 3072x3072, which
+ * is itself 77% of the shipped entry point. This dispatch is the whole change --
+ * the rule, the window, the threshold and the sigma floor are untouched, so the
+ * QA-A-42..A-50 tables stay valid.
+ *
+ * Note the fast path does NOT permute the input, where the generic one does.
+ * No caller depends on that side effect (every one copies first or discards),
+ * and std::nth_element's own post-state is unspecified beyond the k-th element.
+ */
+inline float ComputeMedian(std::vector<float>& values) {
+    if (values.size() == 8u) return MedianOfEight(values.data());
+    return ComputeMedianGeneric(values);
 }
 
 /**
