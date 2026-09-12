@@ -159,6 +159,61 @@ Frame makeUniform(uint32_t seed) {
     return f;
 }
 
+bool checker2Structure(uint32_t x, uint32_t y) { return ((x / 2u) + (y / 2u)) % 2u == 0u; }
+bool checker8Structure(uint32_t x, uint32_t y) { return ((x / 8u) + (y / 8u)) % 2u == 0u; }
+bool diagStructure(uint32_t x, uint32_t y)     { return ((x + y) % 3u) == 0u; }
+
+/**
+ * QA-A-49 (#148): structures that corrupt the horizontal AND vertical
+ * difference statistics at the same time.
+ *
+ * min(h, v) works by assuming one direction stays clean. A checkerboard whose
+ * cells are smaller than the 3x3 window breaks that assumption: every adjacent
+ * pair, in either direction, straddles the pattern. A 45-degree stripe does the
+ * same, because x+y advances by one for a step in either axis.
+ *
+ * @param cell  checker cell size in pixels. 2 is smaller than the 3x3 window,
+ *              8 is larger -- the card asks for one of each.
+ */
+Frame makeChecker(uint32_t seed, uint32_t cell) {
+    Frame f;
+    f.name = (cell <= 2u) ? "checker2" : "checker8";
+    f.inStructure = (cell <= 2u) ? &checker2Structure : &checker8Structure;
+    f.structureAreaFraction = 0.5;
+    f.pixels.resize(kN);
+    f.trueSigma.assign(kN, 12.0f);
+    std::mt19937 rng(seed);
+    std::normal_distribution<float> unit(0.0f, 1.0f);
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            const bool high = ((x / cell) + (y / cell)) % 2u == 0u;
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            f.pixels[i] = 2500.0f + (high ? 40.0f : 0.0f) + 12.0f * unit(rng);
+        }
+    }
+    return f;
+}
+
+/** 45-degree stripes, period 3: a step in x or in y both cross the pattern. */
+Frame makeDiag(uint32_t seed) {
+    Frame f;
+    f.name = "diag";
+    f.inStructure = &diagStructure;
+    f.structureAreaFraction = 1.0 / 3.0;
+    f.pixels.resize(kN);
+    f.trueSigma.assign(kN, 12.0f);
+    std::mt19937 rng(seed);
+    std::normal_distribution<float> unit(0.0f, 1.0f);
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            const float stripe = (((x + y) % 3u) == 0u) ? 40.0f : 0.0f;
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            f.pixels[i] = 2500.0f + stripe + 12.0f * unit(rng);
+        }
+    }
+    return f;
+}
+
 XpeImageBuffer wrap(std::vector<float>& p) {
     XpeImageBuffer img{};
     img.data = p.data();
@@ -507,6 +562,9 @@ void compareEstimators() {
     frames.push_back(makeScatter(20260912u));
     frames.push_back(makeEdge(20260912u));
     frames.push_back(makeLines(20260912u));
+    frames.push_back(makeChecker(20260912u, 2u));
+    frames.push_back(makeChecker(20260912u, 8u));
+    frames.push_back(makeDiag(20260912u));
 
     std::printf("QA-A-48 estimator comparison. 1024x1024.\n");
     std::printf("A = MAD of values (shipped)   B = MAD of adjacent differences / sqrt(2)\n");
@@ -547,6 +605,9 @@ void regress() {
     frames.push_back(makeScatter(20260912u));
     frames.push_back(makeEdge(20260912u));
     frames.push_back(makeLines(20260912u));
+    frames.push_back(makeChecker(20260912u, 2u));
+    frames.push_back(makeChecker(20260912u, 8u));
+    frames.push_back(makeDiag(20260912u));
 
     const std::vector<size_t> sites = defectSites();
 
