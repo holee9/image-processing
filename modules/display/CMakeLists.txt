@@ -147,6 +147,28 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- test_display_gsdf_characterization (#142 / QA-B-57) ---
+    # The existing GSDF case asserts monotonicity only; a linear ramp passes it.
+    # These characterise the curve actually produced.
+    add_executable(test_display_gsdf_characterization
+        tests/test_gsdf_characterization.cpp
+    )
+    target_include_directories(test_display_gsdf_characterization PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_gsdf_characterization PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_gsdf_characterization PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_gsdf_characterization PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_gsdf_characterization)
+    gtest_discover_tests(test_display_gsdf_characterization
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_display_datasize_overread (#142 / QA-B-52) ---
     # Short-dataSize probe with a guard page: every LUT entry point is called
     # with a buffer that faults past dataSize, so an over-read is observed
