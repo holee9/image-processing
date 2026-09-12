@@ -33,7 +33,7 @@ namespace enhance_advanced {
  * IEC 62494-1 typical EI_target values (Reference: Table B.1)
  *
  * @MX:ANCHOR: [AUTO] Body-part EI target lookup
- * @MX:REASON: Core lookup table used by xpe_calc_exposure_index, high fan_in expected
+ * @MX:REASON: Core lookup table used by xpe_adv_calc_exposure_index, high fan_in expected
  * @MX:SPEC: REQ-ADV-013
  */
 struct EITargetTable {
