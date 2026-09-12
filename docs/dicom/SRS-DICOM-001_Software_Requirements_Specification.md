@@ -199,7 +199,7 @@
 - **Acceptance Criteria**:
   - "DICM" 시그니처 확인
   - VR 길이 필드 일관성 검증
-  - 손상된 DICOM → XPE_ERR_DICOM_CORRUPTED
+  - 손상된 DICOM → XPE_ERR_DICOM_INVALID
 - **Priority**: M
 
 #### FR-DCM-119: Unsupported Transfer Syntax 감지
@@ -598,7 +598,7 @@
 - **Verification Method**:
   - DICOM preamble 검증
   - VR/길이 필드 일관성 확인
-  - 손상 감지 → XPE_ERR_DICOM_CORRUPTED
+  - 손상 감지 → XPE_ERR_DICOM_INVALID
 - **Evidence Required**: 단위 테스트 (손상된 파일 입력)
 
 #### SR-DCM-004: 네트워크 장애 처리
@@ -773,7 +773,7 @@ int xpe_gsps_create(
 | `XPE_ERR_FILE_READ_FAILED` | 파일 읽기 실패 |
 | `XPE_ERR_FILE_WRITE_FAILED` | 파일 쓰기 실패 |
 | `XPE_ERR_DICOM_INVALID` | DICOM 형식 오류 |
-| `XPE_ERR_DICOM_CORRUPTED` | DICOM 파일 손상 |
+| `XPE_ERR_DICOM_INVALID` (-13) | DICOM 파일 손상·절단·비 DICOM. (2026-09-12 정정: SRS 가 부르던 `XPE_ERR_DICOM_CORRUPTED` 는 `xpe_error.h` 에 없는 이름이다 — QA-B-49) |
 | `XPE_ERR_DICOM_UNSUPPORTED_TRANSFER_SYNTAX` | 지원되지 않는 Transfer Syntax |
 | `XPE_ERR_DICOM_INVALID_IOD` | IOD 검증 실패 |
 | `XPE_ERR_DICOM_INVALID_DIMENSION` | 이미지 크기 범위 초과 |
