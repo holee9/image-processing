@@ -152,6 +152,30 @@ set_target_properties(xpe_detect_experiment PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
+# =============================================================================
+# QA-A-47 (#143): structured-frame probe (EXPERIMENT ONLY)
+#
+# Not registered with ctest. Builds simulated frames whose local noise varies by
+# region and measures what the global sigma floor and ceiling do there.
+# =============================================================================
+add_executable(xpe_struct_frames tools/xpe_struct_frames.cpp)
+
+target_include_directories(xpe_struct_frames
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(xpe_struct_frames PRIVATE xpe_preprocess xpe_common)
+target_compile_features(xpe_struct_frames PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(xpe_struct_frames PRIVATE /W4)
+else()
+    target_compile_options(xpe_struct_frames PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_struct_frames)
+set_target_properties(xpe_struct_frames PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
 set(_XPE_BUILD_TESTS OFF)
 if(BUILD_TESTING OR BUILD_TESTS)
     set(_XPE_BUILD_TESTS ON)
