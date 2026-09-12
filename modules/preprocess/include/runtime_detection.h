@@ -255,28 +255,93 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
 }
 
 /**
- * @brief Frame-wide robust sigma: MAD of the whole frame, scaled.
+ * @brief Frame-wide robust noise sigma, estimated from adjacent-pixel differences.
  *
- * QA-A-43 (#143). Two selection passes over a copy of the frame, so O(n) and
- * measured at a few tens of milliseconds for 1024x1024 -- see the report's
- * timing table. Returns 0 for an empty or malformed frame, which disables the
- * floor rather than fabricating one.
+ * QA-A-48 (#148). This used to be the MAD of the pixel VALUES. On a frame with
+ * no structure that equals the noise, which is why it looked correct for four
+ * cards. On a frame WITH structure it measures the structure: QA-A-47 measured
+ * 24.95x the true noise on a brightness ramp and 164.51x across an intensity
+ * step, which drove the floor so high that every injected 10-sigma defect was
+ * missed -- silently, with an empty defect map and no error.
+ *
+ * The fix is to difference before measuring. A difference of two neighbours
+ * cancels whatever the signal does smoothly at the one-pixel scale and leaves
+ * the difference of two independent noise draws:
+ *
+ *     d = I(x+1,y) - I(x,y) = [s(x+1,y) - s(x,y)] + [n1 - n2]
+ *     Var(n1 - n2) = 2 * sigma^2      ->  sd(d) = sqrt(2) * sigma
+ *     sigma_hat    = MAD(d) * 1.4826 / sqrt(2)
+ *
+ * Both constants are load-bearing and neither is cosmetic:
+ *   - 1.4826 = 1 / Phi^-1(0.75) converts a MAD to a Gaussian sigma
+ *     (RUNTIME_DETECTION_MAD_SCALE, already used for the local estimate).
+ *   - sqrt(2) undoes the variance doubling above. Omitting it overestimates
+ *     sigma by 41%, which raises every threshold by 41% and loses detections --
+ *     and nothing else in the system would look wrong.
+ *
+ * Horizontal and vertical differences are measured separately and the SMALLER
+ * is taken. A row artefact (grid lines, a detector row) inflates the vertical
+ * statistic and leaves the horizontal one clean; a column artefact does the
+ * reverse. Taking the minimum picks whichever direction the structure did not
+ * corrupt. Measured on the QA-A-47 simulations (value-MAD -> this estimator):
+ *
+ *     uniform  1.00x -> 1.00x      scatter  24.95x -> 0.99x
+ *     lines    1.19x -> 1.00x      edge    164.51x -> 1.39x
+ *
+ * The residual 1.39x on the step frame is not an estimator defect: that frame
+ * genuinely has two noise levels (12 and 25) and no single global number
+ * represents both.
+ *
+ * Cost: two selection passes over one difference array. Peak memory is one
+ * array of width*height floats -- the same as the copy the previous version
+ * made. Returns 0 for an empty or malformed frame, which disables the floor
+ * rather than fabricating one.
  */
 inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     if (img == nullptr || img->data == nullptr) return 0.0f;
-    const size_t n = static_cast<size_t>(img->width) * img->height;
-    if (n == 0u) return 0.0f;
+    const size_t w = img->width;
+    const size_t h = img->height;
+    if (w < 2u && h < 2u) return 0.0f;
 
     const float* pixels = static_cast<const float*>(img->data);
-    std::vector<float> work(pixels, pixels + n);
 
-    const size_t mid = n / 2u;
-    std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
-    const float median = work[mid];
+    // MAD of a difference array, already converted to a sigma.
+    auto madSigma = [](std::vector<float>& d) -> float {
+        if (d.empty()) return 0.0f;
+        const size_t mid = d.size() / 2u;
+        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
+        const float median = d[mid];
+        for (size_t i = 0; i < d.size(); ++i) d[i] = std::abs(d[i] - median);
+        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
+        // 1.4826 : MAD -> sigma.   1/sqrt(2) : undo Var(n1 - n2) = 2 sigma^2.
+        return d[mid] * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+    };
 
-    for (size_t i = 0; i < n; ++i) work[i] = std::abs(work[i] - median);
-    std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
-    return work[mid] * RUNTIME_DETECTION_MAD_SCALE;
+    std::vector<float> diff;
+    diff.reserve(w * h);
+
+    float sigmaH = 0.0f;
+    if (w >= 2u) {
+        for (size_t y = 0; y < h; ++y) {
+            const float* row = pixels + y * w;
+            for (size_t x = 0; x + 1u < w; ++x) diff.push_back(row[x + 1u] - row[x]);
+        }
+        sigmaH = madSigma(diff);
+    }
+
+    float sigmaV = 0.0f;
+    if (h >= 2u) {
+        diff.clear();
+        for (size_t y = 0; y + 1u < h; ++y) {
+            const float* row = pixels + y * w;
+            for (size_t x = 0; x < w; ++x) diff.push_back(row[x + w] - row[x]);
+        }
+        sigmaV = madSigma(diff);
+    }
+
+    if (sigmaH <= 0.0f) return sigmaV;
+    if (sigmaV <= 0.0f) return sigmaH;
+    return (sigmaH < sigmaV) ? sigmaH : sigmaV;
 }
 
 /**
