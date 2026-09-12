@@ -131,6 +131,9 @@ if(BUILD_TESTS)
         # exports against a buffer that faults past dataSize, so an over-read is
         # observed rather than reasoned about.
         tests/test_datasize_overread.cpp
+        # #142 (QA-B-54): both DLLs export xpe_calc_exposure_index; this opens
+        # each by name and asks whether the two implementations agree.
+        tests/test_duplicate_export.cpp
     )
 
     # Link against Google Test and the module
