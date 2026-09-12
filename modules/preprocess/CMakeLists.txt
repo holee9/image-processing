@@ -193,6 +193,11 @@ add_executable(xpe_real_frames tools/xpe_real_frames.cpp)
 target_include_directories(xpe_real_frames
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            # QA-A-52: headers ONLY, for the compile-time ABI drift guard. No
+            # link dependency on xpe_dicom is added and none may be -- the
+            # ci-preprocess preset configures BUILD_DICOM=OFF, and the DLL is
+            # resolved at runtime via LoadLibrary.
+            ${CMAKE_CURRENT_SOURCE_DIR}/../dicom/include
 )
 target_link_libraries(xpe_real_frames PRIVATE xpe_preprocess xpe_common)
 target_compile_features(xpe_real_frames PRIVATE cxx_std_17)

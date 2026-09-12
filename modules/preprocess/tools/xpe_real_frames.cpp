@@ -54,6 +54,12 @@
 #include "xpe/common/xpe_memory.h"
 #include "runtime_detection.h"
 
+// QA-A-52: the DICOM entry points are loaded at RUNTIME, but their
+// declarations are pulled in at COMPILE time purely so the signatures this
+// file re-declares can be checked against the originals. Nothing from
+// xpe_dicom is linked -- see the static_assert block below.
+#include "xpe/dicom/dicom_api.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -65,6 +71,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <type_traits>
 #include <string>
 #include <vector>
 
@@ -251,9 +258,45 @@ bool loadRaw(const std::string& path, uint32_t w, uint32_t h, uint32_t bits,
 // link error. Mitigation: every GetProcAddress failure is reported by name.
 
 #ifdef _WIN32
-typedef XpeErrorCode (*PfnDicomOpen)(const char*, void**);
-typedef XpeErrorCode (*PfnDicomReadImage)(void*, XpeImageBuffer*);
-typedef void         (*PfnDicomClose)(void*);
+typedef XpeErrorCode (*PfnDicomOpen)(const char*, XpeDicomHandle**);
+typedef XpeErrorCode (*PfnDicomReadImage)(XpeDicomHandle*, XpeImageBuffer*);
+typedef void         (*PfnDicomClose)(XpeDicomHandle*);
+
+/* ------------------------------------------------------- ABI drift guard */
+//
+// QA-A-52 (#151). The three types above are a HAND COPY of an ABI that lives in
+// another module. A hand copy that drifts does not fail to link -- GetProcAddress
+// returns a raw FARPROC and the cast believes whatever it is told. The failure
+// mode is wrong pixels arriving in a verification harness, and a verification
+// harness that is quietly wrong is worse than one that is loudly broken: its
+// numbers would be used to pick a shipping default.
+//
+// This repository has already been bitten by exactly this shape. In GUI-C-39/C-40
+// a C# delegate declared five parameters against a six-parameter header; under
+// cdecl the caller cleans the stack, so the build was silent AND the run was
+// silent. The answer there was a source-level guard, and it is the answer here.
+//
+// WHY COMPILE TIME, NOT A RUNTIME CHECK: this is the earliest point at which the
+// drift is observable at all. A runtime probe could only compare what it was
+// already told; the compiler can compare against the declaration in the owning
+// module's header. Catching it at compile time also means the guard runs on every
+// build of this tool, including a build on a machine that has no xpe_dicom.dll --
+// exactly the machine where a runtime check would be skipped.
+//
+// The comparison is whole-type, not arity: std::is_same over a function-pointer
+// type covers the return type, every parameter type in order, AND the calling
+// convention (MSVC encodes __cdecl / __stdcall in the type). Arity alone would
+// have passed a drift of XpeImageBuffer* -> void*, which is precisely the drift
+// that produces wrong pixels rather than a crash.
+static_assert(std::is_same<decltype(&xpe_dicom_open), PfnDicomOpen>::value,
+              "xpe_dicom_open signature drifted from the re-declaration in this file "
+              "(see xpe/dicom/dicom_api.h)");
+static_assert(std::is_same<decltype(&xpe_dicom_read_image), PfnDicomReadImage>::value,
+              "xpe_dicom_read_image signature drifted from the re-declaration in this "
+              "file (see xpe/dicom/dicom_api.h)");
+static_assert(std::is_same<decltype(&xpe_dicom_close), PfnDicomClose>::value,
+              "xpe_dicom_close signature drifted from the re-declaration in this file "
+              "(see xpe/dicom/dicom_api.h)");
 
 struct DicomApi {
     HMODULE           lib   = nullptr;
@@ -269,7 +312,15 @@ DicomApi loadDicomApi() {
     DicomApi a;
     a.lib = ::LoadLibraryA("xpe_dicom.dll");
     if (a.lib == nullptr) {
-        a.why = "xpe_dicom.dll not loadable next to this executable "
+        // QA-A-52: the OS error code separates "file absent" (2) from "a
+        // dependency of it is absent" (126). Without it the two look identical
+        // from here, and the second one sends the reader looking for the wrong
+        // file entirely.
+        char ec[96];
+        std::snprintf(ec, sizeof(ec), "LoadLibraryA failed, GetLastError()=%lu. ",
+                      static_cast<unsigned long>(::GetLastError()));
+        a.why = std::string(ec) +
+                "xpe_dicom.dll not loadable next to this executable "
                 "(the ci-preprocess preset configures BUILD_DICOM=OFF). "
                 "Either build with a DICOM-enabled preset and copy the DLL here, "
                 "or convert the file to raw and pass --raw WxH:BITS.";
@@ -291,7 +342,7 @@ DicomApi loadDicomApi() {
 bool loadDicom(const std::string& path, DicomApi& api, RealFrame& out) {
     if (!api.ok()) { skip(path, api.why); return false; }
 
-    void* h = nullptr;
+    XpeDicomHandle* h = nullptr;
     const XpeErrorCode rcOpen = api.open(path.c_str(), &h);
     if (rcOpen != XPE_OK || h == nullptr) {
         char buf[128];
