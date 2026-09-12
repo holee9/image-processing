@@ -201,6 +201,25 @@ target_include_directories(xpe_real_frames
 )
 target_link_libraries(xpe_real_frames PRIVATE xpe_preprocess xpe_common)
 target_compile_features(xpe_real_frames PRIVATE cxx_std_17)
+
+# QA-A-53: bake the commit this tool was CONFIGURED from, so a staged
+# xpe_dicom.dll carrying a different headSha in its provenance.json is visible at
+# run time. Configure-time, not build-time: CMake has no portable per-build hook,
+# and the window between configure and build is the residual (named in the report).
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE XPE_A53_HEAD_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT XPE_A53_HEAD_SHA)
+    execute_process(COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE XPE_A53_HEAD_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+endif()
+target_compile_definitions(xpe_real_frames
+    PRIVATE XPE_A53_BUILD_HEAD_SHA="${XPE_A53_HEAD_SHA}")
 # fopen/sscanf are the right tools for a throwaway probe; MSVC C4996 + /WX would
 # otherwise force _s variants that add nothing here.
 target_compile_definitions(xpe_real_frames PRIVATE _CRT_SECURE_NO_WARNINGS)
