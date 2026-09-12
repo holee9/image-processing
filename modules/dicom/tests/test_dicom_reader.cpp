@@ -1081,3 +1081,169 @@ TEST_F(DicomJ2kFailureTest, FailurePathsDoNotGrowWorkingSet) {
         << "working set grew " << growth << " bytes over " << kCycles
         << " failed decodes -- a failure path is not releasing what it allocated";
 }
+
+// ===========================================================================
+// #120 (QA-B-48): what the caller gets back when a read FAILS.
+//
+// QA-B-47 showed the failure paths return the right codes and release what they
+// allocated. It did not check the other half: if a failed read leaves a
+// half-filled buffer in outImg, a caller that ignores the return code turns
+// garbage into a diagnostic image. In a medical device that distinction is the
+// whole point.
+//
+// Observed first, asserted after (log: .moai/reports/lane-post/QA-B-48/
+// _observation.log). All four J2K failure paths leave outImg EXACTLY as the
+// caller passed it -- sentinel width/height/dataSize survive untouched and the
+// data pointer stays NULL. The decode failures all happen before
+// xpe_alloc_image is ever called, so there is nothing to leave behind.
+//
+// The contract these cases pin: a failed read does not write to outImg at all.
+// That is stronger than "leaves it empty" and is what the code already does, so
+// nothing was changed to make them pass (the QA-B-41 rule: code that is already
+// right is not touched).
+// ===========================================================================
+namespace {
+
+XpeErrorCode ReadIntoSentinel(const fs::path& path, XpeImageBuffer* out) {
+    // Values no caller would produce, so any field the implementation writes
+    // becomes visible.
+    *out = XpeImageBuffer{};
+    out->width         = 4242u;
+    out->height        = 2424u;
+    out->dataSize      = 777u;
+    out->bitsAllocated = 99u;
+    out->data          = nullptr;
+
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode openRc = xpe_dicom_open(path.string().c_str(), &handle);
+    if (openRc != XPE_OK) return openRc;
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, out);
+    xpe_dicom_close(handle);
+    return rc;
+}
+
+void ExpectUntouched(const XpeImageBuffer& img, const char* what) {
+    EXPECT_EQ(nullptr, img.data)      << what << ": a failed read allocated a buffer";
+    EXPECT_EQ(4242u, img.width)       << what << ": width was overwritten";
+    EXPECT_EQ(2424u, img.height)      << what << ": height was overwritten";
+    EXPECT_EQ(777u, img.dataSize)     << what << ": dataSize was overwritten";
+    EXPECT_EQ(99u, img.bitsAllocated) << what << ": bitsAllocated was overwritten";
+}
+
+}  // namespace
+
+TEST_F(DicomJ2kFailureTest, FailedReadLeavesOutputUntouched) {
+    struct Case { const char* name; FragmentShape shape; XpeErrorCode expected; };
+    const Case cases[] = {
+        {"garbage bitstream",   FragmentShape::kGarbage,          XPE_ERR_PROCESSING_FAILED},
+        {"truncated bitstream", FragmentShape::kTruncated,        XPE_ERR_PROCESSING_FAILED},
+        {"empty fragment",      FragmentShape::kEmptyFragment,    XPE_ERR_DICOM_INVALID},
+        {"offset table only",   FragmentShape::kOffsetTableOnly,  XPE_ERR_DICOM_INVALID},
+    };
+
+    for (const auto& c : cases) {
+        SCOPED_TRACE(c.name);
+        const auto path = s_tempDir / (std::string("outstate_") +
+                                       std::to_string(static_cast<int>(c.shape)) + ".dcm");
+        ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream, c.shape));
+
+        XpeImageBuffer img{};
+        EXPECT_EQ(c.expected, ReadIntoSentinel(path, &img));
+        ExpectUntouched(img, c.name);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// #120 (QA-B-48) §3: "J2K declared, native pixel data" -- resolved by observation.
+//
+// QA-B-29 wrote a case expecting failure here, observed XPE_OK, and removed it
+// rather than leave a false assertion standing. QA-B-47 declined to guess.
+// Observed now: the file is rejected by xpe_dicom_open with
+// XPE_ERR_DICOM_INVALID -- DCMTK will not parse a dataset whose meta declares an
+// encapsulated syntax while the pixel data is native, so readImage is never
+// reached. The QA-B-29 XPE_OK did NOT reproduce.
+//
+// Consequence for coverage: DicomReader.cpp:351-353 (no encapsulated
+// representation) is NOT reachable through this input. It stays classified as
+// unreached, with a reason rather than a guess.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, J2kLabelledNativePixels_RejectedAtOpen) {
+    const auto path = s_tempDir / "j2k_labelled_native.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        ASSERT_TRUE(meta->putAndInsertString(DCM_TransferSyntaxUID,
+                                             "1.2.840.10008.1.2.4.90").good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID,
+              xpe_dicom_open(path.string().c_str(), &handle));
+    xpe_dicom_close(handle);   // NULL-safe by contract
+}
+
+// ---------------------------------------------------------------------------
+// KnownDivergence_ (QA-B-48): a SUCCESS-path finding the failure sweep turned up.
+//
+// When PixelData holds fewer pixels than Rows x Columns declare, readImage
+// copies what exists and returns XPE_OK (DicomReader.cpp:204-208). The tail is
+// zero -- xpe_alloc_image memsets the buffer -- so the caller does not receive
+// uninitialised heap. It receives something arguably worse to reason about: a
+// full-size image, reported as successfully read, whose second half is black
+// padding that no return code mentions.
+//
+// This is recorded, not asserted as correct. No SPEC or header sentence says a
+// short PixelData should succeed, and changing it to an error is a behaviour
+// change outside this card's scope (raised to leader in the QA-B-48 report).
+// The case pins today's behaviour so the decision, whenever it comes, is
+// visible as a change rather than a silent drift.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, KnownDivergence_ShortPixelDataSucceedsWithZeroPaddedTail) {
+    const auto path = s_tempDir / "short_pixeldata.dcm";
+    uint32_t rows = 0;
+    uint32_t cols = 0;
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+        Uint16 r = 0;
+        Uint16 c = 0;
+        ASSERT_TRUE(ds->findAndGetUint16(DCM_Rows, r).good());
+        ASSERT_TRUE(ds->findAndGetUint16(DCM_Columns, c).good());
+        rows = r;
+        cols = c;
+        const unsigned long half = (static_cast<unsigned long>(r) * c) / 2u;
+        std::vector<Uint16> shortPixels(half, 0x1234);
+        ASSERT_TRUE(ds->putAndInsertUint16Array(DCM_PixelData, shortPixels.data(),
+                                                half).good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit).good());
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
+    xpe_dicom_close(handle);
+
+    EXPECT_EQ(XPE_OK, rc) << "today's behaviour: a short PixelData is not an error";
+    ASSERT_NE(nullptr, img.data);
+    EXPECT_EQ(cols, img.width);
+    EXPECT_EQ(rows, img.height) << "the image is reported at its DECLARED size";
+
+    const uint16_t* px = static_cast<const uint16_t*>(img.data);
+    const size_t n = static_cast<size_t>(img.width) * img.height;
+    size_t nonZeroTail = 0;
+    for (size_t i = n / 2; i < n; ++i) {
+        if (px[i] != 0) ++nonZeroTail;
+    }
+    EXPECT_EQ(0u, nonZeroTail)
+        << "the padding must at least be zero, not uninitialised heap";
+
+    xpe_free_image(&img);
+}
