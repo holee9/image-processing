@@ -224,6 +224,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_worker_isolation.cpp
         test_ai_ipc_bridge.cpp
         test_ai_model_versioning.cpp
+        # #142 (QA-B-52): guard-page probe for a short dataSize.
+        test_datasize_overread.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
