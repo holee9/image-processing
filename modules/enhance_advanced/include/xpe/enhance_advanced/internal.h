@@ -113,6 +113,20 @@ bool parse_collimation_config(const char* json,
                               float& outMinAreaRatio,
                               int&   outBorderMargin);
 
+/**
+ * @brief #145 (QA-B-61): report top-level config keys this entry point does not
+ *        consume -- once per distinct set of unknown keys, per thread.
+ *
+ * @p lastWarned is caller-owned thread_local memory; see the implementation for
+ * why the memory is not module-global and what that costs.
+ */
+void warn_unconsumed_keys_once(const char*        json,
+                               const char* const* knownKeys,
+                               size_t             knownCount,
+                               const char*        nestedObject,
+                               const char*        fnLabel,
+                               std::string&       lastWarned);
+
 } // namespace config
 
 /**

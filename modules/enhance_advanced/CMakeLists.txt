@@ -136,6 +136,8 @@ if(BUILD_TESTS)
         tests/test_duplicate_export.cpp
         # #155 (QA-B-58): does each parameter reach the output
         tests/test_parameter_dependency.cpp
+        # #145 (QA-B-61): per-call config warnings, once per configuration
+        tests/test_config_warning_once.cpp
     )
 
     # Link against Google Test and the module
