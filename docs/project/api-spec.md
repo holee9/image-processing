@@ -1377,7 +1377,19 @@ XPE_API XpeErrorCode xpe_gsvg_process(void* handle, const uint16_t* src, uint16_
                                       int width, int height, const float* gainMap);
 ```
 
-**Description**: Suppresses anti-scatter grid artifacts from the raw 16-bit pixel buffer `pixels` (width x height, row-major) in-place using parameters in `config`. Auto-detects grid frequency if `config->gridFrequency_lp_per_mm == 0`.   **Corrected 2026-09-11 (QA-B-39):** the function is `xpe_gsvg_process` returning `XpeErrorCode` on a handle from `xpe_gsvg_init`; the earlier `gsvg_process(pixels, width, height, config) -> GsvgErrorCode` form never existed. Four exports total: `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_process_ex`, `xpe_gsvg_shutdown` (see header).
+**Description**: Suppresses anti-scatter grid artifacts from the raw 16-bit pixel buffer `pixels` (width x height, row-major) in-place using parameters in `config`. Auto-detects grid frequency if `config->gridFrequency_lp_per_mm == 0`.   **Corrected 2026-09-11 (QA-B-39):** the function is `xpe_gsvg_process` returning `XpeErrorCode` on a handle from `xpe_gsvg_init`; the earlier `gsvg_process(pixels, width, height, config) -> GsvgErrorCode` form never existed. Four exports total: `xpe_gsvg_version`, `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown` (`modules/gsvg/include/xpe/gsvg/gsvg_api.h`). **Corrected again 2026-09-12 (QA-B-53):** the 2026-09-11 correction above named `xpe_gsvg_process_ex`, which exists in **no header and no source** (`grep xpe_gsvg_process_ex modules/` -> 0) — a correction introduced a new error, and `xpe_gsvg_version` was the export it displaced.
+
+**Signature change 2026-09-12 (QA-B-53, #152).** The function now takes an element count beside each buffer:
+
+```c
+XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
+                                      const uint16_t* src, size_t srcCount,
+                                      uint16_t* dst, size_t dstCount,
+                                      int width, int height,
+                                      const float* gainMap, size_t gainCount);
+```
+
+Counts are in **elements, not bytes** — the three buffers have two different element types, so a byte form makes the caller pick a `sizeof` per argument and a mismatched pair passes validation while still being wrong. Element counts share the unit of `width * height`. A count below `width * height` yields `XPE_ERR_INVALID_INPUT`; NULL/0 is checked first, and `gainMap == NULL` with `gainCount == 0` is accepted (the vignette step is then skipped). Before this change the function took no lengths at all and over-read `src` and `gainMap` while returning `XPE_OK` (#152, measured with a guard page). A caller that reports a false count can still over-read — that is the limit of what a length argument can do, and it is pinned as a `KnownDivergence_` case rather than described in prose.
 **SRS**: SRS-GSVG-001, SRS-GSVG-002, GSVG-SDD-001  
 **Thread safety**: Reentrant.  
 **Error codes**: `GSVG_OK`, `GSVG_ERR_INVALID_INPUT`, `GSVG_ERR_GRID_NOT_DETECTED`, `GSVG_ERR_PROCESSING_FAILED`
