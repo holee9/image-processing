@@ -318,7 +318,13 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 #### REQ-ADV-090: Thread Safety
 
-All processing functions **shall** be reentrant with independent caller-supplied buffers. No global mutable state shall be modified during processing calls. The g_initialized flag is the only shared state and shall be protected by std::mutex.
+All processing functions **shall** be reentrant with independent caller-supplied buffers. **No state shared between threads shall be modified during processing calls, and no processing call's output shall depend on state carried over from another call.** The g_initialized flag is the only cross-thread shared state and shall be protected by std::mutex.
+
+**Amended 2026-09-12 (leader judgment, QA-B-61, #145).** The earlier wording read "No **global mutable** state shall be modified during processing calls." Taken literally that forbids any storage with static duration, including a per-thread diagnostic memory that no other thread can observe and that does not reach the output — which is not what this requirement is protecting. The property that matters is the one named above: **no cross-thread sharing, and no output dependence.** Both were measured rather than asserted (QA-B-61 §3): pixel-identical output with the diagnostic path active, and two threads each keeping their own memory across 40 frames without erasing each other's.
+
+**Permitted under this amendment, narrowly:** `thread_local` storage that (a) is invisible to every other thread, (b) does not influence any output value, and (c) exists only to suppress duplicate diagnostics. Anything that fails one of the three is still forbidden. A mutex-protected module-global does **not** qualify merely by being protected — serialising access does not remove the cross-thread dependence this requirement forbids.
+
+**Known consequence, not yet measured.** `thread_local` lives for the thread's lifetime, so under a thread pool the memory outlives the caller that created it. A later, unrelated caller scheduled onto the same pooled thread is silenced if — and only if — it presents the *same* unknown-key set. The warning count also scales with the number of threads rather than with frames: the same configuration warns once **per thread**. Neither is a correctness defect; both are reasons a reader of the alert log must not infer "warned once" means "one caller".
 
 - **SRS**: SRS-THREAD-001
 - **Traceability**: All SWUs
