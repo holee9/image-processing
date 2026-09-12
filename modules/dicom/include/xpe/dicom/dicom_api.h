@@ -86,6 +86,12 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *         success -- SR-DCM-003 / HAZ-DCM-002). On this path @p outImg is left
  *         with no buffer to free. PixelData LONGER than declared is not an
  *         error: the surplus is ignored.
+ * @return XPE_ERR_DICOM_INVALID if a COMPRESSED frame decodes to fewer rows or
+ *         columns than the dataset declares (#150, QA-B-50) -- J2K is judged
+ *         against the codestream header, JPEG Lossless against the JPEG SOF
+ *         marker, because DCMTK pads the decompressed frame to the declared size
+ *         and the shortfall is no longer visible afterwards. On this path
+ *         @p outImg is not written at all.
  * @return XPE_ERR_PROCESSING_FAILED if decompression fails.
  *
  * @note Transfer-Syntax support is decided in xpe_dicom_open(), not here: an
