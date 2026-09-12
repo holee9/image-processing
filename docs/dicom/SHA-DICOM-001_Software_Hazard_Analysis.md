@@ -346,7 +346,7 @@ y
 |----|------|------|------|
 | C-002-A | Preamble 검증 | 설계 | "DICM" signature 확인 |
 | C-002-B | VR/길이 필드 검증 | 코드 | DCMTK parser 검증 |
-| C-002-C | 손상 감지 → 에러 | 코드 | XPE_ERR_DICOM_CORRUPTED 반환 |
+| C-002-C | 손상 감지 → 에러 | 코드 | XPE_ERR_DICOM_INVALID 반환 (2026-09-12 정정: CORRUPTED 라는 코드는 없다 — QA-B-49) |
 | C-002-D | Partial data 금지 | 설계 | NULL 포인터 반환 (정부분 데이터 아님) |
 
 **효과성 평가:**
