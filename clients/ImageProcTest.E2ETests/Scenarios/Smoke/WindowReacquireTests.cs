@@ -13,10 +13,11 @@ namespace ImageProcTest.E2ETests.Scenarios.Smoke;
 /// times without once entering the branch. A branch no test reaches is a branch nobody has checked,
 /// and a diagnostic nobody reads is not a diagnostic.</para>
 ///
-/// <para>So the first readability check is failed on purpose
-/// (<see cref="ApplicationFixture.SimulateUnreadableChecks"/>) and the rest is real: a real app, a
-/// real launch, a real re-location by process id. What is simulated is the trigger, not the repair —
-/// if re-location did not work, this would fail.</para>
+/// <para>So the first readability check is failed on purpose — the fixture is constructed with the
+/// seam armed on that instance — and the rest is real: a real app, a real launch, a real re-location
+/// by process id. <b>What is simulated is the trigger, not the repair</b>: if re-location did not
+/// work, this would fail. The simulated trigger is not the measured one either, and the note says so
+/// — it reports <c>framework=Wpf</c> here, where the real defect reported <c>Win32</c> (GUI-C-50).</para>
 ///
 /// <para>This class builds its own fixture rather than sharing one, because the trigger has to be
 /// armed BEFORE the launch. It runs in its own collection so the serialised suite never has two apps
@@ -37,32 +38,23 @@ public sealed class WindowReacquireTests(ITestOutputHelper output)
     [SkippableFact]
     public void UnreadableWindow_IsReplaced_AndTheRunSaysSo()
     {
-        ApplicationFixture.SimulateUnreadableChecks = 1;
-        ApplicationFixture.SkipLeftoverSweep = true;
+        // Armed on THIS fixture only (GUI-C-52). The seams were static and reset in a finally; a
+        // killed host would have skipped that reset and armed the next fixture instead, hanging a
+        // re-acquire note on an innocent scenario. Instance state makes that impossible rather than
+        // unlikely.
+        using var fixture = new ApplicationFixture(simulateUnreadableChecks: 1, skipLeftoverSweep: true);
+        Skip.If(!fixture.IsAvailable, fixture.SkipReason ?? "The application is not available.");
 
-        try
-        {
-            using var fixture = new ApplicationFixture();
-            Skip.If(!fixture.IsAvailable, fixture.SkipReason ?? "The application is not available.");
+        output.WriteLine($"reacquire note: '{fixture.ReacquiredNote}'");
 
-            output.WriteLine($"reacquire note: '{fixture.ReacquiredNote}'");
+        Assert.False(
+            string.IsNullOrEmpty(fixture.ReacquiredNote),
+            "The fixture replaced the window but left no note, so a run that hit this defect " +
+            "would be indistinguishable from a healthy one — the gap GUI-C-51 exists to close.");
+        Assert.Contains("re-located", fixture.ReacquiredNote, StringComparison.Ordinal);
 
-            Assert.False(
-                string.IsNullOrEmpty(fixture.ReacquiredNote),
-                "The fixture replaced the window but left no note, so a run that hit this defect " +
-                "would be indistinguishable from a healthy one — the gap GUI-C-51 exists to close.");
-            Assert.Contains("re-located", fixture.ReacquiredNote, StringComparison.Ordinal);
-
-            // The replacement is a working window, not merely a different one.
-            Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
-        }
-        finally
-        {
-            // Reset even on failure: a leaked counter would fail the NEXT fixture in the run, and the
-            // failure would point at an innocent scenario.
-            ApplicationFixture.SimulateUnreadableChecks = 0;
-            ApplicationFixture.SkipLeftoverSweep = false;
-        }
+        // The replacement is a working window, not merely a different one.
+        Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
     }
 
     /// <summary>
@@ -74,20 +66,11 @@ public sealed class WindowReacquireTests(ITestOutputHelper output)
     [SkippableFact]
     public void ReadableWindow_IsKept_AndLeavesNoNote()
     {
-        ApplicationFixture.SkipLeftoverSweep = true;
+        using var fixture = new ApplicationFixture(simulateUnreadableChecks: 0, skipLeftoverSweep: true);
+        Skip.If(!fixture.IsAvailable, fixture.SkipReason ?? "The application is not available.");
 
-        try
-        {
-            using var fixture = new ApplicationFixture();
-            Skip.If(!fixture.IsAvailable, fixture.SkipReason ?? "The application is not available.");
-
-            Assert.Equal(string.Empty, fixture.ReacquiredNote);
-            Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
-        }
-        finally
-        {
-            ApplicationFixture.SkipLeftoverSweep = false;
-        }
+        Assert.Equal(string.Empty, fixture.ReacquiredNote);
+        Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
     }
 }
 
