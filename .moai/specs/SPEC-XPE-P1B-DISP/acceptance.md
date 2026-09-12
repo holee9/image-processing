@@ -191,6 +191,7 @@
 | Static analysis (clang-tidy) | 0 warnings | TRUST 5 - Unified |
 | Memory leak (ASan, 1000 frames) | 0 leaks | REQ-DISP-033 |
 | DLL export count | Exactly 5 | REQ-DISP-029 |
+| | **Measured 2026-09-12 (QA-B-57): 6.** `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create`. The sixth is `xpe_display_version`, whose basis is `REQ-P0-033` (scaffolding placeholder to verify DLL load), not a display requirement — which is why the display count was written as 5 and nobody counted. | — |
 | P/Invoke compatibility | Round-trip pass | REQ-DISP-029 |
 | Performance: Modality LUT | <= 20ms | REQ-DISP-008 |
 | Performance: VOI LUT | <= 16ms | REQ-DISP-016 |

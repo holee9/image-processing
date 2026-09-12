@@ -59,6 +59,21 @@ SRS(Software Requirements Specification), SAD(Software Architecture), 테스트,
 | SRS ID | 요구사항 | SAD 설계 | 시험 ID | Risk ID | 상태 |
 |--------|---------|---------|---------|---------|------|
 | FR-GSDF-301 | GSDF 역함수 | SAD §3.3.2 | TDS-301 | RISK-1 | ✓ |
+
+> **기록 정정 (2026-09-12, leader — QA-B-57).** 아래 GSDF 행들의 `✓` 중 **여섯 건이 근거보다 먼저 붙어 있었습니다.** 표시는 남깁니다(항목 자체가 없어진 것이 아니므로) — 이 주석이 그런 일이 있었다는 사실의 기록입니다.
+>
+> | 항목 | 표시가 주장하는 것 | 실측 (QA-B-57) |
+> |---|---|---|
+> | FR-GSDF-301 / 302 | 역함수·순함수 **쌍** | GSDF 관련 export 는 `xpe_gsdf_calibrate` **하나뿐**이고 대응 export 가 없습니다 |
+> | FR-GSDF-304 | JND **정확도** | 테스트는 **단조성만** 봅니다. 정확도를 보는 단언이 없습니다 |
+> | FR-GSDF-306 | Gamma Fallback | `grep` **0건** — 그런 경로가 없습니다 |
+> | RISK-1 완화 | 공식 구현 + **Golden Reference** 대조 | **저장소에 golden reference 데이터가 0건**입니다(`golden` 은 문서 3개에만 등장) |
+> | TDS-301~308 | 그 ID 의 시험 케이스 | **그 ID 를 쓰는 테스트 0건** |
+>
+> 그리고 **`xpe_display_version` 은 이 표에 없습니다.** 그 export 의 근거는 display 요구가 아니라 `REQ-P0-033`(스캐폴딩 — "placeholder version function … to verify DLL load")이며, post 소유 5개 모듈의 `*_version` 이 모두 같은 처지입니다.
+>
+> **더 무거운 것**: `xpe_gsdf_calibrate` 가 만드는 presentation LUT 이 **직선 램프**입니다 — JND 모델과 광도 측정값이 정확히 상쇄됩니다(#155, 직선 대비 최대 편차 0.5/65535). 위 표시들이 가리키던 기능이 실제로는 무엇을 하고 있었는지가 그 이슈에 있습니다. **DICOM Part 14 원문이 저장소에 없어 "표준 위반" 으로 단언하지는 않았습니다** — "직선이다" 는 측정입니다.
+
 | FR-GSDF-302 | 순함수 | SAD §3.3.3 | TDS-302 | RISK-1 | ✓ |
 | FR-GSDF-303 | 광도 범위 | SAD §3.3.2-3 | TDS-303 | RISK-1 | ✓ |
 | FR-GSDF-304 | JND 정확도 | SAD §3.3.4 | TDS-304 | RISK-1 | ✓ |
