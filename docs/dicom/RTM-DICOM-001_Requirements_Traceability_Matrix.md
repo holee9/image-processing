@@ -263,6 +263,9 @@ SRS (Software Requirements Specification)
 | SR-DCM-001 | Lossy 압축 금지 | STC-001 | J2K Irreversible 거부 + CRITICAL 로그 | ✓ |
 | SR-DCM-002 | 환자 ID 검증 | STC-002 | ID 불일치 감지 + alert | ✓ |
 | SR-DCM-003 | 파일 무결성 | STC-003 | 손상 파일 거부 + 부분 데이터 금지 | ✓ |
+
+> **Record correction (2026-09-12, leader — QA-B-49).** The `✓` above covered the uncompressed read path without evidence. `DicomReader.cpp:204-208` copied whatever PixelData was present, zero-padded the remainder, and returned `XPE_OK` — the opposite of "부분 데이터 금지". The mark became grounded only with QA-B-49 (`6c9356b`), which returns `XPE_ERR_DICOM_INVALID` and logs both the declared and the actual byte count. Retained because it is now accurate; this note records that it once preceded its evidence (second such case after `SPEC-XPE-P1B-DICOM/acceptance.md` AC-04). **Scope:** the guard covers the native-pixel path only; short pixel data inside a compressed stream (J2K / JPEG-LL) does not pass through it and is untested (#150).
+
 | SR-DCM-004 | 네트워크 안전 | STC-004 | PACS 실패 시 로컬 파일 보호 | ✓ |
 | SR-DCM-005 | MWL 환자 검증 | STC-005 | MWL 결과 Patient ID 검증 + alert | ✓ |
 | SR-DCM-006 | GSPS 참조 | STC-006 | Referenced UID 검증 | ✓ |

@@ -162,7 +162,7 @@ XpeImage (memory)
 **에러 처리**:
 - `XPE_ERR_FILE_NOT_FOUND`: 파일 없음
 - `XPE_ERR_DICOM_INVALID`: DICOM 형식 오류
-- `XPE_ERR_DICOM_CORRUPTED`: 파일 손상
+- `XPE_ERR_DICOM_INVALID` (-13): 파일 손상·절단·비 DICOM. (2026-09-12 정정: 문서가 부르던 `XPE_ERR_DICOM_CORRUPTED` 는 `xpe_error.h` 에 존재하지 않는 이름이다 — QA-B-49)
 - `XPE_ERR_DICOM_UNSUPPORTED_TRANSFER_SYNTAX`: 미지원 TS
 
 ---
@@ -635,7 +635,7 @@ xpe_dicom_read()
     ├─ Validate VR length fields
     ├─ Validate IOD structure
     ├─ IF corrupted:
-    │   RETURN XPE_ERR_DICOM_CORRUPTED
+    │   RETURN XPE_ERR_DICOM_INVALID
     │   DO NOT return partial pixel data
     └─ Prevent downstream processing of corrupted image ✓
 ```

@@ -151,7 +151,7 @@ Output: XpeImage (populated)
    IF OPEN FAILED → return XPE_ERR_FILE_READ_FAILED
 
 3. READ DICOM preamble (128 bytes + "DICM")
-   IF INVALID → return XPE_ERR_DICOM_CORRUPTED
+   IF INVALID → return XPE_ERR_DICOM_INVALID
 
 4. PARSE DICOM dataset
    DcmDataset = DcmFileFormat.getDataset()
@@ -745,7 +745,7 @@ int xpe_dicom_read(
 - `XPE_ERR_FILE_NOT_FOUND`: 파일 없음
 - `XPE_ERR_FILE_READ_FAILED`: 파일 읽기 실패
 - `XPE_ERR_DICOM_INVALID`: DICOM 형식 오류
-- `XPE_ERR_DICOM_CORRUPTED`: 파일 손상
+- `XPE_ERR_DICOM_INVALID` (-13): 파일 손상·절단·비 DICOM. (2026-09-12 정정: 문서가 부르던 `XPE_ERR_DICOM_CORRUPTED` 는 `xpe_error.h` 에 존재하지 않는 이름이다 — QA-B-49)
 - `XPE_ERR_DICOM_UNSUPPORTED_TRANSFER_SYNTAX`: 지원되지 않는 TS
 - `XPE_ERR_DICOM_INVALID_DIMENSION`: 이미지 크기 초과
 - `XPE_ERR_OUT_OF_MEMORY`: 메모리 부족
