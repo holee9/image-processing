@@ -76,6 +76,63 @@ public sealed class ComparisonModeScenarios(WorkflowApplicationFixture app, ITes
     }
 
     /// <summary>
+    /// W-12: pressing a button actually sets <c>Settings.ComparisonMode</c> to that mode.
+    ///
+    /// The observation point is the viewport's <c>HelpText</c>, bound straight to the setting
+    /// (<c>MainWindow.xaml</c>, #149 G-6). Straight matters: GUI-C-46 tried three points and the
+    /// most promising one — the opacity slider — sat downstream of a SECOND assignment in the click
+    /// handler, so removing the setting write left the whole suite green. Nothing writes HelpText
+    /// but the binding, so the falsification that defeated the old scenario now fails this one.
+    ///
+    /// Run for all four buttons in both backend modes: a mode that only worked under Mock would
+    /// otherwise pass here and surprise someone on a Native run.
+    /// </summary>
+    [SkippableTheory]
+    [MemberData(nameof(Buttons))]
+    public void W12_PressingAButton_SelectsThatComparisonMode(string label, string mode)
+    {
+        Measure($"W-12 {label}", window =>
+        {
+            // Move to a DIFFERENT mode first, so every case is a transition. Without this the Swipe
+            // case cannot fail: SwipeVertical is the default, so a click that never reaches the
+            // setting still leaves the expected value in place. Measured in the GUI-C-47
+            // falsification — three of four cases failed and Swipe passed for exactly that reason.
+            var priming = string.Equals(label, "Swipe", StringComparison.Ordinal) ? "Difference" : "Swipe";
+            var primedMode = Buttons()
+                .First(row => string.Equals((string)row[0], priming, StringComparison.Ordinal))[1];
+
+            FindButton(window, priming)!.AsButton().Invoke();
+            var primed = WaitFor(() => ReportedMode(window) == (string)primedMode ? "ok" : null);
+
+            // The priming itself is asserted. Otherwise the Swipe case is undecidable: SwipeVertical
+            // is the default, so when no click reaches the setting the expected value is already
+            // there and the case passes while measuring nothing — measured in the first GUI-C-47
+            // falsification, where three of four cases failed and Swipe passed for that reason.
+            Assert.True(
+                primed is not null,
+                $"Priming with '{priming}' did not take effect (viewport reports " +
+                $"'{ReportedMode(window)}'), so this case cannot tell a working click from a dead one.");
+
+            FindButton(window, label)!.AsButton().Invoke();
+
+            var reported = WaitFor(() => ReportedMode(window) == mode ? mode : null);
+            var current = ReportedMode(window);
+            Assert.True(
+                reported is not null,
+                $"Pressing '{label}' should select {mode}; the viewport reports '{current}'. " +
+                "HelpText is bound directly to Settings.ComparisonMode, so this says the click did " +
+                "not reach the setting — do not relax this scenario, it is the only external read " +
+                "of that state (#149 G-6).");
+
+            output.WriteLine($"W-12 {label}: viewport reports {reported}");
+        });
+    }
+
+    /// <summary>The comparison mode the viewport currently reports, or null when unreadable.</summary>
+    private static string? ReportedMode(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewportShell"))?.HelpText;
+
+    /// <summary>
     /// Finds a comparison button by its visible label.
     ///
     /// By name, not by automation id: these buttons carry neither an AutomationId nor an x:Name —
