@@ -113,6 +113,26 @@ clients/
 
 ### 4.2 Workflow Suite (Gate: < 3min)
 
+> **Measured correction (2026-09-12, leader — GUI-C-43).** Five of the ten rows below did
+> not match the shipped app. The table was written before the app existed; the app was NOT
+> changed to fit it. What was actually observed:
+>
+> | Row | Plan says | App actually has |
+> |---|---|---|
+> | W-03 | runtime Mock/Real backend toggle | `NativeBackendModeMenuItem` is `IsEnabled="False"` — no runtime toggle |
+> | W-04 | Compare Mode → Swipe | no such menu or command exists |
+> | W-05 | Compare Mode → Difference | no such menu or command exists |
+> | W-06 | View → Display LUT → GSDF | `GsdfCalibrateMenuItem` lives under Tools and is disabled |
+> | W-09 | Tools menu, TRX output | File menu, `menu-command-report.json` |
+> | W-10 | SHA-256 shown on that path | no hash is computed there |
+>
+> Implemented: W-03 (its disabled state pinned as a contract), W-09, W-10 — all on both
+> Mock and Native with no skips. W-04/W-05/W-06 are not implementable without app changes,
+> which the card forbade. W-08 was left out deliberately: the E2E launch reads and writes the
+> shipped `appsettings.json`, so a save would overwrite a developer's real settings; isolating
+> that needs a settings-path switch, which is an app change (GUI-C-38 §2).
+
+
 | # | Scenario | Action Sequence | Verification |
 |---|----------|-----------------|--------------|
 | W-01 | Raw 이미지 로드 | File→Open Raw → fixture 선택 → OK | `XPE_Viewport_Source` has image |
