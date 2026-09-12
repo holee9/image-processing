@@ -331,6 +331,233 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+/* -------------------------------------------- QA-A-58 global-sigma threads */
+//
+// MEASUREMENT PROBE, NOT AN IMPLEMENTATION. QA-A-57 concluded that threading the
+// per-pixel loop leaves the total at ~260 ms because the global-sigma stage was
+// assumed unsplittable. That assumption was recorded as UNVERIFIED, and this
+// probe is what verifies it.
+//
+// Two rules carried over from QA-A-57, one of them inverted:
+//   - Per-thread histogram tables need a MERGE, and the merge is INSIDE the
+//     timed region. QA-A-57 kept global sigma outside its timing because mixing
+//     it in would have flattered the number; here the merge is the cost that
+//     could make splitting worthless, so leaving it out would flatter this one.
+//     Same principle, opposite placement.
+//   - Thread create/join is inside too. A production version would use a pool;
+//     this probe does not, so its numbers carry that overhead and the report
+//     says so rather than quietly subtracting it.
+//
+// Correctness is not this card's subject. The probe does print the sigma it
+// produced next to the shipped one, but that is a coherence indicator, not a
+// correctness claim -- no parity assertion is made here.
+
+namespace a58 {
+
+/** Stage 1+3 shape: elementwise over a row range. Trivially splittable. */
+void buildDiffRange(const float* px, uint32_t w, uint32_t h,
+                    bool vertical, uint32_t y0, uint32_t y1, float* out) {
+    (void)h;   // row bounds are the caller's; kept in the signature for symmetry
+    if (!vertical) {
+        const size_t perRow = w - 1u;
+        for (uint32_t y = y0; y < y1; ++y) {
+            const float* row = px + static_cast<size_t>(y) * w;
+            float* dst = out + static_cast<size_t>(y) * perRow;
+            for (uint32_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
+        }
+    } else {
+        for (uint32_t y = y0; y < y1; ++y) {
+            const float* row = px + static_cast<size_t>(y) * w;
+            float* dst = out + static_cast<size_t>(y) * w;
+            for (uint32_t x = 0; x < w; ++x) dst[x] = row[x + w] - row[x];
+        }
+    }
+}
+
+/** Stage 2/4 pass: per-thread histogram over a slice. Merge happens outside. */
+void histHighRange(const float* d, size_t i0, size_t i1, uint32_t* table) {
+    for (size_t i = i0; i < i1; ++i) {
+        ++table[xpe::preprocess::internal::FloatSortKey(d[i]) >> 16];
+    }
+}
+
+void histLowRange(const float* d, size_t i0, size_t i1, uint32_t high, uint32_t* table) {
+    for (size_t i = i0; i < i1; ++i) {
+        const uint32_t key = xpe::preprocess::internal::FloatSortKey(d[i]);
+        if ((key >> 16) == high) ++table[key & 0xFFFFu];
+    }
+}
+
+void absRange(float* d, size_t i0, size_t i1, float median) {
+    for (size_t i = i0; i < i1; ++i) d[i] = std::abs(d[i] - median);
+}
+
+constexpr size_t kBuckets = 1u << 16;
+
+/** Threaded exact selection. Per-thread tables, merged INSIDE the caller's timing. */
+float selectKthThreaded(const std::vector<float>& v, size_t k, unsigned T,
+                        std::vector<uint32_t>& tables) {
+    const size_t n = v.size();
+    if (n == 0u) return 0.0f;
+    if (k >= n) k = n - 1u;
+    std::fill(tables.begin(), tables.end(), 0u);
+
+    auto slice = [&](unsigned t) {
+        return std::pair<size_t, size_t>((n * t) / T, (n * (t + 1u)) / T);
+    };
+
+    {
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (unsigned t = 0; t < T; ++t) {
+            const auto sl = slice(t);
+            pool.emplace_back(histHighRange, v.data(), sl.first, sl.second,
+                              tables.data() + static_cast<size_t>(t) * kBuckets);
+        }
+        for (std::thread& th : pool) th.join();
+    }
+    // MERGE -- timed with everything else.
+    for (unsigned t = 1; t < T; ++t) {
+        const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+        uint32_t* dst = tables.data();
+        for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+    }
+
+    size_t seen = 0;
+    uint32_t high = 0u;
+    for (size_t b = 0; b < kBuckets; ++b) {
+        if (seen + tables[b] > k) { high = static_cast<uint32_t>(b); break; }
+        seen += tables[b];
+    }
+
+    std::fill(tables.begin(), tables.end(), 0u);
+    {
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (unsigned t = 0; t < T; ++t) {
+            const auto sl = slice(t);
+            pool.emplace_back(histLowRange, v.data(), sl.first, sl.second, high,
+                              tables.data() + static_cast<size_t>(t) * kBuckets);
+        }
+        for (std::thread& th : pool) th.join();
+    }
+    for (unsigned t = 1; t < T; ++t) {
+        const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+        uint32_t* dst = tables.data();
+        for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+    }
+
+    const size_t rank = k - seen;
+    size_t inner = 0;
+    uint32_t low = 0u;
+    for (size_t b = 0; b < kBuckets; ++b) {
+        if (inner + tables[b] > rank) { low = static_cast<uint32_t>(b); break; }
+        inner += tables[b];
+    }
+    return xpe::preprocess::internal::SortKeyToFloat((high << 16) | low);
+}
+
+}  // namespace a58
+
+void sigmaThreadProbe(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    const float shipped = ComputeGlobalSigma(&img);
+    const unsigned hw = std::thread::hardware_concurrency();
+
+    std::printf("[sigma-thread-probe] %ux%u  shipped single-thread sigma %.6f\n", w, h, shipped);
+    std::printf("  merge cost and thread create/join are INSIDE the timing.\n");
+    std::printf("  correctness is not asserted here -- the sigma is printed as a"
+                " coherence indicator only.\n\n");
+    std::printf("  %8s %10s %12s %10s %14s %10s\n",
+                "threads", "min ms", "median ms", "speed-up", "sigma", "tables MB");
+
+    const size_t hCount = static_cast<size_t>(h) * (w - 1u);
+    const size_t vCount = static_cast<size_t>(h - 1u) * w;
+    std::vector<float> dh(hCount), dv(vCount);
+
+    double baseline = 0.0;
+    const unsigned counts[] = {1u, 2u, 4u, 8u, 12u, 20u};
+    for (unsigned T : counts) {
+        if (T > hw) continue;
+        std::vector<uint32_t> tables(static_cast<size_t>(T) * a58::kBuckets, 0u);
+        float produced = 0.0f;
+        std::vector<double> samples;
+
+        for (int rep = 0; rep < 5; ++rep) {
+            const auto t0 = std::chrono::steady_clock::now();
+
+            // Stage 1, both directions, split by rows.
+            {
+                std::vector<std::thread> pool;
+                pool.reserve(2u * T);
+                for (unsigned t = 0; t < T; ++t) {
+                    const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h) * t) / T);
+                    const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h) * (t + 1u)) / T);
+                    pool.emplace_back(a58::buildDiffRange, frame.data(), w, h, false,
+                                      y0, y1, dh.data());
+                }
+                for (unsigned t = 0; t < T; ++t) {
+                    const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h - 1u) * t) / T);
+                    const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h - 1u) * (t + 1u)) / T);
+                    pool.emplace_back(a58::buildDiffRange, frame.data(), w, h, true,
+                                      y0, y1, dv.data());
+                }
+                for (std::thread& th : pool) th.join();
+            }
+
+            float sig[2] = {0.0f, 0.0f};
+            for (int dir = 0; dir < 2; ++dir) {
+                std::vector<float>& d = (dir == 0) ? dh : dv;
+                const size_t mid = d.size() / 2u;
+
+                const float median = a58::selectKthThreaded(d, mid, T, tables);
+
+                {   // Stage 3
+                    std::vector<std::thread> pool;
+                    pool.reserve(T);
+                    for (unsigned t = 0; t < T; ++t) {
+                        const size_t i0 = (d.size() * t) / T;
+                        const size_t i1 = (d.size() * (t + 1u)) / T;
+                        pool.emplace_back(a58::absRange, d.data(), i0, i1, median);
+                    }
+                    for (std::thread& th : pool) th.join();
+                }
+
+                sig[dir] = a58::selectKthThreaded(d, mid, T, tables)
+                           * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+            }
+            produced = (sig[0] <= 0.0f) ? sig[1]
+                     : (sig[1] <= 0.0f) ? sig[0]
+                     : ((sig[0] < sig[1]) ? sig[0] : sig[1]);
+
+            const auto t1 = std::chrono::steady_clock::now();
+            samples.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+
+        std::sort(samples.begin(), samples.end());
+        const double lo = samples.front();
+        const double med = samples[samples.size() / 2u];
+        if (T == 1u) baseline = lo;
+        std::printf("  %8u %10.1f %12.1f %9.2fx %14.6f %10.1f\n",
+                    T, lo, med, baseline / lo, produced,
+                    static_cast<double>(tables.size() * sizeof(uint32_t)) / 1.0e6);
+        std::fflush(stdout);
+    }
+    std::printf("\n");
+}
+
 /* ------------------------------------------------ QA-A-57 thread probe */
 //
 // MEASUREMENT PROBE, NOT AN IMPLEMENTATION. The card is explicit: split the rows,
@@ -1036,6 +1263,7 @@ int main(int argc, char** argv) {
     bool sigmaOnly = false;
     bool boundsOnly = false;
     bool threadsOnly = false;
+    bool sigmaThreadsOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
@@ -1044,6 +1272,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
+        if (std::strcmp(argv[i], "--sigma-threads") == 0) sigmaThreadsOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -1054,6 +1283,12 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (sigmaThreadsOnly) {
+        sigmaThreadProbe(3072, 3072);
         xpe_preprocess_shutdown();
         return 0;
     }
