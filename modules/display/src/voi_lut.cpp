@@ -44,7 +44,7 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
             break;
         }
         case XPE_VOI_LINEAR_EXACT: {
-            // REQ-DISP-011: DICOM PS3.3 C.11.2.1.3
+            // REQ-DISP-010: DICOM PS3.3 C.11.2.1.3
             // output = clamp(((input - center) / width + 0.5) * range + minOut, minOut, maxOut)
             for (size_t i = 0; i < count; ++i) {
                 float val = ((px[i] - center) / width + 0.5f) * range + minOut;
