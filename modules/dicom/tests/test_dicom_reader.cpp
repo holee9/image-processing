@@ -1188,25 +1188,32 @@ TEST_F(DicomReaderTest, J2kLabelledNativePixels_RejectedAtOpen) {
 }
 
 // ---------------------------------------------------------------------------
-// KnownDivergence_ (QA-B-48): a SUCCESS-path finding the failure sweep turned up.
+// #150 (QA-B-49): a PixelData shorter than the header declares is a REJECTION,
+// not a success.
 //
-// When PixelData holds fewer pixels than Rows x Columns declare, readImage
-// copies what exists and returns XPE_OK (DicomReader.cpp:204-208). The tail is
-// zero -- xpe_alloc_image memsets the buffer -- so the caller does not receive
-// uninitialised heap. It receives something arguably worse to reason about: a
-// full-size image, reported as successfully read, whose second half is black
-// padding that no return code mentions.
+// This case existed in QA-B-48 as KnownDivergence_ShortPixelDataSucceedsWith-
+// ZeroPaddedTail, which asserted the opposite: XPE_OK plus a zero-padded tail.
+// That assertion was not wrong when it was written -- it recorded what the code
+// did, deliberately, because no sentence had been found that said what it
+// SHOULD do. The sentence exists:
 //
-// This is recorded, not asserted as correct. No SPEC or header sentence says a
-// short PixelData should succeed, and changing it to an error is a behaviour
-// change outside this card's scope (raised to leader in the QA-B-48 report).
-// The case pins today's behaviour so the decision, whenever it comes, is
-// visible as a change rather than a silent drift.
+//   SR-DCM-003 / HAZ-DCM-002 (docs/dicom/SHA-DICOM-001) names this exact
+//   failure -- "픽셀 데이터 불완전 ... 호출자에게 '성공' 반환", risk 8 (High),
+//   control "손상 감지 시 즉시 에러 반환".
+//   docs/dicom/README.md:639  "DO NOT return partial pixel data".
+//   RTM STC-003                "손상 파일 거부 + 부분 데이터 금지".
+//
+// So the old expectation is REPLACED, not corrected: the record stood until the
+// requirement was found, and the requirement is what settles it.
+//
+// On the output buffer: the shortfall is only detectable AFTER xpe_alloc_image
+// has run, so the QA-B-48 "untouched" contract cannot hold here. What holds is
+// the weaker guarantee the neighbouring no-PixelData path already gives
+// (DicomReader.cpp:199-202) -- no usable buffer is handed back: data is NULL and
+// dataSize is 0. width/height keep the declared values the allocation wrote.
 // ---------------------------------------------------------------------------
-TEST_F(DicomReaderTest, KnownDivergence_ShortPixelDataSucceedsWithZeroPaddedTail) {
+TEST_F(DicomReaderTest, ShortPixelData_ReturnsDicomInvalid) {
     const auto path = s_tempDir / "short_pixeldata.dcm";
-    uint32_t rows = 0;
-    uint32_t cols = 0;
     {
         DcmFileFormat ff;
         ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
@@ -1216,8 +1223,6 @@ TEST_F(DicomReaderTest, KnownDivergence_ShortPixelDataSucceedsWithZeroPaddedTail
         Uint16 c = 0;
         ASSERT_TRUE(ds->findAndGetUint16(DCM_Rows, r).good());
         ASSERT_TRUE(ds->findAndGetUint16(DCM_Columns, c).good());
-        rows = r;
-        cols = c;
         const unsigned long half = (static_cast<unsigned long>(r) * c) / 2u;
         std::vector<Uint16> shortPixels(half, 0x1234);
         ASSERT_TRUE(ds->putAndInsertUint16Array(DCM_PixelData, shortPixels.data(),
@@ -1231,19 +1236,66 @@ TEST_F(DicomReaderTest, KnownDivergence_ShortPixelDataSucceedsWithZeroPaddedTail
     const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
     xpe_dicom_close(handle);
 
-    EXPECT_EQ(XPE_OK, rc) << "today's behaviour: a short PixelData is not an error";
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, rc)
+        << "half the declared pixels were present; reporting success hands the "
+           "caller a half-black image with no signal that anything is missing";
+    EXPECT_EQ(nullptr, img.data)  << "a rejected read must not hand back a buffer";
+    EXPECT_EQ(0u, img.dataSize)   << "a rejected read must not report a size";
+
+    xpe_free_image(&img);   // NULL-safe; keeps the test honest if the guard regresses
+}
+
+// ---------------------------------------------------------------------------
+// The other side of the same boundary, asserted so this change is shown NOT to
+// have spilled over it: a PixelData LONGER than the header declares is still a
+// success. The surplus is discarded and exactly Rows x Columns pixels are
+// copied. Trailing padding is legal in DICOM (odd-length values are padded, and
+// writers may round up), so rejecting it would break files that are correct.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, SurplusPixelData_IsIgnoredAndReadSucceeds) {
+    const auto path = s_tempDir / "surplus_pixeldata.dcm";
+    uint32_t rows = 0;
+    uint32_t cols = 0;
+    constexpr uint16_t kFill = 0x1234;
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_validDcm.string().c_str()).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+        Uint16 r = 0;
+        Uint16 c = 0;
+        ASSERT_TRUE(ds->findAndGetUint16(DCM_Rows, r).good());
+        ASSERT_TRUE(ds->findAndGetUint16(DCM_Columns, c).good());
+        rows = r;
+        cols = c;
+        const unsigned long declared = static_cast<unsigned long>(r) * c;
+        // Declared pixels, then 64 extra the reader must not carry into the image.
+        std::vector<Uint16> pixels(declared + 64u, kFill);
+        for (size_t i = declared; i < pixels.size(); ++i) pixels[i] = 0xBEEF;
+        ASSERT_TRUE(ds->putAndInsertUint16Array(DCM_PixelData, pixels.data(),
+                                                static_cast<unsigned long>(pixels.size())).good());
+        ASSERT_TRUE(ff.saveFile(path.string().c_str(), EXS_LittleEndianExplicit).good());
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer img{};
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, &img);
+    xpe_dicom_close(handle);
+
+    ASSERT_EQ(XPE_OK, rc) << "surplus trailing bytes are legal; this must stay a success";
     ASSERT_NE(nullptr, img.data);
     EXPECT_EQ(cols, img.width);
-    EXPECT_EQ(rows, img.height) << "the image is reported at its DECLARED size";
+    EXPECT_EQ(rows, img.height);
 
     const uint16_t* px = static_cast<const uint16_t*>(img.data);
     const size_t n = static_cast<size_t>(img.width) * img.height;
-    size_t nonZeroTail = 0;
-    for (size_t i = n / 2; i < n; ++i) {
-        if (px[i] != 0) ++nonZeroTail;
+    size_t wrong = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (px[i] != kFill) ++wrong;
     }
-    EXPECT_EQ(0u, nonZeroTail)
-        << "the padding must at least be zero, not uninitialised heap";
+    EXPECT_EQ(0u, wrong) << "the image must hold the declared pixels only, "
+                            "with none of the surplus bleeding in";
 
     xpe_free_image(&img);
 }

@@ -80,9 +80,12 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if handle or outImg is NULL.
  * @return XPE_ERR_OUT_OF_MEMORY if allocation fails.
- * @return XPE_ERR_DICOM_INVALID if the dataset carries no PixelData, or Rows /
- *         Columns are missing or zero. On this path @p outImg is left with no
- *         buffer to free.
+ * @return XPE_ERR_DICOM_INVALID if the dataset carries no PixelData, if Rows /
+ *         Columns are missing or zero, or if PixelData is SHORTER than
+ *         Rows x Columns declares (#150: a partial image is never reported as a
+ *         success -- SR-DCM-003 / HAZ-DCM-002). On this path @p outImg is left
+ *         with no buffer to free. PixelData LONGER than declared is not an
+ *         error: the surplus is ignored.
  * @return XPE_ERR_PROCESSING_FAILED if decompression fails.
  *
  * @note Transfer-Syntax support is decided in xpe_dicom_open(), not here: an
