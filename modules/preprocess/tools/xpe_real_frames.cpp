@@ -142,6 +142,111 @@ void printRules() {
         kT2_ceiling, kT3_enrichReject);
 }
 
+/* ------------------------------------------------- staged-artifact provenance */
+//
+// QA-A-53 (#151). QA-A-52 ran the DICOM path against an xpe_dicom.dll copied out
+// of ANOTHER worktree's build tree, and recorded the gap honestly: nobody checked
+// whether that DLL was built from the same commit as this harness. A signature
+// guard cannot see that -- it proves the declaration matches, not that the
+// implementation is current.
+//
+// Lane C solved the same problem in GUI-C-41 for staged native artifacts, and the
+// format here is theirs unchanged: source / runId / headSha / files[{name, md5,
+// length}], written as provenance.json beside the binaries. Their rule is adopted
+// too: no manifest, no numbers.
+//
+// SCOPE (a judgement, stated so it can be overruled): the refusal binds the DICOM
+// path, because that is where a foreign artifact of unknown origin enters. A raw
+// run out of this lane's own build tree stages nothing, so there is no third-party
+// artifact to attribute; requiring a manifest there would block the workflow the
+// harness exists for without answering any question. When a manifest IS present it
+// is printed and checked on every run, raw included.
+
+struct Provenance {
+    bool        found = false;
+    std::string source;
+    std::string runId;
+    std::string headSha;
+    int         fileCount = 0;
+    std::string raw;
+};
+
+/** Minimal scalar-field lookup. The manifest is machine-written, one level deep. */
+std::string jsonField(const std::string& js, const std::string& key) {
+    const std::string needle = "\"" + key + "\"";
+    size_t k = js.find(needle);
+    if (k == std::string::npos) return std::string();
+    k = js.find(':', k + needle.size());
+    if (k == std::string::npos) return std::string();
+    ++k;
+    while (k < js.size() && (js[k] == ' ' || js[k] == '\t' || js[k] == '\r' || js[k] == '\n')) ++k;
+    if (k >= js.size()) return std::string();
+    if (js[k] == '"') {
+        const size_t e = js.find('"', k + 1);
+        if (e == std::string::npos) return std::string();
+        return js.substr(k + 1, e - k - 1);
+    }
+    const size_t e = js.find_first_of(",}\r\n", k);
+    return js.substr(k, (e == std::string::npos ? js.size() : e) - k);
+}
+
+Provenance readProvenance() {
+    Provenance p;
+    std::FILE* fp = std::fopen("provenance.json", "rb");
+    if (fp == nullptr) return p;
+    std::string js;
+    char buf[4096];
+    size_t got = 0;
+    while ((got = std::fread(buf, 1, sizeof(buf), fp)) > 0) js.append(buf, got);
+    std::fclose(fp);
+
+    p.found = true;
+    p.raw = js;
+    p.source = jsonField(js, "source");
+    p.runId = jsonField(js, "runId");
+    p.headSha = jsonField(js, "headSha");
+    for (size_t k = js.find("\"md5\""); k != std::string::npos; k = js.find("\"md5\"", k + 1)) {
+        ++p.fileCount;
+    }
+    return p;
+}
+
+/** Prints the manifest. Returns false when the DICOM path must be refused. */
+bool reportProvenance(const Provenance& p, bool dicomWanted) {
+    if (!p.found) {
+        std::printf("STAGED-ARTIFACT PROVENANCE: none (no provenance.json beside this binary)\n");
+        if (dicomWanted) {
+            std::printf("  REFUSED: a DICOM input needs xpe_dicom.dll, which this lane's preset\n"
+                        "  does not build -- so it was staged from somewhere, and nothing here\n"
+                        "  records from where. Re-stage with Stage-DicomRuntime.ps1, which writes\n"
+                        "  provenance.json, and run from that directory.\n"
+                        "  (Raw inputs are unaffected: they stage no third-party artifact.)\n\n");
+            return false;
+        }
+        std::printf("  raw-only run out of a build tree: nothing was staged, nothing to attribute\n\n");
+        return true;
+    }
+
+    std::printf("STAGED-ARTIFACT PROVENANCE (GUI-C-41 format)\n"
+                "  source  %s\n  runId   %s\n  headSha %s\n  files   %d\n",
+                p.source.c_str(), p.runId.c_str(), p.headSha.c_str(), p.fileCount);
+    const std::string built = XPE_A53_BUILD_HEAD_SHA;
+    if (p.headSha.empty() || built.empty()) {
+        std::printf("  WARNING: head SHA missing on one side -- cannot compare the staged\n"
+                    "           artifacts against the commit this binary was configured from.\n");
+    } else if (p.headSha.substr(0, 12) != built.substr(0, 12)) {
+        std::printf("  WARNING: staged artifacts are from %s but this binary was configured\n"
+                    "           at %s. Proceeding -- the numbers below may come from a\n"
+                    "           different implementation than the source in this tree.\n",
+                    p.headSha.substr(0, 12).c_str(), built.substr(0, 12).c_str());
+    } else {
+        std::printf("  head SHA matches this binary's configure-time commit (%s)\n",
+                    built.substr(0, 12).c_str());
+    }
+    std::printf("\n");
+    return true;
+}
+
 /* ------------------------------------------------------------------ frames */
 
 struct RealFrame {
@@ -258,42 +363,65 @@ bool loadRaw(const std::string& path, uint32_t w, uint32_t h, uint32_t bits,
 // link error. Mitigation: every GetProcAddress failure is reported by name.
 
 #ifdef _WIN32
-typedef XpeErrorCode (*PfnDicomOpen)(const char*, XpeDicomHandle**);
-typedef XpeErrorCode (*PfnDicomReadImage)(XpeDicomHandle*, XpeImageBuffer*);
-typedef void         (*PfnDicomClose)(XpeDicomHandle*);
-
 /* ------------------------------------------------------- ABI drift guard */
 //
-// QA-A-52 (#151). The three types above are a HAND COPY of an ABI that lives in
-// another module. A hand copy that drifts does not fail to link -- GetProcAddress
-// returns a raw FARPROC and the cast believes whatever it is told. The failure
-// mode is wrong pixels arriving in a verification harness, and a verification
-// harness that is quietly wrong is worse than one that is loudly broken: its
-// numbers would be used to pick a shipping default.
+// QA-A-52 (#151) introduced this guard; QA-A-53 made it impossible to bypass.
+//
+// The types below are a HAND COPY of an ABI that lives in another module. A hand
+// copy that drifts does not fail to link -- GetProcAddress returns a raw FARPROC
+// and the cast believes whatever it is told. The failure mode is wrong pixels
+// arriving in a verification harness, and a verification harness that is quietly
+// wrong is worse than one that is loudly broken: its numbers would be used to
+// pick a shipping default.
 //
 // This repository has already been bitten by exactly this shape. In GUI-C-39/C-40
 // a C# delegate declared five parameters against a six-parameter header; under
 // cdecl the caller cleans the stack, so the build was silent AND the run was
 // silent. The answer there was a source-level guard, and it is the answer here.
+// The guard earned its place immediately: switching it on in QA-A-52 exposed a
+// drift that was already present (void** where the header says XpeDicomHandle**),
+// invisible until then because an opaque pointer behaves identically.
 //
-// WHY COMPILE TIME, NOT A RUNTIME CHECK: this is the earliest point at which the
-// drift is observable at all. A runtime probe could only compare what it was
-// already told; the compiler can compare against the declaration in the owning
-// module's header. Catching it at compile time also means the guard runs on every
-// build of this tool, including a build on a machine that has no xpe_dicom.dll --
-// exactly the machine where a runtime check would be skipped.
+// WHY COMPILE TIME: it is the earliest point at which the drift is observable at
+// all. A runtime probe could only compare what it was already told; the compiler
+// compares against the declaration in the owning module's header. It also means
+// the guard runs on every build of this tool, including on a machine that has no
+// xpe_dicom.dll -- exactly the machine where a runtime check would be skipped.
 //
-// The comparison is whole-type, not arity: std::is_same over a function-pointer
-// type covers the return type, every parameter type in order, AND the calling
-// convention (MSVC encodes __cdecl / __stdcall in the type). Arity alone would
-// have passed a drift of XpeImageBuffer* -> void*, which is precisely the drift
-// that produces wrong pixels rather than a crash.
-static_assert(std::is_same<decltype(&xpe_dicom_open), PfnDicomOpen>::value,
-              "xpe_dicom_open signature drifted from the re-declaration in this file "
-              "(see xpe/dicom/dicom_api.h)");
-static_assert(std::is_same<decltype(&xpe_dicom_read_image), PfnDicomReadImage>::value,
-              "xpe_dicom_read_image signature drifted from the re-declaration in this "
-              "file (see xpe/dicom/dicom_api.h)");
+// WHY WHOLE-TYPE, NOT ARITY: std::is_same over a function-pointer type covers the
+// return type, every parameter type in order, AND the calling convention (MSVC
+// encodes __cdecl / __stdcall in the type). QA-A-52 measured the difference:
+// an arity drift is also caught by the call site (C2198), but a type drift
+// (XpeImageBuffer* -> void*) compiles cleanly at the call site through an
+// implicit conversion and is caught by NOTHING except this assert.
+//
+// WHY A MACRO (QA-A-53): the gap QA-A-52 left was that the rule "every
+// re-declaration gets an assert" was written in prose and enforced by nobody. A
+// fourth entry point could be added, copy-paste style, with no assert. XPE_DICOM_BIND
+// emits the typedef and its assert together, so the typedef cannot exist without
+// the check. Declaring one by hand still bypasses it -- that residual is named in
+// the QA-A-53 report rather than claimed away.
+#define XPE_DICOM_BIND(name, ret, ...)                                          \
+    typedef ret (*Pfn_##name)(__VA_ARGS__);                                     \
+    static_assert(std::is_same<decltype(&name), Pfn_##name>::value,             \
+                  #name " signature drifted from the re-declaration in this "   \
+                  "file (see xpe/dicom/dicom_api.h)")
+
+XPE_DICOM_BIND(xpe_dicom_open,       XpeErrorCode, const char*, XpeDicomHandle**);
+XPE_DICOM_BIND(xpe_dicom_read_image, XpeErrorCode, XpeDicomHandle*, XpeImageBuffer*);
+XPE_DICOM_BIND(xpe_dicom_close,      void,         XpeDicomHandle*);
+
+// The module exports ten entry points; the three above are every one this tool
+// re-declares, and therefore every one that can drift here. The other seven
+// (get_metadata, write, write_j2k, validate, cstore, cfind_mwl, cancel) are NOT
+// re-declared on purpose: an unused hand copy is drift surface bought for nothing.
+// get_metadata is the only near miss, and it is deliberately left out for a second
+// reason -- its fields carry patient identifiers, and a verification harness that
+// prints them would put PHI into evidence logs.
+
+using PfnDicomOpen      = Pfn_xpe_dicom_open;
+using PfnDicomReadImage = Pfn_xpe_dicom_read_image;
+using PfnDicomClose     = Pfn_xpe_dicom_close;
 static_assert(std::is_same<decltype(&xpe_dicom_close), PfnDicomClose>::value,
               "xpe_dicom_close signature drifted from the re-declaration in this file "
               "(see xpe/dicom/dicom_api.h)");
@@ -869,6 +997,17 @@ int main(int argc, char** argv) {
         rc = selftest(selftestDir);
         xpe_preprocess_shutdown();
         return rc;
+    }
+
+    // A DICOM input is anything this run would route through the staged DLL.
+    bool dicomWanted = false;
+    for (const std::string& path : inputs) {
+        const std::string e = lowerExt(path);
+        if (e == "dcm" || e == "dicom" || e.empty()) dicomWanted = true;
+    }
+    if (!reportProvenance(readProvenance(), dicomWanted)) {
+        xpe_preprocess_shutdown();
+        return 3;
     }
 
     printRules();
