@@ -53,7 +53,7 @@ TEST(GsvgCoverage, GridSuppressionReducesPeriodicRowMeanDeviation)
     ASSERT_EQ(xpe_gsvg_init(&handle, "{\"grid_suppression\":true}"), XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, nullptr),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_OK);
 
     const double beforeDeviation =
@@ -77,12 +77,7 @@ TEST(GsvgCoverage, VignetteGainRoundsAndClampsToUint16Range)
     ASSERT_EQ(xpe_gsvg_init(&handle, "{\"vignette_correction\":true}"), XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle,
-                               src.data(),
-                               dst.data(),
-                               static_cast<int>(src.size()),
-                               1,
-                               gain.data()),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), static_cast<int>(src.size()), 1, gain.data(), gain.size()),
               XPE_OK);
 
     const std::vector<uint16_t> expected = {0, 1, 3, 50, 65535, 65535};

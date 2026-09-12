@@ -36,7 +36,7 @@ TEST(GsvgExtendedCoverage, WhitespaceJsonBooleanParsingEnablesVignette)
               XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, gain.data()),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gain.data(), gain.size()),
               XPE_OK);
 
     for (int i = 0; i < kCount; ++i) {
@@ -61,7 +61,7 @@ TEST(GsvgExtendedCoverage, ExplicitFalseFlagsForcePassThroughEvenWithGainMap)
               XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, gain.data()),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gain.data(), gain.size()),
               XPE_OK);
     EXPECT_EQ(std::memcmp(dst.data(), src.data(), kCount * sizeof(uint16_t)), 0);
 
@@ -80,7 +80,7 @@ TEST(GsvgExtendedCoverage, MissingGainMapDisablesOnlyVignetteStep)
               XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, nullptr),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, nullptr, 0),
               XPE_OK);
     EXPECT_EQ(std::memcmp(dst.data(), src.data(), kCount * sizeof(uint16_t)), 0);
 
@@ -100,7 +100,7 @@ TEST(GsvgExtendedCoverage, VignetteAndGridEnabledOnFlatRowsPreservesDoubledImage
               XPE_OK);
     ASSERT_NE(handle, nullptr);
 
-    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), dst.data(), kWidth, kHeight, gain.data()),
+    ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kWidth, kHeight, gain.data(), gain.size()),
               XPE_OK);
 
     for (const auto pixel : dst) {

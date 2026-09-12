@@ -29,6 +29,7 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include <stddef.h>   /* size_t for the #152 length arguments */
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,16 +90,30 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  * copied when the two buffers differ, and left untouched when dst aliases src.
  *
  * @param handle  GSVG handle returned by xpe_gsvg_init. Must not be NULL.
- * @param src     Source image, width*height uint16 pixels. Must not be NULL.
- * @param dst     Destination image, width*height uint16 pixels. Must not be
- *                NULL. May alias src for in-place operation.
+ * @param src       Source image, width*height uint16 pixels. Must not be NULL.
+ * @param srcCount  Number of uint16 ELEMENTS @p src points at.
+ * @param dst       Destination image, width*height uint16 pixels. Must not be
+ *                  NULL. May alias src for in-place operation.
+ * @param dstCount  Number of uint16 ELEMENTS @p dst points at.
  * @param width   Image width in pixels. Must be > 0.
  * @param height  Image height in pixels. Must be > 0.
- * @param gainMap Optional vignette gain map, width*height float32 pixels.
- *                NULL disables the vignette step regardless of config. Its
- *                length is NOT validated -- it is trusted to hold
- *                width * height entries, and a shorter map is read past its
- *                end.
+ * @param gainMap   Optional vignette gain map, width*height float32 entries.
+ *                  NULL disables the vignette step regardless of config.
+ * @param gainCount Number of float ENTRIES @p gainMap points at. Ignored when
+ *                  @p gainMap is NULL -- pass 0 there; a buffer that does not
+ *                  exist has no meaningful length, and demanding one would make
+ *                  every caller that skips the vignette step invent a number.
+ *
+ * @par Buffer lengths are counted in ELEMENTS, not bytes (#152).
+ * The three buffers have two different element types -- @p src and @p dst are
+ * uint16_t, @p gainMap is float -- so a byte count would force every caller to
+ * apply the right sizeof to the right argument, and a mixed-up pair would pass
+ * validation while still being wrong. An element count is type-correct by
+ * construction: each length is compared directly against width * height, the
+ * same units @p width and @p height are already stated in. In practice a C++
+ * caller passes `buf.size()`, which is the value that is right; the byte form
+ * would need `buf.size() * sizeof(...)`, which is the form that gets it wrong.
+ *
  * @return XPE_OK on success, including the case where every step was skipped.
  * @return XPE_ERR_INVALID_INPUT on a NULL pointer -- including a NULL handle,
  *         which is a NULL required pointer like any other -- or on a
@@ -107,13 +122,25 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *         the post modules, never a silent no-op. gsvg takes loose dimensions
  *         rather than an XpeImageBuffer, so it rejects NEGATIVE dimensions too,
  *         a shape the struct-based modules cannot express.
+ * @return XPE_ERR_INVALID_INPUT when a supplied buffer is SHORTER than
+ *         width * height elements (#152). QA-B-52 measured what the absence of
+ *         this check cost: a src half the promised length was read past its end
+ *         and the call still returned XPE_OK. Documenting that -- which the
+ *         header used to do -- does not stop it; a caller that misstates the
+ *         dimensions gives the function no way to know, and with no length
+ *         parameter there was nothing to check against.
+ *         Order of judgement matches the api-spec output-buffer rule: NULL and
+ *         zero are decided first, a real-but-short buffer after.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,
+                                      size_t srcCount,
                                       uint16_t* dst,
+                                      size_t dstCount,
                                       int width,
                                       int height,
-                                      const float* gainMap);
+                                      const float* gainMap,
+                                      size_t gainCount);
 
 /**
  * @brief Release all resources owned by a GSVG handle.

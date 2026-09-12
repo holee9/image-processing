@@ -167,9 +167,14 @@ static XpeErrorCode run_pipeline(uint32_t width, uint32_t height, int64_t& total
             if (v > 65535.0f) v = 65535.0f;
             u16[static_cast<size_t>(i)] = static_cast<uint16_t>(v);
         }
-        err = xpe_gsvg_process(gsvg_handle, u16.data(), u16.data(),
+        // #152: the buffer lengths are element counts -- u16.size() is exactly
+        // what the contract asks for, on both the source and the in-place
+        // destination. gainMap is absent here, so its length is 0.
+        err = xpe_gsvg_process(gsvg_handle,
+                               u16.data(), u16.size(),
+                               u16.data(), u16.size(),
                                static_cast<int>(width), static_cast<int>(height),
-                               nullptr);
+                               /*gainMap=*/nullptr, /*gainCount=*/0u);
         if (err != XPE_OK) { xpe_gsvg_shutdown(gsvg_handle); free_img(img); return err; }
         float* fpx_out = static_cast<float*>(img.data);
         for (int64_t i = 0; i < n; ++i) {

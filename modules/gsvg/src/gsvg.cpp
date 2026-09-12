@@ -196,10 +196,13 @@ XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull)
 
 XpeErrorCode xpe_gsvg_process(void* handle,
                               const uint16_t* src,
+                              size_t srcCount,
                               uint16_t* dst,
+                              size_t dstCount,
                               int width,
                               int height,
-                              const float* gainMap)
+                              const float* gainMap,
+                              size_t gainCount)
 {
     // A NULL handle is a NULL required pointer, so it is INVALID_INPUT — the
     // same code dicom returns for a NULL handle (dicom.cpp:56,67) and what the
@@ -211,6 +214,23 @@ XpeErrorCode xpe_gsvg_process(void* handle,
 
     auto* h = static_cast<GsvgHandle*>(handle);
     const size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
+
+    // #152: the buffers must actually hold the image the dimensions promise.
+    // Judged after the NULL and zero checks above, per the api-spec ordering
+    // rule -- a missing buffer is a different fault from a small one, and
+    // saying so in the right order keeps the two distinguishable.
+    //
+    // Lengths are ELEMENT counts (see the header): each is compared against
+    // count directly, in the same units width and height are stated in.
+    if (srcCount < count || dstCount < count) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    // A NULL gainMap means the vignette step is off, so its length is not
+    // consulted at all. A gain map that IS supplied must be long enough --
+    // QA-B-52 measured this one reading past its end with the step enabled.
+    if (gainMap != nullptr && gainCount < count) {
+        return XPE_ERR_INVALID_INPUT;
+    }
 
     // Step 1: vignette gain or passthrough copy.
     // The vignette step is active only when BOTH the config flag is set AND
