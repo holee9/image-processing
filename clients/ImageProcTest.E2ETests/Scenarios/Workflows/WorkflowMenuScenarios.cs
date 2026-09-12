@@ -206,6 +206,15 @@ public sealed class WorkflowMenuScenarios(WorkflowApplicationFixture app, ITestO
     {
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
 
+                // GUI-C-51: a re-acquired window is reported, not silently swallowed. The fixture replaces
+        // an element that cannot answer WPF properties (GUI-C-50); before this the replacement left
+        // no trace in the run's record, so a run that hit the defect looked exactly like one that
+        // did not. Written before the body so it survives a scenario that throws.
+        if (!string.IsNullOrEmpty(app.ReacquiredNote))
+        {
+            output.WriteLine($"{scenario} fixture: {app.ReacquiredNote}");
+        }
+
         var stopwatch = Stopwatch.StartNew();
         try
         {

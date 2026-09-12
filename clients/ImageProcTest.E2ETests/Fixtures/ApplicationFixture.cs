@@ -61,7 +61,7 @@ public class ApplicationFixture : IDisposable
             return;
         }
 
-        LeftoverNote = KillLeftovers(exePath);
+        LeftoverNote = SkipLeftoverSweep ? "sweep skipped (test seam)" : KillLeftovers(exePath);
 
         var startInfo = new ProcessStartInfo(exePath)
         {
@@ -165,9 +165,37 @@ public class ApplicationFixture : IDisposable
         return window;
     }
 
+    /// <summary>
+    /// Test seam (GUI-C-51): makes the next N readability checks report failure.
+    ///
+    /// The re-acquire path fires on roughly one launch in twenty, so 74 consecutive healthy runs
+    /// never entered it — GUI-C-50 could only show it working inside a throwaway probe. A branch no
+    /// test can reach is a branch nobody has checked, so this makes it reachable on purpose.
+    ///
+    /// A counter rather than a flag: the point is that the FIRST element fails and the re-located one
+    /// succeeds, which is the shape actually measured. A permanent flag would make both fail and
+    /// would exercise the give-up path instead.
+    /// </summary>
+    internal static int SimulateUnreadableChecks;
+
+    /// <summary>
+    /// Test seam (GUI-C-51): skips the pre-launch sweep for one construction.
+    ///
+    /// <see cref="KillLeftovers"/> matches by executable path and kills every instance, which is
+    /// right at the start of a suite and wrong for a fixture built in the middle of one — it would
+    /// take down the app another collection is still driving, the race GUI-C-36 measured.
+    /// </summary>
+    internal static bool SkipLeftoverSweep;
+
     /// <summary>True when the element answers the property the scenarios read first.</summary>
     private static bool CanReadAutomationId(Window window)
     {
+        if (SimulateUnreadableChecks > 0)
+        {
+            SimulateUnreadableChecks--;
+            return false;
+        }
+
         try
         {
             _ = window.AutomationId;
