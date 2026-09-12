@@ -115,6 +115,30 @@ if(_XPE_BUILD_TESTS)
 
     include(GoogleTest)
 
+    # --- test_dicom_parameter_dependency (#156 / QA-B-59) ---
+    # Change one input, write, read back, require the difference to survive the
+    # round trip. A metadata field that never reaches the file is invisible to a
+    # return-code test.
+    add_executable(test_dicom_parameter_dependency
+        tests/test_parameter_dependency.cpp
+    )
+    target_include_directories(test_dicom_parameter_dependency PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_dicom_parameter_dependency PRIVATE
+        xpe_dicom
+        xpe_common
+        GTest::gtest_main
+    )
+    target_compile_features(test_dicom_parameter_dependency PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_parameter_dependency PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_parameter_dependency)
+    gtest_discover_tests(test_dicom_parameter_dependency
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_dicom_reader (SWU-4.1: REQ-DICOM-001..011) ---
     add_executable(test_dicom_reader
         tests/test_dicom_reader.cpp

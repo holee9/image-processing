@@ -54,6 +54,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gsvg_abi_smoke.cpp
         # #142 (QA-B-52): guard-page probe for short src / gainMap buffers.
         tests/test_datasize_overread.cpp
+        # #156 (QA-B-59): does each config flag reach the output
+        tests/test_parameter_dependency.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE

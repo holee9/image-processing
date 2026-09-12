@@ -226,6 +226,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_model_versioning.cpp
         # #142 (QA-B-52): guard-page probe for a short dataSize.
         test_datasize_overread.cpp
+        # #156 (QA-B-59): does each parameter reach the output
+        test_parameter_dependency.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
