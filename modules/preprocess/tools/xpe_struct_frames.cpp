@@ -751,15 +751,72 @@ void regress(bool useBm4) {
     }
 }
 
+/**
+ * QA-A-51: write every synthetic frame as a uint16 little-endian raw file so
+ * the real-frame harness can read them through its OWN input path. This is the
+ * self-test material: xpe_real_frames must reproduce the published A-49/A-50
+ * sigma values from these files. uint16 is deliberate -- it is what a detector
+ * delivers, so the round trip also exercises the quantisation a real frame has.
+ */
+void dumpFrames(const char* dir) {
+    std::vector<Frame> frames;
+    frames.push_back(makeUniform(20260911u));
+    frames.push_back(makeScatter(20260912u));
+    frames.push_back(makeEdge(20260912u));
+    frames.push_back(makeLines(20260912u));
+    frames.push_back(makeChecker(20260912u, 2u));
+    frames.push_back(makeChecker(20260912u, 8u));
+    frames.push_back(makeDiag(20260912u));
+
+    for (const Frame& f : frames) {
+        const std::string path = std::string(dir) + "/" + f.name + ".raw";
+        std::FILE* fp = std::fopen(path.c_str(), "wb");
+        if (fp == nullptr) {
+            std::fprintf(stderr, "cannot write %s\n", path.c_str());
+            continue;
+        }
+        std::vector<uint16_t> q(kN);
+        for (size_t i = 0; i < kN; ++i) {
+            const float v = f.pixels[i];
+            const float c = (v < 0.0f) ? 0.0f : ((v > 65535.0f) ? 65535.0f : v);
+            q[i] = static_cast<uint16_t>(c + 0.5f);
+        }
+        std::fwrite(q.data(), sizeof(uint16_t), kN, fp);
+        std::fclose(fp);
+
+        // The same frame, unquantised. The uint16 file is what a detector
+        // delivers; this one is what QA-A-50 actually measured. Keeping both
+        // lets the harness separate "my code is wrong" from "uint16 rounding".
+        const std::string pathF = std::string(dir) + "/" + f.name + "_f32.raw";
+        std::FILE* fpF = std::fopen(pathF.c_str(), "wb");
+        if (fpF != nullptr) {
+            std::fwrite(f.pixels.data(), sizeof(float), kN, fpF);
+            std::fclose(fpF);
+        }
+
+        std::vector<float> tmp = f.trueSigma;
+        const Quantiles ts = quantiles(tmp);
+        std::printf("  wrote %-28s %ux%u uint16  trueSigma-med %.4f\n",
+                    path.c_str(), kW, kH, ts.med);
+    }
+    std::printf("\nQA-A-50 reference, ratio of the estimate to trueSigma-med:\n");
+    std::printf("  Bm4      uniform 1.00x scatter 0.99x edge 1.39x lines 1.00x"
+                " checker2 2.05x checker8 1.15x diag 1.00x\n");
+    std::printf("  Bm(ship) uniform 1.00x scatter 0.99x edge 1.39x lines 1.00x"
+                " checker2 2.05x checker8 1.15x diag 2.66x\n");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
     bool verifyOnly = false, estOnly = false, regressOnly = false;
     bool regress4 = false;
+    const char* dumpDir = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--verify") == 0) verifyOnly = true;
         if (std::strcmp(argv[i], "--estimators") == 0) estOnly = true;
         if (std::strcmp(argv[i], "--regress") == 0) regressOnly = true;
+        if (std::strcmp(argv[i], "--dump") == 0 && i + 1 < argc) dumpDir = argv[++i];
         if (std::strcmp(argv[i], "--regress4") == 0) {
             regressOnly = true;
             regress4 = true;
@@ -769,6 +826,12 @@ int main(int argc, char** argv) {
     if (xpe_preprocess_init(nullptr) != XPE_OK) {
         std::fprintf(stderr, "xpe_preprocess_init failed\n");
         return 1;
+    }
+
+    if (dumpDir != nullptr) {
+        dumpFrames(dumpDir);
+        xpe_preprocess_shutdown();
+        return 0;
     }
 
     if (regressOnly) {
