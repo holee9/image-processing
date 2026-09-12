@@ -91,7 +91,7 @@ public class ApplicationFixture : IDisposable
 
         if (BackendMode == "Native")
         {
-            CalibrationDirectory = GenerateCalibrationSet(out var calibrationNote);
+            CalibrationDirectory = SharedCalibrationSet(out var calibrationNote);
             CalibrationNote = calibrationNote;
 
             if (CalibrationDirectory is not null)
@@ -184,6 +184,37 @@ public class ApplicationFixture : IDisposable
     /// When it is not, this returns null and the preprocess scenario SKIPS with the reason — a
     /// missing tool is "not measured", never "measured and fine".
     /// </summary>
+    /// <summary>
+    /// The XCal set for this test run, produced once and reused by every fixture.
+    ///
+    /// GUI-C-48 measured why this matters: <c>xpe_calib_fixture_gen</c> takes <b>53 seconds</b> for
+    /// one 1024×1024 set, while launching the app takes 9. Generating per fixture was the whole
+    /// Native budget — two fixtures meant two generations and a suite that ran 120 s instead of 67.
+    ///
+    /// Sharing is safe here in a way that sharing an app instance is not. What is shared is a
+    /// directory of <b>read-only input files</b>: the app opens them, never writes them, and one
+    /// fixture cannot leave state in them for the next. No GUI state, no settings, no window is
+    /// shared — each fixture still launches and kills its own app, so the isolation the suite relies
+    /// on (GUI-C-23, GUI-C-35) is untouched.
+    ///
+    /// Deterministic by construction: the generator runs with <c>--seed 0</c>, so a per-fixture set
+    /// and the shared set are the same bytes. The reuse changes cost, not what is measured.
+    /// </summary>
+    private static readonly Lazy<(string? Directory, string Note)> SharedCalibration =
+        new(() =>
+        {
+            var directory = GenerateCalibrationSet(out var note);
+            return (directory, note);
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>Returns the shared set, generating it on first use.</summary>
+    private static string? SharedCalibrationSet(out string note)
+    {
+        var (directory, generatedNote) = SharedCalibration.Value;
+        note = generatedNote;
+        return directory;
+    }
+
     private static string? GenerateCalibrationSet(out string note)
     {
         var generator = ResolveGenerator(out var searched);
