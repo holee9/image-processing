@@ -78,6 +78,20 @@ XPE_API XpeErrorCode xpe_multiscale_process(
         int   levels;
         float edgeGain, textureGain, flatGain, noiseThreshold;
 
+        // #145 (QA-B-61): name the keys this parser will not consume -- once per
+        // distinct set, not once per frame. The memory is thread_local so two
+        // threads cannot erase each other's record; see the helper for why.
+        {
+            static thread_local std::string s_lastWarned;
+            static const char* const kKnown[] = {
+                "num_levels", "levels", "edge_gain", "texture_gain",
+                "flat_gain", "noise_threshold"
+            };
+            xpe::enhance_advanced::config::warn_unconsumed_keys_once(
+                configJsonOrNull, kKnown, sizeof(kKnown) / sizeof(kKnown[0]),
+                /*nestedObject=*/"mfp", "xpe_multiscale_process", s_lastWarned);
+        }
+
         if (!xpe::enhance_advanced::config::parse_mfp_config(
                 configJsonOrNull, levels, edgeGain, textureGain, flatGain, noiseThreshold)) {
             spdlog::error("xpe_multiscale_process: invalid config JSON");

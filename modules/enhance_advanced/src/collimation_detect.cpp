@@ -91,6 +91,17 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         float minAreaRatio;
         int   borderMargin;
 
+        // #145 (QA-B-61): see multiscale_process for the design of this warning.
+        {
+            static thread_local std::string s_lastWarned;
+            static const char* const kKnown[] = {
+                "sensitivity", "min_area_ratio", "border_margin"
+            };
+            xpe::enhance_advanced::config::warn_unconsumed_keys_once(
+                configJsonOrNull, kKnown, sizeof(kKnown) / sizeof(kKnown[0]),
+                /*nestedObject=*/nullptr, "xpe_detect_collimation", s_lastWarned);
+        }
+
         if (!xpe::enhance_advanced::config::parse_collimation_config(
                 configJsonOrNull, sensitivity, minAreaRatio, borderMargin)) {
             spdlog::error("xpe_detect_collimation: invalid config JSON");

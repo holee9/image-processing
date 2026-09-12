@@ -14,10 +14,119 @@
 
 #include <nlohmann/json.hpp>
 #include <algorithm>
+#include <cstdio>
+#include <string>
+#include <vector>
 
 namespace xpe {
 namespace enhance_advanced {
 namespace config {
+
+/* ============================================================================
+ * #145 (QA-B-61): unconsumed config keys, reported once per configuration
+ * ============================================================================ */
+
+/**
+ * @brief Report top-level config keys this module does not consume -- once per
+ *        distinct set of unknown keys, per thread.
+ *
+ * QA-B-60 wired this warning into the two init entry points and deliberately
+ * left the per-call parsers alone: these run per frame, so one unknown key would
+ * become one alert per frame and fill the queue with copies of a single fact.
+ * That objection was about FREQUENCY, not content, so removing the frequency
+ * makes the warning wirable.
+ *
+ * TWO DESIGN CHOICES, both of which change behaviour and so are stated here:
+ *
+ * 1. WHAT IS COMPARED: the set of unknown key NAMES, sorted and joined -- not
+ *    the config string. A caller that varies a value every frame
+ *    ({"step_size": 0.31} then 0.32 ...) would defeat whole-string comparison
+ *    and get a warning per frame anyway, which is the case this exists to
+ *    prevent. The names are already being collected to build the message, so
+ *    the set costs a sort of a handful of short strings.
+ *
+ * 2. WHERE THE MEMORY LIVES: thread_local, owned by the caller and passed in.
+ *    A module-global would let two threads erase each other's memory -- thread A
+ *    warns, thread B's different config overwrites the record, and A's next
+ *    frame warns again; the per-frame flood returns whenever two threads run.
+ *    thread_local has no cross-thread visibility at all, so REQ-ADV-032's
+ *    reentrancy ("reentrant with independent caller-supplied buffers") is
+ *    unaffected: no result depends on it, and no thread can observe another's.
+ *
+ *    The tension with the letter of the requirement -- "No global mutable state
+ *    shall be modified during processing calls. The g_initialized flag is the
+ *    only shared state" -- is real and is recorded in the QA-B-61 report rather
+ *    than resolved here. Any "warn once" behaviour needs memory that survives a
+ *    call; the choice is only whether that memory is shared between threads, and
+ *    this one is not. Both properties are measured by
+ *    tests/test_config_warning_once.cpp (identical outputs with and without the
+ *    state; concurrent threads do not cross).
+ *
+ * @param json         Caller's config string; NULL means defaults, never warned.
+ * @param knownKeys    Keys this parser consumes.
+ * @param knownCount   Length of @p knownKeys.
+ * @param nestedObject Optional object key whose contents are also consumed
+ *                     (the MFP schema accepts a nested "mfp" object); NULL when
+ *                     the schema is flat.
+ * @param fnLabel      Entry-point name for the message.
+ * @param lastWarned   Caller-owned thread_local memory of the last warned set.
+ */
+void warn_unconsumed_keys_once(const char*        json,
+                               const char* const* knownKeys,
+                               size_t             knownCount,
+                               const char*        nestedObject,
+                               const char*        fnLabel,
+                               std::string&       lastWarned)
+{
+    if (json == nullptr) return;   // defaults are an ordinary call, not a mistake
+
+    auto cfg = nlohmann::json::parse(json, nullptr, false);
+    if (cfg.is_discarded() || !cfg.is_object()) return;   // malformed input is the parser's business
+
+    auto isKnown = [&](const std::string& key) {
+        for (size_t i = 0; i < knownCount; ++i) {
+            if (key == knownKeys[i]) return true;
+        }
+        return false;
+    };
+
+    std::vector<std::string> unknown;
+    for (auto it = cfg.begin(); it != cfg.end(); ++it) {
+        if (nestedObject != nullptr && it.key() == nestedObject && it.value().is_object()) {
+            // The nested object is consumed; its CONTENTS are what to check.
+            for (auto inner = it.value().begin(); inner != it.value().end(); ++inner) {
+                if (!isKnown(inner.key())) unknown.push_back(inner.key());
+            }
+            continue;
+        }
+        if (!isKnown(it.key())) unknown.push_back(it.key());
+    }
+
+    if (unknown.empty()) {
+        // A correct config must also CLEAR the memory: otherwise a caller that
+        // fixes its typo and then reintroduces it would stay silent the second
+        // time, and the warning would be worth less than it looks.
+        lastWarned.clear();
+        return;
+    }
+
+    std::sort(unknown.begin(), unknown.end());
+    std::string signature;
+    for (const auto& k : unknown) {
+        signature += k;
+        signature += '\x1f';           // a separator no JSON key can contain
+    }
+    if (signature == lastWarned) return;   // same set as last time: already said
+    lastWarned = signature;
+
+    for (const auto& k : unknown) {
+        char msg[192];
+        std::snprintf(msg, sizeof(msg),
+                      "%s config key '%s' is not read by this entry point and has "
+                      "no effect", fnLabel, k.c_str());
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
+}
 
 /* ============================================================================
  * MFP Config Parser (SWU-2.5)

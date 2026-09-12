@@ -86,6 +86,17 @@ XPE_API XpeErrorCode xpe_fractional_process(
         float stepSize;
         bool  safetyViolation = false;
 
+        // #145 (QA-B-61): see multiscale_process for the design of this warning.
+        // The forbidden-key safety check below is a different mechanism and is
+        // untouched: SAF-100 REJECTS, this only reports.
+        {
+            static thread_local std::string s_lastWarned;
+            static const char* const kKnown[] = { "iterations", "step_size", "safety" };
+            xpe::enhance_advanced::config::warn_unconsumed_keys_once(
+                configJsonOrNull, kKnown, sizeof(kKnown) / sizeof(kKnown[0]),
+                /*nestedObject=*/nullptr, "xpe_fractional_process", s_lastWarned);
+        }
+
         if (!xpe::enhance_advanced::config::parse_fractional_config(
                 configJsonOrNull, iterations, stepSize, safetyViolation)) {
             if (safetyViolation) {
