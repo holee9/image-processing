@@ -166,6 +166,9 @@ target_include_directories(xpe_struct_frames
 )
 target_link_libraries(xpe_struct_frames PRIVATE xpe_preprocess xpe_common)
 target_compile_features(xpe_struct_frames PRIVATE cxx_std_17)
+# fopen/sscanf are the right tools for a throwaway probe; MSVC C4996 + /WX would
+# otherwise force _s variants that add nothing here.
+target_compile_definitions(xpe_struct_frames PRIVATE _CRT_SECURE_NO_WARNINGS)
 if(MSVC)
     target_compile_options(xpe_struct_frames PRIVATE /W4)
 else()
@@ -173,6 +176,36 @@ else()
 endif()
 xpe_target_warnings_as_errors(xpe_struct_frames)
 set_target_properties(xpe_struct_frames PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+# =============================================================================
+# QA-A-51 (#151): real-frame verification harness (EXPERIMENT ONLY)
+#
+# Not registered with ctest. Reads real exposures (raw, and DICOM via a RUNTIME
+# LoadLibrary of xpe_dicom.dll -- never a link dependency, because the
+# ci-preprocess preset configures BUILD_DICOM=OFF) and measures only what a
+# frame without defect ground truth can support. Decision thresholds are fixed
+# in the source and printed on every run.
+# =============================================================================
+add_executable(xpe_real_frames tools/xpe_real_frames.cpp)
+
+target_include_directories(xpe_real_frames
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(xpe_real_frames PRIVATE xpe_preprocess xpe_common)
+target_compile_features(xpe_real_frames PRIVATE cxx_std_17)
+# fopen/sscanf are the right tools for a throwaway probe; MSVC C4996 + /WX would
+# otherwise force _s variants that add nothing here.
+target_compile_definitions(xpe_real_frames PRIVATE _CRT_SECURE_NO_WARNINGS)
+if(MSVC)
+    target_compile_options(xpe_real_frames PRIVATE /W4)
+else()
+    target_compile_options(xpe_real_frames PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_real_frames)
+set_target_properties(xpe_real_frames PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
