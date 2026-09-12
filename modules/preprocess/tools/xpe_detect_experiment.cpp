@@ -43,6 +43,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <immintrin.h>
 #include <random>
 #include <string>
 #include <vector>
@@ -326,6 +327,219 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     for (uint8_t v : map) if (v) ++flagged;
     std::printf("[time] %ux%u  best of 3: %8.1f ms   flagged %zu (%.3f%%)\n",
                 w, h, best, flagged, 100.0 * (double)flagged / (double)n);
+    std::fflush(stdout);
+}
+
+/* ------------------------------------------------------- QA-A-56 bounds */
+//
+// MEASUREMENT ONLY. Nothing here changes the detector; the card's output is a
+// number and a verdict. The AVX2 block below is a THROUGHPUT PROBE, not a
+// vectorised detector -- it exists so the compute bound rests on what this CPU
+// actually does rather than on a vendor table.
+
+/** Timing helper: best of `reps`, in milliseconds. */
+template <typename F>
+double bestMs(int reps, F fn) {
+    double best = 1e30;
+    for (int r = 0; r < reps; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        const auto t1 = std::chrono::steady_clock::now();
+        const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (v < best) best = v;
+    }
+    return best;
+}
+
+/** All of `reps`, so the spread is visible rather than hidden by a min. */
+template <typename F>
+std::vector<double> allMs(int reps, F fn) {
+    std::vector<double> out;
+    for (int r = 0; r < reps; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        const auto t1 = std::chrono::steady_clock::now();
+        out.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+    }
+    return out;
+}
+
+void printSpread(const char* label, const std::vector<double>& v, double bytes) {
+    std::vector<double> s2 = v;
+    std::sort(s2.begin(), s2.end());
+    const double lo = s2.front(), med = s2[s2.size() / 2u], hi = s2.back();
+    std::printf("  %-34s min %7.2f  med %7.2f  max %7.2f ms"
+                "   -> %5.1f GB/s (median)   spread %.1f%%\n",
+                label, lo, med, hi,
+                bytes / (med / 1000.0) / 1.0e9,
+                100.0 * (hi - lo) / med);
+    std::fflush(stdout);
+}
+
+void bounds() {
+    constexpr uint32_t W = 3072, H = 3072;
+    constexpr size_t NPX = static_cast<size_t>(W) * H;
+    const double inBytes  = static_cast<double>(NPX) * sizeof(float);   // 37.75 MB
+    const double outBytes = static_cast<double>(NPX) * sizeof(uint8_t); //  9.44 MB
+
+    std::vector<float> frame(NPX);
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    for (size_t i = 0; i < NPX; ++i) frame[i] = noise(rng);
+    std::vector<uint8_t> map(NPX, 0u);
+    std::vector<float> scratch(NPX, 0.0f);
+
+    volatile float sink = 0.0f;
+    volatile uint8_t sinkb = 0u;
+
+    std::printf("[bounds] 3072x3072 float32 in (%.2f MB), uint8 map out (%.2f MB)\n\n",
+                inBytes / 1.0e6, outBytes / 1.0e6);
+
+    /* ---------------------------------------------------- memory bound */
+    std::printf("A. MEMORY -- measured streaming kernels, 7 runs each\n");
+
+    auto readKernel = [&]{
+        float acc = 0.0f;
+        for (size_t i = 0; i < NPX; ++i) acc += frame[i];
+        sink = sink + acc;
+    };
+    auto copyKernel = [&]{
+        std::memcpy(scratch.data(), frame.data(), NPX * sizeof(float));
+        sink = sink + scratch[0];
+    };
+    // The traffic shape the detector actually has: read float32, write uint8.
+    auto detectTrafficKernel = [&]{
+        for (size_t i = 0; i < NPX; ++i) map[i] = (frame[i] > 3000.0f) ? 1u : 0u;
+        sinkb = static_cast<uint8_t>(sinkb + map[0]);
+    };
+
+    printSpread("read-only (sum)", allMs(7, readKernel), inBytes);
+    printSpread("copy (read+write float)", allMs(7, copyKernel), 2.0 * inBytes);
+    const std::vector<double> traf = allMs(7, detectTrafficKernel);
+    printSpread("detector traffic shape", traf, inBytes + outBytes);
+
+    std::vector<double> trafSorted = traf;
+    std::sort(trafSorted.begin(), trafSorted.end());
+    const double memBoundMs = trafSorted[trafSorted.size() / 2u];
+    std::printf("\n  MEMORY LOWER BOUND (read input once + write map once): %.2f ms\n\n",
+                memBoundMs);
+
+    /* --------------------------------------------------- compute bound */
+    std::printf("B. COMPUTE -- the 19 compare-exchange network, measured\n");
+
+    // Scalar: one pixel's network per iteration, register resident, no memory.
+    constexpr size_t kIters = 4000000;
+    auto scalarNet = [&]{
+        float a0 = 1.f, a1 = 9.f, a2 = 3.f, a3 = 7.f, a4 = 5.f, a5 = 2.f, a6 = 8.f, a7 = 4.f;
+        for (size_t it = 0; it < kIters; ++it) {
+            a0 += 1.0f;   // keep each iteration distinct
+            xpe::preprocess::internal::MedianSortCE(a0, a1);
+            xpe::preprocess::internal::MedianSortCE(a2, a3);
+            xpe::preprocess::internal::MedianSortCE(a4, a5);
+            xpe::preprocess::internal::MedianSortCE(a6, a7);
+            xpe::preprocess::internal::MedianSortCE(a0, a2);
+            xpe::preprocess::internal::MedianSortCE(a1, a3);
+            xpe::preprocess::internal::MedianSortCE(a4, a6);
+            xpe::preprocess::internal::MedianSortCE(a5, a7);
+            xpe::preprocess::internal::MedianSortCE(a1, a2);
+            xpe::preprocess::internal::MedianSortCE(a5, a6);
+            xpe::preprocess::internal::MedianSortCE(a0, a4);
+            xpe::preprocess::internal::MedianSortCE(a1, a5);
+            xpe::preprocess::internal::MedianSortCE(a2, a6);
+            xpe::preprocess::internal::MedianSortCE(a3, a7);
+            xpe::preprocess::internal::MedianSortCE(a2, a4);
+            xpe::preprocess::internal::MedianSortCE(a3, a5);
+            xpe::preprocess::internal::MedianSortCE(a1, a2);
+            xpe::preprocess::internal::MedianSortCE(a3, a4);
+            xpe::preprocess::internal::MedianSortCE(a5, a6);
+            sink = sink + (a3 + a4);
+        }
+    };
+    const double scalarMs = bestMs(3, scalarNet);
+    const double scalarPerNet = scalarMs * 1.0e6 / static_cast<double>(kIters);  // ns
+    std::printf("  scalar 19-CE network   %8.2f ms / %zu nets = %.2f ns per network\n",
+                scalarMs, kIters, scalarPerNet);
+
+    // AVX2: the SAME network, eight pixels at a time. min/max are lane-wise, so
+    // one pixel per lane needs no shuffles -- this is the shape a vectorised
+    // detector would take, and it is the most favourable case for AVX2 here.
+    constexpr size_t kVecIters = 1000000;
+    auto avx2Net = [&]{
+        __m256 a0 = _mm256_set1_ps(1.f), a1 = _mm256_set1_ps(9.f);
+        __m256 a2 = _mm256_set1_ps(3.f), a3 = _mm256_set1_ps(7.f);
+        __m256 a4 = _mm256_set1_ps(5.f), a5 = _mm256_set1_ps(2.f);
+        __m256 a6 = _mm256_set1_ps(8.f), a7 = _mm256_set1_ps(4.f);
+        const __m256 one = _mm256_set1_ps(1.0f);
+        float out[8];
+        for (size_t it = 0; it < kVecIters; ++it) {
+            a0 = _mm256_add_ps(a0, one);
+#define CE8(x, y) { const __m256 lo = _mm256_min_ps(x, y); \
+                    const __m256 hi = _mm256_max_ps(x, y); x = lo; y = hi; }
+            CE8(a0, a1) CE8(a2, a3) CE8(a4, a5) CE8(a6, a7)
+            CE8(a0, a2) CE8(a1, a3) CE8(a4, a6) CE8(a5, a7)
+            CE8(a1, a2) CE8(a5, a6)
+            CE8(a0, a4) CE8(a1, a5) CE8(a2, a6) CE8(a3, a7)
+            CE8(a2, a4) CE8(a3, a5)
+            CE8(a1, a2) CE8(a3, a4) CE8(a5, a6)
+#undef CE8
+            _mm256_storeu_ps(out, _mm256_add_ps(a3, a4));
+            sink = sink + out[0];
+        }
+    };
+    const double avx2Ms = bestMs(3, avx2Net);
+    const double avx2PerNet = avx2Ms * 1.0e6 / (static_cast<double>(kVecIters) * 8.0);
+    std::printf("  AVX2   19-CE network   %8.2f ms / %zu x8 nets = %.2f ns per network"
+                "   (%.2fx scalar)\n", avx2Ms, kVecIters, avx2PerNet, scalarPerNet / avx2PerNet);
+
+    // The detector runs the network TWICE per pixel (median, then MAD median).
+    const double px = static_cast<double>(NPX);
+    const double scalarNetBound = 2.0 * px * scalarPerNet / 1.0e6;   // ms
+    const double avx2NetBound   = 2.0 * px * avx2PerNet / 1.0e6;     // ms
+    std::printf("\n  two networks per pixel x %.0f pixels:\n", px);
+    std::printf("    scalar networks alone      %8.2f ms\n", scalarNetBound);
+    std::printf("    AVX2 networks alone        %8.2f ms\n", avx2NetBound);
+    std::printf("    (networks ONLY -- gather, abs, threshold, map write and the\n"
+                "     whole global-sigma stage are all extra)\n\n");
+
+    /* ------------------------------------------------------- the verdict */
+    const double bound = (memBoundMs > avx2NetBound) ? memBoundMs : avx2NetBound;
+    std::printf("C. LOWER BOUND = max(memory %.2f, AVX2 compute %.2f) = %.2f ms\n",
+                memBoundMs, avx2NetBound, bound);
+    std::printf("   SPEC budget 35 ms -> the bound is %.2fx the budget\n", bound / 35.0);
+    std::printf("   headroom above the bound: 35 - %.2f = %.2f ms\n\n", bound, 35.0 - bound);
+    std::fflush(stdout);
+}
+
+/** Card item 4: the same bandwidth kernel, measured in a different context. */
+void boundsContextCheck() {
+    constexpr size_t NPX = static_cast<size_t>(3072) * 3072;
+    std::vector<float> frame(NPX);
+    std::mt19937 rng(1u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    for (size_t i = 0; i < NPX; ++i) frame[i] = noise(rng);
+    std::vector<uint8_t> map(NPX, 0u);
+    volatile uint8_t sinkb = 0u;
+
+    // Heavy unrelated work first, so the cache and the clock are in the state a
+    // long program run leaves them in -- QA-A-55 found the same kernel differs
+    // by ~17% between a tight loop and a long run.
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = 3072; img.height = 3072;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(NPX * sizeof(float));
+    volatile float sink = 0.0f;
+    sink = sink + ComputeGlobalSigma(&img);
+
+    auto detectTrafficKernel = [&]{
+        for (size_t i = 0; i < NPX; ++i) map[i] = (frame[i] > 3000.0f) ? 1u : 0u;
+        sinkb = static_cast<uint8_t>(sinkb + map[0]);
+    };
+    const double bytes = static_cast<double>(NPX) * (sizeof(float) + sizeof(uint8_t));
+    std::printf("D. CONTEXT CHECK -- same traffic kernel after heavy work\n");
+    printSpread("detector traffic shape (late)", allMs(7, detectTrafficKernel), bytes);
+    std::printf("\n");
     std::fflush(stdout);
 }
 
@@ -734,12 +948,14 @@ int main(int argc, char** argv) {
     bool quick = false, profileOnly = false, timeOnly = false, fnOnly = false;
     bool decomposeOnly = false;
     bool sigmaOnly = false;
+    bool boundsOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
         if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
         if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
+        if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -750,6 +966,13 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (boundsOnly) {
+        bounds();
+        boundsContextCheck();
         xpe_preprocess_shutdown();
         return 0;
     }
