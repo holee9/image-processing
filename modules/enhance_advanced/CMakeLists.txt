@@ -127,6 +127,10 @@ if(BUILD_TESTS)
         # The two used to share one include guard, so this combination silently
         # lost declarations; this file fails to compile if that returns.
         tests/test_header_guards.cpp
+        # #142 (QA-B-52): short-dataSize probe with a guard page. Runs the real
+        # exports against a buffer that faults past dataSize, so an over-read is
+        # observed rather than reasoned about.
+        tests/test_datasize_overread.cpp
     )
 
     # Link against Google Test and the module

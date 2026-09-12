@@ -52,6 +52,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gsvg_edge_cases.cpp
         tests/test_gsvg_extended_coverage.cpp
         tests/test_gsvg_abi_smoke.cpp
+        # #142 (QA-B-52): guard-page probe for short src / gainMap buffers.
+        tests/test_datasize_overread.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE
