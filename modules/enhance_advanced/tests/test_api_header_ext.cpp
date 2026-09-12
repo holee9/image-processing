@@ -96,7 +96,7 @@ TEST(ApiHeaderTest, AllFunctionSignaturesDeclared) {
     FnMultiscaleProcess pMfp = &xpe_multiscale_process;
     FnFractionalProcess pFrac = &xpe_fractional_process;
     FnDetectCollimation pCol = &xpe_detect_collimation;
-    FnCalcExposureIndex pEI = &xpe_calc_exposure_index;
+    FnCalcExposureIndex pEI = &xpe_adv_calc_exposure_index;
 
     // Suppress unused warnings
     (void)pInit;

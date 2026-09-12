@@ -158,7 +158,7 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexRejectsNullPixelData) {
     img.dataSize = 0;
     XpeImageMetadata meta = MakeMeta();
     float ei = 0.0f, di = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
 }
 
 // REQ-ADV-032: outputs stay finite even when the exposure inputs are not.
@@ -169,7 +169,7 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexNonFiniteTechniqueFactorsStayFini
         MakeMeta("CHEST", std::numeric_limits<float>::quiet_NaN(),
                  std::numeric_limits<float>::quiet_NaN());
     float ei = 0.0f, di = 0.0f;
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
     EXPECT_TRUE(std::isfinite(ei));
     EXPECT_TRUE(std::isfinite(di));
 }
@@ -180,7 +180,7 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexAllNonFinitePixelsStayFinite) {
         MakeImage(32, 32, storage, std::numeric_limits<float>::quiet_NaN());
     XpeImageMetadata meta = MakeMeta();
     float ei = 0.0f, di = 0.0f;
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
     EXPECT_TRUE(std::isfinite(ei));
     EXPECT_TRUE(std::isfinite(di));
 }
@@ -190,7 +190,7 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexZeroSignalStaysFinite) {
     XpeImageBuffer img = MakeImage(32, 32, storage, 0.0f);
     XpeImageMetadata meta = MakeMeta();
     float ei = 0.0f, di = 0.0f;
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
     EXPECT_TRUE(std::isfinite(ei));
     EXPECT_TRUE(std::isfinite(di));
 }
@@ -321,7 +321,7 @@ TEST_F(EnhanceAdvancedConfigTest, ExposureIndexRejectsShortBuffer) {
     XpeImageBuffer img = MakeShortBuffer(storage);
     XpeImageMetadata meta = MakeMeta();
     float ei = 0.0f, di = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
 }
 
 // dataSize == 0 stays accepted (legacy callers do not populate the field).

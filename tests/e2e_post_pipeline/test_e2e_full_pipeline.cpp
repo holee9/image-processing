@@ -137,6 +137,13 @@ static XpeErrorCode run_pipeline(uint32_t width, uint32_t height, int64_t& total
     auto t0 = std::chrono::high_resolution_clock::now();
 
     // STAGE 1: Exposure Index (Enhance Basic)
+    //
+    // #153: this translation unit includes BOTH enhance headers (lines 21-22).
+    // Until the rename, both declared xpe_calc_exposure_index with the same
+    // signature, so this call compiled and linked against whichever DLL the
+    // linker reached first -- basic, as it turned out, but nothing here said so.
+    // The name now carries the module, so the line states which implementation
+    // the pipeline uses instead of leaving it to link order.
     XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &outEI, &outDI);
     if (err != XPE_OK) { xpe_gsvg_shutdown(gsvg_handle); free_img(img); return err; }
 
@@ -203,6 +210,62 @@ static XpeErrorCode run_pipeline(uint32_t width, uint32_t height, int64_t& total
 }
 
 }  // anonymous namespace
+
+// ---------------------------------------------------------------------------
+// #153 (QA-B-55): the collision guard lives HERE because this is the one
+// translation unit that includes both enhance headers (lines 21-22).
+//
+// Before the rename both headers declared xpe_calc_exposure_index with the same
+// signature. That is not a redeclaration error in C++ -- the compiler accepted
+// it, the linker bound one of the two DLLs, and no diagnostic appeared anywhere.
+// QA-B-54 measured what was behind that silence: the two implementations return
+// EI 200 and EI 100000 for the same uniform input.
+//
+// What this guard does and does NOT catch was measured, not assumed. The first
+// version of this comment claimed a re-collision would stop this file
+// compiling. It does not: re-declaring the same name with the same signature in
+// the second header is a legal REDECLARATION, and putting it back left the
+// build green (BUILD=0, _falsify_header.log). C++ gives no diagnostic for two
+// headers agreeing on a name -- which is precisely why the collision went
+// unnoticed for as long as it did.
+//
+// So the guards divide like this:
+//   - a re-EXPORT from the advanced DLL is caught by
+//     test_duplicate_export.cpp, which asks each DLL for the other's name
+//     (measured: it fires, _falsify.log);
+//   - this test's contribution is that the pipeline names the implementation it
+//     uses at the call site, and that both remain callable and distinct from a
+//     unit that sees both headers.
+// ---------------------------------------------------------------------------
+TEST(FullPipelineE2E, BothExposureIndexExportsAreCallableAndDisagree) {
+    constexpr uint32_t kW = 64, kH = 64;
+    std::vector<float> pixels(static_cast<size_t>(kW) * kH, 1000.0f);
+
+    XpeImageBuffer img{};
+    img.width         = kW;
+    img.height        = kH;
+    img.format        = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = 32;
+    img.bitsStored    = 32;
+    img.data          = pixels.data();
+    img.dataSize      = static_cast<uint32_t>(pixels.size() * sizeof(float));
+
+    XpeImageMetadata meta{};
+
+    float eiBasic = 0.0f, diBasic = 0.0f;
+    ASSERT_EQ(XPE_OK, xpe_calc_exposure_index(&img, &meta, &eiBasic, &diBasic));
+
+    ASSERT_EQ(XPE_OK, xpe_enhance_advanced_init(nullptr));
+    float eiAdv = 0.0f, diAdv = 0.0f;
+    ASSERT_EQ(XPE_OK, xpe_adv_calc_exposure_index(&img, &meta, &eiAdv, &diAdv));
+    xpe_enhance_advanced_shutdown();
+
+    // The disagreement is recorded, not resolved -- see QA-B-54 / #153. Which of
+    // the two satisfies REQ-ENH-030 versus REQ-ADV-013 is a separate question.
+    EXPECT_NE(eiBasic, eiAdv)
+        << "the two exposure-index implementations now AGREE; the divergence "
+           "#153 recorded has been resolved, so say how and retire this case";
+}
 
 TEST(FullPipelineE2E, PostProcess_3072x3072_Within3000ms) {
     constexpr uint32_t kWidth = 3072;

@@ -30,7 +30,7 @@ const void* const kDeclared[] = {
     reinterpret_cast<const void*>(&xpe_multiscale_process),
     reinterpret_cast<const void*>(&xpe_fractional_process),
     reinterpret_cast<const void*>(&xpe_detect_collimation),
-    reinterpret_cast<const void*>(&xpe_calc_exposure_index),
+    reinterpret_cast<const void*>(&xpe_adv_calc_exposure_index),
 };
 
 }  // namespace

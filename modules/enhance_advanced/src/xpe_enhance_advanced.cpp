@@ -84,7 +84,7 @@ XPE_API const char* xpe_enhance_advanced_version(void) {
  * Exposure Index Calculation (SWU-2.10, REQ-ADV-013)
  * ============================================================================ */
 
-XPE_API XpeErrorCode xpe_calc_exposure_index(
+XPE_API XpeErrorCode xpe_adv_calc_exposure_index(
     const XpeImageBuffer* img,
     const XpeImageMetadata* meta,
     float* eiOut,
