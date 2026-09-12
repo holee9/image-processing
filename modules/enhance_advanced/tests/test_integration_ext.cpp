@@ -126,7 +126,7 @@ TEST_F(IntegrationPipelineTest, FullPipelineWithCollimationAndEI) {
 
     // Stage 4: Exposure index calculation (non-destructive read)
     float ei = 0.0f, di = 0.0f;
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
 
     // Verify outputs
     EXPECT_TRUE(std::isfinite(ei));
@@ -171,7 +171,7 @@ TEST_F(IntegrationPipelineTest, FunctionsCanBeCalledIndependently) {
         XpeImageBuffer img = MakeConstantImage(W, H, 500.0f);
         XpeImageMetadata meta = MakeMeta("CHEST");
         float ei = 0.0f, di = 0.0f;
-        EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+        EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
         FreeImageBuffer(img);
     }
 }
@@ -193,7 +193,7 @@ TEST_F(IntegrationPipelineTest, ExceptionBoundaryNoCrash) {
     EXPECT_NO_FATAL_FAILURE(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr));
 
     float ei = 0.0f, di = 0.0f;
-    EXPECT_NO_FATAL_FAILURE(xpe_calc_exposure_index(&img, &meta, &ei, &di));
+    EXPECT_NO_FATAL_FAILURE(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di));
 
     FreeImageBuffer(img);
 }
@@ -213,7 +213,7 @@ TEST_F(IntegrationPipelineTest, MultiplePipelinesStable) {
         ASSERT_EQ(xpe_fractional_process(&img, 0.5f, nullptr), XPE_OK);
 
         float ei = 0.0f, di = 0.0f;
-        ASSERT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+        ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
         EXPECT_TRUE(std::isfinite(ei));
 
         FreeImageBuffer(img);

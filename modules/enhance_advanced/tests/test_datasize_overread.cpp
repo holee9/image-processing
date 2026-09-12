@@ -140,11 +140,11 @@ TEST(EnhanceAdvancedDataSizeProbe, ShortDataSizeIsRejectedWithoutOverreading) {
                 return xpe_detect_collimation(im, &a, &b, &c, &d, nullptr);
             });
         }},
-        {"xpe_calc_exposure_index", [](XpeImageBuffer* im) {
+        {"xpe_adv_calc_exposure_index", [](XpeImageBuffer* im) {
             return RunProbe([im] {
                 XpeImageMetadata meta{};
                 float ei = 0.0f, di = 0.0f;
-                return xpe_calc_exposure_index(im, &meta, &ei, &di);
+                return xpe_adv_calc_exposure_index(im, &meta, &ei, &di);
             });
         }},
     };

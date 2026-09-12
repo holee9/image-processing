@@ -1,40 +1,36 @@
-// #142 (QA-B-54): two DLLs export xpe_calc_exposure_index, and a caller that
-// links both cannot tell which one it reached.
+// #153 (QA-B-55): the two exposure-index implementations, after the rename.
 //
-// api-spec §4 says the symbol "moved to enhance_basic" / "moved from
-// enhance_advanced". It did not move: xpe_enhance_basic.dll and
-// xpe_enhance_advanced.dll both export it (dumpbin, QA-B-54), with signatures
-// that differ only in parameter names, so a translation unit including both
-// headers -- tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp does exactly
-// that -- compiles, links, and calls ONE of them. Which one is decided by link
-// order, and nothing in the source says which.
+// QA-B-54 measured this: xpe_enhance_basic.dll and xpe_enhance_advanced.dll
+// both exported xpe_calc_exposure_index, with identical signatures and
+// different answers -- EI 200 against EI 100000 for one uniform input, a factor
+// of 500. A translation unit that includes both headers (there is one:
+// tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp) compiled, linked, and
+// called ONE of them, chosen by link order, with no diagnostic anywhere.
 //
-// Measured: that binary imports the symbol from xpe_enhance_basic.dll
-// (dumpbin /imports, _imports.log). So enhance_advanced's copy is unreachable
-// there -- not by design, by link order.
+// The advanced export is now xpe_adv_calc_exposure_index (#153). basic is
+// untouched, because the C# side binds xpe_calc_exposure_index by name and all
+// of those bindings mean basic.
 //
-// This test does not argue about which should win. It asks the question the
-// documentation answers wrongly and the linker answers silently: DO THE TWO
-// IMPLEMENTATIONS AGREE? Each DLL is opened by name, so both are reached in one
-// process and the link-order question is bypassed entirely.
+// Two things are asserted here, and they are different claims:
 //
-// THEY DO NOT AGREE. For one uniform input, with both modules properly
-// initialised:
+//   1. THE COLLISION IS GONE. Neither DLL exports the other's name. This is the
+//      regression guard, and it is the ONLY one that fires: measured by
+//      re-adding the old name as an exported alias, this test failed while the
+//      build stayed green (BUILD=0, QA-B-55 _falsify.log). Nothing in the
+//      compiler catches a re-collision -- two headers declaring one name with
+//      one signature is a legal redeclaration, which is how the original
+//      collision survived unnoticed.
+//   2. THE TWO IMPLEMENTATIONS STILL DISAGREE. Renaming made the choice
+//      visible; it did not make the answers equal. Which of the two satisfies
+//      REQ-ENH-030 / REQ-ADV-013 is a separate question this card does not
+//      answer, so the disagreement stays recorded rather than resolved.
 //
-//     xpe_enhance_basic.dll     rc=0  EI=200     DI=0
-//     xpe_enhance_advanced.dll  rc=0  EI=100000  DI=26.0206
+// The assertion is on the DISAGREEMENT rather than on the two values, because
+// the values are algorithm constants that may legitimately move -- what must
+// not move quietly is the fact that the two answers differ.
 //
-// Same symbol, same signature, different clinical numbers -- and which one a
-// caller gets is decided by link order. They also differ in PRECONDITION: the
-// advanced copy returns XPE_ERR_NOT_INITIALIZED until xpe_enhance_advanced_init
-// has run, the basic copy has no such requirement.
-//
-// Nothing is fixed here: removing an export, or reconciling two algorithms, is
-// an API decision and belongs to a decision, not to a test. KnownDivergence_
-// records today's state so the decision shows up as a change. The assertion is
-// on the DISAGREEMENT rather than on the two values, because the values are
-// algorithm constants that may legitimately move -- what must not move quietly
-// is the fact that the two answers differ.
+// Each DLL is opened by name, so both are reached in one process and link order
+// plays no part in what this test observes.
 
 #include <gtest/gtest.h>
 
@@ -58,35 +54,45 @@ using CalcEiFn = XpeErrorCode (*)(const XpeImageBuffer*, const XpeImageMetadata*
 using InitFn   = XpeErrorCode (*)(const char*);
 using ShutFn   = void (*)(void);
 
+constexpr const char* kBasicSymbol = "xpe_calc_exposure_index";
+constexpr const char* kAdvSymbol   = "xpe_adv_calc_exposure_index";
+
 struct LoadedFn {
     HMODULE  mod = nullptr;
     CalcEiFn fn  = nullptr;
 };
 
-LoadedFn Load(const char* dll) {
+LoadedFn Load(const char* dll, const char* symbol) {
     LoadedFn r;
     r.mod = LoadLibraryA(dll);
     if (r.mod == nullptr) return r;
     r.fn = reinterpret_cast<CalcEiFn>(
-        reinterpret_cast<void*>(GetProcAddress(r.mod, "xpe_calc_exposure_index")));
+        reinterpret_cast<void*>(GetProcAddress(r.mod, symbol)));
     return r;
 }
 
 }  // namespace
 
-TEST(DuplicateExportTest, KnownDivergence_CalcExposureIndexDiffersBetweenTwoDlls) {
-    LoadedFn basic = Load("xpe_enhance_basic.dll");
-    LoadedFn adv   = Load("xpe_enhance_advanced.dll");
+TEST(DuplicateExportTest, KnownDivergence_RenamedExportsStillDisagree) {
+    LoadedFn basic = Load("xpe_enhance_basic.dll", kBasicSymbol);
+    LoadedFn adv   = Load("xpe_enhance_advanced.dll", kAdvSymbol);
 
     ASSERT_NE(nullptr, basic.mod) << "xpe_enhance_basic.dll did not load";
     ASSERT_NE(nullptr, adv.mod)   << "xpe_enhance_advanced.dll did not load";
 
-    // The claim under test is that BOTH export it. If either lookup fails, the
-    // symbol really did move and api-spec §4 is right after all -- say so.
-    ASSERT_NE(nullptr, basic.fn) << "xpe_enhance_basic.dll does not export it";
-    ASSERT_NE(nullptr, adv.fn)
-        << "xpe_enhance_advanced.dll does not export it -- the symbol DID move "
-           "and the QA-B-54 finding needs revisiting";
+    ASSERT_NE(nullptr, basic.fn) << "xpe_enhance_basic.dll does not export "
+                                 << kBasicSymbol;
+    ASSERT_NE(nullptr, adv.fn)   << "xpe_enhance_advanced.dll does not export "
+                                 << kAdvSymbol;
+
+    // Claim 1: the collision is gone. Neither DLL answers to the other's name.
+    EXPECT_EQ(nullptr, GetProcAddress(adv.mod, kBasicSymbol))
+        << "xpe_enhance_advanced.dll exports " << kBasicSymbol << " again -- the "
+           "#153 collision is back, and a C++ caller that includes both headers "
+           "once more gets whichever the linker picked, silently";
+    EXPECT_EQ(nullptr, GetProcAddress(basic.mod, kAdvSymbol))
+        << "xpe_enhance_basic.dll exports " << kAdvSymbol << ", which would make "
+           "the new name ambiguous in its turn";
 
     EXPECT_NE(basic.fn, adv.fn)
         << "both handles resolved to the same address, so the two DLLs are not "

@@ -161,11 +161,25 @@ XPE_API XpeErrorCode xpe_detect_collimation(
 /**
  * Calculate IEC 62494-1 Exposure Index (EI) and Deviation Index (DI)
  *
- * NOTE: this symbol has the same name as xpe_calc_exposure_index() exported by
- * xpe_enhance_basic. They are separate implementations in separate DLLs with
- * different contracts -- this one requires the module to be initialized, the
- * enhance_basic one does not. A consumer loading both must resolve explicitly
- * rather than by name alone.
+ * RENAMED 2026-09-12 (#153). This entry point was called
+ * xpe_calc_exposure_index, the same name xpe_enhance_basic exports. The note
+ * that used to stand here said the two were separate implementations with
+ * different contracts and that a consumer loading both had to resolve
+ * explicitly. That was accurate and it did not help: with one name there was
+ * nothing for a C++ caller to resolve BETWEEN. A translation unit including
+ * both headers compiled, linked and called whichever the linker picked, with no
+ * diagnostic (tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp is such a
+ * unit). QA-B-54 measured the cost: the two return EI 200 and EI 100000 for the
+ * same uniform input -- a factor of 500 decided by link order.
+ *
+ * The basic export kept its name because the C# bindings and the GUI
+ * RequiredExports list name xpe_calc_exposure_index and all of them mean basic;
+ * renaming there would have broken working consumers to fix a C++ hazard.
+ *
+ * The two implementations still DISAGREE -- the rename made the choice visible,
+ * not the answers equal. Which one satisfies REQ-ENH-030 versus REQ-ADV-013 is
+ * a separate question; until it is settled, call the one you mean by name.
+ * This one requires xpe_enhance_advanced_init(); the enhance_basic one does not.
  *
  * @param img Input detector-domain image buffer (FLOAT32 format required).
  *            NULL, NULL data, zero dimensions, or a dataSize inconsistent with
@@ -184,7 +198,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
  * REQ-ADV-013: Exposure index calculation
  * AC-EI-001~AC-EI-004: Exposure index acceptance criteria
  */
-XPE_API XpeErrorCode xpe_calc_exposure_index(
+XPE_API XpeErrorCode xpe_adv_calc_exposure_index(
     const XpeImageBuffer* img,
     const XpeImageMetadata* meta,
     float* eiOut,

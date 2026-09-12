@@ -103,7 +103,7 @@ TEST_F(EnhanceAdvancedLifecycleTest, ProcessingBeforeInit) {
     EXPECT_EQ(xpe_multiscale_process(&img, &meta, NULL), XPE_ERR_NOT_INITIALIZED);
     EXPECT_EQ(xpe_fractional_process(&img, 1.0f, NULL), XPE_ERR_NOT_INITIALIZED);
     EXPECT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, NULL), XPE_ERR_NOT_INITIALIZED);
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_NOT_INITIALIZED);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_NOT_INITIALIZED);
 }
 
 /**

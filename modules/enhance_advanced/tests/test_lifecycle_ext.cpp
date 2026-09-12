@@ -141,7 +141,7 @@ TEST_F(NotInitializedGuardTest, CalcExposureIndexReturnsNotInitialized) {
     XpeImageBuffer img{};
     XpeImageMetadata meta{};
     float ei = 0.0f, di = 0.0f;
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     EXPECT_EQ(err, XPE_ERR_NOT_INITIALIZED);
 }
 

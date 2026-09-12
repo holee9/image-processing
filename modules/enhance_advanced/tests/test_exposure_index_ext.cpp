@@ -2,7 +2,7 @@
  * @file test_exposure_index.cpp
  * @brief Google Test suite for SWU-2.10: Exposure Index Calculation
  *
- * Tests the xpe_calc_exposure_index() C ABI function covering:
+ * Tests the xpe_adv_calc_exposure_index() C ABI function covering:
  *   - IEC 62494-1 EI/DI formula correctness (REQ-ADV-013)
  *   - Body-part EI target lookup
  *   - NULL pointer guards (REQ-ADV-022)
@@ -89,13 +89,13 @@ protected:
 TEST_F(ExposureIndexExtTest, NullImageReturnsInvalidInput) {
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f, di = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(nullptr, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(nullptr, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
 }
 
 TEST_F(ExposureIndexExtTest, NullMetaReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     float ei = 0.0f, di = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(&img, nullptr, &ei, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, nullptr, &ei, &di), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
@@ -103,7 +103,7 @@ TEST_F(ExposureIndexExtTest, NullEiOutReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     float di = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, nullptr, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, nullptr, &di), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
@@ -111,7 +111,7 @@ TEST_F(ExposureIndexExtTest, NullDiOutReturnsInvalidInput) {
     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f;
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, nullptr), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, nullptr), XPE_ERR_INVALID_INPUT);
     FreeImageBuffer(img);
 }
 
@@ -124,7 +124,7 @@ TEST_F(ExposureIndexExtTest, ValidInputReturnsPositiveEI) {
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
 
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     ASSERT_EQ(err, XPE_OK);
 
     // EI must be finite and positive
@@ -149,7 +149,7 @@ TEST_F(ExposureIndexExtTest, DifferentBodyPartsProduceFiniteResults) {
         XpeImageMetadata meta = MakeMeta(bp, 80.0f, 10.0f);
         float ei = 0.0f, di = 0.0f;
 
-        XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+        XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
         ASSERT_EQ(err, XPE_OK) << "Failed for body part: " << bp;
         EXPECT_TRUE(std::isfinite(ei)) << "EI not finite for " << bp;
         EXPECT_TRUE(std::isfinite(di)) << "DI not finite for " << bp;
@@ -168,8 +168,8 @@ TEST_F(ExposureIndexExtTest, ChestLatVsChestPA) {
     float eiPA = 0.0f, diPA = 0.0f;
     float eiLAT = 0.0f, diLAT = 0.0f;
 
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &metaPA, &eiPA, &diPA), XPE_OK);
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &metaLAT, &eiLAT, &diLAT), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &metaPA, &eiPA, &diPA), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &metaLAT, &eiLAT, &diLAT), XPE_OK);
 
     // EI should be the same (same image, same gain)
     EXPECT_FLOAT_EQ(eiPA, eiLAT);
@@ -197,7 +197,7 @@ TEST_F(ExposureIndexExtTest, Uint16FormatReturnsUnsupportedFormat) {
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f, di = 0.0f;
 
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_UNSUPPORTED_FORMAT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_UNSUPPORTED_FORMAT);
     delete[] static_cast<uint16_t*>(img.data);
 }
 
@@ -214,7 +214,7 @@ TEST_F(ExposureIndexExtTest, ZeroDimensionReturnsInvalidInput) {
     XpeImageMetadata meta = MakeMeta("CHEST");
     float ei = 0.0f, di = 0.0f;
 
-    EXPECT_EQ(xpe_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_ERR_INVALID_INPUT);
 }
 
 // ============================================================================
@@ -226,7 +226,7 @@ TEST_F(ExposureIndexExtTest, ZeroImageProducesFiniteOutput) {
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
 
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     if (err == XPE_OK) {
         EXPECT_TRUE(std::isfinite(ei)) << "EI not finite from zero image";
         EXPECT_TRUE(std::isfinite(di)) << "DI not finite from zero image";
@@ -239,7 +239,7 @@ TEST_F(ExposureIndexExtTest, ZeroKvpMasProducesFiniteOutput) {
     XpeImageMetadata meta = MakeMeta("CHEST", 0.0f, 0.0f);
     float ei = 0.0f, di = 0.0f;
 
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     if (err == XPE_OK) {
         EXPECT_TRUE(std::isfinite(ei)) << "EI not finite for zero exposure";
         EXPECT_TRUE(std::isfinite(di)) << "DI not finite for zero exposure";
@@ -255,7 +255,7 @@ TEST_F(ExposureIndexExtTest, ImageWithNaNPixelsProducesFiniteOutput) {
     XpeImageMetadata meta = MakeMeta("CHEST", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
 
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     if (err == XPE_OK) {
         EXPECT_TRUE(std::isfinite(ei)) << "NaN propagated to EI";
         EXPECT_TRUE(std::isfinite(di)) << "NaN propagated to DI";
@@ -275,8 +275,8 @@ TEST_F(ExposureIndexExtTest, HigherMeanProducesHigherEI) {
     float eiLow = 0.0f, diLow = 0.0f;
     float eiHigh = 0.0f, diHigh = 0.0f;
 
-    ASSERT_EQ(xpe_calc_exposure_index(&imgLow, &meta, &eiLow, &diLow), XPE_OK);
-    ASSERT_EQ(xpe_calc_exposure_index(&imgHigh, &meta, &eiHigh, &diHigh), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&imgLow, &meta, &eiLow, &diLow), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&imgHigh, &meta, &eiHigh, &diHigh), XPE_OK);
 
     EXPECT_GT(eiHigh, eiLow) << "Higher mean should produce higher EI";
 
@@ -292,8 +292,8 @@ TEST_F(ExposureIndexExtTest, HigherKvpProducesHigherEI) {
     float eiLow = 0.0f, diLow = 0.0f;
     float eiHigh = 0.0f, diHigh = 0.0f;
 
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &metaLow, &eiLow, &diLow), XPE_OK);
-    ASSERT_EQ(xpe_calc_exposure_index(&img, &metaHigh, &eiHigh, &diHigh), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &metaLow, &eiLow, &diLow), XPE_OK);
+    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &metaHigh, &eiHigh, &diHigh), XPE_OK);
 
     // Higher kVp -> higher gain -> higher EI (for same image)
     EXPECT_GT(eiHigh, eiLow) << "Higher kVp should produce higher EI";
@@ -310,7 +310,7 @@ TEST_F(ExposureIndexExtTest, UnknownBodyPartUsesDefault) {
     XpeImageMetadata meta = MakeMeta("UNKNOWN_BODY_PART", 80.0f, 10.0f);
     float ei = 0.0f, di = 0.0f;
 
-    XpeErrorCode err = xpe_calc_exposure_index(&img, &meta, &ei, &di);
+    XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
     ASSERT_EQ(err, XPE_OK);
     EXPECT_TRUE(std::isfinite(ei));
     EXPECT_TRUE(std::isfinite(di));
