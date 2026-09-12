@@ -207,7 +207,22 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > **How the new numbers were chosen.** The regression gate is the current measured value (732.1 ms, QA-A-55) plus ~10%, so a regression fails while ordinary run-to-run variance does not — measured context-dependent spread is 17-23% between a tight loop and a long program (QA-A-55, QA-A-56), which is why the gate sits on the slower context. The improvement target is ~2.2x the 27.1 ms AVX2 lower bound, leaving room for neighbour gather (excluded from that bound), map stores, and that same spread.
 >
-> **Single thread is assumed.** This CPU has 12 cores and the detection is per-pixel independent, so splitting it would cut the pixel loop roughly 8-10x and 35 ms would be reachable without an algorithm change. Whether cores may be spent here — rather than on other pipeline stages — is a product decision that is not recorded anywhere in this SPEC. Until it is, these numbers are single-thread numbers. **If a threading policy is added, revisit this budget first.**
+> **Threading policy (decided 2026-09-12, user).** The **caller** specifies how many threads the detection may use; the **default is 1**, so current behaviour is unchanged. The module does not read hardware concurrency and does not choose for itself: the caller owns the whole pipeline and knows what the other stages need, this module does not. REQ-P1A-003 (re-entrancy) is unaffected, and a deployment CPU smaller than this one cannot surprise the module.
+>
+> **Consequence for this budget: the numbers above stay single-thread numbers**, because the default is 1. A caller passing N threads is measured separately, against the table below.
+>
+> **Measured, this machine (QA-A-58, probe without a thread pool — conservative):**
+>
+> | Threads | Pixel loop | Global sigma | Sum | vs 60 ms target |
+> |---|---|---|---|---|
+> | 1 | 534 ms | 143 ms | 677 ms | 11.3x |
+> | 8 | 125 ms | 29 ms | 154 ms | 2.6x |
+> | 12 | 86 ms | 26 ms | 112 ms | 1.9x |
+> | 20 | 60 ms | 26 ms | **86.5 ms** | **1.44x** |
+>
+> Global sigma **saturates at 12 threads** — the per-thread merge cost grows with T, so 20 threads does not improve it. **Threading alone does not reach 60 ms**; the remaining 1.44x needs the algorithm change, not more cores.
+>
+> **The gate is calibrated on the wrong machine (open, #144).** 810 ms came from this development machine only. The first CI run to execute it measured **1340.9 ms** on the CI runner for the same commit — **1.91x slower than local** (samples 1360.9 / 1363.3 / 1340.9, spread 1.7%, so this is the machine and not noise), and the 1024x1024 gate likewise measured 148.2 ms against its 120 ms. Until the gate is made machine-aware or recalibrated on the runner, **a green local gate is not evidence the gate passes**, and the CI failure is not evidence of a regression.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)

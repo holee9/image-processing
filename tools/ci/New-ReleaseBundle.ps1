@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)]
     [string]$OutDir
 )
@@ -30,7 +30,6 @@ $bundlePaths = @(
     '.github/issue-drafts',
     '.github/dependabot.yml',
     '.github/workflows',
-    'tests/common_smoke',
     'tools/ci'
 )
 

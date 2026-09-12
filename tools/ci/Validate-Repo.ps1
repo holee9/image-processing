@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -34,9 +34,6 @@ $requiredPaths = @(
     'modules/common/include/xpe/common/xpe_types.h',
     'modules/common/src/xpe_common.cpp',
     'modules/common/src/xpe_memory.cpp',
-    'tests/CMakeLists.txt',
-    'tests/common_smoke/CMakeLists.txt',
-    'tests/common_smoke/test_common_smoke.cpp',
     'third_party/vcpkg.json',
     'third_party/common/vcpkg.json',
     'docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md',
