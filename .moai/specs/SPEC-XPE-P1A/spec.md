@@ -192,7 +192,22 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
-- **Performance**: < 35ms for 3072x3072 UINT16 frame (scalar); < 12ms (AVX2, sorting network for median-of-9)
+- **Performance** (redefined 2026-09-12, #144 — see the note below): regression gate **<= 810 ms** and improvement target **<= 60 ms (AVX2, single thread)** for a 3072x3072 FLOAT32 frame. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+
+> **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
+>
+> | Old target | Measured lower bound | Ratio |
+> |---|---|---|
+> | 35 ms, scalar | **260.3 ms** (19-CE network only, neighbour gather excluded) | 7.4x over |
+> | 12 ms, AVX2 | **15.97 ms** (same network, AVX2, gather excluded) + 11.1 ms global sigma = **27.1 ms** | 2.3x over |
+>
+> Memory is not the constraint (1.16 ms at a measured 40.7 GB/s); the bound is arithmetic.
+>
+> **The old line also did not describe this algorithm.** It named **median-of-9** and a **UINT16** frame, while REQ-P1A-013 specifies a 3x3 neighbourhood **excluding the centre** (8 values, QA-A-42) and the detection path runs on FLOAT32 — twice the memory traffic. The figures were carried from `research.md` ("Pixel-accuracy targets for REQ-P1A-013"), where they appear **with no cited source**; no frame-rate or clinical constraint anywhere in this SPEC derives them.
+>
+> **How the new numbers were chosen.** The regression gate is the current measured value (732.1 ms, QA-A-55) plus ~10%, so a regression fails while ordinary run-to-run variance does not — measured context-dependent spread is 17-23% between a tight loop and a long program (QA-A-55, QA-A-56), which is why the gate sits on the slower context. The improvement target is ~2.2x the 27.1 ms AVX2 lower bound, leaving room for neighbour gather (excluded from that bound), map stores, and that same spread.
+>
+> **Single thread is assumed.** This CPU has 12 cores and the detection is per-pixel independent, so splitting it would cut the pixel loop roughly 8-10x and 35 ms would be reachable without an algorithm change. Whether cores may be spent here — rather than on other pipeline stages — is a product decision that is not recorded anywhere in this SPEC. Until it is, these numbers are single-thread numbers. **If a threading policy is added, revisit this budget first.**
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
