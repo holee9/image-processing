@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Exceptions;
 using FlaUI.UIA3;
 using Xunit;
 
@@ -113,9 +114,79 @@ public class ApplicationFixture : IDisposable
         }
 
         _application = Application.Launch(startInfo);
-        MainWindow = _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30));
+        MainWindow = WithReadableProperties(
+            _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30)));
         ExecutablePath = exePath;
     }
+
+    /// <summary>
+    /// Returns a window element whose WPF properties are readable, re-locating it if the one we were
+    /// handed is the Win32 shell of the same HWND.
+    ///
+    /// <para>GUI-C-50 measured this rather than guessing. Across 60 launches, 3 produced a window on
+    /// which <c>AutomationId</c> threw <c>PropertyNotSupportedException [#30011]</c> — the failure
+    /// that took down <c>S01_Launch_HasMainWindow</c> intermittently since GUI-C-46. In every one of
+    /// the three the element reported <c>framework=Win32</c> (not WPF) while <c>Title</c>,
+    /// <c>Name</c> and <c>ClassName</c> read fine, so the suite held the generic Win32 provider for
+    /// the HWND rather than the WPF provider that owns the automation ids.</para>
+    ///
+    /// <para><b>Why not a wait.</b> Retrying the SAME element is useless: the probe hammered it for
+    /// 10 seconds — 114 248, 121 978 and 126 861 attempts in the three cases — and it never became
+    /// readable. A sleep would have slowed every run and left the intermittent in place. Re-locating
+    /// the window, on the other hand, returned <c>AutomationId='MainWindow'</c> immediately in all
+    /// three. The element does not ripen; it has to be replaced.</para>
+    ///
+    /// <para>The bound is two seconds, not a number chosen for comfort: the replacement succeeded on
+    /// the first re-location in every observed case, so this only has to survive a slow desktop
+    /// enumeration. A failure to replace leaves the original element in place, so the scenario still
+    /// reports the property exception rather than a fixture error that hides it.</para>
+    /// </summary>
+    private Window WithReadableProperties(Window window)
+    {
+        if (CanReadAutomationId(window)) return window;
+
+        var processId = window.Properties.ProcessId.ValueOrDefault;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            var fresh = Automation.GetDesktop()
+                .FindFirstChild(cf => cf.ByProcessId(processId))?.AsWindow();
+
+            if (fresh is not null && CanReadAutomationId(fresh))
+            {
+                ReacquiredNote =
+                    $"The launched window did not support AutomationId (framework=" +
+                    $"{SafeFramework(window)}); re-located it by process id {processId}.";
+                return fresh;
+            }
+        }
+
+        return window;
+    }
+
+    /// <summary>True when the element answers the property the scenarios read first.</summary>
+    private static bool CanReadAutomationId(Window window)
+    {
+        try
+        {
+            _ = window.AutomationId;
+            return true;
+        }
+        catch (PropertyNotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    private static string SafeFramework(Window window)
+    {
+        try { return window.FrameworkType.ToString(); }
+        catch (Exception) { return "unknown"; }
+    }
+
+    /// <summary>Non-empty when the window had to be re-located; scenarios report it.</summary>
+    public string ReacquiredNote { get; private set; } = string.Empty;
 
     /// <summary>Environment variable selecting which backend the suite exercises.</summary>
     public const string BackendVariable = "XPE_E2E_BACKEND";
