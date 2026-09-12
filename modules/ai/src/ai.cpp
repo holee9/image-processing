@@ -211,6 +211,46 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
         state->fallbackMode.store(cfg["fallback_mode"].get<bool>(),
                                    std::memory_order_release);
     }
+
+    // #145 (QA-B-60): name the top-level keys this parser did not consume.
+    //
+    // Every key above is read conditionally, so a caller's typo -- or a key
+    // meant for another module -- lands in none of them and the call still
+    // returns XPE_OK. QA-B-59 measured the same silence in gsvg: the setting
+    // has no effect and nothing says so.
+    //
+    // RETURN CODE UNCHANGED. Rejecting an unknown key is a behaviour change and
+    // belongs to the #145 decision; this only makes the silence audible.
+    //
+    // A key that is present but of the WRONG TYPE is also unconsumed, and is
+    // reported for the same reason -- "timeout_ms": "500" is exactly the mistake
+    // this is for.
+    if (cfg.is_object()) {
+        static const char* const kKnownKeys[] = {
+            "execution_provider", "timeout_ms", "confidence_threshold", "fallback_mode"
+        };
+        for (auto it = cfg.begin(); it != cfg.end(); ++it) {
+            bool known = false;
+            for (const char* k : kKnownKeys) {
+                if (it.key() == k) { known = true; break; }
+            }
+            const bool consumed =
+                known &&
+                ((it.key() == "execution_provider"   && it.value().is_string()) ||
+                 (it.key() == "timeout_ms"           && it.value().is_number_integer()) ||
+                 (it.key() == "confidence_threshold" && it.value().is_number()) ||
+                 (it.key() == "fallback_mode"        && it.value().is_boolean()));
+            if (!consumed) {
+                char msg[192];
+                std::snprintf(msg, sizeof(msg),
+                              known
+                                  ? "ai config key '%s' has an unexpected type and was ignored"
+                                  : "ai config key '%s' is not read by this module and has no effect",
+                              it.key().c_str());
+                xpe_alert_push(msg, XPE_ALERT_WARNING);
+            }
+        }
+    }
 #else
     // Minimal config parsing without nlohmann/json.
     // Only parse "timeout_ms" for basic functionality.

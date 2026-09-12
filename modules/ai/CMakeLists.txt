@@ -228,6 +228,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_datasize_overread.cpp
         # #156 (QA-B-59): does each parameter reach the output
         test_parameter_dependency.cpp
+        # #145 (QA-B-60): unread config keys are named, valid configs stay quiet
+        test_config_warning.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
