@@ -56,6 +56,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_datasize_overread.cpp
         # #156 (QA-B-59): does each config flag reach the output
         tests/test_parameter_dependency.cpp
+        # #145 (QA-B-60): unread config keys are named, valid configs stay quiet
+        tests/test_config_warning.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE

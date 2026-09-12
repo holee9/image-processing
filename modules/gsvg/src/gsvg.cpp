@@ -22,6 +22,7 @@
  */
 
 #include "xpe/gsvg/gsvg_api.h"
+#include <cstdio>
 
 #include <algorithm>
 #include <cmath>
@@ -53,6 +54,89 @@ struct GsvgHandle {
  * @param defaultValue Value to return when key is absent or malformed.
  * @return Parsed boolean, or @p defaultValue.
  */
+// #145 (QA-B-60): report top-level config keys this parser does not consume.
+//
+// QA-B-59 measured the cost of staying quiet: a config naming only
+// `gridFrequency_lp_per_mm` and `virtual_grid_enabled` -- both of which the
+// documentation describes -- changes nothing and returns XPE_OK. The caller
+// believes the setting was applied. This module reads two boolean leaves and
+// nothing else, so anything a caller writes beyond those is a typo, a key meant
+// for a different module, or a feature the documentation promises and the code
+// does not have.
+//
+// The warning names the key. "Unknown key present" does not help someone find
+// `grid_supression`; "grid_supression" does.
+//
+// RETURN CODES ARE UNCHANGED. Rejecting an unknown key is a behaviour change and
+// a separate decision (#145); this only makes the silence audible.
+//
+// Scanning, not parsing: this module has no JSON library and gaining one for a
+// warning would be a dependency bought with a diagnostic. The scanner walks the
+// text tracking brace depth and quotes, and reports a name ONLY when it is at
+// depth 1 and followed by ':'. Every ambiguity resolves toward silence -- a
+// missed unknown key costs the warning that would have been nice to have, while
+// a false warning on a correct config trains the reader to ignore warnings, and
+// that costs the next real one.
+void warn_unconsumed_top_level_keys(const char* json,
+                                    const char* const* knownKeys,
+                                    size_t knownCount)
+{
+    if (json == nullptr) return;   // NULL config means defaults, not a mistake.
+
+    const std::string text(json);
+    size_t depth = 0;
+    bool   inString = false;
+    bool   escaped = false;
+    std::string current;
+    size_t currentStart = std::string::npos;
+
+    for (size_t i = 0; i < text.size(); ++i) {
+        const char c = text[i];
+
+        if (inString) {
+            if (escaped)           { escaped = false; current.push_back(c); continue; }
+            if (c == '\\')         { escaped = true;  continue; }
+            if (c == '"')          { inString = false; continue; }
+            current.push_back(c);
+            continue;
+        }
+
+        if (c == '"') {
+            inString = true;
+            current.clear();
+            currentStart = i;
+            continue;
+        }
+        if (c == '{' || c == '[') { ++depth; continue; }
+        if (c == '}' || c == ']') { if (depth > 0) --depth; continue; }
+
+        if (c == ':' && depth == 1 && currentStart != std::string::npos) {
+            bool known = false;
+            for (size_t k = 0; k < knownCount; ++k) {
+                if (current == knownKeys[k]) { known = true; break; }
+            }
+            if (!known && !current.empty()) {
+                char msg[192];
+                std::snprintf(msg, sizeof(msg),
+                              "gsvg config key '%s' is not read by this module and "
+                              "has no effect", current.c_str());
+                // The alert queue is the channel SRS-ALERT defines and the one
+                // a host already polls; this module does not otherwise log, so
+                // adding a logger for one diagnostic would buy a dependency with
+                // a warning.
+                xpe_alert_push(msg, XPE_ALERT_WARNING);
+            }
+            currentStart = std::string::npos;
+            continue;
+        }
+
+        // Any other non-space token means the last string was a value, not a key.
+        if (c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != ',') {
+            currentStart = std::string::npos;
+        }
+    }
+}
+
 bool json_get_bool(const char* json, const char* key, bool defaultValue)
 {
     if (!json || !key) return defaultValue;
@@ -189,6 +273,14 @@ XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull)
     // config is supplied. This aligns with DegradedMode expectations.
     h->vignette_enabled = json_get_bool(configJsonOrNull, "vignette_correction", false);
     h->grid_enabled     = json_get_bool(configJsonOrNull, "grid_suppression",    false);
+
+    // #145: the two keys above are the whole config surface. Anything else the
+    // caller wrote is reported by name rather than dropped in silence.
+    {
+        static const char* const kKnownKeys[] = { "vignette_correction", "grid_suppression" };
+        warn_unconsumed_top_level_keys(configJsonOrNull, kKnownKeys,
+                                       sizeof(kKnownKeys) / sizeof(kKnownKeys[0]));
+    }
 
     *handleOut = h;
     return XPE_OK;
