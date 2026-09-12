@@ -58,6 +58,7 @@ constexpr float    kSigma = 10.0f;
 using xpe::preprocess::internal::CollectNeighborValues;
 using xpe::preprocess::internal::ComputeMedian;
 using xpe::preprocess::internal::ComputeMAD;
+using xpe::preprocess::internal::ComputeGlobalSigma;
 using xpe::preprocess::internal::DetectDefectivePixel;
 
 /* ---------------------------------------------------------------- frames */
@@ -328,6 +329,310 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+/* -------------------------------------------------- QA-A-55 global sigma */
+
+/**
+ * QA-A-55 (#144): dispersion first, then the breakdown.
+ *
+ * QA-A-54 left an unverified number behind -- the same ComputeGlobalSigma on the
+ * same frame measured 306.2 ms before its change and 369.8 ms after, with not a
+ * line of that function touched. Until the spread of the measurement is known,
+ * no improvement smaller than the spread means anything. So this runs the
+ * function many times and prints min / median / max before any decomposition.
+ */
+void sigmaDispersion(uint32_t w, uint32_t h, int reps) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    std::vector<double> t;
+    volatile float sink = 0.0f;
+    for (int r = 0; r < reps; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        sink = sink + ComputeGlobalSigma(&img);
+        const auto t1 = std::chrono::steady_clock::now();
+        t.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+    }
+    std::vector<double> sorted = t;
+    std::sort(sorted.begin(), sorted.end());
+    const double lo = sorted.front();
+    const double med = sorted[sorted.size() / 2u];
+    const double hi = sorted.back();
+
+    std::printf("[sigma-dispersion] %ux%u, %d runs of ComputeGlobalSigma\n", w, h, reps);
+    std::printf("  raw:");
+    for (double v : t) std::printf(" %.1f", v);
+    std::printf("\n");
+    std::printf("  min %.1f  median %.1f  max %.1f  spread %.1f ms = %.1f%% of median\n\n",
+                lo, med, hi, hi - lo, 100.0 * (hi - lo) / med);
+    std::fflush(stdout);
+}
+
+/**
+ * Inside ComputeGlobalSigma. Same discipline as QA-A-54: the only DIRECT number
+ * is the function's own time; every stage below it comes from a replica built
+ * here, so the replica/direct ratio is printed on the same line and the stage
+ * shares are quoted against the replica, never against the direct total.
+ */
+void sigmaBreakdown(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    volatile float sink = 0.0f;
+    auto bestOf = [&](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    const double tDirect = bestOf(5, [&]{ sink = sink + ComputeGlobalSigma(&img); });
+
+    const float* pixels = frame.data();
+    std::vector<float> diff;
+    diff.reserve(n);
+
+    // Stage 1: build the horizontal difference array, exactly as shipped.
+    const double tBuildH = bestOf(5, [&]{
+        diff.clear();
+        for (size_t y = 0; y < h; ++y) {
+            const float* row = pixels + y * w;
+            for (size_t x = 0; x + 1u < w; ++x) diff.push_back(row[x + 1u] - row[x]);
+        }
+    });
+
+    // Keep one built copy to feed the later stages without rebuilding.
+    diff.clear();
+    for (size_t y = 0; y < h; ++y) {
+        const float* row = pixels + y * w;
+        for (size_t x = 0; x + 1u < w; ++x) diff.push_back(row[x + 1u] - row[x]);
+    }
+    const std::vector<float> built = diff;
+    const size_t mid = built.size() / 2u;
+
+    // Stage 2: the first selection.
+    std::vector<float> work;
+    const double tSelect1 = bestOf(5, [&]{
+        work = built;
+        std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
+        sink = sink + work[mid];
+    });
+    work = built;
+    std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
+    const float median = work[mid];
+    const std::vector<float> selected = work;
+
+    // Stage 3: the absolute-deviation transform.
+    const double tAbs = bestOf(5, [&]{
+        work = selected;
+        for (size_t i = 0; i < work.size(); ++i) work[i] = std::abs(work[i] - median);
+        sink = sink + work[0];
+    });
+    work = selected;
+    for (size_t i = 0; i < work.size(); ++i) work[i] = std::abs(work[i] - median);
+    const std::vector<float> deviations = work;
+
+    // Stage 4: the second selection.
+    const double tSelect2 = bestOf(5, [&]{
+        work = deviations;
+        std::nth_element(work.begin(), work.begin() + static_cast<std::ptrdiff_t>(mid), work.end());
+        sink = sink + work[mid];
+    });
+
+    // The copy each stage above pays so it can be re-run; subtracted out below.
+    const double tCopy = bestOf(5, [&]{ work = built; sink = sink + work[0]; });
+
+    const double oneDir = (tBuildH - 0.0) + (tSelect1 - tCopy) + (tAbs - tCopy) + (tSelect2 - tCopy);
+    std::printf("[sigma-breakdown] %ux%u  (%zu diffs per direction)\n", w, h, built.size());
+    std::printf("  %-44s %9.1f ms  [DIRECT]\n", "ComputeGlobalSigma (whole, best of 5)", tDirect);
+    std::printf("  replica of ONE direction  %9.1f ms; x2 directions = %.1f ms"
+                "  = %.2fx the direct call\n", oneDir, 2.0 * oneDir, 2.0 * oneDir / tDirect);
+    std::printf("  (stage shares are of the one-direction replica)\n");
+    std::printf("    %-42s %9.1f ms   %5.1f%%\n", "1 build difference array (push_back)",
+                tBuildH, 100.0 * tBuildH / oneDir);
+    std::printf("    %-42s %9.1f ms   %5.1f%%\n", "2 first selection (nth_element)",
+                tSelect1 - tCopy, 100.0 * (tSelect1 - tCopy) / oneDir);
+    std::printf("    %-42s %9.1f ms   %5.1f%%\n", "3 absolute-deviation transform",
+                tAbs - tCopy, 100.0 * (tAbs - tCopy) / oneDir);
+    std::printf("    %-42s %9.1f ms   %5.1f%%\n", "4 second selection (nth_element)",
+                tSelect2 - tCopy, 100.0 * (tSelect2 - tCopy) / oneDir);
+    std::printf("    (each stage above had a %.1f ms vector copy subtracted)\n\n", tCopy);
+    std::fflush(stdout);
+}
+
+/* -------------------------------------------------- QA-A-54 decomposition */
+
+/**
+ * QA-A-54 (#144): where the time actually goes at the frame size the SPEC names.
+ *
+ * Everything before this card measured 1024x1024 and extrapolated to 3072x3072
+ * by pixel count. That extrapolation assumes the cost per pixel is size
+ * independent, which is exactly what a 9x larger working set is likely to
+ * break -- so this measures 3072x3072 directly.
+ *
+ * The per-pixel stages are measured incrementally (gather, then gather+median,
+ * then gather+median+copy+MAD), so each stage's own cost is a difference of two
+ * measurements rather than a guess. The reconciliation at the end is the part
+ * that matters: sigma + loop + memset must add up to the entry point's own time,
+ * and whatever is left over is work nobody measured.
+ */
+void decompose(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    std::vector<uint8_t> map(n, 0);
+    XpeImageBuffer out{};
+    out.data = map.data();
+    out.width = w; out.height = h;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8;
+    out.dataSize = static_cast<uint32_t>(n);
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    std::printf("[decompose] %ux%u  (%zu pixels), best of 3 per row\n", w, h, n);
+
+    // -- whole entry point
+    XpeImageMetadata meta{};
+    volatile XpeErrorCode rc = XPE_OK;
+    const double tTotal = bestOf(3, [&]{
+        rc = xpe_defect_detect_runtime(&img, &meta, &out);
+    });
+    if (rc != XPE_OK) { std::fprintf(stderr, "detect failed\n"); return; }
+
+    // -- global sigma, the two estimators
+    volatile float sink = 0.0f;
+    const double tSigmaBm = bestOf(3, [&]{ sink = sink + ComputeGlobalSigma(&img); });
+
+    // -- memset of the output map, which the entry point does once
+    const double tMemset = bestOf(3, [&]{ std::memset(map.data(), 0, n); });
+
+    // -- the per-pixel loop, in incremental stages
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    const float sg = ComputeGlobalSigma(&img);
+    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+
+    const double tGather = bestOf(3, [&]{
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                sink = sink + a[0];
+            }
+    });
+    const double tGatherMed = bestOf(3, [&]{
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                sink = sink + ComputeMedian(a);
+            }
+    });
+    const double tGatherMedMad = bestOf(3, [&]{
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                const float m = ComputeMedian(a);
+                b.assign(a.begin(), a.end());
+                sink = sink + ComputeMAD(b, m);
+            }
+    });
+    const double tLoop = bestOf(3, [&]{
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                if (DetectDefectivePixel(&img, x, y, cfg, a, b)) {
+                    map[static_cast<size_t>(y) * w + x] = 1;
+                }
+            }
+    });
+
+    // The three DIRECT measurements. Only these are attributable to the shipped
+    // entry point; everything below them is a replica built in this TU.
+    const double tLoopInSitu = tTotal - tSigmaBm - tMemset;
+    std::printf("  %-42s %9.1f ms   %5.1f%%\n", "TOTAL xpe_defect_detect_runtime  [measured]",
+                tTotal, 100.0);
+    std::printf("  %-42s %9.1f ms   %5.1f%%\n", "  global sigma (Bm, shipped)     [measured]",
+                tSigmaBm, 100.0 * tSigmaBm / tTotal);
+    std::printf("  %-42s %9.1f ms   %5.1f%%\n", "  memset of the output map       [measured]",
+                tMemset, 100.0 * tMemset / tTotal);
+    std::printf("  %-42s %9.1f ms   %5.1f%%\n", "  per-pixel loop      [total - the two above]",
+                tLoopInSitu, 100.0 * tLoopInSitu / tTotal);
+    std::printf("  -> the three rows above sum to the total by construction;"
+                " nothing is unaccounted.\n\n");
+
+    // The REPLICA. Same primitives, but compiled here rather than inside the
+    // DLL, so its absolute time is NOT the shipped loop's time -- the ratio
+    // below says by how much. It is used only to split the loop into stages,
+    // and the stage shares are therefore quoted against the replica's own total.
+    std::printf("  replica loop, this TU  %9.1f ms  = %.2fx the in-situ loop\n",
+                tLoop, tLoop / tLoopInSitu);
+    std::printf("  (stage shares below are of the REPLICA, not of the total)\n");
+    std::printf("    %-38s %9.1f ms   %5.1f%%\n", "gather only",
+                tGather, 100.0 * tGather / tLoop);
+    std::printf("    %-38s %9.1f ms   %5.1f%%\n", "median  (delta)",
+                tGatherMed - tGather, 100.0 * (tGatherMed - tGather) / tLoop);
+    std::printf("    %-38s %9.1f ms   %5.1f%%\n", "copy + MAD  (delta)",
+                tGatherMedMad - tGatherMed, 100.0 * (tGatherMedMad - tGatherMed) / tLoop);
+    std::printf("    %-38s %9.1f ms   %5.1f%%\n", "threshold + map write  (delta)",
+                tLoop - tGatherMedMad, 100.0 * (tLoop - tGatherMedMad) / tLoop);
+    const double tMedians = (tGatherMed - tGather) + (tGatherMedMad - tGatherMed);
+    std::printf("    %-38s %9.1f ms   %5.1f%%\n", "  of which: the two selections",
+                tMedians, 100.0 * tMedians / tLoop);
+
+    std::printf("\n  SPEC budget 35 ms -> over by %.1fx\n\n", tTotal / 35.0);
+    std::fflush(stdout);
+}
+
 /* ------------------------------------------------ QA-A-45 false negatives */
 
 /**
@@ -427,10 +732,14 @@ void reportFalseNegatives(uint32_t seed, float amplitudeSigma) {
 
 int main(int argc, char** argv) {
     bool quick = false, profileOnly = false, timeOnly = false, fnOnly = false;
+    bool decomposeOnly = false;
+    bool sigmaOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
         if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
+        if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
+        if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -441,6 +750,20 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (sigmaOnly) {
+        sigmaDispersion(3072, 3072, 7);
+        sigmaBreakdown(3072, 3072);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (decomposeOnly) {
+        decompose(1024, 1024);
+        decompose(3072, 3072);
         xpe_preprocess_shutdown();
         return 0;
     }

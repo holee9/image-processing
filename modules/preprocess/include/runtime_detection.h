@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 #include <vector>
 
 #ifdef __cplusplus
@@ -172,7 +173,7 @@ namespace internal {
  * @param values Vector of values (modified during computation)
  * @return Median value
  */
-inline float ComputeMedian(std::vector<float>& values) {
+inline float ComputeMedianGeneric(std::vector<float>& values) {
     if (values.empty()) return 0.0f;
 
     size_t n = values.size();
@@ -189,6 +190,70 @@ inline float ComputeMedian(std::vector<float>& values) {
         // Odd number of elements: middle value
         return values[mid];
     }
+}
+
+/** One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss). */
+inline void MedianSortCE(float& a, float& b) {
+    const bool swap = (b < a);
+    const float lo = swap ? b : a;
+    const float hi = swap ? a : b;
+    a = lo;
+    b = hi;
+}
+
+/**
+ * @brief Exact median of exactly 8 values, via a sorting network.
+ *
+ * QA-A-54 (#144). An interior pixel of the 3x3 window has exactly 8 neighbours,
+ * so this is the shape the detector asks for on all but the frame border. The
+ * generic path pays std::nth_element plus std::max_element -- two passes with
+ * branches and, on MSVC, an insertion sort underneath for a range this small.
+ * A Batcher odd-even network is 19 compare-exchanges with no data-dependent
+ * branches and the whole array in registers.
+ *
+ * This is NOT an approximation. The network fully sorts the eight values, so
+ * v[3] and v[4] are the same two order statistics the generic path selects
+ * (values[mid] and the maximum of the lower half), and the returned expression
+ * is the same sum times the same constant. For every input on which the generic
+ * path is defined, this returns the identical float --
+ * test_runtime_detection_median8_parity.cpp asserts it bit for bit.
+ *
+ * The caveat is NaN: a NaN makes `<` inconsistent, which already breaks
+ * std::nth_element's strict-weak-ordering precondition, so the generic path is
+ * undefined there rather than merely different. Neither path is trustworthy on
+ * NaN input, and the parity claim is scoped to inputs where the old one was
+ * defined.
+ */
+inline float MedianOfEight(const float* v) {
+    float a0 = v[0], a1 = v[1], a2 = v[2], a3 = v[3];
+    float a4 = v[4], a5 = v[5], a6 = v[6], a7 = v[7];
+
+    MedianSortCE(a0, a1); MedianSortCE(a2, a3); MedianSortCE(a4, a5); MedianSortCE(a6, a7);
+    MedianSortCE(a0, a2); MedianSortCE(a1, a3); MedianSortCE(a4, a6); MedianSortCE(a5, a7);
+    MedianSortCE(a1, a2); MedianSortCE(a5, a6);
+    MedianSortCE(a0, a4); MedianSortCE(a1, a5); MedianSortCE(a2, a6); MedianSortCE(a3, a7);
+    MedianSortCE(a2, a4); MedianSortCE(a3, a5);
+    MedianSortCE(a1, a2); MedianSortCE(a3, a4); MedianSortCE(a5, a6);
+
+    return (a3 + a4) * 0.5f;
+}
+
+/**
+ * @brief Median, with an exact fast path for the 8-value case.
+ *
+ * QA-A-54 (#144): the two selections per pixel (median, then median of the
+ * absolute deviations) measured 91.7% of the per-pixel loop at 3072x3072, which
+ * is itself 77% of the shipped entry point. This dispatch is the whole change --
+ * the rule, the window, the threshold and the sigma floor are untouched, so the
+ * QA-A-42..A-50 tables stay valid.
+ *
+ * Note the fast path does NOT permute the input, where the generic one does.
+ * No caller depends on that side effect (every one copies first or discards),
+ * and std::nth_element's own post-state is unspecified beyond the k-th element.
+ */
+inline float ComputeMedian(std::vector<float>& values) {
+    if (values.size() == 8u) return MedianOfEight(values.data());
+    return ComputeMedianGeneric(values);
 }
 
 /**
@@ -297,6 +362,100 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
  * made. Returns 0 for an empty or malformed frame, which disables the floor
  * rather than fabricating one.
  */
+/**
+ * @brief Order-preserving map from a float to a uint32 sort key.
+ *
+ * QA-A-55 (#144). For every non-NaN pair a, b:  a < b  <=>  key(a) < key(b).
+ * Positives keep their bit pattern with the sign bit set; negatives are
+ * inverted, which reverses their descending bit order into ascending.
+ *
+ * ONE deliberate difference from float comparison: -0.0 and +0.0 compare EQUAL
+ * as floats but map to DIFFERENT keys, with -0.0 ordered first. Where that can
+ * matter is argued at the call site (SelectKthSmallest) -- it does not change
+ * any value this file returns.
+ */
+inline uint32_t FloatSortKey(float f) {
+    uint32_t bits = 0u;
+    std::memcpy(&bits, &f, sizeof(bits));
+    return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+}
+
+/** Inverse of FloatSortKey. */
+inline float SortKeyToFloat(uint32_t key) {
+    const uint32_t bits = (key & 0x80000000u) ? (key & 0x7FFFFFFFu) : ~key;
+    float f = 0.0f;
+    std::memcpy(&f, &bits, sizeof(f));
+    return f;
+}
+
+/**
+ * @brief The k-th smallest value (0-based), by two-level radix histogram.
+ *
+ * QA-A-55 (#144): std::nth_element over the 9.4-million-element difference array
+ * measured 54.6% + 36.5% of ComputeGlobalSigma's work at 3072x3072 -- the two
+ * selections together were 91.1% of it, while building the array was 5.9%. So
+ * the selection is the item worth attacking, and this is the scalar way to do
+ * it: two linear passes with 16-bit histograms instead of nth_element's repeated
+ * partitioning.
+ *
+ * EXACT, not approximate. The first pass counts keys by their high 16 bits and
+ * finds the bucket the k-th key falls in; the second counts the low 16 bits
+ * within that bucket. The concatenation is the k-th key exactly, and the value
+ * is recovered by inverting the map. No sampling, no interpolation.
+ *
+ * Equivalence to the std::nth_element it replaces, and its one gap:
+ *   - For distinct values the k-th smallest is unique, so both agree exactly.
+ *   - For repeated values every copy is bit-identical, so which copy is "the"
+ *     k-th cannot be observed.
+ *   - The gap is -0.0 vs +0.0: they compare equal, so nth_element may return
+ *     either, while this always orders -0.0 first. Both callers here are safe --
+ *     the first selection's result is used only as `x - median` (and
+ *     x - (-0.0) == x - (+0.0) for every x), and the second selection runs on
+ *     absolute deviations, which contain no -0.0 that a +0.0 could shadow.
+ *     test_runtime_detection_radix_select_parity.cpp pins both claims.
+ *   - NaN is out of scope, as it already was: NaN breaks the strict weak
+ *     ordering std::nth_element requires, so there is no prior behaviour to match.
+ *
+ * @param values Values to select from; NOT modified.
+ * @param k      0-based rank.
+ * @return The k-th smallest value.
+ */
+inline float SelectKthSmallest(const std::vector<float>& values, size_t k) {
+    const size_t n = values.size();
+    if (n == 0u) return 0.0f;
+    if (k >= n) k = n - 1u;
+
+    constexpr size_t kBuckets = 1u << 16;
+    std::vector<uint32_t> hist(kBuckets, 0u);
+
+    for (size_t i = 0; i < n; ++i) {
+        ++hist[FloatSortKey(values[i]) >> 16];
+    }
+
+    size_t seen = 0;
+    uint32_t high = 0u;
+    for (size_t b = 0; b < kBuckets; ++b) {
+        if (seen + hist[b] > k) { high = static_cast<uint32_t>(b); break; }
+        seen += hist[b];
+    }
+
+    std::fill(hist.begin(), hist.end(), 0u);
+    for (size_t i = 0; i < n; ++i) {
+        const uint32_t key = FloatSortKey(values[i]);
+        if ((key >> 16) == high) ++hist[key & 0xFFFFu];
+    }
+
+    const size_t rank = k - seen;
+    size_t inner = 0;
+    uint32_t low = 0u;
+    for (size_t b = 0; b < kBuckets; ++b) {
+        if (inner + hist[b] > rank) { low = static_cast<uint32_t>(b); break; }
+        inner += hist[b];
+    }
+
+    return SortKeyToFloat((high << 16) | low);
+}
+
 inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     if (img == nullptr || img->data == nullptr) return 0.0f;
     const size_t w = img->width;
@@ -306,15 +465,18 @@ inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     const float* pixels = static_cast<const float*>(img->data);
 
     // MAD of a difference array, already converted to a sigma.
+    //
+    // QA-A-55 (#144): the two selections were 91.1% of this function at 3072x3072.
+    // Both are now SelectKthSmallest -- an exact two-pass radix selection rather
+    // than std::nth_element's repeated partitioning. Same rank, same value; see
+    // that function for the equivalence argument and its one -0.0/+0.0 gap.
     auto madSigma = [](std::vector<float>& d) -> float {
         if (d.empty()) return 0.0f;
         const size_t mid = d.size() / 2u;
-        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
-        const float median = d[mid];
+        const float median = SelectKthSmallest(d, mid);
         for (size_t i = 0; i < d.size(); ++i) d[i] = std::abs(d[i] - median);
-        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
         // 1.4826 : MAD -> sigma.   1/sqrt(2) : undo Var(n1 - n2) = 2 sigma^2.
-        return d[mid] * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+        return SelectKthSmallest(d, mid) * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
     };
 
     std::vector<float> diff;
