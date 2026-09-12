@@ -147,6 +147,28 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- test_display_parameter_dependency (#155 / QA-B-58) ---
+    # Vary one parameter, hold the rest, require the output to move. This is the
+    # assertion shape neither #154 nor #155 would have survived.
+    add_executable(test_display_parameter_dependency
+        tests/test_parameter_dependency.cpp
+    )
+    target_include_directories(test_display_parameter_dependency PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_parameter_dependency PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_parameter_dependency PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_parameter_dependency PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_parameter_dependency)
+    gtest_discover_tests(test_display_parameter_dependency
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_display_gsdf_characterization (#142 / QA-B-57) ---
     # The existing GSDF case asserts monotonicity only; a linear ramp passes it.
     # These characterise the curve actually produced.

@@ -111,6 +111,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_datasize_guard.cpp    # #123 dataSize guard regression (QA-B-21)
         tests/test_datasize_overread.cpp # #142 (QA-B-52) guard-page over-read probe
         tests/test_exposure_index_contract.cpp # #153 (QA-B-56) EIT cancellation record
+        tests/test_parameter_dependency.cpp    # #155 (QA-B-58) does each parameter reach the output
         tests/test_empty_image_contract.cpp  # #142 D1 empty-image contract (QA-B-40)
     )
 
