@@ -134,6 +134,8 @@ if(BUILD_TESTS)
         # #142 (QA-B-54): both DLLs export xpe_calc_exposure_index; this opens
         # each by name and asks whether the two implementations agree.
         tests/test_duplicate_export.cpp
+        # #155 (QA-B-58): does each parameter reach the output
+        tests/test_parameter_dependency.cpp
     )
 
     # Link against Google Test and the module
