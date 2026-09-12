@@ -891,6 +891,22 @@ Execution order (`xpe_log_transform` before advanced enhancement) is enforced by
 
 **Note**: `xpe_calc_exposure_index` belongs to `xpe_enhance_basic.dll` per SPEC-XPE-MASTER v2.1.0. Phase 2 ROI-aware EI refinement is performed by the orchestrator re-invoking that function with a collimation ROI-cropped image.  
 
+### 8.0 xpe_enhance_advanced_init
+
+```c
+XPE_API XpeErrorCode xpe_enhance_advanced_init(const char* configJsonOrNull);
+```
+
+**Description**: Initialises the module. **`configJsonOrNull` is currently parsed for syntax and then discarded — no key it contains has any effect.** The source carries `// TODO: Store configuration parameters for use in processing functions` (`modules/enhance_advanced/src/xpe_enhance_advanced.cpp`, read 2026-09-12). Malformed JSON is rejected; a syntactically valid object is accepted and dropped whole.
+
+**Documented 2026-09-12 (QA-B-60).** Until now this document did not say what the argument accepts, and the answer is that it accepts anything well-formed and uses none of it. No unread-key warning is wired here — every key is unconsumed by definition, so a warning would fire on every correct call and would be noise rather than signal. Callers that pass the same JSON to both `init` and a `*_process` function therefore get no indication from `init`; the per-call functions are where the config actually takes effect.
+
+**Do not read this as a defect to fix by implementing the TODO.** Implementing it is a feature and no requirement specifies what those keys should be or do; adding behaviour without a requirement leaves the next reader unable to find its basis.
+
+**Error codes**: `XPE_OK`, `XPE_ERR_CONFIG_INVALID` (malformed JSON), `XPE_ERR_INVALID_INPUT` (empty string)
+
+---
+
 ### 8.1 xpe_multiscale_process
 
 ```c
@@ -952,7 +968,20 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
                                   const char* configJsonOrNull);
 ```
 
-**Description**: Launches or attaches to the sandboxed AI worker, loads model files from `modelDirPath`, and initialises the worker-side inference runtime. Must be called before any other xpe_ai function. `configJsonOrNull` selects device (CPU/CUDA), IPC timeout, and batch settings.  
+**Description**: Launches or attaches to the sandboxed AI worker, loads model files from `modelDirPath`, and initialises the worker-side inference runtime. Must be called before any other xpe_ai function. `configJsonOrNull` is a JSON object.
+
+**Keys read, measured from `modules/ai/src/ai.cpp` 2026-09-12 (QA-B-60). This list is normative; where prose elsewhere disagrees, this list is correct:**
+
+| Key | Accepted type | Effect |
+|---|---|---|
+| `execution_provider` | string — `cpu` / `cuda` / `tensorrt` / `directml` / `auto` | selects the inference device |
+| `timeout_ms` | **integer** | IPC timeout |
+| `confidence_threshold` | number | inference confidence floor |
+| `fallback_mode` | boolean | enables fallback |
+
+**These four keys were absent from this document until 2026-09-12** — the code read more than the document described, which is the rare direction here (every earlier correction in this file ran the other way). "batch settings" appeared in the sentence this replaces and **no such key is read**.
+
+**The type must match or the value is dropped.** `"timeout_ms": "500"` (a string) is not consumed — a mistake that reads as correct at a glance. Since QA-B-60 an unread or wrongly-typed top-level key raises `XPE_ALERT_WARNING` naming the key; the return code is unchanged, so a warning is the only signal.  
 **SRS**: SRS-AI-001, SRS-AI-002  
 **Thread safety**: Not thread-safe ;call from a single thread at startup.  
 **Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_OUT_OF_MEMORY`
@@ -1410,6 +1439,8 @@ Provides anti-scatter grid detection and virtual grid suppression. This module l
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle, const uint16_t* src, uint16_t* dst,
                                       int width, int height, const float* gainMap);
 ```
+
+**Config keys documented 2026-09-12 (QA-B-60):** `xpe_gsvg_init` reads exactly two top-level keys — `vignette_correction` (boolean) and `grid_suppression` (boolean). They are the whole config surface and were absent from this document until now. Any other top-level key raises `XPE_ALERT_WARNING` naming it; the return code is unchanged. Measured from `modules/gsvg/src/gsvg.cpp`.
 
 **Description**: Suppresses anti-scatter grid artifacts from the raw 16-bit pixel buffer `pixels` (width x height, row-major) in-place using parameters in `config`. Auto-detects grid frequency if `config->gridFrequency_lp_per_mm == 0`.   **Corrected 2026-09-11 (QA-B-39):** the function is `xpe_gsvg_process` returning `XpeErrorCode` on a handle from `xpe_gsvg_init`; the earlier `gsvg_process(pixels, width, height, config) -> GsvgErrorCode` form never existed. Four exports total: `xpe_gsvg_version`, `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown` (`modules/gsvg/include/xpe/gsvg/gsvg_api.h`). **Corrected again 2026-09-12 (QA-B-53):** the 2026-09-11 correction above named `xpe_gsvg_process_ex`, which exists in **no header and no source** (`grep xpe_gsvg_process_ex modules/` -> 0) — a correction introduced a new error, and `xpe_gsvg_version` was the export it displaced.
 
