@@ -30,6 +30,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <vector>
 
 #ifdef __cplusplus
@@ -420,9 +421,8 @@ inline float SortKeyToFloat(uint32_t key) {
  * @param k      0-based rank.
  * @return The k-th smallest value.
  */
-inline float SelectKthSmallest(const std::vector<float>& values, size_t k) {
-    const size_t n = values.size();
-    if (n == 0u) return 0.0f;
+inline float SelectKthSmallest(const float* values, size_t n, size_t k) {
+    if (values == nullptr || n == 0u) return 0.0f;
     if (k >= n) k = n - 1u;
 
     constexpr size_t kBuckets = 1u << 16;
@@ -456,6 +456,11 @@ inline float SelectKthSmallest(const std::vector<float>& values, size_t k) {
     return SortKeyToFloat((high << 16) | low);
 }
 
+/** Vector form. Delegates to the pointer core so both share one implementation. */
+inline float SelectKthSmallest(const std::vector<float>& values, size_t k) {
+    return SelectKthSmallest(values.data(), values.size(), k);
+}
+
 inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     if (img == nullptr || img->data == nullptr) return 0.0f;
     const size_t w = img->width;
@@ -470,35 +475,56 @@ inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     // Both are now SelectKthSmallest -- an exact two-pass radix selection rather
     // than std::nth_element's repeated partitioning. Same rank, same value; see
     // that function for the equivalence argument and its one -0.0/+0.0 gap.
-    auto madSigma = [](std::vector<float>& d) -> float {
-        if (d.empty()) return 0.0f;
-        const size_t mid = d.size() / 2u;
-        const float median = SelectKthSmallest(d, mid);
-        for (size_t i = 0; i < d.size(); ++i) d[i] = std::abs(d[i] - median);
+    auto madSigma = [](float* d, size_t n) -> float {
+        if (d == nullptr || n == 0u) return 0.0f;
+        const size_t mid = n / 2u;
+        const float median = SelectKthSmallest(d, n, mid);
+        for (size_t i = 0; i < n; ++i) d[i] = std::abs(d[i] - median);
         // 1.4826 : MAD -> sigma.   1/sqrt(2) : undo Var(n1 - n2) = 2 sigma^2.
-        return SelectKthSmallest(d, mid) * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+        return SelectKthSmallest(d, n, mid) * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
     };
 
-    std::vector<float> diff;
-    diff.reserve(w * h);
+    // QA-A-59 (#144): one buffer, sized once, written by index.
+    //
+    // This used to be reserve() + push_back(). Two costs came with that. The
+    // visible one is per-element: push_back re-checks size against capacity and
+    // bumps the size member for every one of ~9.4 million writes, work an
+    // indexed store does not do. The structural one is that a shared vector
+    // grown by push_back cannot be filled by several threads -- QA-A-58
+    // measured this stage as fully splittable in principle and blocked in
+    // practice, and named push_back as the blocker. This change removes both,
+    // and is worth making whichever way the thread question is decided.
+    //
+    // new float[n] rather than std::vector<float>(n): vector value-initialises,
+    // which would add a full zero-fill pass over 37.75 MB that the previous
+    // reserve() never paid. Every element is written before it is read, so
+    // default-initialised storage is correct here and costs nothing.
+    const size_t hCount = (w >= 2u) ? h * (w - 1u) : 0u;
+    const size_t vCount = (h >= 2u) ? (h - 1u) * w : 0u;
+    const size_t maxCount = (hCount > vCount) ? hCount : vCount;
+    if (maxCount == 0u) return 0.0f;
+    std::unique_ptr<float[]> diff(new float[maxCount]);
 
     float sigmaH = 0.0f;
-    if (w >= 2u) {
+    if (hCount > 0u) {
+        float* out = diff.get();
         for (size_t y = 0; y < h; ++y) {
             const float* row = pixels + y * w;
-            for (size_t x = 0; x + 1u < w; ++x) diff.push_back(row[x + 1u] - row[x]);
+            float* dst = out + y * (w - 1u);
+            for (size_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
         }
-        sigmaH = madSigma(diff);
+        sigmaH = madSigma(diff.get(), hCount);
     }
 
     float sigmaV = 0.0f;
-    if (h >= 2u) {
-        diff.clear();
+    if (vCount > 0u) {
+        float* out = diff.get();
         for (size_t y = 0; y + 1u < h; ++y) {
             const float* row = pixels + y * w;
-            for (size_t x = 0; x < w; ++x) diff.push_back(row[x + w] - row[x]);
+            float* dst = out + y * w;
+            for (size_t x = 0; x < w; ++x) dst[x] = row[x + w] - row[x];
         }
-        sigmaV = madSigma(diff);
+        sigmaV = madSigma(diff.get(), vCount);
     }
 
     if (sigmaH <= 0.0f) return sigmaV;

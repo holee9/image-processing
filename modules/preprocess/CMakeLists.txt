@@ -379,6 +379,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_median8_parity.cpp
         tests/test_runtime_detection_radix_select_parity.cpp
         tests/test_runtime_detection_performance_gate.cpp
+        tests/test_runtime_detection_sigma_buffer_parity.cpp
     )
 
     add_executable(xpe_preprocess_tests
