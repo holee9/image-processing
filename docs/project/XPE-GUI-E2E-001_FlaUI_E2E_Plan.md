@@ -120,8 +120,8 @@ clients/
 > | Row | Plan says | App actually has |
 > |---|---|---|
 > | W-03 | runtime Mock/Real backend toggle | `NativeBackendModeMenuItem` is `IsEnabled="False"` — no runtime toggle |
-> | W-04 | Compare Mode → Swipe | no such menu or command exists |
-> | W-05 | Compare Mode → Difference | no such menu or command exists |
+> | W-04 | Compare Mode → Swipe | not in the menu; a `Swipe` button exists in `Views/ViewportShell.xaml:40` and the renderer implements it |
+> | W-05 | Compare Mode → Difference | not in the menu; the mode exists (`MainWindowViewModel.cs:81`) but `DifferenceHeatmap` renders a tint approximation, not `\|source - processed\|` |
 > | W-06 | View → Display LUT → GSDF | `GsdfCalibrateMenuItem` lives under Tools and is disabled |
 > | W-09 | Tools menu, TRX output | File menu, `menu-command-report.json` |
 > | W-10 | SHA-256 shown on that path | no hash is computed there |
@@ -131,6 +131,18 @@ clients/
 > which the card forbade. W-08 was left out deliberately: the E2E launch reads and writes the
 > shipped `appsettings.json`, so a save would overwrite a developer's real settings; isolating
 > that needs a settings-path switch, which is an app change (GUI-C-38 §2).
+>
+> **Second correction (2026-09-12, leader — GUI-C-45).** The first note said W-04/W-05 had
+> "no such menu or command". That was read off `MainWindow.xaml` alone and is wrong: the
+> comparison feature exists (7 modes in `MainWindowViewModel.cs:75-83`, rendered by
+> `Controls/ImageComparisonViewport.cs`, with Swipe/Split/Overlay/Difference buttons in
+> `Views/ViewportShell.xaml:38-66`). It is **absent from the View menu**, which is a
+> different claim. `XPE-GUI-COMPARE-001` GUI-CMP-FR-002/FR-005 and `XPE-GUI-MENU-001`
+> L62/L120/§9.3 make the comparison modes and their shortcuts a requirement, so the menu
+> entries, the F5-F8 / Ctrl+1,2 bindings (KeyBinding count: 0), and a true difference image
+> are feature gaps, not plan errors. W-06 is a genuine plan error in the other direction:
+> MENU-001 L265 places GSDF under **Display**, not View, and marks it `(planned)` gated on
+> `xpe_display.dll` — the app's disabled Tools entry matches the document.
 
 
 | # | Scenario | Action Sequence | Verification |
