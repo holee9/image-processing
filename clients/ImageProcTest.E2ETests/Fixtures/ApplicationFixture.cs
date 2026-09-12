@@ -34,13 +34,36 @@ public class ApplicationFixture : IDisposable
     }
 
     /// <summary>
+    /// Test-only construction that arms the seams for ONE fixture (GUI-C-52).
+    ///
+    /// The seams used to be static fields reset in a <c>finally</c>. GUI-C-51 recorded the risk and
+    /// this closes it: <c>finally</c> is not a guarantee — a killed test host never runs it — and a
+    /// leaked static would arm the NEXT fixture, putting a re-acquire note on an innocent scenario.
+    /// As instance state the leak is not merely unlikely, it is impossible: the values live and die
+    /// with the fixture that asked for them, and parallel execution cannot share them either.
+    /// </summary>
+    internal ApplicationFixture(int simulateUnreadableChecks, bool skipLeftoverSweep)
+        : this(rawImageRelativePath: null, simulateUnreadableChecks, skipLeftoverSweep)
+    {
+    }
+
+    /// <summary>
     /// #136 (GUI-C-34): a workflow run needs an image on screen. The app already loads one when
     /// given <c>--automation-raw</c>, and that path is reused rather than driving the file dialog
     /// through UIA — a modal Win32 dialog is the most brittle thing a suite can automate, and the
     /// app offers a supported way in.
     /// </summary>
     protected ApplicationFixture(string? rawImageRelativePath)
+        : this(rawImageRelativePath, simulateUnreadableChecks: 0, skipLeftoverSweep: false)
     {
+    }
+
+    private ApplicationFixture(
+        string? rawImageRelativePath,
+        int simulateUnreadableChecks,
+        bool skipLeftoverSweep)
+    {
+        _simulateUnreadableChecks = simulateUnreadableChecks;
         Automation = new UIA3Automation();
 
         var exePath = ResolveApplicationExecutable();
@@ -61,7 +84,7 @@ public class ApplicationFixture : IDisposable
             return;
         }
 
-        LeftoverNote = SkipLeftoverSweep ? "sweep skipped (test seam)" : KillLeftovers(exePath);
+        LeftoverNote = skipLeftoverSweep ? "sweep skipped (test seam)" : KillLeftovers(exePath);
 
         var startInfo = new ProcessStartInfo(exePath)
         {
@@ -166,33 +189,25 @@ public class ApplicationFixture : IDisposable
     }
 
     /// <summary>
-    /// Test seam (GUI-C-51): makes the next N readability checks report failure.
+    /// Test seam (GUI-C-51/52): how many readability checks report failure before the real read.
     ///
     /// The re-acquire path fires on roughly one launch in twenty, so 74 consecutive healthy runs
-    /// never entered it — GUI-C-50 could only show it working inside a throwaway probe. A branch no
-    /// test can reach is a branch nobody has checked, so this makes it reachable on purpose.
+    /// never entered it — a branch no test can reach is a branch nobody has checked.
     ///
-    /// A counter rather than a flag: the point is that the FIRST element fails and the re-located one
-    /// succeeds, which is the shape actually measured. A permanent flag would make both fail and
-    /// would exercise the give-up path instead.
-    /// </summary>
-    internal static int SimulateUnreadableChecks;
-
-    /// <summary>
-    /// Test seam (GUI-C-51): skips the pre-launch sweep for one construction.
+    /// A counter rather than a flag: the measured shape is "the FIRST element fails, the re-located
+    /// one succeeds". A flag would fail both and exercise the give-up path instead — the test device
+    /// testing something other than what it claims.
     ///
-    /// <see cref="KillLeftovers"/> matches by executable path and kills every instance, which is
-    /// right at the start of a suite and wrong for a fixture built in the middle of one — it would
-    /// take down the app another collection is still driving, the race GUI-C-36 measured.
+    /// Instance state, not static (GUI-C-52): see the seam constructor above.
     /// </summary>
-    internal static bool SkipLeftoverSweep;
+    private int _simulateUnreadableChecks;
 
     /// <summary>True when the element answers the property the scenarios read first.</summary>
-    private static bool CanReadAutomationId(Window window)
+    private bool CanReadAutomationId(Window window)
     {
-        if (SimulateUnreadableChecks > 0)
+        if (_simulateUnreadableChecks > 0)
         {
-            SimulateUnreadableChecks--;
+            _simulateUnreadableChecks--;
             return false;
         }
 
