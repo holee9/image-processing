@@ -34,12 +34,14 @@
 #include "runtime_detection.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -346,6 +348,92 @@ float estDiffMadMin(const std::vector<float>& px) {
 }
 
 /**
+ * Bm4: min over FOUR directions -- horizontal, vertical, and both diagonals.
+ *
+ * QA-A-50 (#148). A-49 showed min(h,v) fails on a 45-degree stripe, and showed
+ * WHY in one number: the h and v statistics came out identical to the last
+ * decimal (31.908), because x+y advances by one for a step along either axis,
+ * so both directions cross the pattern at the same rate. The same sentence
+ * names the cure -- the direction PERPENDICULAR to the stripe does not cross it
+ * at all. Adding the two diagonals gives min() a candidate the structure has
+ * not touched.
+ *
+ * Does the sqrt(2) correction still apply to a diagonal pair?
+ *
+ *   d = I(i,j) - I(i+1,j+1) = [s(i,j) - s(i+1,j+1)] + [n1 - n2]
+ *   Var(n1 - n2) = Var(n1) + Var(n2) - 2*Cov(n1, n2)
+ *
+ * The correction depends only on the covariance, not on the distance as such.
+ * For spatially UNCORRELATED (white) noise Cov = 0 at every non-zero
+ * separation, so Var = 2*sigma^2 and the factor is 1/sqrt(2) exactly as for an
+ * axis pair -- even though the diagonal neighbour is sqrt(2) pixel pitches away
+ * rather than one. The simulated frames here are white by construction (one
+ * independent normal draw per pixel), so the same constant is correct.
+ *
+ * The caveat is real and belongs in the report: with spatially correlated noise
+ * -- optical blur, charge sharing, a readout filter -- Cov depends on the
+ * separation, so rho(1) != rho(sqrt(2)), and the four directions would need
+ * DIFFERENT corrections. This code assumes white noise; that assumption is not
+ * verified against a real detector.
+ */
+float estDiffMadMin4(const std::vector<float>& px) {
+    auto madOf = [](std::vector<float>& d) {
+        const size_t mid = d.size() / 2;
+        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
+        const float med = d[mid];
+        for (float& v : d) v = std::fabs(v - med);
+        std::nth_element(d.begin(), d.begin() + static_cast<std::ptrdiff_t>(mid), d.end());
+        return d[mid] * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+    };
+
+    std::vector<float> d;
+    d.reserve(kN);
+    float best = 0.0f;
+
+    auto consider = [&](float v) {
+        if (v > 0.0f && (best <= 0.0f || v < best)) best = v;
+    };
+
+    // horizontal
+    d.clear();
+    for (uint32_t y = 0; y < kH; ++y)
+        for (uint32_t x = 0; x + 1 < kW; ++x) {
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            d.push_back(px[i + 1] - px[i]);
+        }
+    consider(madOf(d));
+
+    // vertical
+    d.clear();
+    for (uint32_t y = 0; y + 1 < kH; ++y)
+        for (uint32_t x = 0; x < kW; ++x) {
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            d.push_back(px[i + kW] - px[i]);
+        }
+    consider(madOf(d));
+
+    // diagonal down-right
+    d.clear();
+    for (uint32_t y = 0; y + 1 < kH; ++y)
+        for (uint32_t x = 0; x + 1 < kW; ++x) {
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            d.push_back(px[i + kW + 1] - px[i]);
+        }
+    consider(madOf(d));
+
+    // diagonal up-right
+    d.clear();
+    for (uint32_t y = 0; y + 1 < kH; ++y)
+        for (uint32_t x = 0; x + 1 < kW; ++x) {
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            d.push_back(px[i + kW] - px[i + 1]);
+        }
+    consider(madOf(d));
+
+    return best;
+}
+
+/**
  * C: Immerkaer's Laplacian estimator (J. Immerkaer, "Fast Noise Variance
  * Estimation", CVIU 1996). Convolve with
  *     [ 1 -2  1 ; -2  4 -2 ;  1 -2  1 ]
@@ -569,8 +657,9 @@ void compareEstimators() {
     std::printf("QA-A-48 estimator comparison. 1024x1024.\n");
     std::printf("A = MAD of values (shipped)   B = MAD of adjacent differences / sqrt(2)\n");
     std::printf("C = Immerkaer Laplacian       D = median of per-pixel local MAD\n\n");
-    std::printf("  frame     true-sigma-med        A  ratio        B  ratio"
-                "       Bm  ratio        C  ratio        D  ratio\n");
+    std::printf("Bm4 = min(h, v, diag-down, diag-up) difference-MAD / sqrt(2)\n\n");
+    std::printf("  frame     trueSig       A       B      Bm     Bm4       C       D"
+                "     Bm-ms Bm4-ms\n");
 
     for (Frame& f : frames) {
         XpeImageBuffer img = wrap(f.pixels);
@@ -578,22 +667,33 @@ void compareEstimators() {
         const std::vector<float> local =
             localSigmaMap(img, RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE);
 
-        const float a = estValueMad(f.pixels);
-        const float b = estDiffMad(f.pixels);
-        const float bh = estDiffMadMin(f.pixels);
-        const float c = estImmerkaer(f.pixels);
-        const float d = estLocalMadMedian(local);
+        auto timed = [](auto fn) {
+            const auto t0 = std::chrono::steady_clock::now();
+            const float v = fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            return std::pair<float, double>(
+                v, std::chrono::duration<double, std::milli>(t1 - t0).count());
+        };
+        const float a  = estValueMad(f.pixels);
+        const float b  = estDiffMad(f.pixels);
+        const auto  bmT  = timed([&]{ return estDiffMadMin(f.pixels); });
+        const auto  bm4T = timed([&]{ return estDiffMadMin4(f.pixels); });
+        const float bh = bmT.first;
+        const float b4 = bm4T.first;
+        const float c  = estImmerkaer(f.pixels);
+        const float d  = estLocalMadMedian(local);
 
-        std::printf("  %-9s %13.4f %9.3f %6.2fx %9.3f %6.2fx %9.3f %6.2fx %9.3f %6.2fx %9.3f %6.2fx\n",
+        std::printf("  %-9s %8.3f %7.2fx %7.2fx %7.2fx %7.2fx %7.2fx %7.2fx"
+                    "   %6.1f %6.1f\n",
                     f.name.c_str(), ts.med,
-                    a, a / ts.med, b, b / ts.med, bh, bh / ts.med,
-                    c, c / ts.med, d, d / ts.med);
+                    a / ts.med, b / ts.med, bh / ts.med, b4 / ts.med,
+                    c / ts.med, d / ts.med, bmT.second, bm4T.second);
         std::fflush(stdout);
     }
 }
 
 /** QA-A-48 §2: the A-43..A-47 tables, re-run under the new estimator. */
-void regress() {
+void regress(bool useBm4) {
     struct Setting { const char* label; float alpha; float beta; };
     const Setting settings[] = {
         {"shipped (a=0.80, cap off)", 0.80f, 0.00f},
@@ -612,13 +712,15 @@ void regress() {
     const std::vector<size_t> sites = defectSites();
 
     for (const Setting& st : settings) {
-        std::printf("\n===== %s =====\n", st.label);
+        std::printf("\n===== %s | sigma_g from %s =====\n", st.label,
+                    useBm4 ? "Bm4 (4-direction)" : "Bm (shipped, min(h,v))");
         std::printf("  frame      sigma_g   TPR@5s   TPR@6s   TPR@8s  TPR@10s  FN@10s"
                     "   cleanFP    cleanFPR  1%%cap  enrich\n");
 
         for (Frame& f : frames) {
             XpeImageBuffer img = wrap(f.pixels);
-            const float sg = ComputeGlobalSigma(&img);
+            const float sg = useBm4 ? estDiffMadMin4(f.pixels)
+                                    : ComputeGlobalSigma(&img);
             const float floor = st.alpha * sg;
             const float cap = st.beta * sg;
 
@@ -653,10 +755,15 @@ void regress() {
 
 int main(int argc, char** argv) {
     bool verifyOnly = false, estOnly = false, regressOnly = false;
+    bool regress4 = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--verify") == 0) verifyOnly = true;
         if (std::strcmp(argv[i], "--estimators") == 0) estOnly = true;
         if (std::strcmp(argv[i], "--regress") == 0) regressOnly = true;
+        if (std::strcmp(argv[i], "--regress4") == 0) {
+            regressOnly = true;
+            regress4 = true;
+        }
     }
 
     if (xpe_preprocess_init(nullptr) != XPE_OK) {
@@ -665,7 +772,7 @@ int main(int argc, char** argv) {
     }
 
     if (regressOnly) {
-        regress();
+        regress(regress4);
         xpe_preprocess_shutdown();
         return 0;
     }
