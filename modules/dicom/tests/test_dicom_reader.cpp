@@ -1299,3 +1299,202 @@ TEST_F(DicomReaderTest, SurplusPixelData_IsIgnoredAndReadSucceeds) {
 
     xpe_free_image(&img);
 }
+
+// ===========================================================================
+// #150 (QA-B-50): the COMPRESSED paths, against the same contract.
+//
+// QA-B-49 closed the hazard on the native path and said so with a warning
+// attached: "잘린 픽셀은 거절된다" must not be read as a property of the module.
+// HAZ-DCM-002 (risk 8) does not distinguish transfer syntaxes, so a control that
+// only holds for uncompressed pixel data stops half the hazard.
+//
+// Observed first (log: .moai/reports/lane-post/QA-B-50/_observation.log). Both
+// compressed paths diverged, each in its own way:
+//
+//   j2k-undersized    rc=0  declared 256x256 -> RETURNED 256x128
+//   jpegll-undersized rc=0  declared 256x256 -> returned 256x256, half of it zero
+//
+// J2K ignored the declared size entirely and handed back a smaller buffer than
+// the metadata describes -- a caller that trusts Rows/Columns indexes past its
+// end. JPEG-LL produced exactly the black-lower-half image #150 rejected for
+// native data, and the native guard could not see it: DCMTK decompresses into a
+// buffer sized from Rows/Columns, so the shortfall is already padded away by the
+// time that guard runs. Each needed its own detection point; both now return
+// XPE_ERR_DICOM_INVALID.
+//
+// The matched-size controls below use the SAME construction with declared ==
+// real. They must still read normally -- otherwise a rejection above would be
+// evidence about the fixture, not about the reader.
+// ===========================================================================
+namespace {
+
+// Build a compressed file whose codestream carries `realRows` rows while the
+// dataset declares `declaredRows`. Returns false with a reason when the shape
+// cannot be produced.
+bool WriteCompressedWithDeclaredRows(const fs::path& dst, bool useJ2K,
+                                     uint32_t cols, uint32_t realRows,
+                                     uint32_t declaredRows, std::string& whyNot) {
+    // NOTE: `small` is a macro in the Windows SDK headers this file already
+    // pulls in (rpcndr.h), so the local name here is deliberately not that.
+    const fs::path nativeSmall = dst.parent_path() / (dst.stem().string() + "_n.dcm");
+    const fs::path comp        = dst.parent_path() / (dst.stem().string() + "_c.dcm");
+
+    XpeImageBuffer img{};
+    if (xpe_alloc_image(cols, realRows, XPE_PIXEL_UINT16, &img) != XPE_OK) {
+        whyNot = "xpe_alloc_image failed";
+        return false;
+    }
+    auto* px = static_cast<uint16_t*>(img.data);
+    for (uint32_t k = 0; k < img.width * img.height; ++k) {
+        px[k] = static_cast<uint16_t>(0x1000 + (k & 0xFFF));   // never zero
+    }
+    XpeImageMetadata meta{};
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
+    meta.pixelPitch_mm = 0.148f;
+
+    bool built = false;
+    if (useJ2K) {
+        built = (xpe_dicom_write_j2k(comp.string().c_str(), &img, &meta) == XPE_OK);
+        if (!built) whyNot = "xpe_dicom_write_j2k failed on the source image";
+    } else {
+        built = (xpe_dicom_write(nativeSmall.string().c_str(), &img, &meta) == XPE_OK) &&
+                WriteJpegLosslessCopy(nativeSmall, comp);
+        if (!built) whyNot = "JPEG-LL encode of the source image failed";
+    }
+    xpe_free_image(&img);
+    if (!built) return false;
+
+    // Rewrite the declared Rows without touching the compressed pixel data.
+    DcmFileFormat ff;
+    if (!ff.loadFile(comp.string().c_str()).good()) {
+        whyNot = "could not reload the compressed file";
+        return false;
+    }
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) { whyNot = "no dataset"; return false; }
+    const E_TransferSyntax xfer = ds->getOriginalXfer();
+    if (!ds->putAndInsertUint16(DCM_Rows, static_cast<Uint16>(declaredRows)).good()) {
+        whyNot = "could not rewrite DCM_Rows";
+        return false;
+    }
+    if (!ff.saveFile(dst.string().c_str(), xfer, EET_ExplicitLength, EGL_recalcGL,
+                     EPD_withoutPadding, 0, 0, EWM_dontUpdateMeta).good()) {
+        whyNot = "could not save with the original transfer syntax";
+        return false;
+    }
+    return true;
+}
+
+// Reads into a sentinel-stamped buffer so any field the reader writes is visible.
+XpeErrorCode ReadWithSentinel(const fs::path& path, XpeImageBuffer* out) {
+    *out = XpeImageBuffer{};
+    out->width = 4242u; out->height = 2424u; out->dataSize = 777u;
+    out->bitsAllocated = 99u; out->data = nullptr;
+
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode openRc = xpe_dicom_open(path.string().c_str(), &handle);
+    if (openRc != XPE_OK) return openRc;
+    const XpeErrorCode rc = xpe_dicom_read_image(handle, out);
+    xpe_dicom_close(handle);
+    return rc;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "j2k_undersized.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/true, 256, 128, 256, whyNot))
+        << whyNot;
+
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadWithSentinel(path, &img))
+        << "before #150 this returned XPE_OK with a 256x128 buffer while the "
+           "metadata said 256x256";
+    // Judged before xpe_alloc_image runs, so the QA-B-48 contract holds in full.
+    EXPECT_EQ(nullptr, img.data);
+    EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
+    EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
+}
+
+TEST_F(DicomReaderTest, JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid) {
+    const auto path = s_tempDir / "jpegll_undersized.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/false, 256, 128, 256, whyNot))
+        << whyNot;
+
+    XpeImageBuffer img{};
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadWithSentinel(path, &img))
+        << "before #150 this returned XPE_OK with a full-size image whose lower "
+           "half was black padding -- HAZ-DCM-002 exactly";
+    EXPECT_EQ(nullptr, img.data);
+    EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
+    EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
+}
+
+// The controls. Same construction, declared == real: these must read normally,
+// so the two rejections above are about the mismatch and not about the fixture.
+TEST_F(DicomReaderTest, CompressedMatchedSize_StillReadsNormally) {
+    struct Case { const char* name; bool j2k; };
+    const Case cases[] = { {"J2K", true}, {"JPEG-LL", false} };
+    for (const auto& c : cases) {
+        SCOPED_TRACE(c.name);
+        const auto path = s_tempDir / (std::string("matched_") + c.name + ".dcm");
+        std::string whyNot;
+        ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, c.j2k, 256, 128, 128, whyNot))
+            << whyNot;
+
+        XpeImageBuffer img{};
+        ASSERT_EQ(XPE_OK, ReadWithSentinel(path, &img));
+        EXPECT_EQ(256u, img.width);
+        EXPECT_EQ(128u, img.height);
+        ASSERT_NE(nullptr, img.data);
+
+        const uint16_t* px = static_cast<const uint16_t*>(img.data);
+        const size_t n = static_cast<size_t>(img.width) * img.height;
+        size_t zeros = 0;
+        for (size_t k = 0; k < n; ++k) if (px[k] == 0) ++zeros;
+        EXPECT_EQ(0u, zeros) << "the fixture writes no zero pixels, so a zero here "
+                                "would mean padding crept into a matched-size read";
+        xpe_free_image(&img);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// KnownDivergence_ (QA-B-50): the OTHER direction -- codestream LARGER than the
+// dataset declares. Not part of HAZ-DCM-002 (nothing is missing), so #150 does
+// not reject it, and this card does not change it. What the two paths do differs,
+// which is the part worth recording:
+//
+//   j2k-oversized     rc=0   declared 256x128 -> returned 256x256
+//   jpegll-oversized  rc=-3  (PROCESSING_FAILED, from DCMTK's decoder)
+//
+// So the same malformed shape is a success on one path and a failure on the
+// other, and the J2K success hands back a buffer LARGER than the metadata
+// describes. Neither is obviously right; deciding it is a contract question,
+// raised in the QA-B-50 report rather than settled here. These assertions pin
+// today's behaviour so the decision shows up as a change.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, KnownDivergence_CompressedLargerThanDeclared) {
+    {
+        const auto path = s_tempDir / "j2k_oversized.dcm";
+        std::string whyNot;
+        ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/true, 256, 256, 128, whyNot))
+            << whyNot;
+        XpeImageBuffer img{};
+        EXPECT_EQ(XPE_OK, ReadWithSentinel(path, &img))
+            << "today: J2K accepts a codestream larger than declared";
+        EXPECT_EQ(256u, img.height)
+            << "today: the returned image is TALLER than the dataset declares";
+        xpe_free_image(&img);
+    }
+    {
+        const auto path = s_tempDir / "jpegll_oversized.dcm";
+        std::string whyNot;
+        ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, /*useJ2K=*/false, 256, 256, 128, whyNot))
+            << whyNot;
+        XpeImageBuffer img{};
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, ReadWithSentinel(path, &img))
+            << "today: DCMTK's decoder refuses the same shape JPEG-LL side";
+    }
+}

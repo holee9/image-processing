@@ -48,6 +48,52 @@ void ensure_jpeg_codecs_registered() {
     std::call_once(once, []() { DJDecoderRegistration::registerCodecs(); });
 }
 
+// #150 (QA-B-50): read the frame size out of a JPEG bitstream's SOF marker.
+//
+// Why this is needed at all: DCMTK decompresses a JPEG frame INTO a buffer sized
+// from the dataset's Rows/Columns, so a frame carrying fewer rows than the header
+// declares comes back padded to the declared size. By the time the native
+// short-PixelData guard (#150) looks, there is no shortfall left to see -- the
+// image is full-size with a black lower half, which is exactly the HAZ-DCM-002
+// hazard that guard exists to stop. The only place the real height still exists
+// is the JPEG frame header itself, so that is where this looks.
+//
+// Returns false when no SOF marker is found. A false is NOT a verdict: the
+// caller must not reject on it, because "we could not read the frame header" is
+// a different statement from "the frame is too small".
+bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH) {
+    if (data == nullptr || len < 4) return false;
+    size_t i = 0;
+    if (!(data[0] == 0xFF && data[1] == 0xD8)) return false;   // SOI
+    i = 2;
+    while (i + 3 < len) {
+        if (data[i] != 0xFF) { ++i; continue; }                // resync on fill bytes
+        const uint8_t marker = data[i + 1];
+        if (marker == 0xFF) { ++i; continue; }
+        if (marker == 0xD8 || marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+            i += 2;                                            // standalone markers
+            continue;
+        }
+        if (i + 3 >= len) return false;
+        const size_t segLen = (static_cast<size_t>(data[i + 2]) << 8) | data[i + 3];
+        // SOF0..SOF3, SOF5..SOF7, SOF9..SOF11, SOF13..SOF15 all carry the frame
+        // header in the same layout; JPEG Lossless (Process 14) is SOF3 (0xC3).
+        const bool isSOF = (marker >= 0xC0 && marker <= 0xCF) &&
+                           marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
+        if (isSOF) {
+            // length(2) precision(1) height(2) width(2)
+            if (i + 8 >= len) return false;
+            outH = (static_cast<uint32_t>(data[i + 5]) << 8) | data[i + 6];
+            outW = (static_cast<uint32_t>(data[i + 7]) << 8) | data[i + 8];
+            return outW != 0 && outH != 0;
+        }
+        if (marker == 0xDA) return false;                      // reached scan data
+        if (segLen < 2) return false;
+        i += 2 + segLen;
+    }
+    return false;
+}
+
 }  // namespace
 
 // Supported Transfer Syntax UIDs
@@ -171,6 +217,37 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     }
 
     if (isJPEGLL) {
+        // #150: check the encoded frame against the declared size BEFORE letting
+        // DCMTK decompress. Afterwards the padding hides the shortfall (see
+        // jpeg_frame_dimensions). Judged here, nothing has been allocated yet, so
+        // the QA-B-48 contract holds on this path: outImg is not touched at all.
+        DcmElement* encElem = nullptr;
+        if (ds->findAndGetElement(DCM_PixelData, encElem).good() && encElem != nullptr) {
+            DcmPixelData* encPd = OFstatic_cast(DcmPixelData*, encElem);
+            DcmPixelSequence* encSeq = nullptr;
+            E_TransferSyntax encKey = EXS_JPEGProcess14SV1;
+            const DcmRepresentationParameter* encParam = nullptr;
+            if (encPd != nullptr &&
+                encPd->getEncapsulatedRepresentation(encKey, encParam, encSeq).good() &&
+                encSeq != nullptr) {
+                DcmPixelItem* frag = nullptr;
+                if (encSeq->getItem(frag, 1).good() && frag != nullptr) {
+                    Uint8* fragData = nullptr;
+                    uint32_t frameW = 0, frameH = 0;
+                    if (frag->getUint8Array(fragData).good() && fragData != nullptr &&
+                        jpeg_frame_dimensions(fragData, static_cast<size_t>(frag->getLength()),
+                                              frameW, frameH)) {
+                        if (frameW < cols || frameH < rows) {
+                            spdlog::error("[DicomReader] JPEG frame is smaller than declared: "
+                                          "dataset says {}x{}, frame carries {}x{}",
+                                          cols, rows, frameW, frameH);
+                            return XPE_ERR_DICOM_INVALID;
+                        }
+                    }
+                }
+            }
+        }
+
         // JPEG Lossless: use DCMTK's built-in JPEG decoder
         OFCondition repStatus = ds->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
         if (repStatus.bad()) {
@@ -396,8 +473,12 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
                                                uint32_t rows, uint32_t cols,
                                                uint16_t bitsAlloc, uint16_t bitsStored,
                                                XpeImageBuffer* outImg) {
-    // rows/cols are validated via OpenJPEG codestream header; suppress unused warning
-    (void)rows; (void)cols;
+    // #150: rows/cols ARE used below -- the comment that once stood here claimed
+    // they were "validated via OpenJPEG codestream header", but nothing compared
+    // them, so a codestream smaller than the dataset declared was decoded and
+    // returned as a success at the codestream's own size (QA-B-50 observed
+    // declared 256x256 -> returned 256x128, rc=0). A caller that trusts the
+    // metadata then indexes past the buffer it was handed.
     if (!j2kData || j2kLen == 0) return XPE_ERR_DICOM_INVALID;
 
     // Setup OpenJPEG decoder
@@ -488,6 +569,20 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     // Validate dimensions
     uint32_t imgW = image->comps[0].w;
     uint32_t imgH = image->comps[0].h;
+
+    // #150: a codestream smaller than the header declares is a corrupt file, not
+    // a readable one -- the same HAZ-DCM-002 hazard the native path rejects.
+    // Distinct from the decode failures above: those mean OpenJPEG could not
+    // decode and return XPE_ERR_PROCESSING_FAILED; this means it decoded fine and
+    // the result does not match what the dataset promised, which is a DICOM
+    // consistency fault. The two are not merged into one code on purpose.
+    if (imgW < cols || imgH < rows) {
+        spdlog::error("[DicomReader] J2K codestream is smaller than declared: "
+                      "dataset says {}x{}, codestream carries {}x{}",
+                      cols, rows, imgW, imgH);
+        opj_image_destroy(image);
+        return XPE_ERR_DICOM_INVALID;
+    }
 
     // Allocate output buffer
     if (outImg) {
