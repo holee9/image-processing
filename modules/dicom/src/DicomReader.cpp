@@ -201,11 +201,27 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         return XPE_ERR_DICOM_INVALID;
     }
 
-    // Copy pixel data into buffer
+    // Copy pixel data into buffer.
+    //
+    // #150: a PixelData shorter than Rows x Columns declares is a corrupt file,
+    // not a readable one. Copying what exists and returning XPE_OK would hand
+    // the caller a full-size image whose lower part is black padding, with no
+    // signal that anything is missing -- HAZ-DCM-002 names exactly that failure
+    // ("픽셀 데이터 불완전 ... 호출자에게 '성공' 반환") and SR-DCM-003 requires
+    // rejection instead. The buffer is released so no partial image escapes.
+    //
+    // A LONGER PixelData stays a success: trailing padding is legal in DICOM,
+    // so the surplus is simply not copied.
     size_t expectedBytes = static_cast<size_t>(rows) * cols * sizeof(uint16_t);
     size_t availBytes = pixCount * sizeof(uint16_t);
-    size_t copyBytes = (availBytes < expectedBytes) ? availBytes : expectedBytes;
-    std::memcpy(outImg->data, pixData, copyBytes);
+    if (availBytes < expectedBytes) {
+        spdlog::error("[DicomReader] PixelData is short: {}x{} declares {} bytes, "
+                      "file carries {} bytes",
+                      cols, rows, expectedBytes, availBytes);
+        xpe_free_image(outImg);
+        return XPE_ERR_DICOM_INVALID;
+    }
+    std::memcpy(outImg->data, pixData, expectedBytes);
 
     return XPE_OK;
 }
