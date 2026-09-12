@@ -44,6 +44,7 @@
 #include <cstdio>
 #include <cstring>
 #include <immintrin.h>
+#include <thread>
 #include <random>
 #include <string>
 #include <vector>
@@ -328,6 +329,91 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::printf("[time] %ux%u  best of 3: %8.1f ms   flagged %zu (%.3f%%)\n",
                 w, h, best, flagged, 100.0 * (double)flagged / (double)n);
     std::fflush(stdout);
+}
+
+/* ------------------------------------------------ QA-A-57 thread probe */
+//
+// MEASUREMENT PROBE, NOT AN IMPLEMENTATION. The card is explicit: split the rows,
+// time it, throw the result away. Correctness of a threaded detector -- the global
+// sigma is frame-wide and would have to be computed before any split, the map
+// writes would need their own reasoning -- is NOT addressed here and must not be
+// inferred from these numbers. What this answers is one question only: how much
+// of the per-pixel loop is parallel work on this machine?
+//
+// So that the number means something, the probe splits ONLY the per-pixel loop
+// and hands every thread the same config, computed once up front on the whole
+// frame. That is the shape a real threaded detector would have, and it keeps the
+// global-sigma stage (which QA-A-56 showed does not vectorise and would not split
+// cleanly either) out of the speed-up figure rather than flattering it.
+
+void threadProbe(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+
+    std::vector<uint8_t> map(n, 0u);
+
+    // One frame-wide sigma up front, exactly as the entry point does. It is NOT
+    // inside the timed region: this probe measures the splittable part only.
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    const float sg = ComputeGlobalSigma(&img);
+    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+
+    auto runRows = [&](uint32_t y0, uint32_t y1) {
+        std::vector<float> a, b;
+        a.reserve(64); b.reserve(64);
+        for (uint32_t y = y0; y < y1; ++y) {
+            for (uint32_t x = 0; x < w; ++x) {
+                if (DetectDefectivePixel(&img, x, y, cfg, a, b)) {
+                    map[static_cast<size_t>(y) * w + x] = 1u;
+                }
+            }
+        }
+    };
+
+    const unsigned hw = std::thread::hardware_concurrency();
+    std::printf("[thread-probe] %ux%u per-pixel loop only; global sigma excluded\n", w, h);
+    std::printf("  hardware_concurrency reports %u\n", hw);
+    std::printf("  NOTE: correctness of a threaded detector is NOT addressed here.\n\n");
+    std::printf("  %8s %12s %12s %10s\n", "threads", "min ms", "median ms", "speed-up");
+
+    double baseline = 0.0;
+    const unsigned counts[] = {1u, 2u, 4u, 6u, 8u, 12u, 16u, 20u};
+    for (unsigned t : counts) {
+        if (t > hw) continue;
+        std::vector<double> samples;
+        for (int rep = 0; rep < 5; ++rep) {
+            std::fill(map.begin(), map.end(), static_cast<uint8_t>(0));
+            const auto t0 = std::chrono::steady_clock::now();
+            std::vector<std::thread> pool;
+            pool.reserve(t);
+            for (unsigned k = 0; k < t; ++k) {
+                const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h) * k) / t);
+                const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h) * (k + 1u)) / t);
+                pool.emplace_back(runRows, y0, y1);
+            }
+            for (std::thread& th : pool) th.join();
+            const auto t1 = std::chrono::steady_clock::now();
+            samples.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        }
+        std::sort(samples.begin(), samples.end());
+        const double lo = samples.front();
+        const double med = samples[samples.size() / 2u];
+        if (t == 1u) baseline = lo;
+        std::printf("  %8u %12.1f %12.1f %9.2fx\n", t, lo, med, baseline / lo);
+        std::fflush(stdout);
+    }
+    std::printf("\n");
 }
 
 /* ------------------------------------------------------- QA-A-56 bounds */
@@ -949,6 +1035,7 @@ int main(int argc, char** argv) {
     bool decomposeOnly = false;
     bool sigmaOnly = false;
     bool boundsOnly = false;
+    bool threadsOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
@@ -956,6 +1043,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
+        if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -966,6 +1054,12 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (threadsOnly) {
+        threadProbe(3072, 3072);
         xpe_preprocess_shutdown();
         return 0;
     }
