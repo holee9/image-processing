@@ -404,7 +404,16 @@
         </views:AnalysisPanel>
 
         <Grid Margin="0">
-            <views:ViewportShell AutomationProperties.AutomationId="ViewportShell" />
+            <!--
+                #149 G-6: the selected comparison mode is readable from the automation tree.
+                HelpText is metadata — it is never rendered, so nothing on screen changes — and it
+                binds straight to Settings.ComparisonMode, with no second writer in between. That
+                last property is the point: GUI-C-46 tried three observation points and the one that
+                looked most promising (the opacity slider) sat downstream of a separate assignment,
+                so a falsification that removed the setting write left the suite green.
+            -->
+            <views:ViewportShell AutomationProperties.AutomationId="ViewportShell"
+                                 AutomationProperties.HelpText="{Binding Settings.ComparisonMode}" />
         </Grid>
     </DockPanel>
 </Window>
