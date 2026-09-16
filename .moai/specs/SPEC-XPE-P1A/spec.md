@@ -448,7 +448,15 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 ### 4.6 SIMD Parity Contract (NEW IN v1.2.0)
 
-The scalar path is the reference implementation. The AVX2 path is an opt-in performance layer that must honour the following parity rules on every supported operation:
+**AVX2 is a minimum platform requirement (decided 2026-09-16, user, #160).** The module is compiled `/arch:AVX2` as a whole (`modules/preprocess/CMakeLists.txt`), so a CPU without AVX2 does not run it slowly — it **faults on the first call**, before any code of ours executes. That is now a stated requirement rather than an accident.
+
+> **What this decision changes, and what it does not.** Behaviour is unchanged: such a CPU faulted before and faults after. What changes is that the fault is **specified** rather than surprising, and that the module stops **appearing** to handle the case — `xpe_gain_has_avx2()` in `gain_correct.cpp` was a correct CPUID/XGETBV probe that **could never protect anything**, because the faulting instruction can be emitted anywhere in the module including ahead of the probe itself. A guard that cannot guard is worse than no guard: it makes a reader stop looking.
+>
+> **The cost of the alternative is measured.** Supporting a non-AVX2 CPU means splitting `/arch:AVX2` to the vector sources only, which is a structural change whose boundaries break silently when inlining or templates cross them. And giving up AVX2 entirely means giving up **692.7 -> 163.7 ms** on the 3072x3072 detection (QA-A-65, bit-identical), with the 60 ms target unreachable by scalar code — the median stage already sits at the measured scalar lower bound (QA-A-68).
+>
+> **What was verified, and what could not be.** A build with the vector path switched off produces **byte-identical results** (QA-A-71: flag count and map digest match exactly across the two builds). That establishes the scalar path is correct, **not** that it runs on a non-AVX2 CPU — that build still compiles `/arch:AVX2`, so no build currently exists in which the question could be asked. Do not read the parity result as AVX2-free support.
+
+The scalar path is the reference implementation, and the parity rules below still bind because the scalar path is what defines correct output. The AVX2 path is the shipped path on every supported CPU:
 
 | Operation | Scalar Path | AVX2 Path | Parity Rule |
 |-----------|-------------|-----------|-------------|
