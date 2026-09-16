@@ -174,16 +174,6 @@
                           IsEnabled="False"
                           IsCheckable="True"
                           IsChecked="{Binding Settings.ShowDisplayPanel, Mode=TwoWay}" />
-                <MenuItem x:Name="ShowImageSummaryPanelMenuItem"
-                          AutomationProperties.AutomationId="ShowImageSummaryPanelMenuItem"
-                          Header="Image Summary Panel"
-                          IsCheckable="True"
-                          IsChecked="{Binding ShowImageSummaryPanel, Mode=TwoWay}" />
-                <MenuItem x:Name="ShowMetadataPanelMenuItem"
-                          AutomationProperties.AutomationId="ShowMetadataPanelMenuItem"
-                          Header="Metadata / Notes Panel"
-                          IsCheckable="True"
-                          IsChecked="{Binding ShowMetadataPanel, Mode=TwoWay}" />
                 <MenuItem x:Name="ShowLogsPanelMenuItem"
                           AutomationProperties.AutomationId="ShowLogsPanelMenuItem"
                           Header="Logs Panel"

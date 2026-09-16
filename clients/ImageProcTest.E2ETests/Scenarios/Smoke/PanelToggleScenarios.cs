@@ -37,6 +37,12 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
         ["ShowRuntimePanelMenuItem"],
         ["ShowRawSettingsPanelMenuItem"],
         ["ShowAlertsPanelMenuItem"],
+        // Added in GUI-C-66. These two were held back one card because the requirement table did
+        // not name them and the judgement was to keep what works — then the measurement showed they
+        // do not work either: same missing region, same 146->146 (GUI-C-63). Same state, same
+        // treatment.
+        ["ShowImageSummaryPanelMenuItem"],
+        ["ShowMetadataPanelMenuItem"],
     ];
 
     /// <summary>Toggles MENU-001 §9.2 schedules for a later phase.</summary>
