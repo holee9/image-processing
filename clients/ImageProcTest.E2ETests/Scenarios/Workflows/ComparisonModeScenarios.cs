@@ -28,7 +28,17 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// Difference mode — measured identical in both modes (84 element names either way).</item>
 /// <item>The detached comparison viewer, whose status line binds to the setting — the window never
 /// appeared after invoking <c>DetachComparisonViewerMenuItem</c>; the only top-level windows were
-/// the taskbar, the main window and Program Manager.</item>
+/// the taskbar, the main window and Program Manager.
+/// <para><b>Corrected (#166).</b> Two separate things were wrong here. The window genuinely did not
+/// open — GUI-C-70 caught the exception that prevented it, and GUI-C-71 fixed it. But the search
+/// quoted above could not have found it either way: the viewer is opened with <c>Owner</c> set, and
+/// UIA nests an owned window under its owner rather than under the desktop (GUI-C-71 measured
+/// <c>desktopChild=False underMain=True</c>). A detached viewer is found with
+/// <c>window.FindFirstDescendant(ByName("ImageProcTest Comparison Viewer"))</c> — see
+/// <c>Scenarios/Smoke/DetachViewerScenarios</c>. It is still not an observation point for the
+/// comparison MODE: the viewport is a bare FrameworkElement with no automation peer, and the only
+/// element the detached window exposes is a status line bound to the view model, which would read
+/// the new mode whether or not the viewport followed (GUI-C-72).</para></item>
 /// </list>
 ///
 /// The mode's effect is verified instead where it is observable: by rendering the control directly
