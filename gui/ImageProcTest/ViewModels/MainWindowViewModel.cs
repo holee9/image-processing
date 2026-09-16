@@ -546,15 +546,25 @@ public sealed class MainWindowViewModel : ObservableObject
         Log($"Settings saved to '{_settingsService.FilePath}'.");
     }
 
+    /// <summary>
+    /// View → Reset Layout.
+    ///
+    /// <para><b>Five writes were removed here</b> (#165, GUI-C-67). This method used to set eight
+    /// panel flags; measured, seven of them changed nothing a user could see, and five of those seven
+    /// have no writer left at all now that their menu items are gone — they are permanently
+    /// <c>true</c>, so assigning <c>true</c> to them was a no-op with a reassuring name. Removing
+    /// them changes no observable behaviour, which is why it is safe; keeping them would keep the
+    /// message "Layout reset." half false.</para>
+    ///
+    /// <para>What remains all does something: the Logs toggle drives the log region (GUI-C-65), the
+    /// two scheduled flags drive the checkmark on their (disabled) menu items, and the comparison
+    /// view really is restored. <b>If one of the removed panels is ever built, its flag belongs back
+    /// in this list</b> — the reason it left was the missing panel, not the flag.</para>
+    /// </summary>
     private void ResetLayout()
     {
-        ShowRuntimePanel = true;
-        ShowRawSettingsPanel = true;
         ShowCalibrationPanel = true;
-        ShowImageSummaryPanel = true;
-        ShowMetadataPanel = true;
         ShowLogsPanel = true;
-        ShowAlertsPanel = true;
         Settings.ShowDisplayPanel = true;
         ResetComparisonView();
         StatusText = "Layout reset.";
@@ -570,11 +580,25 @@ public sealed class MainWindowViewModel : ObservableObject
         Log($"Native diagnostics: backend={RuntimeInfo.BackendName}, version={RuntimeInfo.Version}, state={RuntimeInfo.State}, commonDetected={RuntimeInfo.NativeDllDetected}, commonPath='{RuntimeInfo.NativeDllPath}', displayDetected={RuntimeInfo.DisplayDllDetected}, displayPath='{RuntimeInfo.DisplayDllPath}', displayVersion='{RuntimeInfo.DisplayVersion}'.");
     }
 
+    /// <summary>
+    /// Tools → Calibration Settings.
+    ///
+    /// <para><b>The panel this used to announce does not exist</b> (#165, measured in GUI-C-65: no
+    /// visibility binding reads <see cref="ShowCalibrationPanel"/>, and the calibration directory
+    /// settings have no markup at all). The command said "panel visible" anyway, so a reader of the
+    /// log was told something that had not happened — worse than silence, because it is believed.</para>
+    ///
+    /// <para>The command stays: <c>MENU-001</c> §4 lists it and §9.1 marks it S0 · Always. What
+    /// changes is only what it claims. The wording follows this repository's own precedent for a
+    /// command whose implementation has not arrived — <c>"RunOnAllQueuedCommand: not implemented
+    /// (Slice 7)."</c> — rather than inventing a screen, which GUI-C-64 stopped for the reason that
+    /// a layout invented to satisfy a message would then be the design.</para>
+    /// </summary>
     private void ShowCalibrationSettings()
     {
         ShowCalibrationPanel = true;
-        StatusText = "Calibration settings panel visible.";
-        Log("Menu command: calibration settings panel shown.");
+        StatusText = "Calibration settings: no panel implemented (#165).";
+        Log("Menu command: calibration settings — not implemented; no panel is shown (#165).");
     }
 
     private void ShowFixtureManager()

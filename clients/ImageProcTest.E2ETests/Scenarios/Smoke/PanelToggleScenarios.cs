@@ -129,6 +129,11 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
             window.FindFirstDescendant(cf => cf.ByName("Log"))!.AsButton().Invoke();
             Thread.Sleep(400);
 
+            // Start from OFF rather than assuming it. The scenarios below share one app, and the
+            // first version of this assumed the default and failed once S10 ran before it — a test
+            // that depends on what another test left behind measures the order, not the toggle.
+            HideTheLog(window);
+
             var hidden = window.FindAllDescendants().Length;
             var listWhileOff = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
 
@@ -154,6 +159,127 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
                 $"Turning it off again left {hiddenAgain} descendants, not the {hidden} it started " +
                 "with — the region does not come back down, so the toggle only works once.");
         });
+    }
+
+    /// <summary>
+    /// S09: Tools → Calibration Settings does not claim a panel appeared.
+    ///
+    /// <para>It used to log <c>"Menu command: calibration settings panel shown."</c> and set the
+    /// status line to <c>"Calibration settings panel visible."</c> while no such panel exists
+    /// (measured in GUI-C-65). A log that reports something which did not happen is worse than a
+    /// silent one: the next reader believes it.</para>
+    ///
+    /// <para>Asserted from the log the user can actually read, not from the source — the point is
+    /// what the app tells someone, and GUI-C-62 measured that this list is reachable.</para>
+    /// </summary>
+    [SkippableFact]
+    public void S09_CalibrationSettings_DoesNotClaimAPanelAppeared()
+    {
+        Measure("S09 calibration settings", window =>
+        {
+            ShowTheLog(window);
+
+            window.FindFirstDescendant(cf => cf.ByAutomationId("ToolsMenu"))!.AsMenuItem().Click();
+            Thread.Sleep(300);
+            window.FindFirstDescendant(cf => cf.ByAutomationId("CalibrationSettingsMenuItem"))!
+                .AsMenuItem().Invoke();
+            Thread.Sleep(500);
+
+            var lines = LogLines(window);
+            output.WriteLine($"S09 log lines={lines.Length}");
+            foreach (var line in lines.Where(l => l.Contains("calibration", StringComparison.OrdinalIgnoreCase)))
+            {
+                output.WriteLine($"S09 >> {line}");
+            }
+
+            var claims = lines.Where(l =>
+                l.Contains("panel shown", StringComparison.OrdinalIgnoreCase) ||
+                l.Contains("panel visible", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+            Assert.True(
+                claims.Length == 0,
+                $"The log says a panel appeared: '{string.Join(" | ", claims)}'. No calibration panel " +
+                "exists (#165) — do not restore the old wording; build the panel or keep the notice.");
+
+            Assert.Contains(
+                lines,
+                l => l.Contains("calibration settings", StringComparison.OrdinalIgnoreCase)
+                     && l.Contains("not implemented", StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    /// <summary>
+    /// S10: Reset Layout puts the state back, rather than only reporting that it ran.
+    ///
+    /// <para>The observable default is the Logs toggle: <c>ResetLayout</c> turns it on, so with the
+    /// log tab selected the region has to reappear. Turning it OFF first is what makes this a
+    /// measurement — asserting against a state that was already correct measures nothing, the trap
+    /// GUI-C-47 found in the comparison-mode scenarios.</para>
+    /// </summary>
+    [SkippableFact]
+    public void S10_ResetLayout_RestoresTheState()
+    {
+        Measure("S10 reset layout", window =>
+        {
+            ShowTheLog(window);
+            var regionWhileOn = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+
+            HideTheLog(window);
+            var regionWhileOff = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+
+            // The off state is asserted before the reset: without it, a Reset Layout that did
+            // nothing would still find the region present and pass.
+            Assert.True(regionWhileOn is not null, "The log region never appeared, so nothing is being reset.");
+            Assert.True(regionWhileOff is null, "Turning the toggle off left the log region up.");
+
+            OpenViewMenu(window);
+            window.FindFirstDescendant(cf => cf.ByAutomationId("ResetLayoutMenuItem"))!.AsMenuItem().Invoke();
+            Thread.Sleep(600);
+
+            var regionAfterReset = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+            output.WriteLine(
+                $"S10 log region on={regionWhileOn is not null} off={regionWhileOff is null} " +
+                $"afterReset={regionAfterReset is not null}");
+
+            // The whole-window count is NOT used here, though S08 uses it: Reset Layout also restores
+            // the comparison view, which adds and removes elements of its own (measured: 155 before,
+            // 157 after). A count that moves for two reasons cannot answer a question about one.
+            Assert.True(
+                regionAfterReset is not null,
+                "Reset Layout did not bring the log region back, so it reported a reset it did not " +
+                "perform (#165).");
+
+            HideTheLog(window);
+        });
+    }
+
+    /// <summary>Turns the log region off if it is on, so a case can start from a known state.</summary>
+    private static void HideTheLog(Window window)
+    {
+        if (window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox")) is not null)
+        {
+            InvokeLogsToggle(window);
+        }
+    }
+
+    /// <summary>Selects the log tab and makes sure the region is on.</summary>
+    private static void ShowTheLog(Window window)
+    {
+        window.SetForeground();
+        window.FindFirstDescendant(cf => cf.ByName("Log"))!.AsButton().Invoke();
+        Thread.Sleep(350);
+
+        if (window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox")) is null)
+        {
+            InvokeLogsToggle(window);
+        }
+    }
+
+    private static string[] LogLines(Window window)
+    {
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+        Assert.True(list is not null, "LogListBox was not reachable, so nothing about the log can be said.");
+        return list!.FindAllChildren().Select(i => i.Name).ToArray();
     }
 
     private static void InvokeLogsToggle(Window window)
