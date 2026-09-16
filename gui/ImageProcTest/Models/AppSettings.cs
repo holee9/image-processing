@@ -31,7 +31,7 @@ public sealed class AppSettings : ObservableObject
     private float _modalityRescaleSlope = 1.0f;
     private float _modalityRescaleIntercept = 0.0f;
     private bool _showDisplayPanel = true;
-    private string _comparisonMode = "SwipeVertical";
+    private string _comparisonMode = ComparisonModes.Default;
     private double _comparisonZoomScale;
     private double _comparisonPanX;
     private double _comparisonPanY;
@@ -279,13 +279,38 @@ public sealed class AppSettings : ObservableObject
 
     /// <summary>
     /// Gets or sets the active source-vs-processed comparison mode.
+    ///
+    /// <para><b>Only a supported mode can be stored (#161, GUI-C-60).</b> The setter used to reject
+    /// the empty string and accept everything else, so <c>"NotAMode"</c> in <c>appsettings.json</c>
+    /// survived into the running app — and the three places a user can read the mode then disagreed,
+    /// because only one of them resolved it. Normalising here makes the property's value the single
+    /// answer: every reader sees a supported mode or the default, never a third thing.</para>
+    ///
+    /// <para>The rejected text is kept in <see cref="RejectedComparisonMode"/> rather than dropped.
+    /// A setting that is silently replaced is a setting the user will write again; the shell reports
+    /// it by name at start-up, which is what this repository decided in #150 (refuse rather than
+    /// truncate) and QA-B-60 (name the key you could not read).</para>
     /// </summary>
     [JsonPropertyName("comparisonMode")]
     public string ComparisonMode
     {
         get => _comparisonMode;
-        set => SetProperty(ref _comparisonMode, string.IsNullOrWhiteSpace(value) ? "SwipeVertical" : value);
+        set
+        {
+            RejectedComparisonMode = ComparisonModes.IsKnown(value) ? null : value;
+            SetProperty(ref _comparisonMode, ComparisonModes.Normalize(value));
+        }
     }
+
+    /// <summary>
+    /// The last value handed to <see cref="ComparisonMode"/> that was not a supported mode, or null.
+    ///
+    /// <para>Not persisted: it describes THIS load, not the settings. It is deliberately not cleared
+    /// by a later valid write either — the shell reads it once at start-up, and a mode the user then
+    /// picks from the menu must not erase the reason the file was wrong.</para>
+    /// </summary>
+    [JsonIgnore]
+    public string? RejectedComparisonMode { get; private set; }
 
     /// <summary>
     /// Gets or sets the absolute viewport zoom scale. A value of 0 means fit-to-view.
