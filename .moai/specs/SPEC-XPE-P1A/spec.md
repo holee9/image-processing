@@ -295,6 +295,20 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > One qualification on the band: the local P/E spread narrowed to 3.3%, but the CI runner reads **0.552**, so the band across all three is about 18% wide. The limit accommodates that; the narrowing is a local-cores observation, not an all-machines one.
 >
 > **Still unverified, and it is the same shape as the finding above.** `MedianSortCE` also runs a ternary per element. A comment asserts MSVC lowers it to `vminss`/`vmaxss`, and **that assertion has not been checked** — a comment claiming what the compiler does is not evidence of what the compiler does.
+>
+> *(Checked 2026-09-16, QA-A-68: the comment was wrong on both counts — no `vminss`/`vmaxss`, and four conditional branches remain. It was **not** fixed, because after the AVX2 change that scalar path runs only on the border: 30,704 of 9,437,184 pixels (0.33%), 2.149 ms, and halving it would return under 0.5 ms against a gate sample spread of 8%. Measuring the share before acting is what separated "the comment is wrong" from "there is something worth fixing".)*
+>
+> ---
+>
+> **The row tail (2026-09-16, QA-A-69).** The vector run stopped at `x + 8 <= w - 1`, dropping the last seven interior pixels of every row onto the scalar path. That cost is **fixed per row**, so it grows as frames get narrower — 0.23% of interior pixels at width 3072 but about 1.4% at width 512 — and the scalar path is roughly 58x slower per pixel. An overlapping final run at `x = w - 9` removes it: scalar pixels **30,704 -> 12,284**, their cost **2.149 -> 0.985 ms**. The remaining 12,284 are the first and last columns, which have a different neighbourhood and must stay scalar. Processing the overlap twice is safe by construction (the verdict is deterministic and the map write overwrites rather than accumulates) — verified in the column direction rather than inherited from the row-direction result.
+>
+> **Three residual facts are recorded here because none of them is visible from the code.**
+>
+> **1. Frame parity did not catch the boundary error.** Moving the final run by one column (`w-9` -> `w-8`) leaves every map assertion passing, because the scalar pass that follows overwrites that column with the correct value. **The map was right and the read was wrong** — the last interior row loaded one element past the end of the frame. Only a guard-page **read** test catches it, and that is a third distinct falsification shape in this module: bit-vs-frame (QA-A-65), two layers that overlap (QA-A-67), and now **an assertion whose subject is the memory access rather than the output**.
+>
+> **2. The border is correct for two reasons, and the second hides errors in the first.** The formula does not touch the border, *and* the scalar pass rewrites it. Today both hold. If the order ever changes, the masking layer disappears and the only remaining defence is the guard-page test above.
+>
+> **3. This optimisation is not protected against its own deletion.** Remove the tail run and the map is unchanged, the guard page does not fire, and the gate cannot see the 2.7% difference against an 8% sample spread. Instrumenting the product code with a scalar-pixel counter was considered and **declined**: it would either sit in a hot path or live only in a Debug build that CI never compiles (the same dead end as the assertion in QA-A-64). The gap is recorded rather than papered over — a performance change whose only evidence is a number below the noise floor has no mechanical guard, and saying so is more useful than a guard that does not guard.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
