@@ -20,6 +20,30 @@
         <converters:FocusPanelVisibilityConverter x:Key="FocusPanelVisibility" />
     </Window.Resources>
 
+    <!--
+        Comparison-mode key gestures (GUI-C-58, #149 G-2). MENU-001 section 9.3 and 10.1 specify six;
+        three are bound here and three are deliberately NOT, because the two documents that MENU-001
+        section 10 calls a single source of truth disagree about them:
+
+          F5  Swipe           bound     - MENU-001 9.3, 10.1 and ACCESS-001 5.2 all agree
+          F6  Split           NOT bound - MENU-001 says Split, ACCESS-001 5.2 says Difference
+          F7  Overlay         bound     - named only by MENU-001; nothing else claims F7
+          F8  Difference      bound     - named only by MENU-001; nothing else claims F8
+          Ctrl+1 SourceOnly   NOT bound - MENU-001 9.3 says Source Only, but MENU-001 10.1 AND
+                                          ACCESS-001 5.2 both give Ctrl+1 to Zoom 100 percent
+          Ctrl+2 ProcessedOnly NOT bound - unclaimed elsewhere, but it is the other half of a pair
+                                          whose first half is contested; binding one and not the
+                                          other answers worse than binding neither
+
+        The withheld three are reachable from View -> Compare Mode. Resolving the conflict is a
+        document decision, not this lane's - reported in the GUI-C-58 report.
+    -->
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding SetComparisonModeCommand}" CommandParameter="SwipeVertical" />
+        <KeyBinding Key="F7" Command="{Binding SetComparisonModeCommand}" CommandParameter="OverlayOpacity" />
+        <KeyBinding Key="F8" Command="{Binding SetComparisonModeCommand}" CommandParameter="DifferenceHeatmap" />
+    </Window.InputBindings>
+
     <DockPanel>
         <!-- Workbench TopBar (Slice 3) -->
         <views:TopBar DockPanel.Dock="Top" />
@@ -186,6 +210,74 @@
                           AutomationProperties.AutomationId="ZoomOutMenuItem"
                           Header="Zoom _Out"
                           Command="{Binding ZoomOutCommand}" />
+                <Separator />
+                <!--
+                    View -> Compare Mode (GUI-C-58, #149 G-1/G-3). MENU-001 L62 puts comparison modes
+                    in the View menu and section 9.3 names six of them; until now the only way in was
+                    the four segmented buttons in ViewportShell, so SourceOnly and ProcessedOnly had
+                    no caller at all. Every item goes through SetComparisonModeCommand, the same seam
+                    the buttons and the key gestures use.
+
+                    IsChecked is ONE-WAY on purpose. The click already routed through the command; a
+                    two-way binding would write the mode a second time, and a second writer on
+                    Settings.ComparisonMode is exactly what GUI-C-47 took out.
+
+                    InputGestureText appears only where the gesture is actually bound. F6, Ctrl+1 and
+                    Ctrl+2 are NOT bound (see the window InputBindings above) because the documents
+                    disagree about them; printing a shortcut that does nothing is worse than printing
+                    none.
+                -->
+                <MenuItem x:Name="CompareModeMenuItem"
+                          AutomationProperties.AutomationId="CompareModeMenuItem"
+                          Header="_Compare Mode">
+                    <MenuItem x:Name="CompareSwipeMenuItem"
+                              AutomationProperties.AutomationId="CompareSwipeMenuItem"
+                              Header="_Swipe"
+                              InputGestureText="F5"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=SwipeVertical}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="SwipeVertical" />
+                    <MenuItem x:Name="CompareSplitMenuItem"
+                              AutomationProperties.AutomationId="CompareSplitMenuItem"
+                              Header="Sp_lit"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=SplitLocked}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="SplitLocked" />
+                    <MenuItem x:Name="CompareOverlayMenuItem"
+                              AutomationProperties.AutomationId="CompareOverlayMenuItem"
+                              Header="_Overlay"
+                              InputGestureText="F7"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=OverlayOpacity}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="OverlayOpacity" />
+                    <MenuItem x:Name="CompareDifferenceMenuItem"
+                              AutomationProperties.AutomationId="CompareDifferenceMenuItem"
+                              Header="_Difference"
+                              InputGestureText="F8"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=DifferenceHeatmap}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="DifferenceHeatmap" />
+                    <Separator />
+                    <MenuItem x:Name="CompareSourceOnlyMenuItem"
+                              AutomationProperties.AutomationId="CompareSourceOnlyMenuItem"
+                              Header="Source O_nly"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=SourceOnly}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="SourceOnly" />
+                    <MenuItem x:Name="CompareProcessedOnlyMenuItem"
+                              AutomationProperties.AutomationId="CompareProcessedOnlyMenuItem"
+                              Header="_Processed Only"
+                              IsCheckable="True"
+                              IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=ProcessedOnly}"
+                              Command="{Binding SetComparisonModeCommand}"
+                              CommandParameter="ProcessedOnly" />
+                </MenuItem>
+                <Separator />
                 <MenuItem x:Name="ResetComparisonViewMenuItem"
                           AutomationProperties.AutomationId="ResetComparisonViewMenuItem"
                           Header="Reset Comparison _View"

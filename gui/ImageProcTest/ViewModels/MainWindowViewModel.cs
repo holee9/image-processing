@@ -95,6 +95,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ZoomInCommand = new RelayCommand(ZoomIn);
         ZoomOutCommand = new RelayCommand(ZoomOut);
         ResetComparisonViewCommand = new RelayCommand(ResetComparisonView);
+        SetComparisonModeCommand = new RelayCommand<string>(SetComparisonMode);
         DetachComparisonViewerCommand = new RelayCommand(OpenDetachedComparisonViewer);
         SaveSettingsCommand = new RelayCommand(SaveSettings);
         BrowseOffsetCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Offset));
@@ -194,6 +195,21 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ZoomOutCommand { get; }
 
     public RelayCommand ResetComparisonViewCommand { get; }
+
+    /// <summary>
+    /// Selects a comparison mode by name (GUI-C-58, #149 G-1/G-2/G-3).
+    ///
+    /// <para>The renderer has supported seven modes since GUI-C-46, and four of them could be reached
+    /// by the segmented buttons in <c>ViewportShell</c>; the rest had no caller at all. The buttons
+    /// write <c>Settings.ComparisonMode</c> from their own code-behind, so a menu item or a key
+    /// gesture had nothing to bind to — this command is that missing seam, and every entry point now
+    /// goes through it.</para>
+    ///
+    /// <para>An unknown or empty name is ignored rather than written through: the parameter comes
+    /// from XAML, where a typo is not a compile error, and a bad write would leave the viewport
+    /// falling back to its default mode with nothing saying why.</para>
+    /// </summary>
+    public RelayCommand<string> SetComparisonModeCommand { get; }
 
     public RelayCommand DetachComparisonViewerCommand { get; }
 
@@ -896,6 +912,14 @@ public sealed class MainWindowViewModel : ObservableObject
         var current = Settings.ComparisonZoomScale <= 0.0 ? 1.0 : Settings.ComparisonZoomScale;
         Settings.ComparisonZoomScale = Math.Max(0.05, current / 1.25);
         RefreshComparisonStatus("Comparison viewport zoomed out.");
+    }
+
+    private void SetComparisonMode(string? mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode)) return;
+        if (!CompareModeOptions.Contains(mode, StringComparer.Ordinal)) return;
+
+        Settings.ComparisonMode = mode;
     }
 
     private void ResetComparisonView()
