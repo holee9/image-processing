@@ -137,8 +137,9 @@ public class ApplicationFixture : IDisposable
         }
 
         _application = Application.Launch(startInfo);
-        MainWindow = WithReadableProperties(
-            _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30)));
+        var launched = _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30));
+        ProbeAcquisitionRoutes(launched);
+        MainWindow = WithReadableProperties(launched);
         ExecutablePath = exePath;
     }
 
@@ -178,9 +179,15 @@ public class ApplicationFixture : IDisposable
 
             if (fresh is not null && CanReadAutomationId(fresh))
             {
+                // GUI-C-56: the note carries the window handles because the decisive question about
+                // this defect is whether the two elements are the SAME window seen through a
+                // different provider, or two different windows. Without the handles the next
+                // occurrence would leave the same open question it has left every time so far.
                 ReacquiredNote =
                     $"The launched window did not support AutomationId (framework=" +
-                    $"{SafeFramework(window)}); re-located it by process id {processId}.";
+                    $"{SafeFramework(window)}); re-located it by process id {processId}. " +
+                    $"hwnd launched={Handle(window)} reacquired={Handle(fresh)} " +
+                    $"topLevelWindowsForProcess={TopLevelWindowCount(processId)}";
                 return fresh;
             }
         }
@@ -220,6 +227,71 @@ public class ApplicationFixture : IDisposable
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// GUI-C-56 investigation probe: asks the SAME window for AutomationId through three different
+    /// acquisition routes and prints the answers.
+    ///
+    /// <para>The re-acquire path already shows that a desktop tree walk succeeds where the launched
+    /// element fails, on the same HWND, at the same moment. What it cannot show is whether the tree
+    /// walk is merely a second chance or actually a different provider: that needs both routes probed
+    /// on launches where the launched element WORKED too. This prints on every launch, so the
+    /// per-route failure rates can be compared rather than inferred.</para>
+    ///
+    /// <para>It writes to the console rather than to a note because it is not a scenario's business:
+    /// the note reports a defect that fired, this reports a measurement taken on every launch. It
+    /// reads AutomationId with a raw try/catch rather than through
+    /// <see cref="CanReadAutomationId"/>, so it never consumes the simulation seam.</para>
+    ///
+    /// <para><b>What it measured, over 32 launches each (GUI-C-56).</b> 14 launches handed back an
+    /// element that threw <c>PropertyNotSupportedException</c>; on every one of those,
+    /// <c>FromHandle</c> and the tree walk answered correctly at the same moment on the same HWND.
+    /// A fourth column, since removed, repeated <c>GetMainWindow</c> itself a moment later: it
+    /// answered correctly on all 9 failing launches of that batch. So FlaUI does not remember a
+    /// broken element and the acquisition route is not the difference — <b>only the moment the
+    /// element was created is</b>.</para>
+    /// </summary>
+    private void ProbeAcquisitionRoutes(Window launched)
+    {
+        static string Readable(AutomationElement? element)
+        {
+            if (element is null) return "null";
+            try { _ = element.Properties.AutomationId.Value; return "ok"; }
+            catch (Exception ex) { return ex.GetType().Name; }
+        }
+
+        try
+        {
+            var processId = launched.Properties.ProcessId.ValueOrDefault;
+            var handle = launched.Properties.NativeWindowHandle.ValueOrDefault;
+
+            var fromHandle = Automation.FromHandle(handle);
+            var fromTree = Automation.GetDesktop().FindFirstChild(cf => cf.ByProcessId(processId));
+
+            Console.WriteLine(
+                $"XPE-C56-PROBE hwnd=0x{handle.ToInt64():X} pid={processId} " +
+                $"launched={Readable(launched)} fromHandle={Readable(fromHandle)} " +
+                $"fromTree={Readable(fromTree)} framework={SafeFramework(launched)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"XPE-C56-PROBE could not run: {ex.GetType().Name}");
+        }
+    }
+
+    /// <summary>The element's native window handle, or a marker when it cannot be read.</summary>
+    private static string Handle(AutomationElement element)
+    {
+        try { return $"0x{element.Properties.NativeWindowHandle.ValueOrDefault.ToInt64():X}"; }
+        catch (Exception ex) { return $"<{ex.GetType().Name}>"; }
+    }
+
+    /// <summary>How many top-level windows the desktop reports for this process.</summary>
+    private string TopLevelWindowCount(int processId)
+    {
+        try { return Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(processId)).Length.ToString(); }
+        catch (Exception ex) { return $"<{ex.GetType().Name}>"; }
     }
 
     private static string SafeFramework(Window window)
