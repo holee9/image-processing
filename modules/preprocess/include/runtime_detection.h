@@ -29,11 +29,38 @@
 #include <cassert>
 #include <cstdint>
 
-// QA-A-65 (#144): AVX2 intrinsics for the per-pixel loop's two selections.
-// MSVC accepts AVX2 intrinsics regardless of /arch, so the header compiles in
-// every target that includes it; GCC/Clang need -mavx2, which this module's
-// CMakeLists already passes for the library. Where neither holds, the scalar
-// path is the whole implementation and nothing below is compiled.
+/**
+ * @def XPE_DETECT_HAS_AVX2
+ * @brief 1 when this translation unit compiles the AVX2 per-pixel path, 0 when
+ *        the scalar path is the whole implementation.
+ *
+ * It is always defined -- both arms of the #if below set it -- so `#if
+ * XPE_DETECT_HAS_AVX2` is the correct test and `#ifdef` would be wrong (it is
+ * true even in the scalar build).
+ *
+ * WHAT IT GATES. At 1: `<immintrin.h>`, the four named selection wrappers
+ * (SelectCeLower / SelectCeUpper / SelectGreaterOf / SelectLesserOf),
+ * MedianSortCE8, MedianOfEight8, DetectEightPixelsAvx2, and the branch inside
+ * DetectRowRange that sends interior runs of eight columns through them. At 0
+ * none of that is compiled and DetectRowRange puts every pixel through
+ * DetectDefectivePixel -- the same values, by design and by test: the parity
+ * suite skips rather than fails there (Avx2ParityTest.NoAvx2PathCompiledIn).
+ *
+ * WHEN IT IS 0. Only where neither `_MSC_VER` nor `__AVX2__` is defined. MSVC
+ * accepts AVX2 intrinsics whatever `/arch` says, so every MSVC target that
+ * includes this header gets 1; GCC and Clang need `-mavx2`, which this module's
+ * CMakeLists passes for the library but not necessarily for every consumer.
+ *
+ * QA-A-66 (#144) BUILT THE 0 ARM and found it did not compile: the vector branch
+ * was guarded by a `const bool` that became a compile-time constant, which is
+ * C4127 under /W4, promoted to an error by this project. QA-A-65 had listed that
+ * arm as unbuilt in its own report rather than claiming it worked -- and an
+ * unverified item looks exactly like a working one until someone builds it. The
+ * branch is now removed by the preprocessor instead, and QA-A-67 re-checked the
+ * 0 arm end to end: it builds clean and its tests pass.
+ *
+ * SPEC: XPE-ALG-001 section 9.8.  Refs #144 #143
+ */
 #if defined(_MSC_VER) || defined(__AVX2__)
 #  define XPE_DETECT_HAS_AVX2 1
 #  include <immintrin.h>
@@ -222,7 +249,34 @@ inline float ComputeMedianGeneric(std::vector<float>& values) {
 }
 
 /**
- * @brief One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss).
+ * @brief One compare-exchange: after it, a <= b.
+ *
+ * QA-A-68 (#144): this used to claim "branchless on MSVC (vminss/vmaxss)".
+ * BOTH HALVES OF THAT WERE WRONG, and the claim had been standing as a reason
+ * not to look. Read from the emitted assembly (`cl /O2 /arch:AVX2 /DNDEBUG
+ * /FAs`, MSVC 19.44.35228.0, 2026-09-16) this function lowers to
+ *
+ *     vcomiss / seta / movzx / vmovd / vpcmpeqd / vblendvps      (x2)
+ *
+ * -- ten instructions, no vminss and no vmaxss -- and MedianOfEight, which is
+ * nineteen of these, still contains four conditional jumps (`ja`). So it is
+ * neither the instruction pair the comment named nor uniformly branchless.
+ *
+ * WHY IT IS LEFT ALONE ANYWAY, which is a separate question from whether the
+ * comment was true. Since QA-A-65 the interior of every frame goes through the
+ * AVX2 path, and this scalar form runs only on the border DetectRowRange leaves
+ * behind: measured at 3072x3072, 30,704 pixels of 9,437,184 (0.33%) costing
+ * 2.149 ms of a 63.2 ms detection. The median network is a third to a half of
+ * that, so making it twice as fast would return well under 1% -- below the
+ * run-to-run spread the performance gate already tolerates. QA-A-68 measured the
+ * weight before deciding, because "the comment is wrong" and "the code is worth
+ * changing" are different findings and only the first one was true here.
+ *
+ * The vector twin is the one that carries the load, and its own codegen WAS
+ * checked in the same pass: SelectCeLower emits `vminps ymm0, b, a` and
+ * SelectCeUpper `vmaxps ymm0, a, b` -- the operand order QA-A-65 derived and
+ * QA-A-66 moved into named wrappers, confirmed in the instruction stream rather
+ * than assumed from the source.
  *
  * @param a First value; on return the smaller of the two.
  * @param b Second value; on return the larger of the two.
