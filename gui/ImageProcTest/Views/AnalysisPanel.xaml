@@ -2,11 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
+             xmlns:converters="clr-namespace:ImageProcTest.Converters"
              Width="380"
              Background="#14171e">
     <UserControl.Resources>
         <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
+        <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
     </UserControl.Resources>
 
     <DockPanel>
@@ -334,7 +336,18 @@
                 </StackPanel>
 
                 <!-- Log tab -->
-                <StackPanel Visibility="{Binding AnalysisTab, Converter={StaticResource TabEquals}, ConverterParameter=log}">
+                <!--
+                    #165 (GUI-C-65): the tab AND the View menu's Logs toggle. Two conditions, one
+                    controller each — the toggle never changes the tab, because two writers on one
+                    region overwrite each other (GUI-C-47, GUI-C-60).
+                -->
+                <StackPanel>
+                    <StackPanel.Visibility>
+                        <MultiBinding Converter="{StaticResource TabAndToggle}" ConverterParameter="log">
+                            <Binding Path="AnalysisTab" />
+                            <Binding Path="ShowLogsPanel" />
+                        </MultiBinding>
+                    </StackPanel.Visibility>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
