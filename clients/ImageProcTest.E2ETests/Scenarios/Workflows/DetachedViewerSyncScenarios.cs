@@ -19,8 +19,8 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// value moving. These two cases close that gap from both ends.</para>
 ///
 /// <para><b>Why the Workflow suite.</b> By character, not by headroom (GUI-C-69 judgement): both
-/// cases need the loaded-image fixture, a second window, a window move and a wheel gesture. §4.1's
-/// cases press one thing and read one result; these drive a sequence across two windows.</para>
+/// cases need the loaded-image fixture, a second window, a hit-test probe and a wheel gesture.
+/// §4.1's cases press one thing and read one result; these drive a sequence across two windows.</para>
 ///
 /// <para><b>What is NOT asserted here.</b> Whether the detached <i>viewport</i> redraws — the image
 /// path, which is §4.3's own subject. It has no observation point in this harness: the control is a
@@ -37,11 +37,22 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
     /// <summary>
     /// W-15: a wheel gesture inside the detached viewer moves the MAIN window's zoom readout.
     ///
-    /// <para>This is what the six <c>TwoWay</c> bindings are for. Before it, the control: the same
-    /// screen point is scrolled with no detached window open and the readout must NOT move.
-    /// Without that control the case measures nothing — GUI-C-72 first ran it over the main
-    /// window's own viewport, where the identical gesture zooms for the ordinary reason, and the
-    /// result could not say which window had received the wheel.</para>
+    /// <para>This is what the six <c>TwoWay</c> bindings are for.</para>
+    ///
+    /// <para><b>How the gesture is attributed, and why the first version was wrong.</b> The wheel
+    /// goes to whichever window owns the pixel under the cursor, so the question "did the detached
+    /// viewer receive it?" is a question about that pixel. The first version answered it with
+    /// geometry — it moved the detached window beside the main one and required the point to be
+    /// outside the main window's rectangle. That premise was the test's own invention: the command
+    /// sets no position at all (no <c>WindowStartupLocation</c>, no <c>Left</c>/<c>Top</c> anywhere
+    /// in the app), so the window lands wherever the OS puts it. On CI it opened at <c>{0,0}</c>
+    /// overlapping the main window, the move off-screen did not take, and the case refused to
+    /// attribute — correctly, but for a premise that was never going to hold (#166, GUI-C-73).</para>
+    ///
+    /// <para>It now asks the tree instead: <c>FromPoint</c> reports which top-level window owns that
+    /// pixel, which is the same hit-test the wheel follows. The control is that the SAME point
+    /// answers differently once the detached window is closed — a probe that always answered
+    /// "detached" would attribute anything.</para>
     /// </summary>
     [SkippableFact]
     public void W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom()
@@ -51,45 +62,48 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
             ResetTheView(window);
             CloseDetached(window);
 
-            var main = window.BoundingRectangle;
-            var point = new System.Drawing.Point(main.Right + 200, main.Top + 400);
-
-            // Control: nothing of ours is under that point yet.
-            var before = Zoom(window);
-            Scroll(point);
-            var afterControl = Zoom(window);
-            output.WriteLine($"W15 control {before} -> {afterControl} at {point}");
-            Assert.True(
-                afterControl == before,
-                $"The zoom readout moved from '{before}' to '{afterControl}' with no detached viewer " +
-                "open, so a later move cannot be attributed to one.");
-
             var detached = OpenDetached(window);
-
-            // Move it clear of the main window: inside the overlap the gesture is ambiguous.
-            detached.AsWindow().Move(main.Right + 20, main.Top);
-            Thread.Sleep(500);
             var r = detached.BoundingRectangle;
+            var point = new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2));
+
+            output.WriteLine($"W15 detachedRect={r} point={point} mainRect={window.BoundingRectangle}");
             Assert.True(
-                !main.Contains(point.X, point.Y) && r.Contains(point.X, point.Y),
-                $"The gesture point {point} is not inside the detached window {r} and outside the " +
-                $"main window {main}; this run cannot attribute a change to the detached viewer.");
+                OwnsPixel(point, detached),
+                $"The pixel at {point} is not owned by the detached viewer (FromPoint answered " +
+                $"'{NameAt(point)}'), so a wheel gesture there cannot be attributed to it.");
+
+            // The control: a pixel the detached viewer does NOT own must answer no. Without it the
+            // probe could be answering yes to everything.
+            var mainRect = window.BoundingRectangle;
+            var elsewhere = APixelOutside(
+                new System.Drawing.Rectangle(r.Left, r.Top, r.Width, r.Height),
+                new System.Drawing.Rectangle(mainRect.Left, mainRect.Top, mainRect.Width, mainRect.Height));
+            var elsewhereName = NameAt(elsewhere);
+            output.WriteLine($"W15 control point={elsewhere} name='{elsewhereName}'");
+            Assert.True(
+                elsewhereName != "<none>",
+                $"Nothing at all answers for {elsewhere}, so the control is vacuous — a probe that " +
+                "says no to an empty pixel has not been shown to discriminate.");
+            Assert.True(
+                !OwnsPixel(elsewhere, detached),
+                $"The probe says the detached viewer owns {elsewhere}, which is outside its " +
+                $"rectangle {r}; it cannot tell the two windows apart.");
 
             detached.AsWindow().SetForeground();
             Thread.Sleep(300);
-            var beforeScroll = Zoom(window);
+            var before = Zoom(window);
             Scroll(point);
-            var afterScroll = Zoom(window);
-            output.WriteLine($"W15 detached {beforeScroll} -> {afterScroll}");
+            var after = Zoom(window);
+            output.WriteLine($"W15 zoom {before} -> {after}");
 
             CloseDetached(window);
             ResetTheView(window);
 
             Assert.True(
-                afterScroll != beforeScroll,
-                $"The main window's zoom stayed at '{afterScroll}' after the detached viewer was " +
-                "scrolled. The viewport's write-back never reached the settings, so the two windows " +
-                "are not one synchronised state (MENU-001 §4.3, #166).");
+                after != before,
+                $"The main window's zoom stayed at '{after}' after the detached viewer was scrolled. " +
+                "The viewport's write-back never reached the settings, so the two windows are not " +
+                "one synchronised state (MENU-001 §4.3, COMPARE-001 GUI-CMP-FR-004, #166).");
         });
     }
 
@@ -124,6 +138,66 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
                 "The detached window's status line read the same in both modes, so it is not " +
                 "following the main window (#166).");
         });
+    }
+
+    /// <summary>
+    /// Whether the detached window owns the pixel at <paramref name="point"/> — the same hit-test
+    /// the wheel follows. The element at a point can be the window itself or something inside it,
+    /// so the answer is "this element, or one of its ancestors, is that window".
+    /// </summary>
+    private bool OwnsPixel(System.Drawing.Point point, AutomationElement detached)
+    {
+        var target = detached.Properties.NativeWindowHandle.ValueOrDefault;
+        var walker = app.Automation.TreeWalkerFactory.GetControlViewWalker();
+        var current = app.Automation.FromPoint(point);
+
+        for (var i = 0; i < 12 && current is not null; i++)
+        {
+            if (current.Properties.NativeWindowHandle.ValueOrDefault == target) return true;
+            current = walker.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private string NameAt(System.Drawing.Point point)
+    {
+        var e = app.Automation.FromPoint(point);
+        return e is null ? "<none>" : SafeName(e);
+    }
+
+    /// <summary>
+    /// A pixel the detached window does not cover, preferring one the MAIN window does — a pixel
+    /// the two windows could plausibly both be claimed to own makes the sharpest control. Falls
+    /// back to just outside the detached window's edge when the two rectangles leave no such pixel.
+    /// </summary>
+    private static System.Drawing.Point APixelOutside(
+        System.Drawing.Rectangle detachedRect, System.Drawing.Rectangle mainRect)
+    {
+        System.Drawing.Point[] candidates =
+        [
+            new(mainRect.Right - 40, mainRect.Top + 40),
+            new(mainRect.Left + 40, mainRect.Bottom - 40),
+            new(mainRect.Right - 40, mainRect.Bottom - 40),
+            new(mainRect.Left + 40, mainRect.Top + 40),
+        ];
+
+        foreach (var candidate in candidates)
+        {
+            if (candidate.X >= 0 && candidate.Y >= 0 && !detachedRect.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return detachedRect.Left - 10 >= 0
+            ? new System.Drawing.Point(detachedRect.Left - 10, detachedRect.Top + 40)
+            : new System.Drawing.Point(detachedRect.Right + 10, detachedRect.Top + 40);
+    }
+
+    private static string SafeName(AutomationElement e)
+    {
+        try { return e.Name; } catch (Exception ex) { return $"<{ex.GetType().Name}>"; }
     }
 
     private static string StatusLine(AutomationElement detached)
