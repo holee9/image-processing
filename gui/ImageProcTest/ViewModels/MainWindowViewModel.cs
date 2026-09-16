@@ -986,7 +986,35 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ComparisonStatus));
     }
 
+    /// <summary>
+    /// Opens the detached comparison viewer (#166, MENU-001 §4.3 "Detach Viewer").
+    ///
+    /// <para>Every binding carries its mode explicitly. Eight of them used to share one
+    /// <c>TwoWay</c>, and the first target — <see cref="SourceImage"/>, whose setter is private —
+    /// made <c>SetBinding</c> throw, so the window was never constructed (GUI-C-70 measured it).
+    /// The images travel one way by design: §4.3 asks the viewer to stay in step with the source,
+    /// not to be able to replace it.</para>
+    ///
+    /// <para>The failure path reports. Before #166 an exception here left the status bar on its
+    /// previous value with nothing in the log, so pressing the command was indistinguishable from
+    /// not pressing it.</para>
+    /// </summary>
     private void OpenDetachedComparisonViewer()
+    {
+        try
+        {
+            OpenDetachedComparisonViewerCore();
+        }
+        catch (Exception ex)
+        {
+            // Say it on both surfaces the user actually reads. "Nothing happened" is the one
+            // outcome this command must never produce again (#166).
+            StatusText = $"Detached comparison viewer failed to open: {ex.GetType().Name}.";
+            Log($"DetachComparisonViewerCommand failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void OpenDetachedComparisonViewerCore()
     {
         var viewport = new ImageComparisonViewport
         {
@@ -994,14 +1022,14 @@ public sealed class MainWindowViewModel : ObservableObject
             MinWidth = 640,
             MinHeight = 480
         };
-        BindDetachedViewport(viewport, ImageComparisonViewport.SourceImageProperty, nameof(SourceImage));
-        BindDetachedViewport(viewport, ImageComparisonViewport.ProcessedImageProperty, nameof(ProcessedImage));
-        BindDetachedViewport(viewport, ImageComparisonViewport.CompareModeProperty, "Settings.ComparisonMode");
-        BindDetachedViewport(viewport, ImageComparisonViewport.ZoomScaleProperty, "Settings.ComparisonZoomScale");
-        BindDetachedViewport(viewport, ImageComparisonViewport.PanXProperty, "Settings.ComparisonPanX");
-        BindDetachedViewport(viewport, ImageComparisonViewport.PanYProperty, "Settings.ComparisonPanY");
-        BindDetachedViewport(viewport, ImageComparisonViewport.SwipePositionProperty, "Settings.ComparisonSwipePosition");
-        BindDetachedViewport(viewport, ImageComparisonViewport.OverlayOpacityProperty, "Settings.ComparisonOverlayOpacity");
+        BindDetachedViewport(viewport, ImageComparisonViewport.SourceImageProperty, nameof(SourceImage), BindingMode.OneWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.ProcessedImageProperty, nameof(ProcessedImage), BindingMode.OneWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.CompareModeProperty, "Settings.ComparisonMode", BindingMode.TwoWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.ZoomScaleProperty, "Settings.ComparisonZoomScale", BindingMode.TwoWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.PanXProperty, "Settings.ComparisonPanX", BindingMode.TwoWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.PanYProperty, "Settings.ComparisonPanY", BindingMode.TwoWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.SwipePositionProperty, "Settings.ComparisonSwipePosition", BindingMode.TwoWay);
+        BindDetachedViewport(viewport, ImageComparisonViewport.OverlayOpacityProperty, "Settings.ComparisonOverlayOpacity", BindingMode.TwoWay);
 
         var status = new TextBlock
         {
@@ -1040,12 +1068,16 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshComparisonStatus("Detached comparison viewer opened.");
     }
 
-    private void BindDetachedViewport(System.Windows.DependencyObject target, System.Windows.DependencyProperty property, string path)
+    private void BindDetachedViewport(
+        System.Windows.DependencyObject target,
+        System.Windows.DependencyProperty property,
+        string path,
+        BindingMode mode)
     {
         BindingOperations.SetBinding(target, property, new DataBinding(path)
         {
             Source = this,
-            Mode = BindingMode.TwoWay,
+            Mode = mode,
             UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
         });
     }
