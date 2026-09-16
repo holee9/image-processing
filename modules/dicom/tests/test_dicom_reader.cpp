@@ -20,6 +20,7 @@
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmjpeg/djencode.h>
+#include <dcmtk/dcmjpeg/djdecode.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
@@ -466,12 +467,16 @@ TEST_F(DicomReaderTest, GetMetadataNullOutput_ReturnsInvalidInput) {
 // Two facts follow, both recorded in the QA-B-44 report:
 //   - the JPEG-LL branch cannot be covered by relabelling; it needs a genuinely
 //     JPEG-encoded fixture;
-//   - no DCMTK codec is ever registered in this module (no
-//     DJDecoderRegistration call exists), so a genuine JPEG-LL file would not
-//     decode either -- open()'s accepted-syntax list promises more than the
-//     build delivers.
+//   - at the time, no DCMTK codec was registered in this module, so a genuine
+//     JPEG-LL file would not have decoded either.
 //
-// This case pins the first fact. The second is a defect report, not a test.
+// The second fact is FIXED and this note is kept only so the first is not read
+// against a stale background: DicomReader.cpp:48 now calls
+// DJDecoderRegistration::registerCodecs() on every open, and QA-B-67 measured
+// that the registration covers Process 14 (.57) as well as .70 -- so the
+// accepted-syntax list, not the codec set, is what limits this reader today.
+//
+// This case pins the first fact, which is unchanged.
 // ---------------------------------------------------------------------------
 TEST_F(DicomReaderTest, OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid) {
     auto path = s_tempDir / "reader_jpegll_label.dcm";
@@ -1512,4 +1517,214 @@ TEST_F(DicomReaderTest, JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid)
     EXPECT_EQ(nullptr, img.data);
     EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
     EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-67) — how does a 1.2.840.10008.1.2.4.57 file FAIL?
+//
+// Two requirements name different UIDs and the implementation knows one of them:
+//
+//   REQ-IOP-003  (SPEC-XPE-IOP/spec.md:116)  "at minimum ... 1.2.840.10008.1.2.4.57"
+//   REQ-DICOM-004                            ".70" (what DicomReader.h accepts)
+//
+// `.57` appears nowhere under modules/. The trap is the NAME: both read as "JPEG
+// Lossless", but .57 is Process 14 and .70 is Process 14 Selection Value 1
+// (first-order prediction). A reader that knows only .70 cannot decode a .57
+// bitstream.
+//
+// Whether to support .57 is a decision. What is measurable NOW -- and what
+// matters clinically -- is HOW it fails: an explicit refusal is safe, while
+// mistaking it for a syntax the reader does know would decode wrong pixels
+// silently, which is the worst failure shape in medical imaging.
+//
+// The existing UnsupportedTS_ReturnsUnsupportedFormat case does NOT answer this.
+// It feeds an Implicit VR Little Endian file -- an UNCOMPRESSED syntax differing
+// from the accepted list in every respect. It establishes that the list check
+// works for the easiest possible input; it says nothing about a compressed
+// syntax whose name and family match an accepted one.
+//
+// SYNTHETIC DATA, stated plainly (the #148 lesson): no .57 file from real
+// equipment was used. The fixture below is a genuine .70-encoded file whose meta
+// TransferSyntaxUID was rewritten to .57 -- the bitstream is real JPEG, the label
+// is not. That is the sharpest form of the question (a reader that ignored the
+// label and guessed would "succeed" here) but it is NOT a real .57 bitstream, so
+// it cannot show what a true .57 decode would produce.
+//
+// EXISTENCE CONTROL, in the same run and with the same tool: the unmodified .70
+// file must OPEN. Without that, "both failed" would be indistinguishable from a
+// broken fixture rather than a refused syntax.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, TransferSyntax57IsRefusedRatherThanMisdecoded) {
+    const auto genuine70 = s_tempDir / "b67_genuine_70.dcm";
+    if (!WriteJpegLosslessCopy(s_validDcm, genuine70)) {
+        GTEST_SKIP() << "DCMTK could not produce a .70 fixture in this build -- "
+                        "without it there is no control, and a lone failure would "
+                        "prove nothing";
+    }
+
+    // --- control: the genuine .70 file opens -------------------------------
+    XpeDicomHandle* control = nullptr;
+    const XpeErrorCode ecControl =
+        xpe_dicom_open(genuine70.string().c_str(), &control);
+    ASSERT_EQ(XPE_OK, ecControl)
+        << "the control fixture does not open, so nothing below distinguishes "
+           "a refused .57 from a broken fixture";
+    xpe_dicom_close(control);
+
+    // --- subject: same bytes, label rewritten to .57 -----------------------
+    const auto relabelled57 = s_tempDir / "b67_relabelled_57.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(genuine70.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        ASSERT_TRUE(meta->putAndInsertString(DCM_TransferSyntaxUID,
+                                             "1.2.840.10008.1.2.4.57").good());
+        // EWM_dontUpdateMeta keeps the rewritten label instead of restoring the
+        // syntax the pixel data is actually in.
+        ASSERT_TRUE(ff.saveFile(relabelled57.string().c_str(), EXS_JPEGProcess14SV1,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    XpeDicomHandle* subject = nullptr;
+    const XpeErrorCode ecSubject =
+        xpe_dicom_open(relabelled57.string().c_str(), &subject);
+
+    GTEST_LOG_(INFO) << "control (.70) open=" << ecControl
+                     << "  subject (.57 label) open=" << ecSubject;
+
+    // The requirement of this case is not "it is supported" but "it does not
+    // decode as something else". Any non-OK answer satisfies that; XPE_OK would
+    // mean the reader accepted a syntax it has no decoder for.
+    EXPECT_NE(XPE_OK, ecSubject)
+        << "a .57-labelled file opened successfully -- the reader has no .57 "
+           "decoder, so whatever it produces came from guessing the syntax";
+
+    // And no pixels may come out of it. If open() somehow succeeded the read
+    // must still refuse rather than hand back a decoded frame.
+    if (ecSubject == XPE_OK) {
+        XpeImageBuffer img{};
+        const XpeErrorCode ecRead = xpe_dicom_read_image(subject, &img);
+        EXPECT_NE(XPE_OK, ecRead)
+            << "pixels were produced for a transfer syntax with no decoder";
+        if (ecRead == XPE_OK) xpe_free_image(&img);
+    }
+    xpe_dicom_close(subject);
+}
+
+// Does DCMTK itself know .57? The answer decides what implementing REQ-IOP-003
+// would cost: a codec the library already ships is a different proposition from
+// one that must be written. Measured, not assumed -- and reported either way,
+// because a negative here is as much an input to that decision as a positive.
+TEST_F(DicomReaderTest, KnownDivergence_DcmtkCodecSupportFor57IsMeasured) {
+    auto canEncode = [](E_TransferSyntax xfer) {
+        DJEncoderRegistration::registerCodecs();
+        bool ok = false;
+        {
+            DcmFileFormat ff;
+            if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+                DcmDataset* ds = ff.getDataset();
+                if (ds != nullptr) {
+                    ok = ds->chooseRepresentation(xfer, nullptr).good() &&
+                         ds->canWriteXfer(xfer);
+                }
+            }
+        }
+        DJEncoderRegistration::cleanup();
+        return ok;
+    };
+
+    // EXS_JPEGProcess14    == 1.2.840.10008.1.2.4.57
+    // EXS_JPEGProcess14SV1 == 1.2.840.10008.1.2.4.70
+    const bool canEncode57 = canEncode(EXS_JPEGProcess14);
+    const bool canEncode70 = canEncode(EXS_JPEGProcess14SV1);
+
+    GTEST_LOG_(INFO) << "DCMTK encoder: .57 (EXS_JPEGProcess14)=" << canEncode57
+                     << "  .70 (EXS_JPEGProcess14SV1)=" << canEncode70;
+
+    // Control in the same run with the same library: a false on .57 would
+    // otherwise only mean the probe itself does not work.
+    EXPECT_TRUE(canEncode70)
+        << "the probe cannot produce .70 either, so its answer about .57 says "
+           "nothing about DCMTK";
+
+    // No assertion on canEncode57 -- the measurement IS the deliverable, and
+    // pinning either answer would prejudge the support decision (#147).
+    SUCCEED();
+}
+
+// A GENUINE .57 file, now that the encoder probe above showed DCMTK can produce
+// one. This removes the relabelling caveat from the case further up: the
+// bitstream really is Process 14, not a .70 stream wearing a .57 label.
+//
+// Two separate questions are answered here, and keeping them apart is the point:
+//
+//   1. What does xpe_dicom_open() do with it?  -- the product's behaviour.
+//   2. Can DCMTK decode it?                    -- the library's capability, which
+//      is what decides the COST of supporting .57 (#147). Adding a UID to a table
+//      is not the same proposition as writing a codec.
+//
+// (2) is measured with the decoder, not the encoder. The probe above showed only
+// that DCMTK can WRITE .57; a reader needs the other direction, and assuming one
+// from the other would be the "it exists, therefore it works" error this session
+// has hit repeatedly.
+TEST_F(DicomReaderTest, KnownDivergence_Genuine57IsRefusedThoughDcmtkCanDecodeIt) {
+    const auto genuine57 = s_tempDir / "b67_genuine_57.dcm";
+
+    // --- produce a real Process-14 bitstream -------------------------------
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess14)) {
+                encoded = ff.saveFile(genuine57.string().c_str(), EXS_JPEGProcess14).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    if (!encoded) {
+        GTEST_SKIP() << "DCMTK could not encode .57 in this build -- the relabelled "
+                        "case above is then the only available measurement";
+    }
+
+    // --- (1) the product refuses it ----------------------------------------
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ecOpen = xpe_dicom_open(genuine57.string().c_str(), &handle);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ecOpen)
+        << "a genuine .57 file no longer refuses with UNSUPPORTED_FORMAT";
+    if (ecOpen == XPE_OK) {
+        XpeImageBuffer img{};
+        EXPECT_NE(XPE_OK, xpe_dicom_read_image(handle, &img))
+            << "pixels were produced for .57";
+    }
+    xpe_dicom_close(handle);
+
+    // --- (2) the library can decode it -------------------------------------
+    // The reader already calls DJDecoderRegistration::registerCodecs() on every
+    // open (DicomReader.cpp:48), so this asks what that registration covers.
+    bool decoded57 = false;
+    DJDecoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(genuine57.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr) {
+                decoded57 = ds->chooseRepresentation(EXS_LittleEndianExplicit, nullptr).good();
+            }
+        }
+    }
+    DJDecoderRegistration::cleanup();
+
+    GTEST_LOG_(INFO) << "genuine .57: xpe_dicom_open=" << ecOpen
+                     << "  DCMTK decode-to-uncompressed=" << decoded57;
+
+    // Reported, not asserted: whether DCMTK decodes .57 is an input to the
+    // support decision (#147), and pinning it either way here would prejudge
+    // that decision. The number is the deliverable.
+    SUCCEED();
 }
