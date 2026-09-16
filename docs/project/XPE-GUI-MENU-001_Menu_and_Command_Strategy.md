@@ -267,16 +267,32 @@ Rules:
 
 ### 9.2 View Menu — Panel Visibility
 
-| Toggle | Default | Phase Activated |
-|--------|:-------:|:---------------:|
-| `Show Runtime Panel` | ON | 0 |
-| `Show Raw Settings` | ON | 0 |
-| `Show Calibration Evaluation` | OFF | 1a |
-| `Show Display Settings` | OFF | **1b** |
-| `Show Logs` | OFF (toggle) | 0 |
-| `Show Alerts` | OFF (badge) | 0 |
-| `Show Preprocess Stage Timings` | OFF | 1a |
-| `Show Display Stage Timings` | OFF | 1b |
+> **전면 개정 2026-09-16 (leader, GUI-C-62~C-66 / #165).** 아래 표는 **측정된 현재 상태**입니다. 개정 전 표는 이 문서의 날짜(2026-04-18)보다 **10일 뒤**인 2026-04-28 의 "Evaluation Workbench" 재설계(`docs/design/IMPLEMENTATION_GUIDE.md`) **이전 레이아웃**의 패널 목록이었고, 재설계 뒤에도 갱신되지 않았습니다. 그 결과 메뉴가 **존재하지 않는 패널 다섯 개의 이름을 부르고 있었고**, 눌러도 아무 일이 없었습니다(화면 요소 수 146 → 146, 대조로 실제 패널 버튼은 146 → 155).
+
+| Toggle | Default | Phase | 상태 |
+|--------|:-------:|:-----:|---|
+| `Show Logs` | **OFF** | 0 | **배선됨** — `AnalysisPanel` 의 log 영역. 탭이 `log` 이고 **동시에** 이 토글이 켜져 있을 때 보입니다. 토글은 탭을 바꾸지 않습니다 |
+| `Show Calibration Evaluation` | OFF | 1a | **비활성** — 대응 화면 없음. 코드의 `Calibration Paths Panel` 은 **같은 것이 아닙니다**("경로"와 "평가"), 그리고 그것도 아무것도 표시하지 않습니다 |
+| `Show Display Settings` | OFF | 1b | **비활성** — 대응 화면 없음 |
+
+**제거된 다섯**: `Show Runtime Panel` · `Show Raw Settings` · `Show Alerts` · `Image Summary` · `Metadata/Notes`. 다섯 다 **켜고 끌 대상이 레이아웃에 없었고**, 체크 표시만 바뀌었습니다. 아무 일도 하지 않는 컨트롤을 지우는 것은 기능 손실이 아니며, 남겨 두면 `Reset Layout` 이 체크를 되살려 **"초기화가 패널을 되살렸다"로 읽히게** 만듭니다.
+
+**표에 없던 둘**(`Image Summary` · `Metadata/Notes`)은 코드에만 있었습니다. 처음에는 "동작하는 것을 문서에 없다는 이유로 지우면 안 된다"고 판단했으나, **측정해 보니 동작하지 않았습니다** — 판단의 전제가 틀렸고 정정했습니다.
+
+**`Show Preprocess Stage Timings` · `Show Display Stage Timings` 는 View 메뉴에 대응 항목이 없습니다.** 가장 가까운 것은 `Pipeline` 메뉴의 단계 타이밍 항목이고 이미 비활성이며 **다른 항목**입니다.
+
+#### 9.2.1 지금 메뉴로 제어할 수 있는 것 (측정, GUI-C-66)
+
+**`AnalysisPanel` 의 log 영역 하나뿐입니다.** 워크벤치의 나머지 구성 요소는 메뉴가 닿지 않습니다.
+
+| 구성 요소 | 가시성을 정하는 것 |
+|---|---|
+| `StudyQueue` · `AnalysisPanel` | `FocusMode` + `LeftPanelOpen` / `RightPanelOpen` |
+| `TopBar` · `AlgorithmBar` · `ViewportShell` · `VerdictBar` · 상태 표시줄 | **가시성 바인딩 없음** |
+
+`FocusMode` 는 **`TopBar` 의 버튼**이 토글하며 메뉴에 없습니다. `LeftPanelOpen` · `RightPanelOpen` 은 **setter 가 있는데 앱 안에 호출자가 없어**, 값이 `appsettings.json` 에서만 들어옵니다 — 사용자가 UI 로 바꿀 수 없습니다.
+
+`AnalysisPanel` 의 탭은 `TabControl` 이 아니라 **버튼 4개 + 가시성 컨버터**입니다(`metrics` / `parameters` / `runset` / `log`). 메뉴와 결합된 것은 `log` 하나이고, **나머지 셋도 기술적으로 같은 결합이 가능합니다**(컨버터가 탭 이름을 매개변수로 받음) — 다만 대응 토글 속성이 없고, **의도적으로 아닌지는 코드로 알 수 없어 판단하지 않았습니다.**
 
 ### 9.3 Compare Mode Commands
 
