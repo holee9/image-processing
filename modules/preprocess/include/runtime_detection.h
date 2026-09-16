@@ -26,6 +26,7 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include <cassert>
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
@@ -1009,6 +1010,13 @@ inline void DetectFrame(const XpeImageBuffer* img,
 
     // QA-A-63: before the memset, not after. See the note above.
     const size_t needed = static_cast<size_t>(w) * static_cast<size_t>(h);
+    // QA-A-64: the rejection is silent, and a silent rejection looks exactly
+    // like "nothing was defective" (#148 was that shape). An error channel is
+    // not opened here -- there is no consumer for one -- but a debug assertion
+    // costs nothing in a release build and makes the misuse loud wherever
+    // NDEBUG is not set. It fires BEFORE the return so both forms describe the
+    // same condition; release behaviour is byte-for-byte what it was.
+    assert(mapCount >= needed && "DetectFrame: map is shorter than width * height");
     if (mapCount < needed) return;
 
     // QA-A-62: clear it here rather than trusting a comment. See the note above.
