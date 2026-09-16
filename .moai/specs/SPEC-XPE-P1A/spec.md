@@ -211,16 +211,26 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > **Consequence for this budget: the numbers above stay single-thread numbers**, because the default is 1. A caller passing N threads is measured separately, against the table below.
 >
-> **Measured, this machine (QA-A-58, probe without a thread pool — conservative):**
+> **Which caller, exactly — the DLL boundary stays closed for now (leader judgment, 2026-09-16, QA-A-61).** `threadCount` lives in `RuntimeDetectionConfig`, and the public entry point `xpe_defect_detect_runtime` takes no config argument. So "the caller specifies" is true today **only of callers inside the module**; a consumer across the DLL boundary cannot set it and gets the default of 1. That gap is deliberate and is recorded here so nobody reads the policy as more than it is.
 >
-> | Threads | Pixel loop | Global sigma | Sum | vs 60 ms target |
-> |---|---|---|---|---|
-> | 1 | 534 ms | 143 ms | 677 ms | 11.3x |
-> | 8 | 125 ms | 29 ms | 154 ms | 2.6x |
-> | 12 | 86 ms | 26 ms | 112 ms | 1.9x |
-> | 20 | 60 ms | 26 ms | **86.5 ms** | **1.44x** |
+> The ABI is not opened yet for three reasons. **No consumer needs it** — nothing outside the module asks for threads today, and an exported knob with no caller is exactly the "declared wider than used" shape this project has found repeatedly. **The path it would open does not reach the target anyway** — saturation sits 1.7x over 60 ms, so the remaining work is algorithmic and an ABI widened now would be widened again after that work. **An export is hard to withdraw**, while an internal field is not.
 >
-> Global sigma **saturates at 12 threads** — the per-thread merge cost grows with T, so 20 threads does not improve it. **Threading alone does not reach 60 ms**; the remaining 1.44x needs the algorithm change, not more cores.
+> The condition for revisiting is concrete: **a named consumer with a stated core budget.** At that point the change carries the full export ceremony (ABI commit plus a `dumpbin` export diff) rather than riding along with a performance card. Export count is unchanged at **45**, matching the `XPE_API` count in the header.
+>
+> **Measured on the shipped implementation, this machine (QA-A-61):**
+>
+> | Threads | Global sigma | Speed-up |
+> |---|---|---|
+> | 1 | 149.4 ms | 1.00x |
+> | 12 | 35.1 ms | 4.26x |
+> | **16** | **34.0 ms** | **4.39x (saturation)** |
+> | 20 | 41.8 ms | worse than 16 |
+>
+> Whole-detection measured total at 16 threads: **102.3 ms**.
+>
+> **These numbers supersede the QA-A-58 probe figures this section previously carried, and the probe was optimistic in two ways.** The probe reported global sigma at 26.0 ms on 12 threads (5.52x) and placed saturation at 12; the shipped code is **35% slower** there and saturates at **16**. The probe's whole-detection figure of 86.5 ms was an **addition of separately-timed stages, not an end-to-end measurement** — QA-A-58 said so at the time — and the measured end-to-end total is **18% worse**. The probable cause of the per-stage gap is that the probe allocated its histogram tables once outside the timed region while the shipped code allocates T x 256 KB per call; that is a hypothesis, not a profiled result.
+>
+> **The conclusion moves in the other direction from the correction: it gets stronger.** Even at saturation the detection sits **1.7x** over the 60 ms target, against the 1.44x the probe suggested. **Threading alone does not reach the target**; the remainder is an algorithm change, not more cores.
 >
 > **The gate is now a machine-relative ratio, confirmed on both machines (resolved 2026-09-16, QA-A-60).** The former absolute gate of 810 ms came from this development machine only; the first CI run to execute it measured **1340.9 ms**, **1.91x slower**, and failed. Raising the number would have disabled the gate on the faster machine, so the gate instead divides the measured time by a **reference kernel fixed inside the test file** and asserts on the quotient.
 >
