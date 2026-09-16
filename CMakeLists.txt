@@ -154,10 +154,13 @@ foreach(_mod_rel IN LISTS XPE_MODULE_DIRS)
     # exactly when someone is writing about the thing it watches.
     file(STRINGS "${_mod}/CMakeLists.txt" _cml_lines)
     set(_cml "")
+    # QA-A-80: strip from '#' to end of line, not just whole-comment lines. The
+    # first fix only dropped lines that BEGIN with '#', so a trailing note -
+    # `target_sources(...)  # mode_selector.cpp was deleted` - still silenced the
+    # check on that filename. Same hazard, different spelling.
     foreach(_line IN LISTS _cml_lines)
-        if(NOT _line MATCHES "^[ 	]*#")
-            string(APPEND _cml "${_line} ")
-        endif()
+        string(REGEX REPLACE "#.*$" "" _line "${_line}")
+        string(APPEND _cml "${_line} ")
     endforeach()
     file(GLOB _srcs "${_mod}/src/*.cpp")
     foreach(_src IN LISTS _srcs)
