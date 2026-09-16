@@ -307,9 +307,14 @@ bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
  * call it to compare, and when the probe was removed it would have become an
  * unreferenced static -- deleted by the compiler, and a warning under /W4 /WX.
  *
- * Exposing it is the alternative to deleting it. The reference now has one
- * consumer, test_gain_correct_avx2_parity.cpp, which requires the shipped path
- * to agree with it inside the AC-GAIN-004 tolerance.
+ * NOT A FALLBACK. THE COMPARAND. Exposing it is the alternative to deleting it,
+ * and its one consumer is test_gain_correct_avx2_parity.cpp, which requires the
+ * shipped path to agree with it inside the AC-GAIN-004 tolerance. DELETING THAT
+ * TEST DELETES THE ONLY INDEPENDENT CHECK the AVX2 kernel has -- the other tests
+ * in that file compare repeated calls with each other, which a consistently
+ * wrong kernel passes. It is also the only caller: with the test gone this is an
+ * unused inline, which no compiler warns about, so nothing would say the check
+ * had been lost.
  *
  * It lives here as an INLINE definition rather than an exported symbol on
  * purpose: the library and the test then compile the same source, and the
@@ -323,6 +328,41 @@ bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
  * @param width Image width in pixels.
  * @param height Image height in pixels.
  */
+/**
+ * @brief Scalar reference implementation of the offset-correction inner loop.
+ *
+ * NOT A FALLBACK. THE COMPARAND. Nothing in the library selects between this and
+ * the vector form at run time any more -- QA-A-73 (#160) removed the probe that
+ * used to, because it could not protect anything (see the note in
+ * offset_correct.cpp). On x86 the vector form is the only path the library takes.
+ *
+ * This function survives for one reason: test_offset_correct_avx2_parity.cpp
+ * compares the shipped path against it. DELETING THAT TEST DELETES THE ONLY
+ * INDEPENDENT CHECK the AVX2 kernel has -- the remaining tests there compare
+ * repeated calls with each other, which a consistently wrong kernel passes. It
+ * is also the only caller: with the test gone this function is an unused inline,
+ * which no compiler warns about, so nothing would say the check had been lost.
+ *
+ * REQ-P1A-010 states the vector kernel is "bit-identical to scalar version --
+ * verified by test suite". QA-A-73 made the second half true.
+ *
+ * @param src Source pixels, n uint16 ELEMENTS.
+ * @param off Per-pixel offset, n float ELEMENTS.
+ * @param dst Destination, n uint16 ELEMENTS.
+ * @param n Element count.
+ */
+inline void xpe_offset_apply_scalar_reference(const uint16_t* src,
+                                              const float* off,
+                                              uint16_t* dst,
+                                              size_t n) noexcept {
+    for (size_t i = 0; i < n; ++i) {
+        float v = static_cast<float>(src[i]) - off[i];
+        if (v < 0.0f) v = 0.0f;
+        if (v > 65535.0f) v = 65535.0f;
+        dst[i] = static_cast<uint16_t>(v + 0.5f);
+    }
+}
+
 inline float xpe_gain_apply_scalar_pixel(uint16_t input, float reciprocal_gain) noexcept {
     // AC-GAIN-002: the a * (1.0f / b) pattern, and the whole of the rule.
     return static_cast<float>(input) * reciprocal_gain;

@@ -13,6 +13,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <vector>
 #include <cstdint>
@@ -121,6 +122,74 @@ protected:
         ASSERT_EQ(xpe_calib_load_offset(offsetPath), XPE_OK);
     }
 };
+
+// ===========================================================================
+// QA-A-73 (#160): the shipped path against the SCALAR REFERENCE.
+//
+// WHAT THIS FILE ASSERTED BEFORE. The two tests below require repeated calls to
+// agree with each other. That is determinism, not correctness: a kernel that is
+// consistently wrong passes both, and so does one that never runs. The gain
+// suite had the same shape and QA-A-72 measured the consequence -- breaking the
+// AVX2 multiply made only the new reference comparison fail while both
+// determinism tests stayed green.
+//
+// WHY IT MATTERS NOW. QA-A-73 removed xpe_has_avx2(), the runtime probe that
+// chose between the vector and scalar forms. On x86 the vector form is now the
+// only path the library takes, so the scalar form's job changed: it is no longer
+// a fallback anyone can reach, it is the independent implementation this test
+// compares against. If this test goes, that comparison goes with it silently --
+// see the note on xpe_offset_apply_scalar_reference.
+//
+// TOLERANCE: EXACT. Not borrowed from the gain suite -- AC-GAIN-004 allows 1 ULP
+// because gain correction multiplies floats, and this does not: REQ-P1A-010
+// states the vector kernel is "bit-identical to scalar version", the output is
+// uint16, and there is no ULP constant anywhere in offset_correct.cpp. An exact
+// comparison is what the requirement asks for. (That requirement also says
+// "verified by test suite". Until this test, it was not.)
+// ===========================================================================
+TEST_F(OffsetCorrectAVX2ParityTest, ShippedPathMatchesTheScalarReference) {
+    const uint32_t w = 1024u, h = 768u;
+    const size_t n = static_cast<size_t>(w) * h;
+
+    // An offset map that exercises all three arms of the scalar rule: values it
+    // subtracts cleanly, values that drive the result below 0 (clamped), and the
+    // rounding at .5. A constant map would leave the clamps untested.
+    std::vector<float> offsets(n);
+    for (size_t i = 0; i < n; ++i) {
+        offsets[i] = static_cast<float>(i % 5000u) * 1.5f - 500.0f;   // -500 .. 6998.5
+    }
+    loadOffsetMap(offsets, w, h);
+
+    ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
+
+    std::vector<uint16_t> reference(n, 0u);
+    xpe_offset_apply_scalar_reference(inputPixels1.data(), offsets.data(),
+                                      reference.data(), n);
+
+    size_t differing = 0, firstBad = 0;
+    int32_t worstGap = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (outputPixels1[i] == reference[i]) continue;
+        if (differing == 0) firstBad = i;
+        ++differing;
+        const int32_t gap = static_cast<int32_t>(outputPixels1[i]) -
+                            static_cast<int32_t>(reference[i]);
+        const int32_t mag = (gap < 0) ? -gap : gap;
+        if (mag > worstGap) worstGap = mag;
+    }
+
+    // Printed, not assumed: a clamp or rounding difference would show as a small
+    // worst_gap over many pixels, a kernel error as a large one.
+    std::printf("[offset-parity] %ux%u  differing=%zu of %zu  worst_gap=%d\n",
+                w, h, differing, n, worstGap);
+    std::fflush(stdout);
+
+    EXPECT_EQ(0u, differing)
+        << differing << " pixels differ from the scalar reference, first at index "
+        << firstBad << " (shipped " << outputPixels1[firstBad]
+        << " vs reference " << reference[firstBad] << "); REQ-P1A-010 requires"
+           " bit-identical";
+}
 
 TEST_F(OffsetCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&input1, &output1, &metadata));
