@@ -62,7 +62,7 @@ modules/preprocess/
             xpe_offset_avx2.cpp                 # never created; kernel lives inline in offset_correct.cpp
             xpe_gain_avx2.cpp                   # never created; kernel lives inline in gain_correct.cpp
             xpe_defect_avx2.cpp                 # never created; kernel lives inline in defect_correct.cpp
-            xpe_simd_dispatch.cpp               # never created at this path; see simd_dispatch.cpp
+            xpe_simd_dispatch.cpp               # never created; the nearest thing, simd_dispatch.cpp, was deleted in QA-A-76
         detail/
             xcal_parser.h                       # XCal format parser
             xcal_parser.cpp                     # XCal format parser impl
