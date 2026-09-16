@@ -74,9 +74,13 @@ public sealed class WindowReacquireTests(ITestOutputHelper output)
         // this scenario has nothing to say: it asks what happens on a healthy acquire, and this was
         // not one. Skipped with the note rather than passed, because "not measured" must not be
         // counted as "measured and fine" (GUI-C-37).
+        // The token is for the CI gate, the sentence is for the person reading the log; both stay.
+        // GUI-C-74 measured this at ~7% per launch, and GUI-C-75 chose to account for it rather
+        // than fail on it — prose drifts silently, so the gate keys on the token alone.
         Skip.If(
             !string.IsNullOrEmpty(fixture.ReacquiredNote),
-            $"Not measured: the real re-acquire fired on this launch — {fixture.ReacquiredNote}");
+            $"Not measured: the real re-acquire fired on this launch — {fixture.ReacquiredNote} " +
+            "XPE-SKIP-ALLOWED:30011");
 
         Assert.Equal(string.Empty, fixture.ReacquiredNote);
         Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
