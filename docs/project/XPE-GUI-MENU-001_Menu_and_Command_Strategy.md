@@ -286,8 +286,18 @@ Rules:
 | `Split` | 수직/수평 분할, 독립 이동 불가 | F6 |
 | `Overlay` | opacity slider로 겹침 | F7 |
 | `Difference` | |source - processed| 히트맵 | F8 |
-| `Source Only` | processed 숨김 | Ctrl+1 |
-| `Processed Only` | source 숨김 | Ctrl+2 |
+| `Source Only` | processed 숨김 | (없음 — 아래 정정) |
+| `Processed Only` | source 숨김 | (없음 — 아래 정정) |
+
+> **정정 2026-09-16 (leader, GUI-C-58 / #149) — `Ctrl+1` 은 Zoom 100% 입니다.**
+>
+> 이 표는 원래 `Source Only` 에 `Ctrl+1` 을, `Processed Only` 에 `Ctrl+2` 를 배정했습니다. **같은 문서 §10.1 이 `Ctrl+1` 을 Zoom 100% 로 배정하고 있고**, `XPE-GUI-ACCESS-001` §5.2 도 Zoom 100% 로 적습니다. 두 곳이 일치하고 이 표만 다르므로 **이 표가 틀렸습니다.**
+> 
+> §10 이 이 문서와 `ACCESS-001` §5.2 를 단일 source-of-truth 로 선언하고 있으므로, 그 두 곳이 일치하는 값이 기준입니다.
+>
+> **`Source Only` / `Processed Only` 는 당분간 단축키 없이 메뉴로만 닿습니다**(`View → Compare Mode`). 대체 키를 지금 정하지 않는 이유는 키 배정이 접근성 탐색·니모닉과 함께 봐야 하는 판단이고, 이 정정의 범위가 아니기 때문입니다. 필요해지면 두 문서에 동시에 적습니다.
+>
+> **GUI-C-58 이 이 충돌 때문에 두 키를 배선하지 않았고, 그 판단이 옳았습니다.**
 
 > **DifferenceHeatmap — 정의 부족과 실측 (2026-09-16, GUI-C-53 / #149).** 이 모드의 정의는 두 문서에 나뉘어 있고 서로 어긋납니다. `XPE-GUI-MENU-001` L288 은 값을 **절댓값**(`|source − processed|`)으로 못 박고, `XPE-GUI-COMPARE-001` L68 은 **"signed or absolute"** 로 부호를 고정하지 않습니다. **색 대응(colormap)은 어느 문서에도 없습니다** — `colormap` / `palette` / `색상` / `jet` / `grayscale` 전부 0건. 색 대응이 없으면 어떤 렌더링도 문서에 대해 맞다고도 틀리다고도 판정할 수 없습니다.
 >
