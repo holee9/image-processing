@@ -34,6 +34,10 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/preprocess_api.h"
 
+#if defined(_WIN32)
+#  include <windows.h>
+#endif
+
 #include <cstring>
 #include <random>
 #include <vector>
@@ -267,6 +271,206 @@ TEST(Avx2ParityTest, FrameMapsAreIdenticalPixelForPixel) {
             << " col " << (firstBad % c.w);
     }
 }
+
+// ---------------------------------------------------------------------------
+// QA-A-69: the overlapping tail run.
+//
+// The forward walk starts runs at 1, 9, 17, ... while the run fits inside the
+// interior columns, which leaves seven columns per row to the scalar path at
+// EVERY width -- the remainder is a property of the step, not of the frame. One
+// more run placed at w-9 ends exactly on the last interior column and overlaps
+// the previous run by up to seven columns.
+//
+// WHAT THE PARITY TESTS ABOVE CAN AND CANNOT SEE. They compare the map against
+// the scalar rule, so they catch an overlap that lands on the wrong columns or
+// reaches into the border. They CANNOT catch the run being removed again: the
+// scalar path computes the same values, so deleting the optimisation changes no
+// map. That is the QA-A-67 lesson applied here -- check whether bit parity is
+// enough before relying on it -- and the honest answer is that it is not, for
+// this particular change. What is pinned below instead is the ARITHMETIC that
+// makes the placement correct, which is the part that can be wrong while still
+// being present.
+// ---------------------------------------------------------------------------
+TEST(Avx2ParityTest, LastRunStartLandsExactlyOnTheFinalInteriorColumn) {
+    using xpe::preprocess::internal::DetectRowLastRunStart;
+
+    for (uint32_t w = 10u; w <= 4096u; ++w) {
+        const uint32_t start = DetectRowLastRunStart(w);
+        EXPECT_GE(start, 1u) << "w=" << w << ": the run would read column " << (start - 1)
+                             << ", which is outside the frame";
+        EXPECT_EQ(w - 2u, start + 7u)
+            << "w=" << w << ": the run ends on column " << (start + 7)
+            << " but the last interior column is " << (w - 2);
+    }
+}
+
+// The verdict is deterministic and the write is a whole byte, so judging a pixel
+// twice must store what it stored the first time. QA-A-61 measured that on the
+// ROW axis (duplicated boundary rows changed nothing). This is the same question
+// on the COLUMN axis, which is the axis the overlap actually uses -- asked rather
+// than inherited, because "it held there" is not "it holds here".
+TEST(Avx2ParityTest, JudgingAColumnTwiceStoresTheSameByte) {
+    const uint32_t w = 64u, h = 48u;
+    std::vector<float> frame = MakeFrame(w, h, 0, 20260928u);
+    XpeImageBuffer img = Wrap(frame, w, h);
+    const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+
+    std::vector<uint8_t> once(frame.size(), 0u);
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+    DetectRowRange(&img, cfg, once.data(), 0u, h, a, b);
+
+    // Re-judge a band of interior columns directly, exactly as an overlapping
+    // run does, and require every byte to be unchanged.
+    std::vector<uint8_t> twice = once;
+    for (uint32_t y = 1u; y + 1u < h; ++y) {
+        for (uint32_t x = 1u; x + 8u <= w - 1u; x += 3u) {   // step 3: deliberate overlap
+            xpe::preprocess::internal::DetectEightPixelsAvx2(frame.data(), w, x, y, cfg,
+                                                             twice.data());
+        }
+    }
+
+    size_t changed = 0;
+    for (size_t i = 0; i < once.size(); ++i) if (once[i] != twice[i]) ++changed;
+    EXPECT_EQ(0u, changed)
+        << changed << " bytes changed when interior columns were judged again; the"
+           " overlapping tail run relies on that not happening";
+}
+
+// Widths chosen around the overlap boundary rather than at round numbers: w=10
+// makes the tail run start at 1, i.e. exactly on top of the first run (full
+// overlap); w=17 makes it start one column before the second run; w=18 makes the
+// walk end flush so the tail run is a complete duplicate of the previous one.
+TEST(Avx2ParityTest, OverlapBoundaryWidthsStillMatchTheScalarRule) {
+    for (uint32_t w : {10u, 11u, 16u, 17u, 18u, 19u, 25u, 26u, 33u}) {
+        const uint32_t h = 12u;
+        std::vector<float> frame = MakeFrame(w, h, 0, 20260928u);
+        XpeImageBuffer img = Wrap(frame, w, h);
+        const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+
+        const std::vector<uint8_t> expected = ScalarMap(&img, cfg);
+
+        std::vector<uint8_t> actual(frame.size(), 0u);
+        std::vector<float> a, b;
+        a.reserve(64); b.reserve(64);
+        DetectRowRange(&img, cfg, actual.data(), 0u, h, a, b);
+
+        size_t mismatches = 0, firstBad = 0;
+        for (size_t i = 0; i < expected.size(); ++i) {
+            if (expected[i] != actual[i]) {
+                if (mismatches == 0) firstBad = i;
+                ++mismatches;
+            }
+        }
+        EXPECT_EQ(0u, mismatches)
+            << "w=" << w << ": " << mismatches << " pixels differ, first at row "
+            << (firstBad / w) << " col " << (firstBad % w)
+            << " (tail run starts at " << (w - 9u) << ")";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// QA-A-69: the vector runs never read outside the frame.
+//
+// WHY A MAP COMPARISON IS NOT ENOUGH HERE, measured rather than argued. Moving
+// the tail run one column right (w-8 instead of w-9) makes it judge column w-1,
+// whose right neighbour is off the end of the row. Every frame-level parity test
+// above STILL PASSES: the run writes a wrong byte at w-1, and the scalar border
+// pass that follows overwrites it with the right one. The map is correct and the
+// read was not -- on the last interior row the load reaches one float past the
+// end of the buffer.
+//
+// So the map cannot see it, and this test does not look at the map. The frame is
+// placed so its last float ends exactly against a PAGE_NOACCESS page: a read one
+// element past the end raises an access violation instead of returning a
+// plausible number. This is the QA-A-63 fixture pointed at reads rather than
+// writes, and it is the assertion the QA-A-67 question asks for -- bit parity is
+// not enough, so something else has to watch.
+// ---------------------------------------------------------------------------
+#if defined(_WIN32)
+
+namespace {
+
+class GuardedFrame {
+public:
+    explicit GuardedFrame(size_t bytes) {
+        SYSTEM_INFO si{};
+        GetSystemInfo(&si);
+        const size_t page = si.dwPageSize;
+        const size_t usable = ((bytes + page - 1) / page) * page;
+        m_base = static_cast<uint8_t*>(
+            VirtualAlloc(nullptr, usable + page, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+        if (m_base == nullptr) return;
+        DWORD old = 0;
+        VirtualProtect(m_base + usable, page, PAGE_NOACCESS, &old);
+        m_data = m_base + (usable - bytes);
+    }
+    ~GuardedFrame() { if (m_base) VirtualFree(m_base, 0, MEM_RELEASE); }
+    GuardedFrame(const GuardedFrame&) = delete;
+    GuardedFrame& operator=(const GuardedFrame&) = delete;
+
+    float* data() const { return reinterpret_cast<float*>(m_data); }
+    bool   valid() const { return m_base != nullptr; }
+
+private:
+    uint8_t* m_base = nullptr;
+    uint8_t* m_data = nullptr;
+};
+
+bool RowRangeFaulted(const XpeImageBuffer* img,
+                     RuntimeDetectionConfig cfg,
+                     uint8_t* map,
+                     uint32_t h,
+                     std::vector<float>* a,
+                     std::vector<float>* b) {
+    __try {
+        DetectRowRange(img, cfg, map, 0u, h, *a, *b);
+    } __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION
+                    ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+        return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+TEST(Avx2ParityTest, VectorRunsNeverReadPastTheFrame) {
+    // Several widths: the tail run's placement is width-dependent, and w=10 is
+    // the narrowest frame that vectorises at all.
+    for (uint32_t w : {10u, 17u, 24u, 64u, 129u}) {
+        const uint32_t h = 9u;
+        const size_t n = static_cast<size_t>(w) * h;
+
+        GuardedFrame frame(n * sizeof(float));
+        ASSERT_TRUE(frame.valid());
+        std::mt19937 rng(20260928u);
+        std::normal_distribution<float> noise(3000.0f, 10.0f);
+        for (size_t i = 0; i < n; ++i) frame.data()[i] = noise(rng);
+
+        XpeImageBuffer img{};
+        img.data = frame.data();
+        img.width = w;
+        img.height = h;
+        img.bitsAllocated = 32;
+        img.bitsStored = 32;
+        img.format = XPE_PIXEL_FLOAT32;
+        img.dataSize = n * sizeof(float);
+
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.globalSigmaFloor = 0.0f;
+        cfg.globalSigmaCap = 0.0f;
+
+        std::vector<uint8_t> map(n, 0u);
+        std::vector<float> a, b;
+        a.reserve(64); b.reserve(64);
+
+        EXPECT_FALSE(RowRangeFaulted(&img, cfg, map.data(), h, &a, &b))
+            << "w=" << w << ": a load reached past the end of the frame (tail run"
+               " starts at " << (w - 9u) << ")";
+    }
+}
+
+#endif  // _WIN32
 
 // A map that is entirely zero would make the test above pass without exercising
 // anything. This is the control the other test needs.
