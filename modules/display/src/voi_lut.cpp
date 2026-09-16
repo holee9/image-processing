@@ -53,7 +53,7 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
             break;
         }
         case XPE_VOI_SIGMOID: {
-            // REQ-DISP-012: output[i] = range / (1 + exp(-4*(input[i]-center)/width)) + minOut
+            // REQ-DISP-011: output[i] = range / (1 + exp(-4*(input[i]-center)/width)) + minOut
             for (size_t i = 0; i < count; ++i) {
                 float val = range / (1.0f + std::expf(-4.0f * (px[i] - center) / width)) + minOut;
                 px[i] = xpe_clamp(val, minOut, maxOut);
