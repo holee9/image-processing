@@ -63,7 +63,7 @@ TEST(VoiLut, Linear_CenterWindow) {
 }
 
 TEST(VoiLut, Linear_ClampMin) {
-    // REQ-DISP-010: output clamped to minOut
+    // REQ-DISP-012: output clamped to minOut
     XpeImageBuffer img = make_float32_image(1, 1, -9999.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR;
@@ -79,7 +79,7 @@ TEST(VoiLut, Linear_ClampMin) {
 }
 
 TEST(VoiLut, Linear_ClampMax) {
-    // REQ-DISP-010: output clamped to maxOut
+    // REQ-DISP-012: output clamped to maxOut
     XpeImageBuffer img = make_float32_image(1, 1, 9999.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR;
@@ -95,11 +95,11 @@ TEST(VoiLut, Linear_ClampMax) {
 }
 
 // =============================================================================
-// REQ-DISP-011: LINEAR_EXACT windowing (DICOM PS3.3 C.11.2.1.3)
+// REQ-DISP-010: LINEAR_EXACT windowing (DICOM PS3.3 C.11.2.1.3)
 // =============================================================================
 
 TEST(VoiLut, LinearExact_CenterValue) {
-    // REQ-DISP-011: LINEAR_EXACT center maps to midpoint of [minOut, maxOut]
+    // REQ-DISP-010: LINEAR_EXACT center maps to midpoint of [minOut, maxOut]
     XpeImageBuffer img = make_float32_image(1, 1, 40.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR_EXACT;
@@ -116,11 +116,11 @@ TEST(VoiLut, LinearExact_CenterValue) {
 }
 
 // =============================================================================
-// REQ-DISP-012: SIGMOID windowing
+// REQ-DISP-011: SIGMOID windowing
 // =============================================================================
 
 TEST(VoiLut, Sigmoid_CenterValue) {
-    // REQ-DISP-012: SIGMOID center -> output near midpoint
+    // REQ-DISP-011: SIGMOID center -> output near midpoint
     // sigmoid(0) = 0.5, so center -> (maxOut - minOut) * 0.5 + minOut
     XpeImageBuffer img = make_float32_image(1, 1, 500.0f);
     XpeVoiLutParams params{};
@@ -138,7 +138,7 @@ TEST(VoiLut, Sigmoid_CenterValue) {
 }
 
 TEST(VoiLut, Sigmoid_OutputClampedToRange) {
-    // REQ-DISP-010: SIGMOID output still clamped to [minOut, maxOut]
+    // REQ-DISP-012: SIGMOID output still clamped to [minOut, maxOut]
     // Extreme high value approaches maxOut
     XpeImageBuffer img = make_float32_image(1, 1, 99999.0f);
     XpeVoiLutParams params{};

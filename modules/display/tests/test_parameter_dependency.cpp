@@ -147,8 +147,11 @@ TEST(ParameterDependency, VoiLut_EveryParameterReachesTheOutput) {
 // maps exactly from minOut to maxOut WITHOUT the half-value offset" -- the
 // offset is present in both branches.
 //
-// (The EXACT branch's comment also cites REQ-DISP-011, which is the sigmoid
-// requirement; REQ-DISP-010 is the one it implements. Noted, not fixed.)
+// (The mis-cited requirement numbers this case once noted are fixed: QA-B-59
+// corrected the EXACT branch, and QA-B-66 corrected the rest -- the citations
+// from REQ-DISP-010 onward had all shifted by one, in voi_lut.cpp and
+// test_voi_lut.cpp alike. 009 LINEAR / 010 LINEAR_EXACT / 011 SIGMOID /
+// 012 clamp-to-range is the mapping in the SPEC.)
 //
 // Not fixed: changing it changes displayed pixel values for every caller that
 // selects EXACT (#154 / #155 precedent).
@@ -174,6 +177,65 @@ TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
     EXPECT_LT(diff, 1e-6)
         << "LINEAR_EXACT now differs from LINEAR -- REQ-DISP-010 has been "
            "implemented; say how, and retire this case";
+}
+
+// ---------------------------------------------------------------------------
+// #156 (QA-B-66): the same fact, asserted the other way round -- and currently
+// FAILING on purpose.
+//
+// The case above pins what the code does today. That is worth having, but on its
+// own it has the wrong polarity for a defect: whoever finally implements
+// REQ-DISP-010 will see a RED test whose message says the code is wrong, and the
+// cheapest reading of a red test is "I broke something". The risk is that the
+// fix gets reverted to make the suite green again.
+//
+// So the requirement is asserted here as well, in the direction the requirement
+// actually points: the two modes MUST differ. It fails today, which is correct
+// -- the defect is real. It is DISABLED_ rather than left red because the defect
+// is BLOCKED, not merely unfixed: REQ-DISP-010 says LINEAR_EXACT maps the window
+// "without the half-value offset", and voi_lut.cpp:50 still has `+ 0.5f`, but
+// what the branch should compute INSTEAD cannot be written without DICOM PS3.3
+// C.11.2.1.3 itself. Guessing a formula would put an unverifiable number into
+// the tree under the name "standard-compliant", which is why #156 is waiting on
+// an external document rather than on work.
+//
+// WHEN THE STANDARD ARRIVES: implement the branch, remove the DISABLED_ prefix,
+// and retire KnownDivergence_VoiLinearExactEqualsVoiLinear above. This case
+// turning green is the signal that the two modes finally differ; that one going
+// red is the same fact seen from the other side.
+//
+// THRESHOLD: kMeaningful (1e-4 on a [0,1] output), not `> 0`. The two branches
+// differ today by float-association noise of about 6e-08 -- one ulp at this
+// scale -- so a `> 0` assertion would go green on rounding and report the defect
+// fixed while nothing had changed. Three orders of magnitude of separation is
+// what keeps "the modes differ" from meaning "the adds happened in a different
+// order".
+// ---------------------------------------------------------------------------
+TEST(ParameterDependency, DISABLED_VoiLinearExactMustDifferFromLinear) {
+    auto run = [](XpeVoiLutMode mode) {
+        std::vector<float> px = Gradient(-500.0f, 1500.0f);
+        XpeImageBuffer img = WrapFloat32(px);
+        XpeVoiLutParams p{};
+        p.mode   = mode;
+        p.center = 500.0f;
+        p.width  = 1000.0f;
+        p.minOut = 0.0f;
+        p.maxOut = 1.0f;
+        EXPECT_EQ(XPE_OK, xpe_apply_voi_lut(&img, &p));
+        return px;
+    };
+
+    constexpr double kMeaningful = 1e-4;
+    const double diff = MaxDiff(run(XPE_VOI_LINEAR), run(XPE_VOI_LINEAR_EXACT));
+    GTEST_LOG_(INFO) << "LINEAR vs LINEAR_EXACT maxdiff=" << diff
+                     << " (threshold " << kMeaningful
+                     << "; one ulp at this scale is ~6e-08)";
+
+    EXPECT_GT(diff, kMeaningful)
+        << "REQ-DISP-010 asks LINEAR_EXACT to map the window without the "
+           "half-value offset, which would make it differ from LINEAR. Both "
+           "branches currently evaluate the same expression, so the mode "
+           "selection has no effect. Blocked on DICOM PS3.3 C.11.2.1.3 (#156).";
 }
 
 // ---------------------------------------------------------------------------
