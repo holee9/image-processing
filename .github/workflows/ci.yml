@@ -490,6 +490,10 @@ jobs:
       - name: Assert no unexplained skipped Native E2E cases
         shell: pwsh
         run: |
+          # GUI-C-75 observed the em dash in a skip reason arriving as '?' in the log.
+          # The token is ASCII so the verdict is unaffected, but the half a human reads
+          # is what gets damaged - and that half is the only thing explaining the skip.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           # Each entry: issue number -> why this skip is understood. Adding a row is a
           # deliberate act that shows up in the run summary.
           $allowed = @{
