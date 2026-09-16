@@ -176,8 +176,18 @@ The following requirements define explicit calibration mode selection, multi-poi
 | SINGLE_POINT | 1 | 0 (constant) | Emergency / field recalibration | ~2s |
 | DUAL_POINT | 2 | 1 (linear) | Quick factory verification | ~5s |
 | MULTI_POINT_5 | 5 | 2 (quadratic) | Standard clinical calibration | ~15s |
-| MULTI_POINT_8 | 3 (cubic) | 8 | Full factory calibration (recommended) | ~30s |
-| MULTI_POINT_10 | 4 (quartic) | 10 | Maximum precision / research | ~45s |
+| MULTI_POINT_8 | 8 | 3 (cubic) | Full factory calibration (recommended) | ~30s |
+| MULTI_POINT_10 | 10 | 4 (quartic) | Maximum precision / research | ~45s |
+
+> **정정 2026-09-16 (leader, QA-A-70 / #140) — 위 두 행의 열이 뒤바뀌어 있었습니다.**
+>
+> 열 제목은 `Max Dose Levels | Max Poly Degree` 인데 값이 `3 | 8` · `4 | 10` 으로 반대로 실려 있었습니다. FUNC-031 본문이 `MULTI_POINT_8` 을 **8 dose levels, degree ≤ 3**, `MULTI_POINT_10` 을 **10 dose levels, degree ≤ 4** 로 적고, 같은 표의 위 세 행도 `levels | degree` 순서를 지키므로 **이 두 칸만 어긋난 것**입니다. 구현(`xpe_calib_mode.cpp:60-66`)도 `{8, 3}` · `{10, 3}` 으로 levels 가 앞입니다.
+>
+> **구현이 `MULTI_POINT_10` 에서 요구보다 좁다는 것은 별개 사실이고, 결함이 아닙니다.** `kModeParams` 가 `{10, 3}` 이라 차수를 3으로 잡는데, 요구가 `degree ≤ 4` 이므로 **3은 그 안에 듭니다** — 상한이지 지시가 아닙니다.
+>
+> **다만 그 결과 `MULTI_POINT_10` 은 차수에서 `MULTI_POINT_8` 과 구별되지 않습니다.** 둘의 차이는 도스 점 수(10 대 8)뿐이고, 이 표가 그 모드에 붙인 용도인 "Maximum precision / research" 는 차수가 더 높다는 뜻으로 읽히기 쉽습니다. **차수를 4로 올릴지, 아니면 이 표의 용도 설명을 도스 점 수 기준으로 다시 쓸지는 제품 판단이며 아직 내려지지 않았습니다.**
+>
+> QA-A-70 이 표의 어긋남을 찾아 올렸고, **해석하지 않고 보고한 것이 옳았습니다.**
 | AUTO | N/A (auto) | Determined by input count | Hands-off operation | Varies |
 
 **Relationship to Existing Requirements:**
@@ -185,6 +195,35 @@ The following requirements define explicit calibration mode selection, multi-poi
 - **FUNC-031 vs FUNC-024**: FUNC-024 defines frame count tiers per dose level; FUNC-031 defines how many dose levels to use and the polynomial degree ceiling. Together they determine total frames: mode_count × frames_per_level.
 - **FUNC-031 vs FUNC-027**: FUNC-027 defines the polynomial fitting algorithm; FUNC-031 adds mode enforcement (max levels, max degree) before fitting begins. FUNC-032 optimizes the fitting process itself.
 - **FUNC-033 vs FUNC-015**: FUNC-015 defines E2E metric reporting; FUNC-033 defines calibration-specific quality metadata in XCal files. FUNC-033 metadata is consumed by FUNC-015 reporting during validation runs.
+
+### FUNC-033 구현 현황 — 무엇이 되고 무엇이 왜 안 되는지 (2026-09-16, leader / QA-A-70)
+
+**요구가 구현도 검증도 없다고 적혔던 상태는 해소돼 있었습니다.** QA-A-35 가 두 생성 경로 모두에 배선했고(`xpe_calib_generate_gain.cpp:301, :563`), 파일에서 다시 읽으며(`xpe_calib_load_gain.cpp:108`), R² 는 상수가 아니라 잔차에서 계산됩니다. 검증도 있습니다.
+
+**(1) 필수 필드 8개 중 6개 기록, 2개 미기록.**
+
+| 필드 | 상태 |
+|---|---|
+| `calibration_mode` · `actual_dose_levels` · `polynomial_degree` · `fit_r_squared` · `max_residual_pct` · `mean_residual_pct` | 기록됨 |
+| **`acquisition_duration_s`** · **`detector_temperature_c`** | **미기록** |
+
+**미기록 둘은 구현 누락이 아니라 이 함수가 알 수 없는 값입니다.** 취득은 이 모듈 밖에서 일어나고 온도는 하드웨어에서 옵니다 — 두 진입점 시그니처에 도달하지 않으며, 다항 경로에는 `metadata_json` 인자조차 없습니다.
+
+> **판정: 이 둘은 호출자가 채우는 필드입니다.** 생성 함수가 자기 실행 시간을 `acquisition_duration_s` 에 넣는 것은 **이름과 다른 값을 그 자리에 넣는 일**이고, 그러면 그 필드를 읽는 다음 사람이 취득 시간으로 읽습니다. QA-A-70 이 그렇게 하지 않고 올린 것이 옳습니다. 시그니처를 넓히는 것은 공개 API 변경이므로 **그 값을 실제로 쓰는 소비자가 생길 때** 합니다(QA-A-61 의 ABI 판정과 같은 기준).
+
+**(3) 비교 지표 셋 — 전부 없고, 이 경로에 있을 수 없습니다.**
+
+`dark_bias_delta` 는 오프셋 파일의 양이고 `defect_count_delta` 는 결함 맵의 양이라 **게인 생성 경로에 그 입력이 없습니다.** `prnu_delta_pct` 는 게인 맵에서 계산 가능하지만 **다항 경로의 출력은 게인 맵이 아니라 계수 배열**입니다.
+
+> **판정: 이 셋은 세 산출물을 모두 가진 층에서 계산해야 합니다.** 게인 생성 함수가 아니라 교정 전체를 조율하는 쪽입니다. 그 층이 아직 없으므로 **지금은 미구현으로 기록하고, 요구를 그 층에 재배치하는 것이 맞습니다.** 구조체의 `previous_r_squared` 는 **위 셋 어디에도 없는 필드**이고 요구 목록 밖입니다.
+
+**(4) 모드별 둘 — 정본에 정의가 없습니다.**
+
+`gain_uncertainty` 는 **어떤 잡음 모델로 어떤 단위**인지 이 문서에 없습니다. `per_point_r_squared[]` 는 더 근본적입니다 — **한 도스 점에 표본이 하나라 R² 가 수학적으로 정의되지 않습니다.** 화소 방향으로 정의하면 수는 나오지만 **이 문서가 그렇게 말하지 않습니다.**
+
+> **판정: 정의를 여기서 만들지 않습니다.** 임상 품질 지표의 정의는 편집 정정이 아니라 제품 판단이고, 근거 없이 채우면 **요구가 구현을 따라가는** 형태가 됩니다. **미정의로 기록하고, 정의가 오면 구현합니다.** QA-A-70 이 해석하지 않고 올린 것이 옳습니다.
+
+**요약: (1)의 둘은 호출자 몫, (3)은 층이 다름, (4)는 정의 부재.** 셋 다 "구현하지 않았다" 가 아니라 **"이 자리에서는 할 수 없다"** 이고, 그 구분이 다음 사람이 같은 조사를 반복하지 않게 합니다.
 
 ---
 
