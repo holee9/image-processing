@@ -22,10 +22,13 @@
 //
 // (5) is the reentrancy question the card raised. The memory is thread_local:
 // no thread can observe another's, and no result depends on it. The literal
-// tension with REQ-ADV-032's "no global mutable state shall be modified during
-// processing calls" is recorded in the QA-B-61 report, not argued away here --
-// any warn-once behaviour needs memory that outlives a call, and the only
-// choice is whether threads share it. These cases measure that they do not.
+// tension with REQ-ADV-090's ORIGINAL wording ("no global mutable state shall
+// be modified during processing calls") was reported rather than argued away
+// here; the requirement was amended 2026-09-12 to name the property it
+// protects -- no cross-thread sharing, no output dependence on state carried
+// over from another call -- and these two cases are the measurement that both
+// hold. They are load-bearing: the amendment permits thread_local only while
+// they do.
 
 #include <gtest/gtest.h>
 
