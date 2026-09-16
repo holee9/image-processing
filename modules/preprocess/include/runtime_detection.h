@@ -760,7 +760,20 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
 // 20 threads still 1.44x short of the 60 ms target; that gap is algorithmic and
 // belongs to another card.
 
-/** Clamps a caller-supplied thread count to something runnable. */
+/**
+ * @brief Normalises a caller-supplied thread count to a runnable worker count.
+ *
+ * @param requested Thread count as the caller gave it. Zero and negative values
+ *                  are CLAMPED to 1 rather than reported as an error -- this
+ *                  function has no error channel, and a caller asking for "no
+ *                  threads" means the single-threaded path.
+ * @return The worker count to use. Never 0. Values ABOVE the machine's core
+ *         count are returned UNCHANGED: there is no upper clamp, because this
+ *         module deliberately never reads hardware concurrency (QA-A-61) -- the
+ *         caller knows what else the pipeline is running and this module does
+ *         not. Asking for more workers than cores is therefore permitted and
+ *         simply oversubscribes.
+ */
 inline uint32_t RuntimeDetection_NormalizeThreads(int32_t requested) {
     return (requested < 1) ? 1u : static_cast<uint32_t>(requested);
 }
@@ -937,8 +950,24 @@ inline float ComputeGlobalSigmaThreaded(const XpeImageBuffer* img, int32_t threa
  * @param config Detection configuration; config.threadCount selects the split.
  *               The floor and cap fields are OVERWRITTEN from the frame's own
  *               sigma, matching what the shipped entry point does.
- * @param map Output map, one byte per pixel, zero-filled by the caller.
- *            1 marks a defective pixel; untouched bytes keep their prior value.
+ * @param map Output map, one byte per pixel. CLEARED BY THIS FUNCTION -- the
+ *            caller need not, and should not rely on, pre-filling it. Every byte
+ *            is written: 1 for a defective pixel, 0 otherwise.
+ *
+ * QA-A-62 (#144): the clear used to be the caller's job, stated only in this
+ * comment. A comment is not code, and this particular contract fails SILENTLY --
+ * an unfilled map keeps whatever it held before, and a stale 1 reads exactly
+ * like a detection. The cost of removing the hazard was measured rather than
+ * argued: 9.4 MB of std::memset at 3072x3072, against a frame that takes
+ * hundreds of milliseconds. The measurement is in the QA-A-62 report.
+ *
+ * INDEX ARITHMETIC at this size, since the frame is the real one: the map index
+ * below is computed in size_t (64-bit here), and the pixel reads inside
+ * DetectDefectivePixel are computed in uint32_t. The largest pixel index a frame
+ * produces is width*height - 1, so the uint32_t form is exact while
+ * width*height <= 2^32; at 3072x3072 that is 9,437,184 against 4,294,967,296 --
+ * a factor of 455 of headroom. Stated as a bound rather than as "it does not
+ * overflow", because the bound is what a future larger detector has to check.
  */
 inline void DetectFrame(const XpeImageBuffer* img,
                         RuntimeDetectionConfig config,
@@ -947,6 +976,9 @@ inline void DetectFrame(const XpeImageBuffer* img,
     const uint32_t T = RuntimeDetection_NormalizeThreads(config.threadCount);
     const uint32_t w = img->width;
     const uint32_t h = img->height;
+
+    // QA-A-62: clear it here rather than trusting a comment. See the note above.
+    std::memset(map, 0, static_cast<size_t>(w) * static_cast<size_t>(h));
 
     const float sigmaGlobal = ComputeGlobalSigmaThreaded(img, config.threadCount);
     config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
