@@ -26,20 +26,25 @@
         section 10 calls a single source of truth disagree about them:
 
           F5  Swipe           bound     - MENU-001 9.3, 10.1 and ACCESS-001 5.2 all agree
-          F6  Split           NOT bound - MENU-001 says Split, ACCESS-001 5.2 says Difference
+          F6  Split           bound     - the conflict was decided against ACCESS-001 (6dffce0):
+                                          MENU-001 says Split in BOTH 9.3 and 10.1, and the value
+                                          ACCESS-001 carried (Difference) also collided with F8.
+                                          ACCESS-001 listed only F5 and F6, so that collision was
+                                          not visible from inside its own table
           F7  Overlay         bound     - named only by MENU-001; nothing else claims F7
           F8  Difference      bound     - named only by MENU-001; nothing else claims F8
-          Ctrl+1 SourceOnly   NOT bound - MENU-001 9.3 says Source Only, but MENU-001 10.1 AND
-                                          ACCESS-001 5.2 both give Ctrl+1 to Zoom 100 percent
-          Ctrl+2 ProcessedOnly NOT bound - unclaimed elsewhere, but it is the other half of a pair
-                                          whose first half is contested; binding one and not the
-                                          other answers worse than binding neither
+          Ctrl+1 SourceOnly   NOT bound - decided (6dffce0): Ctrl+1 belongs to Zoom 100 percent,
+                                          which MENU-001 10.1 and ACCESS-001 5.2 agree on; 9.3 was
+                                          the wrong entry
+          Ctrl+2 ProcessedOnly NOT bound - its pair has no key, so neither does it
 
-        The withheld three are reachable from View -> Compare Mode. Resolving the conflict is a
-        document decision, not this lane's - reported in the GUI-C-58 report.
+        Source Only and Processed Only reach the user through View -> Compare Mode only. A
+        replacement key for them is not this lane's to pick: key assignment is judged together with
+        the accessibility navigation and the mnemonics.
     -->
     <Window.InputBindings>
         <KeyBinding Key="F5" Command="{Binding SetComparisonModeCommand}" CommandParameter="SwipeVertical" />
+        <KeyBinding Key="F6" Command="{Binding SetComparisonModeCommand}" CommandParameter="SplitLocked" />
         <KeyBinding Key="F7" Command="{Binding SetComparisonModeCommand}" CommandParameter="OverlayOpacity" />
         <KeyBinding Key="F8" Command="{Binding SetComparisonModeCommand}" CommandParameter="DifferenceHeatmap" />
     </Window.InputBindings>
@@ -222,10 +227,10 @@
                     two-way binding would write the mode a second time, and a second writer on
                     Settings.ComparisonMode is exactly what GUI-C-47 took out.
 
-                    InputGestureText appears only where the gesture is actually bound. F6, Ctrl+1 and
-                    Ctrl+2 are NOT bound (see the window InputBindings above) because the documents
-                    disagree about them; printing a shortcut that does nothing is worse than printing
-                    none.
+                    InputGestureText appears only where the gesture is actually bound. F6 joined the
+                    bound set once the conflict was decided (6dffce0); Ctrl+1 and Ctrl+2 stay unbound
+                    by that same decision, and printing a shortcut that does nothing would be worse
+                    than printing none.
                 -->
                 <MenuItem x:Name="CompareModeMenuItem"
                           AutomationProperties.AutomationId="CompareModeMenuItem"
@@ -241,6 +246,7 @@
                     <MenuItem x:Name="CompareSplitMenuItem"
                               AutomationProperties.AutomationId="CompareSplitMenuItem"
                               Header="Sp_lit"
+                              InputGestureText="F6"
                               IsCheckable="True"
                               IsChecked="{Binding Settings.ComparisonMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=SplitLocked}"
                               Command="{Binding SetComparisonModeCommand}"
