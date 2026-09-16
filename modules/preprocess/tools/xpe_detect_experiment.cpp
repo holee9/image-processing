@@ -65,6 +65,8 @@ using xpe::preprocess::internal::ComputeGlobalSigmaThreaded;
 using xpe::preprocess::internal::DetectFrame;
 using xpe::preprocess::internal::DetectDefectivePixel;
 using xpe::preprocess::internal::DetectRowRange;
+using xpe::preprocess::internal::SelectKthSmallest;
+using xpe::preprocess::internal::FloatSortKey;
 
 /* ---------------------------------------------------------------- frames */
 
@@ -1707,6 +1709,228 @@ void gateProbe(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+
+/* ------------------------------------------- QA-A-67: inside the global sigma */
+
+/**
+ * Stage decomposition of ComputeGlobalSigma, the 90% that QA-A-65 left behind.
+ *
+ * The stages are the ones the function actually performs, called directly rather
+ * than re-implemented: the buffer allocation, the difference fill, the exact
+ * radix selection (SelectKthSmallest, the shipped function), and the absolute
+ * deviation pass. The one thing measured by replica is the selection's two
+ * halves, because they are inside one function and cannot be timed from outside
+ * -- that row is labelled as a replica and the gap against the real selection is
+ * printed, per the habit QA-A-64 settled on: a sum that does not reach the total
+ * is reported as a gap, never absorbed.
+ */
+void sigmaStages(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260927u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    for (size_t i = 1013; i < n; i += 4099) frame[i] += 140.0f;
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    const size_t hCount = static_cast<size_t>(h) * (w - 1u);
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        fn();
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    volatile float fsink = 0.0f;
+    const double tTotal = bestOf(5, [&]{ fsink = fsink + ComputeGlobalSigma(&img); });
+
+    // 1. the 37.75 MB allocation the function makes per call
+    volatile float* psink = nullptr;
+    const double tAlloc = bestOf(5, [&]{
+        std::unique_ptr<float[]> d(new float[hCount]);
+        d[0] = 1.0f;                      // force the first touch
+        psink = d.get();
+    });
+    (void)psink;
+
+    std::unique_ptr<float[]> diff(new float[hCount]);
+    const float* pixels = frame.data();
+
+    // 2. the horizontal difference fill
+    const double tFill = bestOf(5, [&]{
+        for (size_t y = 0; y < h; ++y) {
+            const float* row = pixels + y * w;
+            float* dst = diff.get() + y * (w - 1u);
+            for (size_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
+        }
+    });
+
+    // 3. THE TWO SELECTIONS ARE NOT THE SAME PRICE, and the first version of
+    //    this mode assumed they were: it timed one selection over the difference
+    //    buffer and multiplied by four, which made the named stages sum to 148%
+    //    of the total. Parts exceeding the whole is the harness being wrong
+    //    (QA-A-64), so the assumption was the thing to find.
+    //
+    //    It is the INPUT DISTRIBUTION. The first selection runs over adjacent
+    //    differences, which spread across many high-16-bit buckets, so its
+    //    histogram scatters over most of the 256 KB table. The second runs over
+    //    ABSOLUTE DEVIATIONS from the median -- all small, all positive, packed
+    //    into a handful of buckets, so the same 9.4 million increments hit a few
+    //    cache lines instead of thousands. Same instruction count, different
+    //    memory behaviour, and the difference is large enough to invalidate the
+    //    x4 shortcut.
+    const double tSelect1 = bestOf(5, [&]{
+        fsink = fsink + SelectKthSmallest(diff.get(), hCount, hCount / 2u);
+    });
+
+    const float median = SelectKthSmallest(diff.get(), hCount, hCount / 2u);
+
+    // 4. the absolute-deviation pass between the two selections
+    std::unique_ptr<float[]> devs(new float[hCount]);
+    const double tAbs = bestOf(5, [&]{
+        for (size_t i = 0; i < hCount; ++i) devs[i] = std::abs(diff[i] - median);
+    });
+
+    // 5. the SECOND selection, over what it actually receives
+    const double tSelect2 = bestOf(5, [&]{
+        fsink = fsink + SelectKthSmallest(devs.get(), hCount, hCount / 2u);
+    });
+
+    // 6. replica of the selection's two halves, so the 2 x 9.4M scatter can be
+    //    separated from the 65536-bucket scans. Compiled here, not in the header.
+    std::vector<uint32_t> hist(1u << 16, 0u);
+    const double tHistPass = bestOf(5, [&]{
+        std::fill(hist.begin(), hist.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++hist[FloatSortKey(diff[i]) >> 16];
+    });
+    volatile size_t ssink = 0u;
+    const double tScan = bestOf(5, [&]{
+        size_t seen = 0;
+        for (size_t b = 0; b < hist.size(); ++b) {
+            if (seen + hist[b] > hCount / 2u) break;
+            seen += hist[b];
+        }
+        ssink = seen;
+    });
+    (void)ssink;
+
+    const double perSelect = 2.0 * tHistPass + 2.0 * tScan;
+    const double named = 2.0 * (tFill + tSelect1 + tAbs + tSelect2) + tAlloc;
+
+    std::printf("[sigma-stages] %ux%u  hCount %zu (%.1f MB), single thread, min of 5\n",
+                w, h, hCount, (hCount * sizeof(float)) / (1024.0 * 1024.0));
+    std::printf("  %-44s %9s %8s\n", "stage", "ms", "share");
+    std::printf("  %-44s %9.1f %7.1f%%\n", "TOTAL ComputeGlobalSigma [measured]",
+                tTotal, 100.0);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  allocate 37.75 MB (once per call)",
+                tAlloc, 100.0 * tAlloc / tTotal);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  difference fill (x2: h and v)",
+                2.0 * tFill, 100.0 * 2.0 * tFill / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  selection 1, over differences (x2)",
+                2.0 * tSelect1, 100.0 * 2.0 * tSelect1 / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  selection 2, over deviations (x2)",
+                2.0 * tSelect2, 100.0 * 2.0 * tSelect2 / tTotal);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  absolute deviation pass (x2)",
+                2.0 * tAbs, 100.0 * 2.0 * tAbs / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  SUM of the named stages",
+                named, 100.0 * named / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  GAP (total - sum)",
+                tTotal - named, 100.0 * (tTotal - named) / tTotal);
+    std::printf("\n  inside ONE selection (replica, this TU):\n");
+    std::printf("    %-42s %9.1f\n", "one 9.4M histogram pass", tHistPass);
+    std::printf("    %-42s %9.3f\n", "one 65536-bucket scan", tScan);
+    std::printf("    %-42s %9.1f  vs %.1f / %.1f measured\n",
+                "2 passes + 2 scans", perSelect, tSelect1, tSelect2);
+    std::fflush(stdout);
+
+    // 7. IS IT THE TABLE FOOTPRINT? Same 9.4M increments over the same data;
+    //    only the number of buckets changes. Selection 2 is 6.8x cheaper than
+    //    selection 1 running the SAME code, and the only difference between
+    //    them is how widely their keys scatter across the table -- so the
+    //    table footprint is the hypothesis, and this is the direct test of it.
+    std::printf("\n  one histogram pass at different table sizes (same data):\n");
+    for (int bits = 8; bits <= 16; bits += 2) {
+        const uint32_t shift = static_cast<uint32_t>(32 - bits);
+        std::vector<uint32_t> t(static_cast<size_t>(1u) << bits, 0u);
+        const double tp = bestOf(5, [&]{
+            std::fill(t.begin(), t.end(), 0u);
+            for (size_t i = 0; i < hCount; ++i) ++t[FloatSortKey(diff[i]) >> shift];
+        });
+        std::printf("    %2d bits  %6zu buckets  %7.1f KB table  %7.1f ms\n",
+                    bits, t.size(), (t.size() * sizeof(uint32_t)) / 1024.0, tp);
+    }
+    std::fflush(stdout);
+
+    // 8. THE TABLE IS NOT IT -- 1 KB and 256 KB cost the same. So the 6.8x
+    //    between the two selections is about the DATA, not the footprint, and
+    //    the only data-dependent thing in the pass is the ternary inside
+    //    FloatSortKey: negatives take one arm, non-negatives the other. The
+    //    difference array is about half negative (unpredictable); the absolute
+    //    deviations are all non-negative (perfectly predicted).
+    //
+    //    The branchless form is bit-identical by construction:
+    //      mask = -(bits >> 31) | 0x80000000   ->  0xFFFFFFFF for a negative,
+    //      0x80000000 otherwise; bits ^ mask is ~bits and bits | sign in turn.
+    auto keyBranchless = [](float f) {
+        uint32_t bits = 0u;
+        std::memcpy(&bits, &f, sizeof(bits));
+        const uint32_t mask =
+            static_cast<uint32_t>(-static_cast<int32_t>(bits >> 31)) | 0x80000000u;
+        return bits ^ mask;
+    };
+    for (size_t i = 0; i < hCount; ++i) {
+        if (FloatSortKey(diff[i]) != keyBranchless(diff[i])) {
+            std::printf("    KEY MISMATCH at %zu -- the branchless form is wrong\n", i);
+            break;
+        }
+    }
+
+    std::vector<uint32_t> tb(1u << 16, 0u);
+    const double tBranchy = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[FloatSortKey(diff[i]) >> 16];
+    });
+    const double tBranchless = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[keyBranchless(diff[i]) >> 16];
+    });
+    const double tOnDevs = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[FloatSortKey(devs[i]) >> 16];
+    });
+    std::printf("\n  one histogram pass, same table, different key/data:\n");
+    std::printf("    %-40s %7.1f ms\n", "branchy key,    signed differences", tBranchy);
+    std::printf("    %-40s %7.1f ms\n", "branchless key, signed differences", tBranchless);
+    std::printf("    %-40s %7.1f ms\n", "branchy key,    absolute deviations", tOnDevs);
+    std::fflush(stdout);
+
+    std::printf("\n  memory traffic if every pass were bandwidth-bound:\n");
+    const double bytes = (2.0 * (hCount * 4.0)                    // fill: write
+                          + 4.0 * 2.0 * (hCount * 4.0)            // 4 selections x 2 read passes
+                          + 2.0 * 2.0 * (hCount * 4.0));          // abs: read + write
+    std::printf("    %.0f MB of traffic; at the 8.9 GB/s this machine reaches\n"
+                "    single-threaded that is %.1f ms, against %.1f ms measured.\n\n",
+                bytes / (1024.0 * 1024.0), (bytes / 8.9e9) * 1000.0, tTotal);
+    std::fflush(stdout);
+}
+
 /* ------------------------------------------------ QA-A-45 false negatives */
 
 /**
@@ -1809,6 +2033,7 @@ int main(int argc, char** argv) {
     bool decomposeOnly = false;
     bool decomposeThreadsOnly = false;
     bool gateProbeOnly = false;
+    bool sigmaStagesOnly = false;
     bool sigmaOnly = false;
     bool boundsOnly = false;
     bool threadsOnly = false;
@@ -1821,6 +2046,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
         if (std::strcmp(argv[i], "--decompose-threads") == 0) decomposeThreadsOnly = true;
         if (std::strcmp(argv[i], "--gate-probe") == 0) gateProbeOnly = true;
+        if (std::strcmp(argv[i], "--sigma-stages") == 0) sigmaStagesOnly = true;
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
@@ -1869,6 +2095,11 @@ int main(int argc, char** argv) {
         sigmaDispersion(3072, 3072, 7);
         sigmaBreakdown(3072, 3072);
         xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (sigmaStagesOnly) {
+        sigmaStages(3072, 3072);
         return 0;
     }
 

@@ -140,73 +140,52 @@ double MeasureReferenceMs() {
 //
 //     [perf-gate-ratio] <label> ratio=<x> limit=<y>
 //
-// QA-A-66 RE-DERIVED THE LIMIT. QA-A-65 made the detector 4.2x faster, which
-// moved the clean ratio from ~7.2 to ~1.6 and left the old limit of 10.00
-// passing a six-fold regression. A limit that cannot fail is a gate that is off.
+// QA-A-67 RE-DERIVED THE LIMIT, AGAIN -- and that is the rule now, not an
+// exception. SPEC 60a81c1 [HARD]: a limit is re-derived at every large
+// performance change and never inherited, because an inherited limit is not a
+// loose gate, it is a gate measuring something else. QA-A-65 made the detector
+// 4.2x faster and QA-A-66 re-derived 2.20 for it; QA-A-67 made the global sigma
+// 2.95x faster, so 2.20 now passes a 2.4x regression.
 //
-// IT ALSO WIDENED THE CLEAN BAND, and that had to be explained before the limit
-// could be set. The two machines' ratios, which had agreed to 5.4% before A-65,
-// then differed by 24% AND swapped order (dev 1.644, CI 1.323). QA-A-66 found
-// the reason by pinning the same work to the two core types of this machine --
-// an i7-12700 has P (Golden Cove) and E (Gracemont) cores, which is a second
-// microarchitecture without a second computer:
+// THE CLEAN BAND NARROWED FROM 24% TO 4%, which is a result rather than luck.
+// QA-A-66 measured a wide band and explained it: the reference slowed by 1.87x
+// between this machine's P and E cores while the detector slowed by only 1.42x,
+// because the detector's time was dominated by a global sigma stage whose cost
+// was an unpredictable branch rather than arithmetic. QA-A-67 removed that
+// branch, and with it the reason the two diverged:
 //
-//     P-core   detect 166.7   reference  96.9   ratio 1.720
-//     E-core   detect 237.2   reference 181.4   ratio 1.308
-//     CI                                        ratio 1.323
+//     QA-A-66   P-core 1.720   E-core 1.308   spread 24%
+//     QA-A-67   P-core 0.651   E-core 0.630   spread  3.3%
 //
-// The E-core reproduces the CI ratio to within 1.2%. So the CI value is not an
-// anomaly to be explained away -- the clean band is genuinely this wide now, and
-// the reason is a change in what the ratio measures. Going from P to E the
-// reference slows by 1.87x while the detector slows by only 1.42x, because the
-// detector's time is now dominated by the global sigma stage (1.40x) rather than
-// by the per-pixel loop (2.40x, the AVX2 part, which E-cores punish hardest).
+// The detector now scales P->E by 1.80x against the reference's 1.84x. The same
+// explanation predicted both the divergence and its disappearance, which is what
+// makes it an explanation rather than a story fitted to one measurement.
 //
-// FIVE CANDIDATE REFERENCES WERE MEASURED against that spread, and none tracked
-// the detector better than the one already here (P->E factor, detector 1.42):
+// MEASURED BANDS (QA-A-67, fresh build verified for each; P/E pinning as in
+// QA-A-66, and the E-core stands in for the second machine):
 //
-//     A  this kernel, streaming min/max + float arithmetic     1.87
-//     B  histogram over 16 MB, integer scatter                 1.78
-//     C  streaming difference + histogram over 36 MB           1.89
-//     D  A and C together                                      1.86
-//     E  four-accumulator streaming sum, bandwidth-bound       1.75
+//     clean            P-core   0.630 .. 0.651   (3 runs)
+//                      E-core   0.626 .. 0.630   (3 runs)
+//     regression 1     P-core   1.583            (branchless sort key reverted)
+//                      E-core   1.289            (same)
+//     regression 2     P-core   6.183            (AVX2 path compiled out)
+//                      E-core   6.490            (same)
 //
-// Everything written in a test TU lands at 1.75-1.89 while the detector lands at
-// 1.42, so a single reference will not close the gap -- the detector is compiled
-// with /arch:AVX2 and a test TU is not, and its dominant stage is memory-shaped
-// in a way none of these reproduce. The conclusion is therefore NOT "find a
-// better kernel": it is that the clean band is ~1.30 to ~1.72 and the limit must
-// be set above it rather than pretending the band is narrow. The kernel below is
-// unchanged, and stays frozen.
+// Regression 1 is the nearest one and therefore the one that sets the ceiling:
+// it is exactly the pre-QA-A-67 code, so it is what "someone quietly undoes the
+// sort-key change" costs. Note its E-core value (1.289) is BELOW the P-core
+// clean value QA-A-66 measured (1.720) -- which is why the limit had to move:
+// under 2.20 this regression passes on both cores.
 //
-// MEASURED BANDS (QA-A-66, fresh build verified for each):
-//
-//     clean        P-core        1.636 .. 1.720   (4 runs)
-//                  E-core        1.298 .. 1.308   (4 runs)
-//                  CI runner     1.323            (post-A-65 run)
-//     regression   P-core        7.060            (AVX2 path compiled out)
-//                  E-core        7.154            (same)
-//
-// The regression band is the natural one for this code: XPE_DETECT_HAS_AVX2
-// forced to 0, which is what any change that silently loses the vector path
-// would produce. It is 4.1x above the worst clean run, and -- worth noting --
-// the two core types agree to 1.3% there, because with the AVX2 path gone the
-// detector is scalar again and tracks the scalar reference again.
-//
-// 2.20 sits 27.9% above the worst clean run across both microarchitectures (the
-// same margin QA-A-60 used) and 69% below the best regression run. It catches a
-// 1.28x regression on a P-core and a 1.69x one on an E-core or CI.
-//
-// WHY NOT TIGHTER: 1.72 is a measured clean run, not a bound, and the CI runner
-// hardware has already changed once (its reference moved 172.3 -> 158.1 ms
-// between runs). A margin narrower than the observed machine-to-machine spread
-// buys sensitivity with false failures.
+// 0.85 sits 30.6% above the worst clean run across both microarchitectures (the
+// margin QA-A-60 and QA-A-66 both used) and 34% below the nearest regression. It
+// catches a 1.31x regression on either core.
 //
 // Reading the value from CI: ctest prints test output only on failure, so a
 // passing run has no `perf-gate-ratio` line in the job log. It is in the
 // xpe-preprocess-test-results artifact, under Temporary/LastTest.log. That is
 // ctest behaving normally -- do not "fix" it, or every passing run grows a log.
-constexpr double kRatio3072Limit = 2.20;
+constexpr double kRatio3072Limit = 0.85;
 
 /** Reported, never asserted: the SPEC improvement target we are not near yet. */
 constexpr double kImprovementTargetMs = 60.0;
