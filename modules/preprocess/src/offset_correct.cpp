@@ -23,19 +23,35 @@
 #endif
 
 /* =========================================================================
- * REQ-P1A-010: Scalar fallback implementation (portable, always available)
- * corrected[i] = max(raw[i] - offset[i], 0) — saturating subtraction
+ * QA-A-74 (#160): four kernels were removed from this file --
+ *   offset_correct_scalar, offset_correct_avx2, offset_correct_avx512,
+ *   offset_correct_neon
+ * -- and none of them was a portability asset.
+ *
+ * THEY WERE A DIFFERENT OPERATION, not older versions of the live one. Their
+ * shared signature was (uint16_t* dst, const uint16_t* off, size_t n): an
+ * IN-PLACE integer saturating subtract over a uint16 offset map. The path this
+ * module actually takes is (const uint16_t* src, const float* off, uint16_t*
+ * dst, size_t n): a FLOAT subtract over a float offset map, with a 0 floor, a
+ * 65535 ceiling and a +0.5 rounding step -- see xpe_offset_apply_scalar_reference
+ * in xpe_preprocess_internal.h and offset_correct_float_avx2 below. Different
+ * inputs, different arithmetic, different rounding.
+ *
+ * So the NEON and AVX-512 members were not ports of live code; they were ports
+ * of dead code. Deleting them loses no work a future aarch64 port could use,
+ * because what such a port has to translate is the FLOAT path. Keeping them is
+ * the harm: they are the wrong starting point, sitting in the file, looking
+ * finished.
+ *
+ * That is the ground QA-A-73 removed xpe_has_avx512f() on -- something with no
+ * consumer is something a later reader adopts as-is.
+ *
+ * MEASURED, NOT ASSUMED: all four had zero callers across modules/, counted per
+ * function with definitions and calls tallied separately. Every one of them
+ * carried `@MX:REASON: ... fan_in = 2`. The annotation was wrong for all four.
  * ========================================================================= */
 
 namespace {
-// @MX:ANCHOR: [AUTO] offset_correct_scalar — saturating subtraction kernel
-// @MX:REASON: Core algorithm called by both scalar and AVX2 dispatch paths; fan_in = 2
-// @MX:SPEC: REQ-P1A-009
-void offset_correct_scalar(uint16_t* dst, const uint16_t* off, size_t n) noexcept
-{
-    for (size_t i = 0; i < n; ++i)
-        dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
-}
 
 // QA-A-73 (#160): the scalar float path moved to xpe_preprocess_internal.h as
 // xpe_offset_apply_scalar_reference, an inline definition, so the parity test
@@ -44,94 +60,19 @@ void offset_correct_scalar(uint16_t* dst, const uint16_t* off, size_t n) noexcep
 // is now FOR -- it is the comparand, not a fallback.
 
 /* =========================================================================
- * REQ-P1A-010: AVX2 implementation (branch-free saturating subtract)
- * Uses _mm256_subs_epu16 for unsigned 16-bit saturating subtraction.
- * Bit-identical to scalar version — verified by test suite.
+ * REQ-P1A-010: the vector path this module takes.
+ *
+ * offset_correct_float_avx2 below is the whole of it. Its scalar twin lives in
+ * xpe_preprocess_internal.h as xpe_offset_apply_scalar_reference, and
+ * REQ-P1A-010's "bit-identical to scalar version -- verified by test suite" is
+ * checked by test_offset_correct_avx2_parity.cpp. QA-A-73 made the second half
+ * of that sentence true: before it the suite compared repeated calls with each
+ * other, which a consistently wrong kernel passes.
  * ========================================================================= */
 
 #if defined(__AVX2__) || defined(__clang__) || defined(_MSC_VER)
 
-/* =========================================================================
- * AVX-512 Implementation (512-bit vectors, 32x uint16 per iteration)
- * REQ-P1A-010: Bit-identical to scalar baseline
- * ========================================================================= */
 
-#if defined(__AVX512F__)
-// @MX:ANCHOR: [AUTO] offset_correct_avx512 — AVX-512 saturating subtraction kernel
-// @MX:REASON: Highest performance on Skylake-X/Ice Lake; processes 32 pixels per iteration; fan_in = 2
-// @MX:SPEC: REQ-P1A-010
-// @MX:WARN: Requires 64-byte alignment for optimal performance; falls back to scalar for tails
-void offset_correct_avx512(uint16_t* dst, const uint16_t* off, size_t n) noexcept
-{
-    // @MX:NOTE: [AUTO] AVX-512 processes 32 uint16_t values (512 bits / 16 bits per element)
-    constexpr size_t kAVX512Stride = 32;
-
-    size_t i = 0;
-
-    // Main loop: 32 pixels per iteration using _mm512_subs_epu16
-    // @MX:NOTE: [AUTO] _mm512_subs_epu16: unsigned saturating subtraction (a-b) saturated to 0
-    // This intrinsic is branch-free and generates a single vpsubusw instruction
-    const size_t avx512_limit = n - (n % kAVX512Stride);
-
-    for (; i < avx512_limit; i += kAVX512Stride) {
-        // Load 32 uint16_t values from dst and off
-        __m512i dst_vec = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(dst + i));
-        __m512i off_vec = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(off + i));
-
-        // Saturating subtraction: dst_vec = max(dst_vec - off_vec, 0)
-        // _mm512_subs_epu16 automatically clamps underflow to 0
-        __m512i result = _mm512_subs_epu16(dst_vec, off_vec);
-
-        // Store result back to dst
-        _mm512_storeu_si512(reinterpret_cast<__m512i*>(dst + i), result);
-    }
-
-    // Tail loop: handle remaining pixels (0-31 pixels) with scalar code
-    for (; i < n; ++i) {
-        dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
-    }
-}
-#endif // __AVX512F__
-
-/* =========================================================================
- * AVX2 Implementation (256-bit vectors, 16x uint16 per iteration)
- * REQ-P1A-010: Bit-identical to scalar baseline
- * ========================================================================= */
-
-// @MX:ANCHOR: [AUTO] offset_correct_avx2 — AVX2 saturating subtraction kernel
-// @MX:REASON: Performance-critical hot path; processes 16 pixels per iteration; fan_in = 2
-// @MX:SPEC: REQ-P1A-010
-// @MX:WARN: Requires 32-byte alignment for optimal performance; falls back to scalar for tails
-void offset_correct_avx2(uint16_t* dst, const uint16_t* off, size_t n) noexcept
-{
-    // @MX:NOTE: [AUTO] AVX2 processes 16 uint16_t values (256 bits / 16 bits per element)
-    constexpr size_t kAVX2Stride = 16;
-
-    size_t i = 0;
-
-    // Main loop: 16 pixels per iteration using _mm256_subs_epu16
-    // @MX:NOTE: [AUTO] _mm256_subs_epu16: unsigned saturating subtraction (a-b) saturated to 0
-    // This intrinsic is branch-free and generates a single vpsubusw instruction
-    const size_t avx2_limit = n - (n % kAVX2Stride);
-
-    for (; i < avx2_limit; i += kAVX2Stride) {
-        // Load 16 uint16_t values from dst and off
-        __m256i dst_vec = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(dst + i));
-        __m256i off_vec = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(off + i));
-
-        // Saturating subtraction: dst_vec = max(dst_vec - off_vec, 0)
-        // _mm256_subs_epu16 automatically clamps underflow to 0
-        __m256i result = _mm256_subs_epu16(dst_vec, off_vec);
-
-        // Store result back to dst
-        _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + i), result);
-    }
-
-    // Tail loop: handle remaining pixels (0-15 pixels) with scalar code
-    for (; i < n; ++i) {
-        dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
-    }
-}
 
 void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* dst, size_t n) noexcept
 {
@@ -190,50 +131,6 @@ void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* 
 
 #endif // __AVX2__ || __clang__ || _MSC_VER
 
-/* =========================================================================
- * NEON Implementation (ARM64, 128-bit vectors, 8x uint16 per iteration)
- * REQ-P1A-010: Bit-identical to scalar baseline
- * ========================================================================= */
-
-#if defined(__aarch64__)
-#include <arm_neon.h>
-
-// @MX:ANCHOR: [AUTO] offset_correct_neon — NEON saturating subtraction kernel
-// @MX:REASON: ARM64 primary SIMD path; processes 8 pixels per iteration; fan_in = 2
-// @MX:SPEC: REQ-P1A-010
-// @MX:WARN: Requires 16-byte alignment for optimal performance; falls back to scalar for tails
-void offset_correct_neon(uint16_t* dst, const uint16_t* off, size_t n) noexcept
-{
-    // @MX:NOTE: [AUTO] NEON processes 8 uint16_t values (128 bits / 16 bits per element)
-    constexpr size_t kNEONStride = 8;
-
-    size_t i = 0;
-
-    // Main loop: 8 pixels per iteration using vqsubq_u16
-    // @MX:NOTE: [AUTO] vqsubq_u16: unsigned saturating subtraction (a-b) saturated to 0
-    // This intrinsic is branch-free and generates a single uqsub instruction
-    const size_t neon_limit = n - (n % kNEONStride);
-
-    for (; i < neon_limit; i += kNEONStride) {
-        // Load 8 uint16_t values from dst and off
-        uint16x8_t dst_vec = vld1q_u16(dst + i);
-        uint16x8_t off_vec = vld1q_u16(off + i);
-
-        // Saturating subtraction: dst_vec = max(dst_vec - off_vec, 0)
-        // vqsubq_u16 automatically clamps underflow to 0
-        uint16x8_t result = vqsubq_u16(dst_vec, off_vec);
-
-        // Store result back to dst
-        vst1q_u16(dst + i, result);
-    }
-
-    // Tail loop: handle remaining pixels (0-7 pixels) with scalar code
-    for (; i < n; ++i) {
-        dst[i] = (dst[i] > off[i]) ? static_cast<uint16_t>(dst[i] - off[i]) : uint16_t{0};
-    }
-}
-
-#endif // __aarch64__
 
 } // namespace
 
