@@ -427,7 +427,38 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
 inline uint32_t FloatSortKey(float f) {
     uint32_t bits = 0u;
     std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+
+    // QA-A-67 (#144): branchless, and the SAME key the ternary produced.
+    //
+    //   mask = -(bits >> 31) | 0x80000000
+    //        = 0xFFFFFFFF  when the sign bit is set
+    //        = 0x80000000  when it is clear
+    //   bits ^ 0xFFFFFFFF == ~bits                     (the negative arm)
+    //   bits ^ 0x80000000 == bits | 0x80000000         (the non-negative arm,
+    //                                                   where that bit is 0)
+    //
+    // so the value is identical for every input, NaN included. This is not a
+    // micro-optimisation of taste: the ternary compiled to a real branch, and
+    // this function runs once per element of a 9.4-million-element array, four
+    // times per frame. Adjacent-difference data is about half negative, so the
+    // branch is unpredictable; absolute-deviation data is all non-negative, so
+    // it is perfectly predicted. That is measurable, and QA-A-67 measured it --
+    // one histogram pass over the same 9.4M differences:
+    //
+    //     branchy key,    signed differences      28.9 ms
+    //     branchless key, signed differences       5.6 ms
+    //     branchy key,    absolute deviations      4.4 ms
+    //
+    // The third row is the control: with predictable data the branchy form is
+    // already fast, which is what says the cost is the misprediction rather than
+    // the arithmetic. Two earlier hypotheses were measured and REJECTED first --
+    // the 256 KB histogram table (1 KB and 256 KB cost the same, 26.8 vs 27.3 ms)
+    // and the tool's compile flags (/arch:AVX2 changed nothing). They are
+    // recorded because a rejected hypothesis is what makes the accepted one
+    // more than a guess.
+    const uint32_t mask =
+        static_cast<uint32_t>(-static_cast<int32_t>(bits >> 31)) | 0x80000000u;
+    return bits ^ mask;
 }
 
 /**
@@ -1056,6 +1087,37 @@ inline uint32_t RuntimeDetection_NormalizeThreads(int32_t requested) {
  * Bit-identical to ComputeGlobalSigma for every thread count: the differences
  * are the same values at the same positions, the per-thread histograms are
  * summed exactly, and the selection reads one merged table.
+ *
+ * QA-A-67 (#144): WHY THAT HOLDS HERE IS NOT WHY IT HOLDS IN THE PIXEL LOOP,
+ * and the difference is worth stating so it is not generalised wrongly.
+ *
+ *   - The per-pixel rule (QA-A-61, QA-A-65) is bit-identical because it performs
+ *     no floating-point REDUCTION at all: every operation is elementwise, so
+ *     there is no order for non-associativity to depend on.
+ *   - This stage does reduce -- it sums counts across workers -- but the sums are
+ *     INTEGERS, and integer addition is associative and exact. Same conclusion,
+ *     different reason.
+ *
+ * INTEGER DOES NOT MEAN AUTOMATICALLY SAFE, and the three places it could go
+ * wrong are named rather than assumed away:
+ *
+ *   - OVERFLOW: a bucket counts at most one entry per element, so the widest
+ *     count is the element count. The buckets are uint32_t and the element count
+ *     is at most width * height - which the detector already bounds at 2^32 for
+ *     its own index arithmetic (QA-A-62) - so a count cannot wrap before the
+ *     indices do. The two limits are the same limit, not two to keep in step.
+ *   - BUCKET BOUNDARIES: there is no float-to-bucket ARITHMETIC anywhere here.
+ *     The bucket index is a slice of the sort key's bits (`key >> 16`, then
+ *     `key & 0xFFFF`), and the key is a bit reinterpretation of the float, not a
+ *     quantisation of its value. So no value can land on the wrong side of a
+ *     boundary through rounding -- the usual histogram hazard does not exist in
+ *     this one.
+ *   - THE FLOAT-TO-KEY MAP ITSELF: this is where a hazard does live, and it is
+ *     the one QA-A-65 met in a different guise. -0.0 and +0.0 compare equal but
+ *     map to different keys. That is deliberate, argued at SelectKthSmallest,
+ *     and pinned by test_runtime_detection_radix_select_parity.cpp -- including
+ *     the branchless rewrite, which is verified against the form it replaced
+ *     rather than against its own behaviour.
  *
  * @param img Input frame (XPE_PIXEL_FLOAT32).
  * @param threadCount Workers to use; values below 1 are treated as 1.

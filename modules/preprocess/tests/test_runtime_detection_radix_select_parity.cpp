@@ -58,6 +58,66 @@ float NthElementReference(std::vector<float> v, size_t k) {
 }  // namespace
 
 /** The key must be a total order that agrees with float `<` on non-NaN pairs. */
+// ---------------------------------------------------------------------------
+// QA-A-67 (#144): the branchless key is the SAME key the ternary produced.
+//
+// FloatSortKey became branchless because its ternary compiled to a real branch
+// that mispredicted on about half of a 9.4-million-element difference array --
+// one histogram pass measured 28.9 ms branchy against 5.6 ms branchless, with an
+// all-non-negative control at 4.4 ms showing the cost was the misprediction and
+// not the arithmetic.
+//
+// A rewrite of a bit-manipulation function needs the bit-level check that the
+// behavioural tests below cannot give: those compare SELECTED VALUES, and a key
+// function can be wrong in ways that still pick the same element (any
+// order-preserving map does). So this test compares the key ITSELF against the
+// form it replaced, written out here as the reference.
+//
+// SCOPE, stated rather than implied: this is not exhaustive over all 2^32
+// patterns -- it is every structurally interesting one plus a large pseudorandom
+// sample. The identity is provable by cases on the sign bit and the two arms are
+// written in the header's comment; the test is here to catch an edit, not to
+// stand in for the proof.
+// ---------------------------------------------------------------------------
+TEST(RadixSelectParityTest, BranchlessSortKeyEqualsTheTernaryItReplaced) {
+    // The form FloatSortKey had before QA-A-67, verbatim.
+    auto ternaryKey = [](uint32_t bits) -> uint32_t {
+        return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+    };
+
+    std::vector<uint32_t> patterns = {
+        0x00000000u,  // +0.0
+        0x80000000u,  // -0.0
+        0x00000001u,  // smallest positive denormal
+        0x80000001u,  // smallest negative denormal
+        0x007FFFFFu,  // largest positive denormal
+        0x00800000u,  // smallest positive normal
+        0x3F800000u,  // +1.0
+        0xBF800000u,  // -1.0
+        0x7F7FFFFFu,  // FLT_MAX
+        0xFF7FFFFFu,  // -FLT_MAX
+        0x7F800000u,  // +inf
+        0xFF800000u,  // -inf
+        0x7FC00000u,  // quiet NaN
+        0xFFC00000u,  // negative quiet NaN
+        0x7F800001u,  // signalling NaN
+        0xFFFFFFFFu,
+        0x7FFFFFFFu,
+    };
+    std::mt19937 rng(20260927u);
+    for (int i = 0; i < 200000; ++i) patterns.push_back(rng());
+
+    for (uint32_t bits : patterns) {
+        float f = 0.0f;
+        std::memcpy(&f, &bits, sizeof(f));
+        const uint32_t expected = ternaryKey(bits);
+        const uint32_t actual = FloatSortKey(f);
+        ASSERT_EQ(expected, actual)
+            << "bits 0x" << std::hex << bits << ": ternary 0x" << expected
+            << " branchless 0x" << actual << std::dec;
+    }
+}
+
 TEST(RadixSelectParityTest, SortKeyIsOrderPreservingAndInvertible) {
     std::mt19937 rng(20260912u);
     std::uniform_real_distribution<float> wide(-1.0e6f, 1.0e6f);
