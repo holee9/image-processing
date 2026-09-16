@@ -148,6 +148,29 @@ protected:
             static_cast<int32_t>(values.size()), 2,
             (tmpDir / outName).string().c_str());
     }
+
+    // Same, with the fitted degree under the caller's control. QA-A-70 needs a
+    // LINEAR fit so that a deliberate deviation from a straight line cannot be
+    // absorbed by curvature the fit is allowed to have.
+    XpeErrorCode generatePolyDegree(const std::vector<float>& values,
+                                    int32_t maxDegree,
+                                    const std::string& outName) {
+        const std::string tag = "d" + std::to_string(generation++) + "_";
+        std::vector<std::string> paths;
+        std::vector<const char*> pathPtrs;
+        std::vector<double>      doses;
+        for (size_t i = 0; i < values.size(); ++i) {
+            paths.push_back(writeGainLevel(tag + "level" + std::to_string(i) + ".xcal",
+                                           values[i]));
+            doses.push_back(static_cast<double>(i + 1));
+        }
+        for (const auto& s : paths) pathPtrs.push_back(s.c_str());
+
+        return xpe_calib_generate_gain_polynomial(
+            pathPtrs.data(), doses.data(),
+            static_cast<int32_t>(values.size()), maxDegree,
+            (tmpDir / outName).string().c_str());
+    }
 };
 
 // --- FUNC-033 (1): the fields exist and describe the fit -------------------
@@ -166,6 +189,51 @@ TEST_F(CalibQualityMetaTest, R2QualityGate_Pass_WhenAboveThreshold) {
     EXPECT_EQ(1u, meta.calibration_pass);
     EXPECT_EQ(4u, meta.num_points) << "actual_dose_levels";
     EXPECT_GT(meta.calibration_timestamp, 0u) << "the record is stamped";
+}
+
+// QA-A-70 (#140): R2 MOVES WITH FIT QUALITY, monotonically.
+//
+// The two gate tests below assert one side each, with different inputs. Neither
+// on its own says the number RESPONDS to the data -- a function returning 1.0
+// for good input and 0.5 for bad input would satisfy both while being a lookup
+// table. This test holds everything fixed (five dose levels, the same doses, a
+// linear fit) and varies exactly one thing: how far the series departs from a
+// straight line. R2 must fall, step by step.
+//
+// The fit is LINEAR on purpose. With the quadratic the other tests use, a
+// deviation shaped like a curve is absorbed by the fit rather than showing up as
+// residual, and the series would have to be made erratic instead of merely
+// less linear -- which is a coarser instrument.
+//
+// This is the QA-B-58 shape: change one input, hold the rest, require the output
+// to move. QA-A-70 confirmed it is not redundant by injecting a constant R2 --
+// see the report; the injection leaves the "pass" test green.
+TEST_F(CalibQualityMetaTest, R2FallsAsTheSeriesDepartsFromTheFit) {
+    const float base[5] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    const float shape[5] = {0.0f, 1.0f, 0.0f, -1.0f, 0.0f};   // a linear fit cannot follow this
+
+    double previous = 2.0;   // above any attainable R2
+    for (int step = 0; step < 4; ++step) {
+        const float amplitude = static_cast<float>(step) * 0.25f;
+        std::vector<float> values;
+        for (int i = 0; i < 5; ++i) values.push_back(base[i] + amplitude * shape[i]);
+
+        ASSERT_EQ(XPE_OK, generatePolyDegree(values, 1,
+                                             "move" + std::to_string(step) + ".xcal"));
+
+        XpeCalibQualityMeta meta{};
+        ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&meta));
+
+        EXPECT_LT(meta.r_squared, previous)
+            << "step " << step << " (amplitude " << amplitude << "): R2 " << meta.r_squared
+            << " did not fall below the previous " << previous
+            << " -- the score is not following the data";
+        previous = meta.r_squared;
+    }
+
+    EXPECT_LT(previous, kGate)
+        << "the last series should be poor enough to fail the gate, or this test"
+           " never leaves the passing region and proves less than it looks";
 }
 
 // --- FUNC-033 (2): the gate and its warning --------------------------------
