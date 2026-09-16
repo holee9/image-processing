@@ -217,7 +217,7 @@ tests/enhance_advanced_tests/
 
 ```json
 {
-  "sensitivity": 0.5,
+  "confidence_strictness": 0.5,
   "min_area_ratio": 0.05,
   "border_margin": 8
 }
@@ -225,7 +225,7 @@ tests/enhance_advanced_tests/
 
 | Parameter | Type | Range | Default |
 |-----------|------|-------|---------|
-| sensitivity | float | 0.0-1.0 | 0.5 |
+| confidence_strictness | float | 0.0-1.0 | 0.5 |
 | min_area_ratio | float | 0.01-1.0 | 0.05 |
 | border_margin | int | 0-64 | 8 |
 
@@ -294,7 +294,22 @@ Module state consists of a single `g_initialized` boolean protected by `g_initMu
 6. Apply confidence-based fallback if score < threshold
 7. Apply border margin to output coordinates
 
-**Confidence threshold**: Derived from sensitivity parameter: `threshold = 0.7 + 0.3 * sensitivity`.
+**Confidence threshold**: Derived from the `confidence_strictness` parameter: `threshold = 0.7 + 0.3 * confidence_strictness`.
+
+> **개명 2026-09-16 (사용자 결정, #164 / QA-B-65) — 옛 이름은 `sensitivity` 였습니다.**
+>
+> **옛 이름은 동작과 반대를 말했습니다.** 위 식이 보이듯 값을 올리면 요구 신뢰도가 올라가 **더 많이 거절**합니다. "더 잘 잡히게" 하려고 값을 올린 조작자는 **검출을 잃습니다.** QA-B-62 가 무반응으로 관측했다가 QA-B-63 이 **에지 세기를 12단계로 훑어** 갈랐습니다 — 검출 문턱 바로 위 한 칸에서만 갈라지고, 낮은 값이 검출하고 높은 값이 전체 폴백합니다.
+>
+> **산술식은 바뀌지 않았습니다. 임상 출력도 불변입니다.** 고친 것은 이름뿐이고, 연산을 뒤집는 안은 **어느 방향이 옳은지 판단할 근거가 요구에 없어서** 채택되지 않았습니다 — `REQ-ADV-012` 는 Hough·theta 필터만 명명하고 신뢰도 임계를 다루지 않습니다.
+>
+> **`confidence_threshold` 를 쓰지 않은 이유**: 이 값은 임계 **자체**가 아니라 임계로 보간되는 **계수**입니다. `0.5` 를 주면 실제 임계는 `0.85` 이므로, 그 이름은 방향은 맞히지만 **크기에서 두 번째 거짓말**이 됩니다. `confidence_strictness` 는 잰 방향(올리면 엄격해진다)을 말하면서 임계 값 자체라고 주장하지 않습니다.
+>
+> **이 이름도 완전하지 않습니다.** 이 키에는 서로 반대로 당기는 두 효과가 있고(신뢰도 임계와 theta 해상도), **한 이름이 둘을 다 말할 수 없는 것이 구조적 성질**입니다. 쪼개는 것은 출력이 바뀌는 변경이라 하지 않았습니다. theta 효과는 코드 주석에 측정과 함께 적혀 있습니다.
+>
+> **옛 이름은 조용히 받아들여지지 않습니다.** 알려진 키 목록에서 빠졌으므로 미지 키 경고가 **이름으로 말하고**(QA-B-60/B-61 의 장치), 결과는 요청값이 아니라 기본값이 됩니다 — 가정이 아니라 단언으로 확인됐습니다.
+>
+> **남는 위험 둘은 이 개명이 고치지 않습니다**: 폴백이 `XPE_OK` 를 반환해 실패가 조용한 것(REQ-ADV-041 이 정한 동작), 그리고 경계에서만 갈라져 **어려운 영상에서만** 검출을 잃는 것.
+
 
 **Fallback behavior**: When confidence is below threshold, returns full image extent with border margin applied.
 
