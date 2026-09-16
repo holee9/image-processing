@@ -146,7 +146,19 @@ foreach(_mod_rel IN LISTS XPE_MODULE_DIRS)
     if(NOT IS_DIRECTORY "${_mod}" OR NOT EXISTS "${_mod}/CMakeLists.txt" OR NOT IS_DIRECTORY "${_mod}/src")
         continue()
     endif()
-    file(READ "${_mod}/CMakeLists.txt" _cml)
+    # QA-A-79: match against CODE only. string(FIND) is a substring test, so a
+    # filename appearing anywhere in the file counts as "listed" - including inside
+    # a comment. That is not hypothetical here: QA-A-76 corrected two stale TODOs in
+    # modules/preprocess/CMakeLists.txt and deliberately quoted the old text, which
+    # named files. A check that a comment can silence is a check that goes quiet
+    # exactly when someone is writing about the thing it watches.
+    file(STRINGS "${_mod}/CMakeLists.txt" _cml_lines)
+    set(_cml "")
+    foreach(_line IN LISTS _cml_lines)
+        if(NOT _line MATCHES "^[ 	]*#")
+            string(APPEND _cml "${_line} ")
+        endif()
+    endforeach()
     file(GLOB _srcs "${_mod}/src/*.cpp")
     foreach(_src IN LISTS _srcs)
         get_filename_component(_base "${_src}" NAME)
