@@ -249,6 +249,24 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > **The 1024x1024 companion is a diagnostic, not a gate.** Its normal band spans 54% (0.629 - 0.969 local, 0.852 CI) against a regression band of 1.140 - 1.359, so normal-worst and regression-best sit only 1.18x apart and no limit fits between them. A gate inside its own noise is worse than none: it trains the habit of re-running until green, which is the path a real regression takes through.
 >
 > **Reading the ratio.** `ctest` prints test output only on failure, so a passing run shows the ratio nowhere in the CI log. It is in the `xpe-preprocess-test-results` artifact (`Temporary/LastTest.log`), which is where the numbers above were read.
+>
+> ---
+>
+> **Re-derived after the AVX2 change (2026-09-16, QA-A-65 / QA-A-66).** The pixel loop moved to AVX2 with bit-identical output: 3072x3072 single thread went **692.7 -> 163.7 ms**, putting the SPEC target 2.7x away instead of 11.5x. That improvement broke the gate's premise, and the limit was re-derived rather than left alone.
+>
+> **The reference kernel stopped representing the subject.** Before the change both the subject and the reference were mostly scalar, and their ratio agreed between machines to 5.4%. After it, the ratio diverged by **24%** (local 1.644, CI 1.323) and the ordering flipped. The cause was measured rather than guessed: pinning the same work to this CPU's P-cores and E-cores reproduces the spread **inside one machine**, and the E-core lands within **1.2%** of CI.
+>
+> | Core | Detection | Reference | Ratio |
+> |---|---|---|---|
+> | P (Golden Cove) | 166.7 ms | 96.9 ms | 1.720 |
+> | E (Gracemont) | 237.2 ms | 181.4 ms | 1.308 |
+> | CI runner | — | — | 1.251 - 1.323 |
+>
+> P->E slows the reference by **1.87x** but the detection by only **1.42x**, because after the AVX2 change 90% of the detection is global sigma (1.41x, memory-shaped) and only 10% is the vector loop (2.40x). The quotient now measures *memory-shaped work against scalar arithmetic*, and that balance differs per core design. Five replacement kernels were measured and all landed at 1.75-1.89, none reaching the subject's 1.42 — the conclusion is not that a better kernel exists but that **the normal band is genuinely wide**.
+>
+> **Gate: `ratio <= 2.20`.** Normal readings span 1.251 - 1.720 across P-core, E-core, and CI; the regression band (AVX2 forced off, a real rebuild) is 7.060 - 7.154. The limit sits **27.9% above the worst normal** — the same margin A-60 used — and 69% below the best regression. In the regression band the two core types agree to 1.3%, because without AVX2 the detection is scalar again and tracks the reference again: the explanation confirmed a second time.
+>
+> **[HARD] The limit is re-derived after every large performance change, not inherited.** This is the second time the quotient changed what it measures, and the next one is already visible: global sigma now holds 90% of the remaining time, so improving it will shift the balance again. A limit carried across such a change is not a loosened gate — it is a gate measuring something else.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
