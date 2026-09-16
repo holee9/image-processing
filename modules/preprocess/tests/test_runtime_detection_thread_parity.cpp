@@ -91,6 +91,124 @@ const int32_t kThreadCounts[] = {1, 2, 8, 12};
 
 }  // namespace
 
+/**
+ * QA-A-62: the real frame size, not a convenient one.
+ *
+ * QA-A-61 proved parity at 640x480 and recorded the gap honestly: a pass there
+ * is not a pass at the size this project actually processes. It is the same
+ * shape of error QA-A-60 met on the machine axis -- "it passed here" standing in
+ * for "it passes where it runs" -- with size as the axis instead.
+ *
+ * WHAT COULD ONLY BREAK AT SIZE, and why it does not here:
+ *   - The map index in DetectFrame is computed in size_t, 64-bit on this target.
+ *   - The pixel reads inside DetectDefectivePixel and CollectNeighborValues are
+ *     computed in uint32_t (width and height are uint32_t). The largest index a
+ *     frame produces is width*height - 1, so that form is exact while
+ *     width*height <= 2^32. At 3072x3072 that is 9,437,184 against 4,294,967,296:
+ *     455x of headroom. The bound is written down rather than "it does not
+ *     overflow", because the bound is what a larger detector would have to check
+ *     -- a square frame stays exact up to 65536x65536, and dataSize is size_t so
+ *     it imposes no earlier limit.
+ *   - Row-range split bounds use a uint64_t intermediate before narrowing, so
+ *     height * threadIndex cannot wrap for any thread count.
+ *
+ * So this test is not expected to find an overflow. It is here because the
+ * reasoning above is a claim about the code, and the claim is cheap to check at
+ * the size that matters. One frame, the thread counts the card names.
+ */
+TEST(ThreadParityTest, RealFrameSizeIsIdenticalAtEveryThreadCount) {
+    constexpr uint32_t kW = 3072u;
+    constexpr uint32_t kH = 3072u;
+    const size_t n = static_cast<size_t>(kW) * kH;
+    ASSERT_EQ(9437184u, n) << "the real frame size changed; re-check the bounds above";
+
+    std::mt19937 rng(20260921u);
+    std::normal_distribution<float> noise(3000.0f, 10.0f);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    for (size_t i = 1013; i < n; i += 4099) frame[i] += 140.0f;   // real outliers
+
+    XpeImageBuffer img = Wrap(frame, kW, kH);
+
+    const float singleSigma = ComputeGlobalSigma(&img);
+
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    cfg.threadCount = 1;
+    std::vector<uint8_t> single(n, 0u);
+    DetectFrame(&img, cfg, single.data());
+
+    size_t flagged = 0;
+    for (uint8_t v : single) if (v) ++flagged;
+    ASSERT_GT(flagged, 0u) << "an all-zero map would agree trivially";
+
+    const int32_t counts[] = {1, 2, 8, 12, 16};
+    for (int32_t T : counts) {
+        ASSERT_TRUE(SameBits(singleSigma, ComputeGlobalSigmaThreaded(&img, T)))
+            << "sigma differs at " << T << " threads on the real frame size";
+
+        cfg.threadCount = T;
+        std::vector<uint8_t> threaded(n, 0u);
+        DetectFrame(&img, cfg, threaded.data());
+
+        size_t mismatches = 0;
+        size_t firstBad = 0;
+        for (size_t i = 0; i < n; ++i) {
+            if (single[i] != threaded[i]) {
+                if (mismatches == 0) firstBad = i;
+                ++mismatches;
+            }
+        }
+        ASSERT_EQ(0u, mismatches)
+            << "threads " << T << ": " << mismatches << " of " << n
+            << " pixels differ, first at index " << firstBad
+            << " (row " << (firstBad / kW) << ", col " << (firstBad % kW) << ")"
+            << "; " << flagged << " flagged single-threaded";
+    }
+}
+
+/**
+ * QA-A-62: DetectFrame clears the map itself, so a caller cannot be silently
+ * wrong by forgetting to.
+ *
+ * The old contract lived in a comment, and this is the failure mode a comment
+ * cannot prevent: an unfilled map keeps whatever it held, and a stale 1 is
+ * indistinguishable from a detection. The test hands the function a map
+ * pre-filled with 0xFF -- every byte non-zero, i.e. "everything is defective" --
+ * and requires the result to equal the one a zeroed map produces.
+ *
+ * Note what this does NOT assert: that the function is fast. The clear costs one
+ * pass over the map, measured in the QA-A-62 report rather than waved away.
+ */
+TEST(ThreadParityTest, DetectFrameClearsTheMapItself) {
+    constexpr uint32_t kW = 640u;
+    constexpr uint32_t kH = 480u;
+    const size_t n = static_cast<size_t>(kW) * kH;
+
+    std::vector<float> frame = MakeFrame(kW, kH, 0, 20260922u);
+    XpeImageBuffer img = Wrap(frame, kW, kH);
+
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+
+    for (int32_t T : kThreadCounts) {
+        cfg.threadCount = T;
+
+        std::vector<uint8_t> fromZero(n, 0u);
+        DetectFrame(&img, cfg, fromZero.data());
+
+        std::vector<uint8_t> fromGarbage(n, 0xFFu);
+        DetectFrame(&img, cfg, fromGarbage.data());
+
+        size_t flagged = 0;
+        for (uint8_t v : fromZero) if (v) ++flagged;
+        ASSERT_GT(flagged, 0u) << "need a non-trivial map for this to mean anything";
+        ASSERT_LT(flagged, n) << "need some clean pixels too, or 0xFF would agree";
+
+        ASSERT_EQ(fromZero, fromGarbage)
+            << "threads " << T << ": a pre-dirtied map changed the result, so the "
+               "function is not clearing it";
+    }
+}
+
 TEST(ThreadParityTest, GlobalSigmaIsIdenticalAtEveryThreadCount) {
     struct Shape { uint32_t w, h; };
     const Shape shapes[] = {{512u, 512u}, {640u, 480u}, {129u, 257u}, {3u, 1024u}};
