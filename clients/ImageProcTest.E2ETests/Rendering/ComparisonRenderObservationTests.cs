@@ -30,18 +30,25 @@ public sealed class ComparisonRenderObservationTests(ITestOutputHelper output)
     private const int Size = 64;
 
     /// <summary>
-    /// For identical inputs a true difference is zero WHATEVER the inputs are. Measured: the output
-    /// changes with the input, so it is not a difference of them.
+    /// P1 (#149 decision, GUI-C-57): for identical inputs the mode renders ONE colour, whatever the
+    /// inputs are.
     ///
-    /// This is stronger than "the output is not black". The control renders over a dark backdrop, so
-    /// absolute values are damped and "not black" alone could be read as an artefact of that
-    /// backdrop. Input-dependence cannot: difference(x, x) = 0 for every x, so an output that moves
-    /// when x moves is computing something else.
+    /// <para><b>This assertion is inverted from what GUI-C-46 wrote here, on purpose.</b> That test
+    /// asserted the output <i>changes</i> with the input — the property that told a tint from a
+    /// difference — and it was the evidence that the mode was not computing one. Measured then:
+    /// white input rendered <c>#877E92</c> and black <c>#372A3B</c>. The mode now draws
+    /// <c>|source - processed|</c>, so both must land on the same colour, and the old expectation is
+    /// recorded here rather than deleted.</para>
     ///
-    /// Run on an STA thread — WPF visuals cannot be created on the MTA thread xUnit provides.
+    /// <para>P1 holds whatever colour mapping is chosen: identical inputs hand the mapping a value of
+    /// zero everywhere, and one value maps to one colour. It is the leader's greyscale decision that
+    /// makes that colour black; the assertion does not depend on it.</para>
+    ///
+    /// <para>Run on an STA thread — WPF visuals cannot be created on the MTA thread xUnit provides.
+    /// </para>
     /// </summary>
     [Fact]
-    public void DifferenceHeatmap_OfAnImageWithItself_DependsOnTheImage()
+    public void DifferenceHeatmap_OfAnImageWithItself_IsOneColour()
     {
         var (whiteDiff, blackDiff, whiteSource, blackSource) = OnStaThread(() =>
         {
@@ -65,50 +72,48 @@ public sealed class ComparisonRenderObservationTests(ITestOutputHelper output)
             "the sample point is not on the image, so this experiment measures nothing.");
 
         Assert.True(
-            whiteDiff != blackDiff,
-            "DifferenceHeatmap produced the same pixel for two different identical-input pairs, " +
-            "which is what a true per-pixel difference does. If the renderer changed, #149 G-4 must " +
-            "be re-measured and this observation rewritten — do not simply relax it.");
+            whiteDiff == blackDiff,
+            $"DifferenceHeatmap rendered {Describe(whiteDiff)} for identical white input and " +
+            $"{Describe(blackDiff)} for identical black input. A difference of an image with itself " +
+            "is zero whatever the image is, so the mode is reading the inputs themselves again — " +
+            "re-measure #149 G-4 and report; do not relax this.");
     }
 
     /// <summary>
-    /// The difference mode differs from the source-only mode only by a tint: identical inputs leave
-    /// the image visible underneath rather than cancelling it.
+    /// The colour identical inputs land on is black — the leader's mapping, stated as a test so a
+    /// change to it is visible rather than silent.
     ///
-    /// Reported as measured channel values so the report carries numbers, not adjectives.
+    /// <para>Separate from P1 above <b>because it is the one claim here that depends on the colour
+    /// mapping.</b> P1 would still hold under a rainbow map; this would not. Keeping them apart means
+    /// a future mapping decision fails exactly one test, and the failure names the decision.</para>
+    ///
+    /// <para>Replaces <c>DifferenceHeatmap_LeavesTheImageVisible_AndShiftsItTowardRed</c>, which
+    /// pinned the old red wash: measured deltas against <c>SourceOnly</c> were R -12, G -49, B -49
+    /// for white input. The wash is gone.</para>
+    ///
+    /// <para>Compared against the backdrop the control paints when it has nothing to draw, not
+    /// against a literal 0: the render is composited over that backdrop, so "black" means "the
+    /// backdrop shows through unchanged".</para>
     /// </summary>
     [Fact]
-    public void DifferenceHeatmap_LeavesTheImageVisible_AndShiftsItTowardRed()
+    public void DifferenceHeatmap_OfIdenticalInputs_IsBlack()
     {
-        var (difference, sourceOnly) = OnStaThread(() =>
+        var (difference, backdrop) = OnStaThread(() =>
         {
             var image = SolidImage(Colors.White);
+            var pitch = SolidImage(Colors.Black);
             return (
                 RenderCentrePixel(image, image, "DifferenceHeatmap"),
-                RenderCentrePixel(image, image, "SourceOnly"));
+                RenderCentrePixel(pitch, pitch, "SourceOnly"));
         });
 
-        output.WriteLine(
-            $"delta vs SourceOnly: R {difference.R - sourceOnly.R}, " +
-            $"G {difference.G - sourceOnly.G}, B {difference.B - sourceOnly.B}");
-
-        // The image survives — a difference image of identical inputs would not.
-        Assert.True(
-            difference.R > 0 || difference.G > 0 || difference.B > 0,
-            "Nothing was drawn at all; the experiment measured nothing.");
-
-        // Compared as a DELTA against the same inputs in SourceOnly, not as absolute dominance: the
-        // control composites over a blue-grey backdrop, so the result is blue-dominant in absolute
-        // terms even under a red wash. The first version of this assertion compared absolute
-        // channels and failed on that backdrop — measuring the backdrop, not the mode.
-        var deltaR = difference.R - sourceOnly.R;
-        var deltaG = difference.G - sourceOnly.G;
-        var deltaB = difference.B - sourceOnly.B;
+        output.WriteLine($"identical white input -> {Describe(difference)}; black image -> {Describe(backdrop)}");
 
         Assert.True(
-            deltaR > deltaG && deltaR > deltaB,
-            $"Expected red to be preserved relative to green and blue (a red wash), measured " +
-            $"deltas R {deltaR}, G {deltaG}, B {deltaB}.");
+            difference == backdrop,
+            $"Identical inputs rendered {Describe(difference)} where a black image renders " +
+            $"{Describe(backdrop)}. Zero difference must map to black (#149's colour decision: " +
+            "linear grey, 0 = black) — if the mapping changed, say so and re-measure.");
     }
 
     /// <summary>

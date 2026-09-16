@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using WpfBrush = System.Windows.Media.Brush;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfColor = System.Windows.Media.Color;
@@ -128,7 +129,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
         set => SetValue(OverlayOpacityProperty, Math.Clamp(value, 0.0, 1.0));
     }
 
-    // @MX:NOTE: [AUTO] Renders 7 comparison modes via custom DrawingContext; DifferenceHeatmap is a visual tint approximation, not a true per-pixel difference image
+    // @MX:NOTE: Renders 7 comparison modes via custom DrawingContext. DifferenceHeatmap draws a
+    // true per-pixel |source - processed| image in linear grey (GUI-C-57, #149 G-4).
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -162,11 +164,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
                 drawingContext.Pop();
                 break;
             case "DifferenceHeatmap":
-                DrawImage(drawingContext, SourceImage, imageRect);
-                drawingContext.PushOpacity(0.42);
-                DrawImage(drawingContext, processed, imageRect);
-                drawingContext.Pop();
-                drawingContext.DrawRectangle(new SolidColorBrush(WpfColor.FromArgb(76, 220, 38, 38)), null, viewport);
+                DrawImage(drawingContext, DifferenceImage(SourceImage, processed) ?? SourceImage, imageRect);
                 break;
             case "SourceOnly":
                 DrawImage(drawingContext, SourceImage, imageRect);
@@ -282,6 +280,83 @@ public sealed class ImageComparisonViewport : FrameworkElement
         DrawDivider(drawingContext, new WpfPoint(halfWidth, 0), new WpfPoint(halfWidth, viewport.Height));
     }
 
+    /// <summary>
+    /// The per-pixel absolute difference of the two layers, as a linear grey image.
+    ///
+    /// <para><b>Value</b>: <c>|source - processed|</c> (MENU-001 L288; COMPARE-001 L68's "signed or
+    /// absolute" admits it). <b>Colour</b>: linear grey, 0 = black, 255 = white — decided for #149
+    /// because this product's display path is greyscale, and a rainbow map draws an edge where the
+    /// values are continuous, which reads as a defect that is not there.</para>
+    ///
+    /// <para>Grey is taken from the LARGEST of the three channel differences rather than per channel,
+    /// so a change confined to one channel still shows at its full size and the output is grey for
+    /// colour input too. For the greyscale images this product shows, the two are identical.</para>
+    ///
+    /// <para>What it replaced: the source drawn under the processed layer at 42 % opacity plus a red
+    /// wash. That composite is why identical inputs used to render differently depending on the
+    /// image (measured 255/255 deviation), why a darker change read differently from a brighter one
+    /// of the same size (gap 38.0), and why a local change separated by only 16 % of what the true
+    /// difference gives (GUI-C-53/54/55).</para>
+    ///
+    /// <para>Cached on the two source references: <c>OnRender</c> runs on every pan, zoom and resize,
+    /// and the difference does not depend on any of them.</para>
+    /// </summary>
+    private ImageSource? DifferenceImage(ImageSource source, ImageSource processed)
+    {
+        if (ReferenceEquals(_differenceKey.Source, source)
+            && ReferenceEquals(_differenceKey.Processed, processed))
+        {
+            return _differenceValue;
+        }
+
+        _differenceKey = (source, processed);
+        _differenceValue = ComputeDifference(source, processed);
+        return _differenceValue;
+    }
+
+    private (ImageSource? Source, ImageSource? Processed) _differenceKey;
+    private ImageSource? _differenceValue;
+
+    /// <summary>
+    /// Builds the difference bitmap, or null when the two layers cannot be differenced pixel for
+    /// pixel — different dimensions, or a source that is not a bitmap. The caller then draws the
+    /// source layer, which is wrong but visible; silently drawing black would look like "no
+    /// difference", the one answer that must never be faked.
+    /// </summary>
+    private static ImageSource? ComputeDifference(ImageSource source, ImageSource processed)
+    {
+        if (source is not BitmapSource left || processed is not BitmapSource right) return null;
+        if (left.PixelWidth != right.PixelWidth || left.PixelHeight != right.PixelHeight) return null;
+        if (left.PixelWidth == 0 || left.PixelHeight == 0) return null;
+
+        var width = left.PixelWidth;
+        var height = left.PixelHeight;
+        var stride = width * 4;
+
+        var lhs = new byte[stride * height];
+        var rhs = new byte[stride * height];
+        new FormatConvertedBitmap(left, PixelFormats.Bgra32, null, 0).CopyPixels(lhs, stride, 0);
+        new FormatConvertedBitmap(right, PixelFormats.Bgra32, null, 0).CopyPixels(rhs, stride, 0);
+
+        var difference = new byte[stride * height];
+        for (var i = 0; i < difference.Length; i += 4)
+        {
+            var grey = (byte)Math.Max(
+                Math.Abs(lhs[i] - rhs[i]),
+                Math.Max(Math.Abs(lhs[i + 1] - rhs[i + 1]), Math.Abs(lhs[i + 2] - rhs[i + 2])));
+
+            difference[i] = grey;
+            difference[i + 1] = grey;
+            difference[i + 2] = grey;
+            difference[i + 3] = 255;
+        }
+
+        var bitmap = BitmapSource.Create(
+            width, height, left.DpiX, left.DpiY, PixelFormats.Bgra32, null, difference, stride);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
     private static void DrawImage(DrawingContext drawingContext, ImageSource image, Rect imageRect)
     {
         drawingContext.DrawImage(image, imageRect);
@@ -333,7 +408,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
         if (mode == "DifferenceHeatmap")
         {
-            var label = CreateText("Difference heatmap preview", 12, WpfBrushes.White);
+            var label = CreateText("Difference |source - processed|", 12, WpfBrushes.White);
             drawingContext.DrawText(label, new WpfPoint(12, viewport.Bottom - label.Height - 12));
         }
     }

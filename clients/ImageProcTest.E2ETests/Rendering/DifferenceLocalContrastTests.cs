@@ -1,10 +1,7 @@
 // #149 G-4 (GUI-C-54): can a local difference be told apart from its background on screen?
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using ImageProcTest.Controls;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Rendering.ComparisonRenderHarness;
 
 namespace ImageProcTest.E2ETests.Rendering;
 
@@ -22,11 +19,11 @@ namespace ImageProcTest.E2ETests.Rendering;
 /// the same control in <c>SourceOnly</c> — same backdrop, same scaling, same chrome — and the claim
 /// is only "patch and background separate by this much in each".</para>
 ///
-/// <para><b>Scope: every patch here is BRIGHTER than its background.</b> GUI-C-55 measured that the
-/// metric is sign-blind (the reference path reads 60.2 for a +64 and a -64 patch alike) but the
-/// renderer is not (22.3 versus -15.7 for the same pair). So these numbers describe one sign; a
-/// darker change of the same magnitude reads smaller. That is a property of the renderer, not of the
-/// measurement, and #149 has not decided whether a signed response is wanted.</para>
+/// <para><b>Scope note, superseded (GUI-C-57).</b> Until #149 was decided, every patch here had to be
+/// BRIGHTER than its background, because the renderer's answer depended on the sign (22.3 for a +64
+/// patch versus -15.7 for a -64 one, GUI-C-55). The mode now draws <c>|source - processed|</c>, which
+/// cannot carry a sign, and the measured gap between the two signs is 0.0 — so these numbers describe
+/// both.</para>
 ///
 /// <para><b>These numbers pin current behaviour on purpose.</b> If the renderer changes, these tests
 /// fail — that is the signal, not a nuisance. Updating the numbers to make a failure go away removes
@@ -36,13 +33,6 @@ namespace ImageProcTest.E2ETests.Rendering;
 [Trait("Category", "Rendering")]
 public sealed class DifferenceLocalContrastTests(ITestOutputHelper output)
 {
-    /// <summary>
-    /// Canvas size. 256 rather than 64: at 64 the control letterboxed the image into roughly a third
-    /// of the frame and painted its HUD plate and label inside the drawn area, so a fixed sample
-    /// region mixed backdrop, chrome and image (measured in GUI-C-54 by profiling the output).
-    /// </summary>
-    private const int Size = 256;
-
     private const byte Background = 128;
 
     /// <summary>Patch deltas spanning subtle to extreme.</summary>
@@ -156,93 +146,62 @@ public sealed class DifferenceLocalContrastTests(ITestOutputHelper output)
         Assert.True(masks.PatchPixels > 0, "The patch was not located in the reference render.");
     }
 
-    /// <summary>Patch and background pixel masks located in the reference render.</summary>
-    private readonly record struct RegionMasks(bool[] Patch, bool[] Background, int PatchPixels);
-
     /// <summary>
-    /// Mean patch brightness minus mean background brightness, over masks LOCATED in the reference
-    /// render rather than assumed from the bitmap's geometry.
+    /// P3 (#149 decision, GUI-C-57): the mode must separate a local change from its background by
+    /// what the true difference separates it by — not by a fraction of it.
     ///
-    /// The first version of this measurement assumed the patch sat at the centre of the frame.
-    /// Profiling showed that is false — the control letterboxes the image and draws chrome inside it —
-    /// so those numbers described the frame layout, not the difference. Same failure mode as
-    /// comparing absolute channels against a tinted backdrop in GUI-C-46.
+    /// <para><b>Measured before the fix</b> (GUI-C-54, same metric, same masks): Δ64 read 22.3 where
+    /// the true difference read 60.2 — <b>37 %</b>; Δ255 read 40.3. The fix is judged by this number
+    /// moving to ~100 %, and the assertion is a ratio rather than an absolute so it keeps meaning if
+    /// the fixture's contrast changes.</para>
+    ///
+    /// <para>Δ255 is excluded from the ratio for a fixture reason, not a convenient one: +255 on a
+    /// background of 128 clamps, so the images differ by 127 and the row measures clamping as much as
+    /// rendering. Δ8 is excluded because its true separation (4.2) is close enough to the floor that
+    /// a ratio over it is noise, not a measurement — it is reported by the test above instead.</para>
     /// </summary>
-    private static double Separation(byte[] pixels, RegionMasks masks)
+    [Fact]
+    public void LocalSeparation_MatchesTheTrueDifference()
     {
-        double patchSum = 0, patchCount = 0, backSum = 0, backCount = 0;
+        const int patch = 32;
+        const int delta = 64;
 
-        for (var p = 0; p < masks.Patch.Length; p++)
-        {
-            var i = p * 4;
-            var luma = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3.0;
+        var (actual, reference, patchFree) = RenderPair(delta, patch);
+        var masks = Masks(reference, patchFree);
 
-            if (masks.Patch[p]) { patchSum += luma; patchCount++; }
-            else if (masks.Background[p]) { backSum += luma; backCount++; }
-        }
+        var heatmap = Separation(actual, masks);
+        var truth = Separation(reference, masks);
+        var ratio = heatmap / truth;
 
-        return patchCount == 0 || backCount == 0
-            ? double.NaN
-            : (patchSum / patchCount) - (backSum / backCount);
+        output.WriteLine(
+            $"P3 Δ{delta} patch {patch}px: heatmap {heatmap:F1}/255 · true difference {truth:F1}/255 " +
+            $"· ratio {ratio:P1} (GUI-C-54 measured 37 % here)");
+
+        Assert.True(
+            ratio > 0.9,
+            $"The mode separated the patch by {heatmap:F1} where the true difference separates it by " +
+            $"{truth:F1} ({ratio:P1}). It is compressing local contrast again — re-measure #149 G-4 " +
+            "and report; do not lower this ratio.");
     }
 
     /// <summary>
-    /// Builds the masks by DIFFERENCING the reference render against a patch-free render of the same
-    /// scene, so the mask is whatever the patch changed and nothing else.
+    /// Renders the heatmap and the true-difference reference for one patch configuration.
     ///
-    /// A brightness threshold was tried first and was wrong: with a subtle patch the reference's own
-    /// patch (luma 8 or 64) never crossed the threshold, so the "patch" it located was the HUD plate
-    /// and the label — 727 px for both Δ8 and Δ64, identical because it was chrome both times.
-    /// Differencing against the patch-free render cancels the chrome exactly and works at any Δ.
+    /// <para><b>The reference uses the difference the images actually carry, not the requested
+    /// delta.</b> A patch of +255 on a background of 128 clamps to 255, so the real difference is
+    /// 127 — building the reference from 255 would compare the render against a difference that is
+    /// not in the inputs. GUI-C-54 built it from the requested delta, which is why its Δ255 rows
+    /// reported a true-difference separation of 251 where the images only ever differed by 127; the
+    /// ratios in that report are understated for those rows. Corrected here (GUI-C-57).</para>
     /// </summary>
-    private static RegionMasks Masks(byte[] reference, byte[] patchFreeReference)
-    {
-        var count = Size * Size;
-        var bright = new bool[count];
-
-        for (var p = 0; p < count; p++)
-        {
-            var i = p * 4;
-            var changed = Math.Abs(reference[i] - patchFreeReference[i])
-                        + Math.Abs(reference[i + 1] - patchFreeReference[i + 1])
-                        + Math.Abs(reference[i + 2] - patchFreeReference[i + 2]);
-            bright[p] = changed > 6;   // above the renderer's own rounding, below any real patch
-        }
-
-        var background = new bool[count];
-        for (var y = 0; y < Size; y++)
-        {
-            for (var x = 0; x < Size; x++)
-            {
-                var p = (y * Size) + x;
-                if (bright[p]) continue;
-
-                var clear = true;
-                for (var dy = -4; dy <= 4 && clear; dy++)
-                {
-                    for (var dx = -4; dx <= 4; dx++)
-                    {
-                        var ny = y + dy;
-                        var nx = x + dx;
-                        if (ny < 0 || ny >= Size || nx < 0 || nx >= Size) continue;
-                        if (bright[(ny * Size) + nx]) { clear = false; break; }
-                    }
-                }
-
-                background[p] = clear;
-            }
-        }
-
-        return new RegionMasks(bright, background, bright.Count(v => v));
-    }
-
-    /// <summary>Renders the heatmap and the true-difference reference for one patch configuration.</summary>
     private static (byte[] Actual, byte[] Reference, byte[] PatchFree) RenderPair(int delta, int patch) =>
         OnStaThread(() =>
         {
+            var carried = Math.Clamp(Background + delta, 0, 255) - Background;
+
             var source = BuildImage((_, _) => Background, 0, 0);
             var processed = BuildImage((_, _) => Background, delta, patch);
-            var expected = BuildImage((_, _) => 0, delta, patch);
+            var expected = BuildImage((_, _) => 0, carried, patch);
             var patchFree = BuildImage((_, _) => 0, 0, 0);
 
             return (
@@ -250,86 +209,4 @@ public sealed class DifferenceLocalContrastTests(ITestOutputHelper output)
                 RenderAll(expected, expected, "SourceOnly"),
                 RenderAll(patchFree, patchFree, "SourceOnly"));
         });
-
-    /// <summary>Renders the control at one mode and returns the whole bitmap.</summary>
-    private static byte[] RenderAll(ImageSource source, ImageSource processed, string mode)
-    {
-        var viewport = new ImageComparisonViewport
-        {
-            SourceImage = source,
-            ProcessedImage = processed,
-            CompareMode = mode,
-            Width = Size,
-            Height = Size,
-        };
-
-        viewport.Measure(new Size(Size, Size));
-        viewport.Arrange(new Rect(0, 0, Size, Size));
-        viewport.UpdateLayout();
-
-        var target = new RenderTargetBitmap(Size, Size, 96, 96, PixelFormats.Pbgra32);
-        target.Render(viewport);
-
-        var pixels = new byte[Size * Size * 4];
-        target.CopyPixels(pixels, Size * 4, 0);
-        return pixels;
-    }
-
-    /// <summary>A left-to-right ramp, optionally with a brighter square at its centre.</summary>
-    private static BitmapSource GradientImage(int patchDelta = 0, int patchSize = 0) =>
-        BuildImage((x, _) => (byte)(x * 255 / (Size - 1)), patchDelta, patchSize);
-
-    private static BitmapSource BuildImage(Func<int, int, byte> level, int patchDelta, int patchSize)
-    {
-        var stride = Size * 4;
-        var pixels = new byte[stride * Size];
-        var half = patchSize / 2;
-        var centre = Size / 2;
-
-        for (var y = 0; y < Size; y++)
-        {
-            for (var x = 0; x < Size; x++)
-            {
-                var value = level(x, y);
-                if (patchSize > 0 && Math.Abs(x - centre) < half && Math.Abs(y - centre) < half)
-                {
-                    value = (byte)Math.Clamp(value + patchDelta, 0, 255);
-                }
-
-                var i = ((y * Size) + x) * 4;
-                pixels[i] = value;
-                pixels[i + 1] = value;
-                pixels[i + 2] = value;
-                pixels[i + 3] = 255;
-            }
-        }
-
-        var bitmap = BitmapSource.Create(Size, Size, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    /// <summary>Runs the body on an STA thread — WPF visuals cannot be built on xUnit's MTA thread.</summary>
-    private static T OnStaThread<T>(Func<T> body)
-    {
-        T result = default!;
-        Exception? failure = null;
-
-        var thread = new Thread(() =>
-        {
-            try { result = body(); }
-            catch (Exception ex) { failure = ex; }
-        });
-
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Rendering on the STA thread failed.", failure);
-        }
-
-        return result;
-    }
 }
