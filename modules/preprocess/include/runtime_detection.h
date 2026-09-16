@@ -34,9 +34,11 @@
  * @brief 1 when this translation unit compiles the AVX2 per-pixel path, 0 when
  *        the scalar path is the whole implementation.
  *
- * It is always defined -- both arms of the #if below set it -- so `#if
- * XPE_DETECT_HAS_AVX2` is the correct test and `#ifdef` would be wrong (it is
- * true even in the scalar build).
+ * It is always defined -- both arms of the \#if below set it -- so
+ * `\#if XPE_DETECT_HAS_AVX2` is the correct test and `\#ifdef` would be WRONG:
+ * the macro is defined in the scalar build too, with the value 0, so an
+ * existence test is true there and selects the vector branch that was not
+ * compiled. Test the VALUE, not the existence.
  *
  * WHAT IT GATES. At 1: `<immintrin.h>`, the four named selection wrappers
  * (SelectCeLower / SelectCeUpper / SelectGreaterOf / SelectLesserOf),

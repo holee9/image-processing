@@ -38,6 +38,7 @@
 #  include <windows.h>
 #endif
 
+#include <cstdio>
 #include <cstring>
 #include <random>
 #include <vector>
@@ -522,3 +523,98 @@ TEST(Avx2ParityTest, NoAvx2PathCompiledIn) {
 }
 
 #endif  // XPE_DETECT_HAS_AVX2
+
+// ===========================================================================
+// QA-A-71 (#160): compiled in BOTH builds, on purpose.
+//
+// Everything above this line lives inside #if XPE_DETECT_HAS_AVX2, so a scalar
+// build skips all of it -- which means the scalar build had no parity check of
+// its own. QA-A-66 established that the scalar build COMPILES and QA-A-67
+// re-checked that; neither established that it COMPUTES THE RIGHT ANSWER, and
+// those are different claims.
+//
+// They are different for a concrete reason. QA-A-65 asserted bitwise parity
+// BETWEEN TWO PATHS INSIDE ONE BUILD. A scalar build is a different compilation
+// of the same source: different macro state, and -- where a project chooses to
+// separate them -- potentially different flags, so the compiler may emit
+// different code for the very functions the vector path was compared against.
+// A claim about one build is not a claim about the other.
+//
+// This test therefore does two things, and the SECOND ONE ONLY WORKS ACROSS
+// RUNS:
+//
+//   1. In whichever build it is compiled, it requires DetectRowRange to agree
+//      with a direct scalar loop over DetectDefectivePixel, pixel for pixel, at
+//      3072x3072 -- the size QA-A-62 opened as the one that matters. In the AVX2
+//      build that compares the vector path against the rule; in the scalar build
+//      it compares the row-range plumbing (border spans, row splitting) against
+//      the rule, which is the part that can still be wrong there.
+//
+//   2. It PRINTS a digest of the map and the flagged count. Those two numbers
+//      are what carries the cross-build claim: run the suite in both builds and
+//      compare the printed digests. A test cannot do that by itself -- the two
+//      builds are two binaries -- so the comparison is performed by whoever runs
+//      them, and the QA-A-71 report records the pair that was observed.
+//
+// A hardcoded expected digest was deliberately NOT used. It would turn this into
+// the constant comparison this repository has been bitten by (#140, QA-A-34):
+// the number would have to come from a run, and then it asserts that the code
+// still does what it did rather than that it does the right thing.
+// ===========================================================================
+
+namespace {
+
+/** FNV-1a over the map bytes. Not cryptographic -- a compact run identity. */
+uint64_t MapDigest(const std::vector<uint8_t>& map) {
+    uint64_t h = 1469598103934665603ull;
+    for (uint8_t v : map) {
+        h ^= static_cast<uint64_t>(v);
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
+}  // namespace
+
+TEST(DetectBuildParityTest, RowRangeMatchesTheScalarRuleAtRealFrameSize) {
+    constexpr uint32_t kW = 3072u;
+    constexpr uint32_t kH = 3072u;
+    const size_t n = static_cast<size_t>(kW) * kH;
+
+    // Fixed seed: the digests printed below are only comparable across builds if
+    // both builds see the same frame.
+    std::vector<float> frame = MakeFrame(kW, kH, 0, 20260929u);
+    ASSERT_EQ(n, frame.size());
+    XpeImageBuffer img = Wrap(frame, kW, kH);
+    const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+
+    std::vector<uint8_t> viaRowRange(n, 0u);
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+    DetectRowRange(&img, cfg, viaRowRange.data(), 0u, kH, a, b);
+
+    const std::vector<uint8_t> viaScalarRule = ScalarMap(&img, cfg);
+
+    size_t flagged = 0;
+    for (uint8_t v : viaRowRange) if (v) ++flagged;
+
+    size_t mismatches = 0, firstBad = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (viaRowRange[i] != viaScalarRule[i]) {
+            if (mismatches == 0) firstBad = i;
+            ++mismatches;
+        }
+    }
+
+    // Printed unconditionally: this line IS the cross-build evidence.
+    std::printf("[build-parity] XPE_DETECT_HAS_AVX2=%d  %ux%u  flagged=%zu  digest=%016llx\n",
+                XPE_DETECT_HAS_AVX2, kW, kH, flagged,
+                static_cast<unsigned long long>(MapDigest(viaRowRange)));
+    std::fflush(stdout);
+
+    EXPECT_GT(flagged, 0u) << "an all-zero map would agree trivially";
+    EXPECT_LT(flagged, n) << "an all-one map would too";
+    EXPECT_EQ(0u, mismatches)
+        << mismatches << " of " << n << " pixels differ, first at row "
+        << (firstBad / kW) << " col " << (firstBad % kW);
+}
