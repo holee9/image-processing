@@ -115,6 +115,56 @@ RuntimeDetectionConfig ResolvedConfig(const XpeImageBuffer* img) {
 #if XPE_DETECT_HAS_AVX2
 
 // ---------------------------------------------------------------------------
+// QA-A-66: the four named selections, tested one level below the network.
+//
+// QA-A-65 left SignedZeroOrderingMatchesTheScalarNetwork as the only thing
+// standing between a swapped operand order and a wrong build. The order now
+// lives in four one-line wrappers (SelectCeLower / SelectCeUpper /
+// SelectGreaterOf / SelectLesserOf) and nothing else in the header calls the
+// intrinsics directly -- but a structure still needs a test that fails when the
+// structure is edited wrongly, and this one names the exact function rather than
+// asking the reader to infer it from a median.
+// ---------------------------------------------------------------------------
+TEST(Avx2ParityTest, NamedSelectionsMatchTheirScalarTernaries) {
+    using xpe::preprocess::internal::SelectCeLower;
+    using xpe::preprocess::internal::SelectCeUpper;
+    using xpe::preprocess::internal::SelectGreaterOf;
+    using xpe::preprocess::internal::SelectLesserOf;
+
+    const float pool[6] = {0.0f, -0.0f, 1.0f, -1.0f, 3.5f, -2.25f};
+
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            const float a = pool[i], b = pool[j];
+
+            // The scalar forms, copied from MedianSortCE and DetectDefectivePixel.
+            const float ceLo = (b < a) ? b : a;
+            const float ceHi = (b < a) ? a : b;
+            const float greater = (a > b) ? a : b;
+            const float lesser = (a < b) ? a : b;
+
+            float got[4][8];
+            _mm256_storeu_ps(got[0], SelectCeLower(_mm256_set1_ps(a), _mm256_set1_ps(b)));
+            _mm256_storeu_ps(got[1], SelectCeUpper(_mm256_set1_ps(a), _mm256_set1_ps(b)));
+            _mm256_storeu_ps(got[2], SelectGreaterOf(_mm256_set1_ps(a), _mm256_set1_ps(b)));
+            _mm256_storeu_ps(got[3], SelectLesserOf(_mm256_set1_ps(a), _mm256_set1_ps(b)));
+
+            EXPECT_TRUE(SameBits(ceLo, got[0][0]))
+                << "SelectCeLower(" << a << ", " << b << "): scalar 0x" << std::hex
+                << Bits(ceLo) << " vector 0x" << Bits(got[0][0]) << std::dec;
+            EXPECT_TRUE(SameBits(ceHi, got[1][0]))
+                << "SelectCeUpper(" << a << ", " << b << "): scalar 0x" << std::hex
+                << Bits(ceHi) << " vector 0x" << Bits(got[1][0]) << std::dec
+                << " -- this is the +0.0 / -0.0 case if both print as 0";
+            EXPECT_TRUE(SameBits(greater, got[2][0]))
+                << "SelectGreaterOf(" << a << ", " << b << ")";
+            EXPECT_TRUE(SameBits(lesser, got[3][0]))
+                << "SelectLesserOf(" << a << ", " << b << ")";
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // The narrow case that decides the operand order. Everything else in this file
 // would still pass if min/max were written the other way round.
 // ---------------------------------------------------------------------------

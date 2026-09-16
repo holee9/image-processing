@@ -812,10 +812,42 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
 
 #if XPE_DETECT_HAS_AVX2
 
+// QA-A-66: the operand order lives HERE and nowhere else.
+//
+// QA-A-65 found the hazard and left one test as the only thing standing between
+// it and a wrong build: `_mm256_max_ps(a, b)` and `_mm256_max_ps(b, a)` look the
+// same to a reader, and swapping them changes nothing a frame-level comparison
+// can see (+0.0 and -0.0 compare equal, so no pixel's verdict moves). A rule
+// that can only be enforced by remembering it is not enforced.
+//
+// So each of the four selections the scalar rule performs gets a named function
+// whose NAME IS THE SCALAR TERNARY, and every call site passes its arguments in
+// the natural order. Getting the intrinsic's operand order wrong now requires
+// editing one of these four one-line bodies rather than mistyping a call, and
+// the four sit next to the ternaries they implement.
+//
+// [HARD] Nothing else in this file calls _mm256_min_ps or _mm256_max_ps
+// directly. If a new selection is needed, add a named wrapper here.
+//
+// MedianSortCE8 keeps the natural (a, b) argument order in both calls; the swap
+// that the intrinsics need is inside the wrappers.
+
+/** @brief Exactly `(b < a) ? b : a` -- the `lo` of MedianSortCE. */
+inline __m256 SelectCeLower(__m256 a, __m256 b) { return _mm256_min_ps(b, a); }
+
+/** @brief Exactly `(b < a) ? a : b` -- the `hi` of MedianSortCE. NOT max(b, a). */
+inline __m256 SelectCeUpper(__m256 a, __m256 b) { return _mm256_max_ps(a, b); }
+
+/** @brief Exactly `(x > y) ? x : y` -- the scalar `if (x > y) v = x;` form. */
+inline __m256 SelectGreaterOf(__m256 x, __m256 y) { return _mm256_max_ps(x, y); }
+
+/** @brief Exactly `(x < y) ? x : y` -- the scalar `if (y > x) v = x;` form. */
+inline __m256 SelectLesserOf(__m256 x, __m256 y) { return _mm256_min_ps(x, y); }
+
 /** @brief Vector compare-exchange. See the operand-order note above. */
 inline void MedianSortCE8(__m256& a, __m256& b) {
-    const __m256 lo = _mm256_min_ps(b, a);
-    const __m256 hi = _mm256_max_ps(a, b);
+    const __m256 lo = SelectCeLower(a, b);
+    const __m256 hi = SelectCeUpper(a, b);
     a = lo;
     b = hi;
 }
@@ -890,10 +922,10 @@ inline void DetectEightPixelsAvx2(const float* pixels,
                                      _mm256_set1_ps(RUNTIME_DETECTION_MAD_SCALE));
 
     // sigmaEstimate = (floor > mad) ? floor : mad
-    __m256 sigma = _mm256_max_ps(_mm256_set1_ps(config.globalSigmaFloor), mad);
+    __m256 sigma = SelectGreaterOf(_mm256_set1_ps(config.globalSigmaFloor), mad);
     // ... then, only when the cap is enabled, (sigma > cap) ? cap : sigma.
     if (config.globalSigmaCap > 0.0f) {
-        sigma = _mm256_min_ps(_mm256_set1_ps(config.globalSigmaCap), sigma);
+        sigma = SelectLesserOf(_mm256_set1_ps(config.globalSigmaCap), sigma);
     }
 
     const __m256 centre = _mm256_loadu_ps(rowMid + x);
@@ -944,7 +976,6 @@ inline void DetectRowRange(const XpeImageBuffer* img,
                            std::vector<float>& windowValues,
                            std::vector<float>& deviations) {
     const uint32_t w = img->width;
-    const uint32_t h = img->height;
 
     auto scalarSpan = [&](uint32_t y, uint32_t xa, uint32_t xb) {
         for (uint32_t x = xa; x < xb; ++x) {
@@ -957,25 +988,29 @@ inline void DetectRowRange(const XpeImageBuffer* img,
 #if XPE_DETECT_HAS_AVX2
     // A run needs x >= 1 and x + 8 <= w - 1, so the narrowest frame with one run
     // is w == 10. Below that there is nothing to vectorise.
+    const uint32_t h = img->height;
     const bool useVector = (config.windowSize == 3) && (w >= 10u) && (h >= 3u);
     const float* pixels = static_cast<const float*>(img->data);
-#else
-    const bool useVector = false;
 #endif
 
+    // QA-A-66: the vector branch is compiled out entirely rather than guarded by
+    // a `useVector` that is a compile-time false. A constant condition is C4127
+    // under /W4, which this project promotes to an error -- so the earlier shape
+    // did not compile at all where XPE_DETECT_HAS_AVX2 is 0. QA-A-65 listed that
+    // path as unbuilt in its Gaps; building it is what found this.
     for (uint32_t y = y0; y < y1; ++y) {
-        if (!useVector || y == 0u || y + 1u >= h) {
-            scalarSpan(y, 0u, w);
+#if XPE_DETECT_HAS_AVX2
+        if (useVector && y != 0u && y + 1u < h) {
+            scalarSpan(y, 0u, 1u);
+            uint32_t x = 1u;
+            for (; x + 8u <= w - 1u; x += 8u) {
+                DetectEightPixelsAvx2(pixels, w, x, y, config, map);
+            }
+            scalarSpan(y, x, w);
             continue;
         }
-#if XPE_DETECT_HAS_AVX2
-        scalarSpan(y, 0u, 1u);
-        uint32_t x = 1u;
-        for (; x + 8u <= w - 1u; x += 8u) {
-            DetectEightPixelsAvx2(pixels, w, x, y, config, map);
-        }
-        scalarSpan(y, x, w);
 #endif
+        scalarSpan(y, 0u, w);
     }
 }
 

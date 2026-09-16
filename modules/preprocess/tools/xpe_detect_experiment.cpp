@@ -1536,6 +1536,177 @@ void pixelStages(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+
+/* ------------------------------ QA-A-66: why the two machines disagree */
+
+/**
+ * The gate's ratio is detection / reference. QA-A-65 moved the detector onto
+ * AVX2 and the two machines' ratios then diverged by 24% AND swapped order
+ * (local 1.644, CI 1.323; before A-65 it was local ~7.19, CI 7.715). Something
+ * about what the ratio measures changed, and this mode is the measurement that
+ * says what.
+ *
+ * THE SECOND MACHINE IS ON THIS MACHINE. An i7-12700 has two different cores --
+ * P (Golden Cove) and E (Gracemont) -- with different vector throughput
+ * relative to their scalar throughput. Pinning the same work to each gives a
+ * genuine second microarchitecture without a second computer, and that is
+ * exactly the axis the hypothesis is about: if the ratio now measures "this
+ * core's vector speed against its scalar speed", it must move between P and E.
+ *
+ * The candidate references are DUPLICATED here rather than included from the
+ * gate: the gate's kernel is frozen, and a shared one would make an experiment
+ * able to change the gate. The duplication is deliberate and temporary -- only
+ * the chosen candidate is copied into the gate file.
+ */
+
+#if defined(_WIN32)
+#  include <windows.h>
+#endif
+
+// --- candidate A: the reference the gate uses today (copied, not shared).
+constexpr size_t kRefElems = 4u * 1024u * 1024u;
+constexpr int kRefSweeps = 12;
+
+const std::vector<float>& refBuffer() {
+    static const std::vector<float> b = []{
+        std::vector<float> v(kRefElems);
+        std::mt19937 rng(20260912u);
+        std::normal_distribution<float> noise(1000.0f, 25.0f);
+        for (size_t i = 0; i < v.size(); ++i) v[i] = noise(rng);
+        return v;
+    }();
+    return b;
+}
+
+double refA() {
+    const std::vector<float>& buffer = refBuffer();
+    volatile float sink = 0.0f;
+    float acc = 0.0f;
+    for (int sweep = 0; sweep < kRefSweeps; ++sweep) {
+        for (size_t i = 4; i + 4 < buffer.size(); ++i) {
+            const float c = buffer[i];
+            float lo = c, hi = c;
+            for (int d = 1; d <= 4; ++d) {
+                const float a = buffer[i - static_cast<size_t>(d)];
+                const float b = buffer[i + static_cast<size_t>(d)];
+                lo = (a < lo) ? a : lo;
+                lo = (b < lo) ? b : lo;
+                hi = (a > hi) ? a : hi;
+                hi = (b > hi) ? b : hi;
+            }
+            acc += std::fabs(c - (lo + hi) * 0.5f);
+        }
+    }
+    sink = sink + acc;
+    return 0.0;
+}
+
+// QA-A-66: four more candidates were written here and measured against the same
+// P/E spread, then deleted -- their P->E factors are recorded in the gate file's
+// header next to the decision they informed (B histogram 1.78, C streaming
+// difference + histogram 1.89, D = A + C 1.86, E four-accumulator streaming sum
+// 1.75, against the detector's 1.42). None tracked the detector better than the
+// kernel the gate already uses, so none is carried as code: a rejected candidate
+// is a measurement, and measurements belong in the record rather than in the
+// build.
+
+double msOf(int reps, double (*fn)()) {
+    fn();                       // warm-up, discarded
+    double best = 1e30;
+    for (int r = 0; r < reps; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        const auto t1 = std::chrono::steady_clock::now();
+        const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (v < best) best = v;
+    }
+    return best;
+}
+
+void gateProbeOnce(const char* label, uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260912u);
+    std::normal_distribution<float> noise(3000.0f, 10.0f);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    std::vector<uint8_t> map(n, 0u);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    XpeImageBuffer out{};
+    out.data = map.data();
+    out.width = w; out.height = h;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8;
+    out.dataSize = n;
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        fn();
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    XpeImageMetadata meta{};
+    const double tDetect = bestOf(5, [&]{ xpe_defect_detect_runtime(&img, &meta, &out); });
+
+    volatile float fsink = 0.0f;
+    const double tSigma = bestOf(5, [&]{ fsink = fsink + ComputeGlobalSigma(&img); });
+
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    const float sg = ComputeGlobalSigma(&img);
+    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+    const double tRows = bestOf(5, [&]{ DetectRowRange(&img, cfg, map.data(), 0u, h, a, b); });
+
+    const double tRefA = msOf(5, refA);
+
+    std::printf("  %-10s detect %8.1f  sigma %8.1f  rows %7.2f  reference %7.1f"
+                "  ratio %6.3f\n",
+                label, tDetect, tSigma, tRows, tRefA, tDetect / tRefA);
+    std::fflush(stdout);
+}
+
+void gateProbe(uint32_t w, uint32_t h) {
+    std::printf("[gate-probe] %ux%u, single thread, min of 5\n", w, h);
+#if defined(_WIN32)
+    const DWORD_PTR original = SetThreadAffinityMask(GetCurrentThread(), 0xFFFFFFFFull);
+    // i7-12700: logical 0..15 are the 8 P-cores (SMT), 16..19 the 4 E-cores.
+    // Pinning to one of each gives two microarchitectures on one machine.
+    if (SetThreadAffinityMask(GetCurrentThread(), 1ull << 0) != 0) {
+        gateProbeOnce("P-core", w, h);
+    }
+    if (SetThreadAffinityMask(GetCurrentThread(), 1ull << 16) != 0) {
+        gateProbeOnce("E-core", w, h);
+    }
+    SetThreadAffinityMask(GetCurrentThread(), original ? original : 0xFFFFFFFFull);
+#else
+    gateProbeOnce("default", w, h);
+#endif
+    std::printf("  The ratio is the gate's. One that MOVES between the two core"
+                "\n types is one that will move between machines -- that is the"
+                "\n question this mode exists to answer; the answer is in the"
+                "\n gate file's limit derivation.\n\n");
+    std::fflush(stdout);
+}
+
 /* ------------------------------------------------ QA-A-45 false negatives */
 
 /**
@@ -1637,6 +1808,7 @@ int main(int argc, char** argv) {
     bool quick = false, profileOnly = false, timeOnly = false, fnOnly = false;
     bool decomposeOnly = false;
     bool decomposeThreadsOnly = false;
+    bool gateProbeOnly = false;
     bool sigmaOnly = false;
     bool boundsOnly = false;
     bool threadsOnly = false;
@@ -1648,6 +1820,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
         if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
         if (std::strcmp(argv[i], "--decompose-threads") == 0) decomposeThreadsOnly = true;
+        if (std::strcmp(argv[i], "--gate-probe") == 0) gateProbeOnly = true;
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
@@ -1696,6 +1869,11 @@ int main(int argc, char** argv) {
         sigmaDispersion(3072, 3072, 7);
         sigmaBreakdown(3072, 3072);
         xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (gateProbeOnly) {
+        gateProbe(3072, 3072);
         return 0;
     }
 
