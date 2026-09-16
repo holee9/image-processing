@@ -72,16 +72,8 @@ public sealed class MainWindowViewModel : ObservableObject
         CalibrationStageModeOptions = CalibrationStageMode.Options;
         VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
         BodyPartOptions = Enum.GetNames<XpeBodyPartEnum>();
-        CompareModeOptions = new[]
-        {
-            "SwipeVertical",
-            "SwipeHorizontal",
-            "SplitLocked",
-            "OverlayOpacity",
-            "DifferenceHeatmap",
-            "SourceOnly",
-            "ProcessedOnly"
-        };
+        // #161: one list, in Models. This array used to be a third copy of the mode vocabulary.
+        CompareModeOptions = ComparisonModes.All;
         Settings.PropertyChanged += OnSettingsPropertyChanged;
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
@@ -121,6 +113,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ResetLaneBOverridesCommand = new RelayCommand(ResetLaneBOverrides);
 
         Log("GUI-S0 initialized.");
+        ReportRejectedComparisonMode();
         InitializeBackend();
     }
 
@@ -914,17 +907,39 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshComparisonStatus("Comparison viewport zoomed out.");
     }
 
+    /// <summary>
+    /// Says out loud that a stored comparison mode was not one we support (#161, GUI-C-60).
+    ///
+    /// <para>The alternative was to replace it silently, and this repository has twice decided
+    /// against that shape: #150 refuses a value rather than truncating it, and QA-B-60 names the key
+    /// it could not read. A user whose settings file says <c>"NotAMode"</c> would otherwise see the
+    /// default mode, assume the file was ignored, and write it again.</para>
+    ///
+    /// <para><b>The file is not rewritten.</b> Fixing someone's settings file at start-up, without
+    /// being asked, is a larger act than reporting it — so the message repeats on every launch until
+    /// the file is corrected or the user saves settings. That repetition is the cost, and it is the
+    /// honest one: the file IS still wrong.</para>
+    /// </summary>
+    private void ReportRejectedComparisonMode()
+    {
+        var rejected = Settings.RejectedComparisonMode;
+        if (rejected is null) return;
+
+        Log(
+            $"appsettings.json: comparisonMode '{rejected}' is not a supported comparison mode; " +
+            $"using '{Settings.ComparisonMode}'. Supported: {string.Join(", ", ComparisonModes.All)}.");
+    }
+
     private void SetComparisonMode(string? mode)
     {
-        if (string.IsNullOrWhiteSpace(mode)) return;
-        if (!CompareModeOptions.Contains(mode, StringComparer.Ordinal)) return;
+        if (!ComparisonModes.IsKnown(mode)) return;
 
         Settings.ComparisonMode = mode;
     }
 
     private void ResetComparisonView()
     {
-        Settings.ComparisonMode = "SwipeVertical";
+        Settings.ComparisonMode = ComparisonModes.Default;
         Settings.ComparisonZoomScale = 0.0;
         Settings.ComparisonPanX = 0.0;
         Settings.ComparisonPanY = 0.0;

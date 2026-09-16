@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ImageProcTest.Models;
 using WpfBrush = System.Windows.Media.Brush;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfColor = System.Windows.Media.Color;
@@ -434,16 +435,16 @@ public sealed class ImageComparisonViewport : FrameworkElement
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
     }
 
-    private static string NormalizeMode(string? mode) => mode switch
-    {
-        "SwipeHorizontal" => "SwipeHorizontal",
-        "SplitLocked" => "SplitLocked",
-        "OverlayOpacity" => "OverlayOpacity",
-        "DifferenceHeatmap" => "DifferenceHeatmap",
-        "SourceOnly" => "SourceOnly",
-        "ProcessedOnly" => "ProcessedOnly",
-        _ => "SwipeVertical"
-    };
+    /// <summary>
+    /// The mode this control will draw, resolved through the one rule (#161, GUI-C-60).
+    ///
+    /// This used to be a switch of its own, which is why the HUD could say one mode while the
+    /// automation HelpText said another: two resolutions of the same string. It delegates now, and
+    /// the settings property only ever holds a supported mode anyway — so for values that came from
+    /// the app this is the identity. It still guards, because the control is a public element and a
+    /// caller can set CompareMode directly.
+    /// </summary>
+    private static string NormalizeMode(string? mode) => ComparisonModes.Normalize(mode);
 
     private static bool IsSwipeMode(string mode) => mode is "SwipeVertical" or "SwipeHorizontal";
 

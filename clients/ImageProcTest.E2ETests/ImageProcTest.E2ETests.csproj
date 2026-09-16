@@ -41,6 +41,9 @@
   <ItemGroup>
     <Compile Include="..\..\gui\ImageProcTest\Controls\ImageComparisonViewport.cs"
              Link="Rendering\Linked\ImageComparisonViewport.cs" />
+    <!-- #161: the control resolves the mode through this, so it comes along. Pure strings. -->
+    <Compile Include="..\..\gui\ImageProcTest\Models\ComparisonModes.cs"
+             Link="Rendering\Linked\ComparisonModes.cs" />
   </ItemGroup>
 
 </Project>
