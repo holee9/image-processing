@@ -43,6 +43,12 @@ inline constexpr SupportedTransferSyntax kSupportedTransferSyntaxes[] = {
     { "1.2.840.10008.1.2.1",     "Explicit VR Little Endian" },
     { "1.2.840.10008.1.2.4.90",  "JPEG 2000 Lossless Only" },
     { "1.2.840.10008.1.2.4.70",  "JPEG Lossless, Non-Hierarchical, First-Order" },
+    // #147 (QA-B-68): REQ-IOP-003 requires .57 "at minimum". Adding the UID here
+    // is necessary but NOT sufficient -- readImage dispatches on the syntax, so
+    // the decode branch had to learn .57 as well or an accepted file would reach
+    // the native path and answer DICOM_INVALID. Measured before the change:
+    // meta-bearing .57 gave UNSUPPORTED_FORMAT, meta-less gave DICOM_INVALID.
+    { "1.2.840.10008.1.2.4.57",  "JPEG Lossless, Non-Hierarchical (Process 14)" },
 };
 
 inline constexpr size_t kSupportedTransferSyntaxCount =

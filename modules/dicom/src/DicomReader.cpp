@@ -100,6 +100,11 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
 static constexpr const char* TS_EXPLICIT_LE  = "1.2.840.10008.1.2.1";
 static constexpr const char* TS_J2K_LOSSLESS = "1.2.840.10008.1.2.4.90";
 static constexpr const char* TS_JPEG_LL      = "1.2.840.10008.1.2.4.70";
+// #147 (QA-B-68): Process 14 without first-order prediction. A different
+// bitstream from .70 despite both being called "JPEG Lossless" -- that shared
+// name is what let the two requirements drift apart (REQ-IOP-003 names .57,
+// REQ-DICOM-004 names .70).
+static constexpr const char* TS_JPEG_LL_P14  = "1.2.840.10008.1.2.4.57";
 
 // @MX:ANCHOR: [AUTO] DicomReader constructor — maps from opaque XpeDicomHandle
 // @MX:REASON: fan_in >= 3: xpe_dicom_open allocates, readImage and getMetadata use, xpe_dicom_close frees
@@ -209,7 +214,13 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     if (bitsStored == 0) bitsStored = bitsAlloc;
 
     bool isJ2K = (m_tsUID == TS_J2K_LOSSLESS);
-    bool isJPEGLL = (m_tsUID == TS_JPEG_LL);
+    // #147 (QA-B-68): both JPEG-Lossless syntaxes take this branch. The dispatch
+    // is per-SYNTAX, not per-compressed-path, so .57 did not inherit anything
+    // from .70 by being compressed -- it had to be named here. The encapsulated
+    // representation is then requested with ITS OWN key; asking for the .70 key
+    // on a .57 dataset finds nothing and the size guard below would silently do
+    // no work.
+    bool isJPEGLL = (m_tsUID == TS_JPEG_LL) || (m_tsUID == TS_JPEG_LL_P14);
 
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG
@@ -227,7 +238,9 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         if (ds->findAndGetElement(DCM_PixelData, encElem).good() && encElem != nullptr) {
             DcmPixelData* encPd = OFstatic_cast(DcmPixelData*, encElem);
             DcmPixelSequence* encSeq = nullptr;
-            E_TransferSyntax encKey = EXS_JPEGProcess14SV1;
+            E_TransferSyntax encKey = (m_tsUID == TS_JPEG_LL_P14)
+                                          ? EXS_JPEGProcess14      // .57
+                                          : EXS_JPEGProcess14SV1;  // .70
             const DcmRepresentationParameter* encParam = nullptr;
             if (encPd != nullptr &&
                 encPd->getEncapsulatedRepresentation(encKey, encParam, encSeq).good() &&

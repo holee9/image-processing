@@ -21,6 +21,7 @@
 #include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmjpeg/djencode.h>
 #include <dcmtk/dcmjpeg/djdecode.h>
+#include <dcmtk/dcmjpeg/djrploss.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
@@ -621,6 +622,30 @@ bool WriteInTransferSyntax(const char* tsUid,
     }
     if (uid == "1.2.840.10008.1.2.4.70") {       // JPEG Lossless, First-Order
         return WriteJpegLosslessCopy(src, dst);
+    }
+    if (uid == "1.2.840.10008.1.2.4.57") {       // JPEG Lossless, Process 14 (#147)
+        // Added with the syntax itself (QA-B-68). This builder is why adding a
+        // UID to kSupportedTransferSyntaxes is not a one-line change: the case
+        // below insists every accepted syntax be demonstrably readable, so a UID
+        // with no fixture fails here rather than shipping unexercised.
+        DJEncoderRegistration::registerCodecs();
+        bool ok = false;
+        {
+            DcmFileFormat ff;
+            if (ff.loadFile(src.string().c_str()).good()) {
+                DcmDataset* ds = ff.getDataset();
+                if (ds != nullptr &&
+                    ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                    ds->canWriteXfer(EXS_JPEGProcess14)) {
+                    ok = ff.saveFile(dst.string().c_str(), EXS_JPEGProcess14).good();
+                }
+            }
+        }
+        // Deliberately no DJDecoderRegistration::cleanup() anywhere in this file
+        // -- see Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured for what that
+        // costs.
+        if (!ok) whyNot = "DCMTK could not encode Process 14";
+        return ok;
     }
 
     whyNot = "this test has no fixture builder for " + uid;
@@ -1554,7 +1579,7 @@ TEST_F(DicomReaderTest, JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid)
 // file must OPEN. Without that, "both failed" would be indistinguishable from a
 // broken fixture rather than a refused syntax.
 // ---------------------------------------------------------------------------
-TEST_F(DicomReaderTest, TransferSyntax57IsRefusedRatherThanMisdecoded) {
+TEST_F(DicomReaderTest, KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway) {
     const auto genuine70 = s_tempDir / "b67_genuine_70.dcm";
     if (!WriteJpegLosslessCopy(s_validDcm, genuine70)) {
         GTEST_SKIP() << "DCMTK could not produce a .70 fixture in this build -- "
@@ -1567,11 +1592,11 @@ TEST_F(DicomReaderTest, TransferSyntax57IsRefusedRatherThanMisdecoded) {
     const XpeErrorCode ecControl =
         xpe_dicom_open(genuine70.string().c_str(), &control);
     ASSERT_EQ(XPE_OK, ecControl)
-        << "the control fixture does not open, so nothing below distinguishes "
-           "a refused .57 from a broken fixture";
+        << "the control fixture does not open, so nothing below distinguishes a "
+           "behaviour from a broken fixture";
     xpe_dicom_close(control);
 
-    // --- subject: same bytes, label rewritten to .57 -----------------------
+    // --- subject: .70 bytes wearing a .57 label ----------------------------
     const auto relabelled57 = s_tempDir / "b67_relabelled_57.dcm";
     {
         DcmFileFormat ff;
@@ -1588,28 +1613,37 @@ TEST_F(DicomReaderTest, TransferSyntax57IsRefusedRatherThanMisdecoded) {
     }
 
     XpeDicomHandle* subject = nullptr;
-    const XpeErrorCode ecSubject =
+    const XpeErrorCode ecOpen =
         xpe_dicom_open(relabelled57.string().c_str(), &subject);
-
-    GTEST_LOG_(INFO) << "control (.70) open=" << ecControl
-                     << "  subject (.57 label) open=" << ecSubject;
-
-    // The requirement of this case is not "it is supported" but "it does not
-    // decode as something else". Any non-OK answer satisfies that; XPE_OK would
-    // mean the reader accepted a syntax it has no decoder for.
-    EXPECT_NE(XPE_OK, ecSubject)
-        << "a .57-labelled file opened successfully -- the reader has no .57 "
-           "decoder, so whatever it produces came from guessing the syntax";
-
-    // And no pixels may come out of it. If open() somehow succeeded the read
-    // must still refuse rather than hand back a decoded frame.
-    if (ecSubject == XPE_OK) {
-        XpeImageBuffer img{};
-        const XpeErrorCode ecRead = xpe_dicom_read_image(subject, &img);
-        EXPECT_NE(XPE_OK, ecRead)
-            << "pixels were produced for a transfer syntax with no decoder";
-        if (ecRead == XPE_OK) xpe_free_image(&img);
+    XpeImageBuffer img{};
+    XpeErrorCode ecRead = XPE_ERR_INTERNAL;
+    bool gotPixels = false;
+    if (ecOpen == XPE_OK) {
+        ecRead = xpe_dicom_read_image(subject, &img);
+        gotPixels = (ecRead == XPE_OK && img.data != nullptr);
     }
+
+    GTEST_LOG_(INFO) << "mislabelled (.70 bytes, .57 label): open=" << ecOpen
+                     << " read=" << ecRead << " pixels=" << gotPixels;
+
+    // The divergence: the label is wrong and the file is read anyway. DCMTK
+    // decompresses from the representation the DATASET carries, not from the
+    // meta-header label, so a JPEG-Lossless file labelled as the other
+    // JPEG-Lossless syntax still decodes.
+    //
+    // Recorded rather than called a defect: for these two syntaxes the outcome
+    // is a correct image, and DICOM readers are widely expected to tolerate
+    // meta/dataset disagreement. What it DOES mean is that the #150 frame-size
+    // guard is keyed on the LABEL (readImage picks EXS_JPEGProcess14 for a .57
+    // label), so on a mislabelled file that guard looks for a representation
+    // that is not there and silently checks nothing. The guard's own coverage,
+    // not the pixels, is what a mislabel costs here.
+    EXPECT_EQ(XPE_OK, ecOpen) << "a .57-labelled file is refused -- QA-B-68 added "
+                                 "the UID to the accepted list";
+    EXPECT_TRUE(gotPixels)
+        << "the mislabelled file no longer decodes; if that is deliberate, this "
+           "case records the old behaviour and should be retired";
+    if (gotPixels) xpe_free_image(&img);
     xpe_dicom_close(subject);
 }
 
@@ -1658,6 +1692,11 @@ TEST_F(DicomReaderTest, KnownDivergence_DcmtkCodecSupportFor57IsMeasured) {
 // one. This removes the relabelling caveat from the case further up: the
 // bitstream really is Process 14, not a .70 stream wearing a .57 label.
 //
+// QA-B-67 wrote this case while .57 was refused, and the refusal was the thing
+// it asserted. QA-B-68 changed the decision, so the assertion changed with it --
+// the measurement it exists for (what DCMTK can do, which is what made the
+// decision cheap) is unchanged and is still the deliverable.
+//
 // Two separate questions are answered here, and keeping them apart is the point:
 //
 //   1. What does xpe_dicom_open() do with it?  -- the product's behaviour.
@@ -1669,7 +1708,7 @@ TEST_F(DicomReaderTest, KnownDivergence_DcmtkCodecSupportFor57IsMeasured) {
 // that DCMTK can WRITE .57; a reader needs the other direction, and assuming one
 // from the other would be the "it exists, therefore it works" error this session
 // has hit repeatedly.
-TEST_F(DicomReaderTest, KnownDivergence_Genuine57IsRefusedThoughDcmtkCanDecodeIt) {
+TEST_F(DicomReaderTest, Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured) {
     const auto genuine57 = s_tempDir / "b67_genuine_57.dcm";
 
     // --- produce a real Process-14 bitstream -------------------------------
@@ -1692,21 +1731,33 @@ TEST_F(DicomReaderTest, KnownDivergence_Genuine57IsRefusedThoughDcmtkCanDecodeIt
                         "case above is then the only available measurement";
     }
 
-    // --- (1) the product refuses it ----------------------------------------
+    // --- (1) the product accepts it (QA-B-68) ------------------------------
+    // QA-B-67 measured XPE_ERR_UNSUPPORTED_FORMAT here and that was the right
+    // answer at the time: the UID was not on the accepted list. The leader then
+    // decided to support .57 (REQ-IOP-003 names it "at minimum", and (2) below
+    // is why the cost was low), so the expected answer changed with the decision.
+    // The pixel-exactness of that decode is asserted in
+    // ReadJpegLosslessProcess14_DecodesPixelExact; this case keeps the
+    // capability measurement that produced the decision.
     XpeDicomHandle* handle = nullptr;
     const XpeErrorCode ecOpen = xpe_dicom_open(genuine57.string().c_str(), &handle);
-    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ecOpen)
-        << "a genuine .57 file no longer refuses with UNSUPPORTED_FORMAT";
-    if (ecOpen == XPE_OK) {
-        XpeImageBuffer img{};
-        EXPECT_NE(XPE_OK, xpe_dicom_read_image(handle, &img))
-            << "pixels were produced for .57";
-    }
+    EXPECT_EQ(XPE_OK, ecOpen) << "a genuine .57 file is refused again";
     xpe_dicom_close(handle);
 
     // --- (2) the library can decode it -------------------------------------
     // The reader already calls DJDecoderRegistration::registerCodecs() on every
     // open (DicomReader.cpp:48), so this asks what that registration covers.
+    // NOT cleaned up afterwards, deliberately. DicomReader registers the JPEG
+    // decoders exactly once (std::call_once, DicomReader.cpp:47), so a
+    // DJDecoderRegistration::cleanup() here unregisters them for the whole
+    // process and the once-flag prevents the reader from ever restoring them.
+    //
+    // QA-B-68 found this the hard way: with a cleanup() here, a later case
+    // measured a genuine .57 file failing to decode (read=-3) and the obvious
+    // reading was "the decoder cannot handle .57". Run in isolation the same
+    // case decoded byte-exact. The defect was in this test, not in the product,
+    // and reporting it the other way round would have argued against a decision
+    // that had already been made on correct evidence.
     bool decoded57 = false;
     DJDecoderRegistration::registerCodecs();
     {
@@ -1718,7 +1769,6 @@ TEST_F(DicomReaderTest, KnownDivergence_Genuine57IsRefusedThoughDcmtkCanDecodeIt
             }
         }
     }
-    DJDecoderRegistration::cleanup();
 
     GTEST_LOG_(INFO) << "genuine .57: xpe_dicom_open=" << ecOpen
                      << "  DCMTK decode-to-uncompressed=" << decoded57;
@@ -1727,4 +1777,222 @@ TEST_F(DicomReaderTest, KnownDivergence_Genuine57IsRefusedThoughDcmtkCanDecodeIt
     // support decision (#147), and pinning it either way here would prejudge
     // that decision. The number is the deliverable.
     SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — the path that never meets the accepted-syntax check.
+//
+// QA-B-67 measured that a .57 file is refused with XPE_ERR_UNSUPPORTED_FORMAT.
+// That measurement was taken on ONE path: the one that reads the meta-header,
+// finds a TransferSyntaxUID, and compares it against kSupportedTransferSyntaxes.
+//
+// DicomReader.cpp:157 has another. When getMetaInfo() returns nothing, open()
+// accepts the file and records m_tsUID = Explicit VR Little Endian WITHOUT any
+// syntax check. A file arriving through that branch is declared uncompressed no
+// matter what its pixel data actually is -- so "a .57 file is refused" would not
+// hold there, and the conclusion that no silent misdecode happens would be true
+// only of the path it was measured on.
+//
+// THIS IS MEASURABLE ONLY NOW. Once .57 joins the accepted list, both paths take
+// it and the difference between them disappears.
+//
+// Control pairs, all in this one run:
+//   - meta-less .57   (subject)
+//   - meta-less .70   (does the branch depend on the syntax at all?)
+//   - meta-bearing .57 (the QA-B-67 path, re-measured here for comparison)
+// ---------------------------------------------------------------------------
+namespace {
+
+// Write the DATASET only -- no Part-10 preamble, no meta-header. DCMTK writes
+// the group-2 elements only through DcmFileFormat, so going through DcmDataset
+// is what produces a file that reaches DicomReader.cpp:157.
+bool WriteDatasetWithoutMeta(const fs::path& src, const fs::path& dst,
+                             E_TransferSyntax xfer) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(xfer, nullptr).good() &&
+                ds->canWriteXfer(xfer)) {
+                ok = ds->saveFile(dst.string().c_str(), xfer).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+struct OpenResult {
+    XpeErrorCode open = XPE_ERR_INTERNAL;
+    XpeErrorCode read = XPE_ERR_INTERNAL;
+    bool         gotPixels = false;
+    uint32_t     w = 0, h = 0;
+};
+
+OpenResult OpenAndRead(const fs::path& p) {
+    OpenResult r{};
+    XpeDicomHandle* handle = nullptr;
+    r.open = xpe_dicom_open(p.string().c_str(), &handle);
+    if (r.open == XPE_OK) {
+        XpeImageBuffer img{};
+        r.read = xpe_dicom_read_image(handle, &img);
+        if (r.read == XPE_OK) {
+            r.gotPixels = (img.data != nullptr);
+            r.w = img.width;
+            r.h = img.height;
+            xpe_free_image(&img);
+        }
+    }
+    xpe_dicom_close(handle);
+    return r;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathSkipsTheTransferSyntaxCheck) {
+    const auto metaless57 = s_tempDir / "b68_metaless_57.dcm";
+    const auto metaless70 = s_tempDir / "b68_metaless_70.dcm";
+
+    if (!WriteDatasetWithoutMeta(s_validDcm, metaless57, EXS_JPEGProcess14) ||
+        !WriteDatasetWithoutMeta(s_validDcm, metaless70, EXS_JPEGProcess14SV1)) {
+        GTEST_SKIP() << "could not write meta-less compressed fixtures in this build";
+    }
+
+    const OpenResult r57 = OpenAndRead(metaless57);
+    const OpenResult r70 = OpenAndRead(metaless70);
+
+    GTEST_LOG_(INFO) << "meta-less .57: open=" << r57.open << " read=" << r57.read
+                     << " pixels=" << r57.gotPixels << " " << r57.w << "x" << r57.h;
+    GTEST_LOG_(INFO) << "meta-less .70: open=" << r70.open << " read=" << r70.read
+                     << " pixels=" << r70.gotPixels << " " << r70.w << "x" << r70.h;
+
+    // The claim this case exists to protect: a file whose pixel data is in a
+    // syntax this reader cannot decode must not come back as pixels. Which error
+    // it gives is not the point; producing a frame is.
+    EXPECT_FALSE(r57.open == XPE_OK && r57.read == XPE_OK && r57.gotPixels)
+        << "a meta-less .57 file produced pixels -- the accepted-syntax check was "
+           "never reached and the bytes were decoded as something else";
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — .57 is supported now. Pixels, not just the absence of -7.
+//
+// Adding the UID to kSupportedTransferSyntaxes removes the refusal. That is NOT
+// the same as reading the file, and the difference is measurable: before the
+// decode branch learned .57, an accepted .57 file fell through to the native
+// path and came back XPE_ERR_DICOM_INVALID. "-7 is gone" would have looked like
+// success while no image existed.
+//
+// So this case asserts the pixels, and asserts them against the source: JPEG
+// Lossless is lossless, so a byte-exact match is available and anything less
+// would be a decode that ran without being right.
+//
+// SYNTHETIC (the #148 lesson, restated rather than assumed): the fixture is
+// DCMTK's own Process-14 encoding of s_validDcm. A real acquisition device's
+// encoder may differ; that remains open on #151.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, ReadJpegLosslessProcess14_DecodesPixelExact) {
+    const auto genuine57 = s_tempDir / "b68_support_57.dcm";
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess14)) {
+                encoded = ff.saveFile(genuine57.string().c_str(), EXS_JPEGProcess14).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    ASSERT_TRUE(encoded) << "DCMTK could not encode .57 -- QA-B-67 measured that it can";
+
+    // The source pixels, read through the uncompressed path.
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer srcImg{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &srcImg));
+    xpe_dicom_close(srcHandle);
+
+    // The same pixels through .57.
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ecOpen = xpe_dicom_open(genuine57.string().c_str(), &handle);
+    EXPECT_EQ(XPE_OK, ecOpen) << "a .57 file is still refused";
+
+    XpeImageBuffer img{};
+    const XpeErrorCode ecRead = xpe_dicom_read_image(handle, &img);
+    GTEST_LOG_(INFO) << "genuine .57 after support: open=" << ecOpen
+                     << " read=" << ecRead << " " << img.width << "x" << img.height;
+    ASSERT_EQ(XPE_OK, ecRead)
+        << "the refusal is gone but no image came out -- accepting a syntax is "
+           "not decoding it";
+
+    ASSERT_EQ(srcImg.width,  img.width);
+    ASSERT_EQ(srcImg.height, img.height);
+    ASSERT_EQ(XPE_PIXEL_UINT16, img.format);
+
+    const auto* a = static_cast<const uint16_t*>(srcImg.data);
+    const auto* b = static_cast<const uint16_t*>(img.data);
+    size_t differing = 0;
+    for (size_t i = 0; i < static_cast<size_t>(img.width) * img.height; ++i) {
+        if (a[i] != b[i]) ++differing;
+    }
+    EXPECT_EQ(0u, differing)
+        << differing << " pixels differ from the source -- .57 decoded, but not "
+           "losslessly";
+
+    xpe_free_image(&img);
+    xpe_free_image(&srcImg);
+    xpe_dicom_close(handle);
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — UnsupportedTS, with the gap QA-B-67 found closed.
+//
+// The original case feeds Implicit VR Little Endian: an UNCOMPRESSED syntax that
+// differs from every accepted entry in every respect. It shows the list check
+// works on the easiest possible input, while its name reads as a general claim
+// about unsupported syntaxes. That overstatement is what let .57 sit unexamined
+// -- a compressed syntax whose name and family match an accepted one.
+//
+// This case closes that: JPEG Baseline (1.2.840.10008.1.2.4.50) is JPEG, is
+// compressed, is decodable by the very codec set this reader registers, and is
+// still not on the accepted list. If the list check were ever replaced by
+// something looser -- "is it JPEG?" -- the original case would not notice and
+// this one would.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
+    const auto baseline50 = s_tempDir / "b68_unsupported_50.dcm";
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            DJ_RPLossy param;
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess1, &param).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess1)) {
+                encoded = ff.saveFile(baseline50.string().c_str(), EXS_JPEGProcess1).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    if (!encoded) {
+        GTEST_SKIP() << "DCMTK could not encode JPEG Baseline here; without the "
+                        "fixture this case would assert nothing";
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ec = xpe_dicom_open(baseline50.string().c_str(), &handle);
+    GTEST_LOG_(INFO) << "JPEG Baseline (.50, compressed, not accepted): open=" << ec;
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ec)
+        << "a compressed syntax that is NOT on the accepted list was not refused "
+           "with UNSUPPORTED_FORMAT";
+    xpe_dicom_close(handle);
 }
