@@ -95,28 +95,28 @@ static inline bool is_valid_gain(float gain) noexcept {
            gain <= MAX_GAIN_VALUE;
 }
 
-static bool xpe_gain_has_avx2() noexcept {
-#if defined(_MSC_VER)
-    int cpuinfo[4];
-    __cpuidex(cpuinfo, 0, 0);
-    if (cpuinfo[0] < 7) return false;
-
-    __cpuidex(cpuinfo, 1, 0);
-    const bool osxsave = (cpuinfo[2] & (1 << 27)) != 0;
-    const bool avx = (cpuinfo[2] & (1 << 28)) != 0;
-    if (!osxsave || !avx) return false;
-
-    const unsigned long long xcr_mask = _xgetbv(0);
-    if ((xcr_mask & 0x6ULL) != 0x6ULL) return false;
-
-    __cpuidex(cpuinfo, 7, 0);
-    return (cpuinfo[1] & (1 << 5)) != 0;
-#elif defined(__GNUC__) || defined(__clang__)
-    return __builtin_cpu_supports("avx2");
-#else
-    return false;
-#endif
-}
+// QA-A-72 (#160): xpe_gain_has_avx2() was here, and it was a correct probe --
+// CPUID leaves 1 and 7 for the AVX and AVX2 bits, OSXSAVE plus XGETBV for the
+// operating system actually saving YMM state. It still could not protect
+// anything, and the user decision of 2026-09-16 settled what to do about that.
+//
+// It could not protect anything because this whole module is compiled with
+// /arch:AVX2 (modules/preprocess/CMakeLists.txt). The compiler is free to emit
+// AVX2 instructions anywhere in it, INCLUDING IN THE CODE THAT REACHES THIS
+// CHECK, so a machine without AVX2 faults before the probe can return false. A
+// guard whose own arrival depends on the thing it guards against is not a
+// guard.
+//
+// And the damage of keeping it is not neutral: a reader who sees a runtime
+// check concludes the case is handled and stops looking. A guard that cannot
+// protect is worse than no guard.
+//
+// AVX2 is now a stated minimum requirement (SPEC-XPE-P1A section 4.6), so the
+// vector path is the only path and is called unconditionally below. The scalar
+// form is NOT deleted -- section 4.6 names it as the reference implementation,
+// and it now lives as an inline function in xpe_preprocess_internal.h with a
+// test that compares the shipped path against it. It stopped being a fallback
+// and became a check.
 
 /**
  * @brief Scalar path: Multiply input by reciprocal of gain
@@ -128,10 +128,10 @@ static bool xpe_gain_has_avx2() noexcept {
  * @param reciprocal_gain Reciprocal of gain (1.0f / gain)
  * @return Corrected output value (float32)
  */
-static inline float apply_gain_scalar(uint16_t input, float reciprocal_gain) noexcept {
-    // AC-GAIN-002: a * (1.0f / b) pattern
-    return static_cast<float>(input) * reciprocal_gain;
-}
+// QA-A-72 (#160): the per-pixel rule and the whole-buffer reference moved to
+// xpe_preprocess_internal.h as inline definitions, so the parity test compiles
+// the same source this file does. See the note on
+// xpe_gain_apply_scalar_reference there.
 
 /**
  * @brief AVX2/FMA path: Vectorized gain correction using FMA
@@ -211,7 +211,7 @@ static void apply_gain_avx2(
 
     // Handle remaining pixels (scalar path)
     for (; i < pixel_count; ++i) {
-        output[i] = apply_gain_scalar(input[i], reciprocal_gain[i]);  // Use inline helper
+        output[i] = xpe_gain_apply_scalar_pixel(input[i], reciprocal_gain[i]);  // Use inline helper
     }
 }
 
@@ -226,19 +226,7 @@ static void apply_gain_avx2(
  * @param width Image width
  * @param height Image height
  */
-static void apply_gain_correction_scalar(
-    const uint16_t* input,
-    const float* reciprocal_gain,
-    float* output,
-    uint32_t width,
-    uint32_t height) noexcept
-{
-    const size_t pixel_count = width * height;
-
-    for (size_t i = 0; i < pixel_count; ++i) {
-        output[i] = apply_gain_scalar(input[i], reciprocal_gain[i]);
-    }
-}
+// (definition moved to xpe_preprocess_internal.h -- QA-A-72)
 
 // @MX:ANCHOR: [AUTO] xpe_gain_correct — public API entry point (new g_calib-based)
 // @MX:REASON: UINT16→FLOAT32 domain transition; reads g_calib.gain_map; fan_in >= 3
@@ -297,11 +285,8 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             reciprocal[i] = 1.0f / gainmap[i];
         }
 
-        // Apply: AVX2 when available, scalar fallback
-        if (xpe_gain_has_avx2())
-            apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
-        else
-            apply_gain_correction_scalar(src, reciprocal.data(), dst, input->width, input->height);
+        // Apply. One path: see the QA-A-72 note where the runtime probe used to be.
+        apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
 
         output->format        = XPE_PIXEL_FLOAT32;
         output->bitsAllocated = 32u;
