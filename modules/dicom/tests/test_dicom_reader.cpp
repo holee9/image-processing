@@ -1996,3 +1996,246 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
            "with UNSUPPORTED_FORMAT";
     xpe_dicom_close(handle);
 }
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-69) — is it the check that stops these files, or the encapsulation?
+//
+// QA-B-68 measured that a meta-less .57 file reaches open() with no transfer
+// syntax check at all (DicomReader.cpp:157 records Explicit VR Little Endian
+// whatever the file actually is) and still produces no pixels. The reason was
+// NOT the check: the native read path cannot pull an encapsulated PixelData out
+// as a plain uint16 array, so it fails for a structural reason that has nothing
+// to do with which syntax the file claims.
+//
+// That leaves exactly one question, and it decides whether the QA-B-67
+// conclusion ("no silent misdecode") holds outside the path it was measured on:
+//
+//     does a NON-encapsulated unsupported syntax, arriving with no meta-header,
+//     come back as pixels?
+//
+// The candidates are derived from what DCMTK can write, not from a list someone
+// wrote down: a syntax qualifies if it is native (not encapsulated, so the
+// native read path can work on it) and absent from kSupportedTransferSyntaxes.
+//
+// TWO CONTROLS, both in this run:
+//   - the same file WITH its meta-header must answer XPE_ERR_UNSUPPORTED_FORMAT,
+//     which is what shows the check is alive and the meta-less result is about
+//     the missing header rather than about the syntax being tolerated;
+//   - a meta-less file in a SUPPORTED syntax must open and yield pixels, or the
+//     fixture writer is broken and every negative below means nothing.
+//
+// SYNTHETIC (#148): every file here is written by DCMTK from s_validDcm. No
+// acquisition device produced them.
+//
+// THE ANSWER IS YES, AND THAT IS WHY THIS CASE IS DISABLED_ RATHER THAN RED.
+// Measured 2026-09-16: Implicit VR Little Endian and Explicit VR Big Endian --
+// both absent from kSupportedTransferSyntaxes, both refused with
+// XPE_ERR_UNSUPPORTED_FORMAT when they carry a meta-header -- come back as a
+// full 256x256 frame when the meta-header is absent. A file the reader rejects
+// when it is labelled is read when the label is missing.
+//
+// The polarity follows QA-B-66: this case asserts what the reader SHOULD do, so
+// it goes green the day the hole is closed rather than red the day someone fixes
+// it. The always-on record of what happens today is
+// KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes below, which logs
+// the same measurement and asserts nothing.
+//
+// DISABLED_ because the defect is BLOCKED on a decision, not on work: what to do
+// here is tangled with whether a meta-less file should be accepted at all
+// (DicomReader.cpp:157 accepts it and records Explicit VR Little Endian, which
+// is a guess). Refusing meta-less files outright, checking the detected syntax
+// instead of assuming one, or keeping the current tolerance and documenting it
+// are three different products. #167 owns that call; QA-B-69 was told to measure
+// and stop.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct NativeSyntaxCandidate {
+    E_TransferSyntax xfer;
+    const char*      uid;
+    const char*      name;
+    bool             onAcceptedList;
+};
+
+// Native (non-encapsulated) syntaxes DCMTK knows. Encapsulated ones are excluded
+// by construction -- QA-B-68 already showed the native path cannot read those,
+// and this case is about the syntaxes where that structural block is absent.
+const NativeSyntaxCandidate kNativeSyntaxes[] = {
+    { EXS_LittleEndianImplicit,          "1.2.840.10008.1.2",       "Implicit VR Little Endian",    false },
+    { EXS_LittleEndianExplicit,          "1.2.840.10008.1.2.1",     "Explicit VR Little Endian",    true  },
+    { EXS_BigEndianExplicit,             "1.2.840.10008.1.2.2",     "Explicit VR Big Endian",       false },
+    { EXS_DeflatedLittleEndianExplicit,  "1.2.840.10008.1.2.1.99",  "Deflated Explicit VR LE",      false },
+};
+
+bool IsOnAcceptedList(const char* uid) {
+    for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
+        if (std::string(uid) == xpe::dicom::kSupportedTransferSyntaxes[i].uid) return true;
+    }
+    return false;
+}
+
+// Dataset only -- no preamble, no group-2 elements. This is what reaches
+// DicomReader.cpp:157.
+bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+    if (!ds->chooseRepresentation(xfer, nullptr).good()) return false;
+    if (!ds->canWriteXfer(xfer)) return false;
+    return ds->saveFile(dst.string().c_str(), xfer).good();
+}
+
+// Full Part-10 file, meta-header included.
+bool WriteWithMeta(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+    if (!ds->chooseRepresentation(xfer, nullptr).good()) return false;
+    if (!ds->canWriteXfer(xfer)) return false;
+    return ff.saveFile(dst.string().c_str(), xfer).good();
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, DISABLED_MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
+    // The accepted-list membership in the table is a convenience for reading; the
+    // authority is the list itself, so it is cross-checked rather than trusted.
+    for (const auto& c : kNativeSyntaxes) {
+        ASSERT_EQ(c.onAcceptedList, IsOnAcceptedList(c.uid))
+            << "the table disagrees with kSupportedTransferSyntaxes about " << c.uid
+            << " -- fix the table, not the list";
+    }
+
+    // --- control 2: a meta-less SUPPORTED syntax must yield pixels ----------
+    // Placed first: if the writer cannot produce a readable meta-less file at
+    // all, every "no pixels" below is about the fixture and not about the reader.
+    const auto sane = s_tempDir / "b69_metaless_explicitLE.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit))
+        << "could not write a meta-less Explicit LE file";
+    const OpenResult sanity = OpenAndRead(sane);
+    GTEST_LOG_(INFO) << "control: meta-less Explicit VR LE (SUPPORTED) open="
+                     << sanity.open << " read=" << sanity.read
+                     << " pixels=" << sanity.gotPixels
+                     << " " << sanity.w << "x" << sanity.h;
+    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
+        << "a meta-less file in a SUPPORTED syntax produced no pixels -- the "
+           "fixture writer is broken and nothing below is measured";
+
+    // --- subjects -----------------------------------------------------------
+    int leaked = 0;
+    for (const auto& c : kNativeSyntaxes) {
+        if (c.onAcceptedList) continue;   // supported ones are not the question
+
+        const auto metaLess  = s_tempDir / (std::string("b69_metaless_") + c.uid + ".dcm");
+        const auto withMeta  = s_tempDir / (std::string("b69_withmeta_") + c.uid + ".dcm");
+
+        if (!WriteDatasetOnly(s_validDcm, metaLess, c.xfer) ||
+            !WriteWithMeta(s_validDcm, withMeta, c.xfer)) {
+            GTEST_LOG_(INFO) << c.name << " (" << c.uid
+                             << "): DCMTK cannot write this syntax here -- not measured";
+            continue;
+        }
+
+        // control 1: with a meta-header the check must refuse it.
+        const OpenResult guarded = OpenAndRead(withMeta);
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, guarded.open)
+            << c.name << " is not refused even WITH a meta-header -- the "
+               "accepted-list check is not doing what the meta-less result is "
+               "being compared against";
+
+        const OpenResult bare = OpenAndRead(metaLess);
+        GTEST_LOG_(INFO) << c.name << " (" << c.uid << "): with-meta open="
+                         << guarded.open << " | meta-less open=" << bare.open
+                         << " read=" << bare.read << " pixels=" << bare.gotPixels
+                         << " " << bare.w << "x" << bare.h;
+
+        if (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels) ++leaked;
+    }
+
+    EXPECT_EQ(0, leaked)
+        << leaked << " native unsupported syntax/syntaxes produced pixels through "
+           "the meta-less path -- a file the reader refuses when labelled is read "
+           "when the label is absent (#167)";
+}
+
+// The always-on half of the pair above: the same sweep, logged, asserting only
+// that the two controls still hold. It records TODAY's behaviour so the
+// measurement does not live exclusively inside a case that default runs skip --
+// a disabled test is a quiet place for a finding to sit.
+TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes) {
+    const auto sane = s_tempDir / "b69_rec_metaless_explicitLE.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit));
+    const OpenResult sanity = OpenAndRead(sane);
+    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
+        << "the fixture writer is broken; nothing below is measured";
+
+    int leaked = 0;
+    for (const auto& c : kNativeSyntaxes) {
+        if (c.onAcceptedList) continue;
+        const auto metaLess = s_tempDir / (std::string("b69_rec_metaless_") + c.uid + ".dcm");
+        const auto withMeta = s_tempDir / (std::string("b69_rec_withmeta_") + c.uid + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, metaLess, c.xfer) ||
+            !WriteWithMeta(s_validDcm, withMeta, c.xfer)) {
+            GTEST_LOG_(INFO) << c.name << ": not writable here -- not measured";
+            continue;
+        }
+        const OpenResult guarded = OpenAndRead(withMeta);
+        const OpenResult bare    = OpenAndRead(metaLess);
+        const bool gotPixels = (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels);
+        if (gotPixels) ++leaked;
+        GTEST_LOG_(INFO) << c.name << " (" << c.uid << "): with-meta="
+                         << guarded.open << " meta-less open=" << bare.open
+                         << " read=" << bare.read << " pixels=" << gotPixels
+                         << " " << bare.w << "x" << bare.h;
+        // The control, asserted: the check IS alive on the labelled path. Without
+        // this the leak below could be read as "the syntax is simply tolerated".
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, guarded.open)
+            << c.name << " is not refused even with a meta-header";
+    }
+
+    GTEST_LOG_(INFO) << "native unsupported syntaxes yielding pixels without a "
+                        "meta-header: " << leaked << " (#167)";
+    // Deliberately not asserted either way. The number is the finding, and the
+    // sibling DISABLED_ case is where the requirement lives.
+    SUCCEED();
+}
+
+// The falsification the card asks for, and it only makes sense if the case above
+// found nothing: strip the ENCAPSULATION rather than the syntax. QA-B-68 argued
+// from code that the encapsulated structure -- not the accepted-list check -- is
+// what stops a meta-less .57 file. This turns that argument into a measurement.
+//
+// The same source dataset is written meta-less in a native syntax that the
+// reader does NOT accept. If pixels appear, the block was structural; if they do
+// not, something else is refusing and QA-B-68's reasoning was incomplete.
+TEST_F(DicomReaderTest, KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured) {
+    const auto encapsulated = s_tempDir / "b69_metaless_encapsulated.dcm";
+    const auto native       = s_tempDir / "b69_metaless_native_unsupported.dcm";
+
+    DJEncoderRegistration::registerCodecs();
+    const bool wroteEncapsulated =
+        WriteDatasetOnly(s_validDcm, encapsulated, EXS_JPEGProcess14SV1);
+    // no DJDecoderRegistration::cleanup() here -- see the note on the .57 probe.
+
+    const bool wroteNative =
+        WriteDatasetOnly(s_validDcm, native, EXS_LittleEndianImplicit);
+
+    if (!wroteEncapsulated || !wroteNative) {
+        GTEST_SKIP() << "could not write both fixtures; the comparison needs the pair";
+    }
+
+    const OpenResult enc = OpenAndRead(encapsulated);
+    const OpenResult nat = OpenAndRead(native);
+
+    GTEST_LOG_(INFO) << "meta-less ENCAPSULATED (.70): open=" << enc.open
+                     << " read=" << enc.read << " pixels=" << enc.gotPixels;
+    GTEST_LOG_(INFO) << "meta-less NATIVE (Implicit LE, unsupported): open=" << nat.open
+                     << " read=" << nat.read << " pixels=" << nat.gotPixels;
+
+    // Recorded, not asserted as a requirement: the deliverable is which of the
+    // two shapes gets through, and asserting a direction here would pin whichever
+    // answer today happens to give.
+    SUCCEED();
+}
