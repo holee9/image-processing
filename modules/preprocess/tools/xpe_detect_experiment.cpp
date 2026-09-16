@@ -1533,6 +1533,34 @@ void pixelStages(uint32_t w, uint32_t h) {
                 100.0 * (s3 - s2) / s4);
     std::printf("  %-34s %9.1f %9.1f %6.1f%%\n", "= full DetectDefectivePixel", s4, s4 - s3,
                 100.0 * (s4 - s3) / s4);
+    // QA-A-68: the scalar path is not dead, it is the BORDER. DetectRowRange
+    //  sends row 0, row h-1, column 0 and the tail column of every interior
+    //  row through DetectDefectivePixel, and everything else through AVX2. So
+    //  "how much does the scalar median cost the shipped detector" is a
+    //  question about those pixels and no others -- measured here rather than
+    //  inferred from a per-pixel average.
+    {
+        std::vector<std::pair<uint32_t, uint32_t>> border;
+        for (uint32_t x = 0; x < w; ++x) { border.emplace_back(x, 0u); border.emplace_back(x, h - 1u); }
+        for (uint32_t y = 1; y + 1u < h; ++y) {
+            border.emplace_back(0u, y);
+            uint32_t x = 1u;
+            for (; x + 8u <= w - 1u; x += 8u) {}
+            for (; x < w; ++x) border.emplace_back(x, y);
+        }
+        std::vector<float> ba, bb;
+        ba.reserve(64); bb.reserve(64);
+        const double tBorder = bestOf(5, [&]{
+            size_t hit = 0;
+            for (size_t i = 0; i < border.size(); ++i) {
+                if (DetectDefectivePixel(&img, border[i].first, border[i].second, cfg, ba, bb)) ++hit;
+            }
+            escape = static_cast<double>(hit);
+        });
+        std::printf("  border pixels taking the SCALAR path: %zu of %zu (%.2f%%),"
+                    " %.3f ms\n",
+                    border.size(), n, 100.0 * border.size() / n, tBorder);
+    }
     std::printf("  (last delta = floor/cap + Hampel test + map write; negative would mean\n"
                 "   the harness, not the code -- see the comment above this function.)\n\n");
     std::fflush(stdout);
