@@ -113,8 +113,14 @@ public sealed class MainWindowViewModel : ObservableObject
         ResetLaneBOverridesCommand = new RelayCommand(ResetLaneBOverrides);
 
         Log("GUI-S0 initialized.");
-        ReportRejectedComparisonMode();
         InitializeBackend();
+
+        // AFTER the backend, not before (#161, GUI-C-63). InitializeBackend clears Logs and Alerts,
+        // so anything said before it is written and erased within the same constructor — measured in
+        // GUI-C-62, where a run with a rejected mode showed six log lines, none of them the rejection
+        // and none of them the "GUI-S0 initialized." line written immediately before it. The whole of
+        // that moment was gone, not just one line.
+        ReportRejectedComparisonMode();
     }
 
     public AppSettings Settings { get; }
