@@ -620,16 +620,18 @@ public sealed class MainWindowViewModel : ObservableObject
             activeImageSummary = ActiveImageSummary,
             status = StatusText,
             settings = Settings,
+            // #165 (GUI-C-68): five fields removed — runtime, rawSettings, imageSummary, metadata,
+            // alerts. Their panels were replaced by the Evaluation Workbench and their menu items are
+            // gone, so each was permanently true: the report said five panels were visible that do
+            // not exist. The three that remain describe real state — logs drives the log region, and
+            // the other two drive the checkmark on their (disabled) menu items. Removing was cheap
+            // precisely because nothing consumes these fields yet; it gets expensive once something
+            // does.
             visiblePanels = new
             {
-                runtime = ShowRuntimePanel,
-                rawSettings = ShowRawSettingsPanel,
                 calibration = ShowCalibrationPanel,
                 display = Settings.ShowDisplayPanel,
-                imageSummary = ShowImageSummaryPanel,
-                metadata = ShowMetadataPanel,
-                logs = ShowLogsPanel,
-                alerts = ShowAlertsPanel
+                logs = ShowLogsPanel
             },
             displayPipeline = new
             {
