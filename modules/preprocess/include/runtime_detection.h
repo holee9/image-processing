@@ -953,6 +953,35 @@ inline float ComputeGlobalSigmaThreaded(const XpeImageBuffer* img, int32_t threa
  * @param map Output map, one byte per pixel. CLEARED BY THIS FUNCTION -- the
  *            caller need not, and should not rely on, pre-filling it. Every byte
  *            is written: 1 for a defective pixel, 0 otherwise.
+ * @param mapCount Number of uint8 ELEMENTS @p map points at. The call is
+ *            REJECTED -- nothing is read, nothing is written -- when this is
+ *            smaller than width * height.
+ *
+ * @par Buffer length is counted in ELEMENTS, not bytes (#152).
+ * The map element type is uint8_t, so here the two counts happen to be equal;
+ * the unit is still stated as ELEMENTS because that is the unit the check
+ * compares against -- width * height, the same units @p img->width and
+ * @p img->height are already in -- and because the repository has one naming
+ * convention for this argument, set by xpe_gsvg_process (#152 / QA-B-53), where
+ * the element type is NOT one byte. A caller passes `map.size()`; nothing has to
+ * remember a sizeof, and a later change of map element type does not silently
+ * change what the number means.
+ *
+ * @par A short map is rejected, never truncated (QA-A-63, #144).
+ * Truncating -- clearing and filling only the first @p mapCount bytes -- would
+ * return normally and leave the tail of the map holding whatever it held
+ * before, which reads exactly like a detection. That failure shape has already
+ * been paid for once in this repository: #150 copied a truncated PixelData and
+ * returned XPE_OK. This function has no error channel (it returns void, like
+ * its NULL-pointer guards above), so rejection here means the same thing those
+ * guards mean: return without touching the caller's memory.
+ *
+ * QA-A-63 (#144): the length argument exists because QA-A-62 created the need
+ * for it. Before that card the caller filled the map, so the caller knew its
+ * size; moving the clear into this function moved the write here while the size
+ * stayed there. The check is ordered before the memset, not after -- a check
+ * placed after the first write returns the right answer and has already
+ * corrupted memory.
  *
  * QA-A-62 (#144): the clear used to be the caller's job, stated only in this
  * comment. A comment is not code, and this particular contract fails SILENTLY --
@@ -971,14 +1000,19 @@ inline float ComputeGlobalSigmaThreaded(const XpeImageBuffer* img, int32_t threa
  */
 inline void DetectFrame(const XpeImageBuffer* img,
                         RuntimeDetectionConfig config,
-                        uint8_t* map) {
+                        uint8_t* map,
+                        size_t mapCount) {
     if (img == nullptr || img->data == nullptr || map == nullptr) return;
     const uint32_t T = RuntimeDetection_NormalizeThreads(config.threadCount);
     const uint32_t w = img->width;
     const uint32_t h = img->height;
 
+    // QA-A-63: before the memset, not after. See the note above.
+    const size_t needed = static_cast<size_t>(w) * static_cast<size_t>(h);
+    if (mapCount < needed) return;
+
     // QA-A-62: clear it here rather than trusting a comment. See the note above.
-    std::memset(map, 0, static_cast<size_t>(w) * static_cast<size_t>(h));
+    std::memset(map, 0, needed);
 
     const float sigmaGlobal = ComputeGlobalSigmaThreaded(img, config.threadCount);
     config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;

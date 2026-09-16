@@ -381,6 +381,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_performance_gate.cpp
         tests/test_runtime_detection_sigma_buffer_parity.cpp
         tests/test_runtime_detection_thread_parity.cpp
+        tests/test_runtime_detection_map_length.cpp
     )
 
     add_executable(xpe_preprocess_tests

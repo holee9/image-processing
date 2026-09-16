@@ -135,7 +135,7 @@ TEST(ThreadParityTest, RealFrameSizeIsIdenticalAtEveryThreadCount) {
     RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
     cfg.threadCount = 1;
     std::vector<uint8_t> single(n, 0u);
-    DetectFrame(&img, cfg, single.data());
+    DetectFrame(&img, cfg, single.data(), single.size());
 
     size_t flagged = 0;
     for (uint8_t v : single) if (v) ++flagged;
@@ -148,7 +148,7 @@ TEST(ThreadParityTest, RealFrameSizeIsIdenticalAtEveryThreadCount) {
 
         cfg.threadCount = T;
         std::vector<uint8_t> threaded(n, 0u);
-        DetectFrame(&img, cfg, threaded.data());
+        DetectFrame(&img, cfg, threaded.data(), threaded.size());
 
         size_t mismatches = 0;
         size_t firstBad = 0;
@@ -193,10 +193,10 @@ TEST(ThreadParityTest, DetectFrameClearsTheMapItself) {
         cfg.threadCount = T;
 
         std::vector<uint8_t> fromZero(n, 0u);
-        DetectFrame(&img, cfg, fromZero.data());
+        DetectFrame(&img, cfg, fromZero.data(), fromZero.size());
 
         std::vector<uint8_t> fromGarbage(n, 0xFFu);
-        DetectFrame(&img, cfg, fromGarbage.data());
+        DetectFrame(&img, cfg, fromGarbage.data(), fromGarbage.size());
 
         size_t flagged = 0;
         for (uint8_t v : fromZero) if (v) ++flagged;
@@ -244,7 +244,7 @@ TEST(ThreadParityTest, DefectMapIsIdenticalPixelForPixelAtEveryThreadCount) {
         RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
         cfg.threadCount = 1;
         std::vector<uint8_t> single(n, 0u);
-        DetectFrame(&img, cfg, single.data());
+        DetectFrame(&img, cfg, single.data(), single.size());
 
         size_t flagged = 0;
         for (uint8_t v : single) if (v) ++flagged;
@@ -254,7 +254,7 @@ TEST(ThreadParityTest, DefectMapIsIdenticalPixelForPixelAtEveryThreadCount) {
         for (int32_t T : kThreadCounts) {
             cfg.threadCount = T;
             std::vector<uint8_t> threaded(n, 0u);
-            DetectFrame(&img, cfg, threaded.data());
+            DetectFrame(&img, cfg, threaded.data(), threaded.size());
 
             size_t mismatches = 0;
             size_t firstBad = 0;
@@ -292,8 +292,8 @@ TEST(ThreadParityTest, ConcurrentCallsWithDifferentThreadCountsAreIndependent) {
     RuntimeDetectionConfig one = RuntimeDetection_DefaultConfig();
     one.threadCount = 1;
     std::vector<uint8_t> expectA(n, 0u), expectB(n, 0u);
-    DetectFrame(&imgA, one, expectA.data());
-    DetectFrame(&imgB, one, expectB.data());
+    DetectFrame(&imgA, one, expectA.data(), expectA.size());
+    DetectFrame(&imgB, one, expectB.data(), expectB.size());
 
     auto run = [n](const XpeImageBuffer* img, int32_t threads) {
         RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
@@ -301,7 +301,7 @@ TEST(ThreadParityTest, ConcurrentCallsWithDifferentThreadCountsAreIndependent) {
         std::vector<uint8_t> map(n, 0u);
         for (int rep = 0; rep < 4; ++rep) {
             std::fill(map.begin(), map.end(), static_cast<uint8_t>(0));
-            DetectFrame(img, cfg, map.data());
+            DetectFrame(img, cfg, map.data(), map.size());
         }
         return map;
     };
@@ -332,12 +332,12 @@ TEST(ThreadParityTest, RepeatedThreadedRunsAreDeterministic) {
     cfg.threadCount = 12;
 
     std::vector<uint8_t> first(n, 0u);
-    DetectFrame(&img, cfg, first.data());
+    DetectFrame(&img, cfg, first.data(), first.size());
     const float firstSigma = ComputeGlobalSigmaThreaded(&img, 12);
 
     for (int rep = 0; rep < 8; ++rep) {
         std::vector<uint8_t> again(n, 0u);
-        DetectFrame(&img, cfg, again.data());
+        DetectFrame(&img, cfg, again.data(), again.size());
         ASSERT_EQ(first, again) << "run " << rep << " differs from the first";
         ASSERT_TRUE(SameBits(firstSigma, ComputeGlobalSigmaThreaded(&img, 12)))
             << "sigma differed on run " << rep;

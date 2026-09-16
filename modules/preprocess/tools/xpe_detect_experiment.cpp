@@ -387,7 +387,7 @@ void shippedThreadScaling(uint32_t w, uint32_t h) {
         cfg.threadCount = T;
         const double tFrame = bestOf(3, [&]{
             std::fill(map.begin(), map.end(), static_cast<uint8_t>(0));
-            DetectFrame(&img, cfg, map.data());
+            DetectFrame(&img, cfg, map.data(), map.size());
         });
 
         if (T == 1) { sigmaBase = tSigma; frameBase = tFrame; }
