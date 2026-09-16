@@ -23,10 +23,11 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// point moved it, read back from the viewport's <c>HelpText</c>, which is bound straight to
 /// <c>Settings.ComparisonMode</c> (#149 G-6, GUI-C-47).</para>
 ///
-/// <para><b>Three gestures are bound, three are not</b>, and that is a finding rather than an
-/// omission: MENU-001 §9.3/§10.1 and ACCESS-001 §5.2 — which MENU-001 §10 calls a single source of
-/// truth — disagree about F6 and Ctrl+1. The unbound three are covered by the menu cases; the
-/// conflict is in the GUI-C-58 report.</para>
+/// <para><b>Four gestures are bound, two are not.</b> GUI-C-58 left three unbound because MENU-001
+/// §9.3/§10.1 and ACCESS-001 §5.2 — which MENU-001 §10 calls a single source of truth — disagreed
+/// about F6 and Ctrl+1. Both were decided in <c>6dffce0</c>: F6 is Split (ACCESS-001 was wrong, and
+/// the value it carried also collided with F8), and Ctrl+1 belongs to Zoom 100 %, so Source Only and
+/// Processed Only keep no key at all and reach the user through the menu.</para>
 /// </summary>
 [Collection(WorkflowApplicationCollection.Name)]
 public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
@@ -46,6 +47,7 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     public static IEnumerable<object[]> Gestures() =>
     [
         ["F5", "SwipeVertical"],
+        ["F6", "SplitLocked"],
         ["F7", "OverlayOpacity"],
         ["F8", "DifferenceHeatmap"],
     ];
@@ -173,6 +175,7 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     private static VirtualKeyShort KeyFor(string gesture) => gesture switch
     {
         "F5" => VirtualKeyShort.F5,
+        "F6" => VirtualKeyShort.F6,
         "F7" => VirtualKeyShort.F7,
         "F8" => VirtualKeyShort.F8,
         _ => throw new ArgumentOutOfRangeException(nameof(gesture), gesture, "No virtual key for this gesture."),
