@@ -1,5 +1,6 @@
 // #161 (GUI-C-60): the three places a user can read the comparison mode must say the same thing.
 using System.Text.Json;
+using ImageProcTest.Services;
 using System.Text.RegularExpressions;
 using ImageProcTest.Models;
 
@@ -126,11 +127,136 @@ public sealed class ComparisonModeSingleSourceTests
         var unsupported = parameters.Where(p => !ComparisonModes.IsKnown(p)).ToArray();
         Assert.True(
             unsupported.Length == 0,
-            $"View → Compare Mode names {string.Join(", ", unsupported)}, which is not a supported " +
-            "comparison mode. A menu item with a name nothing answers to can never show as checked.");
+            $"A menu item or key gesture names {string.Join(", ", unsupported)}, which is not a " +
+            "supported comparison mode. Measured in GUI-C-62: this search covers BOTH the six menu " +
+            "items and the four <KeyBinding> elements, because they carry the same command — the " +
+            "name of this test says menu, its reach is wider, and that is deliberate.");
 
         var withoutAnItem = ComparisonModes.All.Except(parameters, StringComparer.Ordinal).ToArray();
         Assert.Equal(new[] { ComparisonModes.SwipeHorizontal }, withoutAnItem);
+    }
+
+    /// <summary>
+    /// A settings FILE holding an unsupported mode loads as the default, and the loader reports it.
+    ///
+    /// <para>GUI-C-60 left this as a gap: the JSON test above deserialises a string, which is not the
+    /// same as reading a file through the service the app actually uses. GUI-C-61 closed it by hand —
+    /// doctoring the shipped <c>appsettings.json</c> and launching the app, which measured
+    /// <c>SwipeVertical</c> where GUI-C-59 had measured <c>NotAMode</c> — but that probe cannot be
+    /// committed, because a test that rewrites the shipped settings file overwrites a developer's own
+    /// settings (GUI-C-46).</para>
+    ///
+    /// <para>A temp file removes the reason the probe could not be kept: the same loader, the same
+    /// path, none of the risk.</para>
+    /// </summary>
+    [Fact]
+    public void ASettingsFileHoldingAnUnsupportedMode_LoadsAsTheDefault()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe_c62_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "appsettings.json");
+
+        try
+        {
+            File.WriteAllText(path, """{"comparisonMode": "NotAMode"}""");
+
+            var loaded = new AppSettingsService(path).Load();
+
+            Assert.Equal(ComparisonModes.Default, loaded.ComparisonMode);
+            Assert.Equal("NotAMode", loaded.RejectedComparisonMode);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A supported mode in the file survives it, so the test above is measuring the gate rather than
+    /// a loader that ignores the file.
+    /// </summary>
+    [Fact]
+    public void ASettingsFileHoldingASupportedMode_KeepsIt()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe_c62_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "appsettings.json");
+
+        try
+        {
+            File.WriteAllText(path, """{"comparisonMode": "ProcessedOnly"}""");
+
+            var loaded = new AppSettingsService(path).Load();
+
+            Assert.Equal(ComparisonModes.ProcessedOnly, loaded.ComparisonMode);
+            Assert.Null(loaded.RejectedComparisonMode);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Each Compare Mode item checks itself and nothing else: its <c>ConverterParameter</c> is the
+    /// same mode as its <c>CommandParameter</c>, and no two items name the same mode.
+    ///
+    /// <para>GUI-C-61 observed the behaviour by running the app — pressing Difference left
+    /// <c>Difference=On</c> and the other five <c>Off</c>. That is the right observation and it cannot
+    /// live in CI, because the check comes from a binding this test project has no WPF to evaluate.
+    /// What CAN be pinned is the thing that makes the observation true: <b>the item that runs a mode
+    /// is the item that compares against that mode.</b> A swap of the two attributes would leave every
+    /// item working and the checkmark on the wrong row — and nothing else in the suite would notice.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void EachMenuItem_ChecksTheModeItSelects()
+    {
+        var xaml = File.ReadAllText(MainWindowXamlPath());
+
+        var items = Regex.Matches(
+            xaml,
+            @"ConverterParameter=(?<checks>\w+)\}""\s*\r?\n\s*Command=""\{Binding SetComparisonModeCommand\}""\s*\r?\n\s*CommandParameter=""(?<selects>[^""]+)""");
+
+        // Every MENU item that carries the command must also have been matched here. Without this the
+        // test passes while silently checking a subset — and the first version of this tie did catch
+        // one: the naive count included the four <KeyBinding> elements, which carry the same command
+        // and no ConverterParameter. Hence MenuMarkup, which drops the InputBindings block.
+        var menuItems = Regex.Matches(MenuMarkup(xaml), @"SetComparisonModeCommand\}""[\s\S]*?CommandParameter=""([^""]+)""");
+        Assert.Equal(menuItems.Count, items.Count);
+        Assert.NotEmpty(items);
+
+        foreach (Match item in items)
+        {
+            var checks = item.Groups["checks"].Value;
+            var selects = item.Groups["selects"].Value;
+
+            Assert.True(
+                string.Equals(checks, selects, StringComparison.Ordinal),
+                $"A Compare Mode item selects '{selects}' but shows its check for '{checks}'. Every " +
+                "item would still work and the tick would sit on the wrong row.");
+        }
+
+        var selected = items.Select(m => m.Groups["selects"].Value).ToArray();
+        Assert.Equal(selected.Length, selected.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// The markup with the window's <c>InputBindings</c> block removed.
+    ///
+    /// The key gestures bind the same command as the menu items, so a search for that command finds
+    /// ten elements where the menu has six. Measured in GUI-C-62 — the count tie above failed on the
+    /// first attempt for exactly this reason, which is why the tie is there.
+    /// </summary>
+    private static string MenuMarkup(string xaml)
+    {
+        var start = xaml.IndexOf("<Window.InputBindings>", StringComparison.Ordinal);
+        if (start < 0) return xaml;
+
+        var end = xaml.IndexOf("</Window.InputBindings>", start, StringComparison.Ordinal);
+        if (end < 0) return xaml;
+
+        return xaml.Remove(start, end - start + "</Window.InputBindings>".Length);
     }
 
     /// <summary>
