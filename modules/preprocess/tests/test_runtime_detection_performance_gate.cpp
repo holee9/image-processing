@@ -136,24 +136,28 @@ double MeasureReferenceMs() {
 
 /* ------------------------------------------------------------- the gates */
 //
-// The limit is set from measurement, and it is PROVISIONAL until a CI run
-// reports its own ratio. QA-A-59's mistake was fixing a constant from one
-// machine; doing that again with a ratio instead of a millisecond would be the
-// same mistake in a new costume. So every run prints a grep-able line:
+// CONFIRMED ON BOTH MACHINES (QA-A-61). Every run prints a grep-able line:
 //
 //     [perf-gate-ratio] <label> ratio=<x> limit=<y>
 //
-// and the limit is revisited once the CI value is in hand.
+// Measured, fresh build verified each time:
 //
-// Measured on the development machine (QA-A-60, fresh build verified each time):
+//     3072 ratio   dev machine, clean    7.125 .. 7.375   (5 runs, spread 3.5%)
+//                  CI runner,   clean    7.715            (run 35042910764)
+//                  dev machine, regression 12.190 ..12.711 (median fast path bypassed)
 //
-//     3072 ratio   clean       7.125 .. 7.375   (5 runs, spread 3.5%)
-//                  regression 12.190 ..12.711   (3 runs; median fast path bypassed)
+// The point of the ratio is in the CI row: that machine takes 1329.4 ms against
+// the development machine's ~700 ms -- 1.91x the absolute time -- yet the ratio
+// differs by 5.4%. The reference kernel does track the machine, which is the
+// premise the design rests on, and it is now measured rather than assumed.
 //
-// 1.65x apart with a 3.5% clean spread, so a limit between them is safe in both
-// directions. 10.00 sits 36% above the worst clean run -- headroom for a CI
-// machine whose reference kernel does not scale exactly like its detector --
-// and still 18% below the best regression run.
+// 10.00 sits 29.6% above the worst clean run across BOTH machines and 18% below
+// the best regression run.
+//
+// Reading the value from CI: ctest prints test output only on failure, so a
+// passing run has no `perf-gate-ratio` line in the job log. It is in the
+// xpe-preprocess-test-results artifact, under Temporary/LastTest.log. That is
+// ctest behaving normally -- do not "fix" it, or every passing run grows a log.
 constexpr double kRatio3072Limit = 10.00;
 
 /** Reported, never asserted: the SPEC improvement target we are not near yet. */

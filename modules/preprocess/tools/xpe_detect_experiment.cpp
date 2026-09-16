@@ -61,6 +61,8 @@ using xpe::preprocess::internal::CollectNeighborValues;
 using xpe::preprocess::internal::ComputeMedian;
 using xpe::preprocess::internal::ComputeMAD;
 using xpe::preprocess::internal::ComputeGlobalSigma;
+using xpe::preprocess::internal::ComputeGlobalSigmaThreaded;
+using xpe::preprocess::internal::DetectFrame;
 using xpe::preprocess::internal::DetectDefectivePixel;
 
 /* ---------------------------------------------------------------- frames */
@@ -329,6 +331,71 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::printf("[time] %ux%u  best of 3: %8.1f ms   flagged %zu (%.3f%%)\n",
                 w, h, best, flagged, 100.0 * (double)flagged / (double)n);
     std::fflush(stdout);
+}
+
+/* ------------------------------------------- QA-A-61 shipped-code threading */
+//
+// QA-A-58 measured thread scaling with a PROBE built in this TU. The card asks
+// for the same measurement from the code that actually ships, because a probe
+// and an implementation are not the same thing -- QA-A-54 already caught a
+// replica running 1.24x slower than the real loop through nothing but inlining.
+// So this calls ComputeGlobalSigmaThreaded and DetectFrame directly.
+
+void shippedThreadScaling(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+    std::vector<uint8_t> map(n, 0u);
+
+    auto bestOf = [](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    std::printf("[shipped-threads] %ux%u, best of 5, SHIPPED code (not a probe)\n", w, h);
+    std::printf("  sigma value is printed to show it does not move with the split.\n\n");
+    std::printf("  %8s %12s %10s %12s %10s %14s\n",
+                "threads", "sigma ms", "speed-up", "frame ms", "speed-up", "sigma value");
+
+    double sigmaBase = 0.0, frameBase = 0.0;
+    const int32_t counts[] = {1, 2, 4, 8, 12, 16, 20};
+    for (int32_t T : counts) {
+        volatile float sink = 0.0f;
+        float produced = 0.0f;
+        const double tSigma = bestOf(5, [&]{
+            produced = ComputeGlobalSigmaThreaded(&img, T);
+            sink = sink + produced;
+        });
+
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.threadCount = T;
+        const double tFrame = bestOf(3, [&]{
+            std::fill(map.begin(), map.end(), static_cast<uint8_t>(0));
+            DetectFrame(&img, cfg, map.data());
+        });
+
+        if (T == 1) { sigmaBase = tSigma; frameBase = tFrame; }
+        std::printf("  %8d %12.1f %9.2fx %12.1f %9.2fx %14.6f\n",
+                    T, tSigma, sigmaBase / tSigma, tFrame, frameBase / tFrame, produced);
+        std::fflush(stdout);
+    }
+    std::printf("\n");
 }
 
 /* -------------------------------------------- QA-A-58 global-sigma threads */
@@ -1264,6 +1331,7 @@ int main(int argc, char** argv) {
     bool boundsOnly = false;
     bool threadsOnly = false;
     bool sigmaThreadsOnly = false;
+    bool shippedThreadsOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
@@ -1273,6 +1341,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
         if (std::strcmp(argv[i], "--sigma-threads") == 0) sigmaThreadsOnly = true;
+        if (std::strcmp(argv[i], "--shipped-threads") == 0) shippedThreadsOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -1283,6 +1352,12 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (shippedThreadsOnly) {
+        shippedThreadScaling(3072, 3072);
         xpe_preprocess_shutdown();
         return 0;
     }

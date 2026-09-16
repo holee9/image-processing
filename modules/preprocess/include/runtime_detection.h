@@ -31,6 +31,8 @@
 #include <algorithm>
 #include <cstring>
 #include <memory>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #ifdef __cplusplus
@@ -133,6 +135,18 @@ struct RuntimeDetectionConfig {
     float sigmaThreshold;     /**< Sigma threshold for outlier detection (default: 5.0) */
     float globalSigmaFloor;   /**< Lower bound on the local sigma estimate; 0 = none */
     float globalSigmaCap;     /**< Upper bound on the local sigma estimate; 0 = none */
+    /**
+     * Number of worker threads. 1 (the default) keeps the single-threaded path.
+     *
+     * QA-A-61 (#144). This is an ARGUMENT, never module state: nothing here is
+     * static, thread_local, or remembered between calls, so REQ-P1A-003
+     * re-entrancy holds and two callers may run different thread counts at once.
+     * The module never reads hardware concurrency -- the caller knows what else
+     * is running in the pipeline and this module does not.
+     *
+     * Values below 1 are treated as 1.
+     */
+    int32_t threadCount;
 };
 
 /**
@@ -142,6 +156,7 @@ struct RuntimeDetectionConfig {
  */
 inline RuntimeDetectionConfig RuntimeDetection_DefaultConfig() {
     RuntimeDetectionConfig config;
+    config.threadCount = 1;
     config.windowSize = RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE;
     config.sigmaThreshold = RUNTIME_DETECTION_DEFAULT_SIGMA_THRESHOLD;
     // 0 by default: the floor is a frame-wide quantity, so only a caller that
@@ -724,6 +739,243 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     std::vector<float> windowValues;
     std::vector<float> deviations;
     return DetectDefectivePixel(img, x, y, config, windowValues, deviations);
+}
+
+
+/* ------------------------------------------------------------- QA-A-61 */
+//
+// Caller-specified threading. Two properties are load-bearing and both hold by
+// CONSTRUCTION rather than by luck -- the parity tests then check that the
+// construction is what actually shipped:
+//
+//   1. Every pixel's verdict reads only the input frame and the config. No pixel
+//      reads another pixel's verdict, and each writes its own map byte. Splitting
+//      rows therefore cannot change any value.
+//   2. The global sigma is computed ONCE over the whole frame before any split,
+//      and its own parallel form sums integer histogram counts -- exact, and
+//      addition of counts is associative, so the merged table is identical to the
+//      single-threaded one for any thread count.
+//
+// What is NOT claimed: that threading makes this fast enough. QA-A-58 measured
+// 20 threads still 1.44x short of the 60 ms target; that gap is algorithmic and
+// belongs to another card.
+
+/** Clamps a caller-supplied thread count to something runnable. */
+inline uint32_t RuntimeDetection_NormalizeThreads(int32_t requested) {
+    return (requested < 1) ? 1u : static_cast<uint32_t>(requested);
+}
+
+/**
+ * @brief Frame-wide robust sigma, split across @p threadCount workers.
+ *
+ * Bit-identical to ComputeGlobalSigma for every thread count: the differences
+ * are the same values at the same positions, the per-thread histograms are
+ * summed exactly, and the selection reads one merged table.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param threadCount Workers to use; values below 1 are treated as 1.
+ * @return The frame's robust sigma estimate, or 0.0f on the same conditions
+ *         ComputeGlobalSigma returns 0.0f.
+ */
+inline float ComputeGlobalSigmaThreaded(const XpeImageBuffer* img, int32_t threadCount) {
+    const uint32_t T = RuntimeDetection_NormalizeThreads(threadCount);
+    if (T == 1u) return ComputeGlobalSigma(img);
+    if (img == nullptr || img->data == nullptr) return 0.0f;
+
+    const size_t w = img->width;
+    const size_t h = img->height;
+    if (w < 2u && h < 2u) return 0.0f;
+    const float* pixels = static_cast<const float*>(img->data);
+
+    const size_t hCount = (w >= 2u) ? h * (w - 1u) : 0u;
+    const size_t vCount = (h >= 2u) ? (h - 1u) * w : 0u;
+    const size_t maxCount = (hCount > vCount) ? hCount : vCount;
+    if (maxCount == 0u) return 0.0f;
+    std::unique_ptr<float[]> diff(new float[maxCount]);
+
+    constexpr size_t kBuckets = 1u << 16;
+    std::vector<uint32_t> tables(static_cast<size_t>(T) * kBuckets, 0u);
+
+    auto rowsOf = [&](uint32_t t, size_t rows) {
+        const size_t y0 = (rows * t) / T;
+        const size_t y1 = (rows * (t + 1u)) / T;
+        return std::pair<size_t, size_t>(y0, y1);
+    };
+
+    // Exact selection over `n` values, with the counting split across threads.
+    auto selectKth = [&](const float* d, size_t n, size_t k) -> float {
+        if (n == 0u) return 0.0f;
+        if (k >= n) k = n - 1u;
+        std::fill(tables.begin(), tables.end(), 0u);
+
+        auto countHigh = [d, &tables](size_t i0, size_t i1, uint32_t* table) {
+            (void)tables;
+            for (size_t i = i0; i < i1; ++i) ++table[FloatSortKey(d[i]) >> 16];
+        };
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                pool.emplace_back(countHigh, (n * t) / T, (n * (t + 1u)) / T,
+                                  tables.data() + static_cast<size_t>(t) * kBuckets);
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        for (uint32_t t = 1; t < T; ++t) {
+            const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+            uint32_t* dst = tables.data();
+            for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+        }
+        size_t seen = 0;
+        uint32_t high = 0u;
+        for (size_t b = 0; b < kBuckets; ++b) {
+            if (seen + tables[b] > k) { high = static_cast<uint32_t>(b); break; }
+            seen += tables[b];
+        }
+
+        std::fill(tables.begin(), tables.end(), 0u);
+        auto countLow = [d, high](size_t i0, size_t i1, uint32_t* table) {
+            for (size_t i = i0; i < i1; ++i) {
+                const uint32_t key = FloatSortKey(d[i]);
+                if ((key >> 16) == high) ++table[key & 0xFFFFu];
+            }
+        };
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                pool.emplace_back(countLow, (n * t) / T, (n * (t + 1u)) / T,
+                                  tables.data() + static_cast<size_t>(t) * kBuckets);
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        for (uint32_t t = 1; t < T; ++t) {
+            const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+            uint32_t* dst = tables.data();
+            for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+        }
+        const size_t rank = k - seen;
+        size_t inner = 0;
+        uint32_t low = 0u;
+        for (size_t b = 0; b < kBuckets; ++b) {
+            if (inner + tables[b] > rank) { low = static_cast<uint32_t>(b); break; }
+            inner += tables[b];
+        }
+        return SortKeyToFloat((high << 16) | low);
+    };
+
+    auto madSigma = [&](float* d, size_t n) -> float {
+        if (n == 0u) return 0.0f;
+        const size_t mid = n / 2u;
+        const float median = selectKth(d, n, mid);
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                const size_t i0 = (n * t) / T;
+                const size_t i1 = (n * (t + 1u)) / T;
+                pool.emplace_back([d, i0, i1, median]() {
+                    for (size_t i = i0; i < i1; ++i) d[i] = std::abs(d[i] - median);
+                });
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        return selectKth(d, n, mid) * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+    };
+
+    float sigmaH = 0.0f;
+    if (hCount > 0u) {
+        float* out = diff.get();
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (uint32_t t = 0; t < T; ++t) {
+            const auto r = rowsOf(t, h);
+            pool.emplace_back([pixels, out, w, r]() {
+                for (size_t y = r.first; y < r.second; ++y) {
+                    const float* row = pixels + y * w;
+                    float* dst = out + y * (w - 1u);
+                    for (size_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
+                }
+            });
+        }
+        for (std::thread& th : pool) th.join();
+        sigmaH = madSigma(diff.get(), hCount);
+    }
+
+    float sigmaV = 0.0f;
+    if (vCount > 0u) {
+        float* out = diff.get();
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (uint32_t t = 0; t < T; ++t) {
+            const auto r = rowsOf(t, h - 1u);
+            pool.emplace_back([pixels, out, w, r]() {
+                for (size_t y = r.first; y < r.second; ++y) {
+                    const float* row = pixels + y * w;
+                    float* dst = out + y * w;
+                    for (size_t x = 0; x < w; ++x) dst[x] = row[x + w] - row[x];
+                }
+            });
+        }
+        for (std::thread& th : pool) th.join();
+        sigmaV = madSigma(diff.get(), vCount);
+    }
+
+    if (sigmaH <= 0.0f) return sigmaV;
+    if (sigmaV <= 0.0f) return sigmaH;
+    return (sigmaH < sigmaV) ? sigmaH : sigmaV;
+}
+
+/**
+ * @brief Runs the per-pixel rule over a whole frame, optionally across threads.
+ *
+ * The sigma floor and cap are derived here, once, from the whole frame -- before
+ * any split, because they are frame-wide quantities. Workers then take disjoint
+ * row ranges and write disjoint map bytes.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param config Detection configuration; config.threadCount selects the split.
+ *               The floor and cap fields are OVERWRITTEN from the frame's own
+ *               sigma, matching what the shipped entry point does.
+ * @param map Output map, one byte per pixel, zero-filled by the caller.
+ *            1 marks a defective pixel; untouched bytes keep their prior value.
+ */
+inline void DetectFrame(const XpeImageBuffer* img,
+                        RuntimeDetectionConfig config,
+                        uint8_t* map) {
+    if (img == nullptr || img->data == nullptr || map == nullptr) return;
+    const uint32_t T = RuntimeDetection_NormalizeThreads(config.threadCount);
+    const uint32_t w = img->width;
+    const uint32_t h = img->height;
+
+    const float sigmaGlobal = ComputeGlobalSigmaThreaded(img, config.threadCount);
+    config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
+    config.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
+
+    auto runRows = [img, &config, map, w](uint32_t y0, uint32_t y1) {
+        std::vector<float> windowValues;
+        std::vector<float> deviations;
+        windowValues.reserve(64);
+        deviations.reserve(64);
+        for (uint32_t y = y0; y < y1; ++y) {
+            for (uint32_t x = 0; x < w; ++x) {
+                if (DetectDefectivePixel(img, x, y, config, windowValues, deviations)) {
+                    map[static_cast<size_t>(y) * w + x] = 1u;
+                }
+            }
+        }
+    };
+
+    if (T == 1u) { runRows(0u, h); return; }
+
+    std::vector<std::thread> pool;
+    pool.reserve(T);
+    for (uint32_t t = 0; t < T; ++t) {
+        const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h) * t) / T);
+        const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h) * (t + 1u)) / T);
+        pool.emplace_back(runRows, y0, y1);
+    }
+    for (std::thread& th : pool) th.join();
 }
 
 } // namespace internal
