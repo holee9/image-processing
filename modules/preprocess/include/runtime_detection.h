@@ -193,7 +193,12 @@ inline float ComputeMedianGeneric(std::vector<float>& values) {
     }
 }
 
-/** One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss). */
+/**
+ * @brief One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss).
+ *
+ * @param a First value; on return the smaller of the two.
+ * @param b Second value; on return the larger of the two.
+ */
 inline void MedianSortCE(float& a, float& b) {
     const bool swap = (b < a);
     const float lo = swap ? b : a;
@@ -224,6 +229,12 @@ inline void MedianSortCE(float& a, float& b) {
  * undefined there rather than merely different. Neither path is trustworthy on
  * NaN input, and the parity claim is scoped to inputs where the old one was
  * defined.
+ *
+ * @param v Pointer to exactly 8 readable floats. Not modified; the network runs
+ *          on copies held in registers.
+ * @return The mean of the 4th and 5th smallest of the eight values, i.e.
+ *         (v[3] + v[4]) * 0.5f after a full sort -- the even-count median
+ *         convention this file uses everywhere.
  */
 inline float MedianOfEight(const float* v) {
     float a0 = v[0], a1 = v[1], a2 = v[2], a3 = v[3];
@@ -251,6 +262,12 @@ inline float MedianOfEight(const float* v) {
  * Note the fast path does NOT permute the input, where the generic one does.
  * No caller depends on that side effect (every one copies first or discards),
  * and std::nth_element's own post-state is unspecified beyond the k-th element.
+ *
+ * @param values Values to take the median of. MAY BE REORDERED: the generic path
+ *               partitions in place, the 8-value fast path leaves it untouched.
+ *               Treat the order afterwards as unspecified either way.
+ * @return The median: the middle value for an odd count, the mean of the two
+ *         middle values for an even count, and 0.0f for an empty input.
  */
 inline float ComputeMedian(std::vector<float>& values) {
     if (values.size() == 8u) return MedianOfEight(values.data());
@@ -374,6 +391,10 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
  * as floats but map to DIFFERENT keys, with -0.0 ordered first. Where that can
  * matter is argued at the call site (SelectKthSmallest) -- it does not change
  * any value this file returns.
+ *
+ * @param f Value to map. NaN is out of scope: it has no consistent order.
+ * @return The sort key. For non-NaN a, b: a < b if and only if
+ *         FloatSortKey(a) < FloatSortKey(b), with -0.0 ordered before +0.0.
  */
 inline uint32_t FloatSortKey(float f) {
     uint32_t bits = 0u;
@@ -381,7 +402,12 @@ inline uint32_t FloatSortKey(float f) {
     return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
 }
 
-/** Inverse of FloatSortKey. */
+/**
+ * @brief Inverse of FloatSortKey.
+ *
+ * @param key A key previously produced by FloatSortKey.
+ * @return The float that produced it, bit for bit.
+ */
 inline float SortKeyToFloat(uint32_t key) {
     const uint32_t bits = (key & 0x80000000u) ? (key & 0x7FFFFFFFu) : ~key;
     float f = 0.0f;
@@ -418,8 +444,10 @@ inline float SortKeyToFloat(uint32_t key) {
  *     ordering std::nth_element requires, so there is no prior behaviour to match.
  *
  * @param values Values to select from; NOT modified.
- * @param k      0-based rank.
- * @return The k-th smallest value.
+ * @param n      Number of readable elements at @p values.
+ * @param k      0-BASED rank: k = 0 selects the smallest value. A k at or beyond
+ *               @p n is clamped to n-1 rather than treated as an error.
+ * @return The k-th smallest value, or 0.0f when @p values is null or @p n is 0.
  */
 inline float SelectKthSmallest(const float* values, size_t n, size_t k) {
     if (values == nullptr || n == 0u) return 0.0f;
@@ -456,11 +484,34 @@ inline float SelectKthSmallest(const float* values, size_t n, size_t k) {
     return SortKeyToFloat((high << 16) | low);
 }
 
-/** Vector form. Delegates to the pointer core so both share one implementation. */
+/**
+ * @brief Vector form. Delegates to the pointer core so both share one implementation.
+ *
+ * @param values Values to select from; NOT modified.
+ * @param k      0-based rank, clamped to values.size() - 1 when it is larger.
+ * @return The k-th smallest value, or 0.0f for an empty input.
+ */
 inline float SelectKthSmallest(const std::vector<float>& values, size_t k) {
     return SelectKthSmallest(values.data(), values.size(), k);
 }
 
+/**
+ * @brief Frame-wide robust noise sigma, from adjacent-pixel differences.
+ *
+ * Takes the MAD of the horizontal adjacent differences and of the vertical
+ * ones, converts each to a sigma (x 1.4826 for MAD, x 1/sqrt(2) to undo
+ * Var(n1 - n2) = 2 sigma^2), and returns the SMALLER of the two. Differencing
+ * removes structure that the raw values would otherwise contribute, and taking
+ * the minimum picks whichever direction the structure disturbed less -- see
+ * QA-A-48/A-49 (#148) for why the value-MAD it replaced read structure as noise.
+ *
+ * @param img Input frame. Must be XPE_PIXEL_FLOAT32; the caller has already
+ *            validated the format by the time this is reached.
+ * @return The frame's robust sigma estimate. Returns 0.0f when @p img or its
+ *         data is null, or when the frame has fewer than 2 pixels in BOTH
+ *         directions; a frame that is 1 pixel wide (or tall) is still measured
+ *         along the other direction alone.
+ */
 inline float ComputeGlobalSigma(const XpeImageBuffer* img) {
     if (img == nullptr || img->data == nullptr) return 0.0f;
     const size_t w = img->width;
@@ -589,7 +640,15 @@ inline void CollectNeighborValues(const XpeImageBuffer* img,
  * @param x Pixel X coordinate
  * @param y Pixel Y coordinate
  * @param config Detection configuration
- * @return true if pixel is defective, false otherwise
+ * @param windowValues Scratch buffer for the neighbour gather. Contents on entry
+ *                     are discarded; on return it holds this pixel's neighbours
+ *                     in unspecified order. Reused across pixels so the gather
+ *                     costs no allocation.
+ * @param deviations Second scratch buffer, for the absolute deviations the MAD
+ *                   is taken over. Same contract as @p windowValues.
+ * @return true if pixel is defective, false otherwise. Also false when the
+ *         window yields fewer than RUNTIME_DETECTION_MIN_NEIGHBORS neighbours,
+ *         which is the SPEC's "skip rather than judge" rule at the border.
  */
 inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
@@ -650,6 +709,13 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
  * against 412 ms with reused buffers -- 42% of the run was allocator traffic,
  * with no change to the rule. Hot loops take the overload; one-off callers and
  * tests keep this form.
+ *
+ * @param img Input image (float32 format)
+ * @param x Pixel X coordinate
+ * @param y Pixel Y coordinate
+ * @param config Detection configuration
+ * @return true if pixel is defective, false otherwise -- identical to the
+ *         buffer-taking overload, which this one calls with fresh buffers.
  */
 inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
