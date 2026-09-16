@@ -222,7 +222,23 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > Global sigma **saturates at 12 threads** — the per-thread merge cost grows with T, so 20 threads does not improve it. **Threading alone does not reach 60 ms**; the remaining 1.44x needs the algorithm change, not more cores.
 >
-> **The gate is calibrated on the wrong machine (open, #144).** 810 ms came from this development machine only. The first CI run to execute it measured **1340.9 ms** on the CI runner for the same commit — **1.91x slower than local** (samples 1360.9 / 1363.3 / 1340.9, spread 1.7%, so this is the machine and not noise), and the 1024x1024 gate likewise measured 148.2 ms against its 120 ms. Until the gate is made machine-aware or recalibrated on the runner, **a green local gate is not evidence the gate passes**, and the CI failure is not evidence of a regression.
+> **The gate is now a machine-relative ratio, confirmed on both machines (resolved 2026-09-16, QA-A-60).** The former absolute gate of 810 ms came from this development machine only; the first CI run to execute it measured **1340.9 ms**, **1.91x slower**, and failed. Raising the number would have disabled the gate on the faster machine, so the gate instead divides the measured time by a **reference kernel fixed inside the test file** and asserts on the quotient.
+>
+> **The reference must not share code with what it guards.** A small-frame run of the same detection path was the obvious candidate and was rejected by measurement: the machine difference is absorbed well (local 8.48 → CI 9.05), but a *real* regression **lowers** that ratio (6.34 on the A-57 regression), because the 1024 frame fits in L3 and loses relatively more when arithmetic grows. A `ratio <= R` gate would have passed that regression. When the reference and the subject share code, the thing being watched cancels out.
+>
+> **Measured, both machines:**
+>
+> | | Reference kernel | 3072x3072 | Ratio |
+> |---|---|---|---|
+> | Development machine, normal | — | — | **7.125 - 7.375** (5 runs, spread 3.5%) |
+> | CI runner, normal | 172.3 ms | 1329.4 ms | **7.715** |
+> | Development machine, regression (median fast path bypassed) | — | — | **12.190 - 12.711** |
+>
+> Absolute time differs by **1.91x** between the two machines; the ratio differs by **5.4%**. The gate is **`ratio <= 10.00`** — 29.6% above the worst normal reading across both machines, 18% below the best regression reading.
+>
+> **The 1024x1024 companion is a diagnostic, not a gate.** Its normal band spans 54% (0.629 - 0.969 local, 0.852 CI) against a regression band of 1.140 - 1.359, so normal-worst and regression-best sit only 1.18x apart and no limit fits between them. A gate inside its own noise is worse than none: it trains the habit of re-running until green, which is the path a real regression takes through.
+>
+> **Reading the ratio.** `ctest` prints test output only on failure, so a passing run shows the ratio nowhere in the CI log. It is in the `xpe-preprocess-test-results` artifact (`Temporary/LastTest.log`), which is where the numbers above were read.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
