@@ -22,6 +22,12 @@ namespace ImageProcTest.E2ETests.Rendering;
 /// the same control in <c>SourceOnly</c> — same backdrop, same scaling, same chrome — and the claim
 /// is only "patch and background separate by this much in each".</para>
 ///
+/// <para><b>Scope: every patch here is BRIGHTER than its background.</b> GUI-C-55 measured that the
+/// metric is sign-blind (the reference path reads 60.2 for a +64 and a -64 patch alike) but the
+/// renderer is not (22.3 versus -15.7 for the same pair). So these numbers describe one sign; a
+/// darker change of the same magnitude reads smaller. That is a property of the renderer, not of the
+/// measurement, and #149 has not decided whether a signed response is wanted.</para>
+///
 /// <para><b>These numbers pin current behaviour on purpose.</b> If the renderer changes, these tests
 /// fail — that is the signal, not a nuisance. Updating the numbers to make a failure go away removes
 /// the only thing standing between a silent rendering change and a reader who trusts the picture.
