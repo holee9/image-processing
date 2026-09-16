@@ -138,6 +138,7 @@ if(BUILD_TESTS)
         tests/test_parameter_dependency.cpp
         # #145 (QA-B-61): per-call config warnings, once per configuration
         tests/test_config_warning_once.cpp
+        tests/test_config_value_dependency.cpp
     )
 
     # Link against Google Test and the module

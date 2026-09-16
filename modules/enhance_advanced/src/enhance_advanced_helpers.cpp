@@ -49,16 +49,20 @@ namespace config {
  *    A module-global would let two threads erase each other's memory -- thread A
  *    warns, thread B's different config overwrites the record, and A's next
  *    frame warns again; the per-frame flood returns whenever two threads run.
- *    thread_local has no cross-thread visibility at all, so REQ-ADV-032's
+ *    thread_local has no cross-thread visibility at all, so REQ-ADV-090's
  *    reentrancy ("reentrant with independent caller-supplied buffers") is
  *    unaffected: no result depends on it, and no thread can observe another's.
  *
- *    The tension with the letter of the requirement -- "No global mutable state
- *    shall be modified during processing calls. The g_initialized flag is the
- *    only shared state" -- is real and is recorded in the QA-B-61 report rather
- *    than resolved here. Any "warn once" behaviour needs memory that survives a
- *    call; the choice is only whether that memory is shared between threads, and
- *    this one is not. Both properties are measured by
+ *    This raised a tension with the requirement's ORIGINAL wording ("No global
+ *    mutable state shall be modified during processing calls"), which was
+ *    reported rather than reinterpreted here. REQ-ADV-090 was amended
+ *    2026-09-12 to name the property it protects instead: no cross-thread
+ *    sharing, and no output dependence on state carried over from another call.
+ *    The amendment permits thread_local narrowly -- invisible to other threads,
+ *    not influencing any output, existing only to suppress duplicate
+ *    diagnostics -- and explicitly does NOT extend to a mutex-protected
+ *    module-global, since serialising access does not remove the cross-thread
+ *    dependence. Both permitted properties are measured, not asserted, by
  *    tests/test_config_warning_once.cpp (identical outputs with and without the
  *    state; concurrent threads do not cross).
  *
