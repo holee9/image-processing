@@ -34,7 +34,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showCalibrationPanel = true;
     private bool _showImageSummaryPanel = true;
     private bool _showMetadataPanel = true;
-    private bool _showLogsPanel = true;
+    // OFF at start, per MENU-001 §9.2 (#165). The other panel flags keep their old value because
+    // nothing reads them: only this one is wired to a region.
+    private bool _showLogsPanel = false;
     private bool _showAlertsPanel = true;
 
     // Slice 2 — workbench VM-only backing fields

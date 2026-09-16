@@ -144,24 +144,34 @@
             <MenuItem x:Name="ViewMenu"
                       AutomationProperties.AutomationId="ViewMenu"
                       Header="_View">
-                <MenuItem x:Name="ShowRuntimePanelMenuItem"
-                          AutomationProperties.AutomationId="ShowRuntimePanelMenuItem"
-                          Header="Runtime Panel"
-                          IsCheckable="True"
-                          IsChecked="{Binding ShowRuntimePanel, Mode=TwoWay}" />
-                <MenuItem x:Name="ShowRawSettingsPanelMenuItem"
-                          AutomationProperties.AutomationId="ShowRawSettingsPanelMenuItem"
-                          Header="Raw Settings Panel"
-                          IsCheckable="True"
-                          IsChecked="{Binding ShowRawSettingsPanel, Mode=TwoWay}" />
+                <!--
+                    #165 (GUI-C-65): Runtime Panel, Raw Settings Panel and Alerts Panel used to sit
+                    here. They named panels that the Evaluation Workbench redesign replaced — the
+                    menu outlived the layout — so nothing on screen answered to them. Measured in
+                    GUI-C-63: pressing one flipped its check and left the UIA descendant count at
+                    146, while the Analysis panel's own Log button moved it 146 -> 155. Worse, Reset
+                    Layout set the checks back on, which reads as "the panels came back".
+
+                    Removing a control that does nothing is not a loss of function; keeping it is a
+                    claim the app cannot honour. MENU-001 §9.2 is being rewritten to match (#165).
+                -->
+                <!--
+                    Phase 1a and 1b (MENU-001 §9.2). Disabled rather than removed: unlike the three
+                    above, these are scheduled — the phase that gives them something to show has not
+                    arrived. An enabled toggle for a panel that does not exist yet is the same lie in
+                    a different tense, which is why both were enabled until #165 and neither did
+                    anything.
+                -->
                 <MenuItem x:Name="ShowCalibrationPanelMenuItem"
                           AutomationProperties.AutomationId="ShowCalibrationPanelMenuItem"
-                          Header="Calibration Paths Panel"
+                          Header="Calibration Paths Panel (Phase 1a)"
+                          IsEnabled="False"
                           IsCheckable="True"
                           IsChecked="{Binding ShowCalibrationPanel, Mode=TwoWay}" />
                 <MenuItem x:Name="ShowDisplaySettingsPanelMenuItem"
                           AutomationProperties.AutomationId="ShowDisplaySettingsPanelMenuItem"
-                          Header="Display Settings Panel"
+                          Header="Display Settings Panel (Phase 1b)"
+                          IsEnabled="False"
                           IsCheckable="True"
                           IsChecked="{Binding Settings.ShowDisplayPanel, Mode=TwoWay}" />
                 <MenuItem x:Name="ShowImageSummaryPanelMenuItem"
@@ -179,11 +189,6 @@
                           Header="Logs Panel"
                           IsCheckable="True"
                           IsChecked="{Binding ShowLogsPanel, Mode=TwoWay}" />
-                <MenuItem x:Name="ShowAlertsPanelMenuItem"
-                          AutomationProperties.AutomationId="ShowAlertsPanelMenuItem"
-                          Header="Alerts Panel"
-                          IsCheckable="True"
-                          IsChecked="{Binding ShowAlertsPanel, Mode=TwoWay}" />
                 <Separator />
                 <MenuItem x:Name="ClearLogsMenuItem"
                           AutomationProperties.AutomationId="ClearLogsMenuItem"

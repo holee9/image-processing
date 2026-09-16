@@ -288,7 +288,13 @@ public partial class MainWindow : System.Windows.Window
                     QaConstancyMenuItem,
                     GsdfCalibrateMenuItem,
                     OpenApiReferenceMenuItem,
-                    OpenTroubleshootingMenuItem
+                    OpenTroubleshootingMenuItem,
+                    // #165 (GUI-C-65): the two panel toggles MENU-001 §9.2 schedules for 1a and 1b.
+                    // They were enabled and did nothing; now they are disabled and counted here with
+                    // the rest of the not-yet commands, so the report says so rather than the reader
+                    // having to try them.
+                    ShowCalibrationPanelMenuItem,
+                    ShowDisplaySettingsPanelMenuItem
                 }
                 .Count(item => !item.IsEnabled);
 
