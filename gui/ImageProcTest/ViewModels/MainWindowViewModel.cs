@@ -360,6 +360,10 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _activeImageFrame, value);
     }
 
+    // No readers since GUI-C-68: ShowRuntimePanel, ShowRawSettingsPanel, ShowImageSummaryPanel,
+    // ShowMetadataPanel and ShowAlertsPanel name panels that do not exist — their menu items were
+    // removed (C-65) and the automation report stopped emitting them (C-68). Removal is a separate
+    // card; ShowCalibrationPanel and ShowLogsPanel below are still read and stay.
     public bool ShowRuntimePanel
     {
         get => _showRuntimePanel;
