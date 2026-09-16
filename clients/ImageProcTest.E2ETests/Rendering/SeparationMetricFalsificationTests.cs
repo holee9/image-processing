@@ -76,11 +76,16 @@ public sealed class SeparationMetricFalsificationTests(ITestOutputHelper output)
     /// is the same image either way, so an equal reading there means the METRIC is sign-blind. Any
     /// difference that remains on the heatmap path is then the RENDERER's.</para>
     ///
-    /// <para>Measured: the reference path reads the same for both signs; the heatmap path does not.
-    /// The metric is sound and the renderer carries the sign — it composites the processed layer over
-    /// the source, so a brighter change brightens and a darker change darkens, which an absolute
-    /// difference cannot do. GUI-C-54's numbers were all taken with a brighter patch and therefore
-    /// describe one sign only; see that report's correction.</para>
+    /// <para><b>Measured in GUI-C-55</b>, before #149 was decided: the reference path read the same
+    /// for both signs (gap 0.0) and the heatmap path did not (22.3 versus -15.7, gap 38.0). The
+    /// metric was sound; the renderer carried the sign, because it composited the processed layer
+    /// over the source.</para>
+    ///
+    /// <para><b>P2 (#149 decision, GUI-C-57)</b>: the mode now draws <c>|source - processed|</c>,
+    /// which cannot carry a sign, so BOTH gaps must now be nil. The assertion below is therefore
+    /// inverted from what GUI-C-55 wrote — deliberately, and the old expectation is recorded above
+    /// rather than deleted. P2 holds whatever colour mapping is chosen: the absolute value hands the
+    /// mapping the same number either way.</para>
     /// </summary>
     [Fact]
     public void FlippedSign_IsTheRenderersDoing_NotTheMetrics()
@@ -126,12 +131,12 @@ public sealed class SeparationMetricFalsificationTests(ITestOutputHelper output)
             "the SAME reference image, so the metric itself depends on sign and every separation " +
             "reported so far carries #149's undecided sign convention inside it.");
 
-        // The renderer is not. Recorded as the measured contract, not as a requirement judgement:
-        // #149 has not decided whether a signed response is wanted.
+        // And now neither is the renderer (P2).
         Assert.True(
-            Math.Abs(measured.Brighter.Heatmap - measured.Darker.Heatmap) > 5.0,
-            "The heatmap now reads the same for a brighter and a darker change. That is a rendering " +
-            "change, not a test failure — re-measure #149 G-4 and report, do not relax this.");
+            Math.Abs(measured.Brighter.Heatmap - measured.Darker.Heatmap) < 2.0,
+            $"The mode read {measured.Brighter.Heatmap:F1} for a brighter change and " +
+            $"{measured.Darker.Heatmap:F1} for a darker one of the same size. An absolute difference " +
+            "cannot do that, so the mode is compositing again — re-measure #149 G-4 and report.");
     }
 
     /// <summary>

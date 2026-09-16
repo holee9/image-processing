@@ -1,10 +1,9 @@
 // #149 G-4 (GUI-C-53): how far DifferenceHeatmap is from a per-pixel difference, in numbers.
-using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ImageProcTest.Controls;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Rendering.ComparisonRenderHarness;
 
 namespace ImageProcTest.E2ETests.Rendering;
 
@@ -31,7 +30,13 @@ namespace ImageProcTest.E2ETests.Rendering;
 [Trait("Category", "Rendering")]
 public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
 {
-    private const int Size = 64;
+    /// <summary>
+    /// The harness canvas (256). GUI-C-53 measured on 64, where the control letterboxes the image
+    /// into about a third of the frame and paints its HUD and label INSIDE the drawn area — so the
+    /// crop below could not clear the chrome and the "deviation" it reported was partly the label.
+    /// At 256 the image fills the frame and the crop clears both (GUI-C-57).
+    /// </summary>
+    private const int Size = ComparisonRenderHarness.Size;
 
     /// <summary>Input pairs chosen to span the range, not to flatter the result.</summary>
     public static IEnumerable<object[]> Pairs() =>
@@ -55,11 +60,11 @@ public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
     {
         var (actual, reference) = OnStaThread(() =>
         {
-            var sourceImage = SolidImage(Gray(source));
-            var processedImage = SolidImage(Gray(processed));
+            var sourceImage = Solid(source);
+            var processedImage = Solid(processed);
 
             // The reference value: |source - processed| per channel, per MENU-001 L288.
-            var expected = SolidImage(Gray((byte)Math.Abs(source - processed)));
+            var expected = Solid((byte)Math.Abs(source - processed));
 
             return (
                 RenderAll(sourceImage, processedImage, "DifferenceHeatmap"),
@@ -78,14 +83,20 @@ public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The deviation is not uniform: it is far larger for some inputs than others.
+    /// P1 (#149 decision, GUI-C-57): identical inputs render as ONE colour, whatever the inputs are.
     ///
-    /// This is the claim that matters for a reader deciding whether the mode is usable. If the gap
-    /// were a constant offset, a viewer could learn to discount it; a gap that moves with the input
-    /// cannot be discounted by eye.
+    /// <para>This test used to assert the opposite — that the deviation from a true difference
+    /// <b>depends on the input</b>, which is what a tint does and a difference cannot. Measured then
+    /// (GUI-C-53, 64 px canvas): max deviation 255 for identical mid-grey, 247 at Δ8, 225 at Δ64,
+    /// 205 at Δ255. The mode now computes the difference, so the deviation should be nil for every
+    /// pair and the interesting claim flips: <b>no pair deviates</b>.</para>
+    ///
+    /// <para>Why the bound is a few counts rather than zero: both sides go through WPF's renderer at
+    /// the same scale, so rounding in the resampler can move a channel by one or two. A bound of 0
+    /// would be asserting the renderer's arithmetic, not the mode's.</para>
     /// </summary>
     [Fact]
-    public void TheDeviation_DependsOnTheInput()
+    public void NoPairDeviates_FromAPerPixelDifference()
     {
         var measured = OnStaThread(() => Pairs()
             .Select(row => new
@@ -96,9 +107,9 @@ public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
             })
             .Select(p =>
             {
-                var expected = SolidImage(Gray((byte)Math.Abs(p.Source - p.Processed)));
+                var expected = Solid((byte)Math.Abs(p.Source - p.Processed));
                 var (max, mean) = Deviation(
-                    RenderAll(SolidImage(Gray(p.Source)), SolidImage(Gray(p.Processed)), "DifferenceHeatmap"),
+                    RenderAll(Solid(p.Source), Solid(p.Processed), "DifferenceHeatmap"),
                     RenderAll(expected, expected, "SourceOnly"));
                 return (p.Label, Max: max, Mean: mean);
             })
@@ -109,14 +120,14 @@ public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
             output.WriteLine($"{row.Label}: max {row.Max}/255, mean {row.Mean:F1}/255");
         }
 
-        var smallest = measured.MinBy(r => r.Max);
-        var largest = measured.MaxBy(r => r.Max);
-        output.WriteLine($"smallest gap: {smallest.Label} ({smallest.Max}) · largest: {largest.Label} ({largest.Max})");
+        var worst = measured.MaxBy(r => r.Max);
+        output.WriteLine($"largest deviation: {worst.Label} ({worst.Max}/255)");
 
         Assert.True(
-            largest.Max > smallest.Max,
-            "The deviation was identical across every input, which would make it a constant offset " +
-            "rather than an input-dependent error — re-measure before reporting either way.");
+            worst.Max <= 2,
+            $"'{worst.Label}' deviated from the per-pixel difference by {worst.Max}/255. The mode is " +
+            "drawing something other than |source - processed| again — re-measure #149 G-4 and " +
+            "report; do not raise this bound.");
     }
 
     /// <summary>
@@ -161,71 +172,7 @@ public sealed class DifferenceMagnitudeTests(ITestOutputHelper output)
         return (max, (double)total / count);
     }
 
-    /// <summary>Renders the control at one mode and returns the whole bitmap.</summary>
-    private static byte[] RenderAll(ImageSource source, ImageSource processed, string mode)
-    {
-        var viewport = new ImageComparisonViewport
-        {
-            SourceImage = source,
-            ProcessedImage = processed,
-            CompareMode = mode,
-            Width = Size,
-            Height = Size,
-        };
 
-        viewport.Measure(new Size(Size, Size));
-        viewport.Arrange(new Rect(0, 0, Size, Size));
-        viewport.UpdateLayout();
-
-        var target = new RenderTargetBitmap(Size, Size, 96, 96, PixelFormats.Pbgra32);
-        target.Render(viewport);
-
-        var pixels = new byte[Size * Size * 4];
-        target.CopyPixels(pixels, Size * 4, 0);
-        return pixels;
-    }
-
-    private static Color Gray(byte level) => Color.FromRgb(level, level, level);
-
-    /// <summary>A uniform image, so any variation in the output comes from the renderer.</summary>
-    private static BitmapSource SolidImage(Color color)
-    {
-        var stride = Size * 4;
-        var pixels = new byte[stride * Size];
-        for (var i = 0; i < pixels.Length; i += 4)
-        {
-            pixels[i] = color.B;
-            pixels[i + 1] = color.G;
-            pixels[i + 2] = color.R;
-            pixels[i + 3] = 255;
-        }
-
-        var bitmap = BitmapSource.Create(Size, Size, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    /// <summary>Runs the body on an STA thread — WPF visuals cannot be built on xUnit's MTA thread.</summary>
-    private static T OnStaThread<T>(Func<T> body)
-    {
-        T result = default!;
-        Exception? failure = null;
-
-        var thread = new Thread(() =>
-        {
-            try { result = body(); }
-            catch (Exception ex) { failure = ex; }
-        });
-
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Rendering on the STA thread failed.", failure);
-        }
-
-        return result;
-    }
+    /// <summary>A uniform grey image at the harness canvas size.</summary>
+    private static BitmapSource Solid(byte level) => BuildImage((_, _) => level, 0, 0);
 }

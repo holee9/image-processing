@@ -75,15 +75,15 @@ internal static class ComparisonRenderHarness
             changedMask[p] = changed > 6;   // above the renderer's own rounding, below any real patch
         }
 
-        // Background: unchanged pixels at least 4 px from anything changed, which drops the patch
-        // edge, the HUD plate and the label in one rule.
+        // Background: unchanged pixels at least 4 px from anything changed, and outside the chrome
+        // the control paints on top of the image (see Chrome).
         var background = new bool[count];
         for (var y = 0; y < Size; y++)
         {
             for (var x = 0; x < Size; x++)
             {
                 var p = (y * Size) + x;
-                if (changedMask[p]) continue;
+                if (changedMask[p] || Chrome(x, y)) continue;
 
                 var clear = true;
                 for (var dy = -4; dy <= 4 && clear; dy++)
@@ -103,6 +103,26 @@ internal static class ComparisonRenderHarness
 
         return new RegionMasks(changedMask, background, changedMask.Count(v => v));
     }
+
+    /// <summary>
+    /// The regions the control paints regardless of the image: the HUD plate at the top-left and the
+    /// mode label along the bottom.
+    ///
+    /// <para>Added in GUI-C-57. The masks are located in a <c>SourceOnly</c> reference render, which
+    /// carries the HUD plate but NOT the difference mode's own label, so that label was only ever
+    /// present on one side of the comparison — it landed in the BACKGROUND mask and lifted the
+    /// background mean of every heatmap reading. That was tolerable while the heatmap drew a
+    /// mid-grey composite; once the mode draws a true difference, an unchanged image renders black
+    /// and the label becomes the brightest thing in the background. Measured: the identical-input
+    /// floor read <b>-5.6/255</b> with the chrome included and <b>0.0/255</b> with it excluded.</para>
+    ///
+    /// <para>The rectangles are deliberately generous. Being a few pixels too wide costs a handful of
+    /// background samples out of ~60 000; being a pixel too narrow puts white text back into the
+    /// measurement.</para>
+    /// </summary>
+    private static bool Chrome(int x, int y) =>
+        (x < 240 && y < 48)          // HUD plate, drawn at (10,10)
+        || y >= Size - 36;           // mode label, drawn 12 px up from the bottom edge
 
     /// <summary>Renders the control at one mode and returns the whole bitmap.</summary>
     public static byte[] RenderAll(ImageSource source, ImageSource processed, string mode)
