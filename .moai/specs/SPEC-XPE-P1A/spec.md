@@ -426,11 +426,17 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 #### REQ-P1A-040: SIMD Optimization
 
-**Where** AVX2 is available at runtime, the module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation, runtime detection) while maintaining the parity contract defined in Section 4.6.
+The module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation, runtime detection) while maintaining the parity contract defined in Section 4.6.
+
+> **Amended 2026-09-16 (QA-A-75, #160).** The opening clause was *"Where AVX2 is available at runtime"*. That premise does not hold: Section 4.6 makes AVX2 a **minimum platform requirement**, and the module is compiled `/arch:AVX2` as a whole, so AVX2 availability does not vary at runtime for any CPU that reaches our code at all. A requirement conditioned on a condition that is always true is not a requirement — it reads as one while constraining nothing, and it is what kept a runtime-dispatch design alive in this document long after the shipped design stopped having one.
+
+> **The dispatch override never existed, under four different names.** The retired protocol line referenced `xpe.simd.force_scalar`; `.moai/docs/acceptance.md` claimed an `XPE_FORCE_SCALAR=1` environment variable and a `{"force_scalar": true}` init-config flag; `simd_dispatch.cpp` declared an `xpe_simd_force_scalar()` function. **Measured 2026-09-16 (scope: this worktree, excluding `build/` and `.git/`):** `XPE_FORCE_SCALAR` occurs **only** inside `.moai/backups/` copies of superseded SPECs — zero occurrences in live source; the config flag has no reading code; and the function lives in `modules/preprocess/src/simd_dispatch.cpp`, which is absent from the CMake source list **and does not compile** (`XPE_EXPORT` has no definition anywhere in the repository — `error C2143` at its first use). Control for that search: `XPE_API` resolves to a real `__declspec` definition in `xpe_types.h`, so the search instrument reads what is there.
+
+> **What survives is the parity contract, not the dispatch.** Sections AC-SIMD-001~004 asked for scalar/AVX2 parity, and that **intent is met** by QA-A-72/A-73: each AVX2 kernel is compared against an inline scalar reference compiled from the same source, with no runtime switch to select between them. The mechanism differs from the one planned here and the **case counts differ too** (the harness asked for 300 cases x 3 shapes; the shipped parity tests compare one frame each) — recorded as two separate facts rather than collapsed into "done".
 
 - **SRS**: SRS-PERF-001
 - **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3
-- **Detailed protocol**: See `simd-parity-harness.md` (deterministic seed, 100 random inputs, dispatch override `xpe.simd.force_scalar`)
+- **Detailed protocol**: `simd-parity-harness.md` describes the planned harness, including the dispatch override. The override is **retired** (above); the parity protocol is superseded by the inline-scalar-reference comparison in `test_offset_correct_avx2_parity.cpp` and its gain counterpart.
 
 #### REQ-P1A-041: Readout Artifact Validation
 

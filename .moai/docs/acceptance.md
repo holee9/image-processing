@@ -101,36 +101,86 @@
 
 ## Phase M3: SIMD Parity Verification
 
-**Status**: ✅ COMPLETE (2026-04-19)
+**Status**: ✅ COMPLETE (2026-04-19) — **case counts corrected 2026-09-16 (QA-A-75, #160); AC-SIMD-005 retired**
+
+> **Parity is genuinely measured for all four operations — the counts below are not.** The harness
+> these numbers name (`modules/preprocess/tests/simd/test_simd_parity.cpp`, "100 pseudo-random inputs")
+> does not exist; that directory is not in the repository. What does exist, and runs on every build:
+>
+> | Operation | File | TEST cases |
+> |---|---|---|
+> | Offset | `tests/test_offset_correct_avx2_parity.cpp` | 3 |
+> | Gain | `tests/test_gain_correct_avx2_parity.cpp` | 3 |
+> | Defect | `tests/test_defect_correct_avx2_parity.cpp` | 2 |
+> | Runtime detection | `tests/test_runtime_detection_avx2_parity.cpp` | 12 |
+>
+> Twenty cases, deterministic seed `0x5EED`, each comparing a whole frame against an inline scalar
+> reference compiled from the same source. That is a **different shape** from "100 inputs x 4
+> operations", not a smaller version of it — so the per-criterion `100/100` and the overall `405/405`
+> are struck rather than rescaled. Searched scope for the absent harness: `modules/**` and `tests/**`;
+> control, same command: `test_offset_correct*.cpp` returned two real files, so the search reads what
+> is there.
 
 ### AC-SIMD-001: Offset Parity
-- [x] Scalar vs AVX2: Bit-identical (UINT16 saturating subtract is exact)
-- [x] Test coverage: 100 pseudo-random inputs (deterministic seed)
-- **Verification**: 100/100 parity checks passing
+- [x] Scalar vs AVX2: **exact equality** — measured `differing=0 of 786432, worst_gap=0` (QA-A-73)
+- [x] Test coverage: 3 TEST cases, deterministic seed `0x5EED`, whole-frame compare
+- **Verification**: ~~100/100 parity checks passing~~ — see the Phase M3 note above
+> The stated reason, *"UINT16 saturating subtract is exact"*, described `offset_correct_avx2`
+> — a uint16 in-place kernel **deleted as dead in QA-A-74** (zero callers). The live offset path
+> takes a **float** offset map with rounding and a 65535 clamp; its parity is exact for a different
+> reason, and that reason was only measured in QA-A-73. The criterion was true of code that is gone.
 
 ### AC-SIMD-002: Gain Parity (Reciprocal)
 - [x] Scalar vs AVX2: 1 ULP tolerance (FLOAT32 rounding difference)
-- [x] Test coverage: 100 pseudo-random inputs
-- **Verification**: 100/100 parity checks passing (within 1 ULP)
+- [x] Test coverage: 3 TEST cases, deterministic seed `0x5EED`
+- **Verification**: ~~100/100 parity checks passing (within 1 ULP)~~ — 1-ULP parity holds (QA-A-72); see the Phase M3 note above
 
 ### AC-SIMD-003: Defect Parity (Bilinear)
 - [x] Scalar vs AVX2: Bit-identical (integer arithmetic only)
-- [x] Test coverage: 100 pseudo-random defect maps
-- **Verification**: 100/100 parity checks passing
+- [x] Test coverage: 2 TEST cases, deterministic seed `0x5EED`
+- **Verification**: ~~100/100 parity checks passing~~ — see the Phase M3 note above
 
 ### AC-SIMD-004: Runtime Detection Parity
 - [x] Scalar vs AVX2: Bit-identical (integer median)
-- [x] Test coverage: 100 pseudo-random inputs
-- **Verification**: 100/100 parity checks passing
+- [x] Test coverage: 12 TEST cases, per-frame seeds
+- **Verification**: ~~100/100 parity checks passing~~ — see the Phase M3 note above
 
-### AC-SIMD-005: Dispatch Validation
-- [x] Runtime CPUID detection: AVX2 path selected when available
-- [x] Force scalar override: `XPE_FORCE_SCALAR=1` env var works
-- [x] Config flag override: `force_scalar: true` in init config works
-- **Files**: `modules/preprocess/tests/simd/test_simd_parity.cpp`
-- **Tests**: 5 dispatch tests + 400 parity tests (4 operations × 100 inputs)
+### AC-SIMD-005: Dispatch Validation — **RETIRED 2026-09-16 (QA-A-75, #160)**
+- [ ] Runtime CPUID detection: AVX2 path selected when available
+- [ ] Force scalar override: `XPE_FORCE_SCALAR=1` env var works
+- [ ] Config flag override: `force_scalar: true` in init config works
+- **Files**: `modules/preprocess/tests/simd/test_simd_parity.cpp` — **this directory does not exist**
+- **Tests**: 5 dispatch tests + 400 parity tests — **never ran; no such file**
 
-**Overall SIMD**: 405/405 parity checks passing (100% pass rate)
+> **All three boxes were checked, and none of the three could work.** Measured 2026-09-16
+> (scope: this worktree, excluding `build/` and `.git/`):
+>
+> | Claim | Why it cannot hold |
+> |---|---|
+> | Runtime CPUID detection | The only CPUID code is in `modules/preprocess/src/simd_dispatch.cpp`, which is absent from the CMake source list and **does not compile** — `XPE_EXPORT` is undefined repository-wide (`error C2143` at its first use). |
+> | `XPE_FORCE_SCALAR=1` env var | The string occurs **only** in `.moai/backups/` copies of superseded SPECs — zero occurrences in live source. Its reader lives in the same uncompilable file. |
+> | `force_scalar: true` init config | No code reads it, anywhere. |
+>
+> Control for that search: `XPE_API` resolves to a real `__declspec` definition in
+> `modules/common/include/xpe/common/xpe_types.h`, so the instrument reads what is present —
+> the zeros above are absence, not a broken search.
+>
+> **Why retired rather than fixed.** AVX2 is a minimum platform requirement
+> (`SPEC-XPE-P1A/spec.md` Section 4.6, user decision 2026-09-16), so selecting a scalar path at
+> runtime has no product purpose. The parity intent behind AC-SIMD-001~004 is met instead by
+> comparing each AVX2 kernel against an inline scalar reference compiled from the same source
+> (QA-A-72/A-73) — no dispatch switch required.
+>
+> **The boxes stay visible, unchecked, rather than deleted.** Three ticks stood here as evidence
+> for a mechanism with no implementation; removing the rows would remove the record of that,
+> which is the part worth keeping.
+
+**Overall SIMD**: ~~405/405 parity checks passing (100% pass rate)~~ — **withdrawn 2026-09-16 (QA-A-75).**
+The figure counted a harness that does not exist (`modules/preprocess/tests/simd/`). Parity **is**
+measured today for all four operations — 20 TEST cases across four `test_*_avx2_parity.cpp` files,
+deterministic seed `0x5EED`, whole-frame compares against an inline scalar reference. See the Phase M3
+note above for the per-operation breakdown. The shape differs from "405 checks"; it is not a smaller
+version of the same thing, so the figure is struck rather than rescaled.
 
 ---
 

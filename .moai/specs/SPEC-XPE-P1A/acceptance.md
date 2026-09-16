@@ -464,7 +464,12 @@ Then the output defectMap is byte-identical between paths
 **Test Type**: Parity (harness, Rule: Bit-identical)
 **Test Count**: 300
 
-#### AC-SIMD-005: Dispatch Override Honors Force-Scalar
+#### AC-SIMD-005: Dispatch Override Honors Force-Scalar — **RETIRED 2026-09-16 (QA-A-75, #160)**
+
+> **This criterion tested a mechanism that was never built, and cannot now be built without contradicting Section 4.6.** It asks that `{"force_scalar": true}` make the scalar path execute on AVX2-capable hardware. There is no code reading that flag; the only implementation of any force-scalar override sits in `modules/preprocess/src/simd_dispatch.cpp`, which is not in the CMake source list and **does not compile** (`XPE_EXPORT` is undefined repository-wide). More fundamentally, AVX2 is now a **minimum platform requirement** (spec.md Section 4.6), so a runtime switch between scalar and AVX2 paths has no product purpose — its only purpose was parity testing, and that is served instead by comparing against an inline scalar reference compiled from the same source (QA-A-72/A-73), which needs no switch at all.
+>
+> Retired rather than deleted: the criterion is the record of what was planned, and of the fact that `.moai/docs/acceptance.md` carried it as **checked**. The original text follows.
+
 
 ```gherkin
 Given the module initialized with config '{"force_scalar": true}'
@@ -602,7 +607,9 @@ These acceptance criteria are verified by the Pre Lane benchmark pack (`benchmar
 | REQ-P1A-012 | BP-04 | Artificial-edge count at defect boundaries | 0 |
 | REQ-P1A-013 | BP-04 runtime | TPR on 5-sigma injections | >= 99.9% |
 | REQ-P1A-013 | BP-04 runtime | FPR on clean frames | < 0.001% |
-| REQ-P1A-040 | BP-SIMD (parity harness) | Total parity cases pass | 1830/1830 |
+| REQ-P1A-040 | BP-SIMD (parity harness) | Total parity cases pass | **UNSUBSTANTIATED — see note** |
+
+> **`1830/1830` removed 2026-09-16 (QA-A-75, #160).** The number named a harness that does not exist: `modules/preprocess/tests/simd/` is not a directory in this repository, and the file AC-SIMD-005 cited (`test_simd_parity.cpp`) is absent. A pass count with no producer is a claim, not a measurement, and it read as the strongest evidence in this table. Parity **is** measured today, for all four operations: 20 TEST cases across `test_offset_correct_avx2_parity.cpp` (3), `test_gain_correct_avx2_parity.cpp` (3), `test_defect_correct_avx2_parity.cpp` (2) and `test_runtime_detection_avx2_parity.cpp` (12) — deterministic seed `0x5EED`, each comparing a whole frame against an inline scalar reference compiled from the same source (offset: exact equality, `differing=0 of 786432`; gain: 1 ULP). That is a **different shape** from 1830 enumerated cases, not a smaller version of it, so the figure is struck rather than rescaled. The distance between the two is the real state and is left visible rather than closed by a number.
 
 Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Section 8.
 
