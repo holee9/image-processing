@@ -267,6 +267,34 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > **Gate: `ratio <= 2.20`.** Normal readings span 1.251 - 1.720 across P-core, E-core, and CI; the regression band (AVX2 forced off, a real rebuild) is 7.060 - 7.154. The limit sits **27.9% above the worst normal** — the same margin A-60 used — and 69% below the best regression. In the regression band the two core types agree to 1.3%, because without AVX2 the detection is scalar again and tracks the reference again: the explanation confirmed a second time.
 >
 > **[HARD] The limit is re-derived after every large performance change, not inherited.** This is the second time the quotient changed what it measures, and the next one is already visible: global sigma now holds 90% of the remaining time, so improving it will shift the balance again. A limit carried across such a change is not a loosened gate — it is a gate measuring something else.
+>
+> ---
+>
+> **Re-derived again, and the improvement target is essentially reached (2026-09-16, QA-A-67).** Global sigma went **137.8 -> 46.7 ms** and the whole detection **163.7 -> 64.4 ms**, putting the 60 ms target **1.1x away on this machine** (1.6x on the CI runner) against 11.5x before the AVX2 work.
+>
+> **The cost was one branch, and it was arithmetic in appearance only.** Within global sigma, one of two selections took 70% of the time (97.0 ms) while *the same function* on the other selection took 14.2 ms — 6.8x cheaper. The only difference was the input distribution: the difference array is half negative and therefore unpredictable, the absolute deviations are all non-negative and therefore perfectly predicted. The control group settles what the cost was:
+>
+> | Key form | Input | Time |
+> |---|---|---|
+> | branching | signed differences | 28.9 ms |
+> | branchless | signed differences | 5.6 ms |
+> | **branching** | **absolute deviations** | **4.4 ms** |
+>
+> The third row is the control: with predictable data the branching form is already fast, so the cost was **misprediction, not arithmetic**. Two competing hypotheses were rejected by measurement first — a 256 KB histogram exceeding cache (1 KB 26.8 ms vs 256 KB 27.3 ms) and the probe translation unit missing `/arch:AVX2` (186.5 -> 188.8 ms after adding it).
+>
+> **The gate moved 2.20 -> 0.85, and the earlier explanation predicted both the branch and its removal.** A-66 attributed the wide normal band to the detection being memory-shaped rather than arithmetic-shaped; that shape *was* this branch. With it gone the detection scales P->E at 1.80x against the reference's 1.84x, and the two core types agree again.
+>
+> | | P-core | E-core | CI runner |
+> |---|---|---|---|
+> | Normal | 0.630 - 0.651 | 0.626 - 0.630 | **0.552** |
+> | Regression (this change reverted) | 1.583 | 1.289 | — |
+> | Regression (AVX2 removed) | 6.183 | 6.490 | — |
+>
+> **Moving the limit was not optional.** The reverted-change regression reads **1.289 on the E-core, below A-66's own P-core normal of 1.720** — the old limit of 2.20 would have passed that regression on both core types. The new limit sits 30.6% above the worst normal reading and 34% below the nearest regression.
+>
+> One qualification on the band: the local P/E spread narrowed to 3.3%, but the CI runner reads **0.552**, so the band across all three is about 18% wide. The limit accommodates that; the narrowing is a local-cores observation, not an all-machines one.
+>
+> **Still unverified, and it is the same shape as the finding above.** `MedianSortCE` also runs a ternary per element. A comment asserts MSVC lowers it to `vminss`/`vmaxss`, and **that assertion has not been checked** — a comment claiming what the compiler does is not evidence of what the compiler does.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
