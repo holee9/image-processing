@@ -141,16 +141,14 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     windowValues.reserve(64);
     deviations.reserve(64);
 
-    for (uint32_t y = 0; y < img->height; ++y) {
-        for (uint32_t x = 0; x < img->width; ++x) {
-            bool isDefective = xpe::preprocess::internal::DetectDefectivePixel(
-                img, x, y, config, windowValues, deviations);
-
-            if (isDefective) {
-                defectMap[y * img->width + x] = 1;  // Mark as defective
-            }
-        }
-    }
+    // QA-A-65 (#144): one row loop, shared with DetectFrame's workers. It takes
+    // the AVX2 path where that computes the same thing (3x3 window, interior
+    // rows, runs of eight columns) and DetectDefectivePixel everywhere else.
+    // The loop used to be written out here as well as in the header, and
+    // QA-A-62 measured what having two costs: a change landed in one while a
+    // tool measured the other.
+    xpe::preprocess::internal::DetectRowRange(
+        img, config, defectMap, 0u, img->height, windowValues, deviations);
 
     return XPE_OK;
 }

@@ -28,6 +28,18 @@
 #include "xpe/common/xpe_error.h"
 #include <cassert>
 #include <cstdint>
+
+// QA-A-65 (#144): AVX2 intrinsics for the per-pixel loop's two selections.
+// MSVC accepts AVX2 intrinsics regardless of /arch, so the header compiles in
+// every target that includes it; GCC/Clang need -mavx2, which this module's
+// CMakeLists already passes for the library. Where neither holds, the scalar
+// path is the whole implementation and nothing below is compiled.
+#if defined(_MSC_VER) || defined(__AVX2__)
+#  define XPE_DETECT_HAS_AVX2 1
+#  include <immintrin.h>
+#else
+#  define XPE_DETECT_HAS_AVX2 0
+#endif
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -743,6 +755,230 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
 }
 
 
+
+/* ------------------------------------------------------------- QA-A-65 */
+//
+// AVX2 form of the per-pixel rule, eight pixels at a time.
+//
+// WHY EIGHT PIXELS RATHER THAN EIGHT NEIGHBOURS. A pixel's 3x3 window has
+// exactly 8 neighbours, which is tempting to put in one __m256 -- but a sorting
+// network across the LANES of one register needs a permute per stage. Laying it
+// out the other way, one register per NEIGHBOUR POSITION and one lane per pixel,
+// turns each of the 19 compare-exchanges into a single min/max with no shuffles,
+// and turns the gather into 8 unaligned loads for 8 pixels instead of 8 scalar
+// reads each.
+//
+// BITWISE PARITY WITH THE SCALAR PATH -- the claim, and why it holds.
+// QA-A-61 recorded that nothing in this rule involves floating-point
+// non-associativity. That sentence had to be re-checked here rather than
+// carried over, because SIMD is where it usually stops being true: horizontal
+// sums, FMA contraction, and reciprocal approximations all change results. None
+// of the three appears below. Every operation is elementwise and every one has
+// the same operand order as its scalar twin:
+//
+//   compare-exchange  scalar: lo = (b < a) ? b : a;  hi = (b < a) ? a : b
+//                     vector: lo = _mm256_min_ps(b, a);  hi = _mm256_max_ps(a, b)
+//
+//     MINPS(x, y) is (x < y) ? x : y and MAXPS(x, y) is (x > y) ? x : y -- both
+//     "strictly ordered compare, else second operand", the same shape as the
+//     ternary. THE OPERAND ORDER IS LOAD-BEARING, and not symmetric: with
+//     a = +0.0 and b = -0.0 the comparison is false either way, so the scalar
+//     form returns hi = b = -0.0, and _mm256_max_ps(b, a) would return +0.0 --
+//     a different bit pattern for the same input. The same asymmetry decides
+//     which operand survives a NaN. test_runtime_detection_avx2_parity.cpp
+//     pins both cases; QA-A-65 verified that swapping either order makes that
+//     test fail.
+//
+//   median            (a3 + a4) * 0.5f -- one add, one multiply, no FMA. MSVC
+//                     does not contract intrinsics into FMA (that is what makes
+//                     intrinsics rather than plain arithmetic the right tool
+//                     here), so the rounding is the scalar rounding.
+//   abs deviation     std::abs(v - m) -- a subtract and a sign-bit clear;
+//                     _mm256_andnot_ps with the sign mask does exactly that,
+//                     including turning -0.0 into +0.0.
+//   floor / cap       max(floor, mad) and min(cap, sigma), again with the
+//                     operand order that reproduces the scalar ternaries.
+//   the two tests     _CMP_LT_OQ / _CMP_GT_OQ: ordered, so false on NaN, which
+//                     is what scalar < and > do.
+//
+// So the claim is BITWISE IDENTICAL, not "within N ulp", and the parity test
+// asserts raw bits rather than EXPECT_FLOAT_EQ (which allows 4 ulp and would
+// pass on a difference this design is supposed to make impossible).
+//
+// WHAT IS NOT VECTORISED, and why: the frame border. A border pixel has fewer
+// than 8 neighbours, so it is a different computation, and it is 0.1% of a
+// 3072x3072 frame. It keeps the scalar path -- which also keeps that path live
+// and tested rather than becoming dead code nobody runs.
+
+#if XPE_DETECT_HAS_AVX2
+
+/** @brief Vector compare-exchange. See the operand-order note above. */
+inline void MedianSortCE8(__m256& a, __m256& b) {
+    const __m256 lo = _mm256_min_ps(b, a);
+    const __m256 hi = _mm256_max_ps(a, b);
+    a = lo;
+    b = hi;
+}
+
+/**
+ * @brief MedianOfEight for eight pixels at once.
+ *
+ * @param v Eight registers; v[k] holds neighbour k of each of the eight pixels.
+ *          Not modified.
+ * @return Per-lane median, bit-identical to MedianOfEight on the same eight
+ *         values in the same order.
+ */
+inline __m256 MedianOfEight8(const __m256* v) {
+    __m256 a0 = v[0], a1 = v[1], a2 = v[2], a3 = v[3];
+    __m256 a4 = v[4], a5 = v[5], a6 = v[6], a7 = v[7];
+
+    MedianSortCE8(a0, a1); MedianSortCE8(a2, a3); MedianSortCE8(a4, a5); MedianSortCE8(a6, a7);
+    MedianSortCE8(a0, a2); MedianSortCE8(a1, a3); MedianSortCE8(a4, a6); MedianSortCE8(a5, a7);
+    MedianSortCE8(a1, a2); MedianSortCE8(a5, a6);
+    MedianSortCE8(a0, a4); MedianSortCE8(a1, a5); MedianSortCE8(a2, a6); MedianSortCE8(a3, a7);
+    MedianSortCE8(a2, a4); MedianSortCE8(a3, a5);
+    MedianSortCE8(a1, a2); MedianSortCE8(a3, a4); MedianSortCE8(a5, a6);
+
+    return _mm256_mul_ps(_mm256_add_ps(a3, a4), _mm256_set1_ps(0.5f));
+}
+
+/**
+ * @brief The whole rule for eight consecutive interior pixels.
+ *
+ * @param pixels Frame base pointer (float32).
+ * @param w Frame width in pixels.
+ * @param x Column of the FIRST of the eight pixels. Must satisfy x >= 1 and
+ *          x + 8 <= w - 1, so every neighbour of every one of the eight is in
+ *          the frame.
+ * @param y Row. Must satisfy 1 <= y <= height - 2.
+ * @param config Detection configuration, floor and cap already resolved.
+ * @param map Output map base; bytes [y*w + x, y*w + x + 8) are written.
+ *
+ * The eight neighbour loads are in the SAME ORDER CollectNeighborValues
+ * produces -- row above left-to-right, then the two on the pixel's own row,
+ * then the row below. Order matters even though the network sorts, because ties
+ * involving -0.0 and +0.0 resolve by position.
+ */
+inline void DetectEightPixelsAvx2(const float* pixels,
+                                  uint32_t w,
+                                  uint32_t x,
+                                  uint32_t y,
+                                  const RuntimeDetectionConfig& config,
+                                  uint8_t* map) {
+    const float* rowUp = pixels + static_cast<size_t>(y - 1u) * w;
+    const float* rowMid = pixels + static_cast<size_t>(y) * w;
+    const float* rowDn = pixels + static_cast<size_t>(y + 1u) * w;
+
+    __m256 n[8];
+    n[0] = _mm256_loadu_ps(rowUp + x - 1u);
+    n[1] = _mm256_loadu_ps(rowUp + x);
+    n[2] = _mm256_loadu_ps(rowUp + x + 1u);
+    n[3] = _mm256_loadu_ps(rowMid + x - 1u);
+    n[4] = _mm256_loadu_ps(rowMid + x + 1u);
+    n[5] = _mm256_loadu_ps(rowDn + x - 1u);
+    n[6] = _mm256_loadu_ps(rowDn + x);
+    n[7] = _mm256_loadu_ps(rowDn + x + 1u);
+
+    const __m256 median = MedianOfEight8(n);
+
+    const __m256 absMask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
+    __m256 d[8];
+    for (int k = 0; k < 8; ++k) {
+        d[k] = _mm256_and_ps(_mm256_sub_ps(n[k], median), absMask);
+    }
+    const __m256 mad = _mm256_mul_ps(MedianOfEight8(d),
+                                     _mm256_set1_ps(RUNTIME_DETECTION_MAD_SCALE));
+
+    // sigmaEstimate = (floor > mad) ? floor : mad
+    __m256 sigma = _mm256_max_ps(_mm256_set1_ps(config.globalSigmaFloor), mad);
+    // ... then, only when the cap is enabled, (sigma > cap) ? cap : sigma.
+    if (config.globalSigmaCap > 0.0f) {
+        sigma = _mm256_min_ps(_mm256_set1_ps(config.globalSigmaCap), sigma);
+    }
+
+    const __m256 centre = _mm256_loadu_ps(rowMid + x);
+    const __m256 deviation = _mm256_and_ps(_mm256_sub_ps(centre, median), absMask);
+
+    const __m256 eps = _mm256_set1_ps(1e-6f);
+    const __m256 flat = _mm256_cmp_ps(sigma, eps, _CMP_LT_OQ);
+    const __m256 flatVerdict = _mm256_cmp_ps(deviation, eps, _CMP_GT_OQ);
+    const __m256 threshold = _mm256_mul_ps(_mm256_set1_ps(config.sigmaThreshold), sigma);
+    const __m256 normVerdict = _mm256_cmp_ps(deviation, threshold, _CMP_GT_OQ);
+
+    const int bits = _mm256_movemask_ps(_mm256_blendv_ps(normVerdict, flatVerdict, flat));
+
+    uint8_t* out = map + static_cast<size_t>(y) * w + x;
+    for (int k = 0; k < 8; ++k) {
+        out[k] = static_cast<uint8_t>((bits >> k) & 1);
+    }
+}
+
+#endif  // XPE_DETECT_HAS_AVX2
+
+/**
+ * @brief Runs the per-pixel rule over rows [y0, y1), AVX2 where it applies.
+ *
+ * This is the one row loop; both callers use it -- DetectFrame's workers and the
+ * shipped entry point in runtime_detection.cpp. QA-A-62 learned the cost of
+ * having two: a tool measured one path while the change lived in the other.
+ *
+ * The vector path is taken only where it computes the same thing as the scalar
+ * one: a 3x3 window (windowSize == 3), an interior row, and a run of eight
+ * columns whose neighbours are all inside the frame. Everything else -- the
+ * frame border, a wider window, a frame too narrow to hold one vector run --
+ * goes through DetectDefectivePixel unchanged.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param config Detection configuration with floor and cap already resolved.
+ * @param map Output map, at least width*height elements; caller has cleared it.
+ * @param y0 First row, inclusive.
+ * @param y1 Last row, exclusive.
+ * @param windowValues Scratch for the scalar path. See DetectDefectivePixel.
+ * @param deviations Second scratch for the scalar path.
+ */
+inline void DetectRowRange(const XpeImageBuffer* img,
+                           const RuntimeDetectionConfig& config,
+                           uint8_t* map,
+                           uint32_t y0,
+                           uint32_t y1,
+                           std::vector<float>& windowValues,
+                           std::vector<float>& deviations) {
+    const uint32_t w = img->width;
+    const uint32_t h = img->height;
+
+    auto scalarSpan = [&](uint32_t y, uint32_t xa, uint32_t xb) {
+        for (uint32_t x = xa; x < xb; ++x) {
+            if (DetectDefectivePixel(img, x, y, config, windowValues, deviations)) {
+                map[static_cast<size_t>(y) * w + x] = 1u;
+            }
+        }
+    };
+
+#if XPE_DETECT_HAS_AVX2
+    // A run needs x >= 1 and x + 8 <= w - 1, so the narrowest frame with one run
+    // is w == 10. Below that there is nothing to vectorise.
+    const bool useVector = (config.windowSize == 3) && (w >= 10u) && (h >= 3u);
+    const float* pixels = static_cast<const float*>(img->data);
+#else
+    const bool useVector = false;
+#endif
+
+    for (uint32_t y = y0; y < y1; ++y) {
+        if (!useVector || y == 0u || y + 1u >= h) {
+            scalarSpan(y, 0u, w);
+            continue;
+        }
+#if XPE_DETECT_HAS_AVX2
+        scalarSpan(y, 0u, 1u);
+        uint32_t x = 1u;
+        for (; x + 8u <= w - 1u; x += 8u) {
+            DetectEightPixelsAvx2(pixels, w, x, y, config, map);
+        }
+        scalarSpan(y, x, w);
+#endif
+    }
+}
+
 /* ------------------------------------------------------------- QA-A-61 */
 //
 // Caller-specified threading. Two properties are load-bearing and both hold by
@@ -1026,18 +1262,12 @@ inline void DetectFrame(const XpeImageBuffer* img,
     config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
     config.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
 
-    auto runRows = [img, &config, map, w](uint32_t y0, uint32_t y1) {
+    auto runRows = [img, &config, map](uint32_t y0, uint32_t y1) {
         std::vector<float> windowValues;
         std::vector<float> deviations;
         windowValues.reserve(64);
         deviations.reserve(64);
-        for (uint32_t y = y0; y < y1; ++y) {
-            for (uint32_t x = 0; x < w; ++x) {
-                if (DetectDefectivePixel(img, x, y, config, windowValues, deviations)) {
-                    map[static_cast<size_t>(y) * w + x] = 1u;
-                }
-            }
-        }
+        DetectRowRange(img, config, map, y0, y1, windowValues, deviations);
     };
 
     if (T == 1u) { runRows(0u, h); return; }

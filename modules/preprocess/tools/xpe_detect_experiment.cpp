@@ -64,6 +64,7 @@ using xpe::preprocess::internal::ComputeGlobalSigma;
 using xpe::preprocess::internal::ComputeGlobalSigmaThreaded;
 using xpe::preprocess::internal::DetectFrame;
 using xpe::preprocess::internal::DetectDefectivePixel;
+using xpe::preprocess::internal::DetectRowRange;
 
 /* ---------------------------------------------------------------- frames */
 
@@ -1318,13 +1319,16 @@ void decomposeThreads(uint32_t w, uint32_t h, const int32_t* counts, size_t nCou
         const double tRows = bestOf(3, [&]{
             const uint32_t nT = (T < 1) ? 1u : static_cast<uint32_t>(T);
             auto runRows = [&](uint32_t y0, uint32_t y1) {
-                RuntimeDetectionConfig local = base;
+                // QA-A-65: this used to write the row loop out again, which was
+                // a faithful replica while both loops were scalar and stopped
+                // being one the moment the shipped loop gained an AVX2 path --
+                // the ratio column printed 31.8x and the GAP -321%. A number
+                // that large is not a finding, it is two different programs
+                // being compared. It now calls the same DetectRowRange the
+                // shipped path calls.
                 std::vector<float> a, b;
                 a.reserve(64); b.reserve(64);
-                for (uint32_t y = y0; y < y1; ++y)
-                    for (uint32_t x = 0; x < w; ++x)
-                        if (DetectDefectivePixel(&img, x, y, local, a, b))
-                            map[static_cast<size_t>(y) * w + x] = 1u;
+                DetectRowRange(&img, base, map.data(), y0, y1, a, b);
             };
             if (nT == 1u) { runRows(0u, h); return; }
             std::vector<std::thread> pool;
