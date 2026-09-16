@@ -294,3 +294,120 @@ TEST(PresentationLutCrossDllTest, CommonAllocatedBufferSurvivesDisplayConversion
     EXPECT_EQ(XPE_OK, xpe_free_image(&img));
     EXPECT_EQ(nullptr, img.data);
 }
+
+// =============================================================================
+// #142 D5 (QA-B-64) — the PREMISE, asserted rather than commented
+//
+// The round-trip case above checks that one allocate/free crossing survives.
+// That is weaker than it looks, and the gap is the one this session has hit
+// repeatedly: a thing EXISTING is not the same as it WORKING.
+//
+// The crossing is safe only because both modules resolve malloc/free through
+// the same shared UCRT heap. QA-B-40 measured that once with dumpbin and wrote
+// the result into a source comment. A comment is not a check: if a future build
+// switched either module to a static CRT, the round-trip case would not fail
+// cleanly -- freeing a foreign heap pointer is undefined, so it would crash, or
+// corrupt quietly and still report PASS. The standing check would then be
+// present and useless.
+//
+// So the premise itself is asserted here, by reading the import tables of the
+// two loaded modules in-process: both must import a heap provider, and it must
+// be the SAME one. Re-measured 2026-09-16 (QA-B-64, _d5_crt.log) -- both
+// xpe_common.dll and xpe_display.dll import api-ms-win-crt-heap-l1-1-0.dll.
+//
+// A static-CRT switch removes that import entirely, which this case reports as
+// a failure instead of leaving it to undefined behaviour.
+// =============================================================================
+
+#include <windows.h>
+#include <set>
+#include <string>
+
+namespace {
+
+// Names of the modules a given loaded DLL imports from. Walks the PE import
+// directory of an already-loaded image; no file I/O, no shelling out.
+std::set<std::string> ImportedModules(const char* dllName) {
+    std::set<std::string> out;
+    HMODULE mod = GetModuleHandleA(dllName);
+    if (mod == nullptr) return out;
+
+    auto* base = reinterpret_cast<const BYTE*>(mod);
+    auto* dos  = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return out;
+
+    auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return out;
+
+    const auto& dir = nt->OptionalHeader
+                        .DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (dir.VirtualAddress == 0 || dir.Size == 0) return out;
+
+    auto* desc = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(
+                     base + dir.VirtualAddress);
+    for (; desc->Name != 0; ++desc) {
+        std::string name = reinterpret_cast<const char*>(base + desc->Name);
+        for (char& c : name) c = static_cast<char>(::tolower(c));
+        out.insert(name);
+    }
+    return out;
+}
+
+// The subset that provides malloc/free. A module linked against a STATIC CRT
+// imports none of these -- which is exactly the regression being guarded.
+std::set<std::string> HeapProviders(const std::set<std::string>& imports) {
+    std::set<std::string> out;
+    for (const std::string& m : imports) {
+        if (m.find("crt-heap") != std::string::npos ||
+            m.find("ucrtbase") != std::string::npos) {
+            out.insert(m);
+        }
+    }
+    return out;
+}
+
+std::string Join(const std::set<std::string>& s) {
+    std::string out;
+    for (const std::string& v : s) { if (!out.empty()) out += ", "; out += v; }
+    return out.empty() ? "(none)" : out;
+}
+
+}  // namespace
+
+TEST(PresentationLutCrossDllTest, BothModulesResolveTheHeapThroughTheSameCrt) {
+    const std::set<std::string> commonImports  = ImportedModules("xpe_common.dll");
+    const std::set<std::string> displayImports = ImportedModules("xpe_display.dll");
+
+    // Proof the reader works: a module that imports NOTHING would produce an
+    // empty set either because it truly imports nothing or because the walk
+    // failed, and those are not the same. Both modules are known to import
+    // kernel32 or an api-ms-win-core-* stub, so a non-empty set establishes the
+    // walk reached real data. An empty set here means the reader broke, not
+    // that the module is self-contained.
+    ASSERT_FALSE(commonImports.empty())
+        << "could not read xpe_common.dll's import table -- this case measures "
+           "nothing until that works";
+    ASSERT_FALSE(displayImports.empty())
+        << "could not read xpe_display.dll's import table";
+
+    const std::set<std::string> commonHeap  = HeapProviders(commonImports);
+    const std::set<std::string> displayHeap = HeapProviders(displayImports);
+
+    GTEST_LOG_(INFO) << "xpe_common heap providers:  " << Join(commonHeap);
+    GTEST_LOG_(INFO) << "xpe_display heap providers: " << Join(displayHeap);
+
+    // Neither may be statically linked: a static CRT imports no heap provider
+    // and gets its own heap, which is precisely what breaks the free().
+    EXPECT_FALSE(commonHeap.empty())
+        << "xpe_common.dll imports no shared heap provider -- it appears to link "
+           "a STATIC CRT, and xpe_display's free() of its buffer would corrupt a "
+           "foreign heap";
+    EXPECT_FALSE(displayHeap.empty())
+        << "xpe_display.dll imports no shared heap provider -- static CRT";
+
+    // And they must be the same provider, not merely both non-empty.
+    EXPECT_EQ(commonHeap, displayHeap)
+        << "the two modules resolve malloc/free through different runtimes: "
+           "xpe_common=[" << Join(commonHeap) << "] "
+           "xpe_display=[" << Join(displayHeap) << "]";
+}
