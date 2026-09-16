@@ -362,18 +362,86 @@ TEST_F(ConfigValueDependency, CollimationKeysMoveTheDetectedRoi) {
                 gated.x0, gated.y0, gated.x1, gated.y1);
 }
 
-// sensitivity feeds two things (the Hough theta step and the confidence
-// threshold), so it is measured across its full clamped range rather than at a
-// nearby pair -- a small step may legitimately land on the same integer ROI.
-TEST_F(ConfigValueDependency, CollimationSensitivityReachesTheDetector) {
-    const Roi lo = Collimate(48, R"({"sensitivity":0.0,"min_area_ratio":0.05,"border_margin":0})");
-    const Roi hi = Collimate(48, R"({"sensitivity":1.0,"min_area_ratio":0.05,"border_margin":0})");
-    std::printf("[  INFO ] collimation sensitivity 0.0=[%d,%d,%d,%d] 1.0=[%d,%d,%d,%d]\n",
-                lo.x0, lo.y0, lo.x1, lo.y1, hi.x0, hi.y0, hi.x1, hi.y1);
-    // Recorded, not asserted: whether the two differ depends on the fixture's
-    // edge strength, and a fixture-dependent assertion would be the QA-B-58 trap
-    // in the other direction. The measurement is the deliverable here.
-    SUCCEED();
+// sensitivity feeds two things -- the Hough theta step (collimation_detect.cpp:134)
+// and the confidence threshold (:181) -- so it is measured across its full
+// clamped range rather than at a nearby pair.
+//
+// QA-B-62 measured 0.0 against 1.0 on ONE fixture, saw the same integer ROI, and
+// recorded it WITHOUT asserting: a single fixture cannot separate "the parameter
+// does nothing" from "this fixture's edges are far past the point where it could
+// matter". Asserting either way would have been the QA-B-58 trap, in one
+// direction or the other.
+//
+// QA-B-63 separates them by sweeping the variable the fixture controls. If
+// sensitivity works, SOME edge strength must split 0.0 from 1.0 -- a weak edge
+// should be found at high sensitivity and missed at low. If no strength splits
+// them, the parameter is inert and the earlier fixture was not the reason.
+//
+// Same structure as the border_margin case above: there the threshold was swept
+// past the detected boundary; here the fixture is swept past the detector's own
+// sensitivity floor.
+TEST_F(ConfigValueDependency, KnownDivergence_CollimationSensitivityIsInverted) {
+    // Contrast from barely-there to unmistakable, with the 21..25 band sampled
+    // finely: the first run showed the detector itself flipping between those
+    // two (21 falls back to the full extent, 25 detects), so that band IS the
+    // detector's own floor and is exactly where a sensitivity parameter would
+    // have to act if it acts anywhere. The dark ground is 20.
+    const float kForegrounds[] = {20.5f, 21.0f, 21.5f, 22.0f, 22.5f, 23.0f,
+                                  24.0f, 25.0f, 40.0f, 80.0f, 200.0f, 900.0f};
+    const int kN = static_cast<int>(sizeof(kForegrounds) / sizeof(kForegrounds[0]));
+
+    int splits = 0;
+    int lowDetectedHighFellBack = 0;
+    const Roi full{0, 0, static_cast<int32_t>(kW) - 1, static_cast<int32_t>(kH) - 1};
+    for (float fg : kForegrounds) {
+        std::vector<float> pxLo(static_cast<size_t>(kW) * kH, 20.0f);
+        for (uint32_t y = 48; y + 48 < kH; ++y)
+            for (uint32_t x = 48; x + 48 < kW; ++x)
+                pxLo[static_cast<size_t>(y) * kW + x] = fg;
+        std::vector<float> pxHi = pxLo;
+
+        Roi lo{}, hi{};
+        XpeImageBuffer iLo = Wrap(pxLo);
+        XpeImageBuffer iHi = Wrap(pxHi);
+        EXPECT_EQ(xpe_detect_collimation(&iLo, &lo.x0, &lo.y0, &lo.x1, &lo.y1,
+                  R"({"sensitivity":0.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
+        EXPECT_EQ(xpe_detect_collimation(&iHi, &hi.x0, &hi.y0, &hi.x1, &hi.y1,
+                  R"({"sensitivity":1.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
+
+        const bool split = !(lo == hi);
+        if (split) {
+            ++splits;
+            if (!(lo == full) && hi == full) ++lowDetectedHighFellBack;
+        }
+        std::printf("[  INFO ] sensitivity sweep fg=%-6.1f sens0.0=[%d,%d,%d,%d] "
+                    "sens1.0=[%d,%d,%d,%d] %s\n", fg,
+                    lo.x0, lo.y0, lo.x1, lo.y1, hi.x0, hi.y0, hi.x1, hi.y1,
+                    split ? "SPLIT" : "same");
+    }
+
+    std::printf("[  INFO ] sensitivity sweep: %d of %d edge strengths split 0.0 from 1.0\n",
+                splits, kN);
+
+    // Result 1: the parameter is NOT inert. QA-B-62's single fixture sat far
+    // above the detector's floor, which is why it showed nothing; the split
+    // appears only in the narrow band where detection itself is marginal.
+    EXPECT_GT(splits, 0)
+        << "no edge strength splits sensitivity 0.0 from 1.0 across a ~45x contrast "
+           "range that brackets the detector's own floor -- the parameter is inert";
+
+    // Result 2, the divergence: the split runs OPPOSITE to the name. Raising
+    // sensitivity makes detection FAIL on an edge that low sensitivity finds,
+    // because the value is mapped to a confidence THRESHOLD --
+    //     confidenceThreshold = 0.7 + 0.3 * sensitivity   (collimation_detect.cpp:181)
+    // -- so a higher setting demands more confidence and rejects more. The name
+    // says one thing and the arithmetic does the other.
+    //
+    // Asserted as a direction rather than at a fixed contrast: the exact
+    // strength where the band sits is a fixture property, but which side wins is
+    // the behaviour. Pinned, not fixed -- changing it moves clinical output.
+    EXPECT_EQ(lowDetectedHighFellBack, splits)
+        << "a split ran the other way (low sensitivity fell back where high "
+           "detected) -- the inversion has changed";
 }
 
 }  // namespace

@@ -169,3 +169,64 @@ TEST(GsvgParameterDependency, UnknownConfigKeyLeavesTheDefaults) {
         << "a config naming only keys this parser does not read changed the "
            "output, so something is being switched on by accident";
 }
+
+/* ==========================================================================
+ * #145 / #162 (QA-B-63): the branch QA-B-59 did not reach --
+ * vignette_correction when no gain map is supplied.
+ * ==========================================================================
+ *
+ * QA-B-59 measured the flag WITH a gain map and found it reaches the output.
+ * The other half of the branch was never measured, and it matters because the
+ * two readings mean opposite things:
+ *
+ *   - "silently dropped"      -- the caller asked for something the module
+ *                                could have done and it was discarded. A defect.
+ *   - "meaningless by design" -- the vignette step IS the multiplication by the
+ *                                gain map, so with no map there is no operation
+ *                                to enable. Not a defect; a thing the
+ *                                documentation must say.
+ *
+ * The code answers it: `if (h->vignette_enabled && gainMap != nullptr)`
+ * (gsvg.cpp:330) guards a call to apply_vignette_scalar(src, dst, gainMap,
+ * count) -- the map is the operand, not a modifier. Absent it there is nothing
+ * to apply, which is the second reading. api-spec.md already states it
+ * ("gainMap == NULL with gainCount == 0 is accepted (the vignette step is then
+ * skipped)"), but a document is not the code, so it is measured here.
+ *
+ * Recorded as KnownDivergence_ because the flag still returns XPE_OK and says
+ * nothing -- a caller that sets it and forgets the map gets silence. Whether
+ * that silence should become an alert is a separate decision, not taken here.
+ */
+TEST(GsvgParameterDependency, KnownDivergence_VignetteFlagIsInertWithoutAGainMap) {
+    // Proof of arrival: with a map, the flag DOES move the output, so a null
+    // result below is about the missing operand and not about the flag being
+    // unread. Without this the claim would be unfalsifiable.
+    const int withMap = CountDiffering(Process(R"({"vignette_correction": true})",  true),
+                                       Process(R"({"vignette_correction": false})", true));
+    ASSERT_GT(withMap, 0)
+        << "vignette_correction does not reach the output even WITH a gain map -- "
+           "the inertness claim below would be moot";
+
+    // The divergence: with no map, on and off are indistinguishable.
+    const int withoutMap = CountDiffering(Process(R"({"vignette_correction": true})",  false),
+                                          Process(R"({"vignette_correction": false})", false));
+    EXPECT_EQ(0, withoutMap)
+        << "vignette_correction now changes the output without a gain map "
+           "(differing=" << withoutMap << ")";
+
+    GTEST_LOG_(INFO) << "vignette_correction differing pixels: with map=" << withMap
+                     << ", without map=" << withoutMap;
+}
+
+// The NULL-gain-map path is not inert as a whole: grid suppression, which takes
+// no map, still reaches the output there. Without this the case above could be
+// read as "nothing works without a gain map", which is a different and wrong
+// conclusion.
+TEST(GsvgParameterDependency, GridSuppressionStillReachesTheOutputWithoutAGainMap) {
+    const int differing = CountDiffering(Process(R"({"grid_suppression": true})",  false),
+                                         Process(R"({"grid_suppression": false})", false));
+    EXPECT_GT(differing, 0)
+        << "grid_suppression does not reach the output when gainMap is NULL -- "
+           "the NULL path would be inert for reasons beyond the missing operand";
+    GTEST_LOG_(INFO) << "grid_suppression without gain map: differing=" << differing;
+}
