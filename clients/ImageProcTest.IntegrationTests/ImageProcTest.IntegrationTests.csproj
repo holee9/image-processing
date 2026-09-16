@@ -74,6 +74,8 @@
     <Compile Include="..\..\gui\ImageProcTest\Models\CalibrationStageMode.cs" Link="Comparison\Linked\CalibrationStageMode.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\AppSettings.cs" Link="Comparison\Linked\AppSettings.cs" />
     <Compile Include="..\..\gui\ImageProcTest\ViewModels\ObservableObject.cs" Link="Comparison\Linked\ObservableObject.cs" />
+    <!-- #161 (GUI-C-62): the loader itself, so the file path is exercised rather than described. Json + IO only. -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\AppSettingsService.cs" Link="Comparison\Linked\AppSettingsService.cs" />
     <!-- #136: automation command-line parsing. No WPF dependency, so the guard runs in CI. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\AutomationArgs.cs" Link="Automation\Linked\AutomationArgs.cs" />
   </ItemGroup>
