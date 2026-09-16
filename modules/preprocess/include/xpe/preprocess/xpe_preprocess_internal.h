@@ -298,4 +298,45 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  */
 bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
 
+/**
+ * @brief Scalar reference implementation of the gain-correction inner loop.
+ *
+ * SPEC-XPE-P1A section 4.6 names the scalar form as the REFERENCE the vector
+ * form is checked against. QA-A-72 (#160) made that checkable: the function used
+ * to be a file-local fallback selected by a runtime AVX2 probe, so nothing could
+ * call it to compare, and when the probe was removed it would have become an
+ * unreferenced static -- deleted by the compiler, and a warning under /W4 /WX.
+ *
+ * Exposing it is the alternative to deleting it. The reference now has one
+ * consumer, test_gain_correct_avx2_parity.cpp, which requires the shipped path
+ * to agree with it inside the AC-GAIN-004 tolerance.
+ *
+ * It lives here as an INLINE definition rather than an exported symbol on
+ * purpose: the library and the test then compile the same source, and the
+ * module's export surface does not grow to make a test possible. QA-A-61 set
+ * that boundary -- an export is hard to withdraw -- and it holds for a reference
+ * implementation as much as for a feature.
+ *
+ * @param input Source pixels, width*height uint16 ELEMENTS.
+ * @param reciprocal_gain Per-pixel 1/gain, width*height float ELEMENTS.
+ * @param output Destination, width*height float ELEMENTS.
+ * @param width Image width in pixels.
+ * @param height Image height in pixels.
+ */
+inline float xpe_gain_apply_scalar_pixel(uint16_t input, float reciprocal_gain) noexcept {
+    // AC-GAIN-002: the a * (1.0f / b) pattern, and the whole of the rule.
+    return static_cast<float>(input) * reciprocal_gain;
+}
+
+inline void xpe_gain_apply_scalar_reference(const uint16_t* input,
+                                            const float* reciprocal_gain,
+                                            float* output,
+                                            uint32_t width,
+                                            uint32_t height) noexcept {
+    const size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
+    for (size_t i = 0; i < count; ++i) {
+        output[i] = xpe_gain_apply_scalar_pixel(input[i], reciprocal_gain[i]);
+    }
+}
+
 #endif /* XPE_PREPROCESS_INTERNAL_H_ */
