@@ -1033,6 +1033,35 @@ inline void DetectEightPixelsAvx2(const float* pixels,
 #endif  // XPE_DETECT_HAS_AVX2
 
 /**
+ * @brief Start column of the OVERLAPPING final vector run of an interior row.
+ *
+ * QA-A-69 (#144): a run starting at @p x judges columns x..x+7, and interior
+ * columns are 1..w-2, so the forward walk (x += 8 from 1) can only start a run
+ * while x <= w-9 and leaves whatever is left to the scalar path. That leftover is
+ * SEVEN columns per row at 3072 -- and seven per row at every width, because the
+ * remainder is a property of the step, not of the frame. So its share GROWS as
+ * frames get narrower: measured at 3072 the scalar border was 0.33% of pixels
+ * and 16% of the pixel loop, and the same seven columns are a larger fraction of
+ * a 512-wide row.
+ *
+ * The fix is to place one more run at w-9 rather than to widen the walk: it ends
+ * exactly on the last interior column (w-9+7 == w-2), so no border pixel is
+ * touched, and it OVERLAPS the previous run by up to seven columns. Re-judging a
+ * pixel is safe here for the reason QA-A-61 measured on the row axis: the verdict
+ * reads only the frame and the config, so it is deterministic, and the write is
+ * the whole byte rather than an accumulation -- the second write stores what the
+ * first one stored. QA-A-69 checked that the same holds on the COLUMN axis rather
+ * than assuming the row result carried over.
+ *
+ * @param w Frame width in pixels. Meaningful only for w >= 10, which is the
+ *          condition DetectRowRange already requires before vectorising at all;
+ *          below that there is no run to place and this is not called.
+ * @return The start column, w - 9. For w == 10 that is 1, the first interior
+ *         column, so the formula never reaches into the left border either.
+ */
+inline uint32_t DetectRowLastRunStart(uint32_t w) { return w - 9u; }
+
+/**
  * @brief Runs the per-pixel rule over rows [y0, y1), AVX2 where it applies.
  *
  * This is the one row loop; both callers use it -- DetectFrame's workers and the
@@ -1091,7 +1120,15 @@ inline void DetectRowRange(const XpeImageBuffer* img,
             for (; x + 8u <= w - 1u; x += 8u) {
                 DetectEightPixelsAvx2(pixels, w, x, y, config, map);
             }
-            scalarSpan(y, x, w);
+            // QA-A-69: one overlapping run finishes the interior columns the
+            // forward walk could not start a run for. See DetectRowLastRunStart.
+            if (x + 1u < w) {
+                DetectEightPixelsAvx2(pixels, w, DetectRowLastRunStart(w), y, config, map);
+            }
+            // Columns 0 and w-1 stay scalar whatever else changes: they have
+            // fewer than eight neighbours, so they are a different computation,
+            // not a slower one.
+            scalarSpan(y, w - 1u, w);
             continue;
         }
 #endif

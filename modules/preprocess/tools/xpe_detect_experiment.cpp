@@ -1542,11 +1542,14 @@ void pixelStages(uint32_t w, uint32_t h) {
     {
         std::vector<std::pair<uint32_t, uint32_t>> border;
         for (uint32_t x = 0; x < w; ++x) { border.emplace_back(x, 0u); border.emplace_back(x, h - 1u); }
+        // QA-A-69: mirrors DetectRowRange after the overlapping tail run was
+        // added -- an interior row now leaves exactly columns 0 and w-1 to the
+        // scalar path, because the run at DetectRowLastRunStart(w) finishes the
+        // interior. This is still a replica of the loop's shape and is labelled
+        // as one; the measured time below is what the claim rests on.
         for (uint32_t y = 1; y + 1u < h; ++y) {
             border.emplace_back(0u, y);
-            uint32_t x = 1u;
-            for (; x + 8u <= w - 1u; x += 8u) {}
-            for (; x < w; ++x) border.emplace_back(x, y);
+            border.emplace_back(w - 1u, y);
         }
         std::vector<float> ba, bb;
         ba.reserve(64); bb.reserve(64);
@@ -2145,6 +2148,10 @@ int main(int argc, char** argv) {
     }
 
     if (decomposeOnly) {
+        // QA-A-69: 512 joins the list because the scalar tail's share is a
+        // function of WIDTH -- seven columns per row whatever the frame is -- so
+        // a conclusion drawn only at 3072 misses the narrow case.
+        decompose(512, 512);
         decompose(1024, 1024);
         decompose(3072, 3072);
         xpe_preprocess_shutdown();
