@@ -327,7 +327,7 @@ TEST_F(ConfigValueDependency, KnownDivergence_FractionalStepSizeIsReadAndDiscard
 TEST_F(ConfigValueDependency, CollimationKeysMoveTheDetectedRoi) {
     // The fixture must clear the minimum-area gate first, or every case below
     // measures the documented full-extent fallback instead of the detector.
-    const Roi base = Collimate(48, R"({"sensitivity":0.5,"min_area_ratio":0.05,"border_margin":0})");
+    const Roi base = Collimate(48, R"({"confidence_strictness":0.5,"min_area_ratio":0.05,"border_margin":0})");
     const Roi full{0, 0, static_cast<int32_t>(kW) - 1, static_cast<int32_t>(kH) - 1};
     ASSERT_FALSE(base == full)
         << "the fixture took the full-extent fallback -- this measures the fallback, "
@@ -341,17 +341,17 @@ TEST_F(ConfigValueDependency, CollimationKeysMoveTheDetectedRoi) {
     // QA-B-58 fixture trap met a third time, caught by reading the code rather
     // than by trusting the measurement. 64 exceeds the detected edge, so it is
     // the value that actually exercises the key.
-    const Roi belowEdge = Collimate(48, R"({"sensitivity":0.5,"min_area_ratio":0.05,"border_margin":16})");
+    const Roi belowEdge = Collimate(48, R"({"confidence_strictness":0.5,"min_area_ratio":0.05,"border_margin":16})");
     EXPECT_TRUE(base == belowEdge)
         << "a margin below the detected edge moved the ROI -- border_margin is no "
            "longer a clamp";
 
-    const Roi aboveEdge = Collimate(48, R"({"sensitivity":0.5,"min_area_ratio":0.05,"border_margin":64})");
+    const Roi aboveEdge = Collimate(48, R"({"confidence_strictness":0.5,"min_area_ratio":0.05,"border_margin":64})");
     EXPECT_FALSE(base == aboveEdge) << "border_margin did not move the ROI even above the edge";
 
     // min_area_ratio above the fixture's own ratio must force the fallback --
     // a different result, and one whose reason is in the log.
-    const Roi gated = Collimate(48, R"({"sensitivity":0.5,"min_area_ratio":1.0,"border_margin":0})");
+    const Roi gated = Collimate(48, R"({"confidence_strictness":0.5,"min_area_ratio":1.0,"border_margin":0})");
     EXPECT_TRUE(gated == full) << "min_area_ratio=1.0 did not force the fallback";
 
     std::printf("[  INFO ] collimation base=[%d,%d,%d,%d] margin16(below edge)=[%d,%d,%d,%d] "
@@ -362,29 +362,34 @@ TEST_F(ConfigValueDependency, CollimationKeysMoveTheDetectedRoi) {
                 gated.x0, gated.y0, gated.x1, gated.y1);
 }
 
-// sensitivity feeds two things -- the Hough theta step (collimation_detect.cpp:134)
-// and the confidence threshold (:181) -- so it is measured across its full
-// clamped range rather than at a nearby pair.
+// confidence_strictness feeds two things that pull opposite ways -- the Hough
+// theta step (collimation_detect.cpp:134, higher = finer search) and the
+// confidence a detection must reach (:181, higher = rejects more) -- so it is
+// measured across its full clamped range rather than at a nearby pair.
 //
+// HISTORY, because it is the reason this case has the shape it has.
 // QA-B-62 measured 0.0 against 1.0 on ONE fixture, saw the same integer ROI, and
 // recorded it WITHOUT asserting: a single fixture cannot separate "the parameter
 // does nothing" from "this fixture's edges are far past the point where it could
-// matter". Asserting either way would have been the QA-B-58 trap, in one
-// direction or the other.
+// matter". QA-B-63 separated them by sweeping the variable the fixture controls,
+// and the answer was neither -- the parameter works, in a narrow band at the
+// detector's own floor, and it ran OPPOSITE to the name it then carried
+// (`sensitivity`): raising it lost a detection the low setting made.
 //
-// QA-B-63 separates them by sweeping the variable the fixture controls. If
-// sensitivity works, SOME edge strength must split 0.0 from 1.0 -- a weak edge
-// should be found at high sensitivity and missed at low. If no strength splits
-// them, the parameter is inert and the earlier fixture was not the reason.
+// #164 resolved that by moving the NAME to match the arithmetic (2026-09-16,
+// user decision). The arithmetic is untouched, so this case asserts exactly what
+// it asserted before -- which is what makes it the check that the rename changed
+// no behaviour. What changed is that the direction is now the one the name
+// predicts, so this is a pinned property rather than a divergence.
 //
 // Same structure as the border_margin case above: there the threshold was swept
 // past the detected boundary; here the fixture is swept past the detector's own
-// sensitivity floor.
-TEST_F(ConfigValueDependency, KnownDivergence_CollimationSensitivityIsInverted) {
+// floor.
+TEST_F(ConfigValueDependency, CollimationConfidenceStrictnessRejectsMoreAsItRises) {
     // Contrast from barely-there to unmistakable, with the 21..25 band sampled
     // finely: the first run showed the detector itself flipping between those
     // two (21 falls back to the full extent, 25 detects), so that band IS the
-    // detector's own floor and is exactly where a sensitivity parameter would
+    // detector's own floor and is exactly where this parameter would
     // have to act if it acts anywhere. The dark ground is 20.
     const float kForegrounds[] = {20.5f, 21.0f, 21.5f, 22.0f, 22.5f, 23.0f,
                                   24.0f, 25.0f, 40.0f, 80.0f, 200.0f, 900.0f};
@@ -404,44 +409,97 @@ TEST_F(ConfigValueDependency, KnownDivergence_CollimationSensitivityIsInverted) 
         XpeImageBuffer iLo = Wrap(pxLo);
         XpeImageBuffer iHi = Wrap(pxHi);
         EXPECT_EQ(xpe_detect_collimation(&iLo, &lo.x0, &lo.y0, &lo.x1, &lo.y1,
-                  R"({"sensitivity":0.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
+                  R"({"confidence_strictness":0.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
         EXPECT_EQ(xpe_detect_collimation(&iHi, &hi.x0, &hi.y0, &hi.x1, &hi.y1,
-                  R"({"sensitivity":1.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
+                  R"({"confidence_strictness":1.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
 
         const bool split = !(lo == hi);
         if (split) {
             ++splits;
             if (!(lo == full) && hi == full) ++lowDetectedHighFellBack;
         }
-        std::printf("[  INFO ] sensitivity sweep fg=%-6.1f sens0.0=[%d,%d,%d,%d] "
-                    "sens1.0=[%d,%d,%d,%d] %s\n", fg,
+        std::printf("[  INFO ] strictness sweep fg=%-6.1f strict0.0=[%d,%d,%d,%d] "
+                    "strict1.0=[%d,%d,%d,%d] %s\n", fg,
                     lo.x0, lo.y0, lo.x1, lo.y1, hi.x0, hi.y0, hi.x1, hi.y1,
                     split ? "SPLIT" : "same");
     }
 
-    std::printf("[  INFO ] sensitivity sweep: %d of %d edge strengths split 0.0 from 1.0\n",
+    std::printf("[  INFO ] strictness sweep: %d of %d edge strengths split 0.0 from 1.0\n",
                 splits, kN);
 
     // Result 1: the parameter is NOT inert. QA-B-62's single fixture sat far
     // above the detector's floor, which is why it showed nothing; the split
     // appears only in the narrow band where detection itself is marginal.
     EXPECT_GT(splits, 0)
-        << "no edge strength splits sensitivity 0.0 from 1.0 across a ~45x contrast "
+        << "no edge strength splits confidence_strictness 0.0 from 1.0 across a ~45x "
+           "contrast "
            "range that brackets the detector's own floor -- the parameter is inert";
 
-    // Result 2, the divergence: the split runs OPPOSITE to the name. Raising
-    // sensitivity makes detection FAIL on an edge that low sensitivity finds,
-    // because the value is mapped to a confidence THRESHOLD --
-    //     confidenceThreshold = 0.7 + 0.3 * sensitivity   (collimation_detect.cpp:181)
-    // -- so a higher setting demands more confidence and rejects more. The name
-    // says one thing and the arithmetic does the other.
+    // Result 2, the direction: raising the value makes detection FAIL on an edge
+    // a low setting finds, because the value is interpolated into the confidence
+    // a detection must reach --
+    //     confidenceThreshold = 0.7 + 0.3 * confidence_strictness   (:181)
+    // -- so a higher setting demands more and rejects more. Since #164 the name
+    // says that too; before it, the name said the opposite.
     //
     // Asserted as a direction rather than at a fixed contrast: the exact
     // strength where the band sits is a fixture property, but which side wins is
-    // the behaviour. Pinned, not fixed -- changing it moves clinical output.
+    // the behaviour. Pinned, not fixed -- changing it moves clinical output, and
+    // it is what tells a later reader that the #164 rename touched the name only.
     EXPECT_EQ(lowDetectedHighFellBack, splits)
-        << "a split ran the other way (low sensitivity fell back where high "
-           "detected) -- the inversion has changed";
+        << "a split ran the other way (a low setting fell back where a high one "
+           "detected) -- the direction has changed";
+}
+
+/* ==========================================================================
+ * #164 (QA-B-65): the old name is refused out loud, not accepted quietly
+ * ========================================================================== */
+
+// The rename would be worth little if `sensitivity` kept working: a caller would
+// go on setting a key whose name says the opposite of what it does, and nothing
+// would say so. It is not kept, and the mechanism that says so already exists --
+// the QA-B-60/61 unknown-key warning. Dropping the key from the known list is
+// what routes it there, so this case asserts that the routing actually happens
+// rather than assuming it.
+//
+// No deprecation period: the leader's caller audit found no C#, XAML or deployed
+// JSON setting this key, so there is nobody to ease across.
+TEST_F(ConfigValueDependency, OldSensitivityNameIsReportedAsUnknownAndHasNoEffect) {
+    xpe_clear_alerts();
+    const Roi withOldName =
+        Collimate(48, R"({"sensitivity":1.0,"min_area_ratio":0.05,"border_margin":0})");
+
+    // It is named in an alert -- the warning identifies the key, so a caller
+    // reading the log learns which setting was ignored rather than only that
+    // something was.
+    bool named = false;
+    for (int i = 0; i < 256; ++i) {
+        char msg[256] = {0};
+        int32_t sev = 0;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) break;
+        if (msg[0] == '\0') break;
+        if (std::string(msg).find("sensitivity") != std::string::npos) named = true;
+    }
+    xpe_clear_alerts();
+    EXPECT_TRUE(named)
+        << "the old key name was accepted silently -- it is still in the known-key "
+           "list, or the unknown-key warning no longer routes it";
+
+    // And it has no effect: the result is the DEFAULT, not the requested 1.0.
+    // Measured against both ends so this cannot pass by coincidence.
+    const Roi atDefault =
+        Collimate(48, R"({"min_area_ratio":0.05,"border_margin":0})");
+    const Roi atRequested =
+        Collimate(48, R"({"confidence_strictness":1.0,"min_area_ratio":0.05,"border_margin":0})");
+
+    EXPECT_TRUE(withOldName == atDefault)
+        << "the old name still changes behaviour -- it is being read somewhere";
+
+    std::printf("[  INFO ] old name: [%d,%d,%d,%d]  default: [%d,%d,%d,%d]  "
+                "new name @1.0: [%d,%d,%d,%d]\n",
+                withOldName.x0, withOldName.y0, withOldName.x1, withOldName.y1,
+                atDefault.x0, atDefault.y0, atDefault.x1, atDefault.y1,
+                atRequested.x0, atRequested.y0, atRequested.x1, atRequested.y1);
 }
 
 }  // namespace

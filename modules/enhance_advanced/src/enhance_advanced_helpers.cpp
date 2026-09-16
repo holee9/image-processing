@@ -281,11 +281,11 @@ bool parse_fractional_config(const char* json,
  * ============================================================================ */
 
 bool parse_collimation_config(const char* json,
-                              float& outSensitivity,
+                              float& outConfidenceStrictness,
                               float& outMinAreaRatio,
                               int&   outBorderMargin) {
     // Apply defaults
-    outSensitivity    = XPE_COL_DEFAULT_SENSITIVITY;
+    outConfidenceStrictness = XPE_COL_DEFAULT_CONF_STRICTNESS;
     outMinAreaRatio   = XPE_COL_DEFAULT_MIN_AREA_RATIO;
     outBorderMargin   = XPE_COL_DEFAULT_BORDER_MARGIN;
 
@@ -299,9 +299,12 @@ bool parse_collimation_config(const char* json,
             return false;
         }
 
-        if (cfg.contains("sensitivity") && cfg["sensitivity"].is_number()) {
-            float val = cfg["sensitivity"].get<float>();
-            outSensitivity = std::clamp(val, 0.0f, 1.0f);
+        // #164: named `sensitivity` until 2026-09-16. See internal.h for why the
+        // name moved rather than the arithmetic.
+        if (cfg.contains("confidence_strictness") &&
+            cfg["confidence_strictness"].is_number()) {
+            float val = cfg["confidence_strictness"].get<float>();
+            outConfidenceStrictness = std::clamp(val, 0.0f, 1.0f);
         }
 
         if (cfg.contains("min_area_ratio") && cfg["min_area_ratio"].is_number()) {

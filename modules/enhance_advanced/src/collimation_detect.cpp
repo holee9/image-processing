@@ -87,7 +87,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
 
     try {
         // Parse config via internal.h parser
-        float sensitivity;
+        float confidenceStrictness;
         float minAreaRatio;
         int   borderMargin;
 
@@ -95,7 +95,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         {
             static thread_local std::string s_lastWarned;
             static const char* const kKnown[] = {
-                "sensitivity", "min_area_ratio", "border_margin"
+                "confidence_strictness", "min_area_ratio", "border_margin"
             };
             xpe::enhance_advanced::config::warn_unconsumed_keys_once(
                 configJsonOrNull, kKnown, sizeof(kKnown) / sizeof(kKnown[0]),
@@ -103,7 +103,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         }
 
         if (!xpe::enhance_advanced::config::parse_collimation_config(
-                configJsonOrNull, sensitivity, minAreaRatio, borderMargin)) {
+                configJsonOrNull, confidenceStrictness, minAreaRatio, borderMargin)) {
             spdlog::error("xpe_detect_collimation: invalid config JSON");
             return XPE_ERR_CONFIG_INVALID;
         }
@@ -127,11 +127,16 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         auto edgeTime = std::chrono::high_resolution_clock::now();
 
         // Step 2: Build Hough accumulator
-        // @MX:NOTE: [AUTO] Hough theta resolution derived from sensitivity
+        // @MX:NOTE: Hough theta resolution derived from confidence_strictness.
+        // This is the key's SECOND effect and it pulls the other way from the
+        // first: a higher value refines the angular search (step 3 -> 1) while
+        // also demanding more confidence below. QA-B-63 measured which one
+        // decides at the detection margin -- the threshold does.
         // @MX:REASON: Collimation requires fine angular resolution (1-2 deg) for accurate
         //   axis-aligned line detection. Coarser resolution (3+ deg) causes rho drift
         //   and misclassification of line positions.
-        int thetaStep = std::max(1, static_cast<int>(2.0f * (1.0f - sensitivity) + 1.0f));
+        int thetaStep = std::max(1,
+            static_cast<int>(2.0f * (1.0f - confidenceStrictness) + 1.0f));
         int rhoStep   = 1;
 
         xpe::enhance_advanced::detail::HoughTransform hough(
@@ -177,8 +182,11 @@ XPE_API XpeErrorCode xpe_detect_collimation(
             hough.extractCollimationRectangle(horizontalLines, verticalLines, width, height);
 
         // REQ-ADV-041: Confidence-based fallback
-        // Convert sensitivity to confidence threshold: sensitivity 0.5 -> threshold 0.7
-        float confidenceThreshold = 0.7f + 0.3f * sensitivity;
+        // #164: the key is interpolated into the required confidence, which is
+        // why it is named confidence_strictness and not sensitivity -- raising it
+        // REJECTS more. The arithmetic is unchanged by that rename (2026-09-16):
+        // 0.0 -> 0.70, 0.5 -> 0.85, 1.0 -> 1.00.
+        float confidenceThreshold = 0.7f + 0.3f * confidenceStrictness;
 
         if (rect.confidence < confidenceThreshold) {
             spdlog::warn("ROI confidence ({:.2f}) below threshold ({:.2f}). "

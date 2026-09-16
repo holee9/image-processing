@@ -103,7 +103,7 @@ TEST_F(EnhanceAdvancedConfigTest, CollimationAcceptsAllConfigKeys) {
     int32_t x0 = 0, y0 = 0, x1 = 0, y1 = 0;
     EXPECT_EQ(xpe_detect_collimation(
                   &img, &x0, &y0, &x1, &y1,
-                  "{\"sensitivity\": 0.7, \"min_area_ratio\": 0.2,"
+                  "{\"confidence_strictness\": 0.7, \"min_area_ratio\": 0.2,"
                   " \"border_margin\": 8}"),
               XPE_OK);
 }
@@ -114,7 +114,7 @@ TEST_F(EnhanceAdvancedConfigTest, CollimationClampsOutOfRangeConfigKeys) {
     int32_t x0 = 0, y0 = 0, x1 = 0, y1 = 0;
     EXPECT_EQ(xpe_detect_collimation(
                   &img, &x0, &y0, &x1, &y1,
-                  "{\"sensitivity\": 9.0, \"min_area_ratio\": -1.0,"
+                  "{\"confidence_strictness\": 9.0, \"min_area_ratio\": -1.0,"
                   " \"border_margin\": 4096}"),
               XPE_OK);
 }
