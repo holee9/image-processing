@@ -1,7 +1,7 @@
 # SPEC-XPE-GSVG: Grid Suppression & Virtual Grid Module
 
 **Document ID**: SPEC-XPE-GSVG
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Date**: 2026-04-22
 **Status**: Active
 **Owner Lane**: Post-B (`dev/postprocess`)
@@ -9,7 +9,7 @@
 **Companion SRS**: `docs/post-processing/gsvg/GSVG-SRS-001_Requirements.md` v1.0
 **IEC 62304 Class**: B
 **Module**: gsvg.dll
-**Test Coverage**: 2/2 PASS (BP-06 + DegradedMode) — **neither test exercises grid suppression or virtual grid** (#180)
+**Test Coverage**: gsvg ctest 110+ (억제·가상 그리드·마스크·상한·내구 포함). 요구별 증거는 각 Status 줄
 **API Functions**: 8 exported (see api-spec.md)
 
 ---
@@ -19,6 +19,7 @@
 | Version | Date       | Author       | Changes |
 |---------|------------|--------------|---------|
 | 1.0.0   | 2026-04-22 | manager-spec | 초기 작성 — GSVG v0.2.0 구현 기반 SPEC 정의 |
+| 1.2.0   | 2026-09-18 | xpe-leader | **Status 재정정**: 구현이 들어온 뒤의 실제 상태로 갱신(QA-B-106 의 요구별 증거표). 구현 13 / 부분 7 / 미구현 3. 019 는 실측 493 ms, 019b(가상 그리드 1.0 s) 신설, 020 은 241 MB 로 충족. 부분 4건(005·006·008·018)은 **합격 기준이 없어서** 부분이며 기준 결정 대기 |
 | 1.1.0   | 2026-09-17 | xpe-leader | **Status 정정**: 21개 요구의 Implemented/Measured 표시가 코드와 맞지 않음(QA-B-87: 문언대로 구현 0, 다른 방식 2, 없음 19). 요구는 유지하고 구현한다(사용자 결정). 출처 정정·미확인 표시, FFTW3 제거 — 근거는 #180 의 문헌 조사 2회 |
 
 ---
@@ -51,7 +52,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Rationale**: Grid frequency is determined by detector pixel pitch and grid line density aliasing (Lin et al. 2006, *J Digit Imaging* 19(4):351-361 — CR, not flat-panel DR; the exact aliasing formula (Eq. 3-4) is not yet transcribed here)
 - **Note (#180)**: the DICOM module reads no grid tags today; implementation 1 (QA-B-90) detects the grid frequency from the spectral peak instead
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Not implemented** — 입력에 DICOM 이 없어 헤더에서 산출하지 않습니다. 구현 1(QA-B-90)은 영상 스펙트럼의 봉우리에서 주파수를 찾습니다(`src/grid_dwt.cpp:232`). 판정 2026-09-18 (QA-B-106)
 
 ### REQ-GSVG-002: DWT Multi-Scale Decomposition
 
@@ -60,7 +61,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: DWT enables simultaneous spatial-frequency analysis for grid signal and anatomy separation (Tang et al. 2015, *Med Phys* 42(4):1721-1729, doi:10.1118/1.4914861 — verified)
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `src/grid_dwt.cpp:183` `Dwt2` / `:211` `Idwt2`(db4 8탭), `GsvgGridSuppression.Db4DwtReconstructsPerfectly`
 
 ### REQ-GSVG-003: Automatic Gridline Detection per Sub-Band
 
@@ -69,7 +70,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Auto-stop condition prevents over-decomposition (Tang 2015)
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `src/grid_dwt.cpp:272` `CheckSubband`(평균 + 3σ), `…SubbandPlacementMatchesHandValues`, `…WithoutInputGateGridFreeImagesChange`
 
 ### REQ-GSVG-004: Gaussian Band-Stop Filtering
 
@@ -78,7 +79,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Gaussian band-stop applied to the detected DWT sub-bands (Tang et al. 2015, verified). Lin et al. 2006 argues a Gaussian filter produces no ripple while notch filters ring — an argument from the Gaussian's Fourier transform, not a measured comparison. Yu & Wang 2021 (*Med Phys* 48(7)) report that spectral band-stop filtering can blur and ring; see the GRD option in §7
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `BandStop`(σ = 1.5 빈), `…GridIsSuppressedByAtLeast40dB`, 반증 `…WithoutBandStopOnlySuppressionFails`
 
 ### REQ-GSVG-005: Visual Artifact Removal
 
@@ -87,7 +88,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Residual artifacts interfere with diagnosis (HAZ-005)
 - **Verification**: Test + Review
-- **Status**: Partial — different method: per-row mean subtraction (gsvg.cpp:216-256), not DWT band-stop (#180)
+- **Status**: **Partial** — 억제는 동작하지만 잔여 격자 에너지가 격자 없는 기준선의 **21–381배**입니다(`…KnownDivergence_ResidualStaysAboveTheGridFreeBaseline`). **빠진 것: "보이지 않는다" 의 합격 기준이 없습니다** — 기준 결정 대기
 
 ### REQ-GSVG-006: MTF Preservation
 
@@ -96,7 +97,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Excessive filtering degrades diagnostic resolution
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Partial** — 경계 법선 방향 선은 5% 미만(`…MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal`). **경계를 가로지르는 선은 11% 손실로 요구 초과**(`…KnownDivergence_LinesAcrossAnEdge`)
 
 ### REQ-GSVG-007: Grid Frequency Range
 
@@ -105,7 +106,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Market-available grid range coverage
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — 60 / 103 / 200 lpi 모두 검출·필터(`test_grid_suppression.cpp:32`, `…GridIsSuppressedByAtLeast40dB`)
 
 ### REQ-GSVG-008: Moire Pattern Removal
 
@@ -114,7 +115,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Common artifact type from detector-grid frequency aliasing
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Partial** — 200 lpi 는 에일리어싱된 주파수에서 제거됩니다. **170–186 lpi 구간은 기록만 하고 단언이 없습니다**(`…ReportSevereAliasing`) — 합격 기준 결정 대기
 
 ---
 
@@ -128,7 +129,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Rationale**: Thickness is a primary determinant of SPR (Kyriakou & Kalender 2007, *Phys Med* 23(1):3-15 — flat-detector CT, thickness is a simulation input)
 - **Open (#180)**: no verified source supports estimating thickness **from kVp, mAs, SID and field size**. The estimation method must be chosen from image-based approaches before implementation; this requirement's method is not settled
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Partial** — 영상 기반 역산 `L = -ln(P/I0) = mu(t)·t`(`ThicknessFromLogAtten`, `GsvgVirtualGridKernel.ThicknessInversionRoundTrips`). **요구 원문의 방법(kVp·mAs·SID·조사야 크기)과 다릅니다** — 방법 미확정(Open)
 
 ### REQ-GSVG-010: SPR Calculation
 
@@ -137,7 +138,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: SPR determines scatter correction strength
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — 커널 합(무한 조사야 SPR)과 반복 갱신, `GsvgVirtualGridCap.KernelSumIsTheDefaultCap`
 
 ### REQ-GSVG-011: Scatter Distribution Estimation
 
@@ -146,7 +147,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: MC-based LUT enables real-time processing with physical accuracy. Established basis: thickness-adaptive kernel superposition (Sun & Star-Lack 2010, *Phys Med Biol* 55(22):6695-6720); a four-Gaussian kernel outperforms two-Gaussian (Bhatia et al. 2017, *J X-Ray Sci Technol* 25(4):613-628)
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `ScatterEstimate`(표의 gauss4 커널 중첩, 축소 격자), `…ConvolutionKeepsTheTableNormalisation`, `GsvgVirtualGridTable.Gauss4RowsWinOverGauss2`
 
 ### REQ-GSVG-012: Scatter Subtraction
 
@@ -155,7 +156,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Formula**: I_primary = I_total - I_scatter
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `P = I / (1 + SPR)`, `out = P + (Ts/Tp)·S`, MC 팬텀 대비 `GsvgVirtualGridMc.CompareToPrimary`
 
 ### REQ-GSVG-013: Multi-Scale Contrast Enhancement
 
@@ -164,7 +165,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: US8064676B2 discloses a 4-8 level Laplacian pyramid (verified). The patent's scatter model is empirical low-band attenuation; it does **not** support REQ-GSVG-009/010/011/025
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — `virtual_grid.cpp:583` `PyramidContrast`(4–8단), `GsvgVirtualGridPyramid.UnitGainIsIdentityAndGainRaisesDetail`
 
 ### REQ-GSVG-014: De-Noising
 
@@ -173,7 +174,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Scatter subtraction amplifies noise (Lim et al. 2023, *J Imaging* 9(12):272 — breast X-ray, GAN de-noising; the method is not transferable as-is)
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — 최상위 대역 소프트 문턱, `GsvgVirtualGridPyramid.DenoiseLowersFlatRegionNoise`
 
 ### REQ-GSVG-015: CNR Preservation
 
@@ -183,7 +184,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Rationale**: Minimum clinically meaningful performance threshold
 - **Open (#180)**: an independent 2026 phantom study (Radiography 32(3):103354) found software CNR falls with thickness and physical grids remain superior at 33 cm. A single threshold across 10-30 cm is at risk; acceptance should be set per thickness
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Not implemented** — 물리 격자 기준 영상도 CNR 측정 코드도 없습니다. 실제 장비 영상 대기(#151)
 
 ### REQ-GSVG-016: Virtual Grid Ratio Selection
 
@@ -192,7 +193,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Exam body part and patient size flexibility
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Implemented (tested)** — 표에서 (격자비, 선밀도) 설계 선택, 제품 표에 네 비율 모두 존재. `GsvgVgProductTable.LoadsWithEveryRatioOfReqGsvg016`, `GsvgVirtualGridRatio.ResidualSprFallsWithRatio`
 
 ### REQ-GSVG-017: Thickness Range
 
@@ -201,7 +202,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Pediatric to obese patient range coverage
 - **Verification**: Test
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Partial** — 표 범위를 넘으면 표 최대로 제한하고 비율을 보고, 범위 아래는 0 으로 페이드(`GsvgVirtualGridRange.*`). **빠진 것: 10–30 cm 두께별로 출력이 유효한지 확인하는 시험**
 
 ### REQ-GSVG-018: No Artifacts from Overcorrection
 
@@ -210,7 +211,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Overcorrection artifacts can cause misdiagnosis (HAZ-003)
 - **Verification**: Test + Review
-- **Status**: Not implemented (#180, QA-B-87)
+- **Status**: **Partial** — 상한(CapMode GlobalSum)으로 과보정을 막습니다(`GsvgVirtualGridFalsify.SprCapPreventsOvercorrection`). **계단 경계에서 17–40% 덜 뺍니다**(QA-B-95) — "인공물 없음" 의 합격 기준 결정 대기
 
 ---
 
@@ -241,7 +242,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Console PC memory constraint
 - **Verification**: Test
-- **Status**: Not measured — no code or test measures peak memory (#180)
+- **Status**: **Met (measured, 2026-09-18)** — 3072² 커밋 차지: 억제 384 MB, 가상 그리드 241 MB(QA-B-107 에서 626 MB 에서 줄임), 마스크 경로 377 MB. 한계 512 MB
 
 ### REQ-GSVG-021: Memory Leak Prevention
 
@@ -250,7 +251,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Long-term operational stability
 - **Verification**: Test
-- **Status**: Partial — 1000-cycle lifecycle at 512², asserts only on growth (#180)
+- **Status**: **Met (measured)** — 1000 주기 CRT 힙 워크 + 가짜 누수 대조 2건(`GsvgEndurance.*`), #181
 
 ---
 
