@@ -294,6 +294,8 @@ XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
  *         XPE_ERR_IO_FAILED on file write error
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
+ * @note One dose level, degree 0: accepted by every calibration mode; under
+ *       XPE_CALIB_AUTO the mode recorded is XPE_CALIB_SINGLE_POINT.
  */
 XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
                                              int32_t num_frames,
@@ -319,7 +321,9 @@ XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
  * @param max_degree Maximum polynomial degree (1 ≤ max_degree ≤ 4)
  * @param output_path Output XCal file path for gain polynomial
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
+ *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters, or
+ *         when num_levels / max_degree exceed the active calibration mode
+ *         (SRS-CALIB-FUNC-031 (3)(4); under AUTO, more than 10 levels)
  *         XPE_ERR_IO_FAILED on file read/write error
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_PROCESSING_FAILED on polynomial fitting failure
@@ -946,19 +950,25 @@ extern "C" {
  * - DUAL_POINT: 2 points, degree 1 (linear)
  * - MULTI_POINT_5: 5 points, degree 2 (quadratic)
  * - MULTI_POINT_8: 8 points, degree 3 (cubic) — DEFAULT per Schmidgunst 2007
- * - MULTI_POINT_10: 10 points, degree 3 (cubic)
- * - AUTO: currently the same fixed parameters as MULTI_POINT_10 (max 10
- *   points, degree 3). It does NOT select a mode from the input: the
- *   automatic selection required by SRS-CALIB-FUNC-031(5) is not
- *   implemented (tracked in issue \#169).
+ * - MULTI_POINT_10: 10 points, degree <= 4 (hard cap)
+ * - AUTO: each generation uses the smallest mode above whose point count and
+ *   degree accept the request (SRS-CALIB-FUNC-031 (5), issue \#169). The
+ *   mode used is written to the XCal config JSON as `calibration_mode`
+ *   (the requested one as `requested_calibration_mode`), to
+ *   XpeCalibQualityMeta::calibration_mode, and as an XPE_ALERT_INFO entry.
+ *
+ * Enforcement (SRS-CALIB-FUNC-031 (3)(4)(8)): xpe_calib_generate_gain() and
+ * xpe_calib_generate_gain_polynomial() return XPE_ERR_INVALID_INPUT when the
+ * dose level count exceeds the active mode's points or the requested degree
+ * exceeds its degree; under AUTO, when no mode accepts the request.
  */
 typedef enum XpeCalibrationMode {
     XPE_CALIB_SINGLE_POINT   = 0,  ///< 1 point, constant fit
     XPE_CALIB_DUAL_POINT     = 1,  ///< 2 points, linear fit
     XPE_CALIB_MULTI_POINT_5  = 2,  ///< 5 points, quadratic fit
     XPE_CALIB_MULTI_POINT_8  = 3,  ///< 8 points, cubic fit (DEFAULT)
-    XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, cubic fit
-    XPE_CALIB_AUTO           = 5   ///< Same as MULTI_POINT_10 today; no automatic selection (issue \#169)
+    XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, degree <= 4
+    XPE_CALIB_AUTO           = 5   ///< Smallest fitting mode per generation (issue \#169)
 } XpeCalibrationMode;
 
 /**
@@ -979,7 +989,7 @@ typedef enum XpeCalibrationMode {
  * - previous_r_squared: R² from previous calibration (-1.0 if none)
  */
 typedef struct XpeCalibQualityMeta {
-    uint8_t  calibration_mode;      ///< XpeCalibrationMode value
+    uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
     uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic
     uint8_t  num_points;            ///< Number of dose levels (1-10)
     double   r_squared;             ///< Coefficient of determination (0.0 to 1.0)
@@ -1040,7 +1050,8 @@ XPE_API uint32_t xpe_calib_get_max_points(void);
  *
  * FUNC-031: Mode-to-params mapping
  *
- * @return Polynomial degree (0, 1, 2, or 3)
+ * @return Polynomial degree ceiling (0, 1, 2, 3, or 4); for AUTO, the
+ *         largest ceiling (4) -- the degree used is resolved per generation
  */
 XPE_API uint32_t xpe_calib_get_poly_degree(void);
 

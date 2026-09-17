@@ -193,6 +193,21 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
             return XPE_ERR_INVALID_INPUT;
         }
 
+        // FUNC-031 (8): the mode applies here too. This entry point acquires
+        // at one dose level with no fitted curve (degree 0), which every
+        // explicit mode accepts; AUTO resolves to SINGLE_POINT (#169).
+        XpeCalibrationMode mode = XPE_CALIB_SINGLE_POINT;
+        {
+            const XpeErrorCode mrc = xpe_calib_resolve_mode(1, 0, &mode);
+            if (mrc != XPE_OK) return mrc;
+        }
+        if (xpe_calib_get_mode() == XPE_CALIB_AUTO) {
+            char note[96];
+            std::snprintf(note, sizeof(note),
+                          "XPE_CALIB_AUTO resolved to mode %d", static_cast<int>(mode));
+            xpe_alert_push(note, XPE_ALERT_INFO);
+        }
+
         // Dimensions from first frame
         uint32_t width  = flat_frames[0].width;
         uint32_t height = flat_frames[0].height;
@@ -294,7 +309,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
         // FUNC-033 (1) and are NOT written here -- neither value reaches this
         // function through its current signature. Recorded as residual on #140.
         XpeCalibQualityMeta quality{};
-        quality.calibration_mode   = static_cast<uint8_t>(xpe_calib_get_mode());
+        quality.calibration_mode   = static_cast<uint8_t>(mode);
         quality.polynomial_degree  = 0;
         quality.num_points         = 1;
         quality.r_squared          = 1.0;
@@ -302,10 +317,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
 
         char meta[512];
         std::snprintf(meta, sizeof(meta),
-            "{\"calibration_mode\":%d,\"actual_dose_levels\":1,"
+            "{\"calibration_mode\":%d,\"requested_calibration_mode\":%d,"
+            "\"actual_dose_levels\":1,"
             "\"polynomial_degree\":0,\"fit_r_squared\":1.000000000,"
             "\"max_residual_pct\":0.000000,\"mean_residual_pct\":0.000000,"
             "\"calibration_pass\":%d",
+            static_cast<int>(mode),
             static_cast<int>(xpe_calib_get_mode()),
             gate_passed ? 1 : 0);
         meta[sizeof(meta) - 1] = '\0';
@@ -382,6 +399,20 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         }
         if (max_degree < 1 || max_degree > 4) {
             return XPE_ERR_INVALID_INPUT; // Restrict to degree 1-4
+        }
+
+        // FUNC-031 (3)(4)(5)(8): an explicit mode caps the level count and the
+        // degree; AUTO picks the smallest mode that accepts both (#169).
+        XpeCalibrationMode mode = XPE_CALIB_MULTI_POINT_10;
+        {
+            const XpeErrorCode mrc = xpe_calib_resolve_mode(num_levels, max_degree, &mode);
+            if (mrc != XPE_OK) return mrc;
+        }
+        if (xpe_calib_get_mode() == XPE_CALIB_AUTO) {
+            char note[96];
+            std::snprintf(note, sizeof(note),
+                          "XPE_CALIB_AUTO resolved to mode %d", static_cast<int>(mode));
+            xpe_alert_push(note, XPE_ALERT_INFO);
         }
 
         // --- Load all gain maps ---
@@ -556,6 +587,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         // Named `quality`, not `meta`: the config-JSON buffer below already
         // owns that name in this scope.
         XpeCalibQualityMeta quality{};
+        quality.calibration_mode  = static_cast<uint8_t>(mode);
         quality.polynomial_degree = static_cast<uint8_t>(highest_degree);
         quality.num_points        = static_cast<uint8_t>(num_levels);
         quality.r_squared         = r_squared;
@@ -614,13 +646,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         std::snprintf(meta, sizeof(meta),
             "{\"polynomial_degree\":%d,\"max_polynomial_degree\":%d,"
             "\"num_coefficients\":%d,\"num_dose_levels\":%d,"
-            "\"calibration_mode\":%d,\"actual_dose_levels\":%d,"
+            "\"calibration_mode\":%d,\"requested_calibration_mode\":%d,"
+            "\"actual_dose_levels\":%d,"
             "\"fit_r_squared\":%.9f,\"max_residual_pct\":%.6f,"
             "\"mean_residual_pct\":%.6f,\"calibration_pass\":%d}",
             static_cast<int>(highest_degree),
             static_cast<int>(max_degree),
             static_cast<int>(sMaxCoeffsPoly),
             static_cast<int>(num_levels),
+            static_cast<int>(mode),
             static_cast<int>(xpe_calib_get_mode()),
             static_cast<int>(num_levels),
             r_squared, max_residual_pct, mean_residual_pct,
