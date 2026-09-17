@@ -24,6 +24,11 @@
 | `run_psf_checks.sh` | 튀는 격자점 재실행, 넓은 조사 직접 실행(격자 표는 바꾸지 않음) |
 | `run_psf_vs_broad.sh` | PSF 합과 직접 넓은 조사의 차이 원인 실험(SDD, 검출기 크기, 슬랩, 화소, 축 밖 연필빔)(QA-A-97) |
 | `offaxis_sum.py` | 축 밖 연필빔 PSF 로 넓은 조사 SPR 을 다시 합한다 |
+| `wet_curve.py` | `[wet]` 1차 투과 곡선과 맞춤 오차 표(QA-A-98) |
+| `phantom_images.py` | 계단·경사 물 팬텀의 넓은 조사 MC 영상(1차 / 전체 / 공기 / 경로 길이) |
+| `export_phantoms.py` | 팬텀 영상 점검(`[wet]` 곡선 대조, SPR) 과 `phantoms/` 내보내기 |
+| `tables/wet_water_csi600.csv` | **`[wet]` 표**, `tables/wet_water_csi600_fit.csv` 는 맞춤 오차 |
+| `phantoms/` | 가상 그리드 독립 검증용 영상(80×80, float32) |
 | `tables/scatter_kernels_water_csi600.csv` | **산란 커널 표** (아래 "커널 표" 참조) |
 
 ## 외부 구성 요소
@@ -169,3 +174,60 @@ wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/check_kernels.
   - QA-A-97: SDD 를 100 → 3000 cm 로 늘리면(빔이 거의 평행) 비가 0.996 / 0.989 로 1 에 가까워진다 — **빔 발산이 주원인**이다. 검출기 크기·화소 크기는 30×30 합에 영향이 없고(같은 광자), 슬랩 120 cm 는 직접 조사 SPR 을 −0.1 % / +0.2 % 바꿨다.
   - 축 밖 연필빔은 축 쪽으로 더 많은 산란을 보낸다(20 cm/80 kVp, 축에서 15 cm 인 연필빔이 축 위치에 주는 산란이 평행 이동한 축 위 PSF 의 1.39 배). 이 값으로 다시 합하면 비는 0.963 / 0.921 로, 차이의 약 절반–2/3 만 설명된다.
 - `psf_case.py --source-dir` 로 연필빔을 기울이면 MC-GPU 가 검출기도 연필빔에 수직으로 기울인다. 기울기가 크면(15 cm 이상) 검출기 먼 쪽 가장자리가 슬랩 뒷면보다 가까워져 그쪽 값(전체 합, 먼 쪽 PSF)은 믿을 수 없다. 축 위치의 값은 실제 검출기 면과 0.2 cm 안쪽으로 떨어져 있다.
+
+## `[wet]` 표 — `tables/wet_water_csi600.csv` (QA-A-98)
+
+> simulation-based, not calibrated. 실제 장비는 화소별로 이 곡선을 따로 보정해야 한다(US 7,907,697).
+
+- 식(가상 그리드 `virtual_grid.h` 와 같음): `mu(t) = w0 − a·t/(1+b·t)` [1/cm], `L = −ln(P/I0) = mu(t)·t`.
+- 열: `kvp,w0,a,b` (post 레인 `[wet]` 구획의 열과 같다). kVp 는 커널 표와 같은 60–120.
+- 만든 법: 연필빔, **비산란 광자만**, CsI 600 µm 응답, 물 0–30 cm 1 cm 간격(두께당 1e8), I0 = 공기 1 cm 슬랩.
+  `wet_curve.py --out-dir /root/mcsim/wet --table tables/wet_water_csi600.csv --errors tables/wet_water_csi600_fit.csv --commit <sha>`
+- 대조: 같은 L 을 MC 없이 스펙트럼 × 물 표 × CsI 표로 계산해 `max_abs_L_mc_vs_analytic` 에 적는다.
+- 가상 그리드가 읽는 파일로 합칠 때: `[wet]` 줄 다음에 이 CSV 의 머리 줄과 자료 줄을 그대로 붙인다(`#` 줄은 무시된다). 커널 표도 같은 방식으로 `[kernels]` 아래에 붙인다.
+
+## `[grid]` — 만들지 않음 (QA-A-98)
+
+MC-GPU v1.3 과 PCD 파생판은 반산란 그리드를 모델링하지 않는다(`MC-GPU_v1.3.cu:183` "…does not simulate some relevant components of a CT scanner such as the anti-scatter grid…"). `VICTRE_MCGPU` v1.5b 에는 Day & Dance(1983) 해석 모델의 1차원 집속 그리드 투과 확률이 있다(`MC-GPU_kernel_v1.5b.cu:1735-1747`, 스트립·중간재는 평균 에너지의 평균 자유 경로 한 값). 이 저장소에서는 빌드하지 않았다.
+
+## 검증용 팬텀 영상 — `phantoms/` (QA-A-98)
+
+가상 그리드의 **독립 정답**. 넓은 조사(발산 포함)의 MC 결과이며, 가상 그리드의 합성곱 모델과 코드를 공유하지 않는다.
+
+| 항목 | 값 |
+|---|---|
+| 기하 | SDD 100 cm, 물 팬텀 뒷면–검출기 2 cm(진공), 검출기 면 30×30 cm 조사, 검출기 32×32 cm, 80×80 화소(4 mm) |
+| 팬텀 | 복셀 상자 40×30×40 cm(x·빔 방향·z), 복셀 0.5×0.5×40 cm, 물 1.00 + 나머지 공기. 두께는 x 방향으로만 변함 |
+| `step` | 팬텀 좌표 x −15…15 cm 에서 5 cm 폭 계단 5/10/15/20/25/30 cm(바깥은 5 / 30 cm). 발산 때문에 검출기 30 cm 조사야에서는 **5–25 cm 만 보인다** |
+| `wedge` | 5 cm(x ≤ −15) → 30 cm(x ≥ 15) 선형, 0.5 cm 계단 |
+| `air` | 팬텀 없음(상자 전체 공기 30 cm) — I0 |
+| 스펙트럼·응답 | 80 kVp, 2.5 mm Al, CsI 600 µm 흡수(수직 입사) |
+| 실행 | 팬텀마다 1e8 × 100 = 1.0e10 선원 광자 |
+
+파일(`<phantom>_80kVp_<image>.f32`): little-endian float32, 80×80, 행 = 검출기 z, 열 = 검출기 x.
+
+| 영상 | 값 |
+|---|---|
+| `primary` | 비산란 광자의 CsI 흡수 에너지 / 화소 / 이력 [eV] — **정답** |
+| `total` | 비산란 + 산란 — 가상 그리드의 입력 |
+| `air` | 팬텀 없는 1차 — 평탄 보정, `airSignal` |
+| `thickness` | 초점 → 화소 중심 광선의 물 경로 길이 [cm] |
+
+`<phantom>_80kVp.json` 에 기하, 가정, `air_center`, `dn_scale` 이 있다. 가상 그리드 입력으로 쓸 때:
+
+```
+DN = value × dn_scale          (dn_scale = 50000 / air_center, 중심 공기 값이 50000 DN)
+VgSettings: kvp = 80, pixelPitchMm = 4.0, airSignal = 50000
+```
+
+- 조사야 밖 화소는 모든 영상에서 0 에 가깝다(`primary / air` 계산 시 조사야 안만 쓴다).
+- 1차 광자 수는 조사야 안 최소 약 2000(계단) / 2800(경사) 개 → 상대 잡음 최대 약 2 %. 전체(`total`)는 이보다 잡음이 적다.
+- 계단 경계 화소는 한 화소 안에 두께가 섞여 `thickness`(중심 광선)와 맞지 않는다.
+- 원자료(`.npz`, 에너지 응답 영상과 1차 광자 수 포함)는 WSL `/root/mcsim/phantoms/` 에 있다.
+
+```bash
+for k in air step wedge; do
+  wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/phantom_images.py --kind $k --launches 100 --out /root/mcsim/phantoms
+done
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/export_phantoms.py /root/mcsim/phantoms     $T/tables/wet_water_csi600.csv --export $T/phantoms
+```
