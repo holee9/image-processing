@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -108,6 +109,15 @@ protected:
         std::string json(static_cast<size_t>(hdr.config_json_len), '\0');
         if (hdr.config_json_len > 0) f.read(&json[0], hdr.config_json_len);
         return json;
+    }
+
+    // Reads one numeric value from a flat config JSON. NaN when the key is
+    // absent, so a missing field fails an EXPECT_NEAR instead of reading 0.
+    static double jsonNumber(const std::string& json, const std::string& key) {
+        const std::string needle = "\"" + key + "\":";
+        const size_t at = json.find(needle);
+        if (at == std::string::npos) return std::nan("");
+        return std::strtod(json.c_str() + at + needle.size(), nullptr);
     }
 
     bool alertQueueMentions(const char* needle) {
@@ -264,9 +274,15 @@ TEST_F(CalibQualityMetaTest, GoodFitRaisesNoWarning) {
     EXPECT_FALSE(alertQueueMentions("XPE_WARN_CALIB_POOR_FIT"));
 }
 
-// --- FUNC-033 (3): comparison with the previous calibration ----------------
+// --- previous_r_squared: the store carries the prior calibration's R2 -----
+//
+// These two cases were named PreviousCalibration_Comparison_* until QA-A-87.
+// They exercise previous_r_squared, which is NOT one of the three comparison
+// metrics FUNC-033 (3) names (dark_bias_delta, prnu_delta_pct,
+// defect_count_delta); none of those is implemented. Renamed so the name no
+// longer reads as coverage of (3).
 
-TEST_F(CalibQualityMetaTest, PreviousCalibration_Comparison_Regression) {
+TEST_F(CalibQualityMetaTest, PreviousRSquared_Regression) {
     ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "first.xcal"));
     XpeCalibQualityMeta firstMeta{};
     ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&firstMeta));
@@ -282,7 +298,7 @@ TEST_F(CalibQualityMetaTest, PreviousCalibration_Comparison_Regression) {
         << "this pair is a regression, which is what makes the field useful";
 }
 
-TEST_F(CalibQualityMetaTest, PreviousCalibration_Comparison_Stable) {
+TEST_F(CalibQualityMetaTest, PreviousRSquared_Stable) {
     ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "stable1.xcal"));
     ASSERT_EQ(XPE_OK, generatePoly({2.0f, 4.0f, 6.0f, 8.0f}, "stable2.xcal"));
 
@@ -307,6 +323,90 @@ TEST_F(CalibQualityMetaTest, GeneratedFileCarriesTheMetadataFields) {
         EXPECT_NE(std::string::npos, json.find(key))
             << "SRS-CALIB-FUNC-033 (1) field missing from the file: " << key;
     }
+}
+
+// --- QA-A-87: round trip through a GENERATED file -------------------------
+//
+// The hand-written-JSON round trip below never exercised the generator, so it
+// could not see the generator writing one polynomial_degree to the file and
+// another to the store. These cases load the file the generator produced and
+// compare against what the generator recorded a moment earlier.
+//
+// Input where the fit must drop a degree, derived by hand. Doses 1..4, gains
+// 1,4,4,4, max_degree 2. With t = dose - 2.5 the least-squares quadratic is
+//   y = 3.25 + 0.9 t - 0.75 (t^2 - 1.25)
+// whose slope 0.9 - 1.5 t is zero at t = 0.6, i.e. dose 3.1 -- inside [1, 4],
+// so the curve falls after it and validate_monotonicity rejects degree 2.
+// The linear fit y = 3.25 + 0.9 t rises, so every pixel settles on degree 1.
+TEST_F(CalibQualityMetaTest, GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree) {
+    const std::string path = (tmpDir / "dropped.xcal").string();
+    ASSERT_EQ(XPE_OK, generatePolyDegree({1.0f, 4.0f, 4.0f, 4.0f}, 2, "dropped.xcal"));
+
+    XpeCalibQualityMeta generated{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&generated));
+    ASSERT_EQ(1u, generated.polynomial_degree)
+        << "precondition: this input must make the fit fall from degree 2 to 1";
+
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path.c_str()));
+    XpeCalibQualityMeta loaded{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&loaded));
+
+    EXPECT_EQ(generated.polynomial_degree, loaded.polynomial_degree)
+        << "SRS-CALIB-FUNC-033 (1) polynomial_degree is the FITTED degree; the "
+           "file must say what the store said";
+
+    // The requested ceiling is still in the file, under a key of its own.
+    const std::string json = readConfigJson(path);
+    EXPECT_DOUBLE_EQ(1.0, jsonNumber(json, "polynomial_degree")) << json;
+    EXPECT_DOUBLE_EQ(2.0, jsonNumber(json, "max_polynomial_degree")) << json;
+}
+
+// Control for the case above: when no pixel drops a degree, the fitted and the
+// requested degree coincide and the round trip holds either way. If this one
+// went red the harness itself would be wrong, not the key.
+TEST_F(CalibQualityMetaTest, GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped) {
+    const std::string path = (tmpDir / "kept.xcal").string();
+    ASSERT_EQ(XPE_OK, generatePolyDegree({1.0f, 2.0f, 3.0f, 4.0f}, 2, "kept.xcal"));
+
+    XpeCalibQualityMeta generated{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&generated));
+    ASSERT_EQ(2u, generated.polynomial_degree)
+        << "precondition: a straight line is monotonic at the requested degree";
+
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path.c_str()));
+    XpeCalibQualityMeta loaded{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&loaded));
+
+    EXPECT_EQ(generated.polynomial_degree, loaded.polynomial_degree);
+}
+
+// --- QA-A-87: residual fields carry the computed values -------------------
+//
+// Until now these two keys were only checked for presence, so any arithmetic
+// in them passed. Hand-computed for gains 1,4,4,4 at doses 1..4 and a LINEAR
+// fit (max_degree 1), with t = dose - 2.5:
+//   fit        y = 3.25 + 0.9 t      -> 1.9, 2.8, 3.7, 4.6
+//   residuals  -0.9, 1.2, 0.3, -0.6  (sum of magnitudes 3.0)
+//   mean gain  3.25
+//   max_residual_pct  = 1.2 / 3.25 * 100          = 36.923077
+//   mean_residual_pct = (3.0 / 4) / 3.25 * 100    = 23.076923
+// Every pixel holds the same series, so the per-pixel values are also the
+// whole-frame values. The file prints six decimals.
+TEST_F(CalibQualityMetaTest, ResidualFieldsCarryTheHandComputedValues) {
+    ASSERT_EQ(XPE_OK, generatePolyDegree({1.0f, 4.0f, 4.0f, 4.0f}, 1, "resid.xcal"));
+
+    const std::string json = readConfigJson((tmpDir / "resid.xcal").string());
+    EXPECT_NEAR(36.923077, jsonNumber(json, "max_residual_pct"), 1e-5) << json;
+    EXPECT_NEAR(23.076923, jsonNumber(json, "mean_residual_pct"), 1e-5) << json;
+}
+
+// Control: a series on a straight line leaves nothing to report.
+TEST_F(CalibQualityMetaTest, ResidualFieldsAreZeroForAnExactFit) {
+    ASSERT_EQ(XPE_OK, generatePolyDegree({1.0f, 2.0f, 3.0f, 4.0f}, 1, "exact.xcal"));
+
+    const std::string json = readConfigJson((tmpDir / "exact.xcal").string());
+    EXPECT_NEAR(0.0, jsonNumber(json, "max_residual_pct"), 1e-5) << json;
+    EXPECT_NEAR(0.0, jsonNumber(json, "mean_residual_pct"), 1e-5) << json;
 }
 
 // Round trip: a file's metadata is restored on load, not recomputed from
