@@ -16,11 +16,16 @@
             <Rectangle Width="6" Height="22" RadiusX="3" RadiusY="3" Fill="#7dd3fc" Margin="0,0,8,0" />
             <TextBlock Text="LANE A — REFERENCE" Foreground="#5a5f6a" FontSize="9"
                        VerticalAlignment="Center" Margin="0,0,12,0" />
-            <ComboBox ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
+            <ComboBox AutomationProperties.AutomationId="LaneAAlgorithmPicker"
+                      ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneAAlgorithm, Mode=TwoWay}"
+                      IsEnabled="False" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." ToolTipService.ShowOnDisabled="True"
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
+            <TextBlock AutomationProperties.AutomationId="LaneAAlgorithmUnappliedMark" Text="미적용"
+                       Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." />
         </StackPanel>
 
         <!-- Hairline divider -->
@@ -31,11 +36,16 @@
             <Rectangle Width="6" Height="22" RadiusX="3" RadiusY="3" Fill="#c4b5fd" Margin="0,0,8,0" />
             <TextBlock Text="LANE B — CANDIDATE" Foreground="#5a5f6a" FontSize="9"
                        VerticalAlignment="Center" Margin="0,0,12,0" />
-            <ComboBox ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
+            <ComboBox AutomationProperties.AutomationId="LaneBAlgorithmPicker"
+                      ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneBAlgorithm, Mode=TwoWay}"
+                      IsEnabled="False" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." ToolTipService.ShowOnDisabled="True"
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
+            <TextBlock AutomationProperties.AutomationId="LaneBAlgorithmUnappliedMark" Text="미적용"
+                       Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." />
         </StackPanel>
     </Grid>
 </UserControl>
