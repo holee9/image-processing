@@ -28,6 +28,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private float? _renderedVoiCenter;
     private float? _renderedVoiWidth;
     private string? _renderedVoiMode;
+    private AppSettings? _renderedInputs;
+    private string? _previewStaleReason;
     private BackendRuntimeInfo _runtimeInfo = new();
     private LoadedImageFrame? _activeImageFrame;
     private int _drainedBackendLogCount;
@@ -334,10 +336,67 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void SetRenderedVoi(AppSettings? inputs)
     {
+        _renderedInputs = inputs;
         RenderedVoiCenter = inputs?.VoiWindowCenter;
         RenderedVoiWidth = inputs?.VoiWindowWidth;
         RenderedVoiMode = inputs?.VoiLutMode;
+        RefreshParametersStale();
     }
+
+    // #171 ① / ③ (GUI-C-79): why the processed image no longer matches what the operator asked for, or
+    // null when it does. ① is "apply + mark stale" rather than an immediate re-render: the pipeline has no
+    // cancellation or ordering, so re-rendering on every keystroke could let an older value's result
+    // arrive last and be shown as current — a new stale path created by the control itself.
+    public const string StaleParametersChanged =
+        "STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.";
+
+    public string? PreviewStaleReason
+    {
+        get => _previewStaleReason;
+        private set
+        {
+            if (SetProperty(ref _previewStaleReason, value))
+            {
+                OnPropertyChanged(nameof(IsPreviewStale));
+            }
+        }
+    }
+
+    public bool IsPreviewStale => PreviewStaleReason is not null;
+
+    /// <summary>
+    /// ① — the image is stale when a setting the display pipeline reads differs from the snapshot that
+    /// rendered it. Only meaningful while the processed image IS a display-pipeline render.
+    /// </summary>
+    private void RefreshParametersStale()
+    {
+        var differs = _renderedInputs is not null && DisplayInputsDiffer(_renderedInputs, Settings);
+
+        if (differs && PreviewStaleReason is null)
+        {
+            PreviewStaleReason = StaleParametersChanged;
+        }
+        else if (!differs && PreviewStaleReason == StaleParametersChanged)
+        {
+            PreviewStaleReason = null;
+        }
+    }
+
+    /// <summary>The settings either backend's ApplyDisplayPipeline reads (Mock and Real, GUI-C-79).</summary>
+    private static bool DisplayInputsDiffer(AppSettings a, AppSettings b) =>
+        a.VoiWindowCenter != b.VoiWindowCenter
+        || a.VoiWindowWidth != b.VoiWindowWidth
+        || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)
+        || a.ModalityRescaleSlope != b.ModalityRescaleSlope
+        || a.ModalityRescaleIntercept != b.ModalityRescaleIntercept
+        || a.GsdfEnabled != b.GsdfEnabled
+        || !string.Equals(a.OffsetCorrectionMode, b.OffsetCorrectionMode, StringComparison.Ordinal)
+        || !string.Equals(a.GainCorrectionMode, b.GainCorrectionMode, StringComparison.Ordinal)
+        || !string.Equals(a.DefectCorrectionMode, b.DefectCorrectionMode, StringComparison.Ordinal)
+        || !string.Equals(a.GhostCorrectionMode, b.GhostCorrectionMode, StringComparison.Ordinal)
+        || !string.Equals(a.TemperatureCompensationMode, b.TemperatureCompensationMode, StringComparison.Ordinal)
+        || !string.Equals(a.NonlinearityCorrectionMode, b.NonlinearityCorrectionMode, StringComparison.Ordinal)
+        || !string.Equals(a.BinningCorrectionMode, b.BinningCorrectionMode, StringComparison.Ordinal);
 
     public BackendRuntimeInfo RuntimeInfo
     {
@@ -803,7 +862,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
         SourceImage = loadedFrame.Preview;
         ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
-        SetRenderedVoi(null);   // not a display-pipeline render yet
+        PreviewStaleReason = null;   // a new image replaces whatever was stale
+        SetRenderedVoi(null);        // not a display-pipeline render yet
         ActiveImageFrame = loadedFrame;
         ResetComparisonView();
         ActiveImageSummary = loadedFrame.Summary;
@@ -1127,6 +1187,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        RefreshParametersStale();   // #171 ①
+
         if (e.PropertyName is nameof(AppSettings.ComparisonMode)
             or nameof(AppSettings.ComparisonZoomScale)
             or nameof(AppSettings.ComparisonPanX)

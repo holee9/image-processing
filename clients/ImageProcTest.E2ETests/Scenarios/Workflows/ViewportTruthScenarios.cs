@@ -102,6 +102,83 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
         });
     }
 
+    /// <summary>
+    /// W-22 (#171 ①): editing a display input without applying it marks the image stale.
+    ///
+    /// <para>"Stale" is asserted on two observations together: the viewport's processed image was NOT
+    /// replaced (its version did not move), and the indicator says why. The preset change and the Apply
+    /// are the controls — both replace the image and neither leaves the indicator up — so a version that
+    /// never moves, or an indicator that is always up, fails here rather than passing.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W22_EditingVoiWithoutApplying_MarksTheImageStale()
+    {
+        Measure("W22", window =>
+        {
+            OpenParameters(window);
+            var original = BodyPart(window);
+            try
+            {
+                // Control 1: a preset change replaces the image and leaves nothing stale.
+                var beforePreset = Viewport(window).ProcessedVersion;
+                SelectBodyPart(window, original == "Bone" ? "Lung" : "Bone");
+                var afterPreset = WaitForProcessedVersionAbove(window, beforePreset);
+                var indicatorAfterPreset = StaleIndicator(window);
+                output.WriteLine($"W22 preset: v{beforePreset} -> v{afterPreset} indicator='{indicatorAfterPreset}'");
+                Assert.True(afterPreset > beforePreset, "A preset change did not replace the processed image; the version cannot be trusted.");
+                Assert.True(indicatorAfterPreset is null, $"After a preset change the stale indicator reads '{indicatorAfterPreset}'.");
+
+                // The edit: nothing is rendered, so the image must be marked stale.
+                TypeCenter(window, "12345");
+                var afterEdit = Viewport(window).ProcessedVersion;
+                var indicatorAfterEdit = StaleIndicator(window);
+                output.WriteLine($"W22 edit: v{afterEdit} indicator='{indicatorAfterEdit}'");
+                Assert.True(afterEdit == afterPreset, $"Typing a VOI value replaced the image (v{afterPreset} -> v{afterEdit}); this case assumes apply-to-render (#171).");
+                Assert.True(
+                    indicatorAfterEdit is not null && indicatorAfterEdit.Contains("parameters changed", StringComparison.Ordinal),
+                    $"The image was not re-rendered after a VOI edit, and the stale indicator reads '{indicatorAfterEdit ?? "(absent)"}'. " +
+                    "An out-of-date image with no sign of it is HAZ-GUI-004 (#171).");
+
+                // Control 2: applying replaces the image and clears the indicator.
+                ApplyDisplayPipeline(window);
+                var afterApply = WaitForProcessedVersionAbove(window, afterEdit);
+                var indicatorAfterApply = StaleIndicator(window);
+                output.WriteLine($"W22 apply: v{afterApply} indicator='{indicatorAfterApply}'");
+                Assert.True(afterApply > afterEdit, "Applying the display pipeline did not replace the processed image.");
+                Assert.True(indicatorAfterApply is null, $"After applying, the stale indicator still reads '{indicatorAfterApply}'.");
+            }
+            finally
+            {
+                SelectBodyPart(window, original);
+            }
+        });
+    }
+
+    /// <summary>The stale indicator's text, or null when it is not shown.</summary>
+    private static string? StaleIndicator(Window window)
+    {
+        var element = window.FindFirstDescendant(cf => cf.ByAutomationId("PreviewStaleIndicator"));
+        if (element is null || element.IsOffscreen)
+        {
+            return null;
+        }
+
+        var text = element.Name;
+        return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    private static int WaitForProcessedVersionAbove(Window window, int version)
+    {
+        var last = Viewport(window).ProcessedVersion;
+        for (var i = 0; i < 20 && last <= version; i++)
+        {
+            Thread.Sleep(250);
+            last = Viewport(window).ProcessedVersion;
+        }
+
+        return last;
+    }
+
     // ---- Analysis panel / menu helpers ----------------------------------------------------------
 
     private static void OpenParameters(Window window)

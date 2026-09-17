@@ -8,6 +8,7 @@
              Background="#08090c">
     <UserControl.Resources>
         <local:ZoomPercentConverter x:Key="ZoomPercentConverter" xmlns:local="clr-namespace:ImageProcTest.Views" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
     <Grid>
         <!-- Viewport layer.
@@ -26,6 +27,26 @@
                                           PanY="{Binding Settings.ComparisonPanY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           SwipePosition="{Binding Settings.ComparisonSwipePosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           OverlayOpacity="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <!-- #171 ①/③ (GUI-C-79): the processed image is not the result of what was asked for. -->
+        <Border x:Name="PreviewStaleBanner"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,58,0,0"
+                Padding="10,6"
+                CornerRadius="6"
+                Background="#E6B45309"
+                BorderBrush="#FFF59E0B"
+                BorderThickness="1"
+                Visibility="{Binding IsPreviewStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock AutomationProperties.AutomationId="PreviewStaleIndicator"
+                       Text="{Binding PreviewStaleReason, Mode=OneWay}"
+                       Foreground="#FFFFFBEB"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       MaxWidth="520" />
+        </Border>
 
         <!-- View Toolbar (floating, top-center) -->
         <Border HorizontalAlignment="Center"
