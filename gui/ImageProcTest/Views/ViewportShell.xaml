@@ -136,15 +136,19 @@
             <StackPanel>
                 <TextBlock Text="WINDOW" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
                            Margin="0,0,0,3" />
-                <TextBlock FontSize="10" FontFamily="Consolas">
+                <!-- #171 ② (GUI-C-79): the window that PRODUCED the image beside it, not the current
+                     settings. After a VOI edit these keep the rendered values until the pipeline runs
+                     again; the stale indicator says why they differ from the Analysis panel. -->
+                <TextBlock FontSize="10" FontFamily="Consolas"
+                           AutomationProperties.AutomationId="HudVoiWindow">
                     <Run Text="C " Foreground="#8a909c" />
-                    <Run Text="{Binding Settings.VoiWindowCenter, StringFormat={}{0:0}}" Foreground="#f0f2f5" />
+                    <Run Text="{Binding RenderedVoiCenter, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
                     <Run Text=" · W " Foreground="#8a909c" />
-                    <Run Text="{Binding Settings.VoiWindowWidth, StringFormat={}{0:0}}" Foreground="#f0f2f5" />
+                    <Run Text="{Binding RenderedVoiWidth, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
                 </TextBlock>
                 <TextBlock FontSize="10" FontFamily="Consolas">
                     <Run Text="VOI: " Foreground="#8a909c" />
-                    <Run Text="{Binding Settings.VoiLutMode}" Foreground="#f0f2f5" />
+                    <Run Text="{Binding RenderedVoiMode, Mode=OneWay, TargetNullValue=not applied}" Foreground="#f0f2f5" />
                 </TextBlock>
                 <TextBlock FontSize="10" FontFamily="Consolas">
                     <Run Text="Calib: " Foreground="#8a909c" />

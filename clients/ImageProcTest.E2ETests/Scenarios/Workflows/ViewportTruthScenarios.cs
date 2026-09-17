@@ -53,6 +53,124 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
         });
     }
 
+    /// <summary>
+    /// W-21 (#171 ②): the HUD beside the image names the window that PRODUCED it.
+    ///
+    /// <para>GUI-C-77 measured the old HUD reading <c>C 12345</c> beside an image rendered at
+    /// <c>C 40000</c>, because it was bound to the current settings. Here a VOI edit that has not been
+    /// applied must leave the HUD on the rendered value, and applying it must move the HUD. The body-part
+    /// change first is the control: it re-runs the pipeline, so the HUD must follow it.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W21_Hud_NamesTheWindowThatProducedTheImage()
+    {
+        Measure("W21", window =>
+        {
+            OpenParameters(window);
+            var original = BodyPart(window);
+            try
+            {
+                // Control: a preset change re-renders, so the HUD must show the preset's centre.
+                SelectBodyPart(window, original == "Bone" ? "Lung" : "Bone");
+                var presetCenter = CenterInput(window);
+                var afterPreset = WaitForHudCenter(window, presetCenter);
+                output.WriteLine($"W21 preset: input={presetCenter} hud={afterPreset}");
+                Assert.True(
+                    afterPreset == presetCenter,
+                    $"After a preset change the HUD reads C={afterPreset}, not the rendered {presetCenter}; " +
+                    "the case cannot tell a label that follows renders from one that does not.");
+
+                // The edit alone renders nothing, so the HUD must keep the rendered value.
+                TypeCenter(window, "12345");
+                var afterEdit = HudCenter(window);
+                output.WriteLine($"W21 edit: input=12345 hud={afterEdit}");
+                Assert.True(
+                    afterEdit == presetCenter,
+                    $"After typing C=12345 without applying, the HUD reads C={afterEdit}. The image was rendered " +
+                    $"at C={presetCenter}, so the label beside it is naming a window it was not drawn with (#171).");
+
+                // Applying renders, so the HUD must now move.
+                ApplyDisplayPipeline(window);
+                var afterApply = WaitForHudCenter(window, "12345");
+                output.WriteLine($"W21 apply: hud={afterApply}");
+                Assert.True(afterApply == "12345", $"After applying, the HUD reads C={afterApply}, not 12345.");
+            }
+            finally
+            {
+                SelectBodyPart(window, original);
+            }
+        });
+    }
+
+    // ---- Analysis panel / menu helpers ----------------------------------------------------------
+
+    private static void OpenParameters(Window window)
+    {
+        window.SetForeground();
+        window.FindFirstDescendant(cf => cf.ByName("Parameters"))!.AsButton().Invoke();
+        Thread.Sleep(400);
+    }
+
+    private static string BodyPart(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox().SelectedItem?.Text ?? "Abdomen";
+
+    private static void SelectBodyPart(Window window, string bodyPart)
+    {
+        var combo = window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox();
+        if (combo.SelectedItem?.Text == bodyPart)
+        {
+            return;
+        }
+
+        combo.Select(bodyPart);
+        Thread.Sleep(1200);
+    }
+
+    private static string CenterInput(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowCenterInput"))!.AsTextBox().Text;
+
+    private static void TypeCenter(Window window, string value)
+    {
+        var input = window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowCenterInput"))!.AsTextBox();
+        input.Focus();
+        input.Text = value;
+        Keyboard.Press(VirtualKeyShort.TAB);
+        Thread.Sleep(1200);
+    }
+
+    private static void ApplyDisplayPipeline(Window window)
+    {
+        window.SetForeground();
+        Keyboard.Press(VirtualKeyShort.ESCAPE);
+        Thread.Sleep(120);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"))!.AsMenuItem().Click();
+        Thread.Sleep(350);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"))!.AsMenuItem().Invoke();
+        Thread.Sleep(1200);
+    }
+
+    /// <summary>The centre the HUD currently names ("C  40000  · W  30000" → "40000").</summary>
+    private static string HudCenter(Window window)
+    {
+        var hud = window.FindFirstDescendant(cf => cf.ByAutomationId("HudVoiWindow"));
+        Assert.True(hud is not null, "HudVoiWindow is not in the automation tree.");
+        var match = Regex.Match(hud!.Name, @"^C\s+(\S+)\s+·");
+        Assert.True(match.Success, $"The HUD reads '{hud.Name}', which does not name a centre.");
+        return match.Groups[1].Value;
+    }
+
+    private static string WaitForHudCenter(Window window, string expected)
+    {
+        var last = HudCenter(window);
+        for (var i = 0; i < 20 && last != expected; i++)
+        {
+            Thread.Sleep(250);
+            last = HudCenter(window);
+        }
+
+        return last;
+    }
+
     // ---- observation helpers ------------------------------------------------------------------
 
     private sealed record ViewportState(string Status, string Source, int SourceVersion, string Processed, int ProcessedVersion);

@@ -25,6 +25,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _displayPipelineSummary = "Display pipeline has not run.";
     private System.Windows.Media.ImageSource? _sourceImage;
     private System.Windows.Media.ImageSource? _processedImage;
+    private float? _renderedVoiCenter;
+    private float? _renderedVoiWidth;
+    private string? _renderedVoiMode;
     private BackendRuntimeInfo _runtimeInfo = new();
     private LoadedImageFrame? _activeImageFrame;
     private int _drainedBackendLogCount;
@@ -305,6 +308,35 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _processedImage;
         private set => SetProperty(ref _processedImage, value);
+    }
+
+    // #171 ② (GUI-C-79): the VOI values that produced the image in the processed viewport — NOT the
+    // current settings. The HUD next to the image used to read Settings, so after a VOI edit it showed
+    // a window the image was never rendered with (GUI-C-77). Null means the processed image was not
+    // produced by the display pipeline (a fresh load, or a preprocessing preview).
+    public float? RenderedVoiCenter
+    {
+        get => _renderedVoiCenter;
+        private set => SetProperty(ref _renderedVoiCenter, value);
+    }
+
+    public float? RenderedVoiWidth
+    {
+        get => _renderedVoiWidth;
+        private set => SetProperty(ref _renderedVoiWidth, value);
+    }
+
+    public string? RenderedVoiMode
+    {
+        get => _renderedVoiMode;
+        private set => SetProperty(ref _renderedVoiMode, value);
+    }
+
+    private void SetRenderedVoi(AppSettings? inputs)
+    {
+        RenderedVoiCenter = inputs?.VoiWindowCenter;
+        RenderedVoiWidth = inputs?.VoiWindowWidth;
+        RenderedVoiMode = inputs?.VoiLutMode;
     }
 
     public BackendRuntimeInfo RuntimeInfo
@@ -771,6 +803,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         SourceImage = loadedFrame.Preview;
         ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
+        SetRenderedVoi(null);   // not a display-pipeline render yet
         ActiveImageFrame = loadedFrame;
         ResetComparisonView();
         ActiveImageSummary = loadedFrame.Summary;
@@ -803,11 +836,13 @@ public sealed class MainWindowViewModel : ObservableObject
         try
         {
             var sourceFrame = ActiveImageFrame;
-            var processedFrame = await Task.Run(() => _backend.ApplyDisplayPipeline(sourceFrame, Settings));
+            var inputs = Settings.Snapshot();
+            var processedFrame = await Task.Run(() => _backend.ApplyDisplayPipeline(sourceFrame, inputs));
             DrainBackendTelemetry();
 
             ActiveImageFrame = processedFrame;
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            SetRenderedVoi(inputs);
             MetadataText = processedFrame.MetadataText;
             DisplayPipelineSummary = processedFrame.DisplayPipelineSummary;
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
@@ -864,6 +899,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // observable only in the log, and "it ran" could not be told from "it ran and produced
             // something the operator can see".
             ProcessedImage = result.ProcessedPreview ?? ProcessedImage;
+            SetRenderedVoi(null);   // RealXpeBackend.CreatePreview stretches min..max; no VOI was applied
         }
 
         if (!result.Ran)

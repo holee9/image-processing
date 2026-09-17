@@ -8,6 +8,18 @@ namespace ImageProcTest.Models;
 /// </summary>
 public sealed class AppSettings : ObservableObject
 {
+    /// <summary>
+    /// An independent copy of the persisted values (#171 ②).
+    ///
+    /// <para>The display pipeline runs on a worker thread. Handing it the live object meant a value typed
+    /// during the run could be read half-way through, and the view model could not say which values
+    /// produced the image it then displayed. The pipeline now gets a snapshot, and the snapshot is what
+    /// the HUD reports.</para>
+    /// </summary>
+    public AppSettings Snapshot() =>
+        System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(this))
+        ?? throw new InvalidOperationException("AppSettings could not be copied.");
+
     private string _backendMode = "Mock";
     private int _rawWidth = 3072;
     private int _rawHeight = 3072;
