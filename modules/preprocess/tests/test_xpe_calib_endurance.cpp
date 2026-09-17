@@ -64,6 +64,20 @@ protected:
         std::remove(GAIN_PATH);
         std::remove(DEF_PATH);
     }
+
+    // Release every map a case loaded (QA-A-89, #176). These cases load
+    // offset/gain/defect maps into the module and never shut it down, so the
+    // last map stayed loaded for whatever ran next in the same process -- a
+    // pipeline case expecting "no defect map" got a W x H map instead.
+    //
+    // init -> shutdown so the clear runs on an INITIALIZED module; the header
+    // documents shutdown on an uninitialized module as a no-op. The init result
+    // is ignored: already-initialized answers XPE_ERR_INVALID_INPUT, and the
+    // module is initialized either way.
+    void TearDown() override {
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
+    }
 };
 
 // =============================================================================
