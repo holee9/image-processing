@@ -1,4 +1,4 @@
-// #149 G-1/G-2/G-3 (GUI-C-58): the menu and the key gestures that reach the comparison modes.
+// #149 G-1/G-2/G-3 (GUI-C-58, GUI-C-96): the menu, the key gestures and the toolbar buttons that reach the comparison modes.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;
@@ -20,8 +20,10 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// <para><b>What is asserted is the transition, not the element.</b> GUI-C-43 read the menus and
 /// concluded a feature did not exist; GUI-C-45 corrected it and wrote the lesson down — 존재는
 /// 동작이 아니다. So every case here primes a different mode first and then asserts that the entry
-/// point moved it, read back from the viewport's <c>HelpText</c>, which is bound straight to
-/// <c>Settings.ComparisonMode</c> (#149 G-6, GUI-C-47).</para>
+/// point moved it. Since GUI-C-96 the mode is read from the viewport's own automation peer
+/// (<c>rendered=&lt;mode&gt;</c>, set in its render pass). It used to be <c>ViewportShell</c>'s HelpText,
+/// bound to <c>Settings.ComparisonMode</c>: with the viewport's CompareMode binding removed, W-14 still
+/// passed 4 of 4 on that reading and fails 4 of 4 on this one (#172).</para>
 ///
 /// <para><b>Four gestures are bound, two are not.</b> GUI-C-58 left three unbound because MENU-001
 /// §9.3/§10.1 and ACCESS-001 §5.2 — which MENU-001 §10 calls a single source of truth — disagreed
@@ -41,6 +43,17 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
         ["CompareDifferenceMenuItem", "DifferenceHeatmap"],
         ["CompareSourceOnlyMenuItem", "SourceOnly"],
         ["CompareProcessedOnlyMenuItem", "ProcessedOnly"],
+    ];
+
+    /// <summary>The six segmented buttons on the viewport toolbar (#149 G-3, GUI-C-96).</summary>
+    public static IEnumerable<object[]> Buttons() =>
+    [
+        ["CompareButtonSwipeVertical", "SwipeVertical"],
+        ["CompareButtonSplitLocked", "SplitLocked"],
+        ["CompareButtonOverlayOpacity", "OverlayOpacity"],
+        ["CompareButtonDifferenceHeatmap", "DifferenceHeatmap"],
+        ["CompareButtonSourceOnly", "SourceOnly"],
+        ["CompareButtonProcessedOnly", "ProcessedOnly"],
     ];
 
     /// <summary>The gestures that are actually bound, with the mode each selects.</summary>
@@ -112,6 +125,42 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     }
 
     /// <summary>
+    /// W-27: each viewport toolbar button draws its mode. Priming goes through a KEY GESTURE, so a
+    /// broken button cannot make its own case vacuous. (The first version primed through the menu and
+    /// its first case failed to find the menu item after the W-14 key presses — the #163 symptom,
+    /// GUI-C-96. The route under test is the button, so the priming route was changed rather than
+    /// retried.)
+    /// </summary>
+    [SkippableTheory]
+    [MemberData(nameof(Buttons))]
+    public void W27_CompareButton_DrawsThatMode(string automationId, string mode)
+    {
+        Measure($"W-27 {automationId}", window =>
+        {
+            var (primeKey, primeMode) = mode == "SwipeVertical" ? ("F8", "DifferenceHeatmap") : ("F5", "SwipeVertical");
+            window.SetForeground();
+            window.Focus();
+            Thread.Sleep(200);
+            Keyboard.Press(KeyFor(primeKey));
+            Assert.True(
+                WaitFor(() => ReportedMode(window) == primeMode ? "ok" : null) is not null,
+                $"Priming with {primeKey} did not take effect (viewport drew '{ReportedMode(window)}').");
+
+            window.SetForeground();
+            var button = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            Assert.True(button is not null, $"'{automationId}' is not in the automation tree.");
+            button!.AsButton().Invoke();
+
+            var reported = WaitFor(() => ReportedMode(window) == mode ? mode : null);
+            Assert.True(
+                reported is not null,
+                $"'{automationId}' should draw {mode}; the viewport's last frame was '{ReportedMode(window)}'.");
+
+            output.WriteLine($"W-27 {automationId}: viewport drew {reported}");
+        });
+    }
+
+    /// <summary>
     /// Puts the app into a mode OTHER than the one under test, and asserts that it got there.
     ///
     /// <para>Without this the Swipe cases cannot fail: <c>SwipeVertical</c> is the default, so an
@@ -128,7 +177,7 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
             ? ("Difference", "DifferenceHeatmap")
             : ("Swipe", "SwipeVertical");
 
-        var button = window.FindFirstDescendant(cf => cf.ByName(label));
+        var button = window.FindFirstDescendant(cf => cf.ByAutomationId($"CompareButton{primedMode}"));
         Assert.True(button is not null, $"The '{label}' comparison button, used for priming, was not found.");
 
         button!.AsButton().Invoke();
@@ -181,9 +230,19 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
         _ => throw new ArgumentOutOfRangeException(nameof(gesture), gesture, "No virtual key for this gesture."),
     };
 
-    /// <summary>The comparison mode the viewport currently reports, or null when unreadable.</summary>
-    private static string? ReportedMode(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewportShell"))?.HelpText;
+    /// <summary>
+    /// The mode the viewport DREW in its last frame, or null when unreadable (#149, GUI-C-96).
+    ///
+    /// <para>This used to read <c>ViewportShell</c>'s HelpText, which is bound to
+    /// <c>Settings.ComparisonMode</c>: it proved the command reached the setting, not that the viewport
+    /// drew anything different (#172). The viewport's automation peer now reports
+    /// <c>rendered=&lt;mode&gt;</c>, set inside its render pass.</para>
+    /// </summary>
+    private static string? ReportedMode(Window window)
+    {
+        var help = window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"))?.HelpText;
+        return help is not null && help.StartsWith("rendered=", StringComparison.Ordinal) ? help["rendered=".Length..] : null;
+    }
 
     private static T? WaitFor<T>(Func<T?> find) where T : class
     {

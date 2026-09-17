@@ -23,15 +23,6 @@ public partial class ViewportShell : System.Windows.Controls.UserControl
         }
     }
 
-    private void CompareModeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: string mode } && DataContext is MainWindowViewModel vm)
-        {
-            vm.Settings.ComparisonMode = mode;
-            UpdateOpacitySliderVisibility(mode);
-        }
-    }
-
     private void OnSettingsPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(AppSettings.ComparisonMode) && DataContext is MainWindowViewModel vm)

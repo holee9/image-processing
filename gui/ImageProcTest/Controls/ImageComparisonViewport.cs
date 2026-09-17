@@ -97,6 +97,15 @@ public sealed class ImageComparisonViewport : FrameworkElement
     /// dependency properties the renderer reads. A null image reads <c>none</c>; a binding that failed to
     /// resolve also leaves the property null, so it reads <c>none</c> as well — both are defects here.</para>
     /// </summary>
+    /// <summary>
+    /// The mode the last frame was actually drawn in, or <c>none</c> when that frame had no source image
+    /// and <c>not rendered</c> before the first frame (#149, GUI-C-96). A test that reads
+    /// <see cref="CompareMode"/> or the settings value learns what was requested; this is what was drawn.
+    /// </summary>
+    public string RenderedMode => _renderedMode;
+
+    private string _renderedMode = "not rendered";
+
     public string DescribeReceivedImages() =>
         string.Create(CultureInfo.InvariantCulture,
             $"source={Describe(SourceImage)} v{_sourceVersion}; processed={Describe(ProcessedImage)} v{_processedVersion}");
@@ -176,6 +185,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
         if (SourceImage is null)
         {
+            _renderedMode = "none";
             DrawCenteredText(drawingContext, "Load a RAW image to compare source and processed output.", viewport);
             return;
         }
@@ -183,6 +193,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
         var processed = ProcessedImage ?? SourceImage;
         var imageRect = GetImageRect(SourceImage);
         var mode = NormalizeMode(CompareMode);
+        _renderedMode = mode;
 
         drawingContext.PushClip(new RectangleGeometry(viewport));
         switch (mode)
@@ -510,4 +521,7 @@ internal sealed class ImageComparisonViewportAutomationPeer(ImageComparisonViewp
     }
 
     protected override string GetItemStatusCore() => ((ImageComparisonViewport)Owner).DescribeReceivedImages();
+
+    /// <summary><c>rendered=&lt;mode&gt;</c> — the mode of the last drawn frame (#149, GUI-C-96).</summary>
+    protected override string GetHelpTextCore() => $"rendered={((ImageComparisonViewport)Owner).RenderedMode}";
 }
