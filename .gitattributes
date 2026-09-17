@@ -1,0 +1,3 @@
+# Text tables read by tests are compared byte-wise ("\n[section]\n");
+# keep LF on Windows runners too (main CI red since 6026cb0, #180).
+*.csv text eol=lf
