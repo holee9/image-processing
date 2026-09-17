@@ -15,7 +15,7 @@
 > | 계약 파일 `DisplayNativeWrapper.cs` | **없음** — 실제는 `gui/…/XpeDisplayInterop.cs` |
 > | `ViewModels/Display/DisplayPipelineViewModel.cs` | **없음** — 실제는 `MainWindowViewModel.ApplyDisplayPipelineAsync` (6건) |
 > | W-06 이 `StageTimings` 를 검증 | **W-06 도 `StageTimings` 도 없음** |
-> | §19 [HARD] `IsPreviewStale` 경고 오버레이 (HAZ-GUI-004 통제) | **미구현 — `#171`**. 위해 분석이 이 통제를 전제로 잔여 위험을 Low 로 평가하고 있습니다 |
+> | §19 [HARD] `IsPreviewStale` 경고 오버레이 (HAZ-GUI-004 통제) | 한때 미구현이었으나 **2026-09-17 구현·검증됨 — `#171`** |
 >
 > **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
 
@@ -788,7 +788,7 @@ public partial class DisplayPipelineViewModel : ObservableObject
 - [HARD] VoiWindowCenter / VoiWindowWidth / BodyPart 변경 시 `IsPreviewStale = true` 즉시 설정
 - [HARD] ApplyPipelineAsync 완료 시 `IsPreviewStale = false`
 - [HARD] UI에 `IsPreviewStale` 바인딩된 **경고 오버레이** 표시 (HAZ-GUI-004 control)
-  - **⚠ 미구현 (2026-09-17 측정, #171)** — 이 [HARD] 규칙은 코드에 반영되지 않았습니다. `IsPreviewStale` 0건. 위해 분석(SHA-GUI-001)이 이 통제를 전제로 잔여 위험을 Low 로 평가하고 있습니다.
+  - **구현됨 (2026-09-17, #171)** — `IsPreviewStale` 표시가 메인 창·분리 뷰어에 있고 E2E W-23/W-26 이 검증합니다. 한때 미구현이었습니다.
 
 ---
 
