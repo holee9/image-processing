@@ -28,6 +28,9 @@ public class ApplicationFixture : IDisposable
 {
     private readonly Application? _application;
 
+    // #170 (GUI-C-93): null unless XPE_C93_TIMING=1 — records launch timings, changes nothing.
+    private readonly LaunchTimingRecorder? _timing;
+
     public ApplicationFixture()
         : this(rawImageRelativePath: null)
     {
@@ -162,8 +165,15 @@ public class ApplicationFixture : IDisposable
             startInfo.ArgumentList.Add(argument);
         }
 
+        _timing = LaunchTimingRecorder.StartIfEnabled();
         _application = Application.Launch(startInfo);
         var launched = _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30));
+        if (_timing is not null)
+        {
+            _timing.MainWindowReturnedUtc = DateTime.UtcNow;
+            _timing.ProcessId = _application.ProcessId;
+        }
+
         ProbeAcquisitionRoutes(launched);
         MainWindow = WithReadableProperties(launched);
         ExecutablePath = exePath;
@@ -295,9 +305,19 @@ public class ApplicationFixture : IDisposable
             var fromHandle = Automation.FromHandle(handle);
             var fromTree = Automation.GetDesktop().FindFirstChild(cf => cf.ByProcessId(processId));
 
+            // GUI-C-93: the launched element's first AutomationId read, timed at the same point in the
+            // sequence as before (after the ProcessId/handle reads and the two lookups).
+            if (_timing is not null) _timing.QueryUtc = DateTime.UtcNow;
+            var launchedReadable = Readable(launched);
+            if (_timing is not null)
+            {
+                _timing.QueryResult = launchedReadable;
+                _timing.Framework = SafeFramework(launched);
+            }
+
             Console.WriteLine(
                 $"XPE-C56-PROBE hwnd=0x{handle.ToInt64():X} pid={processId} " +
-                $"launched={Readable(launched)} fromHandle={Readable(fromHandle)} " +
+                $"launched={launchedReadable} fromHandle={Readable(fromHandle)} " +
                 $"fromTree={Readable(fromTree)} framework={SafeFramework(launched)}");
         }
         catch (Exception ex)
@@ -373,6 +393,8 @@ public class ApplicationFixture : IDisposable
 
     public void Dispose()
     {
+        _timing?.Dispose();
+
         try
         {
             _application?.Kill();
