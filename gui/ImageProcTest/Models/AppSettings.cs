@@ -58,6 +58,8 @@ public sealed class AppSettings : ObservableObject
     private double _laneBSharpeningSigma = 0.85;
     private double _laneBDenoiseStrength = 0.42;
     private string _lastRunSetId = string.Empty;
+    private bool _preprocessInChain;
+    private float _exposureKvp = 70.0f;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -428,6 +430,29 @@ public sealed class AppSettings : ObservableObject
     {
         get => _laneBDenoiseStrength;
         set => SetProperty(ref _laneBDenoiseStrength, value);
+    }
+
+    /// <summary>
+    /// Whether the preprocess stage (offset → gain → defect) runs in the pixel chain before the display
+    /// pipeline (#180, GUI-C-99). Off by default: the display then starts from the raw frame, as before.
+    /// </summary>
+    [JsonPropertyName("preprocessInChain")]
+    public bool PreprocessInChain
+    {
+        get => _preprocessInChain;
+        set => SetProperty(ref _preprocessInChain, value);
+    }
+
+    /// <summary>
+    /// Tube voltage of the exposure [kVp], one value for every chain stage that needs it (#180, GUI-C-99).
+    /// Replaces the 70 kVp that GuiPreprocessRunner used to hard-code; 70 stays the default. Values at or
+    /// below zero fall back to the default rather than reaching the native metadata.
+    /// </summary>
+    [JsonPropertyName("exposureKvp")]
+    public float ExposureKvp
+    {
+        get => _exposureKvp;
+        set => SetProperty(ref _exposureKvp, value > 0.0f && float.IsFinite(value) ? value : 70.0f);
     }
 
     [JsonPropertyName("lastRunSetId")]

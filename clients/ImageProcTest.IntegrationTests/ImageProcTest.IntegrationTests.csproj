@@ -78,6 +78,10 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\AppSettingsService.cs" Link="Comparison\Linked\AppSettingsService.cs" />
     <!-- #136: automation command-line parsing. No WPF dependency, so the guard runs in CI. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\AutomationArgs.cs" Link="Automation\Linked\AutomationArgs.cs" />
+    <!-- #180 (GUI-C-99): the pixel chain model and runner are WPF-free and tested here. -->
+    <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainRunner.cs" Link="Chain\Linked\ProcessingChainRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainPlan.cs" Link="Chain\Linked\ProcessingChainPlan.cs" />
   </ItemGroup>
 
   <!--

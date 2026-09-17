@@ -189,7 +189,7 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
     internal sealed record Drawn(string Raw, string Mode, string Zoom, double Scale, double OffsetX, double OffsetY, double? Swipe, double? Opacity);
 
     private static readonly Regex DrawnPattern = new(
-        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>.+)$",
+        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>[^;]+)(?:; processed=(?<hash>[^;]+))?$",
         RegexOptions.CultureInvariant);
 
     private static string Help(Window window) =>

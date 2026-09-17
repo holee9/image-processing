@@ -224,6 +224,8 @@ public partial class MainWindow : System.Windows.Window
                 ? $"not attempted (menu enabled={RunPreprocessingMenuItem.IsEnabled}, " +
                   $"frame loaded={viewModel.ActiveImageFrame is not null})"
                 : viewModel.PreprocessStages;
+            report.ChainStatus = viewModel.ChainStatus;
+            report.ChainStages = viewModel.LastChain?.Stages.Select(s => $"{s.StageId}={s.Status}").ToList() ?? new();
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
             report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
             report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;

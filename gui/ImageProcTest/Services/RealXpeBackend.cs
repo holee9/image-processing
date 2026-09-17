@@ -94,20 +94,20 @@ public sealed class RealXpeBackend : IXpeBackend
 
     // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
     // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings) =>
-        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, settings));
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings) =>
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, settings));
 
-    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, AppSettings settings)
+    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
-        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        if (displayInput is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
-            throw new InvalidOperationException("Display pipeline requires a loaded UInt16 raw frame.");
+            throw new InvalidOperationException("Display pipeline requires a loaded UInt16 frame and a display input.");
         }
 
         var count = checked(rawFrame.Width * rawFrame.Height);
-        if (rawFrame.RawPixels.Length < count)
+        if (displayInput.Length < count)
         {
-            throw new InvalidOperationException("Raw frame pixel array is smaller than width x height.");
+            throw new InvalidOperationException("Display input is smaller than width x height.");
         }
 
         var image = default(XpeImageBufferNative);
@@ -127,7 +127,7 @@ public sealed class RealXpeBackend : IXpeBackend
             var floatPixels = new float[count];
             for (var i = 0; i < count; i++)
             {
-                floatPixels[i] = rawFrame.RawPixels[i];
+                floatPixels[i] = displayInput[i];
             }
 
             Marshal.Copy(floatPixels, 0, image.Data, count);
@@ -253,31 +253,46 @@ public sealed class RealXpeBackend : IXpeBackend
 
     // @MX:WARN: [AUTO] Native buffers are allocated inside GuiPreprocessRunner and freed in its finally
     // @MX:REASON: #141 — the runner owns every xpe_alloc_image it makes; do not hoist allocation out
-    public PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings)
+    /// <summary>
+    /// #180 (GUI-C-99): the pixel chain. Order, copies and fallback are ProcessingChainRunner's; this
+    /// method only says how each stage runs natively.
+    /// </summary>
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
-            return new PreprocessRunResult(false, "Preprocessing needs a loaded UInt16 raw frame.", null);
+            throw new InvalidOperationException("The pixel chain requires a loaded UInt16 raw frame.");
         }
 
+        var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
+        {
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
+            _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
+        });
+
+        foreach (var stage in result.Stages)
+        {
+            AddLog($"{stage.StageId}: {stage.Status} — {stage.Reason}");
+        }
+
+        return result;
+    }
+
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings)
+    {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
         var result = InvokeNative(() => Native.GuiPreprocessRunner.Run(
-            rawFrame.RawPixels,
-            rawFrame.Width,
-            rawFrame.Height,
+            input,
+            width,
+            height,
             settings.OffsetCalibrationDirectory,
             settings.GainCalibrationDirectory,
             settings.DefectCalibrationDirectory,
-            settings.SelectedBodyPart));
+            settings.SelectedBodyPart,
+            settings.ExposureKvp));
 
-        AddLog(result.Summary);
-
-        // The preview is built here rather than in the runner: CreatePreview is this backend's, and
-        // the runner deliberately knows nothing about WPF.
-        return result.Ran && result.Pixels is not null
-            ? result with { ProcessedPreview = CreatePreview(result.Pixels, rawFrame.Width, rawFrame.Height) }
-            : result;
+        return new StageExecution(result.Ran, result.Pixels, result.Summary);
     }
 
     public int GetAlertCount() => _alerts.Count;
