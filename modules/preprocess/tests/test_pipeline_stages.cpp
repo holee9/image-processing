@@ -42,6 +42,21 @@ protected:
     fs::path              tmpDir;
 
     void SetUp() override {
+        // Start from a module with NO calibration loaded (QA-A-89, #176).
+        // xpe_preprocess_init does not clear loaded maps, so a map another test
+        // left behind used to reach DefectStageFailsWhenItsMapIsNotLoaded and
+        // answer -7 (a map of the wrong size) instead of -16 (no map). ctest
+        // runs every case in its own process and never saw it; a direct run
+        // under --gtest_shuffle --gtest_random_seed=1 did.
+        //
+        // init -> shutdown -> init: shutdown is called on an INITIALIZED module
+        // so the clear does not depend on what shutdown does when uninitialized
+        // (the header calls that a no-op; the code clears anyway). The first
+        // init's result is ignored on purpose -- a module left initialized by an
+        // earlier test answers XPE_ERR_INVALID_INPUT, and either way it is
+        // initialized when shutdown runs.
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
         ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
         tmpDir = fs::temp_directory_path() / "xpe_pipeline_stages";
         fs::remove_all(tmpDir);

@@ -80,6 +80,13 @@ protected:
 
     void TearDown() override {
         xpe_calib_cache_clear();
+        // A cache miss loads through xpe_calib_load_offset, which installs the
+        // map as the module's ACTIVE offset map as well (calibration_cache.cpp).
+        // Clearing the cache does not unload it, so an 8x8 map outlived this
+        // fixture (QA-A-89, #176). init -> shutdown releases it on an
+        // initialized module.
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
         fs::remove_all(tmpDir);
     }
 };

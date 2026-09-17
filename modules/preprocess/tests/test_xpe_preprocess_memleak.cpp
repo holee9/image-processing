@@ -109,7 +109,8 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
 
     // Accepts NOT_INITIALIZED when calibration not loaded (memleak test, not functional test)
     auto rc = xpe_offset_correct(&rawBuf, &offsetBuf, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)
+        << "xpe_offset_correct returned " << rc;
 
     xpe_preprocess_shutdown();
 }
@@ -123,6 +124,16 @@ TEST(XpePreprocessEndurance, NoMemoryLeakAfter1000Frames) {
 #ifndef _WIN32
     GTEST_SKIP() << "Process memory measurement is Windows-specific in this build";
 #endif
+
+    /* Start with no calibration loaded (QA-A-89, #176). run_one_frame accepts
+     * "no offset map" but not "an offset map of another size": a 8x8 map left
+     * by CalibCacheConcurrencyTest made the first frame's xpe_offset_correct
+     * return -8 (XPE_ERR_BUFFER_TOO_SMALL) under --gtest_random_seed=9. The
+     * frame's own shutdown then cleared it, so only one frame failed and the
+     * memory figures stayed clean -- this was never a leak.
+     * init -> shutdown so the clear runs on an initialized module. */
+    (void)xpe_preprocess_init(nullptr);
+    xpe_preprocess_shutdown();
 
     /* Allocate the 512x512 uint16 frame buffer + matching offset map ONCE. */
     std::vector<uint16_t> rawPixels(W * H, 2000);
