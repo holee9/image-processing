@@ -103,3 +103,68 @@ TEST(GsvgThreads, SetterStoresTheRequest)
     EXPECT_EQ(xpe_gsvg_set_max_threads(0), XPE_OK);
     EXPECT_EQ(xpe_gsvg_get_max_threads(), 0);
 }
+
+// QA-B-106: the masked entry points take the same passes, so they must be
+// thread-count independent too -- and the result struct must report the same
+// thing whatever the thread count.
+TEST(GsvgThreads, MaskedPathsAreBitIdenticalForEveryThreadCount)
+{
+    const std::vector<uint16_t> src = FlatScene();
+    std::vector<uint8_t> mask(src.size(), 0);
+    for (int y = 40; y < kH - 30; ++y)
+        for (int x = 25; x < kW - 35; ++x)
+            mask[static_cast<size_t>(y) * kW + x] = 1;
+    const std::string cfg = VgConfig();
+
+    auto runMasked = [&](int threads, bool useEx, XpeGsvgResult* res) {
+        EXPECT_EQ(xpe_gsvg_set_max_threads(threads), XPE_OK);
+        std::vector<uint16_t> dst(src.size(), 0);
+        void* h = nullptr;
+        EXPECT_EQ(xpe_gsvg_init(&h, cfg.c_str()), XPE_OK);
+        if (useEx) {
+            res->structSize = sizeof(XpeGsvgResult);
+            EXPECT_EQ(xpe_gsvg_process_ex(h, src.data(), src.size(), dst.data(), dst.size(),
+                                          kW, kH, nullptr, 0, mask.data(), mask.size(), res), XPE_OK);
+        } else {
+            EXPECT_EQ(xpe_gsvg_process_masked(h, src.data(), src.size(), dst.data(), dst.size(),
+                                              kW, kH, nullptr, 0, mask.data(), mask.size()), XPE_OK);
+        }
+        xpe_gsvg_shutdown(h);
+        return dst;
+    };
+
+    XpeGsvgResult res1{};
+    const std::vector<uint16_t> one = runMasked(1, false, &res1);
+    EXPECT_NE(std::memcmp(one.data(), src.data(), src.size() * 2), 0) << "control: the mask run changed the image";
+    for (int threads : {2, 3, 4, 8, 0 /* automatic */}) {
+        XpeGsvgResult res{};
+        EXPECT_EQ(std::memcmp(runMasked(threads, false, &res).data(), one.data(), one.size() * 2), 0)
+            << "process_masked differs at threads = " << threads;
+        const std::vector<uint16_t> viaEx = runMasked(threads, true, &res);
+        EXPECT_EQ(std::memcmp(viaEx.data(), one.data(), one.size() * 2), 0)
+            << "process_ex differs at threads = " << threads;
+        EXPECT_EQ(res.virtualGridApplied, 1) << threads;
+        EXPECT_EQ(res.reason, XPE_GSVG_REASON_APPLIED) << threads;
+    }
+    // pixels outside the mask keep the input (QA-B-96), whatever the thread count
+    for (size_t i = 0; i < mask.size(); ++i)
+        if (!mask[i]) ASSERT_EQ(one[i], src[i]) << i;
+    xpe_gsvg_set_max_threads(0);
+}
+
+// QA-B-106: a table and a ratio the product file does not use.
+TEST(GsvgThreads, SyntheticTableAndOtherRatioAreAlsoIdentical)
+{
+    const std::vector<uint16_t> src = FlatScene();
+    const std::string cfg =
+        "{\"virtual_grid\": true, \"vg_table_path\": \"tests/data/virtual_grid_synthetic_table.csv\""
+        ", \"vg_kvp\": 80, \"vg_grid_ratio\": 6, \"vg_pixel_pitch_mm\": 1.0,"
+        " \"vg_air_signal\": 60000, \"vg_iterations\": 5}";
+    const std::vector<uint16_t> one = Process(cfg.c_str(), src, 1);
+    EXPECT_NE(std::memcmp(one.data(), src.data(), src.size() * 2), 0) << "control";
+    for (int threads : {2, 4, 0}) {
+        EXPECT_EQ(std::memcmp(Process(cfg.c_str(), src, threads).data(), one.data(), one.size() * 2), 0)
+            << "synthetic table, ratio 6, threads = " << threads;
+    }
+    xpe_gsvg_set_max_threads(0);
+}
