@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <string>
+#include "perf_measure.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -806,4 +807,21 @@ TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalMeasure3072) {
     RecordProperty("ADV061_min_us", std::to_string(us.front()));
     RecordProperty("ADV061_med_us", std::to_string(us[us.size() / 2]));
     RecordProperty("ADV061_max_us", std::to_string(us.back()));
+}
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-99): measure-only. T308's 1024x1024 scene measured with the
+// PERFMEASURE helper, so its fixed 100 ms threshold can be read against a
+// median. (REQ-ADV-061 at 3072x3072 is measured by the test above.)
+// ---------------------------------------------------------------------------
+TEST_F(EdgeEnhancementTest, BenchmarkFreeze_Performance_T308_Fractional1024) {
+    constexpr int kSize = 1024;
+    XpeImageBuffer img = createFloatImage(kSize, kSize, 0.5f);
+    float* data = static_cast<float*>(img.data);
+    for (int y = 0; y < kSize; ++y)
+        for (int x = kSize / 2; x < kSize; ++x) data[y * kSize + x] = 1.0f;
+    const std::vector<float> original(data, data + static_cast<size_t>(kSize) * kSize);
+    perf_measure::Measure("T308/xpe_fractional_process_order1.2", "1024x1024",
+                          [&] { std::copy(original.begin(), original.end(), data); },
+                          [&] { return xpe_fractional_process(&img, 1.2f, nullptr); });
 }
