@@ -39,11 +39,32 @@ constexpr double kKvp = 80.0;
 constexpr double kI0 = 60000.0;
 constexpr double kIdealRatio = 100.0;   // tp 1, ts 0 in the synthetic table
 
-std::string ReadFile(const char* path) {
+std::string ReadRaw(const char* path) {
     std::ifstream f(path, std::ios::binary);
     std::ostringstream ss;
     ss << f.rdbuf();
     return ss.str();
+}
+
+// The table text with CRLF folded to LF, so the edits below find section
+// lines whatever line ending the checkout produced (QA-B-97 1b: a Windows CI
+// checkout turned the CSV into CRLF and five cases silently edited nothing).
+// The parser's own CRLF handling is tested on the raw bytes
+// (GsvgVirtualGridTable.ParserReadsCrlfAndLfAlike).
+std::string ReadFile(const char* path) {
+    std::string s = ReadRaw(path);
+    std::string out;
+    out.reserve(s.size());
+    for (size_t i = 0; i < s.size(); ++i)
+        if (!(s[i] == '\r' && i + 1 < s.size() && s[i + 1] == '\n')) out.push_back(s[i]);
+    return out;
+}
+
+// Offset of the "[name]" line in LF text, or npos.
+size_t SectionLine(const std::string& text, const char* name) {
+    const std::string needle = std::string("\n[") + name + "]\n";
+    const size_t p = text.find(needle);
+    return p == std::string::npos ? p : p + 1;
 }
 
 const vg::ParamTable& Table() {
@@ -162,16 +183,58 @@ TEST(GsvgVirtualGridTable, SyntheticTableLoads)
 TEST(GsvgVirtualGridTable, RequiredSectionsAreRequired)
 {
     const std::string full = ReadFile(kTablePath);
-    for (const char* sec : {"\n[kernels]\n", "\n[wet]\n", "\n[grid]\n"}) {
+    for (const char* sec : {"kernels", "wet", "grid"}) {
         std::string text = full;
-        const size_t p = text.find(sec);   // the header line, not the comment
-        ASSERT_NE(p, std::string::npos);
-        text.replace(p, std::string(sec).size(), "\n[unused]\n");
+        const size_t p = SectionLine(text, sec);   // the header line, not the comment
+        ASSERT_NE(p, std::string::npos) << sec;
+        text.replace(p, std::string(sec).size() + 2, "[unused]");
         vg::ParamTable t;
         EXPECT_NE(vg::ParseParamTable(text, t), "") << sec;
     }
     vg::ParamTable t;
     EXPECT_EQ(vg::ParseParamTable(full, t), "");   // control: the untouched file parses
+}
+
+// QA-B-97 1b: a table saved by a Windows editor (CRLF) reads exactly like the
+// LF one, from the raw bytes.
+TEST(GsvgVirtualGridTable, ParserReadsCrlfAndLfAlike)
+{
+    const std::string raw = ReadRaw(kTablePath);
+    std::string lf, crlf;
+    for (size_t i = 0; i < raw.size(); ++i) {
+        if (raw[i] == '\r' && i + 1 < raw.size() && raw[i + 1] == '\n') continue;
+        lf.push_back(raw[i]);
+    }
+    for (char ch : lf) {
+        if (ch == '\n') crlf.push_back('\r');
+        crlf.push_back(ch);
+    }
+    ASSERT_NE(crlf.find("\r\n[spr_cap]\r\n"), std::string::npos);   // the CRLF text is real
+    vg::ParamTable a, b;
+    ASSERT_EQ(vg::ParseParamTable(lf, a), "");
+    ASSERT_EQ(vg::ParseParamTable(crlf, b), "");
+    EXPECT_EQ(a.kThick, b.kThick);
+    EXPECT_EQ(a.kKvp, b.kKvp);
+    ASSERT_EQ(a.kernels.size(), b.kernels.size());
+    for (size_t i = 0; i < a.kernels.size(); ++i) {
+        EXPECT_EQ(a.kernels[i].terms, b.kernels[i].terms);
+        for (int j = 0; j < 4; ++j) {
+            EXPECT_EQ(a.kernels[i].a[j], b.kernels[i].a[j]);
+            EXPECT_EQ(a.kernels[i].s[j], b.kernels[i].s[j]);
+        }
+    }
+    EXPECT_EQ(a.wetKvp, b.wetKvp);
+    EXPECT_EQ(a.wetW0, b.wetW0);
+    EXPECT_EQ(a.wetA, b.wetA);
+    EXPECT_EQ(a.wetB, b.wetB);
+    EXPECT_EQ(a.gridRatio, b.gridRatio);
+    EXPECT_EQ(a.gridTp, b.gridTp);
+    EXPECT_EQ(a.gridTs, b.gridTs);
+    EXPECT_EQ(a.capFromKernels, b.capFromKernels);
+    EXPECT_EQ(a.capSpr, b.capSpr);
+    // Section names and the last cell of a row carry the '\r' in CRLF text.
+    EXPECT_FALSE(b.capFromKernels);
+    EXPECT_EQ(b.gridTs.back(), 0.0);
 }
 
 TEST(GsvgVirtualGridTable, IncompleteGridAndBadRowsAreRejected)
@@ -207,8 +270,10 @@ TEST(GsvgVirtualGridTable, Gauss4RowsWinOverGauss2)
 {
     // Same form as tools/mcsim/tables: both models for every node.
     std::string text = ReadFile(kTablePath);
-    const size_t k = text.find("\n[kernels]\n") + 1;
-    const size_t w = text.find("\n[wet]\n") + 1;
+    const size_t k = SectionLine(text, "kernels");
+    const size_t w = SectionLine(text, "wet");
+    ASSERT_NE(k, std::string::npos);
+    ASSERT_NE(w, std::string::npos);
     std::string kernels = "[kernels]\nthickness_cm,kvp,model,a1,s1,a2,s2,a3,s3,a4,s4\n";
     for (int t : {5, 10, 20, 30})
         for (int kv : {60, 80, 100}) {
@@ -359,21 +424,20 @@ TEST(GsvgVirtualGridFalsify, SprCapPreventsOvercorrection)
 
 // QA-B-93 (1): without [spr_cap] the cap is sum(a_i) of the kernel rows.
 namespace {
-vg::ParamTable TableWithoutCapSection() {
+void LoadWithoutCapSection(vg::ParamTable& t) {
     std::string text = ReadFile(kTablePath);
-    const size_t p = text.find("\n[spr_cap]\n");
-    EXPECT_NE(p, std::string::npos);
-    text.erase(p + 1);
-    vg::ParamTable t;
-    EXPECT_EQ(vg::ParseParamTable(text, t), "");
-    return t;
+    const size_t p = SectionLine(text, "spr_cap");
+    ASSERT_NE(p, std::string::npos) << "[spr_cap] line not found";
+    text.erase(p);
+    ASSERT_EQ(vg::ParseParamTable(text, t), "");
+    ASSERT_TRUE(t.capFromKernels);
 }
 }  // namespace
 
 TEST(GsvgVirtualGridCap, KernelSumIsTheDefaultCap)
 {
-    const vg::ParamTable t = TableWithoutCapSection();
-    ASSERT_TRUE(t.capFromKernels);
+    vg::ParamTable t;
+    ASSERT_NO_FATAL_FAILURE(LoadWithoutCapSection(t));
     EXPECT_FALSE(Table().capFromKernels);   // control: the full file keeps its section
     EXPECT_NEAR(vg::SprCapAt(t, 10.0, 80.0), 0.32 + 0.80, 1e-12);
     EXPECT_NEAR(vg::SprCapAt(t, 20.0, 100.0), 0.45 + 2.15, 1e-12);
@@ -386,8 +450,10 @@ TEST(GsvgVirtualGridCap, KernelSumIsTheDefaultCap)
     EXPECT_NEAR(vg::SprCapAt(Table(), 10.0, 80.0), 1.7, 1e-12);
     // gauss4 rows: the cap comes from the same (gauss4) rows as the kernel
     std::string text = ReadFile(kTablePath);
-    const size_t k = text.find("\n[kernels]\n") + 1;
-    const size_t w = text.find("\n[wet]\n") + 1;
+    const size_t k = SectionLine(text, "kernels");
+    const size_t w = SectionLine(text, "wet");
+    ASSERT_NE(k, std::string::npos);
+    ASSERT_NE(w, std::string::npos);
     std::string kernels = "[kernels]\nthickness_cm,kvp,model,a1,s1,a2,s2,a3,s3,a4,s4\n";
     for (int th : {5, 10, 20, 30})
         for (int kv : {60, 80, 100}) {
@@ -395,7 +461,9 @@ TEST(GsvgVirtualGridCap, KernelSumIsTheDefaultCap)
             kernels += std::to_string(th) + "," + std::to_string(kv) + ",gauss4,0.1,1,0.2,2,0.3,4,0.4,8\n";
         }
     text.replace(k, w - k, kernels + "\n");
-    text.erase(text.find("\n[spr_cap]\n") + 1);
+    const size_t c = SectionLine(text, "spr_cap");
+    ASSERT_NE(c, std::string::npos);
+    text.erase(c);
     vg::ParamTable g4;
     ASSERT_EQ(vg::ParseParamTable(text, g4), "");
     EXPECT_NEAR(vg::SprCapAt(g4, 10.0, 80.0), 1.0, 1e-12);
@@ -407,7 +475,8 @@ TEST(GsvgVirtualGridCap, LocalKernelSumCapBindsOnCorrectDataToo)
     vg::VgSwitches c1;
     c1.cap = vg::CapMode::LocalSum;
     const Scene s = MakeScene(Shape::Step);
-    const vg::ParamTable t = TableWithoutCapSection();
+    vg::ParamTable t;
+    ASSERT_NO_FATAL_FAILURE(LoadWithoutCapSection(t));
     vg::ParamTable over = t;
     for (auto& n : over.kernels)
         for (int i = 0; i < n.terms; ++i) n.a[i] *= 3.0;
@@ -848,7 +917,8 @@ vg::ParamTable Scaled(const vg::ParamTable& t, double k) {
 
 TEST(GsvgVirtualGridCapChoice, CompareCandidates)
 {
-    const vg::ParamTable base = TableWithoutCapSection();
+    vg::ParamTable base;
+    ASSERT_NO_FATAL_FAILURE(LoadWithoutCapSection(base));
     std::map<std::string, CapResult> res;   // scene|factor|candidate
     const std::vector<std::pair<const char*, Shape>> scenes = {
         {"step", Shape::Step}, {"gradient", Shape::Gradient}, {"thick+air", Shape::ThickNextToAir},

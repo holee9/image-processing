@@ -21,6 +21,8 @@ endif()
 # E2E Test executable
 add_executable(test_e2e_post_pipeline
     test_e2e_full_pipeline.cpp
+    # #180 (QA-B-97): collimation detection -> gsvg field mask
+    test_e2e_collimation_mask.cpp
 )
 
 # Include directories for all required modules
@@ -40,6 +42,11 @@ target_link_libraries(test_e2e_post_pipeline PRIVATE
     xpe_enhance_advanced
     gsvg
     xpe_display
+)
+
+# #180 (QA-B-97): synthetic and MC tables/phantoms live with the gsvg tests
+target_compile_definitions(test_e2e_post_pipeline PRIVATE
+    XPE_GSVG_TEST_DATA="${CMAKE_SOURCE_DIR}/modules/gsvg/tests/data"
 )
 
 # Enable C++17
