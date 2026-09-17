@@ -24,6 +24,7 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_common_api.h"
 #include "xcal_writer.hpp"
+#include "xcal_reader.hpp"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <cstring>
 
@@ -375,4 +376,203 @@ TEST_F(NonlinApplyTest, TheCorrectionRunsAfterOffsetAndBeforeGain) {
     EXPECT_NE(0u, m2.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
     EXPECT_NE(with_offset.px, no_offset.px)
         << "the LUT saw the same input either way -- it is not running after offset";
+}
+
+/* ===================================================================== *
+ * QA-A-112 (#186): the 65536-entry table's APPLY path, and the optional
+ * dark reference. A-111 checked 65536 only at load.
+ * ===================================================================== */
+
+namespace {
+
+/** A 16-bit ladder: the same power law, scaled to 16-bit full scale. */
+struct Sim16 {
+    static constexpr double kAdcMax16 = 65535.0;
+    std::vector<double> dose, signal;
+    std::vector<std::vector<uint16_t>> pixels;
+    std::vector<XpeImageBuffer> frames;
+    double g_nominal = 0.0;
+
+    static double Raw(double d) {
+        return kAdcMax16 * std::pow(d / kDoseMax, kGamma);
+    }
+    double Ideal(double d) const { return g_nominal * d; }
+};
+
+Sim16 MakeSim16() {
+    Sim16 s;
+    s.dose.resize(kLevels);
+    s.signal.resize(kLevels);
+    s.pixels.resize(kLevels);
+    s.frames.resize(kLevels);
+    for (int i = 0; i < kLevels; ++i) {
+        const double frac = 0.05 + 0.90 * i / (kLevels - 1.0);
+        const double sig = std::round(frac * Sim16::kAdcMax16);
+        s.signal[static_cast<size_t>(i)] = sig;
+        s.dose[static_cast<size_t>(i)] =
+            kDoseMax * std::pow(sig / Sim16::kAdcMax16, 1.0 / kGamma);
+        s.pixels[static_cast<size_t>(i)].assign(64, static_cast<uint16_t>(sig));
+        XpeImageBuffer& b = s.frames[static_cast<size_t>(i)];
+        b = XpeImageBuffer{};
+        b.data = s.pixels[static_cast<size_t>(i)].data();
+        b.width = 8; b.height = 8;
+        b.bitsAllocated = 16; b.bitsStored = 16;
+        b.format = XPE_PIXEL_UINT16;
+        b.dataSize = 128;
+    }
+    double num = 0.0, den = 0.0;
+    for (int i = 0; i < kLevels; ++i) {
+        num += s.dose[static_cast<size_t>(i)] * s.signal[static_cast<size_t>(i)];
+        den += s.dose[static_cast<size_t>(i)] * s.dose[static_cast<size_t>(i)];
+    }
+    s.g_nominal = num / den;
+    return s;
+}
+
+}  // namespace
+
+/**
+ * The 65536-entry table is applied, and the index arithmetic is right at both
+ * sizes. A-111 only proved such a file LOADS -- a table stored as (4096, 16)
+ * could load correctly and still be indexed as if it were 4096 wide, which
+ * would fold sixteen different raw values onto the same entry.
+ */
+TEST_F(NonlinApplyTest, TheSixtyFiveThousandEntryTableIsAppliedWithCorrectIndexing) {
+    const Sim16 s16 = MakeSim16();
+    const std::string path16 = std::string(::testing::TempDir()) + "/a112_lut16.xcal";
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(
+        s16.frames.data(), s16.dose.data(), kLevels, nullptr, 65536u,
+        path16.c_str(), nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(path16.c_str()));
+
+    // A frame of raw values taken straight from the measured ladder, plus the
+    // two boundary indices.
+    std::vector<uint16_t> px;
+    std::vector<double> expect;
+    for (int i = 0; i < kLevels; ++i) {
+        px.push_back(static_cast<uint16_t>(s16.signal[static_cast<size_t>(i)]));
+        expect.push_back(s16.Ideal(s16.dose[static_cast<size_t>(i)]));
+    }
+    px.push_back(0u);        expect.push_back(0.0);          // LUT[0] = 0
+    px.push_back(65535u);    expect.push_back(-1.0);         // checked separately
+    while (px.size() < 64) { px.push_back(px[0]); expect.push_back(expect[0]); }
+
+    XpeImageBuffer buf{};
+    buf.data = px.data();
+    buf.width = 8; buf.height = 8;
+    buf.bitsAllocated = 16; buf.bitsStored = 16;
+    buf.format = XPE_PIXEL_UINT16;
+    buf.dataSize = static_cast<uint32_t>(px.size() * sizeof(uint16_t));
+
+    const std::vector<uint16_t> before = px;
+    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, nullptr));
+
+    // Every measured knot lands on its independently computed ideal value.
+    // The tolerance is the requirement's 0.3% clause, on this scale.
+    const double tol = 0.003 * Sim16::kAdcMax16;
+    for (int i = 0; i < kLevels; ++i) {
+        EXPECT_NEAR(expect[static_cast<size_t>(i)],
+                    static_cast<double>(px[static_cast<size_t>(i)]), tol)
+            << "knot " << i << " raw " << before[static_cast<size_t>(i)];
+    }
+    EXPECT_EQ(0u, px[static_cast<size_t>(kLevels)]) << "LUT[0] must stay 0";
+
+    // The top index is inside a 65536-entry table, so it is a real lookup
+    // rather than the clamp a 4096-entry table would take. It must therefore
+    // sit above the highest measured knot's corrected value.
+    const double top = static_cast<double>(px[static_cast<size_t>(kLevels) + 1]);
+    EXPECT_GT(top, expect[static_cast<size_t>(kLevels) - 1]);
+
+    // The fold a wrong index width would cause: raw values 16 apart must not
+    // collapse onto one entry.
+    std::vector<uint16_t> probe = {1000u, 1016u, 1032u};
+    XpeImageBuffer pbuf{};
+    pbuf.data = probe.data();
+    pbuf.width = 3; pbuf.height = 1;
+    pbuf.bitsAllocated = 16; pbuf.bitsStored = 16;
+    pbuf.format = XPE_PIXEL_UINT16;
+    pbuf.dataSize = static_cast<uint32_t>(probe.size() * sizeof(uint16_t));
+    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&pbuf, nullptr));
+    EXPECT_NE(probe[0], probe[1]) << "raw 1000 and 1016 folded onto one entry";
+    EXPECT_NE(probe[1], probe[2]) << "raw 1016 and 1032 folded onto one entry";
+}
+
+/**
+ * A 4096-entry table with a 16-bit frame: the clamp, not an out-of-bounds read.
+ * Stated as a consequence -- everything above the table's last index has to
+ * come out as the table's last entry.
+ */
+TEST_F(NonlinApplyTest, A4096TableClampsRawValuesAboveItsLastIndex) {
+    ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(LutPath().c_str()));
+
+    std::vector<uint16_t> px = {4095u, 4096u, 20000u, 65535u};
+    XpeImageBuffer buf{};
+    buf.data = px.data();
+    buf.width = 4; buf.height = 1;
+    buf.bitsAllocated = 16; buf.bitsStored = 16;
+    buf.format = XPE_PIXEL_UINT16;
+    buf.dataSize = static_cast<uint32_t>(px.size() * sizeof(uint16_t));
+
+    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, nullptr));
+    EXPECT_EQ(px[0], px[1]);
+    EXPECT_EQ(px[0], px[2]);
+    EXPECT_EQ(px[0], px[3]);
+}
+
+/**
+ * The optional dark reference is subtracted before the means are taken.
+ *
+ * Shown by consequence rather than by reading the code: the same detector is
+ * described twice, once by frames carrying a dark pedestal plus a matching dark
+ * reference, and once by frames with no pedestal and no reference. If the
+ * subtraction happens, both runs produce the same table.
+ */
+TEST_F(NonlinApplyTest, TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken) {
+    constexpr uint16_t kDark = 150u;
+
+    Sim a = MakeSim();
+    for (int i = 0; i < kLevels; ++i) {
+        for (auto& v : a.pixels[static_cast<size_t>(i)]) {
+            v = static_cast<uint16_t>(v + kDark);
+        }
+        a.frames[static_cast<size_t>(i)].data = a.pixels[static_cast<size_t>(i)].data();
+    }
+    std::vector<uint16_t> dark_px(64, kDark);
+    XpeImageBuffer dark{};
+    dark.data = dark_px.data();
+    dark.width = 8; dark.height = 8;
+    dark.bitsAllocated = 16; dark.bitsStored = 16;
+    dark.format = XPE_PIXEL_UINT16;
+    dark.dataSize = static_cast<uint32_t>(dark_px.size() * sizeof(uint16_t));
+
+    const std::string with_dark = std::string(::testing::TempDir()) + "/a112_dark.xcal";
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(
+        a.frames.data(), a.dose.data(), kLevels, &dark, 4096u,
+        with_dark.c_str(), nullptr));
+
+    const Sim b = MakeSim();
+    const std::string no_dark = std::string(::testing::TempDir()) + "/a112_nodark.xcal";
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(
+        b.frames.data(), b.dose.data(), kLevels, nullptr, 4096u,
+        no_dark.c_str(), nullptr));
+
+    XCalFileHeader h1{}, h2{};
+    std::vector<uint8_t> c1, p1, c2, p2;
+    ASSERT_EQ(XPE_OK, read_xcal_file(with_dark.c_str(), h1, c1, p1, false,
+                                     XCAL_TYPE_NONLIN_LUT));
+    ASSERT_EQ(XPE_OK, read_xcal_file(no_dark.c_str(), h2, c2, p2, false,
+                                     XCAL_TYPE_NONLIN_LUT));
+    EXPECT_EQ(p1, p2) << "the dark reference was not subtracted";
+
+    // Control: without the reference the pedestal changes the table, so the
+    // comparison above is not two runs that were identical anyway.
+    const std::string forgotten = std::string(::testing::TempDir()) + "/a112_forgot.xcal";
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(
+        a.frames.data(), a.dose.data(), kLevels, nullptr, 4096u,
+        forgotten.c_str(), nullptr));
+    XCalFileHeader h3{};
+    std::vector<uint8_t> c3, p3;
+    ASSERT_EQ(XPE_OK, read_xcal_file(forgotten.c_str(), h3, c3, p3, false,
+                                     XCAL_TYPE_NONLIN_LUT));
+    EXPECT_NE(p1, p3) << "the pedestal is too small to tell the two apart";
 }
