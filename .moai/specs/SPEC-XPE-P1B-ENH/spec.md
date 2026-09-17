@@ -277,6 +277,13 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-012**: WHILE processing a 3072x3072 float32 image, the system SHALL complete `xpe_noise_reduce` within 100 milliseconds.
 
+> **측정 조건 보강 (2026-09-18, #179)**: 원래 문구에 필터 파라미터와 스레드 조건이 없어 무엇을 재는지 정해지지 않았습니다. 다음 조건에서 잽니다.
+> - 모드 `XPE_NOISE_BILATERAL`, `sigma_space` 3.0, `sigma_range` 50.0 (현재 벤치 값이자 구현의 2σ 절단 기준점)
+> - 스레드는 **제품 기본 설정**(`xpe_enhance_basic_set_max_threads(0)` = 자동, `min(4, 논리 코어/2)`). 단일 스레드는 기준이 아닙니다.
+> - 기준 기계: 목표 장비 사양이 정해질 때까지 개발 PC(i7-12700). CI 는 추세 관찰용입니다.
+>
+> 이 조건의 실측은 39 ms 입니다(QA-B-103). 단일 스레드는 110 ms 로 요구를 넘습니다.
+
 ### 4.3 Contrast Enhancement (SWU-2.3 / POST-03 basic)
 
 **REQ-ENH-013**: WHEN `xpe_contrast_enhance` is called with valid parameters, the system SHALL apply CLAHE with the specified `clip_limit`, `tile_width`, and `tile_height` in-place.

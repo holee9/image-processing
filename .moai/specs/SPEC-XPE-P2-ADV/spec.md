@@ -268,6 +268,10 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 - **SRS**: PERF-100
 - **Traceability**: SWU-2.6
 
+> **측정 조건 보강 (2026-09-18, #179)**: order 는 PERF-ADV-002 의 1.0 을 기준으로 하고, order 1.2 값도 함께 기록합니다. 스레드는 **제품 기본 설정**(`xpe_enhance_advanced_set_max_threads(0)` = 자동, `min(4, 논리 코어/2)`)입니다. AVX2 목표(120 ms)는 이 모듈에 명시적 SIMD 코드가 없으므로 **아직 해당 없음**이며, scalar 목표(400 ms)로 판정합니다.
+>
+> 이 조건의 실측: order 1.0 은 302 ms, order 1.2 는 320 ms (QA-B-103, 개발 PC i7-12700). 단일 스레드는 733 ms 입니다.
+
 #### REQ-ADV-062: Total Pipeline Performance Budget
 
 **When** the full advanced enhancement pipeline (MFP + Edge Enhancement + Collimation Detection + EI Calculation) is executed on a 3072x3072 FLOAT32 image, total processing time **shall** be less than 2500ms.
