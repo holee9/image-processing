@@ -17,10 +17,35 @@
 #include <cstring>
 #include <fstream>
 #include <string>
-#include <cstdio>  // std::rename
+#include <cstdio>  // std::rename, std::remove
+
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <windows.h>
+#endif
 
 // @MX:NOTE: [AUTO] Atomic write pattern: write to <path>.tmp, then rename.
 // This prevents corrupt partial files visible to concurrent readers.
+
+// Move tmp onto path, replacing an existing file (QA-A-102, #169).
+// SRS-CALIB-001 FUNC-033 (3) and the field recalibration flow overwrite an
+// existing calibration file. std::rename replaces on POSIX but refuses an
+// existing destination on Windows, which made every second write to the same
+// path fail with XPE_ERR_IO_FAILED and keep the old file.
+static bool replace_file(const std::string& tmp, const char* path)
+{
+#ifdef _WIN32
+    return MoveFileExA(tmp.c_str(), path,
+                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    return std::rename(tmp.c_str(), path) == 0;
+#endif
+}
 
 // Internal helper: build compression metadata JSON string.
 // Returns empty string if no compression metadata is needed.
@@ -201,7 +226,7 @@ XpeErrorCode write_xcal_file_ex(
         }  // f is closed here
 
         // Atomic rename
-        if (std::rename(tmp_path.c_str(), path) != 0) {
+        if (!replace_file(tmp_path, path)) {
             std::remove(tmp_path.c_str());
             return XPE_ERR_IO_FAILED;
         }
