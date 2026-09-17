@@ -32,6 +32,16 @@ std::mutex    g_initMutex;
  * Lifecycle Management (REQ-ADV-001, REQ-ADV-020)
  * ============================================================================ */
 
+#include <atomic>
+
+// #179 (QA-B-103): thread-count request for the per-pixel passes. Process-wide
+// and add-only; the output does not depend on it (see the header).
+namespace {
+std::atomic<int> g_maxThreads{0};
+}
+
+int XpeAdvThreadRequest() { return g_maxThreads.load(std::memory_order_relaxed); }
+
 extern "C" {
 
 XPE_API XpeErrorCode xpe_enhance_advanced_init(const char* configJsonOrNull) {
@@ -70,6 +80,17 @@ XPE_API void xpe_enhance_advanced_shutdown(void) {
 
 XPE_API const char* xpe_enhance_advanced_version(void) {
     return XPE_ENHANCE_ADVANCED_VERSION;
+}
+
+XPE_API XpeErrorCode xpe_enhance_advanced_set_max_threads(int32_t threads)
+{
+    g_maxThreads.store(threads > 0 ? threads : 0, std::memory_order_relaxed);
+    return XPE_OK;
+}
+
+XPE_API int32_t xpe_enhance_advanced_get_max_threads(void)
+{
+    return g_maxThreads.load(std::memory_order_relaxed);
 }
 
 /* ============================================================================

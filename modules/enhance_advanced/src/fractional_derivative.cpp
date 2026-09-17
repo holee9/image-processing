@@ -11,6 +11,10 @@
  */
 
 #include "detail/fractional_derivative.h"
+#include "detail/parallel_rows.h"
+
+// Thread-count request, stored in xpe_enhance_advanced.cpp (#179, QA-B-103).
+int XpeAdvThreadRequest();
 #include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_common_api.h"
 #include <cmath>
@@ -185,7 +189,12 @@ void applyOvershootLimiting(const float* original, float* enhanced,
                             int width, int height) {
     const float overshootFactor = 3.0f;  // SAF-100: Fixed at 3*sigma
 
-    for (int y = 0; y < height; ++y) {
+    // #179 (QA-B-103): row bands. Each output pixel reads `original` only --
+    // never `enhanced` of another row -- so the bands are independent and the
+    // result does not depend on the thread count.
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         for (int x = 0; x < width; ++x) {
             size_t idx = y * static_cast<size_t>(width) + x;
 
@@ -227,6 +236,7 @@ void applyOvershootLimiting(const float* original, float* enhanced,
             }
         }
     }
+    });
 }
 
 /* ============================================================================
@@ -257,7 +267,9 @@ static void convolveHorizontal(const float* src, float* dst,
     // QA-B-102 (#179): columns half .. width-1-half read no clamped index, so
     // the clamp and the row offset are hoisted out of the inner loop. Same
     // values, same order of accumulation.
-    for (int y = 0; y < height; ++y) {
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         const float* row = src + y * static_cast<size_t>(width);
         for (int x = 0; x < width; ++x) {
             float sum = 0.0f;
@@ -282,6 +294,7 @@ static void convolveHorizontal(const float* src, float* dst,
             dst[y * static_cast<size_t>(width) + x] = sum;
         }
     }
+    });
 }
 
 /// @brief Apply a 1D fractional derivative kernel along the vertical axis
@@ -289,7 +302,9 @@ static void convolveVertical(const float* src, float* dst,
                              int width, int height,
                              const float* mask, int maskSize) {
     const int half = maskSize / 2;
-    for (int y = 0; y < height; ++y) {
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         const bool interiorRow = y >= half && y + half < height;
         for (int x = 0; x < width; ++x) {
             float sum = 0.0f;
@@ -317,6 +332,7 @@ static void convolveVertical(const float* src, float* dst,
             dst[y * static_cast<size_t>(width) + x] = sum;
         }
     }
+    });
 }
 
 XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConfig& config) {
@@ -343,11 +359,15 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
     size_t totalPixels = static_cast<size_t>(width) * height;
 
     // REQ-ADV-032: Sanitize input NaN/Inf to 0.0f before processing.
-    for (size_t i = 0; i < totalPixels; ++i) {
-        if (!std::isfinite(data[i])) {
-            data[i] = 0.0f;
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+        for (size_t i = static_cast<size_t>(yBegin) * width;
+             i < static_cast<size_t>(yEnd) * width; ++i) {
+            if (!std::isfinite(data[i])) {
+                data[i] = 0.0f;
+            }
         }
-    }
+    });
 
     // Store original for overshoot limiting and derivative computation
     std::vector<float> original(data, data + totalPixels);
@@ -380,7 +400,9 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
     // limiting (SAF-100) still has room to clip cleanly.
     const float gain = std::min(1.0f + 0.5f * config.order, 2.0f);
 
-    for (size_t i = 0; i < totalPixels; ++i) {
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (size_t i = static_cast<size_t>(yBegin) * width;
+         i < static_cast<size_t>(yEnd) * width; ++i) {
         float gx = Dx[i];
         float gy = Dy[i];
         float gMag = std::sqrt(gx * gx + gy * gy);
@@ -393,6 +415,7 @@ XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConf
         // REQ-ADV-032: Guard output
         if (!std::isfinite(data[i])) data[i] = original[i];
     }
+    });
 
     // SAF-100: Apply overshoot limiting (MANDATORY)
     applyOvershootLimiting(original.data(), data, width, height);

@@ -103,6 +103,8 @@ if(_XPE_BUILD_TESTS)
     set(XPE_TEST_SOURCES
         tests/test_log_transform.cpp
         tests/test_noise_reduce.cpp
+        # #179 (QA-B-103): output does not depend on the thread count
+        tests/test_thread_determinism.cpp
         tests/test_contrast_enhance.cpp
         tests/test_edge_enhance.cpp
         tests/test_exposure_index.cpp
