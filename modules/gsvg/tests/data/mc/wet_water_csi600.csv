@@ -1,0 +1,20 @@
+# [wet] water-equivalent thickness model -- simulation-based, not calibrated (QA-A-98, #180)
+# mu(t) = w0 - a*t/(1+b*t) [1/cm], L = -ln(P/I0) = mu(t)*t, t = water thickness [cm] (US 7,907,697 B2 form).
+# A real system needs its own per-pixel calibration of this curve (US 7,907,697); these values only
+# describe the simulation below.
+# Source: MC-GPU v1.3 photon-counting fork (DIDSR/MCGPUv1.3_PCD_scatterMode e57bd50a0c51), tools/mcsim at commit 5c6ea0c
+# Generated 2026-09-17 by tools/mcsim/wet_curve.py.
+# Assumptions (all of them): pencil beam, NON-SCATTERED photons only; water 1.00 g/cm^3 (waterMIF 5-150 keV table);
+#   thickness 0-30 cm in 1 cm steps; I0 = same pencil through 1 cm of air (air_5_150_keV table);
+#   tungsten spectrum SpekPy 2.5.4, anode 12 deg, total filtration 2.5 mm Al; SDD 100 cm, air gap 2 cm (vacuum);
+#   detector response = energy absorbed in CsI 600 um, normal incidence, no K-escape, no light spread;
+#   1e+08 histories per thickness. Fit: least squares on L(t) over all thicknesses, w0, a, b >= 0.
+# Fit quality per kVp is in wet_water_csi600_fit.csv.
+kvp,w0,a,b
+60,0.320332,0.00607909,0.0672916
+70,0.2932,0.00467562,0.0594096
+80,0.274991,0.00410444,0.059599
+90,0.261244,0.00348084,0.0567083
+100,0.251253,0.00298762,0.0532508
+110,0.243533,0.00260241,0.0499952
+120,0.23805,0.0023782,0.0480295

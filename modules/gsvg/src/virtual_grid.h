@@ -114,6 +114,7 @@ struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
     CapMode cap = CapMode::GlobalSum;
     double capEps = 0.0;          // eps for PrimaryFloor / SmoothFloor
+    int reductionFactor = 0;      // 0: derived from the narrowest kernel term (QA-B-95: fixed to compare models)
     bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
 };
 

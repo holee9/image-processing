@@ -1,0 +1,52 @@
+{
+ "kind": "wedge",
+ "kvp": 80.0,
+ "launches": 100,
+ "histories_total": 10001280000,
+ "det_size_cm": 32.0,
+ "pixels": 80,
+ "pixel_pitch_mm": 4.0,
+ "sdd_cm": 100.0,
+ "air_gap_cm": 2.0,
+ "field_cm_at_detector": 30.0,
+ "csi_um": 600.0,
+ "box_cm": [
+  40.0,
+  30.0,
+  40.0
+ ],
+ "voxel_cm": [
+  0.5,
+  0.5,
+  40.0
+ ],
+ "date": "2026-09-17",
+ "primary_counts_min_in_field": 3709.0,
+ "center_primary_csi": 0.10881659299798703,
+ "center_total_csi": 0.4676406406469733,
+ "files": {
+  "primary": "wedge_80kVp_primary.f32",
+  "total": "wedge_80kVp_total.f32",
+  "air": "wedge_80kVp_air.f32",
+  "thickness": "wedge_80kVp_thickness.f32"
+ },
+ "dtype": "float32 little-endian",
+ "shape": [
+  80,
+  80
+ ],
+ "row": "detector z",
+ "column": "detector x",
+ "units": {
+  "primary": "CsI-absorbed energy per pixel per history [eV]",
+  "total": "same, non-scattered + scattered",
+  "air": "same, no phantom (30 cm of air)",
+  "thickness": "water path length along the ray to the pixel centre [cm]"
+ },
+ "air_center": 7.188730931072601,
+ "dn_air": 50000.0,
+ "dn_scale": 6955.33056938879,
+ "dn_note": "DN = value * dn_scale; airSignal = dn_air. The virtual grid clamps at 65535.",
+ "field": "30 x 30 cm at the detector, centred; pixels outside it are ~0 in all images",
+ "assumptions": "water 1.00 g/cm^3 (waterMIF 5-150 keV), 2.5 mm Al, anode 12 deg, CsI 600 um normal incidence, no grid/table/cover/off-focus; simulation-based, not calibrated"
+}

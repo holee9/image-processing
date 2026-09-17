@@ -613,7 +613,8 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
             for (int i = 0; i < n.terms; ++i) sMin = std::min(sMin, n.s[i]);
         }
     const double pitchCm = st.pixelPitchMm / 10.0;
-    const int f = std::max(1, static_cast<int>(std::floor(0.5 * sMin / pitchCm)));
+    const int f = sw.reductionFactor > 0 ? sw.reductionFactor
+                                         : std::max(1, static_cast<int>(std::floor(0.5 * sMin / pitchCm)));
     const int cw = (width + f - 1) / f, ch = (height + f - 1) / f;
     rep.factor = f;
     rep.coarseW = cw;
