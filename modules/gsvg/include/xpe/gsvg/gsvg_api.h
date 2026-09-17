@@ -329,6 +329,8 @@ XPE_API XpeErrorCode xpe_gsvg_process_ex(void* handle,
  * @param handle GSVG handle returned by xpe_gsvg_init, or NULL.
  * @return XPE_OK always.
  */
+XPE_API XpeErrorCode xpe_gsvg_shutdown(void* handle);
+
 /**
  * @brief Set how many threads the image passes of this module may use.
  *
@@ -354,8 +356,6 @@ XPE_API XpeErrorCode xpe_gsvg_set_max_threads(int32_t threads);
  * @return The stored request, not the resolved count.
  */
 XPE_API int32_t xpe_gsvg_get_max_threads(void);
-
-XPE_API XpeErrorCode xpe_gsvg_shutdown(void* handle);
 
 #ifdef __cplusplus
 }

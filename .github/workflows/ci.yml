@@ -67,6 +67,15 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-TrackedTextFiles.ps1
 
+      # #159: Doxygen runs with WARN_AS_ERROR in a separate workflow, and lane
+      # sessions have no doxygen installed, so a mismatched @param is found after
+      # the merge. This check needs only python and catches the three mismatch
+      # classes that have actually broken the build. It runs in text-lint, which
+      # gates nothing, for the same reason the whitespace check does.
+      - name: Check public header doc comments
+        shell: pwsh
+        run: python tools/docs/check_header_docs.py
+
   common-build:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
