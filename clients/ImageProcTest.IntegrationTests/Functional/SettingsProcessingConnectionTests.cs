@@ -210,8 +210,8 @@ public sealed class SettingsProcessingConnectionTests
     {
         var survey = Survey.Run(Unconnected, ViewState);
 
-        // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp.
-        Assert.Equal(26, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp; GUI-C-100 added PixelPitchMm.
+        Assert.Equal(27, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBSharpeningSigma) && b.Via == "LaneBSharpeningSigma" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
@@ -234,6 +234,7 @@ public sealed class SettingsProcessingConnectionTests
                      nameof(AppSettings.DefectCalibrationDirectory), nameof(AppSettings.SelectedBodyPart),
                      nameof(AppSettings.RawWidth),
                      nameof(AppSettings.PreprocessInChain), nameof(AppSettings.ExposureKvp),
+                     nameof(AppSettings.PixelPitchMm),
                  })
         {
             Assert.Contains(p, reads);

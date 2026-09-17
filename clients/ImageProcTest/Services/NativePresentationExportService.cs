@@ -492,7 +492,7 @@ namespace ImageProcTest
                 KVp = 120.0f,
                 MAs = 10.0f,
                 SID_mm = 1200.0f,
-                PixelPitch_mm = 0.143f,
+                PixelPitch_mm = DetectorDefaults.PixelPitchMm,   // GUI-C-100: 140 µm, one source
                 AcquisitionTime = checked((ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
                 Flags = 0
             };
