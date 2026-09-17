@@ -153,6 +153,44 @@ jobs:
         shell: pwsh
         run: ctest --test-dir build/ci-preprocess --build-config RelWithDebInfo --output-on-failure
 
+      # #176 (2026-09-17): ctest runs every test in its OWN process (gtest_discover_tests),
+      # so global state that leaks from one test into the next can never show there — the
+      # next test always starts clean. Three order-dependent tests lived behind that, one of
+      # them already red in the DEFAULT order when the binary was run directly (QA-A-88).
+      # Running the binary as one process is the only place that leak is visible.
+      #
+      # Default order plus two fixed shuffle seeds. The seeds are pinned so a failure here is
+      # reproducible; a shuffle without a recorded seed is an observation nobody can repeat.
+      # Seeds 1 and 9 are the two that exposed the (nah)/(da) leaks before QA-A-89.
+      #
+      # The summary line is checked, not just the exit code: a run that never starts (missing
+      # DLL, bad path) exits non-zero with no summary, and a script that reads only its own
+      # failure list sees an empty list as a pass (observed in QA-A-89).
+      - name: Run preprocess test binary as one process (#176)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build/ci-preprocess -Recurse -Filter xpe_preprocess_tests.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error 'xpe_preprocess_tests.exe not found - cannot run the single-process check'; exit 1 }
+          $env:PATH = "$($exe.DirectoryName);$env:PATH"
+          $runs = @(
+            @{ name = 'default order'; args = @() },
+            @{ name = 'shuffle seed 1'; args = @('--gtest_shuffle', '--gtest_random_seed=1') },
+            @{ name = 'shuffle seed 9'; args = @('--gtest_shuffle', '--gtest_random_seed=9') }
+          )
+          $bad = 0
+          foreach ($r in $runs) {
+            $out = & $exe.FullName @($r.args) 2>&1 | Out-String
+            $code = $LASTEXITCODE
+            $summary = ($out -split "`n" | Where-Object { $_ -match '^\[\s*(PASSED|FAILED)\s*\]' }) -join ' | '
+            Write-Host ("{0}: exit={1} summary={2}" -f $r.name, $code, $summary)
+            if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $r.name); $bad++ ; continue }
+            if ($code -ne 0) {
+              ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
+              $bad++
+            }
+          }
+          if ($bad -gt 0) { Write-Error ("{0} single-process run(s) failed - state leaks between tests that ctest's per-test processes hide (#176)" -f $bad); exit 1 }
+
       - name: Upload preprocess test results
         if: always()
         uses: actions/upload-artifact@v6
