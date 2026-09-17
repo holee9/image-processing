@@ -89,6 +89,89 @@ public sealed class EvidenceBundleScenarios(ITestOutputHelper output)
         Assert.Empty(loose);
     }
 
+    /// <summary>
+    /// IB-01 (#178, GUI-C-89): a successful Initialize Backend starts a new run set — the evidence before
+    /// and after it lands in two folders under two run ids, and the top bar's "Run #" follows.
+    /// </summary>
+    [SkippableFact]
+    public void IB01_InitializeBackend_StartsANewRunSet()
+    {
+        using var app = new BundleApp();
+        var before = RecordAndExport("IB01-1", app);
+        var shownBefore = ShownRunId(app);
+
+        InitializeBackend(app);
+        var shownAfter = ShownRunId(app);
+        var after = RecordAndExport("IB01-2", app);
+        output.WriteLine($"IB01 run ids: exported {before.RunId} -> {after.RunId}; top bar '{shownBefore}' -> '{shownAfter}'");
+
+        Assert.False(string.IsNullOrEmpty(before.RunId), $"The first export failed: '{before.Status}'.");
+        Assert.False(string.IsNullOrEmpty(after.RunId), $"The second export failed: '{after.Status}'.");
+        Assert.True(
+            before.RunId != after.RunId,
+            $"Initialize Backend succeeded but the evidence before and after it share run id {before.RunId}, so the later " +
+            "backend.json overwrote the earlier one (#178).");
+        Assert.True(Directory.Exists(before.EvidenceDirectory) && Directory.Exists(after.EvidenceDirectory), "An evidence folder is missing.");
+        Assert.Equal(before.RunId, shownBefore);
+        Assert.Equal(after.RunId, shownAfter);
+    }
+
+    /// <summary>
+    /// IB-02 (#178, GUI-C-89): the actual backend changes between two run sets of one launch. Native is
+    /// requested with an EMPTY DLL directory (actual Mock); the native DLLs are then copied in and the
+    /// backend is initialised again (actual Native). The reverse order is not possible: a loaded DLL is
+    /// locked and cannot be removed from under the running app.
+    /// </summary>
+    [SkippableFact]
+    public void IB02_InitializeAfterTheDllsAppear_RecordsMockThenNative()
+    {
+        var source = Environment.GetEnvironmentVariable(ApplicationFixture.NativeDirVariable);
+        Skip.If(
+            Environment.GetEnvironmentVariable(ApplicationFixture.BackendVariable) != "Native" || string.IsNullOrWhiteSpace(source),
+            "Needs a Native run with XPE_NATIVE_DIR naming the staged DLLs to copy in.");
+
+        var dir = EmptyDirectory();
+        using var app = new FallbackBundleAppIn(dir);
+        var first = RecordAndExport("IB02-1", app);
+
+        foreach (var file in Directory.GetFiles(source!, "*.dll"))
+        {
+            File.Copy(file, Path.Combine(dir.FullName, Path.GetFileName(file)), overwrite: true);
+        }
+
+        InitializeBackend(app);
+        var second = RecordAndExport("IB02-2", app);
+        Assert.False(string.IsNullOrEmpty(first.RunId), $"The first export failed: '{first.Status}'.");
+        Assert.False(string.IsNullOrEmpty(second.RunId), $"The second export failed: '{second.Status}'.");
+        Assert.NotEqual(first.RunId, second.RunId);
+
+        var a = ReadBackend(first.EvidenceDirectory!);
+        var b = ReadBackend(second.EvidenceDirectory!);
+        output.WriteLine($"IB02 {first.RunId}: actual={a.Actual} requested={a.Requested}; {second.RunId}: actual={b.Actual} requested={b.Requested}");
+        Assert.Equal(("Mock", "Native"), (a.Actual, a.Requested));
+        Assert.Equal(("Native", "Native"), (b.Actual, b.Requested));
+    }
+
+    private void InitializeBackend(ApplicationFixture app)
+    {
+        var window = app.MainWindow!;
+        var button = window.FindFirstDescendant(cf => cf.ByAutomationId("InitializeBackendButton"));
+        Assert.True(button is not null, "InitializeBackendButton was not found.");
+        button!.AsButton().Invoke();
+        Thread.Sleep(1500);
+        output.WriteLine($"after Initialize: status-bar='{RuntimeSummary(window)}' status='{window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name}'");
+    }
+
+    /// <summary>The run id the top bar shows ("… · Run #&lt;id&gt;").</summary>
+    private static string ShownRunId(ApplicationFixture app)
+    {
+        var text = app.MainWindow!.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+            .Select(t => { try { return t.Name ?? string.Empty; } catch { return string.Empty; } })
+            .FirstOrDefault(t => t.Contains("Run #", StringComparison.Ordinal)) ?? string.Empty;
+        var at = text.IndexOf("Run #", StringComparison.Ordinal);
+        return at < 0 ? string.Empty : text[(at + "Run #".Length)..].Trim();
+    }
+
     private sealed record Recorded(string Status, string? ZipPath, string? RunId, string? EvidenceDirectory);
 
     private Recorded RecordAndExport(string scenario, ApplicationFixture app)
@@ -138,9 +221,11 @@ public sealed class EvidenceBundleScenarios(ITestOutputHelper output)
     /// <summary>Native requested with an empty DLL directory: the actual mode is Mock.</summary>
     private sealed class FallbackBundleApp() : ApplicationFixture(RawRelativePath, EmptyDirectory());
 
+    private sealed class FallbackBundleAppIn(DirectoryInfo dir) : ApplicationFixture(RawRelativePath, dir);
+
     private static DirectoryInfo EmptyDirectory()
     {
-        var dir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"xpe-e2e-empty-native-eb-{Environment.ProcessId}"));
+        var dir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"xpe-e2e-empty-native-eb-{Environment.ProcessId}-{Guid.NewGuid():N}"));
         foreach (var file in dir.GetFiles()) file.Delete();
         return dir;
     }
