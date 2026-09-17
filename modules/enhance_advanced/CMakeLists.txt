@@ -108,6 +108,8 @@ if(BUILD_TESTS)
         tests/test_mfp_scalar.cpp
         tests/test_collimation_detect.cpp
         tests/test_edge_enhancement.cpp
+        # #179 (QA-B-103): output does not depend on the thread count
+        tests/test_thread_determinism.cpp
         tests/test_exposure_index.cpp
         tests/test_integration.cpp
         # Absorbed from tests/enhance_advanced_tests/ (#113 / QA-B-10). These were an

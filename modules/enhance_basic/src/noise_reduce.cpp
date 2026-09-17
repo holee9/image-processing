@@ -2,6 +2,8 @@
 // SPEC-XPE-P1B-ENH  REQ-ENH-007..012
 
 #include "xpe/enhance_basic/enhance_basic_api.h"
+#include "parallel_rows.h"
+int XpeThreadRequest();
 #include "xpe/enhance_basic/enhance_basic_internal.h"
 
 #include <cmath>
@@ -93,31 +95,9 @@ static void bilateral_h_row(const float* src_row, float* dst_row, int w,
     }
 }
 
-static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, float sigma_range)
+static void bilateral_band(int yBegin, int yEnd, const float* src, float* px, int w, int h,
+                           int radius, int ksize, const float* sp_w, float minus_half_sr2_inv)
 {
-    int w = static_cast<int>(img->width);
-    int h = static_cast<int>(img->height);
-    float* px = float_pixels(img);
-
-    // 2σ truncation: ksize=13 for sigma_space=3 — retains 95.4% of Gaussian mass.
-    // 3σ (ksize=19) adds negligible denoising quality for 31% extra compute cost.
-    int radius = static_cast<int>(std::ceil(2.0f * sigma_space));
-    int maxRad = std::min(15, std::min(w, h) / 2 - 1);
-    if (maxRad < 1) maxRad = 1;
-    if (radius > maxRad) radius = maxRad;
-    if (radius < 1) radius = 1;
-    int ksize = 2 * radius + 1;
-
-    float ss2_inv            = 1.0f / (sigma_space * sigma_space);
-    float minus_half_sr2_inv = -0.5f / (sigma_range * sigma_range);
-
-    // Spatial weight LUT: exp(-0.5 * d^2 / sigma_space^2) for d = 0..ksize-1
-    std::vector<float> sp_w(static_cast<size_t>(ksize));
-    for (int k = 0; k < ksize; ++k) {
-        int d = k - radius;
-        sp_w[static_cast<size_t>(k)] = std::exp(-0.5f * static_cast<float>(d * d) * ss2_inv);
-    }
-
     // Ring buffer: ksize h-blurred rows.
     // For default integration params (sigma_space=3, ksize=13, w=3072):
     //   ring = 13 × 3072 × 4 B = 156 KB — fits in L2 cache.
@@ -126,13 +106,13 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
     std::vector<float> wsum_buf(static_cast<size_t>(w));
     std::vector<float> vsum_buf(static_cast<size_t>(w));
 
-    // Pre-fill ring with h-blurred rows 0..ksize-1 (top boundary clamped)
-    for (int r = 0; r < ksize; ++r) {
-        int sy = std::min(r, h - 1);
-        bilateral_h_row(px + static_cast<int64_t>(sy) * w,
-                         ring.data() + static_cast<int64_t>(r) * w,
+    // Pre-fill ring with the h-blurred rows this band starts from.
+    for (int r = yBegin - radius; r <= yBegin + radius; ++r) {
+        int sy = std::clamp(r, 0, h - 1);
+        bilateral_h_row(src + static_cast<int64_t>(sy) * w,
+                         ring.data() + static_cast<int64_t>(((r % ksize) + ksize) % ksize) * w,
                          w, wsum_buf.data(), vsum_buf.data(),
-                         sp_w.data(), radius, minus_half_sr2_inv);
+                         sp_w, radius, minus_half_sr2_inv);
     }
 
     // Streaming vertical bilateral pass with ring buffer.
@@ -145,7 +125,7 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
     //
     // Ring slot invariant (same as edge_enhance.cpp): before v-blur at row y,
     // ring[r % ksize] holds h_bilateral(clamped(r)) for r in [y-radius, y+radius].
-    for (int y = 0; y < h; ++y) {
+    for (int y = yBegin; y < yEnd; ++y) {
         const float* center_row = ring.data() + static_cast<int64_t>(y % ksize) * w;
         float* ws = wsum_buf.data();
         float* vs = vsum_buf.data();
@@ -156,7 +136,7 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
         // Vertical bilateral accumulation — restructured to k outer, x inner
         // so the inner x-loop can be auto-vectorized with SVML exp8.
         for (int k = 0; k < ksize; ++k) {
-            float sw = sp_w[static_cast<size_t>(k)];
+            float sw = sp_w[k];
             int sy   = y + k - radius;
             if (sy < 0) sy = 0;
             else if (sy >= h) sy = h - 1;
@@ -185,13 +165,56 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
         {
             int next_src  = std::min(y + radius + 1, h - 1);
             int next_slot = (y + radius + 1) % ksize;
-            bilateral_h_row(px + static_cast<int64_t>(next_src) * w,
+            bilateral_h_row(src + static_cast<int64_t>(next_src) * w,
                              ring.data() + static_cast<int64_t>(next_slot) * w,
                              w, wsum_buf.data(), vsum_buf.data(),
-                             sp_w.data(), radius, minus_half_sr2_inv);
+                             sp_w, radius, minus_half_sr2_inv);
         }
     }
 
+}
+
+static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, float sigma_range)
+{
+    int w = static_cast<int>(img->width);
+    int h = static_cast<int>(img->height);
+    float* px = float_pixels(img);
+
+    // 2σ truncation: ksize=13 for sigma_space=3 — retains 95.4% of Gaussian mass.
+    // 3σ (ksize=19) adds negligible denoising quality for 31% extra compute cost.
+    int radius = static_cast<int>(std::ceil(2.0f * sigma_space));
+    int maxRad = std::min(15, std::min(w, h) / 2 - 1);
+    if (maxRad < 1) maxRad = 1;
+    if (radius > maxRad) radius = maxRad;
+    if (radius < 1) radius = 1;
+    int ksize = 2 * radius + 1;
+
+    float ss2_inv            = 1.0f / (sigma_space * sigma_space);
+    float minus_half_sr2_inv = -0.5f / (sigma_range * sigma_range);
+
+    // Spatial weight LUT: exp(-0.5 * d^2 / sigma_space^2) for d = 0..ksize-1
+    std::vector<float> sp_w(static_cast<size_t>(ksize));
+    for (int k = 0; k < ksize; ++k) {
+        int d = k - radius;
+        sp_w[static_cast<size_t>(k)] = std::exp(-0.5f * static_cast<float>(d * d) * ss2_inv);
+    }
+
+    // #179 (QA-B-103): row bands, each with its own ring buffer, reading a copy
+    // of the source (a band must not h-blur rows another band already wrote).
+    // The copy costs one image of memory and a pass over it, which is why the
+    // single-thread path below skips it entirely: with one band there is
+    // nothing to protect, and QA-B-103 measured the copy path at 219 ms
+    // against 121 ms for the original in-place loop at 3072x3072.
+    const int threads = xpe_parallel::ResolveThreads(XpeThreadRequest(), h);
+    if (threads <= 1) {
+        bilateral_band(0, h, px, px, w, h, radius, ksize, sp_w.data(), minus_half_sr2_inv);
+        return XPE_OK;
+    }
+    const std::vector<float> src_copy(px, px + static_cast<size_t>(w) * static_cast<size_t>(h));
+    xpe_parallel::ForRows(h, threads, [&](int y0, int y1) {
+        bilateral_band(y0, y1, src_copy.data(), px, w, h, radius, ksize, sp_w.data(),
+                       minus_half_sr2_inv);
+    });
     return XPE_OK;
 }
 
