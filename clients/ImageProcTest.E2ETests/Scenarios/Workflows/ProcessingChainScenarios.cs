@@ -76,6 +76,84 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
+    /// <summary>
+    /// C-02 (GUI-C-100): what changing the exposure kVp does to the drawn pixels. Measured, not assumed —
+    /// the preprocess module's sources mention kVp only in the parameter-range table it answers queries
+    /// from (preprocess.cpp:22); offset, gain and defect only null-check the metadata. So the pixels are
+    /// expected NOT to change, and this case records that. It turning red means a stage started using the
+    /// value, which is a change to report, not a failure to hide.
+    /// </summary>
+    [SkippableFact]
+    public void C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "The preprocess stage only runs on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+        Skip.If(app.CalibrationDirectory is null, app.CalibrationNote);
+
+        try
+        {
+            SetPreprocess(window, true);
+            SetNumber(window, "ExposureKvpInput", "70");
+            ApplyDisplayPipeline(window);
+            WaitForChain(window, "preprocess=Applied");
+            var at70 = DrawnHash(window);
+
+            SetNumber(window, "ExposureKvpInput", "120");
+
+            // The write has to reach the view model, or the comparison below would be between two runs at
+            // 70 kVp. ChainInputsDiffer lists ExposureKvp (GUI-C-99), so the image is marked stale the
+            // moment the new value lands — that mark is the evidence the setting changed.
+            var stale = WaitForStale(window);
+            output.WriteLine($"C02 after typing 120: stale='{stale}' text='{ReadNumber(window, "ExposureKvpInput")}'");
+            Assert.True(stale is not null, "Typing a new kVp did not mark the image stale, so the value never reached the chain inputs.");
+            Assert.Equal("120", ReadNumber(window, "ExposureKvpInput"));
+
+            ApplyDisplayPipeline(window);
+            WaitForChain(window, "preprocess=Applied");
+            var at120 = DrawnHash(window);
+
+            output.WriteLine($"C02 kVp 70 -> {at70}, kVp 120 -> {at120}");
+            Assert.Equal(16, at70.Length);
+            Assert.Equal(at70, at120);
+        }
+        finally
+        {
+            SetNumber(window, "ExposureKvpInput", "70");
+            SetPreprocess(window, false);
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    private static string ReadNumber(Window window, string automationId) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsTextBox().Text ?? "(missing)";
+
+    private static string? WaitForStale(Window window)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            var reason = StaleIndicator(window);
+            if (reason is not null) return reason;
+            Thread.Sleep(100);
+        }
+
+        return null;
+    }
+
+    private static void SetNumber(Window window, string automationId, string value)
+    {
+        OpenParameters(window);
+        var box = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        Assert.True(box is not null, $"{automationId} is not in the Parameters tab.");
+        var input = box!.AsTextBox();
+        input.Focus();
+        input.Text = value;
+        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        Thread.Sleep(400);
+    }
+
     private static void SetPreprocess(Window window, bool on)
     {
         OpenParameters(window);

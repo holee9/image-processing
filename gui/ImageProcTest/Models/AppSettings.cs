@@ -60,6 +60,7 @@ public sealed class AppSettings : ObservableObject
     private string _lastRunSetId = string.Empty;
     private bool _preprocessInChain;
     private float _exposureKvp = 70.0f;
+    private float _pixelPitchMm = 0.14f;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -453,6 +454,19 @@ public sealed class AppSettings : ObservableObject
     {
         get => _exposureKvp;
         set => SetProperty(ref _exposureKvp, value > 0.0f && float.IsFinite(value) ? value : 70.0f);
+    }
+
+    /// <summary>
+    /// Detector pixel pitch [mm], one value for every chain stage that needs it (GUI-C-100, user decision:
+    /// 140 µm). It used to be a literal in GuiPreprocessRunner (0.14) and in the clients-side probes (0.143);
+    /// a future GSVG stage passes this same value as <c>vg_pixel_pitch_mm</c>. Values outside the range the
+    /// preprocess module reports for <c>pixelPitch_mm</c> (0.1–0.5 mm) fall back to the default.
+    /// </summary>
+    [JsonPropertyName("pixelPitchMm")]
+    public float PixelPitchMm
+    {
+        get => _pixelPitchMm;
+        set => SetProperty(ref _pixelPitchMm, value is >= 0.1f and <= 0.5f ? value : 0.14f);
     }
 
     [JsonPropertyName("lastRunSetId")]

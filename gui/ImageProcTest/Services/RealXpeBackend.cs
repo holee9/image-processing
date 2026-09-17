@@ -290,7 +290,8 @@ public sealed class RealXpeBackend : IXpeBackend
             settings.GainCalibrationDirectory,
             settings.DefectCalibrationDirectory,
             settings.SelectedBodyPart,
-            settings.ExposureKvp));
+            settings.ExposureKvp,
+            settings.PixelPitchMm));
 
         return new StageExecution(result.Ran, result.Pixels, result.Summary);
     }

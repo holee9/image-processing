@@ -239,6 +239,13 @@
                              BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
                              ToolTip="Tube voltage of the exposure. One value for every chain stage that needs it (default 70)." />
 
+                    <TextBlock Text="Pixel pitch (mm)" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <TextBox AutomationProperties.AutomationId="PixelPitchInput"
+                             Text="{Binding Settings.PixelPitchMm, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#0DFFFFFF" Foreground="#f0f2f5"
+                             BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
+                             ToolTip="Detector pixel pitch. One value for every chain stage that needs it (default 0.14 = 140 µm)." />
+
                     <TextBlock AutomationProperties.AutomationId="ChainStatusPanelText"
                                Text="{Binding ChainStatus}" TextWrapping="Wrap"
                                Foreground="#8a909c" FontSize="10" Margin="0,0,0,12" />

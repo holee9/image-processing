@@ -185,6 +185,26 @@ public sealed class ProcessingChainRunnerTests
         Assert.Equal(on, stage.Enabled);
     }
 
+    /// <summary>
+    /// PixelPitchMm is 0.14 (140 µm, the GUI-C-100 decision) and refuses values outside the range the
+    /// preprocess module reports for <c>pixelPitch_mm</c> (0.1–0.5 mm, preprocess.cpp:25).
+    /// </summary>
+    [Fact]
+    public void PixelPitch_DefaultsTo140Micrometres_AndRejectsOutOfRange()
+    {
+        var settings = new AppSettings();
+        Assert.Equal(0.14f, settings.PixelPitchMm);
+
+        settings.PixelPitchMm = 0.139f;
+        Assert.Equal(0.139f, settings.PixelPitchMm);
+
+        settings.PixelPitchMm = 0.05f;
+        Assert.Equal(0.14f, settings.PixelPitchMm);
+
+        settings.PixelPitchMm = 0.9f;
+        Assert.Equal(0.14f, settings.PixelPitchMm);
+    }
+
     /// <summary>ExposureKvp keeps 70 as the default and refuses values that cannot reach native metadata.</summary>
     [Fact]
     public void ExposureKvp_DefaultsTo70_AndRejectsNonPositive()
