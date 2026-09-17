@@ -295,65 +295,74 @@ TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
 }
 
 // ---------------------------------------------------------------------------
-// #105 G3: working-set measurement, mirroring enhance_basic
-// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
-// module rather than exported: xpe_common's surface is fixed at 16 symbols
-// (REQ-P0-008).
+// #105 G3 / #180 (QA-B-92): retention over 1000 handle-lifecycle cycles.
+//
+// Measured on the CRT heap, not on the working set. Until QA-B-92 this case
+// scored the working-set delta against 1 MB (mirroring enhance_basic and
+// preprocess T-010). QA-B-92 showed that number is not a leak measure:
+//   - CRT heap growth over 250 / 1000 / 4000 grid-path cycles: 0 / 0 / 0 bytes
+//   - working-set growth over the same runs: 86 KB / 0 / 8 KB, and 2.43 and
+//     2.47 MB in 2 of 20 local repeats (CI 63af26c: 2.59 MB)
+//   - a deliberate 64-byte leak per cycle: heap +250 / +994 / +4000 blocks,
+//     working set -41 KB / +2.47 MB -- it does not follow the leak at all.
+// The working set is what the OS has paged in and what the allocator keeps;
+// the heap walk counts the blocks still allocated, which is what a leak is.
+//
+// With UCRT (/MD) gsvg.dll and this test allocate from the same CRT heap, so
+// _heapwalk sees the module's allocations. The two ControlLeak cases below
+// inject a small and a large unfreed allocation per cycle and require the
+// same measurement to report them; without that, a zero here would mean
+// nothing.
+//
+// Size: 256x256 (512x512 until QA-B-90, when the grid path made 1100 cycles
+// take 22.6 s locally), not the 3072x3072 of the REQ-GSVG-019 budget case.
+// Retention per lifecycle does not depend on frame size.
+//
+// Rows alternate 12000 / 12100 (#180, QA-B-90): a flat source has no grid, so
+// the DWT path would never allocate its wavelet levels.
 // ---------------------------------------------------------------------------
 #ifdef _WIN32
 #  include <windows.h>
 #  include <psapi.h>
-static SIZE_T get_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
+#  include <malloc.h>
+
+namespace {
+
+struct HeapUse { long long bytes = 0; long long blocks = 0; };
+
+// Blocks currently allocated on the CRT heap.
+HeapUse crt_heap_use() {
+    _HEAPINFO hi{};
+    hi._pentry = nullptr;
+    HeapUse u;
+    while (_heapwalk(&hi) == _HEAPOK) {
+        if (hi._useflag == _USEDENTRY) {
+            u.bytes += static_cast<long long>(hi._size);
+            ++u.blocks;
+        }
     }
-    return 0;
+    return u;
 }
-#else
-static size_t get_working_set_bytes() { return 0; }
-#endif
 
-// WARMUP exists because the first cycles fault in fresh heap pages and grow the
-// CRT allocator arena; counting that one-time cost as "leak" would make the
-// threshold a measure of startup, not of retention. The baseline is snapshotted
-// after warm-up so only steady-state growth is scored.
-constexpr int    ENDURANCE_CYCLES = 1000;
-constexpr int    ENDURANCE_WARMUP = 100;
-constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+long long working_set_bytes() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    return GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))
+        ? static_cast<long long>(pmc.WorkingSetSize) : 0;
+}
 
-// ---------------------------------------------------------------------------
-// #105 G3 (QA-B-23): heap growth over 1000 handle-lifecycle cycles.
-//
-// RepeatedLifecycleDoesNotLeakOrCrash above runs 32 cycles and measures
-// nothing -- it proves the module survives, not that it releases. This case
-// takes the same init/process/shutdown cycle, runs it 1000 times, and scores
-// the working-set delta against the 1 MB bound used by preprocess T-010,
-// enhance_basic and the four modules of QA-B-22.
-//
-// Size: 256x256 (512x512 until QA-B-90, when the grid path made 1100 cycles
-// take 22.6 s locally), not the 3072x3072 of the REQ-GSVG-019 budget case. The gate
-// measures retention per lifecycle, which does not depend on frame size, and
-// 1100 cycles at 3072x3072 would dominate the suite's wall time. Recorded here
-// rather than left implicit.
-//
-// Both processing stages are switched ON deliberately. With a NULL config and a
-// NULL gain map, xpe_gsvg_process reduces to a memcpy (gsvg.cpp:218-228:
-// vignette_correction and grid_suppression both default to false), so the cycle
-// would have covered the handle lifecycle and nothing else. The config below
-// plus a real gain map puts apply_vignette_scalar and the grid suppression
-// inside the measured loop.
-//
-// #180 (QA-B-90): the source used to be a flat 12000. The DWT grid suppression
-// leaves an image with no detected grid untouched, so a flat source would only
-// run the spectrum check and never allocate the wavelet levels. Rows now
-// alternate 12000 / 12100 so every cycle decomposes, filters and reconstructs.
-// ---------------------------------------------------------------------------
-TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
-{
-#ifndef _WIN32
-    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
-#endif
+constexpr int       ENDURANCE_CYCLES = 1000;
+constexpr int       ENDURANCE_WARMUP = 100;
+// Retention bound over ENDURANCE_CYCLES: fewer than one leaked block in ten
+// cycles and under 16 KB in total. The 64-byte-per-cycle control (1000 blocks,
+// 64 KB) is well outside both; the measured product path is 0 and 0.
+constexpr long long ENDURANCE_MAX_BLOCKS = ENDURANCE_CYCLES / 10;
+constexpr long long ENDURANCE_MAX_BYTES  = 16 * 1024;
+
+struct Growth { HeapUse heap; long long workingSet = 0; std::vector<uint16_t> dst; };
+
+// leakBytes > 0: allocate that many bytes every leakEvery-th cycle and keep
+// them until the measurement is taken (the control).
+Growth measure_growth(size_t leakBytes, int leakEvery) {
     constexpr int    kW = 256;
     constexpr int    kH = 256;
     constexpr size_t kN = static_cast<size_t>(kW) * kH;
@@ -364,40 +373,105 @@ TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
     std::vector<uint16_t> src(kN, 12000);
     for (int y = 1; y < kH; y += 2)
         std::fill_n(src.begin() + static_cast<std::ptrdiff_t>(y) * kW, kW, uint16_t{12100});
-    std::vector<uint16_t>       dst(kN, 0);
-    const std::vector<float>    gain(kN, 1.05f);
+    Growth g;
+    g.dst.assign(kN, 0);
+    const std::vector<float> gain(kN, 1.05f);
+    std::vector<void*> held;
+    held.reserve(static_cast<size_t>(ENDURANCE_CYCLES));
 
-    auto one_cycle = [&](int i) {
+    auto one_cycle = [&](int i, bool measured) {
         void* handle = nullptr;
-        ASSERT_EQ(xpe_gsvg_init(&handle, kConfig), XPE_OK)
-            << "init failed on cycle " << i;
+        ASSERT_EQ(xpe_gsvg_init(&handle, kConfig), XPE_OK) << "init failed on cycle " << i;
         ASSERT_NE(handle, nullptr);
-
-        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), kW, kH, gain.data(), gain.size()), XPE_OK)
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), g.dst.data(), g.dst.size(),
+                                   kW, kH, gain.data(), gain.size()), XPE_OK)
             << "process failed on cycle " << i;
-
-        ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK)
-            << "shutdown failed on cycle " << i;
+        ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK) << "shutdown failed on cycle " << i;
+        if (measured && leakBytes > 0 && i % leakEvery == 0) held.push_back(std::malloc(leakBytes));
     };
 
-    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+    // WARMUP: the first cycles fault in fresh pages and grow the allocator's
+    // arena; the baseline is taken after them.
+    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i, false);
+    const HeapUse h0 = crt_heap_use();
+    const long long w0 = working_set_bytes();
+    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i, true);
+    const HeapUse h1 = crt_heap_use();
+    g.workingSet = working_set_bytes() - w0;
+    g.heap = {h1.bytes - h0.bytes, h1.blocks - h0.blocks};
+    for (void* p : held) std::free(p);
+    return g;
+}
 
-    const auto before = get_working_set_bytes();
-    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
-    const auto after = get_working_set_bytes();
+}  // namespace
 
-    if (after > before) {
-        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
-            << "Working set grew by " << (after - before) / 1024 << " KB over "
-            << ENDURANCE_CYCLES << " gsvg init/process/shutdown cycles";
-    }
+TEST(GsvgEndurance, ThousandCycles_CrtHeapDoesNotGrow)
+{
+    const Growth g = measure_growth(0, 1);
+    GTEST_LOG_(INFO) << "heap growth " << g.heap.bytes << " bytes / " << g.heap.blocks
+                     << " blocks, working set " << g.workingSet << " bytes (not asserted)";
+    EXPECT_LT(g.heap.blocks, ENDURANCE_MAX_BLOCKS)
+        << ENDURANCE_CYCLES << " gsvg init/process/shutdown cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, ENDURANCE_MAX_BYTES)
+        << ENDURANCE_CYCLES << " gsvg init/process/shutdown cycles left bytes allocated";
 
     // The loop did run the suppression: the 100 * 1.05 row alternation is gone.
     double row0 = 0.0, row1 = 0.0;
-    for (int x = 0; x < kW; ++x) { row0 += dst[static_cast<size_t>(x)]; row1 += dst[static_cast<size_t>(kW + x)]; }
-    EXPECT_LT(std::fabs(row1 - row0) / kW, 10.0)
+    for (int x = 0; x < 256; ++x) {
+        row0 += g.dst[static_cast<size_t>(x)];
+        row1 += g.dst[static_cast<size_t>(256 + x)];
+    }
+    EXPECT_LT(std::fabs(row1 - row0) / 256.0, 10.0)
         << "row alternation survived: the grid path was not exercised";
 
     RecordProperty("cycles", ENDURANCE_CYCLES);
     RecordProperty("requirement", "REQ-GSVG-021");
 }
+
+// Control: one 64-byte block per cycle is reported, and outside the bound.
+TEST(GsvgEndurance, ControlLeak_SmallBlockPerCycleIsCaught)
+{
+    const Growth g = measure_growth(64, 1);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: heap " << g.heap.bytes << " bytes / "
+                     << g.heap.blocks << " blocks, working set " << g.workingSet;
+    EXPECT_GE(g.heap.blocks, ENDURANCE_MAX_BLOCKS);
+    EXPECT_GE(g.heap.bytes, ENDURANCE_MAX_BYTES);
+}
+
+// Control: a large block (above the heap's direct-allocation size) every 100
+// cycles is reported too, so a leaked image buffer would not slip past.
+TEST(GsvgEndurance, ControlLeak_LargeBlockIsCaught)
+{
+    const Growth g = measure_growth(size_t{1} << 20, 100);
+    GTEST_LOG_(INFO) << "control 1 MB/100 cycles: heap " << g.heap.bytes << " bytes / "
+                     << g.heap.blocks << " blocks, working set " << g.workingSet;
+    // 10 MB held; the net delta can be a few KB short when other blocks are
+    // freed in the same window (QA-B-92: 10,482,616 B in 1 of 20 runs).
+    EXPECT_GE(g.heap.bytes, 9LL << 20);
+}
+
+// Control: the walk sees gsvg.dll's own allocations. The two cases above leak
+// from the test side; if the DLL used a separate heap (/MT), they would still
+// pass while the product case reported a blind 0. xpe_gsvg_init allocates the
+// handle with new inside the DLL, so a live handle must show up here.
+TEST(GsvgEndurance, ControlDllHandleIsVisibleToHeapWalk)
+{
+    const HeapUse before = crt_heap_use();
+    void* handle = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&handle, nullptr), XPE_OK);
+    const HeapUse alive = crt_heap_use();
+    ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
+    const HeapUse after = crt_heap_use();
+    GTEST_LOG_(INFO) << "live handle: +" << (alive.blocks - before.blocks) << " blocks / +"
+                     << (alive.bytes - before.bytes) << " bytes; after shutdown: "
+                     << (after.blocks - before.blocks) << " / " << (after.bytes - before.bytes);
+    EXPECT_GE(alive.blocks - before.blocks, 1);
+    EXPECT_GT(alive.bytes - before.bytes, 0);
+    EXPECT_EQ(after.blocks - before.blocks, 0);
+}
+#else
+TEST(GsvgEndurance, ThousandCycles_CrtHeapDoesNotGrow)
+{
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+}
+#endif
