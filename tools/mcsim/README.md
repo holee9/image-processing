@@ -13,6 +13,10 @@
 | `gen_slab_input.py` | 물 슬랩 복셀 파일, SpekPy 스펙트럼, MC-GPU 입력 파일을 만든다 |
 | `run_case.sh` | 입력 생성 → 반복 실행(시드 변경) → 시간·GPU 사용량 기록 → 요약 |
 | `analyze_image.py` | 검출기 영상(1차 / Compton / Rayleigh / 다중 산란)에서 SPR 과 반경 산란 PSF 를 낸다 |
+| `make_mcgpu_pcd.sh` | 광자 계수 파생판 `DIDSR/MCGPUv1.3_PCD_scatterMode` 를 같은 방식으로 빌드한다 |
+| `analyze_pcd.py` | 파생판의 에너지 빈별 계수에서 검출기 응답 세 가지(이상적 에너지 적분, 이상적 광자 계수, CsI 흡수)로 SPR 을 낸다 |
+| `run_sensitivity.sh` | 변수를 하나씩 바꾸는 SPR 민감도 실험(QA-A-95) |
+| `tabulate_sensitivity.py` | 민감도 실험 결과를 표로 만든다 |
 
 ## 외부 구성 요소
 
@@ -21,6 +25,9 @@
 | MC-GPU v1.3 | `https://github.com/DIDSR/MCGPU` | `cb16a5f52661` | 퍼블릭 도메인(17 U.S.C. §105). 파생물에 출처 표시 요청. PENELOPE 2006 발췌는 바르셀로나 대학교 허용형 고지 유지 |
 | `helper_cuda.h`, `helper_functions.h` | `https://github.com/NVIDIA/cuda-samples` `Common/` | `5443602d89ed` | BSD-3-Clause |
 | `water.mcgpu`, `air.mcgpu` | `https://github.com/DIDSR/MCGPUv1.3_PCD` `Sample_Fan_Beam/inputs/` | `af5fa2888ebb` | CC0-1.0 |
+| MC-GPU v1.3 PCD scatterMode | `https://github.com/DIDSR/MCGPUv1.3_PCD_scatterMode` | `e57bd50a0c51` | CC0-1.0 (소스 고지는 퍼블릭 도메인) |
+| `waterMIF`, `luciteMIF`(PMMA) 재료 파일 | 위 저장소 `materialFiles/MCGPUFiles/` | `e57bd50a0c51` | CC0-1.0 |
+| `CesiumIodide__5-120keV.mcgpu.gz` | `DIDSR/MCGPU` `materials/` | `cb16a5f52661` | 퍼블릭 도메인 |
 | SpekPy | PyPI `spekpy` | 2.5.4 | MIT |
 | CUDA | `cuda-nvcc-12-9`, `cuda-cudart-dev-12-9` | 12.9 | NVIDIA EULA |
 
@@ -57,11 +64,24 @@ wsl.exe -d Ubuntu-24.04 -u root -- env REPEATS=10 bash $T/run_case.sh \
 
 결과는 `/root/mcsim/runs/<이름>/summary.json` 에 있다.
 
+### 검출기 응답별 SPR (광자 계수 파생판)
+
+```bash
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/make_mcgpu_pcd.sh
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/run_sensitivity.sh
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/tabulate_sensitivity.py
+```
+
+- `run_case.sh <이름> pcd --pcd 0 125000 125 --det-size 2 --pixels 10 ...` 처럼 쓴다. 파생판은 화소 × 산란 채널 4개 × 에너지 빈 수만큼 64비트 정수를 잡으므로 **검출기를 작게**(2×2 cm, 10×10 화소) 두고 검출기 전체를 ROI 로 쓴다. 조사야는 조리개로 따로 정한다.
+- CsI 응답은 `1 − exp(−t / mfp_CsI(E))`(두께 기본 600 µm, `CSI_UM` 으로 변경)을 에너지에 곱한 것이다. **모든 광자를 수직 입사로 본다** — 비스듬히 들어오는 산란 광자의 긴 경로, K 형광 탈출, 빛 퍼짐은 넣지 않았다.
+- 파생판의 산란 채널 파일(`compton/`, `rayleigh/`, `multiple/`)에는 빈 머리말이 없어 `allPhotons/` 의 머리말을 쓴다. 채널 합이 `allPhotons` 와 같은지 `channel_sum_max_abs_diff` 로 확인한다.
+- `gen_slab_input.py` 추가 옵션: `--field-at entrance`(조사야를 슬랩 입사면에서 잰 크기로), `--slab-xz`, `--mat`, `--density`, `--pcd`.
+
 ## 입력 기본값 (`gen_slab_input.py`)
 
 | 항목 | 기본값 | 비고 |
 |---|---|---|
-| 슬랩 두께 | 20 cm | 물 1.0 g/cm³, 가로·세로 60 cm |
+| 슬랩 두께 | 20 cm | 물 1.0 g/cm³, 가로·세로 60 cm(`--slab-xz`) |
 | 관전압 | 80 kVp | SpekPy, 양극각 12°, 0.5 keV 빈 |
 | 총 여과 | 2.5 mm Al | 가정값 |
 | 초점–검출기 거리 | 100 cm | |
