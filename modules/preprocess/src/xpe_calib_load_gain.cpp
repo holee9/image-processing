@@ -70,7 +70,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         const size_t n_floats   = payload.size() / sizeof(float);
 
         // Allocate and copy pixel data
-        auto map = std::make_unique<float[]>(n_floats);
+        // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
+        std::unique_ptr<float[]> map(new float[n_floats]);
         std::memcpy(map.get(), payload.data(), payload.size());
 
         // Commit under mutex. The two gain models are alternatives: whichever

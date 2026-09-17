@@ -46,7 +46,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
         }
 
         // Allocate and copy BPM data
-        auto map = std::make_unique<uint8_t[]>(expected);
+        // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
+        std::unique_ptr<uint8_t[]> map(new uint8_t[expected]);
         std::memcpy(map.get(), payload.data(), payload.size());
 
         // Commit under mutex
