@@ -28,6 +28,7 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
+#include "fixtures/make_xcal.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -220,6 +221,37 @@ TEST_F(GenerateOffsetConfigTest, RunsThatMarkNothingCreateNoDefectMap) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT,
               xpe_calib_save((tmpDir / "d2.xcal").string().c_str(), "defect", 0))
         << "nothing was clipped, so |S| = 5 and no pixel is below the floor";
+}
+
+// QA-A-93 (#176): a sigma-clip run that marks pixels while a defect map of
+// another size is loaded fails with CONFIG_INVALID, merges nothing, and writes
+// no offset file. The control loads a map of the frame size and succeeds.
+TEST_F(GenerateOffsetConfigTest, MarksAgainstADifferentSizedDefectMapAreRefused) {
+    const std::string defectPath = (tmpDir / "loaded_3x3.xcal").string();
+    ASSERT_EQ(XPE_OK, MakeDefectXCal(defectPath.c_str(), W + 1, H + 1));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defectPath.c_str()));
+
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID,
+              generate({100, 110, 105, 108, 500}, "refused.xcal",
+                       "{\"method\":\"sigma_clip\",\"sigma\":1.0}"));
+    EXPECT_FALSE(fs::exists(tmpDir / "refused.xcal"))
+        << "the offset file must not be written when the merge is refused";
+
+    const std::vector<uint8_t> mask = savedDefectMask("after_refusal.xcal");
+    EXPECT_EQ(std::vector<uint8_t>((W + 1) * (H + 1), 0u), mask)
+        << "the loaded map keeps its size and gets no marks";
+}
+
+TEST_F(GenerateOffsetConfigTest, MarksAgainstASameSizedDefectMapAreMerged) {
+    const std::string defectPath = (tmpDir / "loaded_2x2.xcal").string();
+    ASSERT_EQ(XPE_OK, MakeDefectXCal(defectPath.c_str(), W, H));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defectPath.c_str()));
+
+    EXPECT_EQ(XPE_OK,
+              generate({100, 110, 105, 108, 500}, "merged.xcal",
+                       "{\"method\":\"sigma_clip\",\"sigma\":1.0}"));
+    EXPECT_TRUE(fs::exists(tmpDir / "merged.xcal"));
+    EXPECT_EQ(std::vector<uint8_t>(N, 1u), savedDefectMask("after_merge.xcal"));
 }
 
 } // namespace

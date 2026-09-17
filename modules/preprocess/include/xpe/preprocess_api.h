@@ -261,7 +261,10 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
- *         XPE_ERR_CONFIG_INVALID if config_json_or_null is malformed
+ *         XPE_ERR_CONFIG_INVALID if config_json_or_null is malformed, or if a
+ *         "sigma_clip" run marks at least one pixel while a defect map of a
+ *         different width or height is already loaded (the marks are not
+ *         merged; the map is left unchanged and output_path is not written)
  *         XPE_ERR_IO_FAILED on file write error
  */
 XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
