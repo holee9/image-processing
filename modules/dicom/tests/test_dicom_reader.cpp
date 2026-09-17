@@ -2242,3 +2242,121 @@ TEST_F(DicomReaderTest, KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured) {
     // answer today happens to give.
     SUCCEED();
 }
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-71) step 1 — which branch, and what does DCMTK know there?
+//
+// The decision is to apply the accepted-syntax check on the meta-less path by
+// comparing the syntax DCMTK DETECTED against kSupportedTransferSyntaxes. That
+// only works if the detected syntax is available on the branch the file takes,
+// and QA-B-70 recorded that the branch itself was never measured: open() has two
+// places that record Explicit VR Little Endian without consulting the list
+// (getMetaInfo() == NULL, and a meta-header with no TransferSyntaxUID).
+//
+// This probe loads each fixture with EXACTLY the arguments DicomReader::open()
+// uses and reports, per file:
+//   - whether getMetaInfo() is NULL                 -> the first branch
+//   - whether the meta carries a TransferSyntaxUID  -> otherwise the second
+//   - DcmDataset::getOriginalXfer()                 -> what DCMTK detected
+//   - whether that detection matches what was written
+//
+// Recorded, not asserted as a requirement: the deliverable is the table, and it
+// decides whether step 2 is implementable at all.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct BranchProbe {
+    bool             metaIsNull   = false;
+    bool             metaHasTs    = false;
+    E_TransferSyntax detected     = EXS_Unknown;
+    bool             loaded       = false;
+    // Control for the detection result: is the PixelData in the file actually
+    // encapsulated? Without this, "detected Explicit LE" on a JPEG fixture could
+    // simply mean the fixture was written uncompressed.
+    bool             encapsulated = false;
+};
+
+BranchProbe ProbeLikeOpen(const fs::path& p) {
+    BranchProbe r{};
+    DcmFileFormat ff;
+    // Same call as DicomReader::open().
+    r.loaded = ff.loadFile(p.string().c_str(), EXS_Unknown, EGL_noChange,
+                           DCM_MaxReadLength).good();
+    if (!r.loaded) return r;
+    DcmMetaInfo* meta = ff.getMetaInfo();
+    r.metaIsNull = (meta == nullptr);
+    if (meta != nullptr) {
+        OFString ts;
+        r.metaHasTs = meta->findAndGetOFString(DCM_TransferSyntaxUID, ts).good() &&
+                      !ts.empty();
+    }
+    DcmDataset* ds = ff.getDataset();
+    if (ds != nullptr) {
+        r.detected = ds->getOriginalXfer();
+        DcmElement* el = nullptr;
+        if (ds->findAndGetElement(DCM_PixelData, el).good() && el != nullptr) {
+            // An encapsulated PixelData is written with undefined length and
+            // carries a pixel sequence; a native one has a defined length.
+            DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+            DcmPixelSequence* seq = nullptr;
+            const DcmRepresentationParameter* param = nullptr;
+            r.encapsulated =
+                pd->getEncapsulatedRepresentation(EXS_JPEGProcess14SV1, param, seq).good() ||
+                pd->getEncapsulatedRepresentation(EXS_JPEGProcess14,    param, seq).good() ||
+                el->getLengthField() == DCM_UndefinedLength;
+        }
+    }
+    return r;
+}
+
+const char* XferUid(E_TransferSyntax x) {
+    if (x == EXS_Unknown) return "(unknown)";
+    DcmXfer xf(x);
+    return xf.getXferID();
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured) {
+    struct Case { E_TransferSyntax written; const char* label; bool encapsulated; };
+    const Case cases[] = {
+        { EXS_LittleEndianExplicit, "Explicit VR LE (supported)",      false },
+        { EXS_LittleEndianImplicit, "Implicit VR LE (unsupported)",    false },
+        { EXS_BigEndianExplicit,    "Explicit VR BE (unsupported)",    false },
+        { EXS_JPEGProcess14SV1,     ".70 JPEG-LL (supported, encaps)", true  },
+        { EXS_JPEGProcess14,        ".57 JPEG-LL (supported, encaps)", true  },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    int matched = 0, measured = 0;
+    for (const auto& c : cases) {
+        const auto path = s_tempDir / (std::string("b71_probe_") +
+                                       std::to_string(static_cast<int>(c.written)) + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, path, c.written)) {
+            GTEST_LOG_(INFO) << c.label << ": not writable here -- not measured";
+            continue;
+        }
+        const BranchProbe b = ProbeLikeOpen(path);
+        ++measured;
+        const bool match = (b.detected == c.written);
+        if (match) ++matched;
+
+        const char* branch = !b.loaded      ? "load-failed"
+                           : b.metaIsNull   ? "meta NULL"
+                           : !b.metaHasTs   ? "meta present, no TS element"
+                                            : "meta present WITH TS";
+        GTEST_LOG_(INFO) << c.label
+                         << " | branch=" << branch
+                         << " | written=" << XferUid(c.written)
+                         << " | detected=" << XferUid(b.detected)
+                         << " | pixelData encapsulated=" << b.encapsulated
+                         << " | match=" << match;
+    }
+    // no DJEncoderRegistration::cleanup() needed for the decoder side; the
+    // encoder registration is not what the reader depends on.
+    DJEncoderRegistration::cleanup();
+
+    GTEST_LOG_(INFO) << "detected syntax matched the written one in " << matched
+                     << " of " << measured << " measured files";
+    SUCCEED();
+}
