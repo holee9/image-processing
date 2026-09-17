@@ -418,8 +418,9 @@ public partial class MainWindow : System.Windows.Window
                     JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
             }
 
-            Close();
-            System.Windows.Application.Current.Shutdown();
+            // GUI-C-84: Shutdown(code) closes the windows itself. Closing the main window first had already
+            // shut the app down with 0 (main-window-close shutdown), so the code passed afterwards was ignored.
+            System.Windows.Application.Current.Shutdown(report.Passed ? 0 : App.AutomationFailedExitCode);
         }
     }
 

@@ -45,12 +45,9 @@ dotnet build gui\ImageProcTest\ImageProcTest.csproj -c Debug
 dotnet run --project gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj -c Debug
 ```
 
-> **Status (measured GUI-C-76): this self-check currently fails** at its VOI default assertion —
-> `VOI window center should default to Abdomen preset.` (`ImageProcTest.SelfCheck/Program.cs`).
-> It asserts the old CT values — the same pair the fixture template
-> `fixtures/gui-s0/appsettings.template.json` still carries — while the app's own defaults in
-> `Models/AppSettings.cs` are the flat-panel ones. It is not run by CI. Until it is reconciled, treat the list below as what it was written to check, not as
-> what currently passes.
+> **Status (GUI-C-84):** the self-check and the fixture template now use the flat-panel raw-DN defaults
+> (C=32768, W=65535, intercept 0), the same as `Models/AppSettings.cs`. Until GUI-C-84 they asserted the CT
+> values (C=40, W=400, intercept −1024) and failed at the VOI default (measured GUI-C-76). It is not run by CI.
 
 The self-check was written to validate the precreated fixture pack under `gui/ImageProcTest/fixtures/gui-s0/`:
 
@@ -142,7 +139,11 @@ dotnet run --project gui\ImageProcTest\ImageProcTest.csproj -c Debug -- `
 
 Expected result: `Passed=true`, `ActiveImageSummary` starting with `RAW 3072x3072`, `VOI(Linear, C=32768, W=65535)`.
 
-> **Note**: Default VOI values are calibrated for flat-panel DR detectors (16-bit raw, no CT HU offset). Using CT-centric defaults (C=40, W=400, intercept=-1024) causes the entire image to clip to white because the raw pixel range (15000–65535) lies entirely above the VOI upper bound (240 HU).
+> **Note**: Default VOI values are calibrated for flat-panel DR detectors (16-bit raw, no CT HU offset). The modality LUT
+> is identity, so VOI acts on raw DN. Measured (GUI-C-84) with C=40/W=400 on the bundled fixtures: every wrist pixel
+> (raw 2481–15451) and all but 36 synthetic pixels lie above the window's upper bound (240), so the window saturates.
+> The Mock backend shows that as white; the native backend shows the wrist as **black**, because the saturated output
+> is a single value and the preview stretches min..max.
 
 ## Large-image comparison check
 
