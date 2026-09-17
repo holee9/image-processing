@@ -131,6 +131,16 @@ enum class CapMode {
                    //     block around x (scatter is smooth and never exceeds I)
 };
 
+// What the post-steps (pyramid contrast, de-noise) see where the field mask
+// excludes a pixel (#189, QA-B-108). The pyramid reads neighbours, so this
+// choice reaches pixels INSIDE the mask near its boundary.
+enum class MaskOutside {
+    Zero,       // current behaviour: excluded pixels are 0 during the post-steps
+    Replicate,  // clamp to the mask's bounding rectangle (nearest in-field value)
+    Keep,       // leave the corrected values there (no zeroing)
+    RectOnly,   // run the post-steps on the mask's bounding rectangle only
+};
+
 // Test switches for the falsification cases. Production uses the defaults.
 struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
@@ -139,6 +149,9 @@ struct VgSwitches {
     int reductionFactor = 0;      // 0: derived from the narrowest kernel term (QA-B-95: fixed to compare models)
     bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
     bool useFieldMask = true;     // false: a passed mask is ignored (QA-B-96 falsification)
+    // #189 (QA-B-108): compared in the report; the default keeps the behaviour
+    // that shipped, so changing it is a lead decision.
+    MaskOutside maskOutside = MaskOutside::Zero;
 };
 
 struct VgReport {

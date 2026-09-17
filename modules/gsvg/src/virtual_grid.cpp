@@ -881,9 +881,18 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     // part of the result inside the mask. Writing in place keeps that exactly:
     // the excluded pixels are saved, then zeroed, then restored at the end.
     std::vector<double> maskedOut;
+    int mx0 = 0, my0 = 0, mx1 = width - 1, my1 = height - 1;   // mask bounding box
     if (mask) {
+        mx0 = width; my0 = height; mx1 = -1; my1 = -1;
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width; ++x)
+                if (mask[static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)]) {
+                    mx0 = std::min(mx0, x); mx1 = std::max(mx1, x);
+                    my0 = std::min(my0, y); my1 = std::max(my1, y);
+                }
+        if (mx1 < mx0 || my1 < my0) { mx0 = my0 = 0; mx1 = width - 1; my1 = height - 1; }
         for (size_t i = 0; i < io.size(); ++i)
-            if (!mask[i]) { maskedOut.push_back(io[i]); io[i] = 0.0; }
+            if (!mask[i]) maskedOut.push_back(io[i]);
     }
     // QA-B-105: per pixel, independent. The two counters are summed per band
     // and added up afterwards (integers, so the order does not matter).
@@ -924,7 +933,40 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     Rf.clear(); Rf.shrink_to_fit();
     capF.clear(); capF.shrink_to_fit();
 
-    if (st.pyramidLevels) PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+    // #189 (QA-B-108): what the post-steps see outside the mask. Zero is the
+    // behaviour that shipped; the others are measured in the report.
+    if (mask && sw.maskOutside != MaskOutside::Keep) {
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width; ++x) {
+                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+                if (mask[i]) continue;
+                if (sw.maskOutside == MaskOutside::Zero) {
+                    out[i] = 0.0;
+                } else if (sw.maskOutside == MaskOutside::Replicate) {
+                    const int cx = std::clamp(x, mx0, mx1), cy = std::clamp(y, my0, my1);
+                    out[i] = out[static_cast<size_t>(cy) * static_cast<size_t>(width) + static_cast<size_t>(cx)];
+                }
+            }
+    }
+
+    if (st.pyramidLevels) {
+        if (mask && sw.maskOutside == MaskOutside::RectOnly) {
+            // Post-steps on the mask's bounding rectangle only.
+            const int rw = mx1 - mx0 + 1, rh = my1 - my0 + 1;
+            std::vector<double> sub(static_cast<size_t>(rw) * static_cast<size_t>(rh));
+            for (int y = 0; y < rh; ++y)
+                for (int x = 0; x < rw; ++x)
+                    sub[static_cast<size_t>(y) * static_cast<size_t>(rw) + static_cast<size_t>(x)] =
+                        out[static_cast<size_t>(y + my0) * static_cast<size_t>(width) + static_cast<size_t>(x + mx0)];
+            PyramidContrast(sub, rw, rh, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+            for (int y = 0; y < rh; ++y)
+                for (int x = 0; x < rw; ++x)
+                    out[static_cast<size_t>(y + my0) * static_cast<size_t>(width) + static_cast<size_t>(x + mx0)] =
+                        sub[static_cast<size_t>(y) * static_cast<size_t>(rw) + static_cast<size_t>(x)];
+        } else {
+            PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+        }
+    }
 
     if (mask) {
         size_t m = 0;
