@@ -1427,6 +1427,13 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         ActiveVerdict = verdict;
 
+        // #178: without a run id the path collapses to evidence/ itself; write nothing rather than that.
+        if (string.IsNullOrWhiteSpace(RunSet.RunId))
+        {
+            Log("Verdict not written to evidence: no run set has started.");
+            return;
+        }
+
         var dir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "verdicts.json");
@@ -1520,6 +1527,14 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(RunSet.RunId))
+            {
+                // #178: an empty id would zip evidence/ into a file inside it.
+                StatusText = "Export failed: no run set has started.";
+                Log(StatusText);
+                return;
+            }
+
             var evidenceDir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
             if (!Directory.Exists(evidenceDir))
             {
