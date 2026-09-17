@@ -7,6 +7,18 @@
 **Canonical Scope**: `docs/project/`
 **Related SPEC**: SPEC-XPE-P1B-DISP v1.0.0, SPEC-XPE-GUI-IT v1.2.0
 **Target**: Agent implementing Phase 1b Display module integration into `ImageProcTest.exe`
+
+> **⚠ 실측 정정 (2026-09-17, GUI-C-76 → 리더 확인).**
+>
+> | 이 문서의 서술 | 실측 |
+> |---|---|
+> | 계약 파일 `DisplayNativeWrapper.cs` | **없음** — 실제는 `gui/…/XpeDisplayInterop.cs` |
+> | `ViewModels/Display/DisplayPipelineViewModel.cs` | **없음** — 실제는 `MainWindowViewModel.ApplyDisplayPipelineAsync` (6건) |
+> | W-06 이 `StageTimings` 를 검증 | **W-06 도 `StageTimings` 도 없음** |
+> | §19 [HARD] `IsPreviewStale` 경고 오버레이 (HAZ-GUI-004 통제) | **미구현 — `#171`**. 위해 분석이 이 통제를 전제로 잔여 위험을 Low 로 평가하고 있습니다 |
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
 **Cross-References**: XPE-GUI-ARCH-001 (MVVM 아키텍처), XPE-GUI-E2E-001 (E2E 테스트), SHA-GUI-001 (hazard analysis), RTM-GUI-001 (추적 매트릭스)
 
 ---

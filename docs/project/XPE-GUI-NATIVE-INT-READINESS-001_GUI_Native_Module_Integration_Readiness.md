@@ -1,5 +1,17 @@
 # GUI Native Module Integration Readiness
 
+> **⚠ 실측 정정 (2026-09-17, GUI-C-76 → 리더 확인).** 아래 셋은 **서로 어긋나는 규칙**이라
+> 사실 정정이 아니라 **결정이 필요**합니다. 해소될 때까지 이 문서의 해당 절을 현행 계약으로 인용하지 마십시오.
+>
+> | 문서 | 코드 |
+> |---|---|
+> | §6 최소 export 에 `xpe_display_apply_pipeline` 포함 | **0건**. 백엔드 팩토리 게이트는 이것 없이 preset·gsdf 를 요구 — **게이트가 둘이고 다릅니다** |
+> | §7 "all-or-nothing 금지" (부분 가용 허용) | `XpeBackendFactory` 앵커는 "any failure → MockXpeBackend" — **전부 아니면 전무**. `clients` 쪽 혼합 모드는 미측정 |
+> | §5.2 `xpe-pre-e2e-report-v1` 스키마 | **0건** |
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
+
 **Document ID**: XPE-GUI-NATIVE-INT-READINESS-001  
 **Version**: 1.1.0
 **Date**: 2026-04-17

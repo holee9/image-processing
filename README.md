@@ -46,6 +46,15 @@ X-ray 이미지 처리 엔진(`XPE`)의 네이티브 모듈과 C# 호스트를 �
 | `xpe-post` | `xpe-post` | `modules/{enhance_basic,enhance_advanced,ai,display,dicom,gsvg}` |
 | `xpe-gui` | `xpe-gui` | `clients/`, `gui/` |
 
+**WPF 앱이 둘입니다** — 혼동이 실제 문서 오류로 이어졌으므로 적어 둡니다.
+
+| 앱 | 역할 | 주의 |
+|---|---|---|
+| `gui/ImageProcTest` | 사용자 UI. **E2E 가 띄우는 앱** (`ApplicationFixture.cs:584`) | `XPE_` 접두 AutomationId 를 쓰지 않음 |
+| `clients/ImageProcTest` | 네이티브 진단 앱 | `XPE_` 접두 AutomationId 를 씀 |
+
+`docs/project/XPE-GUI-*` 여러 문서가 두 앱을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다(2026-09-17 정정 표시).
+
 각 레인의 측정 보고서는 `.moai/reports/lane-*/` 에 있으며 **커밋되지 않습니다**
 (`.gitignore`). 재측정에 필요한 명령·수치·경로는 해당 이슈 코멘트에 남깁니다.
 

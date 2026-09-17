@@ -6,6 +6,18 @@
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
 **Target**: `clients/ImageProcTest/` WPF test GUI end-to-end automation
+
+> **⚠ 대상 앱 정정 (2026-09-17, GUI-C-76 대조 → 리더 확인).** 위 Target 은 **틀렸습니다.**
+> E2E 가 실제로 띄우는 것은 **`gui/ImageProcTest`** 입니다(`ApplicationFixture.cs:584`).
+> 따라서 아래 절차의 `dotnet build clients/ImageProcTest` 로는 **픽스처가 찾는 실행 파일이 생기지
+> 않습니다.** 실행 절차의 기준은 `.github/workflows/ci.yml` 의 `gui-automation` / `gui-e2e-native` 잡입니다.
+>
+> §4.1 표의 `XPE_Main_Window`·`XPE_Menu_*`·`XPE_Toolbar_*` 도 같은 원인입니다. `XPE_` 접두
+> AutomationId 는 **`clients/ImageProcTest` 에만** 있고(38건), E2E 대상인 `gui/ImageProcTest` 에는
+> **없습니다**(C-29 정정과 일치). 표의 ID 는 다른 앱을 보고 적힌 것입니다.
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
 **Related Specs**: SPEC-XPE-GUI-IT v1.2.0, XPE-GUI-ARCH-001, XPE-GUI-ACCESS-001
 
 ---
