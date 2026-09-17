@@ -17,6 +17,12 @@ public sealed class GuiAutomationReport
 
     public bool MockBackend { get; set; }
 
+    /// <summary>
+    /// #175 (GUI-C-83): the requested and the actual backend agree. <see cref="Passed"/> requires it, so a
+    /// Native run that silently fell back to Mock is a failure rather than a green Mock run.
+    /// </summary>
+    public bool BackendMatchesRequest { get; set; }
+
     /// <summary>#129: directory the native library resolved from, or "loader"/empty. See RuntimeInfo.NativeSource.</summary>
     public string NativeSource { get; set; } = string.Empty;
 

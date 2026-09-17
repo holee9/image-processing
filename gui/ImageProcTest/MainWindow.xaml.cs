@@ -175,6 +175,10 @@ public partial class MainWindow : System.Windows.Window
             report.NativeSource = viewModel.RuntimeInfo.NativeSource;
             report.ActualBackendMode = viewModel.ActualBackendMode;
             report.MockBackend = viewModel.IsMockBackend;
+            // #175 (GUI-C-83): a run that asked for one backend and exercised another has not verified
+            // what it was asked to verify, however well everything else went.
+            report.BackendMatchesRequest = string.Equals(
+                report.BackendMode, report.ActualBackendMode, StringComparison.OrdinalIgnoreCase);
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 
@@ -366,6 +370,7 @@ public partial class MainWindow : System.Windows.Window
 
             report.RuntimeStateAfterShutdown = viewModel.RuntimeInfo.State;
             report.Passed =
+                report.BackendMatchesRequest &&
                 !string.IsNullOrWhiteSpace(report.BackendVersion) &&
                 report.InitialLogCount >= 5 &&
                 report.InitialAlertCount >= 1 &&
