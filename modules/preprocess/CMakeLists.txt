@@ -388,6 +388,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_mode.cpp
         # QA-A-101 (#169): FUNC-031 (3)(4)(5)(8) mode caps and AUTO selection
         tests/test_calib_mode_enforcement.cpp
+        # QA-A-102 (#169): writing over an existing calibration file
+        tests/test_calib_overwrite.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production
         tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
