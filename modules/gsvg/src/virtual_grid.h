@@ -115,8 +115,8 @@ struct VgSwitches {
     CapMode cap = CapMode::GlobalSum;
     double capEps = 0.0;          // eps for PrimaryFloor / SmoothFloor
     int reductionFactor = 0;      // 0: derived from the narrowest kernel term (QA-B-95: fixed to compare models)
-    bool clampThickness = true;
-    bool useFieldMask = true;     // false: a passed mask is ignored (QA-B-96 falsification)   // false: thickness above the table refuses the image (pre-QA-B-93)
+    bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
+    bool useFieldMask = true;     // false: a passed mask is ignored (QA-B-96 falsification)
 };
 
 struct VgReport {
