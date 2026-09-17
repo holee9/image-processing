@@ -215,6 +215,8 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
 |  Rationale: MUST precede Gain (linearize before normalize)     |
 |  Flag: XPE_FLAG_NONLINEARITY_CORRECTED                         |
 +----------------------------------------------------------------+
+
+> **현재 상태 (2026-09-17, #186)**: 이 단계는 **구현돼 있지 않습니다.** `nonlinearity_correct.cpp` 는 mode 를 검증한 뒤 화소를 바꾸지 않습니다. 실제로 보정하지 않으므로 `XPE_FLAG_NONLINEARITY_CORRECTED` 는 **켜지지 않습니다**(#184 에서 거짓 표시를 고쳤습니다). 구현 계획은 #186 입니다.
   |
   v  uint16
 +=================================================================+
@@ -443,7 +445,7 @@ flags = 0x00000000  (원본 프레임)
 (0.5) 후:  flags |= XPE_FLAG_READOUT_VALIDATED       0x0010
 (0.7) 후:  flags |= XPE_FLAG_TEMP_COMPENSATED        0x0020
 (1) 후:    [전용 플래그 없음 - 항상 실행]
-(1.5) 후:  flags |= XPE_FLAG_NONLINEARITY_CORRECTED  0x0040
+(1.5) 후:  flags |= XPE_FLAG_NONLINEARITY_CORRECTED  0x0040   ← 미구현이라 현재는 켜지지 않음 (#184, #186)
 (2) 후:    flags |= XPE_FLAG_GAIN_CORRECTED           0x0008
 (2.5) 후:  flags |= XPE_FLAG_BINNING_CORRECTED        0x0080
 (3) 후:    flags |= XPE_FLAG_DEFECT_CORRECTED         0x0004

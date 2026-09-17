@@ -237,6 +237,8 @@ void ProcessFrame(XpeImageBuffer* img, XpeImageMetadata* meta) {
     xpe_offset_correct(img, offsetMap);
     
     // 2. 비선형 보정 - 조건부 실행 (CONDITIONAL)
+    //    NOTE (2026-09-17, #186): 화소 계산이 아직 없습니다. 호출은 no-op 이고
+    //    플래그도 켜지지 않습니다(#184 에서 거짓 표시 수정).
     if (!(meta->flags & XPE_FLAG_NONLINEARITY_CORRECTED)) {
         xpe_nonlinearity_correct(img, config);
     }
