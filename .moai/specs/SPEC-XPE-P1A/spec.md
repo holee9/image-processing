@@ -1,5 +1,12 @@
 # SPEC-XPE-P1A: Pre-processing Module (Gain/Offset/Defect Correction)
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 7줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 그리고 **측정값 11줄**(`:222·245·269·289·293~295·297·313·317·475`, 대략)은 인용한 보고서(QA-A-55~69)에는 기계가 적혀 있는데 **여기로 옮기며 떨어졌습니다.** 그 보고서들은 기계를 **i7-12700** 또는 **"이 기계"** 로 적고 있습니다 — 후자를 i7-12700 과 같은 기계로 확인하지는 않았습니다. 이 파일의 절대 ms 측정값은 달리 적혀 있지 않으면 **개발 기계 값**으로 읽으십시오 — CI 러너 값이 아닙니다 (이 파일에 기록된 선례: 같은 게이트가 개발 기계 702 ms, CI 1340.9 ms).
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 ---
 id: SPEC-XPE-P1A
 version: 1.3.0
@@ -192,7 +199,21 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
-- **Performance** (redefined 2026-09-12, #144 — see the note below): regression gate **<= 810 ms** and improvement target **<= 60 ms (AVX2, single thread)** for a 3072x3072 FLOAT32 frame. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+- **Performance** (redefined 2026-09-12, #144 — see the note below): improvement target **<= 60 ms (AVX2, single thread) on the development machine** for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+
+> **Which machine the 60 ms target refers to (clarified 2026-09-17, QA-A-84).** Until this date the
+> line above named four conditions — AVX2, single thread, 3072x3072, FLOAT32 — and **no machine**. This
+> file already recorded that the 810 ms *gate* was machine-dependent (the 2026-09-16 note below: 702 ms
+> locally, 1340.9 ms on CI, 1.91x) and replaced it with a ratio; **the same was never said of the target.**
+> The target was derived on the development machine (from the 27.1 ms AVX2 lower bound measured there,
+> QA-A-56), so that is the machine it refers to. This records where the number came from; it does not
+> change the number.
+>
+> **Status against that definition** (from existing reports, not re-measured): development machine
+> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.** The "1.6x on the CI runner" figure further
+> down has **no absolute CI time behind it in the lane reports** — it is a ratio-derived statement, and
+> no report records a CI millisecond value for the current code. CI does not enforce the 60 ms target
+> at all: the ratio gate guards CI against regression, and that is its only job there.
 
 > **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
 >
@@ -211,16 +232,26 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > **Consequence for this budget: the numbers above stay single-thread numbers**, because the default is 1. A caller passing N threads is measured separately, against the table below.
 >
-> **Measured, this machine (QA-A-58, probe without a thread pool — conservative):**
+> **Which caller, exactly — the DLL boundary stays closed for now (leader judgment, 2026-09-16, QA-A-61).** `threadCount` lives in `RuntimeDetectionConfig`, and the public entry point `xpe_defect_detect_runtime` takes no config argument. So "the caller specifies" is true today **only of callers inside the module**; a consumer across the DLL boundary cannot set it and gets the default of 1. That gap is deliberate and is recorded here so nobody reads the policy as more than it is.
 >
-> | Threads | Pixel loop | Global sigma | Sum | vs 60 ms target |
-> |---|---|---|---|---|
-> | 1 | 534 ms | 143 ms | 677 ms | 11.3x |
-> | 8 | 125 ms | 29 ms | 154 ms | 2.6x |
-> | 12 | 86 ms | 26 ms | 112 ms | 1.9x |
-> | 20 | 60 ms | 26 ms | **86.5 ms** | **1.44x** |
+> The ABI is not opened yet for three reasons. **No consumer needs it** — nothing outside the module asks for threads today, and an exported knob with no caller is exactly the "declared wider than used" shape this project has found repeatedly. **The path it would open does not reach the target anyway** — saturation sits 1.7x over 60 ms, so the remaining work is algorithmic and an ABI widened now would be widened again after that work. **An export is hard to withdraw**, while an internal field is not.
 >
-> Global sigma **saturates at 12 threads** — the per-thread merge cost grows with T, so 20 threads does not improve it. **Threading alone does not reach 60 ms**; the remaining 1.44x needs the algorithm change, not more cores.
+> The condition for revisiting is concrete: **a named consumer with a stated core budget.** At that point the change carries the full export ceremony (ABI commit plus a `dumpbin` export diff) rather than riding along with a performance card. Export count is unchanged at **45**, matching the `XPE_API` count in the header.
+>
+> **Measured on the shipped implementation, this machine (QA-A-61):**
+>
+> | Threads | Global sigma | Speed-up |
+> |---|---|---|
+> | 1 | 149.4 ms | 1.00x |
+> | 12 | 35.1 ms | 4.26x |
+> | **16** | **34.0 ms** | **4.39x (saturation)** |
+> | 20 | 41.8 ms | worse than 16 |
+>
+> Whole-detection measured total at 16 threads: **102.3 ms**.
+>
+> **These numbers supersede the QA-A-58 probe figures this section previously carried, and the probe was optimistic in two ways.** The probe reported global sigma at 26.0 ms on 12 threads (5.52x) and placed saturation at 12; the shipped code is **35% slower** there and saturates at **16**. The probe's whole-detection figure of 86.5 ms was an **addition of separately-timed stages, not an end-to-end measurement** — QA-A-58 said so at the time — and the measured end-to-end total is **18% worse**. The probable cause of the per-stage gap is that the probe allocated its histogram tables once outside the timed region while the shipped code allocates T x 256 KB per call; that is a hypothesis, not a profiled result.
+>
+> **The conclusion moves in the other direction from the correction: it gets stronger.** Even at saturation the detection sits **1.7x** over the 60 ms target, against the 1.44x the probe suggested. **Threading alone does not reach the target**; the remainder is an algorithm change, not more cores.
 >
 > **The gate is now a machine-relative ratio, confirmed on both machines (resolved 2026-09-16, QA-A-60).** The former absolute gate of 810 ms came from this development machine only; the first CI run to execute it measured **1340.9 ms**, **1.91x slower**, and failed. Raising the number would have disabled the gate on the faster machine, so the gate instead divides the measured time by a **reference kernel fixed inside the test file** and asserts on the quotient.
 >
@@ -239,6 +270,66 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > **The 1024x1024 companion is a diagnostic, not a gate.** Its normal band spans 54% (0.629 - 0.969 local, 0.852 CI) against a regression band of 1.140 - 1.359, so normal-worst and regression-best sit only 1.18x apart and no limit fits between them. A gate inside its own noise is worse than none: it trains the habit of re-running until green, which is the path a real regression takes through.
 >
 > **Reading the ratio.** `ctest` prints test output only on failure, so a passing run shows the ratio nowhere in the CI log. It is in the `xpe-preprocess-test-results` artifact (`Temporary/LastTest.log`), which is where the numbers above were read.
+>
+> ---
+>
+> **Re-derived after the AVX2 change (2026-09-16, QA-A-65 / QA-A-66).** The pixel loop moved to AVX2 with bit-identical output: 3072x3072 single thread went **692.7 -> 163.7 ms**, putting the SPEC target 2.7x away instead of 11.5x. That improvement broke the gate's premise, and the limit was re-derived rather than left alone.
+>
+> **The reference kernel stopped representing the subject.** Before the change both the subject and the reference were mostly scalar, and their ratio agreed between machines to 5.4%. After it, the ratio diverged by **24%** (local 1.644, CI 1.323) and the ordering flipped. The cause was measured rather than guessed: pinning the same work to this CPU's P-cores and E-cores reproduces the spread **inside one machine**, and the E-core lands within **1.2%** of CI.
+>
+> | Core | Detection | Reference | Ratio |
+> |---|---|---|---|
+> | P (Golden Cove) | 166.7 ms | 96.9 ms | 1.720 |
+> | E (Gracemont) | 237.2 ms | 181.4 ms | 1.308 |
+> | CI runner | — | — | 1.251 - 1.323 |
+>
+> P->E slows the reference by **1.87x** but the detection by only **1.42x**, because after the AVX2 change 90% of the detection is global sigma (1.41x, memory-shaped) and only 10% is the vector loop (2.40x). The quotient now measures *memory-shaped work against scalar arithmetic*, and that balance differs per core design. Five replacement kernels were measured and all landed at 1.75-1.89, none reaching the subject's 1.42 — the conclusion is not that a better kernel exists but that **the normal band is genuinely wide**.
+>
+> **Gate: `ratio <= 2.20`.** Normal readings span 1.251 - 1.720 across P-core, E-core, and CI; the regression band (AVX2 forced off, a real rebuild) is 7.060 - 7.154. The limit sits **27.9% above the worst normal** — the same margin A-60 used — and 69% below the best regression. In the regression band the two core types agree to 1.3%, because without AVX2 the detection is scalar again and tracks the reference again: the explanation confirmed a second time.
+>
+> **[HARD] The limit is re-derived after every large performance change, not inherited.** This is the second time the quotient changed what it measures, and the next one is already visible: global sigma now holds 90% of the remaining time, so improving it will shift the balance again. A limit carried across such a change is not a loosened gate — it is a gate measuring something else.
+>
+> ---
+>
+> **Re-derived again, and the improvement target is essentially reached (2026-09-16, QA-A-67).** Global sigma went **137.8 -> 46.7 ms** and the whole detection **163.7 -> 64.4 ms**, putting the 60 ms target **1.1x away on this machine** (1.6x on the CI runner) against 11.5x before the AVX2 work.
+>
+> **The cost was one branch, and it was arithmetic in appearance only.** Within global sigma, one of two selections took 70% of the time (97.0 ms) while *the same function* on the other selection took 14.2 ms — 6.8x cheaper. The only difference was the input distribution: the difference array is half negative and therefore unpredictable, the absolute deviations are all non-negative and therefore perfectly predicted. The control group settles what the cost was:
+>
+> | Key form | Input | Time |
+> |---|---|---|
+> | branching | signed differences | 28.9 ms |
+> | branchless | signed differences | 5.6 ms |
+> | **branching** | **absolute deviations** | **4.4 ms** |
+>
+> The third row is the control: with predictable data the branching form is already fast, so the cost was **misprediction, not arithmetic**. Two competing hypotheses were rejected by measurement first — a 256 KB histogram exceeding cache (1 KB 26.8 ms vs 256 KB 27.3 ms) and the probe translation unit missing `/arch:AVX2` (186.5 -> 188.8 ms after adding it).
+>
+> **The gate moved 2.20 -> 0.85, and the earlier explanation predicted both the branch and its removal.** A-66 attributed the wide normal band to the detection being memory-shaped rather than arithmetic-shaped; that shape *was* this branch. With it gone the detection scales P->E at 1.80x against the reference's 1.84x, and the two core types agree again.
+>
+> | | P-core | E-core | CI runner |
+> |---|---|---|---|
+> | Normal | 0.630 - 0.651 | 0.626 - 0.630 | **0.552** |
+> | Regression (this change reverted) | 1.583 | 1.289 | — |
+> | Regression (AVX2 removed) | 6.183 | 6.490 | — |
+>
+> **Moving the limit was not optional.** The reverted-change regression reads **1.289 on the E-core, below A-66's own P-core normal of 1.720** — the old limit of 2.20 would have passed that regression on both core types. The new limit sits 30.6% above the worst normal reading and 34% below the nearest regression.
+>
+> One qualification on the band: the local P/E spread narrowed to 3.3%, but the CI runner reads **0.552**, so the band across all three is about 18% wide. The limit accommodates that; the narrowing is a local-cores observation, not an all-machines one.
+>
+> **Still unverified, and it is the same shape as the finding above.** `MedianSortCE` also runs a ternary per element. A comment asserts MSVC lowers it to `vminss`/`vmaxss`, and **that assertion has not been checked** — a comment claiming what the compiler does is not evidence of what the compiler does.
+>
+> *(Checked 2026-09-16, QA-A-68: the comment was wrong on both counts — no `vminss`/`vmaxss`, and four conditional branches remain. It was **not** fixed, because after the AVX2 change that scalar path runs only on the border: 30,704 of 9,437,184 pixels (0.33%), 2.149 ms, and halving it would return under 0.5 ms against a gate sample spread of 8%. Measuring the share before acting is what separated "the comment is wrong" from "there is something worth fixing".)*
+>
+> ---
+>
+> **The row tail (2026-09-16, QA-A-69).** The vector run stopped at `x + 8 <= w - 1`, dropping the last seven interior pixels of every row onto the scalar path. That cost is **fixed per row**, so it grows as frames get narrower — 0.23% of interior pixels at width 3072 but about 1.4% at width 512 — and the scalar path is roughly 58x slower per pixel. An overlapping final run at `x = w - 9` removes it: scalar pixels **30,704 -> 12,284**, their cost **2.149 -> 0.985 ms**. The remaining 12,284 are the first and last columns, which have a different neighbourhood and must stay scalar. Processing the overlap twice is safe by construction (the verdict is deterministic and the map write overwrites rather than accumulates) — verified in the column direction rather than inherited from the row-direction result.
+>
+> **Three residual facts are recorded here because none of them is visible from the code.**
+>
+> **1. Frame parity did not catch the boundary error.** Moving the final run by one column (`w-9` -> `w-8`) leaves every map assertion passing, because the scalar pass that follows overwrites that column with the correct value. **The map was right and the read was wrong** — the last interior row loaded one element past the end of the frame. Only a guard-page **read** test catches it, and that is a third distinct falsification shape in this module: bit-vs-frame (QA-A-65), two layers that overlap (QA-A-67), and now **an assertion whose subject is the memory access rather than the output**.
+>
+> **2. The border is correct for two reasons, and the second hides errors in the first.** The formula does not touch the border, *and* the scalar pass rewrites it. Today both hold. If the order ever changes, the masking layer disappears and the only remaining defence is the guard-page test above.
+>
+> **3. This optimisation is not protected against its own deletion.** Remove the tail run and the map is unchanged, the guard page does not fire, and the gate cannot see the 2.7% difference against an 8% sample spread. Instrumenting the product code with a scalar-pixel counter was considered and **declined**: it would either sit in a hot path or live only in a Debug build that CI never compiles (the same dead end as the assertion in QA-A-64). The gap is recorded rather than papered over — a performance change whose only evidence is a number below the noise floor has no mechanical guard, and saying so is more useful than a guard that does not guard.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
@@ -356,11 +447,17 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 #### REQ-P1A-040: SIMD Optimization
 
-**Where** AVX2 is available at runtime, the module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation, runtime detection) while maintaining the parity contract defined in Section 4.6.
+The module **shall** use AVX2 intrinsics for performance-critical operations (offset subtraction, gain multiplication, defect interpolation, runtime detection) while maintaining the parity contract defined in Section 4.6.
+
+> **Amended 2026-09-16 (QA-A-75, #160).** The opening clause was *"Where AVX2 is available at runtime"*. That premise does not hold: Section 4.6 makes AVX2 a **minimum platform requirement**, and the module is compiled `/arch:AVX2` as a whole, so AVX2 availability does not vary at runtime for any CPU that reaches our code at all. A requirement conditioned on a condition that is always true is not a requirement — it reads as one while constraining nothing, and it is what kept a runtime-dispatch design alive in this document long after the shipped design stopped having one.
+
+> **The dispatch override never existed, under four different names.** The retired protocol line referenced `xpe.simd.force_scalar`; `.moai/docs/acceptance.md` claimed an `XPE_FORCE_SCALAR=1` environment variable and a `{"force_scalar": true}` init-config flag; `simd_dispatch.cpp` declared an `xpe_simd_force_scalar()` function. **Measured 2026-09-16 (scope: this worktree, excluding `build/` and `.git/`):** `XPE_FORCE_SCALAR` occurs **only** inside `.moai/backups/` copies of superseded SPECs — zero occurrences in live source; the config flag has no reading code; and the function lived in `modules/preprocess/src/simd_dispatch.cpp`, which was absent from the CMake source list and **did not compile** (`XPE_EXPORT` had no definition anywhere in the repository — `error C2143` at its first use). **That file was deleted in QA-A-76**, and git history settled what it had been: no commit ever named it in a `CMakeLists.txt`, no commit ever defined `XPE_EXPORT`, and `generate_export_header` was never used — so it was never a renamed remnant, it was a name that had never existed. The commit that introduced it (`60dd828`) declared **`405/405` parity checks passing** in the same message, which is where that figure came from. Control for that search: `XPE_API` resolves to a real `__declspec` definition in `xpe_types.h`, so the search instrument reads what is there.
+
+> **What survives is the parity contract, not the dispatch.** Sections AC-SIMD-001~004 asked for scalar/AVX2 parity, and that **intent is met** by QA-A-72/A-73: each AVX2 kernel is compared against an inline scalar reference compiled from the same source, with no runtime switch to select between them. The mechanism differs from the one planned here and the **case counts differ too** (the harness asked for 300 cases x 3 shapes; the shipped parity tests compare one frame each) — recorded as two separate facts rather than collapsed into "done".
 
 - **SRS**: SRS-PERF-001
 - **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3
-- **Detailed protocol**: See `simd-parity-harness.md` (deterministic seed, 100 random inputs, dispatch override `xpe.simd.force_scalar`)
+- **Detailed protocol**: `simd-parity-harness.md` describes the planned harness, including the dispatch override. The override is **retired** (above); the parity protocol is superseded by the inline-scalar-reference comparison in `test_offset_correct_avx2_parity.cpp` and its gain counterpart.
 
 #### REQ-P1A-041: Readout Artifact Validation
 
@@ -378,7 +475,15 @@ The module **shall not** produce NaN or Inf values in output image buffers. All 
 
 ### 4.6 SIMD Parity Contract (NEW IN v1.2.0)
 
-The scalar path is the reference implementation. The AVX2 path is an opt-in performance layer that must honour the following parity rules on every supported operation:
+**AVX2 is a minimum platform requirement (decided 2026-09-16, user, #160).** The module is compiled `/arch:AVX2` as a whole (`modules/preprocess/CMakeLists.txt`), so a CPU without AVX2 does not run it slowly — it **faults on the first call**, before any code of ours executes. That is now a stated requirement rather than an accident.
+
+> **What this decision changes, and what it does not.** Behaviour is unchanged: such a CPU faulted before and faults after. What changes is that the fault is **specified** rather than surprising, and that the module stops **appearing** to handle the case — `xpe_gain_has_avx2()` in `gain_correct.cpp` was a correct CPUID/XGETBV probe that **could never protect anything**, because the faulting instruction can be emitted anywhere in the module including ahead of the probe itself. A guard that cannot guard is worse than no guard: it makes a reader stop looking.
+>
+> **The cost of the alternative is measured.** Supporting a non-AVX2 CPU means splitting `/arch:AVX2` to the vector sources only, which is a structural change whose boundaries break silently when inlining or templates cross them. And giving up AVX2 entirely means giving up **692.7 -> 163.7 ms** on the 3072x3072 detection (QA-A-65, bit-identical), with the 60 ms target unreachable by scalar code — the median stage already sits at the measured scalar lower bound (QA-A-68).
+>
+> **What was verified, and what could not be.** A build with the vector path switched off produces **byte-identical results** (QA-A-71: flag count and map digest match exactly across the two builds). That establishes the scalar path is correct, **not** that it runs on a non-AVX2 CPU — that build still compiles `/arch:AVX2`, so no build currently exists in which the question could be asked. Do not read the parity result as AVX2-free support.
+
+The scalar path is the reference implementation, and the parity rules below still bind because the scalar path is what defines correct output. The AVX2 path is the shipped path on every supported CPU:
 
 | Operation | Scalar Path | AVX2 Path | Parity Rule |
 |-----------|-------------|-----------|-------------|
@@ -459,7 +564,11 @@ Verification:
 
 ## 6. Performance Targets
 
-출처: XPE-ALG-001, 3072x3072 UINT16 기준
+~~출처: XPE-ALG-001, 3072x3072 UINT16 기준~~
+
+> **⚠ 출처 정정 2026-09-17 (QA-A-85).** 이 표는 `XPE-ALG-001` 을 출처로 인용했지만, **그 문서에 이 표의 수치가 없습니다** — `docs/post-processing/xpe/XPE-ALG-001_…md` 에서 `55 ms` 계열 0건, `95 ms` 계열 0건 (대조군: 같은 검색이 그 문서의 ms 값 86줄을 찾음). 오히려 ALG-001 의 `xpe_offset_correct` 주석은 `≤500ms (SRS-PERF-001)` 이고, 이 파일의 offset 목표는 `< 55ms` 입니다.
+>
+> **아래 표의 수치는 유도 근거를 찾지 못했습니다** (탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체). 기계도 적혀 있지 않습니다. 성능 판정의 근거로 **인용하지 마십시오**. 런타임 검출의 현행 목표는 위 Performance 절(개발 기계 기준 60 ms)입니다. 그리고 같은 defect 연산에 목표가 **둘**입니다 — `research.md:215` 는 `< 60ms`, 이 파일과 `acceptance.md:583` 은 `< 95ms`. 어느 쪽인지 정해지지 않았습니다.
 
 | Algorithm          | Target     | SIMD Target (AVX2) |
 |--------------------|------------|--------------------|

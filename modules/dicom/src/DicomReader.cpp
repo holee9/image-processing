@@ -100,6 +100,11 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
 static constexpr const char* TS_EXPLICIT_LE  = "1.2.840.10008.1.2.1";
 static constexpr const char* TS_J2K_LOSSLESS = "1.2.840.10008.1.2.4.90";
 static constexpr const char* TS_JPEG_LL      = "1.2.840.10008.1.2.4.70";
+// #147 (QA-B-68): Process 14 without first-order prediction. A different
+// bitstream from .70 despite both being called "JPEG Lossless" -- that shared
+// name is what let the two requirements drift apart (REQ-IOP-003 names .57,
+// REQ-DICOM-004 names .70).
+static constexpr const char* TS_JPEG_LL_P14  = "1.2.840.10008.1.2.4.57";
 
 // @MX:ANCHOR: [AUTO] DicomReader constructor — maps from opaque XpeDicomHandle
 // @MX:REASON: fan_in >= 3: xpe_dicom_open allocates, readImage and getMetadata use, xpe_dicom_close frees
@@ -155,16 +160,19 @@ XpeErrorCode DicomReader::open() {
     // Validate DICOM Part 10 meta-information header
     DcmMetaInfo* meta = m_dcmFile->getMetaInfo();
     if (!meta) {
-        // No meta-info: try loading as a DICOM without preamble
-        // If dataset is also empty, it's invalid
-        DcmDataset* ds = m_dcmFile->getDataset();
-        if (!ds) {
-            return XPE_ERR_DICOM_INVALID;
-        }
-        // Accept implicit datasets (no TS check, treat as Explicit LE)
-        m_opened = true;
-        m_tsUID = TS_EXPLICIT_LE;
-        return XPE_OK;
+        // #167 (QA-B-72): this branch is CLOSED, not handled.
+        //
+        // It used to accept the file and record Explicit VR Little Endian with no
+        // syntax check. QA-B-71/72 could not produce any input that reaches it --
+        // five attempts (empty file, preamble only, random bytes, a lone tag, and
+        // a DcmFileFormat that was never loaded) all returned a non-NULL
+        // getMetaInfo(). With no reachable input there is no way to learn whether
+        // a detected syntax would be available or correct here, so the branch
+        // fails closed rather than guessing. It has NO execution test; the
+        // decision rests on the reachability measurement alone.
+        spdlog::warn("[DicomReader] no meta-information object; transfer syntax "
+                     "cannot be established -- refusing");
+        return XPE_ERR_UNSUPPORTED_FORMAT;
     }
 
     // Check Transfer Syntax UID from meta-header
@@ -183,8 +191,68 @@ XpeErrorCode DicomReader::open() {
         }
         m_tsUID = std::string(tsUID.c_str());
     } else {
-        // No TS in meta — treat as Explicit LE
-        m_tsUID = TS_EXPLICIT_LE;
+        // #167 (QA-B-72): a meta-header with no TransferSyntaxUID. This branch
+        // used to ASSUME Explicit VR Little Endian and skip the accepted-list
+        // check -- so a file refused when labelled was read when the label was
+        // missing (QA-B-69: Implicit VR LE and Explicit VR BE both came back as
+        // full frames). Every meta-less fixture QA-B-71 measured took this
+        // branch, not the one above.
+        //
+        // Two checks now, each closing a case the other cannot:
+        DcmDataset* ds = m_dcmFile->getDataset();
+        if (!ds) {
+            return XPE_ERR_DICOM_INVALID;
+        }
+        const E_TransferSyntax detected = ds->getOriginalXfer();
+        const DcmXfer detectedXfer(detected);
+        const std::string detectedUid =
+            (detected == EXS_Unknown) ? std::string() : std::string(detectedXfer.getXferID());
+
+        // (1) The syntax DCMTK detected must be on the accepted list -- the same
+        //     list a labelled file is held to. This is what closes the native
+        //     leaks: QA-B-71 measured the detection as correct for Explicit LE,
+        //     Implicit LE and Explicit BE.
+        bool accepted = false;
+        for (size_t i = 0; i < kSupportedTransferSyntaxCount; ++i) {
+            if (detectedUid == kSupportedTransferSyntaxes[i].uid) {
+                accepted = true;
+                break;
+            }
+        }
+        if (!accepted) {
+            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; detected "
+                         "syntax '{}' is not supported -- refusing",
+                         detectedUid.empty() ? "(unknown)" : detectedUid);
+            return XPE_ERR_UNSUPPORTED_FORMAT;
+        }
+
+        // (2) The detection cannot be trusted when it contradicts the pixel data.
+        //     QA-B-71 measured encapsulated .70 and .57 files DETECTED as Explicit
+        //     VR Little Endian -- a value that is on the list, so (1) passes them.
+        //     They were still stopped, but only by the native read failing on an
+        //     encapsulated stream (DICOM_INVALID from readImage): structure, not a
+        //     check. An encapsulated PixelData is written with an undefined length
+        //     field, and QA-B-72 measured that field alone as separating the two
+        //     groups (native 0/3, encapsulated 2/2) -- unlike the syntax-keyed
+        //     getEncapsulatedRepresentation(), which returned false for BOTH
+        //     encapsulated files because DCMTK had filed them as uncompressed.
+        //     So the syntax-free signal is the one used here.
+        DcmElement* pix = nullptr;
+        const bool pixelDataEncapsulated =
+            ds->findAndGetElement(DCM_PixelData, pix).good() && pix != nullptr &&
+            pix->getLengthField() == DCM_UndefinedLength;
+        if (pixelDataEncapsulated && !detectedXfer.usesEncapsulatedFormat()) {
+            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; PixelData is "
+                         "encapsulated but the detected syntax '{}' is native -- the "
+                         "detection cannot be trusted, refusing", detectedUid);
+            return XPE_ERR_UNSUPPORTED_FORMAT;
+        }
+
+        // For every file measured, detectedUid here is Explicit VR Little Endian,
+        // which is what this branch used to hard-code. Recording the detected
+        // value rather than the assumption is what keeps readImage's dispatch
+        // honest if DCMTK ever detects an accepted encapsulated syntax.
+        m_tsUID = detectedUid;
     }
 
     m_opened = true;
@@ -209,7 +277,13 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     if (bitsStored == 0) bitsStored = bitsAlloc;
 
     bool isJ2K = (m_tsUID == TS_J2K_LOSSLESS);
-    bool isJPEGLL = (m_tsUID == TS_JPEG_LL);
+    // #147 (QA-B-68): both JPEG-Lossless syntaxes take this branch. The dispatch
+    // is per-SYNTAX, not per-compressed-path, so .57 did not inherit anything
+    // from .70 by being compressed -- it had to be named here. The encapsulated
+    // representation is then requested with ITS OWN key; asking for the .70 key
+    // on a .57 dataset finds nothing and the size guard below would silently do
+    // no work.
+    bool isJPEGLL = (m_tsUID == TS_JPEG_LL) || (m_tsUID == TS_JPEG_LL_P14);
 
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG
@@ -227,7 +301,9 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         if (ds->findAndGetElement(DCM_PixelData, encElem).good() && encElem != nullptr) {
             DcmPixelData* encPd = OFstatic_cast(DcmPixelData*, encElem);
             DcmPixelSequence* encSeq = nullptr;
-            E_TransferSyntax encKey = EXS_JPEGProcess14SV1;
+            E_TransferSyntax encKey = (m_tsUID == TS_JPEG_LL_P14)
+                                          ? EXS_JPEGProcess14      // .57
+                                          : EXS_JPEGProcess14SV1;  // .70
             const DcmRepresentationParameter* encParam = nullptr;
             if (encPd != nullptr &&
                 encPd->getEncapsulatedRepresentation(encKey, encParam, encSeq).good() &&

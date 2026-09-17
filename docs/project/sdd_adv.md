@@ -194,10 +194,21 @@ tests/enhance_advanced_tests/
 | Parameter | Type | Range | Default |
 |-----------|------|-------|---------|
 | levels | int | 2-8, and ≤ floor(log2(min(w,h)))+1 (physical bound; clamped, #121) | 4 |
+| num_levels | int | same as `levels` | 4 |
 | edge_gain | float | 0.0-5.0 | 1.5 |
 | texture_gain | float | 0.0-5.0 | 1.0 |
 | flat_gain | float | 0.0-5.0 | 0.8 |
 | noise_threshold | float | 0.0-50.0 | 5.0 |
+
+> **실측 주석 (2026-09-17, QA-B-78, #162).** 위 표는 이름·범위·기본값만 적고 **각 키가 실제로 출력에 닿는지**는 적지
+> 않습니다. 두 극단 값으로 출력을 비교한 결과(대조군 포함):
+>
+> - **`levels` 가 2 나 3 이면 일부 게인이 쓰이지 않습니다** — 레벨 3 에서는 `texture_gain`, 레벨 2 에서는 `edge_gain`·
+>   `texture_gain` 이 출력에 닿지 않습니다(`mfp_scalar.cpp:180-186` 분기, 두 극단 차이 0). 둘 다 이 표의 허용 범위 안입니다.
+>   레벨 4 에서는 두 게인이 모두 출력을 바꿉니다
+> - **`num_levels`** 와 `levels` 는 같은 값을 받습니다(`helpers.cpp:171-181`). 코드 주석은 `levels` 를 legacy 라고 부릅니다.
+>   **두 키가 함께 오면 `num_levels` 가 이깁니다** — 원래는 legacy `levels` 가 이겼고, 이름의 의도와 반대라 QA-B-79 에서
+>   뒤집었습니다(#162). 시험 `NumLevelsWinsOverLegacyLevels` 가 적용된 값을 출력으로 확인합니다.
 
 #### Fractional Configuration (SWU-2.6)
 
@@ -213,11 +224,16 @@ tests/enhance_advanced_tests/
 | iterations | int | 1-5 | 1 |
 | step_size | float | 0.01-1.0 | 0.25 |
 
+> **실측 주석 (2026-09-17, QA-B-78, #162).** **`step_size` 는 파싱·클램프되지만 출력에 닿지 않습니다.**
+> `FractionalConfig` 에는 이 값을 받는 멤버가 없고, 값은 디버그 로그에만 쓰입니다. 0.01 과 1.0 의 출력 차이는
+> **0.000000000** 입니다(대조군 `iterations` 1 대 3 은 494.17). 이름이 알려진 키라 미지 키 경고도 뜨지 않습니다 —
+> **경고가 없다는 것이 적용됐다는 뜻이 아닙니다.** 이 키를 알고리즘에 연결할지, 제거할지는 정해지지 않았습니다.
+
 #### Collimation Configuration (SWU-2.8)
 
 ```json
 {
-  "sensitivity": 0.5,
+  "confidence_strictness": 0.5,
   "min_area_ratio": 0.05,
   "border_margin": 8
 }
@@ -225,7 +241,7 @@ tests/enhance_advanced_tests/
 
 | Parameter | Type | Range | Default |
 |-----------|------|-------|---------|
-| sensitivity | float | 0.0-1.0 | 0.5 |
+| confidence_strictness | float | 0.0-1.0 | 0.5 |
 | min_area_ratio | float | 0.01-1.0 | 0.05 |
 | border_margin | int | 0-64 | 8 |
 
@@ -294,7 +310,22 @@ Module state consists of a single `g_initialized` boolean protected by `g_initMu
 6. Apply confidence-based fallback if score < threshold
 7. Apply border margin to output coordinates
 
-**Confidence threshold**: Derived from sensitivity parameter: `threshold = 0.7 + 0.3 * sensitivity`.
+**Confidence threshold**: Derived from the `confidence_strictness` parameter: `threshold = 0.7 + 0.3 * confidence_strictness`.
+
+> **개명 2026-09-16 (사용자 결정, #164 / QA-B-65) — 옛 이름은 `sensitivity` 였습니다.**
+>
+> **옛 이름은 동작과 반대를 말했습니다.** 위 식이 보이듯 값을 올리면 요구 신뢰도가 올라가 **더 많이 거절**합니다. "더 잘 잡히게" 하려고 값을 올린 조작자는 **검출을 잃습니다.** QA-B-62 가 무반응으로 관측했다가 QA-B-63 이 **에지 세기를 12단계로 훑어** 갈랐습니다 — 검출 문턱 바로 위 한 칸에서만 갈라지고, 낮은 값이 검출하고 높은 값이 전체 폴백합니다.
+>
+> **산술식은 바뀌지 않았습니다. 임상 출력도 불변입니다.** 고친 것은 이름뿐이고, 연산을 뒤집는 안은 **어느 방향이 옳은지 판단할 근거가 요구에 없어서** 채택되지 않았습니다 — `REQ-ADV-012` 는 Hough·theta 필터만 명명하고 신뢰도 임계를 다루지 않습니다.
+>
+> **`confidence_threshold` 를 쓰지 않은 이유**: 이 값은 임계 **자체**가 아니라 임계로 보간되는 **계수**입니다. `0.5` 를 주면 실제 임계는 `0.85` 이므로, 그 이름은 방향은 맞히지만 **크기에서 두 번째 거짓말**이 됩니다. `confidence_strictness` 는 잰 방향(올리면 엄격해진다)을 말하면서 임계 값 자체라고 주장하지 않습니다.
+>
+> **이 이름도 완전하지 않습니다.** 이 키에는 서로 반대로 당기는 두 효과가 있고(신뢰도 임계와 theta 해상도), **한 이름이 둘을 다 말할 수 없는 것이 구조적 성질**입니다. 쪼개는 것은 출력이 바뀌는 변경이라 하지 않았습니다. theta 효과는 코드 주석에 측정과 함께 적혀 있습니다.
+>
+> **옛 이름은 조용히 받아들여지지 않습니다.** 알려진 키 목록에서 빠졌으므로 미지 키 경고가 **이름으로 말하고**(QA-B-60/B-61 의 장치), 결과는 요청값이 아니라 기본값이 됩니다 — 가정이 아니라 단언으로 확인됐습니다.
+>
+> **남는 위험 둘은 이 개명이 고치지 않습니다**: 폴백이 `XPE_OK` 를 반환해 실패가 조용한 것(REQ-ADV-041 이 정한 동작), 그리고 경계에서만 갈라져 **어려운 영상에서만** 검출을 잃는 것.
+
 
 **Fallback behavior**: When confidence is below threshold, returns full image extent with border margin applied.
 

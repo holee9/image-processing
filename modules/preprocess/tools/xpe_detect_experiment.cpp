@@ -61,7 +61,12 @@ using xpe::preprocess::internal::CollectNeighborValues;
 using xpe::preprocess::internal::ComputeMedian;
 using xpe::preprocess::internal::ComputeMAD;
 using xpe::preprocess::internal::ComputeGlobalSigma;
+using xpe::preprocess::internal::ComputeGlobalSigmaThreaded;
+using xpe::preprocess::internal::DetectFrame;
 using xpe::preprocess::internal::DetectDefectivePixel;
+using xpe::preprocess::internal::DetectRowRange;
+using xpe::preprocess::internal::SelectKthSmallest;
+using xpe::preprocess::internal::FloatSortKey;
 
 /* ---------------------------------------------------------------- frames */
 
@@ -329,6 +334,71 @@ void timeEntryPoint(uint32_t w, uint32_t h) {
     std::printf("[time] %ux%u  best of 3: %8.1f ms   flagged %zu (%.3f%%)\n",
                 w, h, best, flagged, 100.0 * (double)flagged / (double)n);
     std::fflush(stdout);
+}
+
+/* ------------------------------------------- QA-A-61 shipped-code threading */
+//
+// QA-A-58 measured thread scaling with a PROBE built in this TU. The card asks
+// for the same measurement from the code that actually ships, because a probe
+// and an implementation are not the same thing -- QA-A-54 already caught a
+// replica running 1.24x slower than the real loop through nothing but inlining.
+// So this calls ComputeGlobalSigmaThreaded and DetectFrame directly.
+
+void shippedThreadScaling(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(0u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(n * sizeof(float));
+    std::vector<uint8_t> map(n, 0u);
+
+    auto bestOf = [](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    std::printf("[shipped-threads] %ux%u, best of 5, SHIPPED code (not a probe)\n", w, h);
+    std::printf("  sigma value is printed to show it does not move with the split.\n\n");
+    std::printf("  %8s %12s %10s %12s %10s %14s\n",
+                "threads", "sigma ms", "speed-up", "frame ms", "speed-up", "sigma value");
+
+    double sigmaBase = 0.0, frameBase = 0.0;
+    const int32_t counts[] = {1, 2, 4, 8, 12, 16, 20};
+    for (int32_t T : counts) {
+        volatile float sink = 0.0f;
+        float produced = 0.0f;
+        const double tSigma = bestOf(5, [&]{
+            produced = ComputeGlobalSigmaThreaded(&img, T);
+            sink = sink + produced;
+        });
+
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.threadCount = T;
+        const double tFrame = bestOf(3, [&]{
+            std::fill(map.begin(), map.end(), static_cast<uint8_t>(0));
+            DetectFrame(&img, cfg, map.data(), map.size());
+        });
+
+        if (T == 1) { sigmaBase = tSigma; frameBase = tFrame; }
+        std::printf("  %8d %12.1f %9.2fx %12.1f %9.2fx %14.6f\n",
+                    T, tSigma, sigmaBase / tSigma, tFrame, frameBase / tFrame, produced);
+        std::fflush(stdout);
+    }
+    std::printf("\n");
 }
 
 /* -------------------------------------------- QA-A-58 global-sigma threads */
@@ -1160,6 +1230,738 @@ void decompose(uint32_t w, uint32_t h) {
     std::fflush(stdout);
 }
 
+
+/* ------------------------------ QA-A-64: where the remaining 1.7x lives */
+
+/**
+ * Stage decomposition of DetectFrame at several thread counts.
+ *
+ * WHY THIS IS NOT --decompose. That mode measures the shipped entry point,
+ * which is single-threaded, and splits the pixel loop using a replica compiled
+ * in this TU. This mode measures DetectFrame itself -- the threaded path -- and
+ * reports, for each thread count:
+ *
+ *   TOTAL      DetectFrame end to end
+ *   sigma      ComputeGlobalSigmaThreaded at the same thread count
+ *   memset     the map clear DetectFrame does (QA-A-62)
+ *   rows       a replica of DetectFrame's row loop, split the same way
+ *   GAP        TOTAL - (sigma + memset + rows)
+ *
+ * THE GAP ROW IS THE POINT. QA-A-58 reported 86.5 ms for a probe and the
+ * shipped path then came in 18% slower; the difference was everything the
+ * decomposition did not name -- thread creation and join, the per-worker scratch
+ * vectors, the first-touch page faults on the map. Quoting a sum as if it were
+ * the total hides exactly that. So the sum is printed, the total is printed, and
+ * the difference between them is printed as its own row rather than absorbed.
+ *
+ * The replica is compiled HERE, not in the DLL, so its absolute time is not the
+ * shipped loop's time. That is why the gap is reported as a measured difference
+ * and not attributed to any one cause.
+ */
+void decomposeThreads(uint32_t w, uint32_t h, const int32_t* counts, size_t nCounts) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260923u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    for (size_t i = 1013; i < n; i += 4099) frame[i] += 140.0f;
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    std::vector<uint8_t> map(n, 0u);
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    // Config exactly as DetectFrame builds it, so the replica judges the same
+    // pixels the real loop does.
+    const float sg = ComputeGlobalSigmaThreaded(&img, 1);
+    RuntimeDetectionConfig base = RuntimeDetection_DefaultConfig();
+    base.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    base.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+
+    std::printf("[decompose-threads] %ux%u (%zu pixels), best of 3 per cell\n", w, h, n);
+    std::printf("  %-8s %10s %10s %10s %10s %10s %8s  %10s %7s\n",
+                "threads", "TOTAL", "sigma", "memset", "rows*", "SUM*", "GAP%",
+                "rows_situ", "repl/x");
+    std::printf("  (* rows/SUM use the replica loop compiled in this TU.\n"
+                "   rows_situ = TOTAL - sigma - memset, which accounts for the\n"
+                "   total by construction. repl/x = replica / rows_situ.)\n");
+
+    for (size_t c = 0; c < nCounts; ++c) {
+        const int32_t T = counts[c];
+
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.threadCount = T;
+        const double tTotal = bestOf(3, [&]{ DetectFrame(&img, cfg, map.data(), map.size()); });
+
+        volatile float sink = 0.0f;
+        const double tSigma = bestOf(3, [&]{ sink = sink + ComputeGlobalSigmaThreaded(&img, T); });
+        const double tMemset = bestOf(3, [&]{ std::memset(map.data(), 0, n); });
+
+        // Replica of DetectFrame's row loop, split the same way.
+        const double tRows = bestOf(3, [&]{
+            const uint32_t nT = (T < 1) ? 1u : static_cast<uint32_t>(T);
+            auto runRows = [&](uint32_t y0, uint32_t y1) {
+                // QA-A-65: this used to write the row loop out again, which was
+                // a faithful replica while both loops were scalar and stopped
+                // being one the moment the shipped loop gained an AVX2 path --
+                // the ratio column printed 31.8x and the GAP -321%. A number
+                // that large is not a finding, it is two different programs
+                // being compared. It now calls the same DetectRowRange the
+                // shipped path calls.
+                std::vector<float> a, b;
+                a.reserve(64); b.reserve(64);
+                DetectRowRange(&img, base, map.data(), y0, y1, a, b);
+            };
+            if (nT == 1u) { runRows(0u, h); return; }
+            std::vector<std::thread> pool;
+            pool.reserve(nT);
+            for (uint32_t t = 0; t < nT; ++t) {
+                const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h) * t) / nT);
+                const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h) * (t + 1u)) / nT);
+                pool.emplace_back(runRows, y0, y1);
+            }
+            for (std::thread& th : pool) th.join();
+        });
+
+        const double sum = tSigma + tMemset + tRows;
+        const double tRowsInSitu = tTotal - tSigma - tMemset;
+        std::printf("  %-8d %10.1f %10.1f %10.1f %10.1f %10.1f %7.1f%%  %10.1f %6.2fx\n",
+                    T, tTotal, tSigma, tMemset, tRows, sum,
+                    100.0 * (tTotal - sum) / tTotal,
+                    tRowsInSitu, tRows / tRowsInSitu);
+        std::fflush(stdout);
+    }
+    std::printf("  GAP%% = (TOTAL - SUM) / TOTAL. Positive means the named stages do\n"
+                "  NOT account for the whole time; negative means the replica loop is\n"
+                "  slower than the shipped one (it is compiled here, not in the DLL).\n\n");
+    std::fflush(stdout);
+}
+
+/**
+ * Memory floor, re-measured at several thread counts.
+ *
+ * QA-A-56 measured a streaming read of the frame at 1.16 ms single-threaded and
+ * concluded the detector is compute-bound, not memory-bound. Threads were added
+ * after that, so the conclusion is re-checked rather than carried over: if the
+ * floor stops falling with threads, the frame read has become bandwidth-bound
+ * and the compute-bound claim would need re-stating.
+ */
+void memoryFloorThreads(uint32_t w, uint32_t h, const int32_t* counts, size_t nCounts) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<float> frame(n, 1.0f);
+    for (size_t i = 0; i < n; ++i) frame[i] = static_cast<float>(i % 251u);
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+
+    std::printf("[memory-floor] streaming read of %zu float32 (%.1f MB)\n",
+                n, (n * sizeof(float)) / (1024.0 * 1024.0));
+    for (size_t c = 0; c < nCounts; ++c) {
+        const uint32_t T = (counts[c] < 1) ? 1u : static_cast<uint32_t>(counts[c]);
+        double best = 1e30;
+        for (int r = 0; r < 5; ++r) {
+            std::vector<double> partial(T, 0.0);
+            const auto t0 = std::chrono::steady_clock::now();
+            if (T == 1u) {
+                double acc = 0.0;
+                for (size_t i = 0; i < n; ++i) acc += frame[i];
+                partial[0] = acc;
+            } else {
+                std::vector<std::thread> pool;
+                pool.reserve(T);
+                for (uint32_t t = 0; t < T; ++t) {
+                    pool.emplace_back([&, t]{
+                        const size_t i0 = (n * t) / T;
+                        const size_t i1 = (n * (t + 1u)) / T;
+                        double acc = 0.0;
+                        for (size_t i = i0; i < i1; ++i) acc += frame[i];
+                        partial[t] = acc;
+                    });
+                }
+                for (std::thread& th : pool) th.join();
+            }
+            const auto t1 = std::chrono::steady_clock::now();
+            volatile double total = 0.0;
+            for (double v : partial) total = total + v;   // keeps the reads alive
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        const double gbs = (n * sizeof(float)) / (best / 1000.0) / 1e9;
+        std::printf("  %2u threads: %7.2f ms  -> %5.1f GB/s\n", T, best, gbs);
+        std::fflush(stdout);
+    }
+    std::printf("\n");
+    std::fflush(stdout);
+}
+
+
+/**
+ * QA-A-64: what the per-pixel loop spends its time on, measured so the deltas
+ * are usable.
+ *
+ * WHY NOT THE --decompose split. That mode accumulates into a `volatile float`
+ * ONCE PER PIXEL in its intermediate variants, but the full-loop variant writes
+ * only to the map and only for flagged pixels. The volatile read-modify-write is
+ * 9.4 million serialising stores the real loop never does, so the intermediate
+ * variants are inflated and their deltas came out nonsense -- in the 3072 run
+ * the "threshold + map write" delta printed NEGATIVE. That is a measurement
+ * artifact, not a property of the code, and it is recorded here rather than
+ * quietly re-measured: a decomposition whose parts exceed the whole is telling
+ * you the harness is wrong.
+ *
+ * Here every stage accumulates into a PLAIN local and escapes it once, after the
+ * loop, so all four variants carry the same per-pixel sink cost: none.
+ *
+ * The stages are cumulative and mirror DetectDefectivePixel exactly, which does
+ * NOT short-circuit before the MAD -- every pixel with >= 5 neighbours pays for
+ * gather, median, copy, and MAD.
+ */
+void pixelStages(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260923u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    for (size_t i = 1013; i < n; i += 4099) frame[i] += 140.0f;
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    std::vector<uint8_t> map(n, 0u);
+
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    const float sg = ComputeGlobalSigma(&img);
+    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    static volatile double escape = 0.0;
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+
+    const double s1 = bestOf(3, [&]{
+        double acc = 0.0;
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                acc += a.empty() ? 0.0 : static_cast<double>(a[0]);
+            }
+        escape = acc;
+    });
+
+    const double s2 = bestOf(3, [&]{
+        double acc = 0.0;
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                acc += static_cast<double>(ComputeMedian(a));
+            }
+        escape = acc;
+    });
+
+    const double s3 = bestOf(3, [&]{
+        double acc = 0.0;
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                CollectNeighborValues(&img, x, y, cfg.windowSize, a);
+                const float m = ComputeMedian(a);
+                b.assign(a.begin(), a.end());
+                acc += static_cast<double>(ComputeMAD(b, m));
+            }
+        escape = acc;
+    });
+
+    const double s4 = bestOf(3, [&]{
+        double acc = 0.0;
+        for (uint32_t y = 0; y < h; ++y)
+            for (uint32_t x = 0; x < w; ++x) {
+                if (DetectDefectivePixel(&img, x, y, cfg, a, b)) {
+                    map[static_cast<size_t>(y) * w + x] = 1u;
+                    acc += 1.0;
+                }
+            }
+        escape = acc;
+    });
+
+    std::printf("[pixel-stages] %ux%u (%zu pixels), single thread, best of 3\n", w, h, n);
+    std::printf("  %-34s %9s %9s %7s\n", "cumulative stage", "ms", "delta", "share");
+    std::printf("  %-34s %9.1f %9.1f %6.1f%%\n", "gather neighbours", s1, s1, 100.0 * s1 / s4);
+    std::printf("  %-34s %9.1f %9.1f %6.1f%%\n", "+ median (19-CE network)", s2, s2 - s1,
+                100.0 * (s2 - s1) / s4);
+    std::printf("  %-34s %9.1f %9.1f %6.1f%%\n", "+ copy + MAD", s3, s3 - s2,
+                100.0 * (s3 - s2) / s4);
+    std::printf("  %-34s %9.1f %9.1f %6.1f%%\n", "= full DetectDefectivePixel", s4, s4 - s3,
+                100.0 * (s4 - s3) / s4);
+    // QA-A-68: the scalar path is not dead, it is the BORDER. DetectRowRange
+    //  sends row 0, row h-1, column 0 and the tail column of every interior
+    //  row through DetectDefectivePixel, and everything else through AVX2. So
+    //  "how much does the scalar median cost the shipped detector" is a
+    //  question about those pixels and no others -- measured here rather than
+    //  inferred from a per-pixel average.
+    {
+        std::vector<std::pair<uint32_t, uint32_t>> border;
+        for (uint32_t x = 0; x < w; ++x) { border.emplace_back(x, 0u); border.emplace_back(x, h - 1u); }
+        // QA-A-69: mirrors DetectRowRange after the overlapping tail run was
+        // added -- an interior row now leaves exactly columns 0 and w-1 to the
+        // scalar path, because the run at DetectRowLastRunStart(w) finishes the
+        // interior. This is still a replica of the loop's shape and is labelled
+        // as one; the measured time below is what the claim rests on.
+        for (uint32_t y = 1; y + 1u < h; ++y) {
+            border.emplace_back(0u, y);
+            border.emplace_back(w - 1u, y);
+        }
+        std::vector<float> ba, bb;
+        ba.reserve(64); bb.reserve(64);
+        const double tBorder = bestOf(5, [&]{
+            size_t hit = 0;
+            for (size_t i = 0; i < border.size(); ++i) {
+                if (DetectDefectivePixel(&img, border[i].first, border[i].second, cfg, ba, bb)) ++hit;
+            }
+            escape = static_cast<double>(hit);
+        });
+        std::printf("  border pixels taking the SCALAR path: %zu of %zu (%.2f%%),"
+                    " %.3f ms\n",
+                    border.size(), n, 100.0 * border.size() / n, tBorder);
+    }
+    std::printf("  (last delta = floor/cap + Hampel test + map write; negative would mean\n"
+                "   the harness, not the code -- see the comment above this function.)\n\n");
+    std::fflush(stdout);
+}
+
+
+/* ------------------------------ QA-A-66: why the two machines disagree */
+
+/**
+ * The gate's ratio is detection / reference. QA-A-65 moved the detector onto
+ * AVX2 and the two machines' ratios then diverged by 24% AND swapped order
+ * (local 1.644, CI 1.323; before A-65 it was local ~7.19, CI 7.715). Something
+ * about what the ratio measures changed, and this mode is the measurement that
+ * says what.
+ *
+ * THE SECOND MACHINE IS ON THIS MACHINE. An i7-12700 has two different cores --
+ * P (Golden Cove) and E (Gracemont) -- with different vector throughput
+ * relative to their scalar throughput. Pinning the same work to each gives a
+ * genuine second microarchitecture without a second computer, and that is
+ * exactly the axis the hypothesis is about: if the ratio now measures "this
+ * core's vector speed against its scalar speed", it must move between P and E.
+ *
+ * The candidate references are DUPLICATED here rather than included from the
+ * gate: the gate's kernel is frozen, and a shared one would make an experiment
+ * able to change the gate. The duplication is deliberate and temporary -- only
+ * the chosen candidate is copied into the gate file.
+ */
+
+#if defined(_WIN32)
+#  include <windows.h>
+#endif
+
+// --- candidate A: the reference the gate uses today (copied, not shared).
+constexpr size_t kRefElems = 4u * 1024u * 1024u;
+constexpr int kRefSweeps = 12;
+
+const std::vector<float>& refBuffer() {
+    static const std::vector<float> b = []{
+        std::vector<float> v(kRefElems);
+        std::mt19937 rng(20260912u);
+        std::normal_distribution<float> noise(1000.0f, 25.0f);
+        for (size_t i = 0; i < v.size(); ++i) v[i] = noise(rng);
+        return v;
+    }();
+    return b;
+}
+
+double refA() {
+    const std::vector<float>& buffer = refBuffer();
+    volatile float sink = 0.0f;
+    float acc = 0.0f;
+    for (int sweep = 0; sweep < kRefSweeps; ++sweep) {
+        for (size_t i = 4; i + 4 < buffer.size(); ++i) {
+            const float c = buffer[i];
+            float lo = c, hi = c;
+            for (int d = 1; d <= 4; ++d) {
+                const float a = buffer[i - static_cast<size_t>(d)];
+                const float b = buffer[i + static_cast<size_t>(d)];
+                lo = (a < lo) ? a : lo;
+                lo = (b < lo) ? b : lo;
+                hi = (a > hi) ? a : hi;
+                hi = (b > hi) ? b : hi;
+            }
+            acc += std::fabs(c - (lo + hi) * 0.5f);
+        }
+    }
+    sink = sink + acc;
+    return 0.0;
+}
+
+// QA-A-66: four more candidates were written here and measured against the same
+// P/E spread, then deleted -- their P->E factors are recorded in the gate file's
+// header next to the decision they informed (B histogram 1.78, C streaming
+// difference + histogram 1.89, D = A + C 1.86, E four-accumulator streaming sum
+// 1.75, against the detector's 1.42). None tracked the detector better than the
+// kernel the gate already uses, so none is carried as code: a rejected candidate
+// is a measurement, and measurements belong in the record rather than in the
+// build.
+
+double msOf(int reps, double (*fn)()) {
+    fn();                       // warm-up, discarded
+    double best = 1e30;
+    for (int r = 0; r < reps; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        const auto t1 = std::chrono::steady_clock::now();
+        const double v = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (v < best) best = v;
+    }
+    return best;
+}
+
+void gateProbeOnce(const char* label, uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260912u);
+    std::normal_distribution<float> noise(3000.0f, 10.0f);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    std::vector<uint8_t> map(n, 0u);
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    XpeImageBuffer out{};
+    out.data = map.data();
+    out.width = w; out.height = h;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8;
+    out.dataSize = n;
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        fn();
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    XpeImageMetadata meta{};
+    const double tDetect = bestOf(5, [&]{ xpe_defect_detect_runtime(&img, &meta, &out); });
+
+    volatile float fsink = 0.0f;
+    const double tSigma = bestOf(5, [&]{ fsink = fsink + ComputeGlobalSigma(&img); });
+
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    const float sg = ComputeGlobalSigma(&img);
+    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
+    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
+    std::vector<float> a, b;
+    a.reserve(64); b.reserve(64);
+    const double tRows = bestOf(5, [&]{ DetectRowRange(&img, cfg, map.data(), 0u, h, a, b); });
+
+    const double tRefA = msOf(5, refA);
+
+    std::printf("  %-10s detect %8.1f  sigma %8.1f  rows %7.2f  reference %7.1f"
+                "  ratio %6.3f\n",
+                label, tDetect, tSigma, tRows, tRefA, tDetect / tRefA);
+    std::fflush(stdout);
+}
+
+void gateProbe(uint32_t w, uint32_t h) {
+    std::printf("[gate-probe] %ux%u, single thread, min of 5\n", w, h);
+#if defined(_WIN32)
+    const DWORD_PTR original = SetThreadAffinityMask(GetCurrentThread(), 0xFFFFFFFFull);
+    // i7-12700: logical 0..15 are the 8 P-cores (SMT), 16..19 the 4 E-cores.
+    // Pinning to one of each gives two microarchitectures on one machine.
+    if (SetThreadAffinityMask(GetCurrentThread(), 1ull << 0) != 0) {
+        gateProbeOnce("P-core", w, h);
+    }
+    if (SetThreadAffinityMask(GetCurrentThread(), 1ull << 16) != 0) {
+        gateProbeOnce("E-core", w, h);
+    }
+    SetThreadAffinityMask(GetCurrentThread(), original ? original : 0xFFFFFFFFull);
+#else
+    gateProbeOnce("default", w, h);
+#endif
+    std::printf("  The ratio is the gate's. One that MOVES between the two core"
+                "\n types is one that will move between machines -- that is the"
+                "\n question this mode exists to answer; the answer is in the"
+                "\n gate file's limit derivation.\n\n");
+    std::fflush(stdout);
+}
+
+
+/* ------------------------------------------- QA-A-67: inside the global sigma */
+
+/**
+ * Stage decomposition of ComputeGlobalSigma, the 90% that QA-A-65 left behind.
+ *
+ * The stages are the ones the function actually performs, called directly rather
+ * than re-implemented: the buffer allocation, the difference fill, the exact
+ * radix selection (SelectKthSmallest, the shipped function), and the absolute
+ * deviation pass. The one thing measured by replica is the selection's two
+ * halves, because they are inside one function and cannot be timed from outside
+ * -- that row is labelled as a replica and the gap against the real selection is
+ * printed, per the habit QA-A-64 settled on: a sum that does not reach the total
+ * is reported as a gap, never absorbed.
+ */
+void sigmaStages(uint32_t w, uint32_t h) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::mt19937 rng(20260927u);
+    std::normal_distribution<float> noise(kMean, kSigma);
+    std::vector<float> frame(n);
+    for (size_t i = 0; i < n; ++i) frame[i] = noise(rng);
+    for (size_t i = 1013; i < n; i += 4099) frame[i] += 140.0f;
+
+    XpeImageBuffer img{};
+    img.data = frame.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = n * sizeof(float);
+
+    const size_t hCount = static_cast<size_t>(h) * (w - 1u);
+
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    auto bestOf = [&](int reps, auto fn) {
+        fn();
+        double best = 1e30;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            fn();
+            const auto t1 = std::chrono::steady_clock::now();
+            const double v = ms(t0, t1);
+            if (v < best) best = v;
+        }
+        return best;
+    };
+
+    volatile float fsink = 0.0f;
+    const double tTotal = bestOf(5, [&]{ fsink = fsink + ComputeGlobalSigma(&img); });
+
+    // 1. the 37.75 MB allocation the function makes per call
+    volatile float* psink = nullptr;
+    const double tAlloc = bestOf(5, [&]{
+        std::unique_ptr<float[]> d(new float[hCount]);
+        d[0] = 1.0f;                      // force the first touch
+        psink = d.get();
+    });
+    (void)psink;
+
+    std::unique_ptr<float[]> diff(new float[hCount]);
+    const float* pixels = frame.data();
+
+    // 2. the horizontal difference fill
+    const double tFill = bestOf(5, [&]{
+        for (size_t y = 0; y < h; ++y) {
+            const float* row = pixels + y * w;
+            float* dst = diff.get() + y * (w - 1u);
+            for (size_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
+        }
+    });
+
+    // 3. THE TWO SELECTIONS ARE NOT THE SAME PRICE, and the first version of
+    //    this mode assumed they were: it timed one selection over the difference
+    //    buffer and multiplied by four, which made the named stages sum to 148%
+    //    of the total. Parts exceeding the whole is the harness being wrong
+    //    (QA-A-64), so the assumption was the thing to find.
+    //
+    //    It is the INPUT DISTRIBUTION. The first selection runs over adjacent
+    //    differences, which spread across many high-16-bit buckets, so its
+    //    histogram scatters over most of the 256 KB table. The second runs over
+    //    ABSOLUTE DEVIATIONS from the median -- all small, all positive, packed
+    //    into a handful of buckets, so the same 9.4 million increments hit a few
+    //    cache lines instead of thousands. Same instruction count, different
+    //    memory behaviour, and the difference is large enough to invalidate the
+    //    x4 shortcut.
+    const double tSelect1 = bestOf(5, [&]{
+        fsink = fsink + SelectKthSmallest(diff.get(), hCount, hCount / 2u);
+    });
+
+    const float median = SelectKthSmallest(diff.get(), hCount, hCount / 2u);
+
+    // 4. the absolute-deviation pass between the two selections
+    std::unique_ptr<float[]> devs(new float[hCount]);
+    const double tAbs = bestOf(5, [&]{
+        for (size_t i = 0; i < hCount; ++i) devs[i] = std::abs(diff[i] - median);
+    });
+
+    // 5. the SECOND selection, over what it actually receives
+    const double tSelect2 = bestOf(5, [&]{
+        fsink = fsink + SelectKthSmallest(devs.get(), hCount, hCount / 2u);
+    });
+
+    // 6. replica of the selection's two halves, so the 2 x 9.4M scatter can be
+    //    separated from the 65536-bucket scans. Compiled here, not in the header.
+    std::vector<uint32_t> hist(1u << 16, 0u);
+    const double tHistPass = bestOf(5, [&]{
+        std::fill(hist.begin(), hist.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++hist[FloatSortKey(diff[i]) >> 16];
+    });
+    volatile size_t ssink = 0u;
+    const double tScan = bestOf(5, [&]{
+        size_t seen = 0;
+        for (size_t b = 0; b < hist.size(); ++b) {
+            if (seen + hist[b] > hCount / 2u) break;
+            seen += hist[b];
+        }
+        ssink = seen;
+    });
+    (void)ssink;
+
+    const double perSelect = 2.0 * tHistPass + 2.0 * tScan;
+    const double named = 2.0 * (tFill + tSelect1 + tAbs + tSelect2) + tAlloc;
+
+    std::printf("[sigma-stages] %ux%u  hCount %zu (%.1f MB), single thread, min of 5\n",
+                w, h, hCount, (hCount * sizeof(float)) / (1024.0 * 1024.0));
+    std::printf("  %-44s %9s %8s\n", "stage", "ms", "share");
+    std::printf("  %-44s %9.1f %7.1f%%\n", "TOTAL ComputeGlobalSigma [measured]",
+                tTotal, 100.0);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  allocate 37.75 MB (once per call)",
+                tAlloc, 100.0 * tAlloc / tTotal);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  difference fill (x2: h and v)",
+                2.0 * tFill, 100.0 * 2.0 * tFill / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  selection 1, over differences (x2)",
+                2.0 * tSelect1, 100.0 * 2.0 * tSelect1 / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  selection 2, over deviations (x2)",
+                2.0 * tSelect2, 100.0 * 2.0 * tSelect2 / tTotal);
+    std::printf("  %-44s %9.2f %7.1f%%\n", "  absolute deviation pass (x2)",
+                2.0 * tAbs, 100.0 * 2.0 * tAbs / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  SUM of the named stages",
+                named, 100.0 * named / tTotal);
+    std::printf("  %-44s %9.1f %7.1f%%\n", "  GAP (total - sum)",
+                tTotal - named, 100.0 * (tTotal - named) / tTotal);
+    std::printf("\n  inside ONE selection (replica, this TU):\n");
+    std::printf("    %-42s %9.1f\n", "one 9.4M histogram pass", tHistPass);
+    std::printf("    %-42s %9.3f\n", "one 65536-bucket scan", tScan);
+    std::printf("    %-42s %9.1f  vs %.1f / %.1f measured\n",
+                "2 passes + 2 scans", perSelect, tSelect1, tSelect2);
+    std::fflush(stdout);
+
+    // 7. IS IT THE TABLE FOOTPRINT? Same 9.4M increments over the same data;
+    //    only the number of buckets changes. Selection 2 is 6.8x cheaper than
+    //    selection 1 running the SAME code, and the only difference between
+    //    them is how widely their keys scatter across the table -- so the
+    //    table footprint is the hypothesis, and this is the direct test of it.
+    std::printf("\n  one histogram pass at different table sizes (same data):\n");
+    for (int bits = 8; bits <= 16; bits += 2) {
+        const uint32_t shift = static_cast<uint32_t>(32 - bits);
+        std::vector<uint32_t> t(static_cast<size_t>(1u) << bits, 0u);
+        const double tp = bestOf(5, [&]{
+            std::fill(t.begin(), t.end(), 0u);
+            for (size_t i = 0; i < hCount; ++i) ++t[FloatSortKey(diff[i]) >> shift];
+        });
+        std::printf("    %2d bits  %6zu buckets  %7.1f KB table  %7.1f ms\n",
+                    bits, t.size(), (t.size() * sizeof(uint32_t)) / 1024.0, tp);
+    }
+    std::fflush(stdout);
+
+    // 8. THE TABLE IS NOT IT -- 1 KB and 256 KB cost the same. So the 6.8x
+    //    between the two selections is about the DATA, not the footprint, and
+    //    the only data-dependent thing in the pass is the ternary inside
+    //    FloatSortKey: negatives take one arm, non-negatives the other. The
+    //    difference array is about half negative (unpredictable); the absolute
+    //    deviations are all non-negative (perfectly predicted).
+    //
+    //    The branchless form is bit-identical by construction:
+    //      mask = -(bits >> 31) | 0x80000000   ->  0xFFFFFFFF for a negative,
+    //      0x80000000 otherwise; bits ^ mask is ~bits and bits | sign in turn.
+    auto keyBranchless = [](float f) {
+        uint32_t bits = 0u;
+        std::memcpy(&bits, &f, sizeof(bits));
+        const uint32_t mask =
+            static_cast<uint32_t>(-static_cast<int32_t>(bits >> 31)) | 0x80000000u;
+        return bits ^ mask;
+    };
+    for (size_t i = 0; i < hCount; ++i) {
+        if (FloatSortKey(diff[i]) != keyBranchless(diff[i])) {
+            std::printf("    KEY MISMATCH at %zu -- the branchless form is wrong\n", i);
+            break;
+        }
+    }
+
+    std::vector<uint32_t> tb(1u << 16, 0u);
+    const double tBranchy = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[FloatSortKey(diff[i]) >> 16];
+    });
+    const double tBranchless = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[keyBranchless(diff[i]) >> 16];
+    });
+    const double tOnDevs = bestOf(5, [&]{
+        std::fill(tb.begin(), tb.end(), 0u);
+        for (size_t i = 0; i < hCount; ++i) ++tb[FloatSortKey(devs[i]) >> 16];
+    });
+    std::printf("\n  one histogram pass, same table, different key/data:\n");
+    std::printf("    %-40s %7.1f ms\n", "branchy key,    signed differences", tBranchy);
+    std::printf("    %-40s %7.1f ms\n", "branchless key, signed differences", tBranchless);
+    std::printf("    %-40s %7.1f ms\n", "branchy key,    absolute deviations", tOnDevs);
+    std::fflush(stdout);
+
+    std::printf("\n  memory traffic if every pass were bandwidth-bound:\n");
+    const double bytes = (2.0 * (hCount * 4.0)                    // fill: write
+                          + 4.0 * 2.0 * (hCount * 4.0)            // 4 selections x 2 read passes
+                          + 2.0 * 2.0 * (hCount * 4.0));          // abs: read + write
+    std::printf("    %.0f MB of traffic; at the 8.9 GB/s this machine reaches\n"
+                "    single-threaded that is %.1f ms, against %.1f ms measured.\n\n",
+                bytes / (1024.0 * 1024.0), (bytes / 8.9e9) * 1000.0, tTotal);
+    std::fflush(stdout);
+}
+
 /* ------------------------------------------------ QA-A-45 false negatives */
 
 /**
@@ -1260,19 +2062,27 @@ void reportFalseNegatives(uint32_t seed, float amplitudeSigma) {
 int main(int argc, char** argv) {
     bool quick = false, profileOnly = false, timeOnly = false, fnOnly = false;
     bool decomposeOnly = false;
+    bool decomposeThreadsOnly = false;
+    bool gateProbeOnly = false;
+    bool sigmaStagesOnly = false;
     bool sigmaOnly = false;
     bool boundsOnly = false;
     bool threadsOnly = false;
     bool sigmaThreadsOnly = false;
+    bool shippedThreadsOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--quick") == 0) quick = true;
         if (std::strcmp(argv[i], "--profile") == 0) profileOnly = true;
         if (std::strcmp(argv[i], "--time") == 0) timeOnly = true;
         if (std::strcmp(argv[i], "--decompose") == 0) decomposeOnly = true;
+        if (std::strcmp(argv[i], "--decompose-threads") == 0) decomposeThreadsOnly = true;
+        if (std::strcmp(argv[i], "--gate-probe") == 0) gateProbeOnly = true;
+        if (std::strcmp(argv[i], "--sigma-stages") == 0) sigmaStagesOnly = true;
         if (std::strcmp(argv[i], "--sigma") == 0) sigmaOnly = true;
         if (std::strcmp(argv[i], "--bounds") == 0) boundsOnly = true;
         if (std::strcmp(argv[i], "--threads") == 0) threadsOnly = true;
         if (std::strcmp(argv[i], "--sigma-threads") == 0) sigmaThreadsOnly = true;
+        if (std::strcmp(argv[i], "--shipped-threads") == 0) shippedThreadsOnly = true;
         if (std::strcmp(argv[i], "--fn10") == 0) fnOnly = true;
     }
 
@@ -1283,6 +2093,12 @@ int main(int argc, char** argv) {
 
     if (fnOnly) {
         reportFalseNegatives(20260911u, 10.0f);
+        xpe_preprocess_shutdown();
+        return 0;
+    }
+
+    if (shippedThreadsOnly) {
+        shippedThreadScaling(3072, 3072);
         xpe_preprocess_shutdown();
         return 0;
     }
@@ -1313,7 +2129,29 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    if (sigmaStagesOnly) {
+        sigmaStages(3072, 3072);
+        return 0;
+    }
+
+    if (gateProbeOnly) {
+        gateProbe(3072, 3072);
+        return 0;
+    }
+
+    if (decomposeThreadsOnly) {
+        const int32_t counts[] = {1, 8, 16};
+        decomposeThreads(3072, 3072, counts, sizeof(counts) / sizeof(counts[0]));
+        pixelStages(3072, 3072);
+        memoryFloorThreads(3072, 3072, counts, sizeof(counts) / sizeof(counts[0]));
+        return 0;
+    }
+
     if (decomposeOnly) {
+        // QA-A-69: 512 joins the list because the scalar tail's share is a
+        // function of WIDTH -- seven columns per row whatever the frame is -- so
+        // a conclusion drawn only at 3072 misses the narrow case.
+        decompose(512, 512);
         decompose(1024, 1024);
         decompose(3072, 3072);
         xpe_preprocess_shutdown();

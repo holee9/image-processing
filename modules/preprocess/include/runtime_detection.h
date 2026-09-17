@@ -26,11 +26,55 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include <cassert>
 #include <cstdint>
+
+/**
+ * @def XPE_DETECT_HAS_AVX2
+ * @brief 1 when this translation unit compiles the AVX2 per-pixel path, 0 when
+ *        the scalar path is the whole implementation.
+ *
+ * It is always defined -- both arms of the \#if below set it -- so
+ * `\#if XPE_DETECT_HAS_AVX2` is the correct test and `\#ifdef` would be WRONG:
+ * the macro is defined in the scalar build too, with the value 0, so an
+ * existence test is true there and selects the vector branch that was not
+ * compiled. Test the VALUE, not the existence.
+ *
+ * WHAT IT GATES. At 1: `<immintrin.h>`, the four named selection wrappers
+ * (SelectCeLower / SelectCeUpper / SelectGreaterOf / SelectLesserOf),
+ * MedianSortCE8, MedianOfEight8, DetectEightPixelsAvx2, and the branch inside
+ * DetectRowRange that sends interior runs of eight columns through them. At 0
+ * none of that is compiled and DetectRowRange puts every pixel through
+ * DetectDefectivePixel -- the same values, by design and by test: the parity
+ * suite skips rather than fails there (Avx2ParityTest.NoAvx2PathCompiledIn).
+ *
+ * WHEN IT IS 0. Only where neither `_MSC_VER` nor `__AVX2__` is defined. MSVC
+ * accepts AVX2 intrinsics whatever `/arch` says, so every MSVC target that
+ * includes this header gets 1; GCC and Clang need `-mavx2`, which this module's
+ * CMakeLists passes for the library but not necessarily for every consumer.
+ *
+ * QA-A-66 (#144) BUILT THE 0 ARM and found it did not compile: the vector branch
+ * was guarded by a `const bool` that became a compile-time constant, which is
+ * C4127 under /W4, promoted to an error by this project. QA-A-65 had listed that
+ * arm as unbuilt in its own report rather than claiming it worked -- and an
+ * unverified item looks exactly like a working one until someone builds it. The
+ * branch is now removed by the preprocessor instead, and QA-A-67 re-checked the
+ * 0 arm end to end: it builds clean and its tests pass.
+ *
+ * SPEC: XPE-ALG-001 section 9.8.  Refs #144 #143
+ */
+#if defined(_MSC_VER) || defined(__AVX2__)
+#  define XPE_DETECT_HAS_AVX2 1
+#  include <immintrin.h>
+#else
+#  define XPE_DETECT_HAS_AVX2 0
+#endif
 #include <cmath>
 #include <algorithm>
 #include <cstring>
 #include <memory>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #ifdef __cplusplus
@@ -133,6 +177,18 @@ struct RuntimeDetectionConfig {
     float sigmaThreshold;     /**< Sigma threshold for outlier detection (default: 5.0) */
     float globalSigmaFloor;   /**< Lower bound on the local sigma estimate; 0 = none */
     float globalSigmaCap;     /**< Upper bound on the local sigma estimate; 0 = none */
+    /**
+     * Number of worker threads. 1 (the default) keeps the single-threaded path.
+     *
+     * QA-A-61 (#144). This is an ARGUMENT, never module state: nothing here is
+     * static, thread_local, or remembered between calls, so REQ-P1A-003
+     * re-entrancy holds and two callers may run different thread counts at once.
+     * The module never reads hardware concurrency -- the caller knows what else
+     * is running in the pipeline and this module does not.
+     *
+     * Values below 1 are treated as 1.
+     */
+    int32_t threadCount;
 };
 
 /**
@@ -142,6 +198,7 @@ struct RuntimeDetectionConfig {
  */
 inline RuntimeDetectionConfig RuntimeDetection_DefaultConfig() {
     RuntimeDetectionConfig config;
+    config.threadCount = 1;
     config.windowSize = RUNTIME_DETECTION_DEFAULT_WINDOW_SIZE;
     config.sigmaThreshold = RUNTIME_DETECTION_DEFAULT_SIGMA_THRESHOLD;
     // 0 by default: the floor is a frame-wide quantity, so only a caller that
@@ -194,7 +251,34 @@ inline float ComputeMedianGeneric(std::vector<float>& values) {
 }
 
 /**
- * @brief One compare-exchange: after it, a <= b. Branchless on MSVC (vminss/vmaxss).
+ * @brief One compare-exchange: after it, a <= b.
+ *
+ * QA-A-68 (#144): this used to claim "branchless on MSVC (vminss/vmaxss)".
+ * BOTH HALVES OF THAT WERE WRONG, and the claim had been standing as a reason
+ * not to look. Read from the emitted assembly (`cl /O2 /arch:AVX2 /DNDEBUG
+ * /FAs`, MSVC 19.44.35228.0, 2026-09-16) this function lowers to
+ *
+ *     vcomiss / seta / movzx / vmovd / vpcmpeqd / vblendvps      (x2)
+ *
+ * -- ten instructions, no vminss and no vmaxss -- and MedianOfEight, which is
+ * nineteen of these, still contains four conditional jumps (`ja`). So it is
+ * neither the instruction pair the comment named nor uniformly branchless.
+ *
+ * WHY IT IS LEFT ALONE ANYWAY, which is a separate question from whether the
+ * comment was true. Since QA-A-65 the interior of every frame goes through the
+ * AVX2 path, and this scalar form runs only on the border DetectRowRange leaves
+ * behind: measured at 3072x3072, 30,704 pixels of 9,437,184 (0.33%) costing
+ * 2.149 ms of a 63.2 ms detection. The median network is a third to a half of
+ * that, so making it twice as fast would return well under 1% -- below the
+ * run-to-run spread the performance gate already tolerates. QA-A-68 measured the
+ * weight before deciding, because "the comment is wrong" and "the code is worth
+ * changing" are different findings and only the first one was true here.
+ *
+ * The vector twin is the one that carries the load, and its own codegen WAS
+ * checked in the same pass: SelectCeLower emits `vminps ymm0, b, a` and
+ * SelectCeUpper `vmaxps ymm0, a, b` -- the operand order QA-A-65 derived and
+ * QA-A-66 moved into named wrappers, confirmed in the instruction stream rather
+ * than assumed from the source.
  *
  * @param a First value; on return the smaller of the two.
  * @param b Second value; on return the larger of the two.
@@ -399,7 +483,38 @@ inline void CollectWindowValues(const XpeImageBuffer* img,
 inline uint32_t FloatSortKey(float f) {
     uint32_t bits = 0u;
     std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+
+    // QA-A-67 (#144): branchless, and the SAME key the ternary produced.
+    //
+    //   mask = -(bits >> 31) | 0x80000000
+    //        = 0xFFFFFFFF  when the sign bit is set
+    //        = 0x80000000  when it is clear
+    //   bits ^ 0xFFFFFFFF == ~bits                     (the negative arm)
+    //   bits ^ 0x80000000 == bits | 0x80000000         (the non-negative arm,
+    //                                                   where that bit is 0)
+    //
+    // so the value is identical for every input, NaN included. This is not a
+    // micro-optimisation of taste: the ternary compiled to a real branch, and
+    // this function runs once per element of a 9.4-million-element array, four
+    // times per frame. Adjacent-difference data is about half negative, so the
+    // branch is unpredictable; absolute-deviation data is all non-negative, so
+    // it is perfectly predicted. That is measurable, and QA-A-67 measured it --
+    // one histogram pass over the same 9.4M differences:
+    //
+    //     branchy key,    signed differences      28.9 ms
+    //     branchless key, signed differences       5.6 ms
+    //     branchy key,    absolute deviations      4.4 ms
+    //
+    // The third row is the control: with predictable data the branchy form is
+    // already fast, which is what says the cost is the misprediction rather than
+    // the arithmetic. Two earlier hypotheses were measured and REJECTED first --
+    // the 256 KB histogram table (1 KB and 256 KB cost the same, 26.8 vs 27.3 ms)
+    // and the tool's compile flags (/arch:AVX2 changed nothing). They are
+    // recorded because a rejected hypothesis is what makes the accepted one
+    // more than a guess.
+    const uint32_t mask =
+        static_cast<uint32_t>(-static_cast<int32_t>(bits >> 31)) | 0x80000000u;
+    return bits ^ mask;
 }
 
 /**
@@ -724,6 +839,637 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     std::vector<float> windowValues;
     std::vector<float> deviations;
     return DetectDefectivePixel(img, x, y, config, windowValues, deviations);
+}
+
+
+
+/* ------------------------------------------------------------- QA-A-65 */
+//
+// AVX2 form of the per-pixel rule, eight pixels at a time.
+//
+// WHY EIGHT PIXELS RATHER THAN EIGHT NEIGHBOURS. A pixel's 3x3 window has
+// exactly 8 neighbours, which is tempting to put in one __m256 -- but a sorting
+// network across the LANES of one register needs a permute per stage. Laying it
+// out the other way, one register per NEIGHBOUR POSITION and one lane per pixel,
+// turns each of the 19 compare-exchanges into a single min/max with no shuffles,
+// and turns the gather into 8 unaligned loads for 8 pixels instead of 8 scalar
+// reads each.
+//
+// BITWISE PARITY WITH THE SCALAR PATH -- the claim, and why it holds.
+// QA-A-61 recorded that nothing in this rule involves floating-point
+// non-associativity. That sentence had to be re-checked here rather than
+// carried over, because SIMD is where it usually stops being true: horizontal
+// sums, FMA contraction, and reciprocal approximations all change results. None
+// of the three appears below. Every operation is elementwise and every one has
+// the same operand order as its scalar twin:
+//
+//   compare-exchange  scalar: lo = (b < a) ? b : a;  hi = (b < a) ? a : b
+//                     vector: lo = _mm256_min_ps(b, a);  hi = _mm256_max_ps(a, b)
+//
+//     MINPS(x, y) is (x < y) ? x : y and MAXPS(x, y) is (x > y) ? x : y -- both
+//     "strictly ordered compare, else second operand", the same shape as the
+//     ternary. THE OPERAND ORDER IS LOAD-BEARING, and not symmetric: with
+//     a = +0.0 and b = -0.0 the comparison is false either way, so the scalar
+//     form returns hi = b = -0.0, and _mm256_max_ps(b, a) would return +0.0 --
+//     a different bit pattern for the same input. The same asymmetry decides
+//     which operand survives a NaN. test_runtime_detection_avx2_parity.cpp
+//     pins both cases; QA-A-65 verified that swapping either order makes that
+//     test fail.
+//
+//   median            (a3 + a4) * 0.5f -- one add, one multiply, no FMA. MSVC
+//                     does not contract intrinsics into FMA (that is what makes
+//                     intrinsics rather than plain arithmetic the right tool
+//                     here), so the rounding is the scalar rounding.
+//   abs deviation     std::abs(v - m) -- a subtract and a sign-bit clear;
+//                     _mm256_andnot_ps with the sign mask does exactly that,
+//                     including turning -0.0 into +0.0.
+//   floor / cap       max(floor, mad) and min(cap, sigma), again with the
+//                     operand order that reproduces the scalar ternaries.
+//   the two tests     _CMP_LT_OQ / _CMP_GT_OQ: ordered, so false on NaN, which
+//                     is what scalar < and > do.
+//
+// So the claim is BITWISE IDENTICAL, not "within N ulp", and the parity test
+// asserts raw bits rather than EXPECT_FLOAT_EQ (which allows 4 ulp and would
+// pass on a difference this design is supposed to make impossible).
+//
+// WHAT IS NOT VECTORISED, and why: the frame border. A border pixel has fewer
+// than 8 neighbours, so it is a different computation, and it is 0.1% of a
+// 3072x3072 frame. It keeps the scalar path -- which also keeps that path live
+// and tested rather than becoming dead code nobody runs.
+
+#if XPE_DETECT_HAS_AVX2
+
+// QA-A-66: the operand order lives HERE and nowhere else.
+//
+// QA-A-65 found the hazard and left one test as the only thing standing between
+// it and a wrong build: `_mm256_max_ps(a, b)` and `_mm256_max_ps(b, a)` look the
+// same to a reader, and swapping them changes nothing a frame-level comparison
+// can see (+0.0 and -0.0 compare equal, so no pixel's verdict moves). A rule
+// that can only be enforced by remembering it is not enforced.
+//
+// So each of the four selections the scalar rule performs gets a named function
+// whose NAME IS THE SCALAR TERNARY, and every call site passes its arguments in
+// the natural order. Getting the intrinsic's operand order wrong now requires
+// editing one of these four one-line bodies rather than mistyping a call, and
+// the four sit next to the ternaries they implement.
+//
+// [HARD] Nothing else in this file calls _mm256_min_ps or _mm256_max_ps
+// directly. If a new selection is needed, add a named wrapper here.
+//
+// MedianSortCE8 keeps the natural (a, b) argument order in both calls; the swap
+// that the intrinsics need is inside the wrappers.
+
+/** @brief Exactly `(b < a) ? b : a` -- the `lo` of MedianSortCE. */
+inline __m256 SelectCeLower(__m256 a, __m256 b) { return _mm256_min_ps(b, a); }
+
+/** @brief Exactly `(b < a) ? a : b` -- the `hi` of MedianSortCE. NOT max(b, a). */
+inline __m256 SelectCeUpper(__m256 a, __m256 b) { return _mm256_max_ps(a, b); }
+
+/** @brief Exactly `(x > y) ? x : y` -- the scalar `if (x > y) v = x;` form. */
+inline __m256 SelectGreaterOf(__m256 x, __m256 y) { return _mm256_max_ps(x, y); }
+
+/** @brief Exactly `(x < y) ? x : y` -- the scalar `if (y > x) v = x;` form. */
+inline __m256 SelectLesserOf(__m256 x, __m256 y) { return _mm256_min_ps(x, y); }
+
+/** @brief Vector compare-exchange. See the operand-order note above. */
+inline void MedianSortCE8(__m256& a, __m256& b) {
+    const __m256 lo = SelectCeLower(a, b);
+    const __m256 hi = SelectCeUpper(a, b);
+    a = lo;
+    b = hi;
+}
+
+/**
+ * @brief MedianOfEight for eight pixels at once.
+ *
+ * @param v Eight registers; v[k] holds neighbour k of each of the eight pixels.
+ *          Not modified.
+ * @return Per-lane median, bit-identical to MedianOfEight on the same eight
+ *         values in the same order.
+ */
+inline __m256 MedianOfEight8(const __m256* v) {
+    __m256 a0 = v[0], a1 = v[1], a2 = v[2], a3 = v[3];
+    __m256 a4 = v[4], a5 = v[5], a6 = v[6], a7 = v[7];
+
+    MedianSortCE8(a0, a1); MedianSortCE8(a2, a3); MedianSortCE8(a4, a5); MedianSortCE8(a6, a7);
+    MedianSortCE8(a0, a2); MedianSortCE8(a1, a3); MedianSortCE8(a4, a6); MedianSortCE8(a5, a7);
+    MedianSortCE8(a1, a2); MedianSortCE8(a5, a6);
+    MedianSortCE8(a0, a4); MedianSortCE8(a1, a5); MedianSortCE8(a2, a6); MedianSortCE8(a3, a7);
+    MedianSortCE8(a2, a4); MedianSortCE8(a3, a5);
+    MedianSortCE8(a1, a2); MedianSortCE8(a3, a4); MedianSortCE8(a5, a6);
+
+    return _mm256_mul_ps(_mm256_add_ps(a3, a4), _mm256_set1_ps(0.5f));
+}
+
+/**
+ * @brief The whole rule for eight consecutive interior pixels.
+ *
+ * @param pixels Frame base pointer (float32).
+ * @param w Frame width in pixels.
+ * @param x Column of the FIRST of the eight pixels. Must satisfy x >= 1 and
+ *          x + 8 <= w - 1, so every neighbour of every one of the eight is in
+ *          the frame.
+ * @param y Row. Must satisfy 1 <= y <= height - 2.
+ * @param config Detection configuration, floor and cap already resolved.
+ * @param map Output map base; bytes [y*w + x, y*w + x + 8) are written.
+ *
+ * The eight neighbour loads are in the SAME ORDER CollectNeighborValues
+ * produces -- row above left-to-right, then the two on the pixel's own row,
+ * then the row below. Order matters even though the network sorts, because ties
+ * involving -0.0 and +0.0 resolve by position.
+ */
+inline void DetectEightPixelsAvx2(const float* pixels,
+                                  uint32_t w,
+                                  uint32_t x,
+                                  uint32_t y,
+                                  const RuntimeDetectionConfig& config,
+                                  uint8_t* map) {
+    const float* rowUp = pixels + static_cast<size_t>(y - 1u) * w;
+    const float* rowMid = pixels + static_cast<size_t>(y) * w;
+    const float* rowDn = pixels + static_cast<size_t>(y + 1u) * w;
+
+    __m256 n[8];
+    n[0] = _mm256_loadu_ps(rowUp + x - 1u);
+    n[1] = _mm256_loadu_ps(rowUp + x);
+    n[2] = _mm256_loadu_ps(rowUp + x + 1u);
+    n[3] = _mm256_loadu_ps(rowMid + x - 1u);
+    n[4] = _mm256_loadu_ps(rowMid + x + 1u);
+    n[5] = _mm256_loadu_ps(rowDn + x - 1u);
+    n[6] = _mm256_loadu_ps(rowDn + x);
+    n[7] = _mm256_loadu_ps(rowDn + x + 1u);
+
+    const __m256 median = MedianOfEight8(n);
+
+    const __m256 absMask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
+    __m256 d[8];
+    for (int k = 0; k < 8; ++k) {
+        d[k] = _mm256_and_ps(_mm256_sub_ps(n[k], median), absMask);
+    }
+    const __m256 mad = _mm256_mul_ps(MedianOfEight8(d),
+                                     _mm256_set1_ps(RUNTIME_DETECTION_MAD_SCALE));
+
+    // sigmaEstimate = (floor > mad) ? floor : mad
+    __m256 sigma = SelectGreaterOf(_mm256_set1_ps(config.globalSigmaFloor), mad);
+    // ... then, only when the cap is enabled, (sigma > cap) ? cap : sigma.
+    if (config.globalSigmaCap > 0.0f) {
+        sigma = SelectLesserOf(_mm256_set1_ps(config.globalSigmaCap), sigma);
+    }
+
+    const __m256 centre = _mm256_loadu_ps(rowMid + x);
+    const __m256 deviation = _mm256_and_ps(_mm256_sub_ps(centre, median), absMask);
+
+    const __m256 eps = _mm256_set1_ps(1e-6f);
+    const __m256 flat = _mm256_cmp_ps(sigma, eps, _CMP_LT_OQ);
+    const __m256 flatVerdict = _mm256_cmp_ps(deviation, eps, _CMP_GT_OQ);
+    const __m256 threshold = _mm256_mul_ps(_mm256_set1_ps(config.sigmaThreshold), sigma);
+    const __m256 normVerdict = _mm256_cmp_ps(deviation, threshold, _CMP_GT_OQ);
+
+    const int bits = _mm256_movemask_ps(_mm256_blendv_ps(normVerdict, flatVerdict, flat));
+
+    uint8_t* out = map + static_cast<size_t>(y) * w + x;
+    for (int k = 0; k < 8; ++k) {
+        out[k] = static_cast<uint8_t>((bits >> k) & 1);
+    }
+}
+
+#endif  // XPE_DETECT_HAS_AVX2
+
+/**
+ * @brief Start column of the OVERLAPPING final vector run of an interior row.
+ *
+ * QA-A-69 (#144): a run starting at @p x judges columns x..x+7, and interior
+ * columns are 1..w-2, so the forward walk (x += 8 from 1) can only start a run
+ * while x <= w-9 and leaves whatever is left to the scalar path. That leftover is
+ * SEVEN columns per row at 3072 -- and seven per row at every width, because the
+ * remainder is a property of the step, not of the frame. So its share GROWS as
+ * frames get narrower: measured at 3072 the scalar border was 0.33% of pixels
+ * and 16% of the pixel loop, and the same seven columns are a larger fraction of
+ * a 512-wide row.
+ *
+ * The fix is to place one more run at w-9 rather than to widen the walk: it ends
+ * exactly on the last interior column (w-9+7 == w-2), so no border pixel is
+ * touched, and it OVERLAPS the previous run by up to seven columns. Re-judging a
+ * pixel is safe here for the reason QA-A-61 measured on the row axis: the verdict
+ * reads only the frame and the config, so it is deterministic, and the write is
+ * the whole byte rather than an accumulation -- the second write stores what the
+ * first one stored. QA-A-69 checked that the same holds on the COLUMN axis rather
+ * than assuming the row result carried over.
+ *
+ * @param w Frame width in pixels. Meaningful only for w >= 10, which is the
+ *          condition DetectRowRange already requires before vectorising at all;
+ *          below that there is no run to place and this is not called.
+ * @return The start column, w - 9. For w == 10 that is 1, the first interior
+ *         column, so the formula never reaches into the left border either.
+ */
+inline uint32_t DetectRowLastRunStart(uint32_t w) { return w - 9u; }
+
+/**
+ * @brief Runs the per-pixel rule over rows [y0, y1), AVX2 where it applies.
+ *
+ * This is the one row loop; both callers use it -- DetectFrame's workers and the
+ * shipped entry point in runtime_detection.cpp. QA-A-62 learned the cost of
+ * having two: a tool measured one path while the change lived in the other.
+ *
+ * The vector path is taken only where it computes the same thing as the scalar
+ * one: a 3x3 window (windowSize == 3), an interior row, and a run of eight
+ * columns whose neighbours are all inside the frame. Everything else -- the
+ * frame border, a wider window, a frame too narrow to hold one vector run --
+ * goes through DetectDefectivePixel unchanged.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param config Detection configuration with floor and cap already resolved.
+ * @param map Output map, at least width*height elements; caller has cleared it.
+ * @param y0 First row, inclusive.
+ * @param y1 Last row, exclusive.
+ * @param windowValues Scratch for the scalar path. See DetectDefectivePixel.
+ * @param deviations Second scratch for the scalar path.
+ */
+inline void DetectRowRange(const XpeImageBuffer* img,
+                           const RuntimeDetectionConfig& config,
+                           uint8_t* map,
+                           uint32_t y0,
+                           uint32_t y1,
+                           std::vector<float>& windowValues,
+                           std::vector<float>& deviations) {
+    const uint32_t w = img->width;
+
+    auto scalarSpan = [&](uint32_t y, uint32_t xa, uint32_t xb) {
+        for (uint32_t x = xa; x < xb; ++x) {
+            if (DetectDefectivePixel(img, x, y, config, windowValues, deviations)) {
+                map[static_cast<size_t>(y) * w + x] = 1u;
+            }
+        }
+    };
+
+#if XPE_DETECT_HAS_AVX2
+    // A run needs x >= 1 and x + 8 <= w - 1, so the narrowest frame with one run
+    // is w == 10. Below that there is nothing to vectorise.
+    const uint32_t h = img->height;
+    const bool useVector = (config.windowSize == 3) && (w >= 10u) && (h >= 3u);
+    const float* pixels = static_cast<const float*>(img->data);
+#endif
+
+    // QA-A-66: the vector branch is compiled out entirely rather than guarded by
+    // a `useVector` that is a compile-time false. A constant condition is C4127
+    // under /W4, which this project promotes to an error -- so the earlier shape
+    // did not compile at all where XPE_DETECT_HAS_AVX2 is 0. QA-A-65 listed that
+    // path as unbuilt in its Gaps; building it is what found this.
+    for (uint32_t y = y0; y < y1; ++y) {
+#if XPE_DETECT_HAS_AVX2
+        if (useVector && y != 0u && y + 1u < h) {
+            scalarSpan(y, 0u, 1u);
+            uint32_t x = 1u;
+            for (; x + 8u <= w - 1u; x += 8u) {
+                DetectEightPixelsAvx2(pixels, w, x, y, config, map);
+            }
+            // QA-A-69: one overlapping run finishes the interior columns the
+            // forward walk could not start a run for. See DetectRowLastRunStart.
+            if (x + 1u < w) {
+                DetectEightPixelsAvx2(pixels, w, DetectRowLastRunStart(w), y, config, map);
+            }
+            // Columns 0 and w-1 stay scalar whatever else changes: they have
+            // fewer than eight neighbours, so they are a different computation,
+            // not a slower one.
+            scalarSpan(y, w - 1u, w);
+            continue;
+        }
+#endif
+        scalarSpan(y, 0u, w);
+    }
+}
+
+/* ------------------------------------------------------------- QA-A-61 */
+//
+// Caller-specified threading. Two properties are load-bearing and both hold by
+// CONSTRUCTION rather than by luck -- the parity tests then check that the
+// construction is what actually shipped:
+//
+//   1. Every pixel's verdict reads only the input frame and the config. No pixel
+//      reads another pixel's verdict, and each writes its own map byte. Splitting
+//      rows therefore cannot change any value.
+//   2. The global sigma is computed ONCE over the whole frame before any split,
+//      and its own parallel form sums integer histogram counts -- exact, and
+//      addition of counts is associative, so the merged table is identical to the
+//      single-threaded one for any thread count.
+//
+// What is NOT claimed: that threading makes this fast enough. QA-A-58 measured
+// 20 threads still 1.44x short of the 60 ms target; that gap is algorithmic and
+// belongs to another card.
+
+/**
+ * @brief Normalises a caller-supplied thread count to a runnable worker count.
+ *
+ * @param requested Thread count as the caller gave it. Zero and negative values
+ *                  are CLAMPED to 1 rather than reported as an error -- this
+ *                  function has no error channel, and a caller asking for "no
+ *                  threads" means the single-threaded path.
+ * @return The worker count to use. Never 0. Values ABOVE the machine's core
+ *         count are returned UNCHANGED: there is no upper clamp, because this
+ *         module deliberately never reads hardware concurrency (QA-A-61) -- the
+ *         caller knows what else the pipeline is running and this module does
+ *         not. Asking for more workers than cores is therefore permitted and
+ *         simply oversubscribes.
+ */
+inline uint32_t RuntimeDetection_NormalizeThreads(int32_t requested) {
+    return (requested < 1) ? 1u : static_cast<uint32_t>(requested);
+}
+
+/**
+ * @brief Frame-wide robust sigma, split across @p threadCount workers.
+ *
+ * Bit-identical to ComputeGlobalSigma for every thread count: the differences
+ * are the same values at the same positions, the per-thread histograms are
+ * summed exactly, and the selection reads one merged table.
+ *
+ * QA-A-67 (#144): WHY THAT HOLDS HERE IS NOT WHY IT HOLDS IN THE PIXEL LOOP,
+ * and the difference is worth stating so it is not generalised wrongly.
+ *
+ *   - The per-pixel rule (QA-A-61, QA-A-65) is bit-identical because it performs
+ *     no floating-point REDUCTION at all: every operation is elementwise, so
+ *     there is no order for non-associativity to depend on.
+ *   - This stage does reduce -- it sums counts across workers -- but the sums are
+ *     INTEGERS, and integer addition is associative and exact. Same conclusion,
+ *     different reason.
+ *
+ * INTEGER DOES NOT MEAN AUTOMATICALLY SAFE, and the three places it could go
+ * wrong are named rather than assumed away:
+ *
+ *   - OVERFLOW: a bucket counts at most one entry per element, so the widest
+ *     count is the element count. The buckets are uint32_t and the element count
+ *     is at most width * height - which the detector already bounds at 2^32 for
+ *     its own index arithmetic (QA-A-62) - so a count cannot wrap before the
+ *     indices do. The two limits are the same limit, not two to keep in step.
+ *   - BUCKET BOUNDARIES: there is no float-to-bucket ARITHMETIC anywhere here.
+ *     The bucket index is a slice of the sort key's bits (`key >> 16`, then
+ *     `key & 0xFFFF`), and the key is a bit reinterpretation of the float, not a
+ *     quantisation of its value. So no value can land on the wrong side of a
+ *     boundary through rounding -- the usual histogram hazard does not exist in
+ *     this one.
+ *   - THE FLOAT-TO-KEY MAP ITSELF: this is where a hazard does live, and it is
+ *     the one QA-A-65 met in a different guise. -0.0 and +0.0 compare equal but
+ *     map to different keys. That is deliberate, argued at SelectKthSmallest,
+ *     and pinned by test_runtime_detection_radix_select_parity.cpp -- including
+ *     the branchless rewrite, which is verified against the form it replaced
+ *     rather than against its own behaviour.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param threadCount Workers to use; values below 1 are treated as 1.
+ * @return The frame's robust sigma estimate, or 0.0f on the same conditions
+ *         ComputeGlobalSigma returns 0.0f.
+ */
+inline float ComputeGlobalSigmaThreaded(const XpeImageBuffer* img, int32_t threadCount) {
+    const uint32_t T = RuntimeDetection_NormalizeThreads(threadCount);
+    if (T == 1u) return ComputeGlobalSigma(img);
+    if (img == nullptr || img->data == nullptr) return 0.0f;
+
+    const size_t w = img->width;
+    const size_t h = img->height;
+    if (w < 2u && h < 2u) return 0.0f;
+    const float* pixels = static_cast<const float*>(img->data);
+
+    const size_t hCount = (w >= 2u) ? h * (w - 1u) : 0u;
+    const size_t vCount = (h >= 2u) ? (h - 1u) * w : 0u;
+    const size_t maxCount = (hCount > vCount) ? hCount : vCount;
+    if (maxCount == 0u) return 0.0f;
+    std::unique_ptr<float[]> diff(new float[maxCount]);
+
+    constexpr size_t kBuckets = 1u << 16;
+    std::vector<uint32_t> tables(static_cast<size_t>(T) * kBuckets, 0u);
+
+    auto rowsOf = [&](uint32_t t, size_t rows) {
+        const size_t y0 = (rows * t) / T;
+        const size_t y1 = (rows * (t + 1u)) / T;
+        return std::pair<size_t, size_t>(y0, y1);
+    };
+
+    // Exact selection over `n` values, with the counting split across threads.
+    auto selectKth = [&](const float* d, size_t n, size_t k) -> float {
+        if (n == 0u) return 0.0f;
+        if (k >= n) k = n - 1u;
+        std::fill(tables.begin(), tables.end(), 0u);
+
+        auto countHigh = [d, &tables](size_t i0, size_t i1, uint32_t* table) {
+            (void)tables;
+            for (size_t i = i0; i < i1; ++i) ++table[FloatSortKey(d[i]) >> 16];
+        };
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                pool.emplace_back(countHigh, (n * t) / T, (n * (t + 1u)) / T,
+                                  tables.data() + static_cast<size_t>(t) * kBuckets);
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        for (uint32_t t = 1; t < T; ++t) {
+            const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+            uint32_t* dst = tables.data();
+            for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+        }
+        size_t seen = 0;
+        uint32_t high = 0u;
+        for (size_t b = 0; b < kBuckets; ++b) {
+            if (seen + tables[b] > k) { high = static_cast<uint32_t>(b); break; }
+            seen += tables[b];
+        }
+
+        std::fill(tables.begin(), tables.end(), 0u);
+        auto countLow = [d, high](size_t i0, size_t i1, uint32_t* table) {
+            for (size_t i = i0; i < i1; ++i) {
+                const uint32_t key = FloatSortKey(d[i]);
+                if ((key >> 16) == high) ++table[key & 0xFFFFu];
+            }
+        };
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                pool.emplace_back(countLow, (n * t) / T, (n * (t + 1u)) / T,
+                                  tables.data() + static_cast<size_t>(t) * kBuckets);
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        for (uint32_t t = 1; t < T; ++t) {
+            const uint32_t* src = tables.data() + static_cast<size_t>(t) * kBuckets;
+            uint32_t* dst = tables.data();
+            for (size_t b = 0; b < kBuckets; ++b) dst[b] += src[b];
+        }
+        const size_t rank = k - seen;
+        size_t inner = 0;
+        uint32_t low = 0u;
+        for (size_t b = 0; b < kBuckets; ++b) {
+            if (inner + tables[b] > rank) { low = static_cast<uint32_t>(b); break; }
+            inner += tables[b];
+        }
+        return SortKeyToFloat((high << 16) | low);
+    };
+
+    auto madSigma = [&](float* d, size_t n) -> float {
+        if (n == 0u) return 0.0f;
+        const size_t mid = n / 2u;
+        const float median = selectKth(d, n, mid);
+        {
+            std::vector<std::thread> pool;
+            pool.reserve(T);
+            for (uint32_t t = 0; t < T; ++t) {
+                const size_t i0 = (n * t) / T;
+                const size_t i1 = (n * (t + 1u)) / T;
+                pool.emplace_back([d, i0, i1, median]() {
+                    for (size_t i = i0; i < i1; ++i) d[i] = std::abs(d[i] - median);
+                });
+            }
+            for (std::thread& th : pool) th.join();
+        }
+        return selectKth(d, n, mid) * RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+    };
+
+    float sigmaH = 0.0f;
+    if (hCount > 0u) {
+        float* out = diff.get();
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (uint32_t t = 0; t < T; ++t) {
+            const auto r = rowsOf(t, h);
+            pool.emplace_back([pixels, out, w, r]() {
+                for (size_t y = r.first; y < r.second; ++y) {
+                    const float* row = pixels + y * w;
+                    float* dst = out + y * (w - 1u);
+                    for (size_t x = 0; x + 1u < w; ++x) dst[x] = row[x + 1u] - row[x];
+                }
+            });
+        }
+        for (std::thread& th : pool) th.join();
+        sigmaH = madSigma(diff.get(), hCount);
+    }
+
+    float sigmaV = 0.0f;
+    if (vCount > 0u) {
+        float* out = diff.get();
+        std::vector<std::thread> pool;
+        pool.reserve(T);
+        for (uint32_t t = 0; t < T; ++t) {
+            const auto r = rowsOf(t, h - 1u);
+            pool.emplace_back([pixels, out, w, r]() {
+                for (size_t y = r.first; y < r.second; ++y) {
+                    const float* row = pixels + y * w;
+                    float* dst = out + y * w;
+                    for (size_t x = 0; x < w; ++x) dst[x] = row[x + w] - row[x];
+                }
+            });
+        }
+        for (std::thread& th : pool) th.join();
+        sigmaV = madSigma(diff.get(), vCount);
+    }
+
+    if (sigmaH <= 0.0f) return sigmaV;
+    if (sigmaV <= 0.0f) return sigmaH;
+    return (sigmaH < sigmaV) ? sigmaH : sigmaV;
+}
+
+/**
+ * @brief Runs the per-pixel rule over a whole frame, optionally across threads.
+ *
+ * The sigma floor and cap are derived here, once, from the whole frame -- before
+ * any split, because they are frame-wide quantities. Workers then take disjoint
+ * row ranges and write disjoint map bytes.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param config Detection configuration; config.threadCount selects the split.
+ *               The floor and cap fields are OVERWRITTEN from the frame's own
+ *               sigma, matching what the shipped entry point does.
+ * @param map Output map, one byte per pixel. CLEARED BY THIS FUNCTION -- the
+ *            caller need not, and should not rely on, pre-filling it. Every byte
+ *            is written: 1 for a defective pixel, 0 otherwise.
+ * @param mapCount Number of uint8 ELEMENTS @p map points at. The call is
+ *            REJECTED -- nothing is read, nothing is written -- when this is
+ *            smaller than width * height.
+ *
+ * @par Buffer length is counted in ELEMENTS, not bytes (#152).
+ * The map element type is uint8_t, so here the two counts happen to be equal;
+ * the unit is still stated as ELEMENTS because that is the unit the check
+ * compares against -- width * height, the same units @p img->width and
+ * @p img->height are already in -- and because the repository has one naming
+ * convention for this argument, set by xpe_gsvg_process (#152 / QA-B-53), where
+ * the element type is NOT one byte. A caller passes `map.size()`; nothing has to
+ * remember a sizeof, and a later change of map element type does not silently
+ * change what the number means.
+ *
+ * @par A short map is rejected, never truncated (QA-A-63, #144).
+ * Truncating -- clearing and filling only the first @p mapCount bytes -- would
+ * return normally and leave the tail of the map holding whatever it held
+ * before, which reads exactly like a detection. That failure shape has already
+ * been paid for once in this repository: #150 copied a truncated PixelData and
+ * returned XPE_OK. This function has no error channel (it returns void, like
+ * its NULL-pointer guards above), so rejection here means the same thing those
+ * guards mean: return without touching the caller's memory.
+ *
+ * QA-A-63 (#144): the length argument exists because QA-A-62 created the need
+ * for it. Before that card the caller filled the map, so the caller knew its
+ * size; moving the clear into this function moved the write here while the size
+ * stayed there. The check is ordered before the memset, not after -- a check
+ * placed after the first write returns the right answer and has already
+ * corrupted memory.
+ *
+ * QA-A-62 (#144): the clear used to be the caller's job, stated only in this
+ * comment. A comment is not code, and this particular contract fails SILENTLY --
+ * an unfilled map keeps whatever it held before, and a stale 1 reads exactly
+ * like a detection. The cost of removing the hazard was measured rather than
+ * argued: 9.4 MB of std::memset at 3072x3072, against a frame that takes
+ * hundreds of milliseconds. The measurement is in the QA-A-62 report.
+ *
+ * INDEX ARITHMETIC at this size, since the frame is the real one: the map index
+ * below is computed in size_t (64-bit here), and the pixel reads inside
+ * DetectDefectivePixel are computed in uint32_t. The largest pixel index a frame
+ * produces is width*height - 1, so the uint32_t form is exact while
+ * width*height <= 2^32; at 3072x3072 that is 9,437,184 against 4,294,967,296 --
+ * a factor of 455 of headroom. Stated as a bound rather than as "it does not
+ * overflow", because the bound is what a future larger detector has to check.
+ */
+inline void DetectFrame(const XpeImageBuffer* img,
+                        RuntimeDetectionConfig config,
+                        uint8_t* map,
+                        size_t mapCount) {
+    if (img == nullptr || img->data == nullptr || map == nullptr) return;
+    const uint32_t T = RuntimeDetection_NormalizeThreads(config.threadCount);
+    const uint32_t w = img->width;
+    const uint32_t h = img->height;
+
+    // QA-A-63: before the memset, not after. See the note above.
+    const size_t needed = static_cast<size_t>(w) * static_cast<size_t>(h);
+    // QA-A-64: the rejection is silent, and a silent rejection looks exactly
+    // like "nothing was defective" (#148 was that shape). An error channel is
+    // not opened here -- there is no consumer for one -- but a debug assertion
+    // costs nothing in a release build and makes the misuse loud wherever
+    // NDEBUG is not set. It fires BEFORE the return so both forms describe the
+    // same condition; release behaviour is byte-for-byte what it was.
+    assert(mapCount >= needed && "DetectFrame: map is shorter than width * height");
+    if (mapCount < needed) return;
+
+    // QA-A-62: clear it here rather than trusting a comment. See the note above.
+    std::memset(map, 0, needed);
+
+    const float sigmaGlobal = ComputeGlobalSigmaThreaded(img, config.threadCount);
+    config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
+    config.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
+
+    auto runRows = [img, &config, map](uint32_t y0, uint32_t y1) {
+        std::vector<float> windowValues;
+        std::vector<float> deviations;
+        windowValues.reserve(64);
+        deviations.reserve(64);
+        DetectRowRange(img, config, map, y0, y1, windowValues, deviations);
+    };
+
+    if (T == 1u) { runRows(0u, h); return; }
+
+    std::vector<std::thread> pool;
+    pool.reserve(T);
+    for (uint32_t t = 0; t < T; ++t) {
+        const uint32_t y0 = static_cast<uint32_t>((static_cast<uint64_t>(h) * t) / T);
+        const uint32_t y1 = static_cast<uint32_t>((static_cast<uint64_t>(h) * (t + 1u)) / T);
+        pool.emplace_back(runRows, y0, y1);
+    }
+    for (std::thread& th : pool) th.join();
 }
 
 } // namespace internal

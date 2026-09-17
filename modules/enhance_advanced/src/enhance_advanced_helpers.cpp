@@ -49,16 +49,20 @@ namespace config {
  *    A module-global would let two threads erase each other's memory -- thread A
  *    warns, thread B's different config overwrites the record, and A's next
  *    frame warns again; the per-frame flood returns whenever two threads run.
- *    thread_local has no cross-thread visibility at all, so REQ-ADV-032's
+ *    thread_local has no cross-thread visibility at all, so REQ-ADV-090's
  *    reentrancy ("reentrant with independent caller-supplied buffers") is
  *    unaffected: no result depends on it, and no thread can observe another's.
  *
- *    The tension with the letter of the requirement -- "No global mutable state
- *    shall be modified during processing calls. The g_initialized flag is the
- *    only shared state" -- is real and is recorded in the QA-B-61 report rather
- *    than resolved here. Any "warn once" behaviour needs memory that survives a
- *    call; the choice is only whether that memory is shared between threads, and
- *    this one is not. Both properties are measured by
+ *    This raised a tension with the requirement's ORIGINAL wording ("No global
+ *    mutable state shall be modified during processing calls"), which was
+ *    reported rather than reinterpreted here. REQ-ADV-090 was amended
+ *    2026-09-12 to name the property it protects instead: no cross-thread
+ *    sharing, and no output dependence on state carried over from another call.
+ *    The amendment permits thread_local narrowly -- invisible to other threads,
+ *    not influencing any output, existing only to suppress duplicate
+ *    diagnostics -- and explicitly does NOT extend to a mutex-protected
+ *    module-global, since serialising access does not remove the cross-thread
+ *    dependence. Both permitted properties are measured, not asserted, by
  *    tests/test_config_warning_once.cpp (identical outputs with and without the
  *    state; concurrent threads do not cross).
  *
@@ -164,13 +168,15 @@ bool parse_mfp_config(const char* json,
         }
 
         // Parse keys from resolved source (nested or flat)
-        if (src.contains("num_levels") && src["num_levels"].is_number_integer()) {
-            int val = src["num_levels"].get<int>();
-            outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
-        }
-        // Backward compat: also accept "levels" (flat schema legacy key)
+        // Backward compat: also accept "levels" (flat schema legacy key).
+        // Read FIRST so that "num_levels", when also present, overwrites it:
+        // the current name wins over the legacy one (#162, QA-B-79).
         if (src.contains("levels") && src["levels"].is_number_integer()) {
             int val = src["levels"].get<int>();
+            outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
+        }
+        if (src.contains("num_levels") && src["num_levels"].is_number_integer()) {
+            int val = src["num_levels"].get<int>();
             outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
         }
 
@@ -277,11 +283,11 @@ bool parse_fractional_config(const char* json,
  * ============================================================================ */
 
 bool parse_collimation_config(const char* json,
-                              float& outSensitivity,
+                              float& outConfidenceStrictness,
                               float& outMinAreaRatio,
                               int&   outBorderMargin) {
     // Apply defaults
-    outSensitivity    = XPE_COL_DEFAULT_SENSITIVITY;
+    outConfidenceStrictness = XPE_COL_DEFAULT_CONF_STRICTNESS;
     outMinAreaRatio   = XPE_COL_DEFAULT_MIN_AREA_RATIO;
     outBorderMargin   = XPE_COL_DEFAULT_BORDER_MARGIN;
 
@@ -295,9 +301,12 @@ bool parse_collimation_config(const char* json,
             return false;
         }
 
-        if (cfg.contains("sensitivity") && cfg["sensitivity"].is_number()) {
-            float val = cfg["sensitivity"].get<float>();
-            outSensitivity = std::clamp(val, 0.0f, 1.0f);
+        // #164: named `sensitivity` until 2026-09-16. See internal.h for why the
+        // name moved rather than the arithmetic.
+        if (cfg.contains("confidence_strictness") &&
+            cfg["confidence_strictness"].is_number()) {
+            float val = cfg["confidence_strictness"].get<float>();
+            outConfidenceStrictness = std::clamp(val, 0.0f, 1.0f);
         }
 
         if (cfg.contains("min_area_ratio") && cfg["min_area_ratio"].is_number()) {

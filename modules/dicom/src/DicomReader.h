@@ -43,6 +43,13 @@ inline constexpr SupportedTransferSyntax kSupportedTransferSyntaxes[] = {
     { "1.2.840.10008.1.2.1",     "Explicit VR Little Endian" },
     { "1.2.840.10008.1.2.4.90",  "JPEG 2000 Lossless Only" },
     { "1.2.840.10008.1.2.4.70",  "JPEG Lossless, Non-Hierarchical, First-Order" },
+    // #147 (QA-B-68): REQ-IOP-003 requires .57 "at minimum". readImage
+    // dispatches on the syntax string, so the decode branch in DicomReader.cpp
+    // names .57 alongside this entry; the two were changed together. What an
+    // entry here does WITHOUT that branch was not measured. Measured before the
+    // change: meta-bearing .57 gave UNSUPPORTED_FORMAT, meta-less gave
+    // DICOM_INVALID.
+    { "1.2.840.10008.1.2.4.57",  "JPEG Lossless, Non-Hierarchical (Process 14)" },
 };
 
 inline constexpr size_t kSupportedTransferSyntaxCount =

@@ -153,6 +153,54 @@ jobs:
         shell: pwsh
         run: ctest --test-dir build/ci-preprocess --build-config RelWithDebInfo --output-on-failure
 
+      # #176 (2026-09-17): ctest runs every test in its OWN process (gtest_discover_tests),
+      # so global state that leaks from one test into the next can never show there — the
+      # next test always starts clean. Three order-dependent tests lived behind that, one of
+      # them already red in the DEFAULT order when the binary was run directly (QA-A-88).
+      # Running the binary as one process is the only place that leak is visible.
+      #
+      # Default order plus two fixed shuffle seeds. The seeds are pinned so a failure here is
+      # reproducible; a shuffle without a recorded seed is an observation nobody can repeat.
+      # Seeds 1 and 9 are the two that exposed the (nah)/(da) leaks before QA-A-89.
+      #
+      # The summary line is checked, not just the exit code: a run that never starts (missing
+      # DLL, bad path) exits non-zero with no summary, and a script that reads only its own
+      # failure list sees an empty list as a pass (observed in QA-A-89).
+      #
+      # The ran-count is checked too: a binary that runs zero tests still prints a summary
+      # ('[  PASSED  ] 0 tests.') and exits 0 (QA-A-90 hit this with a filter on a file that was
+      # not in the build). Every run must execute the same non-zero number of tests.
+      - name: Run preprocess test binary as one process (#176)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build/ci-preprocess -Recurse -Filter xpe_preprocess_tests.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error 'xpe_preprocess_tests.exe not found - cannot run the single-process check'; exit 1 }
+          $env:PATH = "$($exe.DirectoryName);$env:PATH"
+          $runs = @(
+            @{ name = 'default order'; args = @() },
+            @{ name = 'shuffle seed 1'; args = @('--gtest_shuffle', '--gtest_random_seed=1') },
+            @{ name = 'shuffle seed 9'; args = @('--gtest_shuffle', '--gtest_random_seed=9') }
+          )
+          $bad = 0
+          $ranCounts = @()
+          foreach ($r in $runs) {
+            $out = & $exe.FullName @($r.args) 2>&1 | Out-String
+            $code = $LASTEXITCODE
+            $summary = ($out -split "`n" | Where-Object { $_ -match '^\[\s*(PASSED|FAILED)\s*\]' }) -join ' | '
+            $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
+            $ran = if ($ranLine -and $ranLine -match '^\[=+\]\s+(\d+) tests?') { [int]$Matches[1] } else { -1 }
+            Write-Host ("{0}: exit={1} ran={2} summary={3}" -f $r.name, $code, $ran, $summary)
+            if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $r.name); $bad++ ; continue }
+            if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $r.name, $ran); $bad++ ; continue }
+            $ranCounts += $ran
+            if ($code -ne 0) {
+              ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
+              $bad++
+            }
+          }
+          if (($ranCounts | Select-Object -Unique).Count -gt 1) { Write-Error ("runs executed different test counts: {0}" -f ($ranCounts -join ', ')); $bad++ }
+          if ($bad -gt 0) { Write-Error ("{0} single-process run(s) failed - state leaks between tests that ctest's per-test processes hide (#176)" -f $bad); exit 1 }
+
       - name: Upload preprocess test results
         if: always()
         uses: actions/upload-artifact@v6
@@ -461,9 +509,52 @@ jobs:
       # (observed 2026-09-11, run 34538498373: total=13 executed=12 notExecuted=0 with
       # W-02 skipped). Read total-vs-executed AND the per-result outcomes instead, and
       # print each skip reason - a silent skip is exactly what this gate exists to catch.
-      - name: Assert no skipped Native E2E cases
+      # GUI-C-74 (2026-09-16): this gate printed each skip reason but judged on the
+      # COUNT alone, so a skip we understand and a skip we do not were the same thing
+      # to it. Two decisions had entered independently and had never met here: GUI-C-37
+      # added this gate (a staged generator means a W-02 skip is a staging fault), and
+      # GUI-C-55 later made ReadableWindow_IsKept_AndLeavesNoNote SKIP when the window
+      # re-acquisition defect fires in its own launch, so "not measured" would not be
+      # counted as "measured and fine". Measured frequency: 7.0% per launch (100 launches,
+      # control UnreadableWindow_ 50/50 green), roughly 25% per CI Native run.
+      #
+      # Failing the job on that is the "unread red light" state this repo has already
+      # lived through - a quarter of Native runs red for a defect nobody is fixing that
+      # week trains everyone to ignore the colour, and the gate stops working on the
+      # staging fault it exists to catch. So the gate now discriminates, and the defect
+      # is COUNTED instead (below).
+      #
+      # It keys on an explicit machine-readable token, NOT on prose: a skip message must
+      # carry `XPE-SKIP-ALLOWED:<issue>` for a listed issue. A reason string is a contract
+      # the moment a gate reads it, and prose drifts silently; a token is written on
+      # purpose and its absence is loud. Every entry names an issue, and the count of
+      # entries is printed each run, so widening the list is visible rather than quiet.
+      #
+      # Correction 2026-09-17: the first version of this list keyed on `30011`, which reads
+      # as an issue number and is not one - it is the UIA PropertyNotSupportedException code
+      # (clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:151). Anyone who
+      # looked it up as an issue found nothing, and the defect itself had no open issue at
+      # all until #170 - eleven lane reports had narrowed it while `.moai/reports/` stayed
+      # gitignored, so none of that was anywhere a reader could reach. The key is the
+      # ISSUE; the UIA code lives in the description, where it cannot be read as an address.
+      #
+      # NOT done here, on purpose: retrying the launch (it spends wall-clock against a
+      # Smoke suite already near its time gate, and it would mask a regression in the
+      # defect's own frequency), and extending this gate to the Mock job (Mock has no
+      # skip gate at all today - its by-design backend skip would need its own token
+      # first; recorded as a separate gap, not fixed in passing).
+      - name: Assert no unexplained skipped Native E2E cases
         shell: pwsh
         run: |
+          # GUI-C-75 observed the em dash in a skip reason arriving as '?' in the log.
+          # The token is ASCII so the verdict is unaffected, but the half a human reads
+          # is what gets damaged - and that half is the only thing explaining the skip.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          # Each entry: issue number -> why this skip is understood. Adding a row is a
+          # deliberate act that shows up in the run summary.
+          $allowed = @{
+            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
+          }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
           [xml]$x = Get-Content $trx.FullName
@@ -471,11 +562,41 @@ jobs:
           $results = @($x.TestRun.Results.UnitTestResult)
           $skipped = @($results | Where-Object { $_.outcome -ne 'Passed' -and $_.outcome -ne 'Failed' })
           Write-Host ("total={0} executed={1} passed={2} failed={3} notExecuted={4}" -f $c.total, $c.executed, $c.passed, $c.failed, $c.notExecuted)
+          Write-Host ("allow-list entries: {0}" -f $allowed.Count)
+          $unexplained = @()
+          $accounted = @()
           foreach ($s in $skipped) {
-            Write-Host ("NOT RUN: {0} [{1}] {2}" -f $s.testName, $s.outcome, $s.Output.ErrorInfo.Message)
+            $msg = [string]$s.Output.ErrorInfo.Message
+            $m = [regex]::Match($msg, 'XPE-SKIP-ALLOWED:(\d+)')
+            if ($m.Success -and $allowed.ContainsKey($m.Groups[1].Value)) {
+              $accounted += [pscustomobject]@{ name = $s.testName; issue = $m.Groups[1].Value }
+              Write-Host ("SKIPPED (accounted, #{0}): {1} - {2}" -f $m.Groups[1].Value, $s.testName, $allowed[$m.Groups[1].Value])
+            } else {
+              $unexplained += $s
+              Write-Host ("NOT RUN (unexplained): {0} [{1}] {2}" -f $s.testName, $s.outcome, $msg)
+            }
           }
-          if ($skipped.Count -gt 0 -or [int]$c.total -ne [int]$c.executed) {
-            Write-Error ('{0} E2E case(s) did not run in the Native job - a generator/staging problem hidden as green' -f $skipped.Count)
+          # C: count it, every run, whether or not anything is red. A number with no
+          # gate attached is still the only way a trend becomes visible - there is no
+          # CI baseline for this defect yet, so no threshold is set.
+          if ($env:GITHUB_STEP_SUMMARY) {
+            "### Native E2E skips" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            ("- accounted: {0}" -f $accounted.Count) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            ("- unexplained: {0}" -f $unexplained.Count) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            foreach ($a in $accounted) {
+              ("  - #{0} {1}" -f $a.issue, $a.name) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+          }
+          # total-vs-executed still has to agree, but now it agrees WITH the accounted
+          # skips rather than with zero - otherwise an accounted skip would trip the
+          # counter check the token was meant to excuse.
+          $gap = [int]$c.total - [int]$c.executed
+          if ($unexplained.Count -gt 0) {
+            Write-Error ('{0} E2E case(s) did not run in the Native job with no accounted reason - a generator/staging problem hidden as green' -f $unexplained.Count)
+            exit 1
+          }
+          if ($gap -ne $accounted.Count) {
+            Write-Error ('counter mismatch: total-executed={0} but {1} skip(s) carried an accounted token - a case vanished from the results without a UnitTestResult entry' -f $gap, $accounted.Count)
             exit 1
           }
 

@@ -13,7 +13,6 @@
 #include "detail/fractional_derivative.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_common_api.h"
-#include <nlohmann/json.hpp>
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -93,58 +92,6 @@ namespace {
         return a + b;
     }
 } // anonymous namespace
-
-/* ============================================================================
- * FractionalConfig Implementation
- * ============================================================================ */
-
-FractionalConfig FractionalConfig::fromJson(const char* configJsonOrNull) {
-    FractionalConfig config = defaultConfig();
-
-    if (configJsonOrNull == nullptr) {
-        return config;
-    }
-
-    try {
-        nlohmann::json j = nlohmann::json::parse(configJsonOrNull);
-
-        // Parse order parameter
-        if (j.contains("order")) {
-            config.order = j["order"];
-        }
-
-        // SAF-100: Reject attempts to disable overshoot limiting
-        const std::vector<const char*> forbiddenKeys = {
-            "overshoot_limiting",
-            "overshoot_limit",
-            "overshoot_factor",
-            "disable_overshoot_limit"
-        };
-
-        for (const char* key : forbiddenKeys) {
-            if (j.contains(key)) {
-                // Attempting to configure overshoot limiting is a safety violation
-                throw std::runtime_error("SAF-100: Overshoot limiting cannot be configured");
-            }
-
-            // Check nested in "safety" object
-            if (j.contains("safety") && j["safety"].is_object()) {
-                if (j["safety"].contains(key)) {
-                    throw std::runtime_error("SAF-100: Overshoot limiting cannot be configured");
-                }
-            }
-        }
-
-    } catch (const nlohmann::json::exception&) {
-        // JSON parse error - return defaults
-        // In production, might want to log this
-    } catch (const std::runtime_error&) {
-        // SAF-100 violation - will be caught by caller and converted to error code
-        throw;
-    }
-
-    return config;
-}
 
 /* ============================================================================
  * Mask Generation

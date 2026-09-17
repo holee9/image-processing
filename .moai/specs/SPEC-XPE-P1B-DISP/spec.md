@@ -312,7 +312,16 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 
 **REQ-DISP-016**: The system SHALL complete VOI LUT application within 16ms for a 3072x3072 float32 image (interactive latency requirement per Pipeline Spec).
 
-**REQ-DISP-017**: WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the `params` struct with clinically standard window center/width values for that body part: BONE (center=500, width=2000), LUNG (center=-600, width=1600), ABDOMEN (center=40, width=400), HEAD (center=40, width=80).
+**REQ-DISP-017** (개정 2026-09-17, 사용자 결정): WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the `params` struct with window center/width values in the **detector DN domain** of the raw input as it reaches VOI (modality LUT identity: slope 1, intercept 0). Until per-body-part DN values are derived from real detector data (#151), every body part SHALL use the full 16-bit window: center=32768, width=65535.
+
+> **개정 사유.** 이전 문언은 CT 의 HU 창(BONE 500/2000, LUNG −600/1600, ABDOMEN 40/400, HEAD 40/80)을
+> "clinically standard" 로 요구했습니다. 그런데 이 제품의 VOI 는 HU 로 바꾸는 변환 없이 **raw DN** 에 적용됩니다.
+> GUI-C-84 실측: Native Abdomen 40/400 은 wrist 픽스처 출력을 **1단계**로 뭉개고(전 화소 같은 값, 미리보기에서 검정),
+> 32768/65535 는 105단계를 냅니다. DR 검출기에는 물리적 HU 가 없어, HU 로 바꾸는 모달리티 값을 정하는 것은
+> 근거 없는 상수를 새로 만드는 일이 됩니다.
+>
+> **임시 값의 한계.** 네 부위가 같은 창을 씁니다 — 부위 선택이 출력을 바꾸지 않습니다. 부위별 DN 창은 실장비 데이터(#151)가
+> 오면 정합니다. 이 문언의 구현은 post 레인 카드 QA-B-82 입니다. 추적: #177.
 
 **REQ-DISP-018**: IF `params` is NULL or `bodyPart` is not a recognized `XpeBodyPart` enum value, THEN `xpe_voi_preset_create` SHALL return `XPE_ERR_INVALID_INPUT`.
 

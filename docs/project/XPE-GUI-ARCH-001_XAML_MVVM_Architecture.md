@@ -6,6 +6,27 @@
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
 **Target**: `clients/ImageProcTest/` WPF test GUI (.NET 8, C# 12, x64)
+
+> **⚠ 실측 정정 (2026-09-17, GUI-C-76 → 리더 확인, main `2993327`).** 범위: `gui/`·`clients/` 의
+> `*.cs`·`*.xaml`·`*.csproj`. 대조군(같은 검색): `MainWindowViewModel` 27건, `INotifyPropertyChanged` 4건.
+>
+> | 이 문서의 서술 | 실측 |
+> |---|---|
+> | CommunityToolkit.Mvvm 을 사용 | **0건** |
+> | 공유 명령은 `RoutedCommand` | **0건** — 같은 `ICommand` 인스턴스를 공유 |
+> | `Panels/` · `Dialogs/` 디렉터리 | **없음** — 실제는 `Views/` |
+> | `Themes/` + [HARD] pack URI | **없음** |
+> | `IAppSettingsService` | **없음** |
+> | `XpeBoundaryException` | **없음** |
+> | [HARD] `Dispatcher.InvokeAsync` | **0건** |
+> | `XPE_` 접두 AutomationId 규칙 | **앱마다 다름** — `clients/ImageProcTest` 38건, `gui/ImageProcTest` 0건. E2E-001 §4.1 의 "채택 안 함" 은 `gui/` 쪽 이야기입니다 |
+>
+> [HARD] 규칙 두 개(`Themes/` pack URI, `Dispatcher.InvokeAsync`)가 **코드에 반영된 적이 없습니다.**
+> 규칙을 코드에 맞출지 코드를 규칙에 맞출지는 **결정되지 않았습니다** — 그때까지 이 두 [HARD] 를
+> 현행 규칙으로 인용하지 마십시오. 산문 주장(백틱 없는 문장)은 **대조하지 않았습니다.**
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
 **Related Specs**: SPEC-XPE-GUI-IT v1.2.0, SPEC-XPE-P1B-DISP, XPE-GUI-MENU-001, XPE-GUI-DISP-INT-001
 
 ---

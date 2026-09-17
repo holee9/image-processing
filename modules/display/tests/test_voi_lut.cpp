@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <chrono>
+#include <vector>
 
 #include "xpe/display/display_api.h"
 
@@ -63,7 +64,7 @@ TEST(VoiLut, Linear_CenterWindow) {
 }
 
 TEST(VoiLut, Linear_ClampMin) {
-    // REQ-DISP-010: output clamped to minOut
+    // REQ-DISP-012: output clamped to minOut
     XpeImageBuffer img = make_float32_image(1, 1, -9999.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR;
@@ -79,7 +80,7 @@ TEST(VoiLut, Linear_ClampMin) {
 }
 
 TEST(VoiLut, Linear_ClampMax) {
-    // REQ-DISP-010: output clamped to maxOut
+    // REQ-DISP-012: output clamped to maxOut
     XpeImageBuffer img = make_float32_image(1, 1, 9999.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR;
@@ -95,11 +96,11 @@ TEST(VoiLut, Linear_ClampMax) {
 }
 
 // =============================================================================
-// REQ-DISP-011: LINEAR_EXACT windowing (DICOM PS3.3 C.11.2.1.3)
+// REQ-DISP-010: LINEAR_EXACT windowing (DICOM PS3.3 C.11.2.1.3)
 // =============================================================================
 
 TEST(VoiLut, LinearExact_CenterValue) {
-    // REQ-DISP-011: LINEAR_EXACT center maps to midpoint of [minOut, maxOut]
+    // REQ-DISP-010: LINEAR_EXACT center maps to midpoint of [minOut, maxOut]
     XpeImageBuffer img = make_float32_image(1, 1, 40.0f);
     XpeVoiLutParams params{};
     params.mode   = XPE_VOI_LINEAR_EXACT;
@@ -116,11 +117,11 @@ TEST(VoiLut, LinearExact_CenterValue) {
 }
 
 // =============================================================================
-// REQ-DISP-012: SIGMOID windowing
+// REQ-DISP-011: SIGMOID windowing
 // =============================================================================
 
 TEST(VoiLut, Sigmoid_CenterValue) {
-    // REQ-DISP-012: SIGMOID center -> output near midpoint
+    // REQ-DISP-011: SIGMOID center -> output near midpoint
     // sigmoid(0) = 0.5, so center -> (maxOut - minOut) * 0.5 + minOut
     XpeImageBuffer img = make_float32_image(1, 1, 500.0f);
     XpeVoiLutParams params{};
@@ -138,7 +139,7 @@ TEST(VoiLut, Sigmoid_CenterValue) {
 }
 
 TEST(VoiLut, Sigmoid_OutputClampedToRange) {
-    // REQ-DISP-010: SIGMOID output still clamped to [minOut, maxOut]
+    // REQ-DISP-012: SIGMOID output still clamped to [minOut, maxOut]
     // Extreme high value approaches maxOut
     XpeImageBuffer img = make_float32_image(1, 1, 99999.0f);
     XpeVoiLutParams params{};
@@ -224,39 +225,43 @@ TEST(VoiLut, Error_NegativeWidth) {
 // =============================================================================
 
 TEST(VoiLut, Preset_Bone) {
-    // REQ-DISP-017: BONE preset center=500, width=2000
+    // REQ-DISP-017 (revised 2026-09-17, #177): provisional full 16-bit DN
+    // window for every body part until #151 supplies per-part DN values.
     XpeVoiLutParams params{};
     XpeErrorCode rc = xpe_voi_preset_create(&params, XPE_BODY_BONE);
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_FLOAT_EQ(params.center, 500.0f);
-    EXPECT_FLOAT_EQ(params.width, 2000.0f);
+    EXPECT_FLOAT_EQ(params.center, 32768.0f);
+    EXPECT_FLOAT_EQ(params.width, 65535.0f);
 }
 
 TEST(VoiLut, Preset_Lung) {
-    // REQ-DISP-017: LUNG preset center=-600, width=1600
+    // REQ-DISP-017 (revised 2026-09-17, #177): provisional full 16-bit DN
+    // window for every body part until #151 supplies per-part DN values.
     XpeVoiLutParams params{};
     XpeErrorCode rc = xpe_voi_preset_create(&params, XPE_BODY_LUNG);
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_FLOAT_EQ(params.center, -600.0f);
-    EXPECT_FLOAT_EQ(params.width, 1600.0f);
+    EXPECT_FLOAT_EQ(params.center, 32768.0f);
+    EXPECT_FLOAT_EQ(params.width, 65535.0f);
 }
 
 TEST(VoiLut, Preset_Abdomen) {
-    // REQ-DISP-017: ABDOMEN preset center=40, width=400
+    // REQ-DISP-017 (revised 2026-09-17, #177): provisional full 16-bit DN
+    // window for every body part until #151 supplies per-part DN values.
     XpeVoiLutParams params{};
     XpeErrorCode rc = xpe_voi_preset_create(&params, XPE_BODY_ABDOMEN);
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_FLOAT_EQ(params.center, 40.0f);
-    EXPECT_FLOAT_EQ(params.width, 400.0f);
+    EXPECT_FLOAT_EQ(params.center, 32768.0f);
+    EXPECT_FLOAT_EQ(params.width, 65535.0f);
 }
 
 TEST(VoiLut, Preset_Head) {
-    // REQ-DISP-017: HEAD preset center=40, width=80
+    // REQ-DISP-017 (revised 2026-09-17, #177): provisional full 16-bit DN
+    // window for every body part until #151 supplies per-part DN values.
     XpeVoiLutParams params{};
     XpeErrorCode rc = xpe_voi_preset_create(&params, XPE_BODY_HEAD);
     EXPECT_EQ(rc, XPE_OK);
-    EXPECT_FLOAT_EQ(params.center, 40.0f);
-    EXPECT_FLOAT_EQ(params.width, 80.0f);
+    EXPECT_FLOAT_EQ(params.center, 32768.0f);
+    EXPECT_FLOAT_EQ(params.width, 65535.0f);
 }
 
 TEST(VoiLut, Preset_InvalidBodyPart) {
@@ -270,6 +275,58 @@ TEST(VoiLut, Preset_NullParams) {
     // REQ-DISP-018: NULL params -> XPE_ERR_INVALID_INPUT
     XpeErrorCode rc = xpe_voi_preset_create(nullptr, XPE_BODY_BONE);
     EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);
+}
+
+// #177 (QA-B-82): the presets act on detector DN, not HU (REQ-DISP-017 as
+// revised 2026-09-17). A constant assertion only compares a value with itself,
+// so this case checks the behaviour instead: over the whole 16-bit DN ramp a
+// preset must not crush the image into one output value. GUI-C-84 measured
+// the HU-era Abdomen 40/400 turning a wrist fixture into a single level.
+//
+// Two measures, because they fail differently: a narrow HU window still yields
+// a few hundred distinct levels on a full ramp, but clips almost every pixel
+// to one end -- so the share of the most common level is the one that catches
+// the crush; the distinct count guards against a window so wide or so shifted
+// that the ramp barely moves the output.
+TEST(VoiLut, Preset_DnRampIsNotCrushed) {
+    const uint32_t kW = 256, kH = 256;   // 65536 pixels, one per DN value
+    const struct { XpeBodyPart part; const char* name; } kParts[] = {
+        {XPE_BODY_BONE, "BONE"}, {XPE_BODY_LUNG, "LUNG"},
+        {XPE_BODY_ABDOMEN, "ABDOMEN"}, {XPE_BODY_HEAD, "HEAD"},
+    };
+    for (const auto& part : kParts) {
+        SCOPED_TRACE(part.name);
+        XpeVoiLutParams params{};
+        ASSERT_EQ(XPE_OK, xpe_voi_preset_create(&params, part.part));
+
+        XpeImageBuffer img = make_float32_image(kW, kH, 0.0f);
+        float* px = pixels(img);
+        for (size_t i = 0; i < (size_t)kW * kH; ++i) px[i] = static_cast<float>(i);
+        ASSERT_EQ(XPE_OK, xpe_apply_voi_lut(&img, &params));
+
+        // Quantise to the preset's own output range in 256 steps.
+        std::vector<size_t> hist(256, 0);
+        const float range = params.maxOut - params.minOut;
+        for (size_t i = 0; i < (size_t)kW * kH; ++i) {
+            float t = (px[i] - params.minOut) / range;
+            int bin = static_cast<int>(std::lround(t * 255.0f));
+            bin = bin < 0 ? 0 : (bin > 255 ? 255 : bin);
+            ++hist[static_cast<size_t>(bin)];
+        }
+        size_t distinct = 0, largest = 0;
+        for (size_t n : hist) {
+            if (n) ++distinct;
+            if (n > largest) largest = n;
+        }
+        const double modeShare = static_cast<double>(largest) / (kW * kH);
+        GTEST_LOG_(INFO) << part.name << " c=" << params.center << " w=" << params.width
+                         << " | distinct 8-bit levels=" << distinct
+                         << " | largest level share=" << modeShare;
+
+        EXPECT_GE(distinct, 128u) << "the DN ramp reaches fewer than half the output levels";
+        EXPECT_LE(modeShare, 0.5) << "more than half of the DN ramp lands on one output level";
+        free_image(img);
+    }
 }
 
 // =============================================================================

@@ -6,6 +6,16 @@
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
 **Target**: `clients/ImageProcTest/` and future production clinical GUI
+
+> **⚠ 실측 정정 (2026-09-17, GUI-C-76 → 리더 확인).**
+> - Target 이 `clients/ImageProcTest/` 로 적혀 있으나 사용자에게 보이는 UI 는 `gui/ImageProcTest` 입니다.
+>   이 전략이 **어느 앱에 적용되는지는 정해지지 않았습니다.**
+> - [HARD] "로그는 ISO 8601" 과 실제 로그 표기 `[HH:mm:ss.fff]` 가 다릅니다. 규칙이 **로그 파일**을
+>   말하는지 **화면 로그**를 말하는지에 따라 위반 여부가 갈립니다 — **해석이 필요하고, 판정하지 않았습니다.**
+> - `InvariantCulture` 0건은 **위반이 아닙니다** — 문화권에 민감한 실수 파싱이 코드에 없습니다.
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
 **Primary Locale**: ko-KR (Korean)
 **Fallback Locale**: en-US (English)
 

@@ -147,6 +147,9 @@ Every error-path test **shall not** surface `AccessViolationException`, `SEHExce
 
 The test collection **shall not** use `MockXpeBackend` or `CompositeXpeBackend`. All functional tests **shall** operate on `XpeCommonApi` P/Invoke calls directly and treat Mock fallback as test failure.
 
+> **실측 주석 (2026-09-17).** `CompositeXpeBackend` 는 **코드 어디에도 없습니다**(범위: `gui/`·`clients/`·`modules/` 의 `*.cs`; 대조군 — 같은 검색이 `MockXpeBackend`·`RealXpeBackend`·`XpeBackendFactory` 를 찾음). Real → Mock 폴백은 현재 `gui/ImageProcTest/Services/XpeBackendFactory.cs` 가 합니다.
+> 따라서 이 요구의 `CompositeXpeBackend` 절반, 그리고 아래 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 **존재하지 않는 타입의 부재를 확인하므로 언제나 통과합니다** — 아무것도 지키지 않습니다. 지켜야 할 대상은 `XpeBackendFactory` 의 폴백입니다.
+
 - Rationale: Mock 경로는 GUI scaffold 전용, 통합 테스트 통과를 허용하면 regression 은폐됨 (research.md R-12)
 
 #### REQ-GUI-IT-008: Resolved DLL Path Within Build Tree

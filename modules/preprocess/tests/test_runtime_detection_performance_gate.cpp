@@ -136,25 +136,56 @@ double MeasureReferenceMs() {
 
 /* ------------------------------------------------------------- the gates */
 //
-// The limit is set from measurement, and it is PROVISIONAL until a CI run
-// reports its own ratio. QA-A-59's mistake was fixing a constant from one
-// machine; doing that again with a ratio instead of a millisecond would be the
-// same mistake in a new costume. So every run prints a grep-able line:
+// Every run prints a grep-able line:
 //
 //     [perf-gate-ratio] <label> ratio=<x> limit=<y>
 //
-// and the limit is revisited once the CI value is in hand.
+// QA-A-67 RE-DERIVED THE LIMIT, AGAIN -- and that is the rule now, not an
+// exception. SPEC 60a81c1 [HARD]: a limit is re-derived at every large
+// performance change and never inherited, because an inherited limit is not a
+// loose gate, it is a gate measuring something else. QA-A-65 made the detector
+// 4.2x faster and QA-A-66 re-derived 2.20 for it; QA-A-67 made the global sigma
+// 2.95x faster, so 2.20 now passes a 2.4x regression.
 //
-// Measured on the development machine (QA-A-60, fresh build verified each time):
+// THE CLEAN BAND NARROWED FROM 24% TO 4%, which is a result rather than luck.
+// QA-A-66 measured a wide band and explained it: the reference slowed by 1.87x
+// between this machine's P and E cores while the detector slowed by only 1.42x,
+// because the detector's time was dominated by a global sigma stage whose cost
+// was an unpredictable branch rather than arithmetic. QA-A-67 removed that
+// branch, and with it the reason the two diverged:
 //
-//     3072 ratio   clean       7.125 .. 7.375   (5 runs, spread 3.5%)
-//                  regression 12.190 ..12.711   (3 runs; median fast path bypassed)
+//     QA-A-66   P-core 1.720   E-core 1.308   spread 24%
+//     QA-A-67   P-core 0.651   E-core 0.630   spread  3.3%
 //
-// 1.65x apart with a 3.5% clean spread, so a limit between them is safe in both
-// directions. 10.00 sits 36% above the worst clean run -- headroom for a CI
-// machine whose reference kernel does not scale exactly like its detector --
-// and still 18% below the best regression run.
-constexpr double kRatio3072Limit = 10.00;
+// The detector now scales P->E by 1.80x against the reference's 1.84x. The same
+// explanation predicted both the divergence and its disappearance, which is what
+// makes it an explanation rather than a story fitted to one measurement.
+//
+// MEASURED BANDS (QA-A-67, fresh build verified for each; P/E pinning as in
+// QA-A-66, and the E-core stands in for the second machine):
+//
+//     clean            P-core   0.630 .. 0.651   (3 runs)
+//                      E-core   0.626 .. 0.630   (3 runs)
+//     regression 1     P-core   1.583            (branchless sort key reverted)
+//                      E-core   1.289            (same)
+//     regression 2     P-core   6.183            (AVX2 path compiled out)
+//                      E-core   6.490            (same)
+//
+// Regression 1 is the nearest one and therefore the one that sets the ceiling:
+// it is exactly the pre-QA-A-67 code, so it is what "someone quietly undoes the
+// sort-key change" costs. Note its E-core value (1.289) is BELOW the P-core
+// clean value QA-A-66 measured (1.720) -- which is why the limit had to move:
+// under 2.20 this regression passes on both cores.
+//
+// 0.85 sits 30.6% above the worst clean run across both microarchitectures (the
+// margin QA-A-60 and QA-A-66 both used) and 34% below the nearest regression. It
+// catches a 1.31x regression on either core.
+//
+// Reading the value from CI: ctest prints test output only on failure, so a
+// passing run has no `perf-gate-ratio` line in the job log. It is in the
+// xpe-preprocess-test-results artifact, under Temporary/LastTest.log. That is
+// ctest behaving normally -- do not "fix" it, or every passing run grows a log.
+constexpr double kRatio3072Limit = 0.85;
 
 /** Reported, never asserted: the SPEC improvement target we are not near yet. */
 constexpr double kImprovementTargetMs = 60.0;

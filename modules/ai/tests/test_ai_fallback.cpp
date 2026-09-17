@@ -824,3 +824,125 @@ TEST_F(AiFallbackTest, KnownDivergence_LabelBufferThresholdFollowsStubLabelLengt
     EXPECT_STREQ(kStubLabel, exact.data())
         << "the label must not be truncated at the exact boundary";
 }
+
+/* ============================================================================
+ * #142 D4 (QA-B-64) — "it exists" vs "it works"
+ *
+ * The cases at the top of this file assert that xpe_ai_set_fallback_mode()
+ * returns XPE_OK for 1, 0, 42, -1 and 1000. Every one passes, and together they
+ * make the feature look covered. They establish exactly one thing: the setter
+ * EXISTS and reports success.
+ *
+ * What the value does is a separate question, and the answer is nothing:
+ * parseConfig and this setter both store into state->fallbackMode, and no code
+ * reads it back (ai.cpp:415 is a comment describing the routing that would use
+ * it; ai.cpp:649 is this setter). A caller gets XPE_OK and a setting that
+ * cannot take effect.
+ *
+ * MEASURING THAT DIRECTLY IS BLOCKED BY THE STUB, and conflating the two would
+ * be a false report: the inference path returns XPE_ERR_PROCESSING_FAILED
+ * before reaching any routing, so "the outputs are identical under both
+ * settings" is equally consistent with "unwired" and with "wired but never
+ * reached". QA-B-62 hit this and declined to measure it for the same reason.
+ *
+ * So the discriminator below does not depend on the stub at all: the module
+ * exposes no way to READ the flag back. A caller cannot confirm the setting
+ * took, cannot log it, and cannot branch on it -- regardless of what the
+ * inference path does or does not do. That is measured from the export table,
+ * not from behaviour.
+ * ============================================================================ */
+
+#include <windows.h>
+#include <set>
+#include <string>
+
+namespace {
+
+// Exported function names of an already-loaded module, read from its PE export
+// directory. No file I/O.
+std::set<std::string> ExportedNames(const char* dllName) {
+    std::set<std::string> out;
+    HMODULE mod = GetModuleHandleA(dllName);
+    if (mod == nullptr) return out;
+
+    auto* base = reinterpret_cast<const BYTE*>(mod);
+    auto* dos  = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return out;
+    auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return out;
+
+    const auto& dir = nt->OptionalHeader
+                        .DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+    if (dir.VirtualAddress == 0 || dir.Size == 0) return out;
+
+    auto* exp = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
+                    base + dir.VirtualAddress);
+    auto* names = reinterpret_cast<const DWORD*>(base + exp->AddressOfNames);
+    for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+        out.insert(reinterpret_cast<const char*>(base + names[i]));
+    }
+    return out;
+}
+
+}  // namespace
+
+// The stub-independent half: the flag is write-only across the ABI.
+TEST_F(AiFallbackTest, KnownDivergence_FallbackModeCanBeSetButNeverReadBack) {
+    const std::set<std::string> exports = ExportedNames("xpe_ai.dll");
+
+    // Proof the reader works before concluding anything from an absence -- an
+    // empty set would otherwise read as "no getter" when it means "the walk
+    // failed". QA-B-63 learned this the hard way: a zero with no control group
+    // is not a result.
+    ASSERT_FALSE(exports.empty())
+        << "could not read xpe_ai.dll's export table -- nothing below is measured";
+    ASSERT_TRUE(exports.count("xpe_ai_set_fallback_mode") == 1)
+        << "the setter itself is not exported -- this case is testing the wrong "
+           "module";
+
+    // The divergence: a setter with no counterpart. Whatever the inference path
+    // does, a caller has no way to observe that its request was honoured.
+    int getters = 0;
+    for (const std::string& name : exports) {
+        if (name.find("fallback") != std::string::npos &&
+            name.find("set_") == std::string::npos) {
+            ++getters;
+            GTEST_LOG_(INFO) << "unexpected fallback accessor: " << name;
+        }
+    }
+    EXPECT_EQ(0, getters)
+        << "a read-back for fallback mode now exists -- the write-only finding "
+           "is stale";
+
+    GTEST_LOG_(INFO) << "xpe_ai.dll exports " << exports.size()
+                     << " names; fallback read-backs: " << getters;
+}
+
+// The behavioural half, recorded WITH its own limitation attached rather than
+// reported as a finding on its own.
+TEST_F(AiFallbackTest, KnownDivergence_FallbackModeChangesNoObservableOutput) {
+    auto runUnder = [](int32_t mode, char* label, size_t labelLen, float* conf) {
+        EXPECT_EQ(XPE_OK, xpe_ai_set_fallback_mode(mode));
+        std::vector<uint16_t> storage;
+        XpeImageBuffer img = makeTestBuffer(16, 16, storage);
+        return xpe_bodypart_recognize(&img, label,
+                                      static_cast<int32_t>(labelLen), conf);
+    };
+
+    char labelOn[64] = {}, labelOff[64] = {};
+    float confOn = -1.0f, confOff = -1.0f;
+    const XpeErrorCode ecOn  = runUnder(1, labelOn,  sizeof(labelOn),  &confOn);
+    const XpeErrorCode ecOff = runUnder(0, labelOff, sizeof(labelOff), &confOff);
+
+    EXPECT_EQ(ecOn, ecOff)      << "fallback mode now changes the return code";
+    EXPECT_STREQ(labelOn, labelOff) << "fallback mode now changes the label";
+    EXPECT_FLOAT_EQ(confOn, confOff) << "fallback mode now changes the confidence";
+
+    // The limitation, stated so this cannot later be cited as proof the flag is
+    // unwired: the inference path returns before any routing would run, so this
+    // result is equally consistent with "wired but unreachable". The export-table
+    // case above is the claim that does not depend on the stub.
+    GTEST_LOG_(INFO) << "both settings returned " << ecOn
+                     << " (XPE_ERR_PROCESSING_FAILED is the stub's early return) "
+                        "-- this case cannot separate unwired from unreached";
+}

@@ -13,6 +13,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <vector>
 #include <cstdint>
@@ -121,6 +122,75 @@ protected:
         ASSERT_EQ(xpe_calib_load_gain(gainPath), XPE_OK);
     }
 };
+
+// ===========================================================================
+// QA-A-72 (#160): the shipped path against the SCALAR REFERENCE.
+//
+// WHAT THIS FILE ASSERTED BEFORE, and why it was not enough. The two tests below
+// require repeated calls to agree with each other -- determinism. A path that is
+// consistently wrong satisfies that, and so does a path that never runs. Neither
+// compares the vector result against anything independent. (The same gap was
+// found and renamed in the detector's suite by QA-A-42.)
+//
+// WHY IT MATTERS NOW. QA-A-72 removed xpe_gain_has_avx2(), the runtime probe
+// that chose between the two implementations. The probe could not protect
+// anything -- the whole module is compiled with /arch:AVX2, so a machine without
+// it faults before reaching the check -- but deleting the branch left the scalar
+// function with no caller, and an unreferenced static is a warning under /W4 and
+// an error under /WX. Deleting the scalar form instead was not an option:
+// SPEC-XPE-P1A section 4.6 names it as the reference implementation.
+//
+// So the reference gained a consumer: this test. It is the assertion the branch
+// removal needed and the file did not have.
+//
+// TOLERANCE: 1 ULP, which is the declared contract (AC-GAIN-004,
+// gain_correct.cpp MAX_ULP_DIFFERENCE), not a number chosen here. The observed
+// difference is PRINTED rather than assumed -- if the two paths happen to agree
+// exactly, that is worth knowing and is not the same claim as the contract.
+// ===========================================================================
+TEST_F(GainCorrectAVX2ParityTest, ShippedPathMatchesTheScalarReference) {
+    const uint32_t w = 1024u, h = 768u;
+    const size_t n = static_cast<size_t>(w) * h;
+
+    // A varied gain map: a constant one would let a broken multiply look right.
+    std::vector<float> gains(n);
+    for (size_t i = 0; i < n; ++i) {
+        gains[i] = 0.5f + static_cast<float>(i % 1500u) * 0.001f;   // 0.5 .. 1.999
+    }
+    loadGainMap(gains, w, h);
+
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&input1, &output1, &metadata));
+
+    // The reference, fed exactly what the shipped path computes for itself.
+    std::vector<float> reciprocal(n);
+    for (size_t i = 0; i < n; ++i) reciprocal[i] = 1.0f / gains[i];
+    std::vector<float> reference(n, 0.0f);
+    xpe_gain_apply_scalar_reference(inputPixels1.data(), reciprocal.data(),
+                                    reference.data(), w, h);
+
+    int32_t worstUlp = 0;
+    size_t worstIndex = 0;
+    size_t differing = 0;
+    for (size_t i = 0; i < n; ++i) {
+        int32_t a = 0, b = 0;
+        std::memcpy(&a, &outputPixels1[i], sizeof(a));
+        std::memcpy(&b, &reference[i], sizeof(b));
+        if (a == b) continue;
+        ++differing;
+        // Same-sign finite values here, so the raw-bit distance is the ULP gap.
+        const int32_t gap = (a > b) ? (a - b) : (b - a);
+        if (gap > worstUlp) { worstUlp = gap; worstIndex = i; }
+    }
+
+    std::printf("[gain-parity] %ux%u  differing=%zu of %zu  worst_ulp=%d\n",
+                w, h, differing, n, worstUlp);
+    std::fflush(stdout);
+
+    EXPECT_LE(worstUlp, 1)
+        << "AC-GAIN-004 allows 1 ULP; worst was " << worstUlp << " at index "
+        << worstIndex << " (shipped " << outputPixels1[worstIndex]
+        << " vs reference " << reference[worstIndex] << ")";
+}
 
 TEST_F(GainCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&input1, &output1, &metadata));

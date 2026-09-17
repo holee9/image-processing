@@ -60,7 +60,7 @@ static constexpr float  XPE_FRAC_DEFAULT_STEP = 0.25f;
  * Collimation Detection Constants -- SWU-2.8
  * ============================================================================ */
 
-static constexpr float  XPE_COL_DEFAULT_SENSITIVITY    = 0.5f;
+static constexpr float  XPE_COL_DEFAULT_CONF_STRICTNESS = 0.5f;
 static constexpr float  XPE_COL_DEFAULT_MIN_AREA_RATIO = 0.05f;
 static constexpr int    XPE_COL_DEFAULT_BORDER_MARGIN  = 8;
 
@@ -107,9 +107,23 @@ bool parse_fractional_config(const char* json,
                              float& outStepSize,
                              bool&  outSafetyViolation);
 
-/** Parse collimation config from JSON string. Returns true on success. */
+/**
+ * @brief Parse collimation config from JSON string. Returns true on success.
+ *
+ * @param outConfidenceStrictness  The `confidence_strictness` key, [0, 1].
+ *        RENAMED 2026-09-16 (#164, user decision). The key was `sensitivity`,
+ *        which said the opposite of what the value does: it is interpolated
+ *        into the confidence a detection must reach before it is accepted
+ *        (0.7 + 0.3 * value, collimation_detect.cpp), so RAISING it rejects
+ *        MORE. QA-B-63 measured that -- at the detection margin, 0.0 detects a
+ *        rectangle that 1.0 discards. The arithmetic was left untouched and the
+ *        name was moved to match it; reversing the arithmetic was considered and
+ *        not taken, because nothing in the requirements says which direction is
+ *        correct. The old name is not accepted: it now falls to the QA-B-61
+ *        unknown-key warning, which names it.
+ */
 bool parse_collimation_config(const char* json,
-                              float& outSensitivity,
+                              float& outConfidenceStrictness,
                               float& outMinAreaRatio,
                               int&   outBorderMargin);
 

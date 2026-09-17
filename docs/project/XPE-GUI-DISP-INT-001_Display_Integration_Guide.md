@@ -7,6 +7,18 @@
 **Canonical Scope**: `docs/project/`
 **Related SPEC**: SPEC-XPE-P1B-DISP v1.0.0, SPEC-XPE-GUI-IT v1.2.0
 **Target**: Agent implementing Phase 1b Display module integration into `ImageProcTest.exe`
+
+> **⚠ 실측 정정 (2026-09-17, GUI-C-76 → 리더 확인).**
+>
+> | 이 문서의 서술 | 실측 |
+> |---|---|
+> | 계약 파일 `DisplayNativeWrapper.cs` | **없음** — 실제는 `gui/…/XpeDisplayInterop.cs` |
+> | `ViewModels/Display/DisplayPipelineViewModel.cs` | **없음** — 실제는 `MainWindowViewModel.ApplyDisplayPipelineAsync` (6건) |
+> | W-06 이 `StageTimings` 를 검증 | **W-06 도 `StageTimings` 도 없음** |
+> | §19 [HARD] `IsPreviewStale` 경고 오버레이 (HAZ-GUI-004 통제) | 한때 미구현이었으나 **2026-09-17 구현·검증됨 — `#171`** |
+>
+> **이 저장소에는 WPF 앱이 둘 있습니다.** `gui/ImageProcTest` 는 E2E 가 띄우는 UI(`clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:584`)이고, `clients/ImageProcTest` 는 네이티브 진단 앱입니다. 이 문서들은 대부분 둘을 구분하지 않고 `clients/ImageProcTest/` 를 대상으로 적었습니다 — 아래 정정은 그 혼동에서 나온 것이 많습니다.
+
 **Cross-References**: XPE-GUI-ARCH-001 (MVVM 아키텍처), XPE-GUI-E2E-001 (E2E 테스트), SHA-GUI-001 (hazard analysis), RTM-GUI-001 (추적 매트릭스)
 
 ---
@@ -312,12 +324,18 @@ A new collapsible panel "Display Settings" should be added to the right panel st
 
 | Control | Type | Binding | Range | Default |
 |---------|------|---------|-------|---------|
-| Window Center | NumericUpDown or Slider | `Settings.VoiWindowCenter` | -4096 to 4096 | 40 |
-| Window Width | NumericUpDown or Slider | `Settings.VoiWindowWidth` | 1 to 8192 | 400 |
+| Window Center | NumericUpDown or Slider | `Settings.VoiWindowCenter` | ~~-4096 to 4096~~ | **32768** (~~40~~) |
+| Window Width | NumericUpDown or Slider | `Settings.VoiWindowWidth` | ~~1 to 8192~~ | **65535** (~~400~~) |
 | VOI Mode | ComboBox | `Settings.VoiLutMode` | Linear / LinearExact / Sigmoid | Linear |
 | Body Part Preset | ComboBox | `Settings.SelectedBodyPart` | Bone / Lung / Abdomen / Head | Abdomen |
 | Apply Preset | Button | `ApplyBodyPartPresetCommand` | — | — |
 | GSDF Enabled | CheckBox | `Settings.GsdfEnabled` | — | false |
+
+> **정정 (2026-09-17, GUI-C-84 실측).** 이 표의 처음 기본값 40/400 과 범위 ±4096 은 CT 의 HU 값이었습니다.
+> 이 앱의 VOI 는 **raw DN** 에 적용됩니다 — 모달리티 기본값이 slope 1, intercept 0 이라 변환이 항등입니다.
+> 40/400 은 두 픽스처 모두에서 출력을 포화시키고(wrist: 1단계), 앱 기본값 32768/65535 는 영상을 보입니다(105단계).
+> 기본값은 앱(`3dc84f7`)이 맞았고 이 표가 낡았습니다. **범위 열은 실측하지 않았습니다** — DN 입력이면 0..65535 여야
+> 하지만 앱 컨트롤의 실제 범위는 확인하지 않았습니다. 상태줄의 `Modality(1.0/-1024)` 도 같은 이유로 `Modality(1/0)` 입니다.
 | Show Display Panel | ToggleMenuItem | `Settings.ShowDisplayPanel` | — | true |
 
 ### 4.2 Toolbar and Menu Extensions
@@ -338,7 +356,7 @@ The current GUI displays `SourceImage` and `ProcessedImage` side-by-side (or ove
 
 - Left pane = raw preview (pre-pipeline)
 - Right pane = processed preview (post-pipeline, shows VOI LUT + GSDF result)
-- Status bar should show: `Display: Modality(1.0/-1024) → VOI(Linear,C=40,W=400) → GSDF(off)`
+- Status bar should show: `Display: Modality(1/0) → VOI(Linear,C=32768,W=65535) → GSDF(off)` (정정 2026-09-17 — 이전 예시 `Modality(1.0/-1024) → VOI(Linear,C=40,W=400)` 는 HU 값, §4.1 주석 참조)
 
 ---
 
@@ -471,6 +489,15 @@ Body part presets from `display_api.h` / `SPEC-XPE-P1B-DISP REQ-DISP-017`:
 | `XPE_BODY_LUNG` | 1 | -600 | 1600 | Linear |
 | `XPE_BODY_ABDOMEN` | 2 | 40 | 400 | Linear |
 | `XPE_BODY_HEAD` | 3 | 40 | 80 | Linear |
+
+> **개정 (2026-09-17, 사용자 결정).** 위 값은 **HU** 이고, raw DN 에 적용되는 이 제품에서는 영상을 지웁니다(GUI-C-84:
+> Native Abdomen 40/400 → 출력 1단계). REQ-DISP-017 을 DN 영역으로 고쳤고, 부위별 DN 값이 실장비 데이터(#151)로 정해질
+> 때까지 **네 부위 모두 32768/65535** 를 씁니다. 구현은 QA-B-82(#177) — 그 전까지 코드는 위 표의 HU 값을 냅니다.
+> 임시 값에서는 부위 선택이 출력을 바꾸지 않습니다.
+>
+> §5 의 Mock 예시 코드도 같은 HU 값이지만, 실제 Mock 은 부위마다 다른 DN 값을 씁니다(GUI-C-84 실측:
+> Bone 40000/30000, Lung 25000/50000, Abdomen 32768/65535, Head 35000/40000). 이 값들의 근거는 확인하지 않았고,
+> Mock Bone 도 wrist 픽스처를 1단계로 뭉갭니다. 부위별 값이 정해지면 Mock 도 같이 맞춰야 합니다.
 
 Note: These 4 presets are what `xpe_voi_preset_create()` supports. The extended preset library (chest_pa, chest_lateral, extremity, spine, pediatric, fluoroscopy) is part of SWU-3.4 LUT Manager which is **deferred** to a future SPEC.
 
@@ -776,6 +803,7 @@ public partial class DisplayPipelineViewModel : ObservableObject
 - [HARD] VoiWindowCenter / VoiWindowWidth / BodyPart 변경 시 `IsPreviewStale = true` 즉시 설정
 - [HARD] ApplyPipelineAsync 완료 시 `IsPreviewStale = false`
 - [HARD] UI에 `IsPreviewStale` 바인딩된 **경고 오버레이** 표시 (HAZ-GUI-004 control)
+  - **구현됨 (2026-09-17, #171)** — `IsPreviewStale` 표시가 메인 창·분리 뷰어에 있고 E2E W-23/W-26 이 검증합니다. 한때 미구현이었습니다.
 
 ---
 

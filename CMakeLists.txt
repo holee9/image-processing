@@ -118,6 +118,81 @@ if(BUILD_TESTS)
     enable_testing()
 endif()
 
+# --------------------------------------------------------------------------
+# Orphan-source check (QA-A-77/A-78, #160)
+#
+# A .cpp under modules/<m>/src/ that nobody listed in that module's
+# CMakeLists.txt compiles nowhere and fails nothing. Two were found this way:
+# simd_dispatch.cpp, 340 lines carrying seven XPE_EXPORT functions, which had
+# never been compiled in any commit in the repository's history and which
+# declared "405/405 parity checks passing" in the same commit that added it;
+# and mode_selector.cpp, whose PUBLIC header shipped four declarations with no
+# implementation behind them. Neither showed up as a build failure, because a
+# file outside the source list is not built rather than built wrong.
+#
+# This runs at CONFIGURE time on purpose, not in CI. A CI red light is a place
+# a reader may never go - this repository had a workflow red for two days with
+# nobody reading it - while a configure warning is printed in front of whoever
+# is about to build. It starts as a WARNING; once the count has held at zero,
+# promote it to FATAL_ERROR.
+#
+# Known blind spot, stated rather than discovered later: this compares SOURCES
+# only. A header with no implementation - the sharper signal in the
+# mode_selector case - is invisible here and needs its own check.
+set(XPE_ORPHAN_SOURCES "")
+file(GLOB XPE_MODULE_DIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/modules/*")
+foreach(_mod_rel IN LISTS XPE_MODULE_DIRS)
+    set(_mod "${CMAKE_CURRENT_SOURCE_DIR}/${_mod_rel}")
+    if(NOT IS_DIRECTORY "${_mod}" OR NOT EXISTS "${_mod}/CMakeLists.txt" OR NOT IS_DIRECTORY "${_mod}/src")
+        continue()
+    endif()
+    # QA-A-79: match against CODE only. string(FIND) is a substring test, so a
+    # filename appearing anywhere in the file counts as "listed" - including inside
+    # a comment. That is not hypothetical here: QA-A-76 corrected two stale TODOs in
+    # modules/preprocess/CMakeLists.txt and deliberately quoted the old text, which
+    # named files. A check that a comment can silence is a check that goes quiet
+    # exactly when someone is writing about the thing it watches.
+    file(STRINGS "${_mod}/CMakeLists.txt" _cml_lines)
+    set(_cml "")
+    # QA-A-80: strip from '#' to end of line, not just whole-comment lines. The
+    # first fix only dropped lines that BEGIN with '#', so a trailing note -
+    # `target_sources(...)  # mode_selector.cpp was deleted` - still silenced the
+    # check on that filename. Same hazard, different spelling.
+    #
+    # Known limit, left on purpose (QA-A-82): this also treats a '#' INSIDE a quoted
+    # string as a comment and drops the rest of that line. The failure direction is a
+    # FALSE POSITIVE - an unlisted-source WARNING that is plainly visible - not a silent
+    # miss, and no module CMakeLists has a quoted '#' today (counted 2026-09-17: 0 lines;
+    # control, same pattern shape, finds quoted strings in ai/common/dicom/display).
+    # A real CMake tokenizer is not worth writing for a case with no instance; if a
+    # spurious warning ever appears, look here first.
+    foreach(_line IN LISTS _cml_lines)
+        string(REGEX REPLACE "#.*$" "" _line "${_line}")
+        string(APPEND _cml "${_line} ")
+    endforeach()
+    file(GLOB _srcs "${_mod}/src/*.cpp")
+    foreach(_src IN LISTS _srcs)
+        get_filename_component(_base "${_src}" NAME)
+        string(FIND "${_cml}" "${_base}" _found)
+        if(_found EQUAL -1)
+            list(APPEND XPE_ORPHAN_SOURCES "${_mod_rel}/src/${_base}")
+        endif()
+    endforeach()
+endforeach()
+list(LENGTH XPE_ORPHAN_SOURCES XPE_ORPHAN_COUNT)
+if(XPE_ORPHAN_COUNT GREATER 0)
+    message(WARNING
+        "${XPE_ORPHAN_COUNT} source file(s) under modules/*/src/ are named in no module CMakeLists.txt. "
+        "They are not built, so nothing they contain is checked by any build or test:
+"
+        "  ${XPE_ORPHAN_SOURCES}
+"
+        "Either add each to its module's source list or delete it. Do not leave it here - "
+        "a reader takes an uncompiled file for working code, and its declarations for an API.")
+else()
+    message(STATUS "Orphan-source check: 0 unlisted sources under modules/*/src/")
+endif()
+
 # XPE modules (Layer 0 + Layer 1)
 add_subdirectory(modules/common)
 

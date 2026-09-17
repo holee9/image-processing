@@ -165,9 +165,26 @@ The following requirements define explicit calibration mode selection, multi-poi
 
 | Req ID | Requirement | Rationale | Verification |
 |--------|------------|-----------|--------------|
-| **SRS-CALIB-FUNC-031** | **Calibration Mode Selection API.** System shall support explicit calibration mode selection via `XpeCalibrationMode` enum: `XPE_CALIB_MODE_SINGLE_POINT` (0, 1 dose level, 1 frame per level), `XPE_CALIB_MODE_DUAL_POINT` (1, 2 dose levels, linear interpolation), `XPE_CALIB_MODE_MULTI_POINT_5` (2, 5 dose levels, polynomial degree ≤ 2), `XPE_CALIB_MODE_MULTI_POINT_8` (3, 8 dose levels, polynomial degree ≤ 3), `XPE_CALIB_MODE_MULTI_POINT_10` (4, 10 dose levels, polynomial degree ≤ 4, maximum allowed), `XPE_CALIB_MODE_AUTO` (5, auto-select based on input data). (1) A new API function `xpe_calib_set_mode(XpeCalibrationMode mode)` shall set the active calibration mode. (2) A new API function `xpe_calib_get_mode()` shall return the current mode. (3) When mode is set to a specific value (not AUTO), the system shall enforce the maximum dose level count: SINGLE_POINT max 1 level, DUAL_POINT max 2 levels, MULTI_POINT_5 max 5 levels, MULTI_POINT_8 max 8 levels, MULTI_POINT_10 max 10 levels (hard cap). (4) Exceeding the mode's max levels shall return `XPE_ERR_INVALID_INPUT` with a descriptive message. (5) AUTO mode logic: based on input dose_levels count, auto-select the smallest fitting mode. (6) Mode selection shall be persisted in the generated XCal file metadata. (7) Default mode shall be `XPE_CALIB_MODE_MULTI_POINT_8` (industry standard per Rayence, Schmidgunst 2007). (8) Mode shall apply to both `xpe_calib_generate_gain()` (FUNC-026) and `xpe_calib_generate_gain_polynomial()` (FUNC-027). | Medical X-ray FPD calibration requires flexibility between quick single-point (emergency/field) and thorough multi-point (factory). Industry standards (Schmidgunst 2007, Rayence DR panels) recommend 8 calibration points as the optimal balance between accuracy and acquisition time. Explicit mode selection prevents under/over-calibration. | Test: Unit test for each mode, boundary test for max levels, AUTO mode selection test |
+| **SRS-CALIB-FUNC-031** | **Calibration Mode Selection API.** System shall support explicit calibration mode selection via `XpeCalibrationMode` enum: `XPE_CALIB_SINGLE_POINT` (0, 1 dose level, 1 frame per level), `XPE_CALIB_DUAL_POINT` (1, 2 dose levels, linear interpolation), `XPE_CALIB_MULTI_POINT_5` (2, 5 dose levels, polynomial degree ≤ 2), `XPE_CALIB_MULTI_POINT_8` (3, 8 dose levels, polynomial degree ≤ 3), `XPE_CALIB_MULTI_POINT_10` (4, 10 dose levels, polynomial degree ≤ 4, maximum allowed), `XPE_CALIB_AUTO` (5, auto-select based on input data). (1) A new API function `xpe_calib_set_mode(XpeCalibrationMode mode)` shall set the active calibration mode. (2) A new API function `xpe_calib_get_mode()` shall return the current mode. (3) When mode is set to a specific value (not AUTO), the system shall enforce the maximum dose level count: SINGLE_POINT max 1 level, DUAL_POINT max 2 levels, MULTI_POINT_5 max 5 levels, MULTI_POINT_8 max 8 levels, MULTI_POINT_10 max 10 levels (hard cap). (4) Exceeding the mode's max levels shall return `XPE_ERR_INVALID_INPUT` with a descriptive message. (5) AUTO mode logic: based on input dose_levels count, auto-select the smallest fitting mode. (6) Mode selection shall be persisted in the generated XCal file metadata. (7) Default mode shall be `XPE_CALIB_MULTI_POINT_8` (industry standard per Rayence, Schmidgunst 2007). (8) Mode shall apply to both `xpe_calib_generate_gain()` (FUNC-026) and `xpe_calib_generate_gain_polynomial()` (FUNC-027). | Medical X-ray FPD calibration requires flexibility between quick single-point (emergency/field) and thorough multi-point (factory). Industry standards (Schmidgunst 2007, Rayence DR panels) recommend 8 calibration points as the optimal balance between accuracy and acquisition time. Explicit mode selection prevents under/over-calibration. | Test: Unit test for each mode, boundary test for max levels, AUTO mode selection test |
+
+> **열거형 표기 정정 2026-09-16 (QA-A-77).** 이 요구는 `XPE_CALIB_MODE_*` 표기를 쓰고 있었습니다.
+> **그 이름들은 출하 코드에 존재하지 않습니다** — 빌드에서 빠진 고아 파일
+> `modules/preprocess/src/mode_selector.cpp` 안에만 있었고(19건), 그 파일은 삭제 대상입니다.
+> 살아 있는 열거형은 `modules/preprocess/include/xpe/preprocess_api.h:945` 의 `XPE_CALIB_*` 입니다.
+> 측정 범위: `docs/calibration/SRS-CALIB-001*` 전체. 대조군 — 살아 있는 표기(`XPE_CALIB_AUTO` 등)는
+> 정정 전 이 문서에 **0건**이었으므로, 한 요구가 **함수명은 살아 있는 쪽에서, 열거형 이름은 죽은
+> 쪽에서** 절반씩 인용하고 있었습니다.
+>
+> **정정의 정정 2026-09-16.** 위 표기 정정은 처음에 **열거형 목록만** 고쳤고, 같은 요구의
+> **(7) 기본 모드** 조항에 남은 `XPE_CALIB_MODE_MULTI_POINT_8` 을 놓쳤습니다. QA-A-78 이
+> 삭제 후 계수에서 0이 아니라 1이 남는 것을 보고 드러났습니다 — 한 구역을 고치고 문서 전체가
+> 정리됐다고 읽은 것이고, **부재 주장에는 검색한 범위가 따라붙어야 한다**는 이 저장소의 규칙을
+> 제가 어긴 자리입니다. 지금 고쳤습니다.
+>
+> **(5) AUTO 는 여전히 미구현입니다** — `#169`. 표기를 고친 것이 동작을 고친 것으로 읽히지
+> 않도록 함께 적습니다.
 | **SRS-CALIB-FUNC-032** | **Multi-Point Calibration Performance Optimization.** System shall optimize multi-point calibration for both memory and computation. (1) **Online Accumulative Fitting**: Instead of loading all N gain maps into memory simultaneously, system shall process dose levels one at a time using online least-squares accumulation. Memory usage shall be O(W×H×degree) independent of N (dose level count), NOT O(N×W×H). (2) **SIMD-Parallel Polynomial Fitting**: Least-squares fitting per pixel shall be vectorized using AVX2/SSE4.2 intrinsics. Target: ≥ 4× speedup over scalar implementation for 3072×3072 images. (3) **Automatic Degree Reduction**: After fitting at max degree, system shall check R² improvement from degree-1. If improvement < 0.001 (negligible), reduce degree by 1 and re-fit. Continue until improvement is significant or degree reaches 1. (4) **Hard Cap at 10 Points**: Maximum calibration points shall be 10 regardless of user input. If user provides more than 10 dose levels, system shall use the 10 most uniformly spaced levels and log warning `XPE_WARN_CALIB_POINTS_CAPPED`. (5) **Pre-computed LUT**: After polynomial fitting, system shall pre-compute a LUT mapping raw ADU to corrected values. LUT size: 4096 entries (12-bit) or 65536 entries (16-bit). Runtime correction becomes O(1) per pixel regardless of polynomial degree. (6) **Batch Processing**: Multiple frames at the same dose level shall be processed using SIMD batch averaging before accumulation. Performance targets: 5-point fitting ≤ 2s, 8-point fitting ≤ 4s, 10-point fitting ≤ 6s for 3072×3072 image; LUT generation ≤ 500ms after fitting. | Multi-point calibration with N>5 without optimization causes: (a) memory blowup (N × 37.7 MB per gain map), (b) excessive fitting time, (c) overfitting risk. Online accumulation reduces memory from O(N×W×H) to O(W×H×degree). SIMD parallelization is critical for 9.4M pixel detectors. Degree auto-reduction prevents overfitting on well-behaved detectors. | Test: Performance benchmark (5/8/10 points), memory profiling, R² improvement validation, degree reduction test |
-| **SRS-CALIB-FUNC-033** | **Calibration Quality Metadata Recording.** System shall record comprehensive quality metadata for all calibration modes. (1) **Mandatory Metadata Fields**: Every generated XCal gain file shall include: `calibration_mode` (XpeCalibrationMode enum value as string), `actual_dose_levels` (number of dose levels used), `polynomial_degree` (fitted polynomial degree; 0 for single-point), `fit_r_squared` (coefficient of determination; 1.0 for single-point by definition), `max_residual_pct` (maximum fitting residual as percentage of full scale), `mean_residual_pct` (mean fitting residual as percentage), `acquisition_duration_s` (total acquisition time in seconds), `detector_temperature_c` (detector temperature during calibration). (2) **Quality Gate**: If `fit_r_squared < 0.999` after fitting, system shall log `XPE_WARN_CALIB_POOR_FIT` and include recommendation to increase dose levels or check detector stability. *(Implementation note, 2026-09-10 / QA-A-35: no `XPE_WARN_*` code exists in `xpe_error.h`; the warning is emitted through the alert queue (`xpe_alert_push`, severity WARNING) with the identifier `XPE_WARN_CALIB_POOR_FIT` as message prefix, plus the residual figure. Gate constant `XPE_CALIB_R_SQUARED_GATE = 0.999`.)* (3) **Comparison with Previous**: When overwriting an existing calibration file, system shall compute and log: `dark_bias_delta` (change in dark bias vs previous), `prnu_delta_pct` (change in PRNU vs previous), `defect_count_delta` (change in defect count vs previous). (4) **Mode-Specific Metadata**: SINGLE_POINT shall additionally record `gain_uncertainty` (estimated from single-frame noise model); MULTI_POINT shall additionally record `per_point_r_squared[]` array. (5) All metadata shall be stored in XCal file header section (JSON-encoded in reserved header bytes). | Quality metadata enables: (a) automated QA pass/fail decisions, (b) drift tracking across calibration sessions, (c) regulatory traceability (IEC 62304), (d) mode comparison studies. R² < 0.999 threshold aligns with REQ-NLN-005 in PRD. | Test: Metadata presence validation, R² gate test, comparison metrics test, XCal header parsing test |
+| **SRS-CALIB-FUNC-033** | **Calibration Quality Metadata Recording.** System shall record comprehensive quality metadata for all calibration modes. (1) **Mandatory Metadata Fields**: Every generated XCal gain file shall include: `calibration_mode` (XpeCalibrationMode enum value as string), `actual_dose_levels` (number of dose levels used), `polynomial_degree` (fitted polynomial degree; 0 for single-point), `fit_r_squared` (coefficient of determination; 1.0 for single-point by definition), `max_residual_pct` (maximum fitting residual as percentage of full scale), `mean_residual_pct` (mean fitting residual as percentage), `acquisition_duration_s` (total acquisition time in seconds), `detector_temperature_c` (detector temperature during calibration). (2) **Quality Gate**: If `fit_r_squared < 0.999` after fitting, system shall log `XPE_WARN_CALIB_POOR_FIT` and include recommendation to increase dose levels or check detector stability. *(Implementation note, 2026-09-10 / QA-A-35: no `XPE_WARN_*` code exists in `xpe_error.h`; the warning is emitted through the alert queue (`xpe_alert_push`, severity WARNING) with the identifier `XPE_WARN_CALIB_POOR_FIT` as message prefix, plus the residual figure. Gate constant `XPE_CALIB_R_SQUARED_GATE = 0.999`.)* (3) **Comparison with Previous**: When overwriting an existing calibration file, system shall compute and log: `dark_bias_delta` (change in dark bias vs previous), `prnu_delta_pct` (change in PRNU vs previous), `defect_count_delta` (change in defect count vs previous). (4) **Mode-Specific Metadata**: SINGLE_POINT shall additionally record `gain_uncertainty` (estimated from single-frame noise model); MULTI_POINT shall additionally record `per_point_r_squared[]` array. (5) All metadata shall be stored in XCal file header section (JSON-encoded in reserved header bytes). *(Layout note, 2026-09-17 / QA-A-86: `XCalFileHeader` (`xcal_format.h:100-112`) has **no reserved bytes**. The metadata is written as a JSON block **immediately after** the fixed header, whose length is carried in `config_json_len`, and it is covered by the header's `sha256`. The requirement's intent — metadata travels inside the XCal file, integrity-protected — is met; the phrase "reserved header bytes" does not describe the shipped layout. Also: on the polynomial path the file's `polynomial_degree` records the requested cap `max_degree` while the in-memory quality struct records the actually fitted `highest_degree` — the SRS says "fitted", so the file value is the one that disagrees; tracked in #140.)* | Quality metadata enables: (a) automated QA pass/fail decisions, (b) drift tracking across calibration sessions, (c) regulatory traceability (IEC 62304), (d) mode comparison studies. R² < 0.999 threshold aligns with REQ-NLN-005 in PRD. | Test: Metadata presence validation, R² gate test, comparison metrics test, XCal header parsing test |
 
 **Mode-to-Parameter Mapping:**
 
@@ -176,8 +193,18 @@ The following requirements define explicit calibration mode selection, multi-poi
 | SINGLE_POINT | 1 | 0 (constant) | Emergency / field recalibration | ~2s |
 | DUAL_POINT | 2 | 1 (linear) | Quick factory verification | ~5s |
 | MULTI_POINT_5 | 5 | 2 (quadratic) | Standard clinical calibration | ~15s |
-| MULTI_POINT_8 | 3 (cubic) | 8 | Full factory calibration (recommended) | ~30s |
-| MULTI_POINT_10 | 4 (quartic) | 10 | Maximum precision / research | ~45s |
+| MULTI_POINT_8 | 8 | 3 (cubic) | Full factory calibration (recommended) | ~30s |
+| MULTI_POINT_10 | 10 | 4 (quartic) | Maximum precision / research | ~45s |
+
+> **정정 2026-09-16 (leader, QA-A-70 / #140) — 위 두 행의 열이 뒤바뀌어 있었습니다.**
+>
+> 열 제목은 `Max Dose Levels | Max Poly Degree` 인데 값이 `3 | 8` · `4 | 10` 으로 반대로 실려 있었습니다. FUNC-031 본문이 `MULTI_POINT_8` 을 **8 dose levels, degree ≤ 3**, `MULTI_POINT_10` 을 **10 dose levels, degree ≤ 4** 로 적고, 같은 표의 위 세 행도 `levels | degree` 순서를 지키므로 **이 두 칸만 어긋난 것**입니다. 구현(`xpe_calib_mode.cpp:60-66`)도 `{8, 3}` · `{10, 3}` 으로 levels 가 앞입니다.
+>
+> **구현이 `MULTI_POINT_10` 에서 요구보다 좁다는 것은 별개 사실이고, 결함이 아닙니다.** `kModeParams` 가 `{10, 3}` 이라 차수를 3으로 잡는데, 요구가 `degree ≤ 4` 이므로 **3은 그 안에 듭니다** — 상한이지 지시가 아닙니다.
+>
+> **다만 그 결과 `MULTI_POINT_10` 은 차수에서 `MULTI_POINT_8` 과 구별되지 않습니다.** 둘의 차이는 도스 점 수(10 대 8)뿐이고, 이 표가 그 모드에 붙인 용도인 "Maximum precision / research" 는 차수가 더 높다는 뜻으로 읽히기 쉽습니다. **차수를 4로 올릴지, 아니면 이 표의 용도 설명을 도스 점 수 기준으로 다시 쓸지는 제품 판단이며 아직 내려지지 않았습니다.**
+>
+> QA-A-70 이 표의 어긋남을 찾아 올렸고, **해석하지 않고 보고한 것이 옳았습니다.**
 | AUTO | N/A (auto) | Determined by input count | Hands-off operation | Varies |
 
 **Relationship to Existing Requirements:**
@@ -185,6 +212,35 @@ The following requirements define explicit calibration mode selection, multi-poi
 - **FUNC-031 vs FUNC-024**: FUNC-024 defines frame count tiers per dose level; FUNC-031 defines how many dose levels to use and the polynomial degree ceiling. Together they determine total frames: mode_count × frames_per_level.
 - **FUNC-031 vs FUNC-027**: FUNC-027 defines the polynomial fitting algorithm; FUNC-031 adds mode enforcement (max levels, max degree) before fitting begins. FUNC-032 optimizes the fitting process itself.
 - **FUNC-033 vs FUNC-015**: FUNC-015 defines E2E metric reporting; FUNC-033 defines calibration-specific quality metadata in XCal files. FUNC-033 metadata is consumed by FUNC-015 reporting during validation runs.
+
+### FUNC-033 구현 현황 — 무엇이 되고 무엇이 왜 안 되는지 (2026-09-16, leader / QA-A-70)
+
+**요구가 구현도 검증도 없다고 적혔던 상태는 해소돼 있었습니다.** QA-A-35 가 두 생성 경로 모두에 배선했고(`xpe_calib_generate_gain.cpp:301, :563`), 파일에서 다시 읽으며(`xpe_calib_load_gain.cpp:108`), R² 는 상수가 아니라 잔차에서 계산됩니다. 검증도 있습니다.
+
+**(1) 필수 필드 8개 중 6개 기록, 2개 미기록.**
+
+| 필드 | 상태 |
+|---|---|
+| `calibration_mode` · `actual_dose_levels` · `polynomial_degree` · `fit_r_squared` · `max_residual_pct` · `mean_residual_pct` | 기록됨 |
+| **`acquisition_duration_s`** · **`detector_temperature_c`** | **미기록** |
+
+**미기록 둘은 구현 누락이 아니라 이 함수가 알 수 없는 값입니다.** 취득은 이 모듈 밖에서 일어나고 온도는 하드웨어에서 옵니다 — 두 진입점 시그니처에 도달하지 않으며, 다항 경로에는 `metadata_json` 인자조차 없습니다.
+
+> **판정: 이 둘은 호출자가 채우는 필드입니다.** 생성 함수가 자기 실행 시간을 `acquisition_duration_s` 에 넣는 것은 **이름과 다른 값을 그 자리에 넣는 일**이고, 그러면 그 필드를 읽는 다음 사람이 취득 시간으로 읽습니다. QA-A-70 이 그렇게 하지 않고 올린 것이 옳습니다. 시그니처를 넓히는 것은 공개 API 변경이므로 **그 값을 실제로 쓰는 소비자가 생길 때** 합니다(QA-A-61 의 ABI 판정과 같은 기준).
+
+**(3) 비교 지표 셋 — 전부 없고, 이 경로에 있을 수 없습니다.**
+
+`dark_bias_delta` 는 오프셋 파일의 양이고 `defect_count_delta` 는 결함 맵의 양이라 **게인 생성 경로에 그 입력이 없습니다.** `prnu_delta_pct` 는 게인 맵에서 계산 가능하지만 **다항 경로의 출력은 게인 맵이 아니라 계수 배열**입니다.
+
+> **판정: 이 셋은 세 산출물을 모두 가진 층에서 계산해야 합니다.** 게인 생성 함수가 아니라 교정 전체를 조율하는 쪽입니다. 그 층이 아직 없으므로 **지금은 미구현으로 기록하고, 요구를 그 층에 재배치하는 것이 맞습니다.** 구조체의 `previous_r_squared` 는 **위 셋 어디에도 없는 필드**이고 요구 목록 밖입니다.
+
+**(4) 모드별 둘 — 정본에 정의가 없습니다.**
+
+`gain_uncertainty` 는 **어떤 잡음 모델로 어떤 단위**인지 이 문서에 없습니다. `per_point_r_squared[]` 는 더 근본적입니다 — **한 도스 점에 표본이 하나라 R² 가 수학적으로 정의되지 않습니다.** 화소 방향으로 정의하면 수는 나오지만 **이 문서가 그렇게 말하지 않습니다.**
+
+> **판정: 정의를 여기서 만들지 않습니다.** 임상 품질 지표의 정의는 편집 정정이 아니라 제품 판단이고, 근거 없이 채우면 **요구가 구현을 따라가는** 형태가 됩니다. **미정의로 기록하고, 정의가 오면 구현합니다.** QA-A-70 이 해석하지 않고 올린 것이 옳습니다.
+
+**요약: (1)의 둘은 호출자 몫, (3)은 층이 다름, (4)는 정의 부재.** 셋 다 "구현하지 않았다" 가 아니라 **"이 자리에서는 할 수 없다"** 이고, 그 구분이 다음 사람이 같은 조사를 반복하지 않게 합니다.
 
 ---
 

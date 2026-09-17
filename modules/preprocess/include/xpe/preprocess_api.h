@@ -82,8 +82,18 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * REQ-P1A-031: No memory leak after shutdown
  * REQ-P1A-003: Thread-safe for concurrent shutdown
  *
- * Safe to call multiple times. If module is not initialized, this is a no-op.
- * After shutdown, module returns to uninitialized state and can be re-initialized.
+ * Safe to call multiple times. After shutdown, the module is in the
+ * uninitialized state and can be re-initialized.
+ *
+ * Releases the loaded offset map, gain map or polynomial gain coefficients,
+ * and defect map, whether or not the module
+ * was initialized. The calibration loaders do not require initialization, so
+ * maps may be loaded before xpe_preprocess_init(); a shutdown at that point
+ * releases them too (it is not a no-op).
+ *
+ * Does not reset the calibration mode set by xpe_calib_set_mode() or the
+ * quality metadata returned by xpe_calib_get_quality_meta(); both keep their
+ * values across shutdown and re-initialization.
  */
 XPE_API void xpe_preprocess_shutdown(void);
 
@@ -934,7 +944,10 @@ extern "C" {
  * - MULTI_POINT_5: 5 points, degree 2 (quadratic)
  * - MULTI_POINT_8: 8 points, degree 3 (cubic) — DEFAULT per Schmidgunst 2007
  * - MULTI_POINT_10: 10 points, degree 3 (cubic)
- * - AUTO: Adaptive selection (max 10 points, degree 3)
+ * - AUTO: currently the same fixed parameters as MULTI_POINT_10 (max 10
+ *   points, degree 3). It does NOT select a mode from the input: the
+ *   automatic selection required by SRS-CALIB-FUNC-031(5) is not
+ *   implemented (tracked in issue \#169).
  */
 typedef enum XpeCalibrationMode {
     XPE_CALIB_SINGLE_POINT   = 0,  ///< 1 point, constant fit
@@ -942,7 +955,7 @@ typedef enum XpeCalibrationMode {
     XPE_CALIB_MULTI_POINT_5  = 2,  ///< 5 points, quadratic fit
     XPE_CALIB_MULTI_POINT_8  = 3,  ///< 8 points, cubic fit (DEFAULT)
     XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, cubic fit
-    XPE_CALIB_AUTO           = 5   ///< Adaptive mode (max 10 points)
+    XPE_CALIB_AUTO           = 5   ///< Same as MULTI_POINT_10 today; no automatic selection (issue \#169)
 } XpeCalibrationMode;
 
 /**

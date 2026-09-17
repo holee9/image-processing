@@ -20,11 +20,15 @@
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmjpeg/djencode.h>
+#include <dcmtk/dcmjpeg/djdecode.h>
+#include <dcmtk/dcmjpeg/djrploss.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
 #include <atomic>
+#include <map>
+#include <set>
 #include <cstdio>
 #include <filesystem>
 #include <thread>
@@ -466,12 +470,16 @@ TEST_F(DicomReaderTest, GetMetadataNullOutput_ReturnsInvalidInput) {
 // Two facts follow, both recorded in the QA-B-44 report:
 //   - the JPEG-LL branch cannot be covered by relabelling; it needs a genuinely
 //     JPEG-encoded fixture;
-//   - no DCMTK codec is ever registered in this module (no
-//     DJDecoderRegistration call exists), so a genuine JPEG-LL file would not
-//     decode either -- open()'s accepted-syntax list promises more than the
-//     build delivers.
+//   - at the time, no DCMTK codec was registered in this module, so a genuine
+//     JPEG-LL file would not have decoded either.
 //
-// This case pins the first fact. The second is a defect report, not a test.
+// The second fact is FIXED and this note is kept only so the first is not read
+// against a stale background: DicomReader.cpp:48 now calls
+// DJDecoderRegistration::registerCodecs() on every open, and QA-B-67 measured
+// that the registration covers Process 14 (.57) as well as .70 -- so the
+// accepted-syntax list, not the codec set, is what limits this reader today.
+//
+// This case pins the first fact, which is unchanged.
 // ---------------------------------------------------------------------------
 TEST_F(DicomReaderTest, OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid) {
     auto path = s_tempDir / "reader_jpegll_label.dcm";
@@ -588,6 +596,17 @@ TEST_F(DicomReaderTest, ReadJpegLossless_DecodesPixelExact) {
 // ---------------------------------------------------------------------------
 namespace {
 
+// #174 (QA-B-76): the predictor every .57 fixture in this file is written with.
+// The encoder default is 1, which makes a .57 stream byte-identical to a .70 one
+// (QA-B-73) -- QA-B-75 found four cases whose ".57" rows were therefore the
+// ".70" input a second time. Any predictor other than 1 keeps them apart.
+const int kP14FixturePredictor = 2;
+
+// Chooses the .57 representation with kP14FixturePredictor and FAILS the
+// running test if the encoded stream still carries predictor 1. Defined below,
+// next to the stream parser it uses.
+bool ChooseDistinctP14Representation(DcmDataset* ds);
+
 // Produce a copy of src encoded in the given transfer syntax.
 // Returns false when this test does not know how to build that syntax.
 bool WriteInTransferSyntax(const char* tsUid,
@@ -616,6 +635,30 @@ bool WriteInTransferSyntax(const char* tsUid,
     }
     if (uid == "1.2.840.10008.1.2.4.70") {       // JPEG Lossless, First-Order
         return WriteJpegLosslessCopy(src, dst);
+    }
+    if (uid == "1.2.840.10008.1.2.4.57") {       // JPEG Lossless, Process 14 (#147)
+        // Added with the syntax itself (QA-B-68). This builder is why adding a
+        // UID to kSupportedTransferSyntaxes is not a one-line change: the case
+        // below insists every accepted syntax be demonstrably readable, so a UID
+        // with no fixture fails here rather than shipping unexercised.
+        DJEncoderRegistration::registerCodecs();
+        bool ok = false;
+        {
+            DcmFileFormat ff;
+            if (ff.loadFile(src.string().c_str()).good()) {
+                DcmDataset* ds = ff.getDataset();
+                if (ds != nullptr &&
+                    ChooseDistinctP14Representation(ds) &&
+                    ds->canWriteXfer(EXS_JPEGProcess14)) {
+                    ok = ff.saveFile(dst.string().c_str(), EXS_JPEGProcess14).good();
+                }
+            }
+        }
+        // Deliberately no DJDecoderRegistration::cleanup() anywhere in this file
+        // -- see Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured for what that
+        // costs.
+        if (!ok) whyNot = "DCMTK could not encode Process 14";
+        return ok;
     }
 
     whyNot = "this test has no fixture builder for " + uid;
@@ -667,18 +710,168 @@ TEST_F(DicomReaderTest, EverySupportedTransferSyntaxActuallyReads) {
     xpe_free_image(&expected);
 }
 
+// JPEG-LL stream inspection helpers. Written for QA-B-73 (#168); moved up by
+// QA-B-74 (#174) so the QA-B-46 predictor case below can check what it
+// actually received.
+namespace {
+
+struct SosInfo {
+    bool     found     = false;
+    int      sofMarker = -1;   // 0xC0..0xCF (C3 = lossless, sequential, Huffman)
+    int      ss        = -1;   // predictor selection value for lossless
+    int      se        = -1;
+    int      al        = -1;   // point transform
+};
+
+// Walk markers from SOI to the first SOS. Stops at SOS: the entropy-coded data
+// after it is not marker-structured and is not needed for this question.
+SosInfo ParseSofSos(const std::vector<Uint8>& b) {
+    SosInfo r{};
+    size_t i = 0;
+    if (b.size() < 4 || b[0] != 0xFF || b[1] != 0xD8) return r;   // SOI
+    i = 2;
+    while (i + 4 <= b.size()) {
+        if (b[i] != 0xFF) return r;
+        const int m = b[i + 1];
+        if (m == 0xD8 || (m >= 0xD0 && m <= 0xD7) || m == 0x01) { i += 2; continue; }
+        const size_t len = (static_cast<size_t>(b[i + 2]) << 8) | b[i + 3];
+        if (m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC) {
+            r.sofMarker = m;
+        }
+        if (m == 0xDA) {
+            const size_t p = i + 4;                 // Ns
+            if (p >= b.size()) return r;
+            const size_t ns = b[p];
+            const size_t q = p + 1 + 2 * ns;        // Ss
+            if (q + 2 >= b.size()) return r;
+            r.ss = b[q];
+            r.se = b[q + 1];
+            r.al = b[q + 2] & 0x0F;
+            r.found = true;
+            return r;
+        }
+        i += 2 + len;
+    }
+    return r;
+}
+
+struct FragmentProbe {
+    bool                 ok = false;
+    std::string          labelUid;
+    std::vector<Uint8>   firstFragment;
+    bool                 paramPresent = false;
+    int                  paramPrediction = -1;
+};
+
+// Load a Part-10 file and return its first compressed fragment, looked up under
+// the representation key of the syntax the meta-header names -- which is the
+// key DCMTK files the pixel data under (QA-B-72 measured that it uses the label).
+FragmentProbe FirstFragment(const fs::path& p) {
+    FragmentProbe r{};
+    DcmFileFormat ff;
+    if (!ff.loadFile(p.string().c_str()).good()) return r;
+    OFString ts;
+    if (ff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, ts).bad()) return r;
+    r.labelUid = ts.c_str();
+    E_TransferSyntax key = DcmXfer(ts.c_str()).getXfer();
+
+    DcmElement* el = nullptr;
+    if (ff.getDataset()->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) return r;
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+    DcmPixelSequence* seq = nullptr;
+    const DcmRepresentationParameter* param = nullptr;
+    if (pd->getEncapsulatedRepresentation(key, param, seq).bad() || seq == nullptr) return r;
+
+    r.paramPresent = (param != nullptr);
+    if (const auto* ll = dynamic_cast<const DJ_RPLossless*>(param)) {
+        r.paramPrediction = ll->getPrediction();
+    }
+
+    DcmPixelItem* frag = nullptr;
+    // Item 0 is the Basic Offset Table; item 1 is the first frame's fragment.
+    if (seq->getItem(frag, 1).bad() || frag == nullptr) return r;
+    Uint8* data = nullptr;
+    if (frag->getUint8Array(data).bad() || data == nullptr) return r;
+    r.firstFragment.assign(data, data + frag->getLength());
+    r.ok = true;
+    return r;
+}
+
+bool EncodeAs(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer,
+              int predictor /* 0 = encoder default */) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            const DJ_RPLossless params(predictor == 0 ? 1 : predictor, 0);
+            OFCondition rc = (predictor == 0)
+                ? ds->chooseRepresentation(xfer, nullptr)
+                : ds->chooseRepresentation(xfer, &params);
+            ok = rc.good() && ds->canWriteXfer(xfer) &&
+                 ff.saveFile(dst.string().c_str(), xfer).good();
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+// The guard QA-B-76 asked for: it lives in the helper, so reverting the
+// predictor to 1 turns every caller red here instead of letting four cases
+// quietly test the .70 input twice.
+bool ChooseDistinctP14Representation(DcmDataset* ds) {
+    const DJ_RPLossless params(kP14FixturePredictor, 0);
+    if (ds->chooseRepresentation(EXS_JPEGProcess14, &params).bad()) return false;
+
+    DcmElement* el = nullptr;
+    if (ds->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) {
+        ADD_FAILURE() << ".57 fixture: no PixelData after encoding";
+        return false;
+    }
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+    DcmPixelSequence* seq = nullptr;
+    DcmPixelItem* frag = nullptr;
+    Uint8* data = nullptr;
+    // The parameter is the lookup key: the representation was stored under it.
+    if (pd->getEncapsulatedRepresentation(EXS_JPEGProcess14, &params, seq).bad() ||
+        seq == nullptr || seq->getItem(frag, 1).bad() || frag == nullptr ||
+        frag->getUint8Array(data).bad() || data == nullptr) {
+        ADD_FAILURE() << ".57 fixture: no encoded fragment to inspect";
+        return false;
+    }
+    const SosInfo sos = ParseSofSos(std::vector<Uint8>(data, data + frag->getLength()));
+    if (!sos.found || sos.ss == 1) {
+        ADD_FAILURE() << ".57 fixture carries predictor " << sos.ss
+                      << " -- predictor 1 makes it the .70 stream again (QA-B-75)";
+        return false;
+    }
+    return true;
+}
+
+}  // namespace
+
 // ---------------------------------------------------------------------------
-// #120 (QA-B-46): JPEG-LL input variety.
+// #120 (QA-B-46) -> #174 (QA-B-74): JPEG-LL predictors, and what was really tested.
 //
-// QA-B-45 verified exactly one JPEG-LL file: DCMTK's encoder at its default
-// settings. "Lossless works" was therefore a claim about one encoder
-// configuration. JPEG Lossless (Process 14, first-order) admits several
-// predictor selection values, and a real device uses whichever its vendor
-// chose, so the reader must handle more than the one we happened to produce.
+// QA-B-46 set out to widen QA-B-45's single JPEG-LL file to predictor
+// selection values 1..7, encoding each through EXS_JPEGProcess14SV1 (.70) and
+// guarding with EXPECT_GT(produced, 1). QA-B-73 then measured that DCMTK's .70
+// encoder IGNORES the predictor argument and always writes predictor 1 -- all
+// seven fixtures were one stream -- and the guard counted files produced, so it
+// passed. The case logged "predictor variants produced and verified: 7 of 7"
+// while testing one predictor. QA-B-74 replaced the guard with a distinct-stream
+// count and it failed at 1, as predicted.
 //
-// Each variant is compared byte-for-byte against the uncompressed original --
-// the standard QA-B-45 set. A lossless round trip that differs anywhere is a
-// failure, however plausible the image looks.
+// That was not a gap in the encoder: .70 is "Selection Value 1" -- predictor 1
+// is the only legal value for that syntax, so expecting variants from it was the
+// error. The case therefore now says what it can: .70 carries predictor 1, and
+// the reader decodes it exactly. The multi-predictor claim moved to
+// ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct, which uses .57
+// (where predictors 2..7 are legal and the encoder honours them) and asserts
+// that each fixture is a distinct stream carrying the predictor it names.
+//
+// Each decode is compared byte-for-byte against the uncompressed original.
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -716,56 +909,64 @@ bool WriteJpegLosslessVariant(const fs::path& src, const fs::path& dst,
 
 }  // namespace
 
-TEST_F(DicomReaderTest, ReadJpegLosslessPredictorVariants_AllPixelExact) {
+TEST_F(DicomReaderTest, ReadJpegLosslessSV1_Predictor1PixelExact) {
     XpeDicomHandle* srcHandle = nullptr;
     ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
     XpeImageBuffer expected{};
     ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
     xpe_dicom_close(srcHandle);
-
     const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
                          sizeof(uint16_t);
 
-    // Selection values 1..7 are the first-order predictors of the JPEG lossless
-    // process. Any that DCMTK will not encode is reported, not skipped silently.
+    const auto path = s_tempDir / "jpegll_sv1_pred1.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteJpegLosslessVariant(s_validDcm, path, 1, whyNot)) << whyNot;
+
+    // What the case received, not what it asked for.
+    const FragmentProbe fp = FirstFragment(path);
+    ASSERT_TRUE(fp.ok);
+    EXPECT_EQ("1.2.840.10008.1.2.4.70", fp.labelUid);
+    const SosInfo sos = ParseSofSos(fp.firstFragment);
+    ASSERT_TRUE(sos.found);
+    EXPECT_EQ(0xC3, sos.sofMarker);
+    EXPECT_EQ(1, sos.ss) << ".70 must carry predictor 1";
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer actual{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual));
+    xpe_dicom_close(handle);
+    ASSERT_EQ(expected.width, actual.width);
+    ASSERT_EQ(expected.height, actual.height);
+    EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
+        << "lossless round trip must be bit-exact";
+
+    xpe_free_image(&actual);
+    xpe_free_image(&expected);
+}
+
+// Records the encoder behaviour QA-B-73 measured, so a DCMTK upgrade that starts
+// honouring the argument -- and would thereby write predictor != 1 under a .70
+// label, which the syntax forbids -- surfaces here instead of silently widening
+// or corrupting other cases.
+TEST_F(DicomReaderTest, KnownDivergence_Sv1EncoderIgnoresPredictorArgument) {
+    std::set<std::vector<Uint8>> streams;
     int produced = 0;
     for (int predictor = 1; predictor <= 7; ++predictor) {
-        SCOPED_TRACE("predictor selection value " + std::to_string(predictor));
-        const auto path = s_tempDir / ("jpegll_pred" + std::to_string(predictor) + ".dcm");
-
+        const auto path = s_tempDir / ("jpegll_sv1_req" + std::to_string(predictor) + ".dcm");
         std::string whyNot;
-        if (!WriteJpegLosslessVariant(s_validDcm, path, predictor, whyNot)) {
-            // Recorded, not asserted: an encoder that cannot produce a variant
-            // says nothing about whether the reader could decode it.
-            GTEST_LOG_(INFO) << "predictor " << predictor
-                             << ": fixture not produced (" << whyNot << ")";
-            continue;
-        }
+        if (!WriteJpegLosslessVariant(s_validDcm, path, predictor, whyNot)) continue;
         ++produced;
-
-        XpeDicomHandle* handle = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
-        XpeImageBuffer actual{};
-        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual));
-        xpe_dicom_close(handle);
-
-        ASSERT_EQ(expected.width, actual.width);
-        ASSERT_EQ(expected.height, actual.height);
-        EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
-            << "lossless round trip must be bit-exact for this predictor";
-        xpe_free_image(&actual);
+        const FragmentProbe fp = FirstFragment(path);
+        ASSERT_TRUE(fp.ok);
+        const SosInfo sos = ParseSofSos(fp.firstFragment);
+        EXPECT_EQ(1, sos.ss) << "requested predictor " << predictor
+                             << " -- the .70 encoder wrote it into the stream";
+        streams.insert(fp.firstFragment);
     }
-
-    // Printed rather than inferred: the count is the evidence for how much
-    // wider this case is than QA-B-45, and a reader of the log should not have
-    // to deduce it from the absence of skip messages.
-    GTEST_LOG_(INFO) << "predictor variants produced and verified: " << produced
-                     << " of 7";
-    EXPECT_GT(produced, 1)
-        << "only one predictor variant could be produced; the case would then be "
-           "no broader than QA-B-45";
-
-    xpe_free_image(&expected);
+    GTEST_LOG_(INFO) << ".70 encoder: requests=" << produced
+                     << " distinct streams=" << streams.size();
+    EXPECT_EQ(1u, streams.size());
 }
 
 // ---------------------------------------------------------------------------
@@ -1512,4 +1713,1207 @@ TEST_F(DicomReaderTest, JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid)
     EXPECT_EQ(nullptr, img.data);
     EXPECT_EQ(4242u, img.width)  << "a rejected read must not write to outImg";
     EXPECT_EQ(2424u, img.height) << "a rejected read must not write to outImg";
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-67) — how does a 1.2.840.10008.1.2.4.57 file FAIL?
+//
+// Two requirements name different UIDs and the implementation knows one of them:
+//
+//   REQ-IOP-003  (SPEC-XPE-IOP/spec.md:116)  "at minimum ... 1.2.840.10008.1.2.4.57"
+//   REQ-DICOM-004                            ".70" (what DicomReader.h accepts)
+//
+// `.57` appears nowhere under modules/. The trap is the NAME: both read as "JPEG
+// Lossless", but .57 is Process 14 and .70 is Process 14 Selection Value 1
+// (first-order prediction). A reader that knows only .70 cannot decode a .57
+// bitstream.
+//
+// Whether to support .57 is a decision. What is measurable NOW -- and what
+// matters clinically -- is HOW it fails: an explicit refusal is safe, while
+// mistaking it for a syntax the reader does know would decode wrong pixels
+// silently, which is the worst failure shape in medical imaging.
+//
+// The existing UnsupportedTS_ReturnsUnsupportedFormat case does NOT answer this.
+// It feeds an Implicit VR Little Endian file -- an UNCOMPRESSED syntax differing
+// from the accepted list in every respect. It establishes that the list check
+// works for the easiest possible input; it says nothing about a compressed
+// syntax whose name and family match an accepted one.
+//
+// SYNTHETIC DATA, stated plainly (the #148 lesson): no .57 file from real
+// equipment was used. The fixture below is a genuine .70-encoded file whose meta
+// TransferSyntaxUID was rewritten to .57 -- the bitstream is real JPEG, the label
+// is not. That is the sharpest form of the question (a reader that ignored the
+// label and guessed would "succeed" here) but it is NOT a real .57 bitstream, so
+// it cannot show what a true .57 decode would produce.
+//
+// EXISTENCE CONTROL, in the same run and with the same tool: the unmodified .70
+// file must OPEN. Without that, "both failed" would be indistinguishable from a
+// broken fixture rather than a refused syntax.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway) {
+    const auto genuine70 = s_tempDir / "b67_genuine_70.dcm";
+    if (!WriteJpegLosslessCopy(s_validDcm, genuine70)) {
+        GTEST_SKIP() << "DCMTK could not produce a .70 fixture in this build -- "
+                        "without it there is no control, and a lone failure would "
+                        "prove nothing";
+    }
+
+    // --- control: the genuine .70 file opens -------------------------------
+    XpeDicomHandle* control = nullptr;
+    const XpeErrorCode ecControl =
+        xpe_dicom_open(genuine70.string().c_str(), &control);
+    ASSERT_EQ(XPE_OK, ecControl)
+        << "the control fixture does not open, so nothing below distinguishes a "
+           "behaviour from a broken fixture";
+    xpe_dicom_close(control);
+
+    // --- subject: .70 bytes wearing a .57 label ----------------------------
+    const auto relabelled57 = s_tempDir / "b67_relabelled_57.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(genuine70.string().c_str()).good());
+        DcmMetaInfo* meta = ff.getMetaInfo();
+        ASSERT_NE(nullptr, meta);
+        ASSERT_TRUE(meta->putAndInsertString(DCM_TransferSyntaxUID,
+                                             "1.2.840.10008.1.2.4.57").good());
+        // EWM_dontUpdateMeta keeps the rewritten label instead of restoring the
+        // syntax the pixel data is actually in.
+        ASSERT_TRUE(ff.saveFile(relabelled57.string().c_str(), EXS_JPEGProcess14SV1,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+    }
+
+    XpeDicomHandle* subject = nullptr;
+    const XpeErrorCode ecOpen =
+        xpe_dicom_open(relabelled57.string().c_str(), &subject);
+    XpeImageBuffer img{};
+    XpeErrorCode ecRead = XPE_ERR_INTERNAL;
+    bool gotPixels = false;
+    if (ecOpen == XPE_OK) {
+        ecRead = xpe_dicom_read_image(subject, &img);
+        gotPixels = (ecRead == XPE_OK && img.data != nullptr);
+    }
+
+    GTEST_LOG_(INFO) << "mislabelled (.70 bytes, .57 label): open=" << ecOpen
+                     << " read=" << ecRead << " pixels=" << gotPixels;
+
+    // The divergence: the label is wrong and the file is read anyway. DCMTK
+    // decompresses from the representation the DATASET carries, not from the
+    // meta-header label, so a JPEG-Lossless file labelled as the other
+    // JPEG-Lossless syntax still decodes.
+    //
+    // Recorded rather than called a defect: for these two syntaxes the outcome
+    // is a correct image, and DICOM readers are widely expected to tolerate
+    // meta/dataset disagreement. What it DOES mean is that the #150 frame-size
+    // guard is keyed on the LABEL (readImage picks EXS_JPEGProcess14 for a .57
+    // label), so on a mislabelled file that guard looks for a representation
+    // that is not there and silently checks nothing. The guard's own coverage,
+    // not the pixels, is what a mislabel costs here.
+    EXPECT_EQ(XPE_OK, ecOpen) << "a .57-labelled file is refused -- QA-B-68 added "
+                                 "the UID to the accepted list";
+    EXPECT_TRUE(gotPixels)
+        << "the mislabelled file no longer decodes; if that is deliberate, this "
+           "case records the old behaviour and should be retired";
+    if (gotPixels) xpe_free_image(&img);
+    xpe_dicom_close(subject);
+}
+
+// Does DCMTK itself know .57? The answer decides what implementing REQ-IOP-003
+// would cost: a codec the library already ships is a different proposition from
+// one that must be written. Measured, not assumed -- and reported either way,
+// because a negative here is as much an input to that decision as a positive.
+TEST_F(DicomReaderTest, KnownDivergence_DcmtkCodecSupportFor57IsMeasured) {
+    auto canEncode = [](E_TransferSyntax xfer) {
+        DJEncoderRegistration::registerCodecs();
+        bool ok = false;
+        {
+            DcmFileFormat ff;
+            if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+                DcmDataset* ds = ff.getDataset();
+                if (ds != nullptr) {
+                    ok = ds->chooseRepresentation(xfer, nullptr).good() &&
+                         ds->canWriteXfer(xfer);
+                }
+            }
+        }
+        DJEncoderRegistration::cleanup();
+        return ok;
+    };
+
+    // EXS_JPEGProcess14    == 1.2.840.10008.1.2.4.57
+    // EXS_JPEGProcess14SV1 == 1.2.840.10008.1.2.4.70
+    const bool canEncode57 = canEncode(EXS_JPEGProcess14);
+    const bool canEncode70 = canEncode(EXS_JPEGProcess14SV1);
+
+    GTEST_LOG_(INFO) << "DCMTK encoder: .57 (EXS_JPEGProcess14)=" << canEncode57
+                     << "  .70 (EXS_JPEGProcess14SV1)=" << canEncode70;
+
+    // Control in the same run with the same library: a false on .57 would
+    // otherwise only mean the probe itself does not work.
+    EXPECT_TRUE(canEncode70)
+        << "the probe cannot produce .70 either, so its answer about .57 says "
+           "nothing about DCMTK";
+
+    // No assertion on canEncode57 -- the measurement IS the deliverable, and
+    // pinning either answer would prejudge the support decision (#147).
+    SUCCEED();
+}
+
+// A GENUINE .57 file, now that the encoder probe above showed DCMTK can produce
+// one. This removes the relabelling caveat from the case further up: the
+// bitstream really is Process 14, not a .70 stream wearing a .57 label.
+//
+// QA-B-67 wrote this case while .57 was refused, and the refusal was the thing
+// it asserted. QA-B-68 changed the decision, so the assertion changed with it --
+// the measurement it exists for (what DCMTK can do, which is what made the
+// decision cheap) is unchanged and is still the deliverable.
+//
+// Two separate questions are answered here, and keeping them apart is the point:
+//
+//   1. What does xpe_dicom_open() do with it?  -- the product's behaviour.
+//   2. Can DCMTK decode it?                    -- the library's capability, which
+//      is what decides the COST of supporting .57 (#147). Adding a UID to a table
+//      is not the same proposition as writing a codec.
+//
+// (2) is measured with the decoder, not the encoder. The probe above showed only
+// that DCMTK can WRITE .57; a reader needs the other direction, and assuming one
+// from the other would be the "it exists, therefore it works" error this session
+// has hit repeatedly.
+TEST_F(DicomReaderTest, Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured) {
+    const auto genuine57 = s_tempDir / "b67_genuine_57.dcm";
+
+    // --- produce a real Process-14 bitstream -------------------------------
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess14)) {
+                encoded = ff.saveFile(genuine57.string().c_str(), EXS_JPEGProcess14).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    if (!encoded) {
+        GTEST_SKIP() << "DCMTK could not encode .57 in this build -- the relabelled "
+                        "case above is then the only available measurement";
+    }
+
+    // --- (1) the product accepts it (QA-B-68) ------------------------------
+    // QA-B-67 measured XPE_ERR_UNSUPPORTED_FORMAT here and that was the right
+    // answer at the time: the UID was not on the accepted list. The leader then
+    // decided to support .57 (REQ-IOP-003 names it "at minimum", and (2) below
+    // is why the cost was low), so the expected answer changed with the decision.
+    // The pixel-exactness of that decode is asserted in
+    // ReadJpegLosslessProcess14_DecodesPixelExact; this case keeps the
+    // capability measurement that produced the decision.
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ecOpen = xpe_dicom_open(genuine57.string().c_str(), &handle);
+    EXPECT_EQ(XPE_OK, ecOpen) << "a genuine .57 file is refused again";
+    xpe_dicom_close(handle);
+
+    // --- (2) the library can decode it -------------------------------------
+    // The reader already calls DJDecoderRegistration::registerCodecs() on every
+    // open (DicomReader.cpp:48), so this asks what that registration covers.
+    // NOT cleaned up afterwards, deliberately. DicomReader registers the JPEG
+    // decoders exactly once (std::call_once, DicomReader.cpp:47), so a
+    // DJDecoderRegistration::cleanup() here unregisters them for the whole
+    // process and the once-flag prevents the reader from ever restoring them.
+    //
+    // QA-B-68 found this the hard way: with a cleanup() here, a later case
+    // measured a genuine .57 file failing to decode (read=-3) and the obvious
+    // reading was "the decoder cannot handle .57". Run in isolation the same
+    // case decoded byte-exact. The defect was in this test, not in the product,
+    // and reporting it the other way round would have argued against a decision
+    // that had already been made on correct evidence.
+    bool decoded57 = false;
+    DJDecoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(genuine57.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr) {
+                decoded57 = ds->chooseRepresentation(EXS_LittleEndianExplicit, nullptr).good();
+            }
+        }
+    }
+
+    GTEST_LOG_(INFO) << "genuine .57: xpe_dicom_open=" << ecOpen
+                     << "  DCMTK decode-to-uncompressed=" << decoded57;
+
+    // Reported, not asserted: whether DCMTK decodes .57 is an input to the
+    // support decision (#147), and pinning it either way here would prejudge
+    // that decision. The number is the deliverable.
+    SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — the path that never meets the accepted-syntax check.
+//
+// STATUS SINCE QA-B-72 (#167): the behaviour described below is CLOSED. The
+// TS-less branch now checks the detected syntax against the accepted list and
+// refuses an encapsulated PixelData that contradicts a native detection; the
+// getMetaInfo() == NULL branch refuses outright. What follows is kept as the
+// record of what was measured before that change, in the tense it was written.
+//
+// QA-B-67 measured that a .57 file is refused with XPE_ERR_UNSUPPORTED_FORMAT.
+// That measurement was taken on ONE path: the one that reads the meta-header,
+// finds a TransferSyntaxUID, and compares it against kSupportedTransferSyntaxes.
+//
+// DicomReader::open() had two branches that recorded Explicit VR Little Endian
+// without consulting kSupportedTransferSyntaxes -- one for a NULL getMetaInfo(),
+// one for a meta-header with no TransferSyntaxUID. QA-B-70 noted that the branch
+// these fixtures take had not been measured; QA-B-71 then measured it: every
+// fixture took the second one, and no input reached the first. Either way open()
+// accepted the file and recorded m_tsUID = Explicit VR Little Endian WITHOUT any
+// syntax check. A file arriving through that branch was declared uncompressed no
+// matter what its pixel data actually was -- so "a .57 file is refused" would not
+// hold there, and the conclusion that no silent misdecode happens would be true
+// only of the path it was measured on.
+//
+// THIS IS MEASURABLE ONLY NOW. Once .57 joins the accepted list, both paths take
+// it and the difference between them disappears.
+//
+// Control pairs, all in this one run:
+//   - meta-less .57   (subject)
+//   - meta-less .70   (does the branch depend on the syntax at all?)
+//   - meta-bearing .57 (the QA-B-67 path, re-measured here for comparison)
+// ---------------------------------------------------------------------------
+namespace {
+
+// Write the DATASET only -- no Part-10 preamble, no meta-header. DCMTK writes
+// the group-2 elements only through DcmFileFormat, so going through DcmDataset
+// is what produces a file that reaches the TS-less branch of open()
+// (measured by QA-B-71; before QA-B-72 that branch had no syntax check).
+bool WriteDatasetWithoutMeta(const fs::path& src, const fs::path& dst,
+                             E_TransferSyntax xfer) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(xfer, nullptr).good() &&
+                ds->canWriteXfer(xfer)) {
+                ok = ds->saveFile(dst.string().c_str(), xfer).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+struct OpenResult {
+    XpeErrorCode open = XPE_ERR_INTERNAL;
+    XpeErrorCode read = XPE_ERR_INTERNAL;
+    bool         gotPixels = false;
+    uint32_t     w = 0, h = 0;
+};
+
+OpenResult OpenAndRead(const fs::path& p) {
+    OpenResult r{};
+    XpeDicomHandle* handle = nullptr;
+    r.open = xpe_dicom_open(p.string().c_str(), &handle);
+    if (r.open == XPE_OK) {
+        XpeImageBuffer img{};
+        r.read = xpe_dicom_read_image(handle, &img);
+        if (r.read == XPE_OK) {
+            r.gotPixels = (img.data != nullptr);
+            r.w = img.width;
+            r.h = img.height;
+            xpe_free_image(&img);
+        }
+    }
+    xpe_dicom_close(handle);
+    return r;
+}
+
+}  // namespace
+
+// RENAMED by QA-B-72 (#167). This case was KnownDivergence_MetaLessPathSkips-
+// TheTransferSyntaxCheck: its name recorded that the TS-less path had no syntax
+// check, and its body asserted only that no pixels came out -- which held then
+// because the native read failed on encapsulated data. QA-B-72 added the checks,
+// so the name stopped being true while the body kept passing. The assertion is
+// unchanged; the name now says what it asserts. Issue #167 comments before
+// QA-B-72 refer to the old name.
+TEST_F(DicomReaderTest, MetaLessEncapsulatedFilesProduceNoPixels) {
+    const auto metaless57 = s_tempDir / "b68_metaless_57.dcm";
+    const auto metaless70 = s_tempDir / "b68_metaless_70.dcm";
+
+    if (!WriteDatasetWithoutMeta(s_validDcm, metaless57, EXS_JPEGProcess14) ||
+        !WriteDatasetWithoutMeta(s_validDcm, metaless70, EXS_JPEGProcess14SV1)) {
+        GTEST_SKIP() << "could not write meta-less compressed fixtures in this build";
+    }
+
+    const OpenResult r57 = OpenAndRead(metaless57);
+    const OpenResult r70 = OpenAndRead(metaless70);
+
+    GTEST_LOG_(INFO) << "meta-less .57: open=" << r57.open << " read=" << r57.read
+                     << " pixels=" << r57.gotPixels << " " << r57.w << "x" << r57.h;
+    GTEST_LOG_(INFO) << "meta-less .70: open=" << r70.open << " read=" << r70.read
+                     << " pixels=" << r70.gotPixels << " " << r70.w << "x" << r70.h;
+
+    // The claim this case exists to protect: a file whose pixel data is in a
+    // syntax this reader cannot decode must not come back as pixels. Which error
+    // it gives is not the point; producing a frame is.
+    EXPECT_FALSE(r57.open == XPE_OK && r57.read == XPE_OK && r57.gotPixels)
+        << "a meta-less .57 file produced pixels -- the accepted-syntax check was "
+           "never reached and the bytes were decoded as something else";
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — .57 is accepted. Pixels, not just the absence of -7.
+//
+// Adding the UID to kSupportedTransferSyntaxes removes the refusal. That is NOT
+// the same as reading the file, so this case asserts the pixels, and asserts
+// them against the source: JPEG Lossless is lossless, so a byte-exact match is
+// available and anything less would be a decode that ran without being right.
+//
+// Two corrections, recorded here because this header once said otherwise:
+//   - QA-B-70: the list entry and the decode branch were changed in ONE edit, so
+//     what an accepted .57 file does WITHOUT the branch was never run. An
+//     earlier version of this paragraph described that as measured; it was not.
+//   - QA-B-73: this fixture uses the encoder default, predictor 1, and a
+//     predictor-1 .57 stream is byte-identical to a .70 stream. This case
+//     therefore proves nothing that the .70 case does not. What .57 adds --
+//     predictors 2..7 -- is tested by
+//     ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct (QA-B-74).
+//
+// SYNTHETIC (the #148 lesson, restated rather than assumed): the fixture is
+// DCMTK's own Process-14 encoding of s_validDcm. A real acquisition device's
+// encoder may differ; that remains open on #151.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, ReadJpegLosslessProcess14_DecodesPixelExact) {
+    const auto genuine57 = s_tempDir / "b68_support_57.dcm";
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess14)) {
+                encoded = ff.saveFile(genuine57.string().c_str(), EXS_JPEGProcess14).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    ASSERT_TRUE(encoded) << "DCMTK could not encode .57 -- QA-B-67 measured that it can";
+
+    // The source pixels, read through the uncompressed path.
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer srcImg{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &srcImg));
+    xpe_dicom_close(srcHandle);
+
+    // The same pixels through .57.
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ecOpen = xpe_dicom_open(genuine57.string().c_str(), &handle);
+    EXPECT_EQ(XPE_OK, ecOpen) << "a .57 file is still refused";
+
+    XpeImageBuffer img{};
+    const XpeErrorCode ecRead = xpe_dicom_read_image(handle, &img);
+    GTEST_LOG_(INFO) << "genuine .57 after support: open=" << ecOpen
+                     << " read=" << ecRead << " " << img.width << "x" << img.height;
+    ASSERT_EQ(XPE_OK, ecRead)
+        << "the refusal is gone but no image came out -- accepting a syntax is "
+           "not decoding it";
+
+    ASSERT_EQ(srcImg.width,  img.width);
+    ASSERT_EQ(srcImg.height, img.height);
+    ASSERT_EQ(XPE_PIXEL_UINT16, img.format);
+
+    const auto* a = static_cast<const uint16_t*>(srcImg.data);
+    const auto* b = static_cast<const uint16_t*>(img.data);
+    size_t differing = 0;
+    for (size_t i = 0; i < static_cast<size_t>(img.width) * img.height; ++i) {
+        if (a[i] != b[i]) ++differing;
+    }
+    EXPECT_EQ(0u, differing)
+        << differing << " pixels differ from the source -- .57 decoded, but not "
+           "losslessly";
+
+    xpe_free_image(&img);
+    xpe_free_image(&srcImg);
+    xpe_dicom_close(handle);
+}
+
+// ---------------------------------------------------------------------------
+// #147 (QA-B-68) — UnsupportedTS, with the gap QA-B-67 found closed.
+//
+// The original case feeds Implicit VR Little Endian: an UNCOMPRESSED syntax that
+// differs from every accepted entry in every respect. It shows the list check
+// works on the easiest possible input, while its name reads as a general claim
+// about unsupported syntaxes. That overstatement is what let .57 sit unexamined
+// -- a compressed syntax whose name and family match an accepted one.
+//
+// This case closes that: JPEG Baseline (1.2.840.10008.1.2.4.50) is JPEG, is
+// compressed, is decodable by the very codec set this reader registers, and is
+// still not on the accepted list. If the list check were ever replaced by
+// something looser -- "is it JPEG?" -- the original case would not notice and
+// this one would.
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
+    const auto baseline50 = s_tempDir / "b68_unsupported_50.dcm";
+    bool encoded = false;
+    DJEncoderRegistration::registerCodecs();
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(s_validDcm.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            DJ_RPLossy param;
+            if (ds != nullptr &&
+                ds->chooseRepresentation(EXS_JPEGProcess1, &param).good() &&
+                ds->canWriteXfer(EXS_JPEGProcess1)) {
+                encoded = ff.saveFile(baseline50.string().c_str(), EXS_JPEGProcess1).good();
+            }
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    if (!encoded) {
+        GTEST_SKIP() << "DCMTK could not encode JPEG Baseline here; without the "
+                        "fixture this case would assert nothing";
+    }
+
+    XpeDicomHandle* handle = nullptr;
+    const XpeErrorCode ec = xpe_dicom_open(baseline50.string().c_str(), &handle);
+    GTEST_LOG_(INFO) << "JPEG Baseline (.50, compressed, not accepted): open=" << ec;
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ec)
+        << "a compressed syntax that is NOT on the accepted list was not refused "
+           "with UNSUPPORTED_FORMAT";
+    xpe_dicom_close(handle);
+}
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-69) — is it the check that stops these files, or the encapsulation?
+//
+// STATUS SINCE QA-B-72 (#167): the behaviour described below is CLOSED. The
+// TS-less branch now checks the detected syntax against the accepted list and
+// refuses an encapsulated PixelData that contradicts a native detection; the
+// getMetaInfo() == NULL branch refuses outright. What follows is kept as the
+// record of what was measured before that change, in the tense it was written.
+//
+// QA-B-68 measured that a meta-less .57 file reaches open() with no transfer
+// syntax check at all (open() records Explicit VR Little Endian whatever the
+// file actually is; see the note on the case above for which branch) and still
+// produces no pixels. The reason was
+// NOT the check: the native read path cannot pull an encapsulated PixelData out
+// as a plain uint16 array, so it fails for a structural reason that has nothing
+// to do with which syntax the file claims.
+//
+// That leaves exactly one question, and it decides whether the QA-B-67
+// conclusion ("no silent misdecode") holds outside the path it was measured on:
+//
+//     does a NON-encapsulated unsupported syntax, arriving with no meta-header,
+//     come back as pixels?
+//
+// The candidates are derived from what DCMTK can write, not from a list someone
+// wrote down: a syntax qualifies if it is native (not encapsulated, so the
+// native read path can work on it) and absent from kSupportedTransferSyntaxes.
+//
+// TWO CONTROLS, both in this run:
+//   - the same file WITH its meta-header must answer XPE_ERR_UNSUPPORTED_FORMAT,
+//     which is what shows the check is alive and the meta-less result is about
+//     the missing header rather than about the syntax being tolerated;
+//   - a meta-less file in a SUPPORTED syntax must open and yield pixels, or the
+//     fixture writer is broken and every negative below means nothing.
+//
+// SYNTHETIC (#148): every file here is written by DCMTK from s_validDcm. No
+// acquisition device produced them.
+//
+// ENABLED by QA-B-72 (#167). The paragraphs below record why it was DISABLED_
+// until then; they are kept because the polarity they describe is exactly what
+// flipped: this case went green the day the TS-less path gained its checks.
+//
+// THE ANSWER WAS YES, AND THAT IS WHY THIS CASE WAS DISABLED_ RATHER THAN RED.
+// Measured 2026-09-16: Implicit VR Little Endian and Explicit VR Big Endian --
+// both absent from kSupportedTransferSyntaxes, both refused with
+// XPE_ERR_UNSUPPORTED_FORMAT when they carry a meta-header -- come back as a
+// full 256x256 frame when the meta-header is absent. A file the reader rejects
+// when it is labelled is read when the label is missing.
+//
+// The polarity follows QA-B-66: this case asserts what the reader SHOULD do, so
+// it goes green the day the hole is closed rather than red the day someone fixes
+// it. The always-on record of what happens today is
+// KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes below, which logs
+// the same measurement and asserts nothing.
+//
+// It was DISABLED_ because the defect was BLOCKED on a decision, not on work:
+// what to do was tangled with whether a meta-less file should be accepted at all
+// (open() then accepted it and recorded Explicit VR Little Endian, which was a
+// guess). Refusing meta-less files outright, checking the detected syntax instead
+// of assuming one, or keeping the tolerance and documenting it were three
+// different products. #167 made that call (check the detected syntax, refuse a
+// contradiction, close the unreachable branch) and QA-B-72 implemented it.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct NativeSyntaxCandidate {
+    E_TransferSyntax xfer;
+    const char*      uid;
+    const char*      name;
+    bool             onAcceptedList;
+};
+
+// Native (non-encapsulated) syntaxes DCMTK knows. Encapsulated ones are excluded
+// by construction -- QA-B-68 already showed the native path cannot read those,
+// and this case is about the syntaxes where that structural block is absent.
+const NativeSyntaxCandidate kNativeSyntaxes[] = {
+    { EXS_LittleEndianImplicit,          "1.2.840.10008.1.2",       "Implicit VR Little Endian",    false },
+    { EXS_LittleEndianExplicit,          "1.2.840.10008.1.2.1",     "Explicit VR Little Endian",    true  },
+    { EXS_BigEndianExplicit,             "1.2.840.10008.1.2.2",     "Explicit VR Big Endian",       false },
+    { EXS_DeflatedLittleEndianExplicit,  "1.2.840.10008.1.2.1.99",  "Deflated Explicit VR LE",      false },
+};
+
+bool IsOnAcceptedList(const char* uid) {
+    for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
+        if (std::string(uid) == xpe::dicom::kSupportedTransferSyntaxes[i].uid) return true;
+    }
+    return false;
+}
+
+// Dataset only -- no preamble, no group-2 elements. This is what reaches the
+// TS-less branch of open() (measured by QA-B-71).
+bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+    if (xfer == EXS_JPEGProcess14) {
+        if (!ChooseDistinctP14Representation(ds)) return false;
+    } else if (!ds->chooseRepresentation(xfer, nullptr).good()) {
+        return false;
+    }
+    if (!ds->canWriteXfer(xfer)) return false;
+    return ds->saveFile(dst.string().c_str(), xfer).good();
+}
+
+// Full Part-10 file, meta-header included.
+bool WriteWithMeta(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+    if (xfer == EXS_JPEGProcess14) {
+        if (!ChooseDistinctP14Representation(ds)) return false;
+    } else if (!ds->chooseRepresentation(xfer, nullptr).good()) {
+        return false;
+    }
+    if (!ds->canWriteXfer(xfer)) return false;
+    return ff.saveFile(dst.string().c_str(), xfer).good();
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
+    // The accepted-list membership in the table is a convenience for reading; the
+    // authority is the list itself, so it is cross-checked rather than trusted.
+    for (const auto& c : kNativeSyntaxes) {
+        ASSERT_EQ(c.onAcceptedList, IsOnAcceptedList(c.uid))
+            << "the table disagrees with kSupportedTransferSyntaxes about " << c.uid
+            << " -- fix the table, not the list";
+    }
+
+    // --- control 2: a meta-less SUPPORTED syntax must yield pixels ----------
+    // Placed first: if the writer cannot produce a readable meta-less file at
+    // all, every "no pixels" below is about the fixture and not about the reader.
+    const auto sane = s_tempDir / "b69_metaless_explicitLE.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit))
+        << "could not write a meta-less Explicit LE file";
+    const OpenResult sanity = OpenAndRead(sane);
+    GTEST_LOG_(INFO) << "control: meta-less Explicit VR LE (SUPPORTED) open="
+                     << sanity.open << " read=" << sanity.read
+                     << " pixels=" << sanity.gotPixels
+                     << " " << sanity.w << "x" << sanity.h;
+    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
+        << "a meta-less file in a SUPPORTED syntax produced no pixels -- the "
+           "fixture writer is broken and nothing below is measured";
+
+    // --- subjects -----------------------------------------------------------
+    int leaked = 0;
+    for (const auto& c : kNativeSyntaxes) {
+        if (c.onAcceptedList) continue;   // supported ones are not the question
+
+        const auto metaLess  = s_tempDir / (std::string("b69_metaless_") + c.uid + ".dcm");
+        const auto withMeta  = s_tempDir / (std::string("b69_withmeta_") + c.uid + ".dcm");
+
+        if (!WriteDatasetOnly(s_validDcm, metaLess, c.xfer) ||
+            !WriteWithMeta(s_validDcm, withMeta, c.xfer)) {
+            GTEST_LOG_(INFO) << c.name << " (" << c.uid
+                             << "): DCMTK cannot write this syntax here -- not measured";
+            continue;
+        }
+
+        // control 1: with a meta-header the check must refuse it.
+        const OpenResult guarded = OpenAndRead(withMeta);
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, guarded.open)
+            << c.name << " is not refused even WITH a meta-header -- the "
+               "accepted-list check is not doing what the meta-less result is "
+               "being compared against";
+
+        const OpenResult bare = OpenAndRead(metaLess);
+        GTEST_LOG_(INFO) << c.name << " (" << c.uid << "): with-meta open="
+                         << guarded.open << " | meta-less open=" << bare.open
+                         << " read=" << bare.read << " pixels=" << bare.gotPixels
+                         << " " << bare.w << "x" << bare.h;
+
+        if (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels) ++leaked;
+    }
+
+    EXPECT_EQ(0, leaked)
+        << leaked << " native unsupported syntax/syntaxes produced pixels through "
+           "the meta-less path -- a file the reader refuses when labelled is read "
+           "when the label is absent (#167)";
+}
+
+// The always-on half of the pair above: the same sweep, logged, asserting only
+// that the two controls still hold. It records TODAY's behaviour so the
+// measurement does not live exclusively inside a case that default runs skip --
+// a disabled test is a quiet place for a finding to sit.
+TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes) {
+    const auto sane = s_tempDir / "b69_rec_metaless_explicitLE.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit));
+    const OpenResult sanity = OpenAndRead(sane);
+    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
+        << "the fixture writer is broken; nothing below is measured";
+
+    int leaked = 0;
+    for (const auto& c : kNativeSyntaxes) {
+        if (c.onAcceptedList) continue;
+        const auto metaLess = s_tempDir / (std::string("b69_rec_metaless_") + c.uid + ".dcm");
+        const auto withMeta = s_tempDir / (std::string("b69_rec_withmeta_") + c.uid + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, metaLess, c.xfer) ||
+            !WriteWithMeta(s_validDcm, withMeta, c.xfer)) {
+            GTEST_LOG_(INFO) << c.name << ": not writable here -- not measured";
+            continue;
+        }
+        const OpenResult guarded = OpenAndRead(withMeta);
+        const OpenResult bare    = OpenAndRead(metaLess);
+        const bool gotPixels = (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels);
+        if (gotPixels) ++leaked;
+        GTEST_LOG_(INFO) << c.name << " (" << c.uid << "): with-meta="
+                         << guarded.open << " meta-less open=" << bare.open
+                         << " read=" << bare.read << " pixels=" << gotPixels
+                         << " " << bare.w << "x" << bare.h;
+        // The control, asserted: the check IS alive on the labelled path. Without
+        // this the leak below could be read as "the syntax is simply tolerated".
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, guarded.open)
+            << c.name << " is not refused even with a meta-header";
+    }
+
+    GTEST_LOG_(INFO) << "native unsupported syntaxes yielding pixels without a "
+                        "meta-header: " << leaked << " (#167)";
+    // QA-B-69 recorded leaked=2 here without asserting it. QA-B-72 closed the
+    // path, and the sibling case (no longer DISABLED_) carries the requirement;
+    // this one keeps logging the count so a regression shows up as a number in
+    // every default run, not only as a red test.
+    SUCCEED();
+}
+
+// QA-B-69 wrote this to show WHAT blocked the TS-less path, by stripping the
+// encapsulation rather than the syntax: the same dataset written encapsulated
+// and native, both unsupported. The measurement then was encapsulated -> no
+// pixels (read failed, DICOM_INVALID) and native -> pixels. That contrast is what
+// established that structure, not a check, was doing the blocking.
+//
+// Since QA-B-72 both are refused at open() (UNSUPPORTED_FORMAT) -- the
+// encapsulated one by the contradiction check, the native one by the list check
+// -- so the contrast this case was built to draw no longer exists. It stays as a
+// record: if the two outcomes ever diverge again, one of those checks has
+// stopped working. The per-check falsification is in
+// TsLessPathIsDecidedByChecksNotByStructure's report (QA-B-72).
+TEST_F(DicomReaderTest, KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured) {
+    const auto encapsulated = s_tempDir / "b69_metaless_encapsulated.dcm";
+    const auto native       = s_tempDir / "b69_metaless_native_unsupported.dcm";
+
+    DJEncoderRegistration::registerCodecs();
+    const bool wroteEncapsulated =
+        WriteDatasetOnly(s_validDcm, encapsulated, EXS_JPEGProcess14SV1);
+    // no DJDecoderRegistration::cleanup() here -- see the note on the .57 probe.
+
+    const bool wroteNative =
+        WriteDatasetOnly(s_validDcm, native, EXS_LittleEndianImplicit);
+
+    if (!wroteEncapsulated || !wroteNative) {
+        GTEST_SKIP() << "could not write both fixtures; the comparison needs the pair";
+    }
+
+    const OpenResult enc = OpenAndRead(encapsulated);
+    const OpenResult nat = OpenAndRead(native);
+
+    GTEST_LOG_(INFO) << "meta-less ENCAPSULATED (.70): open=" << enc.open
+                     << " read=" << enc.read << " pixels=" << enc.gotPixels;
+    GTEST_LOG_(INFO) << "meta-less NATIVE (Implicit LE, unsupported): open=" << nat.open
+                     << " read=" << nat.read << " pixels=" << nat.gotPixels;
+
+    // Recorded, not asserted: TsLessPathIsDecidedByChecksNotByStructure carries
+    // the requirement for both shapes.
+    SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-71) step 1 — which branch, and what does DCMTK know there?
+//
+// The decision is to apply the accepted-syntax check on the meta-less path by
+// comparing the syntax DCMTK DETECTED against kSupportedTransferSyntaxes. That
+// only works if the detected syntax is available on the branch the file takes,
+// and QA-B-70 recorded that the branch itself was never measured: open() has two
+// places that record Explicit VR Little Endian without consulting the list
+// (getMetaInfo() == NULL, and a meta-header with no TransferSyntaxUID).
+//
+// This probe loads each fixture with EXACTLY the arguments DicomReader::open()
+// uses and reports, per file:
+//   - whether getMetaInfo() is NULL                 -> the first branch
+//   - whether the meta carries a TransferSyntaxUID  -> otherwise the second
+//   - DcmDataset::getOriginalXfer()                 -> what DCMTK detected
+//   - whether that detection matches what was written
+//
+// Recorded, not asserted as a requirement: the deliverable is the table, and it
+// decides whether step 2 is implementable at all.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct BranchProbe {
+    bool             metaIsNull   = false;
+    bool             metaHasTs    = false;
+    E_TransferSyntax detected     = EXS_Unknown;
+    bool             loaded       = false;
+    // Control for the detection result: is the PixelData in the file actually
+    // encapsulated? Without this, "detected Explicit LE" on a JPEG fixture could
+    // simply mean the fixture was written uncompressed.
+    bool             encapsulated = false;
+};
+
+BranchProbe ProbeLikeOpen(const fs::path& p) {
+    BranchProbe r{};
+    DcmFileFormat ff;
+    // Same call as DicomReader::open().
+    r.loaded = ff.loadFile(p.string().c_str(), EXS_Unknown, EGL_noChange,
+                           DCM_MaxReadLength).good();
+    if (!r.loaded) return r;
+    DcmMetaInfo* meta = ff.getMetaInfo();
+    r.metaIsNull = (meta == nullptr);
+    if (meta != nullptr) {
+        OFString ts;
+        r.metaHasTs = meta->findAndGetOFString(DCM_TransferSyntaxUID, ts).good() &&
+                      !ts.empty();
+    }
+    DcmDataset* ds = ff.getDataset();
+    if (ds != nullptr) {
+        r.detected = ds->getOriginalXfer();
+        DcmElement* el = nullptr;
+        if (ds->findAndGetElement(DCM_PixelData, el).good() && el != nullptr) {
+            // An encapsulated PixelData is written with undefined length and
+            // carries a pixel sequence; a native one has a defined length.
+            DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+            DcmPixelSequence* seq = nullptr;
+            const DcmRepresentationParameter* param = nullptr;
+            r.encapsulated =
+                pd->getEncapsulatedRepresentation(EXS_JPEGProcess14SV1, param, seq).good() ||
+                pd->getEncapsulatedRepresentation(EXS_JPEGProcess14,    param, seq).good() ||
+                el->getLengthField() == DCM_UndefinedLength;
+        }
+    }
+    return r;
+}
+
+const char* XferUid(E_TransferSyntax x) {
+    if (x == EXS_Unknown) return "(unknown)";
+    DcmXfer xf(x);
+    return xf.getXferID();
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured) {
+    struct Case { E_TransferSyntax written; const char* label; bool encapsulated; };
+    const Case cases[] = {
+        { EXS_LittleEndianExplicit, "Explicit VR LE (supported)",      false },
+        { EXS_LittleEndianImplicit, "Implicit VR LE (unsupported)",    false },
+        { EXS_BigEndianExplicit,    "Explicit VR BE (unsupported)",    false },
+        { EXS_JPEGProcess14SV1,     ".70 JPEG-LL (supported, encaps)", true  },
+        { EXS_JPEGProcess14,        ".57 JPEG-LL (supported, encaps)", true  },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    int matched = 0, measured = 0;
+    for (const auto& c : cases) {
+        const auto path = s_tempDir / (std::string("b71_probe_") +
+                                       std::to_string(static_cast<int>(c.written)) + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, path, c.written)) {
+            GTEST_LOG_(INFO) << c.label << ": not writable here -- not measured";
+            continue;
+        }
+        const BranchProbe b = ProbeLikeOpen(path);
+        ++measured;
+        const bool match = (b.detected == c.written);
+        if (match) ++matched;
+
+        const char* branch = !b.loaded      ? "load-failed"
+                           : b.metaIsNull   ? "meta NULL"
+                           : !b.metaHasTs   ? "meta present, no TS element"
+                                            : "meta present WITH TS";
+        GTEST_LOG_(INFO) << c.label
+                         << " | branch=" << branch
+                         << " | written=" << XferUid(c.written)
+                         << " | detected=" << XferUid(b.detected)
+                         << " | pixelData encapsulated=" << b.encapsulated
+                         << " | match=" << match;
+    }
+    // no DJEncoderRegistration::cleanup() needed for the decoder side; the
+    // encoder registration is not what the reader depends on.
+    DJEncoderRegistration::cleanup();
+
+    GTEST_LOG_(INFO) << "detected syntax matched the written one in " << matched
+                     << " of " << measured << " measured files";
+    SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-72) — measured before implementing check (2).
+//
+// Check (2) must decide "is the PixelData encapsulated?" WITHOUT knowing the
+// syntax, because on this path the syntax is exactly what cannot be trusted.
+// QA-B-71's probe OR-ed three signals, two of which name a JPEG syntax. This
+// splits them, so the implementation uses only the one that needs no syntax --
+// the undefined length field an encapsulated PixelData is written with -- and
+// only if that one alone separates the two groups.
+//
+// It also tries to REACH the getMetaInfo() == NULL branch, which QA-B-71 could
+// not. A handful of malformed inputs are fed to the same loadFile call; for each
+// the outcome is recorded (load failed / meta NULL / meta present).
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, KnownDivergence_EncapsulationSignalsAndMetaNullReachability) {
+    struct Case { E_TransferSyntax written; const char* label; };
+    const Case cases[] = {
+        { EXS_LittleEndianExplicit, "Explicit VR LE" },
+        { EXS_LittleEndianImplicit, "Implicit VR LE" },
+        { EXS_BigEndianExplicit,    "Explicit VR BE" },
+        { EXS_JPEGProcess14SV1,     ".70 JPEG-LL" },
+        { EXS_JPEGProcess14,        ".57 JPEG-LL" },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    for (const auto& c : cases) {
+        const auto path = s_tempDir / (std::string("b72_sig_") +
+                                       std::to_string(static_cast<int>(c.written)) + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, path, c.written)) continue;
+
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(path.string().c_str(), EXS_Unknown, EGL_noChange,
+                                DCM_MaxReadLength).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+
+        bool undefLen = false, sv1 = false, p14 = false;
+        DcmElement* el = nullptr;
+        if (ds->findAndGetElement(DCM_PixelData, el).good() && el != nullptr) {
+            undefLen = (el->getLengthField() == DCM_UndefinedLength);
+            DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+            DcmPixelSequence* seq = nullptr;
+            const DcmRepresentationParameter* param = nullptr;
+            sv1 = pd->getEncapsulatedRepresentation(EXS_JPEGProcess14SV1, param, seq).good();
+            p14 = pd->getEncapsulatedRepresentation(EXS_JPEGProcess14,    param, seq).good();
+        }
+        GTEST_LOG_(INFO) << c.label
+                         << " | undefined length=" << undefLen
+                         << " | has .70 rep=" << sv1
+                         << " | has .57 rep=" << p14
+                         << " | detected=" << XferUid(ds->getOriginalXfer());
+    }
+    DJEncoderRegistration::cleanup();
+
+    // --- can anything reach getMetaInfo() == NULL? -------------------------
+    struct Raw { const char* label; std::string bytes; };
+    const Raw raws[] = {
+        { "empty file",                 std::string() },
+        { "preamble only (128+DICM)",   std::string(128, '\0') + "DICM" },
+        { "4 random bytes",             std::string("\x01\x02\x03\x04", 4) },
+        { "one tag, no value",          std::string("\x08\x00\x05\x00", 4) },
+    };
+    for (const auto& r : raws) {
+        const auto path = s_tempDir / (std::string("b72_raw_") +
+                                       std::to_string(&r - raws) + ".dcm");
+        { std::ofstream f(path, std::ios::binary); f.write(r.bytes.data(), r.bytes.size()); }
+        DcmFileFormat ff;
+        const bool loaded = ff.loadFile(path.string().c_str(), EXS_Unknown, EGL_noChange,
+                                        DCM_MaxReadLength).good();
+        const bool metaNull = (ff.getMetaInfo() == nullptr);
+        GTEST_LOG_(INFO) << "reach :171? " << r.label
+                         << " | loadFile good=" << loaded
+                         << " | getMetaInfo()==NULL=" << metaNull;
+    }
+    // A freshly constructed DcmFileFormat, never loaded: what does it return?
+    DcmFileFormat fresh;
+    GTEST_LOG_(INFO) << "reach :171? fresh DcmFileFormat | getMetaInfo()==NULL="
+                     << (fresh.getMetaInfo() == nullptr);
+    SUCCEED();
+}
+
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-72) — the TS-less path, case by case.
+//
+// Three checks were added to open(): (1) the detected syntax must be on the
+// accepted list; (2) an encapsulated PixelData contradicting a native detection
+// is refused; (3) the getMetaInfo() == NULL branch is closed. This table pins
+// the outcome of each fixture and, as importantly, WHERE it is decided:
+//
+//   - the native leaks must be refused at open() -- (1);
+//   - the encapsulated files must ALSO be refused at open(). Before QA-B-72
+//     they opened (0) and were stopped at read (DICOM_INVALID, -13) by the
+//     native read failing on an encapsulated stream. An open() refusal is the
+//     evidence that (2), not structure, is what stops them now;
+//   - the supported native file keeps producing pixels -- the control that
+//     says the checks did not block too much;
+//   - labelled .70 / .57 files keep producing pixels -- the normal path is
+//     untouched.
+//
+// (3) has no row: no input reaches that branch (measured, five attempts), so it
+// has no execution test. That is stated, not hidden.
+//
+// SYNTHETIC (#148).
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, TsLessPathIsDecidedByChecksNotByStructure) {
+    struct Row {
+        const char*      label;
+        E_TransferSyntax xfer;
+        bool             withMeta;
+        XpeErrorCode     expectOpen;
+        bool             expectPixels;
+    };
+    const Row rows[] = {
+        { "TS-less Explicit VR LE (control)", EXS_LittleEndianExplicit, false, XPE_OK,                     true  },
+        { "TS-less Implicit VR LE",           EXS_LittleEndianImplicit, false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less Explicit VR BE",           EXS_BigEndianExplicit,    false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less .70",                      EXS_JPEGProcess14SV1,     false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less .57",                      EXS_JPEGProcess14,        false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "labelled .70 (normal path)",       EXS_JPEGProcess14SV1,     true,  XPE_OK,                     true  },
+        { "labelled .57 (normal path)",       EXS_JPEGProcess14,        true,  XPE_OK,                     true  },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    int idx = 0;
+    for (const auto& r : rows) {
+        const auto path = s_tempDir / (std::string("b72_row_") + std::to_string(idx++) + ".dcm");
+        const bool wrote = r.withMeta ? WriteWithMeta(s_validDcm, path, r.xfer)
+                                      : WriteDatasetOnly(s_validDcm, path, r.xfer);
+        ASSERT_TRUE(wrote) << r.label << ": fixture could not be written";
+
+        const OpenResult got = OpenAndRead(path);
+        GTEST_LOG_(INFO) << r.label << ": open=" << got.open << " read=" << got.read
+                         << " pixels=" << got.gotPixels << " " << got.w << "x" << got.h;
+
+        EXPECT_EQ(r.expectOpen, got.open) << r.label;
+        EXPECT_EQ(r.expectPixels, got.open == XPE_OK && got.read == XPE_OK && got.gotPixels)
+            << r.label;
+    }
+    DJEncoderRegistration::cleanup();
+}
+
+// ---------------------------------------------------------------------------
+// #168 (QA-B-73) — can the bitstream tell .57 from .70?  (measurement only)
+//
+// .70 is JPEG Lossless Process 14 with Selection Value 1: the predictor is
+// fixed to 1. .57 is Process 14 with ANY first-order predictor 1..7. In a
+// lossless JPEG stream the predictor is the Ss byte of the SOS segment
+// (FF DA, Ls, Ns, Ns x {Cs, Td/Ta}, Ss, Se, Ah/Al).
+//
+// THE TRAP, checked first: a .57 stream encoded with predictor 1 may be
+// byte-for-byte a .70 stream. If so, ".70 bytes under a .57 label" is not a
+// contradiction at all -- it is a legal .57 file -- and #168's premise needs
+// restating. This case therefore compares whole first fragments, not just Ss.
+//
+// Also asked: does DCMTK hand back the predictor it decoded (a representation
+// parameter on the loaded dataset), or must the stream be read?
+//
+// SYNTHETIC (#148): every stream here is DCMTK's own encoder output.
+// ---------------------------------------------------------------------------
+
+TEST_F(DicomReaderTest, KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured) {
+    struct Row { const char* label; E_TransferSyntax xfer; int predictor; };
+    std::vector<Row> rows = {
+        { ".70 default",  EXS_JPEGProcess14SV1, 0 },
+        { ".57 default",  EXS_JPEGProcess14,    0 },
+    };
+    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14SV1, p });
+    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14,    p });
+
+    std::map<std::string, std::vector<Uint8>> fragments;
+    int idx = 0;
+    for (const auto& r : rows) {
+        const std::string name = r.label ? std::string(r.label)
+            : std::string(r.xfer == EXS_JPEGProcess14SV1 ? ".70" : ".57") +
+              " pred=" + std::to_string(r.predictor);
+        const auto path = s_tempDir / ("b73_" + std::to_string(idx++) + ".dcm");
+        if (!EncodeAs(s_validDcm, path, r.xfer, r.predictor)) {
+            GTEST_LOG_(INFO) << name << ": encoder refused -- not measured";
+            continue;
+        }
+        const FragmentProbe fp = FirstFragment(path);
+        if (!fp.ok) {
+            GTEST_LOG_(INFO) << name << ": could not read first fragment";
+            continue;
+        }
+        const SosInfo s = ParseSofSos(fp.firstFragment);
+        fragments[name] = fp.firstFragment;
+        char sof[8];
+        std::snprintf(sof, sizeof(sof), "0x%02X", s.sofMarker);
+        GTEST_LOG_(INFO) << name
+                         << " | label=" << fp.labelUid
+                         << " | SOF=" << sof
+                         << " | SOS Ss(predictor)=" << s.ss
+                         << " Se=" << s.se << " Al=" << s.al
+                         << " | fragment bytes=" << fp.firstFragment.size()
+                         << " | DCMTK param present=" << fp.paramPresent
+                         << " prediction=" << fp.paramPrediction;
+    }
+
+    // THE TRAP: are a .70 stream and a predictor-1 .57 stream the same bytes?
+    auto same = [&](const std::string& a, const std::string& b) {
+        if (!fragments.count(a) || !fragments.count(b)) return std::string("n/a");
+        return std::string(fragments[a] == fragments[b] ? "IDENTICAL" : "differ");
+    };
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .57 pred=1  : " << same(".70 default", ".57 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .57 default : " << same(".70 default", ".57 default");
+    GTEST_LOG_(INFO) << "first fragment  .70 pred=1   vs .57 pred=1  : " << same(".70 pred=1", ".57 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .70 pred=1  : " << same(".70 default", ".70 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 pred=1   vs .70 pred=2  : " << same(".70 pred=1", ".70 pred=2");
+
+    // The #168 fixture itself: .70 bytes relabelled .57.
+    const auto genuine70 = s_tempDir / "b73_genuine70.dcm";
+    const auto relabel   = s_tempDir / "b73_relabel57.dcm";
+    if (WriteJpegLosslessCopy(s_validDcm, genuine70)) {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(genuine70.string().c_str()).good());
+        ASSERT_TRUE(ff.getMetaInfo()->putAndInsertString(DCM_TransferSyntaxUID,
+                                                         "1.2.840.10008.1.2.4.57").good());
+        ASSERT_TRUE(ff.saveFile(relabel.string().c_str(), EXS_JPEGProcess14SV1,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+        const FragmentProbe fp = FirstFragment(relabel);
+        const SosInfo s = fp.ok ? ParseSofSos(fp.firstFragment) : SosInfo{};
+        GTEST_LOG_(INFO) << "#168 fixture (.70 bytes, .57 label) | read ok=" << fp.ok
+                         << " | label=" << fp.labelUid
+                         << " | SOS Ss=" << s.ss
+                         << " | fragment bytes=" << fp.firstFragment.size();
+    }
+    SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #174 (QA-B-74) — the first test of what .57 can carry that .70 cannot.
+//
+// .57 (JPEG Lossless, Process 14) allows first-order predictors 1..7; .70 fixes
+// the predictor at 1. QA-B-73 measured that a predictor-1 .57 stream is
+// byte-identical to a .70 stream, so every .57 test before this one exercised
+// nothing that .70 does not. This case exercises predictors 2..7.
+//
+// TWO things are asserted per fixture, and the second is the point of #174:
+//   1. the decoded frame is pixel-exact against the uncompressed source;
+//   2. the fixture IS what the case claims to test -- its SOS Ss byte equals the
+//      requested predictor, and its first fragment differs from every other
+//      fixture's. QA-B-73 found a predictor-variant test that handed seven
+//      requests to an encoder which ignored six of them, and whose guard counted
+//      files produced rather than streams received. Size is not a proxy: in
+//      QA-B-73 predictor 5 and predictor 1 produced fragments of the same length.
+//
+// The distinctness check is written to be falsifiable: feeding the same
+// predictor more than once must turn it red (QA-B-74 §3).
+//
+// SYNTHETIC (#148): DCMTK's own encoder output.
+// ---------------------------------------------------------------------------
+namespace {
+
+// The predictor list the case runs over. Kept as data so the falsification --
+// predictor 1 six times -- is a one-line change here and nothing else.
+const std::vector<int> kP14Predictors = {1, 2, 3, 4, 5, 6, 7};
+
+}  // namespace
+
+TEST_F(DicomReaderTest, ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct) {
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+    const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                         sizeof(uint16_t);
+
+    std::set<std::vector<Uint8>> distinctFragments;
+    int produced = 0;
+    int pixelExact = 0;
+
+    for (int predictor : kP14Predictors) {
+        SCOPED_TRACE(".57 predictor " + std::to_string(predictor));
+        const auto path = s_tempDir / ("b74_p14_pred" + std::to_string(predictor) + "_" +
+                                       std::to_string(produced) + ".dcm");
+        ASSERT_TRUE(EncodeAs(s_validDcm, path, EXS_JPEGProcess14, predictor))
+            << "DCMTK did not encode .57 with this predictor -- QA-B-73 measured that it can";
+        ++produced;
+
+        // --- (2) is this fixture what it claims to be? ------------------------
+        const FragmentProbe fp = FirstFragment(path);
+        ASSERT_TRUE(fp.ok) << "first fragment not readable";
+        EXPECT_EQ("1.2.840.10008.1.2.4.57", fp.labelUid);
+        const SosInfo sos = ParseSofSos(fp.firstFragment);
+        ASSERT_TRUE(sos.found) << "no SOS in the first fragment";
+        EXPECT_EQ(0xC3, sos.sofMarker) << "not a lossless (SOF3) stream";
+        EXPECT_EQ(predictor, sos.ss)
+            << "the stream carries a different predictor than was requested";
+        distinctFragments.insert(fp.firstFragment);
+
+        // --- (1) does the reader decode it exactly? ---------------------------
+        XpeDicomHandle* handle = nullptr;
+        const XpeErrorCode ecOpen = xpe_dicom_open(path.string().c_str(), &handle);
+        XpeImageBuffer actual{};
+        XpeErrorCode ecRead = XPE_ERR_INTERNAL;
+        size_t differing = static_cast<size_t>(-1);
+        if (ecOpen == XPE_OK) {
+            ecRead = xpe_dicom_read_image(handle, &actual);
+            if (ecRead == XPE_OK && actual.width == expected.width &&
+                actual.height == expected.height) {
+                const auto* a = static_cast<const uint16_t*>(expected.data);
+                const auto* b = static_cast<const uint16_t*>(actual.data);
+                differing = 0;
+                for (size_t i = 0; i < bytes / sizeof(uint16_t); ++i) {
+                    if (a[i] != b[i]) ++differing;
+                }
+            }
+        }
+        GTEST_LOG_(INFO) << ".57 predictor " << predictor
+                         << " | Ss=" << sos.ss
+                         << " | fragment bytes=" << fp.firstFragment.size()
+                         << " | open=" << ecOpen << " read=" << ecRead
+                         << " | " << actual.width << "x" << actual.height
+                         << " | differing pixels=" << static_cast<long long>(differing);
+
+        EXPECT_EQ(XPE_OK, ecOpen);
+        EXPECT_EQ(XPE_OK, ecRead);
+        EXPECT_EQ(0u, differing) << "not pixel-exact";
+        if (differing == 0) ++pixelExact;
+
+        if (ecRead == XPE_OK) xpe_free_image(&actual);
+        xpe_dicom_close(handle);
+    }
+
+    GTEST_LOG_(INFO) << ".57 predictor fixtures: produced=" << produced
+                     << " distinct streams=" << distinctFragments.size()
+                     << " pixel-exact=" << pixelExact;
+
+    // The guard #174 is about: count what was RECEIVED, not what was requested.
+    EXPECT_EQ(static_cast<size_t>(produced), distinctFragments.size())
+        << "two or more fixtures are the same stream -- the case is testing fewer "
+           "predictors than it names";
+    EXPECT_GE(distinctFragments.size(), 2u)
+        << "only one distinct stream -- nothing beyond what .70 carries was tested";
+
+    xpe_free_image(&expected);
 }

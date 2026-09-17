@@ -186,7 +186,7 @@ log) giving ~8x throughput in MFP and bilateral filter loops.
 ### xpe_detect_collimation
 ```json
 {
-  "sensitivity": 0.5,
+  "confidence_strictness": 0.5,   // renamed 2026-09-16 (#164); was "sensitivity", which named the opposite of what it does
   "min_area_ratio": 0.05,
   "border_margin": 8
 }

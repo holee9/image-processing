@@ -73,6 +73,9 @@ protected:
 
     void TearDown() override {
         xpe_calib_cache_clear();
+        // Put the capacity back to the module default (maxSize_{4},
+        // calibration_cache.cpp); two cases here shrink it to 1 (QA-A-90, #176).
+        xpe_calib_cache_set_max_size(4);
         fs::remove_all(tmpDir);
     }
 

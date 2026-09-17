@@ -162,7 +162,17 @@ Microsoft WPF 표준 따름 (https://learn.microsoft.com/en-us/windows/apps/desi
 | Zoom 100% | `Ctrl+1` | View → Zoom 100% |
 | Pan Mode | `Space (hold)` | 임시 pan |
 | Compare Swipe | `F5` | View → Compare → Swipe |
-| Compare Difference | `F6` | View → Compare → Difference |
+| Compare Split | `F6` | View → Compare → Split |
+| Compare Overlay | `F7` | View → Compare → Overlay |
+| Compare Difference | `F8` | View → Compare → Difference |
+
+> **정정 2026-09-16 (leader, GUI-C-58 / #149) — `F6` 은 Split 입니다.**
+>
+> 이 표는 원래 `F6` 을 Compare Difference 로 적었습니다. `XPE-GUI-MENU-001` 이 **§9.3 과 §10.1 두 곳에서** `F6` = Split, `F8` = Difference 로 적고 두 곳이 일치하므로, **이 행이 틀렸습니다.** 원래 값은 `F8` = Difference 와도 충돌했습니다.
+>
+> 빠져 있던 `F7`(Overlay) · `F8`(Difference) 행도 함께 채웠습니다 — 이 표가 `F5` 와 `F6` 만 들고 있어서, 충돌이 있는지조차 한 표 안에서 볼 수 없었습니다.
+>
+> **GUI-C-58 이 이 충돌 때문에 `F6` 을 배선하지 않았고, 그 판단이 옳았습니다.**
 | Run Preprocessing | `F9` | Pipeline → Run Preprocessing |
 | Run Full Pipeline | `F10` | Pipeline → Run Full Pipeline |
 | Stop Processing | `Esc` | Pipeline → Stop |

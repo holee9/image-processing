@@ -345,13 +345,39 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_correct_avx2_parity.cpp
         tests/test_defect_correct_avx2_parity.cpp
         # QA-A-42 (#144): renamed from test_runtime_detection_avx2_parity.cpp --
-        # it asserts determinism, not AVX2 parity; there is no AVX2 path here.
+        # it asserts determinism, not AVX2 parity. QA-A-65 (#144) then added an
+        # AVX2 path to the per-pixel loop, so the freed name is in use again by
+        # the file below; this one keeps its determinism scope.
         tests/test_runtime_detection_determinism.cpp
+        tests/test_runtime_detection_avx2_parity.cpp
         # QA-A-33 (#120 #112): correctness half deleted by QA-A-27
         tests/test_runtime_detection_functional.cpp
         tests/test_runtime_detection_errors.cpp
-        # TODO SPEC-SIMD-001: test_offset_correct_avx512_parity.cpp — blocked by xpe_simd_force_scalar API
-        # TODO SPEC-SIMD-001: test_offset_correct_neon_parity.cpp — blocked by NEON dispatch API (ARM only)
+        # QA-A-76 (#160): two TODOs stood here, both reading "blocked by <dispatch>
+        # API". Neither was blocked, and neither is a plan any more.
+        #
+        #   test_offset_correct_avx512_parity.cpp — blocked by xpe_simd_force_scalar API
+        #   test_offset_correct_neon_parity.cpp   — blocked by NEON dispatch API (ARM only)
+        #
+        # WHAT WAS ACTUALLY TRUE. Neither test file existed (QA-A-75 searched the
+        # worktree for *avx512* and *neon* names and found none), so there was no
+        # written work waiting on anything. The API they named lived in
+        # modules/preprocess/src/simd_dispatch.cpp, which was never in this source
+        # list in any commit and never compiled -- XPE_EXPORT has no definition in
+        # the repository's history. QA-A-76 deleted that file.
+        #
+        # AND THE PLAN IS RETIRED. SPEC-XPE-P1A section 4.6 makes AVX2 a minimum
+        # platform requirement, so there is no product reason to select a scalar
+        # path at run time; the dispatch design and AC-SIMD-005 were withdrawn in
+        # f1b963e, and plan.md M5-1 with them. A forced-scalar parity test is not
+        # deferred work -- it is work that is no longer wanted.
+        #
+        # What replaced its intent: the AVX2 kernels are compared against inline
+        # scalar reference implementations directly (QA-A-72 for gain, QA-A-73 for
+        # offset), which needs no runtime switch. See xpe_preprocess_internal.h.
+        #
+        # A "blocked" marker is expensive to leave lying: it tells the next reader
+        # there is something to unblock. There is not.
         # SWU-1.12: Calibration generation and verification tests (FUNC-022~027)
         tests/test_calib_generate_gain.cpp
         tests/test_defect_gen.cpp
@@ -380,6 +406,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_radix_select_parity.cpp
         tests/test_runtime_detection_performance_gate.cpp
         tests/test_runtime_detection_sigma_buffer_parity.cpp
+        tests/test_runtime_detection_thread_parity.cpp
+        tests/test_runtime_detection_map_length.cpp
     )
 
     add_executable(xpe_preprocess_tests

@@ -1,5 +1,10 @@
 # Implementation Plan: SPEC-XPE-P1A
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 1줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 ---
 spec_id: SPEC-XPE-P1A
 version: 1.2.0
@@ -58,11 +63,11 @@ modules/preprocess/
         xpe_defect_correction.cpp               # Defect correction (SWU-1.3)
         xpe_calibration.cpp                     # Calibration file I/O (SUP-01)
         xpe_readout_validation.cpp              # Readout artifact validation
-        simd/
-            xpe_offset_avx2.cpp                 # AVX2 offset correction
-            xpe_gain_avx2.cpp                   # AVX2 gain correction
-            xpe_defect_avx2.cpp                 # AVX2 defect correction
-            xpe_simd_dispatch.cpp               # Runtime SIMD feature detection
+        simd/                                   # PLANNED, NOT BUILT — see the M5 note below
+            xpe_offset_avx2.cpp                 # never created; kernel lives inline in offset_correct.cpp
+            xpe_gain_avx2.cpp                   # never created; kernel lives inline in gain_correct.cpp
+            xpe_defect_avx2.cpp                 # never created; kernel lives inline in defect_correct.cpp
+            xpe_simd_dispatch.cpp               # never created; the nearest thing, simd_dispatch.cpp, was deleted in QA-A-76
         detail/
             xcal_parser.h                       # XCal format parser
             xcal_parser.cpp                     # XCal format parser impl
@@ -169,11 +174,28 @@ modules/preprocess/
 
 | Task | Description                                                        | Dependency |
 |------|--------------------------------------------------------------------|------------|
-| M5-1 | `xpe_simd_dispatch.cpp` CPUID 기반 AVX2 runtime detection          | M1         |
-| M5-2 | `xpe_offset_avx2.cpp` 구현 (`_mm256_subs_epu16` 활용)              | M2-1, M5-1 |
-| M5-3 | `xpe_gain_avx2.cpp` 구현 (FMA chains, uint16->float32 변환)        | M2-2, M5-1 |
-| M5-4 | `xpe_defect_avx2.cpp` 구현 (SIMD gather/scatter interpolation)     | M2-3, M5-1 |
-| M5-5 | `test_simd_parity.cpp` Scalar vs AVX2 bit-exact equivalence 테스트 | M5-2~M5-4  |
+| M5-1 | ~~`xpe_simd_dispatch.cpp` CPUID 기반 AVX2 runtime detection~~ **철회** | M1         |
+| M5-2 | ~~`xpe_offset_avx2.cpp` 구현 (`_mm256_subs_epu16` 활용)~~ **설계 변경** | M2-1, M5-1 |
+| M5-3 | ~~`xpe_gain_avx2.cpp` 구현~~ **설계 변경** — 커널은 `gain_correct.cpp` 안에 | M2-2, M5-1 |
+| M5-4 | ~~`xpe_defect_avx2.cpp` 구현~~ **설계 변경** — 커널은 `defect_correct.cpp` 안에 | M2-3, M5-1 |
+| M5-5 | ~~`test_simd_parity.cpp`~~ → `test_*_avx2_parity.cpp` 4개로 대체 (20 TEST) | M5-2~M5-4  |
+
+> **M5 정정 2026-09-16 (QA-A-75, #160).** 이 표는 출하된 설계가 아니라 **옛 설계**를 적고 있었고,
+> 그 사실이 코드 쪽에 흔적을 남겼습니다.
+>
+> - **M5-1 은 철회됩니다.** §4.6 이 AVX2 를 최소 플랫폼으로 확정했으므로(사용자 결정 2026-09-16)
+>   런타임 검출이 고를 것이 없습니다. `modules/preprocess/src/simd_dispatch.cpp` 는 CMake 소스
+>   목록에 없고 **컴파일되지 않습니다**(`XPE_EXPORT` 정의가 저장소에 0건, 첫 사용에서 `error C2143`).
+> - **M5-2~M5-4 는 설계가 바뀌었습니다.** AVX2 커널은 별도 `simd/` 파일이 아니라 각 보정 `.cpp`
+>   안에 인라인으로 있습니다. 계획된 `simd/` 디렉터리는 존재한 적이 없습니다.
+> - **M5-2 의 `_mm256_subs_epu16` 이 죽은 커널 넷의 출처였습니다.** 그 명령을 쓰던
+>   `offset_correct_avx2` 와 그 스칼라·AVX-512·NEON 짝은 호출자가 0인 채 남아 있다가
+>   QA-A-74 에서 제거됐습니다. 그것들은 버려진 코드가 아니라 **이 문서가 아직 적고 있던 설계의
+>   구현체**였습니다 — 문서가 옛 설계를 계속 말하면, 그 설계의 잔해를 지워도 될지 판단하기가
+>   어려워집니다. 이 정정이 그 연결을 끊습니다.
+> - **M5-5 는 다른 형태로 달성됐습니다.** 단일 하네스 대신 연산별 파리티 파일 4개이고,
+>   런타임 스위치 없이 **같은 소스에서 컴파일된 인라인 스칼라 기준**과 비교합니다.
+>   케이스 수는 계획과 다릅니다(계획 100입력x4 → 실제 TEST 20개, 전 프레임 비교).
 | M5-6 | Performance benchmark (3072x3072 목표 달성 검증)                    | M5-5       |
 
 **SIMD 전략 참조** (research.md line 97-102):
@@ -415,7 +437,7 @@ See `benchmark/BP-01-05-preprocess-manifest.md` v1.0.0. Pre Lane M2 release gate
 - BP-02 Multi-gain linearity dataset captured and passing (REQ-P1A-011)
 - BP-03 Heel-effect SID dataset captured and passing (REQ-P1A-011)
 - BP-04 Defect density dataset captured and passing (REQ-P1A-012, 013)
-- BP-SIMD addendum (1830/1830 parity) passing (REQ-P1A-040)
+- ~~BP-SIMD addendum (1830/1830 parity) passing (REQ-P1A-040)~~ — **철회 2026-09-17 (QA-A-85).** `acceptance.md` 에서는 먼저 걷어냈는데 이 줄이 남아 있었습니다. `1830` 은 존재한 적 없는 하네스의 수치입니다. 현재 파리티는 `test_*_avx2_parity.cpp` 4개 파일, TEST 20건입니다.
 
 Freeze protocol: SHA-256 hashes locked before release; any replacement requires version bump per parent spec Section 7.
 

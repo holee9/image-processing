@@ -147,8 +147,11 @@ TEST(ParameterDependency, VoiLut_EveryParameterReachesTheOutput) {
 // maps exactly from minOut to maxOut WITHOUT the half-value offset" -- the
 // offset is present in both branches.
 //
-// (The EXACT branch's comment also cites REQ-DISP-011, which is the sigmoid
-// requirement; REQ-DISP-010 is the one it implements. Noted, not fixed.)
+// (The mis-cited requirement numbers this case once noted are fixed: QA-B-59
+// corrected the EXACT branch, and QA-B-66 corrected the rest -- the citations
+// from REQ-DISP-010 onward had all shifted by one, in voi_lut.cpp and
+// test_voi_lut.cpp alike. 009 LINEAR / 010 LINEAR_EXACT / 011 SIGMOID /
+// 012 clamp-to-range is the mapping in the SPEC.)
 //
 // Not fixed: changing it changes displayed pixel values for every caller that
 // selects EXACT (#154 / #155 precedent).
@@ -177,9 +180,75 @@ TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
 }
 
 // ---------------------------------------------------------------------------
-// xpe_voi_preset_create -- the body part must reach the params
+// #156 (QA-B-66): the same fact, asserted the other way round -- and currently
+// FAILING on purpose.
+//
+// The case above pins what the code does today. That is worth having, but on its
+// own it has the wrong polarity for a defect: whoever finally implements
+// REQ-DISP-010 will see a RED test whose message says the code is wrong, and the
+// cheapest reading of a red test is "I broke something". The risk is that the
+// fix gets reverted to make the suite green again.
+//
+// So the requirement is asserted here as well, in the direction the requirement
+// actually points: the two modes MUST differ. It fails today, which is correct
+// -- the defect is real. It is DISABLED_ rather than left red because the defect
+// is BLOCKED, not merely unfixed: REQ-DISP-010 says LINEAR_EXACT maps the window
+// "without the half-value offset", and voi_lut.cpp:50 still has `+ 0.5f`, but
+// what the branch should compute INSTEAD cannot be written without DICOM PS3.3
+// C.11.2.1.3 itself. Guessing a formula would put an unverifiable number into
+// the tree under the name "standard-compliant", which is why #156 is waiting on
+// an external document rather than on work.
+//
+// WHEN THE STANDARD ARRIVES: implement the branch, remove the DISABLED_ prefix,
+// and retire KnownDivergence_VoiLinearExactEqualsVoiLinear above. This case
+// turning green is the signal that the two modes finally differ; that one going
+// red is the same fact seen from the other side.
+//
+// THRESHOLD: kMeaningful (1e-4 on a [0,1] output), not `> 0`. The two branches
+// differ today by float-association noise of about 6e-08 -- one ulp at this
+// scale -- so a `> 0` assertion would go green on rounding and report the defect
+// fixed while nothing had changed. Three orders of magnitude of separation is
+// what keeps "the modes differ" from meaning "the adds happened in a different
+// order".
 // ---------------------------------------------------------------------------
-TEST(ParameterDependency, VoiPreset_BodyPartReachesTheParams) {
+TEST(ParameterDependency, DISABLED_VoiLinearExactMustDifferFromLinear) {
+    auto run = [](XpeVoiLutMode mode) {
+        std::vector<float> px = Gradient(-500.0f, 1500.0f);
+        XpeImageBuffer img = WrapFloat32(px);
+        XpeVoiLutParams p{};
+        p.mode   = mode;
+        p.center = 500.0f;
+        p.width  = 1000.0f;
+        p.minOut = 0.0f;
+        p.maxOut = 1.0f;
+        EXPECT_EQ(XPE_OK, xpe_apply_voi_lut(&img, &p));
+        return px;
+    };
+
+    constexpr double kMeaningful = 1e-4;
+    const double diff = MaxDiff(run(XPE_VOI_LINEAR), run(XPE_VOI_LINEAR_EXACT));
+    GTEST_LOG_(INFO) << "LINEAR vs LINEAR_EXACT maxdiff=" << diff
+                     << " (threshold " << kMeaningful
+                     << "; one ulp at this scale is ~6e-08)";
+
+    EXPECT_GT(diff, kMeaningful)
+        << "REQ-DISP-010 asks LINEAR_EXACT to map the window without the "
+           "half-value offset, which would make it differ from LINEAR. Both "
+           "branches currently evaluate the same expression, so the mode "
+           "selection has no effect. Blocked on DICOM PS3.3 C.11.2.1.3 (#156).";
+}
+
+// ---------------------------------------------------------------------------
+// xpe_voi_preset_create -- today the body part does NOT change the params
+//
+// REQ-DISP-017 was revised on 2026-09-17 (#177): the presets are in detector
+// DN, and until real detector data (#151) gives per-body-part windows, every
+// body part returns the same provisional window 32768/65535. This case used to
+// assert that BONE and LUNG differ; it now asserts that they are the SAME, so
+// that the day per-part DN values arrive it turns red and someone updates it
+// on purpose rather than the provisional equality lingering unnoticed.
+// ---------------------------------------------------------------------------
+TEST(ParameterDependency, KnownDivergence_VoiPresetIgnoresBodyPartUntil151) {
     auto run = [](XpeBodyPart part) {
         XpeVoiLutParams p{};
         EXPECT_EQ(XPE_OK, xpe_voi_preset_create(&p, part));
@@ -194,10 +263,12 @@ TEST(ParameterDependency, VoiPreset_BodyPartReachesTheParams) {
                      << " | LUNG c=" << lung.center << " w=" << lung.width
                      << " | HEAD c=" << head.center << " w=" << head.width;
 
-    EXPECT_TRUE(bone.center != lung.center || bone.width != lung.width)
-        << "BONE and LUNG produce the same window";
-    EXPECT_TRUE(bone.center != head.center || bone.width != head.width)
-        << "BONE and HEAD produce the same window";
+    EXPECT_TRUE(bone.center == lung.center && bone.width == lung.width)
+        << "BONE and LUNG now differ -- per-body-part DN windows have arrived "
+           "(#151/#177); update this case and REQ-DISP-017 deliberately";
+    EXPECT_TRUE(bone.center == head.center && bone.width == head.width)
+        << "BONE and HEAD now differ -- per-body-part DN windows have arrived "
+           "(#151/#177); update this case and REQ-DISP-017 deliberately";
 }
 
 // ---------------------------------------------------------------------------
