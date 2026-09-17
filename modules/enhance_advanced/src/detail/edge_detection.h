@@ -40,6 +40,16 @@ struct EdgeGradientResult {
     EdgeGradientResult(int rows, int cols)
         : magnitude(rows, cols)
         , direction(rows, cols) {}
+
+    /**
+     * @brief Construct with the direction map left empty (QA-B-102, #179)
+     * @param rows Image height
+     * @param cols Image width
+     * @param withDirection false: direction stays 0 x 0 and is not computed
+     */
+    EdgeGradientResult(int rows, int cols, bool withDirection)
+        : magnitude(rows, cols)
+        , direction(withDirection ? rows : 0, withDirection ? cols : 0) {}
 };
 
 /**
@@ -53,7 +63,12 @@ struct EdgeGradientResult {
  * Gradient direction: atan2(Gy, Gx)
  *
  * @param image Input image as Eigen matrix (float32 pixel values)
- * @return EdgeGradientResult containing magnitude and direction maps
+ * @param withDirection false: skip the per-pixel atan2 and leave
+ *        EdgeGradientResult::direction empty (0 x 0). The magnitude map is
+ *        identical either way. Collimation detection reads only the magnitude,
+ *        and the atan2 was 3072x3072 calls it never used (QA-B-102, #179).
+ * @return EdgeGradientResult containing the magnitude map, and the direction
+ *         map when @p withDirection is true
  *
  * REQ-ADV-012: Edge detection for Hough transform input
  * AC-COL-001: Synthetic collimation border detection accuracy
@@ -61,7 +76,8 @@ struct EdgeGradientResult {
  * @note Input image must have at least 3x3 dimensions for Sobel kernels
  * @note Output matrices are same size as input
  */
-EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image);
+EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image,
+                                         bool withDirection = true);
 
 } // namespace detail
 } // namespace enhance_advanced

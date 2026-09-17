@@ -123,7 +123,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         Eigen::Map<const RowMajorMatrixXf> image(data, height, width);
 
         xpe::enhance_advanced::detail::EdgeGradientResult gradients =
-            xpe::enhance_advanced::detail::computeSobelGradients(image);
+            xpe::enhance_advanced::detail::computeSobelGradients(image, /*withDirection=*/false);
 
         auto edgeTime = std::chrono::high_resolution_clock::now();
 

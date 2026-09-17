@@ -32,6 +32,16 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
     Eigen::MatrixXi accumulator(thetaBins_, 2 * maxRho_);
     accumulator.setZero();
 
+    // QA-B-102 (#179): cos/sin of each theta bin, computed once instead of once
+    // per (edge pixel, bin). Same values, so the accumulator is unchanged: the
+    // arguments are the same floats and std::cos/std::sin are deterministic.
+    std::vector<float> cosT(static_cast<size_t>(thetaBins_)), sinT(static_cast<size_t>(thetaBins_));
+    for (int t = 0; t < thetaBins_; ++t) {
+        const float theta = static_cast<float>(t) * thetaStep_;
+        cosT[static_cast<size_t>(t)] = std::cos(theta);
+        sinT[static_cast<size_t>(t)] = std::sin(theta);
+    }
+
     // Build accumulator by voting
     for (int y = 0; y < rows; ++y) {
         for (int x = 0; x < cols; ++x) {
@@ -42,11 +52,12 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
                 continue;
             }
 
+            const int mag = static_cast<int>(magnitude);
+            const float fx = static_cast<float>(x), fy = static_cast<float>(y);
             // Vote for all theta bins
             for (int t = 0; t < thetaBins_; ++t) {
-                const float theta = static_cast<float>(t) * thetaStep_;
-                const float rho = static_cast<float>(x) * std::cos(theta)
-                                + static_cast<float>(y) * std::sin(theta);
+                const float rho = fx * cosT[static_cast<size_t>(t)]
+                                + fy * sinT[static_cast<size_t>(t)];
 
                 // Convert rho to bin index (offset by maxRho for negative values).
                 // #183 (QA-B-98): ROUND, not truncate. At theta = pi/2 in float,
@@ -60,7 +71,7 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
                 rhoBin = std::max(0, std::min(rhoBin, 2 * maxRho_ - 1));
 
                 // Add vote
-                accumulator(t, rhoBin) += static_cast<int>(magnitude);
+                accumulator(t, rhoBin) += mag;
             }
         }
     }
