@@ -1,6 +1,8 @@
 add_library(gsvg
     src/gsvg.cpp
     src/grid_dwt.cpp
+    # #180 (QA-B-91): virtual grid
+    src/virtual_grid.cpp
 )
 
 target_include_directories(gsvg
@@ -63,9 +65,12 @@ if(_XPE_BUILD_TESTS)
         tests/test_grid_tools.cpp
         # #180 (QA-B-90): DWT grid suppression, measured with the tools above
         tests/test_grid_suppression.cpp
+        # #180 (QA-B-91): virtual grid on self-consistent synthetic images
+        tests/test_virtual_grid.cpp
         # grid_dwt.cpp is compiled into the test binary as well: its functions are
         # internal to gsvg.dll (not exported), and the tests call them directly.
         src/grid_dwt.cpp
+        src/virtual_grid.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE

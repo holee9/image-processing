@@ -1,0 +1,587 @@
+// #180 (QA-B-91): virtual grid (virtual_grid.cpp).
+//
+// What these cases can show: the algorithm recovers the primary of images
+// built with ITS OWN forward model and ITS OWN (synthetic) table. That says
+// nothing about real scatter -- a model that is consistently wrong passes a
+// self-consistency test. Agreement with physics waits for the MC tables
+// (QA-A-94..97) and a real detector (#151).
+//
+// Scenes are never a single uniform slab (#148): a thickness step and a smooth
+// gradient, each with small high-attenuation details.
+//
+// Table: tests/data/virtual_grid_synthetic_table.csv (invented numbers).
+
+#include <gtest/gtest.h>
+
+#include "virtual_grid.h"
+#include "perf_measure.h"
+
+#include "xpe/gsvg/gsvg_api.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace vg = xpe_gsvg_detail;
+
+namespace {
+
+constexpr const char* kTablePath = "tests/data/virtual_grid_synthetic_table.csv";
+constexpr int    kN = 256;
+constexpr double kPitchMm = 1.0;
+constexpr double kKvp = 80.0;
+constexpr double kI0 = 60000.0;
+constexpr double kIdealRatio = 100.0;   // tp 1, ts 0 in the synthetic table
+
+std::string ReadFile(const char* path) {
+    std::ifstream f(path, std::ios::binary);
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    return ss.str();
+}
+
+const vg::ParamTable& Table() {
+    static vg::ParamTable t;
+    static const std::string err = vg::LoadParamTable(kTablePath, t);
+    EXPECT_EQ(err, "");
+    return t;
+}
+
+// Replace every kernel amplitude by factor * amplitude (an over-estimating table).
+vg::ParamTable ScaledKernels(double factor) {
+    vg::ParamTable t = Table();
+    for (auto& n : t.kernels)
+        for (int i = 0; i < n.terms; ++i) n.a[i] *= factor;
+    return t;
+}
+
+enum class Shape { Step, Gradient, ThinStep };
+
+struct Scene {
+    std::vector<double> primary, thickness, measured;
+};
+
+// Primary from a thickness layout plus details, then the true thickness is
+// re-derived from that primary so the forward model is exactly the one the
+// algorithm assumes.
+Scene MakeScene(Shape shape, const vg::ParamTable& forwardTable = Table()) {
+    const vg::ParamTable& t = Table();
+    // wet coefficients at 80 kVp (a node of the synthetic table)
+    const double w0 = t.wetW0[1], a = t.wetA[1], b = t.wetB[1];
+    Scene s;
+    s.primary.resize(kN * kN);
+    s.thickness.resize(kN * kN);
+    for (int y = 0; y < kN; ++y)
+        for (int x = 0; x < kN; ++x) {
+            double T = shape == Shape::Step     ? (x < kN / 2 ? 8.0 : 24.0)
+                     : shape == Shape::ThinStep ? (x < kN / 2 ? 4.0 : 10.0)
+                                                : 6.0 + 20.0 * x / (kN - 1.0);
+            // details: small dense disks and a thin bar
+            const double dx = (x % 48) - 24.0, dy = (y % 48) - 24.0;
+            if (dx * dx + dy * dy < 16.0) T += 2.0;
+            if (y > 100 && y < 104 && x > 20 && x < 236) T += 1.5;
+            T = std::min(T, 29.0);
+            const double mu = w0 - a * T / (1 + b * T);
+            s.primary[y * kN + x] = kI0 * std::exp(-mu * T);
+        }
+    for (size_t i = 0; i < s.primary.size(); ++i)
+        s.thickness[i] = vg::ThicknessFromLogAtten(-std::log(s.primary[i] / kI0), w0, a, b, 30.0);
+    s.measured = vg::ForwardScatter(s.primary, s.thickness, kN, kN, forwardTable, kKvp, kPitchMm);
+    return s;
+}
+
+vg::VgSettings Settings(int iterations, double ratio = kIdealRatio) {
+    vg::VgSettings st;
+    st.kvp = kKvp;
+    st.gridRatio = ratio;
+    st.pixelPitchMm = kPitchMm;
+    st.airSignal = kI0;
+    st.iterations = iterations;
+    return st;
+}
+
+struct ErrStats { double median = 0, p95 = 0, max = 0; };
+
+ErrStats RelErr(const std::vector<double>& got, const std::vector<double>& want,
+                int x0 = 0, int x1 = kN) {
+    std::vector<double> e;
+    for (int y = 0; y < kN; ++y)
+        for (int x = x0; x < x1; ++x) {
+            const size_t i = static_cast<size_t>(y) * kN + x;
+            e.push_back(std::fabs(got[i] - want[i]) / want[i]);
+        }
+    std::sort(e.begin(), e.end());
+    return {e[e.size() / 2], e[e.size() * 95 / 100], e.back()};
+}
+
+void Log(const char* what, const ErrStats& s) {
+    std::printf("VGMEASURE %s median=%.5f p95=%.5f max=%.5f\n", what, s.median, s.p95, s.max);
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// Table
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridTable, SyntheticTableLoads)
+{
+    const vg::ParamTable& t = Table();
+    EXPECT_EQ(t.kThick, (std::vector<double>{5, 10, 20, 30}));
+    EXPECT_EQ(t.kKvp, (std::vector<double>{60, 80, 100}));
+    ASSERT_EQ(t.kernels.size(), 12u);
+    EXPECT_EQ(t.kernels[1 * 3 + 1].terms, 2);
+    EXPECT_DOUBLE_EQ(t.kernels[1 * 3 + 1].a[0], 0.32);   // 10 cm, 80 kVp
+    EXPECT_DOUBLE_EQ(t.kernels[1 * 3 + 1].s[1], 4.7);
+    EXPECT_EQ(t.gridRatio.size(), 5u);
+    EXPECT_EQ(t.capSpr.size(), 12u);
+}
+
+TEST(GsvgVirtualGridTable, EverySectionIsRequired)
+{
+    const std::string full = ReadFile(kTablePath);
+    for (const char* sec : {"\n[kernels]\n", "\n[wet]\n", "\n[grid]\n", "\n[spr_cap]\n"}) {
+        std::string text = full;
+        const size_t p = text.find(sec);   // the header line, not the comment
+        ASSERT_NE(p, std::string::npos);
+        text.replace(p, std::string(sec).size(), "\n[unused]\n");
+        vg::ParamTable t;
+        EXPECT_NE(vg::ParseParamTable(text, t), "") << sec;
+    }
+    vg::ParamTable t;
+    EXPECT_EQ(vg::ParseParamTable(full, t), "");   // control: the untouched file parses
+}
+
+TEST(GsvgVirtualGridTable, IncompleteGridAndBadRowsAreRejected)
+{
+    const std::string full = ReadFile(kTablePath);
+    auto without = [&](const std::string& line) {
+        std::string text = full;
+        const size_t p = text.find(line);
+        EXPECT_NE(p, std::string::npos) << line;
+        text.erase(p, line.size() + 1);
+        vg::ParamTable t;
+        return vg::ParseParamTable(text, t);
+    };
+    EXPECT_NE(without("20,80,gauss2,0.50,1.2,2.00,5.2,0,0,0,0"), "");
+    EXPECT_NE(without("20,80,3.8"), "");
+
+    auto replaced = [&](const std::string& from, const std::string& to) {
+        std::string text = full;
+        const size_t p = text.find(from);
+        EXPECT_NE(p, std::string::npos) << from;
+        text.replace(p, from.size(), to);
+        vg::ParamTable t;
+        return vg::ParseParamTable(text, t);
+    };
+    EXPECT_NE(replaced("10,80,gauss2,0.32", "10,80,gauss2,x"), "");       // non-numeric
+    EXPECT_NE(replaced("12,0.66,0.07", "12,0.00,0.07"), "");              // tp = 0
+    EXPECT_NE(replaced("80,0.22,0.015,0.10", "80,0.22,0.050,0.00"), "");  // mu(t)*t turns down
+    vg::ParamTable empty;
+    EXPECT_NE(vg::ParseParamTable("", empty), "");
+}
+
+TEST(GsvgVirtualGridTable, Gauss4RowsWinOverGauss2)
+{
+    // Same form as tools/mcsim/tables: both models for every node.
+    std::string text = ReadFile(kTablePath);
+    const size_t k = text.find("\n[kernels]\n") + 1;
+    const size_t w = text.find("\n[wet]\n") + 1;
+    std::string kernels = "[kernels]\nthickness_cm,kvp,model,a1,s1,a2,s2,a3,s3,a4,s4\n";
+    for (int t : {5, 10, 20, 30})
+        for (int kv : {60, 80, 100}) {
+            kernels += std::to_string(t) + "," + std::to_string(kv) + ",gauss2,0.1,1,0.2,4,,,,\n";
+            kernels += std::to_string(t) + "," + std::to_string(kv) + ",gauss4,0.1,1,0.2,2,0.3,4,0.4,8\n";
+        }
+    text.replace(k, w - k, kernels + "\n");
+    vg::ParamTable t;
+    ASSERT_EQ(vg::ParseParamTable(text, t), "");
+    EXPECT_EQ(t.kernels[0].terms, 4);
+    EXPECT_DOUBLE_EQ(t.kernels[0].s[3], 8.0);
+}
+
+// ---------------------------------------------------------------------------
+// Kernel and thickness
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridKernel, NodesBlendsAndBounds)
+{
+    const vg::ParamTable& t = Table();
+    vg::BlendedKernel k;
+    auto total = [&] { double s = 0; for (double a : k.a) s += a; return s; };
+
+    ASSERT_TRUE(vg::KernelAt(t, 10.0, 80.0, k));
+    EXPECT_NEAR(total(), 0.32 + 0.80, 1e-12);
+
+    ASSERT_TRUE(vg::KernelAt(t, 15.0, 70.0, k));   // centre of four nodes
+    const double expect = 0.25 * ((0.35 + 0.75) + (0.32 + 0.80) + (0.55 + 1.85) + (0.50 + 2.00));
+    EXPECT_NEAR(total(), expect, 1e-12);
+    EXPECT_EQ(k.a.size(), 8u);   // four node kernels, blended, not refitted
+
+    ASSERT_TRUE(vg::KernelAt(t, 2.5, 80.0, k));    // half way to the first node
+    EXPECT_NEAR(total(), 0.5 * (0.18 + 0.32), 1e-12);
+    ASSERT_TRUE(vg::KernelAt(t, 0.0, 80.0, k));
+    EXPECT_EQ(total(), 0.0);
+
+    EXPECT_FALSE(vg::KernelAt(t, 30.5, 80.0, k));
+    EXPECT_FALSE(vg::KernelAt(t, 10.0, 59.0, k));
+    EXPECT_FALSE(vg::KernelAt(t, 10.0, 101.0, k));
+}
+
+TEST(GsvgVirtualGridKernel, ThicknessInversionRoundTrips)
+{
+    const double w0 = 0.22, a = 0.015, b = 0.1;
+    for (double T : {0.0, 0.5, 5.0, 12.3, 29.9}) {
+        const double L = (w0 - a * T / (1 + b * T)) * T;
+        EXPECT_NEAR(vg::ThicknessFromLogAtten(L, w0, a, b, 30.0), T, 1e-9) << T;
+    }
+    EXPECT_LT(vg::ThicknessFromLogAtten(100.0, w0, a, b, 30.0), 0.0);
+}
+
+// The scatter of a uniform, very wide primary equals sum(a) * P away from the
+// edges: the discrete kernels keep the table's normalisation.
+TEST(GsvgVirtualGridKernel, ConvolutionKeepsTheTableNormalisation)
+{
+    const int n = 400;
+    std::vector<double> p(n * n, 1000.0), t(n * n, 10.0);
+    const auto s = vg::ScatterEstimate(p, t, n, n, Table(), 80.0, 0.1);
+    ASSERT_EQ(s.size(), p.size());
+    EXPECT_NEAR(s[200 * n + 200] / 1000.0, 0.32 + 0.80, 0.005);
+    // collimated field: the corner sees about a quarter of the wide tail
+    EXPECT_LT(s[0], 0.4 * s[200 * n + 200]);
+}
+
+// ---------------------------------------------------------------------------
+// Recovery on self-consistent synthetic images
+// ---------------------------------------------------------------------------
+class GsvgVirtualGridRecovery : public ::testing::TestWithParam<Shape> {};
+
+TEST_P(GsvgVirtualGridRecovery, RecoversThePrimary)
+{
+    const Scene s = MakeScene(GetParam());
+    const ErrStats before = RelErr(s.measured, s.primary);
+    std::vector<double> img = s.measured;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, Table(), Settings(5));
+    ASSERT_EQ(rep.error, "");
+    const ErrStats after = RelErr(img, s.primary);
+    Log(GetParam() == Shape::Step ? "step.before" : "gradient.before", before);
+    Log(GetParam() == Shape::Step ? "step.after5" : "gradient.after5", after);
+    std::printf("VGMEASURE factor=%d coarse=%dx%d maxT=%.2f meanSpr=%.3f\n",
+                rep.factor, rep.coarseW, rep.coarseH, rep.maxThicknessCm, rep.meanSpr);
+    EXPECT_EQ(rep.factor, 5);   // floor(0.5 * 1.0 cm narrowest term at 80 kVp / 0.1 cm)
+    EXPECT_LT(after.median, 0.1 * before.median);
+    EXPECT_LT(after.p95, 0.2 * before.p95);
+    EXPECT_EQ(rep.nonPositivePrimary, 0u);
+}
+
+// Falsification: one iteration leaves more error than five.
+TEST_P(GsvgVirtualGridRecovery, OneIterationIsWorse)
+{
+    const Scene s = MakeScene(GetParam());
+    std::vector<double> one = s.measured, five = s.measured;
+    ASSERT_EQ(vg::RunVirtualGrid(one, kN, kN, Table(), Settings(1)).error, "");
+    ASSERT_EQ(vg::RunVirtualGrid(five, kN, kN, Table(), Settings(5)).error, "");
+    const ErrStats e1 = RelErr(one, s.primary), e5 = RelErr(five, s.primary);
+    Log(GetParam() == Shape::Step ? "step.after1" : "gradient.after1", e1);
+    EXPECT_GT(e1.median, 2.0 * e5.median);
+}
+
+INSTANTIATE_TEST_SUITE_P(Shapes, GsvgVirtualGridRecovery,
+                         ::testing::Values(Shape::Step, Shape::Gradient),
+                         [](const auto& info) { return info.param == Shape::Step ? "Step" : "Gradient"; });
+
+// Falsification: one global thickness instead of the per-pixel index raises
+// the error next to the thickness step.
+TEST(GsvgVirtualGridFalsify, GlobalThicknessIsWorseAtTheStep)
+{
+    const Scene s = MakeScene(Shape::Step);
+    std::vector<double> indexed = s.measured, global = s.measured;
+    vg::VgSwitches off;
+    off.thicknessIndex = false;
+    ASSERT_EQ(vg::RunVirtualGrid(indexed, kN, kN, Table(), Settings(5)).error, "");
+    ASSERT_EQ(vg::RunVirtualGrid(global, kN, kN, Table(), Settings(5), off).error, "");
+    // +-3 cm around the step at x = 128
+    const ErrStats ei = RelErr(indexed, s.primary, 98, 158);
+    const ErrStats eg = RelErr(global, s.primary, 98, 158);
+    Log("step.edge.indexed", ei);
+    Log("step.edge.global", eg);
+    EXPECT_GT(eg.median, 3.0 * ei.median);
+}
+
+// Falsification: an over-estimating table (kernels x3) against data made with
+// the true one, on a thin object so the inflated thickness stays inside the
+// table. With the cap the primary never reaches zero; without it, pixels go
+// non-positive (or the thickness leaves the table and the image is refused).
+TEST(GsvgVirtualGridFalsify, SprCapPreventsOvercorrection)
+{
+    const Scene s = MakeScene(Shape::ThinStep);
+    const vg::ParamTable over = ScaledKernels(3.0);
+    std::vector<double> capped = s.measured, uncapped = s.measured;
+    vg::VgSwitches off;
+    off.sprCap = false;
+    const vg::VgReport rc = vg::RunVirtualGrid(capped, kN, kN, over, Settings(5));
+    const vg::VgReport ru = vg::RunVirtualGrid(uncapped, kN, kN, over, Settings(5), off);
+    std::printf("VGMEASURE overcorrect capped: err='%s' nonPositive=%zu meanSpr=%.3f\n",
+                rc.error.c_str(), rc.nonPositivePrimary, rc.meanSpr);
+    std::printf("VGMEASURE overcorrect uncapped: err='%s' nonPositive=%zu meanSpr=%.3f\n",
+                ru.error.c_str(), ru.nonPositivePrimary, ru.meanSpr);
+    ASSERT_EQ(rc.error, "");
+    EXPECT_EQ(rc.nonPositivePrimary, 0u);
+    double minCapped = 1e300;
+    for (double v : capped) minCapped = std::min(minCapped, v);
+    EXPECT_GT(minCapped, 0.0);
+    // Without the cap: either non-positive primary, or the thickness runs out of
+    // the table and the chain refuses the image.
+    EXPECT_TRUE(ru.nonPositivePrimary > 0 || !ru.error.empty());
+}
+
+// ---------------------------------------------------------------------------
+// Grid ratio
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridRatio, ResidualSprFallsWithRatio)
+{
+    const Scene s = MakeScene(Shape::Gradient);
+    double prev = 1e300;
+    for (double ratio : {6.0, 8.0, 10.0, 12.0}) {
+        std::vector<double> img = s.measured;
+        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, Table(), Settings(5, ratio)).error, "");
+        double spr = 0;
+        for (size_t i = 0; i < img.size(); ++i) spr += (img[i] - s.primary[i]) / s.primary[i];
+        spr /= static_cast<double>(img.size());
+        std::printf("VGMEASURE ratio=%g residualSpr=%.4f\n", ratio, spr);
+        EXPECT_LT(spr, prev) << ratio;
+        EXPECT_GT(spr, 0.0);
+        prev = spr;
+    }
+}
+
+TEST(GsvgVirtualGridRatio, UnknownRatioIsRefusedAndImageKept)
+{
+    const Scene s = MakeScene(Shape::Gradient);
+    std::vector<double> img = s.measured;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, Table(), Settings(5, 7.0));
+    EXPECT_NE(rep.error, "");
+    EXPECT_EQ(img, s.measured);
+}
+
+// ---------------------------------------------------------------------------
+// Pyramid and de-noise
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridPyramid, UnitGainIsIdentityAndGainRaisesDetail)
+{
+    const Scene s = MakeScene(Shape::Step);
+    std::vector<double> plain = s.measured, unit = s.measured, boosted = s.measured;
+    vg::VgSettings st = Settings(3);
+    ASSERT_EQ(vg::RunVirtualGrid(plain, kN, kN, Table(), st).error, "");
+    st.pyramidLevels = 5;
+    st.pyramidGain = 1.0;
+    ASSERT_EQ(vg::RunVirtualGrid(unit, kN, kN, Table(), st).error, "");
+    double maxDiff = 0;
+    for (size_t i = 0; i < plain.size(); ++i) maxDiff = std::max(maxDiff, std::fabs(plain[i] - unit[i]));
+    EXPECT_LT(maxDiff, 1e-6);
+
+    st.pyramidGain = 1.5;
+    ASSERT_EQ(vg::RunVirtualGrid(boosted, kN, kN, Table(), st).error, "");
+    // contrast of a detail disk against its surroundings (disk centre at 24,24)
+    auto contrast = [&](const std::vector<double>& im) { return im[24 * kN + 30] - im[24 * kN + 24]; };
+    std::printf("VGMEASURE disk contrast plain=%.1f boosted=%.1f\n", contrast(plain), contrast(boosted));
+    EXPECT_GT(contrast(boosted), 1.2 * contrast(plain));
+}
+
+TEST(GsvgVirtualGridPyramid, DenoiseLowersFlatRegionNoise)
+{
+    // Flat region with deterministic pseudo-noise. Noise in the output is read
+    // as (output of noisy input) - (output of the same input without noise),
+    // so the scatter fall-off towards the edges does not count as noise.
+    std::vector<double> clean(kN * kN, 20000.0), noisy(kN * kN);
+    uint32_t state = 12345;
+    for (size_t i = 0; i < noisy.size(); ++i) {
+        state = state * 1664525u + 1013904223u;
+        noisy[i] = clean[i] + static_cast<double>((state >> 8) % 2001) - 1000.0;
+    }
+    auto run = [&](std::vector<double> img, double k) {
+        vg::VgSettings st = Settings(3);
+        st.pyramidLevels = 4;
+        st.denoiseK = k;
+        EXPECT_EQ(vg::RunVirtualGrid(img, kN, kN, Table(), st).error, "");
+        return img;
+    };
+    auto noiseSd = [&](double k) {
+        const auto a = run(noisy, k), b = run(clean, k);
+        double q = 0;
+        for (size_t i = 0; i < a.size(); ++i) q += (a[i] - b[i]) * (a[i] - b[i]);
+        return std::sqrt(q / static_cast<double>(a.size()));
+    };
+    const double off = noiseSd(0.0), on = noiseSd(3.0);
+    std::printf("VGMEASURE flat noise sd input=577.4 k0=%.1f k3=%.1f\n", off, on);
+    EXPECT_LT(on, 0.8 * off);
+}
+
+TEST(GsvgVirtualGridPyramid, BadPostSettingsAreRefused)
+{
+    std::vector<double> img(kN * kN, 20000.0);
+    const std::vector<double> orig = img;
+    vg::VgSettings st = Settings(3);
+    st.pyramidLevels = 3;
+    EXPECT_NE(vg::RunVirtualGrid(img, kN, kN, Table(), st).error, "");
+    st.pyramidLevels = 0;
+    st.denoiseK = 2.0;
+    EXPECT_NE(vg::RunVirtualGrid(img, kN, kN, Table(), st).error, "");
+    st = Settings(3);
+    st.pyramidLevels = 8;   // needs >= 256 px: exactly fits
+    EXPECT_EQ(vg::RunVirtualGrid(img, kN, kN, Table(), st).error, "");
+    std::vector<double> small(100 * 100, 20000.0);
+    EXPECT_NE(vg::RunVirtualGrid(small, 100, 100, Table(), st).error, "");
+    EXPECT_EQ(orig.size(), img.size());
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+namespace {
+
+std::string Config(const std::string& extra = "") {
+    return std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + kTablePath +
+           "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 1.0,"
+           " \"vg_air_signal\": 60000, \"vg_iterations\": 5" + extra + "}";
+}
+
+std::string Without(std::string cfg, const std::string& key) {
+    const size_t p = cfg.find("\"" + key + "\"");
+    EXPECT_NE(p, std::string::npos) << key;
+    const size_t e = cfg.find(',', p);
+    cfg.erase(p, e - p + 1);
+    return cfg;
+}
+
+std::vector<uint16_t> ToU16(const std::vector<double>& v) {
+    std::vector<uint16_t> o(v.size());
+    for (size_t i = 0; i < v.size(); ++i) o[i] = static_cast<uint16_t>(std::clamp(std::round(v[i]), 0.0, 65535.0));
+    return o;
+}
+
+}  // namespace
+
+TEST(GsvgVirtualGridApi, InitNeedsEveryValue)
+{
+    void* h = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&h, Config().c_str()), XPE_OK);   // control
+    xpe_gsvg_shutdown(h);
+    for (const char* key : {"vg_table_path", "vg_kvp", "vg_grid_ratio", "vg_pixel_pitch_mm",
+                            "vg_air_signal"}) {
+        h = nullptr;
+        EXPECT_EQ(xpe_gsvg_init(&h, Without(Config(), key).c_str()), XPE_ERR_CONFIG_INVALID) << key;
+        EXPECT_EQ(h, nullptr);
+    }
+    const std::string noIter = std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + kTablePath +
+        "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 1.0, \"vg_air_signal\": 60000}";
+    EXPECT_EQ(xpe_gsvg_init(&h, noIter.c_str()), XPE_ERR_CONFIG_INVALID);
+
+    std::string missingFile = Config();
+    missingFile.replace(missingFile.find(kTablePath), std::string(kTablePath).size(), "tests/data/no_such_table.csv");
+    EXPECT_EQ(xpe_gsvg_init(&h, missingFile.c_str()), XPE_ERR_CONFIG_INVALID);
+
+    std::string both = Config(", \"grid_suppression\": true");
+    EXPECT_EQ(xpe_gsvg_init(&h, both.c_str()), XPE_ERR_CONFIG_INVALID);
+
+    EXPECT_EQ(xpe_gsvg_init(&h, Config(", \"vg_iterations2\": 1").c_str()), XPE_OK);   // unknown key: warning only
+    xpe_gsvg_shutdown(h);
+}
+
+TEST(GsvgVirtualGridApi, ProcessesAndKeepsTheOriginalOnFailure)
+{
+    const Scene s = MakeScene(Shape::Step);
+    const std::vector<uint16_t> src = ToU16(s.measured);
+
+    void* h = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&h, Config().c_str()), XPE_OK);
+    std::vector<uint16_t> dst(src.size(), 0);
+    ASSERT_EQ(xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), kN, kN, nullptr, 0), XPE_OK);
+    size_t changed = 0;
+    for (size_t i = 0; i < src.size(); ++i) changed += dst[i] != src[i];
+    EXPECT_GT(changed, src.size() / 2);
+    xpe_gsvg_shutdown(h);
+
+    // kVp outside the table: configuration error, dst = src.
+    std::string cfg = Config();
+    cfg.replace(cfg.find("\"vg_kvp\": 80"), 12, "\"vg_kvp\": 140");
+    ASSERT_EQ(xpe_gsvg_init(&h, cfg.c_str()), XPE_OK);
+    std::fill(dst.begin(), dst.end(), 0);
+    EXPECT_EQ(xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), kN, kN, nullptr, 0),
+              XPE_ERR_CONFIG_INVALID);
+    EXPECT_EQ(dst, src);
+    xpe_gsvg_shutdown(h);
+
+    // Thickness beyond the table (very dark image), in place: the pixels survive.
+    ASSERT_EQ(xpe_gsvg_init(&h, Config().c_str()), XPE_OK);
+    std::vector<uint16_t> dark(src.size(), 5);
+    const std::vector<uint16_t> darkCopy = dark;
+    EXPECT_EQ(xpe_gsvg_process(h, dark.data(), dark.size(), dark.data(), dark.size(), kN, kN, nullptr, 0),
+              XPE_ERR_PROCESSING_FAILED);
+    EXPECT_EQ(dark, darkCopy);
+    xpe_gsvg_shutdown(h);
+
+    // Same failure with the vignette step on and dst aliasing src: still the original.
+    ASSERT_EQ(xpe_gsvg_init(&h, Config(", \"vignette_correction\": true").c_str()), XPE_OK);
+    const std::vector<float> gain(src.size(), 2.0f);
+    EXPECT_EQ(xpe_gsvg_process(h, dark.data(), dark.size(), dark.data(), dark.size(), kN, kN,
+                               gain.data(), gain.size()), XPE_ERR_PROCESSING_FAILED);
+    EXPECT_EQ(dark, darkCopy);
+    xpe_gsvg_shutdown(h);
+}
+
+// ---------------------------------------------------------------------------
+// REQ-GSVG-019: time only. XPE_VG_TABLE may point at another table (e.g. one
+// built around the tools/mcsim kernels) for a local measurement.
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridBench, BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3072)
+{
+    const int n = 3072;
+    std::string table = kTablePath;
+#ifdef _WIN32
+    char* env = nullptr;
+    size_t envLen = 0;
+    if (_dupenv_s(&env, &envLen, "XPE_VG_TABLE") == 0 && env != nullptr) table = env;
+    std::free(env);
+#else
+    if (const char* env = std::getenv("XPE_VG_TABLE")) table = env;
+#endif
+    const std::string cfg = std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + table +
+        "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 0.139,"
+        " \"vg_air_signal\": 60000, \"vg_iterations\": 3, \"vg_pyramid_levels\": 6,"
+        " \"vg_pyramid_gain\": 1.3, \"vg_denoise_k\": 2}";
+    void* h = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&h, cfg.c_str()), XPE_OK) << table;
+
+    // Input built with the model itself (scatter computed on a 36x reduced
+    // grid, repeated back up), so the chain runs its normal path: an input
+    // whose scatter disagrees with the table can drive the thickness out of
+    // the table and be refused.
+    vg::ParamTable t;
+    ASSERT_EQ(vg::LoadParamTable(table, t), "");
+    size_t wi = 0;
+    while (wi + 1 < t.wetKvp.size() && t.wetKvp[wi] < 80.0) ++wi;
+    const double w0 = t.wetW0[wi], a = t.wetA[wi], b = t.wetB[wi];
+    const int f = 36, c = n / f;
+    std::vector<double> pc(static_cast<size_t>(c) * c), tc(pc.size());
+    for (int y = 0; y < c; ++y)
+        for (int x = 0; x < c; ++x) {
+            const double T = 6.0 + 14.0 * x / (c - 1.0) + ((x / 7 + y / 7) % 2 ? 2.0 : 0.0);
+            tc[static_cast<size_t>(y) * c + x] = T;
+            pc[static_cast<size_t>(y) * c + x] = 60000.0 * std::exp(-(w0 - a * T / (1 + b * T)) * T);
+        }
+    const std::vector<double> ic = vg::ForwardScatter(pc, tc, c, c, t, 80.0, 0.139 * f);
+    ASSERT_EQ(ic.size(), pc.size());
+    std::vector<uint16_t> src(static_cast<size_t>(n) * n), dst(src.size());
+    for (int y = 0; y < n; ++y)
+        for (int x = 0; x < n; ++x)
+            src[static_cast<size_t>(y) * n + x] = static_cast<uint16_t>(std::min(
+                65535.0, ic[static_cast<size_t>(std::min(y / f, c - 1)) * c + std::min(x / f, c - 1)]));
+    perf_measure::Measure("REQ-GSVG-019/virtual_grid", "3072x3072",
+        [&] { std::fill(dst.begin(), dst.end(), 0); },
+        [&] { return xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), n, n, nullptr, 0); });
+    xpe_gsvg_shutdown(h);
+}
