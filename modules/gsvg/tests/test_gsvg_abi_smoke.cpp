@@ -23,7 +23,9 @@
 
 #include "xpe/gsvg/gsvg_api.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <random>
@@ -46,8 +48,9 @@ constexpr int kAbiMaxMs = 8000;
 /**
  * @brief Build a deterministic 3072x3072 frame with a non-uniform pattern.
  *
- * The pattern intentionally varies along both axes so that the row-mean
- * grid suppression branch cannot collapse to an all-zero deviation.
+ * The pattern intentionally varies along both axes: a 257-row sawtooth and a
+ * 1024-column ramp. (Written for the row-mean grid suppression that #180
+ * replaced; the DWT path treats the sawtooth as a periodic signal.)
  */
 std::vector<uint16_t> make_large_frame()
 {
@@ -328,7 +331,8 @@ constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
 // the working-set delta against the 1 MB bound used by preprocess T-010,
 // enhance_basic and the four modules of QA-B-22.
 //
-// Size: 512x512, not the 3072x3072 of the REQ-GSVG-019 budget case. The gate
+// Size: 256x256 (512x512 until QA-B-90, when the grid path made 1100 cycles
+// take 22.6 s locally), not the 3072x3072 of the REQ-GSVG-019 budget case. The gate
 // measures retention per lifecycle, which does not depend on frame size, and
 // 1100 cycles at 3072x3072 would dominate the suite's wall time. Recorded here
 // rather than left implicit.
@@ -337,22 +341,29 @@ constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
 // NULL gain map, xpe_gsvg_process reduces to a memcpy (gsvg.cpp:218-228:
 // vignette_correction and grid_suppression both default to false), so the cycle
 // would have covered the handle lifecycle and nothing else. The config below
-// plus a real gain map puts apply_vignette_scalar and suppress_grid_row_mean
+// plus a real gain map puts apply_vignette_scalar and the grid suppression
 // inside the measured loop.
+//
+// #180 (QA-B-90): the source used to be a flat 12000. The DWT grid suppression
+// leaves an image with no detected grid untouched, so a flat source would only
+// run the spectrum check and never allocate the wavelet levels. Rows now
+// alternate 12000 / 12100 so every cycle decomposes, filters and reconstructs.
 // ---------------------------------------------------------------------------
 TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
 {
 #ifndef _WIN32
     GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
 #endif
-    constexpr int    kW = 512;
-    constexpr int    kH = 512;
+    constexpr int    kW = 256;
+    constexpr int    kH = 256;
     constexpr size_t kN = static_cast<size_t>(kW) * kH;
 
     const char* kConfig =
         R"({"vignette_correction": true, "grid_suppression": true})";
 
-    const std::vector<uint16_t> src(kN, 12000);
+    std::vector<uint16_t> src(kN, 12000);
+    for (int y = 1; y < kH; y += 2)
+        std::fill_n(src.begin() + static_cast<std::ptrdiff_t>(y) * kW, kW, uint16_t{12100});
     std::vector<uint16_t>       dst(kN, 0);
     const std::vector<float>    gain(kN, 1.05f);
 
@@ -380,6 +391,12 @@ TEST(GsvgEndurance, ThousandCycles_MemoryGrowthUnderOneMB)
             << "Working set grew by " << (after - before) / 1024 << " KB over "
             << ENDURANCE_CYCLES << " gsvg init/process/shutdown cycles";
     }
+
+    // The loop did run the suppression: the 100 * 1.05 row alternation is gone.
+    double row0 = 0.0, row1 = 0.0;
+    for (int x = 0; x < kW; ++x) { row0 += dst[static_cast<size_t>(x)]; row1 += dst[static_cast<size_t>(kW + x)]; }
+    EXPECT_LT(std::fabs(row1 - row0) / kW, 10.0)
+        << "row alternation survived: the grid path was not exercised";
 
     RecordProperty("cycles", ENDURANCE_CYCLES);
     RecordProperty("requirement", "REQ-GSVG-021");

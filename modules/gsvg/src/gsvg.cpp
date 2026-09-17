@@ -7,13 +7,10 @@
  *
  *  - Vignette gain correction: pixel-wise multiplication by a caller-supplied
  *    float32 gain map, followed by a 0..65535 clamp.
- *  - Grid shadow suppression: per-row mean-deviation subtraction. For each
- *    row, the deviation of the row mean from the global mean is computed;
- *    if the absolute deviation exceeds a threshold the row is adjusted toward
- *    the global mean. This is a low-complexity baseline sufficient for
- *    DegradedMode and BP-06..09 benchmarks. A proper FFT-based notch filter
- *    is out of scope here (no FFT dependency available) and is documented
- *    as future work.
+ *  - Grid line suppression (#180): recursive db4 2D DWT, grid detection on
+ *    the input spectrum and in the detail sub-band (3 sigma), and a Gaussian
+ *    band-stop on the detected sub-band only (Tang et al. 2015). An image in
+ *    which no grid is detected is left byte-identical. See grid_dwt.h.
  *
  * Scalar reference only. Deterministic: identical input always produces
  * identical output on any platform.
@@ -22,6 +19,7 @@
  */
 
 #include "xpe/gsvg/gsvg_api.h"
+#include "grid_dwt.h"
 #include <cstdio>
 
 #include <algorithm>
@@ -192,69 +190,6 @@ void apply_vignette_scalar(const uint16_t* src, uint16_t* dst,
     }
 }
 
-/**
- * @brief Row-mean-deviation grid shadow suppression (in-place on dst).
- *
- * Baseline algorithm:
- *  1. Compute the global mean of the image.
- *  2. For each row, compute the row mean.
- *  3. If |row_mean - global_mean| > threshold, subtract (row_mean - global_mean)
- *     from every pixel in that row and clamp to 0..65535.
- *
- * Rationale: grid shadows manifest as rows whose mean deviates periodically
- * from the global mean. Subtracting the row-mean deviation removes the DC
- * component of the shadow while leaving spatial anatomical variation intact.
- * This is a deliberately simple baseline — a production system would use an
- * FFT-based notch filter or directional morphological filter. That upgrade
- * is future work; this baseline is sufficient for BP-06..09 determinism
- * tests and DegradedMode coverage.
- *
- * @param pixels Image pixels, modified in place.
- * @param width  Row width in pixels.
- * @param height Image height in rows.
- */
-void suppress_grid_row_mean(uint16_t* pixels, int width, int height)
-{
-    if (width <= 0 || height <= 0 || pixels == nullptr) return;
-
-    const size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
-
-    // 1. Global mean in double precision for determinism across platforms.
-    double globalAcc = 0.0;
-    for (size_t i = 0; i < count; ++i) {
-        globalAcc += static_cast<double>(pixels[i]);
-    }
-    const double globalMean = globalAcc / static_cast<double>(count);
-
-    // Threshold: mean deviation below this magnitude is treated as signal,
-    // above it as grid shadow. 1.0 code is a conservative baseline that
-    // still leaves the no-artifact case untouched (since synthetic test
-    // images with uniform rows produce per-row means equal to the global
-    // mean, deviation is exactly 0 and the branch is skipped).
-    constexpr double kDeviationThreshold = 1.0;
-
-    // 2/3. Per-row correction.
-    for (int y = 0; y < height; ++y) {
-        uint16_t* row = pixels + static_cast<size_t>(y) * static_cast<size_t>(width);
-        double rowAcc = 0.0;
-        for (int x = 0; x < width; ++x) {
-            rowAcc += static_cast<double>(row[x]);
-        }
-        const double rowMean  = rowAcc / static_cast<double>(width);
-        const double deviation = rowMean - globalMean;
-
-        if (std::fabs(deviation) <= kDeviationThreshold) continue;
-
-        for (int x = 0; x < width; ++x) {
-            const double corrected = static_cast<double>(row[x]) - deviation;
-            double clamped = corrected;
-            if (clamped < 0.0)     clamped = 0.0;
-            if (clamped > 65535.0) clamped = 65535.0;
-            row[x] = static_cast<uint16_t>(clamped + 0.5);
-        }
-    }
-}
-
 } // namespace
 
 const char* xpe_gsvg_version(void)
@@ -336,7 +271,7 @@ XpeErrorCode xpe_gsvg_process(void* handle,
 
     // Step 2: grid shadow suppression applied in-place on dst.
     if (h->grid_enabled) {
-        suppress_grid_row_mean(dst, width, height);
+        xpe_gsvg_detail::SuppressGrid(dst, width, height);
     }
 
     return XPE_OK;
