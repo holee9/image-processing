@@ -33,6 +33,19 @@ This document specifies requirements for calibration data management, correction
 | **SRS-CALIB-FUNC-002** | System shall load gain calibration file (.xpe_calib format) containing normalization factors (float32). File format: 34-byte header + CRC-32 + gain coefficients (3072×3072×4 bytes). Values shall be in range [0.1, 10.0]; out-of-range values shall trigger `XPE_ERR_INVALID_CALIB_DATA` error. | Gain map normalizes pixel-to-pixel sensitivity variation (FPN). Float32 enables multi-gain polynomial support. Range limits prevent over/under-correction artifacts. | Test: Range validation, file parsing |
 | **SRS-CALIB-FUNC-003** | System shall load bad pixel map (BPM) from .xpe_calib file (uint8, 1 byte per pixel). BPM format: pixel value 0=good, 1-255=defect type (1=dead, 2=hot, 3=stuck, 4=noisy). Sparse map optimization supported via run-length encoding (RLE). Maximum 5% defect density tolerance. | BPM enables targeted defect correction without full-image filtering. RLE compression reduces memory footprint (typical 9.4MB to <500KB). Defect type field supports algorithmic selection. | Test: BPM parsing, RLE decompression |
 
+> **파일 형식 정정 (2026-09-18, #188 — QA-A-106 에서 실제 파일과 코드로 확인)**
+>
+> 위 FUNC-001·FUNC-002 와 아래 SAFE-003·PERF-003 이 적은 파일 형식은 실제 구현과 다릅니다. 실제(`.xcal`)는 다음과 같습니다.
+>
+> | 항목 | 문서(옛 서술) | 실제 |
+> |---|---|---|
+> | 헤더 크기 | 34바이트 | **152바이트** |
+> | 무결성 값 | CRC-32 4바이트(다항식 0x04C11DB7) | **SHA-256 32바이트**, 헤더 오프셋 120 |
+> | 검증 방식 | post-hoc CRC | 읽는 중 스트리밍 SHA-256(QA-A-105), Windows 는 CNG(QA-A-106) |
+> | 게인 값 범위 검사 [0.1, 10.0] → `XPE_ERR_INVALID_CALIB_DATA` | 요구에 있음 | **구현 없음** (별도 이슈로 다룸) |
+>
+> 무결성은 CRC-32 로 약화하지 않습니다. 교정 파일이 조용히 손상되면 모든 영상에 계통 오차가 생기기 때문입니다. PERF-003 의 200 ms 는 CNG 전환 뒤 3파일 합계 130–137 ms 로 충족합니다(#179).
+
 ### 2.2 Pixel-Level Corrections (SRS-CALIB-FUNC-004 through SRS-CALIB-FUNC-009)
 
 | Req ID | Requirement | Rationale | Verification |
