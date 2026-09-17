@@ -43,6 +43,10 @@ struct GsvgHandle {
     // #180 (QA-B-91): virtual grid. The table and the settings are loaded at
     // init and never have defaults (virtual_grid.h).
     bool virtual_grid_enabled = false;
+    // QA-B-98 (lead decision, option B): the "no field mask" warning is pushed
+    // once per handle. Repeated per call it filled the 64-entry alert queue and
+    // evicted other modules' warnings (QA-B-97: 1000 calls left 62 copies).
+    bool warned_no_mask = false;
     xpe_gsvg_detail::ParamTable vg_table;
     xpe_gsvg_detail::VgSettings vg_settings;
 };
@@ -409,10 +413,11 @@ XpeErrorCode process_impl(void* handle,
     // Step 2' (#180, QA-B-91): virtual grid, in place on dst.
     if (h->virtual_grid_enabled) {
         std::vector<double> img(dst, dst + count);
-        if (fieldMask == nullptr) {
+        if (fieldMask == nullptr && !h->warned_no_mask) {
             // QA-B-96: without a mask, scatter recorded outside the collimated
             // field is read as object and more scatter is subtracted inside it
             // (QA-B-95: recovered/true primary down to 0.73).
+            h->warned_no_mask = true;
             xpe_alert_push("gsvg virtual grid: no collimation field mask; scatter outside "
                            "the field is treated as object", XPE_ALERT_WARNING);
         }

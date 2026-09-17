@@ -450,17 +450,25 @@ TEST(GsvgVirtualGridMcMask, PublicEntryPoint)
     }
     EXPECT_GT(changed, n / 2);
 
-    // A NULL mask through the new entry point: same as xpe_gsvg_process, warning included.
+    // A NULL mask through the new entry point: same as xpe_gsvg_process. This
+    // handle has warned already, so neither call warns again (QA-B-98).
     xpe_clear_alerts();
     std::vector<uint16_t> viaMasked(n), viaPlain(n);
     ASSERT_EQ(xpe_gsvg_process_masked(h, src.data(), n, viaMasked.data(), n, kN, kN, nullptr, 0, nullptr, 0), XPE_OK);
     ASSERT_EQ(xpe_gsvg_process(h, src.data(), n, viaPlain.data(), n, kN, kN, nullptr, 0), XPE_OK);
     EXPECT_EQ(viaMasked, viaPlain);
-    EXPECT_EQ(warnings(), 2);
+    EXPECT_EQ(warnings(), 0);
 
     // A mask shorter than the image.
     EXPECT_EQ(xpe_gsvg_process_masked(h, src.data(), n, viaMasked.data(), n, kN, kN, nullptr, 0,
                                       mask.data(), n - 1), XPE_ERR_INVALID_INPUT);
+    xpe_gsvg_shutdown(h);
+
+    // A new handle (re-init with the same configuration) warns once more.
+    ASSERT_EQ(xpe_gsvg_init(&h, cfg.c_str()), XPE_OK);
+    for (int i = 0; i < 3; ++i)
+        ASSERT_EQ(xpe_gsvg_process_masked(h, src.data(), n, viaMasked.data(), n, kN, kN, nullptr, 0, nullptr, 0), XPE_OK);
+    EXPECT_EQ(warnings(), 1);
     xpe_gsvg_shutdown(h);
 
     // Virtual grid off: no warning, the mask changes nothing.
