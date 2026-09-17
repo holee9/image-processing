@@ -204,19 +204,48 @@ std::string ParseParamTable(const std::string& text, ParamTable& out) {
     }
 
     // --- grid --------------------------------------------------------------
+    // QA-B-101: optional freq_per_cm, thickness_cm, kvp columns. Rows are kept
+    // as read; each (ratio, freq) design must cover a full thickness x kVp
+    // grid with no duplicates.
     {
         const Section& s = sections["grid"];
         const int cR = s.Col("ratio"), cP = s.Col("tp"), cS = s.Col("ts");
+        const int cF = s.Col("freq_per_cm"), cT = s.Col("thickness_cm"), cK = s.Col("kvp");
         if (cR < 0 || cP < 0 || cS < 0) return Where("grid", "needs ratio, tp, ts columns");
+        out.gridHasFreq = cF >= 0;
+        out.gridHasThick = cT >= 0;
+        out.gridHasKvp = cK >= 0;
         for (const auto& r : s.rows) {
-            double ratio, tp, tsv;
-            if (!cell(s, r, cR, ratio) || !cell(s, r, cP, tp) || !cell(s, r, cS, tsv))
+            ParamTable::GridRow g{0, 0, 0, 0, 0, 0};
+            if (!cell(s, r, cR, g.ratio) || !cell(s, r, cP, g.tp) || !cell(s, r, cS, g.ts))
                 return Where("grid", "non-numeric value");
-            if (tp <= 0 || tp > 1 || tsv < 0 || tsv > 1) return Where("grid", "need 0 < tp <= 1 and 0 <= ts <= 1");
-            if (IndexOf(out.gridRatio, ratio) >= 0) return Where("grid", "duplicate ratio");
-            out.gridRatio.push_back(ratio);
-            out.gridTp.push_back(tp);
-            out.gridTs.push_back(tsv);
+            if ((cF >= 0 && !cell(s, r, cF, g.freq)) || (cT >= 0 && !cell(s, r, cT, g.thick)) ||
+                (cK >= 0 && !cell(s, r, cK, g.kvp)))
+                return Where("grid", "non-numeric value");
+            if (g.tp <= 0 || g.tp > 1 || g.ts < 0 || g.ts > 1) return Where("grid", "need 0 < tp <= 1 and 0 <= ts <= 1");
+            if ((cF >= 0 && g.freq <= 0) || (cT >= 0 && g.thick <= 0) || (cK >= 0 && g.kvp <= 0))
+                return Where("grid", "freq_per_cm, thickness_cm and kvp must be > 0");
+            for (const auto& o : out.gridRows)
+                if (o.ratio == g.ratio && o.freq == g.freq && o.thick == g.thick && o.kvp == g.kvp)
+                    return Where("grid", out.gridHasThick || out.gridHasKvp || out.gridHasFreq
+                                             ? "duplicate (ratio, freq_per_cm, thickness_cm, kvp) row"
+                                             : "duplicate ratio");
+            out.gridRows.push_back(g);
+        }
+        // Completeness per design.
+        std::vector<std::pair<double, double>> designs;
+        std::vector<double> ts, ks;
+        for (const auto& g : out.gridRows) {
+            if (std::find(designs.begin(), designs.end(), std::make_pair(g.ratio, g.freq)) == designs.end())
+                designs.push_back({g.ratio, g.freq});
+            ts.push_back(g.thick);
+            ks.push_back(g.kvp);
+        }
+        const size_t need = UniqueSorted(ts).size() * UniqueSorted(ks).size();
+        for (const auto& d : designs) {
+            size_t n = 0;
+            for (const auto& g : out.gridRows) n += (g.ratio == d.first && g.freq == d.second);
+            if (n != need) return Where("grid", "thickness x kvp grid is incomplete for a (ratio, freq_per_cm) pair");
         }
     }
 
@@ -273,6 +302,51 @@ std::string LoadParamTable(const std::string& path, ParamTable& out) {
     std::ostringstream ss;
     ss << f.rdbuf();
     return ParseParamTable(ss.str(), out);
+}
+
+double GridAtKvp::ResidualAt(double t) const {
+    if (thick.size() == 1 || t <= thick.front()) return ts.front() / tp.front();
+    if (t >= thick.back()) return ts.back() / tp.back();
+    size_t j = 1;
+    while (thick[j] < t) ++j;
+    const double w = (t - thick[j - 1]) / (thick[j] - thick[j - 1]);
+    return ((1 - w) * ts[j - 1] + w * ts[j]) / ((1 - w) * tp[j - 1] + w * tp[j]);
+}
+
+std::string SelectGrid(const ParamTable& t, double ratio, double freqPerCm, double kvp, GridAtKvp& out) {
+    out = GridAtKvp{};
+    if (!t.gridHasFreq && freqPerCm != 0)
+        return "vg_grid_frequency_per_cm is set but the [grid] table has no freq_per_cm column";
+    if (t.gridHasFreq && freqPerCm == 0)
+        return "the [grid] table lists line densities: vg_grid_frequency_per_cm is required";
+    std::vector<const ParamTable::GridRow*> rows;
+    bool ratioFound = false;
+    for (const auto& g : t.gridRows) {
+        if (g.ratio != ratio) continue;
+        ratioFound = true;
+        if (g.freq == freqPerCm) rows.push_back(&g);
+    }
+    if (!ratioFound) return "grid ratio not in the [grid] table";
+    if (rows.empty()) return "grid line density not in the [grid] table for this ratio";
+
+    std::vector<double> ks, ts;
+    for (const auto* g : rows) { ks.push_back(g->kvp); ts.push_back(g->thick); }
+    const std::vector<double> kAxis = UniqueSorted(ks);
+    out.thick = UniqueSorted(ts);
+    int k0 = 0, k1 = 0;
+    double wk = 0;
+    if (t.gridHasKvp && !Bracket(kAxis, kvp, k0, k1, wk)) return "kvp outside the [grid] table";
+    auto at = [&](double th, double kv) {
+        for (const auto* g : rows) if (g->thick == th && g->kvp == kv) return g;
+        return rows.front();   // unreachable: completeness is checked at load
+    };
+    for (double th : out.thick) {
+        const auto* a = at(th, kAxis[static_cast<size_t>(k0)]);
+        const auto* b = at(th, kAxis[static_cast<size_t>(k1)]);
+        out.tp.push_back((1 - wk) * a->tp + wk * b->tp);
+        out.ts.push_back((1 - wk) * a->ts + wk * b->ts);
+    }
+    return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -608,8 +682,9 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     double ww;
     if (!Bracket(table.wetKvp, st.kvp, w0i, w1i, ww)) return fail("kvp outside the [wet] table");
     if (SprCapAt(table, table.kThick.front(), st.kvp) < 0) return fail("kvp outside the [spr_cap] table");
-    const int gi = IndexOf(table.gridRatio, st.gridRatio);
-    if (gi < 0) return fail("grid ratio not in the [grid] table");
+    GridAtKvp grid;
+    if (const std::string why = SelectGrid(table, st.gridRatio, st.gridFreqPerCm, st.kvp, grid); !why.empty())
+        return fail(why);
 
     const double W0 = table.wetW0[static_cast<size_t>(w0i)] * (1 - ww) + table.wetW0[static_cast<size_t>(w1i)] * ww;
     const double A = table.wetA[static_cast<size_t>(w0i)] * (1 - ww) + table.wetA[static_cast<size_t>(w1i)] * ww;
@@ -759,7 +834,11 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     // NOTE: this step is our derivation from the IEC 60627 definitions of
     // Tp and Ts (grid image = Tp*P + Ts*S, divided by Tp), not a method taken
     // from the literature.
-    const double residual = table.gridTs[static_cast<size_t>(gi)] / table.gridTp[static_cast<size_t>(gi)];
+    // QA-B-101: Ts/Tp at each reduced-grid pixel's estimated thickness (a
+    // table without a thickness column gives one value), spread like the scatter.
+    std::vector<double> Rc(T.size());
+    for (size_t i = 0; i < Rc.size(); ++i) Rc[i] = grid.ResidualAt(T[i]);
+    const std::vector<double> Rf = upsample(Rc);
     // A full-resolution primary darker than this lies above the table's
     // thickness range (QA-B-93: the share of such pixels is reported).
     const double pAtTMax = st.airSignal * std::exp(-MuAt(tMax, W0, A, B) * tMax);
@@ -778,7 +857,7 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         double p = img[i] - S;
         if (img[i] > 0) { ++nFull; if (p < pAtTMax) ++nFullHigh; }
         if (p < 0) { ++rep.negativePrimary; p = 0; }
-        out[i] = p + residual * std::max(S, 0.0);
+        out[i] = p + Rf[i] * std::max(S, 0.0);
     }
 
     rep.aboveTableFullRes = nFull ? static_cast<double>(nFullHigh) / static_cast<double>(nFull) : 0.0;

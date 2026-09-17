@@ -69,6 +69,10 @@ if(_XPE_BUILD_TESTS)
         tests/test_virtual_grid.cpp
         # #180 (QA-B-95): virtual grid against the MC-GPU phantoms (tests/data/mc)
         tests/test_virtual_grid_mc.cpp
+        # #180 (QA-B-101): xpe_gsvg_process_ex result and reason codes
+        tests/test_gsvg_result.cpp
+        # #180 (QA-B-101): product virtual-grid table (data/) and the [grid] loader extension
+        tests/test_vg_product_table.cpp
         # grid_dwt.cpp is compiled into the test binary as well: its functions are
         # internal to gsvg.dll (not exported), and the tests call them directly.
         src/grid_dwt.cpp

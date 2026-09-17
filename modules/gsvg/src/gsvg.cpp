@@ -266,6 +266,9 @@ std::string read_virtual_grid_config(const char* json, GsvgHandle& h)
         if (levels != std::floor(levels)) return "vg_pyramid_levels must be an integer";
         st.pyramidLevels = static_cast<int>(levels);
     }
+    // QA-B-101: line density, needed when the table lists several per ratio.
+    if (json_get_number(json, "vg_grid_frequency_per_cm", st.gridFreqPerCm) && !(st.gridFreqPerCm > 0))
+        return "vg_grid_frequency_per_cm must be > 0";
     json_get_number(json, "vg_pyramid_gain", st.pyramidGain);
     json_get_number(json, "vg_denoise_k", st.denoiseK);
     return {};
@@ -332,7 +335,8 @@ XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull)
         static const char* const kKnownKeys[] = {
             "vignette_correction", "grid_suppression", "virtual_grid",
             "vg_table_path", "vg_kvp", "vg_grid_ratio", "vg_pixel_pitch_mm", "vg_air_signal",
-            "vg_iterations", "vg_pyramid_levels", "vg_pyramid_gain", "vg_denoise_k" };
+            "vg_iterations", "vg_pyramid_levels", "vg_pyramid_gain", "vg_denoise_k",
+            "vg_grid_frequency_per_cm" };
         warn_unconsumed_top_level_keys(configJsonOrNull, kKnownKeys,
                                        sizeof(kKnownKeys) / sizeof(kKnownKeys[0]));
     }
@@ -354,7 +358,8 @@ XpeErrorCode process_impl(void* handle,
                           const float* gainMap,
                           size_t gainCount,
                           const uint8_t* fieldMask,
-                          size_t maskCount)
+                          size_t maskCount,
+                          XpeGsvgResult* res)   // QA-B-101: NULL for the two older entry points
 {
     // A NULL handle is a NULL required pointer, so it is INVALID_INPUT — the
     // same code dicom returns for a NULL handle (dicom.cpp:56,67) and what the
@@ -395,11 +400,22 @@ XpeErrorCode process_impl(void* handle,
     std::vector<uint16_t> original;
     if (h->virtual_grid_enabled) original.assign(src, src + count);
 
+    // QA-B-101: what this call does, reported through xpe_gsvg_process_ex.
+    XpeGsvgResult done{};
+    done.reason = XPE_GSVG_REASON_NOT_CONFIGURED;
+    auto report = [&] {
+        if (res) {
+            done.structSize = res->structSize;
+            *res = done;
+        }
+    };
+
     // Step 1: vignette gain or passthrough copy.
     // The vignette step is active only when BOTH the config flag is set AND
     // a gain map is provided. Either absent yields an identity copy.
     if (h->vignette_enabled && gainMap != nullptr) {
         apply_vignette_scalar(src, dst, gainMap, count);
+        done.vignetteApplied = 1;
     } else if (src != dst) {
         std::memcpy(dst, src, count * sizeof(uint16_t));
     }
@@ -407,7 +423,17 @@ XpeErrorCode process_impl(void* handle,
 
     // Step 2: grid shadow suppression applied in-place on dst.
     if (h->grid_enabled) {
-        xpe_gsvg_detail::SuppressGrid(dst, width, height);
+        const auto g = xpe_gsvg_detail::SuppressGrid(dst, width, height);
+        const bool peak = g.rows.input.detected || g.cols.input.detected;
+        if (!g.decisions.empty()) {
+            done.gridSuppressed = 1;
+            done.reason = XPE_GSVG_REASON_APPLIED;
+        } else if (g.maxLevels <= 0) {
+            done.reason = XPE_GSVG_REASON_IMAGE_TOO_SMALL;
+        } else {
+            done.reason = peak ? XPE_GSVG_REASON_GRID_NOT_IN_SUBBANDS
+                               : XPE_GSVG_REASON_NO_GRID_DETECTED;
+        }
     }
 
     // Step 2' (#180, QA-B-91): virtual grid, in place on dst.
@@ -427,6 +453,10 @@ XpeErrorCode process_impl(void* handle,
         if (!rep.error.empty()) {
             std::memcpy(dst, original.data(), count * sizeof(uint16_t));
             alert_virtual_grid(rep.error);
+            done.vignetteApplied = 0;   // the restore undid it as well
+            done.restoredOriginal = 1;
+            done.reason = XPE_GSVG_REASON_VG_REFUSED;
+            report();
             return XPE_ERR_CONFIG_INVALID;
         }
         // QA-B-93: regions thicker than the table were limited to its maximum.
@@ -441,8 +471,11 @@ XpeErrorCode process_impl(void* handle,
         }
         for (size_t i = 0; i < count; ++i)
             dst[i] = static_cast<uint16_t>(std::clamp(std::round(img[i]), 0.0, 65535.0));
+        done.virtualGridApplied = 1;
+        done.reason = XPE_GSVG_REASON_APPLIED;
     }
 
+    report();
     return XPE_OK;
 }
 
@@ -459,7 +492,7 @@ XpeErrorCode xpe_gsvg_process(void* handle,
                               size_t gainCount)
 {
     return process_impl(handle, src, srcCount, dst, dstCount, width, height,
-                        gainMap, gainCount, nullptr, 0);
+                        gainMap, gainCount, nullptr, 0, nullptr);
 }
 
 XpeErrorCode xpe_gsvg_process_masked(void* handle,
@@ -475,7 +508,27 @@ XpeErrorCode xpe_gsvg_process_masked(void* handle,
                                      size_t maskCount)
 {
     return process_impl(handle, src, srcCount, dst, dstCount, width, height,
-                        gainMap, gainCount, fieldMask, maskCount);
+                        gainMap, gainCount, fieldMask, maskCount, nullptr);
+}
+
+XpeErrorCode xpe_gsvg_process_ex(void* handle,
+                                 const uint16_t* src,
+                                 size_t srcCount,
+                                 uint16_t* dst,
+                                 size_t dstCount,
+                                 int width,
+                                 int height,
+                                 const float* gainMap,
+                                 size_t gainCount,
+                                 const uint8_t* fieldMask,
+                                 size_t maskCount,
+                                 XpeGsvgResult* resultOut)
+{
+    // 24 bytes: the first published layout. Checked before anything is touched.
+    if (resultOut == nullptr || resultOut->structSize < sizeof(XpeGsvgResult))
+        return XPE_ERR_INVALID_INPUT;
+    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                        gainMap, gainCount, fieldMask, maskCount, resultOut);
 }
 
 XpeErrorCode xpe_gsvg_shutdown(void* handle)

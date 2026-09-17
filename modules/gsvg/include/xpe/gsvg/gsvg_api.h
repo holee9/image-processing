@@ -91,6 +91,9 @@ XPE_API const char* xpe_gsvg_version(void);
  *   "vg_pyramid_gain":   1.3,       detail gain (needs vg_pyramid_levels)
  *   "vg_denoise_k":      2          soft threshold k * noise sigma on the
  *                                   finest band (needs vg_pyramid_levels)
+ *   "vg_grid_frequency_per_cm": 40  grid line density; REQUIRED when the
+ *                                   table's [grid] section has a freq_per_cm
+ *                                   column, refused when it has none
  * @endcode
  * The table file format is described in modules/gsvg/src/virtual_grid.h.
  *
@@ -242,6 +245,80 @@ XPE_API XpeErrorCode xpe_gsvg_process_masked(void* handle,
                                              size_t gainCount,
                                              const uint8_t* fieldMask,
                                              size_t maskCount);
+
+/**
+ * @brief Why a correction step did or did not change the image (#180, QA-B-101).
+ *
+ * One code per call, for the step the handle was configured to run (grid
+ * suppression or the virtual grid). Values are fixed; new ones are only added.
+ */
+typedef enum XpeGsvgReason {
+    XPE_GSVG_REASON_APPLIED              = 0, /**< the configured step changed the image */
+    XPE_GSVG_REASON_NOT_CONFIGURED       = 1, /**< neither grid suppression nor the virtual grid is enabled */
+    XPE_GSVG_REASON_IMAGE_TOO_SMALL      = 2, /**< grid suppression: under 32 pixels in a dimension */
+    XPE_GSVG_REASON_NO_GRID_DETECTED     = 3, /**< grid suppression: no grid peak in the input spectrum */
+    XPE_GSVG_REASON_GRID_NOT_IN_SUBBANDS = 4, /**< grid suppression: an input peak, but no wavelet
+                                                   sub-band confirmed it; nothing was filtered */
+    XPE_GSVG_REASON_VG_REFUSED           = 5  /**< virtual grid: the exposure or settings are outside
+                                                   the table (text in the alert queue); dst holds
+                                                   the original pixels */
+} XpeGsvgReason;
+
+/**
+ * @brief What one xpe_gsvg_process_ex call did (#180, QA-B-101).
+ *
+ * All members are 32-bit; the layout has no padding (24 bytes). The caller
+ * sets @c structSize to sizeof(XpeGsvgResult) before the call; the library
+ * writes only the members that fit in that size, so a later, larger version
+ * of this struct stays compatible with callers built against this one.
+ */
+typedef struct XpeGsvgResult {
+    uint32_t structSize;          /**< in: sizeof(XpeGsvgResult) as the caller knows it */
+    int32_t  vignetteApplied;     /**< 1 when the gain map was multiplied in */
+    int32_t  gridSuppressed;      /**< 1 when grid suppression filtered the image */
+    int32_t  virtualGridApplied;  /**< 1 when the virtual grid rewrote the image */
+    int32_t  restoredOriginal;    /**< 1 when dst was reset to the original src (virtual grid refused) */
+    int32_t  reason;              /**< an XpeGsvgReason */
+} XpeGsvgResult;
+
+/**
+ * @brief xpe_gsvg_process_masked that also reports what was done (#180, QA-B-101).
+ *
+ * Processing and return codes are those of xpe_gsvg_process_masked. The two
+ * existing entry points are unchanged: with a grid that is not detected they
+ * still return XPE_OK and leave the image as it was, and this call is how a
+ * caller tells that case from "suppressed".
+ *
+ * @param handle     As xpe_gsvg_process_masked.
+ * @param src        As xpe_gsvg_process_masked.
+ * @param srcCount   As xpe_gsvg_process_masked.
+ * @param dst        As xpe_gsvg_process_masked.
+ * @param dstCount   As xpe_gsvg_process_masked.
+ * @param width      As xpe_gsvg_process_masked.
+ * @param height     As xpe_gsvg_process_masked.
+ * @param gainMap    As xpe_gsvg_process_masked.
+ * @param gainCount  As xpe_gsvg_process_masked.
+ * @param fieldMask  As xpe_gsvg_process_masked (NULL: no mask).
+ * @param maskCount  As xpe_gsvg_process_masked.
+ * @param resultOut  Required. structSize must be set; on XPE_OK and on the
+ *                   virtual-grid XPE_ERR_CONFIG_INVALID it is filled in.
+ * @return As xpe_gsvg_process_masked, plus XPE_ERR_INVALID_INPUT when
+ *         @p resultOut is NULL or its structSize is smaller than 24 (the
+ *         size of the first version). Those checks come first; nothing is
+ *         processed.
+ */
+XPE_API XpeErrorCode xpe_gsvg_process_ex(void* handle,
+                                         const uint16_t* src,
+                                         size_t srcCount,
+                                         uint16_t* dst,
+                                         size_t dstCount,
+                                         int width,
+                                         int height,
+                                         const float* gainMap,
+                                         size_t gainCount,
+                                         const uint8_t* fieldMask,
+                                         size_t maskCount,
+                                         XpeGsvgResult* resultOut);
 
 /**
  * @brief Release all resources owned by a GSVG handle.
