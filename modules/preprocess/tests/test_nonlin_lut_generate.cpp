@@ -159,10 +159,15 @@ TEST(NonlinLutGenerateTest, LutMatchesTheIndependentlyComputedIdealAtEveryKnot) 
 // The requirement's accuracy clause: "Maximum interpolation error requirement:
 // <= 0.3% of ADC full scale at any input value".
 //
-// SCOPE: between the measured points, which is what step 5 interpolates. The
-// interval above the HIGHEST measured point is a separate matter and has its own
-// test below -- see it for why the two cannot be checked together.
-TEST(NonlinLutGenerateTest, InterpolationBetweenMeasuredPointsStaysWithinThreeTenthsOfAPercent) {
+// SCOPE: the measured range, lowest to highest measured point. The SPEC
+// correction of 2026-09-18 (#186) makes that scope explicit -- "<= 0.3% 요구는
+// 측정 구간 안에서만 판정합니다" -- and the extension above it is covered by the
+// next test, which asserts monotonicity and claims no accuracy.
+//
+// WHY THIS CHANGED: QA-A-110 could only assert the clause up to the
+// SECOND-highest point, because the withdrawn identity pin distorted the top
+// measured interval. With the pin gone the whole measured range is in scope.
+TEST(NonlinLutGenerateTest, InterpolationAcrossTheMeasuredRangeStaysWithinThreeTenthsOfAPercent) {
     const Ladder L = MakeLadder();
     const std::string path = TempPath("between");
     ASSERT_EQ(XPE_OK, Generate(L, path));
@@ -170,7 +175,7 @@ TEST(NonlinLutGenerateTest, InterpolationBetweenMeasuredPointsStaysWithinThreeTe
 
     const double tolerance = 0.003 * kAdcMax;   // 12.3 ADU
     const double lo = L.signal.front();
-    const double hi = L.signal[static_cast<size_t>(kLevels - 2)];
+    const double hi = L.signal.back();
     double worst = 0.0;
     for (double raw = lo; raw <= hi; raw += 1.0) {
         const double err = std::fabs(L.Expected(raw) -
@@ -181,63 +186,67 @@ TEST(NonlinLutGenerateTest, InterpolationBetweenMeasuredPointsStaysWithinThreeTe
 }
 
 /**
- * THE TWO BOUNDARY CONDITIONS CONTRADICT THE LINEAR FIT, AND THIS RECORDS IT.
+ * ABOVE THE HIGHEST MEASURED POINT THE TABLE IS EXTENDED, NOT PINNED.
  *
- * Step 3 fits `S_ideal = G_nominal * D`; step 6 pins `LUT[ADC_max] = ADC_max`.
- * For a detector whose response is compressive, those disagree: the fit says
- * full scale should linearize to G_nominal * D_max, which is BELOW ADC_max. The
- * whole disagreement then has to be absorbed in the span above the highest
- * measured point (95% of full scale per step 1), and the tangent at the last
- * measured knot is pulled toward the identity endpoint, so the top measured
- * interval carries part of it too.
+ * QA-A-110 asserted the opposite shape here: that the top interval carried a
+ * large error, because step 6 pinned `LUT[ADC_max] = ADC_max` while step 3
+ * fitted a line that put full scale far below it. That expectation was correct
+ * about the CODE and wrong about the REQUIREMENT -- the SPEC correction (#186,
+ * SPEC c293ad9) withdrew the pin: "검출기의 full scale 이 이상 직선과 같아야 할
+ * 물리적 이유가 없습니다."
  *
- * Measured here (gamma = 1.35, 12 levels): the fit puts full scale at about 3697
- * ADU against the pinned 4095 -- roughly 10% of full scale to absorb in the last
- * 5% of the range.
- *
- * This test asserts the SHAPE of that consequence, not a tuned number: the error
- * in the top interval exceeds the error among the inner intervals. It exists so
- * the conflict cannot be mistaken for the 0.3% clause being met everywhere.
- * QA-A-110 reports it; which side gives is not this card's decision.
+ * What is asserted now is what the corrected requirement actually promises in
+ * the extension: continuity at the hand-over, monotonicity throughout, and NO
+ * accuracy claim. The file records where the extension starts so a reader can
+ * tell the two regions apart without re-deriving them.
  */
-TEST(NonlinLutGenerateTest, TheIdentityEndpointDisagreesWithTheFitAndTheTopIntervalCarriesIt) {
+TEST(NonlinLutGenerateTest, AboveTheMeasuredRangeTheTableIsExtendedAndSaysSo) {
     const Ladder L = MakeLadder();
-    const std::string path = TempPath("endpoint");
+    const std::string path = TempPath("extension");
     ASSERT_EQ(XPE_OK, Generate(L, path));
-    const std::vector<uint16_t> lut = ReadLut(path, nullptr);
 
-    // The disagreement itself: what the fit says full scale should become.
-    const double ideal_at_full_scale = L.Expected(kAdcMax);
-    EXPECT_LT(ideal_at_full_scale, kAdcMax - 100.0)
-        << "this ladder is not compressive enough to exercise the conflict";
-    EXPECT_EQ(static_cast<uint16_t>(kAdcMax), lut.back()) << "step 6 still wins at the pin";
+    XCalFileHeader hdr{};
+    std::vector<uint8_t> cfg, payload;
+    ASSERT_EQ(XPE_OK, read_xcal_file(path.c_str(), hdr, cfg, payload, false,
+                                     XCAL_TYPE_NONLIN_LUT));
+    std::vector<uint16_t> lut(payload.size() / sizeof(uint16_t));
+    std::memcpy(lut.data(), payload.data(), payload.size());
 
-    auto worst_between = [&](double a, double b) {
-        double w = 0.0;
-        for (double raw = a; raw <= b; raw += 1.0) {
-            const double e = std::fabs(L.Expected(raw) -
-                                       static_cast<double>(lut[static_cast<size_t>(raw)]));
-            if (e > w) w = e;
-        }
-        return w;
-    };
-    const double inner = worst_between(L.signal.front(),
-                                       L.signal[static_cast<size_t>(kLevels - 2)]);
-    const double top = worst_between(L.signal[static_cast<size_t>(kLevels - 2)],
-                                     L.signal.back());
-    EXPECT_GT(top, inner)
-        << "inner " << inner << " ADU, top interval " << top << " ADU";
+    // The boundary is recorded, and it is just above the highest measured point.
+    const std::string config(reinterpret_cast<const char*>(cfg.data()), cfg.size());
+    const std::string key = "\"xcal_nonlin_extension_start\":";
+    const size_t at = config.find(key);
+    ASSERT_NE(std::string::npos, at);
+    const uint32_t ext = static_cast<uint32_t>(
+        std::stoul(config.substr(at + key.size())));
+    EXPECT_EQ(static_cast<uint32_t>(L.signal.back()) + 1u, ext);
+
+    // The upper end is NOT pinned to full scale any more; it continues the
+    // fitted response, which for a compressive detector lands below it.
+    EXPECT_LT(lut.back(), static_cast<uint16_t>(kAdcMax))
+        << "the withdrawn identity pin appears to be back";
+
+    // Continuity at the hand-over: the first extended entry is one step above
+    // the last measured one, not a jump.
+    const double step = static_cast<double>(lut[ext]) -
+                        static_cast<double>(lut[ext - 1u]);
+    EXPECT_GT(step, 0.0);
+    EXPECT_LT(step, 0.01 * kAdcMax) << "hand-over step " << step << " ADU";
+
+    // Monotone all the way to the end -- the only thing claimed up there.
+    for (size_t i = ext; i + 1 < lut.size(); ++i) {
+        ASSERT_LE(lut[i], lut[i + 1]) << "fell at index " << i;
+    }
 }
 
-// "Boundary conditions: LUT[0] = 0, LUT[ADC_max] = ADC_max (identity at extremes)"
-TEST(NonlinLutGenerateTest, BoundaryConditionsAreIdentityAtBothEnds) {
+// "Boundary conditions: LUT[0] = 0" -- the only pin the corrected SPEC keeps.
+TEST(NonlinLutGenerateTest, TheDarkEndIsPinnedToZero) {
     const Ladder L = MakeLadder();
     const std::string path = TempPath("bounds");
     ASSERT_EQ(XPE_OK, Generate(L, path));
     const std::vector<uint16_t> lut = ReadLut(path, nullptr);
 
     EXPECT_EQ(0u, lut.front());
-    EXPECT_EQ(static_cast<uint16_t>(kAdcMax), lut.back());
 }
 
 // "Monotonicity check: LUT[i] <= LUT[i+1] for all i (enforced ...)"
@@ -306,7 +315,6 @@ TEST(NonlinLutGenerateTest, SixtyFiveThousandEntriesUseA4096By16Geometry) {
     EXPECT_EQ(16u, hdr.height);
     EXPECT_EQ(65536u, lut.size());
     EXPECT_EQ(0u, lut.front());
-    EXPECT_EQ(65535u, lut.back());
 }
 
 // Write -> read -> the same bytes, and the generation conditions travel along.

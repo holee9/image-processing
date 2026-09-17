@@ -263,6 +263,16 @@ struct CalibrationData {
     std::unique_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};
+
+    // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
+    // indexed by raw ADU. `nonlin_extension_start` is the first index the
+    // generator extrapolated -- the file records it because the corrected SPEC
+    // judges the 0.3% accuracy clause inside the measured range only, and a
+    // reader that cannot tell the regions apart would over-claim.
+    std::unique_ptr<uint16_t[]> nonlin_lut;
+    uint32_t nonlin_entries{0};
+    uint32_t nonlin_extension_start{0};
+    int64_t  nonlin_timestamp{0};
 };
 
 extern CalibrationData g_calib;
