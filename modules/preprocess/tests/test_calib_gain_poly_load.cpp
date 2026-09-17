@@ -201,7 +201,11 @@ TEST_F(GainPolyLoadTest, LoadingPolyClearsTheScalarGainMap) {
     out.dataSize = static_cast<uint32_t>(outData.size() * sizeof(float));
 
     XpeImageMetadata meta{};
-    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, xpe_gain_correct(&in, &out, &meta))
+    // QA-A-107 (#187): the refusal is now XPE_ERR_UNSUPPORTED_FORMAT -- this
+    // function cannot apply a polynomial model. It used to be
+    // XPE_ERR_CALIB_NOT_LOADED, which described the module as holding no
+    // calibration at all, which is not the case after a successful POLY load.
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_gain_correct(&in, &out, &meta))
         << "the scalar map from the earlier load must not survive a POLY load";
 }
 

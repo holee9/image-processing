@@ -272,6 +272,17 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
             // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
             // REQ-P1A-020), so the caller can tell the two apart.
+            // QA-A-107 (#187): a loaded gain POLYNOMIAL is not "no calibration".
+            // No API applies G(x,y,E) yet, so this call cannot run -- but it says
+            // so, instead of reporting the state as an empty calibration and
+            // leaving the operator to guess.
+            if (!g_calib.gain_map && g_calib.gain_poly_coeffs) {
+                xpe_alert_push("gain polynomial (XCAL_TYPE_GAIN_POLY) is loaded; "
+                               "xpe_gain_correct does not apply it (issue #187) -- "
+                               "load a scalar XCAL_TYPE_GAIN map to correct",
+                               XPE_ALERT_ERROR);
+                return XPE_ERR_UNSUPPORTED_FORMAT;
+            }
             if (!g_calib.gain_map) return XPE_ERR_CALIB_NOT_LOADED;
             if (g_calib.gain_width  != input->width ||
                 g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;

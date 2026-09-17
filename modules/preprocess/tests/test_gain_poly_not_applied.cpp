@@ -13,9 +13,19 @@
  *  - xpe_gain_correct() reads only the scalar map and returns
  *    XPE_ERR_CALIB_NOT_LOADED when it is absent (gain_correct.cpp:275).
  *
- * So loading a polynomial file makes gain correction FAIL. These cases record
- * that behaviour so a later change to it is visible; they are not an
- * endorsement of it (#187). They must be updated when #187 is implemented.
+ * QA-A-107 (#187) changed what that failure LOOKS like, not whether it fails:
+ *  - the load still succeeds (the file's FUNC-033 (5) metadata is read back --
+ *    QA-A-37, #140) and now raises an XPE_ALERT_WARNING saying the coefficients
+ *    are not applied;
+ *  - xpe_gain_correct() answers XPE_ERR_UNSUPPORTED_FORMAT (this function
+ *    cannot apply this model) with an XPE_ALERT_ERROR, instead of
+ *    XPE_ERR_CALIB_NOT_LOADED, which said the module held no calibration at all.
+ *
+ * The QA-A-105 version of these cases expected XPE_ERR_CALIB_NOT_LOADED. That
+ * expectation recorded the defect: a caller reading "not loaded" after a
+ * successful load has no way to learn that the file it loaded is the reason.
+ * The scalar map is still cleared on purpose -- correcting frames with a map
+ * the operator did not select is what SRS-CALIB-SAFE-003 forbids.
  */
 
 #include <gtest/gtest.h>
@@ -26,6 +36,7 @@
 #include "xpe/preprocess/xcal_format.h"
 #include "fixtures/make_xcal.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -82,6 +93,18 @@ protected:
         return path;
     }
 
+    /** true when an alert whose text contains @p needle is pending. */
+    static bool alertContains(const char* needle) {
+        char msg[256];
+        int32_t sev = -1;
+        const int32_t count = xpe_get_pending_alert_count();
+        for (int32_t i = 0; i < count; ++i) {
+            if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) continue;
+            if (std::string(msg).find(needle) != std::string::npos) return true;
+        }
+        return false;
+    }
+
     XpeErrorCode correct() {
         XpeImageBuffer ib{};
         ib.width = W; ib.height = H; ib.format = XPE_PIXEL_UINT16;
@@ -110,15 +133,24 @@ TEST_F(GainPolyNotAppliedTest, ScalarGainMapIsApplied) {
     EXPECT_FLOAT_EQ(500.0f, out[0]);   // 1000 / 2
 }
 
-// #187: the polynomial file loads, and gain correction then fails.
-TEST_F(GainPolyNotAppliedTest, PolynomialGainLoadsButCorrectionReportsNotLoaded) {
+// #187: the polynomial file loads (with a warning) and gain correction refuses
+// with a code that names the reason.
+TEST_F(GainPolyNotAppliedTest, PolynomialGainLoadsWithAWarningAndCorrectionRefuses) {
     const std::string poly = writePoly("gain_poly.xcal", {1.0f, 0.5f, 0.25f});
+    xpe_clear_alerts();
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()))
-        << "the loader accepts XCAL_TYPE_GAIN_POLY";
-    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, correct())
-        << "current behaviour (#187): no API applies G(x,y,E); update this case "
-           "when the coefficients are wired into a correction path";
+        << "the loader accepts XCAL_TYPE_GAIN_POLY (#140 metadata round trip)";
+    EXPECT_TRUE(alertContains("no correction applies G(x,y,E)"))
+        << "the load must say the coefficients are not applied (#187)";
+
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, correct())
+        << "this function cannot apply a polynomial model; CALIB_NOT_LOADED would "
+           "say the module holds no calibration, which is not the case (#187)";
+    EXPECT_TRUE(alertContains("does not apply it"))
+        << "the refusal must be visible to the operator, not only in the code";
     EXPECT_FLOAT_EQ(-1.0f, out[0]) << "the output buffer is left untouched";
+    xpe_clear_alerts();
 }
 
 // Loading a polynomial file after a scalar map removes the working model.
@@ -131,6 +163,10 @@ TEST_F(GainPolyNotAppliedTest, PolynomialLoadReplacesAWorkingScalarMap) {
 
     const std::string poly = writePoly("gain_poly2.xcal", {1.0f, 0.5f});
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
-    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, correct())
-        << "the scalar map is cleared by the polynomial load (#187)";
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, correct())
+        << "the scalar map is cleared on purpose (SRS-CALIB-SAFE-003): frames must "
+           "not be corrected with a map the operator did not select (#187)";
+    EXPECT_FLOAT_EQ(500.0f, out[0])
+        << "the earlier result is left in the buffer; nothing new was written";
+    xpe_clear_alerts();
 }
