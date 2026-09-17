@@ -67,6 +67,9 @@ def main():
     ap.add_argument("--mat-dir", default="/root/mcsim/mat")
     ap.add_argument("--mat", default="water.mcgpu", help="slab material file in --mat-dir")
     ap.add_argument("--density", type=float, default=1.0, help="slab density, g/cm^3")
+    ap.add_argument("--source-dir", type=float, nargs=2, default=(0.0, 0.0), metavar=("UX", "UZ"),
+                    help="x and z direction cosines of the source axis (y = sqrt(1-ux^2-uz^2)); MC-GPU puts the "
+                         "detector perpendicular to this axis at --sdd")
     ap.add_argument("--pcd", nargs=3, type=float, metavar=("EMIN_EV", "EMAX_EV", "NBIN"),
                     help="write the extra detector line of the MCGPUv1.3_PCD fork")
     a = ap.parse_args()
@@ -88,6 +91,8 @@ def main():
 
     mean_kev, hvl, dropped = write_spectrum(os.path.join(a.out, "beam.spc"), a.kvp, a.al, a.anode)
 
+    ux, uz = a.source_dir
+    uy = math.sqrt(1.0 - ux * ux - uz * uz)
     dist = a.sdd if a.field_at == "detector" else src_to_slab
     ap_deg = 0.0 if a.field <= 0 else 2.0 * math.degrees(math.atan(0.5 * a.field / dist))
     field_det = a.field * a.sdd / dist
@@ -105,7 +110,7 @@ def main():
 #[SECTION SOURCE v.2011-07-12]
 beam.spc
 %g %g %g
-0.0 1.0 0.0
+%.8f %.8f %.8f
 %.6f %.6f
 #[SECTION IMAGE DETECTOR v.2009-12-02]
 image.dat
@@ -133,7 +138,7 @@ slab.vox
 """ % (a.thickness, a.kvp, a.al, a.anode, a.sdd, a.air_gap, a.field, a.field_at, field_det,
        a.slab_xz, a.mat, a.density, mean_kev, hvl, dropped,
        a.histories, a.seed,
-       c, -src_to_slab, c, ap_deg, ap_deg,
+       c, -src_to_slab, c, ux, uy, uz, ap_deg, ap_deg,
        a.pixels, a.pixels, a.det_size, a.det_size,
        ("" if not a.pcd else "%d %d %d\n" % tuple(int(v) for v in a.pcd)), a.sdd,
        src_to_slab + 0.5 * a.thickness,
