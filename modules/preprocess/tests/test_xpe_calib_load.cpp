@@ -61,6 +61,14 @@ protected:
     const char* tamper_path  = "t006_tamper.xcal";
 
     void TearDown() override {
+        // Release the maps these cases load into the module (QA-A-91, #176).
+        // A W x H defect map left here made a later sigma-clip generation of
+        // another size answer -4 (--gtest_shuffle --gtest_random_seed=2).
+        // Initialize first so shutdown runs on an initialized module; the
+        // result is ignored because an already-initialized module refuses.
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
+
         std::remove(offset_path);
         std::remove(gain_path);
         std::remove(defect_path);

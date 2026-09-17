@@ -109,6 +109,12 @@ protected:
         // Put the capacity back to the module default (maxSize_{4},
         // calibration_cache.cpp); cases here shrink it to 1 and to 0 (QA-A-90, #176).
         xpe_calib_cache_set_max_size(4);
+        // A cache miss installs the map as the module's ACTIVE map too
+        // (calibration_cache.cpp), and clearing the cache does not unload it
+        // (QA-A-89 measured the same shape in the concurrency fixture).
+        // Release it on an initialized module (QA-A-91, #176).
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
         fs::remove_all(tmpDir);
     }
 
