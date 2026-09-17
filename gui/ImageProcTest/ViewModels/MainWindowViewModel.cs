@@ -692,6 +692,12 @@ public sealed class MainWindowViewModel : ObservableObject
             RuntimeInfo = _backend.Initialize(Settings);
             DrainBackendTelemetry();
 
+            // #178 (GUI-C-89): every successful initialisation starts a new run set. The actual backend can
+            // differ from the previous initialisation with the same request (the DLLs may have appeared or
+            // gone), and one run id for both would let the later backend.json overwrite the earlier record.
+            // A failed initialisation throws before this line and keeps the current run set.
+            RunSet = new RunSetState();
+
             StatusText = $"Backend initialized: {_backend.GetVersion()}";
             Log($"Initialized backend '{RuntimeInfo.BackendName}' ({_backend.GetVersion()}).");
         }
