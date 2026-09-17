@@ -78,8 +78,11 @@ internal static class WorkbenchObservation
 
     internal static void ApplyDisplayPipeline(Window window)
     {
-        // A detached viewer can lie over the menu and take the click, so later attempts open it
-        // through the expand pattern instead (GUI-C-80).
+        // Symptom workaround (GUI-C-80, cause measured in GUI-C-81): the detached viewer is an owned window,
+        // so it stays above the main window even after SetForeground. Where it covers the Pipeline menu,
+        // FromPoint at the menu centre returns the viewer and the click never reaches the menu (2 runs:
+        // covered → not found, moved away → found, moved back → not found). Later attempts therefore open
+        // the menu through the expand pattern, which needs no pointer.
         AutomationElement? item = null;
         for (var attempt = 0; attempt < 3 && item is null; attempt++)
         {
@@ -227,6 +230,27 @@ internal static class WorkbenchObservation
         }
 
         return null;
+    }
+
+    /// <summary>The status-bar runtime line (<c>mode=… | common=… | display=… | src=…</c>).</summary>
+    internal static string RuntimeSummary(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("RuntimeCommonVersionText"))?.Name ?? string.Empty;
+
+    /// <summary>
+    /// GUI-C-81: under Native the fault seam must wrap the NATIVE backend. The factory falls back to Mock
+    /// silently, and <c>mode=</c> is only the requested setting, so the proof is <c>src=</c> — reported by
+    /// the backend through the wrapper, and absent for Mock.
+    /// </summary>
+    internal static void AssertWrappedBackendMatches(Window window, string? requestedMode, Action<string> log, string scenario)
+    {
+        var summary = RuntimeSummary(window);
+        log($"{scenario} runtime: requested={requestedMode} status-bar='{summary}'");
+        if (string.Equals(requestedMode, "Native", StringComparison.Ordinal))
+        {
+            Assert.True(
+                summary.Contains("src=", StringComparison.Ordinal),
+                $"Native was requested but the app reports '{summary}' — no native source, so the seam wraps a fallback backend.");
+        }
     }
 
     /// <summary>The main window's fault-injection status (<c>faultInjection=off</c> unless armed).</summary>
