@@ -68,6 +68,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <random>
 #include <string>
 #include <vector>
@@ -132,6 +133,95 @@ double MeasureReferenceMs() {
         if (v < best) best = v;
     }
     return best;
+}
+
+/* --------------------------------------------------- machine diagnostics */
+//
+// QA-A-108 (#179). Two CI runs of the SAME commit produced ratios 0.972 and
+// 1.172 while 21 historical runs sat at 0.472..0.638, with zero changed lines in
+// modules/preprocess and modules/common. To read the NEXT failure we need to
+// know which machine ran it, so the run prints its own profile.
+//
+// These lines are diagnostics only. They assert nothing, they do not touch the
+// frozen reference kernel, and they must never become an input to the limit.
+//
+// Why a bandwidth probe belongs here: the reference kernel is a 16 MB buffer
+// swept 12 times, which is compute-bound once resident, while the 3072^2
+// detection touches a 36 MB frame plus a 9.4 MB map, which is bandwidth-bound.
+// If a runner's memory subsystem is slow but its cores are not, the ratio rises
+// with no code change -- exactly the shape of the two failing runs. The probe
+// measures that axis directly so the next failure can be attributed rather than
+// guessed at.
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+#include <thread>
+
+std::string CpuBrand() {
+#if defined(_MSC_VER)
+    int regs[4] = {0, 0, 0, 0};
+    __cpuid(regs, 0x80000000);
+    if (static_cast<unsigned>(regs[0]) < 0x80000004u) return "unknown";
+    char brand[49] = {0};
+    for (unsigned leaf = 0; leaf < 3; ++leaf) {
+        __cpuid(regs, static_cast<int>(0x80000002u + leaf));
+        std::memcpy(brand + leaf * 16u, regs, sizeof(regs));
+    }
+    std::string s(brand);
+    while (!s.empty() && s.front() == ' ') s.erase(s.begin());
+    return s;
+#else
+    return "unknown";
+#endif
+}
+
+bool HasAvx2() {
+#if defined(_MSC_VER)
+    int regs[4] = {0, 0, 0, 0};
+    __cpuid(regs, 0);
+    if (regs[0] < 7) return false;
+    __cpuidex(regs, 7, 0);
+    return (regs[1] & (1 << 5)) != 0;   // EBX bit 5 = AVX2
+#else
+    return false;
+#endif
+}
+
+/** Streaming read bandwidth over a buffer far larger than any last-level cache. */
+double StreamingBandwidthGBs() {
+    constexpr size_t kBytes = 256u * 1024u * 1024u;
+    constexpr size_t kElems = kBytes / sizeof(float);
+    std::vector<float> buf(kElems, 1.0f);
+    volatile float sink = 0.0f;
+    auto once = [&]() {
+        float a = 0.0f;
+        for (size_t i = 0; i < kElems; i += 16) a += buf[i];   // one float per cache line
+        sink = sink + a;
+    };
+    once();   // warm-up: first touch pays the page faults
+    double best = 1e30;
+    for (int rep = 0; rep < 3; ++rep) {
+        const auto t0 = std::chrono::steady_clock::now();
+        once();
+        const auto t1 = std::chrono::steady_clock::now();
+        const double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (ms < best) best = ms;
+    }
+    return static_cast<double>(kBytes) / (best * 1e-3) / 1e9;
+}
+
+/** Printed once per gate so a failing job log identifies its own runner. */
+void PrintMachineProfile() {
+    std::printf("[perf-gate-machine] cpu=\"%s\" logical=%u avx2=%d bandwidth=%.1f GB/s\n",
+                CpuBrand().c_str(), std::thread::hardware_concurrency(),
+                HasAvx2() ? 1 : 0, StreamingBandwidthGBs());
+    // The library is built with /arch:AVX2; this test binary is not, so the
+    // ratio's numerator and denominator are compiled for different instruction
+    // sets (modules/preprocess/CMakeLists.txt:77). Recorded, not changed --
+    // changing it would move every historical ratio.
+    std::printf("[perf-gate-machine] numerator=xpe_preprocess(/arch:AVX2)"
+                " denominator=in-test kernel(default arch)\n");
 }
 
 /* ------------------------------------------------------------- the gates */
@@ -272,6 +362,7 @@ std::string Explain(const char* label, const Timing& t, double reference,
 }  // namespace
 
 TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
+    PrintMachineProfile();
     const double reference = MeasureReferenceMs();
     const Timing t = TimeDetection(3072u, 3072u);
     const double ratio = t.best / reference;
