@@ -769,32 +769,17 @@ TEST(IntegrationTest, T610_DocumentationAndMXTags) {
 }
 
 // ---------------------------------------------------------------------------
-// #105 G3: working-set measurement, mirroring enhance_basic
+// #105 G3 / #181: heap-growth measurement (heap_growth.h)
 // test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
 // module rather than exported: xpe_common's surface is fixed at 16 symbols
 // (REQ-P0-008).
 // ---------------------------------------------------------------------------
-#ifdef _WIN32
-#  include <windows.h>
-#  include <psapi.h>
-static SIZE_T get_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
-    }
-    return 0;
-}
-#else
-static size_t get_working_set_bytes() { return 0; }
-#endif
+#include "heap_growth.h"
 
-// WARMUP exists because the first cycles fault in fresh heap pages and grow the
-// CRT allocator arena; counting that one-time cost as "leak" would make the
-// threshold a measure of startup, not of retention. The baseline is snapshotted
-// after warm-up so only steady-state growth is scored.
-constexpr int    ENDURANCE_CYCLES = 1000;
-constexpr int    ENDURANCE_WARMUP = 100;
-constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+// #181 (QA-B-93): retention is measured on the CRT heap (heap_growth.h), not
+// on the working set, which QA-B-92 showed does not follow a leak. Warm-up
+// (heap_growth::kWarmup) lets first-touch pages and allocator arenas settle
+// before the baseline.
 
 /**
  * @test T605b_MemoryGrowthUnderOneMB
@@ -802,13 +787,11 @@ constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
  *
  * T605 above proves the module survives 1000 cycles; it measures nothing, so a
  * retention defect passes it silently ("no actual memory measurement here").
- * This case takes the same cycle and scores the working-set delta against the
- * 1 MB bound used by preprocess T-010 and enhance_basic.
+ * This case takes the same cycle and scores CRT heap growth (#181, QA-B-93;
+ * until then the working-set delta against 1 MB, which QA-B-92 showed does
+ * not follow a leak).
  */
-TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {
-#ifndef _WIN32
-    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
-#endif
+static void T605bCycles(size_t leakBytes, heap_growth::Growth& out) {
     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
 
     constexpr int IMG_SIZE = 128;
@@ -836,17 +819,33 @@ TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {
         delete[] static_cast<float*>(img.data);
     };
 
-    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
-
-    const auto before = get_working_set_bytes();
-    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
-    const auto after = get_working_set_bytes();
-
-    if (after > before) {
-        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
-            << "Working set grew by " << (after - before) / 1024 << " KB over "
-            << ENDURANCE_CYCLES << " enhance_advanced alloc-process-free cycles";
-    }
+    out = heap_growth::Measure(one_cycle, leakBytes);
 
     xpe_enhance_advanced_shutdown();
+}
+
+TEST(IntegrationTest, T605b_CrtHeapDoesNotGrow) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    heap_growth::Growth g;
+    T605bCycles(0, g);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << g.cycles << " enhance_advanced alloc-process-free cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << g.cycles << " enhance_advanced alloc-process-free cycles left bytes allocated";
+}
+
+// #181 (QA-B-93) control: the same cycle plus one unfreed 64-byte block per
+// cycle must be caught by the measurement above.
+TEST(IntegrationTest, T605b_ControlLeakIsCaught) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    heap_growth::Growth g;
+    T605bCycles(64, g);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
