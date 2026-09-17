@@ -76,6 +76,15 @@ internal static class WorkbenchObservation
         Thread.Sleep(1200);
     }
 
+    internal static void TypeWidth(Window window, string value)
+    {
+        var input = window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowWidthInput"))!.AsTextBox();
+        input.Focus();
+        input.Text = value;
+        Keyboard.Press(VirtualKeyShort.TAB);
+        Thread.Sleep(1200);
+    }
+
     internal static void ApplyDisplayPipeline(Window window)
     {
         // Symptom workaround (GUI-C-80, cause measured in GUI-C-81): the detached viewer is an owned window,

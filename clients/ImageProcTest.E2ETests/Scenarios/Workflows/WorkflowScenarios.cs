@@ -4,6 +4,7 @@ using FlaUI.Core.AutomationElements;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
@@ -201,6 +202,11 @@ public sealed class WorkflowScenarios
     ///
     /// The status bar carries the applied window ("… VOI(Linear, C=…, W=…) …"), which is readable
     /// without opening the Analysis tab (GUI-C-34).
+    ///
+    /// <para>GUI-C-87 (#177): the native presets are now C=32768/W=65535 — the app's own default window. A
+    /// preset that was never applied would therefore leave the status bar on exactly the expected text, so
+    /// the window is first moved to C=12345/W=4321 and applied, and the case asserts the preset brings it
+    /// back. Without that step the Native branch could not tell "applied" from "untouched".</para>
     /// </summary>
     [SkippableFact]
     public void W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow()
@@ -213,7 +219,24 @@ public sealed class WorkflowScenarios
             var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
             Assert.True(status is not null, "StatusBarText was not found.");
 
+            // Move the window off every preset, and prove the move rendered, so the preset below has
+            // something to undo (#177: the native preset equals the default window).
+            OpenParameters(window);
             var combo = selector!.AsComboBox();
+            if (combo.SelectedItem?.Text == "Lung")
+            {
+                combo.Select("Bone");
+                Thread.Sleep(1500);
+            }
+
+            TypeCenter(window, "12345");
+            TypeWidth(window, "4321");
+            ApplyDisplayPipeline(window);
+            var moved = status!.Name;
+            _output.WriteLine($"W-07 before preset: '{moved}'");
+            Assert.Contains("C=12345", moved, StringComparison.Ordinal);
+            Assert.Contains("W=4321", moved, StringComparison.Ordinal);
+
             combo.Select("Lung");
             Thread.Sleep(1500);
 
@@ -222,10 +245,11 @@ public sealed class WorkflowScenarios
             // CI Native job. Reading them from the active backend is what the comment always
             // claimed and the code did not do.
             var (center, width) = _app.BackendMode == "Native"
-                ? ("C=-600", "W=1600")      // modules/display/src/voi_lut.cpp XPE_BODY_LUNG (HU)
+                ? ("C=32768", "W=65535")    // modules/display/src/voi_lut.cpp XPE_BODY_LUNG — detector DN, provisional full range (#177, #151)
                 : ("C=25000", "W=50000");   // MockXpeBackend.cs XpeBodyPartEnum.Lung
 
             var text = status!.Name;
+            _output.WriteLine($"W-07 after preset: '{text}'");
             Assert.Contains(center, text, StringComparison.Ordinal);
             Assert.Contains(width, text, StringComparison.Ordinal);
         });
