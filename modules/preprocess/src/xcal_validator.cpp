@@ -65,7 +65,8 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY (= 3) sits above XCAL_TYPE_DEFECT
     // (= 2), so the old ceiling rejected every polynomial gain file the public
     // generator writes -- the file was writable and unreadable.
-    if (header.type > static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
+    // QA-A-110 (#186): XCAL_TYPE_NONLIN_LUT (= 4) is the new ceiling.
+    if (header.type > static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
@@ -88,6 +89,10 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
         return XPE_ERR_CONFIG_INVALID;
     }
     if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_FLOAT32)) {
+        return XPE_ERR_CONFIG_INVALID;
+    }
+    //   NONLIN_LUT -> UINT16 (SRS-CALIB-FUNC-006-EXT 6a: "LUT data type: uint16")
+    if (header.type == static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_UINT16)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 
