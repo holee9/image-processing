@@ -223,7 +223,16 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Clinical workflow delay minimization (HAZ-006)
 - **Verification**: Test
-- **Status**: Not measured — no measurement record in the repository; condition (DWT) not implemented (#180)
+- **Status**: Measured (2026-09-18, QA-B-102/B-103, 개발 PC i7-12700, 제품 기본 스레드 설정) — **713–757 ms**, 요구 충족. CI 는 836 ms(추세 관찰용). 조건의 Tier 1 DWT 는 구현돼 있습니다(#180).
+
+### REQ-GSVG-019b: Virtual Grid Processing Time (추가, 2026-09-18, #179/#180)
+
+**When** a 3072x3072 16-bit image is processed with the virtual grid (Tier 2),
+**the system shall** complete processing within 1.0 seconds (기준 기계: 개발 PC i7-12700, 제품 기본 스레드 설정).
+
+- **Rationale**: REQ-GSVG-019 의 조건은 Tier 1 DWT 억제이고, 가상 그리드는 그 조건에 없었습니다. 두 경로는 배타적이라 한 호출에서 합산되지 않으므로 시간 요구를 따로 둡니다.
+- **Verification**: Test
+- **Status**: Measured (QA-B-104) — 제품용 표로 **640 ms**, 요구 충족. 합성 표 597–613 ms 대비 약 5% 느립니다.
 
 ### REQ-GSVG-020: Peak Memory
 
