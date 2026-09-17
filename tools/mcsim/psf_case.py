@@ -24,6 +24,8 @@ Saved to <out>/psf.npz and <out>/psf.json:
   primary_<resp>        integrated primary signal per history
   spr_field_<resp>      sum of the PSF over a --field x --field square
                         (shift-invariant approximation of a broad beam)
+  img_<resp>            2-D scatter density on the coarse detector (1/cm^2)
+  scatter_total_<resp>, scatter_centroid_<resp>_cm   whole-detector scatter/primary and its centroid
 """
 import argparse
 import gzip
@@ -82,7 +84,10 @@ def launch(out, tag, det, seed, args):
            "--sdd", str(args.sdd), "--air-gap", str(args.air_gap), "--field", "0",
            "--det-size", str(det["size"]), "--pixels", str(det["pixels"]),
            "--histories", "%g" % args.histories, "--seed", str(seed),
-           "--pcd", "0", str(EMAX_EV), str(NBIN), "--mat-dir", args.mat_dir]
+           "--pcd", "0", str(EMAX_EV), str(NBIN), "--mat-dir", args.mat_dir,
+           "--slab-xz", str(args.slab_xz)]
+    if any(args.source_dir):
+        gen += ["--source-dir", str(args.source_dir[0]), str(args.source_dir[1])]
     subprocess.run(gen, check=True, stdout=subprocess.DEVNULL)
     with open(os.path.join(d, "mcgpu.log"), "w") as log:
         rc = subprocess.run([PCD_BIN, "run.in"], cwd=d, stdout=log, stderr=subprocess.STDOUT).returncode
@@ -128,10 +133,18 @@ def main():
     ap.add_argument("--seed0", type=int, default=1234567890)
     ap.add_argument("--csi-um", type=float, default=600.0)
     ap.add_argument("--field", type=float, default=30.0)
+    ap.add_argument("--coarse-size", type=float, default=COARSE["size"], help="coarse detector side, cm")
+    ap.add_argument("--coarse-pixels", type=int, default=COARSE["pixels"])
+    ap.add_argument("--no-fine", action="store_true",
+                    help="skip the fine detector (field sums only; the profile then starts at the coarse pixels)")
+    ap.add_argument("--slab-xz", type=float, default=60.0)
+    ap.add_argument("--source-dir", type=float, nargs=2, metavar=("SIN_X", "SIN_Z"), default=(0.0, 0.0),
+                    help="tilt the pencil: direction = (SIN_X, cos, SIN_Z); MC-GPU keeps the detector perpendicular to it")
     ap.add_argument("--mat-dir", default=os.path.join(WORK, "mat150"),
                     help="directory holding water.mcgpu and air.mcgpu (5-150 keV tables by default)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
+    COARSE["size"], COARSE["pixels"] = a.coarse_size, a.coarse_pixels
 
     w = EMAX_EV / NBIN
     ec = (np.arange(NBIN) + 0.5) * w
@@ -141,29 +154,45 @@ def main():
     rep_prof = {k: [] for k in resp}
     rep_prim = {k: [] for k in resp}
     rep_spr = {k: [] for k in resp}
+    rep_mom = {k: [] for k in resp}
+    rep_img = {k: [] for k in resp}
     hist_total = 0
     speeds = []
     t0 = time.time()
     r_out = None
     for i in range(a.repeats):
         seed = a.seed0 + 1 + 2 * i
-        fine, hf, sf = launch(a.out, "fine", FINE, seed, a)
         coarse, hc, sc = launch(a.out, "coarse", COARSE, seed + 1, a)
+        if a.no_fine:
+            fine, hf, sf = None, 0, None
+            speeds += [sc]
+        else:
+            fine, hf, sf = launch(a.out, "fine", FINE, seed, a)
+            speeds += [sf, sc]
         hist_total += hf + hc
-        speeds += [sf, sc]
         for k, wt in weights.items():
             # primary: pencil beam -> everything in the centre pixels; use the
             # total over the detector, per history, averaged over both launches
-            pf = (fine["nonScatteredPhotons"] @ wt).sum() / hf
             pc = (coarse["nonScatteredPhotons"] @ wt).sum() / hc
-            prim = 0.5 * (pf + pc)
-            sfine = (fine["compton"] + fine["rayleigh"] + fine["multiple"]) @ wt / hf
             scoarse = (coarse["compton"] + coarse["rayleigh"] + coarse["multiple"]) @ wt / hc
-            rf, pff, _, _ = radial(sfine, FINE, RBIN_FINE, FINE_R)
             rc, pcc, Xc, Zc = radial(scoarse, COARSE, RBIN_COARSE, 30.0)
-            keep = rc >= FINE_R
-            r = np.concatenate([rf, rc[keep]])
-            prof = np.concatenate([pff, pcc[keep]]) / prim
+            if a.no_fine:
+                prim = pc
+                r, prof = rc, pcc / prim
+            else:
+                pf = (fine["nonScatteredPhotons"] @ wt).sum() / hf
+                prim = 0.5 * (pf + pc)
+                sfine = (fine["compton"] + fine["rayleigh"] + fine["multiple"]) @ wt / hf
+                rf, pff, _, _ = radial(sfine, FINE, RBIN_FINE, FINE_R)
+                keep = rc >= FINE_R
+                r = np.concatenate([rf, rc[keep]])
+                prof = np.concatenate([pff, pcc[keep]]) / prim
+            # off-axis bookkeeping (detector coordinates of this run)
+            tot = scoarse.sum()
+            rep_img[k].append(scoarse.reshape(COARSE["pixels"], COARSE["pixels"]) / prim
+                              / (COARSE["size"] / COARSE["pixels"]) ** 2)
+            rep_mom[k].append((float(tot / prim * (COARSE["size"] / COARSE["pixels"]) ** 2),
+                               float((scoarse * Xc).sum() / tot), float((scoarse * Zc).sum() / tot)))
             rep_prof[k].append(prof)
             rep_prim[k].append(prim)
             # field sum on the coarse grid (5 mm pixels; field edges on pixel edges for 30 cm)
@@ -172,7 +201,8 @@ def main():
             rep_spr[k].append(float(scoarse[inside].sum() / prim))
             r_out = r
 
-    out = {"thickness_cm": a.thickness, "kvp": a.kvp, "al_mm": a.al, "sdd_cm": a.sdd,
+    out = {"coarse": dict(COARSE), "no_fine": a.no_fine, "slab_xz": a.slab_xz,
+           "source_dir": list(a.source_dir), "thickness_cm": a.thickness, "kvp": a.kvp, "al_mm": a.al, "sdd_cm": a.sdd,
            "air_gap_cm": a.air_gap, "csi_um": a.csi_um, "mat_dir": a.mat_dir,
            "water_table": os.path.realpath(os.path.join(a.mat_dir, "water.mcgpu")), "field_cm": a.field,
            "repeats": a.repeats, "histories_total": hist_total,
@@ -184,9 +214,16 @@ def main():
         P = np.vstack(rep_prof[k])
         npz["psf_" + k] = P.mean(axis=0)
         npz["psf_%s_rep" % k] = P
+        # 2-D scatter density on the coarse detector [1/cm^2], rows = z, columns = x
+        # (MC-GPU writes X rows first within each Z), mean over repeats
+        npz["img_" + k] = np.mean(rep_img[k], axis=0)
+        npz["img_%s_rep" % k] = np.array(rep_img[k])
         out["primary_" + k] = float(np.mean(rep_prim[k]))
         out["spr_field_" + k] = float(np.mean(rep_spr[k]))
         out["spr_field_%s_sem" % k] = float(np.std(rep_spr[k], ddof=1) / math.sqrt(len(rep_spr[k])))
+        m = np.array(rep_mom[k])
+        out["scatter_total_" + k] = float(m[:, 0].mean())      # scatter/primary over the whole coarse detector
+        out["scatter_centroid_%s_cm" % k] = [float(m[:, 1].mean()), float(m[:, 2].mean())]
     np.savez_compressed(os.path.join(a.out, "psf.npz"), **npz)
     with open(os.path.join(a.out, "psf.json"), "w") as f:
         json.dump(out, f, indent=1)
