@@ -115,7 +115,8 @@ struct VgSwitches {
     CapMode cap = CapMode::GlobalSum;
     double capEps = 0.0;          // eps for PrimaryFloor / SmoothFloor
     int reductionFactor = 0;      // 0: derived from the narrowest kernel term (QA-B-95: fixed to compare models)
-    bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
+    bool clampThickness = true;
+    bool useFieldMask = true;     // false: a passed mask is ignored (QA-B-96 falsification)   // false: thickness above the table refuses the image (pre-QA-B-93)
 };
 
 struct VgReport {
@@ -160,9 +161,14 @@ double ThicknessFromLogAtten(double L, double w0, double a, double b, double tMa
 
 // Runs the full chain on img (width*height DN values, in place).
 // On error img is left untouched and report.error says why.
+//
+// fieldMask (QA-B-96): width*height bytes, non-zero = inside the collimated
+// field, or nullptr. Pixels outside the field are not scatter sources (they
+// enter the estimate as 0) and are returned unchanged.
 VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
                         const ParamTable& table, const VgSettings& settings,
-                        const VgSwitches& sw = VgSwitches{});
+                        const VgSwitches& sw = VgSwitches{},
+                        const uint8_t* fieldMask = nullptr);
 
 // Primary + scatter forward model used by the tests' synthetic images:
 // returns P + (P * K[T]) on the full-resolution grid for a given thickness map.

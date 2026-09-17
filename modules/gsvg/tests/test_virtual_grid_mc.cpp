@@ -19,10 +19,13 @@
 
 #include "virtual_grid.h"
 
+#include "xpe/gsvg/gsvg_api.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -296,4 +299,180 @@ TEST(GsvgVirtualGridMc, CompareToPrimary)
         const Metrics raw = RunChain(p, kBase, &img, false);
         LogMetrics(name, "C2.it5.g4.nomask", raw);
     }
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-96: the caller's collimation field mask.
+// ---------------------------------------------------------------------------
+namespace {
+
+std::vector<uint8_t> FieldMask(const Phantom& p) {
+    const double centre = p.air[40 * kN + 40];
+    std::vector<uint8_t> m(p.air.size());
+    for (size_t i = 0; i < m.size(); ++i) m[i] = p.air[i] >= 0.5 * centre ? 1 : 0;
+    return m;
+}
+
+vg::VgSettings McSettings() {
+    vg::VgSettings st;
+    st.kvp = kKvp;
+    st.gridRatio = 100;
+    st.pixelPitchMm = kPitchMm;
+    st.airSignal = kAirDn;
+    st.iterations = 5;
+    return st;
+}
+
+}  // namespace
+
+// With the mask, the chain gives inside the field exactly what the QA-B-95
+// zeroed input gave, and leaves the outside untouched.
+TEST(GsvgVirtualGridMcMask, MaskEqualsZeroedInput)
+{
+    for (const char* name : {"step", "wedge"}) {
+        SCOPED_TRACE(name);
+        const Phantom p = Load(name);
+        const vg::ParamTable t = McTable(false);
+        const std::vector<uint8_t> mask = FieldMask(p);
+
+        std::vector<double> zeroed = Collimated(p);
+        ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, McSettings()).error, "");
+        std::vector<double> masked = p.total;
+        ASSERT_EQ(vg::RunVirtualGrid(masked, kN, kN, t, McSettings(), vg::VgSwitches{}, mask.data()).error, "");
+
+        size_t inside = 0, outside = 0;
+        for (size_t i = 0; i < masked.size(); ++i) {
+            if (mask[i]) { ASSERT_EQ(masked[i], zeroed[i]) << i; ++inside; }
+            else { ASSERT_EQ(masked[i], p.total[i]) << i; ++outside; }
+        }
+        const Metrics mm = Measure(masked, p), mz = Measure(zeroed, p);
+        std::printf("VGMC %s mask inside=%zu outside=%zu median masked=%.4f zeroed=%.4f\n",
+                    name, inside, outside, mm.median, mz.median);
+        EXPECT_EQ(mm.median, mz.median);
+        EXPECT_GT(outside, 0u);
+    }
+}
+
+// QA-B-95 observation, recorded: without a mask the scatter outside the
+// field is read as object and too much is subtracted near it.
+TEST(GsvgVirtualGridMcMask, NoMaskOverSubtracts)
+{
+    const struct { const char* name; double min; } expected[] = {{"step", 0.7275}, {"wedge", 0.7694}};
+    for (const auto& e : expected) {
+        SCOPED_TRACE(e.name);
+        const Phantom p = Load(e.name);
+        std::vector<double> img = p.total;
+        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, McTable(false), McSettings()).error, "");
+        const Metrics m = Measure(img, p);
+        std::printf("VGMC %s nomask min=%.4f median=%.4f\n", e.name, m.lo, m.median);
+        EXPECT_NEAR(m.lo, e.min, 5e-4);
+        EXPECT_LT(m.lo, Measure(Collimated(p), p).lo);   // below anything the masked run can reach
+    }
+}
+
+// Falsification: a chain that receives the mask but ignores it is the
+// no-mask chain, and fails the equality of MaskEqualsZeroedInput.
+TEST(GsvgVirtualGridMcMask, IgnoringTheMaskBreaksTheEquality)
+{
+    const Phantom p = Load("step");
+    const vg::ParamTable t = McTable(false);
+    const std::vector<uint8_t> mask = FieldMask(p);
+    std::vector<double> zeroed = Collimated(p);
+    ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, McSettings()).error, "");
+    vg::VgSwitches ignore;
+    ignore.useFieldMask = false;
+    std::vector<double> ignored = p.total;
+    ASSERT_EQ(vg::RunVirtualGrid(ignored, kN, kN, t, McSettings(), ignore, mask.data()).error, "");
+    std::vector<double> none = p.total;
+    ASSERT_EQ(vg::RunVirtualGrid(none, kN, kN, t, McSettings()).error, "");
+    EXPECT_EQ(ignored, none);
+    size_t differ = 0;
+    for (size_t i = 0; i < ignored.size(); ++i)
+        if (mask[i] && ignored[i] != zeroed[i]) ++differ;
+    std::printf("VGMC step ignored-mask pixels differing from zeroed (inside field)=%zu\n", differ);
+    EXPECT_GT(differ, 1000u);
+    EXPECT_NE(Measure(ignored, p).median, Measure(zeroed, p).median);
+}
+
+// Public ABI: xpe_gsvg_process_masked on the uint16 image.
+TEST(GsvgVirtualGridMcMask, PublicEntryPoint)
+{
+    const Phantom p = Load("step");
+    const std::vector<uint8_t> mask = FieldMask(p);
+
+    // table file: MC kernels + [wet] + ideal grid
+    const auto dir = std::filesystem::temp_directory_path() / "xpe_gsvg_qa_b96";
+    std::filesystem::create_directories(dir);
+    const auto tablePath = dir / "mc_table.csv";
+    {
+        std::ofstream f(tablePath, std::ios::binary);
+        f << "[kernels]\n" << ReadText(std::string(kDir) + "scatter_kernels_water_csi600.csv")
+          << "\n[wet]\n" << ReadText(std::string(kDir) + "wet_water_csi600.csv")
+          << "\n[grid]\nratio,tp,ts\n100,1,0\n";
+    }
+    std::string path = tablePath.generic_string();
+    const std::string cfg = "{\"virtual_grid\": true, \"vg_table_path\": \"" + path +
+        "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 100, \"vg_pixel_pitch_mm\": 4.0,"
+        " \"vg_air_signal\": 50000, \"vg_iterations\": 5}";
+
+    std::vector<uint16_t> src(p.total.size()), srcZeroed(p.total.size());
+    for (size_t i = 0; i < src.size(); ++i) {
+        src[i] = static_cast<uint16_t>(std::lround(std::min(p.total[i], 65535.0)));
+        srcZeroed[i] = mask[i] ? src[i] : 0;
+    }
+    const size_t n = src.size();
+
+    auto warnings = [] {
+        int count = 0;
+        for (int i = 0; i < 64; ++i) {
+            char msg[512];
+            int32_t sev = 0;
+            if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) break;
+            if (std::string(msg).find("no collimation field mask") != std::string::npos) ++count;
+        }
+        return count;
+    };
+
+    void* h = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&h, cfg.c_str()), XPE_OK) << cfg;
+
+    xpe_clear_alerts();
+    std::vector<uint16_t> masked(n), zeroed(n);
+    ASSERT_EQ(xpe_gsvg_process_masked(h, src.data(), n, masked.data(), n, kN, kN, nullptr, 0,
+                                      mask.data(), mask.size()), XPE_OK);
+    EXPECT_EQ(warnings(), 0);
+    ASSERT_EQ(xpe_gsvg_process(h, srcZeroed.data(), n, zeroed.data(), n, kN, kN, nullptr, 0), XPE_OK);
+    EXPECT_EQ(warnings(), 1);   // the unmasked entry point warns
+    size_t changed = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (mask[i]) { ASSERT_EQ(masked[i], zeroed[i]) << i; changed += masked[i] != src[i]; }
+        else ASSERT_EQ(masked[i], src[i]) << i;
+    }
+    EXPECT_GT(changed, n / 2);
+
+    // A NULL mask through the new entry point: same as xpe_gsvg_process, warning included.
+    xpe_clear_alerts();
+    std::vector<uint16_t> viaMasked(n), viaPlain(n);
+    ASSERT_EQ(xpe_gsvg_process_masked(h, src.data(), n, viaMasked.data(), n, kN, kN, nullptr, 0, nullptr, 0), XPE_OK);
+    ASSERT_EQ(xpe_gsvg_process(h, src.data(), n, viaPlain.data(), n, kN, kN, nullptr, 0), XPE_OK);
+    EXPECT_EQ(viaMasked, viaPlain);
+    EXPECT_EQ(warnings(), 2);
+
+    // A mask shorter than the image.
+    EXPECT_EQ(xpe_gsvg_process_masked(h, src.data(), n, viaMasked.data(), n, kN, kN, nullptr, 0,
+                                      mask.data(), n - 1), XPE_ERR_INVALID_INPUT);
+    xpe_gsvg_shutdown(h);
+
+    // Virtual grid off: no warning, the mask changes nothing.
+    xpe_clear_alerts();
+    ASSERT_EQ(xpe_gsvg_init(&h, nullptr), XPE_OK);
+    std::vector<uint16_t> off(n);
+    ASSERT_EQ(xpe_gsvg_process_masked(h, src.data(), n, off.data(), n, kN, kN, nullptr, 0, mask.data(), n), XPE_OK);
+    EXPECT_EQ(off, src);
+    EXPECT_EQ(warnings(), 0);
+    xpe_gsvg_shutdown(h);
+    xpe_clear_alerts();
+
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
 }

@@ -568,13 +568,27 @@ std::vector<double> MinFilter2D(const std::vector<double>& img, int w, int h, in
 // ---------------------------------------------------------------------------
 // Chain
 // ---------------------------------------------------------------------------
-VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
-                        const ParamTable& table, const VgSettings& st, const VgSwitches& sw) {
+VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
+                        const ParamTable& table, const VgSettings& st, const VgSwitches& sw,
+                        const uint8_t* fieldMask) {
     VgReport rep;
     auto fail = [&](const std::string& why) { rep.error = why; return rep; };
 
-    if (width <= 0 || height <= 0 || img.size() != static_cast<size_t>(width) * static_cast<size_t>(height))
+    if (width <= 0 || height <= 0 || io.size() != static_cast<size_t>(width) * static_cast<size_t>(height))
         return fail("image size mismatch");
+
+    // QA-B-96: outside the collimated field a detector still records scatter
+    // (QA-B-95: about 3000 DN next to a 30 cm field). Those pixels are not
+    // object, so the estimate reads them as 0. `img` below is what the chain
+    // reads; `io` keeps the caller's pixels until the result is written.
+    const uint8_t* mask = sw.useFieldMask ? fieldMask : nullptr;
+    std::vector<double> masked;
+    if (mask) {
+        masked = io;
+        for (size_t i = 0; i < masked.size(); ++i)
+            if (!mask[i]) masked[i] = 0.0;
+    }
+    const std::vector<double>& img = mask ? masked : io;
     if (st.iterations < 1) return fail("iterations must be >= 1");
     if (!(st.pixelPitchMm > 0)) return fail("pixel pitch must be > 0");
     if (!(st.airSignal > 0)) return fail("air signal must be > 0");
@@ -752,6 +766,7 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     size_t nFullHigh = 0, nFull = 0;
     std::vector<double> out(img.size());
     for (size_t i = 0; i < img.size(); ++i) {
+        if (mask && !mask[i]) continue;   // restored after the post-steps
         double S = Sf[i];
         switch (sw.cap) {
         case CapMode::None: break;
@@ -770,8 +785,12 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
 
     if (st.pyramidLevels) PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
 
+    if (mask)
+        for (size_t i = 0; i < out.size(); ++i)
+            if (!mask[i]) out[i] = io[i];
+
     for (double v : out) if (v > 65535.0) ++rep.clippedHigh;
-    img.swap(out);
+    io.swap(out);
     return rep;
 }
 

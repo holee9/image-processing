@@ -469,6 +469,20 @@ TEST(GsvgEndurance, ControlDllHandleIsVisibleToHeapWalk)
     EXPECT_GT(alive.bytes - before.bytes, 0);
     EXPECT_EQ(after.blocks - before.blocks, 0);
 }
+
+// #180 (QA-B-96): the exported C ABI of gsvg.dll, by name. The new entry point
+// is added, nothing is removed.
+TEST(GsvgAbiExports, AllEntryPointsAreExported)
+{
+    HMODULE dll = GetModuleHandleA("gsvg.dll");
+    ASSERT_NE(dll, nullptr) << "gsvg.dll is not loaded in this process";
+    for (const char* name : {"xpe_gsvg_version", "xpe_gsvg_init", "xpe_gsvg_process",
+                             "xpe_gsvg_process_masked", "xpe_gsvg_shutdown"}) {
+        EXPECT_NE(GetProcAddress(dll, name), nullptr) << name;
+    }
+    // control: a name that is not exported
+    EXPECT_EQ(GetProcAddress(dll, "xpe_gsvg_process_unmasked"), nullptr);
+}
 #else
 TEST(GsvgEndurance, ThousandCycles_CrtHeapDoesNotGrow)
 {

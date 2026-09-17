@@ -337,15 +337,20 @@ XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull)
     return XPE_OK;
 }
 
-XpeErrorCode xpe_gsvg_process(void* handle,
-                              const uint16_t* src,
-                              size_t srcCount,
-                              uint16_t* dst,
-                              size_t dstCount,
-                              int width,
-                              int height,
-                              const float* gainMap,
-                              size_t gainCount)
+namespace {
+
+// Shared by xpe_gsvg_process (no mask) and xpe_gsvg_process_masked.
+XpeErrorCode process_impl(void* handle,
+                          const uint16_t* src,
+                          size_t srcCount,
+                          uint16_t* dst,
+                          size_t dstCount,
+                          int width,
+                          int height,
+                          const float* gainMap,
+                          size_t gainCount,
+                          const uint8_t* fieldMask,
+                          size_t maskCount)
 {
     // A NULL handle is a NULL required pointer, so it is INVALID_INPUT — the
     // same code dicom returns for a NULL handle (dicom.cpp:56,67) and what the
@@ -374,6 +379,11 @@ XpeErrorCode xpe_gsvg_process(void* handle,
     if (gainMap != nullptr && gainCount < count) {
         return XPE_ERR_INVALID_INPUT;
     }
+    // QA-B-96: the same rule for the field mask -- optional, but a mask that
+    // is supplied must cover the image.
+    if (fieldMask != nullptr && maskCount < count) {
+        return XPE_ERR_INVALID_INPUT;
+    }
 
     // #180 (QA-B-91): if the virtual grid refuses the image, REQ-GSVG-024 wants
     // the original pixels in dst -- keep them in case dst aliases src and the
@@ -399,8 +409,16 @@ XpeErrorCode xpe_gsvg_process(void* handle,
     // Step 2' (#180, QA-B-91): virtual grid, in place on dst.
     if (h->virtual_grid_enabled) {
         std::vector<double> img(dst, dst + count);
+        if (fieldMask == nullptr) {
+            // QA-B-96: without a mask, scatter recorded outside the collimated
+            // field is read as object and more scatter is subtracted inside it
+            // (QA-B-95: recovered/true primary down to 0.73).
+            xpe_alert_push("gsvg virtual grid: no collimation field mask; scatter outside "
+                           "the field is treated as object", XPE_ALERT_WARNING);
+        }
         const auto rep = xpe_gsvg_detail::RunVirtualGrid(img, width, height,
-                                                         h->vg_table, h->vg_settings);
+                                                         h->vg_table, h->vg_settings,
+                                                         xpe_gsvg_detail::VgSwitches{}, fieldMask);
         if (!rep.error.empty()) {
             std::memcpy(dst, original.data(), count * sizeof(uint16_t));
             alert_virtual_grid(rep.error);
@@ -421,6 +439,38 @@ XpeErrorCode xpe_gsvg_process(void* handle,
     }
 
     return XPE_OK;
+}
+
+}  // namespace
+
+XpeErrorCode xpe_gsvg_process(void* handle,
+                              const uint16_t* src,
+                              size_t srcCount,
+                              uint16_t* dst,
+                              size_t dstCount,
+                              int width,
+                              int height,
+                              const float* gainMap,
+                              size_t gainCount)
+{
+    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                        gainMap, gainCount, nullptr, 0);
+}
+
+XpeErrorCode xpe_gsvg_process_masked(void* handle,
+                                     const uint16_t* src,
+                                     size_t srcCount,
+                                     uint16_t* dst,
+                                     size_t dstCount,
+                                     int width,
+                                     int height,
+                                     const float* gainMap,
+                                     size_t gainCount,
+                                     const uint8_t* fieldMask,
+                                     size_t maskCount)
+{
+    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                        gainMap, gainCount, fieldMask, maskCount);
 }
 
 XpeErrorCode xpe_gsvg_shutdown(void* handle)
