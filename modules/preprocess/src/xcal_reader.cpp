@@ -159,7 +159,7 @@ XpeErrorCode read_xcal_file(
             }
             // QA-A-37 (#140): same ceiling correction as validate_xcal_header
             // Check 3 -- the compressed path had its own copy of it.
-            if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
+            if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT)) {
                 return XPE_ERR_CONFIG_INVALID;
             }
             if (hdr.pixel_format > static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {

@@ -304,6 +304,45 @@ XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
                                              const char* metadata_json);
 
 /**
+ * @brief Generate a nonlinearity correction LUT (SRS-CALIB-FUNC-006-EXT 6a)
+ *
+ * Writes an XCAL_TYPE_NONLIN_LUT file: a flat uint16 table where the index is
+ * the raw ADU value and the entry is the linearized ADU value.
+ *
+ * Procedure, per the requirement: the mean signal of each flat frame is measured
+ * in ADU, an ideal response `S_ideal = G_nominal * D` is fitted through the
+ * origin, the pairs `(S_meas, S_ideal)` become knots together with the boundary
+ * conditions `LUT[0] = 0` and `LUT[ADC_max] = ADC_max`, and the entries between
+ * knots are filled by monotone cubic interpolation (Fritsch-Carlson 1980).
+ *
+ * The flat frames are taken rather than gain maps because
+ * xpe_calib_generate_gain() normalizes each map to unit mean, which discards the
+ * absolute signal level the fit needs.
+ *
+ * @param flat_frames    Array of `num_levels` flat-field frames (UINT16), one per dose.
+ * @param dose_levels    Array of `num_levels` reference doses, strictly increasing, > 0.
+ * @param num_levels     Number of dose levels; the requirement asks for >= 10.
+ * @param dark_reference Optional dark frame subtracted before averaging (NULL to skip).
+ * @param lut_entries    4096 (12-bit) or 65536 (16-bit full scale).
+ * @param output_path    Destination .xcal path.
+ * @param metadata_json  Optional detector-identifying JSON object embedded in the
+ *                       file's config blob (NULL for none).
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT for a null argument, fewer than 10 levels, an
+ *                       unsupported entry count, or non-increasing dose values
+ *         XPE_ERR_INVALID_CALIB_DATA when the measured response is not strictly
+ *                       increasing, or cannot reach the identity endpoint
+ *         XPE_ERR_IO_FAILED on write failure
+ */
+XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_frames,
+                                                   const double* dose_levels,
+                                                   int32_t num_levels,
+                                                   const XpeImageBuffer* dark_reference,
+                                                   uint32_t lut_entries,
+                                                   const char* output_path,
+                                                   const char* metadata_json);
+
+/**
  * @brief Generate dose-dependent gain polynomial (FUNC-027)
  *
  * SWU-1.12: Generate gain polynomial G(x,y,E) = c0 + c1*E + c2*E² + ...

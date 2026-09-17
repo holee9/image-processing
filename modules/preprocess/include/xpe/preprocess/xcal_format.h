@@ -41,7 +41,27 @@ typedef enum XCalType {
     XCAL_TYPE_OFFSET     = 0,  /* Dark/offset map (FLOAT32 payload) */
     XCAL_TYPE_GAIN       = 1,  /* Gain/flat-field map (FLOAT32 payload) */
     XCAL_TYPE_DEFECT     = 2,  /* Defect pixel map (UINT8_MASK payload) */
-    XCAL_TYPE_GAIN_POLY  = 3   /* Gain polynomial coefficients (FLOAT32 payload) */
+    XCAL_TYPE_GAIN_POLY  = 3,  /* Gain polynomial coefficients (FLOAT32 payload) */
+    /*
+     * Nonlinearity lookup table (UINT16 payload), SRS-CALIB-FUNC-006-EXT 6a.
+     * QA-A-110 (#186). Appended at the end so no existing type renumbers.
+     *
+     * The payload is `width * height` uint16 entries read as ONE flat table:
+     * index = raw ADU, value = linearized ADU. The geometry fields carry the
+     * entry count because the validator's payload_len check (check 8) is
+     * width * height * bpp, and XCAL_MAX_DIM is 4096 -- so a 65536-entry table
+     * cannot be (65536, 1). The two sizes 6a allows are stored as:
+     *
+     *     4096 entries  -> width 4096, height 1
+     *     65536 entries -> width 4096, height 16
+     *
+     * A reader built before this type rejects such a file with
+     * XPE_ERR_CONFIG_INVALID (both the plain and the compressed path compare
+     * hdr.type against the highest type they know), which is the intended
+     * behaviour: an old binary refuses a file it cannot interpret rather than
+     * reading it as something else.
+     */
+    XCAL_TYPE_NONLIN_LUT = 4
 } XCalType;
 
 /** @brief XCal payload pixel format codes. */
