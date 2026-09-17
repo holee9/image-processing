@@ -80,6 +80,9 @@ protected:
 
     void TearDown() override {
         xpe_calib_cache_clear();
+        // Put the capacity back to the module default (maxSize_{4},
+        // calibration_cache.cpp); one case here shrinks it to 1 (QA-A-90, #176).
+        xpe_calib_cache_set_max_size(4);
         // A cache miss loads through xpe_calib_load_offset, which installs the
         // map as the module's ACTIVE offset map as well (calibration_cache.cpp).
         // Clearing the cache does not unload it, so an 8x8 map outlived this

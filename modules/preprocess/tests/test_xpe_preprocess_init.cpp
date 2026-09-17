@@ -10,8 +10,10 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <cstdio>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
+#include "fixtures/make_xcal.hpp"
 
 using namespace std::chrono_literals;
 
@@ -379,6 +381,80 @@ TEST_F(PreprocessLifecycleTest, InitWithComplexConfig) {
     const char* config = "{\"mode\":\"clinical\",\"log_level\":1,\"debug\":true}";
     XpeErrorCode result = xpe_preprocess_init(config);
     EXPECT_EQ(result, XPE_OK);
+}
+
+// =============================================================================
+// Shutdown on an uninitialized module (QA-A-90, #176)
+//
+// None of the five calibration loader sources checks the initialized flag, so a
+// map can be loaded before xpe_preprocess_init. These two cases pin what
+// xpe_preprocess_shutdown then does: it releases that map although the module
+// was never initialized. The public header used to call such a shutdown a
+// no-op; the fixture above already relied on the opposite ("ensure clean state"
+// before any init), and the release is what a shutdown documented to "release
+// resources" (REQ-P1A-031) has to do.
+//
+// The pair is the evidence: the control shows the map WOULD still be there at
+// init, so the shutdown in between is what removed it.
+// =============================================================================
+
+namespace {
+
+constexpr uint32_t kShutdownW = 4;
+constexpr uint32_t kShutdownH = 4;
+const char* const  kShutdownOffsetPath = "qa_a90_shutdown_offset.xcal";
+
+// Offset-corrects one kShutdownW x kShutdownH frame and returns the code.
+XpeErrorCode CorrectOneSmallFrame() {
+    std::vector<uint16_t> in(static_cast<size_t>(kShutdownW) * kShutdownH, 1000u);
+    std::vector<uint16_t> out(in.size(), 0u);
+    XpeImageBuffer inBuf{};
+    inBuf.data = in.data();
+    inBuf.width = kShutdownW;
+    inBuf.height = kShutdownH;
+    inBuf.bitsAllocated = 16;
+    inBuf.bitsStored = 16;
+    inBuf.format = XPE_PIXEL_UINT16;
+    inBuf.dataSize = in.size() * sizeof(uint16_t);
+    XpeImageBuffer outBuf = inBuf;
+    outBuf.data = out.data();
+    XpeImageMetadata meta{};
+    return xpe_offset_correct(&inBuf, &outBuf, &meta);
+}
+
+}  // namespace
+
+TEST_F(PreprocessLifecycleTest, ShutdownWithoutInitReleasesMapsLoadedWithoutInit) {
+    // The fixture's SetUp already shut down; initialize and shut down once more
+    // so the starting clear does not rely on the behaviour under test.
+    (void)xpe_preprocess_init(NULL);
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal(kShutdownOffsetPath, kShutdownW, kShutdownH, 1.0f));
+
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(kShutdownOffsetPath))
+        << "precondition: a map can be loaded before xpe_preprocess_init";
+
+    xpe_preprocess_shutdown();   // the module was never initialized
+
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(NULL));
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, CorrectOneSmallFrame())
+        << "shutdown on an uninitialized module must release the map loaded before it";
+
+    std::remove(kShutdownOffsetPath);
+}
+
+TEST_F(PreprocessLifecycleTest, MapLoadedWithoutInitSurvivesInitWithoutShutdown) {
+    (void)xpe_preprocess_init(NULL);
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal(kShutdownOffsetPath, kShutdownW, kShutdownH, 1.0f));
+
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(kShutdownOffsetPath));
+
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(NULL));
+    EXPECT_EQ(XPE_OK, CorrectOneSmallFrame())
+        << "control: with no shutdown in between, the map loaded before init is used";
+
+    std::remove(kShutdownOffsetPath);
 }
 
 // =============================================================================

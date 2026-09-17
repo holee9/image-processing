@@ -82,8 +82,18 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * REQ-P1A-031: No memory leak after shutdown
  * REQ-P1A-003: Thread-safe for concurrent shutdown
  *
- * Safe to call multiple times. If module is not initialized, this is a no-op.
- * After shutdown, module returns to uninitialized state and can be re-initialized.
+ * Safe to call multiple times. After shutdown, the module is in the
+ * uninitialized state and can be re-initialized.
+ *
+ * Releases the loaded offset map, gain map or polynomial gain coefficients,
+ * and defect map, whether or not the module
+ * was initialized. The calibration loaders do not require initialization, so
+ * maps may be loaded before xpe_preprocess_init(); a shutdown at that point
+ * releases them too (it is not a no-op).
+ *
+ * Does not reset the calibration mode set by xpe_calib_set_mode() or the
+ * quality metadata returned by xpe_calib_get_quality_meta(); both keep their
+ * values across shutdown and re-initialization.
  */
 XPE_API void xpe_preprocess_shutdown(void);
 
