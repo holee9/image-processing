@@ -482,6 +482,14 @@ jobs:
       # purpose and its absence is loud. Every entry names an issue, and the count of
       # entries is printed each run, so widening the list is visible rather than quiet.
       #
+      # Correction 2026-09-17: the first version of this list keyed on `30011`, which reads
+      # as an issue number and is not one - it is the UIA PropertyNotSupportedException code
+      # (clients/ImageProcTest.E2ETests/Fixtures/ApplicationFixture.cs:151). Anyone who
+      # looked it up as an issue found nothing, and the defect itself had no open issue at
+      # all until #170 - eleven lane reports had narrowed it while `.moai/reports/` stayed
+      # gitignored, so none of that was anywhere a reader could reach. The key is the
+      # ISSUE; the UIA code lives in the description, where it cannot be read as an address.
+      #
       # NOT done here, on purpose: retrying the launch (it spends wall-clock against a
       # Smoke suite already near its time gate, and it would mask a regression in the
       # defect's own frequency), and extending this gate to the Mock job (Mock has no
@@ -497,7 +505,7 @@ jobs:
           # Each entry: issue number -> why this skip is understood. Adding a row is a
           # deliberate act that shows up in the run summary.
           $allowed = @{
-            '30011' = 'window re-acquisition flake, environment-dependent (~7% per launch)'
+            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
