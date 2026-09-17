@@ -168,13 +168,15 @@ bool parse_mfp_config(const char* json,
         }
 
         // Parse keys from resolved source (nested or flat)
-        if (src.contains("num_levels") && src["num_levels"].is_number_integer()) {
-            int val = src["num_levels"].get<int>();
-            outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
-        }
-        // Backward compat: also accept "levels" (flat schema legacy key)
+        // Backward compat: also accept "levels" (flat schema legacy key).
+        // Read FIRST so that "num_levels", when also present, overwrites it:
+        // the current name wins over the legacy one (#162, QA-B-79).
         if (src.contains("levels") && src["levels"].is_number_integer()) {
             int val = src["levels"].get<int>();
+            outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
+        }
+        if (src.contains("num_levels") && src["num_levels"].is_number_integer()) {
+            int val = src["num_levels"].get<int>();
             outLevels = std::clamp(val, XPE_MFP_MIN_LEVELS, XPE_MFP_MAX_LEVELS);
         }
 
