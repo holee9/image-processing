@@ -73,6 +73,18 @@ The nonlinearity LUT maps raw ADU values to linearized ADU values:
 - Maximum interpolation error requirement: ≤ 0.3% of ADC full scale at any input value
 - Monotonicity check: `LUT[i] ≤ LUT[i+1]` for all i (enforced; non-monotone LUT = `XPE_ERR_INVALID_CALIB_DATA`)
 
+> **모순 정정 (2026-09-18, #186 — QA-A-110 이 측정으로 보임)**
+>
+> 위 6단계의 `LUT[ADC_max] = ADC_max`(양 끝 항등)와 3단계의 선형 적합은 동시에 만족할 수 없습니다. 감마 1.35·12단계 모사에서 적합은 full scale 을 3697 로 보는데 6단계는 4095 를 고정하라고 하므로, 전체 눈금의 약 10% 차이를 측정 상한 위의 좁은 구간이 흡수해야 합니다. 그 결과 마지막 매듭의 접선이 끌려 바로 아래 구간까지 오염됩니다(최상단 구간 오차 1.186%, 단계를 40으로 늘려도 0.361%). 측정점 사이는 0.046–0.200% 로 요구를 만족합니다. 즉 보간 품질이 아니라 요구끼리의 모순입니다.
+>
+> **정정**
+> - `LUT[0] = 0` 은 유지합니다(어두운 쪽 원점은 오프셋 보정 뒤의 물리적 기준입니다).
+> - **`LUT[ADC_max] = ADC_max` 항등 고정은 폐기합니다.** 가장 높은 측정점 위 구간은 적합 직선을 그대로 연장합니다. 검출기의 full scale 이 이상 직선과 같아야 할 물리적 이유가 없습니다.
+> - 7단계의 **≤ 0.3% 요구는 측정 구간(최저~최고 측정 선량) 안에서** 판정합니다. 측정 구간 밖(연장 구간)은 연장했다는 사실을 교정 파일에 기록하고, 정확도를 주장하지 않습니다.
+> - 단조성 검사는 그대로입니다.
+>
+> **교정 절차에 미치는 영향**: 측정 사다리의 최고 선량이 임상에서 쓰는 상한을 덮어야 합니다. 곡률이 큰 검출기(감마 1.60 급)는 12단계로 측정점 사이 오차가 0.422% 라 0.3% 를 만족하지 못합니다 — **단계 수는 곡률에 맞춰 정해야 합니다.**
+
 **6b. Polynomial Method (for embedded/FPGA use)**
 
 The polynomial model uses a 4th-degree global polynomial fit:
