@@ -86,6 +86,25 @@ struct CollimationRectangle {
 };
 
 /**
+ * @brief How the collimation rectangle is chosen among the candidate lines
+ *        (#183, QA-B-98/100).
+ *
+ * Contrast: every candidate rectangle is scored by
+ * mean(log inside) - mean(log outside) on the input image, and the largest
+ * wins. A collimated field is bright inside and dark (scatter only) outside,
+ * and X-ray transmission is multiplicative, so contrast is a log-domain
+ * difference; the score needs no threshold. Pixels below 1 DN (the smallest
+ * positive unit of detector signal) are read as 1 DN before the logarithm.
+ * StrengthSum: the two strongest lines per orientation (the rule before
+ * QA-B-100). Kept for the falsification tests.
+ *
+ * Limit: a side whose inside is DARKER than its outside (a thick object at the
+ * field edge, QA-B-97 MC phantom) cannot be found from the image alone; the
+ * caller should pass the field from the system (gsvg field mask, QA-B-96).
+ */
+enum class RectangleChoice { Contrast, StrengthSum };
+
+/**
  * @class HoughTransform
  * @brief Hough transform for line detection
  *
@@ -146,7 +165,9 @@ public:
         const std::vector<HoughLine>& horizontalLines,
         const std::vector<HoughLine>& verticalLines,
         int imageWidth,
-        int imageHeight);
+        int imageHeight,
+        const float* image,
+        RectangleChoice choice = RectangleChoice::Contrast);
 
 private:
     float thetaStep_;    ///< Angle resolution in radians
