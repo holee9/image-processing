@@ -131,7 +131,7 @@ TEST_F(CalibModeTest, GetPolyDegree_PerMode) {
         {XPE_CALIB_MULTI_POINT_5,  2},  // Quadratic
         {XPE_CALIB_MULTI_POINT_8,  3},  // Cubic
         {XPE_CALIB_MULTI_POINT_10, 3},  // Cubic
-        {XPE_CALIB_AUTO,           3}   // Adaptive (cubic)
+        {XPE_CALIB_AUTO,           3}   // Cubic, same as MULTI_POINT_10 (no auto-select, #169)
     };
 
     for (const auto& tc : test_cases) {

@@ -63,7 +63,7 @@ constexpr ModeParams kModeParams[] = {
     /* XPE_CALIB_MULTI_POINT_5  */ { 5, 2 },  // Quadratic fit
     /* XPE_CALIB_MULTI_POINT_8  */ { 8, 3 },  // Cubic fit (DEFAULT)
     /* XPE_CALIB_MULTI_POINT_10 */ {10, 3 },  // Cubic fit
-    /* XPE_CALIB_AUTO           */ {10, 3 }   // Adaptive (max 10, cubic)
+    /* XPE_CALIB_AUTO           */ {10, 3 }   // Same as MULTI_POINT_10; FUNC-031(5) auto-select not implemented (#169)
 };
 
 static_assert(sizeof(kModeParams) / sizeof(kModeParams[0]) == 6u,
