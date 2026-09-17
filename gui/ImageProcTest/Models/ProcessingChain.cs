@@ -56,7 +56,12 @@ public sealed record StageRequest(string StageId, bool Enabled);
 /// <param name="Status">What the stage did.</param>
 /// <param name="Pixels">The stage's output, a NEW array, when it ran; null otherwise.</param>
 /// <param name="Reason">Why a requested stage did not apply, or the stage's own summary when it did.</param>
-public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason);
+/// <param name="ElapsedMs">
+/// Wall time the stage itself took, measured around the backend call (#180, GUI-C-102). Zero for a
+/// stage that was not requested. It is the module's time plus this app's marshalling, and NOT the time
+/// to get the result on screen — the display pipeline and the render follow it.
+/// </param>
+public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0);
 
 /// <summary>The chain's result. <see cref="Raw"/> is the loaded frame's array, never written to.</summary>
 public sealed record ChainResult(ushort[] Raw, IReadOnlyList<StageOutcome> Stages)
@@ -72,6 +77,12 @@ public sealed record ChainResult(ushort[] Raw, IReadOnlyList<StageOutcome> Stage
         Stages.Count == 0
             ? "chain: (empty)"
             : "chain: " + string.Join(", ", Stages.Select(s => $"{s.StageId}={s.Status}"));
+
+    /// <summary>Per-stage timing, e.g. <c>times: preprocess=0 ms, gsvg=512 ms</c> (#180, GUI-C-102).</summary>
+    public string Timings =>
+        Stages.Count == 0
+            ? "times: (empty)"
+            : "times: " + string.Join(", ", Stages.Select(s => $"{s.StageId}={s.ElapsedMs:0} ms"));
 
     /// <summary>An empty chain over <paramref name="raw"/> — the display starts from the raw frame.</summary>
     public static ChainResult Empty(ushort[] raw) => new(raw, Array.Empty<StageOutcome>());

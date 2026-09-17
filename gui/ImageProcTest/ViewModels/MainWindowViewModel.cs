@@ -1104,7 +1104,7 @@ public sealed class MainWindowViewModel : ObservableObject
             .Where(st => st.Status == StageStatus.RequestedNotApplied)
             .Select(st => $"{st.StageId}: {st.Reason}")
             .ToArray();
-        ChainStatus = $"{chain.Summary}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
+        ChainStatus = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
             + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));
 
         foreach (var stage in chain.Stages)
@@ -1653,7 +1653,7 @@ public sealed class MainWindowViewModel : ObservableObject
         gsvgGridFrequencyPerCm = _renderedInputs?.GsvgGridFrequencyPerCm,
         preprocessRequested = _renderedInputs?.PreprocessInChain,
         displayInput = LastChain is null ? "not run" : LastChain.DisplaysRaw ? "raw" : "chain",
-        stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason }).ToArray()
+        stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason, elapsedMs = s.ElapsedMs }).ToArray()
             ?? Array.Empty<object>(),
     };
 

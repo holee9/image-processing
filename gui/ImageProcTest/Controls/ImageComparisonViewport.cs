@@ -144,6 +144,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
     private ImageSource? _hashedImage;
     private string _hashedValue = "-";
+    private double _hashedMean = -1.0;
+    private string _renderedHud = string.Empty;
 
     /// <summary>
     /// FNV-1a over the pixels of the processed layer this frame drew (#180, GUI-C-99), so a test can tell
@@ -158,6 +160,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
         _hashedImage = image;
         _hashedValue = "-";
+        _hashedMean = -1.0;
         if (image is BitmapSource bitmap)
         {
             var converted = bitmap.Format == PixelFormats.Bgra32 ? bitmap : new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
@@ -165,15 +168,28 @@ public sealed class ImageComparisonViewport : FrameworkElement
             var buffer = new byte[stride * converted.PixelHeight];
             converted.CopyPixels(buffer, stride, 0);
             var hash = 14695981039346656037UL;
-            foreach (var b in buffer)
+            var sum = 0.0;
+            for (var i = 0; i < buffer.Length; i++)
             {
-                hash = (hash ^ b) * 1099511628211UL;
+                hash = (hash ^ buffer[i]) * 1099511628211UL;
+                if (i % 4 != 3) sum += buffer[i];   // B, G, R — skip alpha
             }
 
             _hashedValue = hash.ToString("x16", CultureInfo.InvariantCulture);
+            _hashedMean = buffer.Length == 0 ? -1.0 : sum / (buffer.Length / 4.0 * 3.0);
         }
 
         return _hashedValue;
+    }
+
+    /// <summary>
+    /// Mean of the processed layer's colour bytes (#180, GUI-C-102), so a test can say whether a setting
+    /// moved the brightness rather than only that the pixels differ. Computed with the hash, cached with it.
+    /// </summary>
+    private double ProcessedMean(ImageSource image)
+    {
+        ProcessedPixelHash(image);
+        return _hashedMean;
     }
 
     private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
@@ -297,14 +313,19 @@ public sealed class ImageComparisonViewport : FrameworkElement
         }
 
         drawingContext.Pop();
+        // The HUD is drawn first: the state string below embeds the text this frame drew, and
+        // composing it earlier captured the PREVIOUS frame's HUD (measured, GUI-C-102).
+        DrawHud(drawingContext, viewport, mode);
         _renderedState = string.Create(CultureInfo.InvariantCulture,
             $"zoom={(ZoomScale <= 0.0 ? "fit" : ZoomScale.ToString("0.####", CultureInfo.InvariantCulture))}; " +
             $"scale={imageRect.Width / Math.Max(1.0, SourceImage.Width):0.####}; " +
             $"offset={imageRect.X + (imageRect.Width / 2.0) - (ActualWidth / 2.0):0.#},{imageRect.Y + (imageRect.Height / 2.0) - (ActualHeight / 2.0):0.#}; " +
             $"swipe={(_renderedSwipe is { } sw ? sw.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
             $"opacity={(_renderedOpacity is { } op ? op.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
-            $"processed={ProcessedPixelHash(processed)}");
-        DrawHud(drawingContext, viewport, mode);
+            $"processed={ProcessedPixelHash(processed)}; " +
+            $"processedMean={ProcessedMean(processed).ToString("0.###", CultureInfo.InvariantCulture)}; " +
+            $"hud={_renderedHud}");
+
     }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -526,6 +547,11 @@ public sealed class ImageComparisonViewport : FrameworkElement
         var zoomText = ZoomScale <= 0.0 ? "fit" : $"{ZoomScale * 100.0:0}%";
         var chain = string.IsNullOrWhiteSpace(ChainStatus) ? string.Empty : $" | {ChainStatus}";
         var text = $"{mode} | zoom {zoomText} | pan {PanX:0},{PanY:0} | swipe {SwipePosition:P0}{chain}";
+
+        // #180 (GUI-C-102): the HUD is drawn text, invisible to UI automation. Recording the exact string
+        // the frame drew makes it assertable through the peer's HelpText — the display path the lead asked
+        // for, rather than a second copy of the view model's value.
+        _renderedHud = text;
         var formatted = CreateText(text, 12, WpfBrushes.White);
         var padding = new Thickness(8, 4, 8, 4);
         var hudRect = new Rect(10, 10, formatted.Width + padding.Left + padding.Right, formatted.Height + padding.Top + padding.Bottom);
