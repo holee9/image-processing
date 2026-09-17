@@ -94,6 +94,29 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         }
     }
 
+    /// <summary>
+    /// U-04 (GUI-C-98 판정): the Focus toggle is disabled and marked. Measured in GUI-C-98: with the default
+    /// LeftPanelOpen/RightPanelOpen the toggle changed nothing on screen, because the Slice 8 rails are not
+    /// built. The case also reads that both side panels are on screen, so a mark on a hidden layout cannot pass.
+    /// </summary>
+    [SkippableFact]
+    public void U04_FocusToggle_IsDisabledAndMarked()
+    {
+        var window = Ready();
+        var toggle = Find(window, "FocusModeToggle");
+        output.WriteLine($"U04 FocusModeToggle enabled={toggle.IsEnabled} help='{toggle.HelpText}'");
+        Assert.False(toggle.IsEnabled, "The Focus toggle is enabled, but focus mode changes nothing on screen (#182).");
+        Assert.Contains("Slice 8", toggle.HelpText, StringComparison.Ordinal);
+
+        AssertMark(window, "FocusModeUnappliedMark");
+
+        foreach (var panel in new[] { "AnalysisPanel", "StudyQueue" })
+        {
+            var e = Find(window, panel);
+            Assert.False(e.IsOffscreen, $"{panel} is not on screen.");
+        }
+    }
+
     private void AssertMark(Window window, string id)
     {
         var mark = Find(window, id);

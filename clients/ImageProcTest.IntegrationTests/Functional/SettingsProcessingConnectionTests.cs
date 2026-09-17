@@ -93,6 +93,10 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.LaneBDenoiseStrength),
         nameof(AppSettings.LaneAAlgorithm),
         nameof(AppSettings.LaneBAlgorithm),
+        // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
+        // The toggle writes through a command, not a binding, so the survey sees only its display
+        // binding; UnappliedSettingsScenarios U-04 reads the disabled state in the running app.
+        nameof(AppSettings.FocusMode),
     ];
 
     /// <summary>
@@ -109,7 +113,6 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.ComparisonZoomScale),
         nameof(AppSettings.ShowDisplayPanel),
         nameof(AppSettings.AnalysisTab),
-        nameof(AppSettings.FocusMode),
     ];
 
     private const string E2ESourceRoot = "clients/ImageProcTest.E2ETests";
@@ -127,8 +130,6 @@ public sealed class SettingsProcessingConnectionTests
         [nameof(AppSettings.ComparisonPanX)] = "V03_PanX_ResetRecentres",
         [nameof(AppSettings.ComparisonPanY)] = "V04_PanY_ResetRecentres",
         [nameof(AppSettings.ComparisonSwipePosition)] = "V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle",
-        // Skips with its reason while focus mode changes nothing on screen (GUI-C-98 finding).
-        [nameof(AppSettings.FocusMode)] = "V06_FocusMode_HidesAndRestoresTheSidePanels",
         [nameof(AppSettings.ShowDisplayPanel)] =
             "NONE: no screen — the View menu toggle is disabled (PanelToggleScenarios S07) and MENU-001 §9.2 lists no display panel",
         [nameof(AppSettings.AnalysisTab)] =
