@@ -13,6 +13,13 @@
  *    the grid into detail sub-bands, where a Gaussian band-stop removes it
  *    (#180). An image with no detected grid is left unchanged.
  *
+ *  - Virtual grid (#180): for images taken WITHOUT a grid, scatter is
+ *    estimated from a water-equivalent thickness map and a thickness-indexed
+ *    kernel table, removed iteratively, and replaced by the residual scatter a
+ *    chosen grid ratio would pass. Every physical number comes from a
+ *    parameter table file; there are no built-in coefficients. Grid
+ *    suppression and the virtual grid are exclusive.
+ *
  *  - Vignette gain correction: the X-ray beam intensity is not spatially
  *    uniform across the detector — there is a cosine-style fall-off toward
  *    the edges. This is compensated by a pre-measured gain map which is
@@ -62,10 +69,30 @@ XPE_API const char* xpe_gsvg_version(void);
  * @code
  * {
  *   "vignette_correction": true,
- *   "grid_suppression":    false
+ *   "grid_suppression":    false,
+ *   "virtual_grid":        false
  * }
  * @endcode
- * When configJsonOrNull is NULL, both features default to FALSE (pass-through).
+ * When configJsonOrNull is NULL, every feature defaults to FALSE (pass-through).
+ *
+ * When "virtual_grid" is true (#180), these keys are REQUIRED -- none has a
+ * default, and a missing one makes init fail:
+ * @code
+ *   "vg_table_path":     "path/to/table.csv",   JSON string; escape '\' as "\\"
+ *   "vg_kvp":            80,        tube voltage of the exposure
+ *   "vg_grid_ratio":     10,        must be a row of the table's [grid] section
+ *   "vg_pixel_pitch_mm": 0.139,     detector pixel pitch
+ *   "vg_air_signal":     60000,     detector signal without an object [DN]
+ *   "vg_iterations":     3          thickness/scatter iterations, 1..100
+ * @endcode
+ * Optional post-steps (off when absent):
+ * @code
+ *   "vg_pyramid_levels": 6,         Laplacian pyramid levels, 4..8
+ *   "vg_pyramid_gain":   1.3,       detail gain (needs vg_pyramid_levels)
+ *   "vg_denoise_k":      2          soft threshold k * noise sigma on the
+ *                                   finest band (needs vg_pyramid_levels)
+ * @endcode
+ * The table file format is described in modules/gsvg/src/virtual_grid.h.
  *
  * The vignette gain map itself is NOT supplied through the config JSON. It is
  * attached to the handle at process time by the caller via the @c gainMap
@@ -79,6 +106,10 @@ XPE_API const char* xpe_gsvg_version(void);
  *         unparseable and both features fell back to FALSE.
  * @return XPE_ERR_INVALID_INPUT if handleOut is NULL.
  * @return XPE_ERR_OUT_OF_MEMORY on allocation failure.
+ * @return XPE_ERR_CONFIG_INVALID when "virtual_grid" is true and a required
+ *         key is missing, the table cannot be read or is malformed, or
+ *         "grid_suppression" is also true. No handle is written; the reason
+ *         is pushed to the alert queue.
  */
 XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull);
 
@@ -90,6 +121,10 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *   2. Grid shadow suppression:  wavelet sub-band band-stop on dst in-place;
  *      dst is not rewritten when no grid is detected, and images under
  *      32 pixels in either dimension are not processed.
+ *   2'. Virtual grid (instead of 2): scatter estimation and removal, grid
+ *      residual, optional pyramid contrast and de-noise, on dst in place.
+ *      On failure dst holds the ORIGINAL src pixels -- also when dst aliases
+ *      src and the vignette step already ran (REQ-GSVG-024).
  *
  * When both steps are disabled, dst ends up holding exactly the pixels of src:
  * copied when the two buffers differ, and left untouched when dst aliases src.
@@ -136,6 +171,13 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *         parameter there was nothing to check against.
  *         Order of judgement matches the api-spec output-buffer rule: NULL and
  *         zero are decided first, a real-but-short buffer after.
+ * @return XPE_ERR_CONFIG_INVALID (virtual grid) when the exposure lies outside
+ *         the table: kVp outside a section's range, or settings the chain
+ *         cannot use (e.g. an image too small for the pyramid levels).
+ * @return XPE_ERR_PROCESSING_FAILED (virtual grid) when the estimated
+ *         thickness of some region lies above the table's thickness range.
+ *         In both cases dst holds the original pixels and the reason is
+ *         pushed to the alert queue.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,

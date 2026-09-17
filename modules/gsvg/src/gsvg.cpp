@@ -20,7 +20,9 @@
 
 #include "xpe/gsvg/gsvg_api.h"
 #include "grid_dwt.h"
+#include "virtual_grid.h"
 #include <cstdio>
+#include <cstdlib>
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +30,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -37,6 +40,11 @@ namespace {
 struct GsvgHandle {
     bool vignette_enabled = false;
     bool grid_enabled     = false;
+    // #180 (QA-B-91): virtual grid. The table and the settings are loaded at
+    // init and never have defaults (virtual_grid.h).
+    bool virtual_grid_enabled = false;
+    xpe_gsvg_detail::ParamTable vg_table;
+    xpe_gsvg_detail::VgSettings vg_settings;
 };
 
 /**
@@ -168,6 +176,97 @@ bool json_get_bool(const char* json, const char* key, bool defaultValue)
     return defaultValue;
 }
 
+// Position just after `"key"` and its ':' (whitespace skipped), or npos.
+size_t json_value_pos(const std::string& text, const char* key)
+{
+    const std::string needle = std::string("\"") + key + "\"";
+    const auto keyPos = text.find(needle);
+    if (keyPos == std::string::npos) return std::string::npos;
+    size_t c = keyPos + needle.size();
+    auto isSpace = [&](size_t i) {
+        return i < text.size() && (text[i] == ' ' || text[i] == '\t' || text[i] == '\r' || text[i] == '\n');
+    };
+    while (isSpace(c)) ++c;
+    if (c >= text.size() || text[c] != ':') return std::string::npos;
+    ++c;
+    while (isSpace(c)) ++c;
+    return c < text.size() ? c : std::string::npos;
+}
+
+// #180 (QA-B-91): numeric leaf. false when absent or not a number.
+bool json_get_number(const char* json, const char* key, double& out)
+{
+    if (!json) return false;
+    const std::string text(json);
+    const size_t c = json_value_pos(text, key);
+    if (c == std::string::npos) return false;
+    const char* begin = text.c_str() + c;
+    char* end = nullptr;
+    const double v = std::strtod(begin, &end);
+    if (end == begin || !std::isfinite(v)) return false;
+    out = v;
+    return true;
+}
+
+// #180 (QA-B-91): string leaf, with the escapes a Windows path needs
+// (\\ \" \/). false when absent or not a string.
+bool json_get_string(const char* json, const char* key, std::string& out)
+{
+    if (!json) return false;
+    const std::string text(json);
+    size_t c = json_value_pos(text, key);
+    if (c == std::string::npos || text[c] != '"') return false;
+    std::string v;
+    for (++c; c < text.size(); ++c) {
+        char ch = text[c];
+        if (ch == '"') { out = v; return true; }
+        if (ch == '\\') {
+            if (++c >= text.size()) return false;
+            ch = text[c];
+            if (ch != '\\' && ch != '"' && ch != '/') return false;
+        }
+        v.push_back(ch);
+    }
+    return false;
+}
+
+void alert_virtual_grid(const std::string& why)
+{
+    char msg[256];
+    std::snprintf(msg, sizeof(msg), "gsvg virtual grid: %s", why.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+// #180 (QA-B-91): reads the virtual grid part of the config. Every value is
+// required except the optional pyramid / de-noise steps; nothing is filled in.
+std::string read_virtual_grid_config(const char* json, GsvgHandle& h)
+{
+    std::string path;
+    if (!json_get_string(json, "vg_table_path", path)) return "vg_table_path is required";
+    const std::string err = xpe_gsvg_detail::LoadParamTable(path, h.vg_table);
+    if (!err.empty()) return err;
+
+    auto& st = h.vg_settings;
+    double iterations = 0;
+    if (!json_get_number(json, "vg_kvp", st.kvp))                     return "vg_kvp is required";
+    if (!json_get_number(json, "vg_grid_ratio", st.gridRatio))        return "vg_grid_ratio is required";
+    if (!json_get_number(json, "vg_pixel_pitch_mm", st.pixelPitchMm)) return "vg_pixel_pitch_mm is required";
+    if (!json_get_number(json, "vg_air_signal", st.airSignal))        return "vg_air_signal is required";
+    if (!json_get_number(json, "vg_iterations", iterations))          return "vg_iterations is required";
+    if (iterations != std::floor(iterations) || iterations < 1 || iterations > 100)
+        return "vg_iterations must be an integer 1..100";
+    st.iterations = static_cast<int>(iterations);
+
+    double levels = 0;
+    if (json_get_number(json, "vg_pyramid_levels", levels)) {
+        if (levels != std::floor(levels)) return "vg_pyramid_levels must be an integer";
+        st.pyramidLevels = static_cast<int>(levels);
+    }
+    json_get_number(json, "vg_pyramid_gain", st.pyramidGain);
+    json_get_number(json, "vg_denoise_k", st.denoiseK);
+    return {};
+}
+
 /**
  * @brief Apply vignette gain: dst[i] = clamp(src[i] * gainMap[i], 0, 65535).
  *
@@ -208,11 +307,28 @@ XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNull)
     // config is supplied. This aligns with DegradedMode expectations.
     h->vignette_enabled = json_get_bool(configJsonOrNull, "vignette_correction", false);
     h->grid_enabled     = json_get_bool(configJsonOrNull, "grid_suppression",    false);
+    h->virtual_grid_enabled = json_get_bool(configJsonOrNull, "virtual_grid", false);
 
-    // #145: the two keys above are the whole config surface. Anything else the
+    // #180 (QA-B-91): grid suppression and the virtual grid are two paths for
+    // two kinds of image (with and without a physical grid); one is chosen.
+    if (h->virtual_grid_enabled) {
+        const std::string why = h->grid_enabled
+            ? std::string("grid_suppression and virtual_grid cannot both be enabled")
+            : read_virtual_grid_config(configJsonOrNull, *h);
+        if (!why.empty()) {
+            alert_virtual_grid(why);
+            delete h;
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    }
+
+    // #145: the keys above are the whole config surface. Anything else the
     // caller wrote is reported by name rather than dropped in silence.
     {
-        static const char* const kKnownKeys[] = { "vignette_correction", "grid_suppression" };
+        static const char* const kKnownKeys[] = {
+            "vignette_correction", "grid_suppression", "virtual_grid",
+            "vg_table_path", "vg_kvp", "vg_grid_ratio", "vg_pixel_pitch_mm", "vg_air_signal",
+            "vg_iterations", "vg_pyramid_levels", "vg_pyramid_gain", "vg_denoise_k" };
         warn_unconsumed_top_level_keys(configJsonOrNull, kKnownKeys,
                                        sizeof(kKnownKeys) / sizeof(kKnownKeys[0]));
     }
@@ -259,6 +375,12 @@ XpeErrorCode xpe_gsvg_process(void* handle,
         return XPE_ERR_INVALID_INPUT;
     }
 
+    // #180 (QA-B-91): the virtual grid can fail on the image itself (thickness
+    // outside the table). REQ-GSVG-024: dst then holds the original pixels, so
+    // keep them in case dst aliases src.
+    std::vector<uint16_t> original;
+    if (h->virtual_grid_enabled) original.assign(src, src + count);
+
     // Step 1: vignette gain or passthrough copy.
     // The vignette step is active only when BOTH the config flag is set AND
     // a gain map is provided. Either absent yields an identity copy.
@@ -272,6 +394,21 @@ XpeErrorCode xpe_gsvg_process(void* handle,
     // Step 2: grid shadow suppression applied in-place on dst.
     if (h->grid_enabled) {
         xpe_gsvg_detail::SuppressGrid(dst, width, height);
+    }
+
+    // Step 2' (#180, QA-B-91): virtual grid, in place on dst.
+    if (h->virtual_grid_enabled) {
+        std::vector<double> img(dst, dst + count);
+        const auto rep = xpe_gsvg_detail::RunVirtualGrid(img, width, height,
+                                                         h->vg_table, h->vg_settings);
+        if (!rep.error.empty()) {
+            std::memcpy(dst, original.data(), count * sizeof(uint16_t));
+            alert_virtual_grid(rep.error);
+            return rep.error.find("thickness") != std::string::npos
+                ? XPE_ERR_PROCESSING_FAILED : XPE_ERR_CONFIG_INVALID;
+        }
+        for (size_t i = 0; i < count; ++i)
+            dst[i] = static_cast<uint16_t>(std::clamp(std::round(img[i]), 0.0, 65535.0));
     }
 
     return XPE_OK;
