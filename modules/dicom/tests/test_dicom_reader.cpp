@@ -27,6 +27,7 @@
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
 #include <atomic>
+#include <map>
 #include <cstdio>
 #include <filesystem>
 #include <thread>
@@ -2532,4 +2533,199 @@ TEST_F(DicomReaderTest, TsLessPathIsDecidedByChecksNotByStructure) {
             << r.label;
     }
     DJEncoderRegistration::cleanup();
+}
+
+// ---------------------------------------------------------------------------
+// #168 (QA-B-73) — can the bitstream tell .57 from .70?  (measurement only)
+//
+// .70 is JPEG Lossless Process 14 with Selection Value 1: the predictor is
+// fixed to 1. .57 is Process 14 with ANY first-order predictor 1..7. In a
+// lossless JPEG stream the predictor is the Ss byte of the SOS segment
+// (FF DA, Ls, Ns, Ns x {Cs, Td/Ta}, Ss, Se, Ah/Al).
+//
+// THE TRAP, checked first: a .57 stream encoded with predictor 1 may be
+// byte-for-byte a .70 stream. If so, ".70 bytes under a .57 label" is not a
+// contradiction at all -- it is a legal .57 file -- and #168's premise needs
+// restating. This case therefore compares whole first fragments, not just Ss.
+//
+// Also asked: does DCMTK hand back the predictor it decoded (a representation
+// parameter on the loaded dataset), or must the stream be read?
+//
+// SYNTHETIC (#148): every stream here is DCMTK's own encoder output.
+// ---------------------------------------------------------------------------
+namespace {
+
+struct SosInfo {
+    bool     found     = false;
+    int      sofMarker = -1;   // 0xC0..0xCF (C3 = lossless, sequential, Huffman)
+    int      ss        = -1;   // predictor selection value for lossless
+    int      se        = -1;
+    int      al        = -1;   // point transform
+};
+
+// Walk markers from SOI to the first SOS. Stops at SOS: the entropy-coded data
+// after it is not marker-structured and is not needed for this question.
+SosInfo ParseSofSos(const std::vector<Uint8>& b) {
+    SosInfo r{};
+    size_t i = 0;
+    if (b.size() < 4 || b[0] != 0xFF || b[1] != 0xD8) return r;   // SOI
+    i = 2;
+    while (i + 4 <= b.size()) {
+        if (b[i] != 0xFF) return r;
+        const int m = b[i + 1];
+        if (m == 0xD8 || (m >= 0xD0 && m <= 0xD7) || m == 0x01) { i += 2; continue; }
+        const size_t len = (static_cast<size_t>(b[i + 2]) << 8) | b[i + 3];
+        if (m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC) {
+            r.sofMarker = m;
+        }
+        if (m == 0xDA) {
+            const size_t p = i + 4;                 // Ns
+            if (p >= b.size()) return r;
+            const size_t ns = b[p];
+            const size_t q = p + 1 + 2 * ns;        // Ss
+            if (q + 2 >= b.size()) return r;
+            r.ss = b[q];
+            r.se = b[q + 1];
+            r.al = b[q + 2] & 0x0F;
+            r.found = true;
+            return r;
+        }
+        i += 2 + len;
+    }
+    return r;
+}
+
+struct FragmentProbe {
+    bool                 ok = false;
+    std::string          labelUid;
+    std::vector<Uint8>   firstFragment;
+    bool                 paramPresent = false;
+    int                  paramPrediction = -1;
+};
+
+// Load a Part-10 file and return its first compressed fragment, looked up under
+// the representation key of the syntax the meta-header names -- which is the
+// key DCMTK files the pixel data under (QA-B-72 measured that it uses the label).
+FragmentProbe FirstFragment(const fs::path& p) {
+    FragmentProbe r{};
+    DcmFileFormat ff;
+    if (!ff.loadFile(p.string().c_str()).good()) return r;
+    OFString ts;
+    if (ff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, ts).bad()) return r;
+    r.labelUid = ts.c_str();
+    E_TransferSyntax key = DcmXfer(ts.c_str()).getXfer();
+
+    DcmElement* el = nullptr;
+    if (ff.getDataset()->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) return r;
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+    DcmPixelSequence* seq = nullptr;
+    const DcmRepresentationParameter* param = nullptr;
+    if (pd->getEncapsulatedRepresentation(key, param, seq).bad() || seq == nullptr) return r;
+
+    r.paramPresent = (param != nullptr);
+    if (const auto* ll = dynamic_cast<const DJ_RPLossless*>(param)) {
+        r.paramPrediction = ll->getPrediction();
+    }
+
+    DcmPixelItem* frag = nullptr;
+    // Item 0 is the Basic Offset Table; item 1 is the first frame's fragment.
+    if (seq->getItem(frag, 1).bad() || frag == nullptr) return r;
+    Uint8* data = nullptr;
+    if (frag->getUint8Array(data).bad() || data == nullptr) return r;
+    r.firstFragment.assign(data, data + frag->getLength());
+    r.ok = true;
+    return r;
+}
+
+bool EncodeAs(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer,
+              int predictor /* 0 = encoder default */) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            const DJ_RPLossless params(predictor == 0 ? 1 : predictor, 0);
+            OFCondition rc = (predictor == 0)
+                ? ds->chooseRepresentation(xfer, nullptr)
+                : ds->chooseRepresentation(xfer, &params);
+            ok = rc.good() && ds->canWriteXfer(xfer) &&
+                 ff.saveFile(dst.string().c_str(), xfer).good();
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured) {
+    struct Row { const char* label; E_TransferSyntax xfer; int predictor; };
+    std::vector<Row> rows = {
+        { ".70 default",  EXS_JPEGProcess14SV1, 0 },
+        { ".57 default",  EXS_JPEGProcess14,    0 },
+    };
+    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14SV1, p });
+    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14,    p });
+
+    std::map<std::string, std::vector<Uint8>> fragments;
+    int idx = 0;
+    for (const auto& r : rows) {
+        const std::string name = r.label ? std::string(r.label)
+            : std::string(r.xfer == EXS_JPEGProcess14SV1 ? ".70" : ".57") +
+              " pred=" + std::to_string(r.predictor);
+        const auto path = s_tempDir / ("b73_" + std::to_string(idx++) + ".dcm");
+        if (!EncodeAs(s_validDcm, path, r.xfer, r.predictor)) {
+            GTEST_LOG_(INFO) << name << ": encoder refused -- not measured";
+            continue;
+        }
+        const FragmentProbe fp = FirstFragment(path);
+        if (!fp.ok) {
+            GTEST_LOG_(INFO) << name << ": could not read first fragment";
+            continue;
+        }
+        const SosInfo s = ParseSofSos(fp.firstFragment);
+        fragments[name] = fp.firstFragment;
+        char sof[8];
+        std::snprintf(sof, sizeof(sof), "0x%02X", s.sofMarker);
+        GTEST_LOG_(INFO) << name
+                         << " | label=" << fp.labelUid
+                         << " | SOF=" << sof
+                         << " | SOS Ss(predictor)=" << s.ss
+                         << " Se=" << s.se << " Al=" << s.al
+                         << " | fragment bytes=" << fp.firstFragment.size()
+                         << " | DCMTK param present=" << fp.paramPresent
+                         << " prediction=" << fp.paramPrediction;
+    }
+
+    // THE TRAP: are a .70 stream and a predictor-1 .57 stream the same bytes?
+    auto same = [&](const std::string& a, const std::string& b) {
+        if (!fragments.count(a) || !fragments.count(b)) return std::string("n/a");
+        return std::string(fragments[a] == fragments[b] ? "IDENTICAL" : "differ");
+    };
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .57 pred=1  : " << same(".70 default", ".57 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .57 default : " << same(".70 default", ".57 default");
+    GTEST_LOG_(INFO) << "first fragment  .70 pred=1   vs .57 pred=1  : " << same(".70 pred=1", ".57 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 default  vs .70 pred=1  : " << same(".70 default", ".70 pred=1");
+    GTEST_LOG_(INFO) << "first fragment  .70 pred=1   vs .70 pred=2  : " << same(".70 pred=1", ".70 pred=2");
+
+    // The #168 fixture itself: .70 bytes relabelled .57.
+    const auto genuine70 = s_tempDir / "b73_genuine70.dcm";
+    const auto relabel   = s_tempDir / "b73_relabel57.dcm";
+    if (WriteJpegLosslessCopy(s_validDcm, genuine70)) {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(genuine70.string().c_str()).good());
+        ASSERT_TRUE(ff.getMetaInfo()->putAndInsertString(DCM_TransferSyntaxUID,
+                                                         "1.2.840.10008.1.2.4.57").good());
+        ASSERT_TRUE(ff.saveFile(relabel.string().c_str(), EXS_JPEGProcess14SV1,
+                                EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
+                                0, 0, EWM_dontUpdateMeta).good());
+        const FragmentProbe fp = FirstFragment(relabel);
+        const SosInfo s = fp.ok ? ParseSofSos(fp.firstFragment) : SosInfo{};
+        GTEST_LOG_(INFO) << "#168 fixture (.70 bytes, .57 label) | read ok=" << fp.ok
+                         << " | label=" << fp.labelUid
+                         << " | SOS Ss=" << s.ss
+                         << " | fragment bytes=" << fp.firstFragment.size();
+    }
+    SUCCEED();
 }
