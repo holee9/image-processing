@@ -604,7 +604,7 @@ public class ApplicationFixture : IDisposable
     /// Returns null rather than throwing so the suite can report "not built" as a skip instead of
     /// a failure that looks like a defect in the app.
     /// </summary>
-    private static string? ResolveApplicationExecutable()
+    internal static string? ResolveApplicationExecutable()
     {
         var relative = Path.Combine(
             "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", "ImageProcTest.exe");
