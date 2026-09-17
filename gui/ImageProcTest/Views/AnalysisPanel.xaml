@@ -152,64 +152,73 @@
 
                 <!-- Parameters tab -->
                 <StackPanel Visibility="{Binding AnalysisTab, Converter={StaticResource TabEquals}, ConverterParameter=parameters}">
-                    <TextBlock Text="Calibration Stages" Foreground="#f0f2f5" FontSize="12"
-                               FontWeight="SemiBold" Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="Calibration Stages" Foreground="#f0f2f5" FontSize="12"
+                                   FontWeight="SemiBold" />
+                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." />
+                    </StackPanel>
+
+                    <!-- #182: no backend processing path reads these modes. Kept, values persisted, disabled. -->
+                    <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup" IsEnabled="False"
+                                ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." ToolTipService.ShowOnDisabled="True">
 
                     <!-- Offset -->
                     <TextBlock Text="Offset" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibOffsetModeAuto" Content="Auto" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibOffsetModeOn" Content="On" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibOffsetModeOff" Content="Off" GroupName="Offset" IsChecked="{Binding Settings.OffsetCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Gain -->
                     <TextBlock Text="Gain" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGainModeAuto" Content="Auto" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGainModeOn" Content="On" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGainModeOff" Content="Off" GroupName="Gain" IsChecked="{Binding Settings.GainCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Defect -->
                     <TextBlock Text="Defect" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibDefectModeAuto" Content="Auto" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibDefectModeOn" Content="On" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibDefectModeOff" Content="Off" GroupName="Defect" IsChecked="{Binding Settings.DefectCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Ghost -->
                     <TextBlock Text="Ghost" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGhostModeAuto" Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGhostModeOn" Content="On" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibGhostModeOff" Content="Off" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Temperature -->
                     <TextBlock Text="Temperature" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeAuto" Content="Auto" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeOn" Content="On" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeOff" Content="Off" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Nonlinearity -->
                     <TextBlock Text="Nonlinearity" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeAuto" Content="Auto" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeOn" Content="On" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeOff" Content="Off" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Binning -->
                     <TextBlock Text="Binning" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton Content="Auto" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="On" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton Content="Off" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibBinningModeAuto" Content="Auto" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibBinningModeOn" Content="On" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="CalibBinningModeOff" Content="Off" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
+
+                    </StackPanel>
 
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
 
@@ -249,9 +258,15 @@
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
 
                     <!-- Lane B overrides -->
-                    <TextBlock Text="Lane B Overrides" Foreground="#c4b5fd" FontSize="12"
-                               FontWeight="SemiBold" Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="Lane B Overrides" Foreground="#c4b5fd" FontSize="12"
+                                   FontWeight="SemiBold" />
+                        <TextBlock AutomationProperties.AutomationId="LaneBOverridesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." />
+                    </StackPanel>
 
+                    <!-- #182: no backend processing path reads these values. Kept, values persisted, disabled. -->
+                    <StackPanel AutomationProperties.AutomationId="LaneBOverridesGroup" IsEnabled="False"
+                                ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." ToolTipService.ShowOnDisabled="True">
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -260,24 +275,26 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Sharpening sigma" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox Text="{Binding LaneBSharpeningSigma, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="LaneBSharpeningSigmaInput" Text="{Binding LaneBSharpeningSigma, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#0DFFFFFF" Foreground="#f0f2f5"
                                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Denoise strength" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox Text="{Binding LaneBDenoiseStrength, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="LaneBDenoiseStrengthInput" Text="{Binding LaneBDenoiseStrength, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#0DFFFFFF" Foreground="#f0f2f5"
                                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
                         </StackPanel>
                     </Grid>
 
-                    <Button Content="Reset defaults"
+                    <Button AutomationProperties.AutomationId="LaneBResetDefaultsButton"
+                            Content="Reset defaults"
                             Command="{Binding ResetLaneBOverridesCommand}"
                             Background="Transparent" Foreground="#8a909c"
                             BorderBrush="#1AFFFFFF" BorderThickness="1"
                             Padding="12,6" FontSize="10"
                             HorizontalAlignment="Left" Cursor="Hand" />
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Run-set tab -->
