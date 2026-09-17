@@ -18,6 +18,7 @@
 #include "xpe_sha256.hpp"
 #include "rle_codec.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <cstring>
 #include <chrono>
@@ -90,6 +91,10 @@ static bool parse_compression_meta(
 
     return true;
 }
+
+// Payload read granularity. 1 MiB keeps the file buffer and the hash input in
+// cache while still amortising the read calls (QA-A-105).
+static const size_t kReadChunkBytes = 1u << 20;
 
 XpeErrorCode read_xcal_file(
     const char*            path,
@@ -190,26 +195,29 @@ XpeErrorCode read_xcal_file(
             }
         }
 
-        // Read payload
+        // Read the payload and hash it as it arrives (QA-A-105, #179):
+        // SRS-CALIB-PERF-003 asks for the integrity check to be "calculated
+        // during read, not post-hoc". The digest is unchanged -- SHA-256 of
+        // (config_json || payload) -- because the chunks are fed in file order.
         std::vector<uint8_t> payload;
+        Sha256Stream hasher;
+        if (!config.empty()) hasher.update(config.data(), config.size());
         if (hdr.payload_len > 0) {
             payload.resize(static_cast<size_t>(hdr.payload_len));
-            f.read(reinterpret_cast<char*>(payload.data()),
-                   static_cast<std::streamsize>(hdr.payload_len));
-            if (!f.good() ||
-                f.gcount() != static_cast<std::streamsize>(hdr.payload_len)) {
-                return XPE_ERR_IO_FAILED;
+            size_t done = 0;
+            while (done < payload.size()) {
+                const size_t chunk = std::min(kReadChunkBytes, payload.size() - done);
+                f.read(reinterpret_cast<char*>(payload.data() + done),
+                       static_cast<std::streamsize>(chunk));
+                if (!f.good() || f.gcount() != static_cast<std::streamsize>(chunk)) {
+                    return XPE_ERR_IO_FAILED;
+                }
+                hasher.update(payload.data() + done, chunk);
+                done += chunk;
             }
         }
 
-        // Verify SHA-256 (over stored config + stored payload)
-        const uint8_t* cfg_ptr = config.empty()  ? nullptr : config.data();
-        const uint8_t* pay_ptr = payload.empty() ? nullptr : payload.data();
-        auto computed = compute_sha256_two_parts(
-            cfg_ptr, config.size(),
-            pay_ptr, payload.size());
-
-        if (std::memcmp(computed.data(), hdr.sha256, 32) != 0) {
+        if (std::memcmp(hasher.digest().data(), hdr.sha256, 32) != 0) {
             return XPE_ERR_CONFIG_INVALID;
         }
 

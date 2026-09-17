@@ -565,6 +565,20 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *
  * @param img [in/out] Image to process (uint16 in, float32 out after Gain)
  * @param meta [in/out] Image metadata (updated with processing flags)
+ * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
+ *          @p calibPath on every call. At 3072x3072 that is about 475 ms per
+ *          frame (measured, QA-A-105) -- more than the 500 ms budget for the
+ *          whole pipeline (SRS-CALIB-PERF-001), and SRS-CALIB-PERF-003 budgets
+ *          200 ms for loading all three files ONCE at startup, not per frame.
+ *          The intended per-frame path is:
+ *              XpeCalibrationState st = {};
+ *              xpe_calib_state_load(&st, calibPath);   // once
+ *              for each frame: xpe_preprocess_pipeline_ex(img, meta, &st, ...);
+ *              xpe_calib_state_release(&st);
+ *          Use this function for a one-off frame or a smoke test.
+ *
+ * @param img [in/out] Image to process (uint16 in, float32 out after Gain)
+ * @param meta [in/out] Image metadata (updated with processing flags)
  * @param calibPath Calibration data directory path
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
  * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.)
@@ -582,6 +596,11 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  *
  * Extended version of xpe_preprocess_pipeline() that skips file I/O by using
  * calibration data from a pre-loaded XpeCalibrationState.
+ *
+ * This is the recommended per-frame entry point: the calibration files are
+ * read once by xpe_calib_state_load() (SRS-CALIB-PERF-003: "Clinical workflows
+ * load calibration once at startup, not per-frame"), so a frame costs about
+ * 124 ms instead of about 590 ms at 3072x3072 (measured, QA-A-105).
  *
  * @param img [in/out] Image to process
  * @param meta [in/out] Image metadata
@@ -686,6 +705,11 @@ XPE_API void xpe_calib_cache_set_max_size(uint32_t maxMaps);
  *
  * Files expected: offset.xcal, gain.xcal, defect.xcal
  * Missing files are silently skipped (corresponding *Loaded flag = false).
+ *
+ * Call this ONCE at startup (or whenever the calibration set changes) and pass
+ * the state to xpe_preprocess_pipeline_ex() for every frame. Loading all three
+ * files at 3072x3072 takes about 475 ms (measured, QA-A-105); the budget in
+ * SRS-CALIB-PERF-003 is 200 ms.
  *
  * @param state [out] Zero-initialized state to populate
  * @param calibPath Calibration data directory path

@@ -45,7 +45,9 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
         }
 
         // Allocate and copy pixel data
-        auto map = std::make_unique<float[]>(static_cast<size_t>(hdr.width) * hdr.height);
+        // new[] rather than make_unique: the buffer is overwritten by the
+        // memcpy below, so value-initialising it first is wasted work (QA-A-105).
+        std::unique_ptr<float[]> map(new float[static_cast<size_t>(hdr.width) * hdr.height]);
         std::memcpy(map.get(), payload.data(), payload.size());
 
         // Commit under mutex (read-then-commit; no TOCTOU exposure)

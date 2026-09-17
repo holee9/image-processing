@@ -68,7 +68,7 @@ XpeImageMetadata* CreateTestMetadata() {
     meta->kVp = 120.0f;
     meta->mAs = 100.0f;
     meta->SID_mm = 1200.0f;
-    meta->pixelPitch_mm = 0.143f;
+    meta->pixelPitch_mm = 0.14f;   // 140 um, project-wide detector pitch (QA-A-105)
     meta->acquisitionTime = 0;
     meta->flags = 0;
 

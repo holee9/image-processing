@@ -303,6 +303,12 @@ namespace {
 
 } // anonymous namespace
 
+// @MX:WARN: [AUTO] Re-reads the three calibration files on every call (about
+// 475 ms at 3072x3072). The per-frame path is xpe_calib_state_load() once plus
+// xpe_preprocess_pipeline_ex() per frame -- see the header (QA-A-105, #179).
+// @MX:REASON: SRS-CALIB-PERF-003 budgets 200 ms for loading all three files at
+// startup, not per frame; per-frame loading alone exceeds the 500 ms frame
+// budget of SRS-CALIB-PERF-001.
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline — full pipeline integration
 // @MX:REASON: Main pipeline entry point; all correction stages fan in here
 // @MX:SPEC: REQ-P1A-041 to REQ-P1A-047
