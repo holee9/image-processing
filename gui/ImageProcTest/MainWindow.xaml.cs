@@ -225,7 +225,7 @@ public partial class MainWindow : System.Windows.Window
                   $"frame loaded={viewModel.ActiveImageFrame is not null})"
                 : viewModel.PreprocessStages;
             report.ChainStatus = viewModel.ChainStatus;
-            report.ChainStages = viewModel.LastChain?.Stages.Select(s => $"{s.StageId}={s.Status}").ToList() ?? new();
+            report.ChainStages = viewModel.LastChain?.Stages.Select(s => $"{s.StageId}={s.Status} {s.ElapsedMs:0}ms").ToList() ?? new();
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
             report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
             report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;

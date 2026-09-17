@@ -51,6 +51,7 @@ public static class ProcessingChainRunner
 
             var input = (ushort[])current.Clone();
             StageExecution execution;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 execution = execute(request, input);
@@ -60,23 +61,25 @@ public static class ProcessingChainRunner
                 execution = new StageExecution(false, null, $"{request.StageId} threw: {ex.Message}");
             }
 
+            var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
+
             if (!execution.Ran || execution.Pixels is null)
             {
-                outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null, execution.Message));
+                outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null, execution.Message, elapsedMs));
                 continue;
             }
 
             if (execution.Pixels.Length != current.Length)
             {
                 outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null,
-                    $"{request.StageId} returned {execution.Pixels.Length} pixels for an input of {current.Length}."));
+                    $"{request.StageId} returned {execution.Pixels.Length} pixels for an input of {current.Length}.", elapsedMs));
                 continue;
             }
 
             // A stage may hand back the very copy it was given; keep a buffer nobody else holds.
             var output = ReferenceEquals(execution.Pixels, input) ? input : (ushort[])execution.Pixels.Clone();
             var status = output.AsSpan().SequenceEqual(current) ? StageStatus.AppliedNoChange : StageStatus.Applied;
-            outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message));
+            outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message, elapsedMs));
             current = output;
         }
 
