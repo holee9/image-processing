@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -60,7 +61,7 @@ vg::ParamTable ScaledKernels(double factor) {
     return t;
 }
 
-enum class Shape { Step, Gradient, ThinStep };
+enum class Shape { Step, Gradient, ThinStep, ThickNextToAir, ThinNextToThick };
 
 struct Scene {
     std::vector<double> primary, thickness, measured;
@@ -90,6 +91,8 @@ Scene MakeScene(Shape shape, const vg::ParamTable& forwardTable = Table(), bool 
         for (int x = 0; x < kN; ++x) {
             double T = shape == Shape::Step     ? (x < kN / 2 ? 8.0 : 24.0)
                      : shape == Shape::ThinStep ? (x < kN / 2 ? 4.0 : 10.0)
+                     : shape == Shape::ThickNextToAir ? (x < kN / 2 ? 0.3 : 25.0)
+                     : shape == Shape::ThinNextToThick ? (x < kN / 2 ? 5.0 : 27.0)
                                                 : 6.0 + 20.0 * x / (kN - 1.0);
             // details: small dense disks and a thin bar
             const double dx = (x % 48) - 24.0, dy = (y % 48) - 24.0;
@@ -337,7 +340,7 @@ TEST(GsvgVirtualGridFalsify, SprCapPreventsOvercorrection)
     const vg::ParamTable over = ScaledKernels(3.0);
     std::vector<double> capped = s.measured, uncapped = s.measured;
     vg::VgSwitches off;
-    off.sprCap = false;
+    off.cap = vg::CapMode::None;
     const vg::VgReport rc = vg::RunVirtualGrid(capped, kN, kN, over, Settings(5));
     const vg::VgReport ru = vg::RunVirtualGrid(uncapped, kN, kN, over, Settings(5), off);
     std::printf("VGMEASURE overcorrect capped: err='%s' negative=%zu capped=%.4f high=%.4f meanSpr=%.3f\n",
@@ -398,8 +401,11 @@ TEST(GsvgVirtualGridCap, KernelSumIsTheDefaultCap)
     EXPECT_NEAR(vg::SprCapAt(g4, 10.0, 80.0), 1.0, 1e-12);
 }
 
-TEST(GsvgVirtualGridCap, KernelSumCapBindsOnOvercorrectionOnly)
+// C1 (local sum(a_i)), kept as the record of why it was not chosen (QA-B-94).
+TEST(GsvgVirtualGridCap, LocalKernelSumCapBindsOnCorrectDataToo)
 {
+    vg::VgSwitches c1;
+    c1.cap = vg::CapMode::LocalSum;
     const Scene s = MakeScene(Shape::Step);
     const vg::ParamTable t = TableWithoutCapSection();
     vg::ParamTable over = t;
@@ -408,7 +414,7 @@ TEST(GsvgVirtualGridCap, KernelSumCapBindsOnOvercorrectionOnly)
     // Over-estimating kernels scale their own cap too, so the cap alone
     // cannot catch them; the check here is that the default cap is live.
     std::vector<double> a = s.measured, b = s.measured;
-    const vg::VgReport ra = vg::RunVirtualGrid(a, kN, kN, t, Settings(5));
+    const vg::VgReport ra = vg::RunVirtualGrid(a, kN, kN, t, Settings(5), c1);
     // Scaling the kernels but not the cap (cap taken from the true table).
     vg::ParamTable overTrueCap = over;
     overTrueCap.capFromKernels = false;
@@ -416,10 +422,10 @@ TEST(GsvgVirtualGridCap, KernelSumCapBindsOnOvercorrectionOnly)
     overTrueCap.capKvp = t.kKvp;
     overTrueCap.capSpr.clear();
     for (const auto& n : t.kernels) overTrueCap.capSpr.push_back(n.a[0] + n.a[1]);
-    const vg::VgReport rb = vg::RunVirtualGrid(b, kN, kN, overTrueCap, Settings(5));
+    const vg::VgReport rb = vg::RunVirtualGrid(b, kN, kN, overTrueCap, Settings(5), c1);
     // Reference: the same data with the generous synthetic [spr_cap] section.
     std::vector<double> r = s.measured;
-    const vg::VgReport rr = vg::RunVirtualGrid(r, kN, kN, Table(), Settings(5));
+    const vg::VgReport rr = vg::RunVirtualGrid(r, kN, kN, Table(), Settings(5), c1);
     const ErrStats eSum = RelErr(a, s.primary), eSec = RelErr(r, s.primary);
     std::printf("VGMEASURE kernel-sum cap: true data capped=%.4f; x3 kernels capped=%.4f negative=%zu\n",
                 ra.cappedFraction, rb.cappedFraction, rb.negativePrimary);
@@ -750,4 +756,152 @@ TEST(GsvgVirtualGridBench, BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3
         [&] { std::fill(dst.begin(), dst.end(), 0); },
         [&] { return xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), n, n, nullptr, 0); });
     xpe_gsvg_shutdown(h);
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-94: which over-correction guard. Every candidate on every scene, with
+// the algorithm's kernels scaled x1 (right), x2 / x3 (over-estimated) and
+// x0.5 (under-estimated) against data made with the x1 kernels. The table has
+// no [spr_cap] section, so C1 is the local sum(a_i).
+//
+// Same forward-model code as the chain: a comparison inside the model, to be
+// repeated on the MC images (QA-A-98).
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridMinFilter, MatchesBruteForce)
+{
+    const int w = 37, h = 23;
+    std::vector<double> img(w * h);
+    uint32_t state = 7;
+    for (double& v : img) { state = state * 1664525u + 1013904223u; v = (state >> 8) % 1000; }
+    for (int r : {0, 1, 3, 5, 30}) {
+        const auto got = vg::MinFilter2D(img, w, h, r);
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x) {
+                double m = 1e300;
+                for (int yy = std::max(0, y - r); yy <= std::min(h - 1, y + r); ++yy)
+                    for (int xx = std::max(0, x - r); xx <= std::min(w - 1, x + r); ++xx)
+                        m = std::min(m, img[yy * w + xx]);
+                ASSERT_EQ(got[y * w + x], m) << "r=" << r << " x=" << x << " y=" << y;
+            }
+    }
+}
+
+namespace {
+
+struct Cand { std::string name; vg::CapMode mode; double eps; };
+
+const std::vector<Cand>& Candidates() {
+    static const std::vector<Cand> c = {
+        {"C0", vg::CapMode::None, 0},
+        {"C1", vg::CapMode::LocalSum, 0},
+        {"C2", vg::CapMode::GlobalSum, 0},
+        {"C3e0.05", vg::CapMode::PrimaryFloor, 0.05},
+        {"C3e0.10", vg::CapMode::PrimaryFloor, 0.10},
+        {"C3e0.20", vg::CapMode::PrimaryFloor, 0.20},
+        {"C3e0.30", vg::CapMode::PrimaryFloor, 0.30},
+        {"C4e0.02", vg::CapMode::SmoothFloor, 0.02},
+        {"C4e0.05", vg::CapMode::SmoothFloor, 0.05},
+        {"C4e0.10", vg::CapMode::SmoothFloor, 0.10},
+        {"C4e0.20", vg::CapMode::SmoothFloor, 0.20},
+    };
+    return c;
+}
+
+struct CapResult {
+    bool refused = false;
+    double median = 0, p95 = 0, max = 0;   // |out - P| / P
+    double capped = 0;                      // reduced-grid share
+    double negative = 0;                    // share of I - S < 0
+    double nearZero = 0;                    // share of out < 0.1 P
+    double maxOver = 0;                     // max (P - out) / P, 1 = zero
+};
+
+CapResult RunCandidate(const Scene& s, const vg::ParamTable& t, const Cand& c) {
+    std::vector<double> img = s.measured;
+    vg::VgSwitches sw;
+    sw.cap = c.mode;
+    sw.capEps = c.eps;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, Settings(5), sw);
+    CapResult r;
+    if (!rep.error.empty()) { r.refused = true; return r; }
+    const ErrStats e = RelErr(img, s.primary);
+    r.median = e.median; r.p95 = e.p95; r.max = e.max;
+    r.capped = rep.cappedFraction;
+    r.negative = double(rep.negativePrimary) / img.size();
+    size_t nz = 0;
+    for (size_t i = 0; i < img.size(); ++i) {
+        if (img[i] < 0.1 * s.primary[i]) ++nz;
+        r.maxOver = std::max(r.maxOver, (s.primary[i] - img[i]) / s.primary[i]);
+    }
+    r.nearZero = double(nz) / img.size();
+    return r;
+}
+
+vg::ParamTable Scaled(const vg::ParamTable& t, double k) {
+    vg::ParamTable o = t;
+    for (auto& n : o.kernels)
+        for (int i = 0; i < n.terms; ++i) n.a[i] *= k;
+    return o;
+}
+
+}  // namespace
+
+TEST(GsvgVirtualGridCapChoice, CompareCandidates)
+{
+    const vg::ParamTable base = TableWithoutCapSection();
+    std::map<std::string, CapResult> res;   // scene|factor|candidate
+    const std::vector<std::pair<const char*, Shape>> scenes = {
+        {"step", Shape::Step}, {"gradient", Shape::Gradient}, {"thick+air", Shape::ThickNextToAir},
+        {"thin+thick", Shape::ThinNextToThick}};
+    std::printf("VGCAP scene,factor,cand,refused,median,p95,max,capped,negative,nearZero,maxOver\n");
+    for (const auto& [sname, shape] : scenes) {
+        const Scene s = MakeScene(shape, base);
+        double trueMax = 0;
+        for (size_t i = 0; i < s.primary.size(); ++i)
+            trueMax = std::max(trueMax, (s.measured[i] - s.primary[i]) / s.primary[i]);
+        std::printf("VGCAPSCENE %s trueMaxSpr=%.3f globalSum=%.3f\n", sname, trueMax,
+                    vg::SprCapAt(base, 30.0, kKvp));
+        for (double k : {1.0, 2.0, 3.0, 0.5}) {
+            const vg::ParamTable t = Scaled(base, k);
+            for (const Cand& c : Candidates()) {
+                const CapResult r = RunCandidate(s, t, c);
+                char key[64];
+                std::snprintf(key, sizeof(key), "%s|%.1f|%s", sname, k, c.name.c_str());
+                res[key] = r;
+                std::printf("VGCAP %s,%.1f,%s,%d,%.5f,%.5f,%.5f,%.4f,%.5f,%.5f,%.4f\n", sname, k, c.name.c_str(),
+                            r.refused ? 1 : 0, r.median, r.p95, r.max, r.capped, r.negative, r.nearZero, r.maxOver);
+            }
+        }
+    }
+
+    // The choice (C2, the default) against the two conditions, per scene.
+    auto at = [&](const char* sc, double k, const char* c) {
+        char key[64];
+        std::snprintf(key, sizeof(key), "%s|%.1f|%s", sc, k, c);
+        return res.at(key);
+    };
+    for (const auto& [sname, shape] : scenes) {
+        (void)shape;
+        SCOPED_TRACE(sname);
+        for (double k : {1.0, 0.5}) {   // correct and under-estimated: C2 changes nothing
+            const CapResult c0 = at(sname, k, "C0"), c2 = at(sname, k, "C2");
+            EXPECT_FALSE(c2.refused);
+            EXPECT_NEAR(c2.median, c0.median, 1e-4) << k;
+            EXPECT_NEAR(c2.max, c0.max, 1e-3) << k;
+        }
+        for (double k : {2.0, 3.0}) {   // over-estimated: no negative or near-zero primary
+            const CapResult c0 = at(sname, k, "C0"), c2 = at(sname, k, "C2");
+            EXPECT_EQ(c2.negative, 0.0) << k;
+            EXPECT_EQ(c2.nearZero, 0.0) << k;
+            EXPECT_LT(c2.maxOver, 0.9) << k;
+            EXPECT_LE(c2.maxOver, c0.maxOver) << k;
+        }
+    }
+    // Falsification: without the guard (C0), x3 kernels drive the primary to
+    // zero on at least three of the four scenes (gradient: 0.92).
+    int zeroScenes = 0;
+    for (const auto& [sname, shape] : scenes) { (void)shape; zeroScenes += at(sname, 3.0, "C0").maxOver >= 1.0; }
+    EXPECT_GE(zeroScenes, 3);
+    // Why not C1: it binds on the under-estimated table.
+    EXPECT_GT(at("step", 0.5, "C1").capped, 0.0);
 }
