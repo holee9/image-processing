@@ -17,6 +17,12 @@
 | `analyze_pcd.py` | 파생판의 에너지 빈별 계수에서 검출기 응답 세 가지(이상적 에너지 적분, 이상적 광자 계수, CsI 흡수)로 SPR 을 낸다 |
 | `run_sensitivity.sh` | 변수를 하나씩 바꾸는 SPR 민감도 실험(QA-A-95) |
 | `tabulate_sensitivity.py` | 민감도 실험 결과를 표로 만든다 |
+| `psf_case.py` | 연필빔 산란 PSF 한 사례(두께·kVp)를 응답 3종으로 만든다(QA-A-96) |
+| `run_psf_grid.sh` | 두께 × kVp 격자 전체를 돌린다 |
+| `fit_kernels.py` | PSF 에 가우시안 2개·4개 합을 맞춰 `tables/` CSV 를 쓴다 |
+| `check_kernels.py` | 맞춤 잔차, SPR 단조성, 계수 매끄러움을 점검한다 |
+| `run_psf_checks.sh` | 튀는 격자점 재실행, 넓은 조사 직접 실행(격자 표는 바꾸지 않음) |
+| `tables/scatter_kernels_water_csi600.csv` | **산란 커널 표** (아래 "커널 표" 참조) |
 
 ## 외부 구성 요소
 
@@ -99,3 +105,62 @@ wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/tabulate_sensi
 - MC-GPU 는 실행 한 번을 CUDA 커널 호출 한 번으로 처리한다. 이 GPU 는 화면도 출력하므로 호출이 길면 Windows GPU 감시(TDR)에 걸릴 수 있다. 실행당 이력 수를 1e8 정도로 두고 `REPEATS` 로 반복한다(1e8 은 이 PC 에서 1 초 미만).
 - `run_case.sh` 의 `nvidia-smi` 샘플링은 `timeout` 으로 감싸고 종료 시 정리한다.
 - 영상 파일은 ASCII 라 크다(600×600 화소 ≈ 20 MB). 저장소에 넣지 않는다.
+
+## 커널 표 — `tables/scatter_kernels_water_csi600.csv` (QA-A-96)
+
+> **simulation-based, not calibrated; may be 0.6–0.93× measured SPR (QA-A-95).** 문헌값에 맞추는 배율은 넣지 않았다. 최종 강도는 실장비로 보정한다(#151).
+
+### 커널 식
+
+검출기 면의 반경 r (cm) 에서, 같은 연필빔의 **적분 1차 신호로 나눈** 산란 신호 밀도:
+
+```
+K(r) = Σ_i  a_i / (2π s_i²) · exp(−r² / (2 s_i²))        [1/cm²]
+```
+
+- `a_i` 는 i 번째 항이 검출기 면 전체에 만드는 산란/1차 비율이다. `Σ a_i` = 무한히 넓은 조사의 SPR.
+- `s_i` 는 폭(cm)이다. `s1 < s2 < …` 로 정렬되어 있다.
+- 넓은 조사의 산란 추정은 1차 영상과 K 의 합성곱(평행 이동 불변 가정)이다: `S(x) ≈ (P ∗ K)(x)`.
+- 신호의 정의는 **CsI 600 µm 에 흡수된 에너지**다(수직 입사 가정). 1차와 산란에 같은 응답을 적용했다.
+
+### 열 이름 (고정 — 바꾸려면 post 레인과 먼저 맞춘다)
+
+```
+thickness_cm,kvp,model,a1,s1,a2,s2,a3,s3,a4,s4,fit_rms,tail_rms,spr_30x30,n_primaries
+```
+
+| 열 | 뜻 |
+|---|---|
+| `thickness_cm` | 물 두께 (5, 10, 15, 20, 25, 30) |
+| `kvp` | 관전압 (60, 70, 80, 90, 100, 110, 120) |
+| `model` | `gauss2` 또는 `gauss4` |
+| `a1`…`a4`, `s1`…`s4` | 위 식의 계수. `gauss2` 행은 `a3`–`s4` 가 빈 칸 |
+| `fit_rms` | `K_fit/K_sim − 1` 의 RMS, r = 0.05–29.75 cm, 반경 빈 폭 가중 |
+| `tail_rms` | 같은 값을 r ≥ 15 cm 에서만 |
+| `spr_30x30` | 시뮬레이션 PSF 를 검출기 면 30×30 cm 정사각형에서 직접 합한 값(맞춤 아님, 평행 이동 불변 근사) |
+| `n_primaries` | 그 사례에서 모의한 선원 광자 수(두 검출기 실행 × 반복 수) |
+
+CSV 머리 주석(`#` 줄)에 가정 전부, 도구 커밋, 생성일이 있다. 읽을 때 `#` 줄을 건너뛴다.
+
+### 가정 (표 머리와 같음)
+
+물 1.00 g/cm³(`waterMIF` 5–150 keV 표), 슬랩 60×60 cm, 슬랩 축 위 연필빔, SDD 100 cm, 공기 간격 2 cm(진공), SpekPy 텅스텐 스펙트럼(양극각 12°, 총 여과 2.5 mm Al), 그리드·테이블·커버·초점 밖 방사선 없음, CsI 600 µm 수직 입사·K 탈출 없음·빛 퍼짐 없음.
+
+### 만드는 법
+
+```bash
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/run_psf_grid.sh            # 42 사례, 사례당 5회 × (정밀 + 넓은 검출기)
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/fit_kernels.py \
+    /root/mcsim/psf $T/tables/scatter_kernels_water_csi600.csv <tools 커밋> --summary /root/mcsim/psf/fit_summary.json
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/check_kernels.py /root/mcsim/psf /root/mcsim/psf/fit_summary.json
+```
+
+- 120 kVp 는 5–120 keV 물 표가 거부하므로 격자 전체를 5–150 keV 표(`mat150/`)로 돌린다.
+- PSF 원자료(`psf.npz`: 반경, 응답별 PSF, 반복별 PSF)는 WSL `/root/mcsim/psf/t<T>_k<kVp>/` 에만 있다.
+- 사례마다 Windows 여유 메모리를 읽고 1.5 GB 밑이면 기다린다.
+
+### 사용 시 주의
+
+- **r < 0.5 cm 에서는 두 모델 모두 잘 맞지 않는다**(잔차 중앙값 약 40 %). PSF 중심의 뾰족한 봉우리를 가우시안 합이 따라가지 못한다.
+- `gauss4` 가 `gauss2` 보다 전 구간에서 낫다(fit_rms 중앙값 0.054 대 0.167, tail_rms 0.011 대 0.125).
+- `spr_30x30`(PSF 합)은 같은 조건의 넓은 조사 직접 실행보다 **8–12 % 낮다**(10 cm/100 kVp 0.920, 20 cm/80 kVp 0.878). 발산 빔과 평행 이동 가정의 차이로 보이며 보정하지 않았다.
