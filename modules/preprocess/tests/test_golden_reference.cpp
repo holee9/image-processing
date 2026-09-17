@@ -66,6 +66,31 @@ static void loadCalibMap(const char* path, XCalType type,
     }
 }
 
+/** Same, but reports the loader's result instead of asserting success. */
+static XpeErrorCode writeCalibMap(const char* path, XCalType type,
+                                  const std::vector<float>& values,
+                                  uint32_t w, uint32_t h) {
+    std::remove(path);
+    std::remove((std::string(path) + ".tmp").c_str());
+
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version      = XCAL_VERSION;
+    hdr.type         = static_cast<uint32_t>(type);
+    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+    hdr.width        = w;
+    hdr.height       = h;
+    hdr.payload_len  = static_cast<uint64_t>(values.size() * sizeof(float));
+
+    EXPECT_EQ(XPE_OK,
+              write_xcal_file(path, hdr, nullptr, 0,
+                              reinterpret_cast<const uint8_t*>(values.data()),
+                              hdr.payload_len));
+
+    return (type == XCAL_TYPE_OFFSET) ? xpe_calib_load_offset(path)
+                                      : xpe_calib_load_gain(path);
+}
+
 static XpeImageBuffer makeU16Buf(std::vector<uint16_t>& v,
                                   uint32_t w, uint32_t h) {
     XpeImageBuffer b{};
@@ -233,7 +258,7 @@ TEST_F(GoldenGainTest, FormulaMatchesExactFloat) {
         {1000, 1.5f,   1000.0f / 1.5f},
         {2048, 2.0f,   1024.0f},
         {65535, 1.0f, 65535.0f},
-        {0,   100.0f,     0.0f},
+        {0,    10.0f,     0.0f},   // was S=100: outside FUNC-002 [0.1, 10.0] (#188)
         {100,  0.5f,    200.0f},
         {500,  0.25f,  2000.0f},
         {1024, 0.25f,  4096.0f},
@@ -266,11 +291,16 @@ TEST_F(GoldenGainTest, FormulaMatchesExactFloat) {
 
 // A stored sensitivity of zero is not a valid divisor. api-spec 6.2: zero,
 // negative or non-finite entries are rejected before any pixel is touched.
-TEST_F(GoldenGainTest, ZeroGainReturnsConfigInvalid) {
+// SRS-CALIB-001 FUNC-002 (#188, QA-A-107): a zero gain is outside [0.1, 10.0],
+// so the LOADER refuses the file and the correction never runs. Until then this
+// case expected XPE_ERR_CONFIG_INVALID from the correction, which was the code
+// of the guard inside xpe_gain_correct.
+TEST_F(GoldenGainTest, ZeroGainIsRefusedAtLoad) {
     std::fill(rawU16.begin(), rawU16.end(), 50000u);
     std::fill(sensitivity.begin(), sensitivity.end(), 0.0f);
 
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA,
+              writeCalibMap(gainPath, XCAL_TYPE_GAIN, sensitivity, W, H));
 }
 
 // ==========================================================================

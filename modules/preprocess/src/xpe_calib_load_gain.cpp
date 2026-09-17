@@ -69,6 +69,20 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         const size_t num_coeffs = is_poly ? (payload.size() / plane) : 1;
         const size_t n_floats   = payload.size() / sizeof(float);
 
+        // SRS-CALIB-FUNC-002 (#188, QA-A-107): "Values shall be in range
+        // [0.1, 10.0]; out-of-range values shall trigger
+        // XPE_ERR_INVALID_CALIB_DATA error." Checked here, at load, which is
+        // where FUNC-002 places it. Scalar maps only: a coefficient of
+        // G(x,y,E) is not a gain value.
+        if (!is_poly) {
+            const float* values = reinterpret_cast<const float*>(payload.data());
+            for (size_t i = 0; i < n_floats; ++i) {
+                if (!(values[i] >= XPE_CALIB_GAIN_MIN && values[i] <= XPE_CALIB_GAIN_MAX)) {
+                    return XPE_ERR_INVALID_CALIB_DATA;
+                }
+            }
+        }
+
         // Allocate and copy pixel data
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
         std::unique_ptr<float[]> map(new float[n_floats]);

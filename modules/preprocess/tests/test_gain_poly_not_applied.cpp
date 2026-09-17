@@ -170,3 +170,73 @@ TEST_F(GainPolyNotAppliedTest, PolynomialLoadReplacesAWorkingScalarMap) {
         << "the earlier result is left in the buffer; nothing new was written";
     xpe_clear_alerts();
 }
+
+// ---------------------------------------------------------------------------
+// SRS-CALIB-FUNC-002 (#188, QA-A-107): "Values shall be in range [0.1, 10.0];
+// out-of-range values shall trigger XPE_ERR_INVALID_CALIB_DATA error."
+//
+// The bounds are inclusive (the requirement writes a closed interval), and the
+// check lives in the loader, which is where FUNC-002 places it. The separate
+// finite / non-zero guard inside xpe_gain_correct stays as a second line of
+// defence; no public path reaches it any more, which its comment now records.
+// ---------------------------------------------------------------------------
+TEST_F(GainPolyNotAppliedTest, ScalarGainValuesInsideTheRangeLoad) {
+    for (float v : {0.1f, 0.5f, 1.0f, 2.0f, 9.9f, 10.0f}) {
+        const std::string path = p("in_" + std::to_string(v) + ".xcal");
+        ASSERT_EQ(XPE_OK, MakeGainXCal(path.c_str(), W, H, v));
+        EXPECT_EQ(XPE_OK, xpe_calib_load_gain(path.c_str())) << "gain " << v;
+    }
+}
+
+TEST_F(GainPolyNotAppliedTest, ScalarGainValuesOutsideTheRangeAreRejected) {
+    for (float v : {0.0f, 0.09f, 10.01f, 1000.0f, -1.0f}) {
+        const std::string path = p("out_" + std::to_string(v) + ".xcal");
+        ASSERT_EQ(XPE_OK, MakeGainXCal(path.c_str(), W, H, v));
+        EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, xpe_calib_load_gain(path.c_str()))
+            << "gain " << v;
+    }
+}
+
+// One bad pixel is enough; the rest of the map being valid does not excuse it.
+TEST_F(GainPolyNotAppliedTest, ASingleOutOfRangePixelIsRejected) {
+    const std::string path = p("one_bad.xcal");
+    std::vector<float> data(N, 1.0f);
+    data[N / 2] = 12.0f;
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION;
+    hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+    hdr.width = W; hdr.height = H;
+    hdr.payload_len = data.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path.c_str(), hdr, nullptr, 0,
+                                      reinterpret_cast<const uint8_t*>(data.data()),
+                                      hdr.payload_len));
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, xpe_calib_load_gain(path.c_str()));
+}
+
+// A rejected file must not become the active calibration.
+TEST_F(GainPolyNotAppliedTest, ARejectedMapDoesNotReplaceTheLoadedOne) {
+    const std::string good = p("good.xcal");
+    ASSERT_EQ(XPE_OK, MakeGainXCal(good.c_str(), W, H, 2.0f));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(good.c_str()));
+    ASSERT_EQ(XPE_OK, correct());
+    ASSERT_FLOAT_EQ(500.0f, out[0]);
+
+    const std::string bad = p("bad.xcal");
+    ASSERT_EQ(XPE_OK, MakeGainXCal(bad.c_str(), W, H, 50.0f));
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, xpe_calib_load_gain(bad.c_str()));
+
+    out.assign(N, -1.0f);
+    EXPECT_EQ(XPE_OK, correct()) << "the map that was already loaded is still there";
+    EXPECT_FLOAT_EQ(500.0f, out[0]) << "and it is the one that was loaded, not the rejected file";
+}
+
+// The polynomial path is not subject to the scalar range: a coefficient of
+// G(x,y,E) is not a gain value (FUNC-002 speaks of the gain coefficients a
+// scalar file holds).
+TEST_F(GainPolyNotAppliedTest, PolynomialCoefficientsOutsideTheScalarRangeStillLoad) {
+    const std::string poly = writePoly("wide_poly.xcal", {0.0f, 25.0f, -3.0f});
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+    xpe_clear_alerts();
+}
