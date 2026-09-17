@@ -28,6 +28,7 @@
 #include "xpe/common/xpe_memory.h"
 #include <atomic>
 #include <map>
+#include <set>
 #include <cstdio>
 #include <filesystem>
 #include <thread>
@@ -698,18 +699,136 @@ TEST_F(DicomReaderTest, EverySupportedTransferSyntaxActuallyReads) {
     xpe_free_image(&expected);
 }
 
+// JPEG-LL stream inspection helpers. Written for QA-B-73 (#168); moved up by
+// QA-B-74 (#174) so the QA-B-46 predictor case below can check what it
+// actually received.
+namespace {
+
+struct SosInfo {
+    bool     found     = false;
+    int      sofMarker = -1;   // 0xC0..0xCF (C3 = lossless, sequential, Huffman)
+    int      ss        = -1;   // predictor selection value for lossless
+    int      se        = -1;
+    int      al        = -1;   // point transform
+};
+
+// Walk markers from SOI to the first SOS. Stops at SOS: the entropy-coded data
+// after it is not marker-structured and is not needed for this question.
+SosInfo ParseSofSos(const std::vector<Uint8>& b) {
+    SosInfo r{};
+    size_t i = 0;
+    if (b.size() < 4 || b[0] != 0xFF || b[1] != 0xD8) return r;   // SOI
+    i = 2;
+    while (i + 4 <= b.size()) {
+        if (b[i] != 0xFF) return r;
+        const int m = b[i + 1];
+        if (m == 0xD8 || (m >= 0xD0 && m <= 0xD7) || m == 0x01) { i += 2; continue; }
+        const size_t len = (static_cast<size_t>(b[i + 2]) << 8) | b[i + 3];
+        if (m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC) {
+            r.sofMarker = m;
+        }
+        if (m == 0xDA) {
+            const size_t p = i + 4;                 // Ns
+            if (p >= b.size()) return r;
+            const size_t ns = b[p];
+            const size_t q = p + 1 + 2 * ns;        // Ss
+            if (q + 2 >= b.size()) return r;
+            r.ss = b[q];
+            r.se = b[q + 1];
+            r.al = b[q + 2] & 0x0F;
+            r.found = true;
+            return r;
+        }
+        i += 2 + len;
+    }
+    return r;
+}
+
+struct FragmentProbe {
+    bool                 ok = false;
+    std::string          labelUid;
+    std::vector<Uint8>   firstFragment;
+    bool                 paramPresent = false;
+    int                  paramPrediction = -1;
+};
+
+// Load a Part-10 file and return its first compressed fragment, looked up under
+// the representation key of the syntax the meta-header names -- which is the
+// key DCMTK files the pixel data under (QA-B-72 measured that it uses the label).
+FragmentProbe FirstFragment(const fs::path& p) {
+    FragmentProbe r{};
+    DcmFileFormat ff;
+    if (!ff.loadFile(p.string().c_str()).good()) return r;
+    OFString ts;
+    if (ff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, ts).bad()) return r;
+    r.labelUid = ts.c_str();
+    E_TransferSyntax key = DcmXfer(ts.c_str()).getXfer();
+
+    DcmElement* el = nullptr;
+    if (ff.getDataset()->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) return r;
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+    DcmPixelSequence* seq = nullptr;
+    const DcmRepresentationParameter* param = nullptr;
+    if (pd->getEncapsulatedRepresentation(key, param, seq).bad() || seq == nullptr) return r;
+
+    r.paramPresent = (param != nullptr);
+    if (const auto* ll = dynamic_cast<const DJ_RPLossless*>(param)) {
+        r.paramPrediction = ll->getPrediction();
+    }
+
+    DcmPixelItem* frag = nullptr;
+    // Item 0 is the Basic Offset Table; item 1 is the first frame's fragment.
+    if (seq->getItem(frag, 1).bad() || frag == nullptr) return r;
+    Uint8* data = nullptr;
+    if (frag->getUint8Array(data).bad() || data == nullptr) return r;
+    r.firstFragment.assign(data, data + frag->getLength());
+    r.ok = true;
+    return r;
+}
+
+bool EncodeAs(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer,
+              int predictor /* 0 = encoder default */) {
+    DJEncoderRegistration::registerCodecs();
+    bool ok = false;
+    {
+        DcmFileFormat ff;
+        if (ff.loadFile(src.string().c_str()).good()) {
+            DcmDataset* ds = ff.getDataset();
+            const DJ_RPLossless params(predictor == 0 ? 1 : predictor, 0);
+            OFCondition rc = (predictor == 0)
+                ? ds->chooseRepresentation(xfer, nullptr)
+                : ds->chooseRepresentation(xfer, &params);
+            ok = rc.good() && ds->canWriteXfer(xfer) &&
+                 ff.saveFile(dst.string().c_str(), xfer).good();
+        }
+    }
+    DJEncoderRegistration::cleanup();
+    return ok;
+}
+
+}  // namespace
+
 // ---------------------------------------------------------------------------
-// #120 (QA-B-46): JPEG-LL input variety.
+// #120 (QA-B-46) -> #174 (QA-B-74): JPEG-LL predictors, and what was really tested.
 //
-// QA-B-45 verified exactly one JPEG-LL file: DCMTK's encoder at its default
-// settings. "Lossless works" was therefore a claim about one encoder
-// configuration. JPEG Lossless (Process 14, first-order) admits several
-// predictor selection values, and a real device uses whichever its vendor
-// chose, so the reader must handle more than the one we happened to produce.
+// QA-B-46 set out to widen QA-B-45's single JPEG-LL file to predictor
+// selection values 1..7, encoding each through EXS_JPEGProcess14SV1 (.70) and
+// guarding with EXPECT_GT(produced, 1). QA-B-73 then measured that DCMTK's .70
+// encoder IGNORES the predictor argument and always writes predictor 1 -- all
+// seven fixtures were one stream -- and the guard counted files produced, so it
+// passed. The case logged "predictor variants produced and verified: 7 of 7"
+// while testing one predictor. QA-B-74 replaced the guard with a distinct-stream
+// count and it failed at 1, as predicted.
 //
-// Each variant is compared byte-for-byte against the uncompressed original --
-// the standard QA-B-45 set. A lossless round trip that differs anywhere is a
-// failure, however plausible the image looks.
+// That was not a gap in the encoder: .70 is "Selection Value 1" -- predictor 1
+// is the only legal value for that syntax, so expecting variants from it was the
+// error. The case therefore now says what it can: .70 carries predictor 1, and
+// the reader decodes it exactly. The multi-predictor claim moved to
+// ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct, which uses .57
+// (where predictors 2..7 are legal and the encoder honours them) and asserts
+// that each fixture is a distinct stream carrying the predictor it names.
+//
+// Each decode is compared byte-for-byte against the uncompressed original.
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -747,56 +866,64 @@ bool WriteJpegLosslessVariant(const fs::path& src, const fs::path& dst,
 
 }  // namespace
 
-TEST_F(DicomReaderTest, ReadJpegLosslessPredictorVariants_AllPixelExact) {
+TEST_F(DicomReaderTest, ReadJpegLosslessSV1_Predictor1PixelExact) {
     XpeDicomHandle* srcHandle = nullptr;
     ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
     XpeImageBuffer expected{};
     ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
     xpe_dicom_close(srcHandle);
-
     const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
                          sizeof(uint16_t);
 
-    // Selection values 1..7 are the first-order predictors of the JPEG lossless
-    // process. Any that DCMTK will not encode is reported, not skipped silently.
+    const auto path = s_tempDir / "jpegll_sv1_pred1.dcm";
+    std::string whyNot;
+    ASSERT_TRUE(WriteJpegLosslessVariant(s_validDcm, path, 1, whyNot)) << whyNot;
+
+    // What the case received, not what it asked for.
+    const FragmentProbe fp = FirstFragment(path);
+    ASSERT_TRUE(fp.ok);
+    EXPECT_EQ("1.2.840.10008.1.2.4.70", fp.labelUid);
+    const SosInfo sos = ParseSofSos(fp.firstFragment);
+    ASSERT_TRUE(sos.found);
+    EXPECT_EQ(0xC3, sos.sofMarker);
+    EXPECT_EQ(1, sos.ss) << ".70 must carry predictor 1";
+
+    XpeDicomHandle* handle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
+    XpeImageBuffer actual{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual));
+    xpe_dicom_close(handle);
+    ASSERT_EQ(expected.width, actual.width);
+    ASSERT_EQ(expected.height, actual.height);
+    EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
+        << "lossless round trip must be bit-exact";
+
+    xpe_free_image(&actual);
+    xpe_free_image(&expected);
+}
+
+// Records the encoder behaviour QA-B-73 measured, so a DCMTK upgrade that starts
+// honouring the argument -- and would thereby write predictor != 1 under a .70
+// label, which the syntax forbids -- surfaces here instead of silently widening
+// or corrupting other cases.
+TEST_F(DicomReaderTest, KnownDivergence_Sv1EncoderIgnoresPredictorArgument) {
+    std::set<std::vector<Uint8>> streams;
     int produced = 0;
     for (int predictor = 1; predictor <= 7; ++predictor) {
-        SCOPED_TRACE("predictor selection value " + std::to_string(predictor));
-        const auto path = s_tempDir / ("jpegll_pred" + std::to_string(predictor) + ".dcm");
-
+        const auto path = s_tempDir / ("jpegll_sv1_req" + std::to_string(predictor) + ".dcm");
         std::string whyNot;
-        if (!WriteJpegLosslessVariant(s_validDcm, path, predictor, whyNot)) {
-            // Recorded, not asserted: an encoder that cannot produce a variant
-            // says nothing about whether the reader could decode it.
-            GTEST_LOG_(INFO) << "predictor " << predictor
-                             << ": fixture not produced (" << whyNot << ")";
-            continue;
-        }
+        if (!WriteJpegLosslessVariant(s_validDcm, path, predictor, whyNot)) continue;
         ++produced;
-
-        XpeDicomHandle* handle = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
-        XpeImageBuffer actual{};
-        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual));
-        xpe_dicom_close(handle);
-
-        ASSERT_EQ(expected.width, actual.width);
-        ASSERT_EQ(expected.height, actual.height);
-        EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))
-            << "lossless round trip must be bit-exact for this predictor";
-        xpe_free_image(&actual);
+        const FragmentProbe fp = FirstFragment(path);
+        ASSERT_TRUE(fp.ok);
+        const SosInfo sos = ParseSofSos(fp.firstFragment);
+        EXPECT_EQ(1, sos.ss) << "requested predictor " << predictor
+                             << " -- the .70 encoder wrote it into the stream";
+        streams.insert(fp.firstFragment);
     }
-
-    // Printed rather than inferred: the count is the evidence for how much
-    // wider this case is than QA-B-45, and a reader of the log should not have
-    // to deduce it from the absence of skip messages.
-    GTEST_LOG_(INFO) << "predictor variants produced and verified: " << produced
-                     << " of 7";
-    EXPECT_GT(produced, 1)
-        << "only one predictor variant could be produced; the case would then be "
-           "no broader than QA-B-45";
-
-    xpe_free_image(&expected);
+    GTEST_LOG_(INFO) << ".70 encoder: requests=" << produced
+                     << " distinct streams=" << streams.size();
+    EXPECT_EQ(1u, streams.size());
 }
 
 // ---------------------------------------------------------------------------
@@ -1897,17 +2024,22 @@ TEST_F(DicomReaderTest, MetaLessEncapsulatedFilesProduceNoPixels) {
 }
 
 // ---------------------------------------------------------------------------
-// #147 (QA-B-68) — .57 is supported now. Pixels, not just the absence of -7.
+// #147 (QA-B-68) — .57 is accepted. Pixels, not just the absence of -7.
 //
 // Adding the UID to kSupportedTransferSyntaxes removes the refusal. That is NOT
-// the same as reading the file, and the difference is measurable: before the
-// decode branch learned .57, an accepted .57 file fell through to the native
-// path and came back XPE_ERR_DICOM_INVALID. "-7 is gone" would have looked like
-// success while no image existed.
+// the same as reading the file, so this case asserts the pixels, and asserts
+// them against the source: JPEG Lossless is lossless, so a byte-exact match is
+// available and anything less would be a decode that ran without being right.
 //
-// So this case asserts the pixels, and asserts them against the source: JPEG
-// Lossless is lossless, so a byte-exact match is available and anything less
-// would be a decode that ran without being right.
+// Two corrections, recorded here because this header once said otherwise:
+//   - QA-B-70: the list entry and the decode branch were changed in ONE edit, so
+//     what an accepted .57 file does WITHOUT the branch was never run. An
+//     earlier version of this paragraph described that as measured; it was not.
+//   - QA-B-73: this fixture uses the encoder default, predictor 1, and a
+//     predictor-1 .57 stream is byte-identical to a .70 stream. This case
+//     therefore proves nothing that the .70 case does not. What .57 adds --
+//     predictors 2..7 -- is tested by
+//     ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct (QA-B-74).
 //
 // SYNTHETIC (the #148 lesson, restated rather than assumed): the fixture is
 // DCMTK's own Process-14 encoding of s_validDcm. A real acquisition device's
@@ -2553,111 +2685,6 @@ TEST_F(DicomReaderTest, TsLessPathIsDecidedByChecksNotByStructure) {
 //
 // SYNTHETIC (#148): every stream here is DCMTK's own encoder output.
 // ---------------------------------------------------------------------------
-namespace {
-
-struct SosInfo {
-    bool     found     = false;
-    int      sofMarker = -1;   // 0xC0..0xCF (C3 = lossless, sequential, Huffman)
-    int      ss        = -1;   // predictor selection value for lossless
-    int      se        = -1;
-    int      al        = -1;   // point transform
-};
-
-// Walk markers from SOI to the first SOS. Stops at SOS: the entropy-coded data
-// after it is not marker-structured and is not needed for this question.
-SosInfo ParseSofSos(const std::vector<Uint8>& b) {
-    SosInfo r{};
-    size_t i = 0;
-    if (b.size() < 4 || b[0] != 0xFF || b[1] != 0xD8) return r;   // SOI
-    i = 2;
-    while (i + 4 <= b.size()) {
-        if (b[i] != 0xFF) return r;
-        const int m = b[i + 1];
-        if (m == 0xD8 || (m >= 0xD0 && m <= 0xD7) || m == 0x01) { i += 2; continue; }
-        const size_t len = (static_cast<size_t>(b[i + 2]) << 8) | b[i + 3];
-        if (m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC) {
-            r.sofMarker = m;
-        }
-        if (m == 0xDA) {
-            const size_t p = i + 4;                 // Ns
-            if (p >= b.size()) return r;
-            const size_t ns = b[p];
-            const size_t q = p + 1 + 2 * ns;        // Ss
-            if (q + 2 >= b.size()) return r;
-            r.ss = b[q];
-            r.se = b[q + 1];
-            r.al = b[q + 2] & 0x0F;
-            r.found = true;
-            return r;
-        }
-        i += 2 + len;
-    }
-    return r;
-}
-
-struct FragmentProbe {
-    bool                 ok = false;
-    std::string          labelUid;
-    std::vector<Uint8>   firstFragment;
-    bool                 paramPresent = false;
-    int                  paramPrediction = -1;
-};
-
-// Load a Part-10 file and return its first compressed fragment, looked up under
-// the representation key of the syntax the meta-header names -- which is the
-// key DCMTK files the pixel data under (QA-B-72 measured that it uses the label).
-FragmentProbe FirstFragment(const fs::path& p) {
-    FragmentProbe r{};
-    DcmFileFormat ff;
-    if (!ff.loadFile(p.string().c_str()).good()) return r;
-    OFString ts;
-    if (ff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, ts).bad()) return r;
-    r.labelUid = ts.c_str();
-    E_TransferSyntax key = DcmXfer(ts.c_str()).getXfer();
-
-    DcmElement* el = nullptr;
-    if (ff.getDataset()->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) return r;
-    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
-    DcmPixelSequence* seq = nullptr;
-    const DcmRepresentationParameter* param = nullptr;
-    if (pd->getEncapsulatedRepresentation(key, param, seq).bad() || seq == nullptr) return r;
-
-    r.paramPresent = (param != nullptr);
-    if (const auto* ll = dynamic_cast<const DJ_RPLossless*>(param)) {
-        r.paramPrediction = ll->getPrediction();
-    }
-
-    DcmPixelItem* frag = nullptr;
-    // Item 0 is the Basic Offset Table; item 1 is the first frame's fragment.
-    if (seq->getItem(frag, 1).bad() || frag == nullptr) return r;
-    Uint8* data = nullptr;
-    if (frag->getUint8Array(data).bad() || data == nullptr) return r;
-    r.firstFragment.assign(data, data + frag->getLength());
-    r.ok = true;
-    return r;
-}
-
-bool EncodeAs(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer,
-              int predictor /* 0 = encoder default */) {
-    DJEncoderRegistration::registerCodecs();
-    bool ok = false;
-    {
-        DcmFileFormat ff;
-        if (ff.loadFile(src.string().c_str()).good()) {
-            DcmDataset* ds = ff.getDataset();
-            const DJ_RPLossless params(predictor == 0 ? 1 : predictor, 0);
-            OFCondition rc = (predictor == 0)
-                ? ds->chooseRepresentation(xfer, nullptr)
-                : ds->chooseRepresentation(xfer, &params);
-            ok = rc.good() && ds->canWriteXfer(xfer) &&
-                 ff.saveFile(dst.string().c_str(), xfer).good();
-        }
-    }
-    DJEncoderRegistration::cleanup();
-    return ok;
-}
-
-}  // namespace
 
 TEST_F(DicomReaderTest, KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured) {
     struct Row { const char* label; E_TransferSyntax xfer; int predictor; };
@@ -2728,4 +2755,114 @@ TEST_F(DicomReaderTest, KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasur
                          << " | fragment bytes=" << fp.firstFragment.size();
     }
     SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #174 (QA-B-74) — the first test of what .57 can carry that .70 cannot.
+//
+// .57 (JPEG Lossless, Process 14) allows first-order predictors 1..7; .70 fixes
+// the predictor at 1. QA-B-73 measured that a predictor-1 .57 stream is
+// byte-identical to a .70 stream, so every .57 test before this one exercised
+// nothing that .70 does not. This case exercises predictors 2..7.
+//
+// TWO things are asserted per fixture, and the second is the point of #174:
+//   1. the decoded frame is pixel-exact against the uncompressed source;
+//   2. the fixture IS what the case claims to test -- its SOS Ss byte equals the
+//      requested predictor, and its first fragment differs from every other
+//      fixture's. QA-B-73 found a predictor-variant test that handed seven
+//      requests to an encoder which ignored six of them, and whose guard counted
+//      files produced rather than streams received. Size is not a proxy: in
+//      QA-B-73 predictor 5 and predictor 1 produced fragments of the same length.
+//
+// The distinctness check is written to be falsifiable: feeding the same
+// predictor more than once must turn it red (QA-B-74 §3).
+//
+// SYNTHETIC (#148): DCMTK's own encoder output.
+// ---------------------------------------------------------------------------
+namespace {
+
+// The predictor list the case runs over. Kept as data so the falsification --
+// predictor 1 six times -- is a one-line change here and nothing else.
+const std::vector<int> kP14Predictors = {1, 2, 3, 4, 5, 6, 7};
+
+}  // namespace
+
+TEST_F(DicomReaderTest, ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct) {
+    XpeDicomHandle* srcHandle = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &srcHandle));
+    XpeImageBuffer expected{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
+    xpe_dicom_close(srcHandle);
+    const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
+                         sizeof(uint16_t);
+
+    std::set<std::vector<Uint8>> distinctFragments;
+    int produced = 0;
+    int pixelExact = 0;
+
+    for (int predictor : kP14Predictors) {
+        SCOPED_TRACE(".57 predictor " + std::to_string(predictor));
+        const auto path = s_tempDir / ("b74_p14_pred" + std::to_string(predictor) + "_" +
+                                       std::to_string(produced) + ".dcm");
+        ASSERT_TRUE(EncodeAs(s_validDcm, path, EXS_JPEGProcess14, predictor))
+            << "DCMTK did not encode .57 with this predictor -- QA-B-73 measured that it can";
+        ++produced;
+
+        // --- (2) is this fixture what it claims to be? ------------------------
+        const FragmentProbe fp = FirstFragment(path);
+        ASSERT_TRUE(fp.ok) << "first fragment not readable";
+        EXPECT_EQ("1.2.840.10008.1.2.4.57", fp.labelUid);
+        const SosInfo sos = ParseSofSos(fp.firstFragment);
+        ASSERT_TRUE(sos.found) << "no SOS in the first fragment";
+        EXPECT_EQ(0xC3, sos.sofMarker) << "not a lossless (SOF3) stream";
+        EXPECT_EQ(predictor, sos.ss)
+            << "the stream carries a different predictor than was requested";
+        distinctFragments.insert(fp.firstFragment);
+
+        // --- (1) does the reader decode it exactly? ---------------------------
+        XpeDicomHandle* handle = nullptr;
+        const XpeErrorCode ecOpen = xpe_dicom_open(path.string().c_str(), &handle);
+        XpeImageBuffer actual{};
+        XpeErrorCode ecRead = XPE_ERR_INTERNAL;
+        size_t differing = static_cast<size_t>(-1);
+        if (ecOpen == XPE_OK) {
+            ecRead = xpe_dicom_read_image(handle, &actual);
+            if (ecRead == XPE_OK && actual.width == expected.width &&
+                actual.height == expected.height) {
+                const auto* a = static_cast<const uint16_t*>(expected.data);
+                const auto* b = static_cast<const uint16_t*>(actual.data);
+                differing = 0;
+                for (size_t i = 0; i < bytes / sizeof(uint16_t); ++i) {
+                    if (a[i] != b[i]) ++differing;
+                }
+            }
+        }
+        GTEST_LOG_(INFO) << ".57 predictor " << predictor
+                         << " | Ss=" << sos.ss
+                         << " | fragment bytes=" << fp.firstFragment.size()
+                         << " | open=" << ecOpen << " read=" << ecRead
+                         << " | " << actual.width << "x" << actual.height
+                         << " | differing pixels=" << static_cast<long long>(differing);
+
+        EXPECT_EQ(XPE_OK, ecOpen);
+        EXPECT_EQ(XPE_OK, ecRead);
+        EXPECT_EQ(0u, differing) << "not pixel-exact";
+        if (differing == 0) ++pixelExact;
+
+        if (ecRead == XPE_OK) xpe_free_image(&actual);
+        xpe_dicom_close(handle);
+    }
+
+    GTEST_LOG_(INFO) << ".57 predictor fixtures: produced=" << produced
+                     << " distinct streams=" << distinctFragments.size()
+                     << " pixel-exact=" << pixelExact;
+
+    // The guard #174 is about: count what was RECEIVED, not what was requested.
+    EXPECT_EQ(static_cast<size_t>(produced), distinctFragments.size())
+        << "two or more fixtures are the same stream -- the case is testing fewer "
+           "predictors than it names";
+    EXPECT_GE(distinctFragments.size(), 2u)
+        << "only one distinct stream -- nothing beyond what .70 carries was tested";
+
+    xpe_free_image(&expected);
 }
