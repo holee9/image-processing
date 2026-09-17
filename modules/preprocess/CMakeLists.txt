@@ -46,6 +46,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xcal_reader.cpp
     src/xcal_writer.cpp
     src/xcal_validator.cpp
+    src/xpe_sha256_backend.cpp      # QA-A-106 (#179): CNG/PicoSHA2 SHA-256 backend
     # SWU-1.12: Verification Metrics API (PRE-11)
     src/xpe_verify_metrics.cpp  # Quality assessment metrics for calibration verification
 )
@@ -64,6 +65,11 @@ target_include_directories(xpe_preprocess
 target_link_libraries(xpe_preprocess
     PUBLIC xpe_common
 )
+
+if(WIN32)
+    # QA-A-106 (#179): Windows CNG SHA-256 backend (xpe_sha256_backend.cpp)
+    target_link_libraries(xpe_preprocess PRIVATE bcrypt)
+endif()
 
 target_compile_features(xpe_preprocess PUBLIC cxx_std_17)
 
@@ -104,7 +110,10 @@ endif()
 # E2E and CI build a set at run time with this tool. It links the module it
 # ships with and adds no export.
 # =============================================================================
-add_executable(xpe_calib_fixture_gen tools/xpe_calib_fixture_gen.cpp)
+add_executable(xpe_calib_fixture_gen
+    tools/xpe_calib_fixture_gen.cpp
+    src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
+)
 
 target_include_directories(xpe_calib_fixture_gen
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -113,6 +122,9 @@ target_include_directories(xpe_calib_fixture_gen
 )
 
 target_link_libraries(xpe_calib_fixture_gen PRIVATE xpe_preprocess xpe_common)
+if(WIN32)
+    target_link_libraries(xpe_calib_fixture_gen PRIVATE bcrypt)
+endif()
 target_compile_features(xpe_calib_fixture_gen PRIVATE cxx_std_17)
 
 if(MSVC)
@@ -284,6 +296,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_xcal_writer.cpp
         tests/test_xcal_validator.cpp
         tests/test_xpe_sha256.cpp
+        # QA-A-106 (#179): CNG/PicoSHA2 digest parity
+        tests/test_sha256_backend_parity.cpp
         tests/test_xpe_calib_check_expiry.cpp
         tests/test_xpe_calib_endurance.cpp
         # QA-A-15 (#120): present on disk but never registered -- pipeline.cpp,
@@ -424,6 +438,7 @@ if(_XPE_BUILD_TESTS)
         src/xpe_calib_generate_offset_methods.cpp
         src/xcal_writer.cpp
         src/xcal_reader.cpp
+        src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
     )
 
@@ -441,7 +456,7 @@ if(_XPE_BUILD_TESTS)
     # Windows: psapi.lib is required for GetProcessMemoryInfo
     # (used by test_xpe_preprocess_memleak.cpp to measure heap growth).
     if(WIN32)
-        target_link_libraries(xpe_preprocess_tests PRIVATE psapi)
+        target_link_libraries(xpe_preprocess_tests PRIVATE psapi bcrypt)
     endif()
 
     target_compile_features(xpe_preprocess_tests PRIVATE cxx_std_17)

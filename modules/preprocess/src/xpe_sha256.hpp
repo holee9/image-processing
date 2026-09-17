@@ -26,6 +26,39 @@
 #endif
 
 /**
+ * @brief Incremental SHA-256 over chunks fed in order (QA-A-105, #179).
+ *
+ * Same digest as compute_sha256_two_parts() when the same bytes are fed in the
+ * same order; it exists so a file can be hashed while it is being read instead
+ * of after the whole payload is in memory.
+ *
+ * QA-A-106 (#179): the implementation lives in xpe_sha256_backend.cpp and uses
+ * Windows CNG when the provider opens, PicoSHA2 otherwise. Both produce the
+ * same SHA-256 digest; xpe_sha256_backend_name() says which one this build got.
+ */
+class Sha256Stream {
+public:
+    Sha256Stream();
+    ~Sha256Stream();
+    Sha256Stream(const Sha256Stream&) = delete;
+    Sha256Stream& operator=(const Sha256Stream&) = delete;
+
+    void update(const uint8_t* data, size_t len);
+
+    /** Finishes (once) and returns the digest. */
+    const std::array<uint8_t, 32>& digest();
+
+private:
+    struct Impl;
+    Impl*                   impl_;
+    std::array<uint8_t, 32> digest_ = {};
+    bool                    done_ = false;
+};
+
+/** @return "cng" or "picosha2" -- which backend Sha256Stream uses here. */
+const char* xpe_sha256_backend_name();
+
+/**
  * @brief Compute SHA-256 over a contiguous byte buffer.
  *
  * @param data  Pointer to data bytes (may be nullptr when len == 0).
@@ -33,16 +66,9 @@
  * @return std::array<uint8_t, 32> containing the 256-bit digest.
  */
 inline std::array<uint8_t, 32> compute_sha256(const uint8_t* data, size_t len) {
-    std::array<uint8_t, 32> digest = {};
-    if (len == 0) {
-        // SHA-256 of empty string: well-known constant
-        picosha2::hash256(static_cast<const uint8_t*>(nullptr),
-                          static_cast<const uint8_t*>(nullptr),
-                          digest.begin(), digest.end());
-    } else {
-        picosha2::hash256(data, data + len, digest.begin(), digest.end());
-    }
-    return digest;
+    Sha256Stream hasher;                      // CNG when available (QA-A-106)
+    hasher.update(data, len);
+    return hasher.digest();
 }
 
 /**
@@ -61,50 +87,12 @@ inline std::array<uint8_t, 32> compute_sha256_two_parts(
         const uint8_t* buf1, size_t len1,
         const uint8_t* buf2, size_t len2)
 {
-    picosha2::hash256_one_by_one hasher;
-    hasher.init();
-    if (buf1 && len1 > 0) {
-        hasher.process(buf1, buf1 + len1);
-    }
-    if (buf2 && len2 > 0) {
-        hasher.process(buf2, buf2 + len2);
-    }
-    hasher.finish();
-
-    std::array<uint8_t, 32> digest = {};
-    hasher.get_hash_bytes(digest.begin(), digest.end());
-    return digest;
+    Sha256Stream hasher;                      // CNG when available (QA-A-106)
+    hasher.update(buf1, len1);
+    hasher.update(buf2, len2);
+    return hasher.digest();
 }
 
-/**
- * @brief Incremental SHA-256 over chunks fed in order (QA-A-105, #179).
- *
- * Same digest as compute_sha256_two_parts() when the same bytes are fed in the
- * same order; it exists so a file can be hashed while it is being read instead
- * of after the whole payload is in memory.
- */
-class Sha256Stream {
-public:
-    Sha256Stream() { hasher_.init(); }
 
-    void update(const uint8_t* data, size_t len) {
-        if (data != nullptr && len > 0) hasher_.process(data, data + len);
-    }
-
-    /** Finishes (once) and returns the digest. */
-    const std::array<uint8_t, 32>& digest() {
-        if (!done_) {
-            hasher_.finish();
-            hasher_.get_hash_bytes(digest_.begin(), digest_.end());
-            done_ = true;
-        }
-        return digest_;
-    }
-
-private:
-    picosha2::hash256_one_by_one hasher_;
-    std::array<uint8_t, 32>      digest_ = {};
-    bool                         done_ = false;
-};
 
 #endif /* XPE_SHA256_HPP */
