@@ -194,6 +194,46 @@ XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       size_t gainCount);
 
 /**
+ * @brief xpe_gsvg_process with a collimation field mask (#180, QA-B-96).
+ *
+ * Same arguments, order of judgement and return codes as xpe_gsvg_process,
+ * plus:
+ *
+ * @param fieldMask Optional, width*height bytes, row-major like @p src:
+ *                  non-zero = inside the collimated field. gsvg does not
+ *                  detect the field itself (it depends on no other XPE
+ *                  module); the caller passes it, e.g. from the collimation
+ *                  detection of enhance_advanced.
+ * @param maskCount Number of BYTES @p fieldMask points at. Ignored when
+ *                  @p fieldMask is NULL.
+ *
+ * The mask is used by the virtual grid only:
+ *  - pixels outside the field are not scatter sources (read as 0 by the
+ *    scatter estimate);
+ *  - the virtual grid does not change pixels outside the field -- they keep
+ *    the value they had when the step began (after the vignette step, if
+ *    that ran).
+ *
+ * With @p fieldMask NULL the call behaves exactly like xpe_gsvg_process: when
+ * the virtual grid is enabled it runs without a mask and pushes an
+ * XPE_ALERT_WARNING saying so. xpe_gsvg_process pushes the same warning.
+ *
+ * @return XPE_ERR_INVALID_INPUT, in addition to the xpe_gsvg_process cases,
+ *         when @p fieldMask is supplied and @p maskCount < width * height.
+ */
+XPE_API XpeErrorCode xpe_gsvg_process_masked(void* handle,
+                                             const uint16_t* src,
+                                             size_t srcCount,
+                                             uint16_t* dst,
+                                             size_t dstCount,
+                                             int width,
+                                             int height,
+                                             const float* gainMap,
+                                             size_t gainCount,
+                                             const uint8_t* fieldMask,
+                                             size_t maskCount);
+
+/**
  * @brief Release all resources owned by a GSVG handle.
  *
  * After this call the handle must not be used. Passing a NULL handle is a
