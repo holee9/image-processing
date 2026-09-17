@@ -298,6 +298,22 @@ void apply_vignette_scalar(const uint16_t* src, uint16_t* dst,
 
 } // namespace
 
+// #179 (QA-B-105): the thread-count request lives in thread_config.cpp, which
+// the module tests link too.
+int XpeGsvgThreadRequest();
+void XpeGsvgSetThreadRequest(int threads);
+
+XpeErrorCode xpe_gsvg_set_max_threads(int32_t threads)
+{
+    XpeGsvgSetThreadRequest(static_cast<int>(threads));
+    return XPE_OK;
+}
+
+int32_t xpe_gsvg_get_max_threads(void)
+{
+    return static_cast<int32_t>(XpeGsvgThreadRequest());
+}
+
 const char* xpe_gsvg_version(void)
 {
     return "0.2.0";

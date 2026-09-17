@@ -3,8 +3,13 @@
  * @brief Virtual grid implementation (#180, QA-B-91). See virtual_grid.h.
  */
 #include "virtual_grid.h"
+#include "parallel_rows.h"
+
+// Thread-count request, stored in gsvg.cpp (#179, QA-B-105).
+int XpeGsvgThreadRequest();
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cctype>
 #include <cmath>
@@ -432,7 +437,12 @@ void AddGaussConv(const std::vector<double>& src, int w, int h, const std::vecto
                   double a, std::vector<double>& acc, std::vector<double>& tmp) {
     const int r = static_cast<int>(g.size() / 2);
     tmp.assign(src.size(), 0.0);
-    for (int y = 0; y < h; ++y) {
+    // QA-B-105: the row pass writes one row from one row, the column pass one
+    // column from one column -- both independent, and each output keeps the
+    // same tap order.
+    const int threads = xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), std::max(w, h));
+    xpe_parallel::ForRows(h, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         const double* s = &src[static_cast<size_t>(y) * static_cast<size_t>(w)];
         double* d = &tmp[static_cast<size_t>(y) * static_cast<size_t>(w)];
         for (int x = 0; x < w; ++x) {
@@ -442,7 +452,9 @@ void AddGaussConv(const std::vector<double>& src, int w, int h, const std::vecto
             d[x] = v;
         }
     }
-    for (int x = 0; x < w; ++x) {
+    });
+    xpe_parallel::ForRows(w, threads, [&](int xBegin, int xEnd) {
+    for (int x = xBegin; x < xEnd; ++x) {
         for (int y = 0; y < h; ++y) {
             const int lo = std::max(-r, -y), hi = std::min(r, h - 1 - y);
             double v = 0;
@@ -451,6 +463,7 @@ void AddGaussConv(const std::vector<double>& src, int w, int h, const std::vecto
             acc[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] += a * v;
         }
     }
+    });
 }
 
 }  // namespace
@@ -542,7 +555,11 @@ Taps ExpandTaps(int srcN, int outN) {
 
 Plane Resample(const Plane& p, int w, int h, const Taps& tx, const Taps& ty) {
     std::vector<double> rows(static_cast<size_t>(w) * static_cast<size_t>(p.h));
-    for (int y = 0; y < p.h; ++y) {
+    // QA-B-105: both passes are per output row; the tap order per output is
+    // unchanged. The pyramid LEVELS stay sequential (each reduces the previous).
+    const int threads = xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), std::max(p.h, h));
+    xpe_parallel::ForRows(p.h, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         const double* s = &p.v[static_cast<size_t>(y) * static_cast<size_t>(p.w)];
         double* d = &rows[static_cast<size_t>(y) * static_cast<size_t>(w)];
         for (int x = 0; x < w; ++x) {
@@ -551,8 +568,10 @@ Plane Resample(const Plane& p, int w, int h, const Taps& tx, const Taps& ty) {
             d[x] = v;
         }
     }
+    });
     Plane q{w, h, std::vector<double>(static_cast<size_t>(w) * static_cast<size_t>(h))};
-    for (int y = 0; y < h; ++y) {
+    xpe_parallel::ForRows(h, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
         double* d = &q.v[static_cast<size_t>(y) * static_cast<size_t>(w)];
         for (int x = 0; x < w; ++x) d[x] = 0;
         for (const Tap& k : ty[static_cast<size_t>(y)]) {
@@ -560,6 +579,7 @@ Plane Resample(const Plane& p, int w, int h, const Taps& tx, const Taps& ty) {
             for (int x = 0; x < w; ++x) d[x] += k.w * s[x];
         }
     }
+    });
     return q;
 }
 
@@ -844,7 +864,14 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     const double pAtTMax = st.airSignal * std::exp(-MuAt(tMax, W0, A, B) * tMax);
     size_t nFullHigh = 0, nFull = 0;
     std::vector<double> out(img.size());
-    for (size_t i = 0; i < img.size(); ++i) {
+    // QA-B-105: per pixel, independent. The two counters are summed per band
+    // and added up afterwards (integers, so the order does not matter).
+    std::atomic<size_t> negativeAtomic{0}, fullHighAtomic{0}, fullAtomic{0};
+    xpe_parallel::ForRows(height, xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), height),
+                          [&](int yBegin, int yEnd) {
+    size_t bandNeg = 0, bandHigh = 0, bandFull = 0;
+    for (size_t i = static_cast<size_t>(yBegin) * static_cast<size_t>(width);
+         i < static_cast<size_t>(yEnd) * static_cast<size_t>(width); ++i) {
         if (mask && !mask[i]) continue;   // restored after the post-steps
         double S = Sf[i];
         switch (sw.cap) {
@@ -855,10 +882,17 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         case CapMode::SmoothFloor:  S = std::min(S, (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0)); break;
         }
         double p = img[i] - S;
-        if (img[i] > 0) { ++nFull; if (p < pAtTMax) ++nFullHigh; }
-        if (p < 0) { ++rep.negativePrimary; p = 0; }
+        if (img[i] > 0) { ++bandFull; if (p < pAtTMax) ++bandHigh; }
+        if (p < 0) { ++bandNeg; p = 0; }
         out[i] = p + Rf[i] * std::max(S, 0.0);
     }
+    negativeAtomic.fetch_add(bandNeg, std::memory_order_relaxed);
+    fullHighAtomic.fetch_add(bandHigh, std::memory_order_relaxed);
+    fullAtomic.fetch_add(bandFull, std::memory_order_relaxed);
+    });
+    nFull = fullAtomic.load();
+    nFullHigh = fullHighAtomic.load();
+    rep.negativePrimary += negativeAtomic.load();
 
     rep.aboveTableFullRes = nFull ? static_cast<double>(nFullHigh) / static_cast<double>(nFull) : 0.0;
 

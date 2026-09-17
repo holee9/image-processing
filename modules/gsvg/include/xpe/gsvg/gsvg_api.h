@@ -329,6 +329,32 @@ XPE_API XpeErrorCode xpe_gsvg_process_ex(void* handle,
  * @param handle GSVG handle returned by xpe_gsvg_init, or NULL.
  * @return XPE_OK always.
  */
+/**
+ * @brief Set how many threads the image passes of this module may use.
+ *
+ * Add-only entry point (#179, QA-B-105), the same shape as the enhance_basic
+ * and enhance_advanced setters. The passes split the image into row (or
+ * column) bands; every band runs the same arithmetic on the same values in the
+ * same order, so THE OUTPUT IS IDENTICAL for any thread count -- the setting
+ * changes only how long a call takes.
+ *
+ * @param threads 0 (default): automatic -- half the logical processors, at most
+ *                4. The cap is an oversubscription guard: several XPE modules
+ *                and a GUI run in one process. 1 runs everything on the calling
+ *                thread. Negative values are treated as 0.
+ * @return XPE_OK always.
+ *
+ * Process-wide and not per handle; a caller that changes it while another
+ * thread is inside a process call gets the old or the new value for that call.
+ */
+XPE_API XpeErrorCode xpe_gsvg_set_max_threads(int32_t threads);
+
+/**
+ * @brief The value set by xpe_gsvg_set_max_threads (0 = automatic).
+ * @return The stored request, not the resolved count.
+ */
+XPE_API int32_t xpe_gsvg_get_max_threads(void);
+
 XPE_API XpeErrorCode xpe_gsvg_shutdown(void* handle);
 
 #ifdef __cplusplus
