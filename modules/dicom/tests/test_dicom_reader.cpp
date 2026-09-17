@@ -596,6 +596,17 @@ TEST_F(DicomReaderTest, ReadJpegLossless_DecodesPixelExact) {
 // ---------------------------------------------------------------------------
 namespace {
 
+// #174 (QA-B-76): the predictor every .57 fixture in this file is written with.
+// The encoder default is 1, which makes a .57 stream byte-identical to a .70 one
+// (QA-B-73) -- QA-B-75 found four cases whose ".57" rows were therefore the
+// ".70" input a second time. Any predictor other than 1 keeps them apart.
+const int kP14FixturePredictor = 2;
+
+// Chooses the .57 representation with kP14FixturePredictor and FAILS the
+// running test if the encoded stream still carries predictor 1. Defined below,
+// next to the stream parser it uses.
+bool ChooseDistinctP14Representation(DcmDataset* ds);
+
 // Produce a copy of src encoded in the given transfer syntax.
 // Returns false when this test does not know how to build that syntax.
 bool WriteInTransferSyntax(const char* tsUid,
@@ -637,7 +648,7 @@ bool WriteInTransferSyntax(const char* tsUid,
             if (ff.loadFile(src.string().c_str()).good()) {
                 DcmDataset* ds = ff.getDataset();
                 if (ds != nullptr &&
-                    ds->chooseRepresentation(EXS_JPEGProcess14, nullptr).good() &&
+                    ChooseDistinctP14Representation(ds) &&
                     ds->canWriteXfer(EXS_JPEGProcess14)) {
                     ok = ff.saveFile(dst.string().c_str(), EXS_JPEGProcess14).good();
                 }
@@ -804,6 +815,38 @@ bool EncodeAs(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer,
     }
     DJEncoderRegistration::cleanup();
     return ok;
+}
+
+// The guard QA-B-76 asked for: it lives in the helper, so reverting the
+// predictor to 1 turns every caller red here instead of letting four cases
+// quietly test the .70 input twice.
+bool ChooseDistinctP14Representation(DcmDataset* ds) {
+    const DJ_RPLossless params(kP14FixturePredictor, 0);
+    if (ds->chooseRepresentation(EXS_JPEGProcess14, &params).bad()) return false;
+
+    DcmElement* el = nullptr;
+    if (ds->findAndGetElement(DCM_PixelData, el).bad() || el == nullptr) {
+        ADD_FAILURE() << ".57 fixture: no PixelData after encoding";
+        return false;
+    }
+    DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+    DcmPixelSequence* seq = nullptr;
+    DcmPixelItem* frag = nullptr;
+    Uint8* data = nullptr;
+    // The parameter is the lookup key: the representation was stored under it.
+    if (pd->getEncapsulatedRepresentation(EXS_JPEGProcess14, &params, seq).bad() ||
+        seq == nullptr || seq->getItem(frag, 1).bad() || frag == nullptr ||
+        frag->getUint8Array(data).bad() || data == nullptr) {
+        ADD_FAILURE() << ".57 fixture: no encoded fragment to inspect";
+        return false;
+    }
+    const SosInfo sos = ParseSofSos(std::vector<Uint8>(data, data + frag->getLength()));
+    if (!sos.found || sos.ss == 1) {
+        ADD_FAILURE() << ".57 fixture carries predictor " << sos.ss
+                      << " -- predictor 1 makes it the .70 stream again (QA-B-75)";
+        return false;
+    }
+    return true;
 }
 
 }  // namespace
@@ -2243,7 +2286,11 @@ bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax
     if (!ff.loadFile(src.string().c_str()).good()) return false;
     DcmDataset* ds = ff.getDataset();
     if (ds == nullptr) return false;
-    if (!ds->chooseRepresentation(xfer, nullptr).good()) return false;
+    if (xfer == EXS_JPEGProcess14) {
+        if (!ChooseDistinctP14Representation(ds)) return false;
+    } else if (!ds->chooseRepresentation(xfer, nullptr).good()) {
+        return false;
+    }
     if (!ds->canWriteXfer(xfer)) return false;
     return ds->saveFile(dst.string().c_str(), xfer).good();
 }
@@ -2254,7 +2301,11 @@ bool WriteWithMeta(const fs::path& src, const fs::path& dst, E_TransferSyntax xf
     if (!ff.loadFile(src.string().c_str()).good()) return false;
     DcmDataset* ds = ff.getDataset();
     if (ds == nullptr) return false;
-    if (!ds->chooseRepresentation(xfer, nullptr).good()) return false;
+    if (xfer == EXS_JPEGProcess14) {
+        if (!ChooseDistinctP14Representation(ds)) return false;
+    } else if (!ds->chooseRepresentation(xfer, nullptr).good()) {
+        return false;
+    }
     if (!ds->canWriteXfer(xfer)) return false;
     return ff.saveFile(dst.string().c_str(), xfer).good();
 }
