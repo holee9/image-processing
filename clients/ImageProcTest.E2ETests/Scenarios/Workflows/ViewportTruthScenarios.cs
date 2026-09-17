@@ -176,6 +176,61 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
         });
     }
 
+    /// <summary>
+    /// W-25 (#171 ①②, GUI-C-80): the detached viewer tells the same truth as the main window.
+    ///
+    /// <para>Before #172 the detached viewer was the only place the image was visible, so a control that
+    /// lives only in the main window leaves that surface uncontrolled. The main window's indicator and HUD,
+    /// read in the same run, are the control: they must move while the detached ones are compared.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W25_DetachedViewer_MarksAnUnappliedEditStale()
+    {
+        Measure("W25", window =>
+        {
+            CloseDetached(window);
+            OpenParameters(window);
+            var original = BodyPart(window);
+            var detached = OpenDetached(window);
+            try
+            {
+                SelectBodyPart(window, original == "Bone" ? "Lung" : "Bone");
+                var rendered = CenterInput(window);
+                WaitForHudCenter(window, rendered);
+                output.WriteLine($"W25 preset: main hud={HudCenter(window)} detached hud={DetachedHudCenter(detached) ?? "(none)"} " +
+                                 $"main='{Viewport(window).Status}' detached='{DetachedViewport(detached).Status}'");
+                Assert.True(DetachedViewport(detached).ProcessedVersion > 0, "The detached viewer has no processed image to judge.");
+                var detachedHudAfterPreset = DetachedHudCenter(detached);
+
+                TypeCenter(window, "12345");
+                var mainIndicator = StaleIndicator(window);
+                var detachedIndicator = DetachedStaleIndicator(detached);
+                output.WriteLine($"W25 edit: main indicator='{mainIndicator}' detached indicator='{detachedIndicator}' " +
+                                 $"detached hud={DetachedHudCenter(detached) ?? "(none)"} detached texts=[{string.Join(" | ", DetachedTexts(detached))}]");
+                Assert.True(mainIndicator is not null, "Control failed: the main window shows no stale indicator after an unapplied edit.");
+                Assert.True(
+                    detachedIndicator is not null && detachedIndicator.Contains("parameters changed", StringComparison.Ordinal),
+                    $"The main window marks the image stale, but the detached viewer showing the same image reads " +
+                    $"'{detachedIndicator ?? "(absent)"}' (#171 ①).");
+                Assert.True(
+                    detachedHudAfterPreset == rendered,
+                    $"After the preset the detached viewer named C={detachedHudAfterPreset ?? "(no HUD)"} beside an image rendered at C={rendered} (#171 ②).");
+                Assert.True(DetachedHudCenter(detached) == rendered, $"After an unapplied edit the detached HUD reads C={DetachedHudCenter(detached)}, not {rendered}.");
+
+                ApplyDisplayPipeline(window);
+                WaitForHudCenter(window, "12345");
+                output.WriteLine($"W25 apply: main indicator='{StaleIndicator(window)}' detached indicator='{DetachedStaleIndicator(detached)}'");
+                Assert.True(DetachedStaleIndicator(detached) is null, "After applying, the detached viewer still shows a stale indicator.");
+                Assert.True(DetachedHudCenter(detached) == "12345", $"After applying, the detached HUD reads C={DetachedHudCenter(detached)}.");
+            }
+            finally
+            {
+                CloseDetached(window);
+                SelectBodyPart(window, original);
+            }
+        });
+    }
+
     private void Measure(string scenario, Action<Window> body)
     {
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");

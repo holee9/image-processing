@@ -1167,6 +1167,55 @@ public sealed class MainWindowViewModel : ObservableObject
         grid.RowDefinitions.Add(new RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = System.Windows.GridLength.Auto });
         grid.Children.Add(viewport);
+
+        // #171 (GUI-C-80): the detached viewer shows the same image, so it carries the same two truths as
+        // the main shell — the window that rendered it (②) and why it is stale (①③). Both bind to the
+        // view-model state the main shell reads; nothing is recomputed per window, so the two cannot drift.
+        var hud = new TextBlock
+        {
+            Margin = new System.Windows.Thickness(24, 20, 0, 0),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            VerticalAlignment = System.Windows.VerticalAlignment.Top,
+            FontSize = 11,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(hud, "DetachedHudVoiWindow");
+        hud.Inlines.Add(new System.Windows.Documents.Run("C "));
+        hud.Inlines.Add(BoundRun(nameof(RenderedVoiCenter), "{0:0}", "—"));
+        hud.Inlines.Add(new System.Windows.Documents.Run(" · W "));
+        hud.Inlines.Add(BoundRun(nameof(RenderedVoiWidth), "{0:0}", "—"));
+        hud.Inlines.Add(new System.Windows.Documents.Run("  VOI: "));
+        hud.Inlines.Add(BoundRun(nameof(RenderedVoiMode), null, "not applied"));
+        grid.Children.Add(hud);
+
+        var staleText = new TextBlock
+        {
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFB, 0xEB)),
+            TextWrapping = System.Windows.TextWrapping.Wrap
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(staleText, "DetachedPreviewStaleIndicator");
+        staleText.SetBinding(TextBlock.TextProperty, new DataBinding(nameof(PreviewStaleReason)) { Source = this, Mode = BindingMode.OneWay });
+        var staleBanner = new Border
+        {
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = System.Windows.VerticalAlignment.Top,
+            Margin = new System.Windows.Thickness(0, 20, 0, 0),
+            Padding = new System.Windows.Thickness(10, 6, 10, 6),
+            CornerRadius = new System.Windows.CornerRadius(6),
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0xE6, 0xB4, 0x53, 0x09)),
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF5, 0x9E, 0x0B)),
+            BorderThickness = new System.Windows.Thickness(1),
+            Child = staleText
+        };
+        staleBanner.SetBinding(System.Windows.UIElement.VisibilityProperty, new DataBinding(nameof(IsPreviewStale))
+        {
+            Source = this,
+            Mode = BindingMode.OneWay,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        grid.Children.Add(staleBanner);
+
         Grid.SetRow(status, 1);
         grid.Children.Add(status);
 
@@ -1188,6 +1237,19 @@ public sealed class MainWindowViewModel : ObservableObject
 
         window.Show();
         RefreshComparisonStatus("Detached comparison viewer opened.");
+    }
+
+    private System.Windows.Documents.Run BoundRun(string path, string? format, string nullText)
+    {
+        var run = new System.Windows.Documents.Run();
+        run.SetBinding(System.Windows.Documents.Run.TextProperty, new DataBinding(path)
+        {
+            Source = this,
+            Mode = BindingMode.OneWay,
+            StringFormat = format,
+            TargetNullValue = nullText
+        });
+        return run;
     }
 
     private void BindDetachedViewport(
