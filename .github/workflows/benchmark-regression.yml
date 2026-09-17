@@ -70,10 +70,10 @@ jobs:
           ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -V -R $pattern 2>&1 | Tee-Object -FilePath $log
           $code = $LASTEXITCODE
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $lines = Select-String -Path $log -Pattern 'ADV061 fractional' | ForEach-Object { $_.Line.Trim() }
+          $lines = Select-String -Path $log -Pattern 'ADV061 fractional|PERFMEASURE ' | ForEach-Object { $_.Line.Trim() }
           "### Measurement-only benchmarks (#179)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
           if ($lines) { $lines | ForEach-Object { "- ``$_``" } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
-          else { "- no ADV061 line in this run (test not present on this commit, or it did not print)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
+          else { "- no ADV061 or PERFMEASURE line in this run (tests not present on this commit, or they did not print)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
           exit $code
 
       - name: Upload build artifacts
