@@ -262,7 +262,6 @@ public partial class MainWindow : System.Windows.Window
                 ReferenceEquals(SaveSettingsButton.Command, SaveSettingsMenuItem.Command) &&
                 ReferenceEquals(ClearLogsButton.Command, ClearLogsMenuItem.Command) &&
                 ReferenceEquals(ClearAlertsButton.Command, ClearAlertsMenuItem.Command);
-            report.ResizableDiagnosticsLayoutDetected = true;
             report.DisabledFutureCommandCount = new[]
                 {
                     OpenRecentMenuItem,
@@ -373,7 +372,6 @@ public partial class MainWindow : System.Windows.Window
                 report.CanonicalMenuGroupsDetected &&
                 report.PlannedMenuPlaceholdersDetected &&
                 report.ToolbarMenuCommandParity &&
-                report.ResizableDiagnosticsLayoutDetected &&
                 report.DisabledFutureCommandCount >= 10 &&
                 report.MenuCommandReportCreated &&
                 report.LogCountAfterClear == 0 &&

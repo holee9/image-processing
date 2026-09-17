@@ -1,5 +1,9 @@
 # ImageProcTest GUI
 
+> **There are two WPF app projects named `ImageProcTest`.** This one (`gui/ImageProcTest`) is the
+> UI the FlaUI suite (`clients/ImageProcTest.E2ETests`) launches; `clients/ImageProcTest` holds the
+> native readiness diagnostics and backends. Check which one a path points at before editing.
+
 `ImageProcTest` is the GUI-first WPF shell for the XPE program. The current implementation covers GUI-S0 plus the Phase 1b display integration shell:
 
 - raw binary image viewer only
@@ -24,8 +28,8 @@ reworded so nobody re-investigates whether they exist:
   GUI-C-65; see the comment at `MainWindow.xaml` near the View menu). Alerts are still collected
   and **Clear Alerts** still empties them, but no region of the window displays them.
 - **resizable diagnostics layout for Logs and Alerts** — there is no `GridSplitter` anywhere in the
-  app's XAML. (The automation report's `ResizableDiagnosticsLayoutDetected` is set to `true`
-  unconditionally in `MainWindow.xaml.cs`; it does not measure a layout.)
+  app's XAML. The automation report used to claim one through `ResizableDiagnosticsLayoutDetected`,
+  which was set to `true` unconditionally and held `Passed` green; it was removed in GUI-C-77.
 - **Runtime panel** (was referenced under *Native display backend*) — removed with the same layout;
   the detection state it showed is now read with **Backend → Native Diagnostics**.
 
@@ -121,7 +125,6 @@ The emitted report includes:
 - `DisplayVersion`
 - `CalibrationEvaluationSummary`
 - `VoiPresetApplied`
-- `ResizableDiagnosticsLayoutDetected`
 - `ComparisonViewportDetected`
 - `ComparisonSourcePreserved`
 - `ComparisonEvidenceExported`
