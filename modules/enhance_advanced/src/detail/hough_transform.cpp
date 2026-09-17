@@ -48,8 +48,13 @@ Eigen::MatrixXi HoughTransform::buildAccumulator(const Eigen::MatrixXf& edgeMagn
                 const float rho = static_cast<float>(x) * std::cos(theta)
                                 + static_cast<float>(y) * std::sin(theta);
 
-                // Convert rho to bin index (offset by maxRho for negative values)
-                int rhoBin = static_cast<int>(rho / rhoStep_) + maxRho_;
+                // Convert rho to bin index (offset by maxRho for negative values).
+                // #183 (QA-B-98): ROUND, not truncate. At theta = pi/2 in float,
+                // cos(theta) is about -4.4e-8, so row y votes rho = y - tiny;
+                // truncation filed row 30 under bin 29 and put the top side one
+                // line outside, while theta = 0 (cos exactly 1) was unaffected.
+                // Truncation toward zero is also asymmetric for negative rho.
+                int rhoBin = static_cast<int>(std::lround(rho / rhoStep_)) + maxRho_;
 
                 // Clamp to valid range
                 rhoBin = std::max(0, std::min(rhoBin, 2 * maxRho_ - 1));

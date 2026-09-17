@@ -124,6 +124,10 @@ XPE_API XpeErrorCode xpe_fractional_process(
 /**
  * Detect collimation boundaries using Hough transform
  *
+ * The rectangle is INCLUSIVE: pixels x0..x1 and y0..y1 (both ends) are inside
+ * the field, so its size is (x1 - x0 + 1) x (y1 - y0 + 1). The low-confidence
+ * fallback is the whole image, [0, width - 1] x [0, height - 1] (#183).
+ *
  * @param img Input image buffer (FLOAT32 format required). NULL, a NULL data
  *            pointer, a zero width or height, or a dataSize inconsistent with
  *            the declared dimensions (#123) are all rejected.

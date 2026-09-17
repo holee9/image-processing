@@ -10,7 +10,7 @@
  * (modules/enhance_advanced/src/collimation_detect.cpp): x0..x1 and y0..y1
  * are INCLUSIVE pixel indices -- the low-confidence fallback returns
  * [0, width-1] x [0, height-1], and the area check uses x1 - x0 + 1. The
- * header does not say so.
+ * public header states it since #183 (QA-B-98).
  *
  * Also measured here (QA-B-97):
  *  - what 1000 unmasked calls do to the shared alert queue (64 entries,
@@ -229,32 +229,56 @@ TEST(CollimationMaskE2E, HelperMaskEqualsHandMadeMask)
     EXPECT_NE(a, none);   // control: the mask matters on this scene
 }
 
-// Recorded, not accepted (QA-B-97): on the uniform scene the detector finds
-// three sides exactly and puts the TOP side one line outside (y0 = 29 for a
-// field starting at row 30). Shifting the field by 1..3 px gave y0 one line
-// outside three times and two lines once (_probe.log); the other sides were
-// exact every time. The values pin today's behaviour.
-TEST(CollimationMaskE2E, KnownDivergence_DetectorTopSideOneLineOutside)
+// Detection -> mask -> virtual grid equals the hand-made mask (#183, QA-B-98).
+// Until QA-B-98 the top side came out one line outside: the Hough vote
+// truncated rho, and at theta = pi/2 in float cos(theta) is about -4.4e-8, so
+// row 30 voted into bin 29.
+TEST(CollimationMaskE2E, DetectedMaskMatchesTruth)
 {
     const ChainResult r = RunChain(false);
     EXPECT_EQ(r.det.x0, kField.x0);
+    EXPECT_EQ(r.det.y0, kField.y0);
     EXPECT_EQ(r.det.x1, kField.x1);
     EXPECT_EQ(r.det.y1, kField.y1);
-    EXPECT_EQ(r.det.y0, kField.y0 - 1);
-    // exactly the row y = 29 across the field width
-    EXPECT_EQ(r.maskDiff, static_cast<size_t>(kField.x1 - kField.x0 + 1));
-    EXPECT_GT(r.outDiff, 0u);
-    EXPECT_GT(r.noneDiff, r.outDiff);   // still far closer than no mask
+    EXPECT_EQ(r.maskDiff, 0u);
+    EXPECT_EQ(r.outDiff, 0u);
+    EXPECT_GT(r.noneDiff, 0u);   // control: the mask matters on this scene
 }
 
-// Recorded, not accepted (QA-B-97): with a strong edge INSIDE the object the
-// detector takes that edge for a field side, and the top side lands one line
-// outside. The values pin today's behaviour so that a fix shows up here.
+// The same field moved inwards by 0..3 px: every side exact every time
+// (QA-B-97 measured the top side at -1, -1, -1, -2).
+TEST(CollimationMaskE2E, DetectionExactForShiftedFields)
+{
+    for (int d = 0; d < 4; ++d) {
+        const Rect f{kField.x0 + d, kField.y0 + d, kField.x1 - d, kField.y1 - d};
+        std::vector<float> img(static_cast<size_t>(kW) * kH);
+        for (int y = 0; y < kH; ++y)
+            for (int x = 0; x < kW; ++x) {
+                const bool in = x >= f.x0 && x <= f.x1 && y >= f.y0 && y <= f.y1;
+                const double dxo = std::max({0, f.x0 - x, x - f.x1});
+                const double dyo = std::max({0, f.y0 - y, y - f.y1});
+                img[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = static_cast<float>(
+                    in ? 30000.0 : 2500.0 * std::exp(-std::sqrt(dxo * dxo + dyo * dyo) / 30.0));
+            }
+        const Rect r = Detect(img, kW, kH);
+        std::printf("COLLMASK shift=%d truth %d %d %d %d detected %d %d %d %d\n", d, f.x0, f.y0, f.x1,
+                    f.y1, r.x0, r.y0, r.x1, r.y1);
+        EXPECT_EQ(r.x0, f.x0) << d;
+        EXPECT_EQ(r.y0, f.y0) << d;
+        EXPECT_EQ(r.x1, f.x1) << d;
+        EXPECT_EQ(r.y1, f.y1) << d;
+    }
+}
+
+// Recorded, not accepted (QA-B-97, #183): with a strong edge INSIDE the
+// object the detector takes that edge for a field side -- it keeps the two
+// STRONGEST vertical lines, and the interior step (30000 -> 12000) is stronger
+// than the real right side (12000 -> scatter). A design decision (#183).
 TEST(CollimationMaskE2E, KnownDivergence_InteriorEdgeTakenForFieldSide)
 {
     const ChainResult r = RunChain(true);
     EXPECT_EQ(r.det.x0, 40);
-    EXPECT_EQ(r.det.y0, 29);    // truth 30
+    EXPECT_EQ(r.det.y0, 30);    // exact since QA-B-98
     EXPECT_EQ(r.det.x1, 127);   // truth 215: the interior step at x = 128
     EXPECT_EQ(r.det.y1, 225);
     EXPECT_GT(r.maskDiff, 0u);
@@ -298,13 +322,31 @@ TEST(CollimationMaskE2E, UnmaskedWarningFlood)
                 "otherError=%d lossAlerts=%d '%s' pending_count=%d\n",
                 kCalls, total, gsvgWarn, info, otherWarn, otherErr, loss, lossText.c_str(),
                 xpe_get_pending_alert_count());
-    // Current behaviour, recorded (api-spec 5.17 eviction order).
-    EXPECT_EQ(total, 64);
-    EXPECT_EQ(otherErr, 1);      // errors are evicted last
-    EXPECT_EQ(otherWarn, 0);     // an older warning from another module is gone
-    EXPECT_EQ(info, 0);
-    EXPECT_EQ(loss, 1);
-    EXPECT_EQ(gsvgWarn, 62);
+    // QA-B-98: one warning per handle, so nothing is evicted. (QA-B-97, with a
+    // warning per call: 64 queued, 62 gsvg warnings, the other module's info and
+    // warning evicted, one loss alert for 940 drops.)
+    EXPECT_EQ(total, 4);
+    EXPECT_EQ(gsvgWarn, 1);
+    EXPECT_EQ(info, 1);
+    EXPECT_EQ(otherWarn, 1);
+    EXPECT_EQ(otherErr, 1);
+    EXPECT_EQ(loss, 0);
+
+    // Re-init (a new handle) warns once more.
+    xpe_clear_alerts();
+    ASSERT_EQ(xpe_gsvg_init(&handle, cfg.c_str()), XPE_OK);
+    for (int i = 0; i < 10; ++i)
+        ASSERT_EQ(xpe_gsvg_process(handle, src.data(), src.size(), dst.data(), dst.size(), 64, 64,
+                                   nullptr, 0), XPE_OK);
+    xpe_gsvg_shutdown(handle);
+    int again = 0;
+    for (int i = 0; i < 16; ++i) {
+        char msg[512];
+        int32_t sev = 0;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) break;
+        again += std::string(msg).find("no collimation field mask") != std::string::npos;
+    }
+    EXPECT_EQ(again, 1);
     xpe_clear_alerts();
 }
 

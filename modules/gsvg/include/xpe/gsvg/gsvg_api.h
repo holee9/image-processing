@@ -216,7 +216,8 @@ XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
  *
  * With @p fieldMask NULL the call behaves exactly like xpe_gsvg_process: when
  * the virtual grid is enabled it runs without a mask and pushes an
- * XPE_ALERT_WARNING saying so. xpe_gsvg_process pushes the same warning.
+ * XPE_ALERT_WARNING saying so -- once per handle (a new xpe_gsvg_init gives a
+ * new handle and a new warning). xpe_gsvg_process shares that warning.
  *
  * @return XPE_ERR_INVALID_INPUT, in addition to the xpe_gsvg_process cases,
  *         when @p fieldMask is supplied and @p maskCount < width * height.
