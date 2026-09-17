@@ -31,6 +31,12 @@ namespace {
         bool bypassTemp{false};
         bool bypassOffset{false};
         bool bypassNonlinearity{false};
+
+        // QA-A-111 (#186): the nonlinearity stage reads `panel.linear` from the
+        // caller's config, so the pointer travels with the parsed flags. It is
+        // borrowed, not owned -- the public entry points keep the caller's
+        // string alive for the whole pipeline_core() call.
+        const char* rawJson{nullptr};
         bool bypassGain{false};
         bool bypassBinning{false};
         bool bypassDefect{false};
@@ -40,7 +46,9 @@ namespace {
         int32_t binningMode{1};
 
         static PipelineConfig fromJson(const char* configJson) {
+            // set first so an early return still carries it
             PipelineConfig cfg;
+            cfg.rawJson = configJson;
             if (!configJson) return cfg;
 
             // Parse bypass flags
@@ -163,7 +171,10 @@ namespace {
             std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
 
             bool applied = false;
-            result = xpe_nonlinearity_apply(&stage3, nullptr, &applied);
+            // QA-A-111 (#186): the stage now reads the config -- `panel.linear`
+            // decides whether the correction applies at all, and it used to be
+            // dropped here by passing nullptr.
+            result = xpe_nonlinearity_apply(&stage3, cfg.rawJson, &applied);
             if (result != XPE_OK) return result;
 
             // Set only when pixels were corrected (#184).

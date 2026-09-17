@@ -343,6 +343,32 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
                                                    const char* metadata_json);
 
 /**
+ * @brief Load a nonlinearity LUT into the calibration store (FUNC-006-EXT 6a)
+ *
+ * Reads an XCAL_TYPE_NONLIN_LUT file and makes it the active nonlinearity
+ * calibration. The pipeline's nonlinearity stage applies it when `panel.linear`
+ * is not "true" in the pipeline config.
+ *
+ * @param filepath Path to the .xcal file written by xpe_calib_generate_nonlin_lut().
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT if filepath is NULL
+ *         XPE_ERR_IO_FAILED / XPE_ERR_CONFIG_INVALID from the file reader
+ *         XPE_ERR_INVALID_CALIB_DATA if the entry count is not 4096 or 65536,
+ *                       the table is not non-decreasing, or the recorded
+ *                       extension boundary lies outside the table
+ */
+XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath);
+
+/**
+ * @brief Drop the loaded nonlinearity LUT (FUNC-006-EXT 6a)
+ *
+ * After this call the nonlinearity stage has no table to apply. Use it when
+ * switching detector profiles, so a previous panel's table is never applied to
+ * another detector's frames.
+ */
+XPE_API void xpe_calib_unload_nonlin_lut(void);
+
+/**
  * @brief Generate dose-dependent gain polynomial (FUNC-027)
  *
  * SWU-1.12: Generate gain polynomial G(x,y,E) = c0 + c1*E + c2*E² + ...

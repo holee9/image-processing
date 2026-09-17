@@ -43,6 +43,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_generate_offset_methods.cpp # shared offset generation methods
     src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026/027 gain generation
     src/xpe_calib_generate_nonlin_lut.cpp # QA-A-110 (#186): FUNC-006-EXT 6a LUT generation
+    src/xpe_calib_load_nonlin_lut.cpp     # QA-A-111 (#186): FUNC-006-EXT 6a LUT load
     # XCal v1 file format helpers (required by load/save/generate functions above)
     src/xcal_reader.cpp
     src/xcal_writer.cpp
@@ -273,6 +274,7 @@ if(_XPE_BUILD_TESTS)
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
         tests/test_nonlin_lut_generate.cpp   # QA-A-110 (#186)
+        tests/test_nonlin_lut_apply.cpp      # QA-A-111 (#186)
         # QA-A-15 (#120): still unregistered. Not an argument-count mismatch --
         # the file is written against the SPEC signature xpe_gain_correct(img,
         # gainMap) with in-place ownership transfer, while the shipped API is
