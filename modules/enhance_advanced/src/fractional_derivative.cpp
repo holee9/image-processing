@@ -83,12 +83,10 @@ namespace {
      * @return a + b, or +/-inf if overflow would occur
      */
     float safeAdd(float a, float b) {
-        if (a > 0 && b > std::numeric_limits<float>::max() - a) {
-            return std::numeric_limits<float>::infinity();
-        }
-        if (a < 0 && b < -std::numeric_limits<float>::max() - a) {
-            return -std::numeric_limits<float>::infinity();
-        }
+        // QA-B-102 (#179): the two guards returned exactly what IEEE-754
+        // addition returns anyway -- a finite sum that exceeds the float range
+        // overflows to the same signed infinity -- so the result is unchanged
+        // and the branches are gone.
         return a + b;
     }
 } // anonymous namespace
@@ -127,6 +125,21 @@ float calculateLocalStdDev(const float* data, int width, int height, int x, int 
     float sumSq = 0.0f;
     int count = 0;
 
+    // QA-B-102 (#179): away from the border no neighbour is clamped, so the
+    // same nine values are read in the same order without the clamping and the
+    // per-neighbour index arithmetic.
+    if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+        const float* row = data + (static_cast<size_t>(y) - 1) * static_cast<size_t>(width) + x;
+        for (int dy = -1; dy <= 1; ++dy, row += width) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                const float val = row[dx];
+                if (!isValid(val)) continue;
+                sum = safeAdd(sum, val);
+                sumSq = safeAdd(sumSq, val * val);
+                ++count;
+            }
+        }
+    } else {
     // 3x3 neighborhood
     for (int dy = -1; dy <= 1; ++dy) {
         for (int dx = -1; dx <= 1; ++dx) {
@@ -148,6 +161,7 @@ float calculateLocalStdDev(const float* data, int width, int height, int x, int 
             sumSq = safeAdd(sumSq, val * val);
             ++count;
         }
+    }
     }
 
     if (count == 0) {
@@ -240,9 +254,23 @@ static void convolveHorizontal(const float* src, float* dst,
                                int width, int height,
                                const float* mask, int maskSize) {
     const int half = maskSize / 2;
+    // QA-B-102 (#179): columns half .. width-1-half read no clamped index, so
+    // the clamp and the row offset are hoisted out of the inner loop. Same
+    // values, same order of accumulation.
     for (int y = 0; y < height; ++y) {
+        const float* row = src + y * static_cast<size_t>(width);
         for (int x = 0; x < width; ++x) {
             float sum = 0.0f;
+            if (x >= half && x + half < width) {
+                for (int k = 0; k < maskSize; ++k) {
+                    float val = row[x - k + half];
+                    if (!std::isfinite(val)) val = 0.0f;
+                    sum += val * mask[k];
+                }
+                if (!std::isfinite(sum)) sum = 0.0f;
+                dst[y * static_cast<size_t>(width) + x] = sum;
+                continue;
+            }
             for (int k = 0; k < maskSize; ++k) {
                 int nx = x - k + half;
                 nx = std::clamp(nx, 0, width - 1);
@@ -262,8 +290,22 @@ static void convolveVertical(const float* src, float* dst,
                              const float* mask, int maskSize) {
     const int half = maskSize / 2;
     for (int y = 0; y < height; ++y) {
+        const bool interiorRow = y >= half && y + half < height;
         for (int x = 0; x < width; ++x) {
             float sum = 0.0f;
+            if (interiorRow) {
+                // QA-B-102 (#179): rows half .. height-1-half read no clamped
+                // index; same values, same order.
+                const float* col = src + (static_cast<size_t>(y) + half) * static_cast<size_t>(width) + x;
+                for (int k = 0; k < maskSize; ++k, col -= width) {
+                    float val = *col;
+                    if (!std::isfinite(val)) val = 0.0f;
+                    sum += val * mask[k];
+                }
+                if (!std::isfinite(sum)) sum = 0.0f;
+                dst[y * static_cast<size_t>(width) + x] = sum;
+                continue;
+            }
             for (int k = 0; k < maskSize; ++k) {
                 int ny = y - k + half;
                 ny = std::clamp(ny, 0, height - 1);

@@ -11,20 +11,20 @@ namespace xpe {
 namespace enhance_advanced {
 namespace detail {
 
-EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image) {
+EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image, bool withDirection) {
     // @MX:NOTE: [AUTO] Sobel kernels for edge detection -- REQ-ADV-012
     // @MX:REASON: Standard 3x3 Sobel operators for gradient estimation
 
     const int rows = static_cast<int>(image.rows());
     const int cols = static_cast<int>(image.cols());
 
-    EdgeGradientResult result(rows, cols);
+    EdgeGradientResult result(rows, cols, withDirection);
 
     // Handle edge case: image too small for Sobel kernels
     if (rows < 3 || cols < 3) {
         // Return zero gradients for tiny images
         result.magnitude.setZero();
-        result.direction.setZero();
+        if (withDirection) result.direction.setZero();
         return result;
     }
 
@@ -60,7 +60,7 @@ EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image) {
 
             // Compute gradient magnitude and direction
             result.magnitude(y, x) = std::sqrt(gx_sum * gx_sum + gy_sum * gy_sum);
-            result.direction(y, x) = std::atan2(gy_sum, gx_sum);
+            if (withDirection) result.direction(y, x) = std::atan2(gy_sum, gx_sum);
         }
     }
 
@@ -68,17 +68,21 @@ EdgeGradientResult computeSobelGradients(const Eigen::MatrixXf& image) {
     // Top and bottom rows
     for (int x = 1; x < cols - 1; ++x) {
         result.magnitude(0, x) = result.magnitude(1, x);
-        result.direction(0, x) = result.direction(1, x);
         result.magnitude(rows - 1, x) = result.magnitude(rows - 2, x);
-        result.direction(rows - 1, x) = result.direction(rows - 2, x);
+        if (withDirection) {
+            result.direction(0, x) = result.direction(1, x);
+            result.direction(rows - 1, x) = result.direction(rows - 2, x);
+        }
     }
 
     // Left and right columns
     for (int y = 0; y < rows; ++y) {
         result.magnitude(y, 0) = result.magnitude(y, 1);
-        result.direction(y, 0) = result.direction(y, 1);
         result.magnitude(y, cols - 1) = result.magnitude(y, cols - 2);
-        result.direction(y, cols - 1) = result.direction(y, cols - 2);
+        if (withDirection) {
+            result.direction(y, 0) = result.direction(y, 1);
+            result.direction(y, cols - 1) = result.direction(y, cols - 2);
+        }
     }
 
     return result;

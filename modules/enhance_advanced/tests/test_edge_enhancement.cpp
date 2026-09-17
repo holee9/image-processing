@@ -814,6 +814,20 @@ TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalMeasure3072) {
 // PERFMEASURE helper, so its fixed 100 ms threshold can be read against a
 // median. (REQ-ADV-061 at 3072x3072 is measured by the test above.)
 // ---------------------------------------------------------------------------
+// #179 (QA-B-102): PERF-ADV-002 states the fractional benchmark at order 1.0;
+// the measurement above uses T308's order 1.2. Both are kept.
+TEST_F(EdgeEnhancementTest, BenchmarkFreeze_Performance_PERF_ADV_002_Fractional3072_Order1) {
+    constexpr int kSize = 3072;
+    XpeImageBuffer img = createFloatImage(kSize, kSize, 0.5f);
+    float* data = static_cast<float*>(img.data);
+    for (int y = 0; y < kSize; ++y)
+        for (int x = kSize / 2; x < kSize; ++x) data[y * static_cast<size_t>(kSize) + x] = 1.0f;
+    const std::vector<float> original(data, data + static_cast<size_t>(kSize) * kSize);
+    perf_measure::Measure("PERF-ADV-002/xpe_fractional_process_order1.0", "3072x3072",
+                          [&] { std::copy(original.begin(), original.end(), data); },
+                          [&] { return xpe_fractional_process(&img, 1.0f, nullptr); });
+}
+
 TEST_F(EdgeEnhancementTest, BenchmarkFreeze_Performance_T308_Fractional1024) {
     constexpr int kSize = 1024;
     XpeImageBuffer img = createFloatImage(kSize, kSize, 0.5f);

@@ -30,7 +30,12 @@ void Analyze(const double* in, size_t n, size_t stride, double* a, double* d, si
     for (size_t i = 0; i < half; ++i) {
         double sa = 0.0, sd = 0.0;
         for (size_t k = 0; k < 8; ++k) {
-            const double v = in[((2 * i + k) % n) * stride];
+            // QA-B-102 (#179): 2i + k < n + 7, so for n >= 8 the periodic wrap
+            // is one conditional subtraction -- the same index the modulo gave,
+            // without an integer division per tap.
+            size_t idx = 2 * i + k;
+            if (n >= 8) { if (idx >= n) idx -= n; } else { idx %= n; }
+            const double v = in[idx * stride];
             sa += kH[k] * v;
             sd += kG[k] * v;
         }
@@ -45,9 +50,28 @@ void Synthesize(const double* a, const double* d, size_t ostride, size_t n, doub
     const size_t half = n / 2;
     for (size_t i = 0; i < half; ++i) {
         const double va = a[i * ostride], vd = d[i * ostride];
-        for (size_t k = 0; k < 8; ++k)
-            out[((2 * i + k) % n) * stride] += kH[k] * va + kG[k] * vd;
+        for (size_t k = 0; k < 8; ++k) {
+            size_t idx = 2 * i + k;   // same wrap as above (QA-B-102)
+            if (n >= 8) { if (idx >= n) idx -= n; } else { idx %= n; }
+            out[idx * stride] += kH[k] * va + kG[k] * vd;
+        }
     }
+}
+
+// QA-B-102 (#179): the column passes below run on a transposed copy. A column
+// of a (cols x rows) buffer is `cols` doubles apart, so at 3072 x 3072 every
+// tap of the 8-tap filter is a cache miss; transposing first makes each filter
+// read contiguous. The filter itself is unchanged, so every output double is
+// bit-identical -- a transpose only moves values.
+void Transpose(const double* src, size_t rows, size_t cols, double* dst) {
+    constexpr size_t kBlock = 64;   // 64 doubles = 512 B, a cache line times eight
+    for (size_t y0 = 0; y0 < rows; y0 += kBlock)
+        for (size_t x0 = 0; x0 < cols; x0 += kBlock) {
+            const size_t y1 = std::min(y0 + kBlock, rows), x1 = std::min(x0 + kBlock, cols);
+            for (size_t y = y0; y < y1; ++y)
+                for (size_t x = x0; x < x1; ++x)
+                    dst[x * rows + y] = src[y * cols + x];
+        }
 }
 
 double BlackmanHarris(size_t i, size_t n) {
@@ -201,10 +225,18 @@ Level Dwt2(const std::vector<double>& img, int w, int h) {
         Analyze(pad.data() + y * W, W, 1, lo.data() + y * hw, hi.data() + y * hw, 1);
     lv.ll.assign(hw * hh, 0.0); lv.lh.assign(hw * hh, 0.0);
     lv.hl.assign(hw * hh, 0.0); lv.hh.assign(hw * hh, 0.0);
-    for (size_t x = 0; x < hw; ++x) {
-        Analyze(lo.data() + x, H, hw, lv.ll.data() + x, lv.lh.data() + x, hw);
-        Analyze(hi.data() + x, H, hw, lv.hl.data() + x, lv.hh.data() + x, hw);
-    }
+    // Columns, on a transposed copy (see Transpose): same filter, same order.
+    std::vector<double> colIn(hw * H), colA(hw * hh), colD(hw * hh);
+    Transpose(lo.data(), H, hw, colIn.data());
+    for (size_t x = 0; x < hw; ++x)
+        Analyze(colIn.data() + x * H, H, 1, colA.data() + x * hh, colD.data() + x * hh, 1);
+    Transpose(colA.data(), hw, hh, lv.ll.data());
+    Transpose(colD.data(), hw, hh, lv.lh.data());
+    Transpose(hi.data(), H, hw, colIn.data());
+    for (size_t x = 0; x < hw; ++x)
+        Analyze(colIn.data() + x * H, H, 1, colA.data() + x * hh, colD.data() + x * hh, 1);
+    Transpose(colA.data(), hw, hh, lv.hl.data());
+    Transpose(colD.data(), hw, hh, lv.hh.data());
     return lv;
 }
 
@@ -212,9 +244,19 @@ std::vector<double> Idwt2(const Level& lv) {
     const size_t W = static_cast<size_t>(lv.w), H = static_cast<size_t>(lv.h);
     const size_t hw = W / 2;
     std::vector<double> lo(hw * H), hi(hw * H);
-    for (size_t x = 0; x < hw; ++x) {
-        Synthesize(lv.ll.data() + x, lv.lh.data() + x, hw, H, lo.data() + x, hw);
-        Synthesize(lv.hl.data() + x, lv.hh.data() + x, hw, H, hi.data() + x, hw);
+    {
+        const size_t hh = H / 2;
+        std::vector<double> a(hw * hh), d(hw * hh), out(hw * H);
+        Transpose(lv.ll.data(), hh, hw, a.data());
+        Transpose(lv.lh.data(), hh, hw, d.data());
+        for (size_t x = 0; x < hw; ++x)
+            Synthesize(a.data() + x * hh, d.data() + x * hh, 1, H, out.data() + x * H, 1);
+        Transpose(out.data(), hw, H, lo.data());
+        Transpose(lv.hl.data(), hh, hw, a.data());
+        Transpose(lv.hh.data(), hh, hw, d.data());
+        for (size_t x = 0; x < hw; ++x)
+            Synthesize(a.data() + x * hh, d.data() + x * hh, 1, H, out.data() + x * H, 1);
+        Transpose(out.data(), hw, H, hi.data());
     }
     std::vector<double> full(W * H);
     for (size_t y = 0; y < H; ++y)
