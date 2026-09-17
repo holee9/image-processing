@@ -17,13 +17,13 @@
 // needs is off unless a config says otherwise. So each case below turns its flag
 // ON explicitly and keeps a flag-off run beside it.
 //
-// The second floor is the fixture. Grid suppression subtracts a per-row mean
-// deviation and skips any row whose deviation is under 1.0 code value
-// (gsvg.cpp, suppress_grid_row_mean, kDeviationThreshold). A uniform image has
-// per-row means exactly equal to the global mean -- deviation 0, branch skipped,
-// output unchanged. Measuring the flag against a flat field would produce "no
-// effect" from a function that was never given anything to do: the QA-B-58 §3
-// trap. The fixture here carries actual grid lines.
+// The second floor is the fixture. Grid suppression leaves an image untouched
+// unless it finds a grid line in the image's spectrum (#180, grid_dwt.cpp;
+// until QA-B-90 it skipped rows whose mean deviated by 1.0 code value or less).
+// A uniform image has nothing to find, so measuring the flag against a flat
+// field would produce "no effect" from a function that was never given
+// anything to do: the QA-B-58 §3 trap. The fixture here carries actual grid
+// lines -- rows alternating by 100 code values, a grid at the Nyquist frequency.
 
 #include <gtest/gtest.h>
 
@@ -40,7 +40,8 @@ constexpr int    kW = 64, kH = 64;
 constexpr size_t kN = static_cast<size_t>(kW) * kH;
 
 // Rows alternate between two levels, so per-row means differ from the global
-// mean by ~50 code values -- far above the 1.0 threshold the suppression uses.
+// mean by ~50 code values: a grid line at the Nyquist frequency, which the
+// suppression detects (input prominence far above its 1e4 gate).
 std::vector<uint16_t> GridLines() {
     std::vector<uint16_t> px(kN);
     for (int y = 0; y < kH; ++y) {
@@ -102,7 +103,7 @@ TEST(GsvgParameterDependency, FixtureRowsDeviateAboveTheSuppressionThreshold) {
         maxDev = std::max(maxDev, std::fabs(rowAcc / kW - globalMean));
     }
     GTEST_LOG_(INFO) << "fixture max row-mean deviation=" << maxDev
-                     << " (suppression threshold is 1.0)";
+                     << " (floor asserted below: 1.0)";
     ASSERT_GT(maxDev, 1.0)
         << "the fixture has nothing for grid suppression to remove, so a null "
            "result would say nothing about the flag";

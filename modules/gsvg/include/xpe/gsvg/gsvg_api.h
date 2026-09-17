@@ -8,7 +8,10 @@
  *  - Grid shadow suppression: the anti-scatter grid placed between patient and
  *    detector introduces a periodic (Moire-like) pattern of alternating darker
  *    and brighter stripes. These must be suppressed without softening real
- *    anatomy. A spatial row-mean subtraction is used as the baseline method.
+ *    anatomy. The grid frequency and direction (rows and/or columns) are read
+ *    from the image spectrum; a recursive db4 wavelet decomposition carries
+ *    the grid into detail sub-bands, where a Gaussian band-stop removes it
+ *    (#180). An image with no detected grid is left unchanged.
  *
  *  - Vignette gain correction: the X-ray beam intensity is not spatially
  *    uniform across the detector — there is a cosine-style fall-off toward
@@ -84,7 +87,9 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *
  * Processing order (each step is skipped if disabled or inputs missing):
  *   1. Vignette gain correction: dst[i] = clamp(src[i] * gainMap[i], 0, 65535)
- *   2. Grid shadow suppression:  row-mean-deviation subtraction on dst in-place.
+ *   2. Grid shadow suppression:  wavelet sub-band band-stop on dst in-place;
+ *      dst is not rewritten when no grid is detected, and images under
+ *      32 pixels in either dimension are not processed.
  *
  * When both steps are disabled, dst ends up holding exactly the pixels of src:
  * copied when the two buffers differ, and left untouched when dst aliases src.

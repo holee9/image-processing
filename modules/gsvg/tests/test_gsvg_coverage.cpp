@@ -8,8 +8,11 @@
 
 namespace {
 
-constexpr int kWidth = 8;
-constexpr int kHeight = 6;
+// 64x64 since #180 (QA-B-90): the DWT grid suppression decomposes
+// log2(min(w,h)) - 4 levels, so an image under 32 px is passed through
+// unchanged. The fixture was 8x6 for the row-mean baseline it replaced.
+constexpr int kWidth = 64;
+constexpr int kHeight = 64;
 constexpr int kCount = kWidth * kHeight;
 
 std::vector<uint16_t> make_periodic_row_shadow()

@@ -1,5 +1,6 @@
 add_library(gsvg
     src/gsvg.cpp
+    src/grid_dwt.cpp
 )
 
 target_include_directories(gsvg
@@ -60,10 +61,18 @@ if(_XPE_BUILD_TESTS)
         tests/test_config_warning.cpp
         # #180 (QA-B-89): synthetic grid generator, residual-energy and edge-MTF tools
         tests/test_grid_tools.cpp
+        # #180 (QA-B-90): DWT grid suppression, measured with the tools above
+        tests/test_grid_suppression.cpp
+        # grid_dwt.cpp is compiled into the test binary as well: its functions are
+        # internal to gsvg.dll (not exported), and the tests call them directly.
+        src/grid_dwt.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        # #180 (QA-B-90): the grid suppression internals, driven directly by
+        # test_grid_suppression.cpp for its falsification switches
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
     target_link_libraries(gsvg_tests PRIVATE
         gsvg

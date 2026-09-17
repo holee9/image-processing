@@ -281,10 +281,14 @@ inline double Sinc(double u) { return (u == 0.0) ? 1.0 : std::sin(kPi * u) / (kP
 
 // tilt Off: the fitted line is replaced by a vertical line at its mean position
 // -- the falsification case (no projection onto the edge normal).
+// fixedEdge: use this line instead of fitting one (QA-B-90 -- measuring a
+// filter's blur on an edge whose geometry is known, when the filter leaves a
+// ripple that would pull the fit).
 inline MtfCurve SlantedEdgeMtf(const Image& img, TiltCorrection tilt, double binPx = 0.25,
-                               double halfRangePx = 16.0, double fMax = 1.0, double fStep = 0.01) {
+                               double halfRangePx = 16.0, double fMax = 1.0, double fStep = 0.01,
+                               const EdgeLine* fixedEdge = nullptr) {
     MtfCurve out;
-    EdgeLine e = FitEdge(img);
+    EdgeLine e = fixedEdge ? *fixedEdge : FitEdge(img);
     out.edge = e;
     if (tilt == TiltCorrection::Off) {
         e.intercept = e.intercept + e.slope * 0.5 * (img.height - 1);
