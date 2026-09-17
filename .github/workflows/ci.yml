@@ -159,9 +159,11 @@ jobs:
       # them already red in the DEFAULT order when the binary was run directly (QA-A-88).
       # Running the binary as one process is the only place that leak is visible.
       #
-      # Default order plus two fixed shuffle seeds. The seeds are pinned so a failure here is
+      # Default order plus three fixed shuffle seeds. The seeds are pinned so a failure here is
       # reproducible; a shuffle without a recorded seed is an observation nobody can repeat.
-      # Seeds 1 and 9 are the two that exposed the (nah)/(da) leaks before QA-A-89.
+      # Seeds 1 and 9 are the two that exposed the (nah)/(da) leaks before QA-A-89; seed 2 exposed the
+      # load/save leak fixed in QA-A-91. A seed only fixes an order for a given test count (580 at QA-A-91):
+      # adding tests reshuffles every seed, so these pin regressions, not specific orders.
       #
       # The summary line is checked, not just the exit code: a run that never starts (missing
       # DLL, bad path) exits non-zero with no summary, and a script that reads only its own
@@ -179,6 +181,7 @@ jobs:
           $runs = @(
             @{ name = 'default order'; args = @() },
             @{ name = 'shuffle seed 1'; args = @('--gtest_shuffle', '--gtest_random_seed=1') },
+            @{ name = 'shuffle seed 2'; args = @('--gtest_shuffle', '--gtest_random_seed=2') },
             @{ name = 'shuffle seed 9'; args = @('--gtest_shuffle', '--gtest_random_seed=9') }
           )
           $bad = 0
