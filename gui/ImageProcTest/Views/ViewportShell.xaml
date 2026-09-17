@@ -60,33 +60,54 @@
             </Border.Effect>
 
             <StackPanel Orientation="Horizontal">
-                <!-- Segmented comparison mode buttons -->
+                <!-- Segmented comparison mode buttons. #149 G-3 (GUI-C-96): the same SetComparisonModeCommand as
+                     View → Compare Mode and F5-F8; Source / Processed are the two modes that had no button. -->
                 <Border CornerRadius="8" Margin="0,0,2,0" Background="#1AFFFFFF">
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Swipe"
-                                Tag="SwipeVertical"
-                                Click="CompareModeButton_Click"
+                        <Button AutomationProperties.AutomationId="CompareButtonSwipeVertical"
+                                Content="Swipe"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="SwipeVertical"
                                 Padding="12,6"
                                 FontSize="11" FontWeight="Medium"
                                 Foreground="#f0f2f5" Background="Transparent"
                                 BorderThickness="0" Cursor="Hand" />
-                        <Button Content="Split"
-                                Tag="SplitLocked"
-                                Click="CompareModeButton_Click"
+                        <Button AutomationProperties.AutomationId="CompareButtonSplitLocked"
+                                Content="Split"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="SplitLocked"
                                 Padding="12,6"
                                 FontSize="11" FontWeight="Medium"
                                 Foreground="#f0f2f5" Background="Transparent"
                                 BorderThickness="0" Cursor="Hand" />
-                        <Button Content="Overlay"
-                                Tag="OverlayOpacity"
-                                Click="CompareModeButton_Click"
+                        <Button AutomationProperties.AutomationId="CompareButtonOverlayOpacity"
+                                Content="Overlay"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="OverlayOpacity"
                                 Padding="12,6"
                                 FontSize="11" FontWeight="Medium"
                                 Foreground="#f0f2f5" Background="Transparent"
                                 BorderThickness="0" Cursor="Hand" />
-                        <Button Content="Difference"
-                                Tag="DifferenceHeatmap"
-                                Click="CompareModeButton_Click"
+                        <Button AutomationProperties.AutomationId="CompareButtonDifferenceHeatmap"
+                                Content="Difference"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="DifferenceHeatmap"
+                                Padding="12,6"
+                                FontSize="11" FontWeight="Medium"
+                                Foreground="#f0f2f5" Background="Transparent"
+                                BorderThickness="0" Cursor="Hand" />
+                        <Button AutomationProperties.AutomationId="CompareButtonSourceOnly"
+                                Content="Source"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="SourceOnly"
+                                Padding="12,6"
+                                FontSize="11" FontWeight="Medium"
+                                Foreground="#f0f2f5" Background="Transparent"
+                                BorderThickness="0" Cursor="Hand" />
+                        <Button AutomationProperties.AutomationId="CompareButtonProcessedOnly"
+                                Content="Processed"
+                                Command="{Binding SetComparisonModeCommand}"
+                                CommandParameter="ProcessedOnly"
                                 Padding="12,6"
                                 FontSize="11" FontWeight="Medium"
                                 Foreground="#f0f2f5" Background="Transparent"
