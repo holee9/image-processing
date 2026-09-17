@@ -271,12 +271,24 @@ extern std::mutex      g_calib_mutex;
  * @brief Record the quality metadata of a freshly generated calibration.
  *
  * Moves the current r_squared into previous_r_squared, then overwrites the
- * store with @p meta and stamps calibration_timestamp. Applies the
+ * store with @p meta (calibration_mode included: pass the resolved mode) and stamps calibration_timestamp. Applies the
  * FUNC-033 (2) gate: calibration_pass = (r_squared >= 0.999).
  *
  * @return true when the gate passed, false when it did not (the caller logs).
  */
 bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept;
+
+/**
+ * @brief FUNC-031 (3)(4)(5)(8): the mode a generator runs under.
+ *
+ * Explicit mode: XPE_OK and that mode when num_levels and degree are within
+ * its max_points / poly_degree, XPE_ERR_INVALID_INPUT otherwise.
+ * AUTO: the smallest explicit mode with max_points >= num_levels and
+ * poly_degree >= degree; XPE_ERR_INVALID_INPUT when none (more than 10 levels
+ * or degree above 4). num_levels < 1 or degree < 0 is invalid input.
+ */
+XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
+                                    XpeCalibrationMode* resolved) noexcept;
 
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;

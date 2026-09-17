@@ -111,7 +111,7 @@ TEST_F(CalibModeTest, GetMaxPoints_PerMode) {
         {XPE_CALIB_MULTI_POINT_5,  5},
         {XPE_CALIB_MULTI_POINT_8,  8},
         {XPE_CALIB_MULTI_POINT_10, 10},
-        {XPE_CALIB_AUTO,           10}  // AUTO caps at 10
+        {XPE_CALIB_AUTO,           10}  // AUTO reports the hard cap
     };
 
     for (const auto& tc : test_cases) {
@@ -135,8 +135,8 @@ TEST_F(CalibModeTest, GetPolyDegree_PerMode) {
         {XPE_CALIB_DUAL_POINT,     1},  // Linear
         {XPE_CALIB_MULTI_POINT_5,  2},  // Quadratic
         {XPE_CALIB_MULTI_POINT_8,  3},  // Cubic
-        {XPE_CALIB_MULTI_POINT_10, 3},  // Cubic
-        {XPE_CALIB_AUTO,           3}   // Cubic, same as MULTI_POINT_10 (no auto-select, #169)
+        {XPE_CALIB_MULTI_POINT_10, 4},  // Quartic ceiling (SRS FUNC-031, #169)
+        {XPE_CALIB_AUTO,           4}   // Largest ceiling; the mode used is resolved per generation (#169)
     };
 
     for (const auto& tc : test_cases) {

@@ -62,8 +62,8 @@ constexpr ModeParams kModeParams[] = {
     /* XPE_CALIB_DUAL_POINT     */ { 2, 1 },  // Linear fit
     /* XPE_CALIB_MULTI_POINT_5  */ { 5, 2 },  // Quadratic fit
     /* XPE_CALIB_MULTI_POINT_8  */ { 8, 3 },  // Cubic fit (DEFAULT)
-    /* XPE_CALIB_MULTI_POINT_10 */ {10, 3 },  // Cubic fit
-    /* XPE_CALIB_AUTO           */ {10, 3 }   // Same as MULTI_POINT_10; FUNC-031(5) auto-select not implemented (#169)
+    /* XPE_CALIB_MULTI_POINT_10 */ {10, 4 },  // Quartic ceiling (SRS FUNC-031: degree <= 4)
+    /* XPE_CALIB_AUTO           */ {10, 4 }   // Ceiling only; the mode used is resolved per call (#169)
 };
 
 static_assert(sizeof(kModeParams) / sizeof(kModeParams[0]) == 6u,
@@ -98,6 +98,44 @@ inline ModeParams get_mode_params(XpeCalibrationMode mode) noexcept {
 }
 
 } // anonymous namespace
+
+/* =============================================================================
+ * FUNC-031 (3)(4)(5)(8): mode enforcement and AUTO resolution (QA-A-101, #169)
+ * ============================================================================ */
+
+XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
+                                    XpeCalibrationMode* resolved) noexcept
+{
+    if (resolved == nullptr || num_levels < 1 || degree < 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    const auto fits = [&](XpeCalibrationMode m) {
+        const ModeParams p = get_mode_params(m);
+        return static_cast<uint32_t>(num_levels) <= p.max_points &&
+               static_cast<uint32_t>(degree) <= p.poly_degree;
+    };
+
+    const XpeCalibrationMode active = g_calib_mode;
+    if (active != XPE_CALIB_AUTO) {
+        // (3)(4): an explicit mode caps the level count (and its degree).
+        if (!fits(active)) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+        *resolved = active;
+        return XPE_OK;
+    }
+
+    // (5): the smallest explicit mode that accepts this request. The table is
+    // ordered by max_points, so the first fit is the smallest.
+    for (int m = XPE_CALIB_SINGLE_POINT; m < XPE_CALIB_AUTO; ++m) {
+        const auto mode = static_cast<XpeCalibrationMode>(m);
+        if (fits(mode)) {
+            *resolved = mode;
+            return XPE_OK;
+        }
+    }
+    return XPE_ERR_INVALID_INPUT;   // beyond MULTI_POINT_10, the hard cap
+}
 
 /* =============================================================================
  * Public API Implementation
@@ -173,7 +211,7 @@ uint32_t xpe_calib_get_max_points(void) {
  *
  * FUNC-031: Mode-to-params mapping
  *
- * @return Polynomial degree (0, 1, 2, or 3)
+ * @return Polynomial degree ceiling (0, 1, 2, 3, or 4)
  */
 uint32_t xpe_calib_get_poly_degree(void) {
     ModeParams params = get_mode_params(g_calib_mode);
@@ -197,7 +235,8 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     const double previous = g_quality_meta.r_squared;
 
     g_quality_meta = meta;
-    g_quality_meta.calibration_mode = static_cast<uint8_t>(g_calib_mode);
+    // calibration_mode is the mode the generator resolved (never AUTO); the
+    // caller sets it from xpe_calib_resolve_mode (#169).
     g_quality_meta.previous_r_squared =
         (g_quality_meta.calibration_timestamp == 0 && previous == 0.0) ? -1.0 : previous;
 
