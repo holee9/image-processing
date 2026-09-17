@@ -1786,9 +1786,12 @@ TEST_F(DicomReaderTest, Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured) {
 // That measurement was taken on ONE path: the one that reads the meta-header,
 // finds a TransferSyntaxUID, and compares it against kSupportedTransferSyntaxes.
 //
-// DicomReader.cpp:157 has another. When getMetaInfo() returns nothing, open()
-// accepts the file and records m_tsUID = Explicit VR Little Endian WITHOUT any
-// syntax check. A file arriving through that branch is declared uncompressed no
+// DicomReader::open() has two branches that record Explicit VR
+// Little Endian without consulting kSupportedTransferSyntaxes -- one for a NULL
+// getMetaInfo(), one for a meta-header with no TransferSyntaxUID -- and which of
+// the two these fixtures take was not measured (QA-B-70).
+// Either way open() accepts the file and records m_tsUID = Explicit VR Little
+// Endian WITHOUT any syntax check. A file arriving through that branch is declared uncompressed no
 // matter what its pixel data actually is -- so "a .57 file is refused" would not
 // hold there, and the conclusion that no silent misdecode happens would be true
 // only of the path it was measured on.
@@ -1805,7 +1808,7 @@ namespace {
 
 // Write the DATASET only -- no Part-10 preamble, no meta-header. DCMTK writes
 // the group-2 elements only through DcmFileFormat, so going through DcmDataset
-// is what produces a file that reaches DicomReader.cpp:157.
+// is what produces a file that reaches the unchecked branches of open().
 bool WriteDatasetWithoutMeta(const fs::path& src, const fs::path& dst,
                              E_TransferSyntax xfer) {
     DJEncoderRegistration::registerCodecs();
@@ -2001,8 +2004,9 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
 // #167 (QA-B-69) — is it the check that stops these files, or the encapsulation?
 //
 // QA-B-68 measured that a meta-less .57 file reaches open() with no transfer
-// syntax check at all (DicomReader.cpp:157 records Explicit VR Little Endian
-// whatever the file actually is) and still produces no pixels. The reason was
+// syntax check at all (open() records Explicit VR Little Endian whatever the
+// file actually is; see the note on the case above for which branch) and still
+// produces no pixels. The reason was
 // NOT the check: the native read path cannot pull an encapsulated PixelData out
 // as a plain uint16 array, so it fails for a structural reason that has nothing
 // to do with which syntax the file claims.
@@ -2042,8 +2046,7 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
 //
 // DISABLED_ because the defect is BLOCKED on a decision, not on work: what to do
 // here is tangled with whether a meta-less file should be accepted at all
-// (DicomReader.cpp:157 accepts it and records Explicit VR Little Endian, which
-// is a guess). Refusing meta-less files outright, checking the detected syntax
+// (open() accepts it and records Explicit VR Little Endian, which is a guess). Refusing meta-less files outright, checking the detected syntax
 // instead of assuming one, or keeping the current tolerance and documenting it
 // are three different products. #167 owns that call; QA-B-69 was told to measure
 // and stop.
@@ -2074,8 +2077,8 @@ bool IsOnAcceptedList(const char* uid) {
     return false;
 }
 
-// Dataset only -- no preamble, no group-2 elements. This is what reaches
-// DicomReader.cpp:157.
+// Dataset only -- no preamble, no group-2 elements. This is what reaches the
+// unchecked branches of open().
 bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
     DcmFileFormat ff;
     if (!ff.loadFile(src.string().c_str()).good()) return false;
