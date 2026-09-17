@@ -1782,17 +1782,24 @@ TEST_F(DicomReaderTest, Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured) {
 // ---------------------------------------------------------------------------
 // #147 (QA-B-68) — the path that never meets the accepted-syntax check.
 //
+// STATUS SINCE QA-B-72 (#167): the behaviour described below is CLOSED. The
+// TS-less branch now checks the detected syntax against the accepted list and
+// refuses an encapsulated PixelData that contradicts a native detection; the
+// getMetaInfo() == NULL branch refuses outright. What follows is kept as the
+// record of what was measured before that change, in the tense it was written.
+//
 // QA-B-67 measured that a .57 file is refused with XPE_ERR_UNSUPPORTED_FORMAT.
 // That measurement was taken on ONE path: the one that reads the meta-header,
 // finds a TransferSyntaxUID, and compares it against kSupportedTransferSyntaxes.
 //
-// DicomReader::open() has two branches that record Explicit VR
-// Little Endian without consulting kSupportedTransferSyntaxes -- one for a NULL
-// getMetaInfo(), one for a meta-header with no TransferSyntaxUID -- and which of
-// the two these fixtures take was not measured (QA-B-70).
-// Either way open() accepts the file and records m_tsUID = Explicit VR Little
-// Endian WITHOUT any syntax check. A file arriving through that branch is declared uncompressed no
-// matter what its pixel data actually is -- so "a .57 file is refused" would not
+// DicomReader::open() had two branches that recorded Explicit VR Little Endian
+// without consulting kSupportedTransferSyntaxes -- one for a NULL getMetaInfo(),
+// one for a meta-header with no TransferSyntaxUID. QA-B-70 noted that the branch
+// these fixtures take had not been measured; QA-B-71 then measured it: every
+// fixture took the second one, and no input reached the first. Either way open()
+// accepted the file and recorded m_tsUID = Explicit VR Little Endian WITHOUT any
+// syntax check. A file arriving through that branch was declared uncompressed no
+// matter what its pixel data actually was -- so "a .57 file is refused" would not
 // hold there, and the conclusion that no silent misdecode happens would be true
 // only of the path it was measured on.
 //
@@ -1808,7 +1815,8 @@ namespace {
 
 // Write the DATASET only -- no Part-10 preamble, no meta-header. DCMTK writes
 // the group-2 elements only through DcmFileFormat, so going through DcmDataset
-// is what produces a file that reaches the unchecked branches of open().
+// is what produces a file that reaches the TS-less branch of open()
+// (measured by QA-B-71; before QA-B-72 that branch had no syntax check).
 bool WriteDatasetWithoutMeta(const fs::path& src, const fs::path& dst,
                              E_TransferSyntax xfer) {
     DJEncoderRegistration::registerCodecs();
@@ -1855,7 +1863,14 @@ OpenResult OpenAndRead(const fs::path& p) {
 
 }  // namespace
 
-TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathSkipsTheTransferSyntaxCheck) {
+// RENAMED by QA-B-72 (#167). This case was KnownDivergence_MetaLessPathSkips-
+// TheTransferSyntaxCheck: its name recorded that the TS-less path had no syntax
+// check, and its body asserted only that no pixels came out -- which held then
+// because the native read failed on encapsulated data. QA-B-72 added the checks,
+// so the name stopped being true while the body kept passing. The assertion is
+// unchanged; the name now says what it asserts. Issue #167 comments before
+// QA-B-72 refer to the old name.
+TEST_F(DicomReaderTest, MetaLessEncapsulatedFilesProduceNoPixels) {
     const auto metaless57 = s_tempDir / "b68_metaless_57.dcm";
     const auto metaless70 = s_tempDir / "b68_metaless_70.dcm";
 
@@ -2003,6 +2018,12 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
 // ---------------------------------------------------------------------------
 // #167 (QA-B-69) — is it the check that stops these files, or the encapsulation?
 //
+// STATUS SINCE QA-B-72 (#167): the behaviour described below is CLOSED. The
+// TS-less branch now checks the detected syntax against the accepted list and
+// refuses an encapsulated PixelData that contradicts a native detection; the
+// getMetaInfo() == NULL branch refuses outright. What follows is kept as the
+// record of what was measured before that change, in the tense it was written.
+//
 // QA-B-68 measured that a meta-less .57 file reaches open() with no transfer
 // syntax check at all (open() records Explicit VR Little Endian whatever the
 // file actually is; see the note on the case above for which branch) and still
@@ -2031,7 +2052,11 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
 // SYNTHETIC (#148): every file here is written by DCMTK from s_validDcm. No
 // acquisition device produced them.
 //
-// THE ANSWER IS YES, AND THAT IS WHY THIS CASE IS DISABLED_ RATHER THAN RED.
+// ENABLED by QA-B-72 (#167). The paragraphs below record why it was DISABLED_
+// until then; they are kept because the polarity they describe is exactly what
+// flipped: this case went green the day the TS-less path gained its checks.
+//
+// THE ANSWER WAS YES, AND THAT IS WHY THIS CASE WAS DISABLED_ RATHER THAN RED.
 // Measured 2026-09-16: Implicit VR Little Endian and Explicit VR Big Endian --
 // both absent from kSupportedTransferSyntaxes, both refused with
 // XPE_ERR_UNSUPPORTED_FORMAT when they carry a meta-header -- come back as a
@@ -2044,12 +2069,13 @@ TEST_F(DicomReaderTest, UnsupportedCompressedTS_ReturnsUnsupportedFormat) {
 // KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes below, which logs
 // the same measurement and asserts nothing.
 //
-// DISABLED_ because the defect is BLOCKED on a decision, not on work: what to do
-// here is tangled with whether a meta-less file should be accepted at all
-// (open() accepts it and records Explicit VR Little Endian, which is a guess). Refusing meta-less files outright, checking the detected syntax
-// instead of assuming one, or keeping the current tolerance and documenting it
-// are three different products. #167 owns that call; QA-B-69 was told to measure
-// and stop.
+// It was DISABLED_ because the defect was BLOCKED on a decision, not on work:
+// what to do was tangled with whether a meta-less file should be accepted at all
+// (open() then accepted it and recorded Explicit VR Little Endian, which was a
+// guess). Refusing meta-less files outright, checking the detected syntax instead
+// of assuming one, or keeping the tolerance and documenting it were three
+// different products. #167 made that call (check the detected syntax, refuse a
+// contradiction, close the unreachable branch) and QA-B-72 implemented it.
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -2078,7 +2104,7 @@ bool IsOnAcceptedList(const char* uid) {
 }
 
 // Dataset only -- no preamble, no group-2 elements. This is what reaches the
-// unchecked branches of open().
+// TS-less branch of open() (measured by QA-B-71).
 bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
     DcmFileFormat ff;
     if (!ff.loadFile(src.string().c_str()).good()) return false;
@@ -2102,7 +2128,7 @@ bool WriteWithMeta(const fs::path& src, const fs::path& dst, E_TransferSyntax xf
 
 }  // namespace
 
-TEST_F(DicomReaderTest, DISABLED_MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
+TEST_F(DicomReaderTest, MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
     // The accepted-list membership in the table is a convenience for reading; the
     // authority is the list itself, so it is cross-checked rather than trusted.
     for (const auto& c : kNativeSyntaxes) {
@@ -2200,19 +2226,25 @@ TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntax
 
     GTEST_LOG_(INFO) << "native unsupported syntaxes yielding pixels without a "
                         "meta-header: " << leaked << " (#167)";
-    // Deliberately not asserted either way. The number is the finding, and the
-    // sibling DISABLED_ case is where the requirement lives.
+    // QA-B-69 recorded leaked=2 here without asserting it. QA-B-72 closed the
+    // path, and the sibling case (no longer DISABLED_) carries the requirement;
+    // this one keeps logging the count so a regression shows up as a number in
+    // every default run, not only as a red test.
     SUCCEED();
 }
 
-// The falsification the card asks for, and it only makes sense if the case above
-// found nothing: strip the ENCAPSULATION rather than the syntax. QA-B-68 argued
-// from code that the encapsulated structure -- not the accepted-list check -- is
-// what stops a meta-less .57 file. This turns that argument into a measurement.
+// QA-B-69 wrote this to show WHAT blocked the TS-less path, by stripping the
+// encapsulation rather than the syntax: the same dataset written encapsulated
+// and native, both unsupported. The measurement then was encapsulated -> no
+// pixels (read failed, DICOM_INVALID) and native -> pixels. That contrast is what
+// established that structure, not a check, was doing the blocking.
 //
-// The same source dataset is written meta-less in a native syntax that the
-// reader does NOT accept. If pixels appear, the block was structural; if they do
-// not, something else is refusing and QA-B-68's reasoning was incomplete.
+// Since QA-B-72 both are refused at open() (UNSUPPORTED_FORMAT) -- the
+// encapsulated one by the contradiction check, the native one by the list check
+// -- so the contrast this case was built to draw no longer exists. It stays as a
+// record: if the two outcomes ever diverge again, one of those checks has
+// stopped working. The per-check falsification is in
+// TsLessPathIsDecidedByChecksNotByStructure's report (QA-B-72).
 TEST_F(DicomReaderTest, KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured) {
     const auto encapsulated = s_tempDir / "b69_metaless_encapsulated.dcm";
     const auto native       = s_tempDir / "b69_metaless_native_unsupported.dcm";
@@ -2237,9 +2269,8 @@ TEST_F(DicomReaderTest, KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured) {
     GTEST_LOG_(INFO) << "meta-less NATIVE (Implicit LE, unsupported): open=" << nat.open
                      << " read=" << nat.read << " pixels=" << nat.gotPixels;
 
-    // Recorded, not asserted as a requirement: the deliverable is which of the
-    // two shapes gets through, and asserting a direction here would pin whichever
-    // answer today happens to give.
+    // Recorded, not asserted: TsLessPathIsDecidedByChecksNotByStructure carries
+    // the requirement for both shapes.
     SUCCEED();
 }
 
@@ -2359,4 +2390,146 @@ TEST_F(DicomReaderTest, KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasur
     GTEST_LOG_(INFO) << "detected syntax matched the written one in " << matched
                      << " of " << measured << " measured files";
     SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-72) — measured before implementing check (2).
+//
+// Check (2) must decide "is the PixelData encapsulated?" WITHOUT knowing the
+// syntax, because on this path the syntax is exactly what cannot be trusted.
+// QA-B-71's probe OR-ed three signals, two of which name a JPEG syntax. This
+// splits them, so the implementation uses only the one that needs no syntax --
+// the undefined length field an encapsulated PixelData is written with -- and
+// only if that one alone separates the two groups.
+//
+// It also tries to REACH the getMetaInfo() == NULL branch, which QA-B-71 could
+// not. A handful of malformed inputs are fed to the same loadFile call; for each
+// the outcome is recorded (load failed / meta NULL / meta present).
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, KnownDivergence_EncapsulationSignalsAndMetaNullReachability) {
+    struct Case { E_TransferSyntax written; const char* label; };
+    const Case cases[] = {
+        { EXS_LittleEndianExplicit, "Explicit VR LE" },
+        { EXS_LittleEndianImplicit, "Implicit VR LE" },
+        { EXS_BigEndianExplicit,    "Explicit VR BE" },
+        { EXS_JPEGProcess14SV1,     ".70 JPEG-LL" },
+        { EXS_JPEGProcess14,        ".57 JPEG-LL" },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    for (const auto& c : cases) {
+        const auto path = s_tempDir / (std::string("b72_sig_") +
+                                       std::to_string(static_cast<int>(c.written)) + ".dcm");
+        if (!WriteDatasetOnly(s_validDcm, path, c.written)) continue;
+
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(path.string().c_str(), EXS_Unknown, EGL_noChange,
+                                DCM_MaxReadLength).good());
+        DcmDataset* ds = ff.getDataset();
+        ASSERT_NE(nullptr, ds);
+
+        bool undefLen = false, sv1 = false, p14 = false;
+        DcmElement* el = nullptr;
+        if (ds->findAndGetElement(DCM_PixelData, el).good() && el != nullptr) {
+            undefLen = (el->getLengthField() == DCM_UndefinedLength);
+            DcmPixelData* pd = OFstatic_cast(DcmPixelData*, el);
+            DcmPixelSequence* seq = nullptr;
+            const DcmRepresentationParameter* param = nullptr;
+            sv1 = pd->getEncapsulatedRepresentation(EXS_JPEGProcess14SV1, param, seq).good();
+            p14 = pd->getEncapsulatedRepresentation(EXS_JPEGProcess14,    param, seq).good();
+        }
+        GTEST_LOG_(INFO) << c.label
+                         << " | undefined length=" << undefLen
+                         << " | has .70 rep=" << sv1
+                         << " | has .57 rep=" << p14
+                         << " | detected=" << XferUid(ds->getOriginalXfer());
+    }
+    DJEncoderRegistration::cleanup();
+
+    // --- can anything reach getMetaInfo() == NULL? -------------------------
+    struct Raw { const char* label; std::string bytes; };
+    const Raw raws[] = {
+        { "empty file",                 std::string() },
+        { "preamble only (128+DICM)",   std::string(128, '\0') + "DICM" },
+        { "4 random bytes",             std::string("\x01\x02\x03\x04", 4) },
+        { "one tag, no value",          std::string("\x08\x00\x05\x00", 4) },
+    };
+    for (const auto& r : raws) {
+        const auto path = s_tempDir / (std::string("b72_raw_") +
+                                       std::to_string(&r - raws) + ".dcm");
+        { std::ofstream f(path, std::ios::binary); f.write(r.bytes.data(), r.bytes.size()); }
+        DcmFileFormat ff;
+        const bool loaded = ff.loadFile(path.string().c_str(), EXS_Unknown, EGL_noChange,
+                                        DCM_MaxReadLength).good();
+        const bool metaNull = (ff.getMetaInfo() == nullptr);
+        GTEST_LOG_(INFO) << "reach :171? " << r.label
+                         << " | loadFile good=" << loaded
+                         << " | getMetaInfo()==NULL=" << metaNull;
+    }
+    // A freshly constructed DcmFileFormat, never loaded: what does it return?
+    DcmFileFormat fresh;
+    GTEST_LOG_(INFO) << "reach :171? fresh DcmFileFormat | getMetaInfo()==NULL="
+                     << (fresh.getMetaInfo() == nullptr);
+    SUCCEED();
+}
+
+
+// ---------------------------------------------------------------------------
+// #167 (QA-B-72) — the TS-less path, case by case.
+//
+// Three checks were added to open(): (1) the detected syntax must be on the
+// accepted list; (2) an encapsulated PixelData contradicting a native detection
+// is refused; (3) the getMetaInfo() == NULL branch is closed. This table pins
+// the outcome of each fixture and, as importantly, WHERE it is decided:
+//
+//   - the native leaks must be refused at open() -- (1);
+//   - the encapsulated files must ALSO be refused at open(). Before QA-B-72
+//     they opened (0) and were stopped at read (DICOM_INVALID, -13) by the
+//     native read failing on an encapsulated stream. An open() refusal is the
+//     evidence that (2), not structure, is what stops them now;
+//   - the supported native file keeps producing pixels -- the control that
+//     says the checks did not block too much;
+//   - labelled .70 / .57 files keep producing pixels -- the normal path is
+//     untouched.
+//
+// (3) has no row: no input reaches that branch (measured, five attempts), so it
+// has no execution test. That is stated, not hidden.
+//
+// SYNTHETIC (#148).
+// ---------------------------------------------------------------------------
+TEST_F(DicomReaderTest, TsLessPathIsDecidedByChecksNotByStructure) {
+    struct Row {
+        const char*      label;
+        E_TransferSyntax xfer;
+        bool             withMeta;
+        XpeErrorCode     expectOpen;
+        bool             expectPixels;
+    };
+    const Row rows[] = {
+        { "TS-less Explicit VR LE (control)", EXS_LittleEndianExplicit, false, XPE_OK,                     true  },
+        { "TS-less Implicit VR LE",           EXS_LittleEndianImplicit, false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less Explicit VR BE",           EXS_BigEndianExplicit,    false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less .70",                      EXS_JPEGProcess14SV1,     false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less .57",                      EXS_JPEGProcess14,        false, XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "labelled .70 (normal path)",       EXS_JPEGProcess14SV1,     true,  XPE_OK,                     true  },
+        { "labelled .57 (normal path)",       EXS_JPEGProcess14,        true,  XPE_OK,                     true  },
+    };
+
+    DJEncoderRegistration::registerCodecs();
+    int idx = 0;
+    for (const auto& r : rows) {
+        const auto path = s_tempDir / (std::string("b72_row_") + std::to_string(idx++) + ".dcm");
+        const bool wrote = r.withMeta ? WriteWithMeta(s_validDcm, path, r.xfer)
+                                      : WriteDatasetOnly(s_validDcm, path, r.xfer);
+        ASSERT_TRUE(wrote) << r.label << ": fixture could not be written";
+
+        const OpenResult got = OpenAndRead(path);
+        GTEST_LOG_(INFO) << r.label << ": open=" << got.open << " read=" << got.read
+                         << " pixels=" << got.gotPixels << " " << got.w << "x" << got.h;
+
+        EXPECT_EQ(r.expectOpen, got.open) << r.label;
+        EXPECT_EQ(r.expectPixels, got.open == XPE_OK && got.read == XPE_OK && got.gotPixels)
+            << r.label;
+    }
+    DJEncoderRegistration::cleanup();
 }
