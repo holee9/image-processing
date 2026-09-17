@@ -10,6 +10,12 @@ public partial class App : System.Windows.Application
     /// <summary>Process exit code for a command line the automation refused to run.</summary>
     public const int InvalidAutomationArgsExitCode = 2;
 
+    /// <summary>
+    /// GUI-C-84: process exit code for an automation run that completed with <c>Passed=false</c>. Until
+    /// then such a run exited 0, so a caller reading only the exit code took a failed run for a pass.
+    /// </summary>
+    public const int AutomationFailedExitCode = 1;
+
     public static string? AutomationRawPath { get; private set; }
 
     public static string? AutomationReportPath { get; private set; }

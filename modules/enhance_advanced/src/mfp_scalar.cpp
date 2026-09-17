@@ -1,6 +1,5 @@
 #include "mfp_scalar.h"
 #include "xpe/common/xpe_error.h"
-#include <nlohmann/json.hpp>
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -8,53 +7,6 @@
 
 namespace xpe {
 namespace enhance_advanced {
-
-// ============================================================================
-// MfpConfig Implementation
-// ============================================================================
-
-MfpConfig MfpConfig::fromJson(const char* jsonConfig) {
-    MfpConfig config;  // Use defaults
-
-    if (jsonConfig == nullptr) {
-        return config;
-    }
-
-    try {
-        nlohmann::json j = nlohmann::json::parse(jsonConfig);
-
-        // Parse MFP section if present
-        if (j.contains("mfp")) {
-            auto mfp = j["mfp"];
-
-            if (mfp.contains("num_levels")) {
-                config.numLevels = mfp["num_levels"];
-                // Clamp to reasonable range [1, 6]
-                config.numLevels = std::max(1, std::min(6, config.numLevels));
-            }
-
-            if (mfp.contains("edge_gain")) {
-                config.edgeGain = mfp["edge_gain"];
-            }
-
-            if (mfp.contains("texture_gain")) {
-                config.textureGain = mfp["texture_gain"];
-            }
-
-            if (mfp.contains("flat_gain")) {
-                config.flatGain = mfp["flat_gain"];
-            }
-
-            if (mfp.contains("noise_threshold")) {
-                config.noiseThreshold = mfp["noise_threshold"];
-            }
-        }
-    } catch (const nlohmann::json::exception&) {
-        // Return defaults on JSON parse error
-    }
-
-    return config;
-}
 
 // ============================================================================
 // LaplacianPyramid Implementation

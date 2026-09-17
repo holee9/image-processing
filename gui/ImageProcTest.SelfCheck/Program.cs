@@ -55,13 +55,15 @@ Assert(loadedSettings.GhostCorrectionMode == "Auto", "Ghost correction mode shou
 Assert(loadedSettings.TemperatureCompensationMode == "Auto", "Temperature compensation mode should default to Auto.");
 Assert(loadedSettings.NonlinearityCorrectionMode == "Auto", "Nonlinearity correction mode should default to Auto.");
 Assert(loadedSettings.BinningCorrectionMode == "Auto", "Binning correction mode should default to Auto.");
-Assert(loadedSettings.VoiWindowCenter == 40.0f, "VOI window center should default to Abdomen preset.");
-Assert(loadedSettings.VoiWindowWidth == 400.0f, "VOI window width should default to Abdomen preset.");
+// GUI-C-84: raw detector DN, not CT HU. The modality LUT is identity (slope 1, intercept 0), so VOI acts on
+// raw values; measured on both fixtures, C=40/W=400 saturates every pixel while 32768/65535 keeps the image.
+Assert(loadedSettings.VoiWindowCenter == 32768.0f, "VOI window center should default to the flat-panel raw-DN value (32768).");
+Assert(loadedSettings.VoiWindowWidth == 65535.0f, "VOI window width should default to the flat-panel raw-DN value (65535).");
 Assert(loadedSettings.VoiLutMode == "Linear", "VOI LUT mode should default to Linear.");
 Assert(loadedSettings.SelectedBodyPart == "Abdomen", "Selected body part should default to Abdomen.");
 Assert(!loadedSettings.GsdfEnabled, "GSDF should default to disabled until PS3.14 validation is complete.");
 Assert(loadedSettings.ModalityRescaleSlope == 1.0f, "Modality slope should default to 1.0.");
-Assert(loadedSettings.ModalityRescaleIntercept == -1024.0f, "Modality intercept should default to -1024.");
+Assert(loadedSettings.ModalityRescaleIntercept == 0.0f, "Modality intercept should default to 0 (raw DN, no CT offset).");
 Assert(loadedSettings.ComparisonMode == "SwipeVertical", "Comparison mode should default to vertical swipe.");
 Assert(Math.Abs(loadedSettings.ComparisonZoomScale) < 0.001, "Comparison zoom should default to fit mode.");
 Assert(Math.Abs(loadedSettings.ComparisonSwipePosition - 0.5) < 0.001, "Comparison swipe should default to center.");
@@ -101,7 +103,8 @@ Assert(frame.Summary.Contains($"RAW {manifest.RawSample.Width}x{manifest.RawSamp
 Assert(frame.RawPixels?.Length == manifest.RawSample.Width * manifest.RawSample.Height, "Raw pixel payload should be retained for display integration.");
 
 var preset = backend.CreateVoiPreset(ImageProcTest.Models.XpeBodyPartEnum.Abdomen);
-Assert(preset.Center == 40.0f && preset.Width == 400.0f, "Abdomen VOI preset should match display integration guide.");
+// GUI-C-84: this is the MOCK preset, which is in raw DN. The native preset is C=40/W=400 (HU) — see #175 / GUI-C-84 report.
+Assert(preset.Center == 32768.0f && preset.Width == 65535.0f, "Mock Abdomen VOI preset should be the raw-DN window (32768/65535).");
 
 var displayFrame = backend.ApplyDisplayPipeline(frame, loadedSettings);
 Assert(displayFrame.DisplayPipelineApplied, "Mock display pipeline should mark the frame as applied.");

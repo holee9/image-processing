@@ -214,6 +214,11 @@ Headless probe는 **사실상 scaffold 수준 통합 테스트**이나 xUnit 등
 | R-11 | DLL 버전과 C# `XpeErrorCode` enum 값 drift | 현재 C# enum은 -1..-10만 정의, `XPE_STATUS_NO_EVENT = 1` (REQ-P0-028a) 미반영 | 테스트에서 `xpe_error_string`을 모든 enum 값에 대해 호출해 non-NULL 확인 + `XPE_STATUS_NO_EVENT` 대응 강제 |
 | R-12 | platform mismatch 시 조용한 Mock fallback | `CompositeXpeBackend.CheckHealth`가 native 실패 시 Mock 결과 반환 | 통합 테스트는 **Mock fallback을 테스트 실패로 간주**해야 하며 `IsNativeReady=true` assertion 필수 |
 
+> **R-12 는 실현됐습니다 (2026-09-17, `#175`).** Native 로드 실패 시 조용히 Mock 으로 떨어지는데 상태 표시줄은 `mode=Native` 를 표시했고, 위해 분석 HAZ-GUI-005 의 통제가 코드에 하나도 없었습니다. GUI-C-82·83 으로 통제와 검증이 들어갔습니다.
+>
+> **실측 주석 (2026-09-17).** `CompositeXpeBackend` 는 **코드 어디에도 없습니다**(범위: `gui/`·`clients/`·`modules/` 의 `*.cs`; 대조군 — 같은 검색이 `MockXpeBackend`·`RealXpeBackend`·`XpeBackendFactory` 를 찾음). Real → Mock 폴백은 현재 `gui/ImageProcTest/Services/XpeBackendFactory.cs` 가 합니다.
+
+
 ---
 
 ## 7. 참조 패턴 (본 SPEC 구현 시 채택 권장)
