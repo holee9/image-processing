@@ -222,25 +222,37 @@ TEST_F(ConfigValueDependency, MultiscaleGainsAndThresholdAllMoveTheOutput) {
  * multiscale -- values that are read and then discarded
  * ========================================================================== */
 
-// The legacy flat-schema key `levels` is parsed AFTER `num_levels` into the same
-// output variable, so a config carrying both silently loses `num_levels`. This
-// records the behaviour; it is not a statement that it is wrong.
-TEST_F(ConfigValueDependency, KnownDivergence_LevelsSilentlyOverridesNumLevels) {
-    const char* both  = R"({"num_levels":5,"levels":2,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
-    const char* only2 = R"({"levels":2,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
-    const char* only5 = R"({"num_levels":5,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
+// `num_levels` and the legacy flat-schema key `levels` write the same variable.
+// Until QA-B-62..78 the legacy key was read last and silently won; the leader's
+// #162 decision is that the current name wins. The case below says WHICH value
+// was applied by comparing against single-key runs of each value, so a result
+// that silently ignores both keys (or picks the wrong one) cannot pass.
+TEST_F(ConfigValueDependency, NumLevelsWinsOverLegacyLevels) {
+    const char* both      = R"({"num_levels":5,"levels":2,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
+    const char* bothSwap  = R"({"levels":2,"num_levels":5,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
+    const char* only2     = R"({"levels":2,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
+    const char* only5     = R"({"num_levels":5,"edge_gain":1.5,"texture_gain":1.2,"flat_gain":1.0,"noise_threshold":0.02})";
 
     const std::vector<float> withBoth = Multiscale(both);
+    const std::vector<float> ref2     = Multiscale(only2);
+    const std::vector<float> ref5     = Multiscale(only5);
 
-    // Proof of arrival: `num_levels` alone DOES move the output (it is read).
-    EXPECT_GT(MaxDiff(baseline_, Multiscale(only5)), moveThreshold_)
-        << "num_levels is not read at all -- the override claim would be moot";
+    // Control: the two candidate values produce different images, so the
+    // comparison below can tell which one was applied.
+    const float between = MaxDiff(ref2, ref5);
+    ASSERT_GT(between, moveThreshold_)
+        << "levels=2 and num_levels=5 give the same image -- this case cannot tell them apart";
 
-    // The divergence: with both present, the result is the `levels` result.
-    EXPECT_LT(MaxDiff(withBoth, Multiscale(only2)), moveThreshold_)
-        << "levels did not win";
-    EXPECT_GT(MaxDiff(withBoth, Multiscale(only5)), moveThreshold_)
-        << "num_levels won -- the last-write-wins order has changed";
+    const float to5     = MaxDiff(withBoth, ref5);
+    const float to2     = MaxDiff(withBoth, ref2);
+    const float swapTo5 = MaxDiff(Multiscale(bothSwap), ref5);
+    std::printf("[  INFO ] num_levels=5 + levels=2: maxdiff to num_levels-only=%.9f, "
+                "to levels-only=%.6f, key-order-swapped to num_levels-only=%.9f "
+                "(2-vs-5 control %.6f)\n", to5, to2, swapTo5, between);
+
+    EXPECT_EQ(0.0f, to5)     << "the applied value is not num_levels=5";
+    EXPECT_GT(to2, moveThreshold_) << "the applied value is levels=2 -- the legacy key won";
+    EXPECT_EQ(0.0f, swapTo5) << "the winner depends on the order the keys are written in";
 }
 
 // mfp_scalar applies a per-level gain by branch: the coarsest detail level takes
