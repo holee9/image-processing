@@ -27,25 +27,27 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var empty = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"xpe-e2e-empty-native-a01-{Environment.ProcessId}"));
         foreach (var file in empty.GetFiles()) file.Delete();
 
-        var report = Run("A01", "Native", empty.FullName);
+        var (report, exitCode) = Run("A01", "Native", empty.FullName);
         Assert.Equal("Native", report.GetProperty("BackendMode").GetString());
         Assert.Equal("Mock", report.GetProperty("ActualBackendMode").GetString());
         Assert.False(report.GetProperty("BackendMatchesRequest").GetBoolean(), "The report does not flag the substituted backend.");
         Assert.False(
             report.GetProperty("Passed").GetBoolean(),
             "Native was requested, Mock ran, and the automation report still says Passed=true (#175).");
+        Assert.True(exitCode == 1, $"A failed automation run exited {exitCode}; a caller reading only the exit code would take it for a pass (GUI-C-84).");
     }
 
     [SkippableFact]
     public void A02_MockRequested_IsStillAPass()
     {
-        var report = Run("A02", "Mock", nativeDirectory: null);
+        var (report, exitCode) = Run("A02", "Mock", nativeDirectory: null);
         Assert.Equal("Mock", report.GetProperty("ActualBackendMode").GetString());
         Assert.True(report.GetProperty("BackendMatchesRequest").GetBoolean());
         Assert.True(report.GetProperty("Passed").GetBoolean(), $"An intentional Mock automation run failed: Error='{report.GetProperty("Error")}'.");
+        Assert.True(exitCode == 0, $"A passing automation run exited {exitCode}.");
     }
 
-    private JsonElement Run(string scenario, string backend, string? nativeDirectory)
+    private (JsonElement Report, int ExitCode) Run(string scenario, string backend, string? nativeDirectory)
     {
         var exe = ApplicationFixture.ResolveApplicationExecutable();
         Skip.If(exe is null, "ImageProcTest.exe was not built.");
@@ -84,7 +86,7 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         output.WriteLine($"{scenario} exit={process.ExitCode} BackendMode={root.GetProperty("BackendMode")} " +
                          $"ActualBackendMode={root.GetProperty("ActualBackendMode")} " +
                          $"BackendMatchesRequest={root.GetProperty("BackendMatchesRequest")} Passed={root.GetProperty("Passed")}");
-        return root;
+        return (root, process.ExitCode);
     }
 }
 
