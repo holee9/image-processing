@@ -33,7 +33,7 @@ public partial class MainWindow : System.Windows.Window
         if (FaultInjectingBackend.Armed is not null)
         {
             // Loud on purpose: a window carrying an injected fault must not look like a normal one.
-            Title += " — FAULT INJECTION ARMED";
+            // The title is bound to WindowTitle, which adds the marker once this is announced.
             viewModel.AnnounceFaultInjection();
         }
 
@@ -173,6 +173,8 @@ public partial class MainWindow : System.Windows.Window
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
             report.NativeSource = viewModel.RuntimeInfo.NativeSource;
+            report.ActualBackendMode = viewModel.ActualBackendMode;
+            report.MockBackend = viewModel.IsMockBackend;
             report.InitialLogCount = viewModel.Logs.Count;
             report.InitialAlertCount = viewModel.Alerts.Count;
 

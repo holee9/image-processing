@@ -12,6 +12,11 @@ public sealed class GuiAutomationReport
     /// <summary>#136: where that mode came from — "arg" (--automation-backend) or "file" (appsettings.json).</summary>
     public string BackendModeSource { get; set; } = string.Empty;
 
+    /// <summary>#175 HAZ-GUI-005 (3): the backend that actually ran, which can differ from <see cref="BackendMode"/>.</summary>
+    public string ActualBackendMode { get; set; } = string.Empty;
+
+    public bool MockBackend { get; set; }
+
     /// <summary>#129: directory the native library resolved from, or "loader"/empty. See RuntimeInfo.NativeSource.</summary>
     public string NativeSource { get; set; } = string.Empty;
 

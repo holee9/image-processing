@@ -48,9 +48,12 @@ public sealed class DetachViewerScenarios(ApplicationFixture app, ITestOutputHel
                 Find(window) is null,
                 "A detached viewer was already open, so this run cannot say the command opened one.");
 
-            OpenViewMenu(window);
+            var hit = OpenViewMenu(window);
             var item = window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"));
-            Assert.True(item is not null, "DetachComparisonViewerMenuItem is not in the View menu (MENU-001 §4.3).");
+            Assert.True(
+                item is not null,
+                $"DetachComparisonViewerMenuItem did not appear after clicking the View menu (MENU-001 §4.3). " +
+                $"Window under the menu at click time: '{hit}' (GUI-C-82).");
             item!.AsMenuItem().Invoke();
 
             var detached = WaitFor(window);
@@ -66,8 +69,9 @@ public sealed class DetachViewerScenarios(ApplicationFixture app, ITestOutputHel
         });
     }
 
+    // #175 (GUI-C-82): a Mock backend prefixes "[MOCK] " to the title, so the match is on the ending.
     private static AutomationElement? Find(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByName(DetachedWindowTitle));
+        ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.FindDetached(window);
 
     private static AutomationElement? WaitFor(Window window)
     {
@@ -93,13 +97,27 @@ public sealed class DetachViewerScenarios(ApplicationFixture app, ITestOutputHel
         Thread.Sleep(400);
     }
 
-    private static void OpenViewMenu(Window window)
+    /// <summary>Opens the View menu and returns the title of the window that was under it at click time.</summary>
+    private static string OpenViewMenu(Window window)
     {
         window.SetForeground();
         Keyboard.Press(VirtualKeyShort.ESCAPE);
         Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+        var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!;
+        var r = menu.BoundingRectangle;
+        var hit = "(unknown)";
+        try
+        {
+            for (var e = window.Automation.FromPoint(new System.Drawing.Point(r.X + r.Width / 2, r.Y + r.Height / 2)); e is not null; e = e.Parent)
+            {
+                if (e.ControlType == FlaUI.Core.Definitions.ControlType.Window) { hit = $"{e.Name} pid={e.Properties.ProcessId.ValueOrDefault}"; break; }
+            }
+        }
+        catch (Exception ex) { hit = $"(FromPoint failed: {ex.GetType().Name})"; }
+
+        menu.AsMenuItem().Click();
         Thread.Sleep(300);
+        return $"{hit}; main pid={window.Properties.ProcessId.ValueOrDefault}";
     }
 
     private void Measure(string scenario, Action<Window> body)
