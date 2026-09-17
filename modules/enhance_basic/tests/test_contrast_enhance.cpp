@@ -14,6 +14,7 @@
 #include <cstring>
 #include <algorithm>
 #include <chrono>
+#include "perf_measure.h"
 
 namespace {
 
@@ -205,3 +206,29 @@ TEST(ContrastEnhance, Performance_3072x3072_Within50ms) {
 }
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST(ContrastEnhance, BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    std::vector<float> pristine(n);
+    for (size_t i = 0; i < n; ++i)
+        pristine[i] = 1.0f + static_cast<float>((i * 2654435761u) % 4096u);
+    auto img = make_f32(kSize, kSize, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    auto reset = [&] { std::copy(pristine.begin(), pristine.end(), px); };
+    XpeClaheParams params{};
+    params.clip_limit = 3.0f;
+    params.tile_width = 8;
+    params.tile_height = 8;
+    perf_measure::Measure("REQ-ENH-017/xpe_contrast_enhance", "3072x3072", reset,
+                          [&] { return xpe_contrast_enhance(&img, &params); });
+    for (size_t i = 0; i < n; ++i) {
+        if (!std::isfinite(px[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
+    }
+    free_img(img);
+}

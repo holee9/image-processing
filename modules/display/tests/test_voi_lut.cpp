@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <vector>
+#include "perf_measure.h"
 
 #include "xpe/display/display_api.h"
 
@@ -351,4 +352,30 @@ TEST(VoiLut, Performance_3072x3072) {
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_LE(ms, 16) << "VoiLUT LINEAR 3072x3072 took " << ms << "ms (limit 16ms)";
     free_image(img);
+}
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST(VoiLut, BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    std::vector<float> pristine(n);
+    for (size_t i = 0; i < n; ++i)
+        pristine[i] = static_cast<float>((i * 2654435761u) % 65536u);
+    XpeImageBuffer img = make_float32_image(kSize, kSize, 0.0f);
+    auto reset = [&] {
+        std::copy(pristine.begin(), pristine.end(), static_cast<float*>(img.data));
+    };
+    XpeVoiLutParams params{};
+    ASSERT_EQ(XPE_OK, xpe_voi_preset_create(&params, XPE_BODY_BONE));
+    perf_measure::Measure("REQ-DISP-016/xpe_apply_voi_lut", "3072x3072", reset,
+                          [&] { return xpe_apply_voi_lut(&img, &params); });
+    const float* out = static_cast<const float*>(img.data);
+    for (size_t i = 0; i < n; ++i) {
+        if (!std::isfinite(out[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
+    }
+    std::free(img.data);
 }

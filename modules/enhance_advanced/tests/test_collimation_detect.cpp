@@ -13,6 +13,7 @@
 #include <vector>
 #include <cmath>
 #include <chrono>
+#include "perf_measure.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -433,4 +434,24 @@ TEST_F(CollimationDetectTest, BenchmarkFreeze_BP07_CollimationDetectionBaseline)
     RecordProperty("BP", "BP-07");
     RecordProperty("baseline_ms_max", kMaxMs);
     RecordProperty("pixels", kWidth * kHeight);
+}
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST_F(CollimationDetectTest, BenchmarkFreeze_Performance_PERF_ADV_003_Collimation3072) {
+    constexpr int kSize = 3072;
+    XpeImageBuffer img = createSyntheticCollimation(kSize, kSize, 200, 240, 2880, 2840, 900.0f);
+    int32_t x0 = -1, y0 = -1, x1 = -1, y1 = -1;
+    perf_measure::Measure("PERF-ADV-003/xpe_detect_collimation", "3072x3072",
+                          [] {},   // read-only call: nothing to restore
+                          [&] { return xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr); });
+    EXPECT_GE(x0, 0);
+    EXPECT_GE(y0, 0);
+    EXPECT_LT(x1, kSize);
+    EXPECT_LT(y1, kSize);
+    EXPECT_LE(x0, x1);
+    EXPECT_LE(y0, y1);
 }
