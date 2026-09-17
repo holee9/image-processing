@@ -173,16 +173,31 @@ public sealed class ProcessingChainRunnerTests
         Assert.Equal("chain: a=NotRequested, preprocess=RequestedNotApplied", result.Summary);
     }
 
-    /// <summary>The plan follows the settings switch.</summary>
+    /// <summary>
+    /// The plan is preprocess then GSVG, in that order (GUI-C-101), and each stage follows its own
+    /// setting. The order is asserted because the chain feeds each stage the previous one's output.
+    /// </summary>
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Plan_FollowsPreprocessInChain(bool on)
+    [InlineData(false, GsvgModes.None, false, false)]
+    [InlineData(true, GsvgModes.None, true, false)]
+    [InlineData(false, GsvgModes.GridSuppression, false, true)]
+    [InlineData(true, GsvgModes.VirtualGrid, true, true)]
+    public void Plan_FollowsTheSettings(bool preprocess, string gsvgMode, bool preprocessEnabled, bool gsvgEnabled)
     {
-        var stages = ProcessingChainPlan.BuildStages(new AppSettings { PreprocessInChain = on });
-        var stage = Assert.Single(stages);
-        Assert.Equal(StageIds.Preprocess, stage.StageId);
-        Assert.Equal(on, stage.Enabled);
+        var stages = ProcessingChainPlan.BuildStages(new AppSettings { PreprocessInChain = preprocess, GsvgMode = gsvgMode });
+
+        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg], stages.Select(s => s.StageId));
+        Assert.Equal(preprocessEnabled, stages[0].Enabled);
+        Assert.Equal(gsvgEnabled, stages[1].Enabled);
+    }
+
+    /// <summary>An unknown GSVG mode is None — the module's own pass-through default.</summary>
+    [Fact]
+    public void GsvgMode_UnknownValueBecomesNone()
+    {
+        var settings = new AppSettings { GsvgMode = "NotAMode" };
+        Assert.Equal(GsvgModes.None, settings.GsvgMode);
+        Assert.False(ProcessingChainPlan.BuildStages(settings)[1].Enabled);
     }
 
     /// <summary>

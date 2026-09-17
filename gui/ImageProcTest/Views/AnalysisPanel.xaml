@@ -238,6 +238,63 @@
                              Background="#0DFFFFFF" Foreground="#f0f2f5"
                              BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
                              ToolTip="Tube voltage of the exposure. One value for every chain stage that needs it (default 70)." />
+                    <TextBlock AutomationProperties.AutomationId="ExposureKvpPendingMark"
+                               Text="연결 대기 — #180"
+                               Foreground="#7dd3fc" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,8"
+                               ToolTip="전처리 세 단계는 이 값을 읽지 않습니다(측정: GUI-C-100). 가상 격자를 켜면 vg_kvp 로 쓰입니다 — #180." />
+
+                    <TextBlock Text="Grid correction" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <UniformGrid Columns="3" Margin="0,0,0,8">
+                        <RadioButton AutomationProperties.AutomationId="GsvgModeNone" Content="None" GroupName="GsvgMode"
+                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=None}"
+                                     Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="GsvgModeGridSuppression" Content="Suppress" GroupName="GsvgMode"
+                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=GridSuppression}"
+                                     Foreground="#8a909c" FontSize="10" />
+                        <RadioButton AutomationProperties.AutomationId="GsvgModeVirtualGrid" Content="Virtual" GroupName="GsvgMode"
+                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=VirtualGrid}"
+                                     Foreground="#8a909c" FontSize="10" />
+                    </UniformGrid>
+
+                    <TextBlock Text="Virtual grid: ratio / lines per cm" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox AutomationProperties.AutomationId="GsvgGridRatioInput"
+                                 Text="{Binding Settings.GsvgGridRatio, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0DFFFFFF" Foreground="#f0f2f5"
+                                 BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
+                        <TextBox Grid.Column="2" AutomationProperties.AutomationId="GsvgGridFrequencyInput"
+                                 Text="{Binding Settings.GsvgGridFrequencyPerCm, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0DFFFFFF" Foreground="#f0f2f5"
+                                 BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
+                    </Grid>
+
+                    <TextBlock Text="Virtual grid: air signal / iterations" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox AutomationProperties.AutomationId="GsvgAirSignalInput"
+                                 Text="{Binding Settings.GsvgAirSignal, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0DFFFFFF" Foreground="#f0f2f5"
+                                 BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
+                        <TextBox Grid.Column="2" AutomationProperties.AutomationId="GsvgIterationsInput"
+                                 Text="{Binding Settings.GsvgIterations, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0DFFFFFF" Foreground="#f0f2f5"
+                                 BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
+                    </Grid>
+
+                    <TextBlock Text="Virtual grid: table path (empty = beside gsvg.dll)" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <TextBox AutomationProperties.AutomationId="GsvgTablePathInput"
+                             Text="{Binding Settings.GsvgTablePath, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#0DFFFFFF" Foreground="#f0f2f5"
+                             BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8" />
 
                     <TextBlock Text="Pixel pitch (mm)" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <TextBox AutomationProperties.AutomationId="PixelPitchInput"

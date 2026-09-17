@@ -21,6 +21,7 @@
                                           AutomationProperties.AutomationId="WorkbenchViewport"
                                           SourceImage="{Binding SourceImage}"
                                           ProcessedImage="{Binding ProcessedImage}"
+                                          ChainStatus="{Binding ChainStatus, Mode=OneWay}"
                                           CompareMode="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           ZoomScale="{Binding Settings.ComparisonZoomScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           PanX="{Binding Settings.ComparisonPanX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

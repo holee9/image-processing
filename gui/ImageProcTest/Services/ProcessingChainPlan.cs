@@ -12,6 +12,12 @@ public static class ProcessingChainPlan
     public static IReadOnlyList<StageRequest> BuildStages(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        return [new StageRequest(StageIds.Preprocess, settings.PreprocessInChain)];
+
+        // Order (#180, GUI-C-101): preprocess, then GSVG, then the display pipeline.
+        return
+        [
+            new StageRequest(StageIds.Preprocess, settings.PreprocessInChain),
+            new StageRequest(StageIds.Gsvg, GsvgModes.Normalize(settings.GsvgMode) != GsvgModes.None),
+        ];
     }
 }

@@ -30,6 +30,17 @@ public sealed class ImageComparisonViewport : FrameworkElement
             typeof(ImageComparisonViewport),
             new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnProcessedImageChanged));
 
+    /// <summary>
+    /// The pixel chain of the image being shown (#180, GUI-C-101), drawn in the HUD so the operator sees
+    /// what produced these pixels without opening a panel. Empty draws nothing extra.
+    /// </summary>
+    public static readonly DependencyProperty ChainStatusProperty =
+        DependencyProperty.Register(
+            nameof(ChainStatus),
+            typeof(string),
+            typeof(ImageComparisonViewport),
+            new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.AffectsRender));
+
     public static readonly DependencyProperty CompareModeProperty =
         DependencyProperty.Register(
             nameof(CompareMode),
@@ -190,6 +201,12 @@ public sealed class ImageComparisonViewport : FrameworkElement
     {
         get => (string)GetValue(CompareModeProperty);
         set => SetValue(CompareModeProperty, value);
+    }
+
+    public string ChainStatus
+    {
+        get => (string)GetValue(ChainStatusProperty);
+        set => SetValue(ChainStatusProperty, value);
     }
 
     public double ZoomScale
@@ -507,7 +524,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
     private void DrawHud(DrawingContext drawingContext, Rect viewport, string mode)
     {
         var zoomText = ZoomScale <= 0.0 ? "fit" : $"{ZoomScale * 100.0:0}%";
-        var text = $"{mode} | zoom {zoomText} | pan {PanX:0},{PanY:0} | swipe {SwipePosition:P0}";
+        var chain = string.IsNullOrWhiteSpace(ChainStatus) ? string.Empty : $" | {ChainStatus}";
+        var text = $"{mode} | zoom {zoomText} | pan {PanX:0},{PanY:0} | swipe {SwipePosition:P0}{chain}";
         var formatted = CreateText(text, 12, WpfBrushes.White);
         var padding = new Thickness(8, 4, 8, 4);
         var hudRect = new Rect(10, 10, formatted.Width + padding.Left + padding.Right, formatted.Height + padding.Top + padding.Bottom);

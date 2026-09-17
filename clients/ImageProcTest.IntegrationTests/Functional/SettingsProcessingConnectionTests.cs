@@ -68,6 +68,7 @@ public sealed class SettingsProcessingConnectionTests
         "gui/ImageProcTest/Services/RealXpeBackend.cs",
         "gui/ImageProcTest/Services/RawImageLoader.cs",
         "gui/ImageProcTest/Services/ProcessingChainPlan.cs",
+        "gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs",
     ];
 
     /// <summary>Calls that take the whole settings object without reading any setting (argument guards).</summary>
@@ -114,6 +115,40 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.ShowDisplayPanel),
         nameof(AppSettings.AnalysisTab),
     ];
+
+    /// <summary>
+    /// Settings the GUI hands to processing that cannot change the image yet, with the open issue that
+    /// will connect them (GUI-C-101, lead decision). Not the same as unconnected: the value IS read on the
+    /// processing path. An entry needs an issue number, and the screen has to say so — the E2E case
+    /// <c>U05_PendingConnectionMark_IsShown</c> reads the mark.
+    /// </summary>
+    internal static readonly Dictionary<string, string> PendingConnection = new(StringComparer.Ordinal)
+    {
+        // Measured in GUI-C-100: the three preprocess stages do not read kVp, so changing it leaves the
+        // drawn pixels identical. The virtual grid passes it as vg_kvp once that stage is switched on.
+        [nameof(AppSettings.ExposureKvp)] = "#180",
+    };
+
+    /// <summary>
+    /// Every pending-connection entry is bound, carries an issue number, and is not also declared
+    /// unconnected or view state — the three ways this category could be used to hide something.
+    /// </summary>
+    [Fact]
+    public void PendingConnectionEntries_AreBoundAndCarryAnIssue()
+    {
+        var bound = Survey.Run(Unconnected, ViewState).Bindings.Select(b => b.Property).ToHashSet(StringComparer.Ordinal);
+        var violations = new List<string>();
+
+        foreach (var (property, issue) in PendingConnection)
+        {
+            if (!bound.Contains(property)) violations.Add($"{property}: pending connection but nothing binds it");
+            if (!Regex.IsMatch(issue, @"^#\d+$")) violations.Add($"{property}: '{issue}' is not an issue number");
+            if (Unconnected.Contains(property)) violations.Add($"{property}: declared both pending and unconnected");
+            if (ViewState.Contains(property)) violations.Add($"{property}: declared both pending and view state");
+        }
+
+        Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
+    }
 
     private const string E2ESourceRoot = "clients/ImageProcTest.E2ETests";
 
@@ -210,8 +245,9 @@ public sealed class SettingsProcessingConnectionTests
     {
         var survey = Survey.Run(Unconnected, ViewState);
 
-        // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp; GUI-C-100 added PixelPitchMm.
-        Assert.Equal(27, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp; GUI-C-100 added PixelPitchMm;
+        // GUI-C-101 added the six GSVG settings.
+        Assert.Equal(33, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBSharpeningSigma) && b.Via == "LaneBSharpeningSigma" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
@@ -235,6 +271,9 @@ public sealed class SettingsProcessingConnectionTests
                      nameof(AppSettings.RawWidth),
                      nameof(AppSettings.PreprocessInChain), nameof(AppSettings.ExposureKvp),
                      nameof(AppSettings.PixelPitchMm),
+                     nameof(AppSettings.GsvgMode), nameof(AppSettings.GsvgGridRatio),
+                     nameof(AppSettings.GsvgGridFrequencyPerCm), nameof(AppSettings.GsvgAirSignal),
+                     nameof(AppSettings.GsvgIterations), nameof(AppSettings.GsvgTablePath),
                  })
         {
             Assert.Contains(p, reads);

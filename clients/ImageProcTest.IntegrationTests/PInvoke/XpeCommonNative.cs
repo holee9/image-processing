@@ -41,6 +41,7 @@ public static class XpeCommonNative
         DICOM_CONFORMANCE = -14,
         NOT_IMPLEMENTED = -15,
         CALIB_NOT_LOADED = -16,
+        INVALID_CALIB_DATA = -17,
     }
 
     public enum XpeAlertSeverity : int

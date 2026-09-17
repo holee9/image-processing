@@ -330,6 +330,7 @@ public sealed class MockXpeBackend : IXpeBackend
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, _) => request.StageId switch
         {
             StageIds.Preprocess => new StageExecution(false, null, "Preprocessing requires the native backend (xpe_preprocess.dll)."),
+            StageIds.Gsvg => new StageExecution(false, null, "Grid correction requires the native backend (gsvg.dll)."),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the mock backend."),
         });
         AddLog(result.Summary);
