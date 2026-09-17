@@ -74,33 +74,20 @@ extern "C" XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
                                                 XpeBodyPart      bodyPart) {
     if (!params) return XPE_ERR_INVALID_INPUT;
 
-    // REQ-DISP-017: preset center/width values
+    // REQ-DISP-017 (revised 2026-09-17, #177): the presets act on detector DN,
+    // not HU -- this product applies VOI to raw DN with an identity modality
+    // LUT. Until per-body-part DN windows are derived from real detector data
+    // (#151), every body part uses the full 16-bit window. The former CT HU
+    // windows (e.g. Abdomen 40/400) crushed DN input to a single output level
+    // (GUI-C-84). Do not pick per-part values from synthetic data (#148).
     switch (bodyPart) {
         case XPE_BODY_BONE:
-            params->mode   = XPE_VOI_LINEAR;
-            params->center = 500.0f;
-            params->width  = 2000.0f;
-            params->minOut = 0.0f;
-            params->maxOut = 255.0f;
-            break;
         case XPE_BODY_LUNG:
-            params->mode   = XPE_VOI_LINEAR;
-            params->center = -600.0f;
-            params->width  = 1600.0f;
-            params->minOut = 0.0f;
-            params->maxOut = 255.0f;
-            break;
         case XPE_BODY_ABDOMEN:
-            params->mode   = XPE_VOI_LINEAR;
-            params->center = 40.0f;
-            params->width  = 400.0f;
-            params->minOut = 0.0f;
-            params->maxOut = 255.0f;
-            break;
         case XPE_BODY_HEAD:
             params->mode   = XPE_VOI_LINEAR;
-            params->center = 40.0f;
-            params->width  = 80.0f;
+            params->center = 32768.0f;
+            params->width  = 65535.0f;
             params->minOut = 0.0f;
             params->maxOut = 255.0f;
             break;

@@ -239,9 +239,16 @@ TEST(ParameterDependency, DISABLED_VoiLinearExactMustDifferFromLinear) {
 }
 
 // ---------------------------------------------------------------------------
-// xpe_voi_preset_create -- the body part must reach the params
+// xpe_voi_preset_create -- today the body part does NOT change the params
+//
+// REQ-DISP-017 was revised on 2026-09-17 (#177): the presets are in detector
+// DN, and until real detector data (#151) gives per-body-part windows, every
+// body part returns the same provisional window 32768/65535. This case used to
+// assert that BONE and LUNG differ; it now asserts that they are the SAME, so
+// that the day per-part DN values arrive it turns red and someone updates it
+// on purpose rather than the provisional equality lingering unnoticed.
 // ---------------------------------------------------------------------------
-TEST(ParameterDependency, VoiPreset_BodyPartReachesTheParams) {
+TEST(ParameterDependency, KnownDivergence_VoiPresetIgnoresBodyPartUntil151) {
     auto run = [](XpeBodyPart part) {
         XpeVoiLutParams p{};
         EXPECT_EQ(XPE_OK, xpe_voi_preset_create(&p, part));
@@ -256,10 +263,12 @@ TEST(ParameterDependency, VoiPreset_BodyPartReachesTheParams) {
                      << " | LUNG c=" << lung.center << " w=" << lung.width
                      << " | HEAD c=" << head.center << " w=" << head.width;
 
-    EXPECT_TRUE(bone.center != lung.center || bone.width != lung.width)
-        << "BONE and LUNG produce the same window";
-    EXPECT_TRUE(bone.center != head.center || bone.width != head.width)
-        << "BONE and HEAD produce the same window";
+    EXPECT_TRUE(bone.center == lung.center && bone.width == lung.width)
+        << "BONE and LUNG now differ -- per-body-part DN windows have arrived "
+           "(#151/#177); update this case and REQ-DISP-017 deliberately";
+    EXPECT_TRUE(bone.center == head.center && bone.width == head.width)
+        << "BONE and HEAD now differ -- per-body-part DN windows have arrived "
+           "(#151/#177); update this case and REQ-DISP-017 deliberately";
 }
 
 // ---------------------------------------------------------------------------

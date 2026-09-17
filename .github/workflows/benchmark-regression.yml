@@ -58,11 +58,23 @@ jobs:
         shell: pwsh
         run: cmake --build --preset ci-post --parallel
 
+      # -V, not only --output-on-failure: measurement-only tests (#179) print their numbers and
+      # assert no time, so they pass - and --output-on-failure drops the output of passing tests
+      # (QA-B-84 counted 0 ADV061 lines that way, 1 with -V). The measurement lines are copied to
+      # the step summary so they can be read without opening the full log.
       - name: Run BP-06~09 benchmark freeze GTests
         shell: pwsh
         run: |
           $pattern = 'FullPipelineE2E\.PostProcess_3072x3072_Within3000ms|BenchmarkFreeze|CollimationDetectTest\.BenchmarkFreeze_BP07_CollimationDetectionBaseline|ExposureIndex\.BenchmarkFreeze_BP0[89]_(EI|DI)CalcTimeBaseline'
-          ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -R $pattern
+          $log = Join-Path $env:RUNNER_TEMP 'benchmark-ctest.log'
+          ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -V -R $pattern 2>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $lines = Select-String -Path $log -Pattern 'ADV061 fractional' | ForEach-Object { $_.Line.Trim() }
+          "### Measurement-only benchmarks (#179)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          if ($lines) { $lines | ForEach-Object { "- ``$_``" } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
+          else { "- no ADV061 line in this run (test not present on this commit, or it did not print)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
+          exit $code
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6

@@ -166,6 +166,10 @@ jobs:
       # The summary line is checked, not just the exit code: a run that never starts (missing
       # DLL, bad path) exits non-zero with no summary, and a script that reads only its own
       # failure list sees an empty list as a pass (observed in QA-A-89).
+      #
+      # The ran-count is checked too: a binary that runs zero tests still prints a summary
+      # ('[  PASSED  ] 0 tests.') and exits 0 (QA-A-90 hit this with a filter on a file that was
+      # not in the build). Every run must execute the same non-zero number of tests.
       - name: Run preprocess test binary as one process (#176)
         shell: pwsh
         run: |
@@ -178,17 +182,23 @@ jobs:
             @{ name = 'shuffle seed 9'; args = @('--gtest_shuffle', '--gtest_random_seed=9') }
           )
           $bad = 0
+          $ranCounts = @()
           foreach ($r in $runs) {
             $out = & $exe.FullName @($r.args) 2>&1 | Out-String
             $code = $LASTEXITCODE
             $summary = ($out -split "`n" | Where-Object { $_ -match '^\[\s*(PASSED|FAILED)\s*\]' }) -join ' | '
-            Write-Host ("{0}: exit={1} summary={2}" -f $r.name, $code, $summary)
+            $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
+            $ran = if ($ranLine -and $ranLine -match '^\[=+\]\s+(\d+) tests?') { [int]$Matches[1] } else { -1 }
+            Write-Host ("{0}: exit={1} ran={2} summary={3}" -f $r.name, $code, $ran, $summary)
             if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $r.name); $bad++ ; continue }
+            if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $r.name, $ran); $bad++ ; continue }
+            $ranCounts += $ran
             if ($code -ne 0) {
               ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
               $bad++
             }
           }
+          if (($ranCounts | Select-Object -Unique).Count -gt 1) { Write-Error ("runs executed different test counts: {0}" -f ($ranCounts -join ', ')); $bad++ }
           if ($bad -gt 0) { Write-Error ("{0} single-process run(s) failed - state leaks between tests that ctest's per-test processes hide (#176)" -f $bad); exit 1 }
 
       - name: Upload preprocess test results

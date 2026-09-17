@@ -4,11 +4,14 @@
 # requested and actual backends differ, so an explicit request is what makes that check mean
 # 'Native actually loaded' rather than 'whatever the settings said was honoured'.
 #
-# KNOWN BROKEN, not fixed here: the SelfCheck step below currently fails (GUI-C-76 ran it:
-# 'VOI window center should default to Abdomen preset'). The VOI defaults disagree three ways
-# (SelfCheck 40/400, fixture template 40/400, app 32768/65535) and 40/400 is an HU value while
-# 32768/65535 is raw DN - which one is right is an open question, so this script cannot run end
-# to end until it is settled. It is not run by CI.
+# SelfCheck: GUI-C-76 saw it fail ('VOI window center should default to Abdomen preset') because
+# SelfCheck and the fixture template expected the HU window 40/400 while the app defaults to the
+# raw-DN window 32768/65535. GUI-C-84 measured that VOI is applied to raw DN (modality identity),
+# so the app was right; SelfCheck and the template were fixed in 08ae377.
+#
+# Still open: the Native body-part presets are HU values and flatten a raw image to one level
+# (GUI-C-84). REQ-DISP-017 was amended to the DN domain; the code change is QA-B-82. This script
+# does not exercise presets. It is not run by CI.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

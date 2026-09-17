@@ -89,14 +89,18 @@ typedef enum XpeVoiLutMode {
 /**
  * @brief Body part presets for VOI LUT parameters.
  *
- * Used by xpe_voi_preset_create() to populate XpeVoiLutParams with
- * clinically validated window center/width values.
+ * Used by xpe_voi_preset_create() to populate XpeVoiLutParams with a
+ * window in the detector DN domain (REQ-DISP-017, revised 2026-09-17).
+ *
+ * Until per-body-part DN windows are derived from real detector data (#151),
+ * every body part yields the same full 16-bit window, center=32768 and
+ * width=65535: selecting a body part does not change the output (#177).
  */
 typedef enum XpeBodyPart {
-    XPE_BODY_BONE    = 0, /**< Bone: center=500,  width=2000 */
-    XPE_BODY_LUNG    = 1, /**< Lung: center=-600, width=1600 */
-    XPE_BODY_ABDOMEN = 2, /**< Abdomen: center=40, width=400 */
-    XPE_BODY_HEAD    = 3  /**< Head: center=40,   width=80   */
+    XPE_BODY_BONE    = 0, /**< Bone: center=32768, width=65535 (provisional, #151) */
+    XPE_BODY_LUNG    = 1, /**< Lung: center=32768, width=65535 (provisional, #151) */
+    XPE_BODY_ABDOMEN = 2, /**< Abdomen: center=32768, width=65535 (provisional, #151) */
+    XPE_BODY_HEAD    = 3  /**< Head: center=32768, width=65535 (provisional, #151) */
 } XpeBodyPart;
 
 /**
@@ -221,7 +225,13 @@ XPE_API XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*          img,
                                          const XpeVoiLutParams*   params);
 
 /**
- * @brief Populate XpeVoiLutParams with clinically validated preset values.
+ * @brief Populate XpeVoiLutParams with a body-part preset in the detector DN domain.
+ *
+ * The window is expressed in raw detector DN, as VOI receives it (modality
+ * LUT identity: slope 1, intercept 0). Until per-body-part DN values are
+ * derived from real detector data (#151), all four body parts return the
+ * same full 16-bit window, center=32768 and width=65535 (REQ-DISP-017,
+ * #177). These are not CT HU windows.
  *
  * Every field of @p params is overwritten, not just center and width: mode is
  * set to XPE_VOI_LINEAR, minOut to 0.0f and maxOut to 255.0f for all four
