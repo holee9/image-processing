@@ -169,6 +169,7 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
         Measure("W24", window =>
         {
             var status = FaultInjectionStatus(window);
+            AssertWrappedBackendMatches(window, app.BackendMode, output.WriteLine, "W24");
             output.WriteLine($"W24 title='{window.Title}' status='{status}' viewport='{Viewport(window).Status}'");
             Assert.Equal("faultInjection=off", status);
             Assert.DoesNotContain("FAULT INJECTION", window.Title, StringComparison.Ordinal);

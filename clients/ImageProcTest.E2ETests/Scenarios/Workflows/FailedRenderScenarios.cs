@@ -33,6 +33,7 @@ public sealed class FailedRenderScenarios(FaultInjectedApplicationFixture app, I
             armed == "faultInjection=display-pipeline-after:2 calls=1",
             $"Expected the load to be display pipeline call 1 of an armed seam, but the window reports '{armed}'.");
 
+        AssertWrappedBackendMatches(window, app.BackendMode, output.WriteLine, "W23");
         OpenParameters(window);
 
         // Control: call 2 still renders, so the image is replaced and nothing is stale.
@@ -87,6 +88,7 @@ public sealed class DetachedFailedRenderScenarios(DetachedFaultApplicationFixtur
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
         var window = app.MainWindow!;
 
+        AssertWrappedBackendMatches(window, app.BackendMode, output.WriteLine, "W26");
         var detached = OpenDetached(window);
         try
         {
