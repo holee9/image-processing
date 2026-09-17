@@ -67,6 +67,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_grid_suppression.cpp
         # #180 (QA-B-91): virtual grid on self-consistent synthetic images
         tests/test_virtual_grid.cpp
+        # #180 (QA-B-95): virtual grid against the MC-GPU phantoms (tests/data/mc)
+        tests/test_virtual_grid_mc.cpp
         # grid_dwt.cpp is compiled into the test binary as well: its functions are
         # internal to gsvg.dll (not exported), and the tests call them directly.
         src/grid_dwt.cpp
