@@ -7,14 +7,27 @@
 - `RealXpeBackend` P/Invoke wrapper for `xpe_common.dll` and `xpe_display.dll`
 - display pipeline command path: Modality LUT -> VOI LUT -> Presentation LUT
 - one-click calibration evaluation radio controls for preprocessing stages using `Off`, `On`, and `Auto`
-- display settings panel for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale (defaults tuned for 16-bit flat-panel DR: C=32768, W=65535, intercept=0)
-- source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and optional detached viewer
-- settings UI, log panel, alert panel
+- display settings for VOI mode, window center/width, body-part preset, GSDF flag, and modality rescale, in the Analysis panel (defaults: `Models/AppSettings.cs`)
+- source-vs-processed comparison viewport with swipe, split, overlay, difference, zoom, pan, and an optional detached viewer (opens since #166; what is checked about it: `clients/ImageProcTest.E2ETests/Scenarios/Smoke/DetachViewerScenarios.cs` and `.../Workflows/DetachedViewerSyncScenarios.cs`)
+- settings UI, and a log region in the Analysis panel's Log tab, shown by **View → Show Logs** (off at start)
 - offline packaged Help window with quick-start and scope pages
 - top-level menu bar: File, Backend, View, Pipeline, Tools, Help
-- resizable diagnostics layout for Logs and Alerts
 - no real DICOM parsing
 - native display backend is enabled only when required DLL exports match the Phase 1b ABI; otherwise the app safely falls back to Mock
+
+### Removed from the list above (GUI-C-76, #165)
+
+This list used to advertise three things the app no longer has. They were removed rather than
+reworded so nobody re-investigates whether they exist:
+
+- **alert panel** — the Alerts panel was removed with the Evaluation Workbench layout (#165,
+  GUI-C-65; see the comment at `MainWindow.xaml` near the View menu). Alerts are still collected
+  and **Clear Alerts** still empties them, but no region of the window displays them.
+- **resizable diagnostics layout for Logs and Alerts** — there is no `GridSplitter` anywhere in the
+  app's XAML. (The automation report's `ResizableDiagnosticsLayoutDetected` is set to `true`
+  unconditionally in `MainWindow.xaml.cs`; it does not measure a layout.)
+- **Runtime panel** (was referenced under *Native display backend*) — removed with the same layout;
+  the detection state it showed is now read with **Backend → Native Diagnostics**.
 
 ## Build
 
@@ -28,7 +41,14 @@ dotnet build gui\ImageProcTest\ImageProcTest.csproj -c Debug
 dotnet run --project gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj -c Debug
 ```
 
-The self-check validates the precreated fixture pack under `gui/ImageProcTest/fixtures/gui-s0/`:
+> **Status (measured GUI-C-76): this self-check currently fails** at its VOI default assertion —
+> `VOI window center should default to Abdomen preset.` (`ImageProcTest.SelfCheck/Program.cs`).
+> It asserts the old CT values — the same pair the fixture template
+> `fixtures/gui-s0/appsettings.template.json` still carries — while the app's own defaults in
+> `Models/AppSettings.cs` are the flat-panel ones. It is not run by CI. Until it is reconciled, treat the list below as what it was written to check, not as
+> what currently passes.
+
+The self-check was written to validate the precreated fixture pack under `gui/ImageProcTest/fixtures/gui-s0/`:
 
 - `fixture-manifest.json`
 - `appsettings.template.json`
@@ -38,11 +58,11 @@ The self-check validates the precreated fixture pack under `gui/ImageProcTest/fi
 - raw fixture SHA-256 integrity
 - mock backend version plus expected log/alert counts
 - wrist lateral 3072x3072 raw image loading and preview creation
-- display settings defaults: `voiWindowCenter=32768`, `voiWindowWidth=65535`, `modalityRescaleIntercept=0` (flat-panel DR 16-bit range)
+- display settings defaults (values: see the status note above)
 - calibration stage mode defaults: Offset/Gain/Defect/Ghost/Temperature/Nonlinearity/Binning all start as `Auto`
 - mock display pipeline application
 - comparison viewport defaults, source preservation, and processed preview separation
-- VOI body-part preset values (flat-panel DR: Bone C=40000/W=30000, Lung C=25000/W=50000, Abdomen C=32768/W=65535, Head C=35000/W=40000)
+- VOI body-part preset values (Mock: `Services/MockXpeBackend.cs`; Native: `xpe_voi_preset_create` in `xpe_display.dll`)
 
 ## E2E
 
@@ -51,7 +71,12 @@ dotnet build gui\ImageProcTest.E2E\ImageProcTest.E2E.csproj -c Debug
 .\gui\ImageProcTest.E2E\bin\Debug\net8.0-windows\ImageProcTest.E2E.exe
 ```
 
-The E2E runner:
+> **Status (measured GUI-C-76): this runner currently fails** — it runs the self-check first, and
+> that fails (above). It is not run by CI. It also looks up `ShowRuntimePanelMenuItem`, which was
+> removed in #165; that step has not been reached, so whether it is the next failure is unmeasured.
+> The maintained UI suite is `clients/ImageProcTest.E2ETests` (FlaUI, run by CI).
+
+The E2E runner was written to:
 
 - executes the self-check first
 - launches `ImageProcTest.exe`
@@ -62,7 +87,7 @@ The E2E runner:
 - verifies calibration evaluation `Off`/`On`/`Auto` radio groups and live summary updates
 - verifies `Apply Body Part Preset` and `Apply Display Pipeline` command wiring
 - verifies comparison mode controls, zoom commands, and viewport presence
-- verifies menu/toolbar parity and resizable diagnostics splitters
+- verifies menu/toolbar parity
 - clicks `Clear Logs` and `Clear Alerts`
 - verifies both lists are emptied
 - closes the window cleanly
@@ -139,7 +164,7 @@ The factory switches to `RealXpeBackend` only when these exports are present:
 - `xpe_common.dll`: `xpe_alloc_image`, `xpe_free_image`
 - `xpe_display.dll`: `xpe_display_version`, `xpe_apply_modality_lut`, `xpe_apply_voi_lut`, `xpe_voi_preset_create`, `xpe_apply_presentation_lut`, `xpe_gsdf_calibrate`
 
-If any required export is missing, the app keeps running in Mock mode and reports the DLL detection state in the Runtime panel. This prevents a stale DLL from crashing the GUI during development.
+If any required export is missing, the app keeps running in Mock mode. The DLL detection state is reported by **Backend → Native Diagnostics** (status bar and log). This prevents a stale DLL from crashing the GUI during development.
 
 ## Help
 
@@ -157,7 +182,7 @@ The GUI-S0 menu bar follows the project command taxonomy:
 
 - `File`: raw loading, settings persistence, automation report export, exit
 - `Backend`: mock backend lifecycle, diagnostics, future native backend commands
-- `View`: panel visibility and layout reset
+- `View`: the Logs toggle, two panel toggles scheduled for later phases (disabled), comparison mode, zoom, the detached viewer, and layout reset — see `MainWindow.xaml` for the current items
 - `Pipeline`: disabled placeholders for future processing commands
 - `Tools`: calibration, fixture, evidence, and future QA commands
 - `Help`: offline quick-start, scope, and future generated reference entry points
@@ -166,37 +191,9 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 
 ## appsettings.json schema
 
-`appsettings.json` is stored next to the executable. Current keys:
-
-- `backendMode`
-- `rawWidth`
-- `rawHeight`
-- `rawPixelFormat`
-- `calibOffsetDir`
-- `calibGainDir`
-- `calibDefectDir`
-- `calibOffsetMode`
-- `calibGainMode`
-- `calibDefectMode`
-- `calibGhostMode`
-- `calibTemperatureMode`
-- `calibNonlinearityMode`
-- `calibBinningMode`
-- `lastRawDir`
-- `voiWindowCenter`
-- `voiWindowWidth`
-- `voiLutMode`
-- `selectedBodyPart`
-- `gsdfEnabled`
-- `modalityRescaleSlope`
-- `modalityRescaleIntercept`
-- `showDisplayPanel`
-- `comparisonMode`
-- `comparisonZoomScale`
-- `comparisonPanX`
-- `comparisonPanY`
-- `comparisonSwipePosition`
-- `comparisonOverlayOpacity`
+`appsettings.json` is stored next to the executable. Its keys are the `[JsonPropertyName]`
+attributes in `Models/AppSettings.cs` — read them there. (A copied list used to live here and had
+drifted from that file by GUI-C-76; it was removed rather than updated, so it cannot drift again.)
 
 ## PipelineOrchestrator
 

@@ -80,7 +80,7 @@ public sealed class WindowReacquireTests(ITestOutputHelper output)
         Skip.If(
             !string.IsNullOrEmpty(fixture.ReacquiredNote),
             $"Not measured: the real re-acquire fired on this launch — {fixture.ReacquiredNote} " +
-            "XPE-SKIP-ALLOWED:30011");
+            "XPE-SKIP-ALLOWED:170");
 
         Assert.Equal(string.Empty, fixture.ReacquiredNote);
         Assert.Equal("MainWindow", fixture.MainWindow!.AutomationId);
