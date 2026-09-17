@@ -7,6 +7,7 @@ using FlaUI.Core.WindowsAPI;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
@@ -32,7 +33,7 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 [Collection(WorkflowApplicationCollection.Name)]
 public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
 {
-    private const string Title = "ImageProcTest Comparison Viewer";
+    private const string Title = DetachedTitle;
 
     /// <summary>
     /// W-15: a wheel gesture inside the detached viewer moves the MAIN window's zoom readout.
@@ -228,30 +229,6 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
         Thread.Sleep(200);
         Keyboard.Press(key);
         Thread.Sleep(700);
-    }
-
-    private static AutomationElement OpenDetached(Window window)
-    {
-        OpenViewMenu(window);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"))!.AsMenuItem().Invoke();
-
-        for (var i = 0; i < 20; i++)
-        {
-            Thread.Sleep(250);
-            if (window.FindFirstDescendant(cf => cf.ByName(Title)) is { } found) return found;
-        }
-
-        throw new InvalidOperationException($"No '{Title}' window appeared within 5 s (#166).");
-    }
-
-    private static void CloseDetached(Window window)
-    {
-        if (window.FindFirstDescendant(cf => cf.ByName(Title)) is not { } detached) return;
-
-        try { detached.AsWindow().Close(); }
-        catch (Exception) { /* the next assertion reports a window that will not close */ }
-
-        Thread.Sleep(400);
     }
 
     /// <summary>Puts zoom, pan and mode back, so the next case starts where this one did.</summary>

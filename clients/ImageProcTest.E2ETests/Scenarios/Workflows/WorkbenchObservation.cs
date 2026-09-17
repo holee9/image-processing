@@ -78,12 +78,22 @@ internal static class WorkbenchObservation
 
     internal static void ApplyDisplayPipeline(Window window)
     {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"))!.AsMenuItem().Click();
-        Thread.Sleep(350);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"))!.AsMenuItem().Invoke();
+        // A detached viewer can lie over the menu and take the click, so later attempts open it
+        // through the expand pattern instead (GUI-C-80).
+        AutomationElement? item = null;
+        for (var attempt = 0; attempt < 3 && item is null; attempt++)
+        {
+            window.SetForeground();
+            Keyboard.Press(VirtualKeyShort.ESCAPE);
+            Thread.Sleep(120);
+            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"))!.AsMenuItem();
+            if (attempt == 0) menu.Click(); else menu.Expand();   // Expand needs no pointer, so an overlapping window cannot take it
+            Thread.Sleep(350);
+            item = window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"));
+        }
+
+        Assert.True(item is not null, "The Apply Display Pipeline menu item did not appear after three attempts.");
+        item!.AsMenuItem().Invoke();
         Thread.Sleep(1200);
     }
 
@@ -146,6 +156,78 @@ internal static class WorkbenchObservation
     internal static IEnumerable<string> TextElements(Window window) =>
         window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
             .Select(t => { try { return t.Name; } catch { return string.Empty; } });
+
+    // ---- detached comparison viewer (#171, GUI-C-80) --------------------------------------------
+
+    internal const string DetachedTitle = "ImageProcTest Comparison Viewer";
+
+    internal static AutomationElement OpenDetached(Window window)
+    {
+        window.SetForeground();
+        Keyboard.Press(VirtualKeyShort.ESCAPE);
+        Thread.Sleep(120);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+        Thread.Sleep(300);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"))!.AsMenuItem().Invoke();
+
+        for (var i = 0; i < 20; i++)
+        {
+            Thread.Sleep(250);
+            if (window.FindFirstDescendant(cf => cf.ByName(DetachedTitle)) is { } found) return found;
+        }
+
+        throw new InvalidOperationException($"No '{DetachedTitle}' window appeared within 5 s (#166).");
+    }
+
+    internal static void CloseDetached(Window window)
+    {
+        if (window.FindFirstDescendant(cf => cf.ByName(DetachedTitle)) is not { } detached) return;
+
+        try { detached.AsWindow().Close(); }
+        catch (Exception) { /* the next assertion reports a window that will not close */ }
+
+        Thread.Sleep(400);
+    }
+
+    /// <summary>The detached window's viewport, read through the same peer as the main one.</summary>
+    internal static ViewportState DetachedViewport(AutomationElement detached)
+    {
+        var element = detached.FindFirstDescendant(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Image));
+        Assert.True(element is not null, "The detached window has no viewport in the automation tree.");
+        var status = element!.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
+        var match = StatusPattern.Match(status);
+        Assert.True(match.Success, $"The detached viewport reported '{status}'.");
+        return new ViewportState(
+            status,
+            match.Groups["s"].Value,
+            int.Parse(match.Groups["sv"].Value, System.Globalization.CultureInfo.InvariantCulture),
+            match.Groups["p"].Value,
+            int.Parse(match.Groups["pv"].Value, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Every text the detached window shows — searched, not looked up by id, so an absent label reads as absent.</summary>
+    internal static string[] DetachedTexts(AutomationElement detached) =>
+        detached.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+            .Where(t => !t.IsOffscreen)
+            .Select(t => { try { return t.Name; } catch { return string.Empty; } })
+            .Where(t => !string.IsNullOrEmpty(t))
+            .ToArray();
+
+    /// <summary>The detached window's stale text, or null when none is shown.</summary>
+    internal static string? DetachedStaleIndicator(AutomationElement detached) =>
+        DetachedTexts(detached).FirstOrDefault(t => t.StartsWith("STALE", StringComparison.Ordinal));
+
+    /// <summary>The centre the detached window's HUD names, or null when it shows no HUD.</summary>
+    internal static string? DetachedHudCenter(AutomationElement detached)
+    {
+        foreach (var text in DetachedTexts(detached))
+        {
+            var match = Regex.Match(text, @"^C\s+(\S+)\s+·");
+            if (match.Success) return match.Groups[1].Value;
+        }
+
+        return null;
+    }
 
     /// <summary>The main window's fault-injection status (<c>faultInjection=off</c> unless armed).</summary>
     internal static string FaultInjectionStatus(Window window) =>

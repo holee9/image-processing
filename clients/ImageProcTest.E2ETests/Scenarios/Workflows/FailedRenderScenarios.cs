@@ -72,6 +72,64 @@ public sealed class FailedRenderScenarios(FaultInjectedApplicationFixture app, I
     }
 }
 
+/// <summary>
+/// W-26 (#171 ③, GUI-C-80): a failed render is marked in the detached viewer too.
+///
+/// <para>Its own app, armed after one call: the load renders, the first Apply fails. The main window's
+/// indicator in the same run is the control.</para>
+/// </summary>
+[Collection(DetachedFaultApplicationCollection.Name)]
+public sealed class DetachedFailedRenderScenarios(DetachedFaultApplicationFixture app, ITestOutputHelper output)
+{
+    [SkippableFact]
+    public void W26_FailedRender_IsMarkedInTheDetachedViewer()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        var window = app.MainWindow!;
+
+        var detached = OpenDetached(window);
+        try
+        {
+            var before = DetachedViewport(detached);
+            output.WriteLine($"W26 start: status='{FaultInjectionStatus(window)}' detached='{before.Status}' indicator='{DetachedStaleIndicator(detached)}'");
+            Assert.True(before.ProcessedVersion > 0, "The detached viewer has no processed image to judge.");
+            Assert.True(DetachedStaleIndicator(detached) is null, "Before any failure the detached viewer already shows a stale indicator.");
+
+            ApplyDisplayPipeline(window);
+            var after = DetachedViewport(detached);
+            var mainIndicator = StaleIndicator(window);
+            var detachedIndicator = DetachedStaleIndicator(detached);
+            output.WriteLine($"W26 failed apply: status='{FaultInjectionStatus(window)}' detached='{after.Status}' " +
+                             $"main indicator='{mainIndicator}' detached indicator='{detachedIndicator}' texts=[{string.Join(" | ", DetachedTexts(detached))}]");
+            Assert.True(FaultInjectionStatus(window).EndsWith("calls=2", StringComparison.Ordinal), "The Apply did not reach the display pipeline.");
+            Assert.True(after.ProcessedVersion == before.ProcessedVersion, "A failed render replaced the detached viewer's image.");
+            Assert.True(mainIndicator is not null, "Control failed: the main window shows no stale indicator after a failed render.");
+            Assert.True(
+                detachedIndicator is not null && detachedIndicator.Contains("pipeline failed", StringComparison.Ordinal),
+                $"The main window marks the failed render, but the detached viewer showing the same image reads " +
+                $"'{detachedIndicator ?? "(absent)"}' (#171 ③).");
+        }
+        finally
+        {
+            CloseDetached(window);
+        }
+    }
+}
+
+public sealed class DetachedFaultApplicationFixture : ApplicationFixture
+{
+    public DetachedFaultApplicationFixture()
+        : base(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", ["--automation-fault", "display-pipeline-after:1"])
+    {
+    }
+}
+
+[CollectionDefinition(Name)]
+public sealed class DetachedFaultApplicationCollection : ICollectionFixture<DetachedFaultApplicationFixture>
+{
+    public const string Name = "gui-fault-detached-application";
+}
+
 /// <summary>The workflow image, launched with the display pipeline fault armed after two calls.</summary>
 public sealed class FaultInjectedApplicationFixture : ApplicationFixture
 {
