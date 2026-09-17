@@ -50,9 +50,10 @@ namespace xpe_gsvg_detail {
 // Kernels: gauss4 rows are used when the section has any, otherwise gauss2.
 // The chosen model must cover a full thickness x kVp grid.
 //
-// SPR cap (QA-B-93, lead decision): when [spr_cap] is absent the cap is the
-// infinite-field SPR of the chosen kernel rows, sum(a_i), blended exactly like
-// the kernel itself (KernelAt). A present [spr_cap] section overrides it.
+// SPR cap source: SprCapAt() reads [spr_cap] when present, otherwise the
+// infinite-field SPR of the chosen kernel rows, sum(a_i), blended like the
+// kernel itself (QA-B-93). How that value is applied is CapMode (QA-B-94): the
+// default takes its LARGEST value at the exposure's kVp over the whole image.
 // ---------------------------------------------------------------------------
 struct KernelNode {
     int terms = 0;            // 2 or 4
@@ -93,10 +94,26 @@ struct VgSettings {
     double denoiseK = 0.0;      // 0 = off; soft threshold k * sigma on the finest band
 };
 
+// SPR / over-correction guard (QA-B-94 compares these on synthetic scenes).
+enum class CapMode {
+    // Default: GlobalSum (QA-B-94). On synthetic scenes it was the only table-
+    // derived guard that left correct-kernel results unchanged (4 scenes) and
+    // removed negative / near-zero primaries with x2, x3 kernels. LocalSum
+    // bound on correct data at thickness edges and on under-estimated tables;
+    // the fixed floors need an eps that the synthetic scenes cannot justify.
+    None,          // C0: multiplicative update only
+    LocalSum,      // C1: SprCapAt(local thickness) -- [spr_cap] or local sum(a_i)
+    GlobalSum,     // C2: largest SprCapAt over the table's thickness nodes at this kVp
+    PrimaryFloor,  // C3: P >= eps * I, i.e. SPR <= 1/eps - 1
+    SmoothFloor,   // C4: S(x) <= (1 - eps) * min of I over a window of one reduced-grid
+                   //     block around x (scatter is smooth and never exceeds I)
+};
+
 // Test switches for the falsification cases. Production uses the defaults.
 struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
-    bool sprCap = true;           // false: no cap at any stage
+    CapMode cap = CapMode::GlobalSum;
+    double capEps = 0.0;          // eps for PrimaryFloor / SmoothFloor
     bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
 };
 
@@ -132,6 +149,9 @@ bool KernelAt(const ParamTable& t, double thicknessCm, double kvp, BlendedKernel
 // range), or sum(a_i) of KernelAt when the section is absent. < 0 when kVp
 // lies outside the range that supplies the cap.
 double SprCapAt(const ParamTable& t, double thicknessCm, double kvp);
+
+// Minimum over the (2r+1)^2 square around each pixel, edges clamped.
+std::vector<double> MinFilter2D(const std::vector<double>& img, int w, int h, int r);
 
 // Water-equivalent thickness [cm] for L = -ln(P/I0). Returns < 0 when the
 // solution lies above tMax.

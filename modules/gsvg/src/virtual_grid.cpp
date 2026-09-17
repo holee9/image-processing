@@ -534,6 +534,37 @@ void PyramidContrast(std::vector<double>& img, int w, int h, int levels, double 
 
 }  // namespace
 
+namespace {
+
+// Running minimum over [i - r, i + r] (clamped), O(n) (van Herk / Gil-Werman).
+void MinFilter1D(const double* src, double* dst, int n, int stride, int r) {
+    const int w = 2 * r + 1;
+    std::vector<double> g(static_cast<size_t>(n + w)), hbuf(static_cast<size_t>(n + w));
+    auto at = [&](int i) { return src[static_cast<size_t>(std::clamp(i, 0, n - 1)) * static_cast<size_t>(stride)]; };
+    const int len = n + w - 1;   // padded sequence index k maps to i = k - r
+    for (int k = 0; k < len; ++k)
+        g[static_cast<size_t>(k)] = (k % w == 0) ? at(k - r) : std::min(g[static_cast<size_t>(k - 1)], at(k - r));
+    for (int k = len - 1; k >= 0; --k)
+        hbuf[static_cast<size_t>(k)] = (k == len - 1 || (k + 1) % w == 0) ? at(k - r)
+                                       : std::min(hbuf[static_cast<size_t>(k + 1)], at(k - r));
+    for (int i = 0; i < n; ++i) {
+        // window of padded indices [i, i + w - 1]
+        dst[static_cast<size_t>(i) * static_cast<size_t>(stride)] =
+            std::min(hbuf[static_cast<size_t>(i)], g[static_cast<size_t>(i + w - 1)]);
+    }
+}
+
+}  // namespace
+
+std::vector<double> MinFilter2D(const std::vector<double>& img, int w, int h, int r) {
+    std::vector<double> rows(img.size()), out(img.size());
+    for (int y = 0; y < h; ++y)
+        MinFilter1D(&img[static_cast<size_t>(y) * static_cast<size_t>(w)], &rows[static_cast<size_t>(y) * static_cast<size_t>(w)], w, 1, r);
+    for (int x = 0; x < w; ++x)
+        MinFilter1D(&rows[static_cast<size_t>(x)], &out[static_cast<size_t>(x)], h, w, r);
+    return out;
+}
+
 // ---------------------------------------------------------------------------
 // Chain
 // ---------------------------------------------------------------------------
@@ -603,6 +634,39 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     // Joint thickness / scatter iteration on the reduced grid. Thickness is
     // read from the current primary estimate, not from I: scatter raises I/I0
     // and would make the object look thinner.
+    if ((sw.cap == CapMode::PrimaryFloor || sw.cap == CapMode::SmoothFloor) &&
+        !(sw.capEps > 0 && sw.capEps < 1))
+        return fail("cap eps must be in (0, 1)");
+    double globalCap = 0;
+    for (double tn : table.kThick) globalCap = std::max(globalCap, SprCapAt(table, tn, st.kvp));
+    // C4: smallest measured value within one reduced-grid block of each pixel,
+    // and its block minimum on the reduced grid (the reach of the bilinear
+    // up-sampling).
+    std::vector<double> iMinFull, iMinC;
+    if (sw.cap == CapMode::SmoothFloor) {
+        iMinFull = MinFilter2D(img, width, height, f);
+        iMinC.assign(Ic.size(), 1e300);
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width; ++x) {
+                double& m = iMinC[static_cast<size_t>(y / f) * static_cast<size_t>(cw) + static_cast<size_t>(x / f)];
+                m = std::min(m, iMinFull[static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)]);
+            }
+    }
+    auto capFor = [&](size_t i, double t) {
+        switch (sw.cap) {
+        case CapMode::None:         return 1e300;
+        case CapMode::LocalSum:     return SprCapAt(table, t, st.kvp);
+        case CapMode::GlobalSum:    return globalCap;
+        case CapMode::PrimaryFloor: return 1.0 / sw.capEps - 1.0;
+        case CapMode::SmoothFloor: {
+            const double sMax = (1.0 - sw.capEps) * std::max(iMinC[i], 0.0);
+            const double pMin = Ic[i] - sMax;
+            return pMin > 0 ? sMax / pMin : 0.0;
+        }
+        }
+        return 1e300;
+    };
+
     std::vector<double> P = Ic, T(Ic.size()), spr(Ic.size()), cap(Ic.size());
     size_t nHigh = 0, nLow = 0, nCapped = 0;
     for (int it = 0; it < st.iterations; ++it) {
@@ -633,9 +697,9 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
         const std::vector<double> S = ScatterEstimate(P, T, cw, ch, table, st.kvp, pitchCm * f);
         if (S.empty()) return fail("estimated thickness above the table range");
         for (size_t i = 0; i < P.size(); ++i) {
-            cap[i] = SprCapAt(table, T[i], st.kvp);
+            cap[i] = capFor(i, T[i]);
             double r = P[i] > 0 ? S[i] / P[i] : 0.0;
-            if (sw.sprCap && r > cap[i]) { r = cap[i]; ++nCapped; }
+            if (r > cap[i]) { r = cap[i]; ++nCapped; }
             spr[i] = r;
         }
         for (size_t i = 0; i < P.size(); ++i) P[i] = Ic[i] / (1.0 + spr[i]);
@@ -673,7 +737,7 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
         return o;
     };
     const std::vector<double> Sf = upsample(Sc);
-    const std::vector<double> capF = upsample(cap);
+    const std::vector<double> capF = (sw.cap == CapMode::LocalSum) ? upsample(cap) : std::vector<double>{};
 
     // Residual scatter of the chosen grid, normalised to its primary
     // transmission: O = P + (Ts/Tp) * S.
@@ -688,7 +752,13 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     std::vector<double> out(img.size());
     for (size_t i = 0; i < img.size(); ++i) {
         double S = Sf[i];
-        if (sw.sprCap) S = std::min(S, img[i] * capF[i] / (1.0 + capF[i]));
+        switch (sw.cap) {
+        case CapMode::None: break;
+        case CapMode::LocalSum:     S = std::min(S, img[i] * capF[i] / (1.0 + capF[i])); break;
+        case CapMode::GlobalSum:    S = std::min(S, img[i] * globalCap / (1.0 + globalCap)); break;
+        case CapMode::PrimaryFloor: S = std::min(S, (1.0 - sw.capEps) * img[i]); break;
+        case CapMode::SmoothFloor:  S = std::min(S, (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0)); break;
+        }
         double p = img[i] - S;
         if (img[i] > 0) { ++nFull; if (p < pAtTMax) ++nFullHigh; }
         if (p < 0) { ++rep.negativePrimary; p = 0; }
