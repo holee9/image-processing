@@ -361,24 +361,76 @@ std::string Explain(const char* label, const Timing& t, double reference,
 
 }  // namespace
 
+// QA-A-109 (#179): the gate judges the MINIMUM ratio of three rounds, not one.
+//
+// Why: two CI runs of the same commit produced 0.972 and 1.172 against a history
+// of 0.472..0.638 with zero changed lines in the detector's path (QA-A-108).
+// The failing runs' 1024 frame was barely slower while the 3072 frame was 55-160%
+// slower -- a size-dependent slowdown, so the runner's memory subsystem, not the
+// code. A transient like that lifts one round; a real regression lifts all three,
+// because it is in the instructions being executed.
+//
+// Each round re-measures BOTH the reference kernel and the detector. Measuring
+// the reference once and reusing it would make the later rounds compare against
+// a machine state that no longer exists -- the ratio would stop meaning
+// "detector relative to this machine right now".
+//
+// All three ratios are printed. Printing only the minimum would leave the next
+// investigation with nothing: the SPREAD between the rounds is what separates
+// "transient" from "regression", and that is exactly the evidence QA-A-108 had
+// to reconstruct from artifacts.
+constexpr int kGateRounds = 3;
+
 TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
     PrintMachineProfile();
-    const double reference = MeasureReferenceMs();
-    const Timing t = TimeDetection(3072u, 3072u);
-    const double ratio = t.best / reference;
 
-    std::printf("[perf-gate] 3072x3072 single thread, warm, min of %d: %.1f ms"
-                "  (samples %.1f / %.1f / %.1f / %.1f / %.1f)\n",
-                kDetectionReps, t.best, t.samples[0], t.samples[1],
-                t.samples[2], t.samples[3], t.samples[4]);
-    std::printf("[perf-gate] reference kernel: %.1f ms\n", reference);
-    std::printf("[perf-gate-ratio] 3072 ratio=%.3f limit=%.3f\n", ratio, kRatio3072Limit);
+    double ratios[kGateRounds] = {0.0, 0.0, 0.0};
+    double best = 1e30;
+    int bestRound = 0;
+    Timing bestTiming{};
+    double bestReference = 0.0;
+
+    for (int round = 0; round < kGateRounds; ++round) {
+        const double reference = MeasureReferenceMs();
+        const Timing t = TimeDetection(3072u, 3072u);
+        const double ratio = t.best / reference;
+        ratios[round] = ratio;
+
+        std::printf("[perf-gate] round %d/%d 3072x3072 single thread, warm,"
+                    " min of %d: %.1f ms"
+                    "  (samples %.1f / %.1f / %.1f / %.1f / %.1f)\n",
+                    round + 1, kGateRounds, kDetectionReps, t.best,
+                    t.samples[0], t.samples[1], t.samples[2], t.samples[3],
+                    t.samples[4]);
+        std::printf("[perf-gate] round %d/%d reference kernel: %.1f ms\n",
+                    round + 1, kGateRounds, reference);
+        std::printf("[perf-gate-ratio] 3072 round=%d ratio=%.3f limit=%.3f\n",
+                    round + 1, ratio, kRatio3072Limit);
+
+        if (ratio < best) {
+            best = ratio;
+            bestRound = round;
+            bestTiming = t;
+            bestReference = reference;
+        }
+    }
+
+    std::printf("[perf-gate-ratio] 3072 ratio=%.3f limit=%.3f"
+                "  (minimum of %d rounds: %.3f / %.3f / %.3f)\n",
+                best, kRatio3072Limit, kGateRounds,
+                ratios[0], ratios[1], ratios[2]);
     std::printf("[perf-gate] SPEC improvement target %.0f ms (AVX2, single thread)"
                 " -- currently %.1fx the target on this machine\n",
-                kImprovementTargetMs, t.best / kImprovementTargetMs);
+                kImprovementTargetMs, bestTiming.best / kImprovementTargetMs);
 
-    EXPECT_LE(ratio, kRatio3072Limit)
-        << Explain("3072x3072 runtime detection", t, reference, ratio, kRatio3072Limit);
+    EXPECT_LE(best, kRatio3072Limit)
+        << Explain("3072x3072 runtime detection", bestTiming, bestReference,
+                   best, kRatio3072Limit)
+        << "\n  This is the BEST of " << kGateRounds << " rounds ("
+        << ratios[0] << " / " << ratios[1] << " / " << ratios[2]
+        << "), measured in round " << (bestRound + 1) << ". A transient lifts one\n"
+        << "  round; all three being over the limit is what a code regression\n"
+        << "  looks like, so re-running will not clear this.";
 }
 
 /**
