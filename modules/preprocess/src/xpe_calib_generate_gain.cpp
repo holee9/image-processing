@@ -602,12 +602,22 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         // FUNC-033 (5): the quality metadata rides in the XCal config JSON.
         // Field names follow the SRS wording (fit_r_squared, actual_dose_levels,
         // max_residual_pct, mean_residual_pct), not the C struct's member names.
+        //
+        // polynomial_degree is the FITTED degree (SRS-CALIB-FUNC-033 (1)), the
+        // same value recorded in the store above. It used to carry max_degree,
+        // the requested ceiling, so a fit that dropped a degree reported one
+        // value right after generation and another after the file was loaded
+        // (QA-A-87, #140). The ceiling keeps its own key; num_coefficients is
+        // the payload stride and still follows the ceiling, because every
+        // pixel is stored at max_degree + 1 coefficients.
         char meta[512];
         std::snprintf(meta, sizeof(meta),
-            "{\"polynomial_degree\":%d,\"num_coefficients\":%d,\"num_dose_levels\":%d,"
+            "{\"polynomial_degree\":%d,\"max_polynomial_degree\":%d,"
+            "\"num_coefficients\":%d,\"num_dose_levels\":%d,"
             "\"calibration_mode\":%d,\"actual_dose_levels\":%d,"
             "\"fit_r_squared\":%.9f,\"max_residual_pct\":%.6f,"
             "\"mean_residual_pct\":%.6f,\"calibration_pass\":%d}",
+            static_cast<int>(highest_degree),
             static_cast<int>(max_degree),
             static_cast<int>(sMaxCoeffsPoly),
             static_cast<int>(num_levels),
