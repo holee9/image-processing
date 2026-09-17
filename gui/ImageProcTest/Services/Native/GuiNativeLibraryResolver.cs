@@ -24,6 +24,7 @@ internal static class GuiNativeLibraryResolver
     private const string CommonDll = "xpe_common.dll";
     private const string DisplayDll = "xpe_display.dll";
     private const string PreprocessDll = "xpe_preprocess.dll";
+    private const string GsvgDll = "gsvg.dll";
 
     private static readonly object Gate = new();
     private static bool _installed;
@@ -123,6 +124,9 @@ internal static class GuiNativeLibraryResolver
                 NativeModuleLibraryLocator.GetDllCandidates(DisplayDll, "image-processing"),
             // #141: preprocess has its own locator in clients, linked alongside the others.
             _ when Is(libraryName, PreprocessDll) => XpePreprocessLibraryLocator.GetDllCandidates(),
+            // #180 (GUI-C-101): gsvg has no locator of its own in clients; it follows the same
+            // module policy as xpe_display.
+            _ when Is(libraryName, GsvgDll) => NativeModuleLibraryLocator.GetDllCandidates(GsvgDll, "image-processing"),
             _ => null,
         };
 

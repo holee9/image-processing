@@ -452,6 +452,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     private static bool ChainInputsDiffer(AppSettings a, AppSettings b) =>
         a.PreprocessInChain != b.PreprocessInChain
+        || !string.Equals(a.GsvgMode, b.GsvgMode, StringComparison.Ordinal)
+        || !string.Equals(a.GsvgTablePath, b.GsvgTablePath, StringComparison.Ordinal)
+        || a.GsvgGridRatio != b.GsvgGridRatio
+        || a.GsvgGridFrequencyPerCm != b.GsvgGridFrequencyPerCm
+        || a.GsvgAirSignal != b.GsvgAirSignal
+        || a.GsvgIterations != b.GsvgIterations
+        || a.PixelPitchMm != b.PixelPitchMm
         || a.ExposureKvp != b.ExposureKvp
         || !string.Equals(a.OffsetCalibrationDirectory, b.OffsetCalibrationDirectory, StringComparison.Ordinal)
         || !string.Equals(a.GainCalibrationDirectory, b.GainCalibrationDirectory, StringComparison.Ordinal)
@@ -1091,7 +1098,14 @@ public sealed class MainWindowViewModel : ObservableObject
     private void ReportChain(ChainResult chain)
     {
         LastChain = chain;
-        ChainStatus = $"{chain.Summary}; display input={(chain.DisplaysRaw ? "raw" : "chain")}";
+        // The reason of a stage that did not apply belongs on screen: "RequestedNotApplied" alone sends
+        // the operator to the log to find out why (#180, GUI-C-101).
+        var refused = chain.Stages
+            .Where(st => st.Status == StageStatus.RequestedNotApplied)
+            .Select(st => $"{st.StageId}: {st.Reason}")
+            .ToArray();
+        ChainStatus = $"{chain.Summary}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
+            + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));
 
         foreach (var stage in chain.Stages)
         {
@@ -1633,6 +1647,10 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         status = ChainStatus,
         exposureKvp = _renderedInputs?.ExposureKvp,
+        pixelPitchMm = _renderedInputs?.PixelPitchMm,
+        gsvgMode = _renderedInputs?.GsvgMode,
+        gsvgGridRatio = _renderedInputs?.GsvgGridRatio,
+        gsvgGridFrequencyPerCm = _renderedInputs?.GsvgGridFrequencyPerCm,
         preprocessRequested = _renderedInputs?.PreprocessInChain,
         displayInput = LastChain is null ? "not run" : LastChain.DisplaysRaw ? "raw" : "chain",
         stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason }).ToArray()

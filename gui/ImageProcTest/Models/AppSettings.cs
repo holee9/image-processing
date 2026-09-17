@@ -61,6 +61,12 @@ public sealed class AppSettings : ObservableObject
     private bool _preprocessInChain;
     private float _exposureKvp = 70.0f;
     private float _pixelPitchMm = 0.14f;
+    private string _gsvgMode = GsvgModes.None;
+    private string _gsvgTablePath = string.Empty;
+    private double _gsvgGridRatio = 10.0;
+    private double _gsvgGridFrequencyPerCm = 60.0;
+    private double _gsvgAirSignal = 60000.0;
+    private int _gsvgIterations = 3;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -467,6 +473,63 @@ public sealed class AppSettings : ObservableObject
     {
         get => _pixelPitchMm;
         set => SetProperty(ref _pixelPitchMm, value is >= 0.1f and <= 0.5f ? value : 0.14f);
+    }
+
+    /// <summary>
+    /// Which GSVG correction the chain runs: None, GridSuppression or VirtualGrid (#180, GUI-C-101).
+    /// The module refuses both corrections at once, so this is one choice of three rather than two switches.
+    /// </summary>
+    [JsonPropertyName("gsvgMode")]
+    public string GsvgMode
+    {
+        get => _gsvgMode;
+        set => SetProperty(ref _gsvgMode, GsvgModes.Normalize(value));
+    }
+
+    /// <summary>
+    /// The virtual-grid parameter table. Empty means "the product table beside gsvg.dll"
+    /// (GUI-C-101 decision: setting, default next to the DLL).
+    /// </summary>
+    [JsonPropertyName("gsvgTablePath")]
+    public string GsvgTablePath
+    {
+        get => _gsvgTablePath;
+        set => SetProperty(ref _gsvgTablePath, value ?? string.Empty);
+    }
+
+    /// <summary>Virtual-grid ratio; must be a row of the table's [grid] section (default 10).</summary>
+    [JsonPropertyName("gsvgGridRatio")]
+    public double GsvgGridRatio
+    {
+        get => _gsvgGridRatio;
+        set => SetProperty(ref _gsvgGridRatio, value > 0.0 ? value : 10.0);
+    }
+
+    /// <summary>
+    /// Grid line density [1/cm]; required when the table's [grid] section has a freq_per_cm column.
+    /// Default 60 — the lead's assumption, with no source behind it (GUI-C-101 report).
+    /// </summary>
+    [JsonPropertyName("gsvgGridFrequencyPerCm")]
+    public double GsvgGridFrequencyPerCm
+    {
+        get => _gsvgGridFrequencyPerCm;
+        set => SetProperty(ref _gsvgGridFrequencyPerCm, value > 0.0 ? value : 60.0);
+    }
+
+    /// <summary>Detector signal without an object [DN] (default 60000, the module header's example).</summary>
+    [JsonPropertyName("gsvgAirSignal")]
+    public double GsvgAirSignal
+    {
+        get => _gsvgAirSignal;
+        set => SetProperty(ref _gsvgAirSignal, value > 0.0 ? value : 60000.0);
+    }
+
+    /// <summary>Thickness/scatter iterations, 1..100 (default 3).</summary>
+    [JsonPropertyName("gsvgIterations")]
+    public int GsvgIterations
+    {
+        get => _gsvgIterations;
+        set => SetProperty(ref _gsvgIterations, value is >= 1 and <= 100 ? value : 3);
     }
 
     [JsonPropertyName("lastRunSetId")]

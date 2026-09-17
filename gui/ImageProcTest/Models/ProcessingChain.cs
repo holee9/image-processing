@@ -24,6 +24,28 @@ public static class StageIds
 {
     /// <summary>Phase-1a preprocess: offset → gain → defect (xpe_preprocess.dll).</summary>
     public const string Preprocess = "preprocess";
+
+    /// <summary>Grid shadow suppression or the virtual grid (gsvg.dll), after preprocess (#180, GUI-C-101).</summary>
+    public const string Gsvg = "gsvg";
+}
+
+/// <summary>
+/// The GSVG correction the chain runs. The module refuses grid suppression and the virtual grid
+/// together (gsvg_api.h §init), so the GUI offers one of three (#180, GUI-C-101).
+/// </summary>
+public static class GsvgModes
+{
+    public const string None = "None";
+    public const string GridSuppression = "GridSuppression";
+    public const string VirtualGrid = "VirtualGrid";
+
+    public static readonly string[] All = [None, GridSuppression, VirtualGrid];
+
+    /// <summary>An unknown or empty value becomes <see cref="None"/> — the pass-through the module defaults to.</summary>
+    public static string Normalize(string? mode) =>
+        All.FirstOrDefault(m => string.Equals(m, mode, StringComparison.Ordinal)) ?? None;
+
+    public static bool IsKnown(string? mode) => All.Contains(mode, StringComparer.Ordinal);
 }
 
 /// <summary>One entry of the chain, in order.</summary>

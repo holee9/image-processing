@@ -117,6 +117,33 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         }
     }
 
+    /// <summary>
+    /// U-05 (GUI-C-101): the exposure kVp carries a "pending connection" mark naming the issue. It is NOT
+    /// disabled — the value does reach processing — but GUI-C-100 measured that the preprocess stages
+    /// ignore it, so the screen says so until the virtual grid uses it.
+    /// </summary>
+    [SkippableFact]
+    public void U05_PendingConnectionMark_IsShown()
+    {
+        var window = Ready();
+        OpenParameters(window);
+        try
+        {
+            var mark = Find(window, "ExposureKvpPendingMark");
+            output.WriteLine($"U05 mark='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
+            Assert.Contains("#180", mark.Name, StringComparison.Ordinal);
+            Assert.False(mark.IsOffscreen, "The pending-connection mark is in the tree but not on screen.");
+            Assert.Contains("#180", mark.HelpText, StringComparison.Ordinal);
+
+            var input = Find(window, "ExposureKvpInput");
+            Assert.True(input.IsEnabled, "The kVp input is disabled; a pending-connection setting stays editable.");
+        }
+        finally
+        {
+            OpenMetrics(window);
+        }
+    }
+
     private void AssertMark(Window window, string id)
     {
         var mark = Find(window, id);

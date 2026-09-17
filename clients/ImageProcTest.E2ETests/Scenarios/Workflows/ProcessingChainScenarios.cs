@@ -142,6 +142,235 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         return null;
     }
 
+    /// <summary>
+    /// C-03 (GUI-C-101): the GSVG stage. Native must draw different pixels than the same frame without it
+    /// (or say why not, in the chain status); Mock has no gsvg.dll and must say RequestedNotApplied.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("GsvgModeGridSuppression", "GridSuppression")]
+    [InlineData("GsvgModeVirtualGrid", "VirtualGrid")]
+    public void C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(string radioId, string mode)
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+            var off = WaitForChain(window, "gsvg=NotRequested");
+            var offHash = DrawnHash(window);
+            output.WriteLine($"C03 {mode} off: chain='{off}' hash={offHash}");
+
+            SetGsvgMode(window, radioId);
+            ApplyDisplayPipeline(window);
+
+            if (app.BackendMode != "Native")
+            {
+                var refused = WaitForChain(window, "gsvg=RequestedNotApplied");
+                output.WriteLine($"C03 {mode} mock: chain='{refused}' hash={DrawnHash(window)}");
+                Assert.Equal(offHash, DrawnHash(window));
+                return;
+            }
+
+            var status = WaitForChainStage(window, "gsvg");
+            var onHash = DrawnHash(window);
+            output.WriteLine($"C03 {mode} native: chain='{status}' hash={onHash}");
+
+            // What the module did is read from the status, not assumed: Applied must change the drawn
+            // pixels, and any other status must leave them alone.
+            if (Regex.IsMatch(status, @"gsvg=Applied\b"))
+            {
+                Assert.NotEqual(offHash, onHash);
+            }
+            else
+            {
+                Assert.Equal(offHash, onHash);
+                Assert.Contains("gsvg=", status, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    /// <summary>C-04 (GUI-C-101): a missing virtual-grid table is refused, with the path in the reason, and the image is the one from before.</summary>
+    [SkippableFact]
+    public void C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "gsvg.dll only runs on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+            var offHash = DrawnHash(window);
+
+            SetText(window, "GsvgTablePathInput", @"D:\no\such\table.csv");
+            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            ApplyDisplayPipeline(window);
+
+            var status = WaitForChain(window, "gsvg=RequestedNotApplied");
+            output.WriteLine($"C04 chain='{status}' hash={DrawnHash(window)}");
+            Assert.Equal(offHash, DrawnHash(window));
+        }
+        finally
+        {
+            SetText(window, "GsvgTablePathInput", string.Empty);
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    /// <summary>
+    /// C-06 (GUI-C-101): the grid ratio reaches the module — two ratios from the table's [grid] section
+    /// draw different pixels. Without this, "the virtual grid ran" would not say whether its settings did.
+    /// </summary>
+    [SkippableFact]
+    public void C06_ChangingTheGridRatio_ChangesTheDrawnPixels()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "gsvg.dll only runs on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            SetNumber(window, "GsvgGridRatioInput", "10");
+            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            ApplyDisplayPipeline(window);
+            var at10Status = WaitForChainStage(window, "gsvg");
+            var at10 = DrawnHash(window);
+            Assert.True(Regex.IsMatch(at10Status, @"gsvg=Applied\b"), $"The virtual grid did not apply at ratio 10: {at10Status}");
+
+            SetNumber(window, "GsvgGridRatioInput", "6");
+            ApplyDisplayPipeline(window);
+            var at6Status = WaitForChainStage(window, "gsvg");
+            var at6 = DrawnHash(window);
+            output.WriteLine($"C06 ratio 10 -> {at10}, ratio 6 -> {at6}; status='{at6Status}'");
+            Assert.True(Regex.IsMatch(at6Status, @"gsvg=Applied\b"), $"The virtual grid did not apply at ratio 6: {at6Status}");
+            Assert.NotEqual(at10, at6);
+        }
+        finally
+        {
+            SetNumber(window, "GsvgGridRatioInput", "10");
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    /// <summary>
+    /// C-07 (GUI-C-101): a grid ratio the table does not list is refused by the module, and the GUI says so
+    /// instead of showing the image as corrected. This is the case a status that ignored the module's
+    /// reason would get wrong.
+    /// </summary>
+    [SkippableFact]
+    public void C07_AGridRatioOutsideTheTable_IsRefused()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "gsvg.dll only runs on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+            var offHash = DrawnHash(window);
+
+            // The product table lists 6, 8, 10 and 12.
+            SetNumber(window, "GsvgGridRatioInput", "7");
+            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            ApplyDisplayPipeline(window);
+
+            var status = WaitForChain(window, "gsvg=RequestedNotApplied");
+            output.WriteLine($"C07 chain='{status}' hash={DrawnHash(window)}");
+            Assert.Equal(offHash, DrawnHash(window));
+        }
+        finally
+        {
+            SetNumber(window, "GsvgGridRatioInput", "10");
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    /// <summary>C-05 (GUI-C-101): the three grid-correction choices are exclusive — the module refuses two at once.</summary>
+    [SkippableFact]
+    public void C05_GridCorrectionChoices_AreExclusive()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            foreach (var chosen in new[] { "GsvgModeGridSuppression", "GsvgModeVirtualGrid", "GsvgModeNone" })
+            {
+                SetGsvgMode(window, chosen);
+                var states = new[] { "GsvgModeNone", "GsvgModeGridSuppression", "GsvgModeVirtualGrid" }
+                    .Select(id => (Id: id, Checked: Radio(window, id).IsChecked))
+                    .ToArray();
+
+                output.WriteLine($"C05 after {chosen}: " + string.Join(", ", states.Select(s => $"{s.Id}={s.Checked}")));
+                Assert.Single(states.Where(s => s.Checked));
+                Assert.True(states.Single(s => s.Checked).Id == chosen, $"'{chosen}' was chosen but '{states.Single(s => s.Checked).Id}' is checked.");
+            }
+        }
+        finally
+        {
+            SetGsvgMode(window, "GsvgModeNone");
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    private static FlaUI.Core.AutomationElements.RadioButton Radio(Window window, string automationId)
+    {
+        OpenParameters(window);
+        var element = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        Assert.True(element is not null, $"{automationId} is not in the Parameters tab.");
+        return element!.AsRadioButton();
+    }
+
+    private static void SetGsvgMode(Window window, string radioId)
+    {
+        Radio(window, radioId).IsChecked = true;
+        Thread.Sleep(250);
+    }
+
+    private static void SetText(Window window, string automationId, string value)
+    {
+        OpenParameters(window);
+        var box = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        Assert.True(box is not null, $"{automationId} is not in the Parameters tab.");
+        var input = box!.AsTextBox();
+        input.Focus();
+        input.Text = value;
+        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        Thread.Sleep(400);
+    }
+
+    /// <summary>Waits until the chain status names <paramref name="stageId"/> with any status.</summary>
+    private static string WaitForChainStage(Window window, string stageId)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            var text = ChainText(window);
+            if (Regex.IsMatch(text, $@"\b{Regex.Escape(stageId)}=\w+")) return text;
+            Thread.Sleep(200);
+        }
+
+        Assert.Fail($"The chain status never named '{stageId}'; it reads '{ChainText(window)}'.");
+        return string.Empty;
+    }
+
     private static void SetNumber(Window window, string automationId, string value)
     {
         OpenParameters(window);

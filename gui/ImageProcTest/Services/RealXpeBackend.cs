@@ -267,6 +267,7 @@ public sealed class RealXpeBackend : IXpeBackend
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
             StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -294,6 +295,16 @@ public sealed class RealXpeBackend : IXpeBackend
             settings.PixelPitchMm));
 
         return new StageExecution(result.Ran, result.Pixels, result.Summary);
+    }
+
+    /// <summary>
+    /// #180 (GUI-C-101): grid suppression or the virtual grid. The reason the module reports decides the
+    /// stage status — see GuiGsvgRunner.Interpret.
+    /// </summary>
+    private StageExecution RunGsvgStage(ushort[] input, int width, int height, AppSettings settings)
+    {
+        var result = InvokeNative(() => Native.GuiGsvgRunner.Run(input, width, height, settings));
+        return new StageExecution(result.Ran, result.Pixels, result.Message);
     }
 
     public int GetAlertCount() => _alerts.Count;
