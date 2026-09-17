@@ -449,6 +449,26 @@ TEST(GsvgEndurance, ControlLeak_LargeBlockIsCaught)
     // freed in the same window (QA-B-92: 10,482,616 B in 1 of 20 runs).
     EXPECT_GE(g.heap.bytes, 9LL << 20);
 }
+
+// Control: the walk sees gsvg.dll's own allocations. The two cases above leak
+// from the test side; if the DLL used a separate heap (/MT), they would still
+// pass while the product case reported a blind 0. xpe_gsvg_init allocates the
+// handle with new inside the DLL, so a live handle must show up here.
+TEST(GsvgEndurance, ControlDllHandleIsVisibleToHeapWalk)
+{
+    const HeapUse before = crt_heap_use();
+    void* handle = nullptr;
+    ASSERT_EQ(xpe_gsvg_init(&handle, nullptr), XPE_OK);
+    const HeapUse alive = crt_heap_use();
+    ASSERT_EQ(xpe_gsvg_shutdown(handle), XPE_OK);
+    const HeapUse after = crt_heap_use();
+    GTEST_LOG_(INFO) << "live handle: +" << (alive.blocks - before.blocks) << " blocks / +"
+                     << (alive.bytes - before.bytes) << " bytes; after shutdown: "
+                     << (after.blocks - before.blocks) << " / " << (after.bytes - before.bytes);
+    EXPECT_GE(alive.blocks - before.blocks, 1);
+    EXPECT_GT(alive.bytes - before.bytes, 0);
+    EXPECT_EQ(after.blocks - before.blocks, 0);
+}
 #else
 TEST(GsvgEndurance, ThousandCycles_CrtHeapDoesNotGrow)
 {
