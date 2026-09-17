@@ -158,6 +158,14 @@ foreach(_mod_rel IN LISTS XPE_MODULE_DIRS)
     # first fix only dropped lines that BEGIN with '#', so a trailing note -
     # `target_sources(...)  # mode_selector.cpp was deleted` - still silenced the
     # check on that filename. Same hazard, different spelling.
+    #
+    # Known limit, left on purpose (QA-A-82): this also treats a '#' INSIDE a quoted
+    # string as a comment and drops the rest of that line. The failure direction is a
+    # FALSE POSITIVE - an unlisted-source WARNING that is plainly visible - not a silent
+    # miss, and no module CMakeLists has a quoted '#' today (counted 2026-09-17: 0 lines;
+    # control, same pattern shape, finds quoted strings in ai/common/dicom/display).
+    # A real CMake tokenizer is not worth writing for a case with no instance; if a
+    # spurious warning ever appears, look here first.
     foreach(_line IN LISTS _cml_lines)
         string(REGEX REPLACE "#.*$" "" _line "${_line}")
         string(APPEND _cml "${_line} ")
