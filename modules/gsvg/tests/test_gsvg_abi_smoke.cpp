@@ -477,7 +477,8 @@ TEST(GsvgAbiExports, AllEntryPointsAreExported)
     HMODULE dll = GetModuleHandleA("gsvg.dll");
     ASSERT_NE(dll, nullptr) << "gsvg.dll is not loaded in this process";
     for (const char* name : {"xpe_gsvg_version", "xpe_gsvg_init", "xpe_gsvg_process",
-                             "xpe_gsvg_process_masked", "xpe_gsvg_shutdown"}) {
+                             "xpe_gsvg_process_masked", "xpe_gsvg_process_ex",
+                             "xpe_gsvg_shutdown"}) {
         EXPECT_NE(GetProcAddress(dll, name), nullptr) << name;
     }
     // control: a name that is not exported

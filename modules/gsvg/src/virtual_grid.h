@@ -44,7 +44,11 @@ namespace xpe_gsvg_detail {
 //   [kernels]   thickness_cm,kvp,model,a1,s1,a2,s2[,a3,s3,a4,s4]...
 //               (the tools/mcsim/tables CSV rows can be pasted unchanged)
 //   [wet]       kvp,w0,a,b          mu(t) = w0 - a*t/(1+b*t)   [1/cm], t in cm
-//   [grid]      ratio,tp,ts         primary / scatter transmission of the grid
+//   [grid]      ratio,tp,ts[,freq_per_cm][,thickness_cm][,kvp]
+//               primary / scatter transmission of the grid (QA-B-101). The
+//               optional columns make the rows a table: one (ratio,
+//               freq_per_cm) pair per grid design, each over a full
+//               thickness x kVp grid. Without them there is one row per ratio.
 //   [spr_cap]   thickness_cm,kvp,max_spr          (optional, see below)
 //
 // Kernels: gauss4 rows are used when the section has any, otherwise gauss2.
@@ -68,12 +72,29 @@ struct ParamTable {
     std::vector<double> wetKvp;                // ascending
     std::vector<double> wetW0, wetA, wetB;
 
-    std::vector<double> gridRatio, gridTp, gridTs;
+    // [grid] rows as read. A column the file does not have reads as 0 and its
+    // flag is false (QA-B-101).
+    struct GridRow { double ratio, freq, thick, kvp, tp, ts; };
+    std::vector<GridRow> gridRows;
+    bool gridHasFreq = false, gridHasThick = false, gridHasKvp = false;
 
     bool capFromKernels = false;               // no [spr_cap] section
     std::vector<double> capThick, capKvp;      // ascending (empty when capFromKernels)
     std::vector<double> capSpr;                // [iT * capKvp.size() + iK]
 };
+
+// The [grid] transmissions of one grid design at one kVp, over thickness
+// (QA-B-101). thick is ascending; a single node means no thickness dependence.
+struct GridAtKvp {
+    std::vector<double> thick, tp, ts;
+    // Ts/Tp at thickness t: linear between nodes, the end value outside them.
+    double ResidualAt(double t) const;
+};
+// Picks the rows of (ratio, freqPerCm) and interpolates them to kvp.
+// freqPerCm must be 0 when the table has no freq_per_cm column and one of the
+// listed densities when it has. Returns an empty string or the reason.
+std::string SelectGrid(const ParamTable& t, double ratio, double freqPerCm, double kvp,
+                       GridAtKvp& out);
 
 // Returns an empty string on success, otherwise the reason.
 std::string ParseParamTable(const std::string& text, ParamTable& out);
@@ -85,6 +106,7 @@ std::string LoadParamTable(const std::string& path, ParamTable& out);
 struct VgSettings {
     double kvp = 0;
     double gridRatio = 0;
+    double gridFreqPerCm = 0;   // line density; 0 when the table lists one design per ratio
     double pixelPitchMm = 0;
     double airSignal = 0;       // I0: detector signal without an object [DN]
     int    iterations = 0;      // >= 1

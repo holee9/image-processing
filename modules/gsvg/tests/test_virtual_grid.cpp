@@ -175,7 +175,8 @@ TEST(GsvgVirtualGridTable, SyntheticTableLoads)
     EXPECT_EQ(t.kernels[1 * 3 + 1].terms, 2);
     EXPECT_DOUBLE_EQ(t.kernels[1 * 3 + 1].a[0], 0.32);   // 10 cm, 80 kVp
     EXPECT_DOUBLE_EQ(t.kernels[1 * 3 + 1].s[1], 4.7);
-    EXPECT_EQ(t.gridRatio.size(), 5u);
+    EXPECT_EQ(t.gridRows.size(), 5u);
+    EXPECT_FALSE(t.gridHasFreq || t.gridHasThick || t.gridHasKvp);
     EXPECT_EQ(t.capSpr.size(), 12u);
 }
 
@@ -227,14 +228,17 @@ TEST(GsvgVirtualGridTable, ParserReadsCrlfAndLfAlike)
     EXPECT_EQ(a.wetW0, b.wetW0);
     EXPECT_EQ(a.wetA, b.wetA);
     EXPECT_EQ(a.wetB, b.wetB);
-    EXPECT_EQ(a.gridRatio, b.gridRatio);
-    EXPECT_EQ(a.gridTp, b.gridTp);
-    EXPECT_EQ(a.gridTs, b.gridTs);
+    ASSERT_EQ(a.gridRows.size(), b.gridRows.size());
+    for (size_t i = 0; i < a.gridRows.size(); ++i) {
+        EXPECT_EQ(a.gridRows[i].ratio, b.gridRows[i].ratio);
+        EXPECT_EQ(a.gridRows[i].tp, b.gridRows[i].tp);
+        EXPECT_EQ(a.gridRows[i].ts, b.gridRows[i].ts);
+    }
     EXPECT_EQ(a.capFromKernels, b.capFromKernels);
     EXPECT_EQ(a.capSpr, b.capSpr);
     // Section names and the last cell of a row carry the '\r' in CRLF text.
     EXPECT_FALSE(b.capFromKernels);
-    EXPECT_EQ(b.gridTs.back(), 0.0);
+    EXPECT_EQ(b.gridRows.back().ts, 0.0);
 }
 
 TEST(GsvgVirtualGridTable, IncompleteGridAndBadRowsAreRejected)
