@@ -3,6 +3,10 @@
  * @brief Recursive db4 DWT grid suppression (#180, QA-B-90). See grid_dwt.h.
  */
 #include "grid_dwt.h"
+#include "parallel_rows.h"
+
+// Thread-count request, stored in gsvg.cpp (#179, QA-B-105).
+int XpeGsvgThreadRequest();
 
 #include <algorithm>
 #include <cmath>
@@ -65,13 +69,20 @@ void Synthesize(const double* a, const double* d, size_t ostride, size_t n, doub
 // bit-identical -- a transpose only moves values.
 void Transpose(const double* src, size_t rows, size_t cols, double* dst) {
     constexpr size_t kBlock = 64;   // 64 doubles = 512 B, a cache line times eight
-    for (size_t y0 = 0; y0 < rows; y0 += kBlock)
-        for (size_t x0 = 0; x0 < cols; x0 += kBlock) {
-            const size_t y1 = std::min(y0 + kBlock, rows), x1 = std::min(x0 + kBlock, cols);
-            for (size_t y = y0; y < y1; ++y)
-                for (size_t x = x0; x < x1; ++x)
-                    dst[x * rows + y] = src[y * cols + x];
-        }
+    // QA-B-105: row bands. A transpose only moves values, so splitting it
+    // changes nothing about the result.
+    const int nRows = static_cast<int>(rows);
+    const int threads = xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), nRows);
+    xpe_parallel::ForRows(nRows, threads, [&](int yBegin, int yEnd) {
+        for (size_t y0 = static_cast<size_t>(yBegin); y0 < static_cast<size_t>(yEnd); y0 += kBlock)
+            for (size_t x0 = 0; x0 < cols; x0 += kBlock) {
+                const size_t y1 = std::min(std::min(y0 + kBlock, rows), static_cast<size_t>(yEnd));
+                const size_t x1 = std::min(x0 + kBlock, cols);
+                for (size_t y = y0; y < y1; ++y)
+                    for (size_t x = x0; x < x1; ++x)
+                        dst[x * rows + y] = src[y * cols + x];
+            }
+    });
 }
 
 double BlackmanHarris(size_t i, size_t n) {
@@ -221,20 +232,30 @@ Level Dwt2(const std::vector<double>& img, int w, int h) {
     const size_t hw = W / 2, hh = H / 2;
     // rows: L and H images, each (W/2) x H
     std::vector<double> lo(hw * H), hi(hw * H);
-    for (size_t y = 0; y < H; ++y)
-        Analyze(pad.data() + y * W, W, 1, lo.data() + y * hw, hi.data() + y * hw, 1);
+    // QA-B-105: one row per Analyze call, so the rows are independent.
+    const int threads = xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), static_cast<int>(H));
+    xpe_parallel::ForRows(static_cast<int>(H), threads, [&](int yBegin, int yEnd) {
+        for (size_t y = static_cast<size_t>(yBegin); y < static_cast<size_t>(yEnd); ++y)
+            Analyze(pad.data() + y * W, W, 1, lo.data() + y * hw, hi.data() + y * hw, 1);
+    });
     lv.ll.assign(hw * hh, 0.0); lv.lh.assign(hw * hh, 0.0);
     lv.hl.assign(hw * hh, 0.0); lv.hh.assign(hw * hh, 0.0);
     // Columns, on a transposed copy (see Transpose): same filter, same order.
     std::vector<double> colIn(hw * H), colA(hw * hh), colD(hw * hh);
+    auto analyzeColumns = [&] {
+        xpe_parallel::ForRows(static_cast<int>(hw),
+                              xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), static_cast<int>(hw)),
+                              [&](int xBegin, int xEnd) {
+            for (size_t x = static_cast<size_t>(xBegin); x < static_cast<size_t>(xEnd); ++x)
+                Analyze(colIn.data() + x * H, H, 1, colA.data() + x * hh, colD.data() + x * hh, 1);
+        });
+    };
     Transpose(lo.data(), H, hw, colIn.data());
-    for (size_t x = 0; x < hw; ++x)
-        Analyze(colIn.data() + x * H, H, 1, colA.data() + x * hh, colD.data() + x * hh, 1);
+    analyzeColumns();
     Transpose(colA.data(), hw, hh, lv.ll.data());
     Transpose(colD.data(), hw, hh, lv.lh.data());
     Transpose(hi.data(), H, hw, colIn.data());
-    for (size_t x = 0; x < hw; ++x)
-        Analyze(colIn.data() + x * H, H, 1, colA.data() + x * hh, colD.data() + x * hh, 1);
+    analyzeColumns();
     Transpose(colA.data(), hw, hh, lv.hl.data());
     Transpose(colD.data(), hw, hh, lv.hh.data());
     return lv;
@@ -247,20 +268,30 @@ std::vector<double> Idwt2(const Level& lv) {
     {
         const size_t hh = H / 2;
         std::vector<double> a(hw * hh), d(hw * hh), out(hw * H);
+        auto synthesizeColumns = [&] {
+            xpe_parallel::ForRows(static_cast<int>(hw),
+                                  xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), static_cast<int>(hw)),
+                                  [&](int xBegin, int xEnd) {
+                for (size_t x = static_cast<size_t>(xBegin); x < static_cast<size_t>(xEnd); ++x)
+                    Synthesize(a.data() + x * hh, d.data() + x * hh, 1, H, out.data() + x * H, 1);
+            });
+        };
         Transpose(lv.ll.data(), hh, hw, a.data());
         Transpose(lv.lh.data(), hh, hw, d.data());
-        for (size_t x = 0; x < hw; ++x)
-            Synthesize(a.data() + x * hh, d.data() + x * hh, 1, H, out.data() + x * H, 1);
+        synthesizeColumns();
         Transpose(out.data(), hw, H, lo.data());
         Transpose(lv.hl.data(), hh, hw, a.data());
         Transpose(lv.hh.data(), hh, hw, d.data());
-        for (size_t x = 0; x < hw; ++x)
-            Synthesize(a.data() + x * hh, d.data() + x * hh, 1, H, out.data() + x * H, 1);
+        synthesizeColumns();
         Transpose(out.data(), hw, H, hi.data());
     }
     std::vector<double> full(W * H);
-    for (size_t y = 0; y < H; ++y)
-        Synthesize(lo.data() + y * hw, hi.data() + y * hw, 1, W, full.data() + y * W, 1);
+    xpe_parallel::ForRows(static_cast<int>(H),
+                          xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), static_cast<int>(H)),
+                          [&](int yBegin, int yEnd) {
+        for (size_t y = static_cast<size_t>(yBegin); y < static_cast<size_t>(yEnd); ++y)
+            Synthesize(lo.data() + y * hw, hi.data() + y * hw, 1, W, full.data() + y * W, 1);
+    });
     const size_t sw = static_cast<size_t>(lv.srcW), sh = static_cast<size_t>(lv.srcH);
     std::vector<double> out(sw * sh);
     for (size_t y = 0; y < sh; ++y)
