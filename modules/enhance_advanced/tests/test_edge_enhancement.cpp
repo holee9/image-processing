@@ -16,6 +16,9 @@
 #include <cmath>
 #include <chrono>
 #include <limits>
+#include <algorithm>
+#include <cstdio>
+#include <string>
 
 /* ============================================================================
  * Test Fixtures
@@ -742,4 +745,65 @@ TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
     beforeImg.dataSize = img.dataSize;
 
     EXPECT_TRUE(verifyOvershootLimit(beforeImg, img));
+}
+
+/* ============================================================================
+ * #179 (QA-B-84): REQ-ADV-061 measurement on the CI runner -- no time assertion
+ * ============================================================================ */
+
+/**
+ * REQ-ADV-061 budgets xpe_fractional_process at 3072x3072 FLOAT32 (400 ms
+ * scalar / 120 ms AVX2), and no CI job measured it: T308 is a 1024x1024 proxy
+ * and ci.yml excludes it as a wall-clock case (QA-B-83).
+ *
+ * This case only MEASURES. A gate chosen from a developer machine has failed
+ * on CI before (810 ms local vs 1340 ms CI), so the threshold is to be set
+ * from the numbers this prints on the benchmark runner.
+ *
+ * The name carries "BenchmarkFreeze" so benchmark-regression.yml's -R pattern
+ * selects it, and deliberately avoids "Performance" / "Within...ms", which
+ * ci.yml's -E pattern would exclude.
+ *
+ * Same order (1.2) and step-edge shape as T308, at full size. One warm-up call,
+ * then kRuns timed calls on a fresh copy of the input each time (the call is
+ * in-place). Reported in microseconds as one grep-able line.
+ */
+TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalMeasure3072) {
+    constexpr int kSize = 3072;
+    constexpr int kRuns = 7;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+
+    std::vector<float> pristine(n, 0.5f);
+    for (int y = 0; y < kSize; ++y) {
+        for (int x = kSize / 2; x < kSize; ++x) {
+            pristine[static_cast<size_t>(y) * kSize + x] = 1.0f;
+        }
+    }
+
+    XpeImageBuffer img = createFloatImage(kSize, kSize);
+    float* data = static_cast<float*>(img.data);
+
+    auto runOnce = [&]() -> long long {
+        std::copy(pristine.begin(), pristine.end(), data);
+        const auto t0 = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = xpe_fractional_process(&img, 1.2f, nullptr);
+        const auto t1 = std::chrono::steady_clock::now();
+        EXPECT_EQ(XPE_OK, rc);
+        return std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    };
+
+    runOnce();  // warm-up, not recorded
+
+    std::vector<long long> us;
+    for (int i = 0; i < kRuns; ++i) {
+        us.push_back(runOnce());
+    }
+    EXPECT_FALSE(hasInvalidValues(img)) << "last run produced NaN/Inf";
+
+    std::sort(us.begin(), us.end());
+    std::printf("ADV061 fractional 3072x3072 min=%lld med=%lld max=%lld us (runs=%d, order=1.2)\n",
+                us.front(), us[us.size() / 2], us.back(), kRuns);
+    RecordProperty("ADV061_min_us", std::to_string(us.front()));
+    RecordProperty("ADV061_med_us", std::to_string(us[us.size() / 2]));
+    RecordProperty("ADV061_max_us", std::to_string(us.back()));
 }

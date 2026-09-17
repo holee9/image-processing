@@ -132,7 +132,10 @@ TEST(DisplayIntegration, FullPipeline_TableModality_SigmoidVoi) {
 
 TEST(DisplayIntegration, PresetDrivenPipeline_BonePreset) {
     // REQ-DISP-031: Use BONE preset through VOI then PresentationLUT
-    XpeImageBuffer img = make_float32_image(2, 2, 500.0f);
+    // Input sits at the preset's window center. REQ-DISP-017 was revised to
+    // the DN domain (#177): the preset is now 32768/65535, so the former
+    // input 500 (the old HU center) no longer maps to mid-scale.
+    XpeImageBuffer img = make_float32_image(2, 2, 32768.0f);
 
     // Apply linear modality (identity)
     XpeModalityLutParams mlut{};
@@ -145,8 +148,8 @@ TEST(DisplayIntegration, PresetDrivenPipeline_BonePreset) {
     XpeVoiLutParams voi{};
     ASSERT_EQ(xpe_voi_preset_create(&voi, XPE_BODY_BONE), XPE_OK);
     ASSERT_EQ(xpe_apply_voi_lut(&img, &voi), XPE_OK);
-    // Bone center=500, width=2000, minOut=0, maxOut=255
-    // input=500 (center) -> output = 127.5
+    // BONE center=32768, width=65535, minOut=0, maxOut=255 (provisional, #151)
+    // input=32768 (center) -> output = (32768 - 0.5) / 65535 * 255 = 127.5
     EXPECT_NEAR(float_pixels(img)[0], 127.5f, 1.0f);
 
     XpePresentationLutParams plut{};
