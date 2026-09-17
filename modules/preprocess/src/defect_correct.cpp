@@ -25,11 +25,16 @@ struct ClusterInfo {
     bool isCluster; // true if 2+ adjacent defects
 };
 
+// `visited` is W*H and all-false on entry; it is left all-false on return.
+// QA-A-103 (#179): it used to be allocated (W*H) per defect pixel, which made
+// the correction O(defects x W*H) -- 2.97 s for 0.1 % defects at 3072x3072.
+// Every pixel marked here is pushed to `positions`, so clearing exactly those
+// entries restores the invariant.
 ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t height,
-                           uint32_t startX, uint32_t startY)
+                           uint32_t startX, uint32_t startY,
+                           std::vector<bool>& visited)
 {
     ClusterInfo info;
-    std::vector<bool> visited(static_cast<size_t>(width) * height, false);
     std::queue<uint32_t> q;
 
     uint32_t startIdx = startY * width + startX;
@@ -62,6 +67,8 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
             }
         }
     }
+
+    for (uint32_t idx : info.positions) visited[idx] = false;
 
     info.isCluster = info.positions.size() >= 2u;
     return info;
@@ -176,11 +183,12 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
 
     // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> processed(n, false);
+    std::vector<bool> visited(n, false);   // reused by every analyzeCluster call
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
             if (dm[idx] != 0 && !processed[idx]) {
-                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y);
+                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y, visited);
                 if (cluster.isCluster) {
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
