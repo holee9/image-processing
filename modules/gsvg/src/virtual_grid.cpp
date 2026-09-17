@@ -601,13 +601,19 @@ double Mad(std::vector<double> v) {
 }
 
 void PyramidContrast(std::vector<double>& img, int w, int h, int levels, double gain, double k) {
-    std::vector<Plane> g{Plane{w, h, img}};
+    // QA-B-107 (#180): the caller's buffer is MOVED in and the result moved
+    // back out, and each Gaussian level is moved into its Laplacian band
+    // instead of copied. At 3072x3072 one plane is 75.5 MB, and these two
+    // copies were 151 MB of it. Moving changes no value.
+    std::vector<Plane> g{Plane{w, h, std::move(img)}};
     for (int l = 0; l < levels; ++l) g.push_back(Reduce(g.back()));
     std::vector<Plane> lap(static_cast<size_t>(levels));
     for (int l = 0; l < levels; ++l) {
-        const Plane& fine = g[static_cast<size_t>(l)];
-        Plane up = Expand(g[static_cast<size_t>(l) + 1], fine.w, fine.h);
-        lap[static_cast<size_t>(l)] = fine;
+        const int fw = g[static_cast<size_t>(l)].w, fh = g[static_cast<size_t>(l)].h;
+        Plane up = Expand(g[static_cast<size_t>(l) + 1], fw, fh);
+        // g[l] is not read again (the reconstruction starts from g.back()), so
+        // it becomes the band in place.
+        lap[static_cast<size_t>(l)] = std::move(g[static_cast<size_t>(l)]);
         for (size_t i = 0; i < up.v.size(); ++i) lap[static_cast<size_t>(l)].v[i] -= up.v[i];
     }
     // De-noise: soft threshold on the finest band only.
@@ -846,8 +852,8 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         }
         return o;
     };
-    const std::vector<double> Sf = upsample(Sc);
-    const std::vector<double> capF = (sw.cap == CapMode::LocalSum) ? upsample(cap) : std::vector<double>{};
+    std::vector<double> Sf = upsample(Sc);
+    std::vector<double> capF = (sw.cap == CapMode::LocalSum) ? upsample(cap) : std::vector<double>{};
 
     // Residual scatter of the chosen grid, normalised to its primary
     // transmission: O = P + (Ts/Tp) * S.
@@ -858,12 +864,27 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     // table without a thickness column gives one value), spread like the scatter.
     std::vector<double> Rc(T.size());
     for (size_t i = 0; i < Rc.size(); ++i) Rc[i] = grid.ResidualAt(T[i]);
-    const std::vector<double> Rf = upsample(Rc);
+    std::vector<double> Rf = upsample(Rc);
     // A full-resolution primary darker than this lies above the table's
     // thickness range (QA-B-93: the share of such pixels is reported).
     const double pAtTMax = st.airSignal * std::exp(-MuAt(tMax, W0, A, B) * tMax);
     size_t nFullHigh = 0, nFull = 0;
-    std::vector<double> out(img.size());
+    // QA-B-107 (#180): the result goes into io itself. Each output pixel reads
+    // only its own input pixel (plus Sf/Rf at the same index), so writing in
+    // place gives the same values; it saves one full-resolution buffer
+    // (75.5 MB at 3072x3072). With a mask, the pixels the mask excludes are
+    // kept in a compact copy first, because the post-steps below run over the
+    // whole image and would otherwise overwrite them.
+    std::vector<double>& out = io;
+    // The old code wrote into a zero-initialised buffer, so the post-steps saw
+    // ZEROS outside the mask; the pyramid reads neighbours, so those zeros are
+    // part of the result inside the mask. Writing in place keeps that exactly:
+    // the excluded pixels are saved, then zeroed, then restored at the end.
+    std::vector<double> maskedOut;
+    if (mask) {
+        for (size_t i = 0; i < io.size(); ++i)
+            if (!mask[i]) { maskedOut.push_back(io[i]); io[i] = 0.0; }
+    }
     // QA-B-105: per pixel, independent. The two counters are summed per band
     // and added up afterwards (integers, so the order does not matter).
     std::atomic<size_t> negativeAtomic{0}, fullHighAtomic{0}, fullAtomic{0};
@@ -896,14 +917,22 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
 
     rep.aboveTableFullRes = nFull ? static_cast<double>(nFullHigh) / static_cast<double>(nFull) : 0.0;
 
+    // The up-sampled scatter and residual maps are read only by the loop above;
+    // released here so the pyramid below does not run alongside them
+    // (151 MB at 3072x3072).
+    Sf.clear(); Sf.shrink_to_fit();
+    Rf.clear(); Rf.shrink_to_fit();
+    capF.clear(); capF.shrink_to_fit();
+
     if (st.pyramidLevels) PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
 
-    if (mask)
+    if (mask) {
+        size_t m = 0;
         for (size_t i = 0; i < out.size(); ++i)
-            if (!mask[i]) out[i] = io[i];
+            if (!mask[i]) out[i] = maskedOut[m++];
+    }
 
     for (double v : out) if (v > 65535.0) ++rep.clippedHigh;
-    io.swap(out);
     return rep;
 }
 
