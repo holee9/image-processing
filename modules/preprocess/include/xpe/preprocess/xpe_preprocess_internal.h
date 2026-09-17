@@ -101,6 +101,18 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
 
 std::string xpe_json_get_string(const char* configJson, const char* key);
 
+/**
+ * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
+ *
+ * Same validation and return codes as the public function. *applied is set to
+ * true only when the call changed the image; it is false for a NULL config, a
+ * config without "mode", and the known modes, which apply no correction today
+ * (SRS-CALIB-FUNC-006 is not implemented). The pipeline sets
+ * XPE_FLAG_NONLINEARITY_CORRECTED from it (#184).
+ */
+XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img, const char* configJsonOrNull,
+                                    bool* applied);
+
 double xpe_json_get_double(const char* configJson, const char* key, double defaultVal);
 
 /* =========================================================================

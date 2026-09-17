@@ -1,0 +1,171 @@
+/**
+ * @file test_pipeline_stage_values.cpp
+ * @brief Pipeline stage flags and values (QA-A-104, #184)
+ *
+ * test_pipeline_stages.cpp checks that stages RUN (the flag appears). These
+ * cases check what the flag and the output SAY:
+ *  - XPE_FLAG_NONLINEARITY_CORRECTED is set only when pixels were corrected.
+ *    xpe_nonlinearity_correct changes no pixel today (no LUT/polynomial is
+ *    implemented, SRS-CALIB-FUNC-006), so the flag must stay clear (#184).
+ *  - With offset, nonlinearity and gain enabled, the frame that reaches the
+ *    gain stage is the offset-corrected frame, and the pipeline returns
+ *    (raw - offset) / gain. Expected values are computed here by hand, not by
+ *    another run of the pipeline.
+ */
+
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+
+#include <cstring>
+#include <filesystem>
+#include <string>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+namespace {
+
+constexpr uint32_t W = 8, H = 8;
+constexpr size_t   N = static_cast<size_t>(W) * H;
+constexpr float    kRaw = 1000.0f, kOffset = 100.0f, kGain = 2.0f;
+
+class PipelineStageValueTest : public ::testing::Test {
+protected:
+    // Room for the float32 result: the pipeline writes it back into img.
+    std::vector<float>  storage;
+    XpeImageBuffer      img{};
+    XpeImageMetadata    meta{};
+    fs::path            dir;
+
+    void SetUp() override {
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        dir = fs::temp_directory_path() / "xpe_pipeline_stage_values";
+        fs::remove_all(dir);
+        fs::create_directories(dir);
+        writeMap("offset.xcal", XCAL_TYPE_OFFSET, kOffset);
+        writeMap("gain.xcal", XCAL_TYPE_GAIN, kGain);
+        {   // the pipeline loads defect.xcal with the other two; no defects
+            const std::vector<uint8_t> mask(N, 0);
+            XCalFileHeader hdr{};
+            std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+            hdr.version = XCAL_VERSION;
+            hdr.type = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+            hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK);
+            hdr.width = W; hdr.height = H;
+            hdr.payload_len = N;
+            ASSERT_EQ(XPE_OK, write_xcal_file((dir / "defect.xcal").string().c_str(), hdr,
+                                              nullptr, 0, mask.data(), N));
+        }
+
+        storage.assign(N, 0.0f);
+        auto* u = reinterpret_cast<uint16_t*>(storage.data());
+        for (size_t i = 0; i < N; ++i) u[i] = static_cast<uint16_t>(kRaw);
+        img.data = storage.data();
+        img.width = W; img.height = H;
+        img.bitsAllocated = 16; img.bitsStored = 16;
+        img.format = XPE_PIXEL_UINT16;
+        img.dataSize = N * sizeof(float);
+        meta = XpeImageMetadata{};
+    }
+
+    void TearDown() override {
+        xpe_preprocess_shutdown();
+        fs::remove_all(dir);
+    }
+
+    void writeMap(const char* name, XCalType type, float value) {
+        const std::vector<float> data(N, value);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION;
+        hdr.type = static_cast<uint32_t>(type);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+        hdr.width = W; hdr.height = H;
+        hdr.payload_len = data.size() * sizeof(float);
+        ASSERT_EQ(XPE_OK, write_xcal_file((dir / name).string().c_str(), hdr, nullptr, 0,
+                                          reinterpret_cast<const uint8_t*>(data.data()),
+                                          hdr.payload_len));
+    }
+
+    std::string calib() const { return dir.string(); }
+};
+
+// Readout and temperature are bypassed: the temperature stage copies
+// img->dataSize bytes into a W*H uint16 buffer, and this img is float-sized.
+constexpr const char* kBase =
+    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
+    "\"bypassDefect\":true,\"bypassGhost\":true";
+
+}  // namespace
+
+TEST_F(PipelineStageValueTest, NonlinearityWithoutCorrectionLeavesTheFlagClear) {
+    const std::string cfg = std::string(kBase) +
+        ",\"bypassOffset\":true,\"bypassGain\":true}";
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, cfg.c_str()));
+    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED)
+        << "no pixel was corrected, so the frame must not be marked corrected (#184)";
+}
+
+TEST_F(PipelineStageValueTest, OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame) {
+    const std::string cfg = std::string(kBase) + "}";
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calib().c_str(), nullptr, cfg.c_str()));
+    EXPECT_TRUE(meta.flags & XPE_FLAG_OFFSET_CORRECTED);
+    EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+    ASSERT_EQ(XPE_PIXEL_FLOAT32, img.format);
+    const float expected = (kRaw - kOffset) / kGain;   // 450
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_FLOAT_EQ(expected, storage[i]) << "pixel " << i;
+    }
+}
+
+TEST_F(PipelineStageValueTest, BypassingNonlinearityGivesTheSameFrame) {
+    const std::string cfg = std::string(kBase) + ",\"bypassNonlinearity\":true}";
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calib().c_str(), nullptr, cfg.c_str()));
+    const float expected = (kRaw - kOffset) / kGain;
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_FLOAT_EQ(expected, storage[i]) << "pixel " << i;
+    }
+}
+
+// Ghost correction runs in place on the stage-6 frame. A handle that has seen
+// no previous frame has no lag to remove, so the frame must come back with the
+// same values (and must not be replaced by an empty buffer).
+TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
+    void* gh = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &gh));
+    const std::string cfg =
+        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
+        "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
+    meta.acquisitionTime = 1700000000;
+    const XpeErrorCode rc =
+        xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg.c_str());
+    xpe_ghost_destroy(gh);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_TRUE(meta.flags & XPE_FLAG_GHOST_CORRECTED);
+    const float expected = (kRaw - kOffset) / kGain;
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_NEAR(expected, storage[i], 1e-3f) << "pixel " << i;
+    }
+}
+
+// Binning mode 2 scales float32 pixels by 1/mode^2 (binning_correct.cpp:14);
+// the defect stage must receive that frame.
+TEST_F(PipelineStageValueTest, BinningStageReturnsTheBinnedFrame) {
+    const std::string cfg =
+        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+        "\"bypassGhost\":true,\"binningMode\":2}";
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calib().c_str(), nullptr, cfg.c_str()));
+    EXPECT_TRUE(meta.flags & XPE_FLAG_BINNING_CORRECTED);
+    EXPECT_TRUE(meta.flags & XPE_FLAG_DEFECT_CORRECTED);
+    const float expected = (kRaw - kOffset) / kGain / 4.0f;   // 112.5
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_FLOAT_EQ(expected, storage[i]) << "pixel " << i;
+    }
+}
