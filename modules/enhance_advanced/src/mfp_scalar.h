@@ -19,9 +19,6 @@ struct MfpConfig {
     float textureGain = 1.2f;      // Enhancement coefficient for mid frequencies
     float flatGain = 1.0f;         // Preservation coefficient for low frequencies (should be 1.0 for identity)
     float noiseThreshold = 0.02f;  // Noise floor for small signals
-
-    // Parse from JSON string
-    static MfpConfig fromJson(const char* jsonConfig);
 };
 
 /**
