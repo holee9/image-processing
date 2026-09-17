@@ -1,5 +1,10 @@
 # SIMD Parity Harness Specification
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 3줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 **Document ID**: SPEC-XPE-P1A-SIMD-PARITY
 **Version**: 2.0.0
 **Date**: 2026-04-19
@@ -418,7 +423,9 @@ void ClearForceOverride();
 
 #### 5.3.4 Grand Total
 
-**Total test cases across all architectures: 1830 × 3 = 5490**
+~~**Total test cases across all architectures: 1830 × 3 = 5490**~~
+
+> **계획이지 실적이 아닙니다 (2026-09-17, QA-A-85).** 이 하네스는 구현되지 않았습니다 — `modules/preprocess/tests/simd/` 는 존재한 적이 없고, 아키텍처 셋 중 AVX-512 와 NEON 경로는 QA-A-74 에서 죽은 코드로 제거됐습니다. 이 문서 전체가 **실행되지 않은 설계**입니다.
 
 Note: AVX-512 tests only run on compatible hardware (Skylake-X, Ice Lake+). NEON tests only run on ARM64 platforms.
 

@@ -1,5 +1,10 @@
 # Acceptance Criteria: SPEC-XPE-P1A
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 8줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 ---
 spec_id: SPEC-XPE-P1A
 version: 1.2.0
@@ -584,7 +589,9 @@ And the processed image is displayed in the GUI
 | PERF-004     | Full pipeline (offset+gain+defect)| 3072x3072 U16 | < 500ms         | < 100ms       |
 | PERF-005     | XCal file load (offset)          | 3072x3072     | < 50ms          | N/A           |
 | PERF-006     | Calibration generate (10 frames) | 3072x3072     | < 200ms         | < 80ms        |
-| PERF-007     | Runtime detection (Hampel)       | 3072x3072 U16 | < 35ms          | < 12ms        |
+| PERF-007     | Runtime detection (Hampel)       | 3072x3072 **FLOAT32** | ~~< 35ms~~ **<= 60 ms (dev machine)** | ~~< 12ms~~ see spec.md |
+
+> **PERF-007 정정 2026-09-17 (QA-A-85).** 이 행은 `spec.md` 가 2026-09-12 에 **폐기한 수치**(`< 35ms` / `< 12ms`)를 그대로 들고 있었습니다 — 두 값 모두 측정된 하한보다 낮아 어떤 구현도 도달할 수 없었습니다(QA-A-56). 형식도 `U16` 이었으나 검출 경로의 입력은 **FLOAT32** 입니다(`spec.md:220`). 현행 목표와 그 기계 정의는 `spec.md` 의 Performance 절이 원본입니다.
 
 ---
 

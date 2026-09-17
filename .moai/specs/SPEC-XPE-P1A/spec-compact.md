@@ -1,5 +1,10 @@
 # SPEC-XPE-P1A: Compact Specification
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 4줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 **Document ID**: SPEC-XPE-P1A
 **Version**: 1.0.0
 **Date**: 2026-04-16

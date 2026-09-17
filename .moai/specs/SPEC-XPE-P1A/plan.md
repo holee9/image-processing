@@ -1,5 +1,10 @@
 # Implementation Plan: SPEC-XPE-P1A
 
+> **수치를 읽는 법 (2026-09-17, QA-A-85 전수).** 이 파일에는 **유도 근거를 찾지 못한 성능 목표가 1줄** 있습니다(55/15 · 95/30 · 500/100 ms 계열 등). 탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체. **기계도 적혀 있지 않습니다.** 성능 판정의 근거로 인용하지 마십시오 — 현행 목표는 `spec.md` Performance 절입니다. 줄 목록은 QA-A-85 보고서에 있습니다.
+>
+> 측정값을 문서에 적을 때는 **측정일·명령·기계**를 함께 적습니다(`lane-sessions.md` §3.5.5).
+
+
 ---
 spec_id: SPEC-XPE-P1A
 version: 1.2.0
@@ -432,7 +437,7 @@ See `benchmark/BP-01-05-preprocess-manifest.md` v1.0.0. Pre Lane M2 release gate
 - BP-02 Multi-gain linearity dataset captured and passing (REQ-P1A-011)
 - BP-03 Heel-effect SID dataset captured and passing (REQ-P1A-011)
 - BP-04 Defect density dataset captured and passing (REQ-P1A-012, 013)
-- BP-SIMD addendum (1830/1830 parity) passing (REQ-P1A-040)
+- ~~BP-SIMD addendum (1830/1830 parity) passing (REQ-P1A-040)~~ — **철회 2026-09-17 (QA-A-85).** `acceptance.md` 에서는 먼저 걷어냈는데 이 줄이 남아 있었습니다. `1830` 은 존재한 적 없는 하네스의 수치입니다. 현재 파리티는 `test_*_avx2_parity.cpp` 4개 파일, TEST 20건입니다.
 
 Freeze protocol: SHA-256 hashes locked before release; any replacement requires version bump per parent spec Section 7.
 
