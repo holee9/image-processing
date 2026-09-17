@@ -27,6 +27,10 @@
 | `wet_curve.py` | `[wet]` 1차 투과 곡선과 맞춤 오차 표(QA-A-98) |
 | `phantom_images.py` | 계단·경사 물 팬텀의 넓은 조사 MC 영상(1차 / 전체 / 공기 / 경로 길이) |
 | `export_phantoms.py` | 팬텀 영상 점검(`[wet]` 곡선 대조, SPR) 과 `phantoms/` 내보내기 |
+| `make_victre.sh` | VICTRE MC-GPU v1.5b 를 같은 방식으로 빌드한다(소스 수정 없음)(QA-A-99) |
+| `gen_victre_input.py` | v1.5b 입력(물 슬랩, 넓은 조사, 선택적 그리드)을 만든다 |
+| `grid_tables.py` | 그리드 없음/있음 반복 실행으로 Tp·Ts 를 내고 `[grid]` 표와 점검 표를 쓴다 |
+| `tables/grid_water_victre.csv` | **`[grid]` 표** (시뮬레이션 기반, 보정 안 함) |
 | `tables/wet_water_csi600.csv` | **`[wet]` 표**, `tables/wet_water_csi600_fit.csv` 는 맞춤 오차 |
 | `phantoms/` | 가상 그리드 독립 검증용 영상(80×80, float32) |
 | `tables/scatter_kernels_water_csi600.csv` | **산란 커널 표** (아래 "커널 표" 참조) |
@@ -41,6 +45,8 @@
 | MC-GPU v1.3 PCD scatterMode | `https://github.com/DIDSR/MCGPUv1.3_PCD_scatterMode` | `e57bd50a0c51` | CC0-1.0 (소스 고지는 퍼블릭 도메인) |
 | `waterMIF`, `luciteMIF`(PMMA) 재료 파일 | 위 저장소 `materialFiles/MCGPUFiles/` | `e57bd50a0c51` | CC0-1.0 |
 | `CesiumIodide__5-120keV.mcgpu.gz` | `DIDSR/MCGPU` `materials/` | `cb16a5f52661` | 퍼블릭 도메인 |
+| VICTRE MC-GPU v1.5b | `https://github.com/DIDSR/VICTRE_MCGPU` | `30b5e66cf547` | 퍼블릭 도메인(17 U.S.C. §105, `MC-GPU_v1.5b.cu:112-117`, README 36행). 파생물 출처 표시 요청. PENELOPE 고지 유지 |
+| `Lead__5-120keV.mcgpu.gz`, `Polycarbonate__5-120keV.mcgpu.gz` | `DIDSR/MCGPU` `materials/` | `cb16a5f52661` | 퍼블릭 도메인 |
 | SpekPy | PyPI `spekpy` | 2.5.4 | MIT |
 | CUDA | `cuda-nvcc-12-9`, `cuda-cudart-dev-12-9` | 12.9 | NVIDIA EULA |
 
@@ -186,9 +192,25 @@ wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/check_kernels.
 - 대조: 같은 L 을 MC 없이 스펙트럼 × 물 표 × CsI 표로 계산해 `max_abs_L_mc_vs_analytic` 에 적는다.
 - 가상 그리드가 읽는 파일로 합칠 때: `[wet]` 줄 다음에 이 CSV 의 머리 줄과 자료 줄을 그대로 붙인다(`#` 줄은 무시된다). 커널 표도 같은 방식으로 `[kernels]` 아래에 붙인다.
 
-## `[grid]` — 만들지 않음 (QA-A-98)
+## `[grid]` 표 — `tables/grid_water_victre.csv` (QA-A-99)
 
-MC-GPU v1.3 과 PCD 파생판은 반산란 그리드를 모델링하지 않는다(`MC-GPU_v1.3.cu:183` "…does not simulate some relevant components of a CT scanner such as the anti-scatter grid…"). `VICTRE_MCGPU` v1.5b 에는 Day & Dance(1983) 해석 모델의 1차원 집속 그리드 투과 확률이 있다(`MC-GPU_kernel_v1.5b.cu:1735-1747`, 스트립·중간재는 평균 에너지의 평균 자유 경로 한 값). 이 저장소에서는 빌드하지 않았다.
+QA-A-98 에서는 MC-GPU v1.3·PCD 파생판에 그리드 모델이 없어 만들지 않았다. QA-A-99 에서 `VICTRE_MCGPU` v1.5b 의 Day & Dance(1983) 해석 모델(`MC-GPU_kernel_v1.5b.cu:1735-1747`)로 만들었다.
+
+- 모델 한계: 그리드 안 산란·형광 없음, 스트립·중간재 감쇠는 행마다 한 에너지(`e_mfp_kev`)의 평균 자유 경로 한 값, 1차원 집속(초점 = SDD).
+- 가정: 물 슬랩(밀도 1.00), 넓은 조사 30×30 cm, SDD 100 cm, 공기 간격 2 cm, 이상적 에너지 플루언스 검출기의 가운데 6×6 cm, 납 스트립(N40 → 50 µm, N60 → 36 µm), 중간재는 폴리카보네이트 표. 모두 입력이며 표 머리에 적었다.
+- `e_mfp_kev`: 그 두께·kVp 에서 검출기에 닿는 1차 스펙트럼의 계수 가중 평균 에너지(MC 없이 스펙트럼 × 물 표로 계산).
+- 값: Tp = 그리드 있음 1차 / 없음 1차, Ts = 같은 비의 산란(Compton + Rayleigh + 다중). 같은 시드로 그리드 없음·있음을 짝지어 돌린다. 1e8 히스토리 × 3/6/12 회(10/20/30 cm).
+- 격자: 물 10/20/30 cm × 60/80/100/120 kVp × 격자비 6/8/10/12 × 밀도 40/60 = 96 행. 줄이지 않았다.
+- 문헌값에 맞추는 조정은 없다. Fetterly 범위·단조성 대조는 보고서에 있다.
+
+```bash
+wsl.exe -d Ubuntu-24.04 -u root -- bash /mnt/d/workspace-github/xpe-pre/tools/mcsim/make_victre.sh
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python /mnt/d/workspace-github/xpe-pre/tools/mcsim/grid_tables.py run --out /root/mcsim/grid --thickness 10
+# 20, 30 도 같게. 그다음
+wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python .../grid_tables.py assemble --out /root/mcsim/grid --table .../tables/grid_water_victre.csv --checks <md> --commit <sha>
+```
+
+가상 그리드 파일의 `[grid]` 아래에는 표의 앞 세 열(`ratio,tp,ts`)이 쓰인다. 나머지 열은 조건을 고르기 위한 것이다.
 
 ## 검증용 팬텀 영상 — `phantoms/` (QA-A-98)
 
