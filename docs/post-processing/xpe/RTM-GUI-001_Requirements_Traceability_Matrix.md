@@ -175,7 +175,7 @@ SHA-GUI-001 각 hazard에 대한 완화 요구사항 추적:
 | HAZ-GUI-001 (Native exception propagation) | REQ-GUI-IT-005, 006, 031, 040, 050, 052 | `NoManagedExceptionTests`, `UninitializedGuardTests` |
 | HAZ-GUI-002 (Struct mismatch) | REQ-GUI-IT-002, 003, 004, 009, 025 | `AbiLayoutTests`, `EnumParityTests` |
 | HAZ-GUI-003 (UI freeze) | ARCH-001 §4.2 async rule | E2E W-04 |
-| HAZ-GUI-004 (Stale preview) | ARCH-001 §4.3, DISP-INT-001 §4.3 | E2E W-06/W-07 |
+| HAZ-GUI-004 (Stale preview) | ARCH-001 §4.3, DISP-INT-001 §4.3 | E2E W-06/W-07 — **⚠ #171: W-06 은 존재하지 않고, 통제 `IsPreviewStale` 도 미구현. 이 행은 추적이 끊긴 상태** |
 | HAZ-GUI-005 (Misleading diagnostics) | ACCESS-001 §7, persistent warning | E2E E-01 |
 | HAZ-GUI-006 (Version skew) | REQ-GUI-IT-008, 041, 042, 053 | `EnumParityTests.VersionPin`, `DllResolutionTests` |
 | HAZ-GUI-007 (Use error) | REQ-GUI-IT-022, 024, 026, 029, 033, IEC 62366 formative | `NoManagedExceptionTests`, formative evaluation |

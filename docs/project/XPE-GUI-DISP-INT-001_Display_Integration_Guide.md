@@ -776,6 +776,7 @@ public partial class DisplayPipelineViewModel : ObservableObject
 - [HARD] VoiWindowCenter / VoiWindowWidth / BodyPart 변경 시 `IsPreviewStale = true` 즉시 설정
 - [HARD] ApplyPipelineAsync 완료 시 `IsPreviewStale = false`
 - [HARD] UI에 `IsPreviewStale` 바인딩된 **경고 오버레이** 표시 (HAZ-GUI-004 control)
+  - **⚠ 미구현 (2026-09-17 측정, #171)** — 이 [HARD] 규칙은 코드에 반영되지 않았습니다. `IsPreviewStale` 0건. 위해 분석(SHA-GUI-001)이 이 통제를 전제로 잔여 위험을 Low 로 평가하고 있습니다.
 
 ---
 
