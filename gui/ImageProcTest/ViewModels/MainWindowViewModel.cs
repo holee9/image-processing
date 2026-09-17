@@ -350,6 +350,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public const string StaleParametersChanged =
         "STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.";
 
+    /// <summary>
+    /// ③ — a display pipeline call threw, so the processed image on screen is the one from before the
+    /// attempt. It stays up (nothing better exists to show) and is marked until a render succeeds or a new
+    /// image is loaded; a later parameter edit does not replace this reason.
+    /// </summary>
+    public const string StalePipelineFailed =
+        "STALE — the display pipeline failed; the image shown is from before the failed attempt.";
+
     public string? PreviewStaleReason
     {
         get => _previewStaleReason;
@@ -916,6 +924,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             ActiveImageFrame = processedFrame;
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
             SetRenderedVoi(inputs);
             MetadataText = processedFrame.MetadataText;
             DisplayPipelineSummary = processedFrame.DisplayPipelineSummary;
@@ -928,6 +937,7 @@ public sealed class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             OnPropertyChanged(nameof(FaultInjectionStatus));
+            PreviewStaleReason = StalePipelineFailed;   // #171 ③
             StatusText = $"Display pipeline failed: {ex.Message}";
             Log(StatusText);
             Alerts.Insert(0, new AlertEntry
