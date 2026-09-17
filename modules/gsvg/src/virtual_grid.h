@@ -45,10 +45,14 @@ namespace xpe_gsvg_detail {
 //               (the tools/mcsim/tables CSV rows can be pasted unchanged)
 //   [wet]       kvp,w0,a,b          mu(t) = w0 - a*t/(1+b*t)   [1/cm], t in cm
 //   [grid]      ratio,tp,ts         primary / scatter transmission of the grid
-//   [spr_cap]   thickness_cm,kvp,max_spr
+//   [spr_cap]   thickness_cm,kvp,max_spr          (optional, see below)
 //
 // Kernels: gauss4 rows are used when the section has any, otherwise gauss2.
 // The chosen model must cover a full thickness x kVp grid.
+//
+// SPR cap (QA-B-93, lead decision): when [spr_cap] is absent the cap is the
+// infinite-field SPR of the chosen kernel rows, sum(a_i), blended exactly like
+// the kernel itself (KernelAt). A present [spr_cap] section overrides it.
 // ---------------------------------------------------------------------------
 struct KernelNode {
     int terms = 0;            // 2 or 4
@@ -65,7 +69,8 @@ struct ParamTable {
 
     std::vector<double> gridRatio, gridTp, gridTs;
 
-    std::vector<double> capThick, capKvp;      // ascending
+    bool capFromKernels = false;               // no [spr_cap] section
+    std::vector<double> capThick, capKvp;      // ascending (empty when capFromKernels)
     std::vector<double> capSpr;                // [iT * capKvp.size() + iK]
 };
 
@@ -92,6 +97,7 @@ struct VgSettings {
 struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
     bool sprCap = true;           // false: no cap at any stage
+    bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
 };
 
 struct VgReport {
@@ -99,7 +105,18 @@ struct VgReport {
     int coarseW = 0, coarseH = 0, factor = 0;
     double maxThicknessCm = 0;
     double meanSpr = 0;           // coarse, after the last iteration
-    size_t nonPositivePrimary = 0;   // full-res pixels with I - S <= 0 (only without the cap)
+    // Fractions of reduced-grid pixels in the last iteration (QA-B-93):
+    double clampedHighFraction = 0;  // thickness above the table, limited to its maximum
+    double belowTableFraction = 0;   // 0 < thickness < first kernel node (kernel faded to 0 at t = 0)
+    double cappedFraction = 0;       // SPR limited by the cap
+    // Share of full-resolution pixels (I > 0) whose final primary estimate
+    // lies above the table's thickness range. This is the pixel share of
+    // over-range material; clampedHighFraction undercounts it at object edges,
+    // where a reduced-grid block averages the dense region with its surroundings.
+    double aboveTableFullRes = 0;
+    // Full-res pixels with I - S < 0 before clamping to 0. With the cap on this
+    // cannot happen: S <= I*cap/(1+cap) gives I - S >= I/(1+cap) >= 0.
+    size_t negativePrimary = 0;
     size_t clippedHigh = 0;          // full-res output pixels above 65535 before clamping
 };
 
@@ -110,6 +127,11 @@ struct BlendedKernel {
     std::vector<double> a, s;   // one entry per Gaussian term
 };
 bool KernelAt(const ParamTable& t, double thicknessCm, double kvp, BlendedKernel& out);
+
+// SPR cap at (thickness, kVp): [spr_cap] bilinear (thickness clamped to its
+// range), or sum(a_i) of KernelAt when the section is absent. < 0 when kVp
+// lies outside the range that supplies the cap.
+double SprCapAt(const ParamTable& t, double thicknessCm, double kvp);
 
 // Water-equivalent thickness [cm] for L = -ln(P/I0). Returns < 0 when the
 // solution lies above tMax.
