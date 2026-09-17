@@ -156,16 +156,18 @@ namespace {
             stage3.data = stage3Data.data();
             stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
 
-            // Copy input if we didn't have a dedicated buffer
-            if (stage2Data.empty()) {
-                stage3Data.assign(static_cast<const uint16_t*>(stage2.data),
-                                 static_cast<const uint16_t*>(stage2.data) + pixelCount);
-            }
+            // The stage works in place on its own copy of the stage-2 frame.
+            // QA-A-104 (#184): the copy used to run only when stage 2 had no
+            // buffer of its own, so with offset enabled (the default) the gain
+            // stage received an all-zero frame.
+            std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
 
-            result = xpe_nonlinearity_correct(&stage3, nullptr);
+            bool applied = false;
+            result = xpe_nonlinearity_apply(&stage3, nullptr, &applied);
             if (result != XPE_OK) return result;
 
-            if (meta) meta->flags |= XPE_FLAG_NONLINEARITY_CORRECTED;
+            // Set only when pixels were corrected (#184).
+            if (meta && applied) meta->flags |= XPE_FLAG_NONLINEARITY_CORRECTED;
         }
 
         // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
@@ -207,7 +209,11 @@ namespace {
             stage5.data = stage5Data.data();
             stage5.dataSize = stage5Data.size() * sizeof(float);
 
-            result = xpe_binning_correct(&stage4, cfg.binningMode, nullptr);
+            // In place on its own copy of the stage-4 frame. QA-A-104: it used
+            // to bin stage4 while the (empty) stage5 buffer went on to the
+            // defect stage, so a binned frame came out as zeros.
+            std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
+            result = xpe_binning_correct(&stage5, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_BINNING_CORRECTED;
@@ -270,7 +276,11 @@ namespace {
             stage7.data = stage7Data.data();
             stage7.dataSize = stage7Data.size() * sizeof(float);
 
-            result = xpe_ghost_correct(ghostHandle, &stage6, meta);
+            // Ghost correction works in place; give it its own copy of the
+            // stage-6 frame. QA-A-104: it used to correct stage6 while the
+            // (empty) stage7 buffer was copied back, so the output was zeros.
+            std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;

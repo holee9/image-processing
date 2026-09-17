@@ -390,6 +390,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_mode_enforcement.cpp
         # QA-A-102 (#169): writing over an existing calibration file
         tests/test_calib_overwrite.cpp
+        # QA-A-104 (#184): pipeline stage flags and values
+        tests/test_pipeline_stage_values.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production
         tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race

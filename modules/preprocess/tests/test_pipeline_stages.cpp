@@ -119,7 +119,10 @@ TEST_F(PipelineStageTest, NonlinearityAndBinningStagesRun) {
         "\"bypassGhost\":true,\"bypassReadout\":true,\"bypassTemp\":true}";
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
-    EXPECT_TRUE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+    // The stage body runs, but it corrects no pixel (SRS-CALIB-FUNC-006 is not
+    // implemented), so the frame is not marked corrected (QA-A-104, #184).
+    // Until then this line asserted the flag was set.
+    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
 }
 
 // A stage that cannot run must abort the pipeline. With the offset stage

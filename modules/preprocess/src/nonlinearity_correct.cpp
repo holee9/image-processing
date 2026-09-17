@@ -19,9 +19,13 @@
 // Known detector modes with nonlinearity tables; identity polynomial applied as baseline
 static const std::vector<std::string> kKnownModes = {"standard", "high_gain", "low_dose"};
 
-XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-                                       const char* configJsonOrNull)
+XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
+                                     const char* configJsonOrNull,
+                                     bool* applied)
 {
+    bool ignored = false;
+    bool& changed = applied ? *applied : ignored;
+    changed = false;
     if (!img) return XPE_ERR_INVALID_INPUT;
     if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
 
@@ -41,6 +45,14 @@ XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
 
     // REQ-P1A-012/015: apply identity polynomial for now (baseline, uint16 format)
     // Real coefficients would be loaded from a per-detector calibration profile
+    // (SRS-CALIB-FUNC-006, not implemented). No pixel changes, so `changed`
+    // stays false and the pipeline does not mark the frame corrected (#184).
     (void)img;
     return XPE_OK;
+}
+
+XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
+                                       const char* configJsonOrNull)
+{
+    return xpe_nonlinearity_apply(img, configJsonOrNull, nullptr);
 }
