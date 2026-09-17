@@ -18,6 +18,7 @@
 #include <cmath>
 #include <chrono>
 #include <limits>
+#include "perf_measure.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -608,4 +609,25 @@ TEST_F(ExposureIndexTest, T509_TestCoverageVerification) {
 
     // Document that coverage targets are met
     EXPECT_TRUE(true) << "All acceptance criteria have corresponding tests";
+}
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST_F(ExposureIndexTest, BenchmarkFreeze_Performance_PERF_ADV_004_ExposureIndex3072) {
+    constexpr int kSize = 3072;
+    XpeImageBuffer img = createFloatImage(kSize, kSize, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    for (size_t i = 0; i < n; ++i)
+        px[i] = 0.5f + static_cast<float>((i * 2654435761u) % 4096u) / 1024.0f;
+    XpeImageMetadata meta = createMetadata("CHEST", 80.0f, 10.0f);
+    float ei = 0.0f, di = 0.0f;
+    perf_measure::Measure("PERF-ADV-004/xpe_adv_calc_exposure_index", "3072x3072",
+                          [] {},   // read-only call: nothing to restore
+                          [&] { return xpe_adv_calc_exposure_index(&img, &meta, &ei, &di); });
+    EXPECT_TRUE(std::isfinite(ei));
+    EXPECT_TRUE(std::isfinite(di));
 }

@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstring>
 #include <algorithm>
+#include "perf_measure.h"
 
 #include "xpe/display/display_api.h"
 #include "xpe/common/xpe_memory.h"
@@ -410,4 +411,32 @@ TEST(PresentationLutCrossDllTest, BothModulesResolveTheHeapThroughTheSameCrt) {
         << "the two modules resolve malloc/free through different runtimes: "
            "xpe_common=[" << Join(commonHeap) << "] "
            "xpe_display=[" << Join(displayHeap) << "]";
+}
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+// REQ-DISP-028 includes the format conversion: the call frees the float32
+// buffer and installs a uint16 one (REQ-DISP-019), so every run needs a fresh
+// std::malloc'd float32 image; the previous uint16 result is freed first.
+TEST(PresentationLut, BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    XpePresentationLutParams params{};
+    make_identity_lut(params);
+    XpeImageBuffer img{};
+    auto reset = [&] {
+        if (img.data) std::free(img.data);
+        img = make_float32_image(kSize, kSize, 0.0f);
+        float* px = static_cast<float*>(img.data);
+        for (size_t i = 0; i < n; ++i)
+            px[i] = static_cast<float>((i * 2654435761u) % 1024u) / 1023.0f;
+    };
+    perf_measure::Measure("REQ-DISP-028/xpe_apply_presentation_lut", "3072x3072", reset,
+                          [&] { return xpe_apply_presentation_lut(&img, &params); });
+    EXPECT_EQ(img.format, XPE_PIXEL_UINT16);
+    EXPECT_NE(img.data, nullptr);
+    std::free(img.data);
 }

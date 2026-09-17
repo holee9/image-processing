@@ -14,6 +14,7 @@
 #include <cstring>
 #include <algorithm>
 #include <chrono>
+#include "perf_measure.h"
 
 namespace {
 
@@ -179,3 +180,42 @@ TEST(LogTransform, MultiplePixels_AllTransformedCorrectly) {
 }
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST(LogTransform, BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    std::vector<float> pristine(n);
+    for (size_t i = 0; i < n; ++i)
+        pristine[i] = 1.0f + static_cast<float>((i * 2654435761u) % 4096u);
+    auto img = make_f32(kSize, kSize, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    auto reset = [&] { std::copy(pristine.begin(), pristine.end(), px); };
+    perf_measure::Measure("REQ-ENH-006/xpe_log_transform", "3072x3072", reset,
+                          [&] { return xpe_log_transform(&img, 1000.0f); });
+    for (size_t i = 0; i < n; ++i) {
+        if (!std::isfinite(px[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
+    }
+    free_img(img);
+}
+
+TEST(LogTransform, BenchmarkFreeze_Performance_REQ_ENH_006_LogInverse3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    std::vector<float> pristine(n);
+    for (size_t i = 0; i < n; ++i)   // log-domain input in (0, 4]
+        pristine[i] = static_cast<float>(((i * 2654435761u) % 4096u) + 1u) / 1024.0f;
+    auto img = make_f32(kSize, kSize, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    auto reset = [&] { std::copy(pristine.begin(), pristine.end(), px); };
+    perf_measure::Measure("REQ-ENH-006/xpe_log_inverse", "3072x3072", reset,
+                          [&] { return xpe_log_inverse(&img, 1000.0f); });
+    for (size_t i = 0; i < n; ++i) {
+        if (!std::isfinite(px[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
+    }
+    free_img(img);
+}

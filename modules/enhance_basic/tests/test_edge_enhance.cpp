@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
+#include "perf_measure.h"
 
 namespace {
 
@@ -203,3 +204,29 @@ TEST(EdgeEnhance, Performance_3072x3072_Within20ms) {
 }
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// #179 (QA-B-86): measure-only benchmark at the SPEC size -- no time assertion.
+// The name carries BenchmarkFreeze (selected by benchmark-regression.yml -R)
+// and Performance (excluded by ci.yml -E, which runs on shared runners).
+// ---------------------------------------------------------------------------
+TEST(EdgeEnhance, BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072) {
+    constexpr uint32_t kSize = 3072;
+    const size_t n = static_cast<size_t>(kSize) * kSize;
+    std::vector<float> pristine(n);
+    for (size_t i = 0; i < n; ++i)
+        pristine[i] = 1.0f + static_cast<float>((i * 2654435761u) % 4096u);
+    auto img = make_f32(kSize, kSize, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    auto reset = [&] { std::copy(pristine.begin(), pristine.end(), px); };
+    XpeUsmParams params{};
+    params.amount = 0.5f;
+    params.radius = 2.0f;
+    params.threshold = 10.0f;
+    perf_measure::Measure("REQ-ENH-022/xpe_edge_enhance", "3072x3072", reset,
+                          [&] { return xpe_edge_enhance(&img, &params); });
+    for (size_t i = 0; i < n; ++i) {
+        if (!std::isfinite(px[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
+    }
+    free_img(img);
+}
