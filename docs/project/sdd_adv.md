@@ -194,6 +194,7 @@ tests/enhance_advanced_tests/
 | Parameter | Type | Range | Default |
 |-----------|------|-------|---------|
 | levels | int | 2-8, and ≤ floor(log2(min(w,h)))+1 (physical bound; clamped, #121) | 4 |
+| num_levels | int | same as `levels` | 4 |
 | edge_gain | float | 0.0-5.0 | 1.5 |
 | texture_gain | float | 0.0-5.0 | 1.0 |
 | flat_gain | float | 0.0-5.0 | 0.8 |
@@ -205,8 +206,9 @@ tests/enhance_advanced_tests/
 > - **`levels` 가 2 나 3 이면 일부 게인이 쓰이지 않습니다** — 레벨 3 에서는 `texture_gain`, 레벨 2 에서는 `edge_gain`·
 >   `texture_gain` 이 출력에 닿지 않습니다(`mfp_scalar.cpp:180-186` 분기, 두 극단 차이 0). 둘 다 이 표의 허용 범위 안입니다.
 >   레벨 4 에서는 두 게인이 모두 출력을 바꿉니다
-> - **`num_levels`** 도 같은 값을 받습니다(`helpers.cpp:171-179`). 이 표에는 없습니다. **두 키가 함께 오면 `levels` 가
->   이깁니다** — 코드 주석은 `levels` 를 legacy 라고 부르는데, legacy 쪽이 이기는 것은 이름의 의도와 반대입니다(#162)
+> - **`num_levels`** 와 `levels` 는 같은 값을 받습니다(`helpers.cpp:171-181`). 코드 주석은 `levels` 를 legacy 라고 부릅니다.
+>   **두 키가 함께 오면 `num_levels` 가 이깁니다** — 원래는 legacy `levels` 가 이겼고, 이름의 의도와 반대라 QA-B-79 에서
+>   뒤집었습니다(#162). 시험 `NumLevelsWinsOverLegacyLevels` 가 적용된 값을 출력으로 확인합니다.
 
 #### Fractional Configuration (SWU-2.6)
 
