@@ -192,7 +192,21 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
-- **Performance** (redefined 2026-09-12, #144 — see the note below): regression gate **<= 810 ms** and improvement target **<= 60 ms (AVX2, single thread)** for a 3072x3072 FLOAT32 frame. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+- **Performance** (redefined 2026-09-12, #144 — see the note below): improvement target **<= 60 ms (AVX2, single thread) on the development machine** for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+
+> **Which machine the 60 ms target refers to (clarified 2026-09-17, QA-A-84).** Until this date the
+> line above named four conditions — AVX2, single thread, 3072x3072, FLOAT32 — and **no machine**. This
+> file already recorded that the 810 ms *gate* was machine-dependent (the 2026-09-16 note below: 702 ms
+> locally, 1340.9 ms on CI, 1.91x) and replaced it with a ratio; **the same was never said of the target.**
+> The target was derived on the development machine (from the 27.1 ms AVX2 lower bound measured there,
+> QA-A-56), so that is the machine it refers to. This records where the number came from; it does not
+> change the number.
+>
+> **Status against that definition** (from existing reports, not re-measured): development machine
+> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.** The "1.6x on the CI runner" figure further
+> down has **no absolute CI time behind it in the lane reports** — it is a ratio-derived statement, and
+> no report records a CI millisecond value for the current code. CI does not enforce the 60 ms target
+> at all: the ratio gate guards CI against regression, and that is its only job there.
 
 > **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
 >
