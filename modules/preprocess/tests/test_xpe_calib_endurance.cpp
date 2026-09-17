@@ -6,7 +6,8 @@
  *
  * Test cases:
  *  1. 1000-cycle load_offset/load_gain/load_defect round-trip: no crash, XPE_OK
- *  2. Memory stability: RSS growth after 1000 cycles < 1 MB (Windows WorkingSetSize)
+ *  2. Memory stability: CRT heap retention over the cycles (heap_growth.h, #181),
+ *     paired with a control that leaks 64 bytes per cycle
  *  3. 4-thread concurrent load_offset: all threads succeed, no crash
  *  4. 4-thread concurrent load_gain: all threads succeed, no crash
  *  5. 4-thread concurrent mixed (offset + gain + defect): no crash, last write wins
@@ -24,21 +25,7 @@
 #include "xpe/preprocess/xcal_format.h"
 #include "fixtures/make_xcal.hpp"
 
-// Windows-specific RSS measurement
-#ifdef _WIN32
-#  include <windows.h>
-#  include <psapi.h>
-
-static SIZE_T get_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
-    }
-    return 0;
-}
-#else
-static size_t get_working_set_bytes() { return 0; }
-#endif
+#include "heap_growth.h"
 
 namespace {
 constexpr uint32_t W = 128;
@@ -93,45 +80,44 @@ TEST_F(EnduranceTest, ThousandCycles_NocrashAllOk) {
 }
 
 // =============================================================================
-// Test 2: Memory stability -- WorkingSet growth < 1 MB after 1000 cycles
+// Test 2: Memory stability -- CRT heap retention over the load cycles
+//
+// #181 (QA-A-100): until now this case bounded the process working set
+// (< 1 MB after 1000 cycles, warm-up first per #105). QA-B-92 showed the
+// working set does not follow a leak, so the case now counts the CRT heap
+// blocks still allocated after the cycles (heap_growth.h) and is paired with a
+// control that must fail the same bound.
 // =============================================================================
-TEST_F(EnduranceTest, ThousandCycles_MemoryGrowthUnderOneMB) {
+namespace {
+void LoadAllThree(int) {
+    xpe_calib_load_offset(OFF_PATH);
+    xpe_calib_load_gain(GAIN_PATH);
+    xpe_calib_load_defect_map(DEF_PATH);
+}
+} // anonymous namespace
+
+TEST_F(EnduranceTest, LoadCycles_DoNotGrowCrtHeap) {
 #ifndef _WIN32
-    GTEST_SKIP() << "RSS measurement only supported on Windows in this build";
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
 #endif
-    constexpr int CYCLES = 1000;
-    constexpr int WARMUP = 100;
-    constexpr SIZE_T ONE_MB = 1024 * 1024;
+    const heap_growth::Growth g = heap_growth::Measure(LoadAllThree);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << "load cycles left blocks allocated -- a replaced map is not released";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << "load cycles left bytes allocated -- a replaced map is not released";
+}
 
-    // #105: the first cycles fault in pages and grow the CRT allocator arena.
-    // Snapshotting the baseline before that one-time cost makes the threshold a
-    // measure of startup rather than of retention, which is what produced the
-    // load-dependent CI failures (1,077,248 and 1,048,576 bytes -- both whole
-    // page counts). Warm up first, then take the baseline, so only steady-state
-    // growth is scored. Same remedy as enhance_basic ENDURANCE_WARMUP (92bcf17).
-    for (int i = 0; i < WARMUP; ++i) {
-        xpe_calib_load_offset(OFF_PATH);
-        xpe_calib_load_gain(GAIN_PATH);
-        xpe_calib_load_defect_map(DEF_PATH);
-    }
-
-    SIZE_T before = get_working_set_bytes();
-
-    for (int i = 0; i < CYCLES; ++i) {
-        xpe_calib_load_offset(OFF_PATH);
-        xpe_calib_load_gain(GAIN_PATH);
-        xpe_calib_load_defect_map(DEF_PATH);
-    }
-
-    SIZE_T after = get_working_set_bytes();
-
-    // Allow up to 1 MB growth (expected: ~0, RAII cleans up on each load)
-    if (after > before) {
-        EXPECT_LT(after - before, ONE_MB)
-            << "Memory grew by " << (after - before) / 1024 << " KB over "
-            << CYCLES << " cycles";
-    }
-    // If after <= before, working set shrunk (fine)
+// #181 (QA-A-100) control for the case above: the same cycle plus a 64-byte
+// block kept per cycle must be seen by the same measurement.
+TEST_F(EnduranceTest, LoadCycles_ControlLeakIsCaught) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const heap_growth::Growth g = heap_growth::Measure(LoadAllThree, 64);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
 
 // =============================================================================

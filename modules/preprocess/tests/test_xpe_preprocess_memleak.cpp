@@ -9,10 +9,14 @@
  *     - Allocate a 512x512 uint16 frame buffer once (outside the loop).
  *     - Call xpe_preprocess_init / (lightweight process) / xpe_preprocess_shutdown
  *       for 1000 iterations, reusing the same frame buffer every iteration.
- *     - Measure process-private heap growth via the Windows Process Memory API
- *       (GetProcessMemoryInfo).  Assert heap does not grow beyond 5% of the
- *       post-warmup baseline (with a 2 MB absolute floor to absorb OS
- *       commit-granularity noise).
+ *     - Count the CRT heap blocks still allocated after the cycles
+ *       (heap_growth.h, #181). Until QA-A-100 this case bounded the process
+ *       PrivateUsage growth by max(5% of the baseline, 2 MB); a working-set /
+ *       commit bound does not follow a leak (QA-B-92), so it was replaced.
+ *
+ *   XpePreprocessEndurance.ControlLeakIsCaught
+ *     - The same frame cycle plus a 64-byte block kept per cycle must be seen
+ *       by the same measurement.
  *
  * Design notes:
  *   - We avoid xpe_gain_correct in the inner loop because that call performs an
@@ -23,7 +27,7 @@
  *   - The process path uses readout validate + temperature compensation + in-place
  *     offset correction.  All three are documented as non-allocating and
  *     operate on the caller-owned uint16 buffer in-place.
- *   - A 50-iteration warm-up is executed first so that any one-shot allocations
+ *   - A warm-up (heap_growth::kWarmup) is executed first so that any one-shot allocations
  *     inside the module (logger buffers, config JSON parse arenas, DLL lazy
  *     initialisation, etc.) have already occurred before the baseline is
  *     captured.
@@ -44,44 +48,13 @@ extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
 #include <vector>
 #include <cstdint>
 #include <cstring>
-#include <cstdio>
 
-#ifdef _WIN32
-#  include <windows.h>
-#  include <psapi.h>
-#endif
+#include "heap_growth.h"
 
 namespace {
 
 constexpr uint32_t W = 512;
 constexpr uint32_t H = 512;
-constexpr int      WARMUP_ITERATIONS = 50;
-constexpr int      MEASURED_ITERATIONS = 1000;
-constexpr double   ALLOWED_GROWTH_RATIO = 0.05;                 /* 5%     */
-constexpr size_t   ABSOLUTE_FLOOR_BYTES = 2 * 1024 * 1024;      /* 2 MB   */
-
-struct ProcessMemorySample {
-    size_t workingSet;     /* RSS-like: pages resident in physical RAM         */
-    size_t privateUsage;   /* Committed private bytes (heap + stacks + private */
-                           /* mappings).  This is the leak-indicator of       */
-                           /* interest -- WorkingSet can shrink when the OS   */
-                           /* trims pages, but PrivateUsage only grows on leak */
-};
-
-static ProcessMemorySample sample_process_memory() {
-    ProcessMemorySample s{0, 0};
-#ifdef _WIN32
-    PROCESS_MEMORY_COUNTERS_EX pmc{};
-    pmc.cb = sizeof(pmc);
-    if (GetProcessMemoryInfo(GetCurrentProcess(),
-                             reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc),
-                             sizeof(pmc))) {
-        s.workingSet   = static_cast<size_t>(pmc.WorkingSetSize);
-        s.privateUsage = static_cast<size_t>(pmc.PrivateUsage);
-    }
-#endif
-    return s;
-}
 
 /*
  * Run one "frame" through the module:
@@ -115,6 +88,47 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
     xpe_preprocess_shutdown();
 }
 
+/* Buffers for one frame; allocated once, before any heap snapshot. */
+struct FrameFixture {
+    std::vector<uint16_t> rawPixels    = std::vector<uint16_t>(W * H, 2000);
+    std::vector<uint16_t> offsetPixels = std::vector<uint16_t>(W * H, 200);
+    std::vector<uint16_t> goldenRaw    = rawPixels;
+    XpeImageBuffer rawBuf{};
+    XpeImageBuffer offsetBuf{};
+
+    FrameFixture() {
+        rawBuf.data          = rawPixels.data();
+        rawBuf.width         = W;
+        rawBuf.height        = H;
+        rawBuf.bitsAllocated = 16;
+        rawBuf.bitsStored    = 16;
+        rawBuf.format        = XPE_PIXEL_UINT16;
+        rawBuf.dataSize      = rawPixels.size() * sizeof(uint16_t);
+
+        offsetBuf.data          = offsetPixels.data();
+        offsetBuf.width         = W;
+        offsetBuf.height        = H;
+        offsetBuf.bitsAllocated = 16;
+        offsetBuf.bitsStored    = 16;
+        offsetBuf.format        = XPE_PIXEL_UINT16;
+        offsetBuf.dataSize      = offsetPixels.size() * sizeof(uint16_t);
+    }
+
+    void Run() { run_one_frame(rawBuf, offsetBuf, goldenRaw.data(), goldenRaw.size()); }
+};
+
+/* Start with no calibration loaded (QA-A-89, #176). run_one_frame accepts
+ * "no offset map" but not "an offset map of another size": a 8x8 map left
+ * by CalibCacheConcurrencyTest made the first frame's xpe_offset_correct
+ * return -8 (XPE_ERR_BUFFER_TOO_SMALL) under --gtest_random_seed=9. The
+ * frame's own shutdown then cleared it, so only one frame failed and the
+ * memory figures stayed clean -- this was never a leak.
+ * init -> shutdown so the clear runs on an initialized module. */
+static void ClearModule() {
+    (void)xpe_preprocess_init(nullptr);
+    xpe_preprocess_shutdown();
+}
+
 } /* anonymous namespace */
 
 /* =========================================================================
@@ -122,100 +136,27 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
  * ========================================================================= */
 TEST(XpePreprocessEndurance, NoMemoryLeakAfter1000Frames) {
 #ifndef _WIN32
-    GTEST_SKIP() << "Process memory measurement is Windows-specific in this build";
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
 #endif
+    ClearModule();
+    FrameFixture f;
+    const heap_growth::Growth g = heap_growth::Measure([&](int) { f.Run(); });
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << "init/process/shutdown cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << "init/process/shutdown cycles left bytes allocated";
+}
 
-    /* Start with no calibration loaded (QA-A-89, #176). run_one_frame accepts
-     * "no offset map" but not "an offset map of another size": a 8x8 map left
-     * by CalibCacheConcurrencyTest made the first frame's xpe_offset_correct
-     * return -8 (XPE_ERR_BUFFER_TOO_SMALL) under --gtest_random_seed=9. The
-     * frame's own shutdown then cleared it, so only one frame failed and the
-     * memory figures stayed clean -- this was never a leak.
-     * init -> shutdown so the clear runs on an initialized module. */
-    (void)xpe_preprocess_init(nullptr);
-    xpe_preprocess_shutdown();
-
-    /* Allocate the 512x512 uint16 frame buffer + matching offset map ONCE. */
-    std::vector<uint16_t> rawPixels(W * H, 2000);
-    std::vector<uint16_t> offsetPixels(W * H, 200);
-    std::vector<uint16_t> goldenRaw = rawPixels; /* immutable reference copy */
-
-    XpeImageBuffer rawBuf{};
-    rawBuf.data          = rawPixels.data();
-    rawBuf.width         = W;
-    rawBuf.height        = H;
-    rawBuf.bitsAllocated = 16;
-    rawBuf.bitsStored    = 16;
-    rawBuf.format        = XPE_PIXEL_UINT16;
-    rawBuf.dataSize      = rawPixels.size() * sizeof(uint16_t);
-
-    XpeImageBuffer offsetBuf{};
-    offsetBuf.data          = offsetPixels.data();
-    offsetBuf.width         = W;
-    offsetBuf.height        = H;
-    offsetBuf.bitsAllocated = 16;
-    offsetBuf.bitsStored    = 16;
-    offsetBuf.format        = XPE_PIXEL_UINT16;
-    offsetBuf.dataSize      = offsetPixels.size() * sizeof(uint16_t);
-
-    /* -----------------------------------------------------------------
-     * Warm-up: absorb one-shot module allocations (logger ring buffers,
-     * JSON parse arenas, DLL lazy initialisation, etc.)
-     * ----------------------------------------------------------------- */
-    for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
-        ASSERT_NO_FATAL_FAILURE(run_one_frame(
-            rawBuf, offsetBuf, goldenRaw.data(), goldenRaw.size()));
-    }
-
-    const ProcessMemorySample before = sample_process_memory();
-    ASSERT_GT(before.privateUsage, 0u)
-        << "PrivateUsage sampling failed -- GetProcessMemoryInfo returned 0";
-
-    /* -----------------------------------------------------------------
-     * Measured phase: 1000 iterations
-     * ----------------------------------------------------------------- */
-    for (int i = 0; i < MEASURED_ITERATIONS; ++i) {
-        ASSERT_NO_FATAL_FAILURE(run_one_frame(
-            rawBuf, offsetBuf, goldenRaw.data(), goldenRaw.size()))
-            << "frame iteration " << i;
-    }
-
-    const ProcessMemorySample after = sample_process_memory();
-
-    /* Growth tolerance: max(5% * baseline, 2 MB floor).
-     * The 2 MB floor absorbs OS-level commit granularity noise
-     * (Windows commits in 4 KB pages, VirtualAlloc reserves in 64 KB chunks,
-     * and the CRT heap grows in multi-page segments).
-     */
-    const size_t ratioBudget = static_cast<size_t>(
-        static_cast<double>(before.privateUsage) * ALLOWED_GROWTH_RATIO);
-    const size_t budget = (ratioBudget > ABSOLUTE_FLOOR_BYTES)
-                              ? ratioBudget
-                              : ABSOLUTE_FLOOR_BYTES;
-
-    const size_t privateDelta = (after.privateUsage > before.privateUsage)
-        ? (after.privateUsage - before.privateUsage) : 0u;
-
-    std::fprintf(stderr,
-        "[XpePreprocessEndurance] baseline PrivateUsage = %zu KB, "
-        "after %d frames = %zu KB, delta = %zu KB "
-        "(budget %zu KB = max(5%%, 2048 KB))\n",
-        before.privateUsage / 1024,
-        MEASURED_ITERATIONS,
-        after.privateUsage / 1024,
-        privateDelta / 1024,
-        budget / 1024);
-
-    EXPECT_LE(privateDelta, budget)
-        << "Process PrivateUsage grew by " << (privateDelta / 1024)
-        << " KB over " << MEASURED_ITERATIONS
-        << " init/process/shutdown cycles "
-        << "(baseline " << (before.privateUsage / 1024)
-        << " KB, budget " << (budget / 1024) << " KB)";
-
-    /* WorkingSet is reported for diagnostic context only -- it may legitimately
-     * shrink under memory pressure.  We do not assert on it. */
-    std::fprintf(stderr,
-        "[XpePreprocessEndurance] WorkingSet before = %zu KB, after = %zu KB\n",
-        before.workingSet / 1024, after.workingSet / 1024);
+/* #181 (QA-A-100) control for the case above. */
+TEST(XpePreprocessEndurance, ControlLeakIsCaught) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    ClearModule();
+    FrameFixture f;
+    const heap_growth::Growth g = heap_growth::Measure([&](int) { f.Run(); }, 64);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
