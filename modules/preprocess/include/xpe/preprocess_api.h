@@ -563,8 +563,6 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * REQ-P1A-041 to REQ-P1A-047: Full pipeline integration
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
- * @param img [in/out] Image to process (uint16 in, float32 out after Gain)
- * @param meta [in/out] Image metadata (updated with processing flags)
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
  *          @p calibPath on every call. At 3072x3072 that is about 475 ms per
  *          frame (measured, QA-A-105) -- more than the 500 ms budget for the
