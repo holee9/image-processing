@@ -32,6 +32,12 @@ public sealed class GuiAutomationReport
     /// <summary>#141: the summary line of that attempt — the success stages, or the refusal reason.</summary>
     public string PreprocessStages { get; set; } = string.Empty;
 
+    /// <summary>#180 (GUI-C-99): the pixel chain of the image on screen — each stage and its status.</summary>
+    public string ChainStatus { get; set; } = string.Empty;
+
+    /// <summary>#180 (GUI-C-99): per stage, <c>id=Status</c>, in chain order.</summary>
+    public List<string> ChainStages { get; set; } = new();
+
     public int InitialLogCount { get; set; }
 
     public int InitialAlertCount { get; set; }

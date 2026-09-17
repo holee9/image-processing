@@ -92,12 +92,13 @@ public sealed class MockXpeBackend : IXpeBackend
         return _rawImageLoader.Load(path, settings);
     }
 
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings)
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
+        RequireDisplayInput(rawFrame, displayInput);
         var calibrationSummary = BuildCalibrationEvaluationSummary(settings);
         var summary = $"MOCK CalibrationEval({calibrationSummary}) -> Display: Modality({settings.ModalityRescaleSlope:0.###}/{settings.ModalityRescaleIntercept:0.###}) -> VOI({settings.VoiLutMode}, C={settings.VoiWindowCenter:0.###}, W={settings.VoiWindowWidth:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
         AddLog(summary);
-        var processedPreview = CreateDisplayPreview(rawFrame, settings);
+        var processedPreview = CreateDisplayPreview(rawFrame, displayInput, settings);
 
         return new LoadedImageFrame
         {
@@ -114,15 +115,24 @@ public sealed class MockXpeBackend : IXpeBackend
         };
     }
 
-    private static BitmapSource CreateDisplayPreview(LoadedImageFrame rawFrame, AppSettings settings)
+    private static void RequireDisplayInput(LoadedImageFrame rawFrame, ushort[] displayInput)
     {
-        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        ArgumentNullException.ThrowIfNull(displayInput);
+        if (rawFrame.Width > 0 && rawFrame.Height > 0 && displayInput.Length < rawFrame.Width * rawFrame.Height)
+        {
+            throw new InvalidOperationException("Display input is smaller than width x height.");
+        }
+    }
+
+    private static BitmapSource CreateDisplayPreview(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        if (rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
             return rawFrame.ProcessedPreview ?? rawFrame.Preview;
         }
 
         var count = checked(rawFrame.Width * rawFrame.Height);
-        var calibratedPixels = CreateMockCalibrationPixels(rawFrame, settings);
+        var calibratedPixels = CreateMockCalibrationPixels(rawFrame, displayInput, settings);
         var output = new byte[count];
         var width = Math.Max(1.0, settings.VoiWindowWidth);
         var center = settings.VoiWindowCenter;
@@ -151,13 +161,13 @@ public sealed class MockXpeBackend : IXpeBackend
     }
 
     // @MX:NOTE: [AUTO] 6-stage mock calibration applied in fixed order: Offset → Temperature → Nonlinearity → Gain → Binning → Defect → Ghost; stage order encodes physical dependencies
-    private static double[] CreateMockCalibrationPixels(LoadedImageFrame rawFrame, AppSettings settings)
+    private static double[] CreateMockCalibrationPixels(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         var count = checked(rawFrame.Width * rawFrame.Height);
         var pixels = new double[count];
         for (var i = 0; i < count; i++)
         {
-            pixels[i] = rawFrame.RawPixels![i];
+            pixels[i] = displayInput[i];
         }
 
         if (ShouldApplyStage(settings.OffsetCorrectionMode, autoApplies: true))
@@ -306,8 +316,25 @@ public sealed class MockXpeBackend : IXpeBackend
     /// <summary>#141: the mock has no preprocess module. It says so rather than pretending.</summary>
     public bool SupportsPreprocessing => false;
 
-    public PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings) =>
-        new(false, "Preprocessing requires the native backend (xpe_preprocess.dll).", null);
+    /// <summary>
+    /// #180 (GUI-C-99): the mock runs the same chain rules; its preprocess stage refuses, so a requested
+    /// preprocess shows as RequestedNotApplied rather than as done (HAZ-GUI-005).
+    /// </summary>
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null)
+        {
+            throw new InvalidOperationException("The pixel chain requires a loaded UInt16 raw frame.");
+        }
+
+        var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, _) => request.StageId switch
+        {
+            StageIds.Preprocess => new StageExecution(false, null, "Preprocessing requires the native backend (xpe_preprocess.dll)."),
+            _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the mock backend."),
+        });
+        AddLog(result.Summary);
+        return result;
+    }
 
     public int GetAlertCount() => _alerts.Count;
 

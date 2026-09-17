@@ -106,7 +106,7 @@ var preset = backend.CreateVoiPreset(ImageProcTest.Models.XpeBodyPartEnum.Abdome
 // GUI-C-84: this is the MOCK preset, which is in raw DN. The native preset is C=40/W=400 (HU) — see #175 / GUI-C-84 report.
 Assert(preset.Center == 32768.0f && preset.Width == 65535.0f, "Mock Abdomen VOI preset should be the raw-DN window (32768/65535).");
 
-var displayFrame = backend.ApplyDisplayPipeline(frame, loadedSettings);
+var displayFrame = backend.ApplyDisplayPipeline(frame, frame.RawPixels!, loadedSettings);
 Assert(displayFrame.DisplayPipelineApplied, "Mock display pipeline should mark the frame as applied.");
 Assert(displayFrame.ProcessedPreview is not null, "Mock display pipeline should provide a processed preview.");
 Assert(!ReferenceEquals(displayFrame.Preview, displayFrame.ProcessedPreview), "Mock display pipeline should provide a distinct processed preview for comparison.");

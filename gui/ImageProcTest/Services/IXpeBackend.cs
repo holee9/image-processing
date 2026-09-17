@@ -26,15 +26,18 @@ public interface IXpeBackend
     LoadedImageFrame LoadRawImage(string path, AppSettings settings);
 
     /// <summary>
-    /// Applies the display pipeline to a loaded raw frame and returns an updated frame.
+    /// Applies the display pipeline and returns an updated frame.
+    /// <paramref name="displayInput"/> is the pixel chain's result (<see cref="ChainResult.DisplayInput"/>),
+    /// width × height long; the raw pixels of <paramref name="rawFrame"/> are not read (#180, GUI-C-99).
     /// </summary>
-    LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings);
+    LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings);
 
     /// <summary>
-    /// Runs the Phase-1a preprocess stages (offset → gain → defect) against a loaded frame.
-    /// #141. Backends without native preprocessing report why instead of throwing.
+    /// Runs the pixel chain (#180, GUI-C-99, contract B) over the loaded raw frame: the stages in order,
+    /// each on the previous result, the raw frame untouched, a refused stage falling back to its input.
+    /// Backends without a stage report it as <see cref="StageStatus.RequestedNotApplied"/>, not as an error.
     /// </summary>
-    PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings);
+    ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings);
 
     /// <summary>True when this backend can actually run preprocessing (#141: native only).</summary>
     bool SupportsPreprocessing { get; }

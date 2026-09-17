@@ -15,7 +15,7 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// One reading per view-state setting that the settings survey (<c>SettingsProcessingConnectionTests</c>)
 /// lists. None of them reads the setting: the viewport cases read the main viewport's automation peer,
 /// whose HelpText is written inside the render pass (<c>rendered=…; zoom=…; scale=…; offset=x,y;
-/// swipe=…; opacity=…</c>), and the focus case reads whether the side panels are in the tree.
+/// swipe=…; opacity=…</c>), and focus mode is not here — its toggle is disabled (#182, UnappliedSettingsScenarios U-04).
 ///
 /// <para><b>The route under test runs from the setting to the screen.</b> Dragging or scrolling the
 /// viewport changes the control's own properties first, so a drag alone would still move the image with
@@ -120,42 +120,6 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
-    /// <summary>V-06 (<c>FocusMode</c>): the Focus toggle removes the two side panels from the screen and brings them back.</summary>
-    [SkippableFact]
-    public void V06_FocusMode_HidesAndRestoresTheSidePanels()
-    {
-        var window = Ready();
-        var toggled = false;
-        try
-        {
-            Assert.True(PanelsShown(window), "The side panels are not shown before the Focus toggle; the case cannot tell anything.");
-
-            ToggleFocus(window);
-            toggled = true;
-            var hidden = WaitUntil(() => !PanelShown(window, "AnalysisPanel") && !PanelShown(window, "StudyQueue"));
-            output.WriteLine($"V06 focus on: analysis={PanelShown(window, "AnalysisPanel")} queue={PanelShown(window, "StudyQueue")}");
-
-            // Measured in GUI-C-98: with the default LeftPanelOpen / RightPanelOpen = true, the converter
-            // (FocusPanelVisibilityConverter) keeps both panels Visible in focus mode, and nothing in the
-            // app sets those two values (MENU-001 §9.2.1). Focus mode therefore changes nothing on
-            // screen. That is a finding for #182, not a pass: the case skips with the reason, and
-            // asserts the moment focus mode does hide something.
-            Skip.If(!hidden,
-                "FocusMode has no visible effect with the default LeftPanelOpen/RightPanelOpen=true " +
-                "(FocusPanelVisibilityConverter) and no UI changes those two values — #182 finding, GUI-C-98.");
-
-            ToggleFocus(window);
-            toggled = false;
-            var shown = WaitUntil(() => PanelsShown(window));
-            output.WriteLine($"V06 focus off: analysis={PanelShown(window, "AnalysisPanel")} queue={PanelShown(window, "StudyQueue")}");
-            Assert.True(shown, "Focus mode is off and a side panel did not come back.");
-        }
-        finally
-        {
-            if (toggled) ToggleFocus(window);
-        }
-    }
-
     // ---- helpers -------------------------------------------------------------------------------
 
     private void PanThenReset(bool horizontal)
@@ -189,7 +153,7 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
     internal sealed record Drawn(string Raw, string Mode, string Zoom, double Scale, double OffsetX, double OffsetY, double? Swipe, double? Opacity);
 
     private static readonly Regex DrawnPattern = new(
-        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>.+)$",
+        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>[^;]+)(?:; processed=(?<hash>[^;]+))?$",
         RegexOptions.CultureInvariant);
 
     private static string Help(Window window) =>
@@ -217,18 +181,6 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         }
 
         return null;
-    }
-
-    private static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition()) return true;
-            Thread.Sleep(100);
-        }
-
-        return false;
     }
 
     private static void ScrollViewport(Window window, int notches)
@@ -280,16 +232,6 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         Thread.Sleep(400);
     }
 
-    private static void ToggleFocus(Window window)
-    {
-        var toggle = window.FindFirstDescendant(cf => cf.ByAutomationId("FocusModeToggle"));
-        Assert.True(toggle is not null, "FocusModeToggle is not in the tree.");
-        // A real click: the UIA Toggle pattern flips IsChecked without running the button's Command.
-        window.SetForeground();
-        toggle!.Click();
-        Thread.Sleep(300);
-    }
-
     private static AutomationElement ViewportElement(Window window)
     {
         var e = window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"));
@@ -297,13 +239,6 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         return e!;
     }
 
-    private static bool PanelShown(Window window, string automationId)
-    {
-        var e = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
-        return e is not null && !e.IsOffscreen && e.BoundingRectangle.Width > 0;
-    }
-
-    private static bool PanelsShown(Window window) => PanelShown(window, "AnalysisPanel") && PanelShown(window, "StudyQueue");
 
     private Window Ready()
     {

@@ -49,7 +49,7 @@ public sealed class FaultInjectingBackend : IXpeBackend
             ? "faultInjection=off"
             : $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}";
 
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, AppSettings settings)
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         var call = Interlocked.Increment(ref _calls);
         if (call > _failAfter)
@@ -59,7 +59,7 @@ public sealed class FaultInjectingBackend : IXpeBackend
                 $"(--automation-fault {AutomationArgs.DisplayPipelineFaultPrefix}{_failAfter}).");
         }
 
-        return _inner.ApplyDisplayPipeline(rawFrame, settings);
+        return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
     }
 
     public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
@@ -68,8 +68,8 @@ public sealed class FaultInjectingBackend : IXpeBackend
 
     public LoadedImageFrame LoadRawImage(string path, AppSettings settings) => _inner.LoadRawImage(path, settings);
 
-    public PreprocessRunResult RunPreprocessing(LoadedImageFrame rawFrame, AppSettings settings) =>
-        _inner.RunPreprocessing(rawFrame, settings);
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings) =>
+        _inner.RunChain(rawFrame, stages, settings);
 
     public bool SupportsPreprocessing => _inner.SupportsPreprocessing;
 

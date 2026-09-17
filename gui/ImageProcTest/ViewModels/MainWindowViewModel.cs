@@ -177,14 +177,37 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public RelayCommand ApplyBodyPartPresetCommand { get; }
 
-    /// <summary>#141: true once a preprocess run completed every stage.</summary>
+    /// <summary>#141: true when the last chain run applied the preprocess stage (Applied or AppliedNoChange).</summary>
     public bool PreprocessRan { get; private set; }
 
-    /// <summary>#141: the summary line of the last preprocess attempt (success or refusal).</summary>
+    /// <summary>#141: the preprocess stage's message from the last chain run that requested it.</summary>
     public string PreprocessStages { get; private set; } = string.Empty;
 
-    /// <summary>#141: runs the Phase-1a preprocess stages on the loaded frame.</summary>
+    /// <summary>
+    /// #141 / #180 (GUI-C-99): switches the preprocess stage on in the pixel chain and renders again.
+    /// The corrected pixels now feed the display pipeline instead of replacing the preview directly.
+    /// </summary>
     public RelayCommand RunPreprocessingCommand { get; }
+
+    private ChainResult? _lastChain;
+    private string _chainStatus = "chain: not run";
+
+    /// <summary>The pixel chain of the processed image on screen (#180, GUI-C-99), or null before the first render.</summary>
+    public ChainResult? LastChain
+    {
+        get => _lastChain;
+        private set => SetProperty(ref _lastChain, value);
+    }
+
+    /// <summary>
+    /// Status bar summary of <see cref="LastChain"/>: each stage and its status, and whether the display started
+    /// from the raw frame. A requested stage that did not apply says so here (HAZ-GUI-005).
+    /// </summary>
+    public string ChainStatus
+    {
+        get => _chainStatus;
+        private set => SetProperty(ref _chainStatus, value);
+    }
 
     /// <summary>
     /// #141: whether the menu entry is usable. False on Mock, which has no preprocess module —
@@ -408,7 +431,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>The settings either backend's ApplyDisplayPipeline reads (Mock and Real, GUI-C-79).</summary>
     private static bool DisplayInputsDiffer(AppSettings a, AppSettings b) =>
-        a.VoiWindowCenter != b.VoiWindowCenter
+        ChainInputsDiffer(a, b)
+        || a.VoiWindowCenter != b.VoiWindowCenter
         || a.VoiWindowWidth != b.VoiWindowWidth
         || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)
         || a.ModalityRescaleSlope != b.ModalityRescaleSlope
@@ -421,6 +445,18 @@ public sealed class MainWindowViewModel : ObservableObject
         || !string.Equals(a.TemperatureCompensationMode, b.TemperatureCompensationMode, StringComparison.Ordinal)
         || !string.Equals(a.NonlinearityCorrectionMode, b.NonlinearityCorrectionMode, StringComparison.Ordinal)
         || !string.Equals(a.BinningCorrectionMode, b.BinningCorrectionMode, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The settings the pixel chain reads (#180, GUI-C-99): the stage switch, the one exposure kVp, and the
+    /// preprocess inputs (calibration directories, body part). A change to any of them makes the image stale.
+    /// </summary>
+    private static bool ChainInputsDiffer(AppSettings a, AppSettings b) =>
+        a.PreprocessInChain != b.PreprocessInChain
+        || a.ExposureKvp != b.ExposureKvp
+        || !string.Equals(a.OffsetCalibrationDirectory, b.OffsetCalibrationDirectory, StringComparison.Ordinal)
+        || !string.Equals(a.GainCalibrationDirectory, b.GainCalibrationDirectory, StringComparison.Ordinal)
+        || !string.Equals(a.DefectCalibrationDirectory, b.DefectCalibrationDirectory, StringComparison.Ordinal)
+        || !string.Equals(a.SelectedBodyPart, b.SelectedBodyPart, StringComparison.Ordinal);
 
     public BackendRuntimeInfo RuntimeInfo
     {
@@ -828,6 +864,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 nonlinearity = Settings.NonlinearityCorrectionMode,
                 binning = Settings.BinningCorrectionMode
             },
+            processingChain = DescribeChain(),
             comparison = new
             {
                 mode = Settings.ComparisonMode,
@@ -975,8 +1012,15 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             var sourceFrame = ActiveImageFrame;
             var inputs = Settings.Snapshot();
-            var processedFrame = await Task.Run(() => _backend.ApplyDisplayPipeline(sourceFrame, inputs));
+            // #180 (GUI-C-99): the chain runs first, on the same snapshot as the display (#171 ②), and the
+            // display starts from the chain's last result — the raw frame only when no stage produced pixels.
+            var (chain, processedFrame) = await Task.Run(() =>
+            {
+                var chainResult = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
+                return (chainResult, _backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
+            });
             DrainBackendTelemetry();
+            ReportChain(chain);
 
             ActiveImageFrame = processedFrame;
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
@@ -987,7 +1031,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
-            StatusText = processedFrame.DisplayPipelineSummary;
+            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
             OnPropertyChanged(nameof(FaultInjectionStatus));
         }
         catch (Exception ex)
@@ -1015,10 +1059,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public VoiPreset? LastAppliedVoiPreset { get; private set; }
 
     /// <summary>
-    /// #141: Phase-1a preprocessing. A refusal (no calibration, Mock backend) is surfaced as an
-    /// alert and a log line — not an exception — because both are expected states.
+    /// #141 / #180 (GUI-C-99): Phase-1a preprocessing is a stage of the pixel chain. The menu entry switches
+    /// the stage on and renders again; the corrected pixels feed the display pipeline.
     /// </summary>
-    private void RunPreprocessing()
+    private async void RunPreprocessing()
     {
         if (ActiveImageFrame is null)
         {
@@ -1027,32 +1071,48 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var result = _backend.RunPreprocessing(ActiveImageFrame, Settings);
-        StatusText = result.Summary;
-        Log(result.Summary);
-        DrainBackendTelemetry();
-
-        PreprocessRan = result.Ran;
-        PreprocessStages = result.Summary;
-
-        if (result.Ran && result.ProcessedPreview is not null)
+        try
         {
-            // #141: the corrected frame reaches the processed viewport. Without this the run is
-            // observable only in the log, and "it ran" could not be told from "it ran and produced
-            // something the operator can see".
-            ProcessedImage = result.ProcessedPreview ?? ProcessedImage;
-            SetRenderedVoi(null);   // RealXpeBackend.CreatePreview stretches min..max; no VOI was applied
+            Settings.PreprocessInChain = true;
+            await ApplyDisplayPipelineAsync();
         }
-
-        if (!result.Ran)
+        catch (Exception ex)
         {
-            Alerts.Insert(0, new AlertEntry
+            StatusText = $"Preprocessing failed: {ex.Message}";
+            Log(StatusText);
+        }
+    }
+
+    /// <summary>
+    /// Publishes a chain result (#180, GUI-C-99): status bar summary, the preprocess fields the automation
+    /// report reads, a log line per stage, and an alert for every requested stage that did not apply. A
+    /// refusal is an expected state (no calibration, Mock backend), so it is a WARN, not an exception.
+    /// </summary>
+    private void ReportChain(ChainResult chain)
+    {
+        LastChain = chain;
+        ChainStatus = $"{chain.Summary}; display input={(chain.DisplaysRaw ? "raw" : "chain")}";
+
+        foreach (var stage in chain.Stages)
+        {
+            Log($"Chain {stage.StageId}: {stage.Status} — {stage.Reason}");
+
+            if (stage.StageId == StageIds.Preprocess && stage.Status != StageStatus.NotRequested)
             {
-                Severity = "WARN",
-                Code = "PREPROCESS_NOT_RUN",
-                Message = result.Summary,
-                Timestamp = DateTimeOffset.Now,
-            });
+                PreprocessRan = stage.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
+                PreprocessStages = stage.Reason;
+            }
+
+            if (stage.Status == StageStatus.RequestedNotApplied)
+            {
+                Alerts.Insert(0, new AlertEntry
+                {
+                    Severity = "WARN",
+                    Code = stage.StageId == StageIds.Preprocess ? "PREPROCESS_NOT_RUN" : "CHAIN_STAGE_NOT_APPLIED",
+                    Message = $"{stage.StageId} was requested and not applied; the display used its input. {stage.Reason}",
+                    Timestamp = DateTimeOffset.Now,
+                });
+            }
         }
     }
 
@@ -1467,6 +1527,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 requestedBackendMode = Settings.BackendMode,
                 backendName = RuntimeInfo.BackendName,
                 nativeSource = RuntimeInfo.NativeSource,
+                processingChain = DescribeChain(),
                 writtenAt = DateTimeOffset.Now,
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -1566,6 +1627,17 @@ public sealed class MainWindowViewModel : ObservableObject
             Log(StatusText);
         }
     }
+
+    /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
+    public object DescribeChain() => new
+    {
+        status = ChainStatus,
+        exposureKvp = _renderedInputs?.ExposureKvp,
+        preprocessRequested = _renderedInputs?.PreprocessInChain,
+        displayInput = LastChain is null ? "not run" : LastChain.DisplaysRaw ? "raw" : "chain",
+        stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason }).ToArray()
+            ?? Array.Empty<object>(),
+    };
 
     private void Log(string message)
     {

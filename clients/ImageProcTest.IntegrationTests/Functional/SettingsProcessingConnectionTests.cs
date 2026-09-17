@@ -56,14 +56,22 @@ public sealed class SettingsProcessingConnectionTests
     private const string ViewModelPath = "gui/ImageProcTest/ViewModels/MainWindowViewModel.cs";
 
     /// <summary>Real backend methods that are processing. Everything they read is "connected".</summary>
-    internal static readonly string[] IXpeBackendProcessingEntries = ["LoadRawImage", "ApplyDisplayPipeline", "RunPreprocessing"];
+    /// <remarks>
+    /// GUI-C-99: <c>RunPreprocessing</c> became a stage of <c>RunChain</c>, and the stage list comes from
+    /// <c>ProcessingChainPlan.BuildStages</c> — the plan is processing too, because it decides what runs.
+    /// </remarks>
+    internal static readonly string[] IXpeBackendProcessingEntries = ["LoadRawImage", "ApplyDisplayPipeline", "RunChain", "BuildStages"];
 
     /// <summary>Files searched when a processing method passes the whole settings object on.</summary>
     internal static readonly string[] ProcessingSources =
     [
         "gui/ImageProcTest/Services/RealXpeBackend.cs",
         "gui/ImageProcTest/Services/RawImageLoader.cs",
+        "gui/ImageProcTest/Services/ProcessingChainPlan.cs",
     ];
+
+    /// <summary>Calls that take the whole settings object without reading any setting (argument guards).</summary>
+    internal static readonly string[] NonReadingCallees = ["ThrowIfNull"];
 
     /// <summary>Helpers that take the whole settings object only to describe it. Not followed.</summary>
     internal static readonly string[] SummaryHelpers = ["BuildCalibrationEvaluationSummary"];
@@ -85,6 +93,10 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.LaneBDenoiseStrength),
         nameof(AppSettings.LaneAAlgorithm),
         nameof(AppSettings.LaneBAlgorithm),
+        // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
+        // The toggle writes through a command, not a binding, so the survey sees only its display
+        // binding; UnappliedSettingsScenarios U-04 reads the disabled state in the running app.
+        nameof(AppSettings.FocusMode),
     ];
 
     /// <summary>
@@ -101,7 +113,6 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.ComparisonZoomScale),
         nameof(AppSettings.ShowDisplayPanel),
         nameof(AppSettings.AnalysisTab),
-        nameof(AppSettings.FocusMode),
     ];
 
     private const string E2ESourceRoot = "clients/ImageProcTest.E2ETests";
@@ -119,8 +130,6 @@ public sealed class SettingsProcessingConnectionTests
         [nameof(AppSettings.ComparisonPanX)] = "V03_PanX_ResetRecentres",
         [nameof(AppSettings.ComparisonPanY)] = "V04_PanY_ResetRecentres",
         [nameof(AppSettings.ComparisonSwipePosition)] = "V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle",
-        // Skips with its reason while focus mode changes nothing on screen (GUI-C-98 finding).
-        [nameof(AppSettings.FocusMode)] = "V06_FocusMode_HidesAndRestoresTheSidePanels",
         [nameof(AppSettings.ShowDisplayPanel)] =
             "NONE: no screen — the View menu toggle is disabled (PanelToggleScenarios S07) and MENU-001 §9.2 lists no display panel",
         [nameof(AppSettings.AnalysisTab)] =
@@ -201,7 +210,8 @@ public sealed class SettingsProcessingConnectionTests
     {
         var survey = Survey.Run(Unconnected, ViewState);
 
-        Assert.Equal(24, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp.
+        Assert.Equal(26, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBSharpeningSigma) && b.Via == "LaneBSharpeningSigma" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
@@ -223,10 +233,47 @@ public sealed class SettingsProcessingConnectionTests
                      nameof(AppSettings.OffsetCalibrationDirectory), nameof(AppSettings.GainCalibrationDirectory),
                      nameof(AppSettings.DefectCalibrationDirectory), nameof(AppSettings.SelectedBodyPart),
                      nameof(AppSettings.RawWidth),
+                     nameof(AppSettings.PreprocessInChain), nameof(AppSettings.ExposureKvp),
                  })
         {
             Assert.Contains(p, reads);
         }
+    }
+
+    /// <summary>
+    /// Control for GUI-C-97 risk (b), decided in GUI-C-99: a module config assembled with string
+    /// interpolation is NOT a processing read — the survey cannot tell it from a log line — while the same
+    /// value written through a structured object is. A future GSVG stage has to use the second form to be
+    /// counted as connected.
+    /// </summary>
+    [Fact]
+    public void Control_InterpolatedConfig_IsNotARead_StructuredConfigIs()
+    {
+        const string interpolated = """
+            public sealed class Stage
+            {
+                public StageExecution RunChain(AppSettings settings)
+                {
+                    var json = $"{{\"vg_kvp\": {settings.ExposureKvp}}}";
+                    return Native.Run(json);
+                }
+            }
+            """;
+        const string structured = """
+            public sealed class Stage
+            {
+                public StageExecution RunChain(AppSettings settings)
+                {
+                    var json = JsonSerializer.Serialize(new GsvgConfig { VgKvp = settings.ExposureKvp });
+                    return Native.Run(json);
+                }
+            }
+            """;
+
+        Assert.DoesNotContain(nameof(AppSettings.ExposureKvp),
+            ProcessingAnalysis.Run(false, true, [interpolated], ["RunChain"]).Reads);
+        Assert.Contains(nameof(AppSettings.ExposureKvp),
+            ProcessingAnalysis.Run(false, true, [structured], ["RunChain"]).Reads);
     }
 
     /// <summary>
@@ -329,13 +376,14 @@ public sealed class SettingsProcessingConnectionTests
 
     internal sealed record ProcessingAnalysis(HashSet<string> Reads, List<string> Blind)
     {
-        public static ProcessingAnalysis Run(bool followSummaries, bool stripStrings)
+        public static ProcessingAnalysis Run(bool followSummaries, bool stripStrings,
+            string[]? sourceTexts = null, string[]? entries = null)
         {
-            var sources = ProcessingSources.Select(f => File.ReadAllText(ResolveRepositoryFile(f))).ToArray();
+            var sources = sourceTexts ?? ProcessingSources.Select(f => File.ReadAllText(ResolveRepositoryFile(f))).ToArray();
             var reads = new HashSet<string>(StringComparer.Ordinal);
             var blind = new List<string>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            var queue = new Queue<string>(IXpeBackendProcessingEntries);
+            var queue = new Queue<string>(entries ?? IXpeBackendProcessingEntries);
 
             while (queue.Count > 0)
             {
@@ -362,6 +410,8 @@ public sealed class SettingsProcessingConnectionTests
                         if (callee is null)
                             blind.Add($"'{method}' uses the settings object outside a call; the survey cannot follow it");
                         else if (SummaryHelpers.Contains(callee) && !followSummaries)
+                            continue;
+                        else if (NonReadingCallees.Contains(callee))
                             continue;
                         else if (sources.Any(s => MethodBody(s, callee) is not null))
                             queue.Enqueue(callee);

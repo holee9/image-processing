@@ -222,6 +222,29 @@
 
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
 
+                    <!-- Processing chain (#180, GUI-C-99): what runs before the display pipeline -->
+                    <TextBlock Text="Processing Chain" Foreground="#f0f2f5" FontSize="12"
+                               FontWeight="SemiBold" Margin="0,0,0,12" />
+
+                    <CheckBox AutomationProperties.AutomationId="PreprocessInChainCheckBox"
+                              Content="Preprocess (offset → gain → defect)"
+                              IsChecked="{Binding Settings.PreprocessInChain, Mode=TwoWay}"
+                              Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,8"
+                              ToolTip="Runs xpe_preprocess.dll on the raw frame and feeds the result to the display pipeline. Needs the native backend and a calibration set; otherwise the stage shows as not applied." />
+
+                    <TextBlock Text="Exposure kVp" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <TextBox AutomationProperties.AutomationId="ExposureKvpInput"
+                             Text="{Binding Settings.ExposureKvp, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#0DFFFFFF" Foreground="#f0f2f5"
+                             BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
+                             ToolTip="Tube voltage of the exposure. One value for every chain stage that needs it (default 70)." />
+
+                    <TextBlock AutomationProperties.AutomationId="ChainStatusPanelText"
+                               Text="{Binding ChainStatus}" TextWrapping="Wrap"
+                               Foreground="#8a909c" FontSize="10" Margin="0,0,0,12" />
+
+                    <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
+
                     <!-- VOI LUT -->
                     <TextBlock Text="VOI LUT" Foreground="#f0f2f5" FontSize="12"
                                FontWeight="SemiBold" Margin="0,0,0,12" />

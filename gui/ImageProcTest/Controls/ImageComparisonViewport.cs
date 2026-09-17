@@ -131,6 +131,40 @@ public sealed class ImageComparisonViewport : FrameworkElement
         _ => image.GetType().Name,
     };
 
+    private ImageSource? _hashedImage;
+    private string _hashedValue = "-";
+
+    /// <summary>
+    /// FNV-1a over the pixels of the processed layer this frame drew (#180, GUI-C-99), so a test can tell
+    /// whether the chain changed what is on screen. Cached per image object: a render does not re-hash.
+    /// </summary>
+    private string ProcessedPixelHash(ImageSource image)
+    {
+        if (ReferenceEquals(image, _hashedImage))
+        {
+            return _hashedValue;
+        }
+
+        _hashedImage = image;
+        _hashedValue = "-";
+        if (image is BitmapSource bitmap)
+        {
+            var converted = bitmap.Format == PixelFormats.Bgra32 ? bitmap : new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+            var stride = converted.PixelWidth * 4;
+            var buffer = new byte[stride * converted.PixelHeight];
+            converted.CopyPixels(buffer, stride, 0);
+            var hash = 14695981039346656037UL;
+            foreach (var b in buffer)
+            {
+                hash = (hash ^ b) * 1099511628211UL;
+            }
+
+            _hashedValue = hash.ToString("x16", CultureInfo.InvariantCulture);
+        }
+
+        return _hashedValue;
+    }
+
     private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((ImageComparisonViewport)d)._sourceVersion++;
 
@@ -251,7 +285,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
             $"scale={imageRect.Width / Math.Max(1.0, SourceImage.Width):0.####}; " +
             $"offset={imageRect.X + (imageRect.Width / 2.0) - (ActualWidth / 2.0):0.#},{imageRect.Y + (imageRect.Height / 2.0) - (ActualHeight / 2.0):0.#}; " +
             $"swipe={(_renderedSwipe is { } sw ? sw.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
-            $"opacity={(_renderedOpacity is { } op ? op.ToString("0.####", CultureInfo.InvariantCulture) : "-")}");
+            $"opacity={(_renderedOpacity is { } op ? op.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
+            $"processed={ProcessedPixelHash(processed)}");
         DrawHud(drawingContext, viewport, mode);
     }
 

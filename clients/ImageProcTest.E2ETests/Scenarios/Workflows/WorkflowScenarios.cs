@@ -179,9 +179,17 @@ public sealed class WorkflowScenarios
             // Success-only. GUI-C-36 asserted a substring both the success and the refusal line
             // share, which its own report flagged as a risk: the scenario would keep passing once
             // calibration existed without ever proving the stages ran.
-            var text = status!.Name;
-            Assert.Contains("offset -> gain -> defect", text, StringComparison.Ordinal);
-            Assert.DoesNotContain("skipped", text, StringComparison.OrdinalIgnoreCase);
+            // GUI-C-99: preprocessing is now a chain stage feeding the display pipeline, so the status
+            // bar reads "chain: preprocess=<status> | <display summary>" and the chain has its own item.
+            var chain = WaitFor(() =>
+            {
+                var item = window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"));
+                return item is not null && item.Name.Contains("preprocess=", StringComparison.Ordinal) ? item : null;
+            });
+            Assert.True(chain is not null, "ChainStatusText does not name the preprocess stage after Run Preprocessing.");
+            Assert.Contains("preprocess=Applied", chain!.Name, StringComparison.Ordinal);
+            Assert.Contains("display input=chain", chain.Name, StringComparison.Ordinal);
+            Assert.DoesNotContain("skipped", status!.Name, StringComparison.OrdinalIgnoreCase);
 
             // The corrected frame must reach the viewport, not just the log.
             var viewport = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("ViewportShell")));

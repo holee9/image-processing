@@ -39,7 +39,8 @@ internal static class GuiPreprocessRunner
         string offsetDirectory,
         string gainDirectory,
         string defectDirectory,
-        string bodyPart)
+        string bodyPart,
+        float kVp)
     {
         var offset = Path.Combine(offsetDirectory, OffsetFile);
         var gain = Path.Combine(gainDirectory, GainFile);
@@ -78,7 +79,7 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            return RunStages(rawPixels, width, height, bodyPart);
+            return RunStages(rawPixels, width, height, bodyPart, kVp);
         }
         finally
         {
@@ -92,9 +93,11 @@ internal static class GuiPreprocessRunner
     /// The formats are the header's, not a guess: each stage declares its input and output format
     /// (preprocess_api.h), and allocating the wrong one is a silent wrong answer rather than an error.
     /// </summary>
-    private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart)
+    private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart, float kVp)
     {
-        var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: 70.0f, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: 0.14f);
+        // kVp is the user's one exposure setting (AppSettings.ExposureKvp, GUI-C-99); it was a literal 70.
+        // mAs, SID and pixel pitch are still fixed here — the GUI-C-99 report lists the pitch sources.
+        var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: 0.14f);
 
         var input = default(XpeImageBufferNative);
         var offsetOut = default(XpeImageBufferNative);
