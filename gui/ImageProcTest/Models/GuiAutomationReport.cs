@@ -59,7 +59,10 @@ public sealed class GuiAutomationReport
 
     public bool ToolbarMenuCommandParity { get; set; }
 
-    public bool ResizableDiagnosticsLayoutDetected { get; set; }
+    // ResizableDiagnosticsLayoutDetected was removed here (#165, GUI-C-77). It was assigned the
+    // constant true and never measured anything; measured for real it reads false, because the two
+    // GridSplitters it described (see docs/design/reference/MainWindow.xaml) left with the Evaluation
+    // Workbench layout. No requirement names that layout, so there is nothing left to measure.
 
     public bool DisplayPipelineApplied { get; set; }
 
