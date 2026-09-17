@@ -342,6 +342,7 @@ XPE_API const char* xpe_error_string(XpeErrorCode code)
         case XPE_ERR_DICOM_CONFORMANCE:    return "DICOM conformance validation failed";
         case XPE_ERR_NOT_IMPLEMENTED:      return "Function not implemented in this version";
         case XPE_ERR_CALIB_NOT_LOADED:     return "Calibration data not loaded";
+        case XPE_ERR_INVALID_CALIB_DATA:   return "Calibration data out of valid range";
         default:                           return "Unknown error";
     }
 }

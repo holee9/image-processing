@@ -61,6 +61,7 @@ typedef int32_t XpeErrorCode;
 #define XPE_ERR_DICOM_CONFORMANCE   -14  /**< DICOM conformance violation: unsupported SOP class, transfer syntax, or mandatory attribute missing */
 #define XPE_ERR_NOT_IMPLEMENTED     -15  /**< Function is recognized but not yet implemented in this version */
 #define XPE_ERR_CALIB_NOT_LOADED    -16  /**< Module is initialized but the calibration map the call needs has not been loaded (#117) */
+#define XPE_ERR_INVALID_CALIB_DATA  -17  /**< Calibration file is well formed but its values are outside the range the requirement allows (SRS-CALIB-FUNC-002: gain in [0.1, 10.0]) (#188) */
 /** @} */
 
 /**

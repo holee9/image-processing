@@ -69,15 +69,30 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         const size_t num_coeffs = is_poly ? (payload.size() / plane) : 1;
         const size_t n_floats   = payload.size() / sizeof(float);
 
+        // SRS-CALIB-FUNC-002 (#188, QA-A-107): "Values shall be in range
+        // [0.1, 10.0]; out-of-range values shall trigger
+        // XPE_ERR_INVALID_CALIB_DATA error." Checked here, at load, which is
+        // where FUNC-002 places it. Scalar maps only: a coefficient of
+        // G(x,y,E) is not a gain value.
+        if (!is_poly) {
+            const float* values = reinterpret_cast<const float*>(payload.data());
+            for (size_t i = 0; i < n_floats; ++i) {
+                if (!(values[i] >= XPE_CALIB_GAIN_MIN && values[i] <= XPE_CALIB_GAIN_MAX)) {
+                    return XPE_ERR_INVALID_CALIB_DATA;
+                }
+            }
+        }
+
         // Allocate and copy pixel data
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
         std::unique_ptr<float[]> map(new float[n_floats]);
         std::memcpy(map.get(), payload.data(), payload.size());
 
         // Commit under mutex. The two gain models are alternatives: whichever
-        // is loaded clears the other, so xpe_gain_correct() reports
-        // CALIB_NOT_LOADED after a POLY load rather than applying a scalar map
-        // left over from an earlier file.
+        // is loaded clears the other, so a scalar map left over from an earlier
+        // file is never applied to frames the operator calibrated with a
+        // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
+        bool poly_loaded = false;
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
             if (is_poly) {
@@ -92,6 +107,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             g_calib.gain_width  = hdr.width;
             g_calib.gain_height = hdr.height;
             g_calib.gain_timestamp = hdr.created_epoch_ms;
+            poly_loaded = is_poly;
 
             std::memset(g_calib.gain_session_id, 0, sizeof(g_calib.gain_session_id));
             std::memcpy(g_calib.gain_session_id, hdr.session_id,
@@ -107,6 +123,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         {
             std::string json(config_json.begin(), config_json.end());
             xpe_calib_apply_quality_meta_json(json.c_str());
+        }
+
+        // QA-A-107 (#187): the file is read and its metadata is available, but no
+        // correction path applies the coefficients. Say so here -- the load is
+        // where the operator can still act on it.
+        if (poly_loaded) {
+            xpe_alert_push("gain polynomial loaded (XCAL_TYPE_GAIN_POLY): metadata is "
+                           "available but no correction applies G(x,y,E) yet (issue #187); "
+                           "gain correction will refuse until a scalar gain map is loaded",
+                           XPE_ALERT_WARNING);
         }
 
         return XPE_OK;

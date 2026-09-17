@@ -82,8 +82,8 @@ protected:
 
     // #117 decision B: the map is loaded into the global calibration, not passed
     // in. Cases mutate gainPixels first, so this publishes on the way through.
-    static void publish(const char* path, const std::vector<float>& values,
-                        uint32_t w, uint32_t h) {
+    static XpeErrorCode publishAndLoad(const char* path, const std::vector<float>& values,
+                                       uint32_t w, uint32_t h) {
         std::remove(path);
         std::remove((std::string(path) + ".tmp").c_str());
 
@@ -96,15 +96,18 @@ protected:
         hdr.height       = h;
         hdr.payload_len  = static_cast<uint64_t>(values.size() * sizeof(float));
 
-        ASSERT_EQ(XPE_OK,
+        EXPECT_EQ(XPE_OK,
                   write_xcal_file(path, hdr, nullptr, 0,
                                   reinterpret_cast<const uint8_t*>(values.data()),
                                   hdr.payload_len));
-        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path));
+        return xpe_calib_load_gain(path);
     }
 
+    /** Writes the current gainPixels and returns what the loader said. */
+    XpeErrorCode load() { return publishAndLoad(gainPath, gainPixels, W, H); }
+
     XpeErrorCode correct() {
-        publish(gainPath, gainPixels, W, H);
+        EXPECT_EQ(XPE_OK, load()) << "the map must load before the correction runs";
         return xpe_gain_correct(&img, &output, &metadata);
     }
 
@@ -135,67 +138,74 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalPrecomputationIsValid) {
     }
 }
 
-// AC-GAIN-005: Gain = 0 should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, ZeroGainReturnsConfigInvalid) {
+// SRS-CALIB-001 FUNC-002 (#188, QA-A-107): 0 is outside [0.1, 10.0], so the
+// LOADER refuses the file. Until then this case loaded the map and checked that
+// the correction refused it -- an expectation built on MIN_GAIN_VALUE /
+// MAX_GAIN_VALUE (0.001 / 1000), constants whose cited AC-GAIN-005 does not
+// exist in the SPEC.
+TEST_F(GainCorrectReciprocalFMATest, ZeroGainIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0f);
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// AC-GAIN-005: Negative gain should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, NegativeGainReturnsConfigInvalid) {
+// Negative gain: outside [0.1, 10.0], refused at load (#188).
+TEST_F(GainCorrectReciprocalFMATest, NegativeGainIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), -1.0f);
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// AC-GAIN-005: NaN in gain map should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, NaNGainReturnsConfigInvalid) {
+// NaN fails every comparison, so it is outside the range too (#188).
+TEST_F(GainCorrectReciprocalFMATest, NaNGainIsRefusedAtLoad) {
     gainPixels[0] = std::numeric_limits<float>::quiet_NaN();
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// AC-GAIN-005: Inf in gain map should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, InfGainReturnsConfigInvalid) {
+// Inf is above the maximum (#188).
+TEST_F(GainCorrectReciprocalFMATest, InfGainIsRefusedAtLoad) {
     gainPixels[0] = std::numeric_limits<float>::infinity();
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// AC-GAIN-005: Gain below MIN_GAIN_VALUE (0.001) should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, GainBelowMinimumReturnsConfigInvalid) {
+// Below the requirement's minimum (#188).
+TEST_F(GainCorrectReciprocalFMATest, GainBelowTheRequirementMinimumIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0005f);  // Below 0.001
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// AC-GAIN-005: Gain above MAX_GAIN_VALUE (1000) should return CONFIG_INVALID
-TEST_F(GainCorrectReciprocalFMATest, GainAboveMaximumReturnsConfigInvalid) {
+// Above the requirement's maximum (#188).
+TEST_F(GainCorrectReciprocalFMATest, GainAboveTheRequirementMaximumIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 1001.0f);  // Above 1000
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, correct());
+    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
 }
 
-// Boundary: Gain at MIN_GAIN_VALUE should succeed
-TEST_F(GainCorrectReciprocalFMATest, GainAtMinimumValueSucceeds) {
-    constexpr float MIN_GAIN = 0.001f;
+// Boundary: the requirement's minimum is inclusive and corrects normally.
+// It used to be 0.001 (MIN_GAIN_VALUE), which the loader now refuses (#188).
+TEST_F(GainCorrectReciprocalFMATest, GainAtTheRequirementMinimumSucceeds) {
+    constexpr float MIN_GAIN = 0.1f;   // SRS-CALIB-001 FUNC-002
     std::fill(gainPixels.begin(), gainPixels.end(), MIN_GAIN);
     ASSERT_EQ(XPE_OK, correct());
     const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f / MIN_GAIN, out[0], 1e-3f);
 }
 
-// Boundary: Gain at MAX_GAIN_VALUE should succeed
-TEST_F(GainCorrectReciprocalFMATest, GainAtMaximumValueSucceeds) {
-    constexpr float MAX_GAIN = 1000.0f;
+// Boundary: the requirement's maximum is inclusive (was 1000).
+TEST_F(GainCorrectReciprocalFMATest, GainAtTheRequirementMaximumSucceeds) {
+    constexpr float MAX_GAIN = 10.0f;  // SRS-CALIB-001 FUNC-002
     std::fill(gainPixels.begin(), gainPixels.end(), MAX_GAIN);
     ASSERT_EQ(XPE_OK, correct());
     const auto* out = static_cast<const float*>(output.data);
     EXPECT_NEAR(2000.0f / MAX_GAIN, out[0], 1e-3f);
 }
 
-// Boundary: Gain near epsilon should produce large but finite output
+// A small-but-allowed gain still produces a large finite output. 0.01 was the
+// old value; it is below the requirement's minimum, so the smallest allowed
+// gain is used instead (#188).
 TEST_F(GainCorrectReciprocalFMATest, SmallGainProducesLargeOutput) {
-    std::fill(gainPixels.begin(), gainPixels.end(), 0.01f);  // Valid but small
+    std::fill(gainPixels.begin(), gainPixels.end(), 0.1f);
     ASSERT_EQ(XPE_OK, correct());
     const auto* out = static_cast<const float*>(output.data);
     EXPECT_TRUE(std::isfinite(out[0]));
-    EXPECT_NEAR(200000.0f, out[0], 1.0f);  // 2000 / 0.01 = 200000
+    EXPECT_NEAR(20000.0f, out[0], 1.0f);  // 2000 / 0.1 = 20000
 }
 
 // =========================================================================
@@ -216,7 +226,9 @@ TEST_F(GainCorrectReciprocalFMATest, UnityGainProducesIdentityConversion) {
 
 // Test reciprocal accuracy for various gain values
 TEST_F(GainCorrectReciprocalFMATest, ReciprocalAccuracyAcrossGainRange) {
-    std::vector<float> testGains = {0.5f, 1.0f, 2.0f, 10.0f, 100.0f};
+    // Inside SRS-CALIB-001 FUNC-002 [0.1, 10.0]; 100 was in this list and is
+    // refused at load since #188.
+    std::vector<float> testGains = {0.1f, 0.5f, 1.0f, 2.0f, 10.0f};
 
     for (float gain : testGains) {
         std::fill(gainPixels.begin(), gainPixels.end(), gain);
@@ -267,11 +279,11 @@ TEST_F(GainCorrectReciprocalFMATest, SmallInputWithSmallGain) {
 // Large input values with large gain
 TEST_F(GainCorrectReciprocalFMATest, LargeInputWithLargeGain) {
     std::fill(rawPixels.begin(), rawPixels.end(), UINT16_MAX);
-    std::fill(gainPixels.begin(), gainPixels.end(), 100.0f);
+    std::fill(gainPixels.begin(), gainPixels.end(), 10.0f);   // was 100 (#188)
     ASSERT_EQ(XPE_OK, correct());
     const auto* out = static_cast<const float*>(output.data);
     EXPECT_TRUE(std::isfinite(out[0]));
-    EXPECT_NEAR(static_cast<float>(UINT16_MAX) / 100.0f, out[0], 1.0f);
+    EXPECT_NEAR(static_cast<float>(UINT16_MAX) / 10.0f, out[0], 1.0f);
 }
 
 // =========================================================================
@@ -303,7 +315,7 @@ TEST_F(GainCorrectReciprocalFMATest, NonAVX2AlignedImageSize) {
     oddOutput.format = XPE_PIXEL_FLOAT32;
     oddOutput.dataSize = oddOut.size() * sizeof(float);
 
-    publish(gainPath, oddGain, 1000, 1);
+    ASSERT_EQ(XPE_OK, publishAndLoad(gainPath, oddGain, 1000, 1));
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&oddImg, &oddOutput, &metadata));
     const auto* out = static_cast<const float*>(oddOutput.data);
 
@@ -331,7 +343,7 @@ TEST_F(GainCorrectReciprocalFMATest, NullOutputReturnsInvalidInput) {
 
 // Dimension mismatch returns INVALID_INPUT
 TEST_F(GainCorrectReciprocalFMATest, DimensionMismatchReturnsInvalidInput) {
-    publish(gainPath, gainPixels, W, H);
+    ASSERT_EQ(XPE_OK, publishAndLoad(gainPath, gainPixels, W, H));
     output.width = W + 1;
     EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
               xpe_gain_correct(&img, &output, &metadata));

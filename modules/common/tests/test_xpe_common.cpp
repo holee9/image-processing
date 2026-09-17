@@ -136,7 +136,8 @@ TEST_F(XpeCommonTest, ErrorStringReturnsNonNullForAllCodes) {
     // "Unknown error" default. Walk the whole range rather than a hand-picked
     // few, so a code added later is covered without editing this test.
     const char* unknown = xpe_error_string(static_cast<XpeErrorCode>(9999));
-    for (int code = 0; code >= XPE_ERR_CALIB_NOT_LOADED; --code) {
+    // The bound is the LAST code in the header; move it when one is added.
+    for (int code = 0; code >= XPE_ERR_INVALID_CALIB_DATA; --code) {
         const char* text = xpe_error_string(static_cast<XpeErrorCode>(code));
         ASSERT_NE(text, nullptr) << "code " << code;
         EXPECT_STRNE(text, "") << "code " << code;

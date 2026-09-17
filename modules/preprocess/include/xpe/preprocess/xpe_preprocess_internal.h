@@ -302,6 +302,17 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept;
 XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
                                     XpeCalibrationMode* resolved) noexcept;
 
+/**
+ * @brief SRS-CALIB-FUNC-002 gain value range, quoted from the SRS (#188).
+ *
+ * "Values shall be in range [0.1, 10.0]; out-of-range values shall trigger
+ * XPE_ERR_INVALID_CALIB_DATA error." The bounds are inclusive. Gain maps are
+ * normalised to unit mean (xpe_calib_generate_gain.cpp), so a value ten times
+ * the mean is a defect in the calibration data, not a usable gain.
+ */
+constexpr float XPE_CALIB_GAIN_MIN = 0.1f;
+constexpr float XPE_CALIB_GAIN_MAX = 10.0f;
+
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 

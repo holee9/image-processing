@@ -26,7 +26,13 @@
  * ============================================================================ */
 
 // @MX:NOTE: [AUTO] Minimum gain value to prevent division by zero
-// AC-GAIN-005: Validate gain map for invalid values
+// Gain map value guard. The range constants below are NOT the requirement's:
+// SRS-CALIB-001 FUNC-002 sets [0.1, 10.0] and xpe_calib_load_gain enforces it
+// at load (QA-A-107, #188), so a map that reaches this function has already
+// passed the requirement's range. 0.001/1000 had no source -- the AC-GAIN-005
+// this comment used to cite does not exist in the SPEC (searched .moai/specs
+// and docs: only AC-GAIN-001..003). Kept as a second line of defence for maps
+// that do not come through the loader (none today).
 constexpr float MIN_GAIN_VALUE = 0.001f;
 constexpr float MAX_GAIN_VALUE = 1000.0f;
 
@@ -83,7 +89,8 @@ constexpr int32_t MAX_ULP_DIFFERENCE = 1;
 /**
  * @brief Validate gain value for NaN/Inf and range checking
  *
- * AC-GAIN-005: Validate gain map for invalid values
+ * Second line of defence; the requirement's range is enforced at load
+ * (SRS-CALIB-001 FUNC-002, xpe_calib_load_gain).
  *
  * @param gain Gain value to validate
  * @return true if gain is valid (finite, positive, within range)
@@ -272,6 +279,17 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
             // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
             // REQ-P1A-020), so the caller can tell the two apart.
+            // QA-A-107 (#187): a loaded gain POLYNOMIAL is not "no calibration".
+            // No API applies G(x,y,E) yet, so this call cannot run -- but it says
+            // so, instead of reporting the state as an empty calibration and
+            // leaving the operator to guess.
+            if (!g_calib.gain_map && g_calib.gain_poly_coeffs) {
+                xpe_alert_push("gain polynomial (XCAL_TYPE_GAIN_POLY) is loaded; "
+                               "xpe_gain_correct does not apply it (issue #187) -- "
+                               "load a scalar XCAL_TYPE_GAIN map to correct",
+                               XPE_ALERT_ERROR);
+                return XPE_ERR_UNSUPPORTED_FORMAT;
+            }
             if (!g_calib.gain_map) return XPE_ERR_CALIB_NOT_LOADED;
             if (g_calib.gain_width  != input->width ||
                 g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
