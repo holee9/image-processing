@@ -8,6 +8,7 @@ using FlaUI.Core.WindowsAPI;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
@@ -154,137 +155,26 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
         });
     }
 
-    /// <summary>The stale indicator's text, or null when it is not shown.</summary>
-    private static string? StaleIndicator(Window window)
+    /// <summary>
+    /// W-24 (#171): an ordinary launch carries no fault — checked, not assumed.
+    ///
+    /// <para>This app was started without <c>--automation-fault</c> and has already rendered, so if the
+    /// seam were constructed it would report a call count. The armed app in W-23 reads the same property
+    /// and gets <c>display-pipeline-after:2 calls=N</c>, which is what makes <c>off</c> here a reading
+    /// rather than an empty default.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W24_OrdinaryLaunch_HasNoFaultInjection()
     {
-        var element = window.FindFirstDescendant(cf => cf.ByAutomationId("PreviewStaleIndicator"));
-        if (element is null || element.IsOffscreen)
+        Measure("W24", window =>
         {
-            return null;
-        }
-
-        var text = element.Name;
-        return string.IsNullOrEmpty(text) ? null : text;
+            var status = FaultInjectionStatus(window);
+            output.WriteLine($"W24 title='{window.Title}' status='{status}' viewport='{Viewport(window).Status}'");
+            Assert.Equal("faultInjection=off", status);
+            Assert.DoesNotContain("FAULT INJECTION", window.Title, StringComparison.Ordinal);
+            Assert.True(Viewport(window).ProcessedVersion > 0, "Nothing has been rendered yet, so 'off' would say nothing.");
+        });
     }
-
-    private static int WaitForProcessedVersionAbove(Window window, int version)
-    {
-        var last = Viewport(window).ProcessedVersion;
-        for (var i = 0; i < 20 && last <= version; i++)
-        {
-            Thread.Sleep(250);
-            last = Viewport(window).ProcessedVersion;
-        }
-
-        return last;
-    }
-
-    // ---- Analysis panel / menu helpers ----------------------------------------------------------
-
-    private static void OpenParameters(Window window)
-    {
-        window.SetForeground();
-        window.FindFirstDescendant(cf => cf.ByName("Parameters"))!.AsButton().Invoke();
-        Thread.Sleep(400);
-    }
-
-    private static string BodyPart(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox().SelectedItem?.Text ?? "Abdomen";
-
-    private static void SelectBodyPart(Window window, string bodyPart)
-    {
-        var combo = window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox();
-        if (combo.SelectedItem?.Text == bodyPart)
-        {
-            return;
-        }
-
-        combo.Select(bodyPart);
-        Thread.Sleep(1200);
-    }
-
-    private static string CenterInput(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowCenterInput"))!.AsTextBox().Text;
-
-    private static void TypeCenter(Window window, string value)
-    {
-        var input = window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowCenterInput"))!.AsTextBox();
-        input.Focus();
-        input.Text = value;
-        Keyboard.Press(VirtualKeyShort.TAB);
-        Thread.Sleep(1200);
-    }
-
-    private static void ApplyDisplayPipeline(Window window)
-    {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"))!.AsMenuItem().Click();
-        Thread.Sleep(350);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"))!.AsMenuItem().Invoke();
-        Thread.Sleep(1200);
-    }
-
-    /// <summary>The centre the HUD currently names ("C  40000  · W  30000" → "40000").</summary>
-    private static string HudCenter(Window window)
-    {
-        var hud = window.FindFirstDescendant(cf => cf.ByAutomationId("HudVoiWindow"));
-        Assert.True(hud is not null, "HudVoiWindow is not in the automation tree.");
-        var match = Regex.Match(hud!.Name, @"^C\s+(\S+)\s+·");
-        Assert.True(match.Success, $"The HUD reads '{hud.Name}', which does not name a centre.");
-        return match.Groups[1].Value;
-    }
-
-    private static string WaitForHudCenter(Window window, string expected)
-    {
-        var last = HudCenter(window);
-        for (var i = 0; i < 20 && last != expected; i++)
-        {
-            Thread.Sleep(250);
-            last = HudCenter(window);
-        }
-
-        return last;
-    }
-
-    // ---- observation helpers ------------------------------------------------------------------
-
-    private sealed record ViewportState(string Status, string Source, int SourceVersion, string Processed, int ProcessedVersion);
-
-    private static readonly Regex StatusPattern = new(
-        @"^source=(?<s>\S+) v(?<sv>\d+); processed=(?<p>\S+) v(?<pv>\d+)$", RegexOptions.CultureInvariant);
-
-    private static ViewportState Viewport(Window window)
-    {
-        var element = window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"));
-        Assert.True(element is not null, "WorkbenchViewport is not in the automation tree, so nothing about the image can be said.");
-
-        var status = element!.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
-        var match = StatusPattern.Match(status);
-        Assert.True(match.Success, $"WorkbenchViewport reported '{status}', which is not the expected status format.");
-
-        return new ViewportState(
-            status,
-            match.Groups["s"].Value,
-            int.Parse(match.Groups["sv"].Value, System.Globalization.CultureInfo.InvariantCulture),
-            match.Groups["p"].Value,
-            int.Parse(match.Groups["pv"].Value, System.Globalization.CultureInfo.InvariantCulture));
-    }
-
-    /// <summary>The loaded frame's size as the app itself reports it ("RAW 1024x1024, …").</summary>
-    private static string LoadedSize(Window window)
-    {
-        var summary = TextElements(window).FirstOrDefault(t => t.StartsWith("RAW ", StringComparison.Ordinal));
-        Assert.True(summary is not null, "No 'RAW WxH' summary is on screen, so there is no loaded image to compare with.");
-        var match = Regex.Match(summary!, @"^RAW (\d+x\d+)");
-        Assert.True(match.Success, $"The summary '{summary}' does not name a size.");
-        return match.Groups[1].Value;
-    }
-
-    private static IEnumerable<string> TextElements(Window window) =>
-        window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
-            .Select(t => { try { return t.Name; } catch { return string.Empty; } });
 
     private void Measure(string scenario, Action<Window> body)
     {

@@ -58,10 +58,20 @@ public class ApplicationFixture : IDisposable
     {
     }
 
+    /// <summary>
+    /// #171 (GUI-C-79): a launch with extra switches (the fault seam). Its own app, so the sweep is
+    /// skipped for the same reason <c>WindowReacquireTests</c> skips it.
+    /// </summary>
+    protected ApplicationFixture(string? rawImageRelativePath, IReadOnlyList<string> extraArguments)
+        : this(rawImageRelativePath, simulateUnreadableChecks: 0, skipLeftoverSweep: true, extraArguments)
+    {
+    }
+
     private ApplicationFixture(
         string? rawImageRelativePath,
         int simulateUnreadableChecks,
-        bool skipLeftoverSweep)
+        bool skipLeftoverSweep,
+        IReadOnlyList<string>? extraArguments = null)
     {
         _simulateUnreadableChecks = simulateUnreadableChecks;
         Automation = new UIA3Automation();
@@ -134,6 +144,11 @@ public class ApplicationFixture : IDisposable
                 startInfo.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
                 NativeDirectory = nativeDir;
             }
+        }
+
+        foreach (var argument in extraArguments ?? [])
+        {
+            startInfo.ArgumentList.Add(argument);
         }
 
         _application = Application.Launch(startInfo);

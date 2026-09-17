@@ -22,7 +22,21 @@ public partial class MainWindow : System.Windows.Window
 
         var (settings, settingsService) = CreateSettings();
         _settingsFilePath = settingsService.FilePath;
-        DataContext = new MainWindowViewModel(settings, settingsService, XpeBackendFactory.Create);
+        // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given.
+        var failAfter = App.AutomationDisplayPipelineFailAfter;
+        var viewModel = new MainWindowViewModel(
+            settings,
+            settingsService,
+            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter));
+        DataContext = viewModel;
+
+        if (FaultInjectingBackend.Armed is not null)
+        {
+            // Loud on purpose: a window carrying an injected fault must not look like a normal one.
+            Title += " — FAULT INJECTION ARMED";
+            viewModel.AnnounceFaultInjection();
+        }
+
         Loaded += OnLoaded;
     }
 

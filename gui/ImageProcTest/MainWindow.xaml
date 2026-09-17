@@ -10,6 +10,7 @@
         mc:Ignorable="d"
         Title="ImageProcTest GUI-S0"
         AutomationProperties.AutomationId="MainWindow"
+        AutomationProperties.ItemStatus="{Binding FaultInjectionStatus, Mode=OneWay}"
         Height="920"
         Width="1560"
         MinHeight="720"

@@ -127,4 +127,48 @@ public sealed class AutomationArgsTests
         Assert.False(parsed.IsValid);
         Assert.Contains("--automation-width", parsed.Error);
     }
+
+    // ---- #171 (GUI-C-79): the fault switch -------------------------------------------------------
+
+    /// <summary>Without the switch there is no fault — the ordinary case every normal launch takes.</summary>
+    [Fact]
+    public void NoFaultSwitch_ArmsNothing()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-backend", "Mock", "--automation-raw", "x.raw"]);
+
+        Assert.True(parsed.IsValid, parsed.Error);
+        Assert.Null(parsed.DisplayPipelineFailAfter);
+    }
+
+    /// <summary>The one accepted fault parses, including zero ("fail from the first call").</summary>
+    [Theory]
+    [InlineData("display-pipeline-after:0", 0)]
+    [InlineData("display-pipeline-after:2", 2)]
+    public void FaultSwitch_AcceptsTheDisplayPipelineFault(string given, int expected)
+    {
+        var parsed = AutomationArgs.Parse(["--automation-fault", given]);
+
+        Assert.True(parsed.IsValid, parsed.Error);
+        Assert.Equal(expected, parsed.DisplayPipelineFailAfter);
+    }
+
+    /// <summary>
+    /// Anything else is refused and arms nothing: a typo must not start a run that looks faulted, and an
+    /// unfamiliar fault name must not be read as "no fault".
+    /// </summary>
+    [Theory]
+    [InlineData("display-pipeline-after:")]
+    [InlineData("display-pipeline-after:-1")]
+    [InlineData("display-pipeline-after:two")]
+    [InlineData("display-pipeline-after: 2")]
+    [InlineData("Display-Pipeline-After:2")]
+    [InlineData("preprocess-after:1")]
+    public void FaultSwitch_RefusesAnythingElse(string given)
+    {
+        var parsed = AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", given]);
+
+        Assert.False(parsed.IsValid);
+        Assert.Contains("--automation-fault", parsed.Error, StringComparison.Ordinal);
+        Assert.Null(parsed.DisplayPipelineFailAfter);
+    }
 }

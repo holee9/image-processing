@@ -365,6 +365,20 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool IsPreviewStale => PreviewStaleReason is not null;
 
     /// <summary>
+    /// #171 (GUI-C-79): <c>faultInjection=off</c> unless the app was started with
+    /// <c>--automation-fault</c>. Exposed as the main window's automation status so the E2E suite can
+    /// check that an ordinary launch carries no fault, not just assume it.
+    /// </summary>
+    public string FaultInjectionStatus => FaultInjectingBackend.Describe();
+
+    /// <summary>Called once at start-up when a fault was armed — the log says so first.</summary>
+    public void AnnounceFaultInjection()
+    {
+        Log($"FAULT INJECTION ARMED: {FaultInjectionStatus}. Display pipeline calls past the limit throw on purpose.");
+        OnPropertyChanged(nameof(FaultInjectionStatus));
+    }
+
+    /// <summary>
     /// ① — the image is stale when a setting the display pipeline reads differs from the snapshot that
     /// rendered it. Only meaningful while the processed image IS a display-pipeline render.
     /// </summary>
@@ -909,9 +923,11 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = processedFrame.DisplayPipelineSummary;
+            OnPropertyChanged(nameof(FaultInjectionStatus));
         }
         catch (Exception ex)
         {
+            OnPropertyChanged(nameof(FaultInjectionStatus));
             StatusText = $"Display pipeline failed: {ex.Message}";
             Log(StatusText);
             Alerts.Insert(0, new AlertEntry

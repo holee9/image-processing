@@ -22,8 +22,16 @@ public sealed record AutomationArgs(
     string? CalibrationDirectory,
     int? RawWidth,
     int? RawHeight,
-    string? Error)
+    string? Error,
+    int? DisplayPipelineFailAfter = null)
 {
+    /// <summary>
+    /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
+    /// pipeline calls succeed and makes every later one throw, so the failure path can be tested end to
+    /// end. Command line only, off unless given, and an unknown fault is refused like any other switch.
+    /// </summary>
+    public const string DisplayPipelineFaultPrefix = "display-pipeline-after:";
+
     /// <summary>Backend names the automation accepts, in their canonical spelling.</summary>
     public static readonly string[] AcceptedBackendModes = ["Mock", "Native"];
 
@@ -44,7 +52,7 @@ public sealed record AutomationArgs(
         ArgumentNullException.ThrowIfNull(args);
 
         string? rawPath = null, reportPath = null, backendMode = null, calibrationDirectory = null, error = null;
-        int? rawWidth = null, rawHeight = null;
+        int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -110,6 +118,19 @@ public sealed record AutomationArgs(
 
                 rawHeight = height;
             }
+            else if (Is(switchName, "--automation-fault"))
+            {
+                if (!value.StartsWith(DisplayPipelineFaultPrefix, StringComparison.Ordinal)
+                    || !int.TryParse(value[DisplayPipelineFaultPrefix.Length..], System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
+                {
+                    error ??= $"--automation-fault '{value}' is not a recognised fault " +
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>).";
+                    continue;
+                }
+
+                displayPipelineFailAfter = failAfter;
+            }
             else
             {
                 // #136: an --automation-* switch nobody recognises is refused, not skipped. A typo in
@@ -124,7 +145,8 @@ public sealed record AutomationArgs(
         // start a run that looks like the requested one. When the rejection happened before
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
-            ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null)
+            ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
+                displayPipelineFailAfter)
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);
