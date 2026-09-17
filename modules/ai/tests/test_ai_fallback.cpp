@@ -524,32 +524,16 @@ TEST_F(AiFallbackTest, DataSizeGuard_DlDenoise_ZeroAccepted) {
 }
 
 // ---------------------------------------------------------------------------
-// #105 G3: working-set measurement, mirroring enhance_basic
-// test_enhance_integration.cpp (92bcf17) and preprocess T-010. Duplicated per
-// module rather than exported: xpe_common's surface is fixed at 16 symbols
+// #105 G3 / #181: heap-growth measurement. The helper is duplicated per module
+// rather than exported: xpe_common's surface is fixed at 16 symbols
 // (REQ-P0-008).
 // ---------------------------------------------------------------------------
-#ifdef _WIN32
-#  include <windows.h>
-#  include <psapi.h>
-static SIZE_T get_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
-    }
-    return 0;
-}
-#else
-static size_t get_working_set_bytes() { return 0; }
-#endif
+#include "heap_growth.h"
 
-// WARMUP exists because the first cycles fault in fresh heap pages and grow the
-// CRT allocator arena; counting that one-time cost as "leak" would make the
-// threshold a measure of startup, not of retention. The baseline is snapshotted
-// after warm-up so only steady-state growth is scored.
-constexpr int    ENDURANCE_CYCLES = 1000;
-constexpr int    ENDURANCE_WARMUP = 100;
-constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+// #181 (QA-B-93): retention is measured on the CRT heap (heap_growth.h), not
+// on the working set, which QA-B-92 showed does not follow a leak. Warm-up
+// (heap_growth::kWarmup) lets first-touch pages and allocator arenas settle
+// before the baseline.
 
 /* #105 G3: heap growth over 1000 init -> process -> shutdown cycles.
  *
@@ -559,13 +543,12 @@ constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
  * cover is the module lifecycle: xpe_ai_init / xpe_ai_shutdown, the config
  * parse, and the per-call validation path, which is where a handle or arena
  * leak would show up. */
-TEST(AiEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
-#ifndef _WIN32
-    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
-#endif
-    std::vector<uint16_t> storage;
+namespace {
+std::vector<uint16_t> g_aiEnduranceStorage;
 
-    auto one_cycle = [&](int i) {
+void AiEnduranceCycle(int i) {
+    std::vector<uint16_t>& storage = g_aiEnduranceStorage;
+    {
         ASSERT_EQ(xpe_ai_init("dummy_model_dir", nullptr), XPE_OK) << "cycle " << i;
 
         XpeImageBuffer img = makeTestBuffer(64, 64, storage);
@@ -584,19 +567,34 @@ TEST(AiEndurance, ThousandCycles_MemoryGrowthUnderOneMB) {
                   XPE_ERR_INVALID_INPUT) << "cycle " << i;
 
         xpe_ai_shutdown();
-    };
-
-    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
-
-    const auto before = get_working_set_bytes();
-    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
-    const auto after = get_working_set_bytes();
-
-    if (after > before) {
-        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
-            << "Working set grew by " << (after - before) / 1024 << " KB over "
-            << ENDURANCE_CYCLES << " ai init/process/shutdown cycles";
     }
+}
+}  // namespace
+
+TEST(AiEndurance, ThousandCycles_CrtHeapDoesNotGrow) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const heap_growth::Growth g = heap_growth::Measure(AiEnduranceCycle);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << g.cycles << " ai init/process/shutdown cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << g.cycles << " ai init/process/shutdown cycles left bytes allocated";
+}
+
+// #181 (QA-B-93) control: the same cycle plus one unfreed 64-byte block per
+// cycle. The heap measurement above must see it, in proportion to the cycles;
+// otherwise its zero would mean nothing.
+TEST(AiEndurance, ThousandCycles_ControlLeakIsCaught) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const heap_growth::Growth g = heap_growth::Measure(AiEnduranceCycle, 64);
+    ASSERT_FALSE(::testing::Test::HasFailure());
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
 
 /* ============================================================================

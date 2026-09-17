@@ -375,9 +375,9 @@ XpeErrorCode xpe_gsvg_process(void* handle,
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // #180 (QA-B-91): the virtual grid can fail on the image itself (thickness
-    // outside the table). REQ-GSVG-024: dst then holds the original pixels, so
-    // keep them in case dst aliases src.
+    // #180 (QA-B-91): if the virtual grid refuses the image, REQ-GSVG-024 wants
+    // the original pixels in dst -- keep them in case dst aliases src and the
+    // vignette step already rewrote them.
     std::vector<uint16_t> original;
     if (h->virtual_grid_enabled) original.assign(src, src + count);
 
@@ -404,8 +404,17 @@ XpeErrorCode xpe_gsvg_process(void* handle,
         if (!rep.error.empty()) {
             std::memcpy(dst, original.data(), count * sizeof(uint16_t));
             alert_virtual_grid(rep.error);
-            return rep.error.find("thickness") != std::string::npos
-                ? XPE_ERR_PROCESSING_FAILED : XPE_ERR_CONFIG_INVALID;
+            return XPE_ERR_CONFIG_INVALID;
+        }
+        // QA-B-93: regions thicker than the table were limited to its maximum.
+        // The image is processed; the share of such pixels is reported.
+        if (rep.clampedHighFraction > 0 || rep.aboveTableFullRes > 0) {
+            char msg[200];
+            std::snprintf(msg, sizeof(msg),
+                          "gsvg virtual grid: thickness above the table in %.2f%% of the pixels "
+                          "(limited to the table maximum in %.2f%% of the reduced grid)",
+                          100.0 * rep.aboveTableFullRes, 100.0 * rep.clampedHighFraction);
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
         }
         for (size_t i = 0; i < count; ++i)
             dst[i] = static_cast<uint16_t>(std::clamp(std::round(img[i]), 0.0, 65535.0));

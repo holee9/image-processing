@@ -1050,19 +1050,8 @@ TEST_F(DicomReaderTest, ConcurrentOpenOfJpegLossless_NoCorruption) {
 // Fixtures are built by replacing the encapsulated pixel data of a real J2K
 // file, so each case differs from a working file in exactly one way.
 // ===========================================================================
-#if defined(_WIN32)
-#  include <windows.h>
-#  include <psapi.h>
-static size_t b47_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc{};
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
-    }
-    return 0;
-}
-#else
-static size_t b47_working_set_bytes() { return 0; }
-#endif
+// #181 (QA-B-93): retention is measured on the CRT heap (heap_growth.h).
+#include "heap_growth.h"
 
 namespace {
 
@@ -1243,15 +1232,17 @@ TEST_F(DicomJ2kFailureTest, OffsetTableOnly_ReturnsDicomInvalid) {
 // order; a missing destroy leaks once per failed read, which in a viewer that
 // retries a bad study is a leak per retry.
 //
-// Method: working-set growth across many repetitions, the same #105 G3 gate the
-// other modules use -- warm up so first-touch and allocator arenas settle, take
-// a baseline, then loop. It measures the process, so it cannot name which
-// object leaked; what it can do is fail when one does. The sensitivity probe
-// below is what keeps that claim honest.
+// Method: CRT heap growth across many repetitions (#181, heap_growth.h) --
+// warm up so first-touch and allocator arenas settle, take a baseline, then
+// loop. It counts blocks still allocated, so it cannot name which object
+// leaked; what it can do is fail when one does. The control case after this
+// one leaks on purpose inside the same loop and must be caught.
+// (Until QA-B-93 this comment promised a "sensitivity probe below" that did
+// not exist in this file; the control case is that probe.)
 // ---------------------------------------------------------------------------
-TEST_F(DicomJ2kFailureTest, FailurePathsDoNotGrowWorkingSet) {
+TEST_F(DicomJ2kFailureTest, FailurePathsDoNotGrowCrtHeap) {
 #if !defined(_WIN32)
-    GTEST_SKIP() << "working-set measurement is Windows-only in this build";
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
 #endif
     const auto garbage   = s_tempDir / "j2k_leak_garbage.dcm";
     const auto truncated = s_tempDir / "j2k_leak_truncated.dcm";
@@ -1260,27 +1251,31 @@ TEST_F(DicomJ2kFailureTest, FailurePathsDoNotGrowWorkingSet) {
     ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, truncated, s_bitstream,
                                     FragmentShape::kTruncated));
 
-    constexpr int kWarmup = 100;
-    constexpr int kCycles = 1000;
-
-    for (int i = 0; i < kWarmup; ++i) {
+    auto one_cycle = [&](int) {
         (void)ReadCrafted(garbage);
         (void)ReadCrafted(truncated);
-    }
+    };
+    const heap_growth::Growth g = heap_growth::Measure(one_cycle);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << "failed decodes left blocks allocated -- a failure path is not releasing what it allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << "failed decodes left bytes allocated -- a failure path is not releasing what it allocated";
+}
 
-    const size_t baseline = b47_working_set_bytes();
-    ASSERT_GT(baseline, 0u) << "working-set query failed; the gate would be blind";
-
-    for (int i = 0; i < kCycles; ++i) {
-        (void)ReadCrafted(garbage);
-        (void)ReadCrafted(truncated);
-    }
-
-    const size_t after = b47_working_set_bytes();
-    const size_t growth = (after > baseline) ? (after - baseline) : 0;
-    EXPECT_LT(growth, 1u * 1024u * 1024u)
-        << "working set grew " << growth << " bytes over " << kCycles
-        << " failed decodes -- a failure path is not releasing what it allocated";
+// #181 (QA-B-93) control for the case above.
+TEST_F(DicomJ2kFailureTest, FailurePaths_ControlLeakIsCaught) {
+#if !defined(_WIN32)
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const auto garbage = s_tempDir / "j2k_leak_garbage_control.dcm";
+    ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, garbage, s_bitstream,
+                                    FragmentShape::kGarbage));
+    auto one_cycle = [&](int) { (void)ReadCrafted(garbage); };
+    const heap_growth::Growth g = heap_growth::Measure(one_cycle, 64);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
 
 // ===========================================================================

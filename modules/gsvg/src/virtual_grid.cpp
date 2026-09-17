@@ -122,7 +122,7 @@ std::string ParseParamTable(const std::string& text, ParamTable& out) {
         else s.rows.push_back(SplitCsv(line));
     }
 
-    for (const char* name : {"kernels", "wet", "grid", "spr_cap"}) {
+    for (const char* name : {"kernels", "wet", "grid"}) {
         if (!sections.count(name)) return std::string("missing section [") + name + "]";
         if (sections[name].rows.empty()) return std::string("section [") + name + "] has no rows";
     }
@@ -220,8 +220,11 @@ std::string ParseParamTable(const std::string& text, ParamTable& out) {
         }
     }
 
-    // --- spr_cap -----------------------------------------------------------
-    {
+    // --- spr_cap (optional) --------------------------------------------------
+    out.capFromKernels = !sections.count("spr_cap");
+    if (!out.capFromKernels && sections["spr_cap"].rows.empty())
+        return "section [spr_cap] has no rows";
+    if (!out.capFromKernels) {
         const Section& s = sections["spr_cap"];
         const int cT = s.Col("thickness_cm"), cK = s.Col("kvp"), cC = s.Col("max_spr");
         if (cT < 0 || cK < 0 || cC < 0) return Where("spr_cap", "needs thickness_cm, kvp, max_spr columns");
@@ -251,7 +254,7 @@ std::string ParseParamTable(const std::string& text, ParamTable& out) {
 
     // The slab curve must give one thickness per attenuation over the whole
     // thickness range the kernels cover: L(t) = mu(t)*t strictly increasing.
-    const double tMax = out.kThick.back();
+    const double tMax = out.kThick.back();   // the curve is used up to here
     for (size_t i = 0; i < out.wetKvp.size(); ++i) {
         double prev = 0.0;
         for (int j = 1; j <= 1000; ++j) {
@@ -304,6 +307,23 @@ bool KernelAt(const ParamTable& t, double thicknessCm, double kvp, BlendedKernel
             for (int i = 0; i < n.terms; ++i) { out.a.push_back(wtt * wkk * n.a[i]); out.s.push_back(n.s[i]); }
         }
     return true;
+}
+
+double SprCapAt(const ParamTable& t, double thicknessCm, double kvp) {
+    if (t.capFromKernels) {
+        BlendedKernel k;
+        if (!KernelAt(t, std::min(thicknessCm, t.kThick.back()), kvp, k)) return -1.0;
+        double sum = 0;
+        for (double a : k.a) sum += a;
+        return sum;
+    }
+    int c0, c1, a0, a1;
+    double wc, wa;
+    if (!Bracket(t.capKvp, kvp, c0, c1, wc)) return -1.0;
+    Bracket(t.capThick, std::clamp(thicknessCm, t.capThick.front(), t.capThick.back()), a0, a1, wa);
+    const size_t nk = t.capKvp.size();
+    auto v = [&](int ti, int ki) { return t.capSpr[static_cast<size_t>(ti) * nk + static_cast<size_t>(ki)]; };
+    return (1 - wa) * ((1 - wc) * v(a0, c0) + wc * v(a0, c1)) + wa * ((1 - wc) * v(a1, c0) + wc * v(a1, c1));
 }
 
 double ThicknessFromLogAtten(double L, double w0, double a, double b, double tMax) {
@@ -542,26 +562,16 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     int w0i, w1i;
     double ww;
     if (!Bracket(table.wetKvp, st.kvp, w0i, w1i, ww)) return fail("kvp outside the [wet] table");
-    int c0, c1;
-    double wc;
-    if (!Bracket(table.capKvp, st.kvp, c0, c1, wc)) return fail("kvp outside the [spr_cap] table");
+    if (SprCapAt(table, table.kThick.front(), st.kvp) < 0) return fail("kvp outside the [spr_cap] table");
     const int gi = IndexOf(table.gridRatio, st.gridRatio);
     if (gi < 0) return fail("grid ratio not in the [grid] table");
 
     const double W0 = table.wetW0[static_cast<size_t>(w0i)] * (1 - ww) + table.wetW0[static_cast<size_t>(w1i)] * ww;
     const double A = table.wetA[static_cast<size_t>(w0i)] * (1 - ww) + table.wetA[static_cast<size_t>(w1i)] * ww;
     const double B = table.wetB[static_cast<size_t>(w0i)] * (1 - ww) + table.wetB[static_cast<size_t>(w1i)] * ww;
-    const double tMax = std::min(table.kThick.back(), table.capThick.back());
-
-    auto capAt = [&](double t) {
-        int a0, a1;
-        double wa;
-        const double tc = std::clamp(t, table.capThick.front(), table.capThick.back());
-        Bracket(table.capThick, tc, a0, a1, wa);
-        const size_t nk = table.capKvp.size();
-        auto v = [&](int ti, int ki) { return table.capSpr[static_cast<size_t>(ti) * nk + static_cast<size_t>(ki)]; };
-        return (1 - wa) * ((1 - wc) * v(a0, c0) + wc * v(a0, c1)) + wa * ((1 - wc) * v(a1, c0) + wc * v(a1, c1));
-    };
+    const double tMax = table.capFromKernels ? table.kThick.back()
+                                             : std::min(table.kThick.back(), table.capThick.back());
+    const double tMin = table.kThick.front();
 
     // Reduced grid: coarse pitch at most half the narrowest kernel term.
     double sMin = 1e300;
@@ -594,13 +604,24 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     // read from the current primary estimate, not from I: scatter raises I/I0
     // and would make the object look thinner.
     std::vector<double> P = Ic, T(Ic.size()), spr(Ic.size()), cap(Ic.size());
+    size_t nHigh = 0, nLow = 0, nCapped = 0;
     for (int it = 0; it < st.iterations; ++it) {
         double tSum = 0;
         size_t tN = 0;
+        nHigh = nLow = nCapped = 0;
         for (size_t i = 0; i < P.size(); ++i) {
             if (P[i] <= 0) { T[i] = 0; continue; }
-            const double t = ThicknessFromLogAtten(-std::log(P[i] / st.airSignal), W0, A, B, tMax);
-            if (t < 0) return fail("estimated thickness above the table range");
+            double t = ThicknessFromLogAtten(-std::log(P[i] / st.airSignal), W0, A, B, tMax);
+            if (t < 0) {
+                // QA-B-93 (lead decision): a region thicker than the table is
+                // limited to the table maximum and counted, instead of refusing
+                // the whole image.
+                if (!sw.clampThickness) return fail("estimated thickness above the table range");
+                t = tMax;
+                ++nHigh;
+            } else if (t > 0 && t < tMin) {
+                ++nLow;
+            }
             T[i] = t;
             tSum += t;
             ++tN;
@@ -612,19 +633,23 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
         const std::vector<double> S = ScatterEstimate(P, T, cw, ch, table, st.kvp, pitchCm * f);
         if (S.empty()) return fail("estimated thickness above the table range");
         for (size_t i = 0; i < P.size(); ++i) {
-            cap[i] = capAt(T[i]);
+            cap[i] = SprCapAt(table, T[i], st.kvp);
             double r = P[i] > 0 ? S[i] / P[i] : 0.0;
-            if (sw.sprCap) r = std::min(r, cap[i]);
+            if (sw.sprCap && r > cap[i]) { r = cap[i]; ++nCapped; }
             spr[i] = r;
         }
         for (size_t i = 0; i < P.size(); ++i) P[i] = Ic[i] / (1.0 + spr[i]);
     }
+    const double nC = static_cast<double>(P.size());
+    rep.clampedHighFraction = static_cast<double>(nHigh) / nC;
+    rep.belowTableFraction = static_cast<double>(nLow) / nC;
+    rep.cappedFraction = static_cast<double>(nCapped) / nC;
     double sprSum = 0;
     for (size_t i = 0; i < T.size(); ++i) {
         rep.maxThicknessCm = std::max(rep.maxThicknessCm, T[i]);
         sprSum += spr[i];
     }
-    rep.meanSpr = sprSum / static_cast<double>(spr.size());
+    rep.meanSpr = sprSum / nC;
 
     // Coarse scatter from the last update, spread back to full resolution
     // (bilinear on coarse pixel centres).
@@ -656,14 +681,21 @@ VgReport RunVirtualGrid(std::vector<double>& img, int width, int height,
     // Tp and Ts (grid image = Tp*P + Ts*S, divided by Tp), not a method taken
     // from the literature.
     const double residual = table.gridTs[static_cast<size_t>(gi)] / table.gridTp[static_cast<size_t>(gi)];
+    // A full-resolution primary darker than this lies above the table's
+    // thickness range (QA-B-93: the share of such pixels is reported).
+    const double pAtTMax = st.airSignal * std::exp(-MuAt(tMax, W0, A, B) * tMax);
+    size_t nFullHigh = 0, nFull = 0;
     std::vector<double> out(img.size());
     for (size_t i = 0; i < img.size(); ++i) {
         double S = Sf[i];
         if (sw.sprCap) S = std::min(S, img[i] * capF[i] / (1.0 + capF[i]));
         double p = img[i] - S;
-        if (p <= 0) { ++rep.nonPositivePrimary; p = 0; }
+        if (img[i] > 0) { ++nFull; if (p < pAtTMax) ++nFullHigh; }
+        if (p < 0) { ++rep.negativePrimary; p = 0; }
         out[i] = p + residual * std::max(S, 0.0);
     }
+
+    rep.aboveTableFullRes = nFull ? static_cast<double>(nFullHigh) / static_cast<double>(nFull) : 0.0;
 
     if (st.pyramidLevels) PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
 

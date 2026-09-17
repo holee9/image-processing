@@ -172,12 +172,16 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *         Order of judgement matches the api-spec output-buffer rule: NULL and
  *         zero are decided first, a real-but-short buffer after.
  * @return XPE_ERR_CONFIG_INVALID (virtual grid) when the exposure lies outside
- *         the table: kVp outside a section's range, or settings the chain
- *         cannot use (e.g. an image too small for the pyramid levels).
- * @return XPE_ERR_PROCESSING_FAILED (virtual grid) when the estimated
- *         thickness of some region lies above the table's thickness range.
- *         In both cases dst holds the original pixels and the reason is
- *         pushed to the alert queue.
+ *         the table -- kVp outside a section's range, a grid ratio the table
+ *         does not list -- or the settings cannot be used (e.g. an image too
+ *         small for the pyramid levels). dst then holds the original pixels
+ *         and the reason is pushed to the alert queue.
+ *
+ * Virtual grid, thickness outside the table (#180, QA-B-93): a region whose
+ * estimated thickness is above the table's range is limited to the table
+ * maximum and the image is processed; the share of such pixels is pushed as
+ * an XPE_ALERT_WARNING. Thickness between 0 and the first kernel node uses
+ * that node's kernel faded linearly to no scatter at 0 cm.
  */
 XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
                                       const uint16_t* src,

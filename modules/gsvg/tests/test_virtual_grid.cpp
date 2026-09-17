@@ -69,7 +69,17 @@ struct Scene {
 // Primary from a thickness layout plus details, then the true thickness is
 // re-derived from that primary so the forward model is exactly the one the
 // algorithm assumes.
-Scene MakeScene(Shape shape, const vg::ParamTable& forwardTable = Table()) {
+// thickPatch: a 36 x 36 px square (about 2 % of the image) of 40 cm water in
+// the thin half -- above the 30 cm table. Its forward scatter uses the 30 cm
+// kernel, the same limit the chain applies.
+constexpr int kPatchX0 = 60, kPatchY0 = 150, kPatch = 36;
+
+bool InPatch(int x, int y, int margin = 0) {
+    return x >= kPatchX0 - margin && x < kPatchX0 + kPatch + margin &&
+           y >= kPatchY0 - margin && y < kPatchY0 + kPatch + margin;
+}
+
+Scene MakeScene(Shape shape, const vg::ParamTable& forwardTable = Table(), bool thickPatch = false) {
     const vg::ParamTable& t = Table();
     // wet coefficients at 80 kVp (a node of the synthetic table)
     const double w0 = t.wetW0[1], a = t.wetA[1], b = t.wetB[1];
@@ -86,11 +96,15 @@ Scene MakeScene(Shape shape, const vg::ParamTable& forwardTable = Table()) {
             if (dx * dx + dy * dy < 16.0) T += 2.0;
             if (y > 100 && y < 104 && x > 20 && x < 236) T += 1.5;
             T = std::min(T, 29.0);
+            if (thickPatch && InPatch(x, y)) T = 40.0;
             const double mu = w0 - a * T / (1 + b * T);
             s.primary[y * kN + x] = kI0 * std::exp(-mu * T);
         }
     for (size_t i = 0; i < s.primary.size(); ++i)
-        s.thickness[i] = vg::ThicknessFromLogAtten(-std::log(s.primary[i] / kI0), w0, a, b, 30.0);
+    {
+        const double tt = vg::ThicknessFromLogAtten(-std::log(s.primary[i] / kI0), w0, a, b, 30.0);
+        s.thickness[i] = tt < 0 ? 30.0 : tt;
+    }
     s.measured = vg::ForwardScatter(s.primary, s.thickness, kN, kN, forwardTable, kKvp, kPitchMm);
     return s;
 }
@@ -141,10 +155,11 @@ TEST(GsvgVirtualGridTable, SyntheticTableLoads)
     EXPECT_EQ(t.capSpr.size(), 12u);
 }
 
-TEST(GsvgVirtualGridTable, EverySectionIsRequired)
+// [spr_cap] is optional since QA-B-93 (see GsvgVirtualGridCap).
+TEST(GsvgVirtualGridTable, RequiredSectionsAreRequired)
 {
     const std::string full = ReadFile(kTablePath);
-    for (const char* sec : {"\n[kernels]\n", "\n[wet]\n", "\n[grid]\n", "\n[spr_cap]\n"}) {
+    for (const char* sec : {"\n[kernels]\n", "\n[wet]\n", "\n[grid]\n"}) {
         std::string text = full;
         const size_t p = text.find(sec);   // the header line, not the comment
         ASSERT_NE(p, std::string::npos);
@@ -274,7 +289,8 @@ TEST_P(GsvgVirtualGridRecovery, RecoversThePrimary)
     EXPECT_EQ(rep.factor, 5);   // floor(0.5 * 1.0 cm narrowest term at 80 kVp / 0.1 cm)
     EXPECT_LT(after.median, 0.1 * before.median);
     EXPECT_LT(after.p95, 0.2 * before.p95);
-    EXPECT_EQ(rep.nonPositivePrimary, 0u);
+    EXPECT_EQ(rep.negativePrimary, 0u);
+    EXPECT_EQ(rep.clampedHighFraction, 0.0);
 }
 
 // Falsification: one iteration leaves more error than five.
@@ -312,9 +328,9 @@ TEST(GsvgVirtualGridFalsify, GlobalThicknessIsWorseAtTheStep)
 }
 
 // Falsification: an over-estimating table (kernels x3) against data made with
-// the true one, on a thin object so the inflated thickness stays inside the
-// table. With the cap the primary never reaches zero; without it, pixels go
-// non-positive (or the thickness leaves the table and the image is refused).
+// the true one. With the cap the SPR is limited and no primary goes negative.
+// Without it, the full-resolution primary I - S goes negative where the
+// up-sampled coarse scatter exceeds a dark fine detail (QA-B-93).
 TEST(GsvgVirtualGridFalsify, SprCapPreventsOvercorrection)
 {
     const Scene s = MakeScene(Shape::ThinStep);
@@ -324,18 +340,158 @@ TEST(GsvgVirtualGridFalsify, SprCapPreventsOvercorrection)
     off.sprCap = false;
     const vg::VgReport rc = vg::RunVirtualGrid(capped, kN, kN, over, Settings(5));
     const vg::VgReport ru = vg::RunVirtualGrid(uncapped, kN, kN, over, Settings(5), off);
-    std::printf("VGMEASURE overcorrect capped: err='%s' nonPositive=%zu meanSpr=%.3f\n",
-                rc.error.c_str(), rc.nonPositivePrimary, rc.meanSpr);
-    std::printf("VGMEASURE overcorrect uncapped: err='%s' nonPositive=%zu meanSpr=%.3f\n",
-                ru.error.c_str(), ru.nonPositivePrimary, ru.meanSpr);
+    std::printf("VGMEASURE overcorrect capped: err='%s' negative=%zu capped=%.4f high=%.4f meanSpr=%.3f\n",
+                rc.error.c_str(), rc.negativePrimary, rc.cappedFraction, rc.clampedHighFraction, rc.meanSpr);
+    std::printf("VGMEASURE overcorrect uncapped: err='%s' negative=%zu capped=%.4f high=%.4f meanSpr=%.3f\n",
+                ru.error.c_str(), ru.negativePrimary, ru.cappedFraction, ru.clampedHighFraction, ru.meanSpr);
     ASSERT_EQ(rc.error, "");
-    EXPECT_EQ(rc.nonPositivePrimary, 0u);
+    EXPECT_GT(rc.cappedFraction, 0.0);
+    EXPECT_EQ(rc.negativePrimary, 0u);
     double minCapped = 1e300;
     for (double v : capped) minCapped = std::min(minCapped, v);
     EXPECT_GT(minCapped, 0.0);
-    // Without the cap: either non-positive primary, or the thickness runs out of
-    // the table and the chain refuses the image.
-    EXPECT_TRUE(ru.nonPositivePrimary > 0 || !ru.error.empty());
+    ASSERT_EQ(ru.error, "");
+    EXPECT_GT(ru.negativePrimary, 0u);
+}
+
+// QA-B-93 (1): without [spr_cap] the cap is sum(a_i) of the kernel rows.
+namespace {
+vg::ParamTable TableWithoutCapSection() {
+    std::string text = ReadFile(kTablePath);
+    const size_t p = text.find("\n[spr_cap]\n");
+    EXPECT_NE(p, std::string::npos);
+    text.erase(p + 1);
+    vg::ParamTable t;
+    EXPECT_EQ(vg::ParseParamTable(text, t), "");
+    return t;
+}
+}  // namespace
+
+TEST(GsvgVirtualGridCap, KernelSumIsTheDefaultCap)
+{
+    const vg::ParamTable t = TableWithoutCapSection();
+    ASSERT_TRUE(t.capFromKernels);
+    EXPECT_FALSE(Table().capFromKernels);   // control: the full file keeps its section
+    EXPECT_NEAR(vg::SprCapAt(t, 10.0, 80.0), 0.32 + 0.80, 1e-12);
+    EXPECT_NEAR(vg::SprCapAt(t, 20.0, 100.0), 0.45 + 2.15, 1e-12);
+    const double mid = 0.25 * ((0.35 + 0.75) + (0.32 + 0.80) + (0.55 + 1.85) + (0.50 + 2.00));
+    EXPECT_NEAR(vg::SprCapAt(t, 15.0, 70.0), mid, 1e-12);
+    EXPECT_NEAR(vg::SprCapAt(t, 2.5, 80.0), 0.5 * (0.18 + 0.32), 1e-12);
+    EXPECT_NEAR(vg::SprCapAt(t, 45.0, 80.0), 0.60 + 3.30, 1e-12);   // above the table: its maximum
+    EXPECT_LT(vg::SprCapAt(t, 10.0, 120.0), 0.0);
+    // the [spr_cap] section, when present, is what is used
+    EXPECT_NEAR(vg::SprCapAt(Table(), 10.0, 80.0), 1.7, 1e-12);
+    // gauss4 rows: the cap comes from the same (gauss4) rows as the kernel
+    std::string text = ReadFile(kTablePath);
+    const size_t k = text.find("\n[kernels]\n") + 1;
+    const size_t w = text.find("\n[wet]\n") + 1;
+    std::string kernels = "[kernels]\nthickness_cm,kvp,model,a1,s1,a2,s2,a3,s3,a4,s4\n";
+    for (int th : {5, 10, 20, 30})
+        for (int kv : {60, 80, 100}) {
+            kernels += std::to_string(th) + "," + std::to_string(kv) + ",gauss2,9,1,9,4,,,,\n";
+            kernels += std::to_string(th) + "," + std::to_string(kv) + ",gauss4,0.1,1,0.2,2,0.3,4,0.4,8\n";
+        }
+    text.replace(k, w - k, kernels + "\n");
+    text.erase(text.find("\n[spr_cap]\n") + 1);
+    vg::ParamTable g4;
+    ASSERT_EQ(vg::ParseParamTable(text, g4), "");
+    EXPECT_NEAR(vg::SprCapAt(g4, 10.0, 80.0), 1.0, 1e-12);
+}
+
+TEST(GsvgVirtualGridCap, KernelSumCapBindsOnOvercorrectionOnly)
+{
+    const Scene s = MakeScene(Shape::Step);
+    const vg::ParamTable t = TableWithoutCapSection();
+    vg::ParamTable over = t;
+    for (auto& n : over.kernels)
+        for (int i = 0; i < n.terms; ++i) n.a[i] *= 3.0;
+    // Over-estimating kernels scale their own cap too, so the cap alone
+    // cannot catch them; the check here is that the default cap is live.
+    std::vector<double> a = s.measured, b = s.measured;
+    const vg::VgReport ra = vg::RunVirtualGrid(a, kN, kN, t, Settings(5));
+    // Scaling the kernels but not the cap (cap taken from the true table).
+    vg::ParamTable overTrueCap = over;
+    overTrueCap.capFromKernels = false;
+    overTrueCap.capThick = t.kThick;
+    overTrueCap.capKvp = t.kKvp;
+    overTrueCap.capSpr.clear();
+    for (const auto& n : t.kernels) overTrueCap.capSpr.push_back(n.a[0] + n.a[1]);
+    const vg::VgReport rb = vg::RunVirtualGrid(b, kN, kN, overTrueCap, Settings(5));
+    // Reference: the same data with the generous synthetic [spr_cap] section.
+    std::vector<double> r = s.measured;
+    const vg::VgReport rr = vg::RunVirtualGrid(r, kN, kN, Table(), Settings(5));
+    const ErrStats eSum = RelErr(a, s.primary), eSec = RelErr(r, s.primary);
+    std::printf("VGMEASURE kernel-sum cap: true data capped=%.4f; x3 kernels capped=%.4f negative=%zu\n",
+                ra.cappedFraction, rb.cappedFraction, rb.negativePrimary);
+    Log("step.after5.kernelSumCap", eSum);
+    Log("step.after5.sectionCap", eSec);
+    ASSERT_EQ(ra.error, "");
+    ASSERT_EQ(rb.error, "");
+    ASSERT_EQ(rr.error, "");
+    // Even on data made with these kernels the local SPR can exceed the local
+    // sum(a_i): a thin pixel next to a thick region receives that region's wider
+    // scatter. The cap then binds on a few percent of the reduced grid.
+    EXPECT_LT(ra.cappedFraction, 0.10);
+    EXPECT_EQ(rr.cappedFraction, 0.0);
+    EXPECT_GT(rb.cappedFraction, 0.5);
+    EXPECT_EQ(rb.negativePrimary, 0u);
+}
+
+// QA-B-93 (2): a region thicker than the table is limited, not refused.
+TEST(GsvgVirtualGridRange, ThickRegionIsLimitedAndReported)
+{
+    const Scene plain = MakeScene(Shape::Step);
+    const Scene patched = MakeScene(Shape::Step, Table(), true);
+    std::vector<double> a = plain.measured, b = patched.measured;
+    const vg::VgReport ra = vg::RunVirtualGrid(a, kN, kN, Table(), Settings(5));
+    const vg::VgReport rb = vg::RunVirtualGrid(b, kN, kN, Table(), Settings(5));
+    ASSERT_EQ(ra.error, "");
+    ASSERT_EQ(rb.error, "");
+    // error away from the patch (3 cm margin), same pixels in both scenes
+    auto outside = [&](const std::vector<double>& got, const std::vector<double>& want) {
+        std::vector<double> e;
+        for (int y = 0; y < kN; ++y)
+            for (int x = 0; x < kN; ++x)
+                if (!InPatch(x, y, 30)) e.push_back(std::fabs(got[y * kN + x] - want[y * kN + x]) / want[y * kN + x]);
+        std::sort(e.begin(), e.end());
+        return ErrStats{e[e.size() / 2], e[e.size() * 95 / 100], e.back()};
+    };
+    const ErrStats ea = outside(a, plain.primary), eb = outside(b, patched.primary);
+    Log("patch.none.outside", ea);
+    Log("patch.40cm.outside", eb);
+    const double area = double(kPatch * kPatch) / (kN * kN);
+    std::printf("VGMEASURE patch area=%.4f aboveFullRes=%.4f clampedHigh(reduced)=%.4f below=%.4f\n",
+                area, rb.aboveTableFullRes, rb.clampedHighFraction, rb.belowTableFraction);
+    std::printf("VGMEASURE no patch: aboveFullRes=%.4f clampedHigh=%.4f\n",
+                ra.aboveTableFullRes, ra.clampedHighFraction);
+    EXPECT_EQ(ra.clampedHighFraction, 0.0);
+    EXPECT_EQ(ra.aboveTableFullRes, 0.0);
+    EXPECT_GT(rb.clampedHighFraction, 0.0);
+    EXPECT_LE(rb.clampedHighFraction, area);
+    EXPECT_NEAR(rb.aboveTableFullRes, area, 0.25 * area);
+    EXPECT_LT(eb.median, 1.5 * ea.median);
+    EXPECT_LT(eb.p95, 1.5 * ea.p95);
+
+    // Falsification: without the limit the image is refused, as before QA-B-93.
+    std::vector<double> c = patched.measured;
+    vg::VgSwitches off;
+    off.clampThickness = false;
+    const vg::VgReport rc = vg::RunVirtualGrid(c, kN, kN, Table(), Settings(5), off);
+    EXPECT_NE(rc.error, "");
+    EXPECT_EQ(c, patched.measured);
+}
+
+// Thin regions (below the first kernel node) were never refused: the kernel
+// fades to no scatter at 0 cm. They are counted, not limited.
+TEST(GsvgVirtualGridRange, ThinRegionIsCountedNotRefused)
+{
+    const Scene s = MakeScene(Shape::ThinStep);   // 4 cm | 10 cm
+    std::vector<double> img = s.measured;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, Table(), Settings(5));
+    ASSERT_EQ(rep.error, "");
+    std::printf("VGMEASURE thin below=%.4f high=%.4f\n", rep.belowTableFraction, rep.clampedHighFraction);
+    EXPECT_GT(rep.belowTableFraction, 0.3);
+    EXPECT_LT(RelErr(img, s.primary).median, 0.1 * RelErr(s.measured, s.primary).median);
 }
 
 // ---------------------------------------------------------------------------
@@ -515,21 +671,31 @@ TEST(GsvgVirtualGridApi, ProcessesAndKeepsTheOriginalOnFailure)
     EXPECT_EQ(dst, src);
     xpe_gsvg_shutdown(h);
 
-    // Thickness beyond the table (very dark image), in place: the pixels survive.
+    // Thickness beyond the table everywhere (very dark image): processed, with a
+    // warning that names the limited share (QA-B-93).
     ASSERT_EQ(xpe_gsvg_init(&h, Config().c_str()), XPE_OK);
+    xpe_clear_alerts();
     std::vector<uint16_t> dark(src.size(), 5);
-    const std::vector<uint16_t> darkCopy = dark;
     EXPECT_EQ(xpe_gsvg_process(h, dark.data(), dark.size(), dark.data(), dark.size(), kN, kN, nullptr, 0),
-              XPE_ERR_PROCESSING_FAILED);
-    EXPECT_EQ(dark, darkCopy);
+              XPE_OK);
+    bool warned = false;
+    for (int i = 0; i < 32; ++i) {
+        char msg[512];
+        int32_t sev = 0;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) break;
+        if (sev == XPE_ALERT_WARNING && std::string(msg).find("100.00%") != std::string::npos) warned = true;
+    }
+    EXPECT_TRUE(warned);
+    xpe_clear_alerts();
     xpe_gsvg_shutdown(h);
 
-    // Same failure with the vignette step on and dst aliasing src: still the original.
-    ASSERT_EQ(xpe_gsvg_init(&h, Config(", \"vignette_correction\": true").c_str()), XPE_OK);
+    // Refusal with the vignette step on and dst aliasing src: still the original.
+    ASSERT_EQ(xpe_gsvg_init(&h, (cfg.substr(0, cfg.size() - 1) + ", \"vignette_correction\": true}").c_str()), XPE_OK);
+    std::vector<uint16_t> inPlace = src;
     const std::vector<float> gain(src.size(), 2.0f);
-    EXPECT_EQ(xpe_gsvg_process(h, dark.data(), dark.size(), dark.data(), dark.size(), kN, kN,
-                               gain.data(), gain.size()), XPE_ERR_PROCESSING_FAILED);
-    EXPECT_EQ(dark, darkCopy);
+    EXPECT_EQ(xpe_gsvg_process(h, inPlace.data(), inPlace.size(), inPlace.data(), inPlace.size(), kN, kN,
+                               gain.data(), gain.size()), XPE_ERR_CONFIG_INVALID);
+    EXPECT_EQ(inPlace, src);
     xpe_gsvg_shutdown(h);
 }
 

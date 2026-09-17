@@ -18,21 +18,8 @@
 #include <thread>
 #include <vector>
 
-// Windows-specific RSS measurement (mirrors preprocess T-010 endurance test)
-#ifdef _WIN32
-#  include <windows.h>
-#  include <psapi.h>
-
-static SIZE_T get_working_set_bytes() {
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        return pmc.WorkingSetSize;
-    }
-    return 0;
-}
-#else
-static size_t get_working_set_bytes() { return 0; }
-#endif
+// #181 (QA-B-93): retention is measured on the CRT heap, not on the working set.
+#include "heap_growth.h"
 
 namespace {
 
@@ -229,44 +216,31 @@ TEST(EnhanceIntegration, ThreadSafety_ConcurrentBilateral) {
 // grow the CRT allocator arena; counting that one-time cost as "leak" would make
 // the threshold a measure of startup, not of retention.  The baseline snapshot is
 // taken after warm-up so only steady-state growth is scored.
-constexpr int    ENDURANCE_CYCLES = 1000;
-constexpr int    ENDURANCE_WARMUP = 100;
-constexpr size_t ENDURANCE_ONE_MB = 1024u * 1024u;
+// (heap_growth::kWarmup cycles; the bound is heap_growth::MaxBlocks / kMaxBytes)
 
 // REQ-ENH-CC-003: No heap leak -- 1000 iterations of log_transform
 // #105 G3: heap growth is now measured, not merely assumed from "did not crash".
 TEST(EnhanceIntegration, NoHeapLeak_1000Iterations) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
     auto img = make_f32(64, 64, 500.0f);
     float* px = static_cast<float*>(img.data);
 
-    for (int i = 0; i < ENDURANCE_WARMUP; i++) {
-        std::fill(px, px + 64 * 64, 500.0f);
-        ASSERT_EQ(XPE_OK, xpe_log_transform(&img, 1000.0f)) << "warmup " << i;
-    }
-
-    const auto before = get_working_set_bytes();
-
-    for (int i = 0; i < ENDURANCE_CYCLES; i++) {
+    auto one_cycle = [&](int i) {
         // Reset pixel values each iteration to avoid overflow
         std::fill(px, px + 64 * 64, 500.0f);
+        ASSERT_EQ(XPE_OK, xpe_log_transform(&img, 1000.0f)) << "Iteration " << i << " failed";
+    };
+    const heap_growth::Growth g = heap_growth::Measure(one_cycle);
 
-        XpeErrorCode rc = xpe_log_transform(&img, 1000.0f);
-        ASSERT_EQ(XPE_OK, rc) << "Iteration " << i << " failed";
-    }
-
-    const auto after = get_working_set_bytes();
-
-#ifdef _WIN32
     // log_transform is in-place and allocates nothing, so any growth here is a
-    // regression, not a tolerance.  The 1 MB bound matches preprocess T-010.
-    if (after > before) {
-        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
-            << "Working set grew by " << (after - before) / 1024 << " KB over "
-            << ENDURANCE_CYCLES << " log_transform cycles";
-    }
-#else
-    (void)before; (void)after;  // RSS measurement is Windows-only in this build
-#endif
+    // regression, not a tolerance.
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << g.cycles << " log_transform cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << g.cycles << " log_transform cycles left bytes allocated";
 
     // If we got here without crash/corruption, no double-free or heap corruption
     free_img(img);
@@ -277,10 +251,7 @@ TEST(EnhanceIntegration, NoHeapLeak_1000Iterations) {
 // it cannot detect a retention defect.  noise_reduce / contrast_enhance /
 // edge_enhance each allocate per-call std::vector scratch buffers (ring rows, LUT
 // tiles, output copies); this loop is the probe that can actually fail.
-TEST(EnhanceIntegration, NoHeapLeak_1000Iterations_AllocatingPaths) {
-#ifndef _WIN32
-    GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
-#endif
+static void AllocatingPathCycles(size_t leakBytes, heap_growth::Growth& out) {
     auto img = make_f32(64, 64, 500.0f);
     float* px = static_cast<float*>(img.data);
 
@@ -306,21 +277,35 @@ TEST(EnhanceIntegration, NoHeapLeak_1000Iterations_AllocatingPaths) {
         ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &usm_params))    << "cycle " << i;
     };
 
-    for (int i = 0; i < ENDURANCE_WARMUP; i++) one_cycle(i);
-
-    const auto before = get_working_set_bytes();
-
-    for (int i = 0; i < ENDURANCE_CYCLES; i++) one_cycle(i);
-
-    const auto after = get_working_set_bytes();
-
-    if (after > before) {
-        EXPECT_LT(after - before, ENDURANCE_ONE_MB)
-            << "Working set grew by " << (after - before) / 1024 << " KB over "
-            << ENDURANCE_CYCLES << " noise/contrast/edge cycles";
-    }
+    out = heap_growth::Measure(one_cycle, leakBytes);
 
     free_img(img);
+}
+
+TEST(EnhanceIntegration, NoHeapLeak_1000Iterations_AllocatingPaths) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    heap_growth::Growth g;
+    AllocatingPathCycles(0, g);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))
+        << g.cycles << " noise/contrast/edge cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)
+        << g.cycles << " noise/contrast/edge cycles left bytes allocated";
+}
+
+// #181 (QA-B-93) control: the same cycle plus one unfreed 64-byte block per
+// cycle must be caught by the measurement above.
+TEST(EnhanceIntegration, NoHeapLeak_AllocatingPaths_ControlLeakIsCaught) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    heap_growth::Growth g;
+    AllocatingPathCycles(64, g);
+    GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
+    EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);
+    EXPECT_GE(g.heap.bytes, 64LL * g.cycles * 9 / 10);
 }
 
 // REQ-ENH-CC-001: Version function returns non-null string
