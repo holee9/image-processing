@@ -58,6 +58,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_parameter_dependency.cpp
         # #145 (QA-B-60): unread config keys are named, valid configs stay quiet
         tests/test_config_warning.cpp
+        # #180 (QA-B-89): synthetic grid generator, residual-energy and edge-MTF tools
+        tests/test_grid_tools.cpp
     )
 
     target_include_directories(gsvg_tests PRIVATE
