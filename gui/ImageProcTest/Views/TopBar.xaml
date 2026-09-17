@@ -120,7 +120,8 @@
                     Background="#7dd3fc" Foreground="#0c1220" BorderThickness="0"
                     Padding="12,6" Margin="0,0,8,0"
                     FontSize="11" FontWeight="SemiBold" Cursor="Hand" />
-            <ToggleButton Content="Focus"
+            <ToggleButton AutomationProperties.AutomationId="FocusModeToggle"
+                          Content="Focus"
                           Command="{Binding ToggleFocusModeCommand}"
                           IsChecked="{Binding FocusMode, Mode=OneWay}"
                           Padding="12,6" FontSize="11" FontWeight="Medium"

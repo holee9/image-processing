@@ -106,6 +106,20 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
     private string _renderedMode = "not rendered";
 
+    /// <summary>
+    /// What the last frame was drawn with, beyond the mode (#182 follow-up, GUI-C-98). Every value is
+    /// captured where the drawing code uses it, so a setting that never reached the control cannot
+    /// appear here: <c>zoom</c> is the ZoomScale the frame read (<c>fit</c> for 0), <c>scale</c> and
+    /// <c>offset</c> are the drawn image's scale and centre offset from the viewport centre (pan),
+    /// <c>swipe</c> is the divider fraction drawn and <c>opacity</c> the overlay opacity pushed —
+    /// <c>-</c> when the frame's mode draws neither.
+    /// </summary>
+    public string RenderedState => _renderedState;
+
+    private string _renderedState = string.Empty;
+    private double? _renderedSwipe;
+    private double? _renderedOpacity;
+
     public string DescribeReceivedImages() =>
         string.Create(CultureInfo.InvariantCulture,
             $"source={Describe(SourceImage)} v{_sourceVersion}; processed={Describe(ProcessedImage)} v{_processedVersion}");
@@ -186,6 +200,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
         if (SourceImage is null)
         {
             _renderedMode = "none";
+            _renderedState = string.Empty;
             DrawCenteredText(drawingContext, "Load a RAW image to compare source and processed output.", viewport);
             return;
         }
@@ -194,6 +209,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
         var imageRect = GetImageRect(SourceImage);
         var mode = NormalizeMode(CompareMode);
         _renderedMode = mode;
+        _renderedSwipe = null;
+        _renderedOpacity = null;
 
         drawingContext.PushClip(new RectangleGeometry(viewport));
         switch (mode)
@@ -206,7 +223,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
                 break;
             case "OverlayOpacity":
                 DrawImage(drawingContext, SourceImage, imageRect);
-                drawingContext.PushOpacity(Math.Clamp(OverlayOpacity, 0.0, 1.0));
+                _renderedOpacity = Math.Clamp(OverlayOpacity, 0.0, 1.0);
+                drawingContext.PushOpacity(_renderedOpacity.Value);
                 DrawImage(drawingContext, processed, imageRect);
                 drawingContext.Pop();
                 break;
@@ -228,6 +246,12 @@ public sealed class ImageComparisonViewport : FrameworkElement
         }
 
         drawingContext.Pop();
+        _renderedState = string.Create(CultureInfo.InvariantCulture,
+            $"zoom={(ZoomScale <= 0.0 ? "fit" : ZoomScale.ToString("0.####", CultureInfo.InvariantCulture))}; " +
+            $"scale={imageRect.Width / Math.Max(1.0, SourceImage.Width):0.####}; " +
+            $"offset={imageRect.X + (imageRect.Width / 2.0) - (ActualWidth / 2.0):0.#},{imageRect.Y + (imageRect.Height / 2.0) - (ActualHeight / 2.0):0.#}; " +
+            $"swipe={(_renderedSwipe is { } sw ? sw.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
+            $"opacity={(_renderedOpacity is { } op ? op.ToString("0.####", CultureInfo.InvariantCulture) : "-")}");
         DrawHud(drawingContext, viewport, mode);
     }
 
@@ -297,7 +321,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
     private void DrawVerticalSwipe(DrawingContext drawingContext, Rect viewport, Rect imageRect, ImageSource processed)
     {
-        var dividerX = Math.Clamp(SwipePosition, 0.0, 1.0) * viewport.Width;
+        _renderedSwipe = Math.Clamp(SwipePosition, 0.0, 1.0);
+        var dividerX = _renderedSwipe.Value * viewport.Width;
         drawingContext.PushClip(new RectangleGeometry(new Rect(dividerX, 0, Math.Max(0, viewport.Width - dividerX), viewport.Height)));
         DrawImage(drawingContext, processed, imageRect);
         drawingContext.Pop();
@@ -306,7 +331,8 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
     private void DrawHorizontalSwipe(DrawingContext drawingContext, Rect viewport, Rect imageRect, ImageSource processed)
     {
-        var dividerY = Math.Clamp(SwipePosition, 0.0, 1.0) * viewport.Height;
+        _renderedSwipe = Math.Clamp(SwipePosition, 0.0, 1.0);
+        var dividerY = _renderedSwipe.Value * viewport.Height;
         drawingContext.PushClip(new RectangleGeometry(new Rect(0, dividerY, viewport.Width, Math.Max(0, viewport.Height - dividerY))));
         DrawImage(drawingContext, processed, imageRect);
         drawingContext.Pop();
@@ -523,5 +549,11 @@ internal sealed class ImageComparisonViewportAutomationPeer(ImageComparisonViewp
     protected override string GetItemStatusCore() => ((ImageComparisonViewport)Owner).DescribeReceivedImages();
 
     /// <summary><c>rendered=&lt;mode&gt;</c> — the mode of the last drawn frame (#149, GUI-C-96).</summary>
-    protected override string GetHelpTextCore() => $"rendered={((ImageComparisonViewport)Owner).RenderedMode}";
+    protected override string GetHelpTextCore()
+    {
+        var owner = (ImageComparisonViewport)Owner;
+        return string.IsNullOrEmpty(owner.RenderedState)
+            ? $"rendered={owner.RenderedMode}"
+            : $"rendered={owner.RenderedMode}; {owner.RenderedState}";
+    }
 }
