@@ -199,6 +199,15 @@ XPE_API XpeErrorCode xpe_gsvg_process(void* handle,
  * Same arguments, order of judgement and return codes as xpe_gsvg_process,
  * plus:
  *
+ * @param handle    As xpe_gsvg_process.
+ * @param src       As xpe_gsvg_process.
+ * @param srcCount  As xpe_gsvg_process.
+ * @param dst       As xpe_gsvg_process.
+ * @param dstCount  As xpe_gsvg_process.
+ * @param width     As xpe_gsvg_process.
+ * @param height    As xpe_gsvg_process.
+ * @param gainMap   As xpe_gsvg_process.
+ * @param gainCount As xpe_gsvg_process.
  * @param fieldMask Optional, width*height bytes, row-major like @p src:
  *                  non-zero = inside the collimated field. gsvg does not
  *                  detect the field itself (it depends on no other XPE

@@ -274,15 +274,48 @@ TEST(CollimationMaskE2E, DetectionExactForShiftedFields)
 // object the detector takes that edge for a field side -- it keeps the two
 // STRONGEST vertical lines, and the interior step (30000 -> 12000) is stronger
 // than the real right side (12000 -> scatter). A design decision (#183).
-TEST(CollimationMaskE2E, KnownDivergence_InteriorEdgeTakenForFieldSide)
+// A field whose inside is not uniform (interior step at x = 128): the side is
+// chosen by inside/outside mean ratio (QA-B-100), not by line strength.
+TEST(CollimationMaskE2E, InteriorStepDoesNotReplaceFieldSide)
 {
     const ChainResult r = RunChain(true);
     EXPECT_EQ(r.det.x0, 40);
-    EXPECT_EQ(r.det.y0, 30);    // exact since QA-B-98
-    EXPECT_EQ(r.det.x1, 127);   // truth 215: the interior step at x = 128
+    EXPECT_EQ(r.det.y0, 30);
+    EXPECT_EQ(r.det.x1, 215);
     EXPECT_EQ(r.det.y1, 225);
-    EXPECT_GT(r.maskDiff, 0u);
-    EXPECT_GT(r.outDiff, 0u);
+    EXPECT_EQ(r.maskDiff, 0u);
+    EXPECT_EQ(r.outDiff, 0u);
+}
+
+// Many strong interior edges and a weak field side (QA-B-100, D). Six dark
+// 3-px stripes (5000 DN) cross a 30000 DN field -- twelve strong edges of
+// little area -- and the last 20 columns are 12000 DN, so the right side
+// (12000 vs ~2500 scatter) is weaker than every stripe edge. Each strong edge
+// also peaks at theta 2 and 178 deg through the same centre point; unless
+// those copies are merged by position they fill the per-orientation candidate
+// cap (16) ahead of the weak side.
+TEST(CollimationMaskE2E, WeakSideSurvivesManyInteriorEdges)
+{
+    std::vector<float> img(static_cast<size_t>(kW) * kH);
+    for (int y = 0; y < kH; ++y)
+        for (int x = 0; x < kW; ++x) {
+            double v;
+            if (InField(x, y)) {
+                const bool stripe = x >= 52 && x < 52 + 6 * 16 && (x - 52) % 16 < 3;
+                v = x > kField.x1 - 20 ? 12000.0 : (stripe ? 5000.0 : 30000.0);
+            } else {
+                const double dxo = std::max({0, kField.x0 - x, x - kField.x1});
+                const double dyo = std::max({0, kField.y0 - y, y - kField.y1});
+                v = 2500.0 * std::exp(-std::sqrt(dxo * dxo + dyo * dyo) / 30.0);
+            }
+            img[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = static_cast<float>(v);
+        }
+    const Rect r = Detect(img, kW, kH);
+    std::printf("COLLMASK bars detected %d %d %d %d\n", r.x0, r.y0, r.x1, r.y1);
+    EXPECT_EQ(r.x0, kField.x0);
+    EXPECT_EQ(r.y0, kField.y0);
+    EXPECT_EQ(r.x1, kField.x1);
+    EXPECT_EQ(r.y1, kField.y1);
 }
 
 // 1000 unmasked calls with the virtual grid on: what the 64-entry queue keeps.
