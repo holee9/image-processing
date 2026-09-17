@@ -210,7 +210,11 @@ public partial class MainWindow : System.Windows.Window
             report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
             report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
-            report.ComparisonViewportDetected = true;
+            // #172 (GUI-C-79): measured. This was the constant true, and it said "detected" for the
+            // whole time the main viewport received no images at all (GUI-C-78). It now requires the
+            // workbench viewport to exist AND to have been handed both images.
+            report.ComparisonViewportDetected = FindDescendant<ImageProcTest.Controls.ImageComparisonViewport>(this)
+                is { SourceImage: not null, ProcessedImage: not null };
             report.ComparisonMode = viewModel.Settings.ComparisonMode;
             report.ComparisonZoomScale = viewModel.Settings.ComparisonZoomScale;
             report.ComparisonSwipePosition = viewModel.Settings.ComparisonSwipePosition;
@@ -481,5 +485,23 @@ public partial class MainWindow : System.Windows.Window
         };
         helpWindow.Show();
         helpWindow.Activate();
+    }
+
+    private static T? FindDescendant<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject
+    {
+        if (root is T match)
+        {
+            return match;
+        }
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            if (FindDescendant<T>(System.Windows.Media.VisualTreeHelper.GetChild(root, i)) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 }

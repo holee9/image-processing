@@ -21,14 +21,14 @@ public sealed class ImageComparisonViewport : FrameworkElement
             nameof(SourceImage),
             typeof(ImageSource),
             typeof(ImageComparisonViewport),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnSourceImageChanged));
 
     public static readonly DependencyProperty ProcessedImageProperty =
         DependencyProperty.Register(
             nameof(ProcessedImage),
             typeof(ImageSource),
             typeof(ImageComparisonViewport),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnProcessedImageChanged));
 
     public static readonly DependencyProperty CompareModeProperty =
         DependencyProperty.Register(
@@ -72,6 +72,12 @@ public sealed class ImageComparisonViewport : FrameworkElement
             typeof(ImageComparisonViewport),
             new FrameworkPropertyMetadata(0.5, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault | FrameworkPropertyMetadataOptions.AffectsRender));
 
+    // #172 (GUI-C-79): how many times each image was replaced. Read only by the automation peer; it
+    // changes nothing about rendering. A version, not a pixel hash: the question the tests ask is
+    // "was the viewport handed a new image", and a counter answers it at no cost.
+    private int _sourceVersion;
+    private int _processedVersion;
+
     private WpfPoint _lastDragPoint;
     private DragMode _dragMode = DragMode.None;
 
@@ -81,6 +87,35 @@ public sealed class ImageComparisonViewport : FrameworkElement
         ClipToBounds = true;
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
     }
+
+    /// <summary>
+    /// What this control has actually been given, for UI automation (#172).
+    ///
+    /// <para>The main viewport showed nothing from 54a3ae7 until #172 because every check looked at something
+    /// other than the images this control received — the shell's presence, a constant, the view model's
+    /// own properties (GUI-C-78). This is the one place that cannot be wrong about it: it reads the
+    /// dependency properties the renderer reads. A null image reads <c>none</c>; a binding that failed to
+    /// resolve also leaves the property null, so it reads <c>none</c> as well — both are defects here.</para>
+    /// </summary>
+    public string DescribeReceivedImages() =>
+        string.Create(CultureInfo.InvariantCulture,
+            $"source={Describe(SourceImage)} v{_sourceVersion}; processed={Describe(ProcessedImage)} v{_processedVersion}");
+
+    private static string Describe(ImageSource? image) => image switch
+    {
+        null => "none",
+        BitmapSource bitmap => $"{bitmap.PixelWidth}x{bitmap.PixelHeight}",
+        _ => image.GetType().Name,
+    };
+
+    private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        ((ImageComparisonViewport)d)._sourceVersion++;
+
+    private static void OnProcessedImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        ((ImageComparisonViewport)d)._processedVersion++;
+
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new ImageComparisonViewportAutomationPeer(this);
 
     public ImageSource? SourceImage
     {
@@ -454,4 +489,25 @@ public sealed class ImageComparisonViewport : FrameworkElement
         Pan,
         Swipe
     }
+}
+
+/// <summary>
+/// Makes the comparison viewport visible to UI automation, with what it received as its status (#172).
+/// Before this the control had no peer at all, so neither tests nor assistive technology could see it.
+/// </summary>
+internal sealed class ImageComparisonViewportAutomationPeer(ImageComparisonViewport owner)
+    : System.Windows.Automation.Peers.FrameworkElementAutomationPeer(owner)
+{
+    protected override string GetClassNameCore() => nameof(ImageComparisonViewport);
+
+    protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() =>
+        System.Windows.Automation.Peers.AutomationControlType.Image;
+
+    protected override string GetNameCore()
+    {
+        var name = base.GetNameCore();
+        return string.IsNullOrEmpty(name) ? "Comparison viewport" : name;
+    }
+
+    protected override string GetItemStatusCore() => ((ImageComparisonViewport)Owner).DescribeReceivedImages();
 }

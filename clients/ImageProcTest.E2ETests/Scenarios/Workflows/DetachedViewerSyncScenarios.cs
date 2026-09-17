@@ -23,11 +23,11 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// §4.1's cases press one thing and read one result; these drive a sequence across two windows.</para>
 ///
 /// <para><b>What is NOT asserted here.</b> Whether the detached <i>viewport</i> redraws — the image
-/// path, which is §4.3's own subject. It has no observation point in this harness: the control is a
-/// bare <c>FrameworkElement</c> with no automation peer (the detached window exposes seven UIA
-/// descendants, six of them title-bar chrome and one the status line), and pixel capture is blind
-/// here — GUI-C-72 measured the MAIN window capturing blank white too, so a blank detached capture
-/// says nothing about the detached window.</para>
+/// path, which is §4.3's own subject. When these cases were written the control had no automation peer
+/// (the detached window exposed seven UIA descendants, six of them title-bar chrome and one the status
+/// line), and pixel capture is blind here — GUI-C-72 measured the MAIN window capturing blank white too.
+/// Since #172 (GUI-C-79) the control does have a peer that reports which images it received
+/// (<c>ViewportTruthScenarios</c>); that says what the viewport was handed, not that it redrew.</para>
 /// </summary>
 [Collection(WorkflowApplicationCollection.Name)]
 public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)

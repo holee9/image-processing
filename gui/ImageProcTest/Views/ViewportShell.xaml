@@ -10,11 +10,16 @@
         <local:ZoomPercentConverter x:Key="ZoomPercentConverter" xmlns:local="clr-namespace:ImageProcTest.Views" />
     </UserControl.Resources>
     <Grid>
-        <!-- Viewport layer -->
+        <!-- Viewport layer.
+             #172 (GUI-C-79): bound to SourceImage/ProcessedImage again. Between 54a3ae7 (2026-05-09)
+             and this change it was bound to LaneAImage/LaneBImage, which nothing ever assigned, so the
+             main viewport received null for both images while every check looked elsewhere. The
+             two-lane rendering those properties were meant for is #173. W-20 now reads what this
+             control actually received (see ImageComparisonViewport's automation peer). -->
         <controls:ImageComparisonViewport x:Name="Viewport"
                                           AutomationProperties.AutomationId="WorkbenchViewport"
-                                          SourceImage="{Binding LaneAImage}"
-                                          ProcessedImage="{Binding LaneBImage}"
+                                          SourceImage="{Binding SourceImage}"
+                                          ProcessedImage="{Binding ProcessedImage}"
                                           CompareMode="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           ZoomScale="{Binding Settings.ComparisonZoomScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           PanX="{Binding Settings.ComparisonPanX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
