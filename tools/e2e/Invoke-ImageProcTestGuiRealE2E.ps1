@@ -1,3 +1,15 @@
+# GUI-C-83 / #175 (2026-09-17): this is the REAL-backend E2E, so it asks for Native explicitly.
+# Before this date it passed no --automation-backend and the requested mode came from whatever
+# the settings file held. Since GUI-C-83 the automation report fails (Passed=False) when the
+# requested and actual backends differ, so an explicit request is what makes that check mean
+# 'Native actually loaded' rather than 'whatever the settings said was honoured'.
+#
+# KNOWN BROKEN, not fixed here: the SelfCheck step below currently fails (GUI-C-76 ran it:
+# 'VOI window center should default to Abdomen preset'). The VOI defaults disagree three ways
+# (SelfCheck 40/400, fixture template 40/400, app 32768/65535) and 40/400 is an HU value while
+# 32768/65535 is raw DN - which one is right is an open question, so this script cannot run end
+# to end until it is settled. It is not run by CI.
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -45,7 +57,7 @@ Remove-Item $reportFile -ErrorAction SilentlyContinue
 
 $process = Start-Process -FilePath $mainExe `
     -WorkingDirectory (Split-Path -Parent $mainExe) `
-    -ArgumentList @('--automation-raw', $rawFile, '--automation-report', $reportFile) `
+    -ArgumentList @('--automation-raw', $rawFile, '--automation-report', $reportFile, '--automation-backend', 'Native') `
     -PassThru
 
 Assert-Condition ($process.WaitForExit(30000)) 'ImageProcTest automation mode did not exit within 30 seconds.'
