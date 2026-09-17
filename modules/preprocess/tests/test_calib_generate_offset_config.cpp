@@ -48,6 +48,20 @@ protected:
     fs::path tmpDir;
 
     void SetUp() override {
+        // Start with NO defect map loaded (QA-A-92, #176). The sigma-clip cases
+        // merge their marks into the module's defect map, which answers -4 when
+        // a map of another size is already there -- and one was, left by
+        // CalibLoadTest / CalibSaveTest under --gtest_random_seed=2 (QA-A-91).
+        // Cleaning up after those suites fixes today's order; starting clean
+        // here also covers any future test that leaves a map behind.
+        //
+        // init -> shutdown -> init: shutdown runs on an initialized module (the
+        // first init's result is ignored -- a module left initialized refuses).
+        // Offset generation reads neither the calibration mode nor the quality
+        // metadata, which shutdown does not reset (QA-A-90), so releasing the
+        // maps is all these cases need.
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
         ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
         tmpDir = fs::temp_directory_path() / "xpe_offset_config";
         fs::remove_all(tmpDir);
