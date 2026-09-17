@@ -166,25 +166,60 @@ internal static class WorkbenchObservation
 
     internal static AutomationElement OpenDetached(Window window)
     {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
-        Thread.Sleep(300);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"))!.AsMenuItem().Invoke();
+        // GUI-C-82: the first click on the View menu of a freshly launched app did not always open it
+        // (measured once in E-01c), so the menu is re-opened, as in ApplyDisplayPipeline.
+        AutomationElement? item = null;
+        for (var attempt = 0; attempt < 3 && item is null; attempt++)
+        {
+            window.SetForeground();
+            Keyboard.Press(VirtualKeyShort.ESCAPE);
+            Thread.Sleep(120);
+            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem();
+            if (attempt == 0) menu.Click(); else menu.Expand();
+            Thread.Sleep(300);
+            item = window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"));
+        }
+
+        Assert.True(item is not null, "The Detach Comparison Viewer menu item did not appear after three attempts.");
+        item!.AsMenuItem().Invoke();
 
         for (var i = 0; i < 20; i++)
         {
             Thread.Sleep(250);
-            if (window.FindFirstDescendant(cf => cf.ByName(DetachedTitle)) is { } found) return found;
+            if (FindDetached(window) is { } found) return found;
         }
 
         throw new InvalidOperationException($"No '{DetachedTitle}' window appeared within 5 s (#166).");
     }
 
+    /// <summary>
+    /// The detached viewer, matched on the END of its title: #175 puts <c>[MOCK] </c> in front of it
+    /// whenever the backend is Mock, so an exact-name lookup misses it in every Mock run.
+    /// </summary>
+    internal static AutomationElement? FindDetached(Window window) =>
+        window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Window))
+            .FirstOrDefault(w => { try { return (w.Name ?? string.Empty).EndsWith(DetachedTitle, StringComparison.Ordinal); } catch { return false; } });
+
+    /// <summary>
+    /// The main window's Mock banner text, or null when it is not shown. The banner's Border has no
+    /// automation peer (GUI-C-82 measured it absent from the tree), so the text inside it is what is read;
+    /// a collapsed Border takes its text out of the tree with it.
+    /// </summary>
+    internal static string? MockBannerText(Window window)
+    {
+        var text = window.FindFirstDescendant(cf => cf.ByAutomationId("MockBackendBannerText"));
+        if (text is null || text.IsOffscreen) return null;
+        var name = text.Name;
+        return string.IsNullOrEmpty(name) ? null : name;
+    }
+
+    /// <summary>The detached viewer's Mock banner text, or null when none is shown.</summary>
+    internal static string? DetachedMockBannerText(AutomationElement detached) =>
+        DetachedTexts(detached).FirstOrDefault(t => t.StartsWith("MOCK BACKEND", StringComparison.Ordinal));
+
     internal static void CloseDetached(Window window)
     {
-        if (window.FindFirstDescendant(cf => cf.ByName(DetachedTitle)) is not { } detached) return;
+        if (FindDetached(window) is not { } detached) return;
 
         try { detached.AsWindow().Close(); }
         catch (Exception) { /* the next assertion reports a window that will not close */ }

@@ -67,11 +67,22 @@ public class ApplicationFixture : IDisposable
     {
     }
 
+    /// <summary>
+    /// #175 (GUI-C-82): Native requested, with the native search pinned to
+    /// <paramref name="forcedNativeDirectory"/> whatever <c>XPE_E2E_BACKEND</c> says. Pointed at a
+    /// directory without the DLLs, this is the silent Mock fallback HAZ-GUI-005 is about.
+    /// </summary>
+    protected ApplicationFixture(string? rawImageRelativePath, DirectoryInfo forcedNativeDirectory)
+        : this(rawImageRelativePath, simulateUnreadableChecks: 0, skipLeftoverSweep: true, null, forcedNativeDirectory.FullName)
+    {
+    }
+
     private ApplicationFixture(
         string? rawImageRelativePath,
         int simulateUnreadableChecks,
         bool skipLeftoverSweep,
-        IReadOnlyList<string>? extraArguments = null)
+        IReadOnlyList<string>? extraArguments = null,
+        string? forcedNativeDirectory = null)
     {
         _simulateUnreadableChecks = simulateUnreadableChecks;
         Automation = new UIA3Automation();
@@ -85,7 +96,7 @@ public class ApplicationFixture : IDisposable
             return;
         }
 
-        BackendMode = ResolveBackendMode();
+        BackendMode = forcedNativeDirectory is null ? ResolveBackendMode() : "Native";
         if (BackendMode is null)
         {
             SkipReason =
@@ -137,7 +148,7 @@ public class ApplicationFixture : IDisposable
             // The app resolves native DLLs through XPE_NATIVE_DIR; pinning it EXCLUSIVE keeps the
             // search from wandering into build directories or sibling checkouts (GUI-C-16/#129), so
             // a Native run names exactly which binaries it exercised.
-            var nativeDir = Environment.GetEnvironmentVariable(NativeDirVariable);
+            var nativeDir = forcedNativeDirectory ?? Environment.GetEnvironmentVariable(NativeDirVariable);
             if (!string.IsNullOrWhiteSpace(nativeDir))
             {
                 startInfo.Environment[NativeDirVariable] = nativeDir;

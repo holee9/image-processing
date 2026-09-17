@@ -383,7 +383,9 @@ public sealed class MainWindowViewModel : ObservableObject
     public void AnnounceFaultInjection()
     {
         Log($"FAULT INJECTION ARMED: {FaultInjectionStatus}. Display pipeline calls past the limit throw on purpose.");
+        _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
+        OnPropertyChanged(nameof(WindowTitle));
     }
 
     /// <summary>
@@ -428,8 +430,46 @@ public sealed class MainWindowViewModel : ObservableObject
             if (SetProperty(ref _runtimeInfo, value))
             {
                 OnPropertyChanged(nameof(RuntimeVersionSummary));
+                RaiseBackendIdentityChanged();
             }
         }
+    }
+
+    // #175 HAZ-GUI-005 (GUI-C-82): which backend is ACTUALLY producing the images. The factory falls back
+    // to Mock silently when Native cannot load (XpeBackendFactory.Create), and Settings.BackendMode only
+    // says what was requested. RuntimeInfo is reported by the backend itself - through any wrapper - so it
+    // is the one source for the status bar, the banner, the title and the reports. Anything that is not
+    // positively the native backend counts as Mock: an unknown backend is warned about, not trusted.
+    public const string BaseWindowTitle = "ImageProcTest GUI-S0";
+
+    private bool _faultInjectionAnnounced;
+
+    public bool IsMockBackend => !string.Equals(RuntimeInfo.BackendName, "RealXpeBackend", StringComparison.Ordinal);
+
+    public string ActualBackendMode => IsMockBackend ? "Mock" : "Native";
+
+    /// <summary>The requested mode, when it differs from the actual one; otherwise null.</summary>
+    public string? RequestedBackendMismatch =>
+        string.Equals(Settings.BackendMode, ActualBackendMode, StringComparison.OrdinalIgnoreCase) ? null : Settings.BackendMode;
+
+    /// <summary>HAZ-GUI-005 (1): the text of the banner that cannot be dismissed while Mock is active.</summary>
+    public string MockBackendWarning =>
+        RequestedBackendMismatch is { } requested
+            ? $"MOCK BACKEND — {requested} was requested but could not be used. Images and results are synthetic; not for clinical judgement."
+            : "MOCK BACKEND — images and results are synthetic; not for clinical judgement.";
+
+    /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>
+    public string WindowTitle =>
+        (IsMockBackend ? "[MOCK] " : string.Empty) + BaseWindowTitle
+        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty);
+
+    private void RaiseBackendIdentityChanged()
+    {
+        OnPropertyChanged(nameof(IsMockBackend));
+        OnPropertyChanged(nameof(ActualBackendMode));
+        OnPropertyChanged(nameof(RequestedBackendMismatch));
+        OnPropertyChanged(nameof(MockBackendWarning));
+        OnPropertyChanged(nameof(WindowTitle));
     }
 
     /// <summary>
@@ -444,7 +484,13 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get
         {
-            var parts = new List<string> { $"mode={Settings.BackendMode}" };
+            // #175: the ACTUAL backend, with the request beside it when the two differ.
+            var parts = new List<string>
+            {
+                RequestedBackendMismatch is { } requested
+                    ? $"mode={ActualBackendMode} (requested {requested})"
+                    : $"mode={ActualBackendMode}"
+            };
 
             if (!string.IsNullOrWhiteSpace(RuntimeInfo.Version))
             {
@@ -734,6 +780,10 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             generatedAt = DateTimeOffset.Now,
             backend = RuntimeInfo,
+            // #175 HAZ-GUI-005 (3): what actually produced the results, not what was asked for.
+            actualBackendMode = ActualBackendMode,
+            mockBackend = IsMockBackend,
+            requestedBackendMode = Settings.BackendMode,
             activeImageSummary = ActiveImageSummary,
             status = StatusText,
             settings = Settings,
@@ -1216,18 +1266,50 @@ public sealed class MainWindowViewModel : ObservableObject
         });
         grid.Children.Add(staleBanner);
 
+        // #175 HAZ-GUI-005 (1): the same Mock warning, bound to the same view-model state.
+        var mockText = new TextBlock
+        {
+            Foreground = System.Windows.Media.Brushes.White,
+            FontWeight = System.Windows.FontWeights.Bold,
+            TextWrapping = System.Windows.TextWrapping.Wrap
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(mockText, "DetachedMockBackendBannerText");
+        mockText.SetBinding(TextBlock.TextProperty, new DataBinding(nameof(MockBackendWarning)) { Source = this, Mode = BindingMode.OneWay });
+        var mockBanner = new Border
+        {
+            VerticalAlignment = System.Windows.VerticalAlignment.Bottom,
+            Margin = new System.Windows.Thickness(12, 0, 12, 12),
+            Padding = new System.Windows.Thickness(10, 6, 10, 6),
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xB9, 0x1C, 0x1C)),
+            Child = mockText
+        };
+        mockBanner.SetBinding(System.Windows.UIElement.VisibilityProperty, new DataBinding(nameof(IsMockBackend))
+        {
+            Source = this,
+            Mode = BindingMode.OneWay,
+            Converter = new System.Windows.Controls.BooleanToVisibilityConverter()
+        });
+        grid.Children.Add(mockBanner);
+
         Grid.SetRow(status, 1);
         grid.Children.Add(status);
 
         var window = new System.Windows.Window
         {
-            Title = "ImageProcTest Comparison Viewer",
             Width = 1280,
             Height = 820,
             MinWidth = 900,
             MinHeight = 620,
             Content = grid
         };
+
+        // #175 HAZ-GUI-005 (2): "[MOCK] " in front while Mock is active.
+        window.SetBinding(System.Windows.Window.TitleProperty, new DataBinding(nameof(IsMockBackend))
+        {
+            Source = this,
+            Mode = BindingMode.OneWay,
+            Converter = new MockTitleConverter("ImageProcTest Comparison Viewer")
+        });
 
         var owner = System.Windows.Application.Current.Windows.OfType<System.Windows.Window>().FirstOrDefault(w => w.IsActive);
         if (owner is not null && !ReferenceEquals(owner, window))
@@ -1276,6 +1358,12 @@ public sealed class MainWindowViewModel : ObservableObject
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshParametersStale();   // #171 ①
+
+        if (e.PropertyName is nameof(AppSettings.BackendMode))
+        {
+            OnPropertyChanged(nameof(RuntimeVersionSummary));   // #175: the "requested" half can change alone
+            RaiseBackendIdentityChanged();
+        }
 
         if (e.PropertyName is nameof(AppSettings.ComparisonMode)
             or nameof(AppSettings.ComparisonZoomScale)
@@ -1354,6 +1442,25 @@ public sealed class MainWindowViewModel : ObservableObject
 
         if (!string.IsNullOrEmpty(ActiveStudyId))
             verdicts[ActiveStudyId] = $"{verdict}|{_verdictNotes}|{DateTimeOffset.Now:O}";
+
+        // #175 HAZ-GUI-005 (3): the evidence bundle is this directory zipped, so the backend that produced
+        // the judged images travels with the verdicts.
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "backend.json"), JsonSerializer.Serialize(new
+            {
+                actualBackendMode = ActualBackendMode,
+                mockBackend = IsMockBackend,
+                requestedBackendMode = Settings.BackendMode,
+                backendName = RuntimeInfo.BackendName,
+                nativeSource = RuntimeInfo.NativeSource,
+                writtenAt = DateTimeOffset.Now,
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Log($"Failed to write backend.json: {ex.Message}");
+        }
 
         try
         {
@@ -1449,5 +1556,14 @@ public sealed class MainWindowViewModel : ObservableObject
         Offset,
         Gain,
         Defect
+    }
+
+    private sealed class MockTitleConverter(string title) : System.Windows.Data.IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+            value is true ? "[MOCK] " + title : title;
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 }
