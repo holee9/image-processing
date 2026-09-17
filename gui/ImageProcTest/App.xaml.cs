@@ -23,6 +23,9 @@ public partial class App : System.Windows.Application
     /// <summary>#141: directory holding the generated XCal set for this run, when one was supplied.</summary>
     public static string? AutomationCalibrationDirectory { get; private set; }
 
+    /// <summary>#171 (GUI-C-79): armed only by <c>--automation-fault</c>; null means no fault injection.</summary>
+    public static int? AutomationDisplayPipelineFailAfter { get; private set; }
+
     public static int? AutomationRawWidth { get; private set; }
 
     public static int? AutomationRawHeight { get; private set; }
@@ -46,6 +49,7 @@ public partial class App : System.Windows.Application
         AutomationBackendMode = parsed.BackendMode;
         AutomationCalibrationDirectory = parsed.CalibrationDirectory;
         AutomationRawWidth = parsed.RawWidth;
+        AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationRawHeight = parsed.RawHeight;
 
         if (!parsed.IsValid)

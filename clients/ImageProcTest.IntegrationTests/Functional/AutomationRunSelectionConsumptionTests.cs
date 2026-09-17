@@ -37,6 +37,8 @@ public sealed class AutomationRunSelectionConsumptionTests
         ["RawPath"] = "names the frame to load; consumed by the automation scenario, not by settings",
         ["ReportPath"] = "names where the report is written; consumed by App, not by settings",
         ["Error"] = "the rejection reason; a run carrying one never starts",
+        ["DisplayPipelineFailAfter"] = "#171 fault seam; wraps the backend in the MainWindow constructor, not settings — " +
+                                       "its effect is observed end to end by E2E W-23 (armed) and W-24 (off)",
     };
 
     /// <summary>
