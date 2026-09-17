@@ -128,6 +128,13 @@ XPE_API XpeErrorCode xpe_fractional_process(
  * the field, so its size is (x1 - x0 + 1) x (y1 - y0 + 1). The low-confidence
  * fallback is the whole image, [0, width - 1] x [0, height - 1] (#183).
  *
+ * Pixel values are detector signal in DN carried as float. The field is the
+ * candidate rectangle with the largest log-domain contrast (mean log inside -
+ * mean log outside); values below 1 DN are read as 1 DN. A side whose inside
+ * is darker than its outside (a thick object at the field edge) cannot be
+ * found from the image alone -- pass the field from the system instead
+ * (xpe_gsvg_process_masked) (#183, QA-B-100).
+ *
  * @param img Input image buffer (FLOAT32 format required). NULL, a NULL data
  *            pointer, a zero width or height, or a dataSize inconsistent with
  *            the declared dimensions (#123) are all rejected.

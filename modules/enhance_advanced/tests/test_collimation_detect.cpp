@@ -55,14 +55,14 @@ protected:
     }
 
     /**
-     * @brief Helper to create synthetic collimation borders
+     * @brief Helper to create a synthetic collimation field (filled, inclusive)
      * @param width Image width
      * @param height Image height
      * @param x0 Left border position
      * @param y0 Top border position
      * @param x1 Right border position
      * @param y1 Bottom border position
-     * @param edgeStrength Edge pixel intensity
+     * @param edgeStrength Pixel intensity inside the field (outside is 100)
      * @return XpeImageBuffer with synthetic collimation
      */
     XpeImageBuffer createSyntheticCollimation(
@@ -70,45 +70,16 @@ protected:
         int x0, int y0, int x1, int y1,
         float edgeStrength = 1000.0f) {
 
+        // QA-B-100 (#183): a collimated field is a filled region, bright inside
+        // and dark outside. The earlier fixture drew 5-pixel bright lines on a
+        // uniform 100 background, where inside and outside have the same mean;
+        // that is not a collimation field and no region contrast can see it.
         XpeImageBuffer img = createFloatImage(width, height, 100.0f);
 
         float* data = static_cast<float*>(img.data);
-
-        // Draw left border
-        if (x0 > 0) {
-            for (int y = y0; y <= y1; ++y) {
-                for (int x = std::max(0, x0 - 2); x <= std::min(width - 1, x0 + 2); ++x) {
-                    data[y * width + x] = edgeStrength;
-                }
-            }
-        }
-
-        // Draw right border
-        if (x1 < width - 1) {
-            for (int y = y0; y <= y1; ++y) {
-                for (int x = std::max(0, x1 - 2); x <= std::min(width - 1, x1 + 2); ++x) {
-                    data[y * width + x] = edgeStrength;
-                }
-            }
-        }
-
-        // Draw top border
-        if (y0 > 0) {
-            for (int y = std::max(0, y0 - 2); y <= std::min(height - 1, y0 + 2); ++y) {
-                for (int x = x0; x <= x1; ++x) {
-                    data[y * width + x] = edgeStrength;
-                }
-            }
-        }
-
-        // Draw bottom border
-        if (y1 < height - 1) {
-            for (int y = std::max(0, y1 - 2); y <= std::min(height - 1, y1 + 2); ++y) {
-                for (int x = x0; x <= x1; ++x) {
-                    data[y * width + x] = edgeStrength;
-                }
-            }
-        }
+        for (int y = std::max(0, y0); y <= std::min(height - 1, y1); ++y)
+            for (int x = std::max(0, x0); x <= std::min(width - 1, x1); ++x)
+                data[y * width + x] = edgeStrength;
 
         return img;
     }

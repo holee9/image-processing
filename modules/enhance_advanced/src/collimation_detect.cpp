@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <vector>
 
@@ -149,8 +150,12 @@ XPE_API XpeErrorCode xpe_detect_collimation(
 
         // Step 3: Detect axis-aligned lines
         // Increased threshold for better accuracy (REQ-ADV-052: +-3 pixel)
+        // #183 (QA-B-100): every axis-aligned peak above the adaptive
+        // threshold. A global top-8 let one orientation crowd out the other
+        // (QA-B-98: the MC phantom's top side was dropped); the rectangle
+        // choice below bounds the work per orientation instead.
         std::vector<xpe::enhance_advanced::detail::HoughLine> lines =
-            hough.detectAxisAlignedLines(accumulator, 8);
+            hough.detectAxisAlignedLines(accumulator, std::numeric_limits<size_t>::max());
 
         // @MX:NOTE: [AUTO] Hough line orientation classification
         // @MX:REASON: In Hough space, theta=0 => normal along x-axis => line is vertical (x=const).
@@ -179,7 +184,7 @@ XPE_API XpeErrorCode xpe_detect_collimation(
 
         // Step 4: Extract collimation rectangle
         xpe::enhance_advanced::detail::CollimationRectangle rect =
-            hough.extractCollimationRectangle(horizontalLines, verticalLines, width, height);
+            hough.extractCollimationRectangle(horizontalLines, verticalLines, width, height, data);
 
         // REQ-ADV-041: Confidence-based fallback
         // #164: the key is interpolated into the required confidence, which is
