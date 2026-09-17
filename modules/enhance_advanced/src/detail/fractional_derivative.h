@@ -41,15 +41,6 @@ struct FractionalConfig {
     static FractionalConfig defaultConfig() {
         return FractionalConfig{1.0f};
     }
-
-    /**
-     * @brief Parse from JSON string
-     * @param configJsonOrNull JSON configuration or nullptr
-     * @return Parsed configuration
-     *
-     * Rejects attempts to disable overshoot limiting (SAF-100).
-     */
-    static FractionalConfig fromJson(const char* configJsonOrNull);
 };
 
 /**
