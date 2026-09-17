@@ -241,7 +241,7 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     private static string? ReportedMode(Window window)
     {
         var help = window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"))?.HelpText;
-        return help is not null && help.StartsWith("rendered=", StringComparison.Ordinal) ? help["rendered=".Length..] : null;
+        return help is not null && help.StartsWith("rendered=", StringComparison.Ordinal) ? help["rendered=".Length..].Split(';')[0] : null;
     }
 
     private static T? WaitFor<T>(Func<T?> find) where T : class

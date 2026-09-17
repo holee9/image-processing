@@ -322,7 +322,8 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="Opacity" Foreground="#8a909c" FontSize="10"
                            VerticalAlignment="Center" Margin="0,0,8,0" />
-                <Slider Width="180"
+                <Slider AutomationProperties.AutomationId="OverlayOpacitySlider"
+                        Width="180"
                         Minimum="0" Maximum="1"
                         Value="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         VerticalAlignment="Center" />

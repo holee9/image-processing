@@ -104,6 +104,89 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.FocusMode),
     ];
 
+    private const string E2ESourceRoot = "clients/ImageProcTest.E2ETests";
+
+    /// <summary>
+    /// How each view-state setting is shown to be ON SCREEN (GUI-C-98). A value is either the name of an
+    /// E2E method that reads what was drawn — never the setting — or <c>NONE: reason</c> for a setting
+    /// that has no reading, with the reason.
+    /// </summary>
+    internal static readonly Dictionary<string, string> ViewStateReadings = new(StringComparer.Ordinal)
+    {
+        [nameof(AppSettings.ComparisonMode)] = "W14_BoundKeyGesture_SelectsThatMode",
+        [nameof(AppSettings.ComparisonOverlayOpacity)] = "V01_OverlayOpacity_IsDrawnWithTheSliderValue",
+        [nameof(AppSettings.ComparisonZoomScale)] = "V02_ZoomScale_ResetDrawsFit",
+        [nameof(AppSettings.ComparisonPanX)] = "V03_PanX_ResetRecentres",
+        [nameof(AppSettings.ComparisonPanY)] = "V04_PanY_ResetRecentres",
+        [nameof(AppSettings.ComparisonSwipePosition)] = "V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle",
+        // Skips with its reason while focus mode changes nothing on screen (GUI-C-98 finding).
+        [nameof(AppSettings.FocusMode)] = "V06_FocusMode_HidesAndRestoresTheSidePanels",
+        [nameof(AppSettings.ShowDisplayPanel)] =
+            "NONE: no screen — the View menu toggle is disabled (PanelToggleScenarios S07) and MENU-001 §9.2 lists no display panel",
+        [nameof(AppSettings.AnalysisTab)] =
+            "NONE: indirect only — scenarios find Parameters-tab controls after OpenParameters; no case asserts the tab switch itself",
+    };
+
+    /// <summary>
+    /// Every view-state entry has a reading, every named reading exists as an E2E method, and no reading
+    /// is kept for a setting that left the list. A new view-state entry without a reading is red.
+    /// </summary>
+    [Fact]
+    public void EveryViewStateSetting_HasADisplayReading()
+    {
+        var violations = ViewStateReadingViolations(ViewState, ViewStateReadings);
+        Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
+    }
+
+    /// <summary>Control: a view-state entry with no reading, and a reading that names no method, are both red.</summary>
+    [Fact]
+    public void Control_ViewStateWithoutAReading_IsRed()
+    {
+        var missing = ViewStateReadingViolations(ViewState.Append(nameof(AppSettings.LastRunSetId)).ToArray(), ViewStateReadings);
+        Assert.Contains(missing, v => v.Contains(nameof(AppSettings.LastRunSetId), StringComparison.Ordinal));
+
+        var renamed = new Dictionary<string, string>(ViewStateReadings) { [nameof(AppSettings.ComparisonPanX)] = "V99_NoSuchCase" };
+        Assert.Contains(ViewStateReadingViolations(ViewState, renamed), v => v.Contains("V99_NoSuchCase", StringComparison.Ordinal));
+
+        var bareNone = new Dictionary<string, string>(ViewStateReadings) { [nameof(AppSettings.AnalysisTab)] = "NONE:" };
+        Assert.Contains(ViewStateReadingViolations(ViewState, bareNone), v => v.Contains(nameof(AppSettings.AnalysisTab), StringComparison.Ordinal));
+    }
+
+    internal static List<string> ViewStateReadingViolations(string[] viewState, IReadOnlyDictionary<string, string> readings)
+    {
+        var e2eRoot = Path.GetDirectoryName(Path.GetDirectoryName(ResolveRepositoryFile(ViewModelPath))!)!;
+        e2eRoot = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(e2eRoot)!)!, E2ESourceRoot.Replace('/', Path.DirectorySeparatorChar));
+        var e2eSource = string.Join(Environment.NewLine, Directory.EnumerateFiles(e2eRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") &&
+                        !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+            .Select(File.ReadAllText));
+        Assert.False(string.IsNullOrEmpty(e2eSource), $"No E2E sources under {e2eRoot}.");
+
+        var violations = new List<string>();
+        foreach (var p in viewState)
+        {
+            if (!readings.TryGetValue(p, out var reading))
+            {
+                violations.Add($"{p}: declared view state but has no display reading");
+                continue;
+            }
+
+            if (reading.StartsWith("NONE:", StringComparison.Ordinal))
+            {
+                if (reading.Length - "NONE:".Length < 10) violations.Add($"{p}: NONE without a reason");
+                continue;
+            }
+
+            if (!Regex.IsMatch(e2eSource, $@"\bvoid\s+{Regex.Escape(reading)}\s*\("))
+                violations.Add($"{p}: reading '{reading}' is not an E2E method under {E2ESourceRoot}");
+        }
+
+        foreach (var p in readings.Keys.Where(k => !viewState.Contains(k)))
+            violations.Add($"{p}: has a display reading but is no longer declared view state — stale entry");
+
+        return violations;
+    }
+
     [Fact]
     public void EveryBoundSetting_IsConnectedOrDeclaredAndDisabled()
     {
@@ -493,10 +576,29 @@ public sealed class SettingsProcessingConnectionTests
     /// property that binds two-way by default. An explicit OneWay/OneTime is read-only. Elements from
     /// other namespaces (custom controls) are treated as writable — their defaults are not known here.
     /// </summary>
+    /// <summary>
+    /// The explicit-mode branch of IsWritable decides (GUI-C-98). In GUI-C-95 both patterns carried a
+    /// backspace character where <c>\b</c> was meant, so neither ever matched and every answer came from
+    /// the default table: an explicit <c>Mode=OneWay</c> on a TextBox counted as writable.
+    /// </summary>
+    [Fact]
+    public void IsWritable_HonoursAnExplicitMode()
+    {
+        var ns = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml/presentation");
+        var textBox = new XElement(ns + "TextBox");
+        var textBlock = new XElement(ns + "TextBlock");
+
+        Assert.False(IsWritable(textBox, "Text", "{Binding Settings.P, Mode=OneWay}"));
+        Assert.True(IsWritable(textBox, "Text", "{Binding Settings.P}"));
+        Assert.True(IsWritable(textBlock, "Text", "{Binding Settings.P, Mode=TwoWay}"));
+        Assert.True(IsWritable(textBlock, "Text", "{Binding Settings.P, Mode=OneWayToSource}"));
+        Assert.False(IsWritable(textBlock, "Text", "{Binding Settings.P}"));
+    }
+
     private static bool IsWritable(XElement el, string attribute, string value)
     {
-        if (Regex.IsMatch(value, @"Mode=(TwoWay|OneWayToSource)")) return true;
-        if (Regex.IsMatch(value, @"Mode=(OneWay|OneTime)")) return false;
+        if (Regex.IsMatch(value, @"Mode=(TwoWay|OneWayToSource)\b")) return true;
+        if (Regex.IsMatch(value, @"Mode=(OneWay|OneTime)\b")) return false;
         if (el.Name.NamespaceName != "http://schemas.microsoft.com/winfx/2006/xaml/presentation") return true;
         return DefaultTwoWay.TryGetValue(el.Name.LocalName, out var props) && props.Contains(attribute);
     }
