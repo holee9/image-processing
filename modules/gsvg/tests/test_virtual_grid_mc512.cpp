@@ -370,3 +370,128 @@ TEST(GsvgVirtualGridMc512, MaskOutsideVariantsWithPostStepsOn)
     }
     SUCCEED();
 }
+
+// ===========================================================================
+// QA-B-124: why the 018 numbers improved. The floor moved 1.4521 -> 1.0504
+// between the 80 x 80 set and this one, and "the code got better" would be the
+// wrong reading: the SAME code runs on both, so the difference has to come from
+// the input. The candidate was pixel size (4 mm against 0.140 mm).
+//
+// The controlled form: bin THIS phantom down by 2/4/8, which changes the pixel
+// size and nothing else -- same scene, same statistics, same geometry. If the
+// peak climbs with the pitch, the pixel-size reading holds; if it stays put,
+// the difference is something else about the old phantom and the improvement
+// does not travel with the code.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, WhyTheFloorImproved_PixelSize)
+{
+    const Phantom full = Load("step");
+
+    std::printf("VGMC512 bin: factor, pitch_mm, n, peak, worst, |r-1| median\n");
+    for (const int f : {1, 2, 4, 8}) {
+        const int n = kN / f;
+        Phantom b;
+        b.total.assign(static_cast<size_t>(n) * n, 0.0);
+        b.primary = b.total;
+        b.thickness = b.total;
+        b.air = b.total;
+        b.mask.assign(b.total.size(), 0);
+
+        for (int y = 0; y < n; ++y)
+            for (int x = 0; x < n; ++x) {
+                double t = 0, p = 0, th = 0, a = 0;
+                for (int dy = 0; dy < f; ++dy)
+                    for (int dx = 0; dx < f; ++dx) {
+                        const size_t s = static_cast<size_t>(y * f + dy) * kN + (x * f + dx);
+                        t += full.total[s]; p += full.primary[s];
+                        th += full.thickness[s]; a += full.air[s];
+                    }
+                const size_t d = static_cast<size_t>(y) * n + x;
+                const double inv = 1.0 / (f * f);
+                // Signals are per-pixel means: binning a detector adds the
+                // quanta but the DN scale is per pixel, so the mean keeps the
+                // chain's airSignal meaningful.
+                b.total[d] = t * inv; b.primary[d] = p * inv;
+                b.thickness[d] = th * inv; b.air[d] = a * inv;
+            }
+        double airMax = 0;
+        for (double v : b.air) airMax = std::max(airMax, v);
+        for (size_t i = 0; i < b.air.size(); ++i) b.mask[i] = b.air[i] > 0.5 * airMax ? 1 : 0;
+
+        vg::VgSettings st = BaseSettings();
+        st.pixelPitchMm = kPitchMm * f;
+
+        const vg::ParamTable tbl = McTable();
+        std::vector<double> img = b.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, n, n, tbl, st, vg::VgSwitches{}, b.mask.data());
+        ASSERT_EQ(rep.error, "") << "factor " << f;
+
+        // Same metric region, scaled: inset 32/f px from the field boundary.
+        const int lo = kLo / f, hi = kHi / f;
+        std::vector<double> a;
+        double peak = 0, worst = 0;
+        for (int c = lo; c < hi; ++c) {
+            double sum = 0;
+            int cnt = 0;
+            for (int r = lo; r < hi; ++r) {
+                const size_t i = static_cast<size_t>(r) * n + c;
+                if (b.primary[i] <= 0) continue;
+                const double q = img[i] / b.primary[i];
+                sum += q; ++cnt;
+                worst = std::max(worst, q);
+                a.push_back(std::fabs(q - 1.0));
+            }
+            if (cnt) peak = std::max(peak, sum / cnt);
+        }
+        std::sort(a.begin(), a.end());
+        std::printf("VGMC512 bin f=%d pitch=%.3f mm n=%d peak=%.4f worst=%.4f |r-1| median=%.4f\n",
+                    f, st.pixelPitchMm, n, peak, worst, a[a.size() / 2]);
+    }
+    SUCCEED();
+}
+
+// QA-B-124: do the two phantoms agree where their thicknesses overlap?
+// The step set carries 8 / 10.5 / 13.5 / 16 / 19 / 21.5 / 24.5 cm; the wedge is
+// continuous over 6..26. A disagreement at the same thickness would mean the
+// measurement depends on the scene rather than on the thickness, which is what
+// REQ-GSVG-017 is about.
+TEST(GsvgVirtualGridMc512, StepAndWedgeAgreeAtTheSameThickness)
+{
+    struct Row { double t; double step; double wedge; size_t nStep, nWedge; };
+    std::vector<Row> rows;
+
+    std::vector<double> imgStep, imgWedge;
+    const Phantom s = Load("step");
+    const Phantom w = Load("wedge");
+    RunChain(s, &imgStep);
+    RunChain(w, &imgWedge);
+
+    auto medianAt = [](const std::vector<double>& img, const Phantom& p, double t, size_t& n) {
+        std::vector<double> a;
+        for (size_t i = 0; i < img.size(); ++i) {
+            if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+            if (std::fabs(p.thickness[i] - t) >= 0.25) continue;
+            a.push_back(std::fabs(img[i] / p.primary[i] - 1.0));
+        }
+        n = a.size();
+        if (a.empty()) return -1.0;
+        std::sort(a.begin(), a.end());
+        return a[a.size() / 2];
+    };
+
+    std::printf("VGMC512 step-vs-wedge: thickness, step median|r-1| (n), wedge median|r-1| (n), ratio\n");
+    for (const double t : {8.0, 10.5, 13.5, 16.0, 19.0, 21.5, 24.5}) {
+        size_t ns = 0, nw = 0;
+        const double a = medianAt(imgStep, s, t, ns);
+        const double b = medianAt(imgWedge, w, t, nw);
+        if (a < 0 || b < 0) {
+            std::printf("VGMC512 step-vs-wedge t=%.1f cm: missing (step n=%zu, wedge n=%zu)\n", t, ns, nw);
+            continue;
+        }
+        std::printf("VGMC512 step-vs-wedge t=%.1f cm: step=%.4f (n=%zu) wedge=%.4f (n=%zu) ratio=%.2f\n",
+                    t, a, ns, b, nw, a / b);
+        rows.push_back({t, a, b, ns, nw});
+    }
+    EXPECT_FALSE(rows.empty()) << "no overlapping thickness was measurable";
+    SUCCEED();
+}
