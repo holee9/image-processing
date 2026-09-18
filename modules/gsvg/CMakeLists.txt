@@ -71,6 +71,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_virtual_grid.cpp
         # #180 (QA-B-95): virtual grid against the MC-GPU phantoms (tests/data/mc)
         tests/test_virtual_grid_mc.cpp
+        # #180 (QA-B-123): the 512x512 MC set -- receipt check, the 018 floor,
+        # REQ-017 on the MC basis, and the #189 mask comparison with post-steps on
+        tests/test_virtual_grid_mc512.cpp
         # #180 (QA-B-101): xpe_gsvg_process_ex result and reason codes
         tests/test_gsvg_result.cpp
         # #180 (QA-B-101): product virtual-grid table (data/) and the [grid] loader extension
