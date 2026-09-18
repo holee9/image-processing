@@ -342,6 +342,258 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0.0;
     }
 
+    /// <summary>
+    /// P-08 (GUI-C-104): a performance regression gate built from what the APP measured, not from what
+    /// the harness observed. GUI-C-103 established why: invoking the button through UI automation costs
+    /// ~2 s against an app that works in ~20 ms, so an outside figure cannot see the app move at all.
+    ///
+    /// <para>Both figures read here come from inside the process — the chain's per-stage stopwatch and
+    /// the view model's pipeline split — and reach the test through the exported report. No part of the
+    /// automation cost is in either number.</para>
+    ///
+    /// <para>The gate is stated as a multiple of a measured baseline, and the run prints median / p95 /
+    /// max so the next person can re-derive it rather than trust it.</para>
+    ///
+    /// <para>It DOES run on CI: the gui-e2e-native job invokes the whole project with no --filter. An
+    /// earlier version of this comment said the opposite; that was read off the Mock job alone.</para>
+    ///
+    /// <para><b>What it can and cannot catch, measured by injection</b> (raising the virtual grid's
+    /// iterations, which is real work rather than an artificial sleep):</para>
+    ///
+    /// <list type="bullet">
+    /// <item>iterations 3 (default) — median 65-68 ms, green.</item>
+    /// <item>iterations 9 — median 90 ms, a 1.38x regression, and this gate stays GREEN.</item>
+    /// <item>iterations 15 — median 117 ms, red.</item>
+    /// <item>pyramid levels 8 instead of 4 — median 66 ms, NOT a slowdown at all: each level is a
+    /// quarter of the one above, so depth barely moves the cost. Injecting it proves nothing, and a
+    /// green run under it would have been mistaken for a working gate.</item>
+    /// </list>
+    ///
+    /// So the detection floor is roughly gate/baseline = 105/65 = 1.6x. A regression smaller than that
+    /// passes here. That is the price of slack sized for machine load, and it is written down rather
+    /// than discovered later by someone trusting the gate with more than it can carry.
+    /// </summary>
+    [SkippableFact]
+    public void P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            MeasureRender(window);          // warm: the first apply also pays one-off costs
+
+            var stageMs = new List<double>();
+            for (var i = 0; i < Repeats; i++) stageMs.Add(MeasureRender(window).StageMs);
+
+            stageMs.Sort();
+            var median = stageMs[stageMs.Count / 2];
+            var p95 = stageMs[(int)Math.Floor((stageMs.Count - 1) * 0.95)];
+            var max = stageMs[^1];
+            output.WriteLine($"P08 gsvg stage over {Repeats} runs: median={median:0.0} p95={p95:0.0} max={max:0.0} ms " +
+                             $"[{string.Join(", ", stageMs.Select(v => v.ToString("0")))}]");
+            var profile = MachineProfile.Detect();
+            output.WriteLine($"P08 machine: {profile}");
+            output.WriteLine($"P08 spread max/median = {max / Math.Max(1.0, median):0.00}x; gate = {profile.GateMs} ms ({profile.Name})");
+
+            Assert.True(median < profile.GateMs,
+                $"The GSVG stage's median rose to {median:0} ms against a {profile.GateMs} ms gate " +
+                $"for the {profile.Name} profile (baseline {profile.BaselineMs} ms, measured spread " +
+                $"{max / Math.Max(1.0, median):0.00}x). Machine: {profile}. " +
+                "Either the stage got slower or that profile's baseline needs re-measuring — do not raise a gate without re-measuring.");
+        }
+        finally
+        {
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// How many applies P-08 times. Odd, so the median is an observed value rather than a mean.
+    ///
+    /// <para>It was 7, and raising it to 21 is what let the gate tighten (GUI-C-107). The gate judges a
+    /// MEDIAN, so the slack it needs is the spread of that median across runs — not the spread of raw
+    /// samples, which a single outlier moves. At 7 applies the sample spread was 1.18x and the median
+    /// still wandered; at 21 the medians of five consecutive runs were 61 / 61 / 62 / 62 / 62 ms, a
+    /// spread of 1.016x. The noise came out of the statistic rather than out of the limit.</para>
+    ///
+    /// <para>Cost: about 50 s a run instead of 17 s. That is paid on every Native run, here and on CI.</para>
+    /// </summary>
+    private const int Repeats = 21;
+
+    /// <summary>
+    /// Which machine this is running on, and the gate that was measured FOR that machine.
+    ///
+    /// <para>Two profiles, because one number cannot serve both: at identical code this dev machine
+    /// measured a 50 ms median where the CI runner measured 84 ms — 1.68x. A single gate is either
+    /// red on every CI run or blind to a 1.68x regression here.</para>
+    ///
+    /// <para>The profile is chosen from what can be OBSERVED about the machine, and the looser CI
+    /// profile requires positive evidence on BOTH axes: the hosted-runner marker AND a core count that
+    /// matches the runner. A declaration alone does not loosen the gate — if the marker were wrong or
+    /// inherited, a bare env-var check would silently widen the limit and nobody would see it. This way
+    /// a misread errs toward the STRICTER profile: the failure mode is a visible red, not a silent pass.
+    /// The trade is real — if the runner ever grows past 8 cores this goes red until re-measured — and
+    /// that is the direction worth failing in.</para>
+    ///
+    /// <para>Both numbers are printed on every run, so a wrong classification is readable rather than
+    /// inferred.</para>
+    /// </summary>
+    private sealed record MachineProfile(string Name, double BaselineMs, double GateMs, int Cores, bool HostedRunner)
+    {
+        /// <summary>
+        /// Dev machine (i7-12700 class, 20 logical cores, 25.5 GB/s), gsvg.dll from CI run 35294573612:
+        /// 5 runs x 21 applies = 105 samples, medians 61 / 61 / 62 / 62 / 62 ms, worst single sample 69 ms.
+        ///
+        /// <para>The slack is sized by the spread of the MEDIAN, because the median is what the gate
+        /// judges: 62/61 = 1.016x. Gate = 62 x 1.016 x 1.36 = 86 ms. Detection floor 86/62 = 1.39x.</para>
+        ///
+        /// <para>The earlier form of this number was 105 ms, derived at 7 applies a run from the spread
+        /// of raw samples (1.18x). Nothing was shaved off the 1.36 load allowance to get from there to
+        /// here — that factor is unchanged. What changed is that the measurement got quieter, so the
+        /// noise term fell from 1.18 to 1.016 and carried the gate down with it. Measured consequence:
+        /// a 1.38x regression (iterations 9, median 90 ms) passed the 105 ms gate and fails this one.</para>
+        ///
+        /// The baseline has moved three times before this and each move is recorded in git rather than
+        /// smoothed over: 27 ms (the GUI sent no pyramid keys, so the module left the pyramid off),
+        /// 50 ms (levels defaulted to 4, putting the Laplacian pyramid back into every run), 62 ms
+        /// (defaults matched to the module's, adding the soft-threshold pass), 65 ms (same settings,
+        /// newer gsvg.dll). Every step re-measured under the new workload; none widened a gate to fit
+        /// a red run. That distinction is the whole value of these numbers.
+        /// </summary>
+        private static readonly MachineProfile Dev = new("dev", 62.0, 86.0, 0, false);
+
+        /// <summary>
+        /// CI runner (Xeon 6973P-C, 4 logical cores, 19.4 GB/s): 1 run x 7 applies = 7 samples, median
+        /// 84 ms, worst 92 ms, spread 92/84 = 1.10x — measured in CI run 35294573612's gui-e2e-native
+        /// job. Same derivation as the dev profile: 84 x 1.10 x 1.36 = 126 ms.
+        ///
+        /// <para>PROVISIONAL, on two counts named rather than hidden. First, those 7 samples were taken
+        /// at the GUI-C-104 code, BEFORE the de-noise pass joined the defaults; on this machine that pass
+        /// moved the median, so CI's is expected to move too — and expected is not measured, which is why
+        /// this is not derived by converting the dev number. Second, one run cannot show how far a MEDIAN
+        /// wanders between runs, so this gate still carries the raw-sample spread (1.10x) where the dev
+        /// gate now carries a median spread (1.016x) — the two are not derived from the same statistic
+        /// yet. Both are fixed by CI runs on this code: several of them, at 21 applies each.</para>
+        /// </summary>
+        private static readonly MachineProfile Ci = new("ci", 84.0, 126.0, 0, true);
+
+        /// <summary>Core count above which the CI profile is refused even when the marker is present.</summary>
+        private const int RunnerCoreCeiling = 8;
+
+        public static MachineProfile Detect()
+        {
+            var cores = Environment.ProcessorCount;
+            var hosted = string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true",
+                StringComparison.OrdinalIgnoreCase);
+            var profile = hosted && cores <= RunnerCoreCeiling ? Ci : Dev;
+            return profile with { Cores = cores, HostedRunner = hosted };
+        }
+
+        public override string ToString() =>
+            $"cores={Cores}, hostedRunner={HostedRunner}, profile={Name}, baseline={BaselineMs:0} ms, gate={GateMs:0} ms";
+    }
+
+    /// <summary>
+    /// P-09 (GUI-C-104): the pyramid-levels setting reaches the drawn pixels. GUI-C-103 measured that
+    /// omitting <c>vg_pyramid_levels</c> left the module's whole Laplacian-pyramid and de-noise step
+    /// unrun — the setting existing is not evidence it is connected, so this asserts on what was drawn.
+    ///
+    /// <para>Levels ALONE cannot change the pixels, and this case says so rather than hiding it: with
+    /// gain 1.0 the pyramid subtracts each detail band and adds it straight back, so it rebuilds the
+    /// image exactly (virtual_grid.cpp PyramidContrast; the field comment reads "1 = unchanged").
+    /// Measured: levels 0 and levels 4 give a byte-identical drawn hash, at ~10 ms extra cost. The
+    /// connection is therefore asserted with the gain moved off 1.0, which is the only way the setting
+    /// reaches a pixel. The stage cost is reported but not asserted — one machine cannot gate it.</para>
+    /// </summary>
+    [SkippableFact]
+    public void P09_PyramidLevels_ChangeTheDrawnPixels()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgDenoiseKInput", "0");
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
+            SetNumber(window, "GsvgPyramidLevelsInput", "0");
+            var off = MeasureRender(window);
+            var offHash = Field(window, "processed");
+            var offMean = Mean(window);
+            Assert.True(Regex.IsMatch(off.Status, @"gsvg=Applied\b"), $"The pyramid-off render did not apply: {off.Status}");
+
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            var unity = MeasureRender(window);
+            var unityHash = Field(window, "processed");
+            var unityMean = Mean(window);
+            Assert.True(Regex.IsMatch(unity.Status, @"gsvg=Applied\b"), $"The pyramid-on render did not apply: {unity.Status}");
+
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
+            var gained = MeasureRender(window);
+            var gainedHash = Field(window, "processed");
+            var gainedMean = Mean(window);
+            Assert.True(Regex.IsMatch(gained.Status, @"gsvg=Applied\b"), $"The gain render did not apply: {gained.Status}");
+
+            output.WriteLine($"P09 levels=0          : hash={offHash} mean={offMean:0.000} stage={off.StageMs:0} ms");
+            output.WriteLine($"P09 levels=4 gain=1.0 : hash={unityHash} mean={unityMean:0.000} stage={unity.StageMs:0} ms");
+            output.WriteLine($"P09 levels=4 gain=1.3 : hash={gainedHash} mean={gainedMean:0.000} stage={gained.StageMs:0} ms " +
+                             $"(dMean vs off={Math.Abs(gainedMean - offMean):0.000})");
+
+            Assert.Equal(offHash, unityHash);      // measured: gain 1.0 rebuilds the image exactly
+            Assert.NotEqual(offHash, gainedHash);  // the settings do reach the drawn pixels
+        }
+        finally
+        {
+            // Back to the app's defaults, which match the module's (lead's decision, GUI-C-104).
+            SetNumber(window, "GsvgDenoiseKInput", "2");
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// P-10 (GUI-C-104): the preview-bitmap change kept the pixels. GUI-C-103 measured the preview as the
+    /// largest phase of the app's own work (~10 ms of ~16 ms), and the change removed the per-pixel
+    /// interface dispatch in its two loops. Only the dispatch went — the arithmetic is the same — so the
+    /// drawn hash must be the one recorded before the change.
+    ///
+    /// <para>The hash is pinned rather than compared against a second run of the same build: comparing a
+    /// build with itself cannot tell a preserved output from a consistently wrong one.</para>
+    /// </summary>
+    [SkippableFact]
+    public void P10_ThePreviewChange_KeptTheDrawnPixels()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgDenoiseKInput", "0");
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
+            SetNumber(window, "GsvgPyramidLevelsInput", "0");
+            SetNumber(window, "GsvgGridFrequencyInput", "60");
+            SetNumber(window, "GsvgAirSignalInput", "60000");
+            var render = MeasureRender(window);
+
+            output.WriteLine($"P10 hash={Field(window, "processed")} mean={Mean(window):0.000}");
+            Assert.Equal(PreviewBaselineHash, Field(window, "processed"));
+        }
+        finally
+        {
+            SetNumber(window, "GsvgDenoiseKInput", "2");
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// The drawn hash of the virtual-grid frame at the documented settings, recorded BEFORE the preview
+    /// change (GUI-C-102 P-03 baseline, and again in GUI-C-103). It is the control for P-10.
+    /// </summary>
+    private const string PreviewBaselineHash = "36fc547e253b07f1";
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private sealed record Render(double TotalMs, double StageMs, string Status);

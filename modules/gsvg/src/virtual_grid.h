@@ -110,10 +110,11 @@ struct VgSettings {
     double pixelPitchMm = 0;
     double airSignal = 0;       // I0: detector signal without an object [DN]
     int    iterations = 0;      // >= 1
-    // Optional post-steps: pyramidLevels == 0 means neither step runs.
-    int    pyramidLevels = 0;   // 4..8 when used
-    double pyramidGain = 1.0;   // detail gain (1 = unchanged)
-    double denoiseK = 0.0;      // 0 = off; soft threshold k * sigma on the finest band
+    // Post-steps. REQ-GSVG-013 asks for a 4..8 level Laplacian pyramid, so the
+    // default runs one (QA-B-111, #180); 0 turns both post-steps off.
+    int    pyramidLevels = 4;   // 0 = off, otherwise 4..8
+    double pyramidGain = 1.3;   // detail gain (1 = unchanged)
+    double denoiseK = 2.0;      // 0 = off; soft threshold k * sigma on the finest band
 };
 
 // SPR / over-correction guard (QA-B-94 compares these on synthetic scenes).
@@ -141,6 +142,25 @@ enum class MaskOutside {
     RectOnly,   // run the post-steps on the mask's bounding rectangle only
 };
 
+// The over-correction guard (CapMode) runs on the scatter subtraction, so it
+// bounds the PRIMARY at that stage. Since QA-B-111 the post-steps run by
+// default and the contrast gain can push a guarded pixel back down, so the
+// bound no longer holds for the OUTPUT (#180, QA-B-112).
+//
+// The floor every option uses is the one the guard itself implies:
+//     floor(x) = I(x) / (1 + cap(x))
+// the smallest primary the capped SPR allows. It ignores the residual-scatter
+// term the grid adds back, which is >= 0, so the floor is conservative.
+enum class PostGuard {
+    None,               // (a) current: nothing after the post-steps
+    Clamp,              // (b) per pixel, out = max(out, floor)
+    GlobalDetailScale,  // (c) one scale on the whole detail image, the largest
+                        //     that keeps every pixel at or above its floor
+    SymmetricHeadroom,  // (d) per pixel, |out - pre| <= pre - floor: the
+                        //     enhancement may not spend more than the headroom
+                        //     the guard left, in either direction
+};
+
 // Test switches for the falsification cases. Production uses the defaults.
 struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
@@ -155,6 +175,13 @@ struct VgSwitches {
     // that outside the field the signal is low scatter, not zero. The other
     // choices stay available as settings.
     MaskOutside maskOutside = MaskOutside::Replicate;
+    // #180 (QA-B-113): per-pixel clamp is the default. On the correct table it
+    // costs nothing (the guard never binds, so MC values are unchanged); with
+    // an over-estimating table it removes the near-zero pixels the post-steps
+    // put back (0.037 % -> 0 %, worst over-subtraction 0.9626 -> 0.7235) and
+    // leaves detail contrast alone. SymmetricHeadroom stays available; its
+    // upper bound never bound on any scene measured in QA-B-112.
+    PostGuard postGuard = PostGuard::Clamp;
 };
 
 struct VgReport {
@@ -175,6 +202,9 @@ struct VgReport {
     // cannot happen: S <= I*cap/(1+cap) gives I - S >= I/(1+cap) >= 0.
     size_t negativePrimary = 0;
     size_t clippedHigh = 0;          // full-res output pixels above 65535 before clamping
+    // #180 (QA-B-112), set only when VgSwitches::postGuard is not None:
+    double postGuardScale = 1.0;     // GlobalDetailScale: the scale it had to apply
+    double belowGuardFloor = 0;      // share of output pixels still under the floor
 };
 
 // Scatter kernel at (thickness, kVp), bilinear in the table's node kernels

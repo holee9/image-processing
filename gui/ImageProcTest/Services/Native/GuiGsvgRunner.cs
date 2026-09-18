@@ -33,6 +33,15 @@ internal sealed record GsvgConfig
 
     [JsonPropertyName("vg_iterations")] public int? Iterations { get; init; }
 
+    /// <summary>Laplacian pyramid levels; 0 (sent as absent) leaves the pyramid and de-noise steps off.</summary>
+    [JsonPropertyName("vg_pyramid_levels")] public int? PyramidLevels { get; init; }
+
+    /// <summary>Detail gain; only meaningful with the pyramid on, and 1.0 makes the pyramid a no-op.</summary>
+    [JsonPropertyName("vg_pyramid_gain")] public double? PyramidGain { get; init; }
+
+    /// <summary>Soft-threshold strength on the finest band; only meaningful with the pyramid on.</summary>
+    [JsonPropertyName("vg_denoise_k")] public double? DenoiseK { get; init; }
+
     private static readonly JsonSerializerOptions Options = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -103,6 +112,16 @@ internal static class GuiGsvgRunner
             PixelPitchMm = virtualGrid ? settings.PixelPitchMm : null,
             AirSignal = virtualGrid ? settings.GsvgAirSignal : null,
             Iterations = virtualGrid ? settings.GsvgIterations : null,
+            // All three keys travel together, ALWAYS — including the off case, which sends levels 0 with
+            // the exact companions the module demands there (gain 1.0, k 0).
+            //
+            // Omitting them to mean "off" was the earlier design and it was wrong: an omitted key means
+            // the module's default, and when that default changed from 0 to 4/1.3/2 the GUI's "off"
+            // silently became "on with the module's settings". Measured — with the new DLL, levels 0
+            // drew the same pixels as the module's default pyramid, not the same as no pyramid.
+            PyramidLevels = virtualGrid ? settings.GsvgPyramidLevels : null,
+            PyramidGain = virtualGrid ? (settings.GsvgPyramidLevels > 0 ? settings.GsvgPyramidGain : 1.0) : null,
+            DenoiseK = virtualGrid ? (settings.GsvgPyramidLevels > 0 ? settings.GsvgDenoiseK : 0.0) : null,
         };
 
         var handle = IntPtr.Zero;

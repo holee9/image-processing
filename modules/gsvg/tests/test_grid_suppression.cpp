@@ -219,6 +219,13 @@ TEST(GsvgGridSuppression, GridIsSuppressedByAtLeast40dB) {
 // NOT a clinical pass mark — it only says "no worse than today".
 // #151 실제 장비 영상 확보 시 재설정.
 //
+// Bound to the SYNTHETIC scene built in this file (seed 180), not to the MC
+// phantoms, so replacing those does not touch this floor (QA-B-118). The
+// metrics are energy ratios over a band, not extremes, and the values do not
+// move between runs. What does move them is the scene: across four noise seeds
+// after/before held to about 1 % while after/baseline swung 187..547 -- which
+// is why the tight floor sits on after/before (QA-B-109).
+//
 // The card's target was "near the grid-free baseline". With the design
 // document's sigma_f = 1.5 bins the residual stays 21 .. 381 x above it
 // (run 5); wider band-stops reach it and cost MTF (ReportSigmaAndDomainSweep).
@@ -278,6 +285,12 @@ TEST(GsvgGridSuppression, MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal
 // NOT a clinical pass mark — it only says "no worse than today".
 // #151 실제 장비 영상 확보 시 재설정.
 //
+// Bound to the SYNTHETIC slanted edge built in this file, not to the MC
+// phantoms (QA-B-118). Worst loss IS an extreme (a max over bands, each a max
+// over frequencies), so it is the one of these floors most like 018 -- but the
+// scene carries no noise, and its measurement condition, the edge angle, moved
+// it only 0.1071..0.1153 over 2.5..4.0 degrees (QA-B-109).
+//
 // Vertical grid lines on a near-vertical edge: the band-stop runs across the
 // edge. SPEC-XPE-GSVG 006 (< 5 %) is missed in the bands the notches fall in
 // (0.112 / 0.114 at 60 / 103 lpi, run 5). At 200 lpi the edge keeps the
@@ -309,6 +322,11 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 // REQ-GSVG-008, provisional regression floor (QA-B-109, #180).
 // NOT a clinical pass mark — it only says "no worse than today".
 // #151 실제 장비 영상 확보 시 재설정.
+//
+// Bound to the SYNTHETIC scene in this file, not to the MC phantoms
+// (QA-B-118). Energy ratios, not extremes; unchanged between runs; across four
+// noise seeds the spread was at most +-6 % (QA-B-109). The detected flags are
+// discrete and would flip only if the detector's reach changed.
 //
 // The severely aliased band. Per-lpi floors on after/before, because the
 // aliased frequency lands on a different sub-band at each line density and the

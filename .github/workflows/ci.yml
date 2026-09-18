@@ -202,6 +202,11 @@ jobs:
             $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
             $ran = if ($ranLine -and $ranLine -match '^\[=+\]\s+(\d+) tests?') { [int]$Matches[1] } else { -1 }
             Write-Host ("{0}: exit={1} ran={2} summary={3}" -f $r.name, $code, $ran, $summary)
+            # A passing gtest prints nothing to the job log, so the perf-gate
+            # ratio and the global-state hygiene report were only readable from
+            # the LastTest.log artifact (QA-A-115). Echo those lines here so the
+            # per-machine ratio distribution can be read from the job log.
+            ($out -split "`n" | Where-Object { $_ -match '^\[perf-gate|^\[hygiene\]' }) | ForEach-Object { Write-Host "  $_" }
             if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $r.name); $bad++ ; continue }
             if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $r.name, $ran); $bad++ ; continue }
             $ranCounts += $ran
@@ -469,12 +474,34 @@ jobs:
         shell: pwsh
         run: |
           $dir = 'build/e2e-native-dlls'
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll')) {
+          # gsvg.dll is named without the xpe_ prefix, so the old name list and
+          # the old xpe_*.dll leak filter both missed it (#180, GUI-C-105): a
+          # missing gsvg.dll passed this step, and a gsvg.dll sitting in the app
+          # folder would load through the OS loader while this job claimed the
+          # locator path was proven. Both checks now name it explicitly.
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
-          $leak = Get-ChildItem 'gui/ImageProcTest/bin/Debug/net8.0-windows' -Filter xpe_*.dll -ErrorAction SilentlyContinue
-          if ($leak) { Write-Error "app folder must not contain xpe_*.dll (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
-          Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
+          $appDir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
+          $leak = Get-ChildItem $appDir -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like 'xpe_*.dll' -or $_.Name -eq 'gsvg.dll' }
+          if ($leak) { Write-Error "app folder must not contain native module DLLs (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
+          Get-ChildItem $dir | Where-Object { $_.Name -like 'xpe_*.dll' -or $_.Name -eq 'gsvg.dll' } |
+            Select-Object Name, Length, LastWriteTime
+
+      # #180: the virtual grid needs its table next to the DLLs. The GUI's
+      # default table path is "beside the loaded DLL", and the CI artifacts carry
+      # binaries only, so without this copy every virtual-grid E2E fails with
+      # "table was not found". The repo file is the product table until an
+      # install rule exists (decision pending, #180).
+      - name: Stage the virtual-grid table beside the DLLs
+        shell: pwsh
+        run: |
+          $dir = 'build/e2e-native-dlls'
+          $src = 'modules/gsvg/data/vg_table_water_csi600_victre.csv'
+          if (-not (Test-Path $src)) { Write-Error "missing product table: $src"; exit 1 }
+          Copy-Item $src (Join-Path $dir (Split-Path $src -Leaf)) -Force
+          Get-ChildItem $dir -Filter *.csv | Select-Object Name, Length
 
       # GUI-C-41: a Native pass only means something if you know WHICH native
       # binaries ran. Locally the lane stages artifacts from an older CI run
