@@ -1,11 +1,13 @@
-// #189 (QA-B-108): the MaskOutside switch. The production default is Zero —
-// what shipped — and the alternatives exist so the choice can be measured.
+// #189 (QA-B-108, QA-B-110): the MaskOutside switch. The production default is
+// edge replicate (QA-B-110 lead decision); the alternatives stay as settings.
 // The invariant pinned here: the choice reaches the image ONLY through the
 // post-steps, so with pyramidLevels = 0 all four variants are bit-identical.
 #include <gtest/gtest.h>
 
 #include "virtual_grid.h"
 
+#include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -38,10 +40,64 @@ void MakeScene(int k, std::vector<double>& img, std::vector<uint8_t>& mask) {
 
 }  // namespace
 
-TEST(GsvgMaskOutside, DefaultIsZero)
+TEST(GsvgMaskOutside, DefaultIsEdgeReplicate)
 {
     const vg::VgSwitches sw;
-    EXPECT_EQ(sw.maskOutside, vg::MaskOutside::Zero);
+    EXPECT_EQ(sw.maskOutside, vg::MaskOutside::Replicate);
+}
+
+// #189 (QA-B-110): the artificial step the choice leaves at the field boundary.
+// Measured as the ring just inside the mask against the deep interior, which
+// the post-steps do not reach. On this scene the post-steps themselves are
+// worth 0.3210 (pyramidLevels = 0, every variant); with six levels the choices
+// measured zero 0.5670, keep 0.5335, rect-only 0.3910, replicate 0.3598
+// (QA-B-108). The floor 0.45 sits between replicate and the two that pile a
+// visible step on the boundary, so reverting the default to Zero fails here.
+TEST(GsvgMaskOutside, BoundaryStepStaysNearThePostStepBaseline)
+{
+    constexpr int k = 1024;
+    vg::ParamTable table;
+    ASSERT_EQ(vg::LoadParamTable("data/vg_table_water_csi600_victre.csv", table), "");
+
+    // Square field so "distance to the boundary" is exact.
+    constexpr int kInset = 200;
+    std::vector<double> src(static_cast<size_t>(k) * k);
+    std::vector<uint8_t> mask(src.size(), 0);
+    for (int y = 0; y < k; ++y)
+        for (int x = 0; x < k; ++x) {
+            const size_t i = static_cast<size_t>(y) * k + x;
+            const bool in = x >= kInset && x < k - kInset && y >= kInset && y < k - kInset;
+            mask[i] = in ? 1 : 0;
+            src[i] = in ? 9000.0 + 3000.0 * ((x / 16 + y / 16) % 2) : 300.0;
+        }
+
+    vg::VgSettings st = BaseSettings();
+    st.pyramidLevels = 6; st.pyramidGain = 1.3; st.denoiseK = 2.0;
+
+    std::vector<double> img = src;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, k, k, table, st, vg::VgSwitches{}, mask.data());
+    ASSERT_EQ(rep.error, "");
+
+    // Mean over the ring one pixel inside the boundary, and over the deep
+    // interior (>= 200 px in, beyond the six-level pyramid's reach).
+    double ring = 0, deep = 0;
+    size_t nRing = 0, nDeep = 0;
+    for (int y = kInset; y < k - kInset; ++y)
+        for (int x = kInset; x < k - kInset; ++x) {
+            const size_t i = static_cast<size_t>(y) * k + x;
+            const int d = std::min(std::min(x - kInset, k - kInset - 1 - x),
+                                   std::min(y - kInset, k - kInset - 1 - y));
+            if (d == 1) { ring += img[i]; ++nRing; }
+            else if (d >= 200) { deep += img[i]; ++nDeep; }
+        }
+    ASSERT_GT(nRing, 0u);
+    ASSERT_GT(nDeep, 0u);
+    ring /= static_cast<double>(nRing);
+    deep /= static_cast<double>(nDeep);
+    const double step = (ring - deep) / deep;
+    std::printf("MASKOUTSIDE boundary ring1=%.1f deep=%.1f step=%.4f\n", ring, deep, step);
+
+    EXPECT_LT(step, 0.45) << "artificial step at the field boundary";
 }
 
 TEST(GsvgMaskOutside, WithoutPostStepsEveryVariantIsBitIdentical)
