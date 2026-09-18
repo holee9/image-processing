@@ -262,6 +262,17 @@ TEST(GsvgVirtualGridMc, DataAndConditions)
 // NOT a clinical pass mark — it only says "no worse than today".
 // #151 실제 장비 영상 확보 시 재설정.
 //
+// THIS FLOOR IS BOUND TO THIS PHANTOM, not to the code (QA-B-117). The peak is
+// a MAXIMUM statistic, so noise pushes it one way only: on this dataset the
+// value does not move at all (identical to six decimals across thread counts
+// and repeat runs), but 0.1 % of relative input noise already eats 58..83 % of
+// the 0.013 margin and 0.3 % crosses the floor. Swapping the phantom -- the
+// 512 x 512 MC set being prepared -- brings its own noise realisation, so this
+// test can go red for a reason that is not a regression. When the input
+// changes, re-measure and reset the floor; do not widen it in advance (the
+// lead's QA-B-117 decision: a wider floor on an unchanging input only loses
+// detection). Checklist: .moai/reports/lane-post/PHANTOM-SWAP-CHECKLIST.md
+//
 // Under-subtraction at a thickness step: the recovered/primary ratio peaks
 // just after each step towards the thicker side. On the MC step phantom the
 // three peaks measured 1.170 / 1.344 / 1.395 (QA-B-95), the worst pixel 1.5347

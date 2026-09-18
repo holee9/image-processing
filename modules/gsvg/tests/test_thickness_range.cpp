@@ -15,6 +15,11 @@
 // let through as an error (QA-B-115: it looked like 101 % at 30 cm).
 //
 // 실제 장비 영상 확보 시 재설정 (#151).
+//
+// Bound to the SYNTHETIC scene this file builds, not to the MC phantoms, so
+// replacing those does not touch these floors (QA-B-118). The median is a
+// robust statistic and p95 is only mildly extreme; the scene carries no noise
+// and the values do not move between runs.
 #include <gtest/gtest.h>
 
 #include "virtual_grid.h"
