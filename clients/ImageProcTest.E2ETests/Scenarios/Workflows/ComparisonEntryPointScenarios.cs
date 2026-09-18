@@ -203,6 +203,12 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
         // had run — those bring the window to the foreground and press keys, and a menu left open or
         // a focus that moved makes the next click land somewhere else. Closing any open menu and
         // re-taking the foreground removes the dependency on what the previous scenario left behind.
+        // GUI-C-109 measured this without the Escape and the re-focus: 13 runs, 78 menu invocations,
+        // zero failures. So it is no longer load-bearing on the evidence available — but that was
+        // measured with the Expand change already in place, so it does not show the mitigation was
+        // never needed, only that it is not needed now. Kept: removing a guard buys nothing here, and
+        // the failure it was written for (keyboard scenarios moving the focus) is a different one from
+        // the failure Expand fixed.
         window.SetForeground();
         Keyboard.Press(VirtualKeyShort.ESCAPE);
         Thread.Sleep(100);
