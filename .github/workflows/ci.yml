@@ -469,12 +469,20 @@ jobs:
         shell: pwsh
         run: |
           $dir = 'build/e2e-native-dlls'
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll')) {
+          # gsvg.dll is named without the xpe_ prefix, so the old name list and
+          # the old xpe_*.dll leak filter both missed it (#180, GUI-C-105): a
+          # missing gsvg.dll passed this step, and a gsvg.dll sitting in the app
+          # folder would load through the OS loader while this job claimed the
+          # locator path was proven. Both checks now name it explicitly.
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
-          $leak = Get-ChildItem 'gui/ImageProcTest/bin/Debug/net8.0-windows' -Filter xpe_*.dll -ErrorAction SilentlyContinue
-          if ($leak) { Write-Error "app folder must not contain xpe_*.dll (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
-          Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
+          $appDir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
+          $leak = Get-ChildItem $appDir -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like 'xpe_*.dll' -or $_.Name -eq 'gsvg.dll' }
+          if ($leak) { Write-Error "app folder must not contain native module DLLs (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
+          Get-ChildItem $dir | Where-Object { $_.Name -like 'xpe_*.dll' -or $_.Name -eq 'gsvg.dll' } |
+            Select-Object Name, Length, LastWriteTime
 
       # #180: the virtual grid needs its table next to the DLLs. The GUI's
       # default table path is "beside the loaded DLL", and the CI artifacts carry
