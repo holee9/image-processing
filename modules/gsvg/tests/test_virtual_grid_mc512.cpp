@@ -495,3 +495,159 @@ TEST(GsvgVirtualGridMc512, StepAndWedgeAgreeAtTheSameThickness)
     EXPECT_FALSE(rows.empty()) << "no overlapping thickness was measurable";
     SUCCEED();
 }
+
+// ===========================================================================
+// QA-B-125: is the step phantom worse because of its BOUNDARIES?
+//
+// QA-B-124 measured the step at 1.2..3.0x the wedge error at the same
+// thickness and read it as "the boundaries dominate". That was an explanation,
+// not a measurement. Here the error is split by distance to the nearest
+// thickness jump, and the median is re-taken with a ring of +-N pixels around
+// every jump removed.
+//
+// Choosing N: the gauss4 kernel terms at 80 kVp have sigma 0.92..12.03 mm over
+// 5..30 cm of water (scatter_kernels_water_csi600.csv), which at 0.140 mm is
+// 6.6..86 px. A single N cannot cover that range -- the widest term alone would
+// eat the whole 358 px field -- so N is swept instead, and the question becomes
+// where the step value converges rather than what one exclusion gives.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, StepErrorAgainstDistanceToTheBoundary)
+{
+    const Phantom s = Load("step");
+    const Phantom w = Load("wedge");
+    std::vector<double> imgStep, imgWedge;
+    RunChain(s, &imgStep);
+    RunChain(w, &imgWedge);
+
+    // Thickness runs along columns, so a jump is a column-to-column change.
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0;
+        int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!s.mask[i]) continue;
+            sum += s.thickness[i]; ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> isJump(kN, 0);
+    int jumps = 0;
+    for (int c = kLo; c + 1 < kHi; ++c)
+        if (std::fabs(colT[c + 1] - colT[c]) > 0.2) { isJump[c] = 1; ++jumps; }
+
+    // Distance of each column to the nearest jump.
+    std::vector<int> dist(kN, kN);
+    for (int c = kLo; c < kHi; ++c)
+        for (int j = kLo; j < kHi; ++j)
+            if (isJump[j]) dist[c] = std::min(dist[c], std::abs(c - j));
+
+    auto median = [](std::vector<double> a) {
+        if (a.empty()) return -1.0;
+        std::sort(a.begin(), a.end());
+        return a[a.size() / 2];
+    };
+
+    // Wedge reference over the same region: no jumps exist there (the wedge
+    // changes by 0.056 cm per column, far below the 0.2 cm jump criterion).
+    std::vector<double> wref;
+    for (size_t i = 0; i < imgWedge.size(); ++i) {
+        if (!InRegion(i) || !w.mask[i] || w.primary[i] <= 0) continue;
+        wref.push_back(std::fabs(imgWedge[i] / w.primary[i] - 1.0));
+    }
+    std::printf("VGMC125 jumps=%d in the metric region; wedge reference median|r-1|=%.4f\n",
+                jumps, median(wref));
+
+    // (1) Error against distance to the nearest jump.
+    std::printf("VGMC125 profile: distance_px, distance_mm, n, median|r-1|\n");
+    const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
+    for (size_t b = 0; b + 1 < sizeof(edges) / sizeof(edges[0]); ++b) {
+        std::vector<double> a;
+        for (size_t i = 0; i < imgStep.size(); ++i) {
+            if (!InRegion(i) || !s.mask[i] || s.primary[i] <= 0) continue;
+            const int c = static_cast<int>(i) % kN;
+            if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
+            a.push_back(std::fabs(imgStep[i] / s.primary[i] - 1.0));
+        }
+        std::printf("VGMC125 profile d=[%3d,%3d) = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+                    edges[b], edges[b + 1], edges[b] * kPitchMm, edges[b + 1] * kPitchMm,
+                    a.size(), median(a));
+    }
+
+    // (2) The median with a +-N ring around every jump removed.
+    std::printf("VGMC125 exclusion: N_px, N_mm, n_left, median|r-1| (wedge reference %.4f)\n",
+                median(wref));
+    for (const int n : {0, 2, 5, 10, 20, 40, 80}) {
+        std::vector<double> a;
+        for (size_t i = 0; i < imgStep.size(); ++i) {
+            if (!InRegion(i) || !s.mask[i] || s.primary[i] <= 0) continue;
+            const int c = static_cast<int>(i) % kN;
+            if (dist[c] <= n) continue;
+            a.push_back(std::fabs(imgStep[i] / s.primary[i] - 1.0));
+        }
+        std::printf("VGMC125 exclude N=%2d (%.2f mm) n=%6zu median=%.4f\n",
+                    n, n * kPitchMm, a.size(), median(a));
+    }
+    SUCCEED();
+}
+
+// ===========================================================================
+// QA-B-125 (b): REQ-GSVG-011 and REQ-GSVG-025 against MC.
+//
+// REQ-011 asks that the scatter DISTRIBUTION be estimated from the kernel LUT.
+// The phantom carries the true distribution (total - primary), so the estimate
+// the chain actually subtracts can be compared against it pixel by pixel --
+// which no synthetic scene can do, because there the scatter was made with the
+// same kernels that remove it.
+//
+// REQ-025 asks that the correction be clamped at the physical limit. What MC
+// can say here is whether the cap BINDS on real scatter, and what it costs when
+// it does; the clamp logic itself is covered by the synthetic tests.
+//
+// Post-steps are off for both: they run after the subtraction and would mix a
+// second effect into the comparison.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, ScatterEstimateAgainstTruth_REQ_GSVG_011_025)
+{
+    const Phantom p = Load("step");
+    const vg::ParamTable tbl = McTable();
+
+    vg::VgSettings st = BaseSettings();
+    st.pyramidLevels = 0;         // isolate the subtraction
+    st.pyramidGain = 1.0;
+    st.denoiseK = 0.0;
+
+    struct Case { const char* name; vg::CapMode cap; };
+    const Case cases[] = {
+        {"None",        vg::CapMode::None},
+        {"GlobalSum",   vg::CapMode::GlobalSum},   // the default
+        {"LocalSum",    vg::CapMode::LocalSum},
+    };
+
+    std::printf("VGMC125 REQ-011/025: cap, capped fraction, negativePrimary, median S_est/S_true, p05, p95\n");
+    for (const Case& c : cases) {
+        vg::VgSwitches sw;
+        sw.cap = c.cap;
+        std::vector<double> img = p.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, tbl, st, sw, p.mask.data());
+        ASSERT_EQ(rep.error, "") << c.name;
+
+        std::vector<double> ratio;
+        for (size_t i = 0; i < img.size(); ++i) {
+            if (!InRegion(i) || !p.mask[i]) continue;
+            const double sTrue = p.total[i] - p.primary[i];
+            const double sEst = p.total[i] - img[i];
+            if (sTrue <= 0) continue;
+            ratio.push_back(sEst / sTrue);
+        }
+        std::sort(ratio.begin(), ratio.end());
+        ASSERT_FALSE(ratio.empty());
+        std::printf("VGMC125 REQ-011 cap=%-9s capped=%.4f negPrimary=%.0f n=%zu "
+                    "median=%.4f p05=%.4f p95=%.4f\n",
+                    c.name, rep.cappedFraction, static_cast<double>(rep.negativePrimary), ratio.size(),
+                    ratio[ratio.size() / 2],
+                    ratio[static_cast<size_t>(0.05 * ratio.size())],
+                    ratio[static_cast<size_t>(0.95 * ratio.size())]);
+    }
+    SUCCEED();
+}
