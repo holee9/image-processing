@@ -104,7 +104,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Residual artifacts interfere with diagnosis (HAZ-005)
 - **Verification**: Test + Review
-- **Status**: **Partial** — 억제는 동작하지만 잔여 격자 에너지가 격자 없는 기준선의 **21–381배**입니다(`…KnownDivergence_ResidualStaysAboveTheGridFreeBaseline`). **빠진 것: "보이지 않는다" 의 합격 기준이 없습니다** — 기준 결정 대기 **잠정 기준 (사용자 결정 2026-09-18)**: 실질 방지선은 **억제 전/후 비율(after/before)** 에 겁니다 — 격자 없는 기준선 대비(after/baseline)는 분모가 장면마다 달라 같은 조건에서 187–547 로 3배 흔들려 회귀 방지선으로 부적합합니다(QA-B-109 측정). after/baseline 에는 느슨한 상한만 둡니다. #151 에서 기준을 다시 정할 때 **분모 자체를 먼저** 보십시오. 임상 합격선이 아니라 회귀 방지선입니다. 실제 장비 영상 확보 시 재설정(#151).
+- **Status**: **Partial** — 억제는 동작하지만 잔여 격자 에너지가 격자 없는 기준선의 **21–381배**입니다(`GsvgGridSuppression.ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005`). **빠진 것: "보이지 않는다" 의 합격 기준이 없습니다** — 기준 결정 대기 **잠정 기준 (사용자 결정 2026-09-18)**: 실질 방지선은 **억제 전/후 비율(after/before)** 에 겁니다 — 격자 없는 기준선 대비(after/baseline)는 분모가 장면마다 달라 같은 조건에서 187–547 로 3배 흔들려 회귀 방지선으로 부적합합니다(QA-B-109 측정). after/baseline 에는 느슨한 상한만 둡니다. #151 에서 기준을 다시 정할 때 **분모 자체를 먼저** 보십시오. 임상 합격선이 아니라 회귀 방지선입니다. 실제 장비 영상 확보 시 재설정(#151).
 
 ### REQ-GSVG-006: MTF Preservation
 
@@ -113,7 +113,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Excessive filtering degrades diagnostic resolution
 - **Verification**: Test
-- **Status**: **Partial** — 경계 법선 방향 선은 5% 미만(`…MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal`). **경계를 가로지르는 선은 11% 손실로 요구 초과**(`…KnownDivergence_LinesAcrossAnEdge`) **잠정 기준 (사용자 결정 2026-09-18)**: 경계 법선 방향 5% 미만은 유지, 경계를 가로지르는 선은 **현재 11% 보다 나빠지면 실패**. 회귀 방지선이며 임상 합격선이 아닙니다. 실제 장비 영상 확보 시 재설정(#151).
+- **Status**: **Partial** — 경계 법선 방향 선은 5% 미만(`GsvgGridSuppression.MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal`). **경계를 가로지르는 선은 11% 손실로 요구 초과**(`GsvgGridSuppression.ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006`) **잠정 기준 (사용자 결정 2026-09-18)**: 경계 법선 방향 5% 미만은 유지, 경계를 가로지르는 선은 **현재 11% 보다 나빠지면 실패**. 회귀 방지선이며 임상 합격선이 아닙니다. 실제 장비 영상 확보 시 재설정(#151).
 
 ### REQ-GSVG-007: Grid Frequency Range
 
@@ -417,7 +417,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Hazard**: HAZ-001
 - **Verification**: Test
 
-- **Status**: **Implemented (tested)** — 실패 시 원본을 그대로 둡니다. `GsvgVirtualGridApi.ProcessesAndKeepsTheOriginalOnFailure`(`test_virtual_grid.cpp:765`, `dst==src` 확인) 와 `…SourceIntact`. 판정 2026-09-19 (QA-B-126)
+- **Status**: **Implemented (tested)** — 실패 시 원본을 그대로 둡니다. `GsvgVirtualGridApi.ProcessesAndKeepsTheOriginalOnFailure`(`test_virtual_grid.cpp:765`, `dst==src` 확인) 와 `GsvgAbiSmoke.Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact`. 판정 2026-09-19 (QA-B-126)
 
 ### REQ-GSVG-023: DICOM Processing Mark
 
