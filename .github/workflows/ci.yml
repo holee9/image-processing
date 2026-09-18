@@ -537,6 +537,7 @@ jobs:
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
           --logger "trx;LogFileName=e2e-smoke-native.trx"
+          --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
 
       # GUI-C-37: when the XCal generator is absent the Native W-02 scenario SKIPs rather
