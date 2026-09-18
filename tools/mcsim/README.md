@@ -253,3 +253,48 @@ for k in air step wedge; do
 done
 wsl.exe -d Ubuntu-24.04 -u root -- /root/mcsim/venv/bin/python $T/export_phantoms.py /root/mcsim/phantoms     $T/tables/wet_water_csi600.csv --export $T/phantoms
 ```
+
+## 512² 제품 화소 간격 팬텀 — `phantoms/*_512*` (QA-A-114, #180)
+
+post 레인이 마스크 밖 처리 대안을 비교하려면 피라미드 영향 범위(6단 128화소)보다
+큰 조사야가 필요하다. 80² 4 mm 팬텀은 조사야가 74화소라 영상 전체가 영향권이었다.
+
+| 항목 | 값 |
+|---|---|
+| 영상 | 512×512, 화소 간격 **0.140 mm**(사용자 결정값), 검출기 7.168 cm |
+| 조사야 | 5.0 cm = **356 화소**(78–433열). 요구 320 이상이고 경계가 영상 안에 있다 |
+| 조사야 밖 | 양쪽 78 화소가 산란만 있는 영역. **0 인 화소가 없다**(총신호 평균 0.0029 대 조사야 안 0.033) |
+| 기하 | SDD 100 cm, 팬텀 뒷면–검출기 2 cm, 80 kVp, 2.5 mm Al, CsI 600 µm |
+| 팬텀 | 복셀 상자 40×30×40 cm, 복셀 **0.1**×0.5×40 cm(측면을 0.5 → 0.1 로 줄였다) |
+| `step` | 0.5 cm 폭 **10단**, 5→30 cm. QA-A-98 의 5 cm 폭 계단은 5 cm 조사야에서 전부 밖으로 나간다 |
+| `wedge` | 같은 구간의 선형 경사 |
+| 실행 | step·wedge 각 1e8 × 300 = **3.0e10**, air 1e8 × 100 = 1.0e10 |
+| 시간 | RTX 4070 Ti 에서 3922 s / 3858 s / 1238 s (합 2.5 시간) |
+
+**두께별 불확실도** — 화소가 작아 두께에 따라 크게 다르므로 하나의 최소값으로 요약하지
+않는다. `analyze_512.py` 가 이 표를 낸다.
+
+| 두께 | 화소당 1차 계수 | 상대 SEM | 산란/1차 |
+|---|---|---|---|
+| 5.0 cm | 57,828 | 0.4 % | 0.07 |
+| 10.5 cm | 14,775 | 0.8 % | 0.27 |
+| 16.0 cm | 4,093 | 1.6 % | 0.70 |
+| 21.5 cm | 1,184 | 2.9 % | 1.62 |
+| 27.0 cm | 352 | 5.3 % | 3.53 |
+
+`[wet]` 곡선 대조: `|L_mc − L_wet|` 중앙값 step 0.0092 / wedge 0.0089.
+방향 확인: 열 방향 변동 1.87 대 행 방향 0.66 — 두께 무늬가 열(x)로 나타난다.
+
+파일은 `<kind>_80kVp_512_{primary,total,air,thickness}.f32` + `<kind>_80kVp_512.json`
+(80² 세트와 같은 규약, `--name-suffix _512` 로 공존).
+
+```bash
+T=/mnt/d/workspace-github/xpe-pre/tools/mcsim
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/pilot_512.sh          # 1회 시간 실측
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/run_512_phantoms.sh   # 본 실행
+wsl.exe -d Ubuntu-24.04 -u root -- bash $T/export_512.sh         # [wet] 대조 + 내보내기
+```
+
+- 발산 때문에 **한 계단 안에서도 두께가 조금씩 변한다**(분석 표를 0.1 cm 로 묶은 이유).
+  경계 화소는 `thickness`(중심 광선)와 맞지 않는다.
+- 히스토리를 줄이지 않았다. 더 줄이면 위 SEM 표가 그만큼 나빠진다.

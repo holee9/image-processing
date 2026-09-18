@@ -586,3 +586,58 @@ TEST_F(NonlinApplyTest, TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken) {
                                      XCAL_TYPE_NONLIN_LUT));
     EXPECT_NE(p1, p3) << "the pedestal is too small to tell the two apart";
 }
+
+/* ===================================================================== *
+ * QA-A-117 (#186) TEMPORARY PROBE -- the card's falsification, stated as
+ * the card states it: replace the table with the identity and the output
+ * must change. If it does not, the LUT is wired but unused.
+ * ===================================================================== */
+TEST_F(NonlinApplyTest, AnIdentityTableChangesTheOutputComparedToTheRealOne) {
+    // 1. The real table, applied through the pipeline.
+    ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(LutPath().c_str()));
+    Frame real = MakeGradientFrame(sim);
+    XpeImageMetadata m1{};
+    ASSERT_EQ(XPE_OK, RunPipelineNonlinOnly(real, &m1, nullptr));
+    ASSERT_NE(0u, m1.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+
+    // 2. An identity table written by hand: LUT[i] = i. Loading it replaces
+    //    the real one, so the stage still runs and still reports "corrected",
+    //    but every pixel maps to itself.
+    std::vector<uint16_t> ident(4096u);
+    for (uint32_t i = 0; i < 4096u; ++i) ident[i] = static_cast<uint16_t>(i);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION;
+    hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
+    hdr.width = 4096; hdr.height = 1;
+    hdr.created_epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    const std::string ipath = std::string(::testing::TempDir()) + "/a117_ident.xcal";
+    ASSERT_EQ(XPE_OK, write_xcal_file(ipath.c_str(), hdr, nullptr, 0,
+                                      reinterpret_cast<const uint8_t*>(ident.data()),
+                                      ident.size() * sizeof(uint16_t)));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(ipath.c_str()));
+
+    Frame id = MakeGradientFrame(sim);
+    const std::vector<uint16_t> before = id.px;
+    XpeImageMetadata m2{};
+    ASSERT_EQ(XPE_OK, RunPipelineNonlinOnly(id, &m2, nullptr));
+
+    // The identity leaves the frame alone -- which is what makes it a control.
+    EXPECT_EQ(before, id.px) << "an identity table must not move any pixel";
+
+    // And the real table must NOT agree with it. If these two came out equal,
+    // the stage would be reporting a correction it never applied.
+    EXPECT_NE(real.px, id.px)
+        << "the real table produced the same output as the identity -- the LUT "
+           "is wired but not used";
+
+    // Quantified, so "different" cannot be one stray pixel.
+    size_t moved = 0;
+    for (size_t i = 0; i < real.px.size(); ++i) {
+        if (real.px[i] != id.px[i]) ++moved;
+    }
+    EXPECT_GT(moved, real.px.size() / 2)
+        << "only " << moved << " of " << real.px.size() << " pixels differ";
+}

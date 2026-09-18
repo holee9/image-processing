@@ -242,6 +242,61 @@ double StreamingBandwidthGBs() {
     return static_cast<double>(kBytes) / (best * 1e-3) / 1e9;
 }
 
+/**
+ * Cache sizes, from CPUID leaf 4. QA-A-118 (#179) needs them.
+ *
+ * The gate assumes both sides stream past the last-level cache -- 47 MB for the
+ * reference, 45 MB for the detector. On a runner whose LLC slice is larger than
+ * that, one or both stop touching memory and the ratio stops meaning what the
+ * limit was derived from. The Xeon 6973P-C run that broke the gate had the
+ * reference get FASTER (58.1 ms against 70.9 on another runner) while the
+ * detector got SLOWER -- the shape a cache that holds one but not the other
+ * would produce. Printing the sizes is what makes that checkable next time
+ * instead of guessable.
+ */
+std::string CacheSizes() {
+#if defined(_MSC_VER)
+    std::string out;
+    for (int i = 0; i < 16; ++i) {
+        int regs[4] = {0, 0, 0, 0};
+        __cpuidex(regs, 4, i);
+        const int type = regs[0] & 0x1f;
+        if (type == 0) break;                      // no more cache levels
+        if (type == 2) continue;                   // instruction cache
+        const int level = (regs[0] >> 5) & 0x7;
+        const int line = (regs[1] & 0xfff) + 1;
+        const int partitions = ((regs[1] >> 12) & 0x3ff) + 1;
+        const int ways = ((regs[1] >> 22) & 0x3ff) + 1;
+        const int sets = regs[2] + 1;
+        const long long bytes =
+            static_cast<long long>(line) * partitions * ways * sets;
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "L%d=%lldKB ", level, bytes / 1024);
+        out += buf;
+    }
+    return out.empty() ? std::string("unknown") : out;
+#else
+    return "unknown";
+#endif
+}
+
+/**
+ * The bandwidth the REFERENCE KERNEL itself achieves, in GB/s.
+ *
+ * The probe above measures a plain strided read; the kernel does more per
+ * element. When the two disagree by a lot, the kernel is not bandwidth-bound on
+ * that machine -- which is exactly the question QA-A-118 could not answer from
+ * the logs it had.
+ */
+double ReferenceEffectiveGBs(double reference_ms) {
+    // Per sweep: the frame is read and the map is written once.
+    const double bytes_per_sweep =
+        static_cast<double>(kReferenceElems) * sizeof(float) +
+        static_cast<double>(kReferenceMapBytes);
+    const double total = bytes_per_sweep * kReferenceSweeps;
+    return total / (reference_ms * 1e-3) / 1e9;
+}
+
 /** Printed once per gate so a failing job log identifies its own runner. */
 void PrintMachineProfile() {
     std::printf("[perf-gate-machine] cpu=\"%s\" logical=%u avx2=%d bandwidth=%.1f GB/s\n",
@@ -251,6 +306,7 @@ void PrintMachineProfile() {
     // ratio's numerator and denominator are compiled for different instruction
     // sets (modules/preprocess/CMakeLists.txt:77). Recorded, not changed --
     // changing it would move every historical ratio.
+    std::printf("[perf-gate-machine] cache %s\n", CacheSizes().c_str());
     std::printf("[perf-gate-machine] numerator=xpe_preprocess(/arch:AVX2)"
                 " denominator=in-test kernel(default arch)\n");
 }
@@ -429,8 +485,10 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
                     round + 1, kGateRounds, kDetectionReps, t.best,
                     t.samples[0], t.samples[1], t.samples[2], t.samples[3],
                     t.samples[4]);
-        std::printf("[perf-gate] round %d/%d reference kernel: %.1f ms\n",
-                    round + 1, kGateRounds, reference);
+        std::printf("[perf-gate] round %d/%d reference kernel: %.1f ms"
+                    " (%.1f GB/s effective)\n",
+                    round + 1, kGateRounds, reference,
+                    ReferenceEffectiveGBs(reference));
         std::printf("[perf-gate-ratio] 3072 round=%d ratio=%.3f limit=%.3f\n",
                     round + 1, ratio, kRatio3072Limit);
 
@@ -450,14 +508,49 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
                 " -- currently %.1fx the target on this machine\n",
                 kImprovementTargetMs, bestTiming.best / kImprovementTargetMs);
 
-    EXPECT_LE(best, kRatio3072Limit)
-        << Explain("3072x3072 runtime detection", bestTiming, bestReference,
-                   best, kRatio3072Limit)
-        << "\n  This is the BEST of " << kGateRounds << " rounds ("
-        << ratios[0] << " / " << ratios[1] << " / " << ratios[2]
-        << "), measured in round " << (bestRound + 1) << ". A transient lifts one\n"
-        << "  round; all three being over the limit is what a code regression\n"
-        << "  looks like, so re-running will not clear this.";
+    /* ----------------------------------------------------------------------
+     * THE ASSERTION IS SUSPENDED -- QA-A-119 (#179), lead decision.
+     *
+     * WHY. On an Intel Xeon 6973P-C runner the ratio reached 2.060 / 2.145 with
+     * ZERO changed lines in the detector's path, while four other machines
+     * (i7-12700, EPYC 7763, EPYC 9V45, Xeon Platinum 8370C) sat at 1.27..1.40
+     * across a 3x spread of memory bandwidth. On that one machine the two sides
+     * moved in OPPOSITE directions -- detector 93.3 -> 119.6 ms, reference
+     * 70.9 -> 58.1 ms -- which breaks the premise the whole ratio rests on.
+     *
+     * WHY NOT JUST RAISE THE LIMIT. Passing that machine needs a limit above
+     * 2.06, and the nearest regression this gate must catch measures 1.496
+     * (QA-A-115, +2 injected passes). A limit above the regression it is meant
+     * to catch is the gate switched off, with nobody able to tell it was.
+     *
+     * WHAT THIS COSTS, MEASURED (QA-A-119 condition 3): NOTHING ELSE COVERS
+     * THIS PATH. The `XPE Benchmark Regression` workflow builds ci-post and
+     * runs post-processing gates only (FullPipelineE2E.PostProcess_3072x3072,
+     * CollimationDetect, ExposureIndex) -- none of them call
+     * xpe_defect_detect_runtime. Inside this module,
+     * Integration.PipelinePerformance3072x3072 is DISABLED and does not call
+     * the detector either, and the degraded-mode budgets run at 64x64. So while
+     * this assertion is suspended, a real slowdown of the runtime detector
+     * reaches main unchallenged. That is the price of the suspension, and it is
+     * why it is a window and not a decision.
+     *
+     * RECOVERY CONDITION: read the cache sizes and the reference kernel's
+     * effective GB/s (both printed above, added by QA-A-118) from a Xeon
+     * 6973P-C run; once the cause is established, fix the kernel or the limit
+     * with that evidence and restore this assertion. The lead tracks it.
+     * -------------------------------------------------------------------- */
+    if (best > kRatio3072Limit) {
+        std::printf("[perf-gate-OVER] 3072 ratio=%.3f exceeds limit=%.3f"
+                    " -- ASSERTION SUSPENDED (#179, QA-A-119)\n",
+                    best, kRatio3072Limit);
+        std::printf("[perf-gate-OVER] %s\n",
+                    Explain("3072x3072 runtime detection", bestTiming,
+                            bestReference, best, kRatio3072Limit).c_str());
+    } else {
+        std::printf("[perf-gate-OK] 3072 ratio=%.3f within limit=%.3f"
+                    " (assertion suspended, #179)\n", best, kRatio3072Limit);
+    }
+    EXPECT_GT(best, 0.0) << "the gate must still have measured something";
 }
 
 /**
