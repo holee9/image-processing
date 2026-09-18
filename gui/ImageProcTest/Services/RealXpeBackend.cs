@@ -357,13 +357,18 @@ public sealed class RealXpeBackend : IXpeBackend
         return pixels;
     }
 
-    private static BitmapSource CreatePreview(IReadOnlyList<ushort> pixels, int width, int height)
+    /// <summary>
+    /// #180 (GUI-C-104): takes a span rather than <see cref="IReadOnlyList{T}"/>. Both loops index every
+    /// pixel — 9.4 M of them on a 3072² frame — and through the interface each index is a dispatch the
+    /// JIT cannot elide. The arithmetic is unchanged, so the bytes are unchanged; P-10 asserts that the
+    /// drawn hash still matches, because "it should be identical" is not evidence.
+    /// </summary>
+    private static BitmapSource CreatePreview(ReadOnlySpan<ushort> pixels, int width, int height)
     {
         ushort minValue = ushort.MaxValue;
         ushort maxValue = ushort.MinValue;
-        for (var i = 0; i < pixels.Count; i++)
+        foreach (var sample in pixels)
         {
-            var sample = pixels[i];
             if (sample < minValue)
             {
                 minValue = sample;
@@ -376,8 +381,8 @@ public sealed class RealXpeBackend : IXpeBackend
         }
 
         var scale = Math.Max(1, maxValue - minValue);
-        var grayscale = new byte[pixels.Count];
-        for (var i = 0; i < pixels.Count; i++)
+        var grayscale = new byte[pixels.Length];
+        for (var i = 0; i < pixels.Length; i++)
         {
             grayscale[i] = (byte)(((pixels[i] - minValue) * 255) / scale);
         }

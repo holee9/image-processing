@@ -67,6 +67,8 @@ public sealed class AppSettings : ObservableObject
     private double _gsvgGridFrequencyPerCm = 60.0;
     private double _gsvgAirSignal = 60000.0;
     private int _gsvgIterations = 3;
+    private int _gsvgPyramidLevels = 4;
+    private double _gsvgPyramidGain = 1.0;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -530,6 +532,37 @@ public sealed class AppSettings : ObservableObject
     {
         get => _gsvgIterations;
         set => SetProperty(ref _gsvgIterations, value is >= 1 and <= 100 ? value : 3);
+    }
+
+    /// <summary>
+    /// Laplacian pyramid levels for the virtual grid (#180, GUI-C-104). 0 turns the pyramid and the
+    /// de-noise step off entirely; 4..8 is the range REQ-GSVG-013 states and the module validates.
+    /// Anything else falls back to 4.
+    ///
+    /// The GUI sends this key explicitly rather than relying on the module's default, so the two do not
+    /// have to be changed in step — GUI-C-103 measured that omitting it left the pyramid off.
+    /// </summary>
+    [JsonPropertyName("gsvgPyramidLevels")]
+    public int GsvgPyramidLevels
+    {
+        get => _gsvgPyramidLevels;
+        set => SetProperty(ref _gsvgPyramidLevels, value == 0 || value is >= 4 and <= 8 ? value : 4);
+    }
+
+    /// <summary>
+    /// Detail gain of the virtual grid's pyramid (#180, GUI-C-104). 1.0 leaves the detail bands as they
+    /// are, and the pyramid then decomposes and rebuilds the image unchanged — measured: with levels 4
+    /// and gain 1.0 the drawn pixels are byte-identical to levels 0, at ~10 ms extra cost. The levels
+    /// setting is therefore only observable together with this one.
+    ///
+    /// Default 1.0, so today's output does not move by adding the setting. Range 0.1..4.0; the module
+    /// requires gain 1.0 exactly when levels is 0, which is why neither key is sent in that case.
+    /// </summary>
+    [JsonPropertyName("gsvgPyramidGain")]
+    public double GsvgPyramidGain
+    {
+        get => _gsvgPyramidGain;
+        set => SetProperty(ref _gsvgPyramidGain, value is >= 0.1 and <= 4.0 ? value : 1.0);
     }
 
     [JsonPropertyName("lastRunSetId")]

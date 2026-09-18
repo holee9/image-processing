@@ -33,6 +33,12 @@ internal sealed record GsvgConfig
 
     [JsonPropertyName("vg_iterations")] public int? Iterations { get; init; }
 
+    /// <summary>Laplacian pyramid levels; 0 (sent as absent) leaves the pyramid and de-noise steps off.</summary>
+    [JsonPropertyName("vg_pyramid_levels")] public int? PyramidLevels { get; init; }
+
+    /// <summary>Detail gain; only meaningful with the pyramid on, and 1.0 makes the pyramid a no-op.</summary>
+    [JsonPropertyName("vg_pyramid_gain")] public double? PyramidGain { get; init; }
+
     private static readonly JsonSerializerOptions Options = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -103,6 +109,10 @@ internal static class GuiGsvgRunner
             PixelPitchMm = virtualGrid ? settings.PixelPitchMm : null,
             AirSignal = virtualGrid ? settings.GsvgAirSignal : null,
             Iterations = virtualGrid ? settings.GsvgIterations : null,
+            // 0 means off, and the module rejects a config that carries the pyramid's companion
+            // values with levels 0 — so off is expressed by omitting the key, not by sending 0.
+            PyramidLevels = virtualGrid && settings.GsvgPyramidLevels > 0 ? settings.GsvgPyramidLevels : null,
+            PyramidGain = virtualGrid && settings.GsvgPyramidLevels > 0 ? settings.GsvgPyramidGain : null,
         };
 
         var handle = IntPtr.Zero;

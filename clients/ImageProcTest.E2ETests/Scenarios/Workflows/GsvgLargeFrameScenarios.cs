@@ -342,6 +342,175 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0.0;
     }
 
+    /// <summary>
+    /// P-08 (GUI-C-104): a performance regression gate built from what the APP measured, not from what
+    /// the harness observed. GUI-C-103 established why: invoking the button through UI automation costs
+    /// ~2 s against an app that works in ~20 ms, so an outside figure cannot see the app move at all.
+    ///
+    /// <para>Both figures read here come from inside the process — the chain's per-stage stopwatch and
+    /// the view model's pipeline split — and reach the test through the exported report. No part of the
+    /// automation cost is in either number.</para>
+    ///
+    /// <para>The gate is stated as a multiple of a measured baseline, and the run prints median / p95 /
+    /// max so the next person can re-derive it rather than trust it. It guards Native only, and CI runs
+    /// the GUI suite on Mock — so this catches a regression HERE, not on CI (stated, not assumed).</para>
+    /// </summary>
+    [SkippableFact]
+    public void P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            MeasureRender(window);          // warm: the first apply also pays one-off costs
+
+            var stageMs = new List<double>();
+            for (var i = 0; i < Repeats; i++) stageMs.Add(MeasureRender(window).StageMs);
+
+            stageMs.Sort();
+            var median = stageMs[stageMs.Count / 2];
+            var p95 = stageMs[(int)Math.Floor((stageMs.Count - 1) * 0.95)];
+            var max = stageMs[^1];
+            output.WriteLine($"P08 gsvg stage over {Repeats} runs: median={median:0.0} p95={p95:0.0} max={max:0.0} ms " +
+                             $"[{string.Join(", ", stageMs.Select(v => v.ToString("0")))}]");
+            output.WriteLine($"P08 spread max/median = {max / Math.Max(1.0, median):0.00}x; gate = {GateMs} ms");
+
+            Assert.True(median < GateMs,
+                $"The GSVG stage's median rose to {median:0} ms against a {GateMs} ms gate " +
+                $"(baseline {BaselineMs} ms, measured spread {max / Math.Max(1.0, median):0.00}x). " +
+                "Either the stage got slower or the baseline needs re-measuring — do not raise the gate without re-measuring.");
+        }
+        finally
+        {
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>How many applies P-08 times. Odd, so the median is an observed value rather than a mean.</summary>
+    private const int Repeats = 7;
+
+    /// <summary>
+    /// Median GSVG stage time on this frame at the app's DEFAULT settings. Re-measure before changing
+    /// it; a number moved to make a run pass is not a baseline.
+    ///
+    /// <para>It moved once already, and the move is the point: the first baseline was 27 ms, measured
+    /// while the GUI sent no <c>vg_pyramid_levels</c> key at all. Defaulting that setting to 4 (this
+    /// same card) put the Laplacian pyramid back into every virtual-grid run, and this gate went red at
+    /// 51 ms against a 45 ms limit — on a change that was intended. The baseline was then re-measured
+    /// under the new default rather than the gate relaxed; the two are not the same act.</para>
+    /// </summary>
+    private const double BaselineMs = 50.0;
+
+    /// <summary>
+    /// The gate, derived from measurement rather than padded:
+    ///
+    /// <list type="bullet">
+    /// <item>3 runs x 7 applies = 21 samples at the default settings: medians 50 / 49 / 50 ms,
+    /// worst single sample 59 ms.</item>
+    /// <item>Observed spread is therefore 59/50 = 1.18x of the median.</item>
+    /// <item>The gate allows that spread again on top, for machine load these quiet runs did not see:
+    /// 50 x 1.18 x 1.36 = 80 ms, which is 1.36x the worst sample actually observed.</item>
+    /// </list>
+    ///
+    /// The 1.36 factor is carried over from the first derivation of this gate so the two are comparable;
+    /// it is slack for load, not a safety margin against the code. Raising this is only honest after
+    /// re-running P-08 and recording the new spread — a number moved to make a red run green is not a gate.
+    /// </summary>
+    private const double GateMs = 80.0;
+
+    /// <summary>
+    /// P-09 (GUI-C-104): the pyramid-levels setting reaches the drawn pixels. GUI-C-103 measured that
+    /// omitting <c>vg_pyramid_levels</c> left the module's whole Laplacian-pyramid and de-noise step
+    /// unrun — the setting existing is not evidence it is connected, so this asserts on what was drawn.
+    ///
+    /// <para>Levels ALONE cannot change the pixels, and this case says so rather than hiding it: with
+    /// gain 1.0 the pyramid subtracts each detail band and adds it straight back, so it rebuilds the
+    /// image exactly (virtual_grid.cpp PyramidContrast; the field comment reads "1 = unchanged").
+    /// Measured: levels 0 and levels 4 give a byte-identical drawn hash, at ~10 ms extra cost. The
+    /// connection is therefore asserted with the gain moved off 1.0, which is the only way the setting
+    /// reaches a pixel. The stage cost is reported but not asserted — one machine cannot gate it.</para>
+    /// </summary>
+    [SkippableFact]
+    public void P09_PyramidLevels_ChangeTheDrawnPixels()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgPyramidLevelsInput", "0");
+            var off = MeasureRender(window);
+            var offHash = Field(window, "processed");
+            var offMean = Mean(window);
+            Assert.True(Regex.IsMatch(off.Status, @"gsvg=Applied\b"), $"The pyramid-off render did not apply: {off.Status}");
+
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            var unity = MeasureRender(window);
+            var unityHash = Field(window, "processed");
+            var unityMean = Mean(window);
+            Assert.True(Regex.IsMatch(unity.Status, @"gsvg=Applied\b"), $"The pyramid-on render did not apply: {unity.Status}");
+
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
+            var gained = MeasureRender(window);
+            var gainedHash = Field(window, "processed");
+            var gainedMean = Mean(window);
+            Assert.True(Regex.IsMatch(gained.Status, @"gsvg=Applied\b"), $"The gain render did not apply: {gained.Status}");
+
+            output.WriteLine($"P09 levels=0          : hash={offHash} mean={offMean:0.000} stage={off.StageMs:0} ms");
+            output.WriteLine($"P09 levels=4 gain=1.0 : hash={unityHash} mean={unityMean:0.000} stage={unity.StageMs:0} ms");
+            output.WriteLine($"P09 levels=4 gain=1.3 : hash={gainedHash} mean={gainedMean:0.000} stage={gained.StageMs:0} ms " +
+                             $"(dMean vs off={Math.Abs(gainedMean - offMean):0.000})");
+
+            Assert.Equal(offHash, unityHash);      // measured: gain 1.0 rebuilds the image exactly
+            Assert.NotEqual(offHash, gainedHash);  // the settings do reach the drawn pixels
+        }
+        finally
+        {
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// P-10 (GUI-C-104): the preview-bitmap change kept the pixels. GUI-C-103 measured the preview as the
+    /// largest phase of the app's own work (~10 ms of ~16 ms), and the change removed the per-pixel
+    /// interface dispatch in its two loops. Only the dispatch went — the arithmetic is the same — so the
+    /// drawn hash must be the one recorded before the change.
+    ///
+    /// <para>The hash is pinned rather than compared against a second run of the same build: comparing a
+    /// build with itself cannot tell a preserved output from a consistently wrong one.</para>
+    /// </summary>
+    [SkippableFact]
+    public void P10_ThePreviewChange_KeptTheDrawnPixels()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgPyramidLevelsInput", "0");
+            SetNumber(window, "GsvgGridFrequencyInput", "60");
+            SetNumber(window, "GsvgAirSignalInput", "60000");
+            var render = MeasureRender(window);
+
+            output.WriteLine($"P10 hash={Field(window, "processed")} mean={Mean(window):0.000}");
+            Assert.Equal(PreviewBaselineHash, Field(window, "processed"));
+        }
+        finally
+        {
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// The drawn hash of the virtual-grid frame at the documented settings, recorded BEFORE the preview
+    /// change (GUI-C-102 P-03 baseline, and again in GUI-C-103). It is the control for P-10.
+    /// </summary>
+    private const string PreviewBaselineHash = "36fc547e253b07f1";
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private sealed record Render(double TotalMs, double StageMs, string Status);

@@ -470,6 +470,8 @@ public sealed class MainWindowViewModel : ObservableObject
         || a.GsvgGridFrequencyPerCm != b.GsvgGridFrequencyPerCm
         || a.GsvgAirSignal != b.GsvgAirSignal
         || a.GsvgIterations != b.GsvgIterations
+        || a.GsvgPyramidLevels != b.GsvgPyramidLevels
+        || Math.Abs(a.GsvgPyramidGain - b.GsvgPyramidGain) > 0.0001
         || a.PixelPitchMm != b.PixelPitchMm
         || a.ExposureKvp != b.ExposureKvp
         || !string.Equals(a.OffsetCalibrationDirectory, b.OffsetCalibrationDirectory, StringComparison.Ordinal)
