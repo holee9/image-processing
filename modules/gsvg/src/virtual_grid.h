@@ -110,10 +110,11 @@ struct VgSettings {
     double pixelPitchMm = 0;
     double airSignal = 0;       // I0: detector signal without an object [DN]
     int    iterations = 0;      // >= 1
-    // Optional post-steps: pyramidLevels == 0 means neither step runs.
-    int    pyramidLevels = 0;   // 4..8 when used
-    double pyramidGain = 1.0;   // detail gain (1 = unchanged)
-    double denoiseK = 0.0;      // 0 = off; soft threshold k * sigma on the finest band
+    // Post-steps. REQ-GSVG-013 asks for a 4..8 level Laplacian pyramid, so the
+    // default runs one (QA-B-111, #180); 0 turns both post-steps off.
+    int    pyramidLevels = 4;   // 0 = off, otherwise 4..8
+    double pyramidGain = 1.3;   // detail gain (1 = unchanged)
+    double denoiseK = 2.0;      // 0 = off; soft threshold k * sigma on the finest band
 };
 
 // SPR / over-correction guard (QA-B-94 compares these on synthetic scenes).

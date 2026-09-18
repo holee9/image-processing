@@ -377,20 +377,45 @@ TEST(GsvgVirtualGridMcMask, MaskEqualsZeroedInput)
         const vg::ParamTable t = McTable(false);
         const std::vector<uint8_t> mask = FieldMask(p);
 
+        // The equality is a property of the SUBTRACTION stage, and it needs the
+        // post-steps off (QA-B-111). With the default pyramid on, the two paths
+        // see different values outside the mask -- zero on the zeroed input,
+        // the replicated edge on the masked one -- and the pyramid carries that
+        // difference inside: measured up to 1903 DN on this phantom. That is
+        // the mask-outside choice doing its job, not a defect in the mask.
+        vg::VgSettings st = McSettings();
+        st.pyramidLevels = 0;
+        st.pyramidGain = 1.0;     // levels 0 requires these two (see RunVirtualGrid)
+        st.denoiseK = 0.0;
         std::vector<double> zeroed = Collimated(p);
-        ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, McSettings()).error, "");
+        ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, st).error, "");
         std::vector<double> masked = p.total;
-        ASSERT_EQ(vg::RunVirtualGrid(masked, kN, kN, t, McSettings(), vg::VgSwitches{}, mask.data()).error, "");
+        ASSERT_EQ(vg::RunVirtualGrid(masked, kN, kN, t, st, vg::VgSwitches{}, mask.data()).error, "");
 
+        // Inside the field the two paths agree to the last bits, not exactly:
+        // since QA-B-111 the post-steps run by default, and they see different
+        // values outside the mask on the two paths, so the pyramid's sums are
+        // added in a different order. Measured worst relative difference
+        // 2.9e-16 (step) / 1.6e-16 (wedge). Outside the field the mask path
+        // still returns the input untouched, which stays exact.
         size_t inside = 0, outside = 0;
+        double worstRel = 0;
         for (size_t i = 0; i < masked.size(); ++i) {
-            if (mask[i]) { ASSERT_EQ(masked[i], zeroed[i]) << i; ++inside; }
-            else { ASSERT_EQ(masked[i], p.total[i]) << i; ++outside; }
+            if (mask[i]) {
+                if (zeroed[i] != 0)
+                    worstRel = std::max(worstRel, std::fabs(masked[i] - zeroed[i]) / std::fabs(zeroed[i]));
+                ASSERT_NEAR(masked[i], zeroed[i], 1e-12 * std::fabs(zeroed[i])) << i;
+                ++inside;
+            } else {
+                ASSERT_EQ(masked[i], p.total[i]) << i;
+                ++outside;
+            }
         }
+        std::printf("VGMC %s mask-vs-zeroed worst|rel|=%.3g\n", name, worstRel);
         const Metrics mm = Measure(masked, p), mz = Measure(zeroed, p);
         std::printf("VGMC %s mask inside=%zu outside=%zu median masked=%.4f zeroed=%.4f\n",
                     name, inside, outside, mm.median, mz.median);
-        EXPECT_EQ(mm.median, mz.median);
+        EXPECT_NEAR(mm.median, mz.median, 1e-12 * mz.median);
         EXPECT_GT(outside, 0u);
     }
 }
@@ -399,12 +424,19 @@ TEST(GsvgVirtualGridMcMask, MaskEqualsZeroedInput)
 // field is read as object and too much is subtracted near it.
 TEST(GsvgVirtualGridMcMask, NoMaskOverSubtracts)
 {
+    // Post-steps off: this records what the SUBTRACTION does without a mask
+    // (QA-B-111 -- the default now runs a pyramid, which moves these numbers
+    // for a reason that has nothing to do with the mask).
     const struct { const char* name; double min; } expected[] = {{"step", 0.7275}, {"wedge", 0.7694}};
     for (const auto& e : expected) {
         SCOPED_TRACE(e.name);
         const Phantom p = Load(e.name);
         std::vector<double> img = p.total;
-        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, McTable(false), McSettings()).error, "");
+        vg::VgSettings st = McSettings();
+        st.pyramidLevels = 0;
+        st.pyramidGain = 1.0;     // levels 0 requires these two (see RunVirtualGrid)
+        st.denoiseK = 0.0;
+        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, McTable(false), st).error, "");
         const Metrics m = Measure(img, p);
         std::printf("VGMC %s nomask min=%.4f median=%.4f\n", e.name, m.lo, m.median);
         EXPECT_NEAR(m.lo, e.min, 5e-4);
@@ -455,7 +487,10 @@ TEST(GsvgVirtualGridMcMask, PublicEntryPoint)
     std::string path = tablePath.generic_string();
     const std::string cfg = "{\"virtual_grid\": true, \"vg_table_path\": \"" + path +
         "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 100, \"vg_pixel_pitch_mm\": 4.0,"
-        " \"vg_air_signal\": 50000, \"vg_iterations\": 5}";
+        " \"vg_air_signal\": 50000, \"vg_iterations\": 5,"
+        // Post-steps off: this case is the same subtraction-stage equality as
+        // MaskEqualsZeroedInput, through the public entry points (QA-B-111).
+        " \"vg_pyramid_levels\": 0, \"vg_pyramid_gain\": 1, \"vg_denoise_k\": 0}";
 
     std::vector<uint16_t> src(p.total.size()), srcZeroed(p.total.size());
     for (size_t i = 0; i < src.size(); ++i) {
