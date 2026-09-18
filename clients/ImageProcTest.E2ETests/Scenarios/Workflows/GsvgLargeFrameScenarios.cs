@@ -468,13 +468,26 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         /// 84 ms, worst 92 ms, spread 92/84 = 1.10x — measured in CI run 35294573612's gui-e2e-native
         /// job. Same derivation as the dev profile: 84 x 1.10 x 1.36 = 126 ms.
         ///
-        /// <para>PROVISIONAL, on two counts named rather than hidden. First, those 7 samples were taken
-        /// at the GUI-C-104 code, BEFORE the de-noise pass joined the defaults; on this machine that pass
-        /// moved the median, so CI's is expected to move too — and expected is not measured, which is why
-        /// this is not derived by converting the dev number. Second, one run cannot show how far a MEDIAN
-        /// wanders between runs, so this gate still carries the raw-sample spread (1.10x) where the dev
-        /// gate now carries a median spread (1.016x) — the two are not derived from the same statistic
-        /// yet. Both are fixed by CI runs on this code: several of them, at 21 applies each.</para>
+        /// <para>PROVISIONAL, and now known to be loose. Where 84 came from: ONE CI run (35294573612),
+        /// 7 applies, at the GUI-C-104 code — before the de-noise pass joined the defaults and before the
+        /// repeat count went to 21. It is recorded here because a gate whose provenance is missing cannot
+        /// be re-derived, only replaced.</para>
+        ///
+        /// <para>Collected since, at THIS code and 21 applies:</para>
+        ///
+        /// <list type="bullet">
+        /// <item>run 35399591335 — median 64 ms, worst 80, spread 1.25x; profile picked correctly
+        /// (cores=4, hostedRunner=True).</item>
+        /// </list>
+        ///
+        /// <para>That is 1 of the 5 runs needed to size slack by the spread of the MEDIAN, the way the dev
+        /// profile is sized. It already contradicts the number above: 64 ms here against 62 ms on the dev
+        /// machine is 1.03x, where the earlier pair (84 vs 50) read as 1.68x. So this gate's detection
+        /// floor is currently 126/64 = 1.97x — far looser than the dev profile's 1.39x.</para>
+        ///
+        /// <para>It is NOT adjusted yet, on the lead's decision and for the obvious reason: one sample
+        /// cannot show how far a median wanders between runs, and changing a gate from a statistic that
+        /// was never measured is the mistake this whole line of work exists to avoid. Frozen until 5.</para>
         /// </summary>
         private static readonly MachineProfile Ci = new("ci", 84.0, 126.0, 0, true);
 
