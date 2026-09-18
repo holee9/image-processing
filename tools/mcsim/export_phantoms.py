@@ -39,6 +39,9 @@ def main():
     ap.add_argument("wet_table")
     ap.add_argument("--kvp", type=float, default=80.0)
     ap.add_argument("--export")
+    ap.add_argument("--name-suffix", default="",
+                    help="appended to the exported file stem, so a second "
+                         "geometry does not overwrite the first")
     ap.add_argument("--dn-air", type=float, default=50000.0)
     a = ap.parse_args()
     tag = "%gkVp" % a.kvp
@@ -47,7 +50,12 @@ def main():
     n = ameta["pixels"]
     pitch = ameta["det_size_cm"] / n
     c = (np.arange(n) + 0.5) * pitch - ameta["det_size_cm"] / 2
-    field = (np.abs(c) < 15 - pitch)                  # pixels fully inside the 30 cm field
+    # QA-A-114 (#180): the field is a parameter now, so read it from the run's
+    # own metadata instead of assuming the 30 cm of QA-A-98. A 5 cm field read
+    # as 30 cm would call the scatter-only margin "in field" and compare it
+    # against the [wet] curve, which describes primary transmission only.
+    half = float(ameta.get("field_cm_at_detector", 30.0)) / 2.0
+    field = (np.abs(c) < half - pitch)                # pixels fully inside the field
     i0 = air["p_csi"]
     i0_c = float(i0[n // 2 - 1:n // 2 + 1, n // 2 - 1:n // 2 + 1].mean())
     w0, wa, wb = wet(a.wet_table, a.kvp)
@@ -66,7 +74,7 @@ def main():
         print("\n%s (%s): primary counts in field min %d, rel. SEM max %.3f" % (
             kind, tag, cnt[np.ix_(field, field)].min(), 1 / math.sqrt(cnt[np.ix_(field, field)].min())))
         print("  x_cm   path_cm   L_mc     L_wet    L_mc-L_wet   SPR")
-        for ix in range(0, n, 4):
+        for ix in range(0, n, max(1, n // 16)):
             if not field[ix]:
                 continue
             print("  %6.1f  %6.2f  %7.4f  %7.4f  %+8.4f  %6.3f" % (c[ix], tt[ix], L[ix], Lw[ix], L[ix] - Lw[ix], spr[ix]))
@@ -74,7 +82,7 @@ def main():
         print("  |L_mc - L_wet| over the field: median %.4f max %.4f" % (np.median(np.abs(d)), np.abs(d).max()))
         if a.export:
             os.makedirs(a.export, exist_ok=True)
-            name = "%s_%s" % (kind, tag)
+            name = "%s_%s%s" % (kind, tag, a.name_suffix)
             for key, arr in (("primary", p), ("total", t), ("air", i0), ("thickness", th)):
                 arr.astype("<f4").tofile(os.path.join(a.export, "%s_%s.f32" % (name, key)))
             info = dict(meta)

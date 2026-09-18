@@ -45,17 +45,27 @@ BOX_X, BOX_Y, BOX_Z = 40.0, 30.0, 40.0
 VOX_X, VOX_Y = 0.5, 0.5
 AIR_GAP, SDD = 2.0, 100.0
 
+# QA-A-114 (#180): the thickness pattern has to fit inside the irradiated field,
+# and the field is a parameter now. At the original 30 cm field the steps were
+# 5 cm wide across x = -15..15; at a 5 cm field they would all fall outside it.
+# SPAN is the half-width of the patterned region in phantom coordinates and
+# STEP_W the width of one step, both set from the command line.
+SPAN, STEP_W = 15.0, 5.0
+T_LO, T_HI = 5.0, 30.0
+
 
 def thickness_profile(kind, x):
     """Water thickness [cm] at phantom coordinate x (0 = axis)."""
     if kind == "step":
-        if x < -15:
-            return 5.0
-        if x >= 15:
-            return 30.0
-        return 5.0 * (1 + int((x + 15) // 5))
+        if x < -SPAN:
+            return T_LO
+        if x >= SPAN:
+            return T_HI
+        n = int((x + SPAN) // STEP_W)
+        return T_LO + (T_HI - T_LO) * n / max(1, int(round(2 * SPAN / STEP_W)) - 1)
     if kind == "wedge":
-        return float(np.clip(5.0 + 25.0 * (x + 15.0) / 30.0, 5.0, 30.0))
+        return float(np.clip(T_LO + (T_HI - T_LO) * (x + SPAN) / (2 * SPAN),
+                             T_LO, T_HI))
     if kind == "air":
         return 0.0
     raise ValueError(kind)
@@ -85,11 +95,11 @@ def write_voxels(path, kind):
     return np.array(t_col)
 
 
-def write_input(d, kvp, seed, hist, det_size, pixels, mat_dir):
+def write_input(d, kvp, seed, hist, det_size, pixels, mat_dir, field):
     # reuse gen_slab_input for the spectrum and the input skeleton, then point it at our voxels
     gen = [sys.executable, os.path.join(pc.HERE, "gen_slab_input.py"), "--out", d,
            "--thickness", str(BOX_Y), "--kvp", str(kvp), "--al", "2.5", "--sdd", str(SDD),
-           "--air-gap", str(AIR_GAP), "--field", "30", "--det-size", str(det_size),
+           "--air-gap", str(AIR_GAP), "--field", str(field), "--det-size", str(det_size),
            "--pixels", str(pixels), "--histories", "%g" % hist, "--seed", str(seed),
            "--pcd", "0", str(pc.EMAX_EV), str(pc.NBIN), "--mat-dir", mat_dir, "--slab-xz", str(BOX_X)]
     subprocess.run(gen, check=True, stdout=subprocess.DEVNULL)
@@ -125,6 +135,13 @@ def main():
     ap.add_argument("--histories", type=float, default=1e8)
     ap.add_argument("--det-size", type=float, default=32.0)
     ap.add_argument("--pixels", type=int, default=80)
+    ap.add_argument("--field", type=float, default=30.0,
+                    help="irradiated field side at the detector [cm]")
+    ap.add_argument("--vox-x", type=float, default=0.5,
+                    help="lateral voxel size [cm]; a small field needs a fine one")
+    ap.add_argument("--span", type=float, default=15.0,
+                    help="half-width of the patterned region in phantom coords [cm]")
+    ap.add_argument("--step-width", type=float, default=5.0)
     ap.add_argument("--csi-um", type=float, default=600.0)
     ap.add_argument("--seed0", type=int, default=777000000)
     ap.add_argument("--out", required=True)
@@ -133,6 +150,9 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     name = "%s_%gkVp" % (a.kind, a.kvp)
     d = os.path.join(a.out, "tmp_" + name)
+    global VOX_X, SPAN, STEP_W
+    VOX_X, SPAN, STEP_W = a.vox_x, a.span, a.step_width
+
     det = dict(size=a.det_size, pixels=a.pixels)
 
     ec = (np.arange(pc.NBIN) + 0.5) * pc.EMAX_EV / pc.NBIN
@@ -144,7 +164,8 @@ def main():
     t_col = None
     for i in range(a.launches):
         shutil.rmtree(d, ignore_errors=True)
-        write_input(d, a.kvp, a.seed0 + i, a.histories, a.det_size, a.pixels, a.mat_dir)
+        write_input(d, a.kvp, a.seed0 + i, a.histories, a.det_size, a.pixels,
+                        a.mat_dir, a.field)
         t_col = write_voxels(os.path.join(d, "slab.vox"), a.kind)
         with open(os.path.join(d, "mcgpu.log"), "w") as log:
             rc = subprocess.run([pc.PCD_BIN, "run.in"], cwd=d, stdout=log, stderr=subprocess.STDOUT).returncode
@@ -175,7 +196,9 @@ def main():
     np.savez_compressed(os.path.join(a.out, name + ".npz"), **res, t_col=t_col)
     meta = dict(kind=a.kind, kvp=a.kvp, launches=a.launches, histories_total=hist,
                 det_size_cm=a.det_size, pixels=n, pixel_pitch_mm=10 * a.det_size / n,
-                sdd_cm=SDD, air_gap_cm=AIR_GAP, field_cm_at_detector=30.0, csi_um=a.csi_um,
+                sdd_cm=SDD, air_gap_cm=AIR_GAP,
+                field_cm_at_detector=a.field, csi_um=a.csi_um,
+                span_cm=SPAN, step_width_cm=STEP_W,
                 box_cm=[BOX_X, BOX_Y, BOX_Z], voxel_cm=[VOX_X, VOX_Y, BOX_Z],
                 date=datetime.date.today().isoformat(),
                 primary_counts_min_in_field=float(res["primary_counts"][n // 2 - 30: n // 2 + 30, n // 2 - 30: n // 2 + 30].min()),
