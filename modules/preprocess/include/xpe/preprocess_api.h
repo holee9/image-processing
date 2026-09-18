@@ -91,9 +91,16 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * maps may be loaded before xpe_preprocess_init(); a shutdown at that point
  * releases them too (it is not a no-op).
  *
- * Does not reset the calibration mode set by xpe_calib_set_mode() or the
- * quality metadata returned by xpe_calib_get_quality_meta(); both keep their
- * values across shutdown and re-initialization.
+ * Clears EVERY module global: the calibration maps, the calibration mode set by
+ * xpe_calib_set_mode() (back to the FUNC-031 default XPE_CALIB_MULTI_POINT_8),
+ * and the quality metadata returned by xpe_calib_get_quality_meta().
+ *
+ * Until QA-A-120 (#176) it cleared only the maps and left the other two alive
+ * across shutdown and re-initialization. That was not a contract but an
+ * omission the header had been updated to describe (QA-A-90 aligned the text to
+ * the behaviour rather than the other way round): a caller reads "shutdown" and
+ * is entitled to a module in its start-up state, and a function that clears one
+ * of three globals has a name that describes less than it does.
  */
 XPE_API void xpe_preprocess_shutdown(void);
 
