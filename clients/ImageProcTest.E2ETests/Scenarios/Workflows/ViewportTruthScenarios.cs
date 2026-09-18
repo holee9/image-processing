@@ -55,6 +55,63 @@ public sealed class ViewportTruthScenarios(WorkflowApplicationFixture app, ITest
     }
 
     /// <summary>
+    /// W-28 (#173, GUI-C-111): the viewport DREW the image — not merely received it.
+    ///
+    /// <para>W-20 above reads what the control was handed (its dependency properties). That is what
+    /// #172 broke, and it is the right check for that defect. It is not the same claim as "something is
+    /// on screen": a control can hold both images and still draw nothing, and this suite has no pixel
+    /// capture to notice (GUI-C-72, GUI-C-78). So this case reads the render pass instead — the mode the
+    /// last frame drew, the hash of the processed pixels it composed, and their mean brightness. All
+    /// three are written INSIDE OnRender, so they cannot be true while the screen is blank.</para>
+    ///
+    /// <para>What this deliberately does NOT check: that the binding expressions name the right
+    /// properties. They named the wrong ones for four months and every string-level check agreed with
+    /// them — the bindings existed, the pipeline behind the names did not. A check that reads names
+    /// would have agreed too.</para>
+    ///
+    /// <para>The mean is asserted above zero, not merely present: an all-black frame hashes to a
+    /// perfectly good value, and "drew a black rectangle" is the failure this is meant to exclude.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W28_MainViewport_DrewTheImage()
+    {
+        Measure("W28", window =>
+        {
+            var help = ViewportHelp(window);
+            output.WriteLine($"W28 help='{help}'");
+
+            var mode = Regex.Match(help, @"^rendered=(?<m>[^;]+)");
+            Assert.True(mode.Success, $"The viewport peer reported '{help}', which names no rendered mode.");
+            Assert.True(
+                mode.Groups["m"].Value.Trim() is not ("none" or ""),
+                $"The last frame drew mode '{mode.Groups["m"].Value.Trim()}' — the viewport rendered its " +
+                $"empty state, so nothing of the loaded image is on screen ({help}).");
+
+            var hash = Regex.Match(help, @"processed=(?<h>[0-9a-f]{16})");
+            Assert.True(hash.Success,
+                $"The frame reported no processed-pixel hash, so it composed no processed layer: '{help}'.");
+
+            var mean = Regex.Match(help, @"processedMean=(?<v>-?[0-9.]+)");
+            Assert.True(mean.Success, $"The frame reported no mean brightness: '{help}'.");
+            var value = double.Parse(mean.Groups["v"].Value, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            output.WriteLine($"W28 drawn mode={mode.Groups["m"].Value.Trim()} hash={hash.Groups["h"].Value} mean={value:0.000}");
+            Assert.True(value > 0.0,
+                $"The frame drew a processed layer whose mean brightness is {value:0.###} — a blank frame. " +
+                "Receiving an image and drawing it are different claims (#173).");
+        });
+    }
+
+    /// <summary>The viewport peer's HelpText: what the last frame DREW, as opposed to what it received.</summary>
+    private static string ViewportHelp(Window window)
+    {
+        var element = window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"));
+        Assert.True(element is not null, "WorkbenchViewport is not in the automation tree.");
+        return element!.HelpText ?? string.Empty;
+    }
+
+    /// <summary>
     /// W-21 (#171 ②): the HUD beside the image names the window that PRODUCED it.
     ///
     /// <para>GUI-C-77 measured the old HUD reading <c>C 12345</c> beside an image rendered at
