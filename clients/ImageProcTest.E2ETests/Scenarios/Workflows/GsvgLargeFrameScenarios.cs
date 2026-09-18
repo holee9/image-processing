@@ -408,8 +408,18 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         }
     }
 
-    /// <summary>How many applies P-08 times. Odd, so the median is an observed value rather than a mean.</summary>
-    private const int Repeats = 7;
+    /// <summary>
+    /// How many applies P-08 times. Odd, so the median is an observed value rather than a mean.
+    ///
+    /// <para>It was 7, and raising it to 21 is what let the gate tighten (GUI-C-107). The gate judges a
+    /// MEDIAN, so the slack it needs is the spread of that median across runs — not the spread of raw
+    /// samples, which a single outlier moves. At 7 applies the sample spread was 1.18x and the median
+    /// still wandered; at 21 the medians of five consecutive runs were 61 / 61 / 62 / 62 / 62 ms, a
+    /// spread of 1.016x. The noise came out of the statistic rather than out of the limit.</para>
+    ///
+    /// <para>Cost: about 50 s a run instead of 17 s. That is paid on every Native run, here and on CI.</para>
+    /// </summary>
+    private const int Repeats = 21;
 
     /// <summary>
     /// Which machine this is running on, and the gate that was measured FOR that machine.
@@ -432,9 +442,17 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     private sealed record MachineProfile(string Name, double BaselineMs, double GateMs, int Cores, bool HostedRunner)
     {
         /// <summary>
-        /// Dev machine (i7-12700 class, 25.5 GB/s): 3 runs x 7 applies = 21 samples at the current
-        /// defaults against gsvg.dll from CI run 35294573612 — medians 65 / 66 / 65 ms, worst 77 ms.
-        /// Spread 77/65 = 1.18x; gate 65 x 1.18 x 1.36 = 104, rounded to 105.
+        /// Dev machine (i7-12700 class, 20 logical cores, 25.5 GB/s), gsvg.dll from CI run 35294573612:
+        /// 5 runs x 21 applies = 105 samples, medians 61 / 61 / 62 / 62 / 62 ms, worst single sample 69 ms.
+        ///
+        /// <para>The slack is sized by the spread of the MEDIAN, because the median is what the gate
+        /// judges: 62/61 = 1.016x. Gate = 62 x 1.016 x 1.36 = 86 ms. Detection floor 86/62 = 1.39x.</para>
+        ///
+        /// <para>The earlier form of this number was 105 ms, derived at 7 applies a run from the spread
+        /// of raw samples (1.18x). Nothing was shaved off the 1.36 load allowance to get from there to
+        /// here — that factor is unchanged. What changed is that the measurement got quieter, so the
+        /// noise term fell from 1.18 to 1.016 and carried the gate down with it. Measured consequence:
+        /// a 1.38x regression (iterations 9, median 90 ms) passed the 105 ms gate and fails this one.</para>
         ///
         /// The baseline has moved three times before this and each move is recorded in git rather than
         /// smoothed over: 27 ms (the GUI sent no pyramid keys, so the module left the pyramid off),
@@ -443,19 +461,20 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         /// newer gsvg.dll). Every step re-measured under the new workload; none widened a gate to fit
         /// a red run. That distinction is the whole value of these numbers.
         /// </summary>
-        private static readonly MachineProfile Dev = new("dev", 65.0, 105.0, 0, false);
+        private static readonly MachineProfile Dev = new("dev", 62.0, 86.0, 0, false);
 
         /// <summary>
         /// CI runner (Xeon 6973P-C, 4 logical cores, 19.4 GB/s): 1 run x 7 applies = 7 samples, median
         /// 84 ms, worst 92 ms, spread 92/84 = 1.10x — measured in CI run 35294573612's gui-e2e-native
         /// job. Same derivation as the dev profile: 84 x 1.10 x 1.36 = 126 ms.
         ///
-        /// <para>PROVISIONAL, and the gap is named rather than hidden: those 7 samples were taken at
-        /// the GUI-C-104 code, BEFORE the de-noise pass joined the defaults. On this machine that pass
-        /// moved the median from 50 to 65 ms, so the CI median is expected to rise too — but expected
-        /// is not measured, and the lead's card forbids deriving a CI gate by conversion. The number
-        /// below therefore stands on CI's own samples only, and is re-derived once a CI run on this
-        /// code reports its own. Until then the honest risk is a false red on CI, which is visible.</para>
+        /// <para>PROVISIONAL, on two counts named rather than hidden. First, those 7 samples were taken
+        /// at the GUI-C-104 code, BEFORE the de-noise pass joined the defaults; on this machine that pass
+        /// moved the median, so CI's is expected to move too — and expected is not measured, which is why
+        /// this is not derived by converting the dev number. Second, one run cannot show how far a MEDIAN
+        /// wanders between runs, so this gate still carries the raw-sample spread (1.10x) where the dev
+        /// gate now carries a median spread (1.016x) — the two are not derived from the same statistic
+        /// yet. Both are fixed by CI runs on this code: several of them, at 21 applies each.</para>
         /// </summary>
         private static readonly MachineProfile Ci = new("ci", 84.0, 126.0, 0, true);
 
