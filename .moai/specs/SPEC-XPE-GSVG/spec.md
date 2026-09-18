@@ -182,6 +182,14 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Verification**: Test
 - **Status**: **Implemented (tested)** — `ScatterEstimate`(표의 gauss4 커널 중첩, 축소 격자), `…ConvolutionKeepsTheTableNormalisation`, `GsvgVirtualGridTable.Gauss4RowsWinOverGauss2`
 
+
+> **MC 진짜 산란과의 직접 비교 (2026-09-19, QA-B-125)**: 추정/진짜 비 중앙값 **1.008**
+> (p05 0.964, p95 1.046). 합성 자료로는 불가능한 비교입니다.
+>
+> **[한계] 완전한 독립 검증이 아닙니다.** 이 커널 표는 **같은 MC 코드로 적합**된 것입니다
+> (`tools/mcsim/fit_kernels.py`). 팬텀 장면(계단·쐐기)이 적합 자료(균일 슬래브)와 다르다는
+> 점에서만 부분적으로 독립입니다. **"MC 로 검증됨" 으로 읽지 마십시오.**
+
 ### REQ-GSVG-012: Scatter Subtraction
 
 **When** scatter distribution is estimated,
@@ -309,7 +317,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Overcorrection artifacts can cause misdiagnosis (HAZ-003)
 - **Verification**: Test + Review
-- **Status**: **Partial** — 상한(CapMode GlobalSum)으로 과보정을 막습니다(`GsvgVirtualGridFalsify.SprCapPreventsOvercorrection`). **계단 경계에서 17–40% 덜 뺍니다**(QA-B-95) — "인공물 없음" 의 합격 기준 결정 대기 **잠정 기준 (사용자 결정 2026-09-18)**: 계단 경계 두꺼운 쪽의 덜 뺌 비율이 **현재(17–40%)보다 커지면 실패**. 회귀 방지선이며 임상 합격선이 아닙니다.
+- **Status**: **Partial** — 상한(CapMode GlobalSum)으로 과보정을 막습니다(`GsvgVirtualGridFalsify.SprCapPreventsOvercorrection`). **계단 경계에서 덜 뺍니다** — 512² 팬텀 재측정(QA-B-123)으로 봉우리 **1.0504**(약 5%), 최악 화소 1.1928, 중앙값 0.0342. **옛 80×80 값 17–40%(QA-B-95)를 대체합니다.** **좋아진 것으로 읽지 마십시오** — 팬텀이 다르고, 화소 크기 가설은 QA-B-124 에서 기각돼 어느 팬텀 성질 때문인지 모릅니다 — "인공물 없음" 의 합격 기준 결정 대기 **잠정 기준 (사용자 결정 2026-09-18)**: 계단 경계 두꺼운 쪽의 덜 뺌 비율이 **현재(17–40%)보다 커지면 실패**. 회귀 방지선이며 임상 합격선이 아닙니다.
 
 > **문턱 여유 측정 (2026-09-18, #180 — QA-B-117)**: 봉우리 1.4521 에 문턱 1.465, 여유 0.013 이 무엇에서 나왔는지 세 축으로 쟀습니다.
 > - **스레드 1/자동/8**: 1.452071 로 소수점 여섯 자리까지 동일, 퍼짐 0.
@@ -409,7 +417,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Hazard**: HAZ-001
 - **Verification**: Test
 
-- **Status**: **Implemented (tested)** — 실패 시 원본을 그대로 둡니다. `GsvgProcess.ProcessesAndKeepsTheOriginalOnFailure`(`dst==src` 확인) 와 `…SourceIntact`. 판정 2026-09-19 (QA-B-126)
+- **Status**: **Implemented (tested)** — 실패 시 원본을 그대로 둡니다. `GsvgVirtualGridApi.ProcessesAndKeepsTheOriginalOnFailure`(`test_virtual_grid.cpp:765`, `dst==src` 확인) 와 `…SourceIntact`. 판정 2026-09-19 (QA-B-126)
 
 ### REQ-GSVG-023: DICOM Processing Mark
 
@@ -429,7 +437,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Hazard**: HAZ-001
 - **Verification**: Test
 
-- **Status**: **Implemented (tested)** — 잘못된 설정·널 설정에서 통과 모드로 떨어집니다. `MalformedConfigFallsBackToPassThrough`, `InitWithNullConfig_DefaultsToPassThrough`, `Lifecycle3072_PassThroughIsByteEqual`(바이트 동일). 판정 2026-09-19 (QA-B-126)
+- **Status**: **Implemented (tested)** — 잘못된 설정·널 설정에서 통과 모드로 떨어집니다. `GsvgEdgeCases.MalformedConfigFallsBackToPassThrough`, `GsvgDegradedMode.InitWithNullConfig_DefaultsToPassThrough`, `GsvgAbiSmoke.Lifecycle3072_PassThroughIsByteEqual`(바이트 동일). 판정 2026-09-19 (QA-B-126)
 
 ### REQ-GSVG-025: SPR Clamping
 
