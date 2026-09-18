@@ -122,8 +122,12 @@ TEST(VoiLut, LinearExact_CenterValue) {
 
     XpeErrorCode rc = xpe_apply_voi_lut(&img, &params);
     EXPECT_EQ(rc, XPE_OK);
-    // center input -> output = (minOut + maxOut) / 2 = 127.5
-    EXPECT_NEAR(pixels(img)[0], 127.5f, 1.0f);
+    // center input -> output = (minOut + maxOut) / 2 = 127.5, exactly.
+    // Tolerance 0.05, same reasoning as Linear_CenterWindow (QA-B-121/122): the
+    // old 1.0 was wide enough to swallow most of a formula swap. Substituting
+    // the C.11.2.1.2.1 LINEAR form here gives 129.114 -- 1.614 away, so 1.0 did
+    // catch that particular swap, but only by 0.6; 0.05 leaves no such margin.
+    EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);
     free_image(img);
 }
 

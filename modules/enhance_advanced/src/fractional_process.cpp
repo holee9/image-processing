@@ -97,6 +97,20 @@ XPE_API XpeErrorCode xpe_fractional_process(
                 /*nestedObject=*/nullptr, "xpe_fractional_process", s_lastWarned);
         }
 
+        // #162 (QA-B-122): step_size is parsed and clamped but FractionalConfig
+        // has no member to carry it, so it reaches a log line and stops. Whether
+        // to wire it is an open requirement question -- until then, say so.
+        {
+            static thread_local std::string s_lastInert;
+            static const xpe::enhance_advanced::config::InertKey kInert[] = {
+                { "step_size", "the fractional derivative uses a fixed step; "
+                               "no requirement defines this value's effect" },
+            };
+            xpe::enhance_advanced::config::warn_inert_keys_once(
+                configJsonOrNull, kInert, sizeof(kInert) / sizeof(kInert[0]),
+                /*nestedObject=*/nullptr, "xpe_fractional_process", s_lastInert);
+        }
+
         if (!xpe::enhance_advanced::config::parse_fractional_config(
                 configJsonOrNull, iterations, stepSize, safetyViolation)) {
             if (safetyViolation) {

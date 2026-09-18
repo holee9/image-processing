@@ -279,11 +279,15 @@ TEST_F(ConfigValueDependency, KnownDivergence_LowLevelCountSilencesGains) {
     EXPECT_LT(tex3, moveThreshold_)
         << "texture_gain now moves at 3 levels (maxdiff=" << tex3 << ")";
 
-    // num_levels = 2: the coarsest branch also covers level 0, so BOTH the edge
-    // and texture gains are unreachable and only flat_gain survives.
+    // num_levels = 2: the single detail band IS level 0, so edge_gain reaches it
+    // (QA-B-122 put the level-0 test first; before that the coarsest branch won
+    // the tie and edge_gain was dropped). texture_gain still has no middle band,
+    // which is the design case, not the defect.
     const float edge2 = MaxDiff(at(2, 1.5f, 1.2f), at(2, 3.0f, 1.2f));
     const float tex2  = MaxDiff(at(2, 1.5f, 1.2f), at(2, 1.5f, 3.0f));
-    EXPECT_LT(edge2, moveThreshold_) << "edge_gain now moves at 2 levels (maxdiff=" << edge2 << ")";
+    EXPECT_GT(edge2, moveThreshold_)
+        << "edge_gain no longer moves at 2 levels (maxdiff=" << edge2
+        << ") -- the branch order regressed";
     EXPECT_LT(tex2,  moveThreshold_) << "texture_gain now moves at 2 levels (maxdiff=" << tex2 << ")";
 
     std::printf("[  INFO ] gain reach by level count: tex@3=%.6f edge@2=%.6f tex@2=%.6f "
