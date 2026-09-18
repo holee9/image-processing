@@ -215,13 +215,34 @@ TEST(GsvgGridSuppression, GridIsSuppressedByAtLeast40dB) {
         }
 }
 
+// REQ-GSVG-005, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
 // The card's target was "near the grid-free baseline". With the design
 // document's sigma_f = 1.5 bins the residual stays 21 .. 381 x above it
 // (run 5); wider band-stops reach it and cost MTF (ReportSigmaAndDomainSweep).
-TEST(GsvgGridSuppression, KnownDivergence_ResidualStaysAboveTheGridFreeBaseline) {
+//
+// Two floors, because the two ratios behave very differently (QA-B-109 §1):
+//  * after/before is stable — across four noise seeds it moved by <= 1 %
+//    (2.15e-5 .. 8.11e-5 over all axis/lpi). Floor 1.0e-4 = 1.23 x the largest
+//    value measured on any seed, so the margin is ~20 x the measured spread.
+//  * after/baseline swings with the scene, because `baseline` is the tiny
+//    residual of a grid-free image: the same cell measured 187 .. 547 across
+//    seeds (rows, 103 lpi). Floor 600 = 1.10 x the largest value measured on
+//    any seed. A tighter floor here would fire on a scene change, not on a
+//    regression, which is why the stable guard above carries the real weight.
+TEST(GsvgGridSuppression, ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005) {
     for (gd::Axis axis : {gd::Axis::Rows, gd::Axis::Columns})
         for (double lpi : kLpis) {
             const auto r = RunSuppression(lpi, axis);
+            const double toBaseline = r.after / std::max(r.baseline, 1e-12);
+            std::printf("GRIDSUP floor005 axis=%s lpi=%.0f after/before=%.4g after/baseline=%.4g\n",
+                        Name(axis), lpi, r.after / r.before, toBaseline);
+            EXPECT_LT(r.after / r.before, 1.0e-4) << Name(axis) << " " << lpi;
+            EXPECT_LT(toBaseline, 600.0) << Name(axis) << " " << lpi;
+            // Recorded, not a target: the residual is still far above the
+            // grid-free baseline. Kept so an improvement shows up as a change.
             EXPECT_GT(r.after, 10.0 * std::max(r.baseline, 1.0)) << Name(axis) << " " << lpi;
         }
 }
@@ -253,11 +274,20 @@ TEST(GsvgGridSuppression, MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal
     }
 }
 
+// REQ-GSVG-006, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
 // Vertical grid lines on a near-vertical edge: the band-stop runs across the
 // edge. SPEC-XPE-GSVG 006 (< 5 %) is missed in the bands the notches fall in
 // (0.112 / 0.114 at 60 / 103 lpi, run 5). At 200 lpi the edge keeps the
 // 3-sigma sub-band check from firing, so nothing is filtered at all.
-TEST(GsvgGridSuppression, KnownDivergence_LinesAcrossAnEdge) {
+//
+// Floor 0.125. The MTF scene is noiseless, so its measurement condition is the
+// slanted-edge angle: over 2.5 .. 4.0 degrees the worst loss measured
+// 0.1071 .. 0.1153 (QA-B-109 §1), a spread of about +-4 %. The floor is
+// 1.08 x the largest of those, so it clears the measured spread twice over.
+TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
     for (double lpi : kLpis) {
         gd::Report dec;
         const auto bands = MtfLoss(gd::Axis::Columns, lpi, {}, false, &dec);
@@ -265,12 +295,47 @@ TEST(GsvgGridSuppression, KnownDivergence_LinesAcrossAnEdge) {
         std::printf("GRIDSUP mtf grid=cols lpi=%.0f decisions=%zu loss:", lpi, dec.decisions.size());
         for (const auto& b : bands) std::printf(" [%.1f,%.1f)=%.4f", b.lo, b.hi, b.worstLoss);
         std::printf(" naive_worst=%.4f\n", Worst(naive));
+        EXPECT_LT(Worst(bands), 0.125) << lpi;
         if (lpi < 150.0) {
             EXPECT_GE(dec.decisions.size(), 1u) << lpi;
+            // Recorded, not a target: 006 is still missed on this axis.
             EXPECT_GT(Worst(bands), 0.05) << lpi;
         } else {
             EXPECT_EQ(dec.decisions.size(), 0u) << lpi;
         }
+    }
+}
+
+// REQ-GSVG-008, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// The severely aliased band. Per-lpi floors on after/before, because the
+// aliased frequency lands on a different sub-band at each line density and the
+// values are three orders of magnitude apart. Measured across four noise seeds
+// (QA-B-109 §1) the spread was at most +-6 % (170 lpi: 1.43e-5 .. 1.62e-5);
+// each floor below is 1.2 .. 1.25 x the largest value measured on any seed.
+//
+// 183 lpi aliases to 0.0015 cyc/px — below the detector's reach, so nothing is
+// filtered and the ratio is 1. That is recorded as the current state, not
+// accepted: a floor of 1.0 only forbids it getting worse.
+TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
+    struct Case { double lpi; double floorRatio; int detected; };
+    const Case cases[] = {
+        {170.0, 2.0e-5, 1},
+        {175.0, 6.0e-5, 1},
+        {180.0, 0.99,   1},   // filtered at level 6 only; barely moves
+        {183.0, 1.0,    0},   // not detected at all
+        {186.0, 0.20,   1},
+    };
+    for (const Case& c : cases) {
+        const auto r = RunSuppression(c.lpi, gd::Axis::Rows);
+        const double ratio = r.after / r.before;
+        std::printf("GRIDSUP floor008 lpi=%.0f detected=%d level=%d filtered=%d after/before=%.4g\n",
+                    c.lpi, r.report.rows.input.detected, r.report.rows.place.level,
+                    r.report.rows.filteredLevels, ratio);
+        EXPECT_EQ(r.report.rows.input.detected ? 1 : 0, c.detected) << c.lpi;
+        EXPECT_LE(ratio, c.floorRatio) << c.lpi;
     }
 }
 

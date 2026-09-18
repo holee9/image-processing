@@ -258,6 +258,48 @@ TEST(GsvgVirtualGridMc, DataAndConditions)
     EXPECT_EQ(m.factor, 1);
 }
 
+// REQ-GSVG-018, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// Under-subtraction at a thickness step: the recovered/primary ratio peaks
+// just after each step towards the thicker side. On the MC step phantom the
+// three peaks measured 1.170 / 1.344 / 1.395 (QA-B-95), the worst pixel 1.5347
+// and the median |ratio - 1| 0.0658.
+//
+// Margin: this input is one fixed MC dataset and the chain is deterministic —
+// five repeat runs reproduced every printed digit, so the measured spread is
+// zero and no margin is derivable from it. The floors below are the current
+// values plus 5 %, which is headroom for a different toolchain only. If CI
+// lands outside that, widen the floor by what CI actually measured rather than
+// by a guess.
+TEST(GsvgVirtualGridMc, ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018)
+{
+    const Phantom p = Load("step");
+    std::vector<double> img;
+    const Metrics m = RunChain(p, kBase, &img);
+    ASSERT_EQ(m.error, "");
+
+    // Worst column mean just after a step, over the metric region.
+    double peak = 0;
+    for (int c = kLo; c < kHi; ++c) {
+        double sum = 0;
+        int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + static_cast<size_t>(c);
+            if (p.primary[i] <= 0) continue;
+            sum += img[i] / p.primary[i];
+            ++n;
+        }
+        if (n) peak = std::max(peak, sum / n);
+    }
+    std::printf("VGMC floor018 step peak=%.4f max=%.4f |r-1| median=%.4f\n", peak, m.hi, m.absMedian);
+
+    EXPECT_LT(peak, 1.465) << "column-mean peak after a step";   // 1.395 x 1.05
+    EXPECT_LT(m.hi, 1.612) << "worst pixel";                     // 1.5347 x 1.05
+    EXPECT_LT(m.absMedian, 0.069) << "median |ratio - 1|";       // 0.0658 x 1.05
+}
+
 TEST(GsvgVirtualGridMc, CompareToPrimary)
 {
     const Config configs[] = {
