@@ -2035,7 +2035,7 @@ class HeelEffectParams:
     mu_eff_per_mm:    float = 0.045   # effective attenuation at reference kVp
     sid_ref_mm:       float = 1000.0  # reference SID for calibration
     anode_direction:  str   = 'col'   # 'col' = cathode-anode along columns
-    pixel_pitch_mm:   float = 0.148   # detector pixel pitch
+    pixel_pitch_mm:   float = 0.140   # detector pixel pitch (product value, 2026-09-18)
     detector_width:   int   = 2816    # pixels in anode direction
     kvp_ref:          float = 80.0    # reference kVp for mu_eff
     max_correction:   float = 1.5     # safety clamp
@@ -5674,7 +5674,7 @@ def compute_mtf_from_esf(
         esf_values:       np.ndarray,
         smooth_sigma:     float = 1.0,
         freq_limit:       float = 1.0,
-        pixel_pitch_mm:   float = 0.148,
+        pixel_pitch_mm:   float = 0.140,
         aperture_correct: bool  = True) -> dict:
     """
     Compute MTF from ESF via differentiation and FFT.
