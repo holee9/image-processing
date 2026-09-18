@@ -288,3 +288,73 @@ TEST_F(ConfigWarningOnce, ConcurrentThreadsDoNotEraseEachOthersWarning) {
     EXPECT_EQ(1, CountMentioning(alerts, "beta_typo"))
         << "thread B's warning was lost or repeated";
 }
+
+// =============================================================================
+// #162 (QA-B-122): the inert-key warning -- a key whose NAME is known but whose
+// value cannot reach the output. The warning above is blind to these by
+// construction: it reports names ABSENT from the known list, and these are on
+// it. Both directions are asserted, because a warning that always fires
+// distinguishes nothing.
+// =============================================================================
+
+// Fires: texture_gain at num_levels = 3, where no middle detail band exists.
+TEST_F(ConfigWarningOnce, InertKey_TextureGainAtThreeLevelsWarns) {
+    const auto alerts = RunFrames(100, "{\"num_levels\": 3, \"texture_gain\": 2.0}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+
+    EXPECT_EQ(1, CountMentioning(alerts, "texture_gain"))
+        << "expected exactly one inert-key alert across 100 frames";
+    EXPECT_EQ(1, CountMentioning(alerts, "no effect"))
+        << "the message must say the key has no effect, not merely name it";
+}
+
+// Fires through the nested schema too -- the parser accepts both spellings, so
+// warning on only one would be silent for half the callers.
+TEST_F(ConfigWarningOnce, InertKey_NestedTextureGainWarns) {
+    const auto alerts = RunFrames(10, "{\"mfp\": {\"num_levels\": 2, \"texture_gain\": 2.0}}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+    EXPECT_EQ(1, CountMentioning(alerts, "texture_gain"));
+}
+
+// Silent: the same key at a level count that HAS a middle band.
+TEST_F(ConfigWarningOnce, InertKey_TextureGainAtFourLevelsIsSilent) {
+    const auto alerts = RunFrames(100, "{\"num_levels\": 4, \"texture_gain\": 2.0}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+    EXPECT_EQ(0, CountMentioning(alerts, "texture_gain"))
+        << "texture_gain reaches the middle band at 4 levels -- warning here "
+           "would make the warning meaningless";
+}
+
+// Silent: a low level count with no inert key written. The warning keys on what
+// the caller actually SET, not on the level count alone.
+TEST_F(ConfigWarningOnce, InertKey_ThreeLevelsWithoutTextureGainIsSilent) {
+    const auto alerts = RunFrames(100, "{\"num_levels\": 3, \"edge_gain\": 2.0}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+    EXPECT_TRUE(alerts.empty());
+}
+
+// Fires: step_size on the fractional path, which has no field to carry it.
+TEST_F(ConfigWarningOnce, InertKey_FractionalStepSizeWarns) {
+    xpe_clear_alerts();
+    for (int i = 0; i < 100; ++i) {
+        std::vector<float> px = Frame();
+        XpeImageBuffer img = Wrap(px);
+        EXPECT_EQ(XPE_OK, xpe_fractional_process(&img, 1.0f, "{\"step_size\": 0.5}"));
+    }
+    const auto alerts = DrainAlerts();
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+    EXPECT_EQ(1, CountMentioning(alerts, "step_size"));
+}
+
+// Silent: the fractional key that DOES reach the output.
+TEST_F(ConfigWarningOnce, InertKey_FractionalIterationsIsSilent) {
+    xpe_clear_alerts();
+    for (int i = 0; i < 100; ++i) {
+        std::vector<float> px = Frame();
+        XpeImageBuffer img = Wrap(px);
+        EXPECT_EQ(XPE_OK, xpe_fractional_process(&img, 1.0f, "{\"iterations\": 2}"));
+    }
+    const auto alerts = DrainAlerts();
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+    EXPECT_TRUE(alerts.empty());
+}

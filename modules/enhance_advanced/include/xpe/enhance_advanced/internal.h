@@ -141,6 +141,31 @@ void warn_unconsumed_keys_once(const char*        json,
                                const char*        fnLabel,
                                std::string&       lastWarned);
 
+/**
+ * @brief #162 (QA-B-122): a key whose NAME the parser knows but whose value
+ *        cannot reach the output -- the case warn_unconsumed_keys_once is blind
+ *        to, because that one only reports names absent from the known list.
+ */
+struct InertKey {
+    const char* key;      ///< the config key, as written in the JSON
+    const char* reason;   ///< why it has no effect, in one clause
+};
+
+/**
+ * @brief Report the inert keys that are actually PRESENT in @p json -- once per
+ *        distinct set, per thread, through the same alert channel.
+ *
+ * The caller assembles the list, because inertness is often value-dependent
+ * (`texture_gain` is inert only when the level count leaves no middle band).
+ * @p lastWarned is caller-owned thread_local memory, as above.
+ */
+void warn_inert_keys_once(const char*     json,
+                          const InertKey* inertKeys,
+                          size_t          inertCount,
+                          const char*     nestedObject,
+                          const char*     fnLabel,
+                          std::string&    lastWarned);
+
 } // namespace config
 
 /**

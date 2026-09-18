@@ -132,6 +132,64 @@ void warn_unconsumed_keys_once(const char*        json,
     }
 }
 
+void warn_inert_keys_once(const char*     json,
+                          const InertKey* inertKeys,
+                          size_t          inertCount,
+                          const char*     nestedObject,
+                          const char*     fnLabel,
+                          std::string&    lastWarned)
+{
+    if (json == nullptr || inertKeys == nullptr || inertCount == 0) return;
+
+    auto cfg = nlohmann::json::parse(json, nullptr, false);
+    if (cfg.is_discarded() || !cfg.is_object()) return;
+
+    // The parser accepts the same keys nested under one object, so look there
+    // too -- otherwise the warning would be silent for exactly half the callers.
+    auto written = [&](const char* key) {
+        if (cfg.contains(key)) return true;
+        if (nestedObject != nullptr && cfg.contains(nestedObject)
+            && cfg[nestedObject].is_object()) {
+            return cfg[nestedObject].contains(key);
+        }
+        return false;
+    };
+
+    // Only keys the caller actually WROTE are worth a warning: listing an inert
+    // key the caller never set would make the warning fire on every config and
+    // therefore distinguish nothing.
+    std::vector<const InertKey*> present;
+    for (size_t i = 0; i < inertCount; ++i) {
+        if (written(inertKeys[i].key)) present.push_back(&inertKeys[i]);
+    }
+
+    if (present.empty()) {
+        lastWarned.clear();   // same reason as above: let the next one be heard
+        return;
+    }
+
+    std::vector<std::string> names;
+    names.reserve(present.size());
+    for (const auto* k : present) names.emplace_back(k->key);
+    std::sort(names.begin(), names.end());
+
+    std::string signature;
+    for (const auto& n : names) {
+        signature += n;
+        signature += '\x1f';
+    }
+    if (signature == lastWarned) return;
+    lastWarned = signature;
+
+    for (const auto* k : present) {
+        char msg[256];
+        std::snprintf(msg, sizeof(msg),
+                      "%s config key '%s' is recognised but has no effect: %s",
+                      fnLabel, k->key, k->reason);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
+}
+
 /* ============================================================================
  * MFP Config Parser (SWU-2.5)
  * ============================================================================ */
