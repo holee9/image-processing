@@ -242,6 +242,61 @@ double StreamingBandwidthGBs() {
     return static_cast<double>(kBytes) / (best * 1e-3) / 1e9;
 }
 
+/**
+ * Cache sizes, from CPUID leaf 4. QA-A-118 (#179) needs them.
+ *
+ * The gate assumes both sides stream past the last-level cache -- 47 MB for the
+ * reference, 45 MB for the detector. On a runner whose LLC slice is larger than
+ * that, one or both stop touching memory and the ratio stops meaning what the
+ * limit was derived from. The Xeon 6973P-C run that broke the gate had the
+ * reference get FASTER (58.1 ms against 70.9 on another runner) while the
+ * detector got SLOWER -- the shape a cache that holds one but not the other
+ * would produce. Printing the sizes is what makes that checkable next time
+ * instead of guessable.
+ */
+std::string CacheSizes() {
+#if defined(_MSC_VER)
+    std::string out;
+    for (int i = 0; i < 16; ++i) {
+        int regs[4] = {0, 0, 0, 0};
+        __cpuidex(regs, 4, i);
+        const int type = regs[0] & 0x1f;
+        if (type == 0) break;                      // no more cache levels
+        if (type == 2) continue;                   // instruction cache
+        const int level = (regs[0] >> 5) & 0x7;
+        const int line = (regs[1] & 0xfff) + 1;
+        const int partitions = ((regs[1] >> 12) & 0x3ff) + 1;
+        const int ways = ((regs[1] >> 22) & 0x3ff) + 1;
+        const int sets = regs[2] + 1;
+        const long long bytes =
+            static_cast<long long>(line) * partitions * ways * sets;
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "L%d=%lldKB ", level, bytes / 1024);
+        out += buf;
+    }
+    return out.empty() ? std::string("unknown") : out;
+#else
+    return "unknown";
+#endif
+}
+
+/**
+ * The bandwidth the REFERENCE KERNEL itself achieves, in GB/s.
+ *
+ * The probe above measures a plain strided read; the kernel does more per
+ * element. When the two disagree by a lot, the kernel is not bandwidth-bound on
+ * that machine -- which is exactly the question QA-A-118 could not answer from
+ * the logs it had.
+ */
+double ReferenceEffectiveGBs(double reference_ms) {
+    // Per sweep: the frame is read and the map is written once.
+    const double bytes_per_sweep =
+        static_cast<double>(kReferenceElems) * sizeof(float) +
+        static_cast<double>(kReferenceMapBytes);
+    const double total = bytes_per_sweep * kReferenceSweeps;
+    return total / (reference_ms * 1e-3) / 1e9;
+}
+
 /** Printed once per gate so a failing job log identifies its own runner. */
 void PrintMachineProfile() {
     std::printf("[perf-gate-machine] cpu=\"%s\" logical=%u avx2=%d bandwidth=%.1f GB/s\n",
@@ -251,6 +306,7 @@ void PrintMachineProfile() {
     // ratio's numerator and denominator are compiled for different instruction
     // sets (modules/preprocess/CMakeLists.txt:77). Recorded, not changed --
     // changing it would move every historical ratio.
+    std::printf("[perf-gate-machine] cache %s\n", CacheSizes().c_str());
     std::printf("[perf-gate-machine] numerator=xpe_preprocess(/arch:AVX2)"
                 " denominator=in-test kernel(default arch)\n");
 }
@@ -429,8 +485,10 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
                     round + 1, kGateRounds, kDetectionReps, t.best,
                     t.samples[0], t.samples[1], t.samples[2], t.samples[3],
                     t.samples[4]);
-        std::printf("[perf-gate] round %d/%d reference kernel: %.1f ms\n",
-                    round + 1, kGateRounds, reference);
+        std::printf("[perf-gate] round %d/%d reference kernel: %.1f ms"
+                    " (%.1f GB/s effective)\n",
+                    round + 1, kGateRounds, reference,
+                    ReferenceEffectiveGBs(reference));
         std::printf("[perf-gate-ratio] 3072 round=%d ratio=%.3f limit=%.3f\n",
                     round + 1, ratio, kRatio3072Limit);
 
