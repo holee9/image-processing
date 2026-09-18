@@ -896,6 +896,12 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     }
     // QA-B-105: per pixel, independent. The two counters are summed per band
     // and added up afterwards (integers, so the order does not matter).
+    // #180 (QA-B-112): the guard's floor per pixel, and the value before the
+    // post-steps. Only allocated when an option needs them.
+    std::vector<double> postFloor, preOut;
+    if (sw.postGuard != PostGuard::None && st.pyramidLevels)
+        postFloor.assign(io.size(), 0.0);
+
     std::atomic<size_t> negativeAtomic{0}, fullHighAtomic{0}, fullAtomic{0};
     xpe_parallel::ForRows(height, xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), height),
                           [&](int yBegin, int yEnd) {
@@ -914,6 +920,30 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         double p = img[i] - S;
         if (img[i] > 0) { ++bandFull; if (p < pAtTMax) ++bandHigh; }
         if (p < 0) { ++bandNeg; p = 0; }
+        // #180 (QA-B-112): the smallest primary this pixel's cap allows.
+        if (!postFloor.empty()) {
+            // No cap means no bound, so the floor is 0 -- not I/(1+0) = I,
+            // which would pin the output to the input (QA-B-113: the MC case
+            // GsvgVirtualGridMc.CompareToPrimary caught exactly that).
+            switch (sw.cap) {
+            case CapMode::None:
+                postFloor[i] = 0.0;
+                break;
+            case CapMode::LocalSum:
+                postFloor[i] = img[i] / (1.0 + capF[i]);
+                break;
+            case CapMode::GlobalSum:
+                postFloor[i] = img[i] / (1.0 + globalCap);
+                break;
+            case CapMode::PrimaryFloor:
+                postFloor[i] = sw.capEps > 0 ? sw.capEps * img[i] : 0.0;
+                break;
+            case CapMode::SmoothFloor:
+                postFloor[i] = img[i] - (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0);
+                break;
+            }
+            if (postFloor[i] < 0) postFloor[i] = 0;
+        }
         out[i] = p + Rf[i] * std::max(S, 0.0);
     }
     negativeAtomic.fetch_add(bandNeg, std::memory_order_relaxed);
@@ -932,6 +962,10 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     Sf.clear(); Sf.shrink_to_fit();
     Rf.clear(); Rf.shrink_to_fit();
     capF.clear(); capF.shrink_to_fit();
+
+    if (!postFloor.empty() && (sw.postGuard == PostGuard::GlobalDetailScale ||
+                               sw.postGuard == PostGuard::SymmetricHeadroom))
+        preOut = out;
 
     // #189 (QA-B-108): what the post-steps see outside the mask. Zero is the
     // behaviour that shipped; the others are measured in the report.
@@ -966,6 +1000,47 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         } else {
             PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
         }
+    }
+
+    // #180 (QA-B-112): hold the guard's bound on the OUTPUT.
+    if (!postFloor.empty()) {
+        if (sw.postGuard == PostGuard::Clamp) {
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                if (out[i] < postFloor[i]) out[i] = postFloor[i];
+            }
+        } else if (sw.postGuard == PostGuard::GlobalDetailScale) {
+            double t = 1.0;
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                const double d = out[i] - preOut[i];
+                if (d < 0) {
+                    const double head = preOut[i] - postFloor[i];
+                    if (head <= 0) { t = 0.0; break; }
+                    t = std::min(t, head / -d);
+                }
+            }
+            rep.postGuardScale = t;
+            if (t < 1.0)
+                for (size_t i = 0; i < out.size(); ++i) {
+                    if (mask && !mask[i]) continue;
+                    out[i] = preOut[i] + t * (out[i] - preOut[i]);
+                }
+        } else if (sw.postGuard == PostGuard::SymmetricHeadroom) {
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                const double head = std::max(preOut[i] - postFloor[i], 0.0);
+                const double d = out[i] - preOut[i];
+                if (d > head) out[i] = preOut[i] + head;
+                else if (d < -head) out[i] = preOut[i] - head;
+            }
+        }
+        size_t below = 0;
+        for (size_t i = 0; i < out.size(); ++i) {
+            if (mask && !mask[i]) continue;
+            if (out[i] < postFloor[i] - 1e-9 * std::max(postFloor[i], 1.0)) ++below;
+        }
+        rep.belowGuardFloor = static_cast<double>(below) / static_cast<double>(out.size());
     }
 
     if (mask) {
