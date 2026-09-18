@@ -142,6 +142,25 @@ enum class MaskOutside {
     RectOnly,   // run the post-steps on the mask's bounding rectangle only
 };
 
+// The over-correction guard (CapMode) runs on the scatter subtraction, so it
+// bounds the PRIMARY at that stage. Since QA-B-111 the post-steps run by
+// default and the contrast gain can push a guarded pixel back down, so the
+// bound no longer holds for the OUTPUT (#180, QA-B-112).
+//
+// The floor every option uses is the one the guard itself implies:
+//     floor(x) = I(x) / (1 + cap(x))
+// the smallest primary the capped SPR allows. It ignores the residual-scatter
+// term the grid adds back, which is >= 0, so the floor is conservative.
+enum class PostGuard {
+    None,               // (a) current: nothing after the post-steps
+    Clamp,              // (b) per pixel, out = max(out, floor)
+    GlobalDetailScale,  // (c) one scale on the whole detail image, the largest
+                        //     that keeps every pixel at or above its floor
+    SymmetricHeadroom,  // (d) per pixel, |out - pre| <= pre - floor: the
+                        //     enhancement may not spend more than the headroom
+                        //     the guard left, in either direction
+};
+
 // Test switches for the falsification cases. Production uses the defaults.
 struct VgSwitches {
     bool thicknessIndex = true;   // false: one global thickness (image mean)
@@ -156,6 +175,9 @@ struct VgSwitches {
     // that outside the field the signal is low scatter, not zero. The other
     // choices stay available as settings.
     MaskOutside maskOutside = MaskOutside::Replicate;
+    // #180 (QA-B-112): compared in the report; the default keeps the behaviour
+    // that shipped, so changing it is a lead decision.
+    PostGuard postGuard = PostGuard::None;
 };
 
 struct VgReport {
@@ -176,6 +198,9 @@ struct VgReport {
     // cannot happen: S <= I*cap/(1+cap) gives I - S >= I/(1+cap) >= 0.
     size_t negativePrimary = 0;
     size_t clippedHigh = 0;          // full-res output pixels above 65535 before clamping
+    // #180 (QA-B-112), set only when VgSwitches::postGuard is not None:
+    double postGuardScale = 1.0;     // GlobalDetailScale: the scale it had to apply
+    double belowGuardFloor = 0;      // share of output pixels still under the floor
 };
 
 // Scatter kernel at (thickness, kVp), bilinear in the table's node kernels

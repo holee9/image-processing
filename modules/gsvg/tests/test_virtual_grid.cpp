@@ -1007,6 +1007,43 @@ TEST(GsvgVirtualGridCapChoice, PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_01
     EXPECT_GT(withPost.second, guardOnly.second) << "and subtract more than the guard allowed";
 }
 
+// #180 (QA-B-112): the options that hold the guard's bound on the OUTPUT.
+// The floor each one uses is the guard's own: I / (1 + cap). The default is
+// None -- the comparison is in the report and the choice is a lead decision.
+//
+// Measured on this scene with an over-estimating table (kernels x2):
+//   a None       near-zero 0.037 %, worst over-subtraction 0.9626
+//   b Clamp      0 %, 0.7235, detail contrast unchanged
+//   c GlobalScale 0 %, 0.6933, but the scale collapsed to 0 (no enhancement)
+//   d Symmetric  identical to Clamp here (its upper bound never bound)
+TEST(GsvgVirtualGridCapChoice, PostGuardOptionsHoldTheFloor_REQ_GSVG_018)
+{
+    EXPECT_EQ(vg::VgSwitches{}.postGuard, vg::PostGuard::None) << "the choice is not made yet";
+
+    const Scene s = MakeScene(Shape::Step);
+    const vg::ParamTable over = ScaledKernels(2.0);
+    for (const auto& o : {std::pair<const char*, vg::PostGuard>{"none", vg::PostGuard::None},
+                          {"clamp", vg::PostGuard::Clamp},
+                          {"globalscale", vg::PostGuard::GlobalDetailScale},
+                          {"symmetric", vg::PostGuard::SymmetricHeadroom}}) {
+        std::vector<double> img = s.measured;
+        vg::VgSwitches sw;
+        sw.postGuard = o.second;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, over, Settings(5), sw);
+        ASSERT_EQ(rep.error, "") << o.first;
+        size_t nz = 0;
+        for (size_t i = 0; i < img.size(); ++i) nz += img[i] < 0.1 * s.primary[i];
+        std::printf("VGMEASURE postguard=%s nearZero=%.5f belowFloor=%.5f scale=%.4f\n",
+                    o.first, double(nz) / img.size(), rep.belowGuardFloor, rep.postGuardScale);
+        if (o.second == vg::PostGuard::None) {
+            EXPECT_GT(nz, 0u) << "recorded: without an option the bound does not hold";
+        } else {
+            EXPECT_EQ(rep.belowGuardFloor, 0.0) << o.first;
+            EXPECT_EQ(nz, 0u) << o.first;
+        }
+    }
+}
+
 TEST(GsvgVirtualGridCapChoice, CompareCandidates)
 {
     vg::ParamTable base;
