@@ -97,6 +97,17 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  */
 XPE_API void xpe_preprocess_shutdown(void);
 
+/**
+ * @brief Report whether the module is currently initialized
+ *
+ * Read-only: it changes nothing, which is what separates it from calling
+ * xpe_preprocess_init() and reading its error code.
+ *
+ * @return true while the module is up (between a successful
+ *         xpe_preprocess_init() and the matching xpe_preprocess_shutdown()).
+ */
+XPE_API bool xpe_preprocess_is_initialized(void);
+
 /* =============================================================================
  * Phase 2: Calibration Loading Functions (REQ-P1A-014~016, AC-CAL-001~003)
  * ============================================================================ */

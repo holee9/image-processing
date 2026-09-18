@@ -31,7 +31,7 @@ constexpr ParamRange kParamRanges[] = {
  * predicate has to be defined here. A same-named definition exists in the dead
  * xpe_preprocess.cpp, which is deliberately absent from XPE_TEST_SOURCES and
  * from the library sources (#112) -- adding it back collides at link time. */
-bool xpe_preprocess_is_initialized() noexcept
+extern "C" XPE_API bool xpe_preprocess_is_initialized(void)
 {
     return g_initialized.load(std::memory_order_acquire);
 }
