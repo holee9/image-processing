@@ -68,7 +68,8 @@ public sealed class AppSettings : ObservableObject
     private double _gsvgAirSignal = 60000.0;
     private int _gsvgIterations = 3;
     private int _gsvgPyramidLevels = 4;
-    private double _gsvgPyramidGain = 1.0;
+    private double _gsvgPyramidGain = 1.3;
+    private double _gsvgDenoiseK = 2.0;
 
     /// <summary>
     /// Gets or sets the requested backend mode. GUI-S0 currently supports Mock and prepares for Native.
@@ -555,14 +556,29 @@ public sealed class AppSettings : ObservableObject
     /// and gain 1.0 the drawn pixels are byte-identical to levels 0, at ~10 ms extra cost. The levels
     /// setting is therefore only observable together with this one.
     ///
-    /// Default 1.0, so today's output does not move by adding the setting. Range 0.1..4.0; the module
-    /// requires gain 1.0 exactly when levels is 0, which is why neither key is sent in that case.
+    /// Default 1.3 — the module's own default, matched on the lead's decision so the two do not drift.
+    /// Range 0.1..4.0; the module requires gain 1.0 exactly when levels is 0, which is why the pyramid
+    /// keys are all omitted in that case.
     /// </summary>
     [JsonPropertyName("gsvgPyramidGain")]
     public double GsvgPyramidGain
     {
         get => _gsvgPyramidGain;
         set => SetProperty(ref _gsvgPyramidGain, value is >= 0.1 and <= 4.0 ? value : 1.0);
+    }
+
+    /// <summary>
+    /// Soft-threshold strength on the pyramid's finest band (#180). 0 turns the de-noise step off;
+    /// larger values cut more of the finest detail. Default 2.0, the module's own default.
+    ///
+    /// The module rejects a config carrying a non-zero k with levels 0, so this key travels with the
+    /// other two or not at all.
+    /// </summary>
+    [JsonPropertyName("gsvgDenoiseK")]
+    public double GsvgDenoiseK
+    {
+        get => _gsvgDenoiseK;
+        set => SetProperty(ref _gsvgDenoiseK, value is >= 0.0 and <= 10.0 ? value : 2.0);
     }
 
     [JsonPropertyName("lastRunSetId")]
