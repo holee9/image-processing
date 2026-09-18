@@ -202,6 +202,11 @@ jobs:
             $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
             $ran = if ($ranLine -and $ranLine -match '^\[=+\]\s+(\d+) tests?') { [int]$Matches[1] } else { -1 }
             Write-Host ("{0}: exit={1} ran={2} summary={3}" -f $r.name, $code, $ran, $summary)
+            # A passing gtest prints nothing to the job log, so the perf-gate
+            # ratio and the global-state hygiene report were only readable from
+            # the LastTest.log artifact (QA-A-115). Echo those lines here so the
+            # per-machine ratio distribution can be read from the job log.
+            ($out -split "`n" | Where-Object { $_ -match '^\[perf-gate|^\[hygiene\]' }) | ForEach-Object { Write-Host "  $_" }
             if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $r.name); $bad++ ; continue }
             if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $r.name, $ran); $bad++ ; continue }
             $ranCounts += $ran
