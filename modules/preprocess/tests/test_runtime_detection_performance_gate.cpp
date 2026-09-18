@@ -508,14 +508,49 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
                 " -- currently %.1fx the target on this machine\n",
                 kImprovementTargetMs, bestTiming.best / kImprovementTargetMs);
 
-    EXPECT_LE(best, kRatio3072Limit)
-        << Explain("3072x3072 runtime detection", bestTiming, bestReference,
-                   best, kRatio3072Limit)
-        << "\n  This is the BEST of " << kGateRounds << " rounds ("
-        << ratios[0] << " / " << ratios[1] << " / " << ratios[2]
-        << "), measured in round " << (bestRound + 1) << ". A transient lifts one\n"
-        << "  round; all three being over the limit is what a code regression\n"
-        << "  looks like, so re-running will not clear this.";
+    /* ----------------------------------------------------------------------
+     * THE ASSERTION IS SUSPENDED -- QA-A-119 (#179), lead decision.
+     *
+     * WHY. On an Intel Xeon 6973P-C runner the ratio reached 2.060 / 2.145 with
+     * ZERO changed lines in the detector's path, while four other machines
+     * (i7-12700, EPYC 7763, EPYC 9V45, Xeon Platinum 8370C) sat at 1.27..1.40
+     * across a 3x spread of memory bandwidth. On that one machine the two sides
+     * moved in OPPOSITE directions -- detector 93.3 -> 119.6 ms, reference
+     * 70.9 -> 58.1 ms -- which breaks the premise the whole ratio rests on.
+     *
+     * WHY NOT JUST RAISE THE LIMIT. Passing that machine needs a limit above
+     * 2.06, and the nearest regression this gate must catch measures 1.496
+     * (QA-A-115, +2 injected passes). A limit above the regression it is meant
+     * to catch is the gate switched off, with nobody able to tell it was.
+     *
+     * WHAT THIS COSTS, MEASURED (QA-A-119 condition 3): NOTHING ELSE COVERS
+     * THIS PATH. The `XPE Benchmark Regression` workflow builds ci-post and
+     * runs post-processing gates only (FullPipelineE2E.PostProcess_3072x3072,
+     * CollimationDetect, ExposureIndex) -- none of them call
+     * xpe_defect_detect_runtime. Inside this module,
+     * Integration.PipelinePerformance3072x3072 is DISABLED and does not call
+     * the detector either, and the degraded-mode budgets run at 64x64. So while
+     * this assertion is suspended, a real slowdown of the runtime detector
+     * reaches main unchallenged. That is the price of the suspension, and it is
+     * why it is a window and not a decision.
+     *
+     * RECOVERY CONDITION: read the cache sizes and the reference kernel's
+     * effective GB/s (both printed above, added by QA-A-118) from a Xeon
+     * 6973P-C run; once the cause is established, fix the kernel or the limit
+     * with that evidence and restore this assertion. The lead tracks it.
+     * -------------------------------------------------------------------- */
+    if (best > kRatio3072Limit) {
+        std::printf("[perf-gate-OVER] 3072 ratio=%.3f exceeds limit=%.3f"
+                    " -- ASSERTION SUSPENDED (#179, QA-A-119)\n",
+                    best, kRatio3072Limit);
+        std::printf("[perf-gate-OVER] %s\n",
+                    Explain("3072x3072 runtime detection", bestTiming,
+                            bestReference, best, kRatio3072Limit).c_str());
+    } else {
+        std::printf("[perf-gate-OK] 3072 ratio=%.3f within limit=%.3f"
+                    " (assertion suspended, #179)\n", best, kRatio3072Limit);
+    }
+    EXPECT_GT(best, 0.0) << "the gate must still have measured something";
 }
 
 /**
