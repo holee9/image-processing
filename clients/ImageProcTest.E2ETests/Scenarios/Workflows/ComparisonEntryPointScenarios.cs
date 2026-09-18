@@ -212,13 +212,63 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
 
         var compare = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CompareModeMenuItem")));
         Assert.True(compare is not null, "View → Compare Mode was not found after opening the View menu.");
-        compare!.AsMenuItem().Click();
+        // EXPERIMENT (#163, GUI-C-108): Expand instead of Click. Clicking a submenu header TOGGLES it,
+        // and moving the mouse onto it can already have opened it on hover — so the click can close the
+        // menu rather than open the submenu, which is exactly what the failure probe sees.
+        if (compare!.Patterns.ExpandCollapse.TryGetPattern(out var expand))
+        {
+            expand.Expand();
+        }
+        else
+        {
+            compare.AsMenuItem().Click();
+        }
+
         Thread.Sleep(200);
 
         var item = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId(automationId)));
-        Assert.True(item is not null, $"'{automationId}' was not found after opening View → Compare Mode.");
+        Assert.True(item is not null,
+            $"'{automationId}' was not found after opening View → Compare Mode. {DescribeMenuState(window, automationId)}");
         item!.AsMenuItem().Invoke();
         Thread.Sleep(200);
+    }
+
+    /// <summary>
+    /// What the menu looked like at the moment a lookup failed (#163, GUI-C-108).
+    ///
+    /// <para>This runs ONLY on the failure path, after the wait has already timed out. That matters:
+    /// the issue records that adding a probe which ran every cycle erased the symptom (48 cycles, 0
+    /// reproductions), so anything on the passing path changes the thing being measured. A read taken
+    /// after the failure has already happened cannot have caused it.</para>
+    ///
+    /// <para>It separates the two shapes the remaining hypothesis splits into: the parent popup GONE
+    /// (the click closed it instead of opening the submenu) versus the parent still there with its
+    /// children not realised (a timing problem one level down). It also repeats the search from the
+    /// desktop, because a popup can live outside the window's tree.</para>
+    /// </summary>
+    private static string DescribeMenuState(Window window, string automationId)
+    {
+        try
+        {
+            var view = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"));
+            var viewState = view is null ? "absent"
+                : view.Patterns.ExpandCollapse.TryGetPattern(out var ec)
+                    ? ec.ExpandCollapseState.Value.ToString()
+                    : "no-pattern";
+            var compare = window.FindFirstDescendant(cf => cf.ByAutomationId("CompareModeMenuItem"));
+            var compareState = compare is null ? "absent"
+                : compare.Patterns.ExpandCollapse.TryGetPattern(out var ec2)
+                    ? ec2.ExpandCollapseState.Value.ToString()
+                    : "present";
+            var desktop = window.Automation.GetDesktop().FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+
+            return $"[#163 probe] ViewMenu={viewState}; CompareModeMenuItem={compareState}; " +
+                   $"desktopSearch={(desktop is null ? "MISS" : "HIT")}";
+        }
+        catch (Exception ex)
+        {
+            return $"[#163 probe] threw: {ex.GetType().Name} {ex.Message}";
+        }
     }
 
     private static VirtualKeyShort KeyFor(string gesture) => gesture switch
