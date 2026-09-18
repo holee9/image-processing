@@ -175,9 +175,13 @@ struct VgSwitches {
     // that outside the field the signal is low scatter, not zero. The other
     // choices stay available as settings.
     MaskOutside maskOutside = MaskOutside::Replicate;
-    // #180 (QA-B-112): compared in the report; the default keeps the behaviour
-    // that shipped, so changing it is a lead decision.
-    PostGuard postGuard = PostGuard::None;
+    // #180 (QA-B-113): per-pixel clamp is the default. On the correct table it
+    // costs nothing (the guard never binds, so MC values are unchanged); with
+    // an over-estimating table it removes the near-zero pixels the post-steps
+    // put back (0.037 % -> 0 %, worst over-subtraction 0.9626 -> 0.7235) and
+    // leaves detail contrast alone. SymmetricHeadroom stays available; its
+    // upper bound never bound on any scene measured in QA-B-112.
+    PostGuard postGuard = PostGuard::Clamp;
 };
 
 struct VgReport {

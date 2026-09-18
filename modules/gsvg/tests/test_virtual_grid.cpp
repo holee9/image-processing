@@ -982,7 +982,11 @@ TEST(GsvgVirtualGridCapChoice, PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_01
         std::vector<double> img = s.measured;
         vg::VgSettings st = Settings(5);
         if (!postSteps) { st.pyramidLevels = 0; st.pyramidGain = 1.0; st.denoiseK = 0.0; }
-        EXPECT_EQ(vg::RunVirtualGrid(img, kN, kN, over, st).error, "");
+        // The phenomenon this records is what happens with NO post-guard; the
+        // default has clamped since QA-B-113, so it is asked for explicitly.
+        vg::VgSwitches sw;
+        sw.postGuard = vg::PostGuard::None;
+        EXPECT_EQ(vg::RunVirtualGrid(img, kN, kN, over, st, sw).error, "");
         size_t nz = 0;
         double maxOver = 0;
         for (size_t i = 0; i < img.size(); ++i) {
@@ -1018,7 +1022,7 @@ TEST(GsvgVirtualGridCapChoice, PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_01
 //   d Symmetric  identical to Clamp here (its upper bound never bound)
 TEST(GsvgVirtualGridCapChoice, PostGuardOptionsHoldTheFloor_REQ_GSVG_018)
 {
-    EXPECT_EQ(vg::VgSwitches{}.postGuard, vg::PostGuard::None) << "the choice is not made yet";
+    EXPECT_EQ(vg::VgSwitches{}.postGuard, vg::PostGuard::Clamp) << "QA-B-113 lead decision";
 
     const Scene s = MakeScene(Shape::Step);
     const vg::ParamTable over = ScaledKernels(2.0);

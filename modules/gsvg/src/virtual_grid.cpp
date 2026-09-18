@@ -922,17 +922,26 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         if (p < 0) { ++bandNeg; p = 0; }
         // #180 (QA-B-112): the smallest primary this pixel's cap allows.
         if (!postFloor.empty()) {
-            double c = 0.0;
+            // No cap means no bound, so the floor is 0 -- not I/(1+0) = I,
+            // which would pin the output to the input (QA-B-113: the MC case
+            // GsvgVirtualGridMc.CompareToPrimary caught exactly that).
             switch (sw.cap) {
-            case CapMode::None: c = 0.0; break;
-            case CapMode::LocalSum: c = capF[i]; break;
-            case CapMode::GlobalSum: c = globalCap; break;
-            case CapMode::PrimaryFloor: c = sw.capEps > 0 ? 1.0 / sw.capEps - 1.0 : 0.0; break;
-            case CapMode::SmoothFloor: c = 0.0; break;   // floor is on S, not on a ratio
+            case CapMode::None:
+                postFloor[i] = 0.0;
+                break;
+            case CapMode::LocalSum:
+                postFloor[i] = img[i] / (1.0 + capF[i]);
+                break;
+            case CapMode::GlobalSum:
+                postFloor[i] = img[i] / (1.0 + globalCap);
+                break;
+            case CapMode::PrimaryFloor:
+                postFloor[i] = sw.capEps > 0 ? sw.capEps * img[i] : 0.0;
+                break;
+            case CapMode::SmoothFloor:
+                postFloor[i] = img[i] - (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0);
+                break;
             }
-            postFloor[i] = sw.cap == CapMode::SmoothFloor
-                ? img[i] - (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0)
-                : img[i] / (1.0 + c);
             if (postFloor[i] < 0) postFloor[i] = 0;
         }
         out[i] = p + Rf[i] * std::max(S, 0.0);
