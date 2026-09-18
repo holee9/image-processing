@@ -28,6 +28,13 @@ namespace {
 
 constexpr int    kN = 1024;
 constexpr double kPitch = 0.139;
+// 0.139 on purpose: QA-B-129 measured that moving this scene to the
+// user's 0.14 mm shifts the aliased frequencies enough to break three
+// floors and one falsification control (180 lpi stops being detected,
+// 170 lpi suppression 175x worse, 186 lpi 6900x better). The floors are
+// bound to this scene; moving the pitch needs them re-measured, which is
+// the lead's decision. Do not "fix" this to 0.14 without that.
+
 constexpr double kDepth = 0.05;
 constexpr double kLpis[] = {60.0, 103.0, 200.0};
 

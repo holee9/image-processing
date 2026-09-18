@@ -831,7 +831,7 @@ TEST(GsvgVirtualGridBench, BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3
     if (const char* env = std::getenv("XPE_VG_TABLE")) table = env;
 #endif
     const std::string cfg = std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + table +
-        "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 0.139,"
+        "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 0.14,"
         " \"vg_air_signal\": 60000, \"vg_iterations\": 3, \"vg_pyramid_levels\": 6,"
         " \"vg_pyramid_gain\": 1.3, \"vg_denoise_k\": 2}";
     void* h = nullptr;
@@ -854,7 +854,7 @@ TEST(GsvgVirtualGridBench, BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3
             tc[static_cast<size_t>(y) * c + x] = T;
             pc[static_cast<size_t>(y) * c + x] = 60000.0 * std::exp(-(w0 - a * T / (1 + b * T)) * T);
         }
-    const std::vector<double> ic = vg::ForwardScatter(pc, tc, c, c, t, 80.0, 0.139 * f);
+    const std::vector<double> ic = vg::ForwardScatter(pc, tc, c, c, t, 80.0, 0.14 * f);
     ASSERT_EQ(ic.size(), pc.size());
     std::vector<uint16_t> src(static_cast<size_t>(n) * n), dst(src.size());
     for (int y = 0; y < n; ++y)
