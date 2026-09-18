@@ -42,6 +42,25 @@ XpeCalibQualityMeta g_quality_meta = []{
 
 // 10-point hard cap to prevent excessive calibration points
 
+}  // namespace
+
+/**
+ * Restores the two module globals this file owns to their start-up values.
+ *
+ * QA-A-120 (#176), lead decision: xpe_preprocess_shutdown() clears ALL module
+ * globals. It used to clear g_calib only and leave these two, which made the
+ * name a lie -- a caller reads "shutdown" and gets two thirds of one. They live
+ * in an anonymous namespace here, so the lifecycle code cannot reach them
+ * directly and calls this instead.
+ */
+void xpe_calib_mode_reset_globals() noexcept {
+    g_calib_mode = XPE_CALIB_MULTI_POINT_8;   // the FUNC-031 (7) default
+    g_quality_meta = XpeCalibQualityMeta{};
+    g_quality_meta.previous_r_squared = -1.0; // "no previous fit", as at start-up
+}
+
+namespace {
+
 /* =============================================================================
  * Mode-to-Parameters Mapping
  * ============================================================================ */

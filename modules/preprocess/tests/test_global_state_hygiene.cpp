@@ -23,10 +23,13 @@
  *   2. calibration mode -- `xpe_preprocess_shutdown()` deliberately does NOT
  *      reset it (preprocess_api.h says so), so it survives a fixture that
  *      believes teardown covered it (#176 row 1, `CalibModeTest`).
- *   3. quality metadata -- same contract, same hazard, but REPORTED ONLY: no
- *      public call restores it, so failing a test for it would be blaming the
- *      test for a missing capability. The list is the evidence for whether the
- *      module should gain a reset (#176 item 2).
+ *   3. quality metadata -- same contract, same hazard. This axis was REPORTED
+ *      ONLY until QA-A-120 (#176 item 2), because nothing public restored it
+ *      and failing a test for it would have blamed the test for a missing
+ *      capability. xpe_preprocess_shutdown() now clears it along with every
+ *      other module global, so a fixture that pairs its own init/shutdown
+ *      restores this axis for free -- and the reported count went from 30 to 0
+ *      the moment that landed. It fails like the others now.
  *
  * All three have side-effect-free getters. The calibration MAPS are not checked
  * here: there is no read-only query for them, and the only way to clear them is
@@ -45,7 +48,6 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
 
-#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -65,22 +67,7 @@ Baseline g_baseline;
 /** Axes a test CAN restore with the public API -- these fail the run. */
 std::vector<std::string> g_offenders;
 
-/**
- * Quality metadata, reported but not failed.
- *
- * Publishing it is the documented effect of the generation and load calls
- * (xpe_calib_get_quality_meta describes the calibration now in use), and there
- * is NO public call that puts it back -- xpe_preprocess_shutdown() explicitly
- * does not (preprocess_api.h). So a test that generates a calibration cannot
- * restore this axis however carefully it is written, and failing it would be
- * blaming tests for a missing capability.
- *
- * The list is still printed: #176 row 1 is exactly this leak reaching a test
- * that asserts the pristine value, and the count is the evidence for whether
- * the module should gain a reset. QA-A-113 reports it; the decision is the
- * lead's.
- */
-std::vector<std::string> g_meta_changers;
+
 
 bool SameMeta(const XpeCalibQualityMeta& a, const XpeCalibQualityMeta& b) {
     return std::memcmp(&a, &b, sizeof(XpeCalibQualityMeta)) == 0;
@@ -124,7 +111,7 @@ public:
         XpeCalibQualityMeta meta{};
         (void)xpe_calib_get_quality_meta(&meta);
         if (!SameMeta(meta, g_baseline.meta)) {
-            g_meta_changers.push_back(full);
+            why += " quality metadata changed;";
         }
         if (!why.empty()) {
             g_offenders.push_back(full + " --" + why);
@@ -136,16 +123,6 @@ public:
 class HygieneEnvironment : public ::testing::Environment {
 public:
     void TearDown() override {
-        if (!g_meta_changers.empty()) {
-            // Printed, never failed -- see g_meta_changers.
-            std::printf("[hygiene] %zu tests changed the calibration quality "
-                        "metadata and no public call can restore it "
-                        "(QA-A-113, #176 item 2):\n",
-                        g_meta_changers.size());
-            for (const auto& t : g_meta_changers) {
-                std::printf("[hygiene]   %s\n", t.c_str());
-            }
-        }
         if (g_offenders.empty()) return;
         std::string msg =
             "Tests left global module state changed. Each of these has to undo\n"

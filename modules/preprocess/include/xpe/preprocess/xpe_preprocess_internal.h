@@ -142,6 +142,15 @@ XPE_API bool xpe_preprocess_is_initialized(void);
 
 }  // extern "C"
 
+/**
+ * @brief Reset the calibration mode and quality metadata to start-up values
+ *
+ * QA-A-120 (#176): called by xpe_preprocess_shutdown() so that "shutdown"
+ * clears every module global, not only the calibration maps. Defined in
+ * xpe_calib_mode.cpp, which owns both.
+ */
+void xpe_calib_mode_reset_globals() noexcept;
+
 /* =========================================================================
  * Dimension / null guard inline helpers
  * ========================================================================= */
