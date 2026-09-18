@@ -605,11 +605,47 @@ TEST(GsvgVirtualGridRatio, UnknownRatioIsRefusedAndImageKept)
 // ---------------------------------------------------------------------------
 // Pyramid and de-noise
 // ---------------------------------------------------------------------------
+// REQ-GSVG-013 asks for a 4..8 level Laplacian pyramid. Until QA-B-111 the
+// default was 0, which turned the decomposition off unless a caller asked for
+// it -- and the GUI does not (GUI-C-103, #180). The default is now 4.
+//
+// What this pins is that the DEFAULT number of levels is one that restores
+// contrast: with the default settings a gain above 1 raises detail contrast.
+// Setting the default back to 0 makes the gain do nothing and fails here.
+//
+// Note the gain's own default is still 1.0, which is the identity (see
+// UnitGainIsIdentityAndGainRaisesDetail). So a caller that sends nothing gets
+// the decomposition but no enhancement; whether the gain default should move
+// too is a separate decision (#180).
+TEST(GsvgVirtualGridPyramid, DefaultLevelsRestoreContrast_REQ_GSVG_013)
+{
+    EXPECT_EQ(vg::VgSettings{}.pyramidLevels, 4) << "REQ-GSVG-013 asks for 4..8 levels";
+
+    const Scene s = MakeScene(Shape::Step);
+    std::vector<double> plain = s.measured, boosted = s.measured;
+    vg::VgSettings st = Settings(3);            // leaves pyramidLevels at its default
+    ASSERT_EQ(st.pyramidLevels, 4);
+    st.pyramidGain = 1.0;                       // baseline: the pyramid runs, unchanged
+    ASSERT_EQ(vg::RunVirtualGrid(plain, kN, kN, Table(), st).error, "");
+    st.pyramidGain = 1.5;
+    ASSERT_EQ(vg::RunVirtualGrid(boosted, kN, kN, Table(), st).error, "");
+
+    auto contrast = [&](const std::vector<double>& im) { return im[24 * kN + 30] - im[24 * kN + 24]; };
+    std::printf("VGMEASURE default-levels disk contrast plain=%.1f boosted=%.1f\n",
+                contrast(plain), contrast(boosted));
+    EXPECT_GT(contrast(boosted), 1.2 * contrast(plain));
+}
+
 TEST(GsvgVirtualGridPyramid, UnitGainIsIdentityAndGainRaisesDetail)
 {
     const Scene s = MakeScene(Shape::Step);
     std::vector<double> plain = s.measured, unit = s.measured, boosted = s.measured;
     vg::VgSettings st = Settings(3);
+    // The comparison is "pyramid against no pyramid", so the baseline turns the
+    // post-steps off explicitly -- since QA-B-111 the defaults run them.
+    st.pyramidLevels = 0;
+    st.pyramidGain = 1.0;
+    st.denoiseK = 0.0;
     ASSERT_EQ(vg::RunVirtualGrid(plain, kN, kN, Table(), st).error, "");
     st.pyramidLevels = 5;
     st.pyramidGain = 1.0;
@@ -894,7 +930,16 @@ CapResult RunCandidate(const Scene& s, const vg::ParamTable& t, const Cand& c) {
     vg::VgSwitches sw;
     sw.cap = c.mode;
     sw.capEps = c.eps;
-    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, Settings(5), sw);
+    // The cap guards the SUBTRACTION stage, so this comparison turns the
+    // post-steps off (QA-B-111): since the pyramid runs after the cap, a gain
+    // above 1 can push a guarded pixel back down and hide what is measured
+    // here. What the default post-steps do to the guarantee is recorded
+    // separately in PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_018.
+    vg::VgSettings st = Settings(5);
+    st.pyramidLevels = 0;
+    st.pyramidGain = 1.0;     // levels 0 requires these two (see RunVirtualGrid)
+    st.denoiseK = 0.0;
+    const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, st, sw);
     CapResult r;
     if (!rep.error.empty()) { r.refused = true; return r; }
     const ErrStats e = RelErr(img, s.primary);
@@ -918,6 +963,49 @@ vg::ParamTable Scaled(const vg::ParamTable& t, double k) {
 }
 
 }  // namespace
+
+// QA-B-111 (#180), recorded: the over-correction guard runs on the scatter
+// SUBTRACTION, and since the default now runs the post-steps afterwards, the
+// contrast gain can push a guarded pixel back down. With an over-estimating
+// table (kernels x2) the guard alone leaves no pixel below a tenth of the
+// primary; with the default post-steps on, some appear again.
+//
+// This does not say the default is wrong -- it says the guarantee the cap
+// gives is about the stage it runs in. Whether the guard should also run after
+// the post-steps is a design question (#180, REQ-GSVG-018).
+TEST(GsvgVirtualGridCapChoice, PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_018)
+{
+    const Scene s = MakeScene(Shape::Step);
+    const vg::ParamTable over = ScaledKernels(2.0);
+
+    auto run = [&](bool postSteps) {
+        std::vector<double> img = s.measured;
+        vg::VgSettings st = Settings(5);
+        if (!postSteps) { st.pyramidLevels = 0; st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+        EXPECT_EQ(vg::RunVirtualGrid(img, kN, kN, over, st).error, "");
+        size_t nz = 0;
+        double maxOver = 0;
+        for (size_t i = 0; i < img.size(); ++i) {
+            if (img[i] < 0.1 * s.primary[i]) ++nz;
+            maxOver = std::max(maxOver, (s.primary[i] - img[i]) / s.primary[i]);
+        }
+        std::printf("VGMEASURE poststeps=%d nearZero=%.5f maxOver=%.4f\n",
+                    postSteps ? 1 : 0, double(nz) / img.size(), maxOver);
+        return std::pair<double, double>{double(nz) / img.size(), maxOver};
+    };
+
+    const auto guardOnly = run(false);
+    const auto withPost = run(true);
+
+    EXPECT_EQ(guardOnly.first, 0.0) << "the cap alone leaves no near-zero primary";
+    EXPECT_LT(guardOnly.second, 0.9);
+    // Recorded, not accepted: measured nearZero 0.00037 and maxOver 0.9626
+    // against 0 and 0.6933 for the guard alone (QA-B-111). On the candidate
+    // sweep's step scene the same effect reached maxOver 1.063, i.e. a pixel
+    // taken all the way to zero.
+    EXPECT_GT(withPost.first, 0.0) << "post-steps put near-zero primaries back";
+    EXPECT_GT(withPost.second, guardOnly.second) << "and subtract more than the guard allowed";
+}
 
 TEST(GsvgVirtualGridCapChoice, CompareCandidates)
 {
