@@ -476,6 +476,20 @@ jobs:
           if ($leak) { Write-Error "app folder must not contain xpe_*.dll (would bypass the locator): $($leak.Name -join ', ')"; exit 1 }
           Get-ChildItem $dir -Filter xpe_*.dll | Select-Object Name, Length, LastWriteTime
 
+      # #180: the virtual grid needs its table next to the DLLs. The GUI's
+      # default table path is "beside the loaded DLL", and the CI artifacts carry
+      # binaries only, so without this copy every virtual-grid E2E fails with
+      # "table was not found". The repo file is the product table until an
+      # install rule exists (decision pending, #180).
+      - name: Stage the virtual-grid table beside the DLLs
+        shell: pwsh
+        run: |
+          $dir = 'build/e2e-native-dlls'
+          $src = 'modules/gsvg/data/vg_table_water_csi600_victre.csv'
+          if (-not (Test-Path $src)) { Write-Error "missing product table: $src"; exit 1 }
+          Copy-Item $src (Join-Path $dir (Split-Path $src -Leaf)) -Force
+          Get-ChildItem $dir -Filter *.csv | Select-Object Name, Length
+
       # GUI-C-41: a Native pass only means something if you know WHICH native
       # binaries ran. Locally the lane stages artifacts from an older CI run
       # (#98 forbids native builds there), so "Native 9/9" can silently be a
