@@ -27,13 +27,7 @@ namespace gd = xpe_gsvg_detail;
 namespace {
 
 constexpr int    kN = 1024;
-constexpr double kPitch = 0.139;
-// 0.139 on purpose: QA-B-129 measured that moving this scene to the
-// user's 0.14 mm shifts the aliased frequencies enough to break three
-// floors and one falsification control (180 lpi stops being detected,
-// 170 lpi suppression 175x worse, 186 lpi 6900x better). The floors are
-// bound to this scene; moving the pitch needs them re-measured, which is
-// the lead's decision. Do not "fix" this to 0.14 without that.
+constexpr double kPitch = 0.14;
 
 constexpr double kDepth = 0.05;
 constexpr double kLpis[] = {60.0, 103.0, 200.0};
@@ -189,16 +183,20 @@ TEST(GsvgGridSuppression, Db4DwtReconstructsPerfectly) {
 }
 
 TEST(GsvgGridSuppression, SubbandPlacementMatchesHandValues) {
-    // f (cycles/pixel) = aliased c/mm * 0.139, worked by hand:
-    //   60 lpi: 2.362205*0.139 = 0.328346 -> level 1, 1 - 2*0.328346 = 0.343308
-    //  103 lpi: 3.139127*0.139 = 0.436339 -> level 1, 1 - 0.872678   = 0.127322
-    //  200 lpi: 0.679771*0.139 = 0.094488 -> x2 0.188976 -> x2 0.377952: level 3, 1 - 0.755904 = 0.244096
-    auto p60 = gd::PlaceInSubbands(0.328346, 6);
-    auto p103 = gd::PlaceInSubbands(0.436339, 6);
-    auto p200 = gd::PlaceInSubbands(0.094488, 6);
-    EXPECT_EQ(p60.level, 1);  EXPECT_NEAR(p60.subFreq, 0.343308, 1e-6);
-    EXPECT_EQ(p103.level, 1); EXPECT_NEAR(p103.subFreq, 0.127322, 1e-6);
-    EXPECT_EQ(p200.level, 3); EXPECT_NEAR(p200.subFreq, 0.244096, 1e-6);
+    // f (cycles/pixel) = aliased c/mm * 0.14, worked by hand:
+    //   60 lpi: 2.362205*0.14 = 0.330709 -> level 1, 1 - 2*0.330709 = 0.338583
+    //  103 lpi: 3.087739*0.14 = 0.432283 -> level 1, 1 - 0.864566   = 0.135434
+    //  200 lpi: 0.731159*0.14 = 0.102362 -> x2 0.204724 -> x2 0.409449: level 3, 1 - 0.818898 = 0.181102
+    // The pitch was 0.139 until QA-B-130. The levels do not move (the doubling
+    // count is unchanged); only the in-band frequencies do. The 200 lpi value is
+    // compared at 1e-5 because the hand input is rounded to six places and the
+    // third doubling multiplies that rounding by four.
+    auto p60 = gd::PlaceInSubbands(0.330709, 6);
+    auto p103 = gd::PlaceInSubbands(0.432283, 6);
+    auto p200 = gd::PlaceInSubbands(0.102362, 6);
+    EXPECT_EQ(p60.level, 1);  EXPECT_NEAR(p60.subFreq, 0.338583, 1e-6);
+    EXPECT_EQ(p103.level, 1); EXPECT_NEAR(p103.subFreq, 0.135434, 1e-6);
+    EXPECT_EQ(p200.level, 3); EXPECT_NEAR(p200.subFreq, 0.181102, 1e-5);
     EXPECT_EQ(gd::PlaceInSubbands(0.001, 6).level, 0);   // folds too close to DC
 }
 
@@ -254,10 +252,19 @@ TEST(GsvgGridSuppression, ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005) {
             std::printf("GRIDSUP floor005 axis=%s lpi=%.0f after/before=%.4g after/baseline=%.4g\n",
                         Name(axis), lpi, r.after / r.before, toBaseline);
             EXPECT_LT(r.after / r.before, 1.0e-4) << Name(axis) << " " << lpi;
-            EXPECT_LT(toBaseline, 600.0) << Name(axis) << " " << lpi;
-            // Recorded, not a target: the residual is still far above the
-            // grid-free baseline. Kept so an improvement shows up as a change.
-            EXPECT_GT(r.after, 10.0 * std::max(r.baseline, 1.0)) << Name(axis) << " " << lpi;
+            // QA-B-130: re-derived at the product pitch 0.140. Both of the
+            // bounds below are scene-driven -- the aliased frequencies moved, so
+            // the grid-free baseline this ratio divides by lands elsewhere. The
+            // load-bearing guard (after/before) did not move: 4.1e-5 here
+            // against 2.2e-5 at 0.139, both far under 1e-4.
+            // Largest measured at 0.140: 714.3 (rows, 103 lpi). Floor 800 is
+            // 1.12 x that, the same headroom rule the 600 used.
+            EXPECT_LT(toBaseline, 800.0) << Name(axis) << " " << lpi;
+            // Recorded, not a target: the residual is still above the grid-free
+            // baseline. Kept so an improvement shows up as a change. The
+            // multiplier dropped from 10 to 4 because suppression at cols/60
+            // IMPROVED at this pitch (21.6 x baseline -> 4.5 x).
+            EXPECT_GT(r.after, 4.0 * std::max(r.baseline, 1.0)) << Name(axis) << " " << lpi;
         }
 }
 
@@ -344,6 +351,25 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 // 183 lpi aliases to 0.0015 cyc/px — below the detector's reach, so nothing is
 // filtered and the ratio is 1. That is recorded as the current state, not
 // accepted: a floor of 1.0 only forbids it getting worse.
+// QA-B-130 (#192): the floors below were measured at 0.139 mm, a pitch this
+// product does not ship. At 0.140 two cases change and they are NOT the same
+// kind of change, so neither floor is re-derived here -- re-deriving would
+// absorb the finding, which is exactly what the lead asked not to happen:
+//
+//   170 lpi: 1.484e-05 -> 2.595e-03 (175 x worse), still detected and still
+//            52 dB down. The alias moved 5.013 -> 4.499 lp/cm and lands on a
+//            different sub-band. This is the product's behaviour AT THE PITCH
+//            WE SHIP, not a scene artefact.
+//   180 lpi: detected 1 -> 0. AMBIGUOUS, and the ambiguity is measured, not
+//            guessed (AliasContrastAtTheProductPitch_192 below): the generator
+//            point-samples, so in THIS scene the fold keeps the full 5 %
+//            contrast and "not detected" means a real miss. A detector that
+//            integrates over a 100 % fill pixel would see 0.0397 % instead --
+//            1/126 of what the test injects. Whether this is a detection
+//            failure or nothing left to suppress depends on that, and the
+//            decision is the lead's (#192).
+//
+// Left failing on purpose until that decision. Do not "fix" by widening.
 TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
     struct Case { double lpi; double floorRatio; int detected; };
     const Case cases[] = {
@@ -477,4 +503,66 @@ TEST(GsvgGridSuppression, BenchmarkFreeze_Performance_REQ_GSVG_019_GridDwt3072) 
     std::printf("GRIDSUP bench3072 ratio before=%.4g after=%.4g\n", before, after);
     EXPECT_LT(after, kSuppressionRatio * before);
     xpe_gsvg_shutdown(handle);
+}
+
+// ===========================================================================
+// #192 (QA-B-130): what a 180 lpi grid actually looks like at the product
+// pitch, and whether there is anything left to suppress.
+//
+// The lead's one-dimensional arithmetic says 180 lpi = 70.87 lp/cm sits at
+// 0.992 of the 0.140 mm sampling frequency, so it folds to 0.562 lp/cm -- a
+// 1.8 cm shading rather than a grid pattern. Two things that arithmetic does
+// not carry are measured here.
+//
+//   (1) CONTRAST. The generator point-samples at pixel centres (GridFactor
+//       reads one position per pixel), so folding moves the pattern but does
+//       NOT reduce its amplitude: whatever the depth was, it survives. A real
+//       detector integrates over the pixel aperture instead, and at 0.992 of
+//       the sampling frequency that integral nearly cancels. The two are
+//       measured side by side, because the gap between them is the difference
+//       between "the test is unfair to the detector" and "the detector sees it".
+//
+//   (2) The aperture model here is a 100 % fill factor box. Real fill factors
+//       are lower, which weakens the cancellation -- so the aperture column is
+//       a bound, not a prediction.
+// ===========================================================================
+TEST(GsvgGridSuppression, AliasContrastAtTheProductPitch_192)
+{
+    constexpr int kProfileN = 4096;      // long enough for a 1.8 cm period
+    constexpr double kDepth192 = 0.05;
+    constexpr int kSub = 256;            // sub-samples across one pixel
+
+    std::printf("GRIDSUP 192: pitch_mm, lpi, alias_lp_cm, period_cm, "
+                "contrast_point_sampled, contrast_aperture, aperture/point\n");
+
+    for (const double pitch : {0.139, 0.140}) {
+        for (const double lpi : {170.0, 180.0, 186.0, 103.0}) {
+            const double fPerMm = lpi / 25.4;            // grid cycles per mm
+            const double alias = AliasedFrequencyPerMm(lpi, pitch);
+
+            double pMin = 1e30, pMax = -1e30, aMin = 1e30, aMax = -1e30;
+            for (int i = 0; i < kProfileN; ++i) {
+                const double t = i * pitch;              // pixel centre, mm
+                const double point = 1.0 + kDepth192 * std::sin(2.0 * kPi * fPerMm * t + 0.3);
+                pMin = std::min(pMin, point); pMax = std::max(pMax, point);
+
+                // Box aperture: average the same continuous modulation across
+                // the pixel instead of reading its centre.
+                double acc = 0.0;
+                for (int s = 0; s < kSub; ++s) {
+                    const double u = t + pitch * ((s + 0.5) / kSub - 0.5);
+                    acc += 1.0 + kDepth192 * std::sin(2.0 * kPi * fPerMm * u + 0.3);
+                }
+                const double aper = acc / kSub;
+                aMin = std::min(aMin, aper); aMax = std::max(aMax, aper);
+            }
+            const double cPoint = 0.5 * (pMax - pMin);
+            const double cAper  = 0.5 * (aMax - aMin);
+            std::printf("GRIDSUP 192 pitch=%.3f lpi=%5.0f alias=%.3f lp/cm period=%6.2f cm "
+                        "point=%.5f aperture=%.7f ratio=%.5f\n",
+                        pitch, lpi, alias * 10.0, alias > 0 ? 1.0 / (alias * 10.0) : 0.0,
+                        cPoint, cAper, cAper / cPoint);
+        }
+    }
+    SUCCEED();
 }
