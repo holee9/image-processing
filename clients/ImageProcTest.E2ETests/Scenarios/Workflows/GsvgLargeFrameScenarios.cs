@@ -352,8 +352,26 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// automation cost is in either number.</para>
     ///
     /// <para>The gate is stated as a multiple of a measured baseline, and the run prints median / p95 /
-    /// max so the next person can re-derive it rather than trust it. It guards Native only, and CI runs
-    /// the GUI suite on Mock — so this catches a regression HERE, not on CI (stated, not assumed).</para>
+    /// max so the next person can re-derive it rather than trust it.</para>
+    ///
+    /// <para>It DOES run on CI: the gui-e2e-native job invokes the whole project with no --filter. An
+    /// earlier version of this comment said the opposite; that was read off the Mock job alone.</para>
+    ///
+    /// <para><b>What it can and cannot catch, measured by injection</b> (raising the virtual grid's
+    /// iterations, which is real work rather than an artificial sleep):</para>
+    ///
+    /// <list type="bullet">
+    /// <item>iterations 3 (default) — median 65-68 ms, green.</item>
+    /// <item>iterations 9 — median 90 ms, a 1.38x regression, and this gate stays GREEN.</item>
+    /// <item>iterations 15 — median 117 ms, red.</item>
+    /// <item>pyramid levels 8 instead of 4 — median 66 ms, NOT a slowdown at all: each level is a
+    /// quarter of the one above, so depth barely moves the cost. Injecting it proves nothing, and a
+    /// green run under it would have been mistaken for a working gate.</item>
+    /// </list>
+    ///
+    /// So the detection floor is roughly gate/baseline = 105/65 = 1.6x. A regression smaller than that
+    /// passes here. That is the price of slack sized for machine load, and it is written down rather
+    /// than discovered later by someone trusting the gate with more than it can carry.
     /// </summary>
     [SkippableFact]
     public void P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread()
@@ -373,12 +391,15 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             var max = stageMs[^1];
             output.WriteLine($"P08 gsvg stage over {Repeats} runs: median={median:0.0} p95={p95:0.0} max={max:0.0} ms " +
                              $"[{string.Join(", ", stageMs.Select(v => v.ToString("0")))}]");
-            output.WriteLine($"P08 spread max/median = {max / Math.Max(1.0, median):0.00}x; gate = {GateMs} ms");
+            var profile = MachineProfile.Detect();
+            output.WriteLine($"P08 machine: {profile}");
+            output.WriteLine($"P08 spread max/median = {max / Math.Max(1.0, median):0.00}x; gate = {profile.GateMs} ms ({profile.Name})");
 
-            Assert.True(median < GateMs,
-                $"The GSVG stage's median rose to {median:0} ms against a {GateMs} ms gate " +
-                $"(baseline {BaselineMs} ms, measured spread {max / Math.Max(1.0, median):0.00}x). " +
-                "Either the stage got slower or the baseline needs re-measuring — do not raise the gate without re-measuring.");
+            Assert.True(median < profile.GateMs,
+                $"The GSVG stage's median rose to {median:0} ms against a {profile.GateMs} ms gate " +
+                $"for the {profile.Name} profile (baseline {profile.BaselineMs} ms, measured spread " +
+                $"{max / Math.Max(1.0, median):0.00}x). Machine: {profile}. " +
+                "Either the stage got slower or that profile's baseline needs re-measuring — do not raise a gate without re-measuring.");
         }
         finally
         {
@@ -391,50 +412,68 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     private const int Repeats = 7;
 
     /// <summary>
-    /// Median GSVG stage time on this frame at the app's DEFAULT settings. Re-measure before changing
-    /// it; a number moved to make a run pass is not a baseline.
+    /// Which machine this is running on, and the gate that was measured FOR that machine.
     ///
-    /// <para>It has moved twice, and each move is recorded rather than smoothed over, because a gate
-    /// whose history is invisible cannot be told apart from one that was quietly relaxed:</para>
+    /// <para>Two profiles, because one number cannot serve both: at identical code this dev machine
+    /// measured a 50 ms median where the CI runner measured 84 ms — 1.68x. A single gate is either
+    /// red on every CI run or blind to a 1.68x regression here.</para>
     ///
-    /// <list type="number">
-    /// <item>27 ms — the GUI sent no <c>vg_pyramid_levels</c> key, so the module left its pyramid off.</item>
-    /// <item>50 ms — defaulting levels to 4 put the Laplacian pyramid back into every virtual-grid run.
-    /// This gate went red at 51 ms against a 45 ms limit, on a change that was intended.</item>
-    /// <item>62 ms — the lead's decision matched the app's defaults to the module's (levels 4, gain 1.3,
-    /// de-noise k 2), which adds the soft-threshold pass the earlier two baselines never ran.</item>
-    /// <item>65 ms — same settings, re-measured against a newer gsvg.dll (CI run 35294573612, head
-    /// 3f520f8) after the stale local staging was replaced. The derived gate lands on 105 ms either
-    /// way, so this step changed the baseline without moving the limit.</item>
-    /// </list>
+    /// <para>The profile is chosen from what can be OBSERVED about the machine, and the looser CI
+    /// profile requires positive evidence on BOTH axes: the hosted-runner marker AND a core count that
+    /// matches the runner. A declaration alone does not loosen the gate — if the marker were wrong or
+    /// inherited, a bare env-var check would silently widen the limit and nobody would see it. This way
+    /// a misread errs toward the STRICTER profile: the failure mode is a visible red, not a silent pass.
+    /// The trade is real — if the runner ever grows past 8 cores this goes red until re-measured — and
+    /// that is the direction worth failing in.</para>
     ///
-    /// <para>This baseline is a DEV-MACHINE number. The same test on the CI runner measured 84 ms where
-    /// this machine measured 50 ms at the same code — 1.68x — so a gate derived here is not known to
-    /// hold there. The runner is 4 logical cores at 19.4 GB/s against this machine's 25.5 GB/s, and the
-    /// stage is memory-bound (post lane, QA-B-105). Splitting the gate per machine is a structure the
-    /// lead decides; until then the number below is honest about where it was measured.</para>
-    ///
-    /// Every step re-measured the baseline under the new workload. None of them widened the gate to fit
-    /// a red run — that is a different act, and the distinction is the whole value of this number.
+    /// <para>Both numbers are printed on every run, so a wrong classification is readable rather than
+    /// inferred.</para>
     /// </summary>
-    private const double BaselineMs = 65.0;
+    private sealed record MachineProfile(string Name, double BaselineMs, double GateMs, int Cores, bool HostedRunner)
+    {
+        /// <summary>
+        /// Dev machine (i7-12700 class, 25.5 GB/s): 3 runs x 7 applies = 21 samples at the current
+        /// defaults against gsvg.dll from CI run 35294573612 — medians 65 / 66 / 65 ms, worst 77 ms.
+        /// Spread 77/65 = 1.18x; gate 65 x 1.18 x 1.36 = 104, rounded to 105.
+        ///
+        /// The baseline has moved three times before this and each move is recorded in git rather than
+        /// smoothed over: 27 ms (the GUI sent no pyramid keys, so the module left the pyramid off),
+        /// 50 ms (levels defaulted to 4, putting the Laplacian pyramid back into every run), 62 ms
+        /// (defaults matched to the module's, adding the soft-threshold pass), 65 ms (same settings,
+        /// newer gsvg.dll). Every step re-measured under the new workload; none widened a gate to fit
+        /// a red run. That distinction is the whole value of these numbers.
+        /// </summary>
+        private static readonly MachineProfile Dev = new("dev", 65.0, 105.0, 0, false);
 
-    /// <summary>
-    /// The gate, derived from measurement rather than padded:
-    ///
-    /// <list type="bullet">
-    /// <item>3 runs x 7 applies = 21 samples at the current defaults against gsvg.dll from CI run
-    /// 35294573612: medians 65 / 66 / 65 ms, worst single sample 77 ms.</item>
-    /// <item>Observed spread is therefore 77/65 = 1.18x of the median.</item>
-    /// <item>The gate allows that spread again on top, for machine load these quiet runs did not see:
-    /// 65 x 1.18 x 1.36 = 104 ms, rounded to 105 — which is 1.36x the worst sample actually observed.</item>
-    /// </list>
-    ///
-    /// The 1.36 factor is carried over from the first derivation of this gate so the two are comparable;
-    /// it is slack for load, not a safety margin against the code. Raising this is only honest after
-    /// re-running P-08 and recording the new spread — a number moved to make a red run green is not a gate.
-    /// </summary>
-    private const double GateMs = 105.0;
+        /// <summary>
+        /// CI runner (Xeon 6973P-C, 4 logical cores, 19.4 GB/s): 1 run x 7 applies = 7 samples, median
+        /// 84 ms, worst 92 ms, spread 92/84 = 1.10x — measured in CI run 35294573612's gui-e2e-native
+        /// job. Same derivation as the dev profile: 84 x 1.10 x 1.36 = 126 ms.
+        ///
+        /// <para>PROVISIONAL, and the gap is named rather than hidden: those 7 samples were taken at
+        /// the GUI-C-104 code, BEFORE the de-noise pass joined the defaults. On this machine that pass
+        /// moved the median from 50 to 65 ms, so the CI median is expected to rise too — but expected
+        /// is not measured, and the lead's card forbids deriving a CI gate by conversion. The number
+        /// below therefore stands on CI's own samples only, and is re-derived once a CI run on this
+        /// code reports its own. Until then the honest risk is a false red on CI, which is visible.</para>
+        /// </summary>
+        private static readonly MachineProfile Ci = new("ci", 84.0, 126.0, 0, true);
+
+        /// <summary>Core count above which the CI profile is refused even when the marker is present.</summary>
+        private const int RunnerCoreCeiling = 8;
+
+        public static MachineProfile Detect()
+        {
+            var cores = Environment.ProcessorCount;
+            var hosted = string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true",
+                StringComparison.OrdinalIgnoreCase);
+            var profile = hosted && cores <= RunnerCoreCeiling ? Ci : Dev;
+            return profile with { Cores = cores, HostedRunner = hosted };
+        }
+
+        public override string ToString() =>
+            $"cores={Cores}, hostedRunner={HostedRunner}, profile={Name}, baseline={BaselineMs:0} ms, gate={GateMs:0} ms";
+    }
 
     /// <summary>
     /// P-09 (GUI-C-104): the pyramid-levels setting reaches the drawn pixels. GUI-C-103 measured that
