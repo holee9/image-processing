@@ -39,6 +39,9 @@ internal sealed record GsvgConfig
     /// <summary>Detail gain; only meaningful with the pyramid on, and 1.0 makes the pyramid a no-op.</summary>
     [JsonPropertyName("vg_pyramid_gain")] public double? PyramidGain { get; init; }
 
+    /// <summary>Soft-threshold strength on the finest band; only meaningful with the pyramid on.</summary>
+    [JsonPropertyName("vg_denoise_k")] public double? DenoiseK { get; init; }
+
     private static readonly JsonSerializerOptions Options = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -113,6 +116,7 @@ internal static class GuiGsvgRunner
             // values with levels 0 — so off is expressed by omitting the key, not by sending 0.
             PyramidLevels = virtualGrid && settings.GsvgPyramidLevels > 0 ? settings.GsvgPyramidLevels : null,
             PyramidGain = virtualGrid && settings.GsvgPyramidLevels > 0 ? settings.GsvgPyramidGain : null,
+            DenoiseK = virtualGrid && settings.GsvgPyramidLevels > 0 ? settings.GsvgDenoiseK : null,
         };
 
         var handle = IntPtr.Zero;

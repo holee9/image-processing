@@ -394,30 +394,38 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// Median GSVG stage time on this frame at the app's DEFAULT settings. Re-measure before changing
     /// it; a number moved to make a run pass is not a baseline.
     ///
-    /// <para>It moved once already, and the move is the point: the first baseline was 27 ms, measured
-    /// while the GUI sent no <c>vg_pyramid_levels</c> key at all. Defaulting that setting to 4 (this
-    /// same card) put the Laplacian pyramid back into every virtual-grid run, and this gate went red at
-    /// 51 ms against a 45 ms limit — on a change that was intended. The baseline was then re-measured
-    /// under the new default rather than the gate relaxed; the two are not the same act.</para>
+    /// <para>It has moved twice, and each move is recorded rather than smoothed over, because a gate
+    /// whose history is invisible cannot be told apart from one that was quietly relaxed:</para>
+    ///
+    /// <list type="number">
+    /// <item>27 ms — the GUI sent no <c>vg_pyramid_levels</c> key, so the module left its pyramid off.</item>
+    /// <item>50 ms — defaulting levels to 4 put the Laplacian pyramid back into every virtual-grid run.
+    /// This gate went red at 51 ms against a 45 ms limit, on a change that was intended.</item>
+    /// <item>62 ms — the lead's decision matched the app's defaults to the module's (levels 4, gain 1.3,
+    /// de-noise k 2), which adds the soft-threshold pass the earlier two baselines never ran.</item>
+    /// </list>
+    ///
+    /// Every step re-measured the baseline under the new workload. None of them widened the gate to fit
+    /// a red run — that is a different act, and the distinction is the whole value of this number.
     /// </summary>
-    private const double BaselineMs = 50.0;
+    private const double BaselineMs = 62.0;
 
     /// <summary>
     /// The gate, derived from measurement rather than padded:
     ///
     /// <list type="bullet">
-    /// <item>3 runs x 7 applies = 21 samples at the default settings: medians 50 / 49 / 50 ms,
-    /// worst single sample 59 ms.</item>
-    /// <item>Observed spread is therefore 59/50 = 1.18x of the median.</item>
+    /// <item>3 runs x 7 applies = 21 samples at the current defaults: median 62 ms in every run,
+    /// worst single sample 76 ms.</item>
+    /// <item>Observed spread is therefore 76/62 = 1.23x of the median.</item>
     /// <item>The gate allows that spread again on top, for machine load these quiet runs did not see:
-    /// 50 x 1.18 x 1.36 = 80 ms, which is 1.36x the worst sample actually observed.</item>
+    /// 62 x 1.23 x 1.36 = 104 ms, rounded to 105 — which is 1.38x the worst sample actually observed.</item>
     /// </list>
     ///
     /// The 1.36 factor is carried over from the first derivation of this gate so the two are comparable;
     /// it is slack for load, not a safety margin against the code. Raising this is only honest after
     /// re-running P-08 and recording the new spread — a number moved to make a red run green is not a gate.
     /// </summary>
-    private const double GateMs = 80.0;
+    private const double GateMs = 105.0;
 
     /// <summary>
     /// P-09 (GUI-C-104): the pyramid-levels setting reaches the drawn pixels. GUI-C-103 measured that
@@ -438,6 +446,8 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         try
         {
             SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgDenoiseKInput", "0");
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
             var off = MeasureRender(window);
             var offHash = Field(window, "processed");
@@ -466,7 +476,9 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         }
         finally
         {
-            SetNumber(window, "GsvgPyramidGainInput", "1.0");
+            // Back to the app's defaults, which match the module's (lead's decision, GUI-C-104).
+            SetNumber(window, "GsvgDenoiseKInput", "2");
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
             SetNumber(window, "GsvgPyramidLevelsInput", "4");
             SetMode(window, "GsvgModeNone");
             Apply(window);
@@ -489,6 +501,8 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         try
         {
             SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgDenoiseKInput", "0");
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
             SetNumber(window, "GsvgGridFrequencyInput", "60");
             SetNumber(window, "GsvgAirSignalInput", "60000");
@@ -499,6 +513,8 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         }
         finally
         {
+            SetNumber(window, "GsvgDenoiseKInput", "2");
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
             SetNumber(window, "GsvgPyramidLevelsInput", "4");
             SetMode(window, "GsvgModeNone");
             Apply(window);
