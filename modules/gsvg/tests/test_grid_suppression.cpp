@@ -347,13 +347,31 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 //
 // The severely aliased band. Per-lpi floors on after/before, because the
 // aliased frequency lands on a different sub-band at each line density and the
-// values are three orders of magnitude apart. Measured across four noise seeds
-// (QA-B-109 §1) the spread was at most +-6 % (170 lpi: 1.43e-5 .. 1.62e-5);
-// each floor below is 1.2 .. 1.25 x the largest value measured on any seed.
+// values are three orders of magnitude apart.
 //
-// 183 lpi aliases to 0.0015 cyc/px — below the detector's reach, so nothing is
-// filtered and the ratio is 1. That is recorded as the current state, not
-// accepted: a floor of 1.0 only forbids it getting worse.
+// QA-B-132: EVERY floor here was derived at 0.139 mm, a pitch we do not ship.
+// All five rows were re-measured at 0.140 and the whole table is now derived
+// from those numbers with ONE multiplier, 1.5x, instead of the previous
+// per-row 1.2 .. 1.44x:
+//
+//   lpi   alias(lp/cm)   measured    old floor   old floor/measured
+//   170      4.499       2.595e-03    3.2e-03        1.23
+//   175      2.531       4.153e-05    6.0e-05        1.44
+//   180      0.562       1.0          0.99           0.99   (disabled, #192)
+//   183      0.619       1.0          1.0            1.00
+//   186      1.800       2.401e-05    0.20        8329.86   <-- useless as a floor
+//
+// Why 1.5x, when five repeat runs moved nothing at all (spread exactly 0.000,
+// every printed digit identical)? Because run-to-run variation is not what the
+// multiplier is for. The scene is deterministic; what does move these numbers
+// is the SCENE -- QA-B-109 measured +-6 % across four noise seeds, and 0.7 % of
+// pitch moved 186 lpi by 6900x. 1.5x covers the measured seed spread with room,
+// and is deliberately uniform so the next reader does not have to ask why each
+// row has its own factor. The seed spread has NOT been re-measured at 0.140.
+//
+// 183 lpi aliases below the detector's reach, so nothing is filtered and the
+// ratio is exactly 1. A multiplier there would permit a ratio above 1, i.e.
+// the filter making the grid stronger, so that row keeps its floor of 1.0.
 // QA-B-130 (#192): the floors below were measured at 0.139 mm, a pitch this
 // product does not ship. At 0.140 two cases change and they are NOT the same
 // kind of change, so neither floor is re-derived here -- re-deriving would
@@ -381,21 +399,13 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
     struct Case { double lpi; double floorRatio; int detected; };
     const Case cases[] = {
-        // 170 lpi re-derived at the product pitch 0.140 (QA-B-131, lead's
-        // decision): measured 2.595e-03 against 1.484e-05 at 0.139, because the
-        // alias moved 5.013 -> 4.499 lp/cm and lands on a different sub-band.
-        // It is still detected and still 52 dB down, and the load-bearing guard
-        // (after/before < 1e-4 in REQ_GSVG_005) is unaffected. Floor 3.2e-03 is
-        // 1.23 x the measured value, the same rule the 0.139 floors used.
-        // THIS IS A REGRESSION FLOOR, NOT A CLINICAL PASS MARK -- the pass mark
+        // EVERY floor below is 1.5 x the value measured at 0.140 (see above).
+        // THESE ARE REGRESSION FLOORS, NOT CLINICAL PASS MARKS -- the pass mark
         // is #190, which waits on real device images.
-        {170.0, 3.2e-3, 1},
-        {175.0, 6.0e-5, 1},
-        {183.0, 1.0,    0},   // not detected at all
-        // 186 lpi improved by 6900 x at this pitch (0.1654 -> 2.401e-05); the
-        // floor is left at its 0.139 value, so it now only forbids a large
-        // regression. Re-deriving it was not part of the lead's decision.
-        {186.0, 0.20,   1},
+        {170.0, 3.9e-3, 1},   // 2.595e-03 x 1.5; the alias moved 5.013 -> 4.499
+        {175.0, 6.3e-5, 1},   // 4.153e-05 x 1.5
+        {183.0, 1.0,    0},   // not detected; a multiplier would allow ratio > 1
+        {186.0, 3.7e-5, 1},   // 2.401e-05 x 1.5; was 0.20, i.e. 8330 x measured
     };
     for (const Case& c : cases) {
         const auto r = RunSuppression(c.lpi, gd::Axis::Rows);
