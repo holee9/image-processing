@@ -651,3 +651,129 @@ TEST(GsvgVirtualGridMc512, ScatterEstimateAgainstTruth_REQ_GSVG_011_025)
     }
     SUCCEED();
 }
+
+// ===========================================================================
+// #191 item 2 (QA-B-134): does the error peak sit at the narrowest kernel
+// term's width?
+//
+// FIRST, A CORRECTION TO THE CLAIM BEING TESTED. QA-B-125 read sigma_1 as
+// 0.92..1.21 mm and said the peak (0.28..1.12 mm) matched its order. The table
+// stores sigma in CENTIMETRES -- the kernel CSV header says "r in cm at the
+// detector plane" and virtual_grid.cpp:505 divides by the pitch in cm. So
+// sigma_1 = 9.19..12.15 mm, and the peak sits at 0.03..0.09 of it, two orders
+// away. The claim was wrong on units before any experiment was run.
+//
+// The experiment still earns its place, because it separates "wrong by a
+// factor" from "unrelated": scaling sigma_1 by k has a falsifiable prediction.
+// If the peak is set by the narrowest term it moves roughly with k and
+// peak/sigma_1 stays put; if it does not move, the narrowest term does not set
+// it -- and that is the more useful answer.
+//
+// Only the narrowest term is scaled, and only its WIDTH, so the comparison has
+// one moving part. Amplitudes are untouched, so the total scatter is not what
+// changes (scaling a whole kernel moves the answer and the question with it --
+// the design QA-B-134 rejected).
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, NarrowestTermWidthVsErrorPeakLocation_191)
+{
+    const Phantom p = Load("step");
+
+    // Column-to-column thickness jumps, as in QA-B-125.
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0;
+        int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i];
+            ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> dist(kN, kN);
+    for (int c = kLo; c < kHi; ++c)
+        for (int j = kLo; j + 1 < kHi; ++j)
+            if (std::fabs(colT[j + 1] - colT[j]) > 0.2) dist[c] = std::min(dist[c], std::abs(c - j));
+
+    std::printf("VGMC134 sigma1 sweep: k, sigma1_mm, factor, peak_at_mm, peak_median, peak/sigma1\n");
+    for (const double k : {1.0, 1.5, 2.0, 3.0}) {
+        vg::ParamTable t = McTable();
+        double s1mm = 0;
+        for (auto& node : t.kernels) {
+            int narrow = 0;
+            for (int i = 1; i < node.terms; ++i)
+                if (node.s[i] < node.s[narrow]) narrow = i;
+            node.s[narrow] *= k;                   // width only, narrowest term only
+            if (s1mm == 0) s1mm = node.s[narrow] * 10.0;
+        }
+
+        vg::VgSettings st = BaseSettings();
+        std::vector<double> img = p.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, st, vg::VgSwitches{}, p.mask.data());
+        ASSERT_EQ(rep.error, "") << k;
+
+        const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
+        double best = -1, bestMm = -1;
+        for (size_t b = 0; b + 1 < sizeof(edges) / sizeof(edges[0]); ++b) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+                const int c = static_cast<int>(i) % kN;
+                if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
+                a.push_back(std::fabs(img[i] / p.primary[i] - 1.0));
+            }
+            if (a.empty()) continue;
+            std::sort(a.begin(), a.end());
+            const double m = a[a.size() / 2];
+            if (m > best) { best = m; bestMm = 0.5 * (edges[b] + edges[b + 1]) * kPitchMm; }
+        }
+        std::printf("VGMC134 sigma1 k=%.1f sigma1=%.2f mm factor=%d peak_at=%.2f mm median=%.4f peak/sigma1=%.4f\n",
+                    k, s1mm, rep.factor, bestMm, best, bestMm / s1mm);
+    }
+    SUCCEED();
+}
+
+// ===========================================================================
+// #191 item 4 (QA-B-134): can this phantom make the case the cap protects
+// against -- a negative primary before clamping?
+//
+// QA-B-125 found the cap BINDS on 6.25 % of pixels but never had to SAVE
+// anything: negativePrimary was 0 in every configuration. That is "it fires",
+// not "it protects". Here the kernel amplitudes are over-estimated (the
+// ScaledKernels idea from test_virtual_grid.cpp:77) until the subtraction would
+// go negative WITHOUT the cap, and the cap is then switched on at the same
+// factor.
+//
+// CapMode::None is the control and is not optional: QA-B-112 measured only at
+// the default cap and missed a floor defect that the None case exposed.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, OverEstimatedKernelsMakeTheCapProtect_191)
+{
+    const Phantom p = Load("step");
+
+    std::printf("VGMC134 cap: factor, cap, negativePrimary, cappedFraction, median r\n");
+    for (const double factor : {1.0, 2.0, 3.0, 5.0, 10.0}) {
+        for (const vg::CapMode cap : {vg::CapMode::None, vg::CapMode::GlobalSum}) {
+            vg::ParamTable t = McTable();
+            for (auto& node : t.kernels)
+                for (int i = 0; i < node.terms; ++i) node.a[i] *= factor;
+
+            vg::VgSettings st = BaseSettings();
+            st.pyramidLevels = 0;
+            st.pyramidGain = 1.0;
+            st.denoiseK = 0.0;
+            vg::VgSwitches sw;
+            sw.cap = cap;
+
+            std::vector<double> img = p.total;
+            const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, st, sw, p.mask.data());
+            ASSERT_EQ(rep.error, "") << factor;
+            const Metrics m = Measure(img, p);
+            std::printf("VGMC134 cap factor=%5.1f cap=%-9s negativePrimary=%zu capped=%.4f median=%.4f\n",
+                        factor, cap == vg::CapMode::None ? "None" : "GlobalSum",
+                        rep.negativePrimary, rep.cappedFraction, m.median);
+        }
+    }
+    SUCCEED();
+}
