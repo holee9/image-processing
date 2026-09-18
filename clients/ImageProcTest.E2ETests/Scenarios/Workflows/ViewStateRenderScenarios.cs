@@ -152,9 +152,18 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
 
     internal sealed record Drawn(string Raw, string Mode, string Zoom, double Scale, double OffsetX, double OffsetY, double? Swipe, double? Opacity);
 
+    /// <summary>
+    /// The fields these cases read, in the order the peer writes them.
+    ///
+    /// <para>The tail is deliberately open (<c>(?:;.*)?$</c>) rather than an exhaustive list of the
+    /// remaining fields. An exhaustive tail makes every case here fail the moment the peer gains a
+    /// field it does not read: GUI-C-102 appended <c>processedMean</c> and <c>hud</c>, GUI-C-103 added
+    /// <c>renderMs</c>, and this pattern stopped matching — <c>Read</c> returned null, so all five
+    /// cases timed out with messages quoting a HelpText whose values were in fact correct.</para>
+    /// </summary>
     private static readonly Regex DrawnPattern = new(
-        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>[^;]+)(?:; processed=(?<hash>[^;]+))?$",
-        RegexOptions.CultureInvariant);
+        @"^rendered=(?<mode>[^;]+); zoom=(?<zoom>[^;]+); scale=(?<scale>[^;]+); offset=(?<ox>[^,]+),(?<oy>[^;]+); swipe=(?<swipe>[^;]+); opacity=(?<op>[^;]+)(?:;.*)?$",
+        RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
     private static string Help(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"))?.HelpText ?? "(no viewport)";
