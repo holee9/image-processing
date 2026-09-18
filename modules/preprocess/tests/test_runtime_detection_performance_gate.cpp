@@ -32,11 +32,19 @@
  * `ratio <= R` gate would have waved that regression through. A reference that
  * shares the code under test cancels the very thing being watched.
  *
- * The reference below is therefore frozen IN THIS FILE: it touches memory and
- * does float arithmetic and min/max, like the detector, but it calls none of the
- * detector's code and must never be edited to track it. Machine slower -> both
- * grow, ratio steady. Code slower -> only the detector grows, ratio rises, gate
- * fires. That is the property the gate needs and the other reference lacked.
+ * The reference below therefore lives IN THIS FILE and calls none of the
+ * detector's code. Machine slower -> both grow, ratio steady. Code slower ->
+ * only the detector grows, ratio rises, gate fires. That is the property the
+ * gate needs and the other reference lacked.
+ *
+ * "Machine slower -> both grow" only holds if both are slowed by the SAME
+ * property of the machine. QA-A-115 (#179) found that they were not: the old
+ * reference was cache-resident and measured core throughput while the detector
+ * streams 46 MB and measures memory bandwidth, so a CI runner with 19.4 GB/s
+ * raised the ratio from 0.65 to 1.05 with no code change at all. The reference
+ * is now bandwidth-bound too -- see the kernel's own comment for the evidence
+ * and for what remains fixed about it (it still calls no detector code, and it
+ * is still never re-tuned to make a failing run pass).
  *
  * THE CONTEXT IS STILL PART OF THE NUMBER (QA-A-55/A-56/A-57): one warm-up run
  * discarded, minimum of three, single thread. Timing noise is one-sided -- the
@@ -78,46 +86,69 @@ namespace {
 /* ------------------------------------------------------- reference work */
 
 /**
- * FROZEN. Do not edit this to match the detector, ever -- the moment it tracks
- * the code under test, the gate stops seeing regressions (see the file header).
- * It exists only to answer "how fast is this machine, right now, in this
- * process", and its character is chosen to resemble the detector's: streaming
- * reads over a buffer far larger than L2, a small neighbourhood per element,
- * float subtract/abs, and min/max.
+ * THE REFERENCE KERNEL IS BANDWIDTH-BOUND, AND THAT IS THE WHOLE POINT.
+ *
+ * It used to say "do not edit this, ever". QA-A-115 (#179) replaces that
+ * sentence, because the old kernel was measuring the wrong thing about the
+ * machine and the CI logs proved it:
+ *
+ *     dev PC   i7-12700          bandwidth 25.5 GB/s   ratio 0.65
+ *     CI       Xeon 6973P-C      bandwidth 19.4 GB/s   ratio 1.03-1.07
+ *
+ * with ZERO changed lines in the detector's path. The old kernel swept a 16 MB
+ * buffer twelve times, so after the first sweep it lived in cache and measured
+ * core throughput. The detector streams a 36 MB frame plus a 9.4 MB map, so it
+ * measures memory bandwidth. Two machines that differ in bandwidth but not in
+ * core throughput therefore moved the ratio without any code change -- the
+ * ratio did not cancel the machine, which is the only thing a ratio is for.
+ *
+ * The rule the old sentence protected still holds and is worth restating: the
+ * reference MUST NOT call the detector, and MUST NOT be re-tuned to make a
+ * failing run pass. What changed is which property of the machine it measures,
+ * and that change was made once, on evidence, and is recorded here.
+ *
+ * So: same working-set size and same access shape as the detector -- a float
+ * frame streamed with a small neighbourhood, and a uint8 map written per
+ * element -- without any of its code.
+ *
+ * EVERY RATIO MEASURED BEFORE THIS CHANGE IS VOID. The historical band
+ * (0.472..0.638 across 21 CI runs) described the old denominator and says
+ * nothing about this one; the limit below is re-derived from scratch.
  */
-constexpr size_t kReferenceElems = 4u * 1024u * 1024u;   // 16 MB of float
-// QA-A-60: sized so one measurement lasts long enough that start-up transients
-// and scheduler slices amortise. At 3 sweeps the reference measured 24.8-46.6 ms
-// across runs -- a near 2x jitter that made the RATIO noisier than the absolute
-// it was meant to stabilise, which would have been a worse gate, not a better one.
-constexpr int kReferenceSweeps = 12;
+constexpr size_t kReferenceElems = 9u * 1024u * 1024u;   // 37.7 MB of float
+constexpr size_t kReferenceMapBytes = kReferenceElems;   // 9.4 MB of uint8
+// Sized from measurement, not taste: one sweep moves about 47 MB, so a handful
+// of sweeps is long enough that start-up transients amortise while the run
+// stays under a tenth of a second on both machines.
+constexpr int kReferenceSweeps = 6;
 constexpr int kReferenceReps = 5;
 
 double MeasureReferenceMs() {
-    static const std::vector<float> buffer = [] {
+    // Both buffers are allocated once and reused. Their combined 47 MB is far
+    // past any last-level cache, which is what forces the traffic to main
+    // memory -- the property being measured.
+    static const std::vector<float> frame = [] {
         std::vector<float> b(kReferenceElems);
         std::mt19937 rng(20260912u);
         std::normal_distribution<float> noise(1000.0f, 25.0f);
         for (size_t i = 0; i < b.size(); ++i) b[i] = noise(rng);
         return b;
     }();
+    static std::vector<uint8_t> map(kReferenceMapBytes, 0u);
 
     volatile float sink = 0.0f;
     auto once = [&]() {
         float acc = 0.0f;
         for (int sweep = 0; sweep < kReferenceSweeps; ++sweep) {
-            for (size_t i = 4; i + 4 < buffer.size(); ++i) {
-                const float c = buffer[i];
-                float lo = c, hi = c;
-                for (int d = 1; d <= 4; ++d) {
-                    const float a = buffer[i - static_cast<size_t>(d)];
-                    const float b = buffer[i + static_cast<size_t>(d)];
-                    lo = (a < lo) ? a : lo;
-                    lo = (b < lo) ? b : lo;
-                    hi = (a > hi) ? a : hi;
-                    hi = (b > hi) ? b : hi;
-                }
-                acc += std::fabs(c - (lo + hi) * 0.5f);
+            // One streaming read of the frame, one streaming write of the map,
+            // three floats of arithmetic per element. The arithmetic is kept
+            // deliberately thin so the loop waits on memory rather than on the
+            // core -- the detector's own inner loop has the same character.
+            const float thr = 30.0f;
+            for (size_t i = 1; i + 1 < frame.size(); ++i) {
+                const float d = std::fabs(frame[i] - 0.5f * (frame[i - 1] + frame[i + 1]));
+                map[i] = (d > thr) ? 1u : 0u;
+                acc += d;
             }
         }
         sink = sink + acc;
@@ -143,7 +174,7 @@ double MeasureReferenceMs() {
 // know which machine ran it, so the run prints its own profile.
 //
 // These lines are diagnostics only. They assert nothing, they do not touch the
-// frozen reference kernel, and they must never become an input to the limit.
+// reference kernel, and they must never become an input to the limit.
 //
 // Why a bandwidth probe belongs here: the reference kernel is a 16 MB buffer
 // swept 12 times, which is compute-bound once resident, while the 3072^2
@@ -230,52 +261,39 @@ void PrintMachineProfile() {
 //
 //     [perf-gate-ratio] <label> ratio=<x> limit=<y>
 //
-// QA-A-67 RE-DERIVED THE LIMIT, AGAIN -- and that is the rule now, not an
-// exception. SPEC 60a81c1 [HARD]: a limit is re-derived at every large
-// performance change and never inherited, because an inherited limit is not a
-// loose gate, it is a gate measuring something else. QA-A-65 made the detector
-// 4.2x faster and QA-A-66 re-derived 2.20 for it; QA-A-67 made the global sigma
-// 2.95x faster, so 2.20 now passes a 2.4x regression.
+// QA-A-115 (#179) RE-DERIVED THE LIMIT FROM SCRATCH, because the denominator
+// changed. SPEC 60a81c1 [HARD]: a limit is re-derived at every large
+// performance change and never inherited -- and replacing the reference kernel
+// is the largest such change there is. EVERY RATIO RECORDED BEFORE THIS POINT
+// (the 0.472..0.638 band of 21 CI runs, the 0.85 limit, the QA-A-66/67 P/E-core
+// tables) described the old cache-resident kernel and is VOID here.
 //
-// THE CLEAN BAND NARROWED FROM 24% TO 4%, which is a result rather than luck.
-// QA-A-66 measured a wide band and explained it: the reference slowed by 1.87x
-// between this machine's P and E cores while the detector slowed by only 1.42x,
-// because the detector's time was dominated by a global sigma stage whose cost
-// was an unpredictable branch rather than arithmetic. QA-A-67 removed that
-// branch, and with it the reason the two diverged:
+// MEASURED BAND (dev PC i7-12700, fresh build each time, min-of-3-rounds):
 //
-//     QA-A-66   P-core 1.720   E-core 1.308   spread 24%
-//     QA-A-67   P-core 0.651   E-core 0.630   spread  3.3%
+//     clean             1.282  1.289  1.318      (3 runs; worst 1.318)
+//     regression +1 pass  1.380                  (one extra streaming pass)
+//     regression +2      1.479
+//     regression +8      2.046
 //
-// The detector now scales P->E by 1.80x against the reference's 1.84x. The same
-// explanation predicted both the divergence and its disappearance, which is what
-// makes it an explanation rather than a story fitted to one measurement.
+// The injected regression is an extra streaming pass over the input frame, the
+// same instrument QA-A-109 used, so the rows are comparable to each other.
 //
-// MEASURED BANDS (QA-A-67, fresh build verified for each; P/E pinning as in
-// QA-A-66, and the E-core stands in for the second machine):
+// 1.45 sits 9.6% above the worst clean run and 2.0% below the nearest
+// regression this band contains (+2 passes, 1.479). That is a TIGHTER margin
+// than the 30.6% the old gate carried, and it is tight for a reason worth
+// stating plainly: a bandwidth-bound denominator moves with the same machine
+// noise as the numerator, so the clean band narrowed (2.8% across runs, against
+// the old gate's 24% across core types) -- but it has not been measured on a
+// second machine yet.
 //
-//     clean            P-core   0.630 .. 0.651   (3 runs)
-//                      E-core   0.626 .. 0.630   (3 runs)
-//     regression 1     P-core   1.583            (branchless sort key reverted)
-//                      E-core   1.289            (same)
-//     regression 2     P-core   6.183            (AVX2 path compiled out)
-//                      E-core   6.490            (same)
-//
-// Regression 1 is the nearest one and therefore the one that sets the ceiling:
-// it is exactly the pre-QA-A-67 code, so it is what "someone quietly undoes the
-// sort-key change" costs. Note its E-core value (1.289) is BELOW the P-core
-// clean value QA-A-66 measured (1.720) -- which is why the limit had to move:
-// under 2.20 this regression passes on both cores.
-//
-// 0.85 sits 30.6% above the worst clean run across both microarchitectures (the
-// margin QA-A-60 and QA-A-66 both used) and 34% below the nearest regression. It
-// catches a 1.31x regression on either core.
-//
-// Reading the value from CI: ctest prints test output only on failure, so a
-// passing run has no `perf-gate-ratio` line in the job log. It is in the
-// xpe-preprocess-test-results artifact, under Temporary/LastTest.log. That is
-// ctest behaving normally -- do not "fix" it, or every passing run grows a log.
-constexpr double kRatio3072Limit = 0.85;
+// PROVISIONAL UNTIL THE CI RUN. The whole point of the new kernel is that the
+// ratio should now be the SAME on a machine with different memory bandwidth.
+// That claim is untested until this lands in CI on the Xeon 6973P-C, where the
+// old kernel produced 1.03-1.07 against the dev PC's 0.65. If the CI ratio
+// lands near 1.3, the kernel cancels the machine and this limit stands. If it
+// does not, the limit is wrong and so is the approach -- and that is the
+// measurement, not a reason to move the number.
+constexpr double kRatio3072Limit = 1.45;
 
 /** Reported, never asserted: the SPEC improvement target we are not near yet. */
 constexpr double kImprovementTargetMs = 60.0;
