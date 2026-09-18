@@ -29,6 +29,29 @@
                                           SwipePosition="{Binding Settings.ComparisonSwipePosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           OverlayOpacity="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
+        <!-- #173 (GUI-C-113): the evaluation workbench. Both lanes take the SAME source and differ only
+             in the settings their processed image was produced with, so each carries its own peer and
+             can be read independently. They sit under the main viewport and stay collapsed until both
+             lanes have been drawn, so an app that never renders them shows nothing rather than two
+             empty boxes claiming to be lanes. -->
+        <Grid x:Name="LaneRow" VerticalAlignment="Bottom" Height="180" Margin="8,0,8,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:ImageComparisonViewport x:Name="LaneAViewport"
+                                              AutomationProperties.AutomationId="LaneAViewport"
+                                              CompareMode="ProcessedOnly"
+                                              SourceImage="{Binding SourceImage}"
+                                              ProcessedImage="{Binding LaneAImage}" />
+            <controls:ImageComparisonViewport x:Name="LaneBViewport" Grid.Column="2"
+                                              AutomationProperties.AutomationId="LaneBViewport"
+                                              CompareMode="ProcessedOnly"
+                                              SourceImage="{Binding SourceImage}"
+                                              ProcessedImage="{Binding LaneBImage}" />
+        </Grid>
+
         <!-- #171 ①/③ (GUI-C-79): the processed image is not the result of what was asked for. -->
         <Border x:Name="PreviewStaleBanner"
                 HorizontalAlignment="Center"
