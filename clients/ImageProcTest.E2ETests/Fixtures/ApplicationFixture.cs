@@ -99,6 +99,11 @@ public class ApplicationFixture : IDisposable
             return;
         }
 
+        // #163 / GUI-C-109: the exe that is about to be launched must be newer than the sources it was
+        // built from. This throws rather than skipping: a stale-binary run is the failure mode that
+        // reports a green for code that never ran, and a skip would hide it the same way.
+        EnsureApplicationIsFresh(exePath);
+
         BackendMode = forcedNativeDirectory is null ? ResolveBackendMode() : "Native";
         if (BackendMode is null)
         {
@@ -626,6 +631,67 @@ public class ApplicationFixture : IDisposable
     /// Returns null rather than throwing so the suite can report "not built" as a skip instead of
     /// a failure that looks like a defect in the app.
     /// </summary>
+    /// <summary>
+    /// Fails when the app executable is older than the gui sources it is built from (GUI-C-109).
+    ///
+    /// <para>The hazard is structural, not hypothetical: this test project deliberately does NOT
+    /// reference the WPF app — a ProjectReference made the suite depend on ImageProcTest.exe, and a
+    /// leftover app instance holding that exe broke builds (see the csproj note). The cost of that
+    /// choice is that <c>dotnet build</c> on THIS project does not rebuild the app, so editing app code
+    /// and building only the tests launches the previous binary. Every assertion then passes against
+    /// code that never ran, and the run is green.</para>
+    ///
+    /// <para>Nothing detected that before: the resolver above only checks the exe exists. The native
+    /// DLLs have had a provenance record since GUI-C-41 for exactly this reason; the app had none.</para>
+    ///
+    /// <para>The reference is NOT restored — that would bring back the locking fault. This reads
+    /// timestamps instead, which needs no build-graph edge.</para>
+    /// </summary>
+    private static void EnsureApplicationIsFresh(string exePath)
+    {
+        var guiRoot = FindGuiSourceRoot(exePath);
+        if (guiRoot is null) return;   // cannot locate sources: stay quiet rather than invent a failure
+
+        var exeWrittenUtc = File.GetLastWriteTimeUtc(exePath);
+        FileInfo? newest = null;
+
+        foreach (var file in Directory.EnumerateFiles(guiRoot, "*", SearchOption.AllDirectories))
+        {
+            // bin/ and obj/ are build output, not sources — obj in particular is written DURING the
+            // build, so including it would compare the build against itself.
+            if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var extension = Path.GetExtension(file);
+            if (extension is not (".cs" or ".xaml" or ".csproj" or ".resx" or ".json")) continue;
+
+            var info = new FileInfo(file);
+            if (newest is null || info.LastWriteTimeUtc > newest.LastWriteTimeUtc) newest = info;
+        }
+
+        if (newest is null || newest.LastWriteTimeUtc <= exeWrittenUtc) return;
+
+        throw new InvalidOperationException(
+            $"The gui app executable is older than its sources, so this run would test the PREVIOUS build. " +
+            $"exe '{exePath}' written {exeWrittenUtc:O}; newest source '{newest.FullName}' written " +
+            $"{newest.LastWriteTimeUtc:O}. Build the app first: " +
+            $"dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug. " +
+            $"(This project does not reference the app on purpose — see the csproj note — so building " +
+            $"the tests alone never rebuilds it.)");
+    }
+
+    /// <summary>The gui project directory that produced <paramref name="exePath"/>, or null.</summary>
+    private static string? FindGuiSourceRoot(string exePath)
+    {
+        // <gui root>/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe -> <gui root>/ImageProcTest
+        var dir = new DirectoryInfo(Path.GetDirectoryName(exePath)!);
+        for (var i = 0; i < 3 && dir is not null; i++) dir = dir.Parent;
+        return dir is not null && dir.Exists ? dir.FullName : null;
+    }
+
     internal static string? ResolveApplicationExecutable()
     {
         var relative = Path.Combine(
