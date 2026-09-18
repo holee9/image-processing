@@ -46,8 +46,21 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 ### REQ-GSVG-001: Grid Line Frequency Auto-Detection
 
-**When** a DICOM image with a physical anti-scatter grid is processed,
-**the system shall** automatically calculate the grid line frequency from DICOM header metadata and grid specification.
+**When** an image with a physical anti-scatter grid is processed,
+**the system shall** automatically determine the grid line frequency.
+
+> **요구 개정 (2026-09-19, #180 — QA-B-126 뒤 리더 결정).** 원문은 "**DICOM 헤더**에서 산출" 이었습니다.
+> 두 가지가 그 문구를 버리게 합니다.
+>
+> 1. **DICOM 은 범위 밖입니다**(사용자 결정 2026-09-18). 처리 체인의 입력은 검출기 raw 프레임이고,
+>    GUI 파일 열기 필터가 `.raw` 뿐입니다(`clients/ImageProcTest/MainWindow.xaml.cs:214`).
+>    **입력에 DICOM 이 없으면 헤더에서 읽을 것도 없습니다.**
+> 2. **자기모순이었습니다.** Status 가 "미구현(DICOM 없음)" 인데 같은 줄에 "구현 1이 스펙트럼
+>    봉우리로 찾는다(`grid_dwt.cpp:232`)" 가 있었습니다. Status 만 고치면 요구 본문이 여전히
+>    DICOM 헤더를 요구해 다음 감사에 같은 지적이 다시 납니다 — 그래서 본문을 고칩니다.
+>
+> **출처를 헤더로 못 박지 않습니다.** 지금 구현(스펙트럼 봉우리 검출)이 요구를 만족하며,
+> 태그가 들어오는 경로가 생기면 **교차 확인용**으로 더합니다(아래 담당 제안 참조).
 
 - **Rationale**: Grid frequency is determined by detector pixel pitch and grid line density aliasing (Lin et al. 2006, *J Digit Imaging* 19(4):351-361 — CR, not flat-panel DR; the exact aliasing formula (Eq. 3-4) is not yet transcribed here)
 - **Note (#180)**: the DICOM module reads no grid tags today; implementation 1 (QA-B-90) detects the grid frequency from the spectral peak instead
@@ -55,7 +68,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **이중 선택성**: X-Ray Grid 모듈이 User Optional 이고 그 안에서 Grid Pitch 가 Type 3 이라, 장비가 비워도 규격 위반이 아닙니다. **따라서 스펙트럼 봉우리 검출 경로는 반드시 남습니다** — 태그는 교차 확인용이며, 불일치 시 검출값을 따릅니다.
 - **미확인**: 실제 장비가 이 태그를 채우는지는 모릅니다(Type 3 이라 비워도 규격 위반이 아닙니다) — 장비 영상(#151)이 오면 가장 먼저 확인할 항목입니다.
 - **Verification**: Test
-- **Status**: **Not implemented** — 입력에 DICOM 이 없어 헤더에서 산출하지 않습니다. 구현 1(QA-B-90)은 영상 스펙트럼의 봉우리에서 주파수를 찾습니다(`src/grid_dwt.cpp:232`). 판정 2026-09-18 (QA-B-106)
+- **Status**: **Implemented (tested)** — 영상 스펙트럼의 봉우리에서 주파수를 찾습니다(`src/grid_dwt.cpp:232`, QA-B-90). 2026-09-19 요구 개정으로 출처가 헤더에 묶이지 않으므로 구현이 요구를 만족합니다
 
 ### REQ-GSVG-002: DWT Multi-Scale Decomposition
 
@@ -383,6 +396,11 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 ## 5. Safety Requirements
 
+> **기록 누락 정정 (2026-09-19, QA-B-126)**: 022·024·025·026 은 **Status 줄이 비어 있었습니다.**
+> 넷 다 HAZ 연결 요구인데, **넷 다 실제로는 시험이 있습니다** — 비워 둔 것이지 못 채운 것이
+> 아닙니다. 빈 줄을 미구현으로 읽으면 **위험 연결 요구 4건이 미구현으로 집계됩니다.**
+> post 레인이 요구별로 시험을 찾아 확인했고, 아래에 채웠습니다.
+
 ### REQ-GSVG-022: Original Image Protection
 
 **When** any algorithm failure occurs,
@@ -390,6 +408,8 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Hazard**: HAZ-001
 - **Verification**: Test
+
+- **Status**: **Implemented (tested)** — 실패 시 원본을 그대로 둡니다. `GsvgProcess.ProcessesAndKeepsTheOriginalOnFailure`(`dst==src` 확인) 와 `…SourceIntact`. 판정 2026-09-19 (QA-B-126)
 
 ### REQ-GSVG-023: DICOM Processing Mark
 
@@ -409,19 +429,24 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 - **Hazard**: HAZ-001
 - **Verification**: Test
 
+- **Status**: **Implemented (tested)** — 잘못된 설정·널 설정에서 통과 모드로 떨어집니다. `MalformedConfigFallsBackToPassThrough`, `InitWithNullConfig_DefaultsToPassThrough`, `Lifecycle3072_PassThroughIsByteEqual`(바이트 동일). 판정 2026-09-19 (QA-B-126)
+
+### REQ-GSVG-025: SPR Clamping
+
 > **MC 에서의 상한 동작 (2026-09-19, QA-B-125)**: 상한이 실제 산란에서 **6.25% 화소에
 > 걸립니다** — 합성에서만 걸리는 장식이 아닙니다. 비용은 거의 0(중앙값 1.0075 → 1.0079).
 >
 > **[한계] 이 팬텀은 상한이 막아 주는 상황을 만들지 못합니다** — 음수 1차가 세 설정 모두
 > 0건입니다. **안전 기능 자체의 검증은 합성 시험(QA-B-112·113) 몫으로 남습니다.**
 
-### REQ-GSVG-025: SPR Clamping
 
 **When** scatter correction strength exceeds physical maximum,
 **the system shall** clamp to the physical limit.
 
 - **Hazard**: HAZ-003
 - **Verification**: Test
+
+- **Status**: **Implemented (tested)** — `GsvgVirtualGridFalsify.SprCapPreventsOvercorrection`, `GsvgVirtualGridCap.KernelSumIsTheDefaultCap`. MC 에서 상한이 실제 산란의 6.25% 화소에 걸립니다(QA-B-125). 판정 2026-09-19 (QA-B-126)
 
 ### REQ-GSVG-026: Output Value Range
 
@@ -430,6 +455,8 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Hazard**: HAZ-004
 - **Verification**: Test
+
+- **Status**: **Implemented (tested)** — `GsvgAbiSmoke` 의 65535 포화 0건 단언 외 2건. 판정 2026-09-19 (QA-B-126)
 
 ---
 
