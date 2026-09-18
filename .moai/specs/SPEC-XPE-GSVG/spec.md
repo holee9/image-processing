@@ -123,13 +123,23 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 ### REQ-GSVG-009: Body Thickness Estimation
 
-**When** a non-grid image with exposure parameters (kVp, mAs, SID, field size) is processed,
-**the system shall** estimate the body equivalent thickness.
+**When** a non-grid image is processed,
+**the system shall** estimate the water-equivalent thickness **per pixel, from the image itself** (`L = -ln(P/I0) = mu(t)·t`).
+
+> **요구 개정 (2026-09-18, #180 — QA-B-114 조사 뒤 리더 결정)**
+>
+> 원문은 "kVp·mAs·SID·조사야 크기로 두께를 추정" 이었습니다. 두 가지가 그 방향을 버립니다.
+>
+> 1. **문헌은 반대 방향만 지지합니다.** 확인한 자료는 모두 "두께 → 노출 조건" 입니다 — Ching 2014 의 체계적 문헌고찰(PMC4175846)에 실린 체계는 두께를 캘리퍼로 재서 **입력**받고, 최근 연구도 적외선 센서로 실측합니다. 노출 조건에서 두께를 되돌리는 방법을 직접 지지하는 출처는 찾지 못했습니다. 뒤집어 쓰려면 장비·부위별 기준 노출 표, kVp·격자·SID 고정, AEC 목표 선량 일정이라는 세 조건이 필요하고, 근거로 쓰이는 25% 규칙조차 HVL 값이 문헌마다 3 / 3.3~3.8 / 4 cm 로 엇갈립니다.
+> 2. **결과가 스칼라 하나입니다.** 산란 커널은 화소별 두께 지도로 인덱싱됩니다. 전역 두께 하나로 바꾸면 계단 경계 오차 중앙값이 0.01544 → 0.23991 로 **15.5배** 나빠집니다(`GsvgVirtualGridFalsify.GlobalThicknessIsWorseAtTheStep`).
+>
+> 노출 조건(kVp 등)은 **커널 표를 고르는 입력**으로 계속 쓰입니다(REQ-GSVG-010·011). 두께 추정의 입력이 아닙니다.
+>
+> 실제 장비 영상(#151)이 들어오면 이 추정의 정확도를 검증합니다.
 
 - **Rationale**: Thickness is a primary determinant of SPR (Kyriakou & Kalender 2007, *Phys Med* 23(1):3-15 — flat-detector CT, thickness is a simulation input)
-- **Open (#180)**: no verified source supports estimating thickness **from kVp, mAs, SID and field size**. The estimation method must be chosen from image-based approaches before implementation; this requirement's method is not settled
 - **Verification**: Test
-- **Status**: **Partial** — 영상 기반 역산 `L = -ln(P/I0) = mu(t)·t`(`ThicknessFromLogAtten`, `GsvgVirtualGridKernel.ThicknessInversionRoundTrips`). **요구 원문의 방법(kVp·mAs·SID·조사야 크기)과 다릅니다** — 방법 미확정(Open)
+- **Status**: **Implemented (tested)** — 영상 기반 역산 `L = -ln(P/I0) = mu(t)·t`(`ThicknessFromLogAtten`, `GsvgVirtualGridKernel.ThicknessInversionRoundTrips`). **요구 원문의 방법(kVp·mAs·SID·조사야 크기)과 다릅니다** — 방법 미확정(Open)
 
 ### REQ-GSVG-010: SPR Calculation
 
