@@ -76,6 +76,15 @@ jobs:
         shell: pwsh
         run: python tools/docs/check_header_docs.py
 
+      # A test name is the only traceability link between a requirement and its
+      # evidence, and renaming a test breaks neither the build nor the suite -- so
+      # a stale citation is silent. #180 hit this twice in one day (a transcription
+      # error, and a rename that left the SPEC behind); a lane found both by reading
+      # the pushed document against the source. This makes that mechanical.
+      - name: Check SPEC test citations
+        shell: pwsh
+        run: python tools/docs/check_spec_test_refs.py
+
   common-build:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
