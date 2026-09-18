@@ -125,7 +125,22 @@ double xpe_json_get_double(const char* configJson, const char* key, double defau
  * from a missing map.
  * ========================================================================= */
 
-bool xpe_preprocess_is_initialized() noexcept;
+extern "C" {
+
+/**
+ * @brief Report whether the module is currently initialized
+ *
+ * QA-A-113 (#176): exported so a test-suite hygiene guard can ask whether a
+ * test left the module up WITHOUT mutating anything. The probe that existed
+ * before -- call xpe_preprocess_init() and read its error code -- changes the
+ * state it is trying to observe, and its undo also clears the calibration
+ * store, which is not the guard's to clear.
+ *
+ * @return true while the module is up.
+ */
+XPE_API bool xpe_preprocess_is_initialized(void);
+
+}  // extern "C"
 
 /* =========================================================================
  * Dimension / null guard inline helpers

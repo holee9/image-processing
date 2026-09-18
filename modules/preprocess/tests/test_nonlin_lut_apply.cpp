@@ -25,6 +25,7 @@
 #include "xpe/common/xpe_common_api.h"
 #include "xcal_writer.hpp"
 #include "xcal_reader.hpp"
+#include "preprocess_state_fixture.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <cstring>
 
@@ -119,27 +120,21 @@ Frame MakeGradientFrame(const Sim& s) {
     return f;
 }
 
-class NonlinApplyTest : public ::testing::Test {
+/**
+ * Inherits the state convention from XpePreprocessStateFixture (QA-A-113):
+ * init/shutdown pairing and mode restoration live there, so this fixture only
+ * adds what is specific to the nonlinearity LUT.
+ */
+class NonlinApplyTest : public XpePreprocessStateFixture {
 protected:
     Sim sim;
-    bool initialized_here = false;
 
     void SetUp() override {
+        XpePreprocessStateFixture::SetUp();
         sim = MakeSim();
         ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(
             sim.frames.data(), sim.dose.data(), kLevels, nullptr, 4096u,
             LutPath().c_str(), nullptr));
-
-        // The pipeline entry points refuse to run before init (-6).
-        //
-        // xpe_preprocess_init() is NOT idempotent -- a second call while the
-        // module is up returns XPE_ERR_INVALID_INPUT by design
-        // (preprocess.cpp, the g_initialized guard). So this fixture records
-        // whether IT brought the module up and tears down exactly what it
-        // raised: leaving the module initialized made every later fixture that
-        // asserts on its own init fail, which is what broke
-        // GainPolyLoadTest under --gtest_shuffle (#176).
-        initialized_here = (xpe_preprocess_init(nullptr) == XPE_OK);
 
         xpe_clear_alerts();
         // The calibration store is global and survives between tests, so the
@@ -148,14 +143,8 @@ protected:
     }
 
     void TearDown() override {
-        // Restore what this fixture changed, in reverse order. Both are global
-        // process state: a test that leaves either set is not isolated, it is
-        // just lucky about the order it runs in.
         xpe_calib_unload_nonlin_lut();
-        if (initialized_here) {
-            xpe_preprocess_shutdown();
-            initialized_here = false;
-        }
+        XpePreprocessStateFixture::TearDown();
     }
 };
 
