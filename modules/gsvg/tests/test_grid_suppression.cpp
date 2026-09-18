@@ -204,6 +204,9 @@ TEST(GsvgGridSuppression, SubbandPlacementMatchesHandValues) {
 // Suppression / invariance / MTF
 // ---------------------------------------------------------------------------
 
+// This scene point-samples the grid at pixel centres, so folding near
+// Nyquist costs no amplitude: a real detector's contrast at these line
+// densities is lower than what this test feeds the suppressor (#192).
 TEST(GsvgGridSuppression, GridIsSuppressedByAtLeast40dB) {
     for (gd::Axis axis : {gd::Axis::Rows, gd::Axis::Columns})
         for (double lpi : kLpis) {
@@ -369,14 +372,29 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 //            failure or nothing left to suppress depends on that, and the
 //            decision is the lead's (#192).
 //
-// Left failing on purpose until that decision. Do not "fix" by widening.
+// THIS SCENE POINT-SAMPLES, so folding costs no amplitude: a real detector's
+// contrast here is lower than what this test feeds the suppressor (#192).
+//
+// The 180 lpi case moved out to its own DISABLED_ test below -- turning it off
+// is not the same as widening its floor: a widened floor erases the record, a
+// DISABLED_ name stays in the listing (lead's QA-B-131 decision).
 TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
     struct Case { double lpi; double floorRatio; int detected; };
     const Case cases[] = {
-        {170.0, 2.0e-5, 1},
+        // 170 lpi re-derived at the product pitch 0.140 (QA-B-131, lead's
+        // decision): measured 2.595e-03 against 1.484e-05 at 0.139, because the
+        // alias moved 5.013 -> 4.499 lp/cm and lands on a different sub-band.
+        // It is still detected and still 52 dB down, and the load-bearing guard
+        // (after/before < 1e-4 in REQ_GSVG_005) is unaffected. Floor 3.2e-03 is
+        // 1.23 x the measured value, the same rule the 0.139 floors used.
+        // THIS IS A REGRESSION FLOOR, NOT A CLINICAL PASS MARK -- the pass mark
+        // is #190, which waits on real device images.
+        {170.0, 3.2e-3, 1},
         {175.0, 6.0e-5, 1},
-        {180.0, 0.99,   1},   // filtered at level 6 only; barely moves
         {183.0, 1.0,    0},   // not detected at all
+        // 186 lpi improved by 6900 x at this pitch (0.1654 -> 2.401e-05); the
+        // floor is left at its 0.139 value, so it now only forbids a large
+        // regression. Re-deriving it was not part of the lead's decision.
         {186.0, 0.20,   1},
     };
     for (const Case& c : cases) {
@@ -388,6 +406,39 @@ TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
         EXPECT_EQ(r.report.rows.input.detected ? 1 : 0, c.detected) << c.lpi;
         EXPECT_LE(ratio, c.floorRatio) << c.lpi;
     }
+}
+
+// #192 (QA-B-131): NOT red, UNDECIDED -- switched off until one number arrives.
+//
+// At the product pitch 0.140 the 180 lpi grid is 7.09 lp/mm, which is 0.99212
+// of the sampling frequency, so it folds to 0.562 lp/cm (a 1.78 cm shading) and
+// the detector stops seeing it: detected 1 -> 0.
+//
+// Whether that is a detection failure or nothing left to suppress turns on the
+// detector's pre-sampling MTF at 7.09 lp/mm (aperture x scintillator):
+//
+//     visible contrast = 5 % x MTF_pre(7.09 lp/mm),  noise floor = 30/50000 = 0.06 %
+//     MTF_pre > 0.012  ->  a real detection failure, there IS something to suppress
+//     MTF_pre < 0.012  ->  nothing to suppress
+//
+// The aperture term alone does not settle it, because the answer sits ON the
+// null: a 100 % fill box has its zero at nu*p = 1.0 and we are at 0.99212,
+// 0.8 % away. At f = 0.95 the aperture MTF is already 0.0608 (contrast 0.30 %,
+// five times the noise floor), and no real flat panel has 100 % fill. Pulling
+// the other way, 7.09 lp/mm is very high for 600 um CsI. The product of the two
+// decides, and that is a line in a detector datasheet, not something this test
+// can measure.
+//
+// Re-enable (drop the DISABLED_ prefix) once #192 carries that number, and set
+// the expectation from it rather than from whatever the code then does.
+TEST(GsvgGridSuppression, DISABLED_SevereAliasing180_UndecidedPendingDetectorMtf_192) {
+    const auto r = RunSuppression(180.0, gd::Axis::Rows);
+    const double ratio = r.after / r.before;
+    std::printf("GRIDSUP floor008 lpi=180 detected=%d level=%d filtered=%d after/before=%.4g\n",
+                r.report.rows.input.detected, r.report.rows.place.level,
+                r.report.rows.filteredLevels, ratio);
+    EXPECT_EQ(r.report.rows.input.detected ? 1 : 0, 1);
+    EXPECT_LE(ratio, 0.99);
 }
 
 // Reported: band-stop width and linear/log domain (the MTF column is for
@@ -474,6 +525,9 @@ TEST(GsvgGridSuppression, WithoutInputGateGridFreeImagesChange) {
 // ---------------------------------------------------------------------------
 // Aliasing close to DC (reported, not a pass criterion)
 // ---------------------------------------------------------------------------
+// This scene point-samples the grid at pixel centres, so folding near
+// Nyquist costs no amplitude: a real detector's contrast at these line
+// densities is lower than what this test feeds the suppressor (#192).
 TEST(GsvgGridSuppression, ReportSevereAliasing) {
     for (double lpi : {170.0, 175.0, 180.0, 183.0, 186.0}) {
         const auto r = RunSuppression(lpi, gd::Axis::Rows);
