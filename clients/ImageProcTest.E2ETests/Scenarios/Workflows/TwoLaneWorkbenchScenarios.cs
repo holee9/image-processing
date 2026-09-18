@@ -2,6 +2,7 @@
 // settings. Written BEFORE the feature exists, so these are red until it does.
 using System;
 using System.Globalization;
+using System.Threading;
 using System.Text.RegularExpressions;
 using FlaUI.Core.AutomationElements;
 using ImageProcTest.E2ETests.Fixtures;
@@ -108,6 +109,76 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
             Assert.True(LaneIsStale(window, "B"), "An unapplied Candidate edit left Lane B looking current.");
             Assert.False(LaneIsStale(window, "A"), "The Reference went stale for an edit made to the Candidate.");
         });
+    }
+
+    /// <summary>
+    /// L-04 (#173, GUI-C-114): choosing a different ALGORITHM for the Candidate moves the Candidate and
+    /// leaves the Reference where it was.
+    ///
+    /// <para>Same shape as L-02 and for the same reason — both halves are asserted, because "B changed"
+    /// alone passes when the two lanes are one pipeline and "A unchanged" alone passes when the choice
+    /// never arrives. What differs is the size of the axis: L-02 varies one display parameter, this
+    /// varies which processing runs at all, and that is what the workbench exists to compare.</para>
+    ///
+    /// <para>Native only. The algorithm presets differ in their chain stages, and the Mock backend
+    /// refuses both stages by design ("Preprocessing requires the native backend", "Grid correction
+    /// requires the native backend"), so under Mock every preset would draw the same pixels and this
+    /// case would pass while measuring nothing.</para>
+    /// </summary>
+    [SkippableFact]
+    public void L04_ACandidateAlgorithm_MovesOnlyTheCandidate()
+    {
+        MeasureNative("L-04", window =>
+        {
+            ClearCandidateOverride(window);
+            SelectAlgorithm(window, "B", ReferenceAlgorithm(window));
+            ApplyDisplayPipeline(window);
+            var beforeA = Lane(window, "A");
+            var beforeB = Lane(window, "B");
+            Assert.Equal(beforeA.Hash, beforeB.Hash);   // same algorithm, so the lanes must agree first
+
+            SelectAlgorithm(window, "B", CandidateAlgorithm);
+            ApplyDisplayPipeline(window);
+            var afterA = Lane(window, "A");
+            var afterB = Lane(window, "B");
+
+            output.WriteLine($"L-04 A: {beforeA.Hash} -> {afterA.Hash}");
+            output.WriteLine($"L-04 B: {beforeB.Hash} -> {afterB.Hash}");
+
+            Assert.True(afterB.Hash != beforeB.Hash,
+                $"Choosing '{CandidateAlgorithm}' for the Candidate did not reach its drawn pixels: still {afterB.Hash}.");
+            Assert.True(afterA.Hash == beforeA.Hash,
+                $"The Reference moved with an algorithm chosen for the Candidate ({beforeA.Hash} -> {afterA.Hash}) — " +
+                "the two lanes run one pipeline, so nothing here compares two algorithms.");
+        });
+    }
+
+    /// <summary>An option that must differ from the Reference's in what it actually runs.</summary>
+    private const string CandidateAlgorithm = "Candidate v1.4";
+
+    private static string ReferenceAlgorithm(Window window)
+    {
+        var picker = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAAlgorithmPicker"));
+        Assert.True(picker is not null, "LaneAAlgorithmPicker is not in the tree.");
+        return picker!.AsComboBox().SelectedItem?.Text ?? string.Empty;
+    }
+
+    private static void SelectAlgorithm(Window window, string lane, string option)
+    {
+        var id = $"Lane{lane}AlgorithmPicker";
+        var picker = window.FindFirstDescendant(cf => cf.ByAutomationId(id));
+        Assert.True(picker is not null, $"{id} is not in the tree.");
+        Assert.True(picker!.IsEnabled,
+            $"{id} is disabled, so the algorithm cannot be chosen — the picker is still a label (#182).");
+        picker.AsComboBox().Select(option);
+        Thread.Sleep(150);
+    }
+
+    private void MeasureNative(string scenario, Action<Window> body)
+    {
+        Skip.If(app.BackendMode != "Native",
+            "The algorithm presets differ in chain stages, which the Mock backend refuses by design.");
+        Measure(scenario, body);
     }
 
     private void Measure(string scenario, Action<Window> body)
