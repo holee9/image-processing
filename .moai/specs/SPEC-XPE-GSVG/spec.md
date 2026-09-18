@@ -51,6 +51,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Grid frequency is determined by detector pixel pitch and grid line density aliasing (Lin et al. 2006, *J Digit Imaging* 19(4):351-361 — CR, not flat-panel DR; the exact aliasing formula (Eq. 3-4) is not yet transcribed here)
 - **Note (#180)**: the DICOM module reads no grid tags today; implementation 1 (QA-B-90) detects the grid frequency from the spectral peak instead
+- **담당 제안 (2026-09-18, #180 — QA-B-115, 리더 승인)**: 읽기는 `modules/dicom` 이 맡고, gsvg 로는 새 인자 대신 기존 설정 키 `vg_grid_frequency_per_cm` 로 넘깁니다(그 키에 이미 검증이 붙어 있습니다). 스펙트럼 봉우리 검출을 **대체하지 않고 교차 확인**으로 쓰며, 불일치하면 검출값을 따릅니다. **선행 조건**: 선밀도를 담는 DICOM 필드가 표준에 실제로 있는지 미확인입니다(0018,1166 은 격자 유무·종류이며 이 값도 기억에 의존한 것). 표준 확인 전에는 구현하지 않습니다.
 - **Verification**: Test
 - **Status**: **Not implemented** — 입력에 DICOM 이 없어 헤더에서 산출하지 않습니다. 구현 1(QA-B-90)은 영상 스펙트럼의 봉우리에서 주파수를 찾습니다(`src/grid_dwt.cpp:232`). 판정 2026-09-18 (QA-B-106)
 
@@ -212,7 +213,25 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Pediatric to obese patient range coverage
 - **Verification**: Test
-- **Status**: **Partial** — 표 범위를 넘으면 표 최대로 제한하고 비율을 보고, 범위 아래는 0 으로 페이드(`GsvgVirtualGridRange.*`). **빠진 것: 10–30 cm 두께별로 출력이 유효한지 확인하는 시험**
+- **Status**: **Implemented (tested)** — 표 범위를 넘으면 표 최대로 제한하고 비율을 보고, 범위 아래는 0 으로 페이드(`GsvgVirtualGridRange.*`). 두께별 유효성은 아래 측정으로 확인했습니다.
+
+> **두께별 측정 (2026-09-18, #180 — QA-B-115)**
+>
+> 정답은 1차(primary)가 아니라 `P + (Ts/Tp)(t)·S_true` 입니다 — 제품 표의 격자(비 6–12, Ts/Tp≈0.10)는 잔여 산란을 **설계상 통과시키므로**, 1차와 직접 비교하면 그 잔여분이 통째로 오차로 잡힙니다(1차 기준 오차 10 cm 14.8% → 30 cm 101.8%). MC 시험이 1차와 직접 비교할 수 있는 것은 그쪽이 이상 격자 행(tp 1, ts 0)을 쓰기 때문입니다.
+>
+> | 공칭 두께 | 중앙값 \|r−1\| | p95 \|r−1\| | 표 초과 화소 |
+> |---|---|---|---|
+> | 10 cm | 0.0018 | 0.0056 | 0% |
+> | 15 cm | 0.0035 | — | 0% |
+> | 20 cm | 0.0056 | — | 0% |
+> | 25 cm | 0.0074 | — | 0% |
+> | 30 cm | 0.0091 | 0.0450 | 38.06% |
+>
+> 관측 셋: (1) 두께가 커질수록 단조 증가(중앙값 5배, p95 8배)하며 **튀는 구간 없음**. (2) **노드와 보간 구간의 차이가 없습니다** — 13·17.5·22.5·27.5 cm 가 이웃 노드 사이에 매끄럽게 들어가므로 커널 보간이 별도 오차를 더하지 않습니다. (3) 두꺼울수록 일부 화소를 과다 차감하는 쪽으로 퍼집니다(비율 최소 0.998 → 0.947).
+>
+> **상단 경계 (리더 결정)**: 요구 범위 상단(30 cm)이 제품 표의 최상단 노드와 같아, 공칭 30 cm 장면에서는 화소별 두께 분포 때문에 38.06% 가 표를 넘어 제한 경로로 갑니다(29 cm 이하는 0%). 이는 커널 표의 구조적 제약이고 코드 결함이 아닙니다. 커널 데이터를 새로 만들지 않는 한 넓힐 수 없으므로, 본 요구의 "유효" 는 **공칭 두께 ≤ 30 cm** 로 읽습니다. 화소별 초과분은 제한 + 보고 경로(REQ-GSVG-024 계열)가 처리합니다.
+>
+> **합격 기준 (리더 결정)**: 위 값은 **회귀 바닥**으로만 씁니다(중앙값 각 두께에서 측정치의 1.5배, p95 는 30 cm 0.0450 의 1.5배). **정확도 주장이 아닙니다** — 이 장면은 합성이고 산란 모델이 구현과 같은 커널을 쓰므로 자기 순환입니다. 정확도 판정은 512² MC 팬텀(QA-A-114)으로 다시 합니다.
 
 ### REQ-GSVG-018: No Artifacts from Overcorrection
 
@@ -282,6 +301,8 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Hazard**: HAZ-002
 - **Verification**: Test
+- **Status**: **Not implemented (gsvg 범위 밖)** — gsvg 는 DICOM 을 쓰지 않습니다. 판정 2026-09-18 (QA-B-106)
+- **담당 제안 (2026-09-18, #180 — QA-B-115, 리더 승인)**: 핵심은 `modules/dicom` 의 `DicomWriter.cpp:143` 에서 ImageType 이 `ORIGINAL\PRIMARY\` 로 고정되어 있는 것이며, 처리된 영상에 `DERIVED` 를 쓰는 신호 하나가 최소 변경입니다. 다만 **GUI 에 DICOM 쓰기 경로가 없어 지금은 소비자가 없으므로**, 내보내기 경로가 생길 때 함께 처리합니다.
 
 ### REQ-GSVG-024: Fail-Safe Pass-Through
 
