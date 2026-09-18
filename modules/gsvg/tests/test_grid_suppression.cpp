@@ -64,12 +64,12 @@ struct SuppressionResult {
 };
 
 SuppressionResult RunSuppression(double lpi, gd::Axis axis, const gd::Options& opt = {},
-                                 double depth = kDepth) {
+                                 double depth = kDepth, unsigned seed = 180u) {
     GridSpec g;
     g.linesPerInch = lpi; g.pitchMm = kPitch; g.axis = ToolAxis(axis); g.depth = depth;
     const double f = AliasedFrequencyPerMm(lpi, kPitch);
-    const Image truth = FromU16(ToU16(Background()), kN, kN);
-    auto px = ToU16(ApplyGrid(Background(), g));
+    const Image truth = FromU16(ToU16(Background(seed)), kN, kN);
+    auto px = ToU16(ApplyGrid(Background(seed), g));
     SuppressionResult r;
     r.baseline = ResidualGridEnergy(truth, g.axis, f, kPitch).ratio;
     r.before = ResidualGridEnergy(FromU16(px, kN, kN), g.axis, f, kPitch).ratio;
@@ -364,18 +364,31 @@ TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
 // Why 1.5x, when five repeat runs moved nothing at all (spread exactly 0.000,
 // every printed digit identical)? Because run-to-run variation is not what the
 // multiplier is for. The scene is deterministic; what does move these numbers
-// is the SCENE -- QA-B-109 measured +-6 % across four noise seeds, and 0.7 % of
-// pitch moved 186 lpi by 6900x. 1.5x covers the measured seed spread with room,
-// and is deliberately uniform so the next reader does not have to ask why each
-// row has its own factor. The seed spread has NOT been re-measured at 0.140.
+// is the SCENE -- and 0.7 % of pitch moved 186 lpi by 6900x.
+//
+// QA-B-133 re-measured that seed spread AT 0.140 (four seeds 1/2/3/180, the set
+// QA-B-109 used; SeedSpreadOfTheAliasingFloors_192 below prints it). It did NOT
+// carry over from 0.139 by assumption -- it was checked, because 186's floor was
+// tightened by 5400x and a tight floor over an unverified spread is a red nobody
+// can read later:
+//
+//   170 lpi  0.002582 .. 0.002595   spread 0.5 %
+//   175 lpi  4.144e-05 .. 4.25e-05  spread 2.6 %
+//   186 lpi  2.401e-05 .. 2.475e-05 spread 3.0 %
+//
+// All three sit inside the +-6 % QA-B-109 measured at 0.139, so 1.5x stays. The
+// floors are seed MAXIMUM x 1.5, which is the rule this file's header states --
+// note that 186's maximum comes from seed 1, not from the default seed 180 that
+// every other measurement here uses.
 //
 // 183 lpi aliases below the detector's reach, so nothing is filtered and the
 // ratio is exactly 1. A multiplier there would permit a ratio above 1, i.e.
 // the filter making the grid stronger, so that row keeps its floor of 1.0.
-// QA-B-130 (#192): the floors below were measured at 0.139 mm, a pitch this
-// product does not ship. At 0.140 two cases change and they are NOT the same
-// kind of change, so neither floor is re-derived here -- re-deriving would
-// absorb the finding, which is exactly what the lead asked not to happen:
+// What the move from 0.139 to 0.140 did to two of these rows, and why neither
+// is a scene artefact. QA-B-130 recorded this while the floors still carried
+// their 0.139 values; the floors have since been re-derived (QA-B-132/133, see
+// above), so only the finding is left here -- the judgement and the numbers
+// stand, the "not re-derived here" sentence they used to sit under does not.
 //
 //   170 lpi: 1.484e-05 -> 2.595e-03 (175 x worse), still detected and still
 //            52 dB down. The alias moved 5.013 -> 4.499 lp/cm and lands on a
@@ -402,10 +415,10 @@ TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
         // EVERY floor below is 1.5 x the value measured at 0.140 (see above).
         // THESE ARE REGRESSION FLOORS, NOT CLINICAL PASS MARKS -- the pass mark
         // is #190, which waits on real device images.
-        {170.0, 3.9e-3, 1},   // 2.595e-03 x 1.5; the alias moved 5.013 -> 4.499
-        {175.0, 6.3e-5, 1},   // 4.153e-05 x 1.5
+        {170.0, 3.9e-3, 1},   // seed max 2.595e-03 x 1.5; alias moved 5.013 -> 4.499
+        {175.0, 6.4e-5, 1},   // seed max 4.250e-05 x 1.5
         {183.0, 1.0,    0},   // not detected; a multiplier would allow ratio > 1
-        {186.0, 3.7e-5, 1},   // 2.401e-05 x 1.5; was 0.20, i.e. 8330 x measured
+        {186.0, 3.8e-5, 1},   // seed max 2.475e-05 x 1.5; was 0.20, i.e. 8330 x
     };
     for (const Case& c : cases) {
         const auto r = RunSuppression(c.lpi, gd::Axis::Rows);
@@ -627,6 +640,37 @@ TEST(GsvgGridSuppression, AliasContrastAtTheProductPitch_192)
                         pitch, lpi, alias * 10.0, alias > 0 ? 1.0 / (alias * 10.0) : 0.0,
                         cPoint, cAper, cAper / cPoint);
         }
+    }
+    SUCCEED();
+}
+
+// #192 (QA-B-133): the seed spread of the REQ-GSVG-008 floors, re-measured AT
+// THE PRODUCT PITCH.
+//
+// The 1.5 x multiplier those floors use was justified by a +-6 % spread that
+// QA-B-109 measured at 0.139 mm. That justification does not automatically
+// carry: 0.7 % of pitch moved the 186 lpi residual by 6900 x, so the fold moved
+// and the sensitivity near it may have moved too -- and 186 is the row whose
+// floor was TIGHTENED. A tightened floor over an unverified spread is a red
+// somebody meets later with no way to tell noise from regression.
+//
+// Four seeds, the same set QA-B-109 used. Values only; the floors are set from
+// what this prints.
+TEST(GsvgGridSuppression, SeedSpreadOfTheAliasingFloors_192)
+{
+    std::printf("GRIDSUP seed192: lpi, seed, after/before, detected\n");
+    for (const double lpi : {170.0, 175.0, 186.0}) {
+        double lo = 1e30, hi = -1e30;
+        for (const unsigned seed : {1u, 2u, 3u, 180u}) {
+            const auto r = RunSuppression(lpi, gd::Axis::Rows, {}, kDepth, seed);
+            const double ratio = r.after / r.before;
+            lo = std::min(lo, ratio);
+            hi = std::max(hi, ratio);
+            std::printf("GRIDSUP seed192 lpi=%.0f seed=%3u after/before=%.4g detected=%d\n",
+                        lpi, seed, ratio, r.report.rows.input.detected ? 1 : 0);
+        }
+        std::printf("GRIDSUP seed192 lpi=%.0f MIN=%.4g MAX=%.4g spread=%.1f%% (max/min=%.3f)\n",
+                    lpi, lo, hi, 100.0 * (hi - lo) / lo, hi / lo);
     }
     SUCCEED();
 }
