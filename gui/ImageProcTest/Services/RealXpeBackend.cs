@@ -112,6 +112,10 @@ public sealed class RealXpeBackend : IXpeBackend
 
         var image = default(XpeImageBufferNative);
         var allocated = false;
+        // #180 (GUI-C-103): the card asks where the ~2 s to a drawn frame goes. Four phases are
+        // separable here, so they are measured here rather than estimated from the total.
+        var phase = System.Diagnostics.Stopwatch.StartNew();
+        double marshalInMs = 0, nativeMs = 0, marshalOutMs = 0, previewMs = 0;
 
         try
         {
@@ -131,6 +135,7 @@ public sealed class RealXpeBackend : IXpeBackend
             }
 
             Marshal.Copy(floatPixels, 0, image.Data, count);
+            marshalInMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var modality = new XpeModalityLutParamsNative
             {
@@ -165,8 +170,13 @@ public sealed class RealXpeBackend : IXpeBackend
 
             CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut(ref image, ref presentation), "xpe_apply_presentation_lut");
 
+            nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
+
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
+            marshalOutMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
+
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
+            previewMs = phase.Elapsed.TotalMilliseconds;
             var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
@@ -181,7 +191,9 @@ public sealed class RealXpeBackend : IXpeBackend
                 Height = rawFrame.Height,
                 BitsStored = rawFrame.BitsStored,
                 DisplayPipelineApplied = true,
-                DisplayPipelineSummary = summary
+                DisplayPipelineSummary = summary,
+                DisplayTimings = $"display: marshal-in={marshalInMs:0} ms, native={nativeMs:0} ms, " +
+                                 $"marshal-out={marshalOutMs:0} ms, preview={previewMs:0} ms"
             };
         }
         finally

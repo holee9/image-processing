@@ -166,6 +166,12 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// P-05 (GUI-C-102): the exported automation report carries the chain, including what the module said
     /// about the vignette step. The GUI passes no gain map and never enables vignette_correction, so
     /// vignette=0 is the expected reading — and this is where it is visible.
+    ///
+    /// <para>This assertion has NO control (GUI-C-103). Enabling the step needs BOTH config
+    /// <c>"vignette_correction": true</c> AND a non-NULL gain map of width*height float32 (gsvg_api.h:
+    /// "NULL disables the vignette step regardless of config"). The GUI has no source for a gain map,
+    /// so there is no way from here to make this read anything but 0 — the case cannot distinguish
+    /// "the step is off" from "the field is never written". Read it as the weaker claim it is.</para>
     /// </summary>
     [SkippableFact]
     public void P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag()
@@ -223,9 +229,129 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         Thread.Sleep(600);
     }
 
+    /// <summary>
+    /// P-06 (GUI-C-103): what the module actually DID on this frame, per mode, read from the exported
+    /// report's reason string. The card asks why the GUI's stage time (27-116 ms) is far below the post
+    /// lane's module measurement (493 / 488 ms); whether the module took its full path or an early exit
+    /// on this image is the first thing that has to be known, and it is only knowable from the reason.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("GsvgModeGridSuppression")]
+    [InlineData("GsvgModeVirtualGrid")]
+    public void P06_WhatTheModuleDid_PerMode(string radioId)
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, radioId);
+            var render = MeasureRender(window);
+            var gsvg = ExportAndReadGsvgStage(window);
+
+            output.WriteLine($"P06 {radioId} stage={render.StageMs:0} ms status={gsvg.GetProperty("status").GetString()}");
+            output.WriteLine($"P06 {radioId} reason={gsvg.GetProperty("reason").GetString()}");
+
+            Assert.False(string.IsNullOrWhiteSpace(gsvg.GetProperty("reason").GetString()),
+                "The module reported no reason, so what it did on this frame cannot be read.");
+        }
+        finally
+        {
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>Exports the automation report and returns the gsvg stage element from it.</summary>
+    private JsonElement ExportAndReadGsvgStage(Window window)
+    {
+        var path = Path.Combine(Path.GetDirectoryName(app.ExecutablePath)!, "menu-command-report.json");
+        if (File.Exists(path)) File.Delete(path);
+
+        InvokeFileMenuItem(window, "ExportAutomationReportMenuItem");
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (DateTime.UtcNow < deadline && !File.Exists(path)) Thread.Sleep(200);
+        Assert.True(File.Exists(path), $"The report was not written to {path}.");
+
+        // Parsed into a detached element: the JsonDocument is disposed on return, and a live
+        // JsonElement over a disposed document throws when read.
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return document.RootElement.GetProperty("processingChain").GetProperty("stages")
+            .EnumerateArray().Single(s => s.GetProperty("id").GetString() == "gsvg").Clone();
+    }
+
+    /// <summary>
+    /// P-07 (GUI-C-103): the ~2 s to a drawn frame, split. The view model records the background work,
+    /// its own share, and the display pipeline's four phases; the render share is what is left over from
+    /// the outside measurement, because nothing inside the app can observe when the frame reached glass.
+    ///
+    /// <para>Measure-only, like P-01: it asserts the split is reported and adds up, not how fast it is.
+    /// One machine and few repeats cannot calibrate a budget (GUI-C-102 §5).</para>
+    /// </summary>
+    [SkippableFact]
+    public void P07_TheTimeToADrawnFrame_SplitsIntoPhases()
+    {
+        var window = Ready();
+        SetMode(window, "GsvgModeNone");
+
+        MeasureRender(window);              // warm the path; the first apply also pays one-off costs
+        var render = MeasureRender(window);
+
+        var path = Path.Combine(Path.GetDirectoryName(app.ExecutablePath)!, "menu-command-report.json");
+        if (File.Exists(path)) File.Delete(path);
+        InvokeFileMenuItem(window, "ExportAutomationReportMenuItem");
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (DateTime.UtcNow < deadline && !File.Exists(path)) Thread.Sleep(200);
+        Assert.True(File.Exists(path), $"The report was not written to {path}.");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var timings = document.RootElement.GetProperty("processingChain").GetProperty("pipelineTimings").GetString() ?? string.Empty;
+
+        output.WriteLine($"P07 outside total={render.TotalMs:0} ms");
+        output.WriteLine($"P07 inside {timings}");
+        output.WriteLine($"P07 render+dispatch share = {render.TotalMs - Part(timings, "work") - Part(timings, "vm"):0} ms");
+
+        // How much of that share is this harness, not the app: one poll cycle is two UI-automation
+        // reads plus a 20 ms sleep, and UI automation is not free. Without this the leftover would be
+        // attributed to the render by default — the measurement would be measuring itself.
+        var probe = Stopwatch.StartNew();
+        for (var i = 0; i < 10; i++)
+        {
+            _ = ProcessedVersion(window);
+            _ = ChainText(window);
+            Thread.Sleep(20);
+        }
+
+        probe.Stop();
+        output.WriteLine($"P07 apply invoke (UI automation, before the app does anything) = {LastApplyMs:0} ms");
+        output.WriteLine($"P07 in-app render = {Field(window, "renderMs")} ms (viewport handed a new image -> frame drawn)");
+        output.WriteLine($"P07 poll cycle cost = {probe.Elapsed.TotalMilliseconds / 10.0:0.0} ms " +
+                         $"(of which 20 ms is the deliberate sleep)");
+
+        Assert.Contains("work=", timings, StringComparison.Ordinal);
+        Assert.Contains("preview=", timings, StringComparison.Ordinal);
+
+        var phases = Part(timings, "marshal-in") + Part(timings, "native") + Part(timings, "marshal-out") + Part(timings, "preview");
+        Assert.True(phases <= Part(timings, "work") + 1.0,
+            $"The display phases ({phases:0} ms) cannot exceed the background work that contains them ({Part(timings, "work"):0} ms).");
+    }
+
+    /// <summary>One <c>name=N ms</c> figure out of a timings string; 0 when the name is absent.</summary>
+    private static double Part(string timings, string name)
+    {
+        var m = Regex.Match(timings, $@"{Regex.Escape(name)}=(-?[0-9.]+) ms");
+        return m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0.0;
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private sealed record Render(double TotalMs, double StageMs, string Status);
+
+    /// <summary>
+    /// What the last <c>Apply</c> cost before the app was even asked to do anything: finding the control
+    /// through UI automation and invoking it. Recorded because the outside total is otherwise credited
+    /// to the app (GUI-C-103 — the app's own share measured ~20 ms against an outside total of ~2.4 s).
+    /// </summary>
+    private double LastApplyMs { get; set; }
 
     /// <summary>
     /// Applies the display pipeline and waits until the viewport has been handed a NEW processed image,
@@ -240,18 +366,23 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
         var before = ProcessedVersion(window);
         var stopwatch = Stopwatch.StartNew();
         Apply(window);
+        LastApplyMs = stopwatch.Elapsed.TotalMilliseconds;
 
+        // Only the version is polled. Reading the chain text too doubled the UI-automation cost of a
+        // cycle, and a cycle is already ~152 ms against a render of ~3 ms (measured, GUI-C-103) — the
+        // wait loop was the thing being timed. The status is read once, after the version moves; the
+        // view model sets it before it hands the image over, so it is current by then.
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
         while (DateTime.UtcNow < deadline)
         {
-            var status = ChainText(window);
-            if (ProcessedVersion(window) > before && status.Contains("times:", StringComparison.Ordinal))
+            if (ProcessedVersion(window) > before)
             {
                 stopwatch.Stop();
+                var status = ChainText(window);
                 return new Render(stopwatch.Elapsed.TotalMilliseconds, StageMs(status, "gsvg"), status);
             }
 
-            Thread.Sleep(20);
+            Thread.Sleep(5);
         }
 
         stopwatch.Stop();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
@@ -128,6 +129,9 @@ public sealed class ImageComparisonViewport : FrameworkElement
     public string RenderedState => _renderedState;
 
     private string _renderedState = string.Empty;
+    private long _handedOffAt;
+    private bool _renderPending;
+    private double _renderMs = -1.0;
     private double? _renderedSwipe;
     private double? _renderedOpacity;
 
@@ -195,8 +199,17 @@ public sealed class ImageComparisonViewport : FrameworkElement
     private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((ImageComparisonViewport)d)._sourceVersion++;
 
-    private static void OnProcessedImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        ((ImageComparisonViewport)d)._processedVersion++;
+    private static void OnProcessedImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var viewport = (ImageComparisonViewport)d;
+        viewport._processedVersion++;
+        // #180 (GUI-C-103): the time from "a new processed image was handed to the viewport" to "the
+        // frame that drew it finished". Measured here because nothing outside the app can see it: an
+        // automation client's own polling costs far more than the render (measured: 154 ms a cycle),
+        // so an outside figure would be measuring the harness.
+        viewport._handedOffAt = Stopwatch.GetTimestamp();
+        viewport._renderPending = true;
+    }
 
     protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
         new ImageComparisonViewportAutomationPeer(this);
@@ -316,12 +329,20 @@ public sealed class ImageComparisonViewport : FrameworkElement
         // The HUD is drawn first: the state string below embeds the text this frame drew, and
         // composing it earlier captured the PREVIOUS frame's HUD (measured, GUI-C-102).
         DrawHud(drawingContext, viewport, mode);
+        if (_renderPending)
+        {
+            _renderPending = false;
+            _renderMs = (Stopwatch.GetTimestamp() - _handedOffAt) * 1000.0 / Stopwatch.Frequency;
+        }
+
+        var renderMsText = _renderMs.ToString("0.#", CultureInfo.InvariantCulture);
         _renderedState = string.Create(CultureInfo.InvariantCulture,
             $"zoom={(ZoomScale <= 0.0 ? "fit" : ZoomScale.ToString("0.####", CultureInfo.InvariantCulture))}; " +
             $"scale={imageRect.Width / Math.Max(1.0, SourceImage.Width):0.####}; " +
             $"offset={imageRect.X + (imageRect.Width / 2.0) - (ActualWidth / 2.0):0.#},{imageRect.Y + (imageRect.Height / 2.0) - (ActualHeight / 2.0):0.#}; " +
             $"swipe={(_renderedSwipe is { } sw ? sw.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
             $"opacity={(_renderedOpacity is { } op ? op.ToString("0.####", CultureInfo.InvariantCulture) : "-")}; " +
+            $"renderMs={renderMsText}; " +
             $"processed={ProcessedPixelHash(processed)}; " +
             $"processedMean={ProcessedMean(processed).ToString("0.###", CultureInfo.InvariantCulture)}; " +
             $"hud={_renderedHud}");

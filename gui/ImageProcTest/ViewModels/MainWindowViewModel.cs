@@ -190,6 +190,7 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RunPreprocessingCommand { get; }
 
     private ChainResult? _lastChain;
+    private string _pipelineTimings = string.Empty;
     private string _chainStatus = "chain: not run";
 
     /// <summary>The pixel chain of the processed image on screen (#180, GUI-C-99), or null before the first render.</summary>
@@ -207,6 +208,17 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _chainStatus;
         private set => SetProperty(ref _chainStatus, value);
+    }
+
+    /// <summary>
+    /// Where the time of the last apply went (#180, GUI-C-103): the background work, this view model's own
+    /// share, and the display pipeline's four phases. It does NOT include the render — nothing on this side
+    /// can observe when the frame reached the screen, so that share is measured from outside.
+    /// </summary>
+    public string PipelineTimings
+    {
+        get => _pipelineTimings;
+        private set => SetProperty(ref _pipelineTimings, value);
     }
 
     /// <summary>
@@ -1019,6 +1031,11 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             var sourceFrame = ActiveImageFrame;
             var inputs = Settings.Snapshot();
+            // #180 (GUI-C-103): where the time to a drawn frame goes. `work` covers the background
+            // task (chain + display); `total` covers this method, so the difference is the UI-thread
+            // share. Neither covers the render itself — that is measured from outside, by the E2E.
+            var total = System.Diagnostics.Stopwatch.StartNew();
+            var work = System.Diagnostics.Stopwatch.StartNew();
             // #180 (GUI-C-99): the chain runs first, on the same snapshot as the display (#171 ②), and the
             // display starts from the chain's last result — the raw frame only when no stage produced pixels.
             var (chain, processedFrame) = await Task.Run(() =>
@@ -1026,6 +1043,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 var chainResult = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
                 return (chainResult, _backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
             });
+            var workMs = work.Elapsed.TotalMilliseconds;
             DrainBackendTelemetry();
             ReportChain(chain);
 
@@ -1039,6 +1057,12 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            PipelineTimings = string.Join("; ", new[]
+            {
+                $"work={workMs:0} ms",
+                $"vm={total.Elapsed.TotalMilliseconds - workMs:0} ms",
+                processedFrame.DisplayTimings,
+            }.Where(part => !string.IsNullOrWhiteSpace(part)));
             OnPropertyChanged(nameof(FaultInjectionStatus));
         }
         catch (Exception ex)
@@ -1646,6 +1670,7 @@ public sealed class MainWindowViewModel : ObservableObject
     public object DescribeChain() => new
     {
         status = ChainStatus,
+        pipelineTimings = PipelineTimings,
         exposureKvp = _renderedInputs?.ExposureKvp,
         pixelPitchMm = _renderedInputs?.PixelPitchMm,
         gsvgMode = _renderedInputs?.GsvgMode,
