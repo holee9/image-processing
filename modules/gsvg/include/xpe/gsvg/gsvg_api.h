@@ -81,7 +81,7 @@ XPE_API const char* xpe_gsvg_version(void);
  *   "vg_table_path":     "path/to/table.csv",   JSON string; escape '\' as "\\"
  *   "vg_kvp":            80,        tube voltage of the exposure
  *   "vg_grid_ratio":     10,        must be a row of the table's [grid] section
- *   "vg_pixel_pitch_mm": 0.139,     detector pixel pitch
+ *   "vg_pixel_pitch_mm": 0.14,     detector pixel pitch
  *   "vg_air_signal":     60000,     detector signal without an object [DN]
  *   "vg_iterations":     3          thickness/scatter iterations, 1..100
  * @endcode

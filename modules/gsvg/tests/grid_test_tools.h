@@ -90,7 +90,7 @@ inline Image MakeAnatomyBackground(int w, int h, unsigned seed, double noiseSigm
 
 struct GridSpec {
     double linesPerInch = 103.0;
-    double pitchMm = 0.139;
+    double pitchMm = 0.139;   // see test_grid_suppression.cpp (QA-B-129): the floors are bound to it
     GridAxis axis = GridAxis::Rows;
     double depth = 0.05;     // modulation depth d: factor = 1 + d*sin(...)
     double phase = 0.3;

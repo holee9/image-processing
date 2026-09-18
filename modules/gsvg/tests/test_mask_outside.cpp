@@ -17,7 +17,7 @@ namespace {
 
 vg::VgSettings BaseSettings() {
     vg::VgSettings st;
-    st.kvp = 80; st.gridRatio = 10; st.gridFreqPerCm = 40; st.pixelPitchMm = 0.139;
+    st.kvp = 80; st.gridRatio = 10; st.gridFreqPerCm = 40; st.pixelPitchMm = 0.14;
     st.airSignal = 60000; st.iterations = 3;
     st.pyramidLevels = 0; st.pyramidGain = 1.0; st.denoiseK = 0.0;
     return st;

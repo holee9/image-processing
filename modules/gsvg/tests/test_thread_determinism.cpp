@@ -33,7 +33,7 @@ std::vector<uint16_t> ToU16v(const Image& img) {
 }
 
 std::vector<uint16_t> GriddedScene() {
-    GridSpec g;   // 103 lpi, 0.139 mm, rows, d 0.05
+    GridSpec g;   // 103 lpi, 0.14 mm, rows, d 0.05
     return ToU16v(ApplyGrid(MakeAnatomyBackground(kW, kH, 11u, 30.0), g));
 }
 
@@ -59,7 +59,7 @@ std::vector<uint16_t> Process(const char* cfg, const std::vector<uint16_t>& src,
 std::string VgConfig() {
     return "{\"virtual_grid\": true, \"vg_table_path\": \"data/vg_table_water_csi600_victre.csv\""
            ", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_grid_frequency_per_cm\": 40,"
-           " \"vg_pixel_pitch_mm\": 0.139, \"vg_air_signal\": 60000, \"vg_iterations\": 3,"
+           " \"vg_pixel_pitch_mm\": 0.14, \"vg_air_signal\": 60000, \"vg_iterations\": 3,"
            " \"vg_pyramid_levels\": 6, \"vg_pyramid_gain\": 1.3, \"vg_denoise_k\": 2}";
 }
 

@@ -67,7 +67,7 @@ Outcome Process(const char* cfg, const std::vector<uint16_t>& src, int w, int h,
 std::vector<uint16_t> GridFree(int n = kN) { return ToU16(MakeAnatomyBackground(n, n, 101u, 30.0)); }
 
 std::vector<uint16_t> WithGrid(int n = kN) {
-    GridSpec g;   // 103 lpi, 0.139 mm, rows, d 0.05
+    GridSpec g;   // 103 lpi, 0.14 mm, rows, d 0.05
     return ToU16(ApplyGrid(MakeAnatomyBackground(n, n, 101u, 30.0), g));
 }
 
