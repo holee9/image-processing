@@ -665,8 +665,19 @@ public class ApplicationFixture : IDisposable
                 continue;
             }
 
+            // Compile inputs only. Two reasons, both measured:
+            //
+            // The app WRITES into its own project directory — automation-report.json lands beside the
+            // sources when the hidden-window automation step runs, which in CI happens AFTER the build.
+            // Treating that as a source turned this guard into a false red on every gui-automation run
+            // (main, run 35399591335: 97 of 127 cases failed in 13 s, all on this exception).
+            //
+            // And content files would be wrong here even without that: editing appsettings.json and
+            // rebuilding copies the file without relinking, so the exe keeps its old timestamp and the
+            // guard would fire on a build that IS current. This guard answers "was the exe compiled
+            // from these sources", and only compile inputs can answer it.
             var extension = Path.GetExtension(file);
-            if (extension is not (".cs" or ".xaml" or ".csproj" or ".resx" or ".json")) continue;
+            if (extension is not (".cs" or ".xaml" or ".csproj" or ".resx")) continue;
 
             var info = new FileInfo(file);
             if (newest is null || info.LastWriteTimeUtc > newest.LastWriteTimeUtc) newest = info;
