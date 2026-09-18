@@ -31,6 +31,13 @@ rejected: on this repo it flagged 16 tokens of which most were .NET API names
 (`Marshal.GetDelegateForFunctionPointer`, `GC.GetTotalMemory`,
 `System.AccessViolationException`) — indistinguishable from test names by shape,
 so the heuristic would have made the checker noisy enough to ignore.
+
+A second, milder limit is the price of the suffix rule (QA-B-127): a very short
+shortening over-matches. `…Mask` passes if any test name ends in "Mask", so a
+citation trimmed too far — or a stale one whose tail happens to still collide —
+is not caught. Tightening it (a minimum length, or a floor on CamelCase word
+count) would catch nothing today: every shortened citation now in the SPECs is
+long enough to be unambiguous. Left as a limit rather than paid for up front.
 """
 
 import glob
