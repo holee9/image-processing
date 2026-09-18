@@ -403,22 +403,31 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// This gate went red at 51 ms against a 45 ms limit, on a change that was intended.</item>
     /// <item>62 ms — the lead's decision matched the app's defaults to the module's (levels 4, gain 1.3,
     /// de-noise k 2), which adds the soft-threshold pass the earlier two baselines never ran.</item>
+    /// <item>65 ms — same settings, re-measured against a newer gsvg.dll (CI run 35294573612, head
+    /// 3f520f8) after the stale local staging was replaced. The derived gate lands on 105 ms either
+    /// way, so this step changed the baseline without moving the limit.</item>
     /// </list>
+    ///
+    /// <para>This baseline is a DEV-MACHINE number. The same test on the CI runner measured 84 ms where
+    /// this machine measured 50 ms at the same code — 1.68x — so a gate derived here is not known to
+    /// hold there. The runner is 4 logical cores at 19.4 GB/s against this machine's 25.5 GB/s, and the
+    /// stage is memory-bound (post lane, QA-B-105). Splitting the gate per machine is a structure the
+    /// lead decides; until then the number below is honest about where it was measured.</para>
     ///
     /// Every step re-measured the baseline under the new workload. None of them widened the gate to fit
     /// a red run — that is a different act, and the distinction is the whole value of this number.
     /// </summary>
-    private const double BaselineMs = 62.0;
+    private const double BaselineMs = 65.0;
 
     /// <summary>
     /// The gate, derived from measurement rather than padded:
     ///
     /// <list type="bullet">
-    /// <item>3 runs x 7 applies = 21 samples at the current defaults: median 62 ms in every run,
-    /// worst single sample 76 ms.</item>
-    /// <item>Observed spread is therefore 76/62 = 1.23x of the median.</item>
+    /// <item>3 runs x 7 applies = 21 samples at the current defaults against gsvg.dll from CI run
+    /// 35294573612: medians 65 / 66 / 65 ms, worst single sample 77 ms.</item>
+    /// <item>Observed spread is therefore 77/65 = 1.18x of the median.</item>
     /// <item>The gate allows that spread again on top, for machine load these quiet runs did not see:
-    /// 62 x 1.23 x 1.36 = 104 ms, rounded to 105 — which is 1.38x the worst sample actually observed.</item>
+    /// 65 x 1.18 x 1.36 = 104 ms, rounded to 105 — which is 1.36x the worst sample actually observed.</item>
     /// </list>
     ///
     /// The 1.36 factor is carried over from the first derivation of this gate so the two are comparable;
