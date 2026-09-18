@@ -120,6 +120,55 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
+    /// <summary>
+    /// V-06 (#173, GUI-C-112): the image is drawn at the size that was ASKED for.
+    ///
+    /// <para>Every other case here compares a key with ITSELF — V-02 checks that zooming raises the
+    /// scale and that Reset brings it back to whatever it was, V-03/V-04 that the offset returns to
+    /// where it started. A renderer that computed the scale wrongly but consistently passes all of
+    /// them, and nothing on this suite can see the difference: there is no pixel capture (GUI-C-72,
+    /// GUI-C-78), so "the image is drawn too small" has no observer.</para>
+    ///
+    /// <para>This one compares two keys that are produced by different code. <c>zoom</c> is the value
+    /// that was requested (the dependency property). <c>scale</c> is measured from the rectangle the
+    /// frame actually drew into, divided by the source width. The control's own rule is that an
+    /// explicit zoom IS the effective scale (GetEffectiveScale returns ZoomScale unchanged when it is
+    /// above zero), so the two must agree — and they disagree exactly when the frame drew at a size
+    /// other than the one asked for.</para>
+    ///
+    /// <para>Only the explicit-zoom case is checked. At fit, the expected scale depends on the
+    /// control's layout size in device-independent units, which this harness cannot read: comparing
+    /// against the element's screen rectangle would make the case a DPI measurement rather than a
+    /// rendering one.</para>
+    /// </summary>
+    [SkippableFact]
+    public void V06_AnExplicitZoom_IsTheScaleThatWasDrawn()
+    {
+        var window = Ready();
+        try
+        {
+            ResetView(window);
+            Assert.True(WaitFor(window, s => s.Zoom == "fit") is not null, $"The view did not start at fit: {Help(window)}");
+
+            ScrollViewport(window, 3);
+            var zoomed = WaitFor(window, s => s.Zoom != "fit");
+            Assert.True(zoomed is not null, $"The wheel did not move the view off fit: {Help(window)}");
+
+            var requested = double.Parse(zoomed!.Zoom, CultureInfo.InvariantCulture);
+            output.WriteLine($"V06 requested zoom={requested:0.####}; drawn scale={zoomed.Scale:0.####}; raw='{zoomed.Raw}'");
+
+            Assert.True(
+                Math.Abs(zoomed.Scale - requested) < 0.001,
+                $"The view was asked to draw at {requested:0.####} and the frame drew at {zoomed.Scale:0.####} " +
+                $"— the image on screen is {(zoomed.Scale < requested ? "smaller" : "larger")} than requested " +
+                $"by a factor of {zoomed.Scale / requested:0.###}. {Help(window)}");
+        }
+        finally
+        {
+            ResetView(window);
+        }
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private void PanThenReset(bool horizontal)
