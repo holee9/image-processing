@@ -139,7 +139,7 @@ Per `.claude/rules/moai/development/xpe-module-principles.md`:
 
 - **Rationale**: Thickness is a primary determinant of SPR (Kyriakou & Kalender 2007, *Phys Med* 23(1):3-15 — flat-detector CT, thickness is a simulation input)
 - **Verification**: Test
-- **Status**: **Implemented (tested)** — 영상 기반 역산 `L = -ln(P/I0) = mu(t)·t`(`ThicknessFromLogAtten`, `GsvgVirtualGridKernel.ThicknessInversionRoundTrips`). **요구 원문의 방법(kVp·mAs·SID·조사야 크기)과 다릅니다** — 방법 미확정(Open)
+- **Status**: **Implemented (tested)** — 영상 기반 역산 `L = -ln(P/I0) = mu(t)·t`(`ThicknessFromLogAtten`, `GsvgVirtualGridKernel.ThicknessInversionRoundTrips`). 2026-09-18 개정으로 요구 자체가 화소별 영상 기반 추정이 되었으므로 구현과 요구가 일치합니다(위 개정 블록 참조)
 
 ### REQ-GSVG-010: SPR Calculation
 
