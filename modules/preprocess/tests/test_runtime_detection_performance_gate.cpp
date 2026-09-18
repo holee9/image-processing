@@ -268,23 +268,32 @@ void PrintMachineProfile() {
 // (the 0.472..0.638 band of 21 CI runs, the 0.85 limit, the QA-A-66/67 P/E-core
 // tables) described the old cache-resident kernel and is VOID here.
 //
-// MEASURED BAND (dev PC i7-12700, fresh build each time, min-of-3-rounds):
+// MEASURED BAND (dev PC i7-12700, fresh build each time, min-of-3-rounds, and
+// on an IDLE machine -- the first attempt was measured while a multi-hour GPU
+// job of this lane's own was running, which is the mistake QA-A-64 recorded as
+// "the gate was calibrated on the wrong machine". The two sets came out close
+// (worst clean 1.318 loaded, 1.331 idle), but "close" is not a reason to keep a
+// number measured under load):
 //
-//     clean             1.282  1.289  1.318      (3 runs; worst 1.318)
-//     regression +1 pass  1.380                  (one extra streaming pass)
-//     regression +2      1.479
-//     regression +8      2.046
+//     clean               1.267  1.310  1.331      (3 runs; worst 1.331)
+//     regression +1 pass  1.399                    (one extra streaming pass)
+//     regression +2       1.496
+//     regression +3       1.590
 //
 // The injected regression is an extra streaming pass over the input frame, the
 // same instrument QA-A-109 used, so the rows are comparable to each other.
 //
-// 1.45 sits 9.6% above the worst clean run and 2.0% below the nearest
-// regression this band contains (+2 passes, 1.479). That is a TIGHTER margin
-// than the 30.6% the old gate carried, and it is tight for a reason worth
-// stating plainly: a bandwidth-bound denominator moves with the same machine
-// noise as the numerator, so the clean band narrowed (2.8% across runs, against
-// the old gate's 24% across core types) -- but it has not been measured on a
-// second machine yet.
+// 1.45 sits 8.9% above the worst clean run and 3.1% below the nearest
+// regression it catches (+2 passes, 1.496).
+//
+// WHAT THIS GATE CAN AND CANNOT RESOLVE, stated plainly because the margin is
+// much tighter than the old one's 30.6%: the clean band itself spans 5%
+// (1.267..1.331), so a regression of about 5% (+1 pass, 1.399) sits inside the
+// machine's own spread and PASSES -- it has to, or the gate would fire on clean
+// code. What it catches is 13% and up. The band narrowed because the
+// denominator now moves with the same machine noise as the numerator; that is
+// the intended effect, and the cost is that small regressions are no longer
+// separable from noise by this instrument.
 //
 // PROVISIONAL UNTIL THE CI RUN. The whole point of the new kernel is that the
 // ratio should now be the SAME on a machine with different memory bandwidth.
