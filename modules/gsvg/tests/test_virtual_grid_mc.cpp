@@ -260,6 +260,11 @@ TEST(GsvgVirtualGridMc, DataAndConditions)
 
 // REQ-GSVG-018, provisional regression floor (QA-B-109, #180).
 // NOT a clinical pass mark — it only says "no worse than today".
+//
+// QA-B-123: the 512 x 512 set arrived and carries its own floor, re-measured
+// there (test_virtual_grid_mc512.cpp: 1.0504 / 1.1928 / 0.0342 plus 5 %). This
+// one stays because it is still a valid regression on ITS dataset and costs
+// little, but the 512 floor is the one that measures the current phantom.
 // #151 실제 장비 영상 확보 시 재설정.
 //
 // THIS FLOOR IS BOUND TO THIS PHANTOM, not to the code (QA-B-117). The peak is
