@@ -149,9 +149,12 @@ struct VgSwitches {
     int reductionFactor = 0;      // 0: derived from the narrowest kernel term (QA-B-95: fixed to compare models)
     bool clampThickness = true;   // false: thickness above the table refuses the image (pre-QA-B-93)
     bool useFieldMask = true;     // false: a passed mask is ignored (QA-B-96 falsification)
-    // #189 (QA-B-108): compared in the report; the default keeps the behaviour
-    // that shipped, so changing it is a lead decision.
-    MaskOutside maskOutside = MaskOutside::Zero;
+    // #189 (QA-B-110): edge replicate is the default. It leaves the smallest
+    // artificial step at the field boundary (0.3598 against the post-step-free
+    // 0.3210; zero measured 0.5670, QA-B-108) and matches the physical fact
+    // that outside the field the signal is low scatter, not zero. The other
+    // choices stay available as settings.
+    MaskOutside maskOutside = MaskOutside::Replicate;
 };
 
 struct VgReport {
