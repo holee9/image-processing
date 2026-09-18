@@ -136,6 +136,11 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
     /// above zero), so the two must agree — and they disagree exactly when the frame drew at a size
     /// other than the one asked for.</para>
     ///
+    /// <para>What this does NOT cover: an error inside GetEffectiveScale itself. Change that method and
+    /// the requested value and the drawn rectangle move together, so this case stays green. The two keys
+    /// are independent because of how the code is arranged today — the request is a dependency property
+    /// and the measurement comes off the drawn rectangle — not because anything enforces it.</para>
+    ///
     /// <para>Only the explicit-zoom case is checked. At fit, the expected scale depends on the
     /// control's layout size in device-independent units, which this harness cannot read: comparing
     /// against the element's screen rectangle would make the case a DPI measurement rather than a
