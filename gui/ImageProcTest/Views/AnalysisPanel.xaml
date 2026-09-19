@@ -480,10 +480,24 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Application Log" Foreground="#f0f2f5" FontSize="12"
                                    FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Clear"
+                        <!--
+                            #173 (GUI-C-122): copies the selected line. The startup warning about
+                            unreadable settings names a file path, and the status bar it is also
+                            written to is overwritten by the next action — measured. The log keeps it,
+                            but a ListBox item supports no text pattern, so without this the user has
+                            to read the path off the screen and type it somewhere.
+                        -->
+                        <Button Grid.Column="1" Content="Copy"
+                                AutomationProperties.AutomationId="CopyLogLineButton"
+                                Command="{Binding CopySelectedLogCommand}"
+                                Background="Transparent" Foreground="#8a909c"
+                                BorderThickness="0" FontSize="10" Cursor="Hand"
+                                Padding="8,2" />
+                        <Button Grid.Column="2" Content="Clear"
                                 Command="{Binding ClearLogsCommand}"
                                 Background="Transparent" Foreground="#8a909c"
                                 BorderThickness="0" FontSize="10" Cursor="Hand"
@@ -492,6 +506,7 @@
 
                     <ListBox AutomationProperties.AutomationId="LogListBox"
                              ItemsSource="{Binding Logs}"
+                             SelectedItem="{Binding SelectedLog, Mode=TwoWay}"
                              Background="Transparent" BorderThickness="0"
                              Foreground="#f0f2f5" MaxHeight="600"
                              FontFamily="Consolas" FontSize="11">

@@ -42,6 +42,7 @@ public sealed class MainWindowViewModel : ObservableObject
     // OFF at start, per MENU-001 §9.2 (#165). The other panel flags keep their old value because
     // nothing reads them: only this one is wired to a region.
     private bool _showLogsPanel = false;
+    private string? _selectedLog;
     private bool _showAlertsPanel = true;
 
     // Slice 2 — workbench VM-only backing fields
@@ -115,6 +116,7 @@ public sealed class MainWindowViewModel : ObservableObject
         BrowseGainCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Gain));
         BrowseDefectCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Defect));
         ClearLogsCommand = new RelayCommand(() => Logs.Clear());
+        CopySelectedLogCommand = new RelayCommand(CopySelectedLog);
         ClearAlertsCommand = new RelayCommand(() => Alerts.Clear());
         ResetLayoutCommand = new RelayCommand(ResetLayout);
         ShowNativeDiagnosticsCommand = new RelayCommand(ShowNativeDiagnostics);
@@ -218,6 +220,43 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<string> Logs { get; }
 
     public ObservableCollection<AlertEntry> Alerts { get; }
+
+    /// <summary>The log line the user picked, for <see cref="CopySelectedLogCommand"/>.</summary>
+    public string? SelectedLog
+    {
+        get => _selectedLog;
+        set => SetProperty(ref _selectedLog, value);
+    }
+
+    /// <summary>
+    /// Puts the selected log line on the clipboard (#173, GUI-C-122).
+    ///
+    /// <para>The startup warning about unreadable settings names a file path the user has to go and
+    /// find. It is said once — the status bar carrying it is overwritten by the next action, measured
+    /// in GUI-C-122 — and what survives is the log list, whose items support no text pattern. So the
+    /// path was on screen and could only be copied by reading it off and typing it again.</para>
+    ///
+    /// <para>The item template is deliberately unchanged: every other log line renders exactly as it
+    /// did, and this adds a way to take one rather than a new way to show them.</para>
+    /// </summary>
+    public RelayCommand CopySelectedLogCommand { get; }
+
+    private void CopySelectedLog()
+    {
+        if (string.IsNullOrEmpty(SelectedLog)) return;
+
+        try
+        {
+            System.Windows.Clipboard.SetText(SelectedLog);
+            StatusText = "Log line copied.";
+        }
+        catch (Exception ex)
+        {
+            // The clipboard can be held by another process. Saying so beats a button that looks like
+            // it worked.
+            StatusText = $"Could not copy the log line: {ex.Message}";
+        }
+    }
 
     public RelayCommand InitializeBackendCommand { get; }
 
