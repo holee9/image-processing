@@ -77,6 +77,17 @@ internal static class XpePreprocessNative
         ref XpeImageBufferNative output,
         ref XpeImageMetadataNative metadata);
 
+    /// <summary>
+    /// Stage 3 of the module pipeline (#198, GUI-C-128). In-place on <paramref name="image"/>: the
+    /// module's own pipeline copies stage 2 into a buffer and passes that, and this entry point is the
+    /// exported one — <c>xpe_nonlinearity_apply</c>, which also reports whether pixels changed, is
+    /// internal and not exported (checked in the staged DLL).
+    /// </summary>
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal static extern int xpe_nonlinearity_correct(
+        ref XpeImageBufferNative image,
+        string? configJson);
+
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int xpe_gain_correct(
         ref XpeImageBufferNative input,
