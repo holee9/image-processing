@@ -81,6 +81,31 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     if (!outParams)       return XPE_ERR_INVALID_INPUT;
     if (count < 2)        return XPE_ERR_INVALID_INPUT;
 
+    // REQ-DISP-026 + REQ-DISP-029 (#155, QA-B-146): the array is the display's
+    // characteristic curve, so it must be non-decreasing. Until QA-B-145 the
+    // order carried no meaning -- only the minimum and maximum were read -- and
+    // an unordered array was a legitimate input. It is now a contract
+    // violation, and this returns the error REQ-DISP-026 already defines rather
+    // than inventing a new code.
+    //
+    // ONLY HALF OF REQ-DISP-029 IS CHECKABLE HERE, and the half that is not
+    // must stay written down rather than assumed:
+    //   - non-decreasing        -- checkable, it is a property of the array;
+    //   - measured at EQUALLY SPACED driving levels -- NOT checkable, because
+    //     no driving level reaches this function. A log-spaced ladder like
+    //     {0.05, 1, 10, 100, 400} ascends and passes here while still being
+    //     the wrong input.
+    // Do not read this guard as "the contract is now enforced".
+    //
+    // non-decreasing, NOT strictly increasing: a real panel can have a flat
+    // stretch, so values[i] == values[i+1] is allowed (<=, not <). What the
+    // inversion does on such a plateau is decided and stated below.
+    for (uint32_t i = 1; i < count; ++i) {
+        if (luminanceValues[i] < luminanceValues[i - 1]) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
     // REQ-DISP-025/026: compute a GSDF-compliant Presentation LUT.
     //
     // #155 (QA-B-145, stage 2). THE ARRAY IS NOW A CURVE, NOT A PAIR OF
@@ -206,6 +231,17 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
         // Step 5: invert the measured curve. luminanceValues[k] was measured at
         // DDL_k = k/(count-1) * 65535, so locating target_lum between two
         // samples locates the driving level between their two DDLs.
+        //
+        // PLATEAU RULE (#155, QA-B-146). The curve is non-decreasing, not
+        // strictly increasing, so several driving levels can share one
+        // luminance and the inverse is a range rather than a point. This picks
+        // the LOWEST driving level of that range: the search stops at the first
+        // sample whose successor reaches target_lum, and a zero-width interval
+        // contributes frac = 0. Lowest is the deterministic choice and the
+        // conservative one -- it is the least drive that meets the luminance
+        // the standard asks for. It is a CHOICE, not a consequence: highest, or
+        // the midpoint, would satisfy the standard equally well, which is why
+        // it is written here instead of being left to whoever reads the loop.
         double ddl_f;
         if (target_lum <= static_cast<double>(luminanceValues[0])) {
             ddl_f = 0.0;
