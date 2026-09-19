@@ -777,3 +777,161 @@ TEST(GsvgVirtualGridMc512, OverEstimatedKernelsMakeTheCapProtect_191)
     }
     SUCCEED();
 }
+
+// ===========================================================================
+// #191 item 1 (QA-B-136): is the error peak bound to MILLIMETRES or to PIXELS?
+//
+// FIRST, A CORRECTION TO THE CARD. QA-B-136 (a) asks for the existing profile
+// to be "re-binned in pixels". It already is: the bin edges in
+// StepErrorAgainstDistanceToTheBoundary are pixel counts {0,1,2,4,8,...} and
+// the mm column is those counts times the pitch, printed for reading. At one
+// pixel size the two axes differ by a constant, so the same table reads both
+// ways and (a) cannot separate them. Only (b) can.
+//
+// (b) changes ONE axis. The phantom is binned k x k, which is physically a
+// coarser detector over the SAME scene: the object, its step boundaries and the
+// scatter physics are untouched; only the sampling changes. pixelPitchMm moves
+// with k, so the kernel taps (sigma is in cm) keep their physical width and
+// shrink in pixels.
+//
+// The prediction is falsifiable either way:
+//   peak at the same MILLIMETRES across k -> physical scale; a 2 cm-step
+//     phantom is the right instrument and #191 item 1 stands as written.
+//   peak at the same PIXEL COUNT across k -> scene/sampling scale; a coarser
+//     step phantom would put the peak a few pixels from its boundary again and
+//     would not answer the question. #191 item 1 needs rewriting, not running.
+//
+// No grid is present in these MC phantoms, so the #192 aliasing that also moves
+// with pixel size cannot mix into this comparison.
+//
+// LIMIT, stated rather than assumed away: binning models a larger pixel's
+// aperture by averaging. A real detector at 0.28 mm also has its own MTF and
+// noise; this experiment holds those fixed on purpose, because the question is
+// about the sampling grid, not about detector physics.
+// ===========================================================================
+namespace {
+
+struct Binned {
+    int n = 0;
+    double pitchMm = 0;
+    std::vector<double> total, primary, thickness;
+    std::vector<uint8_t> mask;
+    int lo = 0, hi = 0;          // metric region [lo, hi) in binned pixels
+};
+
+Binned BinPhantom(const Phantom& p, int k) {
+    Binned b;
+    b.n = kN / k;
+    b.pitchMm = kPitchMm * k;
+    const size_t m = static_cast<size_t>(b.n) * b.n;
+    b.total.assign(m, 0.0);
+    b.primary.assign(m, 0.0);
+    b.thickness.assign(m, 0.0);
+    std::vector<double> air(m, 0.0);
+    for (int r = 0; r < b.n; ++r)
+        for (int c = 0; c < b.n; ++c) {
+            double t = 0, pr = 0, th = 0, ai = 0;
+            for (int dr = 0; dr < k; ++dr)
+                for (int dc = 0; dc < k; ++dc) {
+                    const size_t i = static_cast<size_t>(r * k + dr) * kN + (c * k + dc);
+                    t += p.total[i]; pr += p.primary[i]; th += p.thickness[i]; ai += p.air[i];
+                }
+            const double inv = 1.0 / (k * k);
+            const size_t j = static_cast<size_t>(r) * b.n + c;
+            b.total[j] = t * inv; b.primary[j] = pr * inv; b.thickness[j] = th * inv; air[j] = ai * inv;
+        }
+    double airMax = 0;
+    for (double v : air) airMax = std::max(airMax, v);
+    b.mask.assign(m, 0);
+    for (size_t i = 0; i < m; ++i) b.mask[i] = air[i] > 0.5 * airMax ? 1 : 0;
+    // Same PHYSICAL metric region as the 512 case (cols 109..403 at 0.14 mm).
+    b.lo = kLo / k;
+    b.hi = kHi / k;
+    return b;
+}
+
+}  // namespace
+
+TEST(GsvgVirtualGridMc512, ErrorPeakFollowsPixelsOrMillimetres_191)
+{
+    const Phantom p = Load("step");
+
+    // Boundary columns, found once on the 512 phantom (the QA-B-125 criterion).
+    std::vector<double> colT0(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0; int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i]; ++n;
+        }
+        colT0[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> jumpCols;
+    for (int j = kLo; j + 1 < kHi; ++j)
+        if (std::fabs(colT0[j + 1] - colT0[j]) > 0.2) jumpCols.push_back(j);
+
+    // Two arms. The post-steps (pyramid, denoise) are specified in PIXELS, so
+    // their physical reach grows with k -- a second moving part that the first
+    // run of this test did not hold still (the six-level pyramid reaches 128 px
+    // = 17.9 mm at k=1 but 71.7 mm at k=4). The `subtract-only` arm switches
+    // them off, leaving only the kernel subtraction, whose sigma is physical.
+    // If the two arms disagree, the post-steps are what moved, not the peak.
+    for (const bool postSteps : {true, false}) {
+    std::printf("VGMC136 pixel-size sweep (post-steps %s): k, pitch_mm, N, peak_px, peak_mm\n",
+                postSteps ? "ON" : "OFF");
+    for (const int k : {1, 2, 4}) {
+        const Binned b = BinPhantom(p, k);
+
+        vg::VgSettings st = BaseSettings();
+        st.pixelPitchMm = b.pitchMm;           // the one axis that moves
+        if (!postSteps) { st.pyramidLevels = 0; st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+        std::vector<double> img = b.total;
+        const vg::VgReport rep =
+            vg::RunVirtualGrid(img, b.n, b.n, McTable(), st, vg::VgSwitches{}, b.mask.data());
+        ASSERT_EQ(rep.error, "") << k;
+
+        // The boundary set is taken from the UNBINNED phantom and mapped into
+        // this rendering's columns, so all three k measure distance to the SAME
+        // physical boundaries. Detecting jumps per-k instead lost boundaries as
+        // binning blended them (18 -> 12 -> 11 in the first run of this test),
+        // which changed the scene and not only the sampling -- two moving parts.
+        std::vector<int> dist(b.n, b.n);
+        for (int c = b.lo; c < b.hi; ++c)
+            for (int j : jumpCols) dist[c] = std::min(dist[c], std::abs(c - j / k));
+        const int jumps = static_cast<int>(jumpCols.size());
+
+        // Bins in PIXELS of this rendering. The mm column is derived, so the
+        // same rows can be read on either axis and compared across k.
+        const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64};
+        double best = -1, bestPx = -1, last = -1;
+        std::printf("VGMC136 --- k=%d pitch=%.3f mm N=%d jumps=%d factor=%d\n",
+                    k, b.pitchMm, b.n, jumps, rep.factor);
+        for (size_t e = 0; e + 1 < sizeof(edges) / sizeof(edges[0]); ++e) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                const int r = static_cast<int>(i) / b.n, c = static_cast<int>(i) % b.n;
+                if (r < b.lo || r >= b.hi || c < b.lo || c >= b.hi) continue;
+                if (!b.mask[i] || b.primary[i] <= 0) continue;
+                if (dist[c] < edges[e] || dist[c] >= edges[e + 1]) continue;
+                a.push_back(std::fabs(img[i] / b.primary[i] - 1.0));
+            }
+            if (a.empty()) continue;
+            std::sort(a.begin(), a.end());
+            const double med = a[a.size() / 2];
+            const double midPx = 0.5 * (edges[e] + edges[e + 1]);
+            std::printf("VGMC136 k=%d d=[%2d,%2d) px = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+                        k, edges[e], edges[e + 1], edges[e] * b.pitchMm, edges[e + 1] * b.pitchMm,
+                        a.size(), med);
+            if (med > best) { best = med; bestPx = midPx; }
+            last = med;
+        }
+        // The level moves with k as well as the shape, so the peak is also
+        // reported relative to this rendering's own far-field bin. A shape
+        // comparison across k needs the level divided out.
+        std::printf("VGMC136 PEAK k=%d peak_px=%.1f peak_mm=%.3f median=%.4f far=%.4f peak/far=%.3f\n",
+                    k, bestPx, bestPx * b.pitchMm, best, last, last > 0 ? best / last : -1.0);
+    }
+    }
+    SUCCEED();
+}
