@@ -15,7 +15,19 @@
  * running can. So this file checks the state AFTER EVERY TEST, in the same
  * process, and names whoever left it dirty.
  *
- * WHAT IS CHECKED, AND WHY EXACTLY THESE THREE.
+ * FALSIFYING A GUARD IN THIS REPOSITORY -- READ BEFORE WRITING ONE.
+ *
+ * To show a guard actually fires, disable what it guards and confirm the red.
+ * The condition you disable it with MUST be one the compiler cannot fold.
+ * `if (false && ...)`, `if (kSomeConstexpr == 0)` and friends raise a
+ * constant-conditional / unreachable-code warning, `/WX` turns that into
+ * BUILD_EXIT=1, and the STALE binary then runs and passes -- so the
+ * falsification reads as "the guard was not needed" when in fact it never ran.
+ * QA-A-136 and QA-A-137 each hit this, consecutively. Use a runtime-false
+ * expression instead (`::testing::UnitTest::GetInstance() == nullptr` works),
+ * and read BUILD_EXIT before believing any falsification result.
+ *
+ * WHAT IS CHECKED, AND WHY EXACTLY THESE FOUR.
  *
  *   1. module initialization -- `xpe_preprocess_init()` refuses a second call by
  *      design, so a test that leaves the module up breaks the NEXT fixture that
@@ -31,7 +43,26 @@
  *      restores this axis for free -- and the reported count went from 30 to 0
  *      the moment that landed. It fails like the others now.
  *
- * All three have side-effect-free getters. The calibration MAPS are not checked
+ *   4. pending alert queue -- QA-A-138. This axis was MISSING, not excluded:
+ *      the note above enumerated three axes and gave an explicit reason for
+ *      leaving the calibration maps out, while the queue appeared in neither
+ *      list. QA-A-137 measured the cost. An alert pushed by one test survived
+ *      into the next and made its NEGATIVE assertion ("this file raises no
+ *      such alert") fail -- green under ctest, red in a single process. The
+ *      guard exists for exactly that shape and did not see it.
+ *      Like the calibration mode, the queue is deliberately NOT cleared by
+ *      xpe_preprocess_shutdown(): it is a common-module global shared across
+ *      modules, and emptying it when one module goes down would discard
+ *      another's undelivered alerts. Draining it is the consumer's job,
+ *      through the public xpe_clear_alerts() -- so a test CAN restore this
+ *      axis, which is what makes it fair to fail one that does not.
+ *      QA-A-139 widened this axis from the COUNT to the queue's identity: a
+ *      test that drains one alert and pushes another kept the size unchanged
+ *      and passed, while handing its successor a queue it never raised. Both
+ *      are reported, because "2 left behind" and "2 replaced" send the reader
+ *      to different lines. Measured cost of the identity read: see below.
+ *
+ * All four have side-effect-free getters. The calibration MAPS are not checked
  * here: there is no read-only query for them, and the only way to clear them is
  * shutdown, which is not this guard's to call -- a suite that loads maps once in
  * SetUpTestSuite (test_xpe_calib_endurance.cpp) legitimately holds them across
@@ -59,6 +90,8 @@ struct Baseline {
     XpeCalibrationMode mode{};
     XpeCalibQualityMeta meta{};
     bool initialized = false;
+    int32_t alerts = 0;
+    uint64_t alert_fp = 0;
     bool captured = false;
 };
 
@@ -68,6 +101,48 @@ Baseline g_baseline;
 std::vector<std::string> g_offenders;
 
 
+
+/**
+ * QA-A-139: the queue's IDENTITY, not just its size.
+ *
+ * The count alone admits a false negative: a test that drains one alert and
+ * pushes another leaves the size unchanged while the queue's contents are
+ * entirely different, and the next test's negative assertion then reads
+ * someone else's alert. The count is kept as a separate field because the two
+ * numbers answer different questions -- "how many were left" is what an
+ * offender needs to hear, and a hash cannot say it.
+ *
+ * Read through the public getter, which api-spec.md 5.17 defines as leaving
+ * the queue unmodified -- there is no test-only accessor here, and none was
+ * added. Severity joins the message because two alerts can share text and
+ * differ in how loudly they are reported.
+ *
+ * FNV-1a over (message bytes, severity) in queue order. Order matters: a queue
+ * holding the same two alerts in the other order is a different queue, and
+ * reordering is itself something a test should not do to its successor.
+ */
+uint64_t AlertFingerprint() {
+    uint64_t h = 1469598103934665603ull;  // FNV-1a 64 offset basis
+    const int32_t n = xpe_get_pending_alert_count();
+    char msg[512];
+    for (int32_t i = 0; i < n; ++i) {
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) {
+            // A message longer than the buffer, or a racing drain. Fold the
+            // index in so the difference is still visible rather than silently
+            // hashing to the same value as a shorter queue.
+            h = (h ^ static_cast<uint64_t>(0xFFu + i)) * 1099511628211ull;
+            continue;
+        }
+        for (const char* c = msg; *c; ++c) {
+            h = (h ^ static_cast<uint64_t>(static_cast<unsigned char>(*c))) *
+                1099511628211ull;
+        }
+        h = (h ^ static_cast<uint64_t>(static_cast<uint32_t>(sev))) *
+            1099511628211ull;
+    }
+    return h;
+}
 
 bool SameMeta(const XpeCalibQualityMeta& a, const XpeCalibQualityMeta& b) {
     return std::memcmp(&a, &b, sizeof(XpeCalibQualityMeta)) == 0;
@@ -87,6 +162,8 @@ public:
         g_baseline.mode = xpe_calib_get_mode();
         (void)xpe_calib_get_quality_meta(&g_baseline.meta);
         g_baseline.initialized = xpe_preprocess_is_initialized();
+        g_baseline.alerts = xpe_get_pending_alert_count();
+        g_baseline.alert_fp = AlertFingerprint();
         g_baseline.captured = true;
     }
 
@@ -112,6 +189,23 @@ public:
         (void)xpe_calib_get_quality_meta(&meta);
         if (!SameMeta(meta, g_baseline.meta)) {
             why += " quality metadata changed;";
+        }
+        // QA-A-138. The count, not the text: a test that pushes and drains the
+        // same number of alerts has left the queue as it found it, which is the
+        // contract. Reported with both numbers because "3 left behind" sends the
+        // reader to a different line than "the queue was drained under you".
+        const int32_t alerts_now = xpe_get_pending_alert_count();
+        const uint64_t fp_now = AlertFingerprint();
+        if (alerts_now != g_baseline.alerts) {
+            why += " pending alerts " + std::to_string(g_baseline.alerts) +
+                   " -> " + std::to_string(alerts_now) +
+                   " (drain with xpe_clear_alerts());";
+        } else if (fp_now != g_baseline.alert_fp) {
+            // QA-A-139: same size, different queue. The count cannot see this,
+            // and it is the shape that reaches the NEXT test's assertion.
+            why += " pending alert queue replaced (" +
+                   std::to_string(alerts_now) +
+                   " alerts, different contents; drain with xpe_clear_alerts());";
         }
         if (!why.empty()) {
             g_offenders.push_back(full + " --" + why);
@@ -161,6 +255,25 @@ TEST(GlobalStateHygieneTest, TheProbeDetectsAnInitializedModule) {
 
     xpe_preprocess_shutdown();
     EXPECT_FALSE(xpe_preprocess_is_initialized());
+}
+
+/**
+ * QA-A-138: the fourth axis's probe, on the same pattern as the two above --
+ * raise it, confirm the getter sees it, put it back. An empty offender list
+ * for this axis means nothing unless the probe can read a non-empty queue.
+ */
+TEST(GlobalStateHygieneTest, TheProbeDetectsAPendingAlert) {
+    const int32_t before = xpe_get_pending_alert_count();
+
+    xpe_alert_push("QA-A-138 hygiene probe", XPE_ALERT_INFO);
+    EXPECT_GT(xpe_get_pending_alert_count(), before);
+
+    // Restore through the product's own drain -- the same call the guard's
+    // failure message tells an offender to make. Clearing empties the whole
+    // queue, so this test asserts the axis is back to zero rather than to
+    // `before`; it inherits an empty queue from its own predecessor's cleanup.
+    xpe_clear_alerts();
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
 }
 
 /** The mode getter is the second axis, and it reads back what was set. */
