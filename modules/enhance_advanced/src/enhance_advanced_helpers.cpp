@@ -270,7 +270,6 @@ bool parse_mfp_config(const char* json,
 
 bool parse_fractional_config(const char* json,
                              int&   outIterations,
-                             float& outStepSize,
                              bool&  outSafetyViolation) {
     // @MX:ANCHOR: [AUTO] SAF-100 forbidden key gate in fractional config parser
     // @MX:REASON: Safety-critical — overshoot limiting bypass must be blocked at config parse level (IEC 62304 Class B)
@@ -280,7 +279,6 @@ bool parse_fractional_config(const char* json,
 
     // Apply defaults
     outIterations = XPE_FRAC_DEFAULT_ITER;
-    outStepSize   = XPE_FRAC_DEFAULT_STEP;
 
     if (json == nullptr) {
         return true;
@@ -325,10 +323,12 @@ bool parse_fractional_config(const char* json,
             outIterations = std::clamp(val, 1, XPE_FRAC_MAX_ITER);
         }
 
-        if (cfg.contains("step_size") && cfg["step_size"].is_number()) {
-            float val = cfg["step_size"].get<float>();
-            outStepSize = std::clamp(val, 0.01f, 1.0f);
-        }
+        // #162 (QA-B-139): `step_size` was read here and clamped to
+        // [0.01, 1.0]. Nothing consumed the result -- FractionalConfig carries
+        // only `order` -- so the clamp produced a value for a debug log and
+        // nothing else. Parsing it made the code claim an effect it does not
+        // have. The key is still recognised by the caller's known-key list, and
+        // the caller reports it through the inert-key warning.
 
         return true;
     } catch (const nlohmann::json::exception&) {
