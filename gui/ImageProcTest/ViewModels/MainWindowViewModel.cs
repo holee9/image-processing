@@ -68,10 +68,19 @@ public sealed class MainWindowViewModel : ObservableObject
     public static readonly string[] AlgorithmOptions =
         AlgorithmPreset.All.Select(p => p.Name).ToArray();
 
+    /// <param name="preservedSettingsPath">
+    /// Where the unreadable settings file was moved, when the stored settings could not be read
+    /// (#173, GUI-C-119). Null on an ordinary start. The three things the message has to carry are
+    /// measured, not chosen: GUI-C-118 found that a corrupt file loses EVERY stored setting silently,
+    /// so saying only "could not read" leaves the user unaware their settings are gone, and saying it
+    /// without the path makes moving the original aside pointless.
+    /// </param>
     public MainWindowViewModel(
         AppSettings settings,
         AppSettingsService settingsService,
-        Func<AppSettings, IXpeBackend> backendFactory)
+        Func<AppSettings, IXpeBackend> backendFactory,
+        string? preservedSettingsPath = null,
+        bool preservedSettingsIsFromAnEarlierFailure = false)
     {
         Settings = settings;
         _settingsService = settingsService;
@@ -133,6 +142,44 @@ public sealed class MainWindowViewModel : ObservableObject
         // and none of them the "GUI-S0 initialized." line written immediately before it. The whole of
         // that moment was gone, not just one line.
         ReportRejectedComparisonMode();
+
+        // Same ordering reason as the line above: InitializeBackend clears Logs and Alerts, so this
+        // has to be said after it or it is erased inside this constructor.
+        ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
+    }
+
+    /// <summary>
+    /// Says, once, that the stored settings could not be read (#173, GUI-C-119).
+    ///
+    /// <para>Three things, all load-bearing: the file could not be read, <b>the app started from
+    /// defaults</b>, and <b>where the original is</b>. GUI-C-118 measured that a corrupt file loses
+    /// every stored setting with nothing on screen — so a message missing the second part leaves the
+    /// user thinking nothing was lost, and one missing the third makes preserving the file pointless.</para>
+    /// </summary>
+    private void ReportUnreadableSettings(string? preservedPath, bool fromAnEarlierFailure)
+    {
+        if (string.IsNullOrWhiteSpace(preservedPath)) return;
+
+        // The second sentence differs because the fact differs: on a repeat failure nothing was moved
+        // now, and the path names what an EARLIER failure rescued (#173, GUI-C-120). Saying "the
+        // original was kept" there would be false — this run kept nothing — and the user would be
+        // looking for a file holding what they had, which this one does not.
+        var message = fromAnEarlierFailure
+            ? "Your saved settings could not be read, so this session started from defaults. " +
+              $"An earlier failure already rescued your original settings, kept at '{preservedPath}'."
+            : "Your saved settings could not be read, so this session started from defaults. " +
+              $"The original file was kept at '{preservedPath}'.";
+
+        Alerts.Insert(0, new AlertEntry
+        {
+            Severity = "WARN",
+            Code = "SETTINGS_UNREADABLE",
+            Message = message,
+            Timestamp = DateTimeOffset.Now
+        });
+
+        StatusText = message;
+        Log(message);
     }
 
     public AppSettings Settings { get; }
