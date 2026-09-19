@@ -125,7 +125,13 @@ All 35 EARS requirements (REQ-DISP-001 through REQ-DISP-035) are:
 
 - LUT Manager (SWU-3.4) deferred to future iteration
 - Overlay rendering (DICOM PS3.3 C.9) not in scope
-- GSDF Barten model uses simplified log-linear approximation (@MX:WARN added for clinical validation)
+- ~~GSDF Barten model uses simplified log-linear approximation~~ **[정정 2026-09-19, #155]**
+  *"단순화한 근사"* 가 아니었습니다. 그 3차식은 **DICOM PS3.14 Eq 7-2 의 계수를 자리를
+  뒤집고 부호를 번갈아** 옮긴 것이었고(`L=1` 에서 상수항으로 환원되어 표준 71.50 대
+  모듈 9.82), 게다가 그 위에서 JND 모델이 **정확히 약분**되어 어떤 광도를 넣어도
+  **직선 램프**가 나왔습니다. 표준 식으로 교체하고 측정 곡선을 역산하게 했습니다
+  (QA-B-143·144·145). 검증은 감마 2.2·1.8 **합성 특성 곡선**과 표준에서 해석적으로
+  유도한 LUT 대조입니다. **실제 패널 측정은 여전히 없습니다**(`#151` 차단).
 
 ### Next Phase
 
@@ -339,13 +345,60 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 
 **REQ-DISP-024**: WHEN `gsdfEnabled` is non-zero in the params, the system SHALL apply the GSDF-calibrated LUT entries (previously computed by `xpe_gsdf_calibrate`) to ensure perceptually linear luminance output per DICOM PS3.14.
 
-**REQ-DISP-025**: WHEN `xpe_gsdf_calibrate` is called with valid luminance measurement values, the system SHALL compute a GSDF-compliant Presentation LUT that maps JND (Just Noticeable Difference) indices to display digital driving levels, and populate `outParams->lutData[0..1023]` with the resulting uint16 values.
+**REQ-DISP-025**: WHEN `xpe_gsdf_calibrate` is called with the display's measured characteristic curve, the system SHALL compute a DICOM PS3.14 GSDF-compliant Presentation LUT whose 1024 entries are spaced equally in JND index across the measured luminance range, each entry holding the digital driving level whose **measured** luminance satisfies the GSDF at that P-Value, and populate `outParams->lutData[0..1023]` with the resulting uint16 values.
 
-**REQ-DISP-026**: IF `luminanceValues` is NULL, `count < 2`, or `outParams` is NULL, THEN `xpe_gsdf_calibrate` SHALL return `XPE_ERR_INVALID_INPUT`.
+> **[개정 2026-09-19, #155 / QA-B-145]** 옛 문구는 *"valid luminance measurement values"*
+> 로 배열을 받아 *"GSDF-compliant"* LUT 을 요구했는데, **구현은 min/max 만 쓰고**
+> 그 위에서 JND 모델이 **정확히 약분**되어 어떤 광도를 넣어도 **직선 램프**가 나왔습니다
+> (광도를 6 자릿수 흔들어도 출력 차 1 카운트). 즉 요구는 맞고 구현이 틀렸습니다.
+>
+> 아울러 모듈의 JND 3차식은 *"단순화한 Barten 모델"* 이라 적혀 있었으나 실제로는
+> **PS3.14 Eq 7-2 의 계수를 자리를 뒤집고 부호를 번갈아** 옮긴 것이었습니다
+> (`L=1` 에서 상수항으로 환원되어 표준 71.50 대 모듈 9.82). 표준 식으로 교체했습니다.
+>
+> 검증은 **정답을 아는 입력**으로 했습니다 — 감마 2.2·1.8 합성 특성 곡선을 넣고
+> 표준에서 **해석적으로 유도한** LUT 과 대조(잔차 72·48 / 65535, 평균 0.7). 두 감마의
+> LUT 이 **4830** 만큼 다른 것이 반증입니다 — 곡선을 무시하면 둘이 같아집니다.
+
+**REQ-DISP-026**: IF `luminanceValues` is NULL, `count < 2`, `outParams` is NULL, or `luminanceValues` is not non-decreasing (REQ-DISP-029), THEN `xpe_gsdf_calibrate` SHALL return `XPE_ERR_INVALID_INPUT`.
 
 **REQ-DISP-027**: WHEN `xpe_gsdf_calibrate` completes successfully, the system SHALL set `outParams->gsdfEnabled = 1`.
 
 **REQ-DISP-028**: The system SHALL complete Presentation LUT application (including format conversion) within 25ms for a 3072x3072 image.
+
+**REQ-DISP-029**: The `luminanceValues` array SHALL be the display's characteristic curve sampled at **equally spaced driving levels**: element `i` SHALL be the luminance in cd/m² measured at `DDL_i = i / (count − 1) × 65535`, and the values SHALL be non-decreasing in `i`. All elements SHALL be used — the interior samples define the curve that the GSDF-required luminances are inverted against. The system SHALL reject an array that is not non-decreasing, returning `XPE_ERR_INVALID_INPUT` without modifying `outParams` (REQ-DISP-026). The system SHALL NOT detect the remaining half of this contract: no driving level is passed to `xpe_gsdf_calibrate`, so an array that ascends but was not measured at equally spaced driving levels — a log-spaced ladder, for example — yields `XPE_OK` and an incorrect LUT.
+
+> **[신설 2026-09-19, #155 / QA-B-145]** 옛 계약은 `display_api.h` 가
+> *"Only the minimum and maximum of the array are used"* 라고 **명시**했고, 그래서
+> 중간값의 간격·순서가 무의미했습니다. 새 계약은 **배열 전체를 특성 곡선으로** 씁니다.
+>
+> **서명은 바뀌지 않습니다** — 바뀌는 것은 배열의 뜻뿐이고, 기존 호출자가 중간값에
+> 의존할 수 없었으므로(문서가 무시된다고 말해 왔으므로) **계약을 좁히는 것이지
+> 깨뜨리는 것이 아닙니다.**
+>
+> **마지막 문장은 의도적입니다.** 지금 코드가 계약 위반을 **검출하지 않는 것이
+> 사실**이고, 사실을 적지 않으면 다음 사람이 검출된다고 읽습니다. 같은 성질의 기존
+> 서술이 `display_api.h` 의 *"degenerate input is silently coerced, not rejected"* 입니다.
+>
+> **[개정 2026-09-19 (2차), QA-B-146]** 마지막 문장을 **두 문장으로 나눴습니다.**
+> 하나로 합치면 *"검출한다"* 와 *"검출하지 않는다"* 가 같은 문장에 들어가고, **다음
+> 사람은 둘 중 하나만 읽습니다.**
+>
+> **통과가 계약 준수를 뜻하지 않습니다.** 반례가 실재합니다 — GUI 가 넘기던
+> `{0.05, 1, 10, 100, 400}` 은 **오름차순이라 가드를 통과하면서 여전히 틀린 입력**
+> 입니다(10배씩 뛰는 로그 격자). 같은 취지가 코드 주석과 `display_api.h` 의 `@note`
+> 에도 들어가 있습니다.
+>
+> **평평한 구간**(`values[i] == values[i+1]`)은 허용되고, 역산의 답이 구간이 될 때는
+> **가장 낮은 구동 준위**를 고릅니다 — 결정적이고, 표준이 요구하는 광도를 내는 최소
+> 구동이라 보수적입니다. **다만 선택이지 귀결이 아닙니다**(상단·중점도 표준을
+> 만족합니다).
+>
+> **미검출로 남는 것**: 등간격 위반(구조적), 그리고 **NaN 광도** — 비교가 전부 거짓이라
+> 이 가드를 통과합니다. 후속 후보입니다.
+
+> **`count == 2`** 는 "구동 준위 0 과 최대에서만 쟀다" 이고, 곧 **선형 디스플레이를
+> 가정한다**는 뜻입니다 — 측정이 없을 때의 정직한 표현이며 옛 동작과 같은 가정입니다.
 
 ### 3.4 Cross-Cutting Requirements
 

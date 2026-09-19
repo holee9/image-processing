@@ -332,4 +332,8 @@ TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
         EXPECT_EQ(kPixelValue, data[i])
             << "Null-config nonlinearity correction must be identity at pixel " << i;
     }
+    // QA-A-140 (#196): the stage now reports its no-op even with a null
+    // config, so this test raises one alert. Drained through the product's
+    // own path (hygiene axis 4, QA-A-138).
+    xpe_clear_alerts();
 }

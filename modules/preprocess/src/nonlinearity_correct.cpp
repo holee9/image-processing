@@ -91,7 +91,35 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
         return XPE_ERR_CALIB_NOT_LOADED;
     }
 
-    if (!configJsonOrNull) return XPE_OK;
+    // QA-A-140 (#196): THIS IS WHERE `if (!configJsonOrNull) return XPE_OK;`
+    // USED TO BE, and removing it is the whole change.
+    //
+    // It arrived with the original implementation (ee2c607) carrying the
+    // comment `// REQ-P1A-013: no-op when no config supplied`, and it was
+    // right for what followed it THEN: the next statement parsed "mode" out of
+    // the config, so with no config there was nothing to parse. QA-A-127
+    // replaced that parse with the no-op REPORT below and left the guard
+    // standing, which is how a sound guard came to block something it was
+    // never written for.
+    //
+    // Its stated reason is void twice over:
+    //
+    //  - the requirement is gone. Old REQ-P1A-013 (ee2c607 spec.md:88) read
+    //    "WHERE the detector panel profile indicates linear response ... the
+    //    system SHALL bypass the correction and return XPE_OK without
+    //    modifying the image". The bc22093 renumbering reassigned that number:
+    //    REQ-P1A-013 in the CURRENT set is defect correction (the Hampel
+    //    recipe, acceptance.md:273, BP-04 TPR/FPR). Same shape as 014 and 015
+    //    above -- one renumbering, several orphaned citations.
+    //  - even as written it never mandated SILENCE. It mandated bypass without
+    //    modification, returning XPE_OK -- both of which still hold below: the
+    //    alert changes no pixel and the return stays XPE_OK. And it keyed on
+    //    the PANEL PROFILE, which is handled at `panel_linear` above, not on
+    //    whether a config string was supplied at all.
+    //
+    // The comment on the report below is what settles it: silence cannot be
+    // told apart from a correction that ran. That is true whether or not a
+    // config was passed -- nullptr does not make a no-op less silent.
 
     // No LUT, and the panel was not declared non-linear: nothing is corrected.
     //
@@ -135,6 +163,25 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     // that ran: the frame leaves this stage byte-identical either way, and
     // XPE_FLAG_NONLINEARITY_CORRECTED is absent in both cases too. Turning the
     // error into a silent pass would drop the one signal the caller had.
+    //
+    // ONCE PER CONDITION, NOT ONCE PER FRAME. The message carries no per-frame
+    // data -- it is byte-identical on every call -- and the alert queue holds
+    // 64 entries with FIFO eviction (xpe_common.cpp:59), so a stream of frames
+    // would push every other alert out, the #194 clamp count included. The
+    // latch is re-armed whenever a LUT is loaded or unloaded, so a no-op after
+    // the situation changed is reported again.
+    //
+    // Contrast gain_correct.cpp:374, which alerts per frame BECAUSE its
+    // message carries that frame's clamped-pixel count. Frequency follows what
+    // the message says, not a house style.
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (g_calib.nonlin_noop_reported) {
+            (void)img;
+            return XPE_OK;
+        }
+        g_calib.nonlin_noop_reported = true;
+    }
     xpe_alert_push("nonlinearity correction did nothing: no LUT is loaded and "
                    "panel.linear is not \"false\", so the frame passed through "
                    "unchanged; load a LUT with xpe_calib_load_nonlin_lut() if "

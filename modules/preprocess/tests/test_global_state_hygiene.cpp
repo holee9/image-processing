@@ -56,6 +56,11 @@
  *      another's undelivered alerts. Draining it is the consumer's job,
  *      through the public xpe_clear_alerts() -- so a test CAN restore this
  *      axis, which is what makes it fair to fail one that does not.
+ *      QA-A-139 widened this axis from the COUNT to the queue's identity: a
+ *      test that drains one alert and pushes another kept the size unchanged
+ *      and passed, while handing its successor a queue it never raised. Both
+ *      are reported, because "2 left behind" and "2 replaced" send the reader
+ *      to different lines. Measured cost of the identity read: see below.
  *
  * All four have side-effect-free getters. The calibration MAPS are not checked
  * here: there is no read-only query for them, and the only way to clear them is
@@ -86,6 +91,7 @@ struct Baseline {
     XpeCalibQualityMeta meta{};
     bool initialized = false;
     int32_t alerts = 0;
+    uint64_t alert_fp = 0;
     bool captured = false;
 };
 
@@ -95,6 +101,48 @@ Baseline g_baseline;
 std::vector<std::string> g_offenders;
 
 
+
+/**
+ * QA-A-139: the queue's IDENTITY, not just its size.
+ *
+ * The count alone admits a false negative: a test that drains one alert and
+ * pushes another leaves the size unchanged while the queue's contents are
+ * entirely different, and the next test's negative assertion then reads
+ * someone else's alert. The count is kept as a separate field because the two
+ * numbers answer different questions -- "how many were left" is what an
+ * offender needs to hear, and a hash cannot say it.
+ *
+ * Read through the public getter, which api-spec.md 5.17 defines as leaving
+ * the queue unmodified -- there is no test-only accessor here, and none was
+ * added. Severity joins the message because two alerts can share text and
+ * differ in how loudly they are reported.
+ *
+ * FNV-1a over (message bytes, severity) in queue order. Order matters: a queue
+ * holding the same two alerts in the other order is a different queue, and
+ * reordering is itself something a test should not do to its successor.
+ */
+uint64_t AlertFingerprint() {
+    uint64_t h = 1469598103934665603ull;  // FNV-1a 64 offset basis
+    const int32_t n = xpe_get_pending_alert_count();
+    char msg[512];
+    for (int32_t i = 0; i < n; ++i) {
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) {
+            // A message longer than the buffer, or a racing drain. Fold the
+            // index in so the difference is still visible rather than silently
+            // hashing to the same value as a shorter queue.
+            h = (h ^ static_cast<uint64_t>(0xFFu + i)) * 1099511628211ull;
+            continue;
+        }
+        for (const char* c = msg; *c; ++c) {
+            h = (h ^ static_cast<uint64_t>(static_cast<unsigned char>(*c))) *
+                1099511628211ull;
+        }
+        h = (h ^ static_cast<uint64_t>(static_cast<uint32_t>(sev))) *
+            1099511628211ull;
+    }
+    return h;
+}
 
 bool SameMeta(const XpeCalibQualityMeta& a, const XpeCalibQualityMeta& b) {
     return std::memcmp(&a, &b, sizeof(XpeCalibQualityMeta)) == 0;
@@ -115,6 +163,7 @@ public:
         (void)xpe_calib_get_quality_meta(&g_baseline.meta);
         g_baseline.initialized = xpe_preprocess_is_initialized();
         g_baseline.alerts = xpe_get_pending_alert_count();
+        g_baseline.alert_fp = AlertFingerprint();
         g_baseline.captured = true;
     }
 
@@ -146,10 +195,17 @@ public:
         // contract. Reported with both numbers because "3 left behind" sends the
         // reader to a different line than "the queue was drained under you".
         const int32_t alerts_now = xpe_get_pending_alert_count();
+        const uint64_t fp_now = AlertFingerprint();
         if (alerts_now != g_baseline.alerts) {
             why += " pending alerts " + std::to_string(g_baseline.alerts) +
                    " -> " + std::to_string(alerts_now) +
                    " (drain with xpe_clear_alerts());";
+        } else if (fp_now != g_baseline.alert_fp) {
+            // QA-A-139: same size, different queue. The count cannot see this,
+            // and it is the shape that reaches the NEXT test's assertion.
+            why += " pending alert queue replaced (" +
+                   std::to_string(alerts_now) +
+                   " alerts, different contents; drain with xpe_clear_alerts());";
         }
         if (!why.empty()) {
             g_offenders.push_back(full + " --" + why);
