@@ -49,14 +49,15 @@ public sealed class AppSettings : ObservableObject
     private double _comparisonPanY;
     private double _comparisonSwipePosition = 0.5;
     private double _comparisonOverlayOpacity = 0.5;
-    private string _laneAAlgorithm = "Production v1.2";
-    private string _laneBAlgorithm = "Candidate v1.4";
+    private string _laneAAlgorithm = "Grid suppression";
+    private string _laneBAlgorithm = "Grid suppression";
     private bool _focusMode;
     private bool _leftPanelOpen = true;
     private bool _rightPanelOpen = true;
     private string _analysisTab = "metrics";
     private double _laneBSharpeningSigma = 0.85;
     private double _laneBDenoiseStrength = 0.42;
+    private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
     private bool _preprocessInChain;
     private float _exposureKvp = 70.0f;
@@ -390,14 +391,14 @@ public sealed class AppSettings : ObservableObject
     public string LaneAAlgorithm
     {
         get => _laneAAlgorithm;
-        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Production v1.2" : value);
+        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
     }
 
     [JsonPropertyName("laneBAlgorithm")]
     public string LaneBAlgorithm
     {
         get => _laneBAlgorithm;
-        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Candidate v1.4" : value);
+        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
     }
 
     [JsonPropertyName("focusMode")]
@@ -579,6 +580,20 @@ public sealed class AppSettings : ObservableObject
     {
         get => _gsvgDenoiseK;
         set => SetProperty(ref _gsvgDenoiseK, value is >= 0.0 and <= 10.0 ? value : 2.0);
+    }
+
+    /// <summary>
+    /// The Candidate lane's VOI window width, or 0 to follow the Reference (#173, GUI-C-113).
+    ///
+    /// The workbench compares SETTINGS over one original, so exactly one value has to be able to differ
+    /// between the lanes for the comparison to mean anything. This is that value. Zero means "no
+    /// override", which is how both lanes are made to draw identically — the control case of L-01.
+    /// </summary>
+    [JsonPropertyName("laneBVoiWindowWidth")]
+    public float LaneBVoiWindowWidth
+    {
+        get => _laneBVoiWindowWidth;
+        set => SetProperty(ref _laneBVoiWindowWidth, value >= 0.0f ? value : 0.0f);
     }
 
     [JsonPropertyName("lastRunSetId")]

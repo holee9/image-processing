@@ -665,7 +665,9 @@ public class ApplicationFixture : IDisposable
                 continue;
             }
 
-            // Compile inputs only. Two reasons, both measured:
+            // Compile inputs only. The question to ask before adding an extension here is not "is this
+            // a source file?" but "does the program write into the directory being watched?" — that one
+            // catches more, and it would have caught this. Two reasons, both measured:
             //
             // The app WRITES into its own project directory — automation-report.json lands beside the
             // sources when the hidden-window automation step runs, which in CI happens AFTER the build.

@@ -120,6 +120,123 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
+    /// <summary>
+    /// V-06 (#173, GUI-C-112): the image is drawn at the size that was ASKED for.
+    ///
+    /// <para>Every other case here compares a key with ITSELF — V-02 checks that zooming raises the
+    /// scale and that Reset brings it back to whatever it was, V-03/V-04 that the offset returns to
+    /// where it started. A renderer that computed the scale wrongly but consistently passes all of
+    /// them, and nothing on this suite can see the difference: there is no pixel capture (GUI-C-72,
+    /// GUI-C-78), so "the image is drawn too small" has no observer.</para>
+    ///
+    /// <para>This one compares two keys that are produced by different code. <c>zoom</c> is the value
+    /// that was requested (the dependency property). <c>scale</c> is measured from the rectangle the
+    /// frame actually drew into, divided by the source width. The control's own rule is that an
+    /// explicit zoom IS the effective scale (GetEffectiveScale returns ZoomScale unchanged when it is
+    /// above zero), so the two must agree — and they disagree exactly when the frame drew at a size
+    /// other than the one asked for.</para>
+    ///
+    /// <para>What this does NOT cover: an error inside GetEffectiveScale itself. Change that method and
+    /// the requested value and the drawn rectangle move together, so this case stays green. The two keys
+    /// are independent because of how the code is arranged today — the request is a dependency property
+    /// and the measurement comes off the drawn rectangle — not because anything enforces it.</para>
+    ///
+    /// <para>Only the explicit-zoom case is checked. At fit, the expected scale depends on the
+    /// control's layout size in device-independent units, which this harness cannot read: comparing
+    /// against the element's screen rectangle would make the case a DPI measurement rather than a
+    /// rendering one.</para>
+    /// </summary>
+    [SkippableFact]
+    public void V06_AnExplicitZoom_IsTheScaleThatWasDrawn()
+    {
+        var window = Ready();
+        try
+        {
+            ResetView(window);
+            Assert.True(WaitFor(window, s => s.Zoom == "fit") is not null, $"The view did not start at fit: {Help(window)}");
+
+            ScrollViewport(window, 3);
+            var zoomed = WaitFor(window, s => s.Zoom != "fit");
+            Assert.True(zoomed is not null, $"The wheel did not move the view off fit: {Help(window)}");
+
+            var requested = double.Parse(zoomed!.Zoom, CultureInfo.InvariantCulture);
+            output.WriteLine($"V06 requested zoom={requested:0.####}; drawn scale={zoomed.Scale:0.####}; raw='{zoomed.Raw}'");
+
+            Assert.True(
+                Math.Abs(zoomed.Scale - requested) < 0.001,
+                $"The view was asked to draw at {requested:0.####} and the frame drew at {zoomed.Scale:0.####} " +
+                $"— the image on screen is {(zoomed.Scale < requested ? "smaller" : "larger")} than requested " +
+                $"by a factor of {zoomed.Scale / requested:0.###}. {Help(window)}");
+        }
+        finally
+        {
+            ResetView(window);
+        }
+    }
+
+    /// <summary>
+    /// V-07 (#173, GUI-C-116): the image sits where the pan asked it to sit.
+    ///
+    /// <para>The last of the three self-comparisons GUI-C-112 found. V-03 and V-04 check that a pan
+    /// moves the offset and that Reset brings it back to zero — both true of a renderer that places the
+    /// image at half the requested distance, or twice it, as long as it does so consistently.</para>
+    ///
+    /// <para>The independent contrast exists here, so this case uses it rather than inventing one. The
+    /// HUD prints the pan from the dependency property directly (<c>pan {PanX:0},{PanY:0}</c>), while
+    /// <c>offset=</c> is derived from the rectangle the frame actually drew into
+    /// (<c>imageRect.X + imageRect.Width / 2 - ActualWidth / 2</c>). Two expressions, one frame: they
+    /// agree while the placement is right and diverge when the rectangle stops following the request.</para>
+    ///
+    /// <para><b>The same limitation as V-06.</b> Both readings ultimately start from PanX inside one
+    /// render pass, so a change to the dependency property itself moves them together and this case
+    /// stays green. They are independent because of how the code is arranged today — one reads the
+    /// property, the other measures the rectangle — not because anything enforces it.</para>
+    /// </summary>
+    [SkippableFact]
+    public void V07_APan_PutsTheImageWhereItWasAsked()
+    {
+        var window = Ready();
+        try
+        {
+            ResetView(window);
+            Assert.True(WaitFor(window, s => Math.Abs(s.OffsetX) < 1 && Math.Abs(s.OffsetY) < 1) is not null,
+                $"The view did not start centred: {Help(window)}");
+
+            var r = ViewportElement(window).BoundingRectangle;
+            var c = new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2));
+            Drag(c, new System.Drawing.Point(c.X + 90, c.Y + 70), MouseButton.Right);
+
+            var moved = WaitFor(window, s => Math.Abs(s.OffsetX) > 20);
+            Assert.True(moved is not null, $"The right-drag did not move the drawn image: {Help(window)}");
+
+            var (requestedX, requestedY) = HudPan(window);
+            output.WriteLine($"V07 requested pan={requestedX:0},{requestedY:0}; drawn offset={moved!.OffsetX:0.#},{moved.OffsetY:0.#}");
+
+            Assert.True(
+                Math.Abs(moved.OffsetX - requestedX) <= 1.0 && Math.Abs(moved.OffsetY - requestedY) <= 1.0,
+                $"The view was asked to pan to {requestedX:0},{requestedY:0} and the frame drew the image at " +
+                $"{moved.OffsetX:0.#},{moved.OffsetY:0.#} — the image is not where the pan put it. {Help(window)}");
+        }
+        finally
+        {
+            ResetView(window);
+        }
+    }
+
+    /// <summary>
+    /// The pan the HUD printed, which comes from the dependency property rather than from the drawn
+    /// rectangle. Returns the pair as drawn text, so a HUD that stops being written fails the parse
+    /// rather than quietly reading as 0,0.
+    /// </summary>
+    private static (double X, double Y) HudPan(Window window)
+    {
+        var help = Help(window);
+        var m = Regex.Match(help, @"pan (?<x>-?[0-9.]+),(?<y>-?[0-9.]+)");
+        Assert.True(m.Success, $"The drawn HUD reported no pan: {help}");
+        return (double.Parse(m.Groups["x"].Value, CultureInfo.InvariantCulture),
+                double.Parse(m.Groups["y"].Value, CultureInfo.InvariantCulture));
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private void PanThenReset(bool horizontal)

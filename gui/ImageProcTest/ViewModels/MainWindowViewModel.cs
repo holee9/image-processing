@@ -60,8 +60,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// When a new algorithm is added to the project, add its name here and rebuild.
     /// There is no runtime discovery.
     /// </summary>
+    /// <summary>
+    /// The picker's options, taken from the presets themselves (#173, GUI-C-114) — a list written here
+    /// as well would be a second place for an option to exist, and the one the picker shows would not
+    /// have to be one the chain knows how to run.
+    /// </summary>
     public static readonly string[] AlgorithmOptions =
-        ["Baseline v1.0", "Production v1.2", "Candidate v1.4", "Candidate v1.5-rc"];
+        AlgorithmPreset.All.Select(p => p.Name).ToArray();
 
     public MainWindowViewModel(
         AppSettings settings,
@@ -190,6 +195,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RunPreprocessingCommand { get; }
 
     private ChainResult? _lastChain;
+    private float _renderedLaneBWidth;
+    private string _renderedLaneBAlgorithm = string.Empty;
     private string _pipelineTimings = string.Empty;
     private string _chainStatus = "chain: not run";
 
@@ -624,16 +631,34 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     // Slice 2 — settings-backed pass-through properties
+    /// <summary>
+    /// The Reference lane's algorithm. Choosing it writes that preset into the MAIN chain settings,
+    /// because the Reference lane IS the main render (GUI-C-113) — if the two could differ, the lane
+    /// would be showing something the rest of the window is not.
+    /// </summary>
     public string LaneAAlgorithm
     {
         get => Settings.LaneAAlgorithm;
-        set { if (Settings.LaneAAlgorithm != value) { Settings.LaneAAlgorithm = value; OnPropertyChanged(); } }
+        set
+        {
+            if (Settings.LaneAAlgorithm == value) return;
+            Settings.LaneAAlgorithm = value;
+            AlgorithmPreset.For(value).ApplyTo(Settings);
+            OnPropertyChanged();
+        }
     }
 
+    /// <summary>The Candidate lane's algorithm. Read only by the Candidate's own render.</summary>
     public string LaneBAlgorithm
     {
         get => Settings.LaneBAlgorithm;
-        set { if (Settings.LaneBAlgorithm != value) { Settings.LaneBAlgorithm = value; OnPropertyChanged(); } }
+        set
+        {
+            if (Settings.LaneBAlgorithm == value) return;
+            Settings.LaneBAlgorithm = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
     }
 
     public bool FocusMode
@@ -1060,6 +1085,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            RenderLanes(sourceFrame, inputs, ProcessedImage);
             PipelineTimings = string.Join("; ", new[]
             {
                 $"work={workMs:0} ms",
@@ -1466,6 +1492,13 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         RefreshParametersStale();   // #171 ①
 
+        // #173 (GUI-C-113): only the Candidate can go stale — the Reference never reads this value,
+        // so an edit to it cannot make the Reference wrong.
+        if (e.PropertyName is nameof(AppSettings.LaneBVoiWindowWidth) or nameof(AppSettings.LaneBAlgorithm))
+        {
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
+
         if (e.PropertyName is nameof(AppSettings.BackendMode))
         {
             OnPropertyChanged(nameof(RuntimeVersionSummary));   // #175: the "requested" half can change alone
@@ -1668,6 +1701,79 @@ public sealed class MainWindowViewModel : ObservableObject
             Log(StatusText);
         }
     }
+
+    /// <summary>
+    /// Draws both workbench lanes from ONE original (#173, GUI-C-113).
+    ///
+    /// <para>The workbench compares settings, not images, so the frame handed to each lane is the same
+    /// object and only the settings differ: Lane A (Reference) runs the snapshot as it stands, Lane B
+    /// (Candidate) runs a COPY of it with the override applied. The copy matters — mutating the shared
+    /// snapshot would make the lanes one pipeline wearing two labels, which is the failure L-02 exists
+    /// to catch.</para>
+    ///
+    /// <para>An override of 0 means "follow the Reference", and then both lanes run identical settings
+    /// and must draw identical pixels. That is the control case: if they differ there, the lanes are
+    /// not drawing the same original.</para>
+    /// </summary>
+    private void RenderLanes(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference)
+    {
+        try
+        {
+            // The Reference IS what the main viewport just drew — same original, same settings. Running
+            // the pipeline again for it would be a second computation of a result already in hand, and
+            // it would not be the same claim either: two runs of one setting can only agree.
+            LaneAImage = reference;
+
+            // With no override the Candidate is the Reference, so nothing is run for it either. That
+            // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
+            // call broke W-23 and W-26, which count the calls an Apply makes through the fault-injection
+            // seam. The cost is paid only when the user actually asks the two lanes to differ.
+            var differs = inputs.LaneBVoiWindowWidth > 0.0f
+                || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal);
+
+            if (differs)
+            {
+                var candidate = inputs.Snapshot();
+                AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
+                if (inputs.LaneBVoiWindowWidth > 0.0f)
+                {
+                    candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
+                }
+
+                LaneBImage = RenderLane(sourceFrame, candidate);
+            }
+            else
+            {
+                LaneBImage = reference;
+            }
+
+            _renderedLaneBWidth = inputs.LaneBVoiWindowWidth;
+            _renderedLaneBAlgorithm = inputs.LaneBAlgorithm;
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
+        catch (Exception ex)
+        {
+            Log($"Lane rendering failed: {ex.Message}");
+            LaneAImage = null;
+            LaneBImage = null;
+        }
+    }
+
+    private System.Windows.Media.ImageSource? RenderLane(LoadedImageFrame sourceFrame, AppSettings settings)
+    {
+        var chain = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
+        var frame = _backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        return frame.ProcessedPreview ?? frame.Preview;
+    }
+
+    /// <summary>
+    /// Whether the Candidate lane on screen was drawn with the override currently in the settings
+    /// (#173). Only the Candidate can be stale: the Reference does not read the override at all, so an
+    /// edit to it cannot make the Reference wrong.
+    /// </summary>
+    public bool LaneBIsStale =>
+        Math.Abs(Settings.LaneBVoiWindowWidth - _renderedLaneBWidth) > 0.0001f
+        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal);
 
     /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
     public object DescribeChain() => new
