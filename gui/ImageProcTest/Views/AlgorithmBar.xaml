@@ -22,13 +22,10 @@
             <ComboBox AutomationProperties.AutomationId="LaneAAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneAAlgorithm, Mode=TwoWay}"
-                      IsEnabled="False" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." ToolTipService.ShowOnDisabled="True"
+                      ToolTip="이 lane 이 실행할 처리 구성 (#173). 기준 lane 의 선택은 주 파이프라인 설정이 됩니다."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
-            <TextBlock AutomationProperties.AutomationId="LaneAAlgorithmUnappliedMark" Text="미적용"
-                       Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
-                       Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." />
             <!-- #173: the Reference has no stale mark of its own because it cannot go stale — it does
                  not read the Candidate override. The element exists only while that is false. -->
         </StackPanel>
@@ -44,13 +41,10 @@
             <ComboBox AutomationProperties.AutomationId="LaneBAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneBAlgorithm, Mode=TwoWay}"
-                      IsEnabled="False" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." ToolTipService.ShowOnDisabled="True"
+                      ToolTip="이 lane 이 실행할 처리 구성 (#173)."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
-            <TextBlock AutomationProperties.AutomationId="LaneBAlgorithmUnappliedMark" Text="미적용"
-                       Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
-                       Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 선택은 설정 파일에 저장되고 화면 라벨에만 쓰이며, 어떤 백엔드 처리도 바꾸지 않습니다." />
 
             <!-- #173 (GUI-C-113): the one setting that may differ between the lanes. 0 = follow the
                  Reference, which is how both lanes are made to draw identically. -->
