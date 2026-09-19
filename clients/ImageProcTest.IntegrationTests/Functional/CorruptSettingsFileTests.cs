@@ -81,7 +81,7 @@ public sealed class CorruptSettingsFileTests(ITestOutputHelper output)
         File.WriteAllText(path, Good);
         try
         {
-            var loaded = new AppSettingsService(path).Load();
+            var loaded = new AppSettingsService(path).Load().Settings;
             output.WriteLine($"control: center={loaded.VoiWindowCenter} algorithm='{loaded.LaneBAlgorithm}' zoom={loaded.ComparisonZoomScale}");
             Assert.Equal(1234, loaded.VoiWindowCenter);
             Assert.Equal("Virtual grid", loaded.LaneBAlgorithm);
@@ -104,7 +104,8 @@ public sealed class CorruptSettingsFileTests(ITestOutputHelper output)
             var service = new AppSettingsService(path);
             var defaults = new AppSettings();
 
-            var loaded = service.Load();
+            var result = service.Load();
+            var loaded = result.Settings;
 
             // (a) what survived
             var survivedCenter = loaded.VoiWindowCenter == 1234;
@@ -116,9 +117,9 @@ public sealed class CorruptSettingsFileTests(ITestOutputHelper output)
             output.WriteLine($"[{kind}] survived: center={survivedCenter} algorithm={survivedAlgorithm}; everything at defaults={atDefaults}");
             output.WriteLine($"[{kind}] loaded: center={loaded.VoiWindowCenter} algorithm='{loaded.LaneBAlgorithm}' zoom={loaded.ComparisonZoomScale}");
 
-            // (b) what the caller can tell — Load returns AppSettings and nothing else.
-            output.WriteLine($"[{kind}] Load returns: {nameof(AppSettings)} only — no status, no exception, no flag. " +
-                             "A corrupt file and an absent file produce the same object.");
+            // (b) what the caller can tell — GUI-C-119 gave the failure a place to live.
+            output.WriteLine($"[{kind}] Load reports: failedToRead={result.FailedToRead}; preserved='{result.PreservedOriginalPath}'");
+            Assert.True(result.FailedToRead, "The load did not report that the file was unreadable.");
 
             // (c) what the next Save does to the original
             service.Save(loaded);

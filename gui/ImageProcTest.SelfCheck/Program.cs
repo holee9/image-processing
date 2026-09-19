@@ -42,7 +42,7 @@ var settingsService = new AppSettingsService(settingsPath);
 var fixtureSettings = GuiFixtureManifestService.CreateFixtureSettings(manifest, fixtureRoot, rawDirectory);
 
 settingsService.Save(fixtureSettings);
-var loadedSettings = settingsService.Load();
+var loadedSettings = settingsService.Load().Settings;
 
 Assert(loadedSettings.BackendMode == manifest.BackendMode, "BackendMode should persist.");
 Assert(loadedSettings.RawWidth == manifest.RawSample.Width, "RawWidth should persist.");

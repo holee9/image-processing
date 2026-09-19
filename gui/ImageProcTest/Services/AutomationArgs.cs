@@ -23,7 +23,8 @@ public sealed record AutomationArgs(
     int? RawWidth,
     int? RawHeight,
     string? Error,
-    int? DisplayPipelineFailAfter = null)
+    int? DisplayPipelineFailAfter = null,
+    string? SettingsPath = null)
 {
     /// <summary>
     /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
@@ -52,6 +53,7 @@ public sealed record AutomationArgs(
         ArgumentNullException.ThrowIfNull(args);
 
         string? rawPath = null, reportPath = null, backendMode = null, calibrationDirectory = null, error = null;
+        string? settingsPath = null;
         int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
 
         for (var i = 0; i < args.Length; i++)
@@ -91,6 +93,13 @@ public sealed record AutomationArgs(
                 }
 
                 backendMode = canonical;
+            }
+            else if (Is(switchName, "--automation-settings"))
+            {
+                // #173 (GUI-C-119): names the settings file this run reads and writes. It exists so an
+                // E2E case can put a corrupt file in front of a real launch — the unreadable-file path
+                // is otherwise reachable only by reading the code.
+                settingsPath = Path.GetFullPath(value);
             }
             else if (Is(switchName, "--automation-calib"))
             {
@@ -146,7 +155,7 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter)
+                displayPipelineFailAfter, settingsPath)
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);

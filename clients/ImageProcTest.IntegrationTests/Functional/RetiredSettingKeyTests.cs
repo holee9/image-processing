@@ -36,7 +36,7 @@ public sealed class RetiredSettingKeyTests
 
         try
         {
-            var loaded = new AppSettingsService(path).Load();
+            var loaded = new AppSettingsService(path).Load().Settings;
 
             // The control: this file WAS read, rather than thrown away and replaced by defaults.
             Assert.Equal(1234, loaded.VoiWindowCenter);

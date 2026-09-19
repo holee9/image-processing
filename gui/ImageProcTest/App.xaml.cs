@@ -32,6 +32,9 @@ public partial class App : System.Windows.Application
     /// <summary>#171 (GUI-C-79): armed only by <c>--automation-fault</c>; null means no fault injection.</summary>
     public static int? AutomationDisplayPipelineFailAfter { get; private set; }
 
+    /// <summary>#173 (GUI-C-119): the settings file this run reads and writes, when one was named.</summary>
+    public static string? AutomationSettingsPath { get; private set; }
+
     public static int? AutomationRawWidth { get; private set; }
 
     public static int? AutomationRawHeight { get; private set; }
@@ -54,6 +57,7 @@ public partial class App : System.Windows.Application
         AutomationReportPath = parsed.ReportPath;
         AutomationBackendMode = parsed.BackendMode;
         AutomationCalibrationDirectory = parsed.CalibrationDirectory;
+        AutomationSettingsPath = parsed.SettingsPath;
         AutomationRawWidth = parsed.RawWidth;
         AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationRawHeight = parsed.RawHeight;

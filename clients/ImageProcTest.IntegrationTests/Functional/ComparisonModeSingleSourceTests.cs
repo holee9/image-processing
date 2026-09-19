@@ -160,7 +160,7 @@ public sealed class ComparisonModeSingleSourceTests
         {
             File.WriteAllText(path, """{"comparisonMode": "NotAMode"}""");
 
-            var loaded = new AppSettingsService(path).Load();
+            var loaded = new AppSettingsService(path).Load().Settings;
 
             Assert.Equal(ComparisonModes.Default, loaded.ComparisonMode);
             Assert.Equal("NotAMode", loaded.RejectedComparisonMode);
@@ -186,7 +186,7 @@ public sealed class ComparisonModeSingleSourceTests
         {
             File.WriteAllText(path, """{"comparisonMode": "ProcessedOnly"}""");
 
-            var loaded = new AppSettingsService(path).Load();
+            var loaded = new AppSettingsService(path).Load().Settings;
 
             Assert.Equal(ComparisonModes.ProcessedOnly, loaded.ComparisonMode);
             Assert.Null(loaded.RejectedComparisonMode);
