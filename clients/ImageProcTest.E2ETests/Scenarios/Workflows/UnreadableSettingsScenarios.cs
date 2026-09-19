@@ -29,7 +29,15 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
     { "voiWindowCenter": 1234 }
     """;
 
-    /// <summary>Truncated mid-key — one of the three shapes measured in GUI-C-118.</summary>
+    /// <summary>
+    /// Truncated mid-key — one of the three shapes measured in GUI-C-118.
+    ///
+    /// <para><b>Why only one shape here.</b> GUI-C-118 measured all three (truncated, wrong type,
+    /// wrong encoding) and found they converge on the same place: the single catch in
+    /// <c>AppSettingsService.Load</c>, with identical results on every axis. The unit-level cases
+    /// still cover all three; this launch exercises the path they share, and a second launch would
+    /// re-measure the same branch at the cost of a second process.</para>
+    /// </summary>
     private const string CorruptSettings = """
     { "voiWindowCenter": 1234, "laneBAlgorithm":
     """;
