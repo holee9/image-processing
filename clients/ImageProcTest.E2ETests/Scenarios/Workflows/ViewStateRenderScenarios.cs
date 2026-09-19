@@ -174,6 +174,69 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
+    /// <summary>
+    /// V-07 (#173, GUI-C-116): the image sits where the pan asked it to sit.
+    ///
+    /// <para>The last of the three self-comparisons GUI-C-112 found. V-03 and V-04 check that a pan
+    /// moves the offset and that Reset brings it back to zero — both true of a renderer that places the
+    /// image at half the requested distance, or twice it, as long as it does so consistently.</para>
+    ///
+    /// <para>The independent contrast exists here, so this case uses it rather than inventing one. The
+    /// HUD prints the pan from the dependency property directly (<c>pan {PanX:0},{PanY:0}</c>), while
+    /// <c>offset=</c> is derived from the rectangle the frame actually drew into
+    /// (<c>imageRect.X + imageRect.Width / 2 - ActualWidth / 2</c>). Two expressions, one frame: they
+    /// agree while the placement is right and diverge when the rectangle stops following the request.</para>
+    ///
+    /// <para><b>The same limitation as V-06.</b> Both readings ultimately start from PanX inside one
+    /// render pass, so a change to the dependency property itself moves them together and this case
+    /// stays green. They are independent because of how the code is arranged today — one reads the
+    /// property, the other measures the rectangle — not because anything enforces it.</para>
+    /// </summary>
+    [SkippableFact]
+    public void V07_APan_PutsTheImageWhereItWasAsked()
+    {
+        var window = Ready();
+        try
+        {
+            ResetView(window);
+            Assert.True(WaitFor(window, s => Math.Abs(s.OffsetX) < 1 && Math.Abs(s.OffsetY) < 1) is not null,
+                $"The view did not start centred: {Help(window)}");
+
+            var r = ViewportElement(window).BoundingRectangle;
+            var c = new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2));
+            Drag(c, new System.Drawing.Point(c.X + 90, c.Y + 70), MouseButton.Right);
+
+            var moved = WaitFor(window, s => Math.Abs(s.OffsetX) > 20);
+            Assert.True(moved is not null, $"The right-drag did not move the drawn image: {Help(window)}");
+
+            var (requestedX, requestedY) = HudPan(window);
+            output.WriteLine($"V07 requested pan={requestedX:0},{requestedY:0}; drawn offset={moved!.OffsetX:0.#},{moved.OffsetY:0.#}");
+
+            Assert.True(
+                Math.Abs(moved.OffsetX - requestedX) <= 1.0 && Math.Abs(moved.OffsetY - requestedY) <= 1.0,
+                $"The view was asked to pan to {requestedX:0},{requestedY:0} and the frame drew the image at " +
+                $"{moved.OffsetX:0.#},{moved.OffsetY:0.#} — the image is not where the pan put it. {Help(window)}");
+        }
+        finally
+        {
+            ResetView(window);
+        }
+    }
+
+    /// <summary>
+    /// The pan the HUD printed, which comes from the dependency property rather than from the drawn
+    /// rectangle. Returns the pair as drawn text, so a HUD that stops being written fails the parse
+    /// rather than quietly reading as 0,0.
+    /// </summary>
+    private static (double X, double Y) HudPan(Window window)
+    {
+        var help = Help(window);
+        var m = Regex.Match(help, @"pan (?<x>-?[0-9.]+),(?<y>-?[0-9.]+)");
+        Assert.True(m.Success, $"The drawn HUD reported no pan: {help}");
+        return (double.Parse(m.Groups["x"].Value, CultureInfo.InvariantCulture),
+                double.Parse(m.Groups["y"].Value, CultureInfo.InvariantCulture));
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private void PanThenReset(bool horizontal)
