@@ -31,6 +31,8 @@
 #include <cstring>
 #include <cmath>
 #include <vector>
+#include <algorithm>
+#include <cstdint>
 
 namespace {
 
@@ -106,4 +108,106 @@ TEST(ExposureIndexContractTest, KnownDivergence_DiIsIndependentOfBodyPart) {
     // And it equals the body-part-free value, which is what the cancellation
     // leaves behind: DI = 10 * log10(mean / S0_REFERENCE), S0_REFERENCE = 1000.
     EXPECT_NEAR(10.0f * std::log10(1234.0f / 1000.0f), chest.di, 1e-4f);
+}
+
+// ===========================================================================
+// #154 (QA-B-147): the sweep, the consequence, and the control.
+//
+// QA-B-56 measured two body parts. This widens it to EVERY entry of the
+// shipped table plus the two default paths, compares DI BIT-FOR-BIT rather
+// than with a float tolerance, and then measures the consequence the issue
+// names: REQ-ENH-026's |DI| > 3 alert.
+//
+// Bit-for-bit matters here. The cancellation is exact in algebra, but the code
+// computes ei = eit * (mean/S0) in float and then divides by eit again, so a
+// rounding residue COULD survive and a tolerance-based comparison would hide
+// whether it does. What survives is reported below, not assumed.
+// ===========================================================================
+namespace {
+
+uint32_t Bits(float v) {
+    uint32_t u;
+    std::memcpy(&u, &v, sizeof(u));
+    return u;
+}
+
+}  // namespace
+
+TEST(ExposureIndexContractTest, KnownDivergence_DiIsBitIdenticalAcrossEveryBodyPart_154) {
+    // Every entry of the shipped table, plus both routes to the default.
+    const char* parts[] = {
+        "CHEST", "HAND", "FOOT", "ABDOMEN", "PELVIS", "SPINE", "SKULL",
+        "NOT_A_BODY_PART",   // unknown -> default 200
+        "",                  // empty   -> default 200
+    };
+
+    const float kFill = 1234.0f;
+    const EiResult ref = Measure(parts[0], kFill);
+    ASSERT_EQ(XPE_OK, ref.rc);
+
+    GTEST_LOG_(INFO) << "#154 body-part sweep, one axis, same 64x64 image (fill "
+                     << kFill << "):";
+    float eiLo = ref.ei, eiHi = ref.ei;
+    int diffBits = 0;
+    for (const char* p : parts) {
+        const EiResult r = Measure(p, kFill);
+        ASSERT_EQ(XPE_OK, r.rc) << p;
+        eiLo = std::min(eiLo, r.ei);
+        eiHi = std::max(eiHi, r.ei);
+        const bool same = (Bits(r.di) == Bits(ref.di));
+        if (!same) ++diffBits;
+        GTEST_LOG_(INFO) << "  " << (p[0] ? p : "(empty)")
+                         << "  EI=" << r.ei << "  DI=" << r.di
+                         << "  DI bits " << (same ? "identical" : "DIFFER");
+        EXPECT_EQ(Bits(ref.di), Bits(r.di))
+            << p << ": DI now differs by body part -- the EIT cancellation has "
+                    "been fixed; say how, and retire this case";
+    }
+    GTEST_LOG_(INFO) << "  EI spans " << eiLo << ".." << eiHi << " (x"
+                     << (eiHi / eiLo) << "), DI differing entries: " << diffBits
+                     << " of " << (sizeof(parts) / sizeof(parts[0]));
+
+    // THE CONTROL. Without it "DI does not move" is an absence assertion with
+    // nothing showing the measurement can see anything at all. The axis the
+    // code DOES respond to is the exposure, so move that instead.
+    const EiResult brighter = Measure(parts[0], kFill * 2.0f);
+    ASSERT_EQ(XPE_OK, brighter.rc);
+    GTEST_LOG_(INFO) << "  control -- same body part, exposure x2: DI "
+                     << ref.di << " -> " << brighter.di;
+    EXPECT_NE(Bits(ref.di), Bits(brighter.di))
+        << "DI does not move when the EXPOSURE changes either -- then this "
+           "measurement is blind and proves nothing about the body part";
+}
+
+// The consequence the issue names: REQ-ENH-026's alert threshold inherits the
+// cancellation, so the same exposure alerts for every view or for none.
+//
+// The exposure below is chosen so that the answer WOULD differ if EIT reached
+// DI: at mean 3000, DI = 10*log10(3000/1000) = 4.77 for every part, but
+// against the targets themselves -- 10*log10(EI/EIT) with EI independent of
+// EIT -- HAND (EIT 100) and SKULL (EIT 320) would sit half a decade apart.
+TEST(ExposureIndexContractTest, KnownDivergence_TheAlertThresholdIsBodyPartIndependent_154) {
+    const char* parts[] = {"HAND", "CHEST", "SKULL"};   // EIT 100, 200, 320
+    const float kFill = 3000.0f;
+
+    int alerted = 0;
+    for (const char* p : parts) {
+        xpe_clear_alerts();
+        const EiResult r = Measure(p, kFill);
+        ASSERT_EQ(XPE_OK, r.rc) << p;
+        const int n = xpe_get_pending_alert_count();
+        if (n > 0) ++alerted;
+        GTEST_LOG_(INFO) << "  " << p << "  EI=" << r.ei << "  DI=" << r.di
+                         << "  alerts=" << n;
+    }
+    xpe_clear_alerts();
+
+    // All three or none -- never a split. A split is what a body-part-aware
+    // threshold would produce, and it is exactly what #154 says cannot happen.
+    EXPECT_TRUE(alerted == 0 || alerted == static_cast<int>(sizeof(parts) / sizeof(parts[0])))
+        << alerted << " of 3 body parts alerted -- the threshold has become "
+                      "body-part dependent; say how, and retire this case";
+    EXPECT_EQ(3, alerted)
+        << "at this exposure every view should alert, because DI = "
+           "10*log10(mean/S0) = 4.77 regardless of the view";
 }
