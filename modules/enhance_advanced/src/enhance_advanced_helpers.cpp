@@ -139,7 +139,18 @@ void warn_inert_keys_once(const char*     json,
                           const char*     fnLabel,
                           std::string&    lastWarned)
 {
-    if (json == nullptr || inertKeys == nullptr || inertCount == 0) return;
+    if (json == nullptr) return;   // defaults are an ordinary call, not a mistake
+
+    // #162 (QA-B-140): an EMPTY list is NOT "nothing to do". It is a call in
+    // which nothing is inert -- exactly the config that must CLEAR the memory,
+    // for the same reason the empty-`present` branch below clears it. Returning
+    // early here let a caller that gates the list by value (multiscale gates on
+    // num_levels) skip the reset entirely, so a caller that fixed its config and
+    // then re-broke it was never told again.
+    if (inertKeys == nullptr || inertCount == 0) {
+        lastWarned.clear();
+        return;
+    }
 
     auto cfg = nlohmann::json::parse(json, nullptr, false);
     if (cfg.is_discarded() || !cfg.is_object()) return;

@@ -99,9 +99,44 @@ std::vector<std::string> RunFrames(int n, const char* config) {
     return DrainAlerts();
 }
 
+// #162 (QA-B-140): clear the per-thread "already said this" memory both
+// warnings keep, through the PRODUCT'S OWN reset path -- a config carrying none
+// of the reportable keys clears the remembered set (`lastWarned.clear()` in
+// warn_unconsumed_keys_once and warn_inert_keys_once). No test-only hook is
+// added; the tests below still assert against shipped behaviour.
+//
+// WHY THIS IS NEEDED, and why it is NOT a product defect.
+//
+// The inert-key suppression keys on the SET OF INERT KEY NAMES, and that set is
+// {texture_gain} for BOTH spellings -- flat, and nested under "mfp". So the
+// SECOND inert-key test to run in a process saw nothing, and
+// InertKey_NestedTextureGainWarns failed in a single-process run of the whole
+// binary while `ctest` stayed green: gtest_discover_tests gives every test its
+// own process, so under ctest no test ever runs second.
+//
+// The suppression is doing exactly what QA-B-61 designed it to do -- one
+// sentence of advice, not one per frame -- and the two configs earn the SAME
+// sentence. What was wrong is the TEST's assumption that it runs first. The
+// semantics themselves are pinned by
+// InertKey_SameInertSetIsSaidOnceAcrossDifferentConfigs below, so a change to
+// them fails there rather than resurfacing as an order-dependent red somewhere
+// else.
+void ResetWarningMemory() {
+    std::vector<float> px = Frame();
+    XpeImageBuffer img = Wrap(px);
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_OK, xpe_multiscale_process(&img, &meta,
+                                             "{\"num_levels\": 4, \"edge_gain\": 1.5}"));
+    EXPECT_EQ(XPE_OK, xpe_fractional_process(&img, 1.0f, "{\"iterations\": 1}"));
+    xpe_clear_alerts();
+}
+
 class ConfigWarningOnce : public ::testing::Test {
 protected:
-    void SetUp() override    { ASSERT_EQ(XPE_OK, xpe_enhance_advanced_init(nullptr)); }
+    void SetUp() override    {
+        ASSERT_EQ(XPE_OK, xpe_enhance_advanced_init(nullptr));
+        ResetWarningMemory();
+    }
     void TearDown() override { xpe_clear_alerts(); xpe_enhance_advanced_shutdown(); }
 };
 
@@ -314,6 +349,36 @@ TEST_F(ConfigWarningOnce, InertKey_NestedTextureGainWarns) {
     const auto alerts = RunFrames(10, "{\"mfp\": {\"num_levels\": 2, \"texture_gain\": 2.0}}");
     for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
     EXPECT_EQ(1, CountMentioning(alerts, "texture_gain"));
+}
+
+// #162 (QA-B-140): the suppression itself, pinned -- and the control that makes
+// the QA-B-140 test fix honest. Without these four steps in one test, "the
+// nested case warns" could pass because it ran first rather than because the
+// nested spelling is seen.
+//
+// The set is {texture_gain} for both spellings, so the SECOND config is silent
+// however it is written; a config where the key is no longer inert restores the
+// voice. Both halves matter: silence alone would be indistinguishable from a
+// broken warning, and recovery alone would not show the suppression works.
+TEST_F(ConfigWarningOnce, InertKey_SameInertSetIsSaidOnceAcrossDifferentConfigs) {
+    EXPECT_EQ(1, CountMentioning(
+                     RunFrames(1, "{\"num_levels\": 3, \"texture_gain\": 2.0}"), "texture_gain"))
+        << "the first config did not warn -- nothing below means anything";
+
+    EXPECT_EQ(0, CountMentioning(
+                     RunFrames(1, "{\"mfp\": {\"num_levels\": 2, \"texture_gain\": 2.0}}"),
+                     "texture_gain"))
+        << "the same advice was repeated for a second config with the same "
+           "inert set -- per-frame spam is exactly what this suppresses";
+
+    // Not inert at 4 levels: the remembered set empties, which clears it.
+    EXPECT_EQ(0, CountMentioning(
+                     RunFrames(1, "{\"num_levels\": 4, \"texture_gain\": 2.0}"), "texture_gain"));
+
+    EXPECT_EQ(1, CountMentioning(
+                     RunFrames(1, "{\"num_levels\": 3, \"texture_gain\": 2.0}"), "texture_gain"))
+        << "the warning did not recover -- a caller that fixes the config and "
+           "then re-breaks it would never be told again";
 }
 
 // Silent: the same key at a level count that HAS a middle band.

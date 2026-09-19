@@ -106,11 +106,17 @@ XPE_API XpeErrorCode xpe_multiscale_process(
             static const xpe::enhance_advanced::config::InertKey kInert[] = {
                 { "texture_gain", "num_levels <= 3 leaves no middle detail band" },
             };
-            if (levels <= 3) {
-                xpe::enhance_advanced::config::warn_inert_keys_once(
-                    configJsonOrNull, kInert, sizeof(kInert) / sizeof(kInert[0]),
-                    /*nestedObject=*/"mfp", "xpe_multiscale_process", s_lastInert);
-            }
+            // #162 (QA-B-140): the call is UNCONDITIONAL and the LIST is what
+            // varies. Gating the call on `levels <= 3` meant a config where
+            // texture_gain is live never reached the helper, so the helper's
+            // "a correct config clears the memory" contract never ran -- and a
+            // caller who set 3 levels (warned), moved to 4, then went back to 3
+            // was never told again. The empty list is a real state, not a
+            // reason to skip.
+            const size_t inertCount = (levels <= 3) ? sizeof(kInert) / sizeof(kInert[0]) : 0u;
+            xpe::enhance_advanced::config::warn_inert_keys_once(
+                configJsonOrNull, kInert, inertCount,
+                /*nestedObject=*/"mfp", "xpe_multiscale_process", s_lastInert);
         }
 
         // Build MfpConfig from parsed values
