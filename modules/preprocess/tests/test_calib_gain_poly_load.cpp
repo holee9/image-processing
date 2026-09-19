@@ -201,12 +201,23 @@ TEST_F(GainPolyLoadTest, LoadingPolyClearsTheScalarGainMap) {
     out.dataSize = static_cast<uint32_t>(outData.size() * sizeof(float));
 
     XpeImageMetadata meta{};
-    // QA-A-107 (#187): the refusal is now XPE_ERR_UNSUPPORTED_FORMAT -- this
-    // function cannot apply a polynomial model. It used to be
-    // XPE_ERR_CALIB_NOT_LOADED, which described the module as holding no
-    // calibration at all, which is not the case after a successful POLY load.
-    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_gain_correct(&in, &out, &meta))
-        << "the scalar map from the earlier load must not survive a POLY load";
+    // WHAT THIS CASE CHECKS HAS NOT CHANGED -- how it checks it has, twice.
+    //
+    // The claim is: the scalar map from the earlier load must not survive a
+    // POLY load. QA-A-105 read that off XPE_ERR_CALIB_NOT_LOADED, QA-A-107 off
+    // XPE_ERR_UNSUPPORTED_FORMAT, and both worked only while nothing applied
+    // the polynomial. QA-A-121 applies it, so the call now succeeds and an
+    // error code can no longer carry the claim.
+    //
+    // Asserted against the OUTPUT instead, which is what the claim was always
+    // about: a surviving scalar map of 2.0 would give 1000 / 2.0 = 500. The
+    // polynomial's own value is not asserted here -- this fixture fits its
+    // curve over dose levels 1..4 and the frame sits at 1000, far outside that
+    // range, so the extrapolated number is not a meaningful expectation. That
+    // the answer is NOT the scalar map's is the whole of this test's claim.
+    EXPECT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
+    EXPECT_NE(500.0f, outData[0])
+        << "the scalar map from the earlier load survived a POLY load";
 }
 
 // The existing type-mismatch contract is unchanged: a POLY file is still not an

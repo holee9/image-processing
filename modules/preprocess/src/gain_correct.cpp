@@ -267,6 +267,8 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
 
     try {
         std::vector<float> gainmap;
+        std::vector<float> poly;          // QA-A-121: per-pixel coefficients
+        uint32_t poly_coeffs = 0;
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
             // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
@@ -283,17 +285,58 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             // No API applies G(x,y,E) yet, so this call cannot run -- but it says
             // so, instead of reporting the state as an empty calibration and
             // leaving the operator to guess.
+            // QA-A-121 (#187): a loaded polynomial is now APPLIED here.
+            //
+            // FUNC-027 fits, per pixel, gain as a function of dose. At
+            // correction time the value that says where this pixel sits on its
+            // own curve is the pixel itself -- the curve is walked backwards,
+            // not handed a dose from outside. A single dose per frame would be
+            // the wrong shape anyway: pixels in one frame receive different
+            // amounts, which is the reason the fit is per pixel at all.
+            //
+            // UNITS: the abscissa is whatever `dose_levels` held when the file
+            // was generated ("mGy or relative units"). Indexing by the pixel's
+            // own value is consistent when those levels were expressed in
+            // pixel-value units, which is what the reference dataset does
+            // (tests/test_data/cyan_test: CalSet levels named by ADU).
             if (!g_calib.gain_map && g_calib.gain_poly_coeffs) {
-                xpe_alert_push("gain polynomial (XCAL_TYPE_GAIN_POLY) is loaded; "
-                               "xpe_gain_correct does not apply it (issue #187) -- "
-                               "load a scalar XCAL_TYPE_GAIN map to correct",
-                               XPE_ALERT_ERROR);
-                return XPE_ERR_UNSUPPORTED_FORMAT;
+                if (g_calib.gain_width  != input->width ||
+                    g_calib.gain_height != input->height) {
+                    return XPE_ERR_BUFFER_TOO_SMALL;
+                }
+                poly_coeffs = g_calib.gain_poly_num_coeffs;
+                if (poly_coeffs == 0) return XPE_ERR_INVALID_CALIB_DATA;
+                poly.assign(g_calib.gain_poly_coeffs.get(),
+                            g_calib.gain_poly_coeffs.get() + n * poly_coeffs);
+            } else if (!g_calib.gain_map) {
+                return XPE_ERR_CALIB_NOT_LOADED;
             }
-            if (!g_calib.gain_map) return XPE_ERR_CALIB_NOT_LOADED;
-            if (g_calib.gain_width  != input->width ||
-                g_calib.gain_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
-            gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+            // The polynomial path copied its coefficients above and builds the
+            // map below, outside the lock, because it reads the input frame.
+            // The scalar path copies its map here.
+            if (poly.empty()) {
+                if (g_calib.gain_width  != input->width ||
+                    g_calib.gain_height != input->height) {
+                    return XPE_ERR_BUFFER_TOO_SMALL;
+                }
+                gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+            }
+        }
+
+        // QA-A-121: evaluate the per-pixel polynomial at the pixel's own value.
+        // Horner from the highest coefficient down, so the layout
+        // [p * poly_coeffs + j] is read once per pixel in order.
+        if (!poly.empty()) {
+            gainmap.resize(n);
+            for (size_t i = 0; i < n; ++i) {
+                const float x = static_cast<float>(src[i]);
+                const float* c = poly.data() + i * poly_coeffs;
+                float acc = c[poly_coeffs - 1];
+                for (uint32_t j = poly_coeffs - 1; j > 0; --j) {
+                    acc = acc * x + c[j - 1];
+                }
+                gainmap[i] = acc;
+            }
         }
 
         // Validate gain map and precompute reciprocals
