@@ -310,9 +310,25 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 ### 4.5 Exposure Index (SWU-2.10 / SUP-03)
 
-**REQ-ENH-023**: WHEN `xpe_calc_exposure_index` is called with a valid float32 detector-domain image and metadata, the system SHALL compute `EI = EIT * (mean_pixel_value / S0_reference)` and write the result to `outEI`.
+**REQ-ENH-023**: WHEN `xpe_calc_exposure_index` is called with a valid float32 detector-domain image and metadata, the system SHALL compute `EI = K_cal * (mean_pixel_value / S0_reference)` and write the result to `outEI`, where `K_cal` is a detector-specific calibration constant independent of `meta->bodyPart`. The system SHALL NOT let `EIT` enter the computation of `EI`.
+
+**REQ-ENH-023a**: The system SHALL use `K_cal = 100.0` as the uncalibrated default, so that `EI = 100` at the reference signal level `S0_reference` (IEC 62494-1: `EI = 100 × IAK[μGy]`). The system SHALL NOT claim IEC-conformant absolute EI magnitude until `K_cal` is derived from a measured incident air kerma; only the *relative* behaviour of `DI` across body parts is asserted by this SPEC.
 
 **REQ-ENH-024**: WHEN `xpe_calc_exposure_index` computes EI, the system SHALL also compute `DI = 10.0 * log10(EI / EIT)` and write the result to `outDI`.
+
+> **정정 (`#154`, 2026-09-19).** 이 절의 이전 `REQ-ENH-023` 은 `EI = EIT * (mean / S0_reference)` 였다.
+> 그 식을 `REQ-ENH-024` 와 합치면 `EIT` 가 **정확히 약분되어** `DI = 10·log10(mean / S0_reference)` 가 되고,
+> `REQ-ENH-025` 의 부위별 표가 출력에 아무 영향도 주지 못한다. 측정으로 확인됐다 — 9개 부위의 EI 는
+> 3.2배 퍼지는데 DI 는 비트 단위로 동일했고, 표 값을 10⁹ 배로 벌려도 동일했다.
+> IEC 62494-1 은 `EI = 100 × IAK`(검출기에 도달한 실제 선량)와 `EI_T`(부위별 목표)를 **독립적인 두 양**으로
+> 정의하고 `DI = 10·log10(EI / EI_T)` 로 둘의 비를 취한다. 따라서 EI 안에 EIT 가 들어가는 것은 정의상 오류다.
+> `docs/post-processing/xpe/XPE-ALG-001…md` §7.3 은 처음부터 맞았고(`ei = cal.C_ei * s_cal`),
+> **틀린 것은 이 SPEC 이었다.** 코드(`modules/enhance_basic/src/exposure_index.cpp`)는 틀린 SPEC 을
+> 충실히 구현했을 뿐이다.
+>
+> `K_cal` 의 절대 교정에는 실제 선량 측정(IAK)이 필요하므로 `#151` 급으로 보류한다. 그러나 **부위별 DI 퍼짐은
+> 지금 복구된다** — 부위 간 비교에서 `K_cal` 과 `mean/S0` 이 약분되어 `DI_a − DI_b = 10·log10(EIT_b / EIT_a)`
+> 가 되기 때문이다. `REQ-ENH-023a` 가 절대값과 상대값의 이 경계를 명시한다.
 
 **REQ-ENH-025**: The system SHALL select `EIT` (Exposure Index Target) from an internal lookup table keyed by `meta->bodyPart`. WHERE `meta->bodyPart` is unknown or empty, the system SHALL use the default general radiography EIT value.
 
