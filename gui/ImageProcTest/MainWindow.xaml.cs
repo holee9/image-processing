@@ -20,7 +20,7 @@ public partial class MainWindow : System.Windows.Window
     {
         InitializeComponent();
 
-        var (settings, settingsService, preservedSettingsPath) = CreateSettings();
+        var (settings, settingsService, preservedSettingsPath, preservedIsFromEarlier) = CreateSettings();
         _settingsFilePath = settingsService.FilePath;
         // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given.
         var failAfter = App.AutomationDisplayPipelineFailAfter;
@@ -28,7 +28,8 @@ public partial class MainWindow : System.Windows.Window
             settings,
             settingsService,
             s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter),
-            preservedSettingsPath);
+            preservedSettingsPath,
+            preservedIsFromEarlier);
         DataContext = viewModel;
 
         if (FaultInjectingBackend.Armed is not null)
@@ -104,7 +105,7 @@ public partial class MainWindow : System.Windows.Window
     ///    automation (#136): settings are persisted, so a check could otherwise be decided by
     ///    whatever a previous run left behind.
     /// </summary>
-    private static (AppSettings Settings, AppSettingsService Service, string? PreservedOriginalPath) CreateSettings()
+    private static (AppSettings Settings, AppSettingsService Service, string? PreservedOriginalPath, bool PreservedIsFromAnEarlierFailure) CreateSettings()
     {
         // #173 (GUI-C-119): --automation-settings names the file this run reads and writes, so an E2E
         // case can put a deliberately corrupt file in front of a real launch. Without it the automation
@@ -116,7 +117,7 @@ public partial class MainWindow : System.Windows.Window
             var named = new AppSettingsService(settingsPath);
             var namedResult = named.Load();
             ApplyRunSelection(namedResult.Settings);
-            return (namedResult.Settings, named, namedResult.PreservedOriginalPath);
+            return (namedResult.Settings, named, namedResult.PreservedOriginalPath, namedResult.PreservedIsFromAnEarlierFailure);
         }
 
         var shipped = new AppSettingsService();
@@ -125,7 +126,7 @@ public partial class MainWindow : System.Windows.Window
         {
             var persisted = shipped.Load();
             ApplyRunSelection(persisted.Settings);
-            return (persisted.Settings, shipped, persisted.PreservedOriginalPath);
+            return (persisted.Settings, shipped, persisted.PreservedOriginalPath, persisted.PreservedIsFromAnEarlierFailure);
         }
 
         var isolated = new AppSettings();
@@ -142,7 +143,7 @@ public partial class MainWindow : System.Windows.Window
             Path.GetTempPath(),
             $"xpe_gui_automation_{Guid.NewGuid():N}");
 
-        return (isolated, new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")), null);
+        return (isolated, new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")), null, false);
     }
 
     protected override void OnClosed(System.EventArgs e)

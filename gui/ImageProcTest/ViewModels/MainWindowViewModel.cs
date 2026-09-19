@@ -79,7 +79,8 @@ public sealed class MainWindowViewModel : ObservableObject
         AppSettings settings,
         AppSettingsService settingsService,
         Func<AppSettings, IXpeBackend> backendFactory,
-        string? preservedSettingsPath = null)
+        string? preservedSettingsPath = null,
+        bool preservedSettingsIsFromAnEarlierFailure = false)
     {
         Settings = settings;
         _settingsService = settingsService;
@@ -144,7 +145,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         // Same ordering reason as the line above: InitializeBackend clears Logs and Alerts, so this
         // has to be said after it or it is erased inside this constructor.
-        ReportUnreadableSettings(preservedSettingsPath);
+        ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
     }
 
     /// <summary>
@@ -155,12 +156,19 @@ public sealed class MainWindowViewModel : ObservableObject
     /// every stored setting with nothing on screen — so a message missing the second part leaves the
     /// user thinking nothing was lost, and one missing the third makes preserving the file pointless.</para>
     /// </summary>
-    private void ReportUnreadableSettings(string? preservedPath)
+    private void ReportUnreadableSettings(string? preservedPath, bool fromAnEarlierFailure)
     {
         if (string.IsNullOrWhiteSpace(preservedPath)) return;
 
-        var message = "Your saved settings could not be read, so this session started from defaults. " +
-                      $"The original file was kept at '{preservedPath}'.";
+        // The second sentence differs because the fact differs: on a repeat failure nothing was moved
+        // now, and the path names what an EARLIER failure rescued (#173, GUI-C-120). Saying "the
+        // original was kept" there would be false — this run kept nothing — and the user would be
+        // looking for a file holding what they had, which this one does not.
+        var message = fromAnEarlierFailure
+            ? "Your saved settings could not be read, so this session started from defaults. " +
+              $"An earlier failure already rescued your original settings, kept at '{preservedPath}'."
+            : "Your saved settings could not be read, so this session started from defaults. " +
+              $"The original file was kept at '{preservedPath}'.";
 
         Alerts.Insert(0, new AlertEntry
         {

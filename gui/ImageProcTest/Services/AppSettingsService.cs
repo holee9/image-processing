@@ -17,9 +17,17 @@ namespace ImageProcTest.Services;
 /// </summary>
 /// <param name="Settings">The settings to run with — the stored ones, or defaults when they could not be read.</param>
 /// <param name="PreservedOriginalPath">
-/// Where the unreadable original was moved, or null when the file loaded (or when there was no file).
+/// Where the user's original settings are kept, or null when the file loaded (or when there was no
+/// file, or when preserving it failed).
 /// </param>
-public sealed record SettingsLoadResult(AppSettings Settings, string? PreservedOriginalPath)
+/// <param name="PreservedIsFromAnEarlierFailure">
+/// True when this path was rescued by an EARLIER failed read rather than this one — see
+/// <see cref="AppSettingsService.Load"/> for why the earlier rescue is the valuable one.
+/// </param>
+public sealed record SettingsLoadResult(
+    AppSettings Settings,
+    string? PreservedOriginalPath,
+    bool PreservedIsFromAnEarlierFailure = false)
 {
     /// <summary>True when the stored file existed but could not be read.</summary>
     public bool FailedToRead => PreservedOriginalPath is not null;
@@ -51,6 +59,13 @@ public sealed class AppSettingsService
     /// way out, while a move costs nothing and makes the loss reversible. This happens once, at the
     /// failed read — it is not a rolling backup of good files.</para>
     ///
+    /// <para><b>An existing rescue is never replaced (#173, GUI-C-120).</b> The file rescued at the
+    /// FIRST failure is the user's real settings; by the time a second failure happens this path has
+    /// been rewritten from defaults (GUI-C-118 measured the next Save putting 1482 bytes over it), so
+    /// a later rescue holds something closer to defaults than to what the user had. Keeping the newest
+    /// would discard exactly the thing worth keeping, and keeping both would accumulate files with
+    /// nobody to remove them. So the count stays at one, and that one is the earliest.</para>
+    ///
     /// <para>Still no exception leaves this method. An app that dies at startup over a settings file is
     /// worse than one that starts at defaults: people come here to look at images.</para>
     /// </summary>
@@ -76,6 +91,14 @@ public sealed class AppSettingsService
             // consequence for the user, and the file itself is kept so the detail is not lost.
         }
 
+        var earlier = ExistingRescue();
+        if (earlier is not null)
+        {
+            // Leave both this unreadable file and the earlier rescue where they are. The caller says
+            // where the earlier one is, so the user can still find what they had.
+            return new SettingsLoadResult(new AppSettings(), earlier, PreservedIsFromAnEarlierFailure: true);
+        }
+
         return new SettingsLoadResult(new AppSettings(), PreserveUnreadable());
     }
 
@@ -86,6 +109,31 @@ public sealed class AppSettingsService
     /// but it returns null rather than a path, so the caller never tells the user the original is
     /// somewhere it is not.</para>
     /// </summary>
+    /// <summary>
+    /// The rescue an earlier failed read left behind, or null when there is none.
+    ///
+    /// <para>The earliest is returned when several exist — a tree carrying more than one predates this
+    /// rule, and the earliest is still the one closest to what the user had. The names are timestamped
+    /// in a sortable format, so ordinal order is chronological order.</para>
+    /// </summary>
+    private string? ExistingRescue()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(FilePath);
+            if (string.IsNullOrEmpty(directory)) return null;
+
+            return Directory
+                .GetFiles(directory, Path.GetFileName(FilePath) + ".unreadable-*")
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private string? PreserveUnreadable()
     {
         try
