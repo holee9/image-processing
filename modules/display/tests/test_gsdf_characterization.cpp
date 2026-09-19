@@ -535,3 +535,78 @@ TEST(GsdfCharacterization, KnownDivergence_ModuleCubicIsEq72Reversed_155) {
     EXPECT_NEAR(GsdfJndIndex(1.0), kA72, 1e-9);
     EXPECT_NEAR(ModuleCubicJnd(1.0), 9.8212, 1e-9);
 }
+
+// ===========================================================================
+// #155 (QA-B-143) STAGE 1: the LUT bytes, pinned.
+//
+// Stage 1 replaces the module's reversed cubic with the standard's Eq 7-2. The
+// cubic cancels out of the LUT (#155), so the OUTPUT MUST NOT MOVE -- and that
+// is the whole assertion of the stage: coefficients changed, bytes did not,
+// therefore the expression really does not reach the answer. If a byte moves,
+// the cancellation analysis is wrong and the change must stop.
+//
+// A checksum rather than 1024 literals: the point is identity, not the values.
+// FNV-1a over the LUT's bytes, little-endian, deterministic everywhere.
+//
+// STAGE 2 WILL BREAK THIS TEST ON PURPOSE. Stage 2 makes the model reach the
+// output, so these numbers change; that is the visible arrival of a decision
+// about displayed pixels, which is what this file's header asks for. Update
+// them there, in the commit that changes the curve, and never in the same
+// commit as anything else.
+// ===========================================================================
+namespace {
+
+uint64_t LutFingerprint(const XpePresentationLutParams& lut) {
+    uint64_t h = 1469598103934665603ull;            // FNV-1a 64 offset basis
+    for (int i = 0; i < 1024; ++i) {
+        const uint16_t v = lut.lutData[i];
+        const uint8_t bytes[2] = { static_cast<uint8_t>(v & 0xFF),
+                                   static_cast<uint8_t>((v >> 8) & 0xFF) };
+        for (const uint8_t b : bytes) {
+            h ^= b;
+            h *= 1099511628211ull;                  // FNV prime
+        }
+    }
+    return h;
+}
+
+}  // namespace
+
+TEST(GsdfCharacterization, Stage1_LutBytesAreUnchangedByTheCoefficientFix_155) {
+    struct Case { const char* name; std::vector<float> lum; uint64_t fingerprint; };
+    // Recorded on 2a8ab20, BEFORE the Eq 7-2 substitution. See the header.
+    std::vector<Case> cases = {
+        { "1..500",       {1.0f, 10.0f, 50.0f, 200.0f, 500.0f}, 725523820595786102ull },
+        { "80..120",      {80.0f, 100.0f, 120.0f},              4767610711538771908ull },
+        { "0.01..10000",  {0.01f, 1.0f, 100.0f, 10000.0f},      725523820595786102ull },
+        { "0.05..4000",   {0.05f, 4000.0f},                     10416587269571730200ull },
+    };
+
+    for (const Case& c : cases) {
+        XpePresentationLutParams p{};
+        ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(c.lum.data(),
+                                             static_cast<uint32_t>(c.lum.size()), &p))
+            << c.name;
+        const uint64_t fp = LutFingerprint(p);
+        // Also stated against a reference that does not depend on which version
+        // of the module produced it, so a before/after pair is comparable even
+        // when the fingerprints differ: the exact ramp round(i/1023 * 65535).
+        int worst = 0, differing = 0;
+        for (int i = 0; i < 1024; ++i) {
+            const int ramp = static_cast<int>(std::lround(
+                static_cast<double>(i) / 1023.0 * 65535.0));
+            const int d = std::abs(static_cast<int>(p.lutData[i]) - ramp);
+            if (d != 0) ++differing;
+            worst = std::max(worst, d);
+        }
+        GTEST_LOG_(INFO) << "  " << c.name << "  fingerprint=" << fp
+                         << "  vs exact ramp: max=" << worst
+                         << " differing=" << differing << "/1024";
+        if (c.fingerprint != 0u) {
+            EXPECT_EQ(fp, c.fingerprint)
+                << c.name << ": the LUT bytes moved. If this is Stage 1, the "
+                   "cancellation analysis is WRONG -- stop and report. If this is "
+                   "Stage 2, update the recorded value in this commit and no other.";
+        }
+    }
+}
