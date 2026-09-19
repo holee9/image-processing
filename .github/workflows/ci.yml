@@ -288,6 +288,55 @@ jobs:
         shell: pwsh
         run: ctest --test-dir build/ci-post --build-config RelWithDebInfo --output-on-failure -E "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance"
 
+      # QA-B-140 (#162, 2026-09-19): the same blind spot #176 closed for the preprocess
+      # lane was still open here. ctest starts a FRESH PROCESS per test
+      # (gtest_discover_tests), so any defect that depends on state carried between tests
+      # in one process — a call_once, a static cache, a suppression memo — is invisible to
+      # it by construction. Measured: ctest 675/675 green while one test was red when its
+      # binary ran as one process.
+      #
+      # That one red was not a test-only fault. Behind it, multiscale_process wrapped the
+      # inert-key helper's call in `if (levels <= 3)`, so the helper's recovery contract
+      # (a clean config clears the memo) could never run on that path — warn at 3 levels,
+      # fix to 4, go back to 3, and the advice is gone for the life of the process.
+      #
+      # This ADDS to ctest, it does not replace it: the per-test process isolation ctest
+      # gives is still worth having. Cost is one extra suite run (~2m20s locally).
+      #
+      # Two guards carried over from the preprocess step, each of which caught a real
+      # false pass there: a run that never starts exits non-zero with NO summary line
+      # (QA-A-89 read the empty failure list as a pass), and a binary that runs zero tests
+      # still prints '[  PASSED  ] 0 tests.' and exits 0 (QA-A-90).
+      #
+      # cwd is modules/gsvg because gsvg_tests reads its phantoms by relative path; the
+      # other binaries were measured to be cwd-independent under that setting (QA-B-140).
+      # ONE glob only — listing *.exe alongside test_*/`*_tests` visits the same file twice
+      # on Windows and inflated a 12-binary count to 22 during that card.
+      - name: Run post test binaries as one process each (#162)
+        shell: pwsh
+        working-directory: modules/gsvg
+        run: |
+          $binDir = Join-Path $env:GITHUB_WORKSPACE 'build/ci-post/bin'
+          $exes = @(Get-ChildItem -Path $binDir -Recurse -Filter *.exe -File)
+          if ($exes.Count -eq 0) { Write-Error "no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          $bad = 0
+          foreach ($exe in $exes) {
+            $out = & $exe.FullName 2>&1 | Out-String
+            $code = $LASTEXITCODE
+            $summary = ($out -split "`n" | Where-Object { $_ -match '^\[\s*(PASSED|FAILED)\s*\]' }) -join ' | '
+            $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
+            $ran = if ($ranLine -and $ranLine -match '^\[=+\]\s+(\d+) tests?') { [int]$Matches[1] } else { -1 }
+            Write-Host ("{0}: exit={1} ran={2} summary={3}" -f $exe.Name, $code, $ran, $summary)
+            if (-not $summary) { Write-Error ("{0}: no gtest summary line - the run did not complete" -f $exe.Name); $bad++; continue }
+            if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $exe.Name, $ran); $bad++; continue }
+            if ($code -ne 0) {
+              ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
+              $bad++
+            }
+          }
+          Write-Host ("in-process: {0} of {1} binary(ies) failed" -f $bad, $exes.Count)
+          if ($bad -gt 0) { Write-Error ("{0} single-process run(s) failed - state carried between tests that ctest's per-test processes hide (#162)" -f $bad); exit 1 }
+
       - name: Upload post test results
         if: always()
         uses: actions/upload-artifact@v6
