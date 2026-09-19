@@ -1084,3 +1084,174 @@ TEST(GsvgVirtualGridMc512, BoundaryExcessAgainstPyramidReach_191)
     }
     SUCCEED();
 }
+
+// ===========================================================================
+// #191 follow-up (2) (QA-B-138): what does raising `pyramidLevels` BUY?
+//
+// QA-B-137 measured only the scatter residual and found 8 levels leaves 72 % of
+// the pre-correction error. 8 is a legal setting (virtual_grid.cpp:695 allows
+// 0 or 4..8). Either the upper half of that range buys something the residual
+// cannot see, or it buys nothing and the ceiling has no basis.
+//
+// WHICH AXIS, chosen by reading what the pyramid actually does
+// (PyramidContrast, virtual_grid.cpp:603):
+//
+//   - De-noising is a soft threshold on lap[0] -- the FINEST band ONLY
+//     (`if (k > 0) { std::vector<double>& b = lap[0].v; ... }`, :620). It does
+//     not touch any other band, so it is the SAME work at 4 levels and at 8.
+//     Raising the count cannot buy more de-noising.
+//   - `gain` multiplies EVERY band on reconstruction (:629). Adding a level
+//     adds one more, COARSER band to that multiplication.
+//
+// So the only thing `levels` buys is detail gain carried out to coarser scales.
+// The axis that sees it is the contrast of a real structure against the noise
+// it must be seen through: CNR across a step boundary.
+//
+//   contrast = |mean(plateau A) - mean(plateau B)| for adjacent plateaus,
+//              interior pixels only (>= 4 px from any boundary)
+//   sigma    = pixel-scale noise, std of (img - 3x3 box mean) over the same
+//              pixels. The high-pass isolates noise from the low-frequency
+//              correction error, which would otherwise be counted as noise.
+//   CNR      = contrast / sigma, scale-free, so the DN level cancels.
+//
+// `primary` (the scatter-free truth) is measured the same way as the reference
+// a reader needs to tell "restored" from "amplified past the truth".
+//
+// PREDICTION, falsifiable either way:
+//   CNR rises with levels -> 4..8 is a trade (residual for detectability) and
+//     the range has a basis; the knee says where.
+//   CNR does NOT rise (8 no better than 4) -> the upper half buys nothing and
+//     only switches the correction off. A separate card would narrow it.
+//
+// NOT A RECOMMENDATION, and no default is changed here.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, WhatRaisingPyramidLevelsBuys_191)
+{
+    const Phantom p = Load("step");
+
+    // Boundaries and plateau ids, found once on the phantom.
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0; int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i]; ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> jumpCols;
+    for (int j = kLo; j + 1 < kHi; ++j)
+        if (std::fabs(colT[j + 1] - colT[j]) > 0.2) jumpCols.push_back(j);
+    std::vector<int> dist(kN, kN), plateau(kN, -1);
+    for (int c = kLo; c < kHi; ++c) {
+        for (int j : jumpCols) dist[c] = std::min(dist[c], std::abs(c - j));
+        int id = 0;
+        for (int j : jumpCols) if (c > j) ++id;
+        plateau[c] = id;
+    }
+    const int plateaus = static_cast<int>(jumpCols.size()) + 1;
+
+    // Interior pixels only: >= 4 px from any boundary, so the boundary excess
+    // QA-B-137 measured is not what moves this number.
+    auto interior = [&](size_t i) {
+        if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) return false;
+        return dist[static_cast<int>(i) % kN] >= 4;
+    };
+
+    // contrast / sigma / CNR over the adjacent-plateau pairs.
+    // `sep` = how many plateaus apart the two regions are, i.e. the SCALE of
+    // the structure whose contrast is measured. sep=1 is ~16 px (2.3 mm); sep=4
+    // is ~63 px (8.9 mm). This is the axis's own blind spot made measurable: a
+    // coarse band cannot tell two plateaus apart when its reach spans both, so
+    // a result at sep=1 says nothing about coarser structure.
+    auto measureCnr = [&](const std::vector<double>& img, int sep,
+                          double* outContrast, double* outSigma) {
+        std::vector<double> sum(static_cast<size_t>(plateaus), 0.0);
+        std::vector<size_t> cnt(static_cast<size_t>(plateaus), 0);
+        std::vector<double> hp;                     // pixel-scale residual
+        for (int r = kLo + 1; r + 1 < kHi; ++r)
+            for (int c = kLo + 1; c + 1 < kHi; ++c) {
+                const size_t i = static_cast<size_t>(r) * kN + c;
+                if (!interior(i)) continue;
+                sum[static_cast<size_t>(plateau[c])] += img[i];
+                ++cnt[static_cast<size_t>(plateau[c])];
+                double box = 0;
+                for (int dr = -1; dr <= 1; ++dr)
+                    for (int dc = -1; dc <= 1; ++dc)
+                        box += img[static_cast<size_t>(r + dr) * kN + (c + dc)];
+                hp.push_back(img[i] - box / 9.0);
+            }
+        double hpMean = 0;
+        for (double v : hp) hpMean += v;
+        hpMean /= static_cast<double>(hp.size());
+        double var = 0;
+        for (double v : hp) var += (v - hpMean) * (v - hpMean);
+        // The 3x3 high pass keeps 8/9 of a white-noise sample's variance.
+        const double sigma = std::sqrt(var / static_cast<double>(hp.size()) * 9.0 / 8.0);
+
+        std::vector<double> gaps;
+        for (int a = 0; a + sep < plateaus; ++a) {
+            const size_t ia = static_cast<size_t>(a), ib = static_cast<size_t>(a + sep);
+            if (cnt[ia] < 100 || cnt[ib] < 100) continue;
+            const double ma = sum[ia] / static_cast<double>(cnt[ia]);
+            const double mb = sum[ib] / static_cast<double>(cnt[ib]);
+            gaps.push_back(std::fabs(ma - mb));
+        }
+        std::sort(gaps.begin(), gaps.end());
+        const double contrast = gaps.empty() ? -1.0 : gaps[gaps.size() / 2];
+        if (outContrast) *outContrast = contrast;
+        if (outSigma) *outSigma = sigma;
+        return sigma > 0 ? contrast / sigma : -1.0;
+    };
+
+    double cTruth = 0, sTruth = 0;
+    double cTruth4 = 0, sT4 = 0;
+    const double cnrTruth = measureCnr(p.primary, 1, &cTruth, &sTruth);
+    const double cnrTruth4 = measureCnr(p.primary, 4, &cTruth4, &sT4);
+    double cRaw = 0, sRaw = 0;
+    const double cnrRaw = measureCnr(p.total, 1, &cRaw, &sRaw);
+
+    std::vector<double> beforeAbs;
+    for (size_t i = 0; i < p.total.size(); ++i) {
+        if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+        beforeAbs.push_back(std::fabs(p.total[i] / p.primary[i] - 1.0));
+    }
+    std::sort(beforeAbs.begin(), beforeAbs.end());
+    const double beforeMed = beforeAbs[beforeAbs.size() / 2];
+
+    std::printf("VGMC138 plateaus=%d boundaries=%zu; interior = dist >= 4 px\n",
+                plateaus, jumpCols.size());
+    std::printf("VGMC138 TRUTH   (primary) contrast=%.1f sigma=%.1f CNR=%.2f\n",
+                cTruth, sTruth, cnrTruth);
+    std::printf("VGMC138 TRUTH   (primary) sep=4 contrast=%.1f CNR=%.2f\n",
+                cTruth4, cnrTruth4);
+    std::printf("VGMC138 RAW     (total)   contrast=%.1f sigma=%.1f CNR=%.2f residual=%.4f\n",
+                cRaw, sRaw, cnrRaw, beforeMed);
+
+    std::printf("VGMC138 levels, reach_px, residual after/before, contrast, sigma, CNR, CNR/truth\n");
+    for (const int levels : {0, 4, 5, 6, 7, 8}) {
+        vg::VgSettings st = BaseSettings();
+        st.pyramidLevels = levels;
+        if (levels == 0) { st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+
+        std::vector<double> img = p.total;
+        const vg::VgReport rep =
+            vg::RunVirtualGrid(img, kN, kN, McTable(), st, vg::VgSwitches{}, p.mask.data());
+        ASSERT_EQ(rep.error, "") << levels;
+
+        double c = 0, s = 0;
+        const double cnr = measureCnr(img, 1, &c, &s);
+        double c4 = 0, s4 = 0;
+        const double cnr4 = measureCnr(img, 4, &c4, &s4);
+        const Metrics m = Measure(img, p);
+        std::printf("VGMC138 levels=%d reach=%4d px residual=%.4f after/before=%.3f "
+                    "contrast=%.1f sigma=%.1f CNR=%.2f CNR/truth=%.3f\n",
+                    levels, levels ? (1 << levels) : 0, m.absMedian,
+                    beforeMed > 0 ? m.absMedian / beforeMed : -1.0,
+                    c, s, cnr, cnrTruth > 0 ? cnr / cnrTruth : -1.0);
+        std::printf("VGMC138 levels=%d sep=4 contrast=%.1f CNR=%.2f CNR/truth=%.3f\n",
+                    levels, c4, cnr4, cnrTruth4 > 0 ? cnr4 / cnrTruth4 : -1.0);
+    }
+    SUCCEED();
+}
