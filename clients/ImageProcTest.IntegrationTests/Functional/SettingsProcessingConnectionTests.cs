@@ -90,10 +90,6 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.TemperatureCompensationMode),
         nameof(AppSettings.NonlinearityCorrectionMode),
         nameof(AppSettings.BinningCorrectionMode),
-        nameof(AppSettings.LaneBSharpeningSigma),
-        nameof(AppSettings.LaneBDenoiseStrength),
-        nameof(AppSettings.LaneAAlgorithm),
-        nameof(AppSettings.LaneBAlgorithm),
         // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
         // The toggle writes through a command, not a binding, so the survey sees only its display
         // binding; UnappliedSettingsScenarios U-04 reads the disabled state in the running app.
@@ -115,6 +111,41 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.ShowDisplayPanel),
         nameof(AppSettings.AnalysisTab),
     ];
+
+    /// <summary>
+    /// Settings that reach processing by being COPIED into another setting the backend reads, rather
+    /// than by being read there under their own name (#173, GUI-C-113).
+    ///
+    /// <para>The survey follows reads inside <see cref="ProcessingSources"/>, and the view model is
+    /// deliberately not one of them: a value read in the view model usually stops there, and counting
+    /// those would make the survey agree with anything. This route is different — the view model writes
+    /// the value into a settings object that is then handed to the backend, so the backend does read it,
+    /// under the other name.</para>
+    ///
+    /// <para>An entry states the setting it is copied into and the E2E case that measured the drawn
+    /// pixels moving. Without that case this list would be a way to declare anything connected.</para>
+    /// </summary>
+    internal static readonly Dictionary<string, string> ConnectedViaCopy = new(StringComparer.Ordinal)
+    {
+        // MainWindowViewModel.RenderLanes copies it into the Candidate lane's VoiWindowWidth, which
+        // RealXpeBackend.ApplyDisplayPipelineCore reads. L-02 measures the Candidate's drawn hash
+        // moving and the Reference's staying put, so the copy demonstrably reaches pixels.
+        [nameof(AppSettings.LaneBVoiWindowWidth)] = $"{nameof(AppSettings.VoiWindowWidth)} (L-02)",
+
+        // GUI-C-114: an algorithm option is a named chain configuration (AlgorithmPreset), and choosing
+        // one writes PreprocessInChain and GsvgMode into the settings the lane is rendered with — the
+        // Reference into the main settings, the Candidate into its own copy. GsvgMode is named as the
+        // target because GuiGsvgRunner reads it; L-04 measures the Candidate's drawn hash moving on an
+        // algorithm change while the Reference's stays put.
+        [nameof(AppSettings.LaneAAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
+        [nameof(AppSettings.LaneBAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
+
+        // GUI-C-117: RenderLanes copies it into the Candidate lane's GsvgDenoiseK, which GuiGsvgRunner
+        // sends as vg_denoise_k. L-05 measures the Candidate's drawn hash moving on a change to it while
+        // the Reference's stays put — run on the virtual grid, because that is the only place the key is
+        // sent at all.
+        [nameof(AppSettings.LaneBGsvgDenoiseK)] = $"{nameof(AppSettings.GsvgDenoiseK)} (L-05)",
+    };
 
     /// <summary>
     /// Settings the GUI hands to processing that cannot change the image yet, with the open issue that
@@ -246,10 +277,12 @@ public sealed class SettingsProcessingConnectionTests
         var survey = Survey.Run(Unconnected, ViewState);
 
         // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp; GUI-C-100 added PixelPitchMm;
-        // GUI-C-101 added the six GSVG settings; GUI-C-104 added the pyramid levels, gain and de-noise k.
+        // GUI-C-101 added the six GSVG settings; GUI-C-104 added the pyramid levels, gain and de-noise k;
+        // GUI-C-113 added the Candidate lane's VOI width; GUI-C-117 removed LaneBSharpeningSigma, whose
+        // chain stage does not exist (#193), and renamed the other override to what it overrides.
         Assert.Equal(36, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
-        Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBSharpeningSigma) && b.Via == "LaneBSharpeningSigma" && b.Writable);
+        Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && !b.Writable);
         Assert.All(survey.Bindings.Where(b => b.Property == nameof(AppSettings.GhostCorrectionMode)), b => Assert.True(b.Writable && b.Disabled));
@@ -399,6 +432,17 @@ public sealed class SettingsProcessingConnectionTests
                 }
 
                 if (viewState.Contains(p)) continue;
+
+                // #173: reaches processing by being copied into another setting. The declaration is
+                // only accepted when that other setting is itself read on the processing path —
+                // otherwise this list would be a way to declare anything connected.
+                if (ConnectedViaCopy.TryGetValue(p, out var into))
+                {
+                    var target = into.Split(' ')[0];
+                    if (reads.Reads.Contains(target)) continue;
+                    violations.Add($"{p}: declared as copied into '{target}', but '{target}' is not read by Real processing either");
+                    continue;
+                }
 
                 violations.Add($"{p}: bound in {group.First().File} via '{group.First().Via}', not read by Real processing, and not declared unconnected");
             }

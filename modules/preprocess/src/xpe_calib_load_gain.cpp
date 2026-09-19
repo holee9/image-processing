@@ -15,6 +15,7 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_reader.hpp"
 
+#include <cstdio>
 #include <mutex>
 #include <cstring>
 #include <string>
@@ -104,6 +105,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                 g_calib.gain_poly_coeffs.reset();
                 g_calib.gain_poly_num_coeffs = 0;
             }
+            // The range belongs to whichever polynomial is current; clearing
+            // it on every load keeps a previous file's bounds from surviving
+            // into the next one (QA-A-123, #194).
+            g_calib.gain_poly_has_range = false;
+            g_calib.gain_poly_dose_min = 0.0;
+            g_calib.gain_poly_dose_max = 0.0;
             g_calib.gain_width  = hdr.width;
             g_calib.gain_height = hdr.height;
             g_calib.gain_timestamp = hdr.created_epoch_ms;
@@ -123,17 +130,66 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         {
             std::string json(config_json.begin(), config_json.end());
             xpe_calib_apply_quality_meta_json(json.c_str());
+
+            // QA-A-123 (#194): read the fitted dose range, which bounds where
+            // the polynomial means anything. Absence is detected by asking
+            // twice with different defaults rather than by matching text -- a
+            // key that is genuinely present answers the same both times.
+            if (poly_loaded) {
+                const double lo_a = xpe_json_get_double(json.c_str(), "dose_min", -1.0);
+                const double lo_b = xpe_json_get_double(json.c_str(), "dose_min", -2.0);
+                const double hi_a = xpe_json_get_double(json.c_str(), "dose_max", -1.0);
+                const double hi_b = xpe_json_get_double(json.c_str(), "dose_max", -2.0);
+                const bool present = (lo_a == lo_b) && (hi_a == hi_b);
+                const bool usable  = present && (hi_a > lo_a);
+
+                if (usable) {
+                    std::lock_guard<std::mutex> lock(g_calib_mutex);
+                    g_calib.gain_poly_has_range = true;
+                    g_calib.gain_poly_dose_min = lo_a;
+                    g_calib.gain_poly_dose_max = hi_a;
+                } else if (!present) {
+                    // Not rejected: refusing would retire every calibration
+                    // made before this field existed, which is the harder
+                    // thing to undo. Not silent either, or today's behaviour
+                    // stays invisible forever.
+                    xpe_alert_push(
+                        "gain polynomial loaded without a dose range: this file "
+                        "was generated before the range field existed, so the "
+                        "out-of-range clamp does not apply to it and pixel "
+                        "values beyond the fitted levels are extrapolated; "
+                        "regenerate the calibration to enable the clamp "
+                        "(issue #194)",
+                        XPE_ALERT_WARNING);
+                } else {
+                    // QA-A-124 (#194): the keys ARE there and the interval is
+                    // inverted or empty. Saying "generated before the range
+                    // field existed" here would be false, and an alert that
+                    // misdescribes the file sends the reader after the wrong
+                    // thing. Measured: a reversed dose ladder written with the
+                    // generator's sort guard disabled recorded
+                    // dose_min=42677, dose_max=14037.
+                    char msg[320];
+                    std::snprintf(msg, sizeof(msg),
+                        "gain polynomial carries an inverted dose range "
+                        "[%.1f, %.1f]: the clamp is not applied and pixel "
+                        "values are extrapolated. The file's dose levels were "
+                        "not ascending when it was generated, so its "
+                        "coefficients may be fitted against mispaired gain "
+                        "maps -- regenerate it (issue #194)",
+                        lo_a, hi_a);
+                    msg[sizeof(msg) - 1] = '\0';
+                    xpe_alert_push(msg, XPE_ALERT_WARNING);
+                }
+            }
         }
 
-        // QA-A-107 (#187): the file is read and its metadata is available, but no
-        // correction path applies the coefficients. Say so here -- the load is
-        // where the operator can still act on it.
-        if (poly_loaded) {
-            xpe_alert_push("gain polynomial loaded (XCAL_TYPE_GAIN_POLY): metadata is "
-                           "available but no correction applies G(x,y,E) yet (issue #187); "
-                           "gain correction will refuse until a scalar gain map is loaded",
-                           XPE_ALERT_WARNING);
-        }
+        // QA-A-107 (#187) raised a warning here saying the coefficients were
+        // loaded but nothing applied them. QA-A-121 made xpe_gain_correct()
+        // apply them, so that sentence became false and the warning is gone --
+        // a standing alert that no longer describes the system trains operators
+        // to ignore the queue.
+        (void)poly_loaded;
 
         return XPE_OK;
 

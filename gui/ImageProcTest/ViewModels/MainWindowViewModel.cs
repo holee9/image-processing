@@ -60,13 +60,27 @@ public sealed class MainWindowViewModel : ObservableObject
     /// When a new algorithm is added to the project, add its name here and rebuild.
     /// There is no runtime discovery.
     /// </summary>
+    /// <summary>
+    /// The picker's options, taken from the presets themselves (#173, GUI-C-114) — a list written here
+    /// as well would be a second place for an option to exist, and the one the picker shows would not
+    /// have to be one the chain knows how to run.
+    /// </summary>
     public static readonly string[] AlgorithmOptions =
-        ["Baseline v1.0", "Production v1.2", "Candidate v1.4", "Candidate v1.5-rc"];
+        AlgorithmPreset.All.Select(p => p.Name).ToArray();
 
+    /// <param name="preservedSettingsPath">
+    /// Where the unreadable settings file was moved, when the stored settings could not be read
+    /// (#173, GUI-C-119). Null on an ordinary start. The three things the message has to carry are
+    /// measured, not chosen: GUI-C-118 found that a corrupt file loses EVERY stored setting silently,
+    /// so saying only "could not read" leaves the user unaware their settings are gone, and saying it
+    /// without the path makes moving the original aside pointless.
+    /// </param>
     public MainWindowViewModel(
         AppSettings settings,
         AppSettingsService settingsService,
-        Func<AppSettings, IXpeBackend> backendFactory)
+        Func<AppSettings, IXpeBackend> backendFactory,
+        string? preservedSettingsPath = null,
+        bool preservedSettingsIsFromAnEarlierFailure = false)
     {
         Settings = settings;
         _settingsService = settingsService;
@@ -128,6 +142,44 @@ public sealed class MainWindowViewModel : ObservableObject
         // and none of them the "GUI-S0 initialized." line written immediately before it. The whole of
         // that moment was gone, not just one line.
         ReportRejectedComparisonMode();
+
+        // Same ordering reason as the line above: InitializeBackend clears Logs and Alerts, so this
+        // has to be said after it or it is erased inside this constructor.
+        ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
+    }
+
+    /// <summary>
+    /// Says, once, that the stored settings could not be read (#173, GUI-C-119).
+    ///
+    /// <para>Three things, all load-bearing: the file could not be read, <b>the app started from
+    /// defaults</b>, and <b>where the original is</b>. GUI-C-118 measured that a corrupt file loses
+    /// every stored setting with nothing on screen — so a message missing the second part leaves the
+    /// user thinking nothing was lost, and one missing the third makes preserving the file pointless.</para>
+    /// </summary>
+    private void ReportUnreadableSettings(string? preservedPath, bool fromAnEarlierFailure)
+    {
+        if (string.IsNullOrWhiteSpace(preservedPath)) return;
+
+        // The second sentence differs because the fact differs: on a repeat failure nothing was moved
+        // now, and the path names what an EARLIER failure rescued (#173, GUI-C-120). Saying "the
+        // original was kept" there would be false — this run kept nothing — and the user would be
+        // looking for a file holding what they had, which this one does not.
+        var message = fromAnEarlierFailure
+            ? "Your saved settings could not be read, so this session started from defaults. " +
+              $"An earlier failure already rescued your original settings, kept at '{preservedPath}'."
+            : "Your saved settings could not be read, so this session started from defaults. " +
+              $"The original file was kept at '{preservedPath}'.";
+
+        Alerts.Insert(0, new AlertEntry
+        {
+            Severity = "WARN",
+            Code = "SETTINGS_UNREADABLE",
+            Message = message,
+            Timestamp = DateTimeOffset.Now
+        });
+
+        StatusText = message;
+        Log(message);
     }
 
     public AppSettings Settings { get; }
@@ -190,6 +242,9 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RunPreprocessingCommand { get; }
 
     private ChainResult? _lastChain;
+    private float _renderedLaneBWidth;
+    private string _renderedLaneBAlgorithm = string.Empty;
+    private double _renderedLaneBDenoiseK = 2.0;
     private string _pipelineTimings = string.Empty;
     private string _chainStatus = "chain: not run";
 
@@ -624,16 +679,36 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     // Slice 2 — settings-backed pass-through properties
+    /// <summary>
+    /// The Reference lane's algorithm. Choosing it writes that preset into the MAIN chain settings,
+    /// because the Reference lane IS the main render (GUI-C-113) — if the two could differ, the lane
+    /// would be showing something the rest of the window is not.
+    /// </summary>
     public string LaneAAlgorithm
     {
         get => Settings.LaneAAlgorithm;
-        set { if (Settings.LaneAAlgorithm != value) { Settings.LaneAAlgorithm = value; OnPropertyChanged(); } }
+        set
+        {
+            if (Settings.LaneAAlgorithm == value) return;
+            Settings.LaneAAlgorithm = value;
+            AlgorithmPreset.For(value).ApplyTo(Settings);
+            OnPropertyChanged();
+        }
     }
 
+    /// <summary>The Candidate lane's algorithm. Read only by the Candidate's own render.</summary>
     public string LaneBAlgorithm
     {
         get => Settings.LaneBAlgorithm;
-        set { if (Settings.LaneBAlgorithm != value) { Settings.LaneBAlgorithm = value; OnPropertyChanged(); } }
+        set
+        {
+            if (Settings.LaneBAlgorithm == value) return;
+            Settings.LaneBAlgorithm = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LaneBIsStale));
+            OnPropertyChanged(nameof(LaneBDenoiseKApplies));
+            OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
+        }
     }
 
     public bool FocusMode
@@ -660,17 +735,33 @@ public sealed class MainWindowViewModel : ObservableObject
         set { if (Settings.AnalysisTab != value) { Settings.AnalysisTab = value; OnPropertyChanged(); } }
     }
 
-    public double LaneBSharpeningSigma
+    /// <summary>The Candidate lane's own virtual-grid de-noise k. Read only by the Candidate's render.</summary>
+    public double LaneBGsvgDenoiseK
     {
-        get => Settings.LaneBSharpeningSigma;
-        set { if (Math.Abs(Settings.LaneBSharpeningSigma - value) > 0.0001) { Settings.LaneBSharpeningSigma = value; OnPropertyChanged(); } }
+        get => Settings.LaneBGsvgDenoiseK;
+        set
+        {
+            if (Math.Abs(Settings.LaneBGsvgDenoiseK - value) <= 0.0001) return;
+            Settings.LaneBGsvgDenoiseK = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
     }
 
-    public double LaneBDenoiseStrength
-    {
-        get => Settings.LaneBDenoiseStrength;
-        set { if (Math.Abs(Settings.LaneBDenoiseStrength - value) > 0.0001) { Settings.LaneBDenoiseStrength = value; OnPropertyChanged(); } }
-    }
+    /// <summary>
+    /// Whether the Candidate's de-noise k can reach any pixel right now (#173, GUI-C-117).
+    ///
+    /// <para>GuiGsvgRunner sends <c>vg_denoise_k</c> only while the lane runs the virtual grid, and
+    /// sends <c>0.0</c> when the pyramid is switched off. Outside those the value is accepted, stored,
+    /// and silently ignored — which is the shape of every defect this issue has turned up. The input is
+    /// disabled and marked instead.</para>
+    /// </summary>
+    public bool LaneBDenoiseKApplies =>
+        string.Equals(AlgorithmPreset.For(Settings.LaneBAlgorithm).GsvgMode, GsvgModes.VirtualGrid, StringComparison.Ordinal)
+        && Settings.GsvgPyramidLevels > 0;
+
+    /// <summary>The negation, for the "미적용" mark the screen shows while the value reaches nothing.</summary>
+    public bool LaneBDenoiseKUnapplied => !LaneBDenoiseKApplies;
 
     // Slice 2 — VM-only properties
     public System.Windows.Media.ImageSource? LaneAImage
@@ -1060,6 +1151,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            RenderLanes(sourceFrame, inputs, ProcessedImage);
             PipelineTimings = string.Join("; ", new[]
             {
                 $"work={workMs:0} ms",
@@ -1466,6 +1558,23 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         RefreshParametersStale();   // #171 ①
 
+        // #173 (GUI-C-113): only the Candidate can go stale — the Reference never reads this value,
+        // so an edit to it cannot make the Reference wrong.
+        if (e.PropertyName is nameof(AppSettings.LaneBVoiWindowWidth)
+            or nameof(AppSettings.LaneBAlgorithm)
+            or nameof(AppSettings.LaneBGsvgDenoiseK))
+        {
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
+
+        // Whether the Candidate's de-noise k reaches anything depends on the Candidate's algorithm and
+        // on the pyramid being on, so both have to re-raise it.
+        if (e.PropertyName is nameof(AppSettings.LaneBAlgorithm) or nameof(AppSettings.GsvgPyramidLevels))
+        {
+            OnPropertyChanged(nameof(LaneBDenoiseKApplies));
+            OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
+        }
+
         if (e.PropertyName is nameof(AppSettings.BackendMode))
         {
             OnPropertyChanged(nameof(RuntimeVersionSummary));   // #175: the "requested" half can change alone
@@ -1625,8 +1734,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void ResetLaneBOverrides()
     {
-        LaneBSharpeningSigma = 0.85;
-        LaneBDenoiseStrength = 0.42;
+        LaneBGsvgDenoiseK = 2.0;
         StatusText = "Lane B overrides reset to defaults.";
         Log(StatusText);
     }
@@ -1668,6 +1776,86 @@ public sealed class MainWindowViewModel : ObservableObject
             Log(StatusText);
         }
     }
+
+    /// <summary>
+    /// Draws both workbench lanes from ONE original (#173, GUI-C-113).
+    ///
+    /// <para>The workbench compares settings, not images, so the frame handed to each lane is the same
+    /// object and only the settings differ: Lane A (Reference) runs the snapshot as it stands, Lane B
+    /// (Candidate) runs a COPY of it with the override applied. The copy matters — mutating the shared
+    /// snapshot would make the lanes one pipeline wearing two labels, which is the failure L-02 exists
+    /// to catch.</para>
+    ///
+    /// <para>An override of 0 means "follow the Reference", and then both lanes run identical settings
+    /// and must draw identical pixels. That is the control case: if they differ there, the lanes are
+    /// not drawing the same original.</para>
+    /// </summary>
+    private void RenderLanes(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference)
+    {
+        try
+        {
+            // The Reference IS what the main viewport just drew — same original, same settings. Running
+            // the pipeline again for it would be a second computation of a result already in hand, and
+            // it would not be the same claim either: two runs of one setting can only agree.
+            LaneAImage = reference;
+
+            // With no override the Candidate is the Reference, so nothing is run for it either. That
+            // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
+            // call broke W-23 and W-26, which count the calls an Apply makes through the fault-injection
+            // seam. The cost is paid only when the user actually asks the two lanes to differ.
+            var differs = inputs.LaneBVoiWindowWidth > 0.0f
+                || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal)
+                || Math.Abs(inputs.LaneBGsvgDenoiseK - inputs.GsvgDenoiseK) > 0.0001;
+
+            if (differs)
+            {
+                var candidate = inputs.Snapshot();
+                AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
+                if (inputs.LaneBVoiWindowWidth > 0.0f)
+                {
+                    candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
+                }
+
+                // The Candidate's own vg_denoise_k. Copied like the width above, so GuiGsvgRunner reads
+                // it from the lane's settings without knowing a lane exists.
+                candidate.GsvgDenoiseK = inputs.LaneBGsvgDenoiseK;
+
+                LaneBImage = RenderLane(sourceFrame, candidate);
+            }
+            else
+            {
+                LaneBImage = reference;
+            }
+
+            _renderedLaneBWidth = inputs.LaneBVoiWindowWidth;
+            _renderedLaneBAlgorithm = inputs.LaneBAlgorithm;
+            _renderedLaneBDenoiseK = inputs.LaneBGsvgDenoiseK;
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
+        catch (Exception ex)
+        {
+            Log($"Lane rendering failed: {ex.Message}");
+            LaneAImage = null;
+            LaneBImage = null;
+        }
+    }
+
+    private System.Windows.Media.ImageSource? RenderLane(LoadedImageFrame sourceFrame, AppSettings settings)
+    {
+        var chain = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
+        var frame = _backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        return frame.ProcessedPreview ?? frame.Preview;
+    }
+
+    /// <summary>
+    /// Whether the Candidate lane on screen was drawn with the override currently in the settings
+    /// (#173). Only the Candidate can be stale: the Reference does not read the override at all, so an
+    /// edit to it cannot make the Reference wrong.
+    /// </summary>
+    public bool LaneBIsStale =>
+        Math.Abs(Settings.LaneBVoiWindowWidth - _renderedLaneBWidth) > 0.0001f
+        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal)
+        || Math.Abs(Settings.LaneBGsvgDenoiseK - _renderedLaneBDenoiseK) > 0.0001;
 
     /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
     public object DescribeChain() => new
