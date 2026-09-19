@@ -122,6 +122,11 @@ TEST(NonlinearityCorrect, UnknownModeIsNoLongerAnError) {
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
     EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, R"({"mode":"unknown_xyz"})"));
     EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)) << "unchanged";
+
+    // QA-A-138 (#198): the no-op path raises one alert (issue #196). This test
+    // has no fixture, so it drains the queue itself -- leaving it behind would
+    // break the next test's negative assertion in a single-process run.
+    xpe_clear_alerts();
 }
 
 /* === Binning Correction === */
