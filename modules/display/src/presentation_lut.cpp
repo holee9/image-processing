@@ -107,14 +107,52 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     if (lum_min <= 0.0f) lum_min = 0.01f;
     if (lum_max <= lum_min) lum_max = lum_min + 1.0f;
 
-    // Step 2: compute JND range using log10 model
-    // JND(L) ≈ 71.498 * (log10(L))^3 - 94.593 * (log10(L))^2 + 41.912 * log10(L) + 9.8212
-    // (Simplified Barten model constants — DICOM PS3.14 approximation)
+    // Step 2: compute the JND range -- DICOM PS3.14 Equation 7-2, j(L).
+    //
+    //   j = A + B*y + C*y^2 + D*y^3 + E*y^4 + F*y^5 + G*y^6 + H*y^7 + I*y^8,
+    //   y = log10(L)
+    //
+    // #155 (QA-B-143, stage 1). WHAT WAS HERE BEFORE, and why it was wrong:
+    //
+    //     71.498*y^3 - 94.593*y^2 + 41.912*y + 9.8212
+    //
+    // called "Simplified Barten model constants" in its own comment. It is not
+    // a simplification. Those four numbers ARE Equation 7-2's A, B, C, D -- in
+    // REVERSED positional order with the signs alternated. A is the standard's
+    // CONSTANT term and the old code used it on y^3; D is the standard's y^3
+    // term and the old code used it as the constant. The cleanest proof is
+    // L = 1 cd/m^2, where y = 0 and every power term vanishes, so both reduce
+    // to their constants: the standard gives j = A = 71.50, the old code gave
+    // 9.82. Table B-1 has L(70) = 0.9640 and L(71) ~ 0.99, so 71.5 is right.
+    //
+    // NOT VERIFIED, and recorded rather than assumed away: the equations
+    // themselves are IMAGES in the standard's HTML, so only the coefficients
+    // could be read as text. This polynomial FORM is supported by three checks
+    // in test_gsdf_characterization.cpp -- all ten published Table B-1 points,
+    // a round trip against Equation 7-1, and the stated 4000 cd/m^2 ceiling --
+    // NOT by having read the printed equation. Whether some source deliberately
+    // uses the reversed arrangement was not researched; four coefficients
+    // matching is not a coincidence, but intent was not established.
+    //
+    // https://dicom.nema.org/medical/dicom/current/output/chtml/part14/chapter_7.html
+    //
+    // STAGE 1 CHANGES NO OUTPUT. This expression cancels out of the LUT below
+    // (#155), so the produced bytes are identical before and after; that
+    // identity is asserted by Stage1_LutBytesAreUnchangedByTheCoefficientFix_155
+    // and is the evidence that the expression really does not reach the answer.
+    // Making it reach the answer is a separate, later change.
     auto jnd_from_log10l = [](float log10_L) -> float {
-        return 71.498f * log10_L * log10_L * log10_L
-             - 94.593f * log10_L * log10_L
-             + 41.912f * log10_L
-             + 9.8212f;
+        const double y = static_cast<double>(log10_L);
+        double p = -0.017046845;      // I, y^8
+        p = p * y + 0.14710899;       // H, y^7
+        p = p * y + -0.18014349;      // G, y^6
+        p = p * y + -1.1878455;       // F, y^5
+        p = p * y + 0.28175407;       // E, y^4
+        p = p * y + 9.8247004;        // D, y^3
+        p = p * y + 41.912053;        // C, y^2
+        p = p * y + 94.593053;        // B, y^1
+        p = p * y + 71.498068;        // A, constant
+        return static_cast<float>(p);
     };
 
     float log_lmin = std::log10f(lum_min);
