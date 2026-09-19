@@ -125,7 +125,13 @@ All 35 EARS requirements (REQ-DISP-001 through REQ-DISP-035) are:
 
 - LUT Manager (SWU-3.4) deferred to future iteration
 - Overlay rendering (DICOM PS3.3 C.9) not in scope
-- GSDF Barten model uses simplified log-linear approximation (@MX:WARN added for clinical validation)
+- ~~GSDF Barten model uses simplified log-linear approximation~~ **[정정 2026-09-19, #155]**
+  *"단순화한 근사"* 가 아니었습니다. 그 3차식은 **DICOM PS3.14 Eq 7-2 의 계수를 자리를
+  뒤집고 부호를 번갈아** 옮긴 것이었고(`L=1` 에서 상수항으로 환원되어 표준 71.50 대
+  모듈 9.82), 게다가 그 위에서 JND 모델이 **정확히 약분**되어 어떤 광도를 넣어도
+  **직선 램프**가 나왔습니다. 표준 식으로 교체하고 측정 곡선을 역산하게 했습니다
+  (QA-B-143·144·145). 검증은 감마 2.2·1.8 **합성 특성 곡선**과 표준에서 해석적으로
+  유도한 LUT 대조입니다. **실제 패널 측정은 여전히 없습니다**(`#151` 차단).
 
 ### Next Phase
 
