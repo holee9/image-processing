@@ -116,7 +116,8 @@ public sealed class MainWindowViewModel : ObservableObject
         BrowseGainCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Gain));
         BrowseDefectCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Defect));
         ClearLogsCommand = new RelayCommand(() => Logs.Clear());
-        CopySelectedLogCommand = new RelayCommand(CopySelectedLog);
+        // Disabled while nothing is selected (#173, GUI-C-123) — see the command's own note.
+        CopySelectedLogCommand = new RelayCommand(CopySelectedLog, () => !string.IsNullOrEmpty(SelectedLog));
         ClearAlertsCommand = new RelayCommand(() => Alerts.Clear());
         ResetLayoutCommand = new RelayCommand(ResetLayout);
         ShowNativeDiagnosticsCommand = new RelayCommand(ShowNativeDiagnostics);
@@ -225,7 +226,11 @@ public sealed class MainWindowViewModel : ObservableObject
     public string? SelectedLog
     {
         get => _selectedLog;
-        set => SetProperty(ref _selectedLog, value);
+        set
+        {
+            if (!SetProperty(ref _selectedLog, value)) return;
+            CopySelectedLogCommand.RaiseCanExecuteChanged();
+        }
     }
 
     /// <summary>
@@ -238,6 +243,13 @@ public sealed class MainWindowViewModel : ObservableObject
     ///
     /// <para>The item template is deliberately unchanged: every other log line renders exactly as it
     /// did, and this adds a way to take one rather than a new way to show them.</para>
+    ///
+    /// <para><b>Disabled while nothing is selected (#173, GUI-C-123).</b> It used to be pressable with
+    /// no selection and then do nothing at all — no copy, no message — so the clipboard still held
+    /// whatever was there before and pasting produced something else entirely, with the app having said
+    /// nothing. Of the ways to fix that, a disabled button is the only one that cannot mislead: a
+    /// message after the press still leaves the user having pressed it, and copying "the last line"
+    /// instead would be the app choosing on their behalf — a different silent wrong answer.</para>
     /// </summary>
     public RelayCommand CopySelectedLogCommand { get; }
 
