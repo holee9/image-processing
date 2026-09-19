@@ -315,3 +315,223 @@ TEST(GsdfCharacterization, KnownDivergence_WhatTheCancelledModelWouldHaveCost_15
         << "inverting the cubic produced a straight ramp too -- then the model "
            "was never capable of bending the curve and #155's framing is wrong";
 }
+
+// ===========================================================================
+// #155 (QA-B-142): the control, rebuilt from DICOM PS3.14 instead of from the
+// code's own arithmetic.
+//
+// QA-B-141's control inverted the cubic THIS MODULE computes. That proved the
+// cancellation is real and cost ~45 % of full scale, but it could not say what
+// the curve SHOULD be -- it was the module's own opinion, applied.
+//
+// Source: DICOM PS3.14 Grayscale Standard Display Function.
+//   https://dicom.nema.org/medical/dicom/current/output/chtml/part14/chapter_7.html
+//   https://dicom.nema.org/medical/dicom/current/output/chtml/part14/chapter_B.html
+// Defined over L = 0.05 .. 4000 cd/m^2, carrying JND indices j = 1 .. 1023.
+//
+// THE FORMS BELOW WERE NOT TAKEN ON TRUST. The equations are images in the
+// standard's HTML, so only the COEFFICIENTS could be read as text. Two shapes
+// were tried and judged against Table B-1 and against each other, never against
+// anyone's say-so:
+//
+//   Eq 7-1  log10 L(j): rational in ln(j), numerator a,c,e,g,m over
+//           denominator 1,b,d,f,h,k -- matches all ten Table B-1 points to the
+//           4 decimals the table prints (worst relative deviation 0.042 %),
+//           and gives L(1023) = 3993 against the standard's stated 4000 ceiling.
+//   Eq 7-2  j(L): a degree-8 POLYNOMIAL in log10(L), A + B*y + ... + I*y^8.
+//           A rational shape was tried FIRST here and FAILED the round trip by
+//           up to 1022 JND; the polynomial closes it to 0.09 JND of 1023. The
+//           table and the round trip made that call, not the shape's pedigree.
+//
+// Both checks are asserted below, so a wrong transcription fails here rather
+// than travelling into the comparison as a "standard" that is not one.
+//
+// NOTHING IN presentation_lut.cpp IS TOUCHED. Whether REQ-DISP-* asks for this
+// curve is a SPEC question and is not decided here (QA-B-141, same boundary).
+// ===========================================================================
+namespace {
+
+// Eq 7-1 coefficients (natural log of j).
+constexpr double kA71 = -1.3011877,   kB71 = -2.5840191e-2, kC71 = 8.0242636e-2;
+constexpr double kD71 = -1.0320229e-1, kE71 = 1.3646699e-1, kF71 = 2.8745620e-2;
+constexpr double kG71 = -2.5468404e-2, kH71 = -3.1978977e-3, kK71 = 1.2992634e-4;
+constexpr double kM71 = 1.3635334e-3;
+
+// Eq 7-2 coefficients (log10 of L).
+constexpr double kA72 = 71.498068, kB72 = 94.593053,   kC72 = 41.912053;
+constexpr double kD72 = 9.8247004, kE72 = 0.28175407,  kF72 = -1.1878455;
+constexpr double kG72 = -0.18014349, kH72 = 0.14710899, kI72 = -0.017046845;
+
+// Luminance in cd/m^2 for JND index j (1..1023). Double precision, as the
+// standard recommends.
+double GsdfLuminance(double j) {
+    const double x = std::log(j);
+    const double num = kA71 + kC71 * x + kE71 * x * x + kG71 * x * x * x
+                     + kM71 * x * x * x * x;
+    const double den = 1.0 + kB71 * x + kD71 * x * x + kF71 * x * x * x
+                     + kH71 * x * x * x * x + kK71 * x * x * x * x * x;
+    return std::pow(10.0, num / den);
+}
+
+// JND index for a luminance, the standard's own inverse.
+double GsdfJndIndex(double lum) {
+    const double y = std::log10(lum);
+    double p = kI72;
+    p = p * y + kH72;
+    p = p * y + kG72;
+    p = p * y + kF72;
+    p = p * y + kE72;
+    p = p * y + kD72;
+    p = p * y + kC72;
+    p = p * y + kB72;
+    p = p * y + kA72;
+    return p;
+}
+
+// The module's own cubic, copied from presentation_lut.cpp:113-118 so the two
+// can be compared without touching the product file.
+double ModuleCubicJnd(double lum) {
+    const double y = std::log10(lum);
+    return 71.498 * y * y * y - 94.593 * y * y + 41.912 * y + 9.8212;
+}
+
+enum class DdlScale { Log10Luminance, LinearLuminance };
+
+// The LUT the module would emit if it used the STANDARD's functions, with the
+// module's own schedule kept: equal steps in JND index across the measured
+// display range. `scale` is the one remaining free choice -- see the report.
+std::vector<uint16_t> StandardLut(double lumMin, double lumMax, DdlScale scale) {
+    const double jLo = GsdfJndIndex(lumMin), jHi = GsdfJndIndex(lumMax);
+    const double logLo = std::log10(lumMin), logHi = std::log10(lumMax);
+    std::vector<uint16_t> out(1024);
+    for (int i = 0; i < 1024; ++i) {
+        const double j = jLo + (static_cast<double>(i) / 1023.0) * (jHi - jLo);
+        const double lum = GsdfLuminance(j);
+        const double frac = (scale == DdlScale::Log10Luminance)
+            ? (std::log10(lum) - logLo) / (logHi - logLo)
+            : (lum - lumMin) / (lumMax - lumMin);
+        long v = std::lround(frac * 65535.0);
+        if (v < 0) v = 0;
+        if (v > 65535) v = 65535;
+        out[static_cast<size_t>(i)] = static_cast<uint16_t>(v);
+    }
+    return out;
+}
+
+struct Diff { int maxAbs; int atIndex; double mean; };
+
+Diff Compare(const XpePresentationLutParams& lut, const std::vector<uint16_t>& ref) {
+    Diff d{0, -1, 0.0};
+    long long sum = 0;
+    for (int i = 0; i < 1024; ++i) {
+        const int v = std::abs(static_cast<int>(lut.lutData[i]) -
+                               static_cast<int>(ref[static_cast<size_t>(i)]));
+        sum += v;
+        if (v > d.maxAbs) { d.maxAbs = v; d.atIndex = i; }
+    }
+    d.mean = static_cast<double>(sum) / 1024.0;
+    return d;
+}
+
+}  // namespace
+
+// The standard's own numbers, checked before anything is built on them.
+TEST(GsdfCharacterization, StandardEquationsMatchTableB1_155) {
+    // Annex B Table B-1, ten points, as published (four decimals).
+    const struct { int j; double lum; } kTable[] = {
+        {1, 0.0500}, {2, 0.0547}, {3, 0.0594}, {10, 0.0991}, {20, 0.1750},
+        {30, 0.2752}, {40, 0.4019}, {50, 0.5574}, {60, 0.7440}, {70, 0.9640},
+    };
+
+    double worstRel = 0.0;
+    for (const auto& t : kTable) {
+        const double v = GsdfLuminance(t.j);
+        // The table prints four decimals, so agreement is judged at that
+        // precision: the computed value must round to the printed one.
+        EXPECT_NEAR(std::round(v * 10000.0) / 10000.0, t.lum, 1e-9)
+            << "Eq 7-1 disagrees with Table B-1 at j=" << t.j
+            << " (computed " << v << ") -- the transcribed FORM is wrong, not the table";
+        worstRel = std::max(worstRel, std::abs(v - t.lum) / t.lum);
+    }
+    GTEST_LOG_(INFO) << "Eq 7-1 vs Table B-1 (10 points): worst relative deviation "
+                     << (worstRel * 100.0) << " %";
+
+    // The standard's stated range ceiling, as a second independent check.
+    const double top = GsdfLuminance(1023.0);
+    GTEST_LOG_(INFO) << "L(j=1023) = " << top << " cd/m^2 (standard states ~4000)";
+    EXPECT_NEAR(top, 4000.0, 40.0) << "the top of the JND scale is not the stated range";
+
+    // Round trip: 7-2 must return the index 7-1 was given. This is what caught
+    // a wrong shape for 7-2 -- a rational form failed here by up to 1022 JND.
+    double worstJnd = 0.0;
+    for (const int j : {1, 2, 3, 10, 50, 100, 300, 700, 1023}) {
+        const double back = GsdfJndIndex(GsdfLuminance(j));
+        worstJnd = std::max(worstJnd, std::abs(back - j));
+    }
+    GTEST_LOG_(INFO) << "round trip 7-1 -> 7-2: worst error " << worstJnd << " JND of 1023";
+    EXPECT_LT(worstJnd, 1.0)
+        << "the two equations do not invert each other -- one of the transcribed "
+           "forms is wrong, and no comparison below can be trusted";
+}
+
+// The comparison the card asks for: shipped LUT against the STANDARD curve.
+TEST(GsdfCharacterization, KnownDivergence_ShippedLutAgainstTheStandardCurve_155) {
+    const float lum[5] = {1.0f, 10.0f, 50.0f, 200.0f, 500.0f};   // 1..500 cd/m^2
+    XpePresentationLutParams shipped{};
+    ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 5, &shipped));
+
+    const std::vector<uint16_t> stdLog = StandardLut(1.0, 500.0, DdlScale::Log10Luminance);
+    const std::vector<uint16_t> stdLin = StandardLut(1.0, 500.0, DdlScale::LinearLuminance);
+
+    const Diff dLog = Compare(shipped, stdLog);
+    const Diff dLin = Compare(shipped, stdLin);
+
+    GTEST_LOG_(INFO) << "1..500 cd/m^2, shipped LUT vs the STANDARD curve:";
+    GTEST_LOG_(INFO) << "  DDL linear in log10 L (the module's own final mapping): max="
+                     << dLog.maxAbs << " (" << (100.0 * dLog.maxAbs / 65535.0)
+                     << " % of full scale) at index " << dLog.atIndex
+                     << ", mean=" << dLog.mean;
+    GTEST_LOG_(INFO) << "  DDL linear in L: max=" << dLin.maxAbs << " ("
+                     << (100.0 * dLin.maxAbs / 65535.0) << " %) at index "
+                     << dLin.atIndex << ", mean=" << dLin.mean;
+
+    // Both readings must be far from the shipped ramp, or the comparison is not
+    // measuring what it claims.
+    EXPECT_GT(dLog.maxAbs, 100)
+        << "the standard curve and the shipped ramp agree to " << dLog.maxAbs
+        << " counts -- then #155's premise is wrong, or this control is blind";
+}
+
+// Separate observation, kept apart from the comparison above because it is a
+// different claim: the module's cubic is not a "simplified Barten model" at
+// all. Its four coefficients are Eq 7-2's A, B, C, D -- in REVERSE positional
+// order, with signs alternated. A is the standard's CONSTANT term and the
+// module uses it on y^3; D is the standard's y^3 term and the module uses it as
+// the constant. So the curve was not simplified, it was transcribed backwards.
+TEST(GsdfCharacterization, KnownDivergence_ModuleCubicIsEq72Reversed_155) {
+    // The pairing, stated as numbers rather than as a story.
+    GTEST_LOG_(INFO) << "module cubic coefficients vs DICOM Eq 7-2:";
+    GTEST_LOG_(INFO) << "  module y^3 = 71.498   <-> standard A (constant) = " << kA72;
+    GTEST_LOG_(INFO) << "  module y^2 = -94.593  <-> standard B (y^1)      = " << kB72;
+    GTEST_LOG_(INFO) << "  module y^1 = 41.912   <-> standard C (y^2)      = " << kC72;
+    GTEST_LOG_(INFO) << "  module y^0 = 9.8212   <-> standard D (y^3)      = " << kD72;
+
+    EXPECT_NEAR(71.498, kA72, 1e-3);
+    EXPECT_NEAR(94.593, kB72, 1e-3);
+    EXPECT_NEAR(41.912, kC72, 1e-3);
+    EXPECT_NEAR(9.8212, kD72, 4e-3)
+        << "the constant term does not match Eq 7-2's D -- the pairing claim is wrong";
+
+    // And what the reversal costs, where it matters. Reported, not asserted as
+    // a bound: the module's cubic is never used for anything (it cancels), so
+    // this is the size of a defect that is currently unreachable.
+    GTEST_LOG_(INFO) << "JND index for a luminance -- standard vs the module's cubic:";
+    for (const double l : {0.05, 1.0, 50.0, 500.0, 4000.0}) {
+        GTEST_LOG_(INFO) << "  L=" << l << "  standard j=" << GsdfJndIndex(l)
+                         << "   module cubic=" << ModuleCubicJnd(l);
+    }
+    // At L = 1 cd/m^2 (log10 L = 0) every power term vanishes, so the two
+    // reduce to their constants: the standard's A = 71.5, the module's 9.82.
+    EXPECT_NEAR(GsdfJndIndex(1.0), kA72, 1e-9);
+    EXPECT_NEAR(ModuleCubicJnd(1.0), 9.8212, 1e-9);
+}
