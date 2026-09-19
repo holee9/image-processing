@@ -31,7 +31,7 @@ constexpr ParamRange kParamRanges[] = {
  * predicate has to be defined here. A same-named definition exists in the dead
  * xpe_preprocess.cpp, which is deliberately absent from XPE_TEST_SOURCES and
  * from the library sources (#112) -- adding it back collides at link time. */
-bool xpe_preprocess_is_initialized() noexcept
+extern "C" XPE_API bool xpe_preprocess_is_initialized(void)
 {
     return g_initialized.load(std::memory_order_acquire);
 }
@@ -75,6 +75,9 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void)
         g_initialized.store(false, std::memory_order_release);
         std::lock_guard<std::mutex> calib_lock(g_calib_mutex);
         g_calib = CalibrationData{};
+        // QA-A-120 (#176): every module global, not only the maps. Clearing one
+        // of three made the function's name describe less than it did.
+        xpe_calib_mode_reset_globals();
     } catch (...) {
     }
 }

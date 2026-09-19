@@ -60,7 +60,17 @@ TEST(VoiLut, Linear_CenterWindow) {
     XpeErrorCode rc = xpe_apply_voi_lut(&img, &params);
     EXPECT_EQ(rc, XPE_OK);
     // (500 - (500 - 500)) / 1000 * 255 + 0 = 127.5
-    EXPECT_NEAR(pixels(img)[0], 127.5f, 0.5f);
+    //
+    // Tolerance 0.05, not 0.5 (QA-B-121, #156). At 0.5 this case passed with a
+    // DIFFERENT formula in place: substituting DICOM PS3.3 C.11.2.1.2.1
+    // (`((x - (c - 0.5))/(w - 1) + 0.5) * range`) gives 127.628 here, and the
+    // 0.128 gap fitted inside the old margin -- so the assertion pinned the
+    // magnitude, not the formula (QA-B-120 measured it: the whole VOI file went
+    // 0 red when the formula was swapped).
+    //
+    // This says nothing about WHICH formula is right -- that is #156, still
+    // open. It pins the one the code has today, so a change to it is visible.
+    EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);
     free_image(img);
 }
 
@@ -112,8 +122,12 @@ TEST(VoiLut, LinearExact_CenterValue) {
 
     XpeErrorCode rc = xpe_apply_voi_lut(&img, &params);
     EXPECT_EQ(rc, XPE_OK);
-    // center input -> output = (minOut + maxOut) / 2 = 127.5
-    EXPECT_NEAR(pixels(img)[0], 127.5f, 1.0f);
+    // center input -> output = (minOut + maxOut) / 2 = 127.5, exactly.
+    // Tolerance 0.05, same reasoning as Linear_CenterWindow (QA-B-121/122): the
+    // old 1.0 was wide enough to swallow most of a formula swap. Substituting
+    // the C.11.2.1.2.1 LINEAR form here gives 129.114 -- 1.614 away, so 1.0 did
+    // catch that particular swap, but only by 0.6; 0.05 leaves no such margin.
+    EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);
     free_image(img);
 }
 

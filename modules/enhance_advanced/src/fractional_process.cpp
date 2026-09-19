@@ -83,7 +83,6 @@ XPE_API XpeErrorCode xpe_fractional_process(
     try {
         // Parse config via internal.h parser
         int   iterations;
-        float stepSize;
         bool  safetyViolation = false;
 
         // #145 (QA-B-61): see multiscale_process for the design of this warning.
@@ -97,8 +96,27 @@ XPE_API XpeErrorCode xpe_fractional_process(
                 /*nestedObject=*/nullptr, "xpe_fractional_process", s_lastWarned);
         }
 
+        // #162 (QA-B-122, amended QA-B-139): step_size is NOT parsed. It used to
+        // be read and clamped into a value nothing applied; QA-B-139 removed that
+        // because the code cannot say what the value would change -- the
+        // Gruenwald-Letnikov step `h` has no representation (integer-offset
+        // sampling, no interpolation), and the one scalar that scales the
+        // derivative is derived from `order` and capped to leave SAF-100 its
+        // clipping headroom. The key stays known so the unknown-key warning does
+        // not also fire; this warning is the single signal, and it says why.
+        {
+            static thread_local std::string s_lastInert;
+            static const xpe::enhance_advanced::config::InertKey kInert[] = {
+                { "step_size", "the fractional derivative uses a fixed step; "
+                               "no requirement defines this value's effect" },
+            };
+            xpe::enhance_advanced::config::warn_inert_keys_once(
+                configJsonOrNull, kInert, sizeof(kInert) / sizeof(kInert[0]),
+                /*nestedObject=*/nullptr, "xpe_fractional_process", s_lastInert);
+        }
+
         if (!xpe::enhance_advanced::config::parse_fractional_config(
-                configJsonOrNull, iterations, stepSize, safetyViolation)) {
+                configJsonOrNull, iterations, safetyViolation)) {
             if (safetyViolation) {
                 // SAF-100: Forbidden key detected in config JSON
                 spdlog::error("xpe_fractional_process: SAF-100 violation: "
@@ -128,8 +146,11 @@ XPE_API XpeErrorCode xpe_fractional_process(
         } else if (result != XPE_OK) {
             spdlog::warn("xpe_fractional_process: failed with code {}", result);
         } else {
-            spdlog::debug("xpe_fractional_process: completed (order={:.2f}, iters={}, step={:.2f})",
-                          order, iterations, stepSize);
+            // #162 (QA-B-139): `step={:.2f}` was printed here from a value that
+            // nothing applied, so a log reader saw a step being used. Removed
+            // with the parse -- the log now names only what the run did.
+            spdlog::debug("xpe_fractional_process: completed (order={:.2f}, iters={})",
+                          order, iterations);
         }
 
         return result;

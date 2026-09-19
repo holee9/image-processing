@@ -17,8 +17,12 @@
  *       4. "Compute correction: LUT[S_meas] = S_ideal"
  *       5. "Interpolate LUT entries between measured points using monotone cubic
  *           spline (Fritsch-Carlson 1980)"
- *       6. "Boundary conditions: LUT[0] = 0, LUT[ADC_max] = ADC_max (identity at
- *           extremes)"
+ *       6. "Boundary conditions: LUT[0] = 0" -- the upper identity pin was
+ *           WITHDRAWN by the SPEC correction of 2026-09-18 (#186, SPEC c293ad9)
+ *           after QA-A-110 measured the contradiction it created with step 3.
+ *           Above the highest measured point the fitted response is EXTENDED
+ *           instead, and the accuracy clause is judged inside the measured
+ *           range only.
  *   - "Monotonicity check: LUT[i] <= LUT[i+1] for all i (enforced; non-monotone
  *      LUT = XPE_ERR_INVALID_CALIB_DATA)"
  *
@@ -255,28 +259,49 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
         xs.push_back(meas[i]);
         ys.push_back(g_nominal * dose[i]);   // "LUT[S_meas] = S_ideal"
     }
-    xs.push_back(adc_max);
-    ys.push_back(adc_max);                   // "LUT[ADC_max] = ADC_max"
+    // NO upper knot. The SPEC correction (#186) withdrew `LUT[ADC_max] =
+    // ADC_max`: a detector's full scale has no physical reason to coincide with
+    // the ideal line, and pinning it forced the whole disagreement into the
+    // narrow span above the highest measured dose -- QA-A-110 measured 1.186%
+    // of full scale there, four times the accuracy clause, and it did not
+    // shrink when the dose ladder was made denser.
 
-    // The two pinned ends can contradict the fit: if the ideal value at the
-    // highest measured point already exceeds ADC_max, no monotone curve reaches
-    // the identity endpoint. That is bad calibration data, not a bug here.
     for (size_t i = 0; i + 1 < ys.size(); ++i) {
         if (ys[i + 1] <= ys[i]) return XPE_ERR_INVALID_CALIB_DATA;
     }
 
-    // --- step 5: monotone cubic interpolation over every entry --------------
+    // --- step 5: monotone cubic inside the measured range, then extension ---
+    //
+    // The extension slope is the last measured interval's secant. Reading
+    // "extend the fitted line" that way keeps the LUT continuous in value at
+    // the hand-over point and cannot break monotonicity, because the secant of
+    // a strictly increasing pair is positive. Taking the knot's
+    // Fritsch-Carlson tangent instead would let a limiter decision leak into a
+    // region no measurement covers.
     const std::vector<double> tangents = MonotoneTangents(xs, ys);
+    const uint32_t extension_start =
+        static_cast<uint32_t>(std::ceil(xs.back())) + 1u;
+    const double ext_slope =
+        (ys[ys.size() - 1] - ys[ys.size() - 2]) /
+        (xs[xs.size() - 1] - xs[xs.size() - 2]);
+
     std::vector<uint16_t> lut(lut_entries);
     for (uint32_t idx = 0; idx < lut_entries; ++idx) {
         const double x = static_cast<double>(idx);
-        double v = MonotoneCubic(xs, ys, tangents, x);
+        double v;
+        if (x <= xs.back()) {
+            v = MonotoneCubic(xs, ys, tangents, x);
+        } else {
+            v = ys.back() + (x - xs.back()) * ext_slope;
+        }
         if (!std::isfinite(v)) return XPE_ERR_INVALID_CALIB_DATA;
-        v = std::max(0.0, std::min(adc_max, v));
+        // The table holds uint16, so the extension saturates rather than wraps.
+        // Saturation ties neighbouring entries, which the "<=" monotonicity
+        // clause allows; it never inverts them.
+        v = std::max(0.0, std::min(65535.0, v));
         lut[idx] = static_cast<uint16_t>(std::lround(v));
     }
     lut[0] = 0u;
-    lut[lut_entries - 1u] = static_cast<uint16_t>(adc_max);
 
     // Monotonicity check, quoted: "LUT[i] <= LUT[i+1] for all i (enforced;
     // non-monotone LUT = XPE_ERR_INVALID_CALIB_DATA)". Rounding to uint16 can
@@ -306,8 +331,13 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
         "{\"xcal_nonlin_entries\":%u,\"xcal_nonlin_adc_max\":%.0f,"
         "\"xcal_nonlin_g_nominal\":%.9g,\"xcal_nonlin_dose_levels\":%d,"
         "\"xcal_nonlin_dose_min\":%.9g,\"xcal_nonlin_dose_max\":%.9g,"
+        // The SPEC correction (#186) judges the accuracy clause inside the
+        // measured range only, so the file has to say where that range ends.
+        // Entries from this index up are extrapolated and claim no accuracy.
+        "\"xcal_nonlin_extension_start\":%u,"
         "\"xcal_nonlin_detector\":%s}",
         lut_entries, adc_max, g_nominal, num_levels, dose.front(), dose.back(),
+        extension_start,
         (metadata_json != nullptr && metadata_json[0] != '\0') ? metadata_json
                                                               : "null");
     if (cfg_len <= 0 || static_cast<size_t>(cfg_len) >= sizeof(cfg)) {

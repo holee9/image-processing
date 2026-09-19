@@ -71,12 +71,17 @@ if(_XPE_BUILD_TESTS)
         tests/test_virtual_grid.cpp
         # #180 (QA-B-95): virtual grid against the MC-GPU phantoms (tests/data/mc)
         tests/test_virtual_grid_mc.cpp
+        # #180 (QA-B-123): the 512x512 MC set -- receipt check, the 018 floor,
+        # REQ-017 on the MC basis, and the #189 mask comparison with post-steps on
+        tests/test_virtual_grid_mc512.cpp
         # #180 (QA-B-101): xpe_gsvg_process_ex result and reason codes
         tests/test_gsvg_result.cpp
         # #180 (QA-B-101): product virtual-grid table (data/) and the [grid] loader extension
         tests/test_vg_product_table.cpp
         # #179 (QA-B-105): output does not depend on the thread count
         tests/test_thread_determinism.cpp
+        tests/test_mask_outside.cpp
+        tests/test_thickness_range.cpp
         # grid_dwt.cpp is compiled into the test binary as well: its functions are
         # internal to gsvg.dll (not exported), and the tests call them directly.
         src/grid_dwt.cpp

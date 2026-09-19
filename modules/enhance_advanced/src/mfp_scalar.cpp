@@ -128,11 +128,16 @@ void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
         upsample(reconstructed.data(), upsampled.data(), currentW, currentH);
 
         // Add enhanced Laplacian detail
+        // Level 0 is tested FIRST: at numLevels_ == 2 the single detail band is
+        // level 0 and also satisfies `level == numLevels_ - 2`, so the coarsest
+        // branch used to claim it and edge_gain was silently dropped even when
+        // the caller set it explicitly (#162, QA-B-122). The finest band is the
+        // edge band by definition, so it wins the tie.
         float gain = 1.0f;
-        if (level == numLevels_ - 2) {
-            gain = config.flatGain;      // Coarsest details
-        } else if (level == 0) {
+        if (level == 0) {
             gain = config.edgeGain;      // Finest details (edges)
+        } else if (level == numLevels_ - 2) {
+            gain = config.flatGain;      // Coarsest details
         } else {
             gain = config.textureGain;   // Mid-level details (texture)
         }

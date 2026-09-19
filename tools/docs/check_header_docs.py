@@ -26,7 +26,11 @@ ROOT = Path(__file__).resolve().parents[2]
 HEADER_GLOB = "modules/*/include/**/*.h"
 
 DECL = re.compile(
-    r"XPE_API\s+[A-Za-z_][\w \t*&:<>,]*?\b(?P<name>xpe_[a-z0-9_]+)\s*\((?P<args>[^;{]*)\)\s*;",
+    # extern "C" may precede XPE_API on the same line. Include it in the match so
+    # doc_block_before() does not read it as non-whitespace sitting between the
+    # doc comment and the declaration — that produced a false "no doc block"
+    # (found by QA-A-113).
+    r"(?:extern\s+\"C\"\s+)?XPE_API\s+[A-Za-z_][\w \t*&:<>,]*?\b(?P<name>xpe_[a-z0-9_]+)\s*\((?P<args>[^;{]*)\)\s*;",
     re.DOTALL,
 )
 PARAM_TAG = re.compile(r"[@\\]param(?:\s*\[[^\]]*\])?\s+(?P<name>[A-Za-z_]\w*)")

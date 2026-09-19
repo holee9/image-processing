@@ -81,16 +81,18 @@ XPE_API const char* xpe_gsvg_version(void);
  *   "vg_table_path":     "path/to/table.csv",   JSON string; escape '\' as "\\"
  *   "vg_kvp":            80,        tube voltage of the exposure
  *   "vg_grid_ratio":     10,        must be a row of the table's [grid] section
- *   "vg_pixel_pitch_mm": 0.139,     detector pixel pitch
+ *   "vg_pixel_pitch_mm": 0.14,     detector pixel pitch
  *   "vg_air_signal":     60000,     detector signal without an object [DN]
  *   "vg_iterations":     3          thickness/scatter iterations, 1..100
  * @endcode
- * Optional post-steps (off when absent):
+ * Post-steps. REQ-GSVG-013 / 014 ask for them, so they run by default with
+ * the values below; send "vg_pyramid_levels": 0 together with
+ * "vg_pyramid_gain": 1 and "vg_denoise_k": 0 to turn them off (QA-B-111):
  * @code
- *   "vg_pyramid_levels": 6,         Laplacian pyramid levels, 4..8
- *   "vg_pyramid_gain":   1.3,       detail gain (needs vg_pyramid_levels)
+ *   "vg_pyramid_levels": 4,         Laplacian pyramid levels, 0 = off, else 4..8
+ *   "vg_pyramid_gain":   1.3,       detail gain (must be 1 when levels is 0)
  *   "vg_denoise_k":      2          soft threshold k * noise sigma on the
- *                                   finest band (needs vg_pyramid_levels)
+ *                                   finest band (must be 0 when levels is 0)
  *   "vg_grid_frequency_per_cm": 40  grid line density; REQUIRED when the
  *                                   table's [grid] section has a freq_per_cm
  *                                   column, refused when it has none

@@ -132,6 +132,75 @@ void warn_unconsumed_keys_once(const char*        json,
     }
 }
 
+void warn_inert_keys_once(const char*     json,
+                          const InertKey* inertKeys,
+                          size_t          inertCount,
+                          const char*     nestedObject,
+                          const char*     fnLabel,
+                          std::string&    lastWarned)
+{
+    if (json == nullptr) return;   // defaults are an ordinary call, not a mistake
+
+    // #162 (QA-B-140): an EMPTY list is NOT "nothing to do". It is a call in
+    // which nothing is inert -- exactly the config that must CLEAR the memory,
+    // for the same reason the empty-`present` branch below clears it. Returning
+    // early here let a caller that gates the list by value (multiscale gates on
+    // num_levels) skip the reset entirely, so a caller that fixed its config and
+    // then re-broke it was never told again.
+    if (inertKeys == nullptr || inertCount == 0) {
+        lastWarned.clear();
+        return;
+    }
+
+    auto cfg = nlohmann::json::parse(json, nullptr, false);
+    if (cfg.is_discarded() || !cfg.is_object()) return;
+
+    // The parser accepts the same keys nested under one object, so look there
+    // too -- otherwise the warning would be silent for exactly half the callers.
+    auto written = [&](const char* key) {
+        if (cfg.contains(key)) return true;
+        if (nestedObject != nullptr && cfg.contains(nestedObject)
+            && cfg[nestedObject].is_object()) {
+            return cfg[nestedObject].contains(key);
+        }
+        return false;
+    };
+
+    // Only keys the caller actually WROTE are worth a warning: listing an inert
+    // key the caller never set would make the warning fire on every config and
+    // therefore distinguish nothing.
+    std::vector<const InertKey*> present;
+    for (size_t i = 0; i < inertCount; ++i) {
+        if (written(inertKeys[i].key)) present.push_back(&inertKeys[i]);
+    }
+
+    if (present.empty()) {
+        lastWarned.clear();   // same reason as above: let the next one be heard
+        return;
+    }
+
+    std::vector<std::string> names;
+    names.reserve(present.size());
+    for (const auto* k : present) names.emplace_back(k->key);
+    std::sort(names.begin(), names.end());
+
+    std::string signature;
+    for (const auto& n : names) {
+        signature += n;
+        signature += '\x1f';
+    }
+    if (signature == lastWarned) return;
+    lastWarned = signature;
+
+    for (const auto* k : present) {
+        char msg[256];
+        std::snprintf(msg, sizeof(msg),
+                      "%s config key '%s' is recognised but has no effect: %s",
+                      fnLabel, k->key, k->reason);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
+}
+
 /* ============================================================================
  * MFP Config Parser (SWU-2.5)
  * ============================================================================ */
@@ -212,7 +281,6 @@ bool parse_mfp_config(const char* json,
 
 bool parse_fractional_config(const char* json,
                              int&   outIterations,
-                             float& outStepSize,
                              bool&  outSafetyViolation) {
     // @MX:ANCHOR: [AUTO] SAF-100 forbidden key gate in fractional config parser
     // @MX:REASON: Safety-critical — overshoot limiting bypass must be blocked at config parse level (IEC 62304 Class B)
@@ -222,7 +290,6 @@ bool parse_fractional_config(const char* json,
 
     // Apply defaults
     outIterations = XPE_FRAC_DEFAULT_ITER;
-    outStepSize   = XPE_FRAC_DEFAULT_STEP;
 
     if (json == nullptr) {
         return true;
@@ -267,10 +334,12 @@ bool parse_fractional_config(const char* json,
             outIterations = std::clamp(val, 1, XPE_FRAC_MAX_ITER);
         }
 
-        if (cfg.contains("step_size") && cfg["step_size"].is_number()) {
-            float val = cfg["step_size"].get<float>();
-            outStepSize = std::clamp(val, 0.01f, 1.0f);
-        }
+        // #162 (QA-B-139): `step_size` was read here and clamped to
+        // [0.01, 1.0]. Nothing consumed the result -- FractionalConfig carries
+        // only `order` -- so the clamp produced a value for a debug log and
+        // nothing else. Parsing it made the code claim an effect it does not
+        // have. The key is still recognised by the caller's known-key list, and
+        // the caller reports it through the inert-key warning.
 
         return true;
     } catch (const nlohmann::json::exception&) {

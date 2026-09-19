@@ -1,0 +1,54 @@
+{
+ "kind": "step",
+ "kvp": 80.0,
+ "launches": 300,
+ "histories_total": 30003840000,
+ "det_size_cm": 7.168,
+ "pixels": 512,
+ "pixel_pitch_mm": 0.14,
+ "sdd_cm": 100.0,
+ "air_gap_cm": 2.0,
+ "field_cm_at_detector": 5.0,
+ "csi_um": 600.0,
+ "span_cm": 2.5,
+ "step_width_cm": 0.5,
+ "box_cm": [
+  40.0,
+  30.0,
+  40.0
+ ],
+ "voxel_cm": [
+  0.1,
+  0.5,
+  40.0
+ ],
+ "date": "2026-09-18",
+ "primary_counts_min_in_field": 1926.0,
+ "center_primary_csi": 0.0050306682961740274,
+ "center_total_csi": 0.009299959737302969,
+ "files": {
+  "primary": "step_80kVp_512_primary.f32",
+  "total": "step_80kVp_512_total.f32",
+  "air": "step_80kVp_512_air.f32",
+  "thickness": "step_80kVp_512_thickness.f32"
+ },
+ "dtype": "float32 little-endian",
+ "shape": [
+  512,
+  512
+ ],
+ "row": "detector z",
+ "column": "detector x",
+ "units": {
+  "primary": "CsI-absorbed energy per pixel per history [eV]",
+  "total": "same, non-scattered + scattered",
+  "air": "same, no phantom (30 cm of air)",
+  "thickness": "water path length along the ray to the pixel centre [cm]"
+ },
+ "air_center": 0.31057899803129485,
+ "dn_air": 50000.0,
+ "dn_scale": 160989.63650775206,
+ "dn_note": "DN = value * dn_scale; airSignal = dn_air. The virtual grid clamps at 65535.",
+ "field": "30 x 30 cm at the detector, centred; pixels outside it are ~0 in all images",
+ "assumptions": "water 1.00 g/cm^3 (waterMIF 5-150 keV), 2.5 mm Al, anode 12 deg, CsI 600 um normal incidence, no grid/table/cover/off-focus; simulation-based, not calibrated"
+}

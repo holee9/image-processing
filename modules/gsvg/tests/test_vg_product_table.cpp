@@ -36,7 +36,7 @@ const vg::ParamTable& Product() {
 
 std::string ProductConfig(const std::string& freq) {
     return std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + kProduct +
-           "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 0.139,"
+           "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 0.14,"
            " \"vg_air_signal\": 60000, \"vg_iterations\": 3" + freq + "}";
 }
 

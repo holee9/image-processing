@@ -601,13 +601,19 @@ double Mad(std::vector<double> v) {
 }
 
 void PyramidContrast(std::vector<double>& img, int w, int h, int levels, double gain, double k) {
-    std::vector<Plane> g{Plane{w, h, img}};
+    // QA-B-107 (#180): the caller's buffer is MOVED in and the result moved
+    // back out, and each Gaussian level is moved into its Laplacian band
+    // instead of copied. At 3072x3072 one plane is 75.5 MB, and these two
+    // copies were 151 MB of it. Moving changes no value.
+    std::vector<Plane> g{Plane{w, h, std::move(img)}};
     for (int l = 0; l < levels; ++l) g.push_back(Reduce(g.back()));
     std::vector<Plane> lap(static_cast<size_t>(levels));
     for (int l = 0; l < levels; ++l) {
-        const Plane& fine = g[static_cast<size_t>(l)];
-        Plane up = Expand(g[static_cast<size_t>(l) + 1], fine.w, fine.h);
-        lap[static_cast<size_t>(l)] = fine;
+        const int fw = g[static_cast<size_t>(l)].w, fh = g[static_cast<size_t>(l)].h;
+        Plane up = Expand(g[static_cast<size_t>(l) + 1], fw, fh);
+        // g[l] is not read again (the reconstruction starts from g.back()), so
+        // it becomes the band in place.
+        lap[static_cast<size_t>(l)] = std::move(g[static_cast<size_t>(l)]);
         for (size_t i = 0; i < up.v.size(); ++i) lap[static_cast<size_t>(l)].v[i] -= up.v[i];
     }
     // De-noise: soft threshold on the finest band only.
@@ -846,8 +852,8 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         }
         return o;
     };
-    const std::vector<double> Sf = upsample(Sc);
-    const std::vector<double> capF = (sw.cap == CapMode::LocalSum) ? upsample(cap) : std::vector<double>{};
+    std::vector<double> Sf = upsample(Sc);
+    std::vector<double> capF = (sw.cap == CapMode::LocalSum) ? upsample(cap) : std::vector<double>{};
 
     // Residual scatter of the chosen grid, normalised to its primary
     // transmission: O = P + (Ts/Tp) * S.
@@ -858,14 +864,44 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
     // table without a thickness column gives one value), spread like the scatter.
     std::vector<double> Rc(T.size());
     for (size_t i = 0; i < Rc.size(); ++i) Rc[i] = grid.ResidualAt(T[i]);
-    const std::vector<double> Rf = upsample(Rc);
+    std::vector<double> Rf = upsample(Rc);
     // A full-resolution primary darker than this lies above the table's
     // thickness range (QA-B-93: the share of such pixels is reported).
     const double pAtTMax = st.airSignal * std::exp(-MuAt(tMax, W0, A, B) * tMax);
     size_t nFullHigh = 0, nFull = 0;
-    std::vector<double> out(img.size());
+    // QA-B-107 (#180): the result goes into io itself. Each output pixel reads
+    // only its own input pixel (plus Sf/Rf at the same index), so writing in
+    // place gives the same values; it saves one full-resolution buffer
+    // (75.5 MB at 3072x3072). With a mask, the pixels the mask excludes are
+    // kept in a compact copy first, because the post-steps below run over the
+    // whole image and would otherwise overwrite them.
+    std::vector<double>& out = io;
+    // The old code wrote into a zero-initialised buffer, so the post-steps saw
+    // ZEROS outside the mask; the pyramid reads neighbours, so those zeros are
+    // part of the result inside the mask. Writing in place keeps that exactly:
+    // the excluded pixels are saved, then zeroed, then restored at the end.
+    std::vector<double> maskedOut;
+    int mx0 = 0, my0 = 0, mx1 = width - 1, my1 = height - 1;   // mask bounding box
+    if (mask) {
+        mx0 = width; my0 = height; mx1 = -1; my1 = -1;
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width; ++x)
+                if (mask[static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)]) {
+                    mx0 = std::min(mx0, x); mx1 = std::max(mx1, x);
+                    my0 = std::min(my0, y); my1 = std::max(my1, y);
+                }
+        if (mx1 < mx0 || my1 < my0) { mx0 = my0 = 0; mx1 = width - 1; my1 = height - 1; }
+        for (size_t i = 0; i < io.size(); ++i)
+            if (!mask[i]) maskedOut.push_back(io[i]);
+    }
     // QA-B-105: per pixel, independent. The two counters are summed per band
     // and added up afterwards (integers, so the order does not matter).
+    // #180 (QA-B-112): the guard's floor per pixel, and the value before the
+    // post-steps. Only allocated when an option needs them.
+    std::vector<double> postFloor, preOut;
+    if (sw.postGuard != PostGuard::None && st.pyramidLevels)
+        postFloor.assign(io.size(), 0.0);
+
     std::atomic<size_t> negativeAtomic{0}, fullHighAtomic{0}, fullAtomic{0};
     xpe_parallel::ForRows(height, xpe_parallel::ResolveThreads(XpeGsvgThreadRequest(), height),
                           [&](int yBegin, int yEnd) {
@@ -884,6 +920,30 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
         double p = img[i] - S;
         if (img[i] > 0) { ++bandFull; if (p < pAtTMax) ++bandHigh; }
         if (p < 0) { ++bandNeg; p = 0; }
+        // #180 (QA-B-112): the smallest primary this pixel's cap allows.
+        if (!postFloor.empty()) {
+            // No cap means no bound, so the floor is 0 -- not I/(1+0) = I,
+            // which would pin the output to the input (QA-B-113: the MC case
+            // GsvgVirtualGridMc.CompareToPrimary caught exactly that).
+            switch (sw.cap) {
+            case CapMode::None:
+                postFloor[i] = 0.0;
+                break;
+            case CapMode::LocalSum:
+                postFloor[i] = img[i] / (1.0 + capF[i]);
+                break;
+            case CapMode::GlobalSum:
+                postFloor[i] = img[i] / (1.0 + globalCap);
+                break;
+            case CapMode::PrimaryFloor:
+                postFloor[i] = sw.capEps > 0 ? sw.capEps * img[i] : 0.0;
+                break;
+            case CapMode::SmoothFloor:
+                postFloor[i] = img[i] - (1.0 - sw.capEps) * std::max(iMinFull[i], 0.0);
+                break;
+            }
+            if (postFloor[i] < 0) postFloor[i] = 0;
+        }
         out[i] = p + Rf[i] * std::max(S, 0.0);
     }
     negativeAtomic.fetch_add(bandNeg, std::memory_order_relaxed);
@@ -896,14 +956,100 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
 
     rep.aboveTableFullRes = nFull ? static_cast<double>(nFullHigh) / static_cast<double>(nFull) : 0.0;
 
-    if (st.pyramidLevels) PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+    // The up-sampled scatter and residual maps are read only by the loop above;
+    // released here so the pyramid below does not run alongside them
+    // (151 MB at 3072x3072).
+    Sf.clear(); Sf.shrink_to_fit();
+    Rf.clear(); Rf.shrink_to_fit();
+    capF.clear(); capF.shrink_to_fit();
 
-    if (mask)
+    if (!postFloor.empty() && (sw.postGuard == PostGuard::GlobalDetailScale ||
+                               sw.postGuard == PostGuard::SymmetricHeadroom))
+        preOut = out;
+
+    // #189 (QA-B-108): what the post-steps see outside the mask. Zero is the
+    // behaviour that shipped; the others are measured in the report.
+    if (mask && sw.maskOutside != MaskOutside::Keep) {
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width; ++x) {
+                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+                if (mask[i]) continue;
+                if (sw.maskOutside == MaskOutside::Zero) {
+                    out[i] = 0.0;
+                } else if (sw.maskOutside == MaskOutside::Replicate) {
+                    const int cx = std::clamp(x, mx0, mx1), cy = std::clamp(y, my0, my1);
+                    out[i] = out[static_cast<size_t>(cy) * static_cast<size_t>(width) + static_cast<size_t>(cx)];
+                }
+            }
+    }
+
+    if (st.pyramidLevels) {
+        if (mask && sw.maskOutside == MaskOutside::RectOnly) {
+            // Post-steps on the mask's bounding rectangle only.
+            const int rw = mx1 - mx0 + 1, rh = my1 - my0 + 1;
+            std::vector<double> sub(static_cast<size_t>(rw) * static_cast<size_t>(rh));
+            for (int y = 0; y < rh; ++y)
+                for (int x = 0; x < rw; ++x)
+                    sub[static_cast<size_t>(y) * static_cast<size_t>(rw) + static_cast<size_t>(x)] =
+                        out[static_cast<size_t>(y + my0) * static_cast<size_t>(width) + static_cast<size_t>(x + mx0)];
+            PyramidContrast(sub, rw, rh, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+            for (int y = 0; y < rh; ++y)
+                for (int x = 0; x < rw; ++x)
+                    out[static_cast<size_t>(y + my0) * static_cast<size_t>(width) + static_cast<size_t>(x + mx0)] =
+                        sub[static_cast<size_t>(y) * static_cast<size_t>(rw) + static_cast<size_t>(x)];
+        } else {
+            PyramidContrast(out, width, height, st.pyramidLevels, st.pyramidGain, st.denoiseK);
+        }
+    }
+
+    // #180 (QA-B-112): hold the guard's bound on the OUTPUT.
+    if (!postFloor.empty()) {
+        if (sw.postGuard == PostGuard::Clamp) {
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                if (out[i] < postFloor[i]) out[i] = postFloor[i];
+            }
+        } else if (sw.postGuard == PostGuard::GlobalDetailScale) {
+            double t = 1.0;
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                const double d = out[i] - preOut[i];
+                if (d < 0) {
+                    const double head = preOut[i] - postFloor[i];
+                    if (head <= 0) { t = 0.0; break; }
+                    t = std::min(t, head / -d);
+                }
+            }
+            rep.postGuardScale = t;
+            if (t < 1.0)
+                for (size_t i = 0; i < out.size(); ++i) {
+                    if (mask && !mask[i]) continue;
+                    out[i] = preOut[i] + t * (out[i] - preOut[i]);
+                }
+        } else if (sw.postGuard == PostGuard::SymmetricHeadroom) {
+            for (size_t i = 0; i < out.size(); ++i) {
+                if (mask && !mask[i]) continue;
+                const double head = std::max(preOut[i] - postFloor[i], 0.0);
+                const double d = out[i] - preOut[i];
+                if (d > head) out[i] = preOut[i] + head;
+                else if (d < -head) out[i] = preOut[i] - head;
+            }
+        }
+        size_t below = 0;
+        for (size_t i = 0; i < out.size(); ++i) {
+            if (mask && !mask[i]) continue;
+            if (out[i] < postFloor[i] - 1e-9 * std::max(postFloor[i], 1.0)) ++below;
+        }
+        rep.belowGuardFloor = static_cast<double>(below) / static_cast<double>(out.size());
+    }
+
+    if (mask) {
+        size_t m = 0;
         for (size_t i = 0; i < out.size(); ++i)
-            if (!mask[i]) out[i] = io[i];
+            if (!mask[i]) out[i] = maskedOut[m++];
+    }
 
     for (double v : out) if (v > 65535.0) ++rep.clippedHigh;
-    io.swap(out);
     return rep;
 }
 

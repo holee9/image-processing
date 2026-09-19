@@ -258,6 +258,64 @@ TEST(GsvgVirtualGridMc, DataAndConditions)
     EXPECT_EQ(m.factor, 1);
 }
 
+// REQ-GSVG-018, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+//
+// QA-B-123: the 512 x 512 set arrived and carries its own floor, re-measured
+// there (test_virtual_grid_mc512.cpp: 1.0504 / 1.1928 / 0.0342 plus 5 %). This
+// one stays because it is still a valid regression on ITS dataset and costs
+// little, but the 512 floor is the one that measures the current phantom.
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// THIS FLOOR IS BOUND TO THIS PHANTOM, not to the code (QA-B-117). The peak is
+// a MAXIMUM statistic, so noise pushes it one way only: on this dataset the
+// value does not move at all (identical to six decimals across thread counts
+// and repeat runs), but 0.1 % of relative input noise already eats 58..83 % of
+// the 0.013 margin and 0.3 % crosses the floor. Swapping the phantom -- the
+// 512 x 512 MC set being prepared -- brings its own noise realisation, so this
+// test can go red for a reason that is not a regression. When the input
+// changes, re-measure and reset the floor; do not widen it in advance (the
+// lead's QA-B-117 decision: a wider floor on an unchanging input only loses
+// detection). Checklist: .moai/reports/lane-post/PHANTOM-SWAP-CHECKLIST.md
+//
+// Under-subtraction at a thickness step: the recovered/primary ratio peaks
+// just after each step towards the thicker side. On the MC step phantom the
+// three peaks measured 1.170 / 1.344 / 1.395 (QA-B-95), the worst pixel 1.5347
+// and the median |ratio - 1| 0.0658.
+//
+// Margin: this input is one fixed MC dataset and the chain is deterministic —
+// five repeat runs reproduced every printed digit, so the measured spread is
+// zero and no margin is derivable from it. The floors below are the current
+// values plus 5 %, which is headroom for a different toolchain only. If CI
+// lands outside that, widen the floor by what CI actually measured rather than
+// by a guess.
+TEST(GsvgVirtualGridMc, ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018)
+{
+    const Phantom p = Load("step");
+    std::vector<double> img;
+    const Metrics m = RunChain(p, kBase, &img);
+    ASSERT_EQ(m.error, "");
+
+    // Worst column mean just after a step, over the metric region.
+    double peak = 0;
+    for (int c = kLo; c < kHi; ++c) {
+        double sum = 0;
+        int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + static_cast<size_t>(c);
+            if (p.primary[i] <= 0) continue;
+            sum += img[i] / p.primary[i];
+            ++n;
+        }
+        if (n) peak = std::max(peak, sum / n);
+    }
+    std::printf("VGMC floor018 step peak=%.4f max=%.4f |r-1| median=%.4f\n", peak, m.hi, m.absMedian);
+
+    EXPECT_LT(peak, 1.465) << "column-mean peak after a step";   // 1.395 x 1.05
+    EXPECT_LT(m.hi, 1.612) << "worst pixel";                     // 1.5347 x 1.05
+    EXPECT_LT(m.absMedian, 0.069) << "median |ratio - 1|";       // 0.0658 x 1.05
+}
+
 TEST(GsvgVirtualGridMc, CompareToPrimary)
 {
     const Config configs[] = {
@@ -335,20 +393,45 @@ TEST(GsvgVirtualGridMcMask, MaskEqualsZeroedInput)
         const vg::ParamTable t = McTable(false);
         const std::vector<uint8_t> mask = FieldMask(p);
 
+        // The equality is a property of the SUBTRACTION stage, and it needs the
+        // post-steps off (QA-B-111). With the default pyramid on, the two paths
+        // see different values outside the mask -- zero on the zeroed input,
+        // the replicated edge on the masked one -- and the pyramid carries that
+        // difference inside: measured up to 1903 DN on this phantom. That is
+        // the mask-outside choice doing its job, not a defect in the mask.
+        vg::VgSettings st = McSettings();
+        st.pyramidLevels = 0;
+        st.pyramidGain = 1.0;     // levels 0 requires these two (see RunVirtualGrid)
+        st.denoiseK = 0.0;
         std::vector<double> zeroed = Collimated(p);
-        ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, McSettings()).error, "");
+        ASSERT_EQ(vg::RunVirtualGrid(zeroed, kN, kN, t, st).error, "");
         std::vector<double> masked = p.total;
-        ASSERT_EQ(vg::RunVirtualGrid(masked, kN, kN, t, McSettings(), vg::VgSwitches{}, mask.data()).error, "");
+        ASSERT_EQ(vg::RunVirtualGrid(masked, kN, kN, t, st, vg::VgSwitches{}, mask.data()).error, "");
 
+        // Inside the field the two paths agree to the last bits, not exactly:
+        // since QA-B-111 the post-steps run by default, and they see different
+        // values outside the mask on the two paths, so the pyramid's sums are
+        // added in a different order. Measured worst relative difference
+        // 2.9e-16 (step) / 1.6e-16 (wedge). Outside the field the mask path
+        // still returns the input untouched, which stays exact.
         size_t inside = 0, outside = 0;
+        double worstRel = 0;
         for (size_t i = 0; i < masked.size(); ++i) {
-            if (mask[i]) { ASSERT_EQ(masked[i], zeroed[i]) << i; ++inside; }
-            else { ASSERT_EQ(masked[i], p.total[i]) << i; ++outside; }
+            if (mask[i]) {
+                if (zeroed[i] != 0)
+                    worstRel = std::max(worstRel, std::fabs(masked[i] - zeroed[i]) / std::fabs(zeroed[i]));
+                ASSERT_NEAR(masked[i], zeroed[i], 1e-12 * std::fabs(zeroed[i])) << i;
+                ++inside;
+            } else {
+                ASSERT_EQ(masked[i], p.total[i]) << i;
+                ++outside;
+            }
         }
+        std::printf("VGMC %s mask-vs-zeroed worst|rel|=%.3g\n", name, worstRel);
         const Metrics mm = Measure(masked, p), mz = Measure(zeroed, p);
         std::printf("VGMC %s mask inside=%zu outside=%zu median masked=%.4f zeroed=%.4f\n",
                     name, inside, outside, mm.median, mz.median);
-        EXPECT_EQ(mm.median, mz.median);
+        EXPECT_NEAR(mm.median, mz.median, 1e-12 * mz.median);
         EXPECT_GT(outside, 0u);
     }
 }
@@ -357,12 +440,19 @@ TEST(GsvgVirtualGridMcMask, MaskEqualsZeroedInput)
 // field is read as object and too much is subtracted near it.
 TEST(GsvgVirtualGridMcMask, NoMaskOverSubtracts)
 {
+    // Post-steps off: this records what the SUBTRACTION does without a mask
+    // (QA-B-111 -- the default now runs a pyramid, which moves these numbers
+    // for a reason that has nothing to do with the mask).
     const struct { const char* name; double min; } expected[] = {{"step", 0.7275}, {"wedge", 0.7694}};
     for (const auto& e : expected) {
         SCOPED_TRACE(e.name);
         const Phantom p = Load(e.name);
         std::vector<double> img = p.total;
-        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, McTable(false), McSettings()).error, "");
+        vg::VgSettings st = McSettings();
+        st.pyramidLevels = 0;
+        st.pyramidGain = 1.0;     // levels 0 requires these two (see RunVirtualGrid)
+        st.denoiseK = 0.0;
+        ASSERT_EQ(vg::RunVirtualGrid(img, kN, kN, McTable(false), st).error, "");
         const Metrics m = Measure(img, p);
         std::printf("VGMC %s nomask min=%.4f median=%.4f\n", e.name, m.lo, m.median);
         EXPECT_NEAR(m.lo, e.min, 5e-4);
@@ -413,7 +503,10 @@ TEST(GsvgVirtualGridMcMask, PublicEntryPoint)
     std::string path = tablePath.generic_string();
     const std::string cfg = "{\"virtual_grid\": true, \"vg_table_path\": \"" + path +
         "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 100, \"vg_pixel_pitch_mm\": 4.0,"
-        " \"vg_air_signal\": 50000, \"vg_iterations\": 5}";
+        " \"vg_air_signal\": 50000, \"vg_iterations\": 5,"
+        // Post-steps off: this case is the same subtraction-stage equality as
+        // MaskEqualsZeroedInput, through the public entry points (QA-B-111).
+        " \"vg_pyramid_levels\": 0, \"vg_pyramid_gain\": 1, \"vg_denoise_k\": 0}";
 
     std::vector<uint16_t> src(p.total.size()), srcZeroed(p.total.size());
     for (size_t i = 0; i < src.size(); ++i) {

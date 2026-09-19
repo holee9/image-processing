@@ -91,11 +91,29 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * maps may be loaded before xpe_preprocess_init(); a shutdown at that point
  * releases them too (it is not a no-op).
  *
- * Does not reset the calibration mode set by xpe_calib_set_mode() or the
- * quality metadata returned by xpe_calib_get_quality_meta(); both keep their
- * values across shutdown and re-initialization.
+ * Clears EVERY module global: the calibration maps, the calibration mode set by
+ * xpe_calib_set_mode() (back to the FUNC-031 default XPE_CALIB_MULTI_POINT_8),
+ * and the quality metadata returned by xpe_calib_get_quality_meta().
+ *
+ * Until QA-A-120 (#176) it cleared only the maps and left the other two alive
+ * across shutdown and re-initialization. That was not a contract but an
+ * omission the header had been updated to describe (QA-A-90 aligned the text to
+ * the behaviour rather than the other way round): a caller reads "shutdown" and
+ * is entitled to a module in its start-up state, and a function that clears one
+ * of three globals has a name that describes less than it does.
  */
 XPE_API void xpe_preprocess_shutdown(void);
+
+/**
+ * @brief Report whether the module is currently initialized
+ *
+ * Read-only: it changes nothing, which is what separates it from calling
+ * xpe_preprocess_init() and reading its error code.
+ *
+ * @return true while the module is up (between a successful
+ *         xpe_preprocess_init() and the matching xpe_preprocess_shutdown()).
+ */
+XPE_API bool xpe_preprocess_is_initialized(void);
 
 /* =============================================================================
  * Phase 2: Calibration Loading Functions (REQ-P1A-014~016, AC-CAL-001~003)
@@ -341,6 +359,32 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
                                                    uint32_t lut_entries,
                                                    const char* output_path,
                                                    const char* metadata_json);
+
+/**
+ * @brief Load a nonlinearity LUT into the calibration store (FUNC-006-EXT 6a)
+ *
+ * Reads an XCAL_TYPE_NONLIN_LUT file and makes it the active nonlinearity
+ * calibration. The pipeline's nonlinearity stage applies it when `panel.linear`
+ * is not "true" in the pipeline config.
+ *
+ * @param filepath Path to the .xcal file written by xpe_calib_generate_nonlin_lut().
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT if filepath is NULL
+ *         XPE_ERR_IO_FAILED / XPE_ERR_CONFIG_INVALID from the file reader
+ *         XPE_ERR_INVALID_CALIB_DATA if the entry count is not 4096 or 65536,
+ *                       the table is not non-decreasing, or the recorded
+ *                       extension boundary lies outside the table
+ */
+XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath);
+
+/**
+ * @brief Drop the loaded nonlinearity LUT (FUNC-006-EXT 6a)
+ *
+ * After this call the nonlinearity stage has no table to apply. Use it when
+ * switching detector profiles, so a previous panel's table is never applied to
+ * another detector's frames.
+ */
+XPE_API void xpe_calib_unload_nonlin_lut(void);
 
 /**
  * @brief Generate dose-dependent gain polynomial (FUNC-027)

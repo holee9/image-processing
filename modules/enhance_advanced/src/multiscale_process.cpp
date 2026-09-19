@@ -98,6 +98,27 @@ XPE_API XpeErrorCode xpe_multiscale_process(
             return XPE_ERR_CONFIG_INVALID;
         }
 
+        // #162 (QA-B-122): with few levels a parsed gain can have no band to
+        // multiply. num_levels <= 3 leaves no middle band, so texture_gain is
+        // inert -- that is the design, and this warning is what tells the caller.
+        {
+            static thread_local std::string s_lastInert;
+            static const xpe::enhance_advanced::config::InertKey kInert[] = {
+                { "texture_gain", "num_levels <= 3 leaves no middle detail band" },
+            };
+            // #162 (QA-B-140): the call is UNCONDITIONAL and the LIST is what
+            // varies. Gating the call on `levels <= 3` meant a config where
+            // texture_gain is live never reached the helper, so the helper's
+            // "a correct config clears the memory" contract never ran -- and a
+            // caller who set 3 levels (warned), moved to 4, then went back to 3
+            // was never told again. The empty list is a real state, not a
+            // reason to skip.
+            const size_t inertCount = (levels <= 3) ? sizeof(kInert) / sizeof(kInert[0]) : 0u;
+            xpe::enhance_advanced::config::warn_inert_keys_once(
+                configJsonOrNull, kInert, inertCount,
+                /*nestedObject=*/"mfp", "xpe_multiscale_process", s_lastInert);
+        }
+
         // Build MfpConfig from parsed values
         xpe::enhance_advanced::MfpConfig mfpConfig;
         mfpConfig.numLevels      = levels;

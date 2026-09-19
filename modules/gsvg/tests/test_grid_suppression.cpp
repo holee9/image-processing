@@ -27,7 +27,8 @@ namespace gd = xpe_gsvg_detail;
 namespace {
 
 constexpr int    kN = 1024;
-constexpr double kPitch = 0.139;
+constexpr double kPitch = 0.14;
+
 constexpr double kDepth = 0.05;
 constexpr double kLpis[] = {60.0, 103.0, 200.0};
 
@@ -63,12 +64,12 @@ struct SuppressionResult {
 };
 
 SuppressionResult RunSuppression(double lpi, gd::Axis axis, const gd::Options& opt = {},
-                                 double depth = kDepth) {
+                                 double depth = kDepth, unsigned seed = 180u) {
     GridSpec g;
     g.linesPerInch = lpi; g.pitchMm = kPitch; g.axis = ToolAxis(axis); g.depth = depth;
     const double f = AliasedFrequencyPerMm(lpi, kPitch);
-    const Image truth = FromU16(ToU16(Background()), kN, kN);
-    auto px = ToU16(ApplyGrid(Background(), g));
+    const Image truth = FromU16(ToU16(Background(seed)), kN, kN);
+    auto px = ToU16(ApplyGrid(Background(seed), g));
     SuppressionResult r;
     r.baseline = ResidualGridEnergy(truth, g.axis, f, kPitch).ratio;
     r.before = ResidualGridEnergy(FromU16(px, kN, kN), g.axis, f, kPitch).ratio;
@@ -182,16 +183,20 @@ TEST(GsvgGridSuppression, Db4DwtReconstructsPerfectly) {
 }
 
 TEST(GsvgGridSuppression, SubbandPlacementMatchesHandValues) {
-    // f (cycles/pixel) = aliased c/mm * 0.139, worked by hand:
-    //   60 lpi: 2.362205*0.139 = 0.328346 -> level 1, 1 - 2*0.328346 = 0.343308
-    //  103 lpi: 3.139127*0.139 = 0.436339 -> level 1, 1 - 0.872678   = 0.127322
-    //  200 lpi: 0.679771*0.139 = 0.094488 -> x2 0.188976 -> x2 0.377952: level 3, 1 - 0.755904 = 0.244096
-    auto p60 = gd::PlaceInSubbands(0.328346, 6);
-    auto p103 = gd::PlaceInSubbands(0.436339, 6);
-    auto p200 = gd::PlaceInSubbands(0.094488, 6);
-    EXPECT_EQ(p60.level, 1);  EXPECT_NEAR(p60.subFreq, 0.343308, 1e-6);
-    EXPECT_EQ(p103.level, 1); EXPECT_NEAR(p103.subFreq, 0.127322, 1e-6);
-    EXPECT_EQ(p200.level, 3); EXPECT_NEAR(p200.subFreq, 0.244096, 1e-6);
+    // f (cycles/pixel) = aliased c/mm * 0.14, worked by hand:
+    //   60 lpi: 2.362205*0.14 = 0.330709 -> level 1, 1 - 2*0.330709 = 0.338583
+    //  103 lpi: 3.087739*0.14 = 0.432283 -> level 1, 1 - 0.864566   = 0.135434
+    //  200 lpi: 0.731159*0.14 = 0.102362 -> x2 0.204724 -> x2 0.409449: level 3, 1 - 0.818898 = 0.181102
+    // The pitch was 0.139 until QA-B-130. The levels do not move (the doubling
+    // count is unchanged); only the in-band frequencies do. The 200 lpi value is
+    // compared at 1e-5 because the hand input is rounded to six places and the
+    // third doubling multiplies that rounding by four.
+    auto p60 = gd::PlaceInSubbands(0.330709, 6);
+    auto p103 = gd::PlaceInSubbands(0.432283, 6);
+    auto p200 = gd::PlaceInSubbands(0.102362, 6);
+    EXPECT_EQ(p60.level, 1);  EXPECT_NEAR(p60.subFreq, 0.338583, 1e-6);
+    EXPECT_EQ(p103.level, 1); EXPECT_NEAR(p103.subFreq, 0.135434, 1e-6);
+    EXPECT_EQ(p200.level, 3); EXPECT_NEAR(p200.subFreq, 0.181102, 1e-5);
     EXPECT_EQ(gd::PlaceInSubbands(0.001, 6).level, 0);   // folds too close to DC
 }
 
@@ -199,6 +204,9 @@ TEST(GsvgGridSuppression, SubbandPlacementMatchesHandValues) {
 // Suppression / invariance / MTF
 // ---------------------------------------------------------------------------
 
+// This scene point-samples the grid at pixel centres, so folding near
+// Nyquist costs no amplitude: a real detector's contrast at these line
+// densities is lower than what this test feeds the suppressor (#192).
 TEST(GsvgGridSuppression, GridIsSuppressedByAtLeast40dB) {
     for (gd::Axis axis : {gd::Axis::Rows, gd::Axis::Columns})
         for (double lpi : kLpis) {
@@ -215,14 +223,51 @@ TEST(GsvgGridSuppression, GridIsSuppressedByAtLeast40dB) {
         }
 }
 
+// REQ-GSVG-005, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// Bound to the SYNTHETIC scene built in this file (seed 180), not to the MC
+// phantoms, so replacing those does not touch this floor (QA-B-118). The
+// metrics are energy ratios over a band, not extremes, and the values do not
+// move between runs. What does move them is the scene: across four noise seeds
+// after/before held to about 1 % while after/baseline swung 187..547 -- which
+// is why the tight floor sits on after/before (QA-B-109).
+//
 // The card's target was "near the grid-free baseline". With the design
 // document's sigma_f = 1.5 bins the residual stays 21 .. 381 x above it
 // (run 5); wider band-stops reach it and cost MTF (ReportSigmaAndDomainSweep).
-TEST(GsvgGridSuppression, KnownDivergence_ResidualStaysAboveTheGridFreeBaseline) {
+//
+// Two floors, because the two ratios behave very differently (QA-B-109 §1):
+//  * after/before is stable — across four noise seeds it moved by <= 1 %
+//    (2.15e-5 .. 8.11e-5 over all axis/lpi). Floor 1.0e-4 = 1.23 x the largest
+//    value measured on any seed, so the margin is ~20 x the measured spread.
+//  * after/baseline swings with the scene, because `baseline` is the tiny
+//    residual of a grid-free image: the same cell measured 187 .. 547 across
+//    seeds (rows, 103 lpi). Floor 600 = 1.10 x the largest value measured on
+//    any seed. A tighter floor here would fire on a scene change, not on a
+//    regression, which is why the stable guard above carries the real weight.
+TEST(GsvgGridSuppression, ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005) {
     for (gd::Axis axis : {gd::Axis::Rows, gd::Axis::Columns})
         for (double lpi : kLpis) {
             const auto r = RunSuppression(lpi, axis);
-            EXPECT_GT(r.after, 10.0 * std::max(r.baseline, 1.0)) << Name(axis) << " " << lpi;
+            const double toBaseline = r.after / std::max(r.baseline, 1e-12);
+            std::printf("GRIDSUP floor005 axis=%s lpi=%.0f after/before=%.4g after/baseline=%.4g\n",
+                        Name(axis), lpi, r.after / r.before, toBaseline);
+            EXPECT_LT(r.after / r.before, 1.0e-4) << Name(axis) << " " << lpi;
+            // QA-B-130: re-derived at the product pitch 0.140. Both of the
+            // bounds below are scene-driven -- the aliased frequencies moved, so
+            // the grid-free baseline this ratio divides by lands elsewhere. The
+            // load-bearing guard (after/before) did not move: 4.1e-5 here
+            // against 2.2e-5 at 0.139, both far under 1e-4.
+            // Largest measured at 0.140: 714.3 (rows, 103 lpi). Floor 800 is
+            // 1.12 x that, the same headroom rule the 600 used.
+            EXPECT_LT(toBaseline, 800.0) << Name(axis) << " " << lpi;
+            // Recorded, not a target: the residual is still above the grid-free
+            // baseline. Kept so an improvement shows up as a change. The
+            // multiplier dropped from 10 to 4 because suppression at cols/60
+            // IMPROVED at this pitch (21.6 x baseline -> 4.5 x).
+            EXPECT_GT(r.after, 4.0 * std::max(r.baseline, 1.0)) << Name(axis) << " " << lpi;
         }
 }
 
@@ -253,11 +298,26 @@ TEST(GsvgGridSuppression, MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal
     }
 }
 
+// REQ-GSVG-006, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// Bound to the SYNTHETIC slanted edge built in this file, not to the MC
+// phantoms (QA-B-118). Worst loss IS an extreme (a max over bands, each a max
+// over frequencies), so it is the one of these floors most like 018 -- but the
+// scene carries no noise, and its measurement condition, the edge angle, moved
+// it only 0.1071..0.1153 over 2.5..4.0 degrees (QA-B-109).
+//
 // Vertical grid lines on a near-vertical edge: the band-stop runs across the
 // edge. SPEC-XPE-GSVG 006 (< 5 %) is missed in the bands the notches fall in
 // (0.112 / 0.114 at 60 / 103 lpi, run 5). At 200 lpi the edge keeps the
 // 3-sigma sub-band check from firing, so nothing is filtered at all.
-TEST(GsvgGridSuppression, KnownDivergence_LinesAcrossAnEdge) {
+//
+// Floor 0.125. The MTF scene is noiseless, so its measurement condition is the
+// slanted-edge angle: over 2.5 .. 4.0 degrees the worst loss measured
+// 0.1071 .. 0.1153 (QA-B-109 §1), a spread of about +-4 %. The floor is
+// 1.08 x the largest of those, so it clears the measured spread twice over.
+TEST(GsvgGridSuppression, ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006) {
     for (double lpi : kLpis) {
         gd::Report dec;
         const auto bands = MtfLoss(gd::Axis::Columns, lpi, {}, false, &dec);
@@ -265,13 +325,143 @@ TEST(GsvgGridSuppression, KnownDivergence_LinesAcrossAnEdge) {
         std::printf("GRIDSUP mtf grid=cols lpi=%.0f decisions=%zu loss:", lpi, dec.decisions.size());
         for (const auto& b : bands) std::printf(" [%.1f,%.1f)=%.4f", b.lo, b.hi, b.worstLoss);
         std::printf(" naive_worst=%.4f\n", Worst(naive));
+        EXPECT_LT(Worst(bands), 0.125) << lpi;
         if (lpi < 150.0) {
             EXPECT_GE(dec.decisions.size(), 1u) << lpi;
+            // Recorded, not a target: 006 is still missed on this axis.
             EXPECT_GT(Worst(bands), 0.05) << lpi;
         } else {
             EXPECT_EQ(dec.decisions.size(), 0u) << lpi;
         }
     }
+}
+
+// REQ-GSVG-008, provisional regression floor (QA-B-109, #180).
+// NOT a clinical pass mark — it only says "no worse than today".
+// #151 실제 장비 영상 확보 시 재설정.
+//
+// Bound to the SYNTHETIC scene in this file, not to the MC phantoms
+// (QA-B-118). Energy ratios, not extremes; unchanged between runs; across four
+// noise seeds the spread was at most +-6 % (QA-B-109). The detected flags are
+// discrete and would flip only if the detector's reach changed.
+//
+// The severely aliased band. Per-lpi floors on after/before, because the
+// aliased frequency lands on a different sub-band at each line density and the
+// values are three orders of magnitude apart.
+//
+// QA-B-132: EVERY floor here was derived at 0.139 mm, a pitch we do not ship.
+// All five rows were re-measured at 0.140 and the whole table is now derived
+// from those numbers with ONE multiplier, 1.5x, instead of the previous
+// per-row 1.2 .. 1.44x:
+//
+//   lpi   alias(lp/cm)   measured    old floor   old floor/measured
+//   170      4.499       2.595e-03    3.2e-03        1.23
+//   175      2.531       4.153e-05    6.0e-05        1.44
+//   180      0.562       1.0          0.99           0.99   (disabled, #192)
+//   183      0.619       1.0          1.0            1.00
+//   186      1.800       2.401e-05    0.20        8329.86   <-- useless as a floor
+//
+// Why 1.5x, when five repeat runs moved nothing at all (spread exactly 0.000,
+// every printed digit identical)? Because run-to-run variation is not what the
+// multiplier is for. The scene is deterministic; what does move these numbers
+// is the SCENE -- and 0.7 % of pitch moved 186 lpi by 6900x.
+//
+// QA-B-133 re-measured that seed spread AT 0.140 (four seeds 1/2/3/180, the set
+// QA-B-109 used; SeedSpreadOfTheAliasingFloors_192 below prints it). It did NOT
+// carry over from 0.139 by assumption -- it was checked, because 186's floor was
+// tightened by 5400x and a tight floor over an unverified spread is a red nobody
+// can read later:
+//
+//   170 lpi  0.002582 .. 0.002595   spread 0.5 %
+//   175 lpi  4.144e-05 .. 4.25e-05  spread 2.6 %
+//   186 lpi  2.401e-05 .. 2.475e-05 spread 3.0 %
+//
+// All three sit inside the +-6 % QA-B-109 measured at 0.139, so 1.5x stays. The
+// floors are seed MAXIMUM x 1.5, which is the rule this file's header states --
+// note that 186's maximum comes from seed 1, not from the default seed 180 that
+// every other measurement here uses.
+//
+// 183 lpi aliases below the detector's reach, so nothing is filtered and the
+// ratio is exactly 1. A multiplier there would permit a ratio above 1, i.e.
+// the filter making the grid stronger, so that row keeps its floor of 1.0.
+// What the move from 0.139 to 0.140 did to two of these rows, and why neither
+// is a scene artefact. QA-B-130 recorded this while the floors still carried
+// their 0.139 values; the floors have since been re-derived (QA-B-132/133, see
+// above), so only the finding is left here -- the judgement and the numbers
+// stand, the "not re-derived here" sentence they used to sit under does not.
+//
+//   170 lpi: 1.484e-05 -> 2.595e-03 (175 x worse), still detected and still
+//            52 dB down. The alias moved 5.013 -> 4.499 lp/cm and lands on a
+//            different sub-band. This is the product's behaviour AT THE PITCH
+//            WE SHIP, not a scene artefact.
+//   180 lpi: detected 1 -> 0. AMBIGUOUS, and the ambiguity is measured, not
+//            guessed (AliasContrastAtTheProductPitch_192 below): the generator
+//            point-samples, so in THIS scene the fold keeps the full 5 %
+//            contrast and "not detected" means a real miss. A detector that
+//            integrates over a 100 % fill pixel would see 0.0397 % instead --
+//            1/126 of what the test injects. Whether this is a detection
+//            failure or nothing left to suppress depends on that, and the
+//            decision is the lead's (#192).
+//
+// THIS SCENE POINT-SAMPLES, so folding costs no amplitude: a real detector's
+// contrast here is lower than what this test feeds the suppressor (#192).
+//
+// The 180 lpi case moved out to its own DISABLED_ test below -- turning it off
+// is not the same as widening its floor: a widened floor erases the record, a
+// DISABLED_ name stays in the listing (lead's QA-B-131 decision).
+TEST(GsvgGridSuppression, ProvisionalFloor_SevereAliasing_REQ_GSVG_008) {
+    struct Case { double lpi; double floorRatio; int detected; };
+    const Case cases[] = {
+        // EVERY floor below is 1.5 x the value measured at 0.140 (see above).
+        // THESE ARE REGRESSION FLOORS, NOT CLINICAL PASS MARKS -- the pass mark
+        // is #190, which waits on real device images.
+        {170.0, 3.9e-3, 1},   // seed max 2.595e-03 x 1.5; alias moved 5.013 -> 4.499
+        {175.0, 6.4e-5, 1},   // seed max 4.250e-05 x 1.5
+        {183.0, 1.0,    0},   // not detected; a multiplier would allow ratio > 1
+        {186.0, 3.8e-5, 1},   // seed max 2.475e-05 x 1.5; was 0.20, i.e. 8330 x
+    };
+    for (const Case& c : cases) {
+        const auto r = RunSuppression(c.lpi, gd::Axis::Rows);
+        const double ratio = r.after / r.before;
+        std::printf("GRIDSUP floor008 lpi=%.0f detected=%d level=%d filtered=%d after/before=%.4g\n",
+                    c.lpi, r.report.rows.input.detected, r.report.rows.place.level,
+                    r.report.rows.filteredLevels, ratio);
+        EXPECT_EQ(r.report.rows.input.detected ? 1 : 0, c.detected) << c.lpi;
+        EXPECT_LE(ratio, c.floorRatio) << c.lpi;
+    }
+}
+
+// #192 (QA-B-131): NOT red, UNDECIDED -- switched off until one number arrives.
+//
+// At the product pitch 0.140 the 180 lpi grid is 7.09 lp/mm, which is 0.99212
+// of the sampling frequency, so it folds to 0.562 lp/cm (a 1.78 cm shading) and
+// the detector stops seeing it: detected 1 -> 0.
+//
+// Whether that is a detection failure or nothing left to suppress turns on the
+// detector's pre-sampling MTF at 7.09 lp/mm (aperture x scintillator):
+//
+//     visible contrast = 5 % x MTF_pre(7.09 lp/mm),  noise floor = 30/50000 = 0.06 %
+//     MTF_pre > 0.012  ->  a real detection failure, there IS something to suppress
+//     MTF_pre < 0.012  ->  nothing to suppress
+//
+// The aperture term alone does not settle it, because the answer sits ON the
+// null: a 100 % fill box has its zero at nu*p = 1.0 and we are at 0.99212,
+// 0.8 % away. At f = 0.95 the aperture MTF is already 0.0608 (contrast 0.30 %,
+// five times the noise floor), and no real flat panel has 100 % fill. Pulling
+// the other way, 7.09 lp/mm is very high for 600 um CsI. The product of the two
+// decides, and that is a line in a detector datasheet, not something this test
+// can measure.
+//
+// Re-enable (drop the DISABLED_ prefix) once #192 carries that number, and set
+// the expectation from it rather than from whatever the code then does.
+TEST(GsvgGridSuppression, DISABLED_SevereAliasing180_UndecidedPendingDetectorMtf_192) {
+    const auto r = RunSuppression(180.0, gd::Axis::Rows);
+    const double ratio = r.after / r.before;
+    std::printf("GRIDSUP floor008 lpi=180 detected=%d level=%d filtered=%d after/before=%.4g\n",
+                r.report.rows.input.detected, r.report.rows.place.level,
+                r.report.rows.filteredLevels, ratio);
+    EXPECT_EQ(r.report.rows.input.detected ? 1 : 0, 1);
+    EXPECT_LE(ratio, 0.99);
 }
 
 // Reported: band-stop width and linear/log domain (the MTF column is for
@@ -358,6 +548,9 @@ TEST(GsvgGridSuppression, WithoutInputGateGridFreeImagesChange) {
 // ---------------------------------------------------------------------------
 // Aliasing close to DC (reported, not a pass criterion)
 // ---------------------------------------------------------------------------
+// This scene point-samples the grid at pixel centres, so folding near
+// Nyquist costs no amplitude: a real detector's contrast at these line
+// densities is lower than what this test feeds the suppressor (#192).
 TEST(GsvgGridSuppression, ReportSevereAliasing) {
     for (double lpi : {170.0, 175.0, 180.0, 183.0, 186.0}) {
         const auto r = RunSuppression(lpi, gd::Axis::Rows);
@@ -387,4 +580,97 @@ TEST(GsvgGridSuppression, BenchmarkFreeze_Performance_REQ_GSVG_019_GridDwt3072) 
     std::printf("GRIDSUP bench3072 ratio before=%.4g after=%.4g\n", before, after);
     EXPECT_LT(after, kSuppressionRatio * before);
     xpe_gsvg_shutdown(handle);
+}
+
+// ===========================================================================
+// #192 (QA-B-130): what a 180 lpi grid actually looks like at the product
+// pitch, and whether there is anything left to suppress.
+//
+// The lead's one-dimensional arithmetic says 180 lpi = 70.87 lp/cm sits at
+// 0.992 of the 0.140 mm sampling frequency, so it folds to 0.562 lp/cm -- a
+// 1.8 cm shading rather than a grid pattern. Two things that arithmetic does
+// not carry are measured here.
+//
+//   (1) CONTRAST. The generator point-samples at pixel centres (GridFactor
+//       reads one position per pixel), so folding moves the pattern but does
+//       NOT reduce its amplitude: whatever the depth was, it survives. A real
+//       detector integrates over the pixel aperture instead, and at 0.992 of
+//       the sampling frequency that integral nearly cancels. The two are
+//       measured side by side, because the gap between them is the difference
+//       between "the test is unfair to the detector" and "the detector sees it".
+//
+//   (2) The aperture model here is a 100 % fill factor box. Real fill factors
+//       are lower, which weakens the cancellation -- so the aperture column is
+//       a bound, not a prediction.
+// ===========================================================================
+TEST(GsvgGridSuppression, AliasContrastAtTheProductPitch_192)
+{
+    constexpr int kProfileN = 4096;      // long enough for a 1.8 cm period
+    constexpr double kDepth192 = 0.05;
+    constexpr int kSub = 256;            // sub-samples across one pixel
+
+    std::printf("GRIDSUP 192: pitch_mm, lpi, alias_lp_cm, period_cm, "
+                "contrast_point_sampled, contrast_aperture, aperture/point\n");
+
+    for (const double pitch : {0.139, 0.140}) {
+        for (const double lpi : {170.0, 180.0, 186.0, 103.0}) {
+            const double fPerMm = lpi / 25.4;            // grid cycles per mm
+            const double alias = AliasedFrequencyPerMm(lpi, pitch);
+
+            double pMin = 1e30, pMax = -1e30, aMin = 1e30, aMax = -1e30;
+            for (int i = 0; i < kProfileN; ++i) {
+                const double t = i * pitch;              // pixel centre, mm
+                const double point = 1.0 + kDepth192 * std::sin(2.0 * kPi * fPerMm * t + 0.3);
+                pMin = std::min(pMin, point); pMax = std::max(pMax, point);
+
+                // Box aperture: average the same continuous modulation across
+                // the pixel instead of reading its centre.
+                double acc = 0.0;
+                for (int s = 0; s < kSub; ++s) {
+                    const double u = t + pitch * ((s + 0.5) / kSub - 0.5);
+                    acc += 1.0 + kDepth192 * std::sin(2.0 * kPi * fPerMm * u + 0.3);
+                }
+                const double aper = acc / kSub;
+                aMin = std::min(aMin, aper); aMax = std::max(aMax, aper);
+            }
+            const double cPoint = 0.5 * (pMax - pMin);
+            const double cAper  = 0.5 * (aMax - aMin);
+            std::printf("GRIDSUP 192 pitch=%.3f lpi=%5.0f alias=%.3f lp/cm period=%6.2f cm "
+                        "point=%.5f aperture=%.7f ratio=%.5f\n",
+                        pitch, lpi, alias * 10.0, alias > 0 ? 1.0 / (alias * 10.0) : 0.0,
+                        cPoint, cAper, cAper / cPoint);
+        }
+    }
+    SUCCEED();
+}
+
+// #192 (QA-B-133): the seed spread of the REQ-GSVG-008 floors, re-measured AT
+// THE PRODUCT PITCH.
+//
+// The 1.5 x multiplier those floors use was justified by a +-6 % spread that
+// QA-B-109 measured at 0.139 mm. That justification does not automatically
+// carry: 0.7 % of pitch moved the 186 lpi residual by 6900 x, so the fold moved
+// and the sensitivity near it may have moved too -- and 186 is the row whose
+// floor was TIGHTENED. A tightened floor over an unverified spread is a red
+// somebody meets later with no way to tell noise from regression.
+//
+// Four seeds, the same set QA-B-109 used. Values only; the floors are set from
+// what this prints.
+TEST(GsvgGridSuppression, SeedSpreadOfTheAliasingFloors_192)
+{
+    std::printf("GRIDSUP seed192: lpi, seed, after/before, detected\n");
+    for (const double lpi : {170.0, 175.0, 186.0}) {
+        double lo = 1e30, hi = -1e30;
+        for (const unsigned seed : {1u, 2u, 3u, 180u}) {
+            const auto r = RunSuppression(lpi, gd::Axis::Rows, {}, kDepth, seed);
+            const double ratio = r.after / r.before;
+            lo = std::min(lo, ratio);
+            hi = std::max(hi, ratio);
+            std::printf("GRIDSUP seed192 lpi=%.0f seed=%3u after/before=%.4g detected=%d\n",
+                        lpi, seed, ratio, r.report.rows.input.detected ? 1 : 0);
+        }
+        std::printf("GRIDSUP seed192 lpi=%.0f MIN=%.4g MAX=%.4g spread=%.1f%% (max/min=%.3f)\n",
+                    lpi, lo, hi, 100.0 * (hi - lo) / lo, hi / lo);
+    }
+    SUCCEED();
 }
