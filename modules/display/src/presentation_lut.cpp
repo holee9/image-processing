@@ -71,9 +71,9 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-// @MX:NOTE: [AUTO] GSDF Barten model approximation — simplified log-linear JND model
+// @MX:NOTE: [AUTO] DICOM PS3.14 GSDF — Eq 7-2 (j from L) and Eq 7-1 (L from j)
 // @MX:WARN: [AUTO] Numerical precision sensitive — validate with DICOM PS3.14 test vectors
-// @MX:REASON: Barten model uses empirical constants; different calibration data may require tuning
+// @MX:REASON: Coefficients are transcribed from the standard and checked against Table B-1
 extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
                                              uint32_t                  count,
                                              XpePresentationLutParams* outParams) {
@@ -81,27 +81,37 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     if (!outParams)       return XPE_ERR_INVALID_INPUT;
     if (count < 2)        return XPE_ERR_INVALID_INPUT;
 
-    // REQ-DISP-026: Compute DICOM GSDF-compliant LUT using Barten model approximation
+    // REQ-DISP-025/026: compute a GSDF-compliant Presentation LUT.
     //
-    // Simplified log-linear JND model:
-    //   JND(L) ≈ a * log10(L) + b
-    // where a, b are derived from the provided luminance range.
+    // #155 (QA-B-145, stage 2). THE ARRAY IS NOW A CURVE, NOT A PAIR OF
+    // ENDPOINTS. luminanceValues[i] is the luminance measured at the driving
+    // level DDL_i = i/(count-1) * 65535, ascending. That horizontal axis is the
+    // contract this function needs and did not previously have: stage 1 left
+    // the standard's model computed and then cancelled out of the answer
+    // because there was nothing to invert it against.
     //
-    // Algorithm:
-    //   1. Find min/max luminance from input array
-    //   2. Compute JND for min and max using log10 model
-    //   3. Create linear JND scale from JND_min to JND_max over 1024 steps
-    //   4. For each LUT position, find the digital driving level (DDL) by
-    //      inverting the JND function back to luminance, then scaling to [0, 65535]
-    //   5. Ensure monotonically non-decreasing output
+    // Algorithm, with the step that was missing named:
+    //   1. Range = the two ends of the measured curve.
+    //   2. j_min = j(L_min), j_max = j(L_max)          -- Equation 7-2.
+    //   3. Equal steps in JND index across [j_min, j_max], 1024 of them.
+    //      That is what "P-Value steps are perceptually equal" means.
+    //   4. L_target = L(j)                             -- Equation 7-1. THIS IS
+    //      THE LINK THAT WAS ABSENT; without it step 3 undoes itself.
+    //   5. DDL = the driving level whose MEASURED luminance is L_target, found
+    //      by inverting the input array (linear interpolation between samples).
+    //   6. Monotonically non-decreasing output.
+    //
+    // Verified without hardware: feeding a synthetic characteristic curve whose
+    // answer is known analytically (gamma 2.2 and gamma 1.8 in
+    // test_gsdf_characterization.cpp) and checking the module reproduces it.
+    // A real measurement is not required to know the right answer -- an
+    // independently derived control is (QA-B-142 used Table B-1 the same way).
 
-    // Step 1: find luminance range
+    // Step 1: the ends of the measured curve. The contract says ascending, so
+    // these are element 0 and element count-1; a caller that violates it is
+    // caught here rather than silently producing an inverted ramp.
     float lum_min = luminanceValues[0];
-    float lum_max = luminanceValues[0];
-    for (uint32_t i = 1; i < count; ++i) {
-        if (luminanceValues[i] < lum_min) lum_min = luminanceValues[i];
-        if (luminanceValues[i] > lum_max) lum_max = luminanceValues[i];
-    }
+    float lum_max = luminanceValues[count - 1];
 
     // Protect against invalid luminance values
     if (lum_min <= 0.0f) lum_min = 0.01f;
@@ -136,11 +146,12 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     //
     // https://dicom.nema.org/medical/dicom/current/output/chtml/part14/chapter_7.html
     //
-    // STAGE 1 CHANGES NO OUTPUT. This expression cancels out of the LUT below
-    // (#155), so the produced bytes are identical before and after; that
-    // identity is asserted by Stage1_LutBytesAreUnchangedByTheCoefficientFix_155
-    // and is the evidence that the expression really does not reach the answer.
-    // Making it reach the answer is a separate, later change.
+    // STAGE 1 CHANGED NO OUTPUT: this expression cancelled out of the LUT
+    // (#155). Stage 2 below makes it reach the answer, by inverting it through
+    // Equation 7-1 and the measured curve instead of through itself. The test
+    // that asserted the ramp is now inverted rather than deleted
+    // (Stage2_LutIsNoLongerTheStraightRamp_155), so the diff reads "was a ramp
+    // -> is not" in one line.
     auto jnd_from_log10l = [](float log10_L) -> float {
         const double y = static_cast<double>(log10_L);
         double p = -0.017046845;      // I, y^8
@@ -155,35 +166,68 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
         return static_cast<float>(p);
     };
 
-    float log_lmin = std::log10f(lum_min);
-    float log_lmax = std::log10f(lum_max);
+    // DICOM PS3.14 Equation 7-1, L(j): the inverse of the expression above, and
+    // the step stage 1 did not have. Rational function in ln(j), evaluated in
+    // double precision as the standard recommends. Its agreement with all ten
+    // published Table B-1 points, and its round trip against Equation 7-2, are
+    // asserted in test_gsdf_characterization.cpp -- the coefficients are not
+    // trusted because they were transcribed, they are checked.
+    auto luminance_from_jnd = [](double j) -> double {
+        const double x  = std::log(j);
+        const double x2 = x * x, x3 = x2 * x, x4 = x3 * x, x5 = x4 * x;
+        const double num = -1.3011877 + 8.0242636e-2 * x + 1.3646699e-1 * x2
+                         + -2.5468404e-2 * x3 + 1.3635334e-3 * x4;
+        const double den = 1.0 + -2.5840191e-2 * x + -1.0320229e-1 * x2
+                         + 2.8745620e-2 * x3 + -3.1978977e-3 * x4
+                         + 1.2992634e-4 * x5;
+        return std::pow(10.0, num / den);
+    };
 
-    float jnd_min = jnd_from_log10l(log_lmin);
-    float jnd_max = jnd_from_log10l(log_lmax);
+    float jnd_min = jnd_from_log10l(std::log10f(lum_min));
+    float jnd_max = jnd_from_log10l(std::log10f(lum_max));
 
     if (jnd_max <= jnd_min) jnd_max = jnd_min + 1.0f;
 
-    // Step 3 & 4: For each of 1024 LUT positions, compute the output DDL
-    // Each LUT index i corresponds to a normalized input value n = i / 1023.0
-    // We map that to a JND index, then invert to luminance, then scale to uint16
+    // Steps 3-5: equal JND steps -> required luminance -> the driving level the
+    // MEASURED curve says produces it.
     const float jnd_range = jnd_max - jnd_min;
 
     uint16_t prev = 0;
     for (int i = 0; i < 1024; ++i) {
-        // Target JND index linearly distributed
-        float target_jnd = jnd_min + (static_cast<float>(i) / 1023.0f) * jnd_range;
+        // Step 3: target JND index, linearly distributed across the range.
+        const double target_jnd = static_cast<double>(jnd_min)
+            + (static_cast<double>(i) / 1023.0) * static_cast<double>(jnd_range);
 
-        // Invert JND -> log10(L) using a simple linear approximation of the inverse
-        // In the simplified model: log10(L) ≈ (target_jnd - 9.8212) / (some slope)
-        // For monotonicity, we use the linear interpolation between log_lmin and log_lmax
-        float t = (target_jnd - jnd_min) / jnd_range;
-        float log_L = log_lmin + t * (log_lmax - log_lmin);
+        // Step 4: the luminance the standard requires at this P-Value.
+        double target_lum = luminance_from_jnd(target_jnd);
+        if (target_lum < lum_min) target_lum = lum_min;
+        if (target_lum > lum_max) target_lum = lum_max;
 
-        // Scale log_L in [log_lmin, log_lmax] to DDL in [0, 65535]
-        float ddl_f = ((log_L - log_lmin) / (log_lmax - log_lmin)) * 65535.0f;
-        uint16_t ddl = static_cast<uint16_t>(xpe_clamp(static_cast<int32_t>(std::roundf(ddl_f)), 0, 65535));
+        // Step 5: invert the measured curve. luminanceValues[k] was measured at
+        // DDL_k = k/(count-1) * 65535, so locating target_lum between two
+        // samples locates the driving level between their two DDLs.
+        double ddl_f;
+        if (target_lum <= static_cast<double>(luminanceValues[0])) {
+            ddl_f = 0.0;
+        } else if (target_lum >= static_cast<double>(luminanceValues[count - 1])) {
+            ddl_f = 65535.0;
+        } else {
+            uint32_t k = 0;
+            while (k + 2 < count &&
+                   static_cast<double>(luminanceValues[k + 1]) < target_lum) {
+                ++k;
+            }
+            const double lo = static_cast<double>(luminanceValues[k]);
+            const double hi = static_cast<double>(luminanceValues[k + 1]);
+            const double frac = (hi > lo) ? (target_lum - lo) / (hi - lo) : 0.0;
+            ddl_f = ((static_cast<double>(k) + frac) /
+                     static_cast<double>(count - 1)) * 65535.0;
+        }
 
-        // Step 5: monotonically non-decreasing
+        uint16_t ddl = static_cast<uint16_t>(
+            xpe_clamp(static_cast<int32_t>(std::lround(ddl_f)), 0, 65535));
+
+        // Step 6: monotonically non-decreasing
         if (ddl < prev) ddl = prev;
         outParams->lutData[i] = ddl;
         prev = ddl;
