@@ -154,7 +154,7 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     /// <summary>An option that must differ from the Reference's in what it actually runs.</summary>
-    private const string CandidateAlgorithm = "Candidate v1.4";
+    private const string CandidateAlgorithm = "Virtual grid";
 
     private static void SelectAlgorithm(Window window, string lane, string option)
     {
@@ -252,5 +252,5 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     /// <summary>The option both lanes are put on when a case needs them to agree.</summary>
-    private const string BaselineAlgorithm = "Baseline v1.0";
+    private const string BaselineAlgorithm = "No correction";
 }

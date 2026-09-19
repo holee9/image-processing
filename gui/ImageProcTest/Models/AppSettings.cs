@@ -49,8 +49,8 @@ public sealed class AppSettings : ObservableObject
     private double _comparisonPanY;
     private double _comparisonSwipePosition = 0.5;
     private double _comparisonOverlayOpacity = 0.5;
-    private string _laneAAlgorithm = "Production v1.2";
-    private string _laneBAlgorithm = "Production v1.2";
+    private string _laneAAlgorithm = "Grid suppression";
+    private string _laneBAlgorithm = "Grid suppression";
     private bool _focusMode;
     private bool _leftPanelOpen = true;
     private bool _rightPanelOpen = true;
@@ -391,14 +391,14 @@ public sealed class AppSettings : ObservableObject
     public string LaneAAlgorithm
     {
         get => _laneAAlgorithm;
-        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Production v1.2" : value);
+        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
     }
 
     [JsonPropertyName("laneBAlgorithm")]
     public string LaneBAlgorithm
     {
         get => _laneBAlgorithm;
-        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Production v1.2" : value);
+        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
     }
 
     [JsonPropertyName("focusMode")]
