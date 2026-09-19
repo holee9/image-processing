@@ -62,8 +62,7 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
             Assert.Contains(".unreadable-", status, StringComparison.Ordinal);
 
             // And the original really is there — the message would otherwise point at nothing.
-            var preserved = Directory.GetFiles(
-                Path.GetDirectoryName(path)!, Path.GetFileName(path) + ".unreadable-*");
+            var preserved = Rescued(path);
             output.WriteLine($"preserved: {string.Join(", ", preserved)}");
             Assert.True(preserved.Length == 1, $"Expected exactly one preserved original, found {preserved.Length}.");
             Assert.Equal(CorruptSettings.Trim(), File.ReadAllText(preserved[0]).Trim());
@@ -93,8 +92,7 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
             Assert.DoesNotContain(".unreadable-", status, StringComparison.Ordinal);
 
             // The control: nothing was moved aside either.
-            var preserved = Directory.GetFiles(
-                Path.GetDirectoryName(path)!, Path.GetFileName(path) + ".unreadable-*");
+            var preserved = Rescued(path);
             Assert.True(preserved.Length == 0, $"A readable file was moved aside anyway: {string.Join(", ", preserved)}");
         }
         finally
@@ -102,6 +100,79 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
             CleanUp(path);
         }
     }
+
+    /// <summary>Corrupt a second time, and different from the first, so the two are distinguishable.</summary>
+    private const string CorruptAgain = """
+    { "voiWindowCenter": 9999, "backendMode":
+    """;
+
+    /// <summary>
+    /// A second read failure must not overwrite the FIRST rescued original (#173, GUI-C-120).
+    ///
+    /// <para><b>The intuition here is backwards, so it is worth stating.</b> The file rescued at the
+    /// FIRST failure is the user's real settings. After that, <c>appsettings.json</c> is rewritten from
+    /// defaults — GUI-C-118 measured the next Save putting 1482 bytes over it — so anything a later
+    /// failure rescues is closer to defaults than to what the user had. Keeping the newest and dropping
+    /// the oldest would discard precisely the thing worth keeping.</para>
+    ///
+    /// <para>So the second failure leaves the first rescue alone, and the file count stays at one
+    /// rather than growing. Not accumulating beats cleaning up: no one has to own the cleanup.</para>
+    ///
+    /// <para><b>Both halves are asserted.</b> Keeping the file without saying where it is leaves the
+    /// user unable to find their settings, which is the same silence this issue has been removing —
+    /// so the second launch's message has to name the earlier rescue.</para>
+    /// </summary>
+    [SkippableFact]
+    public void ASecondFailure_DoesNotOverwriteTheFirstRescue()
+    {
+        var path = NewSettingsPath();
+        File.WriteAllText(path, CorruptSettings);
+
+        try
+        {
+            using (var first = new SettingsFileApplicationFixture(path))
+            {
+                Skip.If(!first.IsAvailable, first.SkipReason ?? "The application is not available.");
+                output.WriteLine($"first launch status: '{StatusBarText(first)}'");
+            }
+
+            var afterFirst = Rescued(path);
+            Assert.True(afterFirst.Length == 1, $"The first launch rescued {afterFirst.Length} files, expected 1.");
+            Assert.Equal(CorruptSettings.Trim(), File.ReadAllText(afterFirst[0]).Trim());
+
+            // The app was left with no settings file; a later run writes a fresh one, which can go bad
+            // in its turn. That second failure is the case under test.
+            File.WriteAllText(path, CorruptAgain);
+
+            string secondStatus;
+            using (var second = new SettingsFileApplicationFixture(path))
+            {
+                Skip.If(!second.IsAvailable, second.SkipReason ?? "The application is not available.");
+                secondStatus = StatusBarText(second);
+            }
+
+            output.WriteLine($"second launch status: '{secondStatus}'");
+
+            var afterSecond = Rescued(path);
+            output.WriteLine($"rescued after second: {string.Join(", ", afterSecond)}");
+
+            // ① the count does not grow ② and the survivor is the FIRST original, not the second.
+            Assert.True(afterSecond.Length == 1,
+                $"A second failure left {afterSecond.Length} rescued files; they accumulate with nobody to remove them.");
+            Assert.Equal(CorruptSettings.Trim(), File.ReadAllText(afterSecond[0]).Trim());
+
+            // ③ and the user is told where that earlier original is.
+            Assert.Contains(Path.GetFileName(afterSecond[0]), secondStatus, StringComparison.Ordinal);
+            Assert.Contains("earlier", secondStatus, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            CleanUp(path);
+        }
+    }
+
+    private static string[] Rescued(string path) =>
+        Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + ".unreadable-*");
 
     private static string StatusBarText(SettingsFileApplicationFixture app)
     {
