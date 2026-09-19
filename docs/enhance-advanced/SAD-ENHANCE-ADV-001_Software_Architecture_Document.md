@@ -526,7 +526,11 @@ For EI ROI correction (SWU-2.10):
 > actually parses yields: `border_margin`, `disable_overshoot_limit`, `edge_gain`, `flat_gain`,
 > `iterations`, `levels`, `min_area_ratio`, `noise_threshold`, `num_levels`, `order`,
 > `overshoot`, `overshoot_factor`, `overshoot_limit`, `overshoot_limiting`, `range`, `safety`,
-> `sensitivity`, `step_size`, `texture_gain`. Six keys named below — `gaussian_sigma`,
+> `sensitivity`, `texture_gain`. (`step_size` was in this list until 2026-09-19; QA-B-139
+removed its parse, clamp, default and log line under #162 — the fractional path has nothing
+for it to drive, so it is no longer parsed. The key name stays in `kKnown` so a caller that
+still sends it gets the inert-key warning rather than a misleading "unknown key".)
+Six keys named below — `gaussian_sigma`,
 > `overshoot_limit_enabled`, `canny_threshold_low`, `canny_threshold_high`,
 > `hough_peak_threshold_ratio`, `ei_ref` — appear in **no file under `modules/`**. This block
 > is retained as design intent rather than deleted; a caller that writes it today is configuring
