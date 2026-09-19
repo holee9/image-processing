@@ -104,6 +104,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                 g_calib.gain_poly_coeffs.reset();
                 g_calib.gain_poly_num_coeffs = 0;
             }
+            // The range belongs to whichever polynomial is current; clearing
+            // it on every load keeps a previous file's bounds from surviving
+            // into the next one (QA-A-123, #194).
+            g_calib.gain_poly_has_range = false;
+            g_calib.gain_poly_dose_min = 0.0;
+            g_calib.gain_poly_dose_max = 0.0;
             g_calib.gain_width  = hdr.width;
             g_calib.gain_height = hdr.height;
             g_calib.gain_timestamp = hdr.created_epoch_ms;
@@ -123,6 +129,38 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         {
             std::string json(config_json.begin(), config_json.end());
             xpe_calib_apply_quality_meta_json(json.c_str());
+
+            // QA-A-123 (#194): read the fitted dose range, which bounds where
+            // the polynomial means anything. Absence is detected by asking
+            // twice with different defaults rather than by matching text -- a
+            // key that is genuinely present answers the same both times.
+            if (poly_loaded) {
+                const double lo_a = xpe_json_get_double(json.c_str(), "dose_min", -1.0);
+                const double lo_b = xpe_json_get_double(json.c_str(), "dose_min", -2.0);
+                const double hi_a = xpe_json_get_double(json.c_str(), "dose_max", -1.0);
+                const double hi_b = xpe_json_get_double(json.c_str(), "dose_max", -2.0);
+                const bool have = (lo_a == lo_b) && (hi_a == hi_b) && (hi_a > lo_a);
+
+                if (have) {
+                    std::lock_guard<std::mutex> lock(g_calib_mutex);
+                    g_calib.gain_poly_has_range = true;
+                    g_calib.gain_poly_dose_min = lo_a;
+                    g_calib.gain_poly_dose_max = hi_a;
+                } else {
+                    // Not rejected: refusing would retire every calibration
+                    // made before this field existed, which is the harder
+                    // thing to undo. Not silent either, or today's behaviour
+                    // stays invisible forever.
+                    xpe_alert_push(
+                        "gain polynomial loaded without a dose range: this file "
+                        "was generated before the range field existed, so the "
+                        "out-of-range clamp does not apply to it and pixel "
+                        "values beyond the fitted levels are extrapolated; "
+                        "regenerate the calibration to enable the clamp "
+                        "(issue #194)",
+                        XPE_ALERT_WARNING);
+                }
+            }
         }
 
         // QA-A-107 (#187) raised a warning here saying the coefficients were

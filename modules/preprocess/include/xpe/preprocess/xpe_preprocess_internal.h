@@ -284,6 +284,19 @@ struct CalibrationData {
     std::unique_ptr<float[]>   gain_poly_coeffs;
     uint32_t gain_poly_num_coeffs{0};
 
+    // QA-A-123 (#194): the dose range the polynomial was fitted and
+    // monotonicity-checked over, read from the file's config_json. The fit
+    // guarantees nothing outside it, so xpe_gain_correct() clamps the pixel
+    // value into this interval before evaluating.
+    //
+    // `gain_poly_has_range` is false for a file written before QA-A-123.
+    // Such a file is NOT rejected -- that would retire every existing
+    // calibration -- and it is NOT silently accepted either: the loader
+    // raises one alert saying the clamp does not apply to it.
+    bool   gain_poly_has_range{false};
+    double gain_poly_dose_min{0.0};
+    double gain_poly_dose_max{0.0};
+
     std::unique_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};

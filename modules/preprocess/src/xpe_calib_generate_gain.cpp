@@ -642,12 +642,21 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         // (QA-A-87, #140). The ceiling keeps its own key; num_coefficients is
         // the payload stride and still follows the ceiling, because every
         // pixel is stored at max_degree + 1 coefficients.
-        char meta[512];
+        // QA-A-123 (#194): record the dose range the fit was validated over.
+        // These are not new numbers -- they are the same two values the
+        // monotonicity check above already takes (`:507-508`) and then drops.
+        // Without them the file carries no boundary, so nothing downstream can
+        // tell "inside the fit" from "extrapolated": a pixel far above the top
+        // knot was evaluated on the same polynomial and, on a steeply curved
+        // ladder, received 2.78x the top-knot gain -- enough to make a
+        // saturated pixel come out DARKER than a D_max one (QA-A-122 probe).
+        char meta[640];
         std::snprintf(meta, sizeof(meta),
             "{\"polynomial_degree\":%d,\"max_polynomial_degree\":%d,"
             "\"num_coefficients\":%d,\"num_dose_levels\":%d,"
             "\"calibration_mode\":%d,\"requested_calibration_mode\":%d,"
             "\"actual_dose_levels\":%d,"
+            "\"dose_min\":%.6f,\"dose_max\":%.6f,"
             "\"fit_r_squared\":%.9f,\"max_residual_pct\":%.6f,"
             "\"mean_residual_pct\":%.6f,\"calibration_pass\":%d}",
             static_cast<int>(highest_degree),
@@ -657,6 +666,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             static_cast<int>(mode),
             static_cast<int>(xpe_calib_get_mode()),
             static_cast<int>(num_levels),
+            dose_levels[0], dose_levels[num_levels - 1],
             r_squared, max_residual_pct, mean_residual_pct,
             gate_passed ? 1 : 0);
         meta[sizeof(meta) - 1] = '\0';

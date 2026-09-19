@@ -19,6 +19,7 @@
 #if defined(_MSC_VER)
 #include <intrin.h>
 #endif
+#include <cstdio>
 #include <cstring>
 
 /* ============================================================================
@@ -269,6 +270,9 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
         std::vector<float> gainmap;
         std::vector<float> poly;          // QA-A-121: per-pixel coefficients
         uint32_t poly_coeffs = 0;
+        bool   poly_has_range = false;    // QA-A-123 (#194): fitted dose range
+        double poly_dose_min  = 0.0;
+        double poly_dose_max  = 0.0;
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
             // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
@@ -308,6 +312,9 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
                 if (poly_coeffs == 0) return XPE_ERR_INVALID_CALIB_DATA;
                 poly.assign(g_calib.gain_poly_coeffs.get(),
                             g_calib.gain_poly_coeffs.get() + n * poly_coeffs);
+                poly_has_range = g_calib.gain_poly_has_range;
+                poly_dose_min  = g_calib.gain_poly_dose_min;
+                poly_dose_max  = g_calib.gain_poly_dose_max;
             } else if (!g_calib.gain_map) {
                 return XPE_ERR_CALIB_NOT_LOADED;
             }
@@ -326,16 +333,53 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
         // QA-A-121: evaluate the per-pixel polynomial at the pixel's own value.
         // Horner from the highest coefficient down, so the layout
         // [p * poly_coeffs + j] is read once per pixel in order.
+        //
+        // QA-A-123 (#194): the fit says nothing outside [dose_min, dose_max],
+        // so the abscissa is clamped into it first. Measured on a steeply
+        // curved ladder, a saturated pixel (65535) was otherwise evaluated at
+        // 2.78x the top-knot gain and came out DARKER than a D_max pixel --
+        // monotonicity inverted exactly where direct-exposure, metal and
+        // saturation live. Clamping pins those pixels to the edge gain, which
+        // is the nearest value the calibration actually measured.
+        //
+        // Rejecting the frame instead was considered and declined: a handful
+        // of saturated pixels would discard the whole image, which is the
+        // heavier failure. Clamp + one alert keeps the frame and still says
+        // what happened.
+        size_t clamped_count = 0;
         if (!poly.empty()) {
             gainmap.resize(n);
             for (size_t i = 0; i < n; ++i) {
-                const float x = static_cast<float>(src[i]);
+                float x = static_cast<float>(src[i]);
+                if (poly_has_range) {
+                    if (x < static_cast<float>(poly_dose_min)) {
+                        x = static_cast<float>(poly_dose_min);
+                        ++clamped_count;
+                    } else if (x > static_cast<float>(poly_dose_max)) {
+                        x = static_cast<float>(poly_dose_max);
+                        ++clamped_count;
+                    }
+                }
                 const float* c = poly.data() + i * poly_coeffs;
                 float acc = c[poly_coeffs - 1];
                 for (uint32_t j = poly_coeffs - 1; j > 0; --j) {
                     acc = acc * x + c[j - 1];
                 }
                 gainmap[i] = acc;
+            }
+
+            // One alert for the frame, carrying the count. Pushing per pixel
+            // would put tens of thousands of identical lines in the queue and
+            // make the queue itself useless.
+            if (clamped_count > 0) {
+                char msg[256];
+                std::snprintf(msg, sizeof(msg),
+                    "%zu pixel(s) fell outside the gain polynomial's fitted "
+                    "dose range [%.1f, %.1f] and were evaluated at the range "
+                    "edge; values beyond the calibrated levels are not "
+                    "extrapolated (issue #194)",
+                    clamped_count, poly_dose_min, poly_dose_max);
+                xpe_alert_push(msg, XPE_ALERT_WARNING);
             }
         }
 
