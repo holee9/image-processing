@@ -92,8 +92,6 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.BinningCorrectionMode),
         nameof(AppSettings.LaneBSharpeningSigma),
         nameof(AppSettings.LaneBDenoiseStrength),
-        nameof(AppSettings.LaneAAlgorithm),
-        nameof(AppSettings.LaneBAlgorithm),
         // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
         // The toggle writes through a command, not a binding, so the survey sees only its display
         // binding; UnappliedSettingsScenarios U-04 reads the disabled state in the running app.
@@ -135,6 +133,14 @@ public sealed class SettingsProcessingConnectionTests
         // RealXpeBackend.ApplyDisplayPipelineCore reads. L-02 measures the Candidate's drawn hash
         // moving and the Reference's staying put, so the copy demonstrably reaches pixels.
         [nameof(AppSettings.LaneBVoiWindowWidth)] = $"{nameof(AppSettings.VoiWindowWidth)} (L-02)",
+
+        // GUI-C-114: an algorithm option is a named chain configuration (AlgorithmPreset), and choosing
+        // one writes PreprocessInChain and GsvgMode into the settings the lane is rendered with — the
+        // Reference into the main settings, the Candidate into its own copy. GsvgMode is named as the
+        // target because GuiGsvgRunner reads it; L-04 measures the Candidate's drawn hash moving on an
+        // algorithm change while the Reference's stays put.
+        [nameof(AppSettings.LaneAAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
+        [nameof(AppSettings.LaneBAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
     };
 
     /// <summary>

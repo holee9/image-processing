@@ -41,7 +41,7 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     {
         Measure("L-01", window =>
         {
-            ClearCandidateOverride(window);
+            MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
 
             var loaded = LoadedSize(window);
@@ -69,7 +69,7 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     {
         Measure("L-02", window =>
         {
-            ClearCandidateOverride(window);
+            MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
             var beforeA = Lane(window, "A");
             var beforeB = Lane(window, "B");
@@ -99,7 +99,7 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     {
         Measure("L-03", window =>
         {
-            ClearCandidateOverride(window);
+            MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
             Assert.False(LaneIsStale(window, "B"), "Lane B is stale before anything was edited.");
 
@@ -130,11 +130,11 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     {
         MeasureNative("L-04", window =>
         {
-            ClearCandidateOverride(window);
-            SelectAlgorithm(window, "B", ReferenceAlgorithm(window));
+            MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
             var beforeA = Lane(window, "A");
             var beforeB = Lane(window, "B");
+            output.WriteLine($"L-04 same algorithm: A={beforeA.Hash} B={beforeB.Hash}");
             Assert.Equal(beforeA.Hash, beforeB.Hash);   // same algorithm, so the lanes must agree first
 
             SelectAlgorithm(window, "B", CandidateAlgorithm);
@@ -155,13 +155,6 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
 
     /// <summary>An option that must differ from the Reference's in what it actually runs.</summary>
     private const string CandidateAlgorithm = "Candidate v1.4";
-
-    private static string ReferenceAlgorithm(Window window)
-    {
-        var picker = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAAlgorithmPicker"));
-        Assert.True(picker is not null, "LaneAAlgorithmPicker is not in the tree.");
-        return picker!.AsComboBox().SelectedItem?.Text ?? string.Empty;
-    }
 
     private static void SelectAlgorithm(Window window, string lane, string option)
     {
@@ -241,4 +234,23 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     private static void ClearCandidateOverride(Window window) => SetCandidateOverride(window, "0");
+
+    /// <summary>
+    /// Puts both lanes on the same settings: no VOI override and one named algorithm on both sides.
+    ///
+    /// <para>A case establishes this rather than assuming it, because "nothing differs" now spans two
+    /// axes: L-01 cleared only the VOI override and started failing the moment the algorithm axis
+    /// existed. The app ships with both lanes on the SAME algorithm — differing by default would look
+    /// better on opening and would run the pipeline a second time on every apply, for every user,
+    /// workbench or not (measured: it put W-23 and W-26 back into the red, which count the calls).</para>
+    /// </summary>
+    private static void MakeLanesIdentical(Window window)
+    {
+        ClearCandidateOverride(window);
+        SelectAlgorithm(window, "A", BaselineAlgorithm);
+        SelectAlgorithm(window, "B", BaselineAlgorithm);
+    }
+
+    /// <summary>The option both lanes are put on when a case needs them to agree.</summary>
+    private const string BaselineAlgorithm = "Baseline v1.0";
 }

@@ -50,7 +50,7 @@ public sealed class AppSettings : ObservableObject
     private double _comparisonSwipePosition = 0.5;
     private double _comparisonOverlayOpacity = 0.5;
     private string _laneAAlgorithm = "Production v1.2";
-    private string _laneBAlgorithm = "Candidate v1.4";
+    private string _laneBAlgorithm = "Production v1.2";
     private bool _focusMode;
     private bool _leftPanelOpen = true;
     private bool _rightPanelOpen = true;
@@ -398,7 +398,7 @@ public sealed class AppSettings : ObservableObject
     public string LaneBAlgorithm
     {
         get => _laneBAlgorithm;
-        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Candidate v1.4" : value);
+        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Production v1.2" : value);
     }
 
     [JsonPropertyName("focusMode")]

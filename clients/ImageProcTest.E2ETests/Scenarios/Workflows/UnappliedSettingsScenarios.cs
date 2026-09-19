@@ -78,9 +78,17 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         }
     }
 
-    /// <summary>U-03: the Lane A / Lane B algorithm pickers are disabled and marked; the chosen name is still shown.</summary>
+    /// <summary>
+    /// U-03: the Lane A / Lane B algorithm pickers are usable and carry no "unapplied" mark.
+    ///
+    /// <para>This case used to assert the opposite, and was right to: until GUI-C-114 the choice reached
+    /// no processing, so the screen had to say so — a disabled picker and a mark. The choice now selects
+    /// a chain configuration and L-04 measures it moving the drawn pixels, so the same contract ("the
+    /// screen tells the truth about whether a setting is connected") now requires the reverse. The mark
+    /// is gone from the app, and this case fails if it comes back while the setting still works.</para>
+    /// </summary>
     [SkippableFact]
-    public void U03_AlgorithmPickers_AreDisabledAndMarked()
+    public void U03_AlgorithmPickers_AreUsableAndUnmarked()
     {
         var window = Ready();
         foreach (var lane in new[] { "A", "B" })
@@ -88,9 +96,12 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
             var picker = Find(window, $"Lane{lane}AlgorithmPicker").AsComboBox();
             var shown = picker.SelectedItem?.Text;
             output.WriteLine($"U03 lane {lane} enabled={picker.IsEnabled} selected='{shown}'");
-            Assert.False(picker.IsEnabled, $"The Lane {lane} algorithm picker is enabled, but no processing reads the choice (#182).");
+            Assert.True(picker.IsEnabled,
+                $"The Lane {lane} algorithm picker is disabled, but the choice now selects the chain configuration (#173).");
             Assert.False(string.IsNullOrWhiteSpace(shown), $"The Lane {lane} picker no longer shows the stored choice.");
-            AssertMark(window, $"Lane{lane}AlgorithmUnappliedMark");
+            Assert.True(
+                window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}AlgorithmUnappliedMark")) is null,
+                $"Lane {lane} still carries an 'unapplied' mark for a setting that now reaches the drawn pixels.");
         }
     }
 
