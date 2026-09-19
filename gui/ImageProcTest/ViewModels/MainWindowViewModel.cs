@@ -139,15 +139,16 @@ public sealed class MainWindowViewModel : ObservableObject
         Log("GUI-S0 initialized.");
         InitializeBackend();
 
-        // AFTER the backend, not before (#161, GUI-C-63). InitializeBackend clears Logs and Alerts,
-        // so anything said before it is written and erased within the same constructor — measured in
-        // GUI-C-62, where a run with a rejected mode showed six log lines, none of them the rejection
-        // and none of them the "GUI-S0 initialized." line written immediately before it. The whole of
-        // that moment was gone, not just one line.
+        // AFTER the backend, not before (#161, GUI-C-63). InitializeBackend used to clear Logs and
+        // Alerts, so anything said before it was written and erased within the same constructor —
+        // measured in GUI-C-62, where a run with a rejected mode showed six log lines, none of them the
+        // rejection and none of them the "GUI-S0 initialized." line written immediately before it.
+        // GUI-C-126 replaced that clear with a separator, so the erasure is gone; the order stays
+        // because it is also the order these things happen in.
         ReportRejectedComparisonMode();
 
-        // Same ordering reason as the line above: InitializeBackend clears Logs and Alerts, so this
-        // has to be said after it or it is erased inside this constructor.
+        // Same ordering reason as the line above (and it no longer depends on the clear, which
+        // GUI-C-126 replaced with a separator).
         ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
     }
 
@@ -880,8 +881,22 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         try
         {
-            Alerts.Clear();
-            Logs.Clear();
+            // #198 (GUI-C-126, lead decision): the record the user has seen is kept and a boundary is
+            // written instead of clearing it.
+            //
+            // Why not clear: nothing says why the clear was there. It arrived in d5432d2 ("GUI 메뉴와
+            // 오프라인 도움말 추가") with no stated reason, and #161 did not decide it — that card
+            // worked AROUND it by moving what it said to after this call. One reason it might have had
+            // is real: alerts from the previous backend could be read as describing the new one. A
+            // separator satisfies that reading as well as the opposite one, so neither has to be proven.
+            //
+            // The drain cursors below are a different thing and are still reset: they are backend
+            // state — the new backend's queue starts at 0 and must be read from 0.
+            if (Logs.Count > 0 || Alerts.Count > 0)
+            {
+                Log("--- backend re-initialised ---");
+            }
+
             _drainedBackendLogCount = 0;
             _drainedBackendAlertCount = 0;
 

@@ -26,9 +26,12 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// clearing</b>: removing <c>Logs.Clear()</c> satisfies it just as well. An outcome test would pass
 /// while the ordering silently went back.</para>
 ///
-/// <para>So the order is guarded here, together with the reason it matters — if <c>Logs.Clear()</c>
-/// ever leaves <c>InitializeBackend</c>, the second assertion fails and says the premise changed
-/// rather than letting a now-pointless rule stand.</para>
+/// <para>So the order is guarded here, together with the reason it matters — and the premise
+/// assertion did its job: GUI-C-126 removed <c>Logs.Clear()</c> (lead decision on #198, which replaced
+/// it with a <c>--- backend re-initialised ---</c> separator) and this file went red, rather than
+/// keeping a rule alive whose reason had evaporated. Both assertions were then rewritten to the new
+/// contract instead of being deleted: the ordering still matters, for the different reason stated in
+/// its own message, and the premise now pins what replaced the clear.</para>
 ///
 /// <para><b>What this cannot see</b>: whether the line is readable on screen. That was observed by
 /// hand (GUI-C-62 measured the list at 356x156 px after pressing the panel's Log button) and is not
@@ -51,23 +54,37 @@ public sealed class StartupRejectionSurvivesTests
 
         Assert.True(
             report > initialize,
-            "ReportRejectedComparisonMode() runs BEFORE InitializeBackend(), which clears the log — " +
-            "so the rejection is written and erased inside the same constructor. Measured in " +
-            "GUI-C-62: six log lines and no rejection among them. Move the call back after it.");
+            "ReportRejectedComparisonMode() runs BEFORE InitializeBackend(). It no longer gets erased " +
+            "(GUI-C-126 replaced the clear with a separator), but it would land ABOVE the " +
+            "'--- backend re-initialised ---' boundary and so read as belonging to a previous backend " +
+            "that, on the first initialise, does not exist. Move the call back after it.");
     }
 
     /// <summary>
-    /// The premise: the order above only matters because start-up clears the log.
+    /// The premise, restated after GUI-C-126: start-up marks a boundary instead of erasing the record.
     ///
-    /// If that clearing goes away, this fails — deliberately. A guard whose reason has quietly
-    /// evaporated is worse than no guard: it keeps a rule alive and tells nobody why.
+    /// <para>This assertion used to require <c>Logs.Clear();</c> here, and it fired the moment the
+    /// clear was removed — which is what it was for. The rule did not disappear with the clear, it
+    /// changed shape, so the assertion changed with it: what must not come back is the erasure, and
+    /// what must stay is the separator. A run that clears again silently loses what the user has
+    /// already read (GUI-C-122 measured 7 lines carrying a rescued settings path becoming 6 without
+    /// it).</para>
+    ///
+    /// <para>The drain cursors are a different thing and are expected to keep resetting: they are
+    /// backend state, not a record anybody read.</para>
     /// </summary>
     [Fact]
-    public void InitializeBackend_IsWhatClearsTheLog()
+    public void InitializeBackend_MarksABoundaryRatherThanErasingTheRecord()
     {
         var body = WithoutLineComments(MethodBody(ViewModelSource(), "private void InitializeBackend()"));
 
-        Assert.Contains("Logs.Clear();", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Logs.Clear();", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alerts.Clear();", body, StringComparison.Ordinal);
+        Assert.Contains("backend re-initialised", body, StringComparison.Ordinal);
+
+        // The control: the cursors still reset, so "nothing clears any more" is not what was measured.
+        Assert.Contains("_drainedBackendLogCount = 0;", body, StringComparison.Ordinal);
+        Assert.Contains("_drainedBackendAlertCount = 0;", body, StringComparison.Ordinal);
     }
 
     /// <summary>
