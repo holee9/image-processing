@@ -44,6 +44,18 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
                          : std::string();
     if (panel_linear == "true") return XPE_OK;
 
+    // QA-A-125 (#186): A LOADED LUT TAKES PRECEDENCE OVER THE DETECTOR MODE.
+    // This block sits ahead of the "mode" parse below, so when a LUT is loaded
+    // it is applied whatever `mode` says -- including a mode the list below
+    // would reject with XPE_ERR_CONFIG_INVALID. That ordering is deliberate
+    // (a real calibration outranks a mode name that selects no correction),
+    // but it was nowhere written down, so it is written here.
+    //
+    // It is also the same question #187 answered for the gain models with
+    // "the model loaded last is the one applied". Here there is only one
+    // model, so precedence is unambiguous; when EXT 6b (the global polynomial)
+    // arrives there will be two, and LUT-vs-polynomial has to be decided then
+    // -- not inferred from whichever branch happens to come first.
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (g_calib.nonlin_lut && g_calib.nonlin_entries > 0) {
@@ -91,9 +103,18 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     if (!known) return XPE_ERR_CONFIG_INVALID;
 
     // REQ-P1A-012/015: apply identity polynomial for now (baseline, uint16 format)
-    // Real coefficients would be loaded from a per-detector calibration profile
-    // (SRS-CALIB-FUNC-006, not implemented). No pixel changes, so `changed`
-    // stays false and the pipeline does not mark the frame corrected (#184).
+    //
+    // QA-A-125 (#186): this path is reached only when NO LUT is loaded -- the
+    // branch above applies one when it is there. Saying "SRS-CALIB-FUNC-006 is
+    // not implemented" here, as this comment used to, is false: EXT 6a is
+    // implemented and the per-detector profile it describes is exactly the LUT
+    // loaded above. What is missing is EXT 6b, the global 4th-degree
+    // polynomial for embedded/FPGA use -- no generate, load, or apply, and no
+    // XCal type for it.
+    //
+    // So this is the older REQ-P1A-012 baseline, not the FUNC-006 path: it
+    // recognises a detector mode and changes no pixels, so `changed` stays
+    // false and the pipeline does not mark the frame corrected (#184).
     (void)img;
     return XPE_OK;
 }
