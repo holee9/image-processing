@@ -128,11 +128,12 @@ public sealed class SettingsWarningRecoveryScenarios(ITestOutputHelper output)
     /// <summary>
     /// MEASUREMENT (#173, GUI-C-122): what a backend re-initialise does to the line.
     ///
-    /// <para>Recorded rather than required. <c>InitializeBackend</c> clears Logs and Alerts by design
-    /// (#161, GUI-C-63) so that a re-initialise reports its own run rather than the previous one. The
-    /// consequence for THIS line is that the last place holding the rescued path is emptied by an
-    /// ordinary user action — that outcome belongs to <c>#198</c>, which owns where such messages
-    /// should live, so this case states the fact and does not assert a fix that has not been decided.</para>
+    /// <para>Recorded rather than required, and the recorded answer changed. When this was written
+    /// <c>InitializeBackend</c> cleared Logs and Alerts, so the last place holding the rescued path was
+    /// emptied by an ordinary user action (measured then: 7 lines with the path → 6 without it).
+    /// GUI-C-126 replaced that clear with a <c>--- backend re-initialised ---</c> separator, so the line
+    /// now survives. The case still reports what it sees rather than asserting either outcome — what it
+    /// guards is that the measurement keeps being taken.</para>
     /// </summary>
     [SkippableFact]
     public void AfterAReInitialise_TheLineIsGone_Measured()
