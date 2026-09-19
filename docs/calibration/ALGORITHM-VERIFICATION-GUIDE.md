@@ -7,6 +7,28 @@
 **Scope:** `xpe_preprocess.dll` — 9-stage calibration preprocessing pipeline  
 **SPEC Reference:** SPEC-XPE-P1A v1.0.0, SRS-CALIB-001 v1.0, SAD-CALIB-001  
 
+> **무결성 검사 정정 (2026-09-19, #188 — QA-A-106·QA-A-130 에서 실제 파일과 코드로 확인)**
+>
+> **이 문서가 아래에서 적는 CRC-32 서술은 전부 옛 서술이고, 실제 구현과 다릅니다.**
+>
+> | 항목 | 이 문서(옛 서술) | 실제 |
+> |---|---|---|
+> | 헤더 크기 | 34바이트 | **152바이트** |
+> | 무결성 값 | CRC-32 4바이트(0x04C11DB7) | **SHA-256 32바이트**, 헤더 오프셋 120 (`static_assert` 로 고정) |
+> | 검증 방식 | post-hoc CRC | 읽는 중 스트리밍 SHA-256, Windows 는 CNG |
+> | `payloadCrc32` 구조체 필드 | 있음 | **실제 파일 배치에 4바이트 CRC 자리가 없습니다** |
+>
+> 근거: `%TEMP%` 의 실제 `.xcal` 파일 바이트 판독 — 오프셋 0 `"XCAL"`, 오프셋 120 부터 32바이트,
+> 오프셋 152 부터 JSON. SSOT 는 `SRS-CALIB-001` §2.2 의 정정 블록입니다.
+>
+> **무결성을 CRC-32 로 약화하지 않습니다.** 교정 파일이 조용히 손상되면 모든 영상에 계통 오차가
+> 생깁니다. 200 ms 성능 요구는 CNG 전환 뒤 3파일 합계 130–137 ms 로 충족합니다(#179).
+>
+> `xpe_crc32()` 는 `calibration_manager.cpp:29` 에 구현돼 공개 API(`preprocess_api.h:945`)로
+> 나가 있으나, 이 저장소 안에서 **호출처가 0건**입니다(대조군: `xpe_calib_load_gain` 98건).
+> 공개 API 라 저장소 밖 호출자는 검색으로 보이지 않으므로 **제거하지 않고 기록만 남깁니다.**
+
+
 ---
 
 ## 목차
@@ -42,7 +64,16 @@
 
 | SWU | 단계명 | SRS 요건 | 구현 파일 | 적합성 | 비고 |
 |-----|--------|----------|----------|:------:|------|
-| SWU-1.0 | CalibManager | SRS-CALIB-FUNC-001~003, SAFE-003 | `calibration_manager.cpp` | ✅ PASS | CRC-32, expiry 완전 구현 |
+| SWU-1.0 | CalibManager | SRS-CALIB-FUNC-001~003, SAFE-003 | `calibration_manager.cpp` | ⚠️ 정정됨 | **이 PASS 는 근거가 없습니다** — 아래 참조 |
+
+> **위 SWU-1.0 행 정정 (2026-09-19, #188 / QA-A-130)**
+>
+> *"CRC-32, expiry 완전 구현"* 은 **측정으로 반박됩니다.** `calibration_manager.cpp` 가
+> 내보내는 것은 `xpe_crc32` 하나뿐이고, **파일 I/O 도 expiry 도 그 파일에 없습니다.**
+> 그리고 `xpe_crc32` 는 이 저장소 안에서 **호출처가 0건**입니다.
+>
+> 실제 무결성 검사는 **SHA-256**(헤더 오프셋 120)이며, 위 ✅ 는 **구현을 읽지 않고 붙은
+> 표시**였습니다. 이름과 문서는 코드가 아닙니다 — 이 행이 그 사례입니다.
 | SWU-1.1 | Offset Correction | SRS-CALIB-FUNC-004, SAFE-001 | `xpe_offset.cpp` | ✅ PASS | 수식 정확, clamp 검증 |
 | SWU-1.2 | Gain Correction | SRS-CALIB-FUNC-005, SAFE-001 | `xpe_gain.cpp` | ✅ PASS | uint16→float32 경계 정확 |
 | SWU-1.3 | Defect Correction | SRS-CALIB-FUNC-007 | `xpe_defect.cpp` | ✅ PASS | 에지-어웨어 보간 구현 |

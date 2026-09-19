@@ -35,6 +35,34 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 
 ## 2. Traceability Matrix
 
+> **[정정 2026-09-19, #195 — 아래 FUNC 표는 지금 SRS 와 다른 번호 체계입니다]**
+>
+> 아래 `SRS-CALIB-FUNC-*` 행의 **Requirement Summary 가 같은 ID 의 SRS 본문과 다릅니다.**
+> 세 줄을 `SRS-CALIB-001` §2.2 원문과 직접 대조해 확인했습니다:
+>
+> | ID | 이 표가 적은 것 | `SRS-CALIB-001` §2.2 의 실제 내용 |
+> |---|---|---|
+> | FUNC-005 | Load temperature compensation LUT | **게인(flat-field) 보정** `I_norm = I_corr / G` (:54) |
+> | FUNC-006 | Validate offset map dimensions | **비선형 보정** (LUT 또는 단조 다항식) (:55) |
+> | FUNC-010 | Apply CRC-32 checksum to all calibration maps | **런타임 결함 검출** `xpe_defect_detect_runtime()`, SNR < 5 dB (:122) |
+>
+> **세 줄만의 문제가 아닙니다.** FUNC-004 이후 블록 전체가 어긋나 있습니다 — 예: 이 표의
+> 012 가 만료 검사인데 SRS 에서 만료는 009 이고, 이 표의 013·014 가 세션인데 SRS 에서
+> 세션은 011 입니다. **이 표는 다른(옛) SRS 판본을 추적하고 있습니다.**
+>
+> **`#197` 의 SPEC 재번호와 같은 병입니다** — 번호는 남고 뜻이 바뀌었으며, 그 번호를
+> 인용한 문서가 조용히 엉뚱한 곳을 가리키게 됐습니다.
+>
+> **재매핑은 하지 않았습니다.** 17행을 손으로 다시 쓰면 대조 없이 새 오류가 들어갑니다.
+> 그리고 각 행의 시험 ID(`UT-1.5-00N`)가 어느 요구에 붙은 것인지도 확인되지 않았습니다 —
+> 요약을 고치고 시험 ID 를 그대로 두면 **추적성이 고쳐진 것처럼 보이면서 여전히
+> 끊겨 있습니다.**
+>
+> **따라서 이 표의 FUNC 행은 지금 추적성 근거로 쓸 수 없습니다.** 근거가 필요하면
+> `SRS-CALIB-001` §2.2 본문을 직접 보십시오. 재매핑은 `#195` 에서 따로 다룹니다.
+>
+> 미검증: FUNC 외 블록(SAFE·PERF 등)이 같은지 **확인하지 않았습니다.**
+
 | SRS Req ID | Requirement Summary | SAD SWU | Design Ref | Unit Test | Integ Test | System Test | HAZ Ref | Control |
 |:-----------|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
 | **SRS-CALIB-FUNC-001** | Load offset map from persistent storage | SWU-1.5 | SAD §3.1.5 | UT-1.5-001 | IT-CALIB-001 | ST-001 | HAZ-CALIB-001 | CRC + null check |
