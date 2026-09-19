@@ -107,14 +107,28 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     //    (gain_map > gain_mean * 2.0), "low_dose" as a display LUT name
     //    (pediatric_low_dose), "standard" only as the English word. None is
     //    defined as a detector mode anywhere.
-    //  - the requirement it cited says something else. REQ-P1A-014 is
-    //    "Calibration File Loading (Offset)"; nonlinearity is explicitly out
-    //    of SPEC-XPE-P1A's scope, which points at a SPEC-XPE-P1D that does
-    //    not exist.
+    //  - the requirement it implemented is GONE FROM THE CURRENT SPEC SET,
+    //    not absent. Old REQ-P1A-015 (ee2c607) said exactly this: "IF
+    //    configJsonOrNull specifies an unknown detector mode, THEN the system
+    //    SHALL return XPE_ERR_CONFIG_INVALID". The bc22093 renumbering moved
+    //    nonlinearity out of SPEC-XPE-P1A (spec.md:49) and gave 012-015 to
+    //    other requirements, and the SPEC-XPE-P1D it points at does not
+    //    exist. So this guard was not baseless -- it implemented a real
+    //    requirement whose home was removed. Note that the old requirement
+    //    said "unknown detector mode" and enumerated NO names, so the three
+    //    names above are unsourced either way: the requirement existed, the
+    //    list did not follow from it.
     //
     // The two "mode" vocabularies are the root: this list held DETECTOR modes
     // while the rest of the repository puts OPERATING modes ("clinical",
     // "research", "production", "test") under the same JSON key.
+    //
+    // WHAT TO DO ABOUT IT, for whoever writes SPEC-XPE-P1D. The real defect
+    // was that key collision, not the guard. The right fix was to give the
+    // detector mode a key of its own -- removing the guard was the way around
+    // the collision, taken because the requirement had no home to be checked
+    // against. So: do NOT reuse "mode" for the detector mode in P1D. Give it
+    // its own key, and the unknown-value rejection can come back with it.
     //
     // So the stage no longer decides anything from "mode". It reports that it
     // did nothing, because silence cannot be told apart from a correction
