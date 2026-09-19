@@ -354,13 +354,13 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 > 표준에서 **해석적으로 유도한** LUT 과 대조(잔차 72·48 / 65535, 평균 0.7). 두 감마의
 > LUT 이 **4830** 만큼 다른 것이 반증입니다 — 곡선을 무시하면 둘이 같아집니다.
 
-**REQ-DISP-026**: IF `luminanceValues` is NULL, `count < 2`, or `outParams` is NULL, THEN `xpe_gsdf_calibrate` SHALL return `XPE_ERR_INVALID_INPUT`.
+**REQ-DISP-026**: IF `luminanceValues` is NULL, `count < 2`, `outParams` is NULL, or `luminanceValues` is not non-decreasing (REQ-DISP-029), THEN `xpe_gsdf_calibrate` SHALL return `XPE_ERR_INVALID_INPUT`.
 
 **REQ-DISP-027**: WHEN `xpe_gsdf_calibrate` completes successfully, the system SHALL set `outParams->gsdfEnabled = 1`.
 
 **REQ-DISP-028**: The system SHALL complete Presentation LUT application (including format conversion) within 25ms for a 3072x3072 image.
 
-**REQ-DISP-029**: The `luminanceValues` array SHALL be the display's characteristic curve sampled at **equally spaced driving levels**: element `i` SHALL be the luminance in cd/m² measured at `DDL_i = i / (count − 1) × 65535`, and the values SHALL be non-decreasing in `i`. All elements SHALL be used — the interior samples define the curve that the GSDF-required luminances are inverted against. The system does NOT detect a violation of this contract; an array not measured at equally spaced, ascending driving levels yields `XPE_OK` and an incorrect LUT.
+**REQ-DISP-029**: The `luminanceValues` array SHALL be the display's characteristic curve sampled at **equally spaced driving levels**: element `i` SHALL be the luminance in cd/m² measured at `DDL_i = i / (count − 1) × 65535`, and the values SHALL be non-decreasing in `i`. All elements SHALL be used — the interior samples define the curve that the GSDF-required luminances are inverted against. The system SHALL reject an array that is not non-decreasing, returning `XPE_ERR_INVALID_INPUT` without modifying `outParams` (REQ-DISP-026). The system SHALL NOT detect the remaining half of this contract: no driving level is passed to `xpe_gsdf_calibrate`, so an array that ascends but was not measured at equally spaced driving levels — a log-spaced ladder, for example — yields `XPE_OK` and an incorrect LUT.
 
 > **[신설 2026-09-19, #155 / QA-B-145]** 옛 계약은 `display_api.h` 가
 > *"Only the minimum and maximum of the array are used"* 라고 **명시**했고, 그래서
@@ -374,6 +374,23 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 > 사실**이고, 사실을 적지 않으면 다음 사람이 검출된다고 읽습니다. 같은 성질의 기존
 > 서술이 `display_api.h` 의 *"degenerate input is silently coerced, not rejected"* 입니다.
 >
+> **[개정 2026-09-19 (2차), QA-B-146]** 마지막 문장을 **두 문장으로 나눴습니다.**
+> 하나로 합치면 *"검출한다"* 와 *"검출하지 않는다"* 가 같은 문장에 들어가고, **다음
+> 사람은 둘 중 하나만 읽습니다.**
+>
+> **통과가 계약 준수를 뜻하지 않습니다.** 반례가 실재합니다 — GUI 가 넘기던
+> `{0.05, 1, 10, 100, 400}` 은 **오름차순이라 가드를 통과하면서 여전히 틀린 입력**
+> 입니다(10배씩 뛰는 로그 격자). 같은 취지가 코드 주석과 `display_api.h` 의 `@note`
+> 에도 들어가 있습니다.
+>
+> **평평한 구간**(`values[i] == values[i+1]`)은 허용되고, 역산의 답이 구간이 될 때는
+> **가장 낮은 구동 준위**를 고릅니다 — 결정적이고, 표준이 요구하는 광도를 내는 최소
+> 구동이라 보수적입니다. **다만 선택이지 귀결이 아닙니다**(상단·중점도 표준을
+> 만족합니다).
+>
+> **미검출로 남는 것**: 등간격 위반(구조적), 그리고 **NaN 광도** — 비교가 전부 거짓이라
+> 이 가드를 통과합니다. 후속 후보입니다.
+
 > **`count == 2`** 는 "구동 준위 0 과 최대에서만 쟀다" 이고, 곧 **선형 디스플레이를
 > 가정한다**는 뜻입니다 — 측정이 없을 때의 정직한 표현이며 옛 동작과 같은 가정입니다.
 
