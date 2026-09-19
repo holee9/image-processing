@@ -155,26 +155,41 @@ Roi Collimate(uint32_t inset, const char* config) {
     return r;
 }
 
-// Positive evidence that the parser RECOGNISES a key: the QA-B-61 unknown-key
-// warning stays silent for it. A key the parser did not know would be named in
-// an alert. Returns true when nothing was said about `key`.
-bool ParserRecognises(const char* config, const char* key) {
+// Does the QA-B-61 unknown-key warning NAME this key on this config?
+//
+// QA-B-139 REWROTE THIS. The previous form, `ParserRecognises`, returned true
+// when no alert mentioned the key name, and it was BLIND: removing `step_size`
+// from the known-key list -- the exact regression it guards -- left its one
+// caller GREEN. Two reasons, both structural:
+//
+//  1. It matched the key NAME anywhere in the alerts, and since QA-B-122 there
+//     are TWO warnings that name a key: the unknown-key one
+//     ("... is not read by this entry point ...") and the inert-key one
+//     ("... is recognised but has no effect: ..."). The name cannot tell them
+//     apart; only the sentence can.
+//  2. `warn_unconsumed_keys_once` de-duplicates per thread on the unknown-key
+//     SET, and its caller had already run the SAME config string earlier in the
+//     test -- so the warning was spent before the probe looked.
+//
+// So this matches the unknown-key SENTENCE, and every use is paired with the
+// control below: a probe that cannot fire proves nothing about silence.
+bool ReportedAsUnknown(const char* config, const char* key) {
     xpe_clear_alerts();
     std::vector<float> px = StructuredFrame();
     XpeImageBuffer img = Wrap(px);
     (void)xpe_fractional_process(&img, 1.0f, config);
+    const std::string needle =
+        std::string("'") + key + "' is not read by this entry point";
+    bool named = false;
     for (int i = 0; i < 256; ++i) {
         char msg[256] = {0};
         int32_t sev = 0;
         if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) break;
         if (msg[0] == '\0') break;
-        if (std::string(msg).find(key) != std::string::npos) {
-            xpe_clear_alerts();
-            return false;
-        }
+        if (std::string(msg).find(needle) != std::string::npos) named = true;
     }
     xpe_clear_alerts();
-    return true;
+    return named;
 }
 
 class ConfigValueDependency : public ::testing::Test {
@@ -306,14 +321,18 @@ TEST_F(ConfigValueDependency, FractionalIterationsMovesTheOutput) {
                 d, moveThreshold_);
 }
 
-// step_size is parsed and clamped to [0.01, 1.0] and then goes nowhere: the
-// struct it would travel in, FractionalConfig, has a single member (`order`),
-// and the call site fills only that. The value reaches a debug log line and
-// stops there.
+// step_size does not reach the output, and as of QA-B-139 it is not parsed
+// either. The decision was NOT to wire it, because the code cannot say what it
+// would change: the Gruenwald-Letnikov step `h` (detail/fractional_derivative.h)
+// has no representation -- computeFractionalMask builds coefficients only and
+// the convolution samples at integer pixel offsets -- and the one scalar that
+// scales the derivative, `gain = min(1 + 0.5*order, 2.0)`
+// (fractional_derivative.cpp), is derived from `order` and capped so SAF-100's
+// overshoot limiter keeps its clipping headroom.
 //
-// This is the exact residual risk QA-B-60 and QA-B-61 both recorded: the
-// unknown-key warning is SILENT here, because `step_size` IS a known key.
-TEST_F(ConfigValueDependency, KnownDivergence_FractionalStepSizeIsReadAndDiscarded) {
+// So the key is accepted, recognised, and REPORTED as inert. This test holds
+// all three: silence would be the defect, not the inertness.
+TEST_F(ConfigValueDependency, FractionalStepSizeIsRecognisedAndReportedInert_162) {
     // Proof of arrival (1): the parser accepts the config rather than rejecting it.
     std::vector<float> px = StructuredFrame();
     XpeImageBuffer img = Wrap(px);
@@ -321,10 +340,19 @@ TEST_F(ConfigValueDependency, KnownDivergence_FractionalStepSizeIsReadAndDiscard
 
     // Proof of arrival (2): the parser RECOGNISES the name -- the QA-B-61
     // warning names unknown keys, and stays silent for this one.
-    EXPECT_TRUE(ParserRecognises(R"({"step_size":0.99})", "step_size"))
+    // The control FIRST, so the silence below is known to be readable: a key the
+    // parser really does not know IS named by the unknown-key warning. Without
+    // this pair, "nothing was said" passes when nothing could have been said.
+    EXPECT_TRUE(ReportedAsUnknown(R"({"not_a_key_qa_b_139":1})", "not_a_key_qa_b_139"))
+        << "the unknown-key probe cannot fire -- the silence below proves nothing";
+
+    // A config string used nowhere else in this test, because the warning
+    // de-duplicates per thread on the unknown-key set and a repeat is silent.
+    EXPECT_FALSE(ReportedAsUnknown(R"({"step_size":0.77})", "step_size"))
         << "step_size is reported as unknown -- it is not a known key after all";
 
-    // The divergence: across the whole clamped range, the output is identical.
+    // No effect, across the whole range the old clamp used to admit and beyond
+    // it -- the clamp is gone, so an out-of-range value must be just as inert.
     const std::vector<float> lo = Fractional(1.0f, R"({"iterations":2,"step_size":0.01})");
     const std::vector<float> hi = Fractional(1.0f, R"({"iterations":2,"step_size":1.0})");
     const float d = MaxDiff(lo, hi);
@@ -332,8 +360,22 @@ TEST_F(ConfigValueDependency, KnownDivergence_FractionalStepSizeIsReadAndDiscard
         << "step_size now moves the output (maxdiff=" << d << ") -- it has been wired";
     EXPECT_EQ(d, 0.0f) << "expected bit-identical output, not merely a small one";
 
+    const std::vector<float> out = Fractional(1.0f, R"({"iterations":2,"step_size":99.0})");
+    EXPECT_EQ(MaxDiff(lo, out), 0.0f)
+        << "an out-of-range step_size changed the output -- something consumes it";
+
+    // The counter-assertion inertness rests on -- that the caller is TOLD -- is
+    // NOT repeated here. `warn_inert_keys_once` de-duplicates per config string
+    // and the helper above shares this process, so a second capture in this file
+    // would pass or fail on test ORDER rather than on behaviour. It is asserted
+    // in isolation by
+    //   ConfigWarningOnce.InertKey_FractionalStepSizeWarns
+    // (test_config_warning_once.cpp), which counts exactly one `step_size`
+    // mention over 100 frames. If that test is ever deleted, this key becomes
+    // inert AND silent.
+
     std::printf("[  INFO ] fractional step_size 0.01 vs 1.0 maxdiff=%.9f "
-                "(threshold %.6f) -- read, clamped, discarded\n", d, moveThreshold_);
+                "(threshold %.6f) -- not parsed, reported inert\n", d, moveThreshold_);
 }
 
 /* ==========================================================================

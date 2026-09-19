@@ -54,7 +54,10 @@ static constexpr float  XPE_FRAC_MIN_ORDER    = 0.0f;
 static constexpr float  XPE_FRAC_MAX_ORDER    = 2.0f;
 static constexpr int    XPE_FRAC_DEFAULT_ITER = 1;
 static constexpr int    XPE_FRAC_MAX_ITER     = 5;
-static constexpr float  XPE_FRAC_DEFAULT_STEP = 0.25f;
+// #162 (QA-B-139): XPE_FRAC_DEFAULT_STEP = 0.25f lived here and had exactly one
+// reader -- the parser default for a value nothing applied. Removed with it.
+// The SDD still lists step_size with this default; that row needs the same
+// amendment (lead owns docs/, so the block is in the QA-B-139 report).
 
 /* ============================================================================
  * Collimation Detection Constants -- SWU-2.8
@@ -101,10 +104,19 @@ bool parse_mfp_config(const char* json,
 /** Parse fractional-order config from JSON string. Returns true on success.
  *  If a SAF-100 forbidden key is detected, returns false and sets
  *  outSafetyViolation to true. Caller should return XPE_ERR_SAFETY_VIOLATION
- *  in that case. */
+ *  in that case.
+ *
+ *  #162 (QA-B-139): `step_size` is NOT an output here. It used to be read and
+ *  clamped to [0.01, 1.0] and then travel to a debug log and stop, which made
+ *  the code read as if the value were applied. What the value would mean is
+ *  undefined: the Gruenwald-Letnikov form in detail/fractional_derivative.h
+ *  carries a step `h`, but computeFractionalMask builds coefficients only and
+ *  the convolution samples at INTEGER pixel offsets -- there is no h and no
+ *  sub-pixel sampling to carry one. The key stays KNOWN (so the unknown-key
+ *  warning does not fire) and xpe_fractional_process reports it through the
+ *  inert-key warning instead, which says why. */
 bool parse_fractional_config(const char* json,
                              int&   outIterations,
-                             float& outStepSize,
                              bool&  outSafetyViolation);
 
 /**
