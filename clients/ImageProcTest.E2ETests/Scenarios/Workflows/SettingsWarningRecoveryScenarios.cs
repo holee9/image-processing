@@ -181,6 +181,103 @@ public sealed class SettingsWarningRecoveryScenarios(ITestOutputHelper output)
             : list.FindAllChildren().Select(i => i.Name ?? string.Empty).ToArray();
     }
 
+    /// <summary>
+    /// Pressing Copy with nothing selected must not look like it worked (#173, GUI-C-123).
+    ///
+    /// <para><b>The failure it replaces.</b> The button was pressable with no selection and then did
+    /// nothing at all — no copy, no message. The clipboard still held whatever was there before, so a
+    /// paste produced something else entirely and the app had said nothing about it.</para>
+    ///
+    /// <para><b>The strongest available assertion is the clipboard itself.</b> A sentinel is put there
+    /// first, the button is clicked with no selection, and the sentinel must still be there — that
+    /// catches "the old contents silently survive" directly rather than through a proxy. The disabled
+    /// state is asserted alongside it, because the sentinel surviving is ALSO what a broken copy looks
+    /// like; only the two together say the press could not have misled anyone.</para>
+    ///
+    /// <para>The other half is in the same case: with a line selected the copy still works, so the fix
+    /// did not buy silence by disabling the button permanently.</para>
+    /// </summary>
+    [SkippableFact]
+    public void CopyWithNothingSelected_CannotLookLikeItWorked()
+    {
+        var directory = NewDirectory();
+        var path = Path.Combine(directory, "appsettings.json");
+        File.WriteAllText(path, Corrupt);
+
+        try
+        {
+            using var app = new SettingsFileApplicationFixture(path);
+            Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+            var window = app.MainWindow!;
+
+            OpenLogs(window);
+            var copy = window.FindFirstDescendant(cf => cf.ByAutomationId("CopyLogLineButton"));
+            Assert.True(copy is not null, "CopyLogLineButton is not in the tree.");
+
+            var sentinel = $"xpe-c123-sentinel-{Guid.NewGuid():N}";
+            WriteClipboard(sentinel);
+            Assert.Equal(sentinel, ReadClipboard());   // the sentinel really is in place
+
+            // ① nothing selected. The press is attempted FIRST and the clipboard read before any
+            // assertion, so the run records what a user actually experiences — including on a build
+            // where the button is pressable, where the record shows the press changing nothing at all.
+            output.WriteLine($"with no selection, enabled={copy!.IsEnabled}");
+            copy.Click();            // a user can still aim at it; a disabled button must absorb this
+            Thread.Sleep(300);
+            var afterPress = ReadClipboard();
+            output.WriteLine($"clipboard after the press: '{afterPress}'");
+            var statusAfterPress = StatusBar(window);
+            output.WriteLine($"status bar after the press: '{statusAfterPress}'");
+
+            Assert.Equal(sentinel, afterPress);
+            Assert.False(copy.IsEnabled,
+                "Copy is pressable with nothing selected, so a press does nothing while looking like it copied.");
+
+            // ② with a line selected it still copies — the fix did not buy silence by disabling it.
+            var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+            Assert.True(list is not null, "LogListBox is not in the tree.");
+            var line = list!.FindAllChildren()
+                .FirstOrDefault(i => (i.Name ?? string.Empty).Contains(Marker, StringComparison.OrdinalIgnoreCase));
+            Assert.True(line is not null, "The log no longer holds the warning line.");
+
+            line!.AsListBoxItem().Select();
+            Thread.Sleep(250);
+            output.WriteLine($"with a selection, enabled={copy.IsEnabled}");
+            Assert.True(copy.IsEnabled, "Copy stayed disabled with a line selected, so nothing can be copied at all.");
+
+            copy.AsButton().Invoke();
+            Thread.Sleep(300);
+            var copied = ReadClipboard();
+            output.WriteLine($"clipboard after copying: '{copied}'");
+            Assert.NotEqual(sentinel, copied);
+            Assert.Contains(".unreadable-", copied, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CleanUp(directory);
+        }
+    }
+
+    /// <summary>Clipboard writes need an STA thread for the same reason the reads do.</summary>
+    private static void WriteClipboard(string text)
+    {
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                System.Windows.Clipboard.SetText(text);
+            }
+            catch
+            {
+                // Reported by the read that follows, which will not see the sentinel.
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(TimeSpan.FromSeconds(5));
+    }
+
     private static string StatusBar(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
 
