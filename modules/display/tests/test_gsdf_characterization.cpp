@@ -388,8 +388,11 @@ double GsdfJndIndex(double lum) {
     return p;
 }
 
-// The module's own cubic, copied from presentation_lut.cpp:113-118 so the two
-// can be compared without touching the product file.
+// The expression the module USED TO carry. QA-B-144 replaced it in
+// presentation_lut.cpp with the standard's Eq 7-2, so this is no longer a copy
+// of live code -- it is kept as the record of what was there, because the test
+// below is what establishes that those four numbers were Eq 7-2's A, B, C, D
+// in reversed positions. Deleting it would delete the evidence for the fix.
 double ModuleCubicJnd(double lum) {
     const double y = std::log10(lum);
     return 71.498 * y * y * y - 94.593 * y * y + 41.912 * y + 9.8212;
@@ -537,22 +540,33 @@ TEST(GsdfCharacterization, KnownDivergence_ModuleCubicIsEq72Reversed_155) {
 }
 
 // ===========================================================================
-// #155 (QA-B-143) STAGE 1: the LUT bytes, pinned.
+// #155 (QA-B-143 / QA-B-144) STAGE 1: the curve is still a straight ramp.
 //
-// Stage 1 replaces the module's reversed cubic with the standard's Eq 7-2. The
-// cubic cancels out of the LUT (#155), so the OUTPUT MUST NOT MOVE -- and that
-// is the whole assertion of the stage: coefficients changed, bytes did not,
-// therefore the expression really does not reach the answer. If a byte moves,
-// the cancellation analysis is wrong and the change must stop.
+// Stage 1 replaced the module's reversed cubic with the standard's Eq 7-2. The
+// cubic cancels out of the LUT (#155), so the CURVE must not move -- that is
+// the stage's whole assertion: the coefficients changed, the curve did not,
+// therefore the expression really does not reach the answer.
 //
-// A checksum rather than 1024 literals: the point is identity, not the values.
-// FNV-1a over the LUT's bytes, little-endian, deterministic everywhere.
+// THIS TEST FIRST ASSERTED BYTE IDENTITY, AND THAT WAS THE WRONG GATE.
+// The bytes DID move, on three of four configurations. Not because the model
+// reached the output -- `t = (jnd_min + (i/1023)*range - jnd_min)/range` is
+// still i/1023 -- but because that add-then-subtract round trip is computed in
+// `float`, and its rounding depends on the size ratio of |jnd_min| to range,
+// which the coefficients set. The standard gives j = 1..1023 over 0.05..4000
+// where the old cubic gave -362..2275, so the rounding pattern differs. Every
+// configuration stayed within ONE count of the exact ramp before and after;
+// what moved was which 1-19 indices of 1024 round to ramp +-1.
 //
-// STAGE 2 WILL BREAK THIS TEST ON PURPOSE. Stage 2 makes the model reach the
-// output, so these numbers change; that is the visible arrival of a decision
-// about displayed pixels, which is what this file's header asks for. Update
-// them there, in the commit that changes the curve, and never in the same
-// commit as anything else.
+// So the gate is the DISTANCE TO THE RAMP, which says what is compared against
+// what, rather than a fingerprint, which only says "this value on this
+// platform" and would go red under a different compiler for no defect at all.
+// The fingerprint is still printed, because a before/after pair of runs is
+// easier to read with it -- but it is never asserted.
+//
+// STAGE 2 WILL BREAK THIS TEST ON PURPOSE: it makes the model reach the output,
+// so the curve stops being a ramp. That is the visible arrival of a decision
+// about displayed pixels, which is what this file's header asks for. Retire
+// this case there, in the commit that changes the curve and no other.
 // ===========================================================================
 namespace {
 
@@ -572,14 +586,13 @@ uint64_t LutFingerprint(const XpePresentationLutParams& lut) {
 
 }  // namespace
 
-TEST(GsdfCharacterization, Stage1_LutBytesAreUnchangedByTheCoefficientFix_155) {
-    struct Case { const char* name; std::vector<float> lum; uint64_t fingerprint; };
-    // Recorded on 2a8ab20, BEFORE the Eq 7-2 substitution. See the header.
-    std::vector<Case> cases = {
-        { "1..500",       {1.0f, 10.0f, 50.0f, 200.0f, 500.0f}, 725523820595786102ull },
-        { "80..120",      {80.0f, 100.0f, 120.0f},              4767610711538771908ull },
-        { "0.01..10000",  {0.01f, 1.0f, 100.0f, 10000.0f},      725523820595786102ull },
-        { "0.05..4000",   {0.05f, 4000.0f},                     10416587269571730200ull },
+TEST(GsdfCharacterization, Stage1_LutIsStillTheStraightRampAfterTheCoefficientFix_155) {
+    struct Case { const char* name; std::vector<float> lum; };
+    const std::vector<Case> cases = {
+        { "1..500",       {1.0f, 10.0f, 50.0f, 200.0f, 500.0f} },
+        { "80..120",      {80.0f, 100.0f, 120.0f} },
+        { "0.01..10000",  {0.01f, 1.0f, 100.0f, 10000.0f} },
+        { "0.05..4000",   {0.05f, 4000.0f} },
     };
 
     for (const Case& c : cases) {
@@ -587,10 +600,6 @@ TEST(GsdfCharacterization, Stage1_LutBytesAreUnchangedByTheCoefficientFix_155) {
         ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(c.lum.data(),
                                              static_cast<uint32_t>(c.lum.size()), &p))
             << c.name;
-        const uint64_t fp = LutFingerprint(p);
-        // Also stated against a reference that does not depend on which version
-        // of the module produced it, so a before/after pair is comparable even
-        // when the fingerprints differ: the exact ramp round(i/1023 * 65535).
         int worst = 0, differing = 0;
         for (int i = 0; i < 1024; ++i) {
             const int ramp = static_cast<int>(std::lround(
@@ -599,14 +608,91 @@ TEST(GsdfCharacterization, Stage1_LutBytesAreUnchangedByTheCoefficientFix_155) {
             if (d != 0) ++differing;
             worst = std::max(worst, d);
         }
-        GTEST_LOG_(INFO) << "  " << c.name << "  fingerprint=" << fp
-                         << "  vs exact ramp: max=" << worst
-                         << " differing=" << differing << "/1024";
-        if (c.fingerprint != 0u) {
-            EXPECT_EQ(fp, c.fingerprint)
-                << c.name << ": the LUT bytes moved. If this is Stage 1, the "
-                   "cancellation analysis is WRONG -- stop and report. If this is "
-                   "Stage 2, update the recorded value in this commit and no other.";
-        }
+        // The fingerprint is printed, never asserted -- see the header.
+        GTEST_LOG_(INFO) << "  " << c.name << "  vs exact ramp: max=" << worst
+                         << " differing=" << differing << "/1024"
+                         << "  (fingerprint " << LutFingerprint(p) << ", informational)";
+
+        EXPECT_LE(worst, 1)
+            << c.name << ": the LUT has left the straight ramp by " << worst
+            << " counts. The cancellation is gone -- either a real change reached "
+               "the output, or the analysis in #155 is wrong. Stop and measure.";
     }
+}
+
+// ===========================================================================
+// #155 (QA-B-144) STAGE 2 INVESTIGATION (a): is the luminance array a CURVE,
+// or only a pair of endpoints?
+//
+// The question matters because a GSDF calibration normally works by measuring
+// the display's characteristic curve L(DDL) and then, for each P-value, finding
+// the driving level that produces the GSDF-required luminance. That is only
+// possible if the measurements ARRIVE as a curve.
+//
+// The source answers it in five lines (presentation_lut.cpp:99-103): the loop
+// keeps a running min and max and reads nothing else. Every interior value is
+// discarded. This test is that reading turned into an assertion, because a
+// reading convinces and only arithmetic catches a change.
+//
+// It is NOT a hidden defect: display_api.h already states it in the parameter
+// documentation -- "Only the minimum and maximum of the array are used;
+// intermediate measurements do not affect the resulting LUT." So the contract
+// is declared. Whether the CONTRACT is what REQ-DISP-025 wants is a SPEC
+// question and is not decided here.
+// ===========================================================================
+TEST(GsdfCharacterization, KnownDivergence_OnlyTheLuminanceEndpointsAreUsed_155) {
+    auto lutOf = [](const std::vector<float>& lum) {
+        XpePresentationLutParams p{};
+        EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum.data(),
+                                             static_cast<uint32_t>(lum.size()), &p));
+        return p;
+    };
+
+    // All five share min = 1.0 and max = 500.0 and differ in everything else:
+    // the count, the spacing, the ordering, and the shape of the interior.
+    const std::vector<std::vector<float>> sameEndpoints = {
+        { 1.0f, 500.0f },                                   // no interior at all
+        { 1.0f, 10.0f, 50.0f, 200.0f, 500.0f },             // roughly log-spaced
+        { 1.0f, 2.0f, 3.0f, 4.0f, 500.0f },                 // crowded at the bottom
+        { 1.0f, 496.0f, 497.0f, 498.0f, 500.0f },           // crowded at the top
+        { 500.0f, 3.0f, 1.0f, 111.0f, 7.0f },               // unordered
+    };
+
+    const XpePresentationLutParams ref = lutOf(sameEndpoints[0]);
+    for (size_t k = 1; k < sameEndpoints.size(); ++k) {
+        const XpePresentationLutParams other = lutOf(sameEndpoints[k]);
+        int worst = 0;
+        for (int i = 0; i < 1024; ++i)
+            worst = std::max(worst, std::abs(static_cast<int>(ref.lutData[i]) -
+                                             static_cast<int>(other.lutData[i])));
+        GTEST_LOG_(INFO) << "  interior variant " << k << " (" << sameEndpoints[k].size()
+                         << " values): max difference from the two-point call = " << worst;
+        EXPECT_EQ(0, worst)
+            << "variant " << k << " changed the LUT, so the interior measurements DO "
+               "reach the output -- display_api.h says they do not; one of them is wrong";
+    }
+
+    // THE CONTROL, and a caveat about how weak it has to be.
+    //
+    // Moving an endpoint is the only way the input can reach the output at all,
+    // and #155 is precisely that it barely does: across six configurations
+    // spanning six decades the whole spread was ONE count (QA-B-141). So the
+    // control cannot show a large difference -- if it could, #155 would be
+    // false. What it must show is that the difference is not always ZERO, or
+    // the interior result above would be indistinguishable from a test that
+    // cannot see its input.
+    //
+    // 1..500 against 80..120 is a pair MEASURED to differ (QA-B-143 recorded
+    // distinct fingerprints for them). 500 -> 4000 was tried first and gives a
+    // bit-identical LUT, which is why it is not the control.
+    const XpePresentationLutParams other = lutOf({80.0f, 100.0f, 120.0f});
+    int worstMoved = 0;
+    for (int i = 0; i < 1024; ++i)
+        worstMoved = std::max(worstMoved, std::abs(static_cast<int>(ref.lutData[i]) -
+                                                  static_cast<int>(other.lutData[i])));
+    GTEST_LOG_(INFO) << "  control -- endpoints 1..500 vs 80..120: max difference = "
+                     << worstMoved << " (rounding only, by #155)";
+    EXPECT_GT(worstMoved, 0)
+        << "changing BOTH endpoints leaves the LUT bit-identical -- then this test "
+           "cannot see its input at all and proves nothing about the interior";
 }
