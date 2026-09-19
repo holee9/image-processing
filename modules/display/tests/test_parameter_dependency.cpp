@@ -330,7 +330,7 @@ TEST(ParameterDependency, PresentationLut_LutContentsReachTheOutput) {
 // the function where the answer is "no". QA-B-57 has the algebra
 // (presentation_lut.cpp:131-146); this is the dependency statement of it.
 // ---------------------------------------------------------------------------
-TEST(ParameterDependency, KnownDivergence_GsdfLuminanceDoesNotReachTheOutput) {
+TEST(ParameterDependency, Gsdf_LuminanceReachesTheOutput_155) {
     auto run = [](const float* lum, int count) {
         XpePresentationLutParams p{};
         EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, count, &p));
@@ -351,7 +351,11 @@ TEST(ParameterDependency, KnownDivergence_GsdfLuminanceDoesNotReachTheOutput) {
     GTEST_LOG_(INFO) << "gsdf luminance wide vs narrow: largest entry difference="
                      << maxDelta << " (rounding is 1)";
 
-    EXPECT_LE(maxDelta, 1)
+    // INVERTED by QA-B-145 (#155 stage 2): this was EXPECT_LE(maxDelta, 1),
+    // pinning that the luminance measurements only moved the LUT by float
+    // rounding. They now set the curve the standard's luminances are inverted
+    // against, so a wide and a narrow calibration must differ substantially.
+    EXPECT_GT(maxDelta, 1)
         << "the luminance measurements now move the LUT by more than rounding -- "
            "#155 has been addressed; say how, and retire this case";
 }
