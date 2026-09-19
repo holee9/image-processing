@@ -46,10 +46,21 @@ class XpePreprocessStateFixture : public ::testing::Test {
 protected:
     void SetUp() override {
         mode_on_entry_ = xpe_calib_get_mode();
+        alerts_on_entry_ = xpe_get_pending_alert_count();
         initialized_here_ = (xpe_preprocess_init(nullptr) == XPE_OK);
     }
 
     void TearDown() override {
+        // QA-A-138 (#198): the pending alert queue is the fourth hygiene axis.
+        // xpe_preprocess_shutdown() deliberately does not touch it -- it is a
+        // common-module global, and emptying it when one module goes down would
+        // discard another's undelivered alerts. Draining is the consumer's job,
+        // through this public call. xpe_clear_alerts() empties the WHOLE queue,
+        // which is the only public restore available, so this runs only when
+        // the test actually changed the count.
+        if (xpe_get_pending_alert_count() != alerts_on_entry_) {
+            xpe_clear_alerts();
+        }
         if (xpe_calib_get_mode() != mode_on_entry_) {
             (void)xpe_calib_set_mode(mode_on_entry_);
         }
@@ -62,6 +73,7 @@ protected:
     /** True when THIS fixture's init was the one that brought the module up. */
     bool initialized_here_ = false;
     XpeCalibrationMode mode_on_entry_{};
+    int32_t alerts_on_entry_ = 0;
 };
 
 #endif /* XPE_PREPROCESS_STATE_FIXTURE_H */
