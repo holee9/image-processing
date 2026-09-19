@@ -90,8 +90,6 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.TemperatureCompensationMode),
         nameof(AppSettings.NonlinearityCorrectionMode),
         nameof(AppSettings.BinningCorrectionMode),
-        nameof(AppSettings.LaneBSharpeningSigma),
-        nameof(AppSettings.LaneBDenoiseStrength),
         // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
         // The toggle writes through a command, not a binding, so the survey sees only its display
         // binding; UnappliedSettingsScenarios U-04 reads the disabled state in the running app.
@@ -141,6 +139,12 @@ public sealed class SettingsProcessingConnectionTests
         // algorithm change while the Reference's stays put.
         [nameof(AppSettings.LaneAAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
         [nameof(AppSettings.LaneBAlgorithm)] = $"{nameof(AppSettings.GsvgMode)} (L-04)",
+
+        // GUI-C-117: RenderLanes copies it into the Candidate lane's GsvgDenoiseK, which GuiGsvgRunner
+        // sends as vg_denoise_k. L-05 measures the Candidate's drawn hash moving on a change to it while
+        // the Reference's stays put — run on the virtual grid, because that is the only place the key is
+        // sent at all.
+        [nameof(AppSettings.LaneBGsvgDenoiseK)] = $"{nameof(AppSettings.GsvgDenoiseK)} (L-05)",
     };
 
     /// <summary>
@@ -274,10 +278,11 @@ public sealed class SettingsProcessingConnectionTests
 
         // 24 in GUI-C-95; GUI-C-99 added PreprocessInChain and ExposureKvp; GUI-C-100 added PixelPitchMm;
         // GUI-C-101 added the six GSVG settings; GUI-C-104 added the pyramid levels, gain and de-noise k;
-        // GUI-C-113 added the Candidate lane's VOI width.
-        Assert.Equal(37, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // GUI-C-113 added the Candidate lane's VOI width; GUI-C-117 removed LaneBSharpeningSigma, whose
+        // chain stage does not exist (#193), and renamed the other override to what it overrides.
+        Assert.Equal(36, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
-        Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBSharpeningSigma) && b.Via == "LaneBSharpeningSigma" && b.Writable);
+        Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && !b.Writable);
         Assert.All(survey.Bindings.Where(b => b.Property == nameof(AppSettings.GhostCorrectionMode)), b => Assert.True(b.Writable && b.Disabled));

@@ -197,6 +197,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private ChainResult? _lastChain;
     private float _renderedLaneBWidth;
     private string _renderedLaneBAlgorithm = string.Empty;
+    private double _renderedLaneBDenoiseK = 2.0;
     private string _pipelineTimings = string.Empty;
     private string _chainStatus = "chain: not run";
 
@@ -658,6 +659,8 @@ public sealed class MainWindowViewModel : ObservableObject
             Settings.LaneBAlgorithm = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(LaneBIsStale));
+            OnPropertyChanged(nameof(LaneBDenoiseKApplies));
+            OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
         }
     }
 
@@ -685,17 +688,33 @@ public sealed class MainWindowViewModel : ObservableObject
         set { if (Settings.AnalysisTab != value) { Settings.AnalysisTab = value; OnPropertyChanged(); } }
     }
 
-    public double LaneBSharpeningSigma
+    /// <summary>The Candidate lane's own virtual-grid de-noise k. Read only by the Candidate's render.</summary>
+    public double LaneBGsvgDenoiseK
     {
-        get => Settings.LaneBSharpeningSigma;
-        set { if (Math.Abs(Settings.LaneBSharpeningSigma - value) > 0.0001) { Settings.LaneBSharpeningSigma = value; OnPropertyChanged(); } }
+        get => Settings.LaneBGsvgDenoiseK;
+        set
+        {
+            if (Math.Abs(Settings.LaneBGsvgDenoiseK - value) <= 0.0001) return;
+            Settings.LaneBGsvgDenoiseK = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LaneBIsStale));
+        }
     }
 
-    public double LaneBDenoiseStrength
-    {
-        get => Settings.LaneBDenoiseStrength;
-        set { if (Math.Abs(Settings.LaneBDenoiseStrength - value) > 0.0001) { Settings.LaneBDenoiseStrength = value; OnPropertyChanged(); } }
-    }
+    /// <summary>
+    /// Whether the Candidate's de-noise k can reach any pixel right now (#173, GUI-C-117).
+    ///
+    /// <para>GuiGsvgRunner sends <c>vg_denoise_k</c> only while the lane runs the virtual grid, and
+    /// sends <c>0.0</c> when the pyramid is switched off. Outside those the value is accepted, stored,
+    /// and silently ignored — which is the shape of every defect this issue has turned up. The input is
+    /// disabled and marked instead.</para>
+    /// </summary>
+    public bool LaneBDenoiseKApplies =>
+        string.Equals(AlgorithmPreset.For(Settings.LaneBAlgorithm).GsvgMode, GsvgModes.VirtualGrid, StringComparison.Ordinal)
+        && Settings.GsvgPyramidLevels > 0;
+
+    /// <summary>The negation, for the "미적용" mark the screen shows while the value reaches nothing.</summary>
+    public bool LaneBDenoiseKUnapplied => !LaneBDenoiseKApplies;
 
     // Slice 2 — VM-only properties
     public System.Windows.Media.ImageSource? LaneAImage
@@ -1494,9 +1513,19 @@ public sealed class MainWindowViewModel : ObservableObject
 
         // #173 (GUI-C-113): only the Candidate can go stale — the Reference never reads this value,
         // so an edit to it cannot make the Reference wrong.
-        if (e.PropertyName is nameof(AppSettings.LaneBVoiWindowWidth) or nameof(AppSettings.LaneBAlgorithm))
+        if (e.PropertyName is nameof(AppSettings.LaneBVoiWindowWidth)
+            or nameof(AppSettings.LaneBAlgorithm)
+            or nameof(AppSettings.LaneBGsvgDenoiseK))
         {
             OnPropertyChanged(nameof(LaneBIsStale));
+        }
+
+        // Whether the Candidate's de-noise k reaches anything depends on the Candidate's algorithm and
+        // on the pyramid being on, so both have to re-raise it.
+        if (e.PropertyName is nameof(AppSettings.LaneBAlgorithm) or nameof(AppSettings.GsvgPyramidLevels))
+        {
+            OnPropertyChanged(nameof(LaneBDenoiseKApplies));
+            OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
         }
 
         if (e.PropertyName is nameof(AppSettings.BackendMode))
@@ -1658,8 +1687,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void ResetLaneBOverrides()
     {
-        LaneBSharpeningSigma = 0.85;
-        LaneBDenoiseStrength = 0.42;
+        LaneBGsvgDenoiseK = 2.0;
         StatusText = "Lane B overrides reset to defaults.";
         Log(StatusText);
     }
@@ -1729,7 +1757,8 @@ public sealed class MainWindowViewModel : ObservableObject
             // call broke W-23 and W-26, which count the calls an Apply makes through the fault-injection
             // seam. The cost is paid only when the user actually asks the two lanes to differ.
             var differs = inputs.LaneBVoiWindowWidth > 0.0f
-                || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal);
+                || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal)
+                || Math.Abs(inputs.LaneBGsvgDenoiseK - inputs.GsvgDenoiseK) > 0.0001;
 
             if (differs)
             {
@@ -1740,6 +1769,10 @@ public sealed class MainWindowViewModel : ObservableObject
                     candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
                 }
 
+                // The Candidate's own vg_denoise_k. Copied like the width above, so GuiGsvgRunner reads
+                // it from the lane's settings without knowing a lane exists.
+                candidate.GsvgDenoiseK = inputs.LaneBGsvgDenoiseK;
+
                 LaneBImage = RenderLane(sourceFrame, candidate);
             }
             else
@@ -1749,6 +1782,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             _renderedLaneBWidth = inputs.LaneBVoiWindowWidth;
             _renderedLaneBAlgorithm = inputs.LaneBAlgorithm;
+            _renderedLaneBDenoiseK = inputs.LaneBGsvgDenoiseK;
             OnPropertyChanged(nameof(LaneBIsStale));
         }
         catch (Exception ex)
@@ -1773,7 +1807,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public bool LaneBIsStale =>
         Math.Abs(Settings.LaneBVoiWindowWidth - _renderedLaneBWidth) > 0.0001f
-        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal);
+        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal)
+        || Math.Abs(Settings.LaneBGsvgDenoiseK - _renderedLaneBDenoiseK) > 0.0001;
 
     /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
     public object DescribeChain() => new
