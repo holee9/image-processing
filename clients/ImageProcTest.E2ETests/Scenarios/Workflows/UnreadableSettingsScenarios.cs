@@ -1,4 +1,4 @@
-// #173 (GUI-C-119): a corrupt settings file, put in front of a real launch.
+﻿// #173 (GUI-C-119): a corrupt settings file, put in front of a real launch.
 using System;
 using System.IO;
 using ImageProcTest.E2ETests.Fixtures;
@@ -164,6 +164,65 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
             // ③ and the user is told where that earlier original is.
             Assert.Contains(Path.GetFileName(afterSecond[0]), secondStatus, StringComparison.Ordinal);
             Assert.Contains("earlier", secondStatus, StringComparison.OrdinalIgnoreCase);
+
+            // ④ and the second unreadable file is left exactly where it was (#173, GUI-C-121). Only a
+            // run that rescued may replace the file; this one rescued nothing, so replacing it would
+            // destroy a file while telling the user their settings are safe somewhere else.
+            Assert.Equal(CorruptAgain.Trim(), File.ReadAllText(path).Trim());
+        }
+        finally
+        {
+            CleanUp(path);
+        }
+    }
+
+    /// <summary>
+    /// After a rescue, the next launch is quiet (#173, GUI-C-121).
+    ///
+    /// <para>Once the original is safely aside, leaving the unreadable file in place means every later
+    /// launch repeats the same warning — and a warning that always appears is one nobody reads. So a
+    /// run that DID rescue writes a fresh defaults file over the path it just emptied; the next run
+    /// reads it and says nothing.</para>
+    ///
+    /// <para>Both halves again: "the second launch is quiet" alone would pass on an app that never
+    /// warns at all, so the first launch's warning is asserted in the same case.</para>
+    /// </summary>
+    [SkippableFact]
+    public void AfterARescue_TheNextLaunchIsQuiet()
+    {
+        var path = NewSettingsPath();
+        File.WriteAllText(path, CorruptSettings);
+
+        try
+        {
+            string firstStatus;
+            using (var first = new SettingsFileApplicationFixture(path))
+            {
+                Skip.If(!first.IsAvailable, first.SkipReason ?? "The application is not available.");
+                firstStatus = StatusBarText(first);
+            }
+
+            output.WriteLine($"first launch status: '{firstStatus}'");
+            Assert.Contains("could not be read", firstStatus, StringComparison.OrdinalIgnoreCase);
+
+            // The rescuing run replaced the file it emptied, so the path is readable again.
+            Assert.True(File.Exists(path), "The rescuing run left no settings file behind at all.");
+            output.WriteLine($"file after rescue: {new FileInfo(path).Length} bytes");
+
+            string secondStatus;
+            using (var second = new SettingsFileApplicationFixture(path))
+            {
+                Skip.If(!second.IsAvailable, second.SkipReason ?? "The application is not available.");
+                secondStatus = StatusBarText(second);
+            }
+
+            output.WriteLine($"second launch status: '{secondStatus}'");
+            Assert.DoesNotContain("could not be read", secondStatus, StringComparison.OrdinalIgnoreCase);
+
+            // And the rescue is still the only one, still holding the user's file.
+            var rescued = Rescued(path);
+            Assert.True(rescued.Length == 1, $"Expected one rescue, found {rescued.Length}.");
+            Assert.Equal(CorruptSettings.Trim(), File.ReadAllText(rescued[0]).Trim());
         }
         finally
         {

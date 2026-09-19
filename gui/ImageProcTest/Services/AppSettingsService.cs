@@ -99,7 +99,22 @@ public sealed class AppSettingsService
             return new SettingsLoadResult(new AppSettings(), earlier, PreservedIsFromAnEarlierFailure: true);
         }
 
-        return new SettingsLoadResult(new AppSettings(), PreserveUnreadable());
+        var rescued = PreserveUnreadable();
+        var defaults = new AppSettings();
+
+        if (rescued is not null)
+        {
+            // The original is safe, so the path it left empty is filled with defaults and the next
+            // launch is quiet (#173, GUI-C-121). Leaving it unreadable would repeat this warning on
+            // every start, and a warning that always appears is one nobody reads.
+            //
+            // Only a run that actually rescued may do this. When the rescue failed the file below is
+            // still the user's only copy, so it is left exactly as it is — writing defaults over it
+            // would undo what GUI-C-119 set out to keep.
+            TryWriteDefaults(defaults);
+        }
+
+        return new SettingsLoadResult(defaults, rescued);
     }
 
     /// <summary>
@@ -150,6 +165,25 @@ public sealed class AppSettingsService
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Writes a defaults file over the path a successful rescue emptied.
+    ///
+    /// <para>A failure here is swallowed for the same reason every other failure on this path is: the
+    /// app must start. The cost of failing is only that the next launch warns again — the original is
+    /// already safe by the time this runs.</para>
+    /// </summary>
+    private void TryWriteDefaults(AppSettings defaults)
+    {
+        try
+        {
+            Save(defaults);
+        }
+        catch
+        {
+            // Next launch repeats the warning. Nothing is lost.
         }
     }
 
