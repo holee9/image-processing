@@ -104,6 +104,18 @@ protected:
 
     void SetUp() override {
         XpePreprocessStateFixture::SetUp();
+        // QA-A-137 (#198). The alert queue is a common-module global and is
+        // deliberately NOT owned by xpe_preprocess_shutdown(): clearing it
+        // when one module goes down would discard other modules' undelivered
+        // alerts. Draining it is the consumer's job, through this public API
+        // -- the same reset path the application uses, and the one every
+        // other alert-asserting test here already calls
+        // (test_gain_poly_dose_range.cpp:250, test_alert_queue_overflow.cpp:87).
+        // Measured: without this, PolyAlertIsPushed's alert survived into
+        // ScalarGainRaisesNoPolyAlert and made its negative assertion fail in
+        // a single-process run. A test-only reset hook would have hidden the
+        // fact that the product has a reset path at all.
+        xpe_clear_alerts();
         root = fs::temp_directory_path() /
                ("xpe_fixpoly_" + std::to_string(nowMs()) + "_" +
                 ::testing::UnitTest::GetInstance()->current_test_info()->name());
@@ -113,6 +125,7 @@ protected:
     void TearDown() override {
         std::error_code ec;
         fs::remove_all(root, ec);
+        xpe_clear_alerts();  // restore only what this test raised
         XpePreprocessStateFixture::TearDown();
     }
 
