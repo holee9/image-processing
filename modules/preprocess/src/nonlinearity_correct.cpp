@@ -1,10 +1,14 @@
 /**
  * @file nonlinearity_correct.cpp
  * @brief SWU-1.7: Detector nonlinearity correction (PRE-08)
- *        Piecewise linear or polynomial correction.
- *        No-op if no nonlinearity coefficients loaded for this panel profile.
- *        REQ-P1A-012 to REQ-P1A-015
- * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
+ *        Applies SRS-CALIB-FUNC-006-EXT 6a (nonlinearity LUT); no-op with an
+ *        alert when no LUT is loaded for this panel profile.
+ *
+ *        The REQ-P1A-012..015 citation that used to sit here named four
+ *        requirements about defect correction and calibration loading, and
+ *        SPEC-XPE-P1A puts nonlinearity out of its own scope (QA-A-126, #186).
+ *        The governing requirement is SRS-CALIB-FUNC-006 / -EXT 6a.
+ * IEC 62304 Class B
  */
 
 #include "xpe/preprocess_api.h"
@@ -14,11 +18,10 @@
 #include <string>
 #include <vector>
 
-// @MX:NOTE: [AUTO] No-op when configJsonOrNull is null (REQ-P1A-013); error on unknown mode
-// @MX:SPEC: REQ-P1A-012
+// @MX:NOTE: [AUTO] Applies the loaded nonlinearity LUT; no-op with an alert
+//           when none is loaded (QA-A-127, #196)
+// @MX:SPEC: SRS-CALIB-FUNC-006-EXT 6a
 
-// Known detector modes with nonlinearity tables; identity polynomial applied as baseline
-static const std::vector<std::string> kKnownModes = {"standard", "high_gain", "low_dose"};
 
 XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
                                      const char* configJsonOrNull,
@@ -46,12 +49,12 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
 
     // QA-A-125 (#186): A LOADED LUT TAKES PRECEDENCE OVER THE DETECTOR MODE.
     // This block sits ahead of the "mode" parse below, so when a LUT is loaded
-    // it is applied whatever `mode` says -- including a mode the list below
-    // would reject with XPE_ERR_CONFIG_INVALID. That ordering is deliberate
-    // (a real calibration outranks a mode name that selects no correction),
-    // but it was nowhere written down, so it is written here.
+    // it is applied whatever `mode` says. That ordering was deliberate and
+    // nowhere written down, so it is written here. (The mode list it used to
+    // outrank is gone -- QA-A-127, #196; the precedence note stays because a
+    // second model will reintroduce the question.)
     //
-    // It is also the same question #187 answered for the gain models with
+    // It is the same question #187 answered for the gain models with
     // "the model loaded last is the one applied". Here there is only one
     // model, so precedence is unambiguous; when EXT 6b (the global polynomial)
     // arrives there will be two, and LUT-vs-polynomial has to be decided then
@@ -88,33 +91,41 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
         return XPE_ERR_CALIB_NOT_LOADED;
     }
 
-    // REQ-P1A-013: no-op when no config supplied
     if (!configJsonOrNull) return XPE_OK;
 
-    // Parse detector mode from JSON
-    const std::string mode = xpe_json_get_string(configJsonOrNull, "mode");
-    if (mode.empty()) return XPE_OK; // no mode key — no-op
-
-    // REQ-P1A-014: unknown mode -> XPE_ERR_CONFIG_INVALID
-    bool known = false;
-    for (const auto& m : kKnownModes) {
-        if (m == mode) { known = true; break; }
-    }
-    if (!known) return XPE_ERR_CONFIG_INVALID;
-
-    // REQ-P1A-012/015: apply identity polynomial for now (baseline, uint16 format)
+    // No LUT, and the panel was not declared non-linear: nothing is corrected.
     //
-    // QA-A-125 (#186): this path is reached only when NO LUT is loaded -- the
-    // branch above applies one when it is there. Saying "SRS-CALIB-FUNC-006 is
-    // not implemented" here, as this comment used to, is false: EXT 6a is
-    // implemented and the per-detector profile it describes is exactly the LUT
-    // loaded above. What is missing is EXT 6b, the global 4th-degree
-    // polynomial for embedded/FPGA use -- no generate, load, or apply, and no
-    // XCal type for it.
+    // QA-A-127 (#196): this used to reject any "mode" outside a hard-coded
+    // list {"standard","high_gain","low_dose"} with XPE_ERR_CONFIG_INVALID,
+    // failing the whole pipeline. Three measurements retired that list:
     //
-    // So this is the older REQ-P1A-012 baseline, not the FUNC-006 path: it
-    // recognises a detector mode and changes no pixels, so `changed` stays
-    // false and the pipeline does not mark the frame corrected (#184).
+    //  - the rejection was REACHED. A pipeline config carrying
+    //    "mode":"clinical" returned -4 while the same config without the key
+    //    returned 0 (QA-A-126 probe).
+    //  - the three names have NO source. Searched docs/ and .moai/specs/:
+    //    "high_gain" appears once as a defect-detection pixel mask
+    //    (gain_map > gain_mean * 2.0), "low_dose" as a display LUT name
+    //    (pediatric_low_dose), "standard" only as the English word. None is
+    //    defined as a detector mode anywhere.
+    //  - the requirement it cited says something else. REQ-P1A-014 is
+    //    "Calibration File Loading (Offset)"; nonlinearity is explicitly out
+    //    of SPEC-XPE-P1A's scope, which points at a SPEC-XPE-P1D that does
+    //    not exist.
+    //
+    // The two "mode" vocabularies are the root: this list held DETECTOR modes
+    // while the rest of the repository puts OPERATING modes ("clinical",
+    // "research", "production", "test") under the same JSON key.
+    //
+    // So the stage no longer decides anything from "mode". It reports that it
+    // did nothing, because silence cannot be told apart from a correction
+    // that ran: the frame leaves this stage byte-identical either way, and
+    // XPE_FLAG_NONLINEARITY_CORRECTED is absent in both cases too. Turning the
+    // error into a silent pass would drop the one signal the caller had.
+    xpe_alert_push("nonlinearity correction did nothing: no LUT is loaded and "
+                   "panel.linear is not \"false\", so the frame passed through "
+                   "unchanged; load a LUT with xpe_calib_load_nonlin_lut() if "
+                   "this panel needs correcting (issue #196)",
+                   XPE_ALERT_WARNING);
     (void)img;
     return XPE_OK;
 }
