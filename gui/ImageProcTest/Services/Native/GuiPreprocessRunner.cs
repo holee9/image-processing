@@ -128,6 +128,24 @@ internal static class GuiPreprocessRunner
                 return new PreprocessRunResult(false, $"xpe_offset_correct failed ({offsetCode}).", null);
             }
 
+            // Stage 3 (PRE-08), between offset and gain — the order the module's own pipeline uses
+            // (pipeline.cpp: Stage 2 offset at :142, Stage 3 nonlinearity at :158, Stage 4 gain at :184),
+            // read from the source rather than taken on report (#198, GUI-C-128).
+            //
+            // Until now the gui ran offset -> gain -> defect and skipped this stage entirely, so what it
+            // drew was not what the module's pipeline produces. That is the reason it is wired, not the
+            // alert the stage pushes — the alert is a side effect of the stage finally running.
+            //
+            // Null config: the gui has no detector profile to pass, and the module treats that as "no
+            // panel.linear declared". With no LUT loaded the stage returns XPE_OK and leaves the frame
+            // byte-identical (nonlinearity_correct.cpp:95), which is why adding it changes no pixels
+            // today. No new gui switch: the module decides what the stage does.
+            var nonlinearityCode = XpePreprocessNative.xpe_nonlinearity_correct(ref offsetOut, null);
+            if (nonlinearityCode != XpeOk)
+            {
+                return new PreprocessRunResult(false, $"xpe_nonlinearity_correct failed ({nonlinearityCode}).", null);
+            }
+
             var gainCode = XpePreprocessNative.xpe_gain_correct(ref offsetOut, ref gainOut, ref metadata);
             if (gainCode != XpeOk)
             {
@@ -142,7 +160,7 @@ internal static class GuiPreprocessRunner
 
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: offset -> gain -> defect on {width}x{height} ({bodyPart}).",
+                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).",
                 ReadFloatsAsUInt16(defectOut.Data, count));
         }
         finally
