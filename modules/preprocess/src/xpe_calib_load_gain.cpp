@@ -125,15 +125,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             xpe_calib_apply_quality_meta_json(json.c_str());
         }
 
-        // QA-A-107 (#187): the file is read and its metadata is available, but no
-        // correction path applies the coefficients. Say so here -- the load is
-        // where the operator can still act on it.
-        if (poly_loaded) {
-            xpe_alert_push("gain polynomial loaded (XCAL_TYPE_GAIN_POLY): metadata is "
-                           "available but no correction applies G(x,y,E) yet (issue #187); "
-                           "gain correction will refuse until a scalar gain map is loaded",
-                           XPE_ALERT_WARNING);
-        }
+        // QA-A-107 (#187) raised a warning here saying the coefficients were
+        // loaded but nothing applied them. QA-A-121 made xpe_gain_correct()
+        // apply them, so that sentence became false and the warning is gone --
+        // a standing alert that no longer describes the system trains operators
+        // to ignore the queue.
+        (void)poly_loaded;
 
         return XPE_OK;
 

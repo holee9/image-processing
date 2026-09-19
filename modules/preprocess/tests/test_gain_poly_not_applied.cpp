@@ -37,6 +37,7 @@
 #include "fixtures/make_xcal.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -74,11 +75,24 @@ protected:
 
     std::string p(const std::string& n) const { return (dir / n).string(); }
 
-    /** A GAIN_POLY file with `coeffs` coefficient planes, every pixel the same. */
+    /**
+     * A GAIN_POLY file carrying `coeffs` for every pixel.
+     *
+     * PIXEL-MAJOR: coefficient j of pixel p at [p * coeffs.size() + j]. That is
+     * what xpe_calib_generate_gain_polynomial() writes
+     * (xpe_calib_generate_gain.cpp:561, `offset = pix * sMaxCoeffsPoly`) and
+     * what the store documents (xpe_preprocess_internal.h:277-278).
+     *
+     * This helper used to write PLANE-major (all of c0, then all of c1). Both
+     * layouts have the same byte count, so the loader accepted either and no
+     * test noticed -- nothing read the coefficients back. QA-A-121 is the first
+     * code that evaluates them, which is what made the mismatch observable.
+     */
     std::string writePoly(const std::string& name, const std::vector<float>& coeffs) {
         std::vector<float> payload(N * coeffs.size());
-        for (size_t k = 0; k < coeffs.size(); ++k)
-            for (size_t i = 0; i < N; ++i) payload[k * N + i] = coeffs[k];
+        for (size_t i = 0; i < N; ++i)
+            for (size_t k = 0; k < coeffs.size(); ++k)
+                payload[i * coeffs.size() + k] = coeffs[k];
         XCalFileHeader hdr{};
         std::memcpy(hdr.magic, XCAL_MAGIC, 4);
         hdr.version = XCAL_VERSION;
@@ -133,41 +147,47 @@ TEST_F(GainPolyNotAppliedTest, ScalarGainMapIsApplied) {
     EXPECT_FLOAT_EQ(500.0f, out[0]);   // 1000 / 2
 }
 
-// #187: the polynomial file loads (with a warning) and gain correction refuses
-// with a code that names the reason.
-TEST_F(GainPolyNotAppliedTest, PolynomialGainLoadsWithAWarningAndCorrectionRefuses) {
-    const std::string poly = writePoly("gain_poly.xcal", {1.0f, 0.5f, 0.25f});
+// #187: the polynomial file loads and IS applied, with no alert either side.
+//
+// WHAT THIS CASE USED TO SAY, AND WHY IT WAS RIGHT THEN. Until QA-A-121 it
+// asserted a WARNING at load ("no correction applies G(x,y,E)") and
+// XPE_ERR_UNSUPPORTED_FORMAT with an ERROR alert at correction time. That
+// recorded a real state of the system: the coefficients were stored and nothing
+// read them. Now xpe_gain_correct() evaluates them, so both alerts describe a
+// system that no longer exists -- and an alert that outlives its truth teaches
+// operators to ignore the queue.
+TEST_F(GainPolyNotAppliedTest, PolynomialGainLoadsAndIsAppliedWithoutAlerts) {
+    const std::string poly = writePoly("gain_poly.xcal", {1.0f, 0.0005f});
     xpe_clear_alerts();
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()))
         << "the loader accepts XCAL_TYPE_GAIN_POLY (#140 metadata round trip)";
-    EXPECT_TRUE(alertContains("no correction applies G(x,y,E)"))
-        << "the load must say the coefficients are not applied (#187)";
+    EXPECT_FALSE(alertContains("no correction applies G(x,y,E)"))
+        << "the load-time warning outlived the defect it described";
 
-    xpe_clear_alerts();
-    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, correct())
-        << "this function cannot apply a polynomial model; CALIB_NOT_LOADED would "
-           "say the module holds no calibration, which is not the case (#187)";
-    EXPECT_TRUE(alertContains("does not apply it"))
-        << "the refusal must be visible to the operator, not only in the code";
-    EXPECT_FLOAT_EQ(-1.0f, out[0]) << "the output buffer is left untouched";
+    ASSERT_EQ(XPE_OK, correct()) << "the polynomial model is applied now (#187)";
+    EXPECT_FALSE(alertContains("does not apply it"))
+        << "the refusal alert outlived the refusal";
+    EXPECT_NEAR(1000.0f / 1.5f, out[0], 1e-2f)
+        << "G(1000) = 1.0 + 0.0005*1000 = 1.5, and the correction divides by it";
     xpe_clear_alerts();
 }
 
 // Loading a polynomial file after a scalar map removes the working model.
-TEST_F(GainPolyNotAppliedTest, PolynomialLoadReplacesAWorkingScalarMap) {
+TEST_F(GainPolyNotAppliedTest, PolynomialLoadReplacesAWorkingScalarMapAndAppliesInstead) {
     const std::string sc = p("gain2.xcal");
     ASSERT_EQ(XPE_OK, MakeGainXCal(sc.c_str(), W, H, 2.0f));
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(sc.c_str()));
     ASSERT_EQ(XPE_OK, correct());
     ASSERT_FLOAT_EQ(500.0f, out[0]);
 
-    const std::string poly = writePoly("gain_poly2.xcal", {1.0f, 0.5f});
+    const std::string poly = writePoly("gain_poly2.xcal", {1.0f, 0.0005f});
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
-    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, correct())
-        << "the scalar map is cleared on purpose (SRS-CALIB-SAFE-003): frames must "
-           "not be corrected with a map the operator did not select (#187)";
-    EXPECT_FLOAT_EQ(500.0f, out[0])
-        << "the earlier result is left in the buffer; nothing new was written";
+    ASSERT_EQ(XPE_OK, correct())
+        << "the polynomial replaces the scalar map and is applied in its place";
+    EXPECT_NEAR(1000.0f / 1.5f, out[0], 1e-2f)
+        << "the new model's value, not the old map's 500.0 -- the scalar map is "
+           "still cleared on purpose (SRS-CALIB-SAFE-003), it is just no longer "
+           "the end of the road";
     xpe_clear_alerts();
 }
 
@@ -239,4 +259,94 @@ TEST_F(GainPolyNotAppliedTest, PolynomialCoefficientsOutsideTheScalarRangeStillL
     const std::string poly = writePoly("wide_poly.xcal", {0.0f, 25.0f, -3.0f});
     EXPECT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
     xpe_clear_alerts();
+}
+
+/* =====================================================================
+ * QA-A-121 (#187): the polynomial gain is APPLIED, and it is indexed by
+ * each pixel's own value.
+ *
+ * WHY THIS SHAPE OF TEST, AND WHAT IT DISCRIMINATES.
+ *
+ * The lead's question is whether the model is evaluated per pixel or once
+ * per frame. A test that feeds a uniform frame cannot tell those apart --
+ * every pixel has the same value, so both schemes produce the same output,
+ * and the test would pass either way (this repository has a name for that:
+ * a test that cannot fail for the reason it exists).
+ *
+ * So the frame carries TWO signal levels. Under per-pixel indexing the two
+ * regions sit at different points of the same curve and therefore receive
+ * DIFFERENT gains; under any frame-scalar scheme they receive the same one.
+ * The ratio out/in is constant across the frame in the second case and not
+ * in the first, and that is the discriminator.
+ *
+ * The expected values are computed here from the coefficients by this
+ * file's own arithmetic -- G(v) = c0 + c1*v, corrected = v / G(v) -- so a
+ * wrong evaluation order, a wrong coefficient stride, or a wrong index all
+ * move the measured value and leave the expectation alone.
+ *
+ * UNITS. The curve's abscissa is whatever xpe_calib_generate_gain_polynomial()
+ * was handed as `dose_levels` ("mGy or relative units", preprocess_api.h).
+ * Indexing by the pixel's own value is the consistent reading only when those
+ * levels were given in the same units as pixel values -- which is what the
+ * reference dataset does (tests/test_data/cyan_test: CalSet levels are named
+ * by their ADU, 14037..42677). The test builds its coefficients on that
+ * reading and says so here rather than leaving it implied.
+ * ===================================================================== */
+TEST_F(GainPolyNotAppliedTest, PolynomialGainIsAppliedPerPixelUsingThePixelsOwnValue) {
+    // G(v) = 1.0 + 0.0005*v  ->  at v=1000, G=1.5; at v=3000, G=2.5.
+    // Chosen so the two regions differ by much more than float noise.
+    constexpr float c0 = 1.0f, c1 = 0.0005f;
+    const std::string poly = writePoly("gain_poly_perpixel.xcal", {c0, c1});
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+
+    // Two levels, interleaved so neither region is a contiguous block -- a
+    // stride bug that reads the wrong coefficient plane cannot line up with
+    // the pattern by accident.
+    for (size_t i = 0; i < N; ++i) in[i] = (i % 2 == 0) ? 1000u : 3000u;
+    std::fill(out.begin(), out.end(), -1.0f);
+
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, correct())
+        << "the polynomial model must be applied, not refused";
+
+    for (size_t i = 0; i < N; ++i) {
+        const float v = static_cast<float>(in[i]);
+        const float g = c0 + c1 * v;
+        EXPECT_NEAR(v / g, out[i], 1e-2f) << "pixel " << i << " at value " << v;
+    }
+
+    // The discriminator, stated as its own assertion: the two regions did NOT
+    // receive the same gain. If they had, out/in would be equal for both.
+    const float ratio_low = out[0] / 1000.0f;
+    const float ratio_high = out[1] / 3000.0f;
+    EXPECT_GT(std::fabs(ratio_low - ratio_high), 0.05f)
+        << "both signal levels were corrected with the same gain (" << ratio_low
+        << " vs " << ratio_high << ") -- the model is not indexed per pixel";
+
+    // The alert said "loaded but not applied". Once it IS applied that
+    // sentence is false, so it must no longer be raised.
+    EXPECT_FALSE(alertContains("does not apply it"))
+        << "the refusal alert survived the correction that makes it untrue";
+}
+
+/** A polynomial and a scalar map cannot both be active; the loader clears one.
+ *  This pins WHICH one wins if that ever changes. */
+TEST_F(GainPolyNotAppliedTest, TheModelLoadedLastIsTheOneApplied) {
+    const std::string sc = p("gain_last.xcal");
+    ASSERT_EQ(XPE_OK, MakeGainXCal(sc.c_str(), W, H, 2.0f));
+    const std::string poly = writePoly("gain_poly_last.xcal", {1.0f, 0.0005f});
+
+    // scalar, then polynomial -> polynomial applies
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(sc.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+    std::fill(in.begin(), in.end(), 1000u);
+    std::fill(out.begin(), out.end(), -1.0f);
+    ASSERT_EQ(XPE_OK, correct());
+    EXPECT_NEAR(1000.0f / 1.5f, out[0], 1e-2f) << "the polynomial should apply";
+
+    // polynomial, then scalar -> scalar applies
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(sc.c_str()));
+    std::fill(out.begin(), out.end(), -1.0f);
+    ASSERT_EQ(XPE_OK, correct());
+    EXPECT_NEAR(500.0f, out[0], 1e-3f) << "the scalar map should apply";
 }
