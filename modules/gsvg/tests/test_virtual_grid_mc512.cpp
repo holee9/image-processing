@@ -1,8 +1,14 @@
 // #180 (QA-B-123): the 512 x 512 MC phantom set.
 //
-// The 80 x 80 set (test_virtual_grid_mc.cpp) has 4 mm pixels, so a six-level
-// pyramid's 128-pixel reach covers the whole image and no mask-outside
-// comparison is possible there (QA-B-108/110). This set is 512 x 512 at
+// The 80 x 80 set (test_virtual_grid_mc.cpp) has 4 mm pixels, so the pyramid's
+// reach covers the whole image and no mask-outside comparison is possible there
+// (QA-B-108/110). QA-B-137 CORRECTION: this header used to say "a six-level
+// pyramid's 128-pixel reach". Both numbers were wrong and they did not even
+// agree with each other -- the default is FOUR levels (virtual_grid.h:115) and
+// PyramidContrast reduces `levels` times (virtual_grid.cpp:603), so the reach is
+// 2^levels = 16 px, not 128. The wrong premise was copied out of this comment
+// into the QA-B-136 report and #191 before anyone read the code. This set is
+// 512 x 512 at
 // 0.140 mm with a 358-pixel field whose boundary lies inside the image, which
 // is what the checklist asked for:
 //   .moai/reports/lane-post/PHANTOM-SWAP-CHECKLIST.md
@@ -932,6 +938,149 @@ TEST(GsvgVirtualGridMc512, ErrorPeakFollowsPixelsOrMillimetres_191)
         std::printf("VGMC136 PEAK k=%d peak_px=%.1f peak_mm=%.3f median=%.4f far=%.4f peak/far=%.3f\n",
                     k, bestPx, bestPx * b.pitchMm, best, last, last > 0 ? best / last : -1.0);
     }
+    }
+    SUCCEED();
+}
+
+// ===========================================================================
+// #191 item 1 (QA-B-137): does the boundary excess follow the PYRAMID REACH?
+//
+// QA-B-136 showed the excess is made by the post-steps, not by the scatter
+// subtraction. This sweeps the post-step reach with everything else fixed --
+// same phantom, same 0.140 mm pixel, same boundary set -- so one axis moves.
+//
+// TWO CORRECTIONS TO THE CARD, both read from the code rather than assumed.
+//
+// 1. The default is FOUR levels, not six. `VgSettings::pyramidLevels = 4`
+//    (virtual_grid.h:115), and BaseSettings() does not override it, so every
+//    QA-B-125/134/136 measurement ran at 4. The "six-level 128-pixel reach"
+//    QA-B-136 reported (and this lane wrote into its own report) was wrong.
+//
+// 2. The sweep cannot go DOWN. RunVirtualGrid rejects `pyramidLevels < 4`
+//    outright (virtual_grid.cpp:695, "0 = off, otherwise 4..8"), so 3 and
+//    below are not reachable settings; the reach can only be made LARGER.
+//    The card's shape survives -- one axis, a falsifiable prediction -- but
+//    the prediction has to be stated in the direction the code allows.
+//
+// REACH. PyramidContrast reduces `levels` times (virtual_grid.cpp:603), so the
+// coarsest Gaussian sits at 2^levels pixels: 16 px (2.24 mm) at 4 levels,
+// 256 px (35.8 mm) at 8. Each level DOUBLES it.
+//
+// PREDICTION, falsifiable either way:
+//   the excess reaches ~2^levels px -> the reach is the cause, and #191 item 1
+//     is answerable on THIS phantom by moving the reach instead of the scene.
+//   it does not move with 2^levels -> something else inside the post-steps
+//     makes it, and that is the next question.
+//
+// WHAT IS LOST, reported alongside (the card asks for this explicitly): levels
+// is a FEATURE, not a speed knob. Each row carries the corrected error over the
+// whole region against the uncorrected one, so a later reader cannot mistake
+// "fewer levels" for an improvement. This is a cause experiment, NOT a settings
+// recommendation.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, BoundaryExcessAgainstPyramidReach_191)
+{
+    const Phantom p = Load("step");
+
+    // Boundary columns, found once (the QA-B-125 criterion).
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0; int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i]; ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> jumpCols;
+    for (int j = kLo; j + 1 < kHi; ++j)
+        if (std::fabs(colT[j + 1] - colT[j]) > 0.2) jumpCols.push_back(j);
+    std::vector<int> dist(kN, kN);
+    for (int c = kLo; c < kHi; ++c)
+        for (int j : jumpCols) dist[c] = std::min(dist[c], std::abs(c - j));
+
+    auto median = [](std::vector<double> a) {
+        if (a.empty()) return -1.0;
+        std::sort(a.begin(), a.end());
+        return a[a.size() / 2];
+    };
+
+    // Uncorrected reference: what the chain starts from.
+    std::vector<double> before;
+    for (size_t i = 0; i < p.total.size(); ++i) {
+        if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+        before.push_back(std::fabs(p.total[i] / p.primary[i] - 1.0));
+    }
+    const double beforeMed = median(before);
+    std::printf("VGMC137 uncorrected median|total/primary-1| = %.4f (%zu px)\n",
+                beforeMed, before.size());
+    std::printf("VGMC137 jumps=%zu, spacing ~%.1f px\n",
+                jumpCols.size(),
+                jumpCols.size() > 1
+                    ? static_cast<double>(jumpCols.back() - jumpCols.front()) /
+                          static_cast<double>(jumpCols.size() - 1)
+                    : -1.0);
+
+    // Finer bins than QA-B-136 used: a narrower peak would fall inside one of
+    // its six bins and read as "no peak" (the gap that report listed).
+    const int edges[] = {0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48};
+    constexpr size_t kBins = sizeof(edges) / sizeof(edges[0]) - 1;
+
+    std::printf("VGMC137 levels, reach_px, reach_mm, profile..., far, peak_px, peak/far, overall, after/before\n");
+    for (const int levels : {0, 4, 5, 6, 7, 8}) {
+        vg::VgSettings st = BaseSettings();
+        st.pyramidLevels = levels;
+        if (levels == 0) { st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+
+        std::vector<double> img = p.total;
+        const vg::VgReport rep =
+            vg::RunVirtualGrid(img, kN, kN, McTable(), st, vg::VgSwitches{}, p.mask.data());
+        ASSERT_EQ(rep.error, "") << levels;
+
+        std::vector<double> med(kBins, -1.0);
+        std::vector<size_t> cnt(kBins, 0);
+        for (size_t b = 0; b < kBins; ++b) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+                const int c = static_cast<int>(i) % kN;
+                if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
+                a.push_back(std::fabs(img[i] / p.primary[i] - 1.0));
+            }
+            cnt[b] = a.size();
+            med[b] = median(a);
+        }
+
+        // Far reference = the outermost populated bin; peak = the largest bin.
+        double far = -1;
+        for (size_t b = kBins; b-- > 0;) if (med[b] >= 0) { far = med[b]; break; }
+        double best = -1, bestPx = -1;
+        for (size_t b = 0; b < kBins; ++b)
+            if (med[b] > best) { best = med[b]; bestPx = 0.5 * (edges[b] + edges[b + 1]); }
+
+        // How far out the excess actually reaches: the outermost bin still
+        // above halfway between the far level and the peak.
+        double reachedPx = -1;
+        const double half = far + 0.5 * (best - far);
+        for (size_t b = kBins; b-- > 0;)
+            if (med[b] >= 0 && med[b] >= half) { reachedPx = static_cast<double>(edges[b + 1]); break; }
+
+        const Metrics m = Measure(img, p);
+        const double reachPx = levels ? static_cast<double>(1 << levels) : 0.0;
+
+        std::printf("VGMC137 --- levels=%d reach=%.0f px (%.2f mm) factor=%d\n",
+                    levels, reachPx, reachPx * kPitchMm, rep.factor);
+        for (size_t b = 0; b < kBins; ++b)
+            if (med[b] >= 0)
+                std::printf("VGMC137 L=%d d=[%2d,%2d) px = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+                            levels, edges[b], edges[b + 1],
+                            edges[b] * kPitchMm, edges[b + 1] * kPitchMm, cnt[b], med[b]);
+        std::printf("VGMC137 SUMMARY levels=%d reach=%.0f px peak_px=%.1f peak=%.4f far=%.4f "
+                    "peak/far=%.3f excess_reaches=%.0f px overall=%.4f after/before=%.3f\n",
+                    levels, reachPx, bestPx, best, far, far > 0 ? best / far : -1.0,
+                    reachedPx, m.absMedian,
+                    beforeMed > 0 ? m.absMedian / beforeMed : -1.0);
     }
     SUCCEED();
 }
