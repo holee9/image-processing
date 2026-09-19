@@ -319,9 +319,16 @@ jobs:
           $binDir = Join-Path $env:GITHUB_WORKSPACE 'build/ci-post/bin'
           $exes = @(Get-ChildItem -Path $binDir -Recurse -Filter *.exe -File)
           if ($exes.Count -eq 0) { Write-Error "no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          # Same exclusion as the ctest step above, for the same reason: these measure the
+          # machine, not the code, and timing regressions are the benchmark workflow's gate.
+          # Keep in sync with the ctest -E regex and XpeCoverage.cmake. Omitting it made this
+          # step's first run red on EdgeEnhance.Performance_3072x3072_Within20ms (28 ms on the
+          # runner, under budget on a developer machine) — a gate calibrated elsewhere.
+          # `*Performance*` already covers PerformanceBudget and LargeImagePerformance.
+          $filter = '--gtest_filter=-*Performance*:*Within*ms*'
           $bad = 0
           foreach ($exe in $exes) {
-            $out = & $exe.FullName 2>&1 | Out-String
+            $out = & $exe.FullName $filter 2>&1 | Out-String
             $code = $LASTEXITCODE
             $summary = ($out -split "`n" | Where-Object { $_ -match '^\[\s*(PASSED|FAILED)\s*\]' }) -join ' | '
             $ranLine = $out -split "`n" | Where-Object { $_ -match '^\[=+\]\s+(\d+) tests? from .* ran' } | Select-Object -First 1
