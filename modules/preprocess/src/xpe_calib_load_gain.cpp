@@ -15,6 +15,7 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_reader.hpp"
 
+#include <cstdio>
 #include <mutex>
 #include <cstring>
 #include <string>
@@ -139,14 +140,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                 const double lo_b = xpe_json_get_double(json.c_str(), "dose_min", -2.0);
                 const double hi_a = xpe_json_get_double(json.c_str(), "dose_max", -1.0);
                 const double hi_b = xpe_json_get_double(json.c_str(), "dose_max", -2.0);
-                const bool have = (lo_a == lo_b) && (hi_a == hi_b) && (hi_a > lo_a);
+                const bool present = (lo_a == lo_b) && (hi_a == hi_b);
+                const bool usable  = present && (hi_a > lo_a);
 
-                if (have) {
+                if (usable) {
                     std::lock_guard<std::mutex> lock(g_calib_mutex);
                     g_calib.gain_poly_has_range = true;
                     g_calib.gain_poly_dose_min = lo_a;
                     g_calib.gain_poly_dose_max = hi_a;
-                } else {
+                } else if (!present) {
                     // Not rejected: refusing would retire every calibration
                     // made before this field existed, which is the harder
                     // thing to undo. Not silent either, or today's behaviour
@@ -159,6 +161,25 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                         "regenerate the calibration to enable the clamp "
                         "(issue #194)",
                         XPE_ALERT_WARNING);
+                } else {
+                    // QA-A-124 (#194): the keys ARE there and the interval is
+                    // inverted or empty. Saying "generated before the range
+                    // field existed" here would be false, and an alert that
+                    // misdescribes the file sends the reader after the wrong
+                    // thing. Measured: a reversed dose ladder written with the
+                    // generator's sort guard disabled recorded
+                    // dose_min=42677, dose_max=14037.
+                    char msg[320];
+                    std::snprintf(msg, sizeof(msg),
+                        "gain polynomial carries an inverted dose range "
+                        "[%.1f, %.1f]: the clamp is not applied and pixel "
+                        "values are extrapolated. The file's dose levels were "
+                        "not ascending when it was generated, so its "
+                        "coefficients may be fitted against mispaired gain "
+                        "maps -- regenerate it (issue #194)",
+                        lo_a, hi_a);
+                    msg[sizeof(msg) - 1] = '\0';
+                    xpe_alert_push(msg, XPE_ALERT_WARNING);
                 }
             }
         }

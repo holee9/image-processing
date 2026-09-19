@@ -44,6 +44,7 @@
 #include "fixtures/make_xcal.hpp"
 #include "preprocess_state_fixture.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -306,4 +307,142 @@ TEST_F(GainPolyDoseRangeTest, AFileWithoutARangeIsNotClamped) {
            "extrapolated gain is what the pixel gets (QA-A-122 measurement)";
     EXPECT_FALSE(alertContains("fell outside the gain polynomial"))
         << "nothing was clamped, so no clamp alert should be raised";
+}
+
+/* ---------------------------------------------------------------------------
+ * The dose levels must be ascending (QA-A-124, #194).
+ *
+ * The range written into the file is dose_levels[0] and dose_levels[n-1].
+ * Those are the minimum and maximum only if the array is sorted, and nothing
+ * checked that it was. While the pair fed only the monotonicity check a wrong
+ * order merely made that check look at the wrong interval; now the same pair
+ * is the clamp boundary and changes output pixel values.
+ *
+ * What the guard prevents was measured by disabling it (QA-A-124 report):
+ * with the levels reversed, [0] is the HIGHEST dose and [n-1] the lowest, so
+ * the file records an inverted interval -- and the clamp then compares every
+ * pixel against bounds that are the wrong way round.
+ * ------------------------------------------------------------------------- */
+
+/** Reversed levels are refused, not quietly sorted. Sorting one side would
+ *  re-pair the doses with gain maps they did not come from. */
+TEST_F(GainPolyDoseRangeTest, DescendingDoseLevelsAreRefused) {
+    std::vector<std::string> paths;
+    std::vector<const char*> ptrs;
+    for (size_t i = 0; i < kDoses.size(); ++i) {
+        const std::string lvl = p(("a124_lvl" + std::to_string(i) + ".xcal").c_str());
+        ASSERT_EQ(XPE_OK, MakeGainXCal(lvl.c_str(), W, H, kGains[i]));
+        paths.push_back(lvl);
+    }
+    for (const auto& s : paths) ptrs.push_back(s.c_str());
+
+    std::vector<double> reversed(kDoses.rbegin(), kDoses.rend());
+    const std::string out = p("a124_reversed.xcal");
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_generate_gain_polynomial(
+        ptrs.data(), reversed.data(), static_cast<int32_t>(reversed.size()),
+        3, out.c_str()))
+        << "descending dose levels must be refused at generation";
+    EXPECT_FALSE(fs::exists(out))
+        << "a refused generation must not leave a file behind";
+}
+
+/** One swapped pair is enough -- the guard is not a check on the endpoints
+ *  only. A middle-of-the-ladder swap still mispairs doses with maps. */
+TEST_F(GainPolyDoseRangeTest, OneOutOfOrderLevelInTheMiddleIsRefused) {
+    std::vector<std::string> paths;
+    std::vector<const char*> ptrs;
+    for (size_t i = 0; i < kDoses.size(); ++i) {
+        const std::string lvl = p(("a124b_lvl" + std::to_string(i) + ".xcal").c_str());
+        ASSERT_EQ(XPE_OK, MakeGainXCal(lvl.c_str(), W, H, kGains[i]));
+        paths.push_back(lvl);
+    }
+    for (const auto& s : paths) ptrs.push_back(s.c_str());
+
+    std::vector<double> swapped = kDoses;
+    std::swap(swapped[1], swapped[2]);  // endpoints still correct
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_generate_gain_polynomial(
+        ptrs.data(), swapped.data(), static_cast<int32_t>(swapped.size()),
+        3, p("a124_swapped.xcal").c_str()))
+        << "the check must cover every adjacent pair, not just [0] and [n-1]";
+}
+
+/** Two maps at the same dose give the fit two y values for one x. */
+TEST_F(GainPolyDoseRangeTest, DuplicateDoseLevelsAreRefused) {
+    std::vector<std::string> paths;
+    std::vector<const char*> ptrs;
+    for (size_t i = 0; i < kDoses.size(); ++i) {
+        const std::string lvl = p(("a124c_lvl" + std::to_string(i) + ".xcal").c_str());
+        ASSERT_EQ(XPE_OK, MakeGainXCal(lvl.c_str(), W, H, kGains[i]));
+        paths.push_back(lvl);
+    }
+    for (const auto& s : paths) ptrs.push_back(s.c_str());
+
+    std::vector<double> dup = kDoses;
+    dup[2] = dup[1];
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_generate_gain_polynomial(
+        ptrs.data(), dup.data(), static_cast<int32_t>(dup.size()),
+        3, p("a124_dup.xcal").c_str()))
+        << "a repeated dose is not a valid abscissa";
+}
+
+/** The control: the same call with ascending levels still succeeds. Without
+ *  this, a guard that refused everything would pass all three cases above. */
+TEST_F(GainPolyDoseRangeTest, AscendingDoseLevelsAreStillAccepted) {
+    const std::string poly = generatePoly("a124_ok.xcal", 3);
+    EXPECT_TRUE(fs::exists(poly));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+}
+
+/** An inverted range is not the same thing as a missing one, and the loader
+ *  must not say it is. The generator refuses unsorted levels now, so a file
+ *  like this cannot be produced any more -- but one may already exist, written
+ *  before the guard, and an alert that misdescribes it sends the reader after
+ *  the wrong thing (the measured case: dose_min=42677, dose_max=14037). */
+TEST_F(GainPolyDoseRangeTest, AnInvertedRangeIsReportedAsInvertedNotAsMissing) {
+    const std::string poly = generatePoly("a124_inv_src.xcal", 3);
+
+    // Swap the two recorded values, then rewrite the file through the writer so
+    // the SHA-256 covers the edited metadata -- a hand-patched file is refused
+    // as corrupt, which would test something else entirely.
+    std::ifstream f(poly, std::ios::binary);
+    std::string bytes((std::istreambuf_iterator<char>(f)),
+                       std::istreambuf_iterator<char>());
+    XCalFileHeader hdr{};
+    std::memcpy(&hdr, bytes.data(), sizeof(hdr));
+    const size_t payload_at = sizeof(hdr) + static_cast<size_t>(hdr.config_json_len);
+    std::string cfg = bytes.substr(sizeof(hdr), static_cast<size_t>(hdr.config_json_len));
+
+    const std::string lo = "\"dose_min\":14037.000000";
+    const std::string hi = "\"dose_max\":42677.000000";
+    ASSERT_NE(std::string::npos, cfg.find(lo));
+    ASSERT_NE(std::string::npos, cfg.find(hi));
+    cfg.replace(cfg.find(lo), lo.size(), "\"dose_min\":42677.000000");
+    cfg.replace(cfg.find(hi), hi.size(), "\"dose_max\":14037.000000");
+
+    XCalFileHeader out_hdr{};
+    std::memcpy(out_hdr.magic, XCAL_MAGIC, 4);
+    out_hdr.version      = XCAL_VERSION;
+    out_hdr.type         = hdr.type;
+    out_hdr.pixel_format = hdr.pixel_format;
+    out_hdr.width        = hdr.width;
+    out_hdr.height       = hdr.height;
+    out_hdr.payload_len  = hdr.payload_len;
+    const std::string inv = p("a124_inverted.xcal");
+    ASSERT_EQ(XPE_OK, write_xcal_file(
+        inv.c_str(), out_hdr,
+        reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
+        reinterpret_cast<const uint8_t*>(bytes.data() + payload_at),
+        out_hdr.payload_len));
+
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(inv.c_str()));
+
+    EXPECT_TRUE(alertContains("inverted dose range"))
+        << "the alert must name what is actually wrong with the file";
+    EXPECT_FALSE(alertContains("before the range field existed"))
+        << "the range IS present; saying it is missing is a false statement "
+           "about the file and sends the reader after the wrong thing";
 }
