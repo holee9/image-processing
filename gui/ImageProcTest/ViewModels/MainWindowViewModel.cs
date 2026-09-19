@@ -173,7 +173,7 @@ public sealed class MainWindowViewModel : ObservableObject
             : "Your saved settings could not be read, so this session started from defaults. " +
               $"The original file was kept at '{preservedPath}'.";
 
-        Alerts.Insert(0, new AlertEntry
+        RaiseAlert(new AlertEntry
         {
             Severity = "WARN",
             Code = "SETTINGS_UNREADABLE",
@@ -181,8 +181,9 @@ public sealed class MainWindowViewModel : ObservableObject
             Timestamp = DateTimeOffset.Now
         });
 
+        // RaiseAlert already wrote the line; saying it twice would put the same sentence in the log
+        // twice, once with the ALERT marker and once without (#198 ①, GUI-C-125).
         StatusText = message;
-        Log(message);
     }
 
     public AppSettings Settings { get; }
@@ -1123,7 +1124,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             StatusText = $"Load failed: {ex.Message}";
             Log(StatusText);
-            Alerts.Insert(0, new AlertEntry
+            RaiseAlert(new AlertEntry
             {
                 Severity = "ERROR",
                 Code = "LOAD_FAILED",
@@ -1159,7 +1160,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             StatusText = "Display pipeline requires a loaded raw image.";
             Log(StatusText);
-            Alerts.Insert(0, new AlertEntry
+            RaiseAlert(new AlertEntry
             {
                 Severity = "WARN",
                 Code = "DISPLAY_NO_IMAGE",
@@ -1217,7 +1218,7 @@ public sealed class MainWindowViewModel : ObservableObject
             PreviewStaleReason = StalePipelineFailed;   // #171 ③
             StatusText = $"Display pipeline failed: {ex.Message}";
             Log(StatusText);
-            Alerts.Insert(0, new AlertEntry
+            RaiseAlert(new AlertEntry
             {
                 Severity = "ERROR",
                 Code = "DISPLAY_PIPELINE_FAILED",
@@ -1289,7 +1290,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             if (stage.Status == StageStatus.RequestedNotApplied)
             {
-                Alerts.Insert(0, new AlertEntry
+                RaiseAlert(new AlertEntry
                 {
                     Severity = "WARN",
                     Code = stage.StageId == StageIds.Preprocess ? "PREPROCESS_NOT_RUN" : "CHAIN_STAGE_NOT_APPLIED",
@@ -1327,7 +1328,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             StatusText = $"VOI preset failed: {ex.Message}";
             Log(StatusText);
-            Alerts.Insert(0, new AlertEntry
+            RaiseAlert(new AlertEntry
             {
                 Severity = "ERROR",
                 Code = "VOI_PRESET_FAILED",
@@ -1687,7 +1688,7 @@ public sealed class MainWindowViewModel : ObservableObject
         foreach (var log in pendingLogs)
             Logs.Insert(0, log);
         foreach (var alert in pendingAlerts)
-            Alerts.Insert(0, alert);
+            RaiseAlert(alert);
     }
 
     private void RecordVerdict(Verdict verdict)
@@ -1745,7 +1746,7 @@ public sealed class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             Log($"Failed to write verdict file: {ex.Message}");
-            Alerts.Insert(0, new AlertEntry
+            RaiseAlert(new AlertEntry
             {
                 Severity = "ERROR",
                 Code = "VERDICT_WRITE_FAILED",
@@ -1923,6 +1924,32 @@ public sealed class MainWindowViewModel : ObservableObject
         stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason, elapsedMs = s.ElapsedMs }).ToArray()
             ?? Array.Empty<object>(),
     };
+
+    /// <summary>
+    /// Records an alert — into <see cref="Alerts"/>, and as a line in the log the user can actually
+    /// see (#198 ①, GUI-C-125).
+    ///
+    /// <para><b>Why the log rather than a panel of its own.</b> Nothing on screen displayed
+    /// <see cref="Alerts"/> at all: measured in GUI-C-122, the automation tree carried
+    /// <c>ClearAlertsButton</c> and no list to clear. The log already survives (the status bar is
+    /// overwritten by the next action), scrolls, and can be copied (GUI-C-122, GUI-C-123) — three
+    /// properties a second panel would have to earn again, while splitting the user's attention
+    /// across two places. A message in a place nobody looks is the silent failure this issue is about.</para>
+    ///
+    /// <para><b>Why the prefix, and why text.</b> Merged without a marker an alert would be buried
+    /// rather than shown. The marker is the word ALERT plus the severity and code, in the line text
+    /// itself — a colour or an icon would need the item template, which GUI-C-122 deliberately left
+    /// alone, and neither is readable by automation or carried along when the line is copied. The text
+    /// travels with the clipboard, which is the point of copying it.</para>
+    ///
+    /// <para><see cref="Alerts"/> itself is unchanged: it is where the native drain will land (#198 ②)
+    /// and what Clear Alerts clears.</para>
+    /// </summary>
+    private void RaiseAlert(AlertEntry alert)
+    {
+        Alerts.Insert(0, alert);
+        Log($"ALERT {alert.Severity} {alert.Code}: {alert.Message}");
+    }
 
     private void Log(string message)
     {
