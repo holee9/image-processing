@@ -42,6 +42,9 @@
     Tests live under AiBridgeUi/ and exercise the pure status-computer contract.
   -->
   <ItemGroup>
+    <!-- #173 (GUI-C-115): the preset table and the old-name mapping are pinned by
+         AlgorithmPresetTests. Linked rather than referenced, like everything else here. -->
+    <Compile Include="..\..\gui\ImageProcTest\Models\AlgorithmPreset.cs" Link="Workbench\Linked\AlgorithmPreset.cs" />
     <Compile Include="..\ImageProcTest\Models\ModuleReadinessSnapshot.cs" Link="AiBridgeUi\Linked\ModuleReadinessSnapshot.cs" />
     <Compile Include="..\ImageProcTest\Models\AiBridgeConnectionStatus.cs" Link="AiBridgeUi\Linked\AiBridgeConnectionStatus.cs" />
     <Compile Include="..\ImageProcTest\Models\AiBridgePanelSnapshot.cs" Link="AiBridgeUi\Linked\AiBridgePanelSnapshot.cs" />
