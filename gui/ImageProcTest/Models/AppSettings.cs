@@ -443,6 +443,14 @@ public sealed class AppSettings : ObservableObject
     ///
     /// <para>Same range and default as <see cref="GsvgDenoiseK"/>, so the two lanes agree until someone
     /// changes this one — an ordinary Apply then stays at a single pipeline call (W-23, W-26).</para>
+    ///
+    /// <para><b>A stored value from before the rename is NOT carried over, deliberately.</b> The old
+    /// <c>laneBDenoiseStrength</c> (default 0.42) is skipped on load and this property takes its own
+    /// default, so someone who had set 0.42 silently gets 2.0. There is no mapping table as there is for
+    /// the renamed algorithm presets, because the old key named a "denoise" that no processing ever
+    /// performed — there is nothing to map it onto, and inventing a correspondence would be a wrong one.
+    /// Measured in RetiredSettingKeyTests: the retired key is skipped rather than thrown on, so the rest
+    /// of the settings file still loads.</para>
     /// </summary>
     [JsonPropertyName("laneBGsvgDenoiseK")]
     public double LaneBGsvgDenoiseK
