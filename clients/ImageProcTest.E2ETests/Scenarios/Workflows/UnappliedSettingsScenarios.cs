@@ -1,4 +1,5 @@
 // #182 (GUI-C-95): settings that reach no processing are shown disabled and marked, in the running app.
+using System;
 using FlaUI.Core.AutomationElements;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
@@ -50,26 +51,51 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         }
     }
 
-    /// <summary>U-02: the Lane B override inputs and their reset button are disabled and marked.</summary>
+    /// <summary>
+    /// U-02: the Candidate's de-noise k is usable exactly while it can reach a pixel, and marked when
+    /// it cannot.
+    ///
+    /// <para><b>This case used to assert something else, and was right to.</b> Until GUI-C-117 there
+    /// were two Lane B overrides, both permanently disabled, because nothing read either one (#182).
+    /// The sharpening sigma is gone — the chain has no stage for it to mean, so a disabled input
+    /// claiming one was the <c>Production v1.2</c> defect wearing a different label (#193). The
+    /// de-noise k now overrides the virtual grid's <c>vg_denoise_k</c>, and L-05 measures it moving the
+    /// Candidate's drawn pixels.</para>
+    ///
+    /// <para><b>Why both directions.</b> GuiGsvgRunner sends the key only inside the virtual grid, so
+    /// "enabled" and "disabled" are both correct answers depending on the Candidate's algorithm. A case
+    /// asserting only the disabled half would pass on an input that is disabled always — which is what
+    /// this card removed.</para>
+    /// </summary>
     [SkippableFact]
-    public void U02_LaneBOverrides_AreDisabledAndMarked()
+    public void U02_LaneBDenoiseK_IsUsableExactlyWhenItReachesPixels()
     {
         var window = Ready();
         OpenParameters(window);
         try
         {
-            foreach (var id in new[] { "LaneBSharpeningSigmaInput", "LaneBDenoiseStrengthInput", "LaneBResetDefaultsButton" })
-            {
-                var element = Find(window, id);
-                output.WriteLine($"U02 {id} enabled={element.IsEnabled}");
-                Assert.False(element.IsEnabled, $"{id} is enabled, but no processing reads the Lane B overrides (#182).");
-            }
+            Assert.True(
+                window.FindFirstDescendant(cf => cf.ByAutomationId("LaneBSharpeningSigmaInput")) is null,
+                "The Lane B sharpening input is back; no chain stage reads it (#193).");
 
-            var sigma = Find(window, "LaneBSharpeningSigmaInput").AsTextBox().Text;
-            output.WriteLine($"U02 sigma text='{sigma}'");
-            Assert.False(string.IsNullOrWhiteSpace(sigma), "The disabled sigma input no longer shows the stored value.");
+            SelectLaneBAlgorithm(window, "No correction");
+            var offInput = Find(window, "LaneBGsvgDenoiseKInput");
+            output.WriteLine($"U02 no-correction: enabled={offInput.IsEnabled} text='{offInput.AsTextBox().Text}'");
+            Assert.False(offInput.IsEnabled,
+                "The de-noise k is editable while the Candidate runs no grid correction, where the key is not sent at all (#173).");
+            Assert.False(string.IsNullOrWhiteSpace(offInput.AsTextBox().Text),
+                "The disabled de-noise input no longer shows the stored value.");
+            AssertUnappliedMark(window);
 
-            AssertMark(window, "LaneBOverridesUnappliedMark");
+            SelectLaneBAlgorithm(window, "Virtual grid");
+            var onInput = Find(window, "LaneBGsvgDenoiseKInput");
+            output.WriteLine($"U02 virtual-grid: enabled={onInput.IsEnabled}");
+            Assert.True(onInput.IsEnabled,
+                "The de-noise k is disabled while the Candidate runs the virtual grid, which is the one place it reaches pixels (#173).");
+            Assert.True(
+                window.FindFirstDescendant(cf => cf.ByAutomationId("LaneBOverridesUnappliedMark")) is null,
+                "The 'unapplied' mark is shown while the value does reach the drawn pixels.");
+
             AssertConnectedControlEnabled(window);
         }
         finally
@@ -153,6 +179,23 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         {
             OpenMetrics(window);
         }
+    }
+
+    /// <summary>The "미적용" mark for the Candidate's de-noise k, which names #173 rather than #182:
+    /// the value IS connected, and what the mark reports is that this preset does not carry it.</summary>
+    private void AssertUnappliedMark(Window window)
+    {
+        var mark = Find(window, "LaneBOverridesUnappliedMark");
+        output.WriteLine($"U02 mark name='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
+        Assert.Equal("미적용", mark.Name);
+        Assert.False(mark.IsOffscreen, "The mark is in the tree but not on screen.");
+        Assert.Contains("#173", mark.HelpText, StringComparison.Ordinal);
+    }
+
+    private static void SelectLaneBAlgorithm(Window window, string option)
+    {
+        Find(window, "LaneBAlgorithmPicker").AsComboBox().Select(option);
+        Thread.Sleep(200);
     }
 
     private void AssertMark(Window window, string id)
