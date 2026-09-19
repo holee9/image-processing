@@ -320,7 +320,14 @@ XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 
  *                              Requires xpe_apply_presentation_lut to be called
  *                              separately -- this function computes the LUT only.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL, or count < 2.
+ * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL,
+ *         count < 2, or the array is not non-decreasing (REQ-DISP-029; equal
+ *         neighbours are allowed, a fall is not). outParams is untouched.
+ *
+ * @note Only half of the REQ-DISP-029 contract is checked. The ordering is; the
+ *       "measured at equally spaced driving levels" half is NOT, because no
+ *       driving level reaches this function. An ascending but log-spaced ladder
+ *       is accepted and yields an incorrect LUT.
  *
  * @note Degenerate luminance input is silently coerced, not rejected: a
  *       non-positive minimum becomes 0.01 cd/m^2, and a maximum not above the
