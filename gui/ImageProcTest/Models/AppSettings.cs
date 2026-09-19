@@ -55,8 +55,7 @@ public sealed class AppSettings : ObservableObject
     private bool _leftPanelOpen = true;
     private bool _rightPanelOpen = true;
     private string _analysisTab = "metrics";
-    private double _laneBSharpeningSigma = 0.85;
-    private double _laneBDenoiseStrength = 0.42;
+    private double _laneBGsvgDenoiseK = 2.0;
     private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
     private bool _preprocessInChain;
@@ -429,18 +428,27 @@ public sealed class AppSettings : ObservableObject
         set => SetProperty(ref _analysisTab, string.IsNullOrWhiteSpace(value) ? "metrics" : value);
     }
 
-    [JsonPropertyName("laneBSharpeningSigma")]
-    public double LaneBSharpeningSigma
+    /// <summary>
+    /// The Candidate lane's own <c>vg_denoise_k</c> — the virtual grid's pyramid de-noise strength,
+    /// overridden for lane B only (#173, GUI-C-117).
+    ///
+    /// <para><b>The name says what it overrides.</b> It used to be <c>LaneBDenoiseStrength</c>, which
+    /// nothing read: there was no "denoise" in the chain for it to mean. The one real thing it can mean
+    /// is <see cref="GsvgDenoiseK"/>, and a second property called "denoise" that meant something else
+    /// would be the <c>Production v1.2</c> defect again (lead decision, GUI-C-117).</para>
+    ///
+    /// <para><b>It only does anything inside the virtual grid.</b> GuiGsvgRunner sends the key as
+    /// <c>null</c> outside it and as <c>0.0</c> when the pyramid is off, so the screen disables the
+    /// input and says so rather than accepting a value that reaches nothing.</para>
+    ///
+    /// <para>Same range and default as <see cref="GsvgDenoiseK"/>, so the two lanes agree until someone
+    /// changes this one — an ordinary Apply then stays at a single pipeline call (W-23, W-26).</para>
+    /// </summary>
+    [JsonPropertyName("laneBGsvgDenoiseK")]
+    public double LaneBGsvgDenoiseK
     {
-        get => _laneBSharpeningSigma;
-        set => SetProperty(ref _laneBSharpeningSigma, value);
-    }
-
-    [JsonPropertyName("laneBDenoiseStrength")]
-    public double LaneBDenoiseStrength
-    {
-        get => _laneBDenoiseStrength;
-        set => SetProperty(ref _laneBDenoiseStrength, value);
+        get => _laneBGsvgDenoiseK;
+        set => SetProperty(ref _laneBGsvgDenoiseK, value is >= 0.0 and <= 10.0 ? value : 2.0);
     }
 
     /// <summary>

@@ -9,6 +9,7 @@
         <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
         <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
     <DockPanel>
@@ -371,12 +372,18 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Lane B Overrides" Foreground="#c4b5fd" FontSize="12"
                                    FontWeight="SemiBold" />
-                        <TextBlock AutomationProperties.AutomationId="LaneBOverridesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." />
+                        <!-- #173 (GUI-C-117): shown only while the value cannot reach a pixel — the
+                             Candidate is not running the virtual grid, or its pyramid is off. -->
+                        <TextBlock AutomationProperties.AutomationId="LaneBOverridesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Visibility="{Binding LaneBDenoiseKUnapplied, Converter={StaticResource BoolToVisibility}}"
+                                   ToolTip="Lane B 가 가상 그리드를 돌고 피라미드 단계가 0 보다 클 때만 vg_denoise_k 가 전달됩니다 (#173)." />
                     </StackPanel>
 
-                    <!-- #182: no backend processing path reads these values. Kept, values persisted, disabled. -->
-                    <StackPanel AutomationProperties.AutomationId="LaneBOverridesGroup" IsEnabled="False"
-                                ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." ToolTipService.ShowOnDisabled="True">
+                    <!-- #173 (GUI-C-117): the Candidate's own vg_denoise_k. Enabled only while it can
+                         reach pixels; GuiGsvgRunner sends the key as null outside the virtual grid. -->
+                    <StackPanel AutomationProperties.AutomationId="LaneBOverridesGroup"
+                                IsEnabled="{Binding LaneBDenoiseKApplies}"
+                                ToolTip="Lane B 가 가상 그리드를 돌고 피라미드 단계가 0 보다 클 때만 vg_denoise_k 가 전달됩니다 (#173)." ToolTipService.ShowOnDisabled="True">
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -384,14 +391,8 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Sharpening sigma" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox AutomationProperties.AutomationId="LaneBSharpeningSigmaInput" Text="{Binding LaneBSharpeningSigma, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="#0DFFFFFF" Foreground="#f0f2f5"
-                                     BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="Denoise strength" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                            <TextBox AutomationProperties.AutomationId="LaneBDenoiseStrengthInput" Text="{Binding LaneBDenoiseStrength, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBlock Text="Virtual grid denoise k (vg_denoise_k)" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                            <TextBox AutomationProperties.AutomationId="LaneBGsvgDenoiseKInput" Text="{Binding LaneBGsvgDenoiseK, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#0DFFFFFF" Foreground="#f0f2f5"
                                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" />
                         </StackPanel>

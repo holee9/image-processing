@@ -45,8 +45,8 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
             ApplyDisplayPipeline(window);
 
             var loaded = LoadedSize(window);
-            var a = Lane(window, "A");
-            var b = Lane(window, "B");
+            var a = ReadLane(window, "A");
+            var b = ReadLane(window, "B");
             output.WriteLine($"L-01 loaded={loaded} A={a} B={b}");
 
             Assert.Equal(loaded, a.Size);
@@ -71,13 +71,13 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         {
             MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
-            var beforeA = Lane(window, "A");
-            var beforeB = Lane(window, "B");
+            var beforeA = ReadLane(window, "A");
+            var beforeB = ReadLane(window, "B");
 
             SetCandidateOverride(window, "900");
             ApplyDisplayPipeline(window);
-            var afterA = Lane(window, "A");
-            var afterB = Lane(window, "B");
+            var afterA = ReadLane(window, "A");
+            var afterB = ReadLane(window, "B");
 
             output.WriteLine($"L-02 A: {beforeA.Hash} -> {afterA.Hash} (mean {beforeA.Mean:0.###} -> {afterA.Mean:0.###})");
             output.WriteLine($"L-02 B: {beforeB.Hash} -> {afterB.Hash} (mean {beforeB.Mean:0.###} -> {afterB.Mean:0.###})");
@@ -132,15 +132,15 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         {
             MakeLanesIdentical(window);
             ApplyDisplayPipeline(window);
-            var beforeA = Lane(window, "A");
-            var beforeB = Lane(window, "B");
+            var beforeA = ReadLane(window, "A");
+            var beforeB = ReadLane(window, "B");
             output.WriteLine($"L-04 same algorithm: A={beforeA.Hash} B={beforeB.Hash}");
             Assert.Equal(beforeA.Hash, beforeB.Hash);   // same algorithm, so the lanes must agree first
 
             SelectAlgorithm(window, "B", CandidateAlgorithm);
             ApplyDisplayPipeline(window);
-            var afterA = Lane(window, "A");
-            var afterB = Lane(window, "B");
+            var afterA = ReadLane(window, "A");
+            var afterB = ReadLane(window, "B");
 
             output.WriteLine($"L-04 A: {beforeA.Hash} -> {afterA.Hash}");
             output.WriteLine($"L-04 B: {beforeB.Hash} -> {afterB.Hash}");
@@ -153,10 +153,31 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         });
     }
 
-    /// <summary>An option that must differ from the Reference's in what it actually runs.</summary>
-    private const string CandidateAlgorithm = "Virtual grid";
+    /// <summary>The value the main chain carries, so the lanes start in agreement.</summary>
+    private const string MainDenoiseK = "2.0";
 
-    private static void SelectAlgorithm(Window window, string lane, string option)
+    /// <summary>A k far enough from the main one that the pyramid produces different pixels.</summary>
+    private const string OtherDenoiseK = "8.0";
+
+    /// <summary>
+    /// The de-noise k lives in the analysis panel's Parameters tab, not on the always-visible algorithm
+    /// bar where the VOI override sits, so the tab has to be open before the input is in the tree.
+    /// </summary>
+    internal static void SetCandidateDenoiseK(Window window, string k)
+    {
+        OpenParameters(window);
+        var box = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneBGsvgDenoiseKInput"));
+        Assert.True(box is not null, "LaneBGsvgDenoiseKInput is not in the tree, so the Candidate has no denoise k of its own.");
+        Assert.True(box!.IsEnabled,
+            "LaneBGsvgDenoiseKInput is disabled while the Candidate runs the virtual grid, so the value cannot be set.");
+        box.AsTextBox().Text = k;
+        Thread.Sleep(100);
+    }
+
+    /// <summary>An option that must differ from the Reference's in what it actually runs.</summary>
+    internal const string CandidateAlgorithm = "Virtual grid";
+
+    internal static void SelectAlgorithm(Window window, string lane, string option)
     {
         var id = $"Lane{lane}AlgorithmPicker";
         var picker = window.FindFirstDescendant(cf => cf.ByAutomationId(id));
@@ -196,44 +217,18 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
 
     // ---- observation -----------------------------------------------------------------------------
 
-    private sealed record LaneState(string Size, string Hash, double Mean);
-
-    /// <summary>
-    /// One lane's drawn frame, read from that lane's own viewport peer — the size it received and the
-    /// hash and mean of the pixels it composed.
-    /// </summary>
-    private static LaneState Lane(Window window, string lane)
-    {
-        var id = $"Lane{lane}Viewport";
-        var element = window.FindFirstDescendant(cf => cf.ByAutomationId(id));
-        Assert.True(element is not null, $"{id} is not in the automation tree, so this lane draws nothing.");
-
-        var status = element!.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
-        var help = element.HelpText ?? string.Empty;
-
-        var size = Regex.Match(status, @"source=(?<v>\S+) v");
-        var hash = Regex.Match(help, @"processed=(?<v>[0-9a-f]{16})");
-        var mean = Regex.Match(help, @"processedMean=(?<v>-?[0-9.]+)");
-        Assert.True(hash.Success && mean.Success,
-            $"{id} reported no drawn pixels: status='{status}' help='{help}'.");
-
-        return new LaneState(
-            size.Success ? size.Groups["v"].Value : "(none)",
-            hash.Groups["v"].Value,
-            double.Parse(mean.Groups["v"].Value, NumberStyles.Float, CultureInfo.InvariantCulture));
-    }
 
     private static bool LaneIsStale(Window window, string lane) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}StaleMark")) is not null;
 
-    private static void SetCandidateOverride(Window window, string width)
+    internal static void SetCandidateOverride(Window window, string width)
     {
         var box = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneBVoiWidthInput"));
         Assert.True(box is not null, "LaneBVoiWidthInput is not in the tree, so the Candidate has no setting of its own.");
         box!.AsTextBox().Text = width;
     }
 
-    private static void ClearCandidateOverride(Window window) => SetCandidateOverride(window, "0");
+    internal static void ClearCandidateOverride(Window window) => SetCandidateOverride(window, "0");
 
     /// <summary>
     /// Puts both lanes on the same settings: no VOI override and one named algorithm on both sides.
@@ -252,5 +247,5 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     /// <summary>The option both lanes are put on when a case needs them to agree.</summary>
-    private const string BaselineAlgorithm = "No correction";
+    internal const string BaselineAlgorithm = "No correction";
 }

@@ -42,6 +42,36 @@ internal static class WorkbenchObservation
 
     // ---- Analysis panel / menu helpers ----------------------------------------------------------
 
+    // ---- lane readers ---------------------------------------------------------------------------
+
+    /// <summary>One lane's drawn frame: the size it received, and the hash and mean it composed.</summary>
+    internal sealed record LaneState(string Size, string Hash, double Mean);
+
+    /// <summary>
+    /// Read from that lane's own viewport peer, never from a setting or a binding name (GUI-C-112).
+    /// </summary>
+    internal static LaneState ReadLane(Window window, string lane)
+    {
+        var id = $"Lane{lane}Viewport";
+        var element = window.FindFirstDescendant(cf => cf.ByAutomationId(id));
+        Assert.True(element is not null, $"{id} is not in the automation tree, so this lane draws nothing.");
+
+        var status = element!.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
+        var help = element.HelpText ?? string.Empty;
+
+        var size = Regex.Match(status, @"source=(?<v>\S+) v");
+        var hash = Regex.Match(help, @"processed=(?<v>[0-9a-f]{16})");
+        var mean = Regex.Match(help, @"processedMean=(?<v>-?[0-9.]+)");
+        Assert.True(hash.Success && mean.Success,
+            $"{id} reported no drawn pixels: status='{status}' help='{help}'.");
+
+        return new LaneState(
+            size.Success ? size.Groups["v"].Value : "(none)",
+            hash.Groups["v"].Value,
+            double.Parse(mean.Groups["v"].Value, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     internal static void OpenParameters(Window window)
     {
         window.SetForeground();
