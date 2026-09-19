@@ -415,6 +415,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_not_applied.cpp
         # QA-A-123 (#194): the fitted dose range is recorded and enforced
         tests/test_gain_poly_dose_range.cpp
+        tests/test_nonlin_no_mode_rejection.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production
         tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race

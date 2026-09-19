@@ -101,12 +101,27 @@ TEST(NonlinearityCorrect, NullConfigIsNoOp) {
     EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)); // unchanged
 }
 
-// REQ-P1A-014: unknown detector mode -> XPE_ERR_CONFIG_INVALID
-TEST(NonlinearityCorrect, UnknownModeReturnsConfigError) {
+// QA-A-127 (#196): an unrecognised "mode" no longer fails the call.
+//
+// This case used to expect XPE_ERR_CONFIG_INVALID, and that expectation was
+// correct for the code it was written against -- the stage held a hard-coded
+// list of detector modes and rejected everything else. QA-A-126 measured what
+// that cost: the repository's own operating modes ("clinical", "research",
+// "production") are carried under the same "mode" key and were rejected,
+// failing the whole pipeline. The three names in the list are defined as
+// detector modes nowhere in docs/ or .moai/specs/, and the requirement the
+// rejection cited (REQ-P1A-014) is "Calibration File Loading (Offset)".
+//
+// So the list is gone and the stage reads no meaning from "mode". The frame
+// must come back unchanged AND the call must say it did nothing -- silence
+// would be indistinguishable from a correction that ran. The alert is what
+// NonlinModeTest (test_nonlin_no_mode_rejection.cpp) pins; here the point is
+// only that an arbitrary mode is no longer an error.
+TEST(NonlinearityCorrect, UnknownModeIsNoLongerAnError) {
     std::vector<uint16_t> data(16, 5000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID,
-              xpe_nonlinearity_correct(&buf, R"({"mode":"unknown_xyz"})"));
+    EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, R"({"mode":"unknown_xyz"})"));
+    EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)) << "unchanged";
 }
 
 /* === Binning Correction === */
