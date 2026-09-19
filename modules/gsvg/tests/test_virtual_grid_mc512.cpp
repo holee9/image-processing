@@ -1,8 +1,14 @@
 // #180 (QA-B-123): the 512 x 512 MC phantom set.
 //
-// The 80 x 80 set (test_virtual_grid_mc.cpp) has 4 mm pixels, so a six-level
-// pyramid's 128-pixel reach covers the whole image and no mask-outside
-// comparison is possible there (QA-B-108/110). This set is 512 x 512 at
+// The 80 x 80 set (test_virtual_grid_mc.cpp) has 4 mm pixels, so the pyramid's
+// reach covers the whole image and no mask-outside comparison is possible there
+// (QA-B-108/110). QA-B-137 CORRECTION: this header used to say "a six-level
+// pyramid's 128-pixel reach". Both numbers were wrong and they did not even
+// agree with each other -- the default is FOUR levels (virtual_grid.h:115) and
+// PyramidContrast reduces `levels` times (virtual_grid.cpp:603), so the reach is
+// 2^levels = 16 px, not 128. The wrong premise was copied out of this comment
+// into the QA-B-136 report and #191 before anyone read the code. This set is
+// 512 x 512 at
 // 0.140 mm with a 358-pixel field whose boundary lies inside the image, which
 // is what the checklist asked for:
 //   .moai/reports/lane-post/PHANTOM-SWAP-CHECKLIST.md
@@ -774,6 +780,307 @@ TEST(GsvgVirtualGridMc512, OverEstimatedKernelsMakeTheCapProtect_191)
                         factor, cap == vg::CapMode::None ? "None" : "GlobalSum",
                         rep.negativePrimary, rep.cappedFraction, m.median);
         }
+    }
+    SUCCEED();
+}
+
+// ===========================================================================
+// #191 item 1 (QA-B-136): is the error peak bound to MILLIMETRES or to PIXELS?
+//
+// FIRST, A CORRECTION TO THE CARD. QA-B-136 (a) asks for the existing profile
+// to be "re-binned in pixels". It already is: the bin edges in
+// StepErrorAgainstDistanceToTheBoundary are pixel counts {0,1,2,4,8,...} and
+// the mm column is those counts times the pitch, printed for reading. At one
+// pixel size the two axes differ by a constant, so the same table reads both
+// ways and (a) cannot separate them. Only (b) can.
+//
+// (b) changes ONE axis. The phantom is binned k x k, which is physically a
+// coarser detector over the SAME scene: the object, its step boundaries and the
+// scatter physics are untouched; only the sampling changes. pixelPitchMm moves
+// with k, so the kernel taps (sigma is in cm) keep their physical width and
+// shrink in pixels.
+//
+// The prediction is falsifiable either way:
+//   peak at the same MILLIMETRES across k -> physical scale; a 2 cm-step
+//     phantom is the right instrument and #191 item 1 stands as written.
+//   peak at the same PIXEL COUNT across k -> scene/sampling scale; a coarser
+//     step phantom would put the peak a few pixels from its boundary again and
+//     would not answer the question. #191 item 1 needs rewriting, not running.
+//
+// No grid is present in these MC phantoms, so the #192 aliasing that also moves
+// with pixel size cannot mix into this comparison.
+//
+// LIMIT, stated rather than assumed away: binning models a larger pixel's
+// aperture by averaging. A real detector at 0.28 mm also has its own MTF and
+// noise; this experiment holds those fixed on purpose, because the question is
+// about the sampling grid, not about detector physics.
+// ===========================================================================
+namespace {
+
+struct Binned {
+    int n = 0;
+    double pitchMm = 0;
+    std::vector<double> total, primary, thickness;
+    std::vector<uint8_t> mask;
+    int lo = 0, hi = 0;          // metric region [lo, hi) in binned pixels
+};
+
+Binned BinPhantom(const Phantom& p, int k) {
+    Binned b;
+    b.n = kN / k;
+    b.pitchMm = kPitchMm * k;
+    const size_t m = static_cast<size_t>(b.n) * b.n;
+    b.total.assign(m, 0.0);
+    b.primary.assign(m, 0.0);
+    b.thickness.assign(m, 0.0);
+    std::vector<double> air(m, 0.0);
+    for (int r = 0; r < b.n; ++r)
+        for (int c = 0; c < b.n; ++c) {
+            double t = 0, pr = 0, th = 0, ai = 0;
+            for (int dr = 0; dr < k; ++dr)
+                for (int dc = 0; dc < k; ++dc) {
+                    const size_t i = static_cast<size_t>(r * k + dr) * kN + (c * k + dc);
+                    t += p.total[i]; pr += p.primary[i]; th += p.thickness[i]; ai += p.air[i];
+                }
+            const double inv = 1.0 / (k * k);
+            const size_t j = static_cast<size_t>(r) * b.n + c;
+            b.total[j] = t * inv; b.primary[j] = pr * inv; b.thickness[j] = th * inv; air[j] = ai * inv;
+        }
+    double airMax = 0;
+    for (double v : air) airMax = std::max(airMax, v);
+    b.mask.assign(m, 0);
+    for (size_t i = 0; i < m; ++i) b.mask[i] = air[i] > 0.5 * airMax ? 1 : 0;
+    // Same PHYSICAL metric region as the 512 case (cols 109..403 at 0.14 mm).
+    b.lo = kLo / k;
+    b.hi = kHi / k;
+    return b;
+}
+
+}  // namespace
+
+TEST(GsvgVirtualGridMc512, ErrorPeakFollowsPixelsOrMillimetres_191)
+{
+    const Phantom p = Load("step");
+
+    // Boundary columns, found once on the 512 phantom (the QA-B-125 criterion).
+    std::vector<double> colT0(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0; int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i]; ++n;
+        }
+        colT0[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> jumpCols;
+    for (int j = kLo; j + 1 < kHi; ++j)
+        if (std::fabs(colT0[j + 1] - colT0[j]) > 0.2) jumpCols.push_back(j);
+
+    // Two arms. The post-steps (pyramid, denoise) are specified in PIXELS, so
+    // their physical reach grows with k -- a second moving part that the first
+    // run of this test did not hold still (the six-level pyramid reaches 128 px
+    // = 17.9 mm at k=1 but 71.7 mm at k=4). The `subtract-only` arm switches
+    // them off, leaving only the kernel subtraction, whose sigma is physical.
+    // If the two arms disagree, the post-steps are what moved, not the peak.
+    for (const bool postSteps : {true, false}) {
+    std::printf("VGMC136 pixel-size sweep (post-steps %s): k, pitch_mm, N, peak_px, peak_mm\n",
+                postSteps ? "ON" : "OFF");
+    for (const int k : {1, 2, 4}) {
+        const Binned b = BinPhantom(p, k);
+
+        vg::VgSettings st = BaseSettings();
+        st.pixelPitchMm = b.pitchMm;           // the one axis that moves
+        if (!postSteps) { st.pyramidLevels = 0; st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+        std::vector<double> img = b.total;
+        const vg::VgReport rep =
+            vg::RunVirtualGrid(img, b.n, b.n, McTable(), st, vg::VgSwitches{}, b.mask.data());
+        ASSERT_EQ(rep.error, "") << k;
+
+        // The boundary set is taken from the UNBINNED phantom and mapped into
+        // this rendering's columns, so all three k measure distance to the SAME
+        // physical boundaries. Detecting jumps per-k instead lost boundaries as
+        // binning blended them (18 -> 12 -> 11 in the first run of this test),
+        // which changed the scene and not only the sampling -- two moving parts.
+        std::vector<int> dist(b.n, b.n);
+        for (int c = b.lo; c < b.hi; ++c)
+            for (int j : jumpCols) dist[c] = std::min(dist[c], std::abs(c - j / k));
+        const int jumps = static_cast<int>(jumpCols.size());
+
+        // Bins in PIXELS of this rendering. The mm column is derived, so the
+        // same rows can be read on either axis and compared across k.
+        const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64};
+        double best = -1, bestPx = -1, last = -1;
+        std::printf("VGMC136 --- k=%d pitch=%.3f mm N=%d jumps=%d factor=%d\n",
+                    k, b.pitchMm, b.n, jumps, rep.factor);
+        for (size_t e = 0; e + 1 < sizeof(edges) / sizeof(edges[0]); ++e) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                const int r = static_cast<int>(i) / b.n, c = static_cast<int>(i) % b.n;
+                if (r < b.lo || r >= b.hi || c < b.lo || c >= b.hi) continue;
+                if (!b.mask[i] || b.primary[i] <= 0) continue;
+                if (dist[c] < edges[e] || dist[c] >= edges[e + 1]) continue;
+                a.push_back(std::fabs(img[i] / b.primary[i] - 1.0));
+            }
+            if (a.empty()) continue;
+            std::sort(a.begin(), a.end());
+            const double med = a[a.size() / 2];
+            const double midPx = 0.5 * (edges[e] + edges[e + 1]);
+            std::printf("VGMC136 k=%d d=[%2d,%2d) px = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+                        k, edges[e], edges[e + 1], edges[e] * b.pitchMm, edges[e + 1] * b.pitchMm,
+                        a.size(), med);
+            if (med > best) { best = med; bestPx = midPx; }
+            last = med;
+        }
+        // The level moves with k as well as the shape, so the peak is also
+        // reported relative to this rendering's own far-field bin. A shape
+        // comparison across k needs the level divided out.
+        std::printf("VGMC136 PEAK k=%d peak_px=%.1f peak_mm=%.3f median=%.4f far=%.4f peak/far=%.3f\n",
+                    k, bestPx, bestPx * b.pitchMm, best, last, last > 0 ? best / last : -1.0);
+    }
+    }
+    SUCCEED();
+}
+
+// ===========================================================================
+// #191 item 1 (QA-B-137): does the boundary excess follow the PYRAMID REACH?
+//
+// QA-B-136 showed the excess is made by the post-steps, not by the scatter
+// subtraction. This sweeps the post-step reach with everything else fixed --
+// same phantom, same 0.140 mm pixel, same boundary set -- so one axis moves.
+//
+// TWO CORRECTIONS TO THE CARD, both read from the code rather than assumed.
+//
+// 1. The default is FOUR levels, not six. `VgSettings::pyramidLevels = 4`
+//    (virtual_grid.h:115), and BaseSettings() does not override it, so every
+//    QA-B-125/134/136 measurement ran at 4. The "six-level 128-pixel reach"
+//    QA-B-136 reported (and this lane wrote into its own report) was wrong.
+//
+// 2. The sweep cannot go DOWN. RunVirtualGrid rejects `pyramidLevels < 4`
+//    outright (virtual_grid.cpp:695, "0 = off, otherwise 4..8"), so 3 and
+//    below are not reachable settings; the reach can only be made LARGER.
+//    The card's shape survives -- one axis, a falsifiable prediction -- but
+//    the prediction has to be stated in the direction the code allows.
+//
+// REACH. PyramidContrast reduces `levels` times (virtual_grid.cpp:603), so the
+// coarsest Gaussian sits at 2^levels pixels: 16 px (2.24 mm) at 4 levels,
+// 256 px (35.8 mm) at 8. Each level DOUBLES it.
+//
+// PREDICTION, falsifiable either way:
+//   the excess reaches ~2^levels px -> the reach is the cause, and #191 item 1
+//     is answerable on THIS phantom by moving the reach instead of the scene.
+//   it does not move with 2^levels -> something else inside the post-steps
+//     makes it, and that is the next question.
+//
+// WHAT IS LOST, reported alongside (the card asks for this explicitly): levels
+// is a FEATURE, not a speed knob. Each row carries the corrected error over the
+// whole region against the uncorrected one, so a later reader cannot mistake
+// "fewer levels" for an improvement. This is a cause experiment, NOT a settings
+// recommendation.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, BoundaryExcessAgainstPyramidReach_191)
+{
+    const Phantom p = Load("step");
+
+    // Boundary columns, found once (the QA-B-125 criterion).
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0; int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i]; ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> jumpCols;
+    for (int j = kLo; j + 1 < kHi; ++j)
+        if (std::fabs(colT[j + 1] - colT[j]) > 0.2) jumpCols.push_back(j);
+    std::vector<int> dist(kN, kN);
+    for (int c = kLo; c < kHi; ++c)
+        for (int j : jumpCols) dist[c] = std::min(dist[c], std::abs(c - j));
+
+    auto median = [](std::vector<double> a) {
+        if (a.empty()) return -1.0;
+        std::sort(a.begin(), a.end());
+        return a[a.size() / 2];
+    };
+
+    // Uncorrected reference: what the chain starts from.
+    std::vector<double> before;
+    for (size_t i = 0; i < p.total.size(); ++i) {
+        if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+        before.push_back(std::fabs(p.total[i] / p.primary[i] - 1.0));
+    }
+    const double beforeMed = median(before);
+    std::printf("VGMC137 uncorrected median|total/primary-1| = %.4f (%zu px)\n",
+                beforeMed, before.size());
+    std::printf("VGMC137 jumps=%zu, spacing ~%.1f px\n",
+                jumpCols.size(),
+                jumpCols.size() > 1
+                    ? static_cast<double>(jumpCols.back() - jumpCols.front()) /
+                          static_cast<double>(jumpCols.size() - 1)
+                    : -1.0);
+
+    // Finer bins than QA-B-136 used: a narrower peak would fall inside one of
+    // its six bins and read as "no peak" (the gap that report listed).
+    const int edges[] = {0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48};
+    constexpr size_t kBins = sizeof(edges) / sizeof(edges[0]) - 1;
+
+    std::printf("VGMC137 levels, reach_px, reach_mm, profile..., far, peak_px, peak/far, overall, after/before\n");
+    for (const int levels : {0, 4, 5, 6, 7, 8}) {
+        vg::VgSettings st = BaseSettings();
+        st.pyramidLevels = levels;
+        if (levels == 0) { st.pyramidGain = 1.0; st.denoiseK = 0.0; }
+
+        std::vector<double> img = p.total;
+        const vg::VgReport rep =
+            vg::RunVirtualGrid(img, kN, kN, McTable(), st, vg::VgSwitches{}, p.mask.data());
+        ASSERT_EQ(rep.error, "") << levels;
+
+        std::vector<double> med(kBins, -1.0);
+        std::vector<size_t> cnt(kBins, 0);
+        for (size_t b = 0; b < kBins; ++b) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+                const int c = static_cast<int>(i) % kN;
+                if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
+                a.push_back(std::fabs(img[i] / p.primary[i] - 1.0));
+            }
+            cnt[b] = a.size();
+            med[b] = median(a);
+        }
+
+        // Far reference = the outermost populated bin; peak = the largest bin.
+        double far = -1;
+        for (size_t b = kBins; b-- > 0;) if (med[b] >= 0) { far = med[b]; break; }
+        double best = -1, bestPx = -1;
+        for (size_t b = 0; b < kBins; ++b)
+            if (med[b] > best) { best = med[b]; bestPx = 0.5 * (edges[b] + edges[b + 1]); }
+
+        // How far out the excess actually reaches: the outermost bin still
+        // above halfway between the far level and the peak.
+        double reachedPx = -1;
+        const double half = far + 0.5 * (best - far);
+        for (size_t b = kBins; b-- > 0;)
+            if (med[b] >= 0 && med[b] >= half) { reachedPx = static_cast<double>(edges[b + 1]); break; }
+
+        const Metrics m = Measure(img, p);
+        const double reachPx = levels ? static_cast<double>(1 << levels) : 0.0;
+
+        std::printf("VGMC137 --- levels=%d reach=%.0f px (%.2f mm) factor=%d\n",
+                    levels, reachPx, reachPx * kPitchMm, rep.factor);
+        for (size_t b = 0; b < kBins; ++b)
+            if (med[b] >= 0)
+                std::printf("VGMC137 L=%d d=[%2d,%2d) px = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+                            levels, edges[b], edges[b + 1],
+                            edges[b] * kPitchMm, edges[b + 1] * kPitchMm, cnt[b], med[b]);
+        std::printf("VGMC137 SUMMARY levels=%d reach=%.0f px peak_px=%.1f peak=%.4f far=%.4f "
+                    "peak/far=%.3f excess_reaches=%.0f px overall=%.4f after/before=%.3f\n",
+                    levels, reachPx, bestPx, best, far, far > 0 ? best / far : -1.0,
+                    reachedPx, m.absMedian,
+                    beforeMed > 0 ? m.absMedian / beforeMed : -1.0);
     }
     SUCCEED();
 }
