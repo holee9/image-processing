@@ -75,6 +75,10 @@ protected:
     }
 
     void TearDown() override {
+        // QA-A-138 (#198): leave the pending alert queue as this test found
+        // it. The product drains it through this public call; nothing in
+        // xpe_preprocess_shutdown() touches the common-module queue.
+        xpe_clear_alerts();
         xpe_preprocess_shutdown();
         fs::remove_all(dir);
     }
