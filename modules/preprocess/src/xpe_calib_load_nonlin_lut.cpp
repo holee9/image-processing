@@ -71,6 +71,9 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath) 
             g_calib.nonlin_entries = static_cast<uint32_t>(entries);
             g_calib.nonlin_extension_start = static_cast<uint32_t>(ext);
             g_calib.nonlin_timestamp = hdr.created_epoch_ms;
+            // QA-A-140 (#196): the condition changed, so the no-op report is
+            // re-armed -- a later no-op is new information, not a repeat.
+            g_calib.nonlin_noop_reported = false;
         }
         return XPE_OK;
     } catch (const std::bad_alloc&) {
@@ -95,4 +98,6 @@ extern "C" XPE_API void xpe_calib_unload_nonlin_lut(void) {
     g_calib.nonlin_entries = 0;
     g_calib.nonlin_extension_start = 0;
     g_calib.nonlin_timestamp = 0;
+    // QA-A-140 (#196): see the load path -- the condition changed.
+    g_calib.nonlin_noop_reported = false;
 }

@@ -108,6 +108,11 @@ TEST(Integration, FullPipelineSmallImage) {
 
     // Binning (no-op for 1x1)
     ASSERT_EQ(XPE_OK, xpe_binning_correct(&buf.gainBuf, 1, nullptr));
+
+    // QA-A-140 (#196): the nonlinearity stage above runs with no LUT loaded and
+    // now reports its no-op, so this pipeline leaves one alert behind. Drained
+    // through the product's own path (hygiene axis 4, QA-A-138).
+    xpe_clear_alerts();
 }
 
 // Acceptance criterion: full pipeline <= 500ms for 3072x3072

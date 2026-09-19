@@ -99,6 +99,12 @@ TEST(NonlinearityCorrect, NullConfigIsNoOp) {
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
     EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, nullptr));
     EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)); // unchanged
+
+    // QA-A-140 (#196): the stage now reports its no-op even with a null
+    // config, so this test raises one alert. Drained through the product's
+    // own path so the queue reaches the next test as this one found it
+    // (hygiene axis 4, QA-A-138).
+    xpe_clear_alerts();
 }
 
 // QA-A-127 (#196): an unrecognised "mode" no longer fails the call.
