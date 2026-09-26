@@ -391,10 +391,22 @@ constexpr double kImprovementTargetMs = 60.0;
  * recorded -- both are findings, and both are reported before the constant is
  * touched. The same rule the reference kernel carries.
  *
- * NOT RE-MEASURED HERE: the two Xeon numbers are read from the QA-A-119 record
- * in this file, not reproduced by QA-A-141 -- this lane cannot run CI. A fresh
- * CI run should confirm the margin; the gate prints the absolute figure on
- * every run precisely so that confirmation costs nothing.
+ * CONFIRMED ON CI -- QA-A-141, run 36233914831 on dev/preprocess @ 60e7db9.
+ * The paragraph above was written from the QA-A-119 record because this lane
+ * had not run CI; it has now, and the inherited number held:
+ *
+ *   AMD EPYC 7763, 4 logical, avx2=1, 22.6-23.1 GB/s
+ *   3072x3072 detector, four runs:  93.0 / 93.3 / 93.8 / 97.9 ms
+ *   worst against this budget:      97.9 / 400 = 4.1x of margin
+ *   ratio, same runs:               1.316 .. 1.322  (limit 1.45, still printed)
+ *   SPEC 60 ms target:              1.6x on this machine (1.1x on the dev PC)
+ *
+ * Two things that matter beyond "it passed". The 93.3 ms in the derivation
+ * above was a number read from another card's record; this run reproduced it
+ * to the tenth on the same class of machine, so it stopped being inherited.
+ * And the SPEC-target multiple is 1.6x here against 1.1x locally -- the
+ * remaining optimisation gap is machine-dependent and the dev PC understates
+ * it, which is worth knowing before anyone reports "nearly at target".
  */
 constexpr double kAbsoluteBudget3072Ms = 400.0;
 
