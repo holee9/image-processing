@@ -1,0 +1,7 @@
+run 1  44.6s  FAIL: ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow
+run 2  44.7s  FAIL: ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow
+run 3  46.7s  pass
+
+=== 3 run(s), backend=Native ===
+runs with a failure: 2 / 3
+    2x  ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow

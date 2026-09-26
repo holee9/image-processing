@@ -1,0 +1,27 @@
+runs in plan=90 set-failed=0 launches=180 unseen-by-watcher=0
+
+== by condition (set succeeded) ==
+D: launches=60 win32=7 rate=0.117 CI95=(0.058,0.222) app_took_fg=59/60 control Unreadable={'Passed': 30} Readable={'Passed': 29, 'NotExecuted': 1}
+   fg at launch: {'desktop': 29, 'plain window': 13, 'other: ImageProcTest GUI-S0': 18}
+W: launches=60 win32=4 rate=0.067 CI95=(0.026,0.159) app_took_fg=26/60 control Unreadable={'Passed': 30} Readable={'Passed': 30}
+   fg at launch: {'plain window': 53, 'other: ImageProcTest GUI-S0': 7}
+S: launches=60 win32=2 rate=0.033 CI95=(0.009,0.114) app_took_fg=17/60 control Unreadable={'Passed': 30} Readable={'Passed': 30}
+   fg at launch: {'other: RemoteApp': 4, 'plain window': 49, 'other: ImageProcTest GUI-S0': 7}
+
+== first launch of each run only (the one the set foreground actually precedes) ==
+D: first launches=30 win32=1 rate=0.033 CI95=(0.006,0.167) fg: {'desktop': 29, 'plain window': 1}
+W: first launches=30 win32=0 rate=0.000 CI95=(0.000,0.114) fg: {'plain window': 30}
+S: first launches=30 win32=0 rate=0.000 CI95=(0.000,0.114) fg: {'other: RemoteApp': 2, 'plain window': 28}
+
+== by actual foreground at launch (all conditions) ==
+desktop: launches=29 win32=1 rate=0.034 CI95=(0.006,0.172)
+other: ImageProcTest GUI-S0: launches=32 win32=4 rate=0.125 CI95=(0.050,0.281)
+other: RemoteApp: launches=4 win32=0 rate=0.000 CI95=(0.000,0.490)
+plain window: launches=115 win32=8 rate=0.070 CI95=(0.036,0.131)
+
+== by whether the app ever took the foreground ==
+app_took_fg=True: launches=102 win32=11 rate=0.108 CI95=(0.061,0.183)
+app_took_fg=False: launches=78 win32=2 rate=0.026 CI95=(0.007,0.089)
+
+win32 shapes: Counter({('PropertyNotSupportedException',): 13})
+free MB range: 2978 7434

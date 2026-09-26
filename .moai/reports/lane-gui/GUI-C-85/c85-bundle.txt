@@ -1,0 +1,72 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xB50752 pid=1700 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ZzBundleC.C [2 s]
+  표준 출력 메시지:
+ [c] status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' title='[MOCK] ImageProcTest GUI-S0'
+ [c] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\backend.json exists=True
+ {
+   "actualBackendMode": "Mock",
+   "mockBackend": true,
+   "requestedBackendMode": "Mock",
+   "backendName": "MockXpeBackend",
+   "nativeSource": "",
+   "writtenAt": "2026-09-17T12:20:42.8724485+09:00"
+ }
+ [c] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\verdicts.json exists=True
+ {}
+ [c] export status='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+
+
+XPE-C56-PROBE hwnd=0x19C0320 pid=23244 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x13202FC pid=21928 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ZzBundleA.A [2 s]
+  표준 출력 메시지:
+ [a] status-bar='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=bin' title='ImageProcTest GUI-S0'
+ [a] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\backend.json exists=True
+ {
+   "actualBackendMode": "Native",
+   "mockBackend": false,
+   "requestedBackendMode": "Native",
+   "backendName": "RealXpeBackend",
+   "nativeSource": "bin",
+   "writtenAt": "2026-09-17T12:21:24.720859+09:00"
+ }
+ [a] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\verdicts.json exists=True
+ {}
+ [a] export status='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+
+
+[xUnit.net 00:00:47.68]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ZzBundleB.B [2 s]
+  표준 출력 메시지:
+ [b] status-bar='mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' title='[MOCK] ImageProcTest GUI-S0'
+ [b] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\backend.json exists=True
+ {
+   "actualBackendMode": "Mock",
+   "mockBackend": true,
+   "requestedBackendMode": "Native",
+   "backendName": "MockXpeBackend",
+   "nativeSource": "",
+   "writtenAt": "2026-09-17T12:21:27.5220141+09:00"
+ }
+ [b] D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\verdicts.json exists=True
+ {}
+ [b] export status='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 3
+     통과: 3
+ 총 시간: 48.3734 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

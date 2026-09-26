@@ -1,0 +1,12 @@
+overall line-rate: 0.7179930795847751
+
+file                                                  lines    cov    rate uncovered
+age-processing\modules\dicom\src\DicomNetworkSCU.cpp    184     77  0.418       107
+mage-processing\modules\dicom\src\DicomValidator.cpp    149     77  0.517        72
+g\image-processing\modules\dicom\src\DicomReader.cpp    242    193  0.798        49
+cessing\image-processing\modules\dicom\src\dicom.cpp    102     64  0.627        38
+g\image-processing\modules\dicom\src\DicomWriter.cpp    211    180  0.853        31
+g\image-processing\modules\common\src\xpe_common.cpp    134    121  0.903        13
+\image-processing\modules\common\src\xpe_logging.cpp     73     61  0.836        12
+g\image-processing\modules\common\src\xpe_memory.cpp     60     56  0.933         4
+ing\image-processing\modules\dicom\src\DicomReader.h      1      1  1.000         0

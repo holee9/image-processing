@@ -1,0 +1,29 @@
+# GUI-C-134 (#156) — §3 bidirectional measurement, verbatim
+# Same test binary, same scenario. Only the staged native DLL set differed.
+#   new = CI run 36233436427 (head 9b7f378, efd14c1 IS an ancestor)
+#   old = CI run 36230905807 (head 3fda16a, efd14c1 is NOT an ancestor)
+# Staged as build/c134-stage-{new,old}; XPE_NATIVE_DIR pointed at each.
+
+=== BEFORE the golden was updated ===
+new DLL:  P10 hash=f2a5640e9bd1a7fc mean=85.206     Expected "36fc547e253b07f1" -> FAIL
+old DLL:  P10 hash=36fc547e253b07f1 mean=85.205     -> the golden returns
+
+=== AFTER the golden was updated to f2a5640e9bd1a7fc (G1 / G2) ===
+new DLL -> 통과!  - 실패: 0, 통과: 1, 건너뜀: 0, 전체: 1
+old DLL -> 실패!  - 실패: 1, 통과: 0, 건너뜀: 0, 전체: 1
+
+=== attribution (md5 is NOT a discriminator: all 11 DLLs differ every build) ===
+git merge-base --is-ancestor efd14c1 3fda16a -> NO
+git merge-base --is-ancestor efd14c1 9b7f378 -> yes
+
+=== size of the change ===
+mean 85.205 -> 85.206   (delta 0.001 on 0..255)
+P10 window = AppSettings default c=32768 w=65535  (AppSettings.cs:38-39)
+predicted max for that window: 0.5/(w-1) ~= 0.0039 counts
+
+=== §5 census of absolute pixel goldens in the test tree ===
+grep -rnE "\"[0-9a-f]{16}\"" clients/ gui/ --include=*.cs
+  GsvgLargeFrameScenarios.cs:630  PreviewBaselineHash   <- the only one
+
+=== full Native E2E with new DLL + corrected golden ===
+통과!  - 실패: 0, 통과: 150, 건너뜀: 0, 전체: 150, 기간: 12 m 5 s

@@ -1,0 +1,47 @@
+import json, os, re, collections
+rows = json.load(open("build/e2e-c90/collected.json"))
+out = []
+for r in rows:
+    rec = dict(r)
+    path = r.get("log")
+    if not path:
+        rec.update(kind="no-job"); out.append(rec); continue
+    text = open(path, encoding="utf-8", errors="replace").read() if os.path.exists(path) else ""
+    err = open(path + ".err", encoding="utf-8").read().strip() if os.path.exists(path + ".err") else ""
+    rec["err"] = err[:160]
+    rec["bytes"] = len(text)
+    probe = [l for l in text.splitlines() if "XPE-C56-PROBE hwnd=" in l]
+    probe_fail = [l for l in text.splitlines() if "XPE-C56-PROBE could not run" in l]
+    win32 = [l for l in probe if "framework=Win32" in l]
+    frameworks = collections.Counter(re.search(r"framework=(\S+)", l).group(1) for l in probe if re.search(r"framework=(\S+)", l))
+    skip170 = sum(l.count("XPE-SKIP-ALLOWED:170") for l in text.splitlines())
+    unread = [l for l in text.splitlines() if "UnreadableWindow_IsReplaced_AndTheRunSaysSo" in l]
+    unread_pass = any(re.search(r"(Passed|통과)\s+\S*UnreadableWindow_IsReplaced", l) for l in unread)
+    unread_fail = any(re.search(r"(Failed|실패)\s+\S*UnreadableWindow_IsReplaced", l) for l in unread)
+    readable = [l for l in text.splitlines() if "ReadableWindow_IsKept_AndLeavesNoNote" in l]
+    readable_skip = any(re.search(r"(Skipped|건너뜀)\s+\S*ReadableWindow_IsKept", l) or "[SKIP]" in l for l in readable)
+    relocated = sum(1 for l in text.splitlines() if "re-located it by process id" in l)
+    summary = re.findall(r"(Passed!|Failed!)\s+-\s+Failed:\s+(\d+), Passed:\s+(\d+), Skipped:\s+(\d+), Total:\s+(\d+)", text)
+    kind = "probe" if probe else ("empty-log" if not text else "no-probe")
+    rec.update(kind=kind, launches=len(probe), probe_fail=len(probe_fail), win32=len(win32), frameworks=dict(frameworks),
+               skip170=skip170, unread_lines=len(unread), unread_pass=unread_pass, unread_fail=unread_fail,
+               readable_skip=readable_skip, relocated=relocated, summary=summary[-1] if summary else None)
+    out.append(rec)
+json.dump(out, open("build/e2e-c90/counted.json", "w"), indent=1)
+by = collections.Counter(o["kind"] for o in out)
+print("kinds:", dict(by))
+print("err samples:", collections.Counter(o.get("err", "")[:90] for o in out if o.get("err")).most_common(3))
+P = [o for o in out if o["kind"] == "probe"]
+L = sum(o["launches"] for o in P); W = sum(o["win32"] for o in P)
+runs_with = sum(1 for o in P if o["win32"] > 0)
+print(f"probe runs={len(P)} launches={L} win32={W} runs_with_win32={runs_with}")
+print("frameworks total:", sum((collections.Counter(o["frameworks"]) for o in P), collections.Counter()))
+print("unreadable ran (pass/fail line) in probe runs:", sum(1 for o in P if o["unread_pass"] or o["unread_fail"]), "pass:", sum(o["unread_pass"] for o in P), "fail:", sum(o["unread_fail"] for o in P))
+print("skip170 total:", sum(o["skip170"] for o in P), "runs with skip170:", sum(1 for o in P if o["skip170"]), "readable_skip runs:", sum(o["readable_skip"] for o in P))
+print("relocated total:", sum(o["relocated"] for o in P), "probe_fail:", sum(o["probe_fail"] for o in P))
+for o in P:
+    print(o["run"], o["created"][:16], o["sha"], o["job"], "launch", o["launches"], "win32", o["win32"], "skip170", o["skip170"],
+          "unread", "P" if o["unread_pass"] else ("F" if o["unread_fail"] else "-"), "reloc", o["relocated"], o["summary"])
+NP = [o for o in out if o["kind"] != "probe"]
+print("non-probe runs:", len(NP), "earliest probe run:", min((o["created"] for o in P), default=None))
+print("non-probe newest:", max((o["created"] for o in NP if o["kind"] == "no-probe"), default=None))

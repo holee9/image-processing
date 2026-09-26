@@ -1,0 +1,48 @@
+modules/ai/tests\test_ai_abi.cpp:130 | InitShutdownCycleRepeated | for (int i = 0; i < 10; ++i) { | xpe_ai_init,xpe_ai_shutdown
+modules/ai/tests\test_ai_fallback.cpp:76 | SetFallbackModeToggleRepeated | for (int i = 0; i < 10; ++i) { | xpe_ai_set_fallback_mode
+modules/ai/tests\test_ai_worker_isolation.cpp:134 | KnownDivergence_RepeatedStubFallbackIsConsistent | for (int i = 0; i < 50; ++i) { | xpe_bodypart_recognize
+modules/ai/tests\test_ai_worker_isolation.cpp:160 | ConcurrentBodypartRecognizeIsThreadSafe | for (int i = 0; i < kCallsPerThread; ++i) { | xpe_bodypart_recognize
+modules/ai/tests\test_ai_worker_isolation.cpp:199 | ConcurrentSetFallbackModeIsThreadSafe | for (int i = 0; i < kTogglesPerThread; ++i) { | xpe_ai_set_fallback_mode
+modules/ai/tests\test_ai_worker_isolation.cpp:261 | RapidInitShutdownCycleDoesNotCrash | for (int i = 0; i < 20; ++i) { | xpe_ai_init,xpe_ai_shutdown,xpe_bodypart_recognize
+modules/ai/tests\test_ai_worker_isolation.cpp:277 | InitShutdownWithInferenceInBetween | for (int cycle = 0; cycle < 5; ++cycle) { | xpe_ai_init,xpe_ai_shutdown,xpe_bodypart_recognize
+modules/ai/tests\test_ai_worker_isolation.cpp:282 | InitShutdownWithInferenceInBetween | for (int call = 0; call < 5; ++call) { | xpe_bodypart_recognize
+modules/dicom/tests\test_dicom_reader.cpp:669 | EverySupportedTransferSyntaxActuallyReads | for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) | xpe_dicom_close,xpe_dicom_open,xpe_dicom_read_image,xpe_free_image
+modules/dicom/tests\test_dicom_reader.cpp:912 | KnownDivergence_Sv1EncoderIgnoresPredictorArgument | for (int predictor = 1; predictor <= 7; ++predictor) { | WriteJpegLosslessVariant
+modules/dicom/tests\test_dicom_reader.cpp:966 | ConcurrentOpenOfJpegLossless_NoCorruption | for (int t = 0; t < kThreads; ++t) { | xpe_dicom_close,xpe_dicom_open,xpe_dicom_read_image,xpe_free_image
+modules/dicom/tests\test_dicom_reader.cpp:968 | ConcurrentOpenOfJpegLossless_NoCorruption | for (int r = 0; r < kRounds; ++r) { | xpe_dicom_close,xpe_dicom_open,xpe_dicom_read_image,xpe_free_image
+modules/dicom/tests\test_dicom_reader.cpp:1598 | CompressedMatchedSize_StillReadsNormally | for (const auto& c : cases) { | xpe_free_image
+modules/dicom/tests\test_dicom_reader.cpp:2700 | KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured | for (const auto& r : rows) { | EncodeAs
+modules/dicom/tests\test_dicom_reader.cpp:2803 | ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct | for (int predictor : kP14Predictors) { | EncodeAs,xpe_dicom_close,xpe_dicom_open,xpe_dicom_read_image,xpe_free_image
+modules/display/tests\test_display_integration.cpp:460 | ThousandCycles_MemoryGrowthUnderOneMB | for (size_t k = 0; k < 64u * 64u; ++k) px[k] = px[k] / 4095.0f; | xpe_apply_presentation_lut
+modules/enhance_advanced/tests\test_config_value_dependency.cpp:401 | CollimationConfidenceStrictnessRejectsMoreAsItRises | for (float fg : kForegrounds) { | xpe_detect_collimation
+modules/enhance_advanced/tests\test_config_value_dependency.cpp:476 | OldSensitivityNameIsReportedAsUnknownAndHasNoEffect | for (int i = 0; i < 256; ++i) { | xpe_get_pending_alert
+modules/enhance_advanced/tests\test_config_warning_once.cpp:161 | ADifferentUnknownKeyWarnsAgain | for (int i = 0; i < 20; ++i) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_config_warning_once.cpp:183 | FixingThenReintroducingTheTypoWarnsAgain | for (const char* cfg : seq) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_config_warning_once.cpp:200 | VaryingTheValueEachFrameStillWarnsOnce | for (int i = 0; i < 50; ++i) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_config_warning_once.cpp:219 | FractionalAndCollimationWarnOncePerConfig | for (int i = 0; i < 30; ++i) { | xpe_fractional_process
+modules/enhance_advanced/tests\test_config_warning_once.cpp:228 | FractionalAndCollimationWarnOncePerConfig | for (int i = 0; i < 30; ++i) { | xpe_detect_collimation
+modules/enhance_advanced/tests\test_config_warning_once.cpp:270 | ConcurrentThreadsDoNotEraseEachOthersWarning | for (int i = 0; i < 40; ++i) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_coverage_ext.cpp:236 | MultiscaleMaxLevelsAcrossSizes | for (uint32_t n : {32u, 64u, 128u, 256u}) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_coverage_ext.cpp:249 | MultiscaleMaxLevelsOnNonSquareImages | for (const auto& wh : sizes) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_coverage_ext.cpp:260 | MultiscaleMaxLevelsOnTinyImages | for (uint32_t n : {1u, 2u, 3u, 5u}) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_edge_enhancement.cpp:267 | T302_FractionalMaskGeneration | for (const auto& tc : testCases) { | xpe_fractional_process
+modules/enhance_advanced/tests\test_edge_enhancement.cpp:458 | T305_AttemptDisableOvershootLimiting | for (const auto& attempt : attempts) { | xpe_fractional_process
+modules/enhance_advanced/tests\test_edge_enhancement.cpp:507 | T306_OrderValidation | for (const auto& tc : testCases) { | xpe_fractional_process
+modules/enhance_advanced/tests\test_edge_enhancement_ext.cpp:276 | DisableOvershootViaConfigRejected | for (const char* config : forbiddenConfigs) { | xpe_fractional_process
+modules/enhance_advanced/tests\test_exposure_index.cpp:153 | T501_BodyPartEITargetLookup | for (const auto& tc : testCases) { | xpe_adv_calc_exposure_index
+modules/enhance_advanced/tests\test_exposure_index.cpp:301 | T504_QCAlertForHighDI | for (const auto& tc : testCases) { | xpe_adv_calc_exposure_index
+modules/enhance_advanced/tests\test_exposure_index.cpp:421 | T506_NULLPointerRejection | for (const auto& tc : testCases) { | xpe_adv_calc_exposure_index
+modules/enhance_advanced/tests\test_exposure_index_ext.cpp:147 | DifferentBodyPartsProduceFiniteResults | for (const char* bp : bodyParts) { | xpe_adv_calc_exposure_index
+modules/enhance_advanced/tests\test_integration.cpp:325 | T604_ThreadSafety | for (int t = 0; t < NUM_THREADS; ++t) { | xpe_adv_calc_exposure_index,xpe_detect_collimation,xpe_fractional_process,xpe_multiscale_p
+modules/enhance_advanced/tests\test_integration.cpp:416 | T605_MemoryLeakEndurance | for (int cycle = 0; cycle < CYCLES; ++cycle) { | xpe_adv_calc_exposure_index,xpe_detect_collimation,xpe_fractional_process,xpe_multiscale_p
+modules/enhance_advanced/tests\test_integration_ext.cpp:208 | MultiplePipelinesStable | for (int i = 0; i < 5; ++i) { | xpe_adv_calc_exposure_index,xpe_fractional_process,xpe_multiscale_process
+modules/enhance_advanced/tests\test_integration_ext.cpp:230 | RepeatedProcessingNoLeak | for (int i = 0; i < 20; ++i) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_mfp_scalar_ext.cpp:277 | MultipleBodyPartsSucceed | for (const char* bp : bodyParts) { | xpe_multiscale_process
+modules/enhance_advanced/tests\test_mfp_scalar_ext.cpp:387 | MultipleSequentialCallsStable | for (int i = 0; i < 10; ++i) { | xpe_multiscale_process
+modules/enhance_basic/tests\test_enhance_integration.cpp:242 | NoHeapLeak_1000Iterations | for (int i = 0; i < ENDURANCE_WARMUP; i++) { | xpe_log_transform
+modules/enhance_basic/tests\test_enhance_integration.cpp:249 | NoHeapLeak_1000Iterations | for (int i = 0; i < ENDURANCE_CYCLES; i++) { | xpe_log_transform
+modules/gsvg/tests\test_gsvg_abi_smoke.cpp:219 | RepeatedLifecycleDoesNotLeakOrCrash | for (int i = 0; i < kCycles; ++i) { | xpe_gsvg_init,xpe_gsvg_process,xpe_gsvg_shutdown
+modules/gsvg/tests\test_gsvg_benchmark.cpp:14 | BP06_GsvgVersionProbeBaseline | for (int i = 0; i < kIterations; ++i) { | xpe_gsvg_version
+modules/gsvg/tests\test_gsvg_degraded.cpp:215 | DegradedMode_PerformanceBudget | for (int i = 0; i < 3; ++i) { | xpe_gsvg_init,xpe_gsvg_process,xpe_gsvg_shutdown
+modules/gsvg/tests\test_parameter_dependency.cpp:142 | GainMapContentsReachTheOutput | for (size_t i = 0; i < gain.size(); ++i) gain[i] = 2.0f - gain[i]; | xpe_gsvg_process
+candidates 47

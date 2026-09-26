@@ -1,0 +1,130 @@
+import bisect, collections, glob, html, math, os, re, sys
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+BASE = sys.argv[1] if len(sys.argv) > 1 else "build/e2e-c92"
+NS = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+
+def ts(s):
+    s = s.strip()
+    m = re.match(r"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\.\d+)?", s)
+    frac = (m.group(2) or ".0")[1:7].ljust(6, "0")
+    return datetime.strptime(m.group(1) + "." + frac, "%Y-%m-%dT%H:%M:%S.%f")
+
+def wilson(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+    p = k / n; d = 1 + z * z / n; c = p + z * z / (2 * n)
+    s = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return (max(0.0, (c - s) / d), (c + s) / d)
+
+# watcher samples
+samples = []
+for line in open(f"{BASE}/watch.tsv", encoding="utf-8-sig", errors="replace"):
+    parts = line.rstrip("\n").split("\t")
+    if len(parts) < 2:
+        continue
+    fg_pid, _, fg_title = parts[1].partition("|")
+    apps = set(parts[2].split(",")) if len(parts) > 2 and parts[2] else set()
+    samples.append((ts(parts[0]), fg_pid, fg_title, apps))
+samples.sort(key=lambda x: x[0])
+times = [s[0] for s in samples]
+
+first_seen, ever_fg = {}, collections.defaultdict(bool)
+for t, fp, ft, apps in samples:
+    for a in apps:
+        first_seen.setdefault(a, t)
+        if fp == a:
+            ever_fg[a] = True
+
+def fg_before(t):
+    i = bisect.bisect_left(times, t) - 1
+    while i >= 0:
+        s = samples[i]
+        return s[1], s[2]
+    return ("?", "?")
+
+# plan
+plan = {}
+for line in list(open(f"{BASE}/plan.tsv", encoding="utf-8-sig"))[1:]:
+    p = line.rstrip("\n").split("\t")
+    if len(p) < 8 or p[2] == "STOPPED-MEMORY":
+        continue
+    plan[p[7]] = dict(index=int(p[0]), cond=p[1], set_ok=p[2] == "True", fg_before=p[3], free=p[4],
+                      start=ts(p[5]), end=ts(p[6]))
+
+launches = []
+control = collections.defaultdict(collections.Counter)
+for trx, meta in plan.items():
+    path = os.path.join(BASE, trx)
+    if not os.path.exists(path):
+        continue
+    raw = open(path, encoding="utf-8-sig", errors="replace").read()
+    for m in re.finditer(r"XPE-C56-PROBE hwnd=\S+ pid=(\d+) launched=(\S+) fromHandle=(\S+) fromTree=(\S+) framework=(\S+)", html.unescape(raw)):
+        pid = m.group(1)
+        # pids are reused across runs: look the pid up only inside this run's time window
+        lo_i = bisect.bisect_left(times, meta["start"]); hi_i = bisect.bisect_right(times, meta["end"])
+        window = samples[lo_i:hi_i]
+        seen = next((smp[0] for smp in window if pid in smp[3]), None)
+        took = any(smp[1] == pid for smp in window if pid in smp[3])
+        fp, ft = fg_before(seen) if seen else ("?", "unseen")
+        launches.append(dict(meta, pid=pid, framework=m.group(5), launched=m.group(2), seen_at=seen,
+                             fg_at_launch_pid=fp, fg_at_launch=ft, app_took_fg=took, seen=seen is not None))
+    root = ET.fromstring(raw.encode("utf-8"))
+    for x in root.findall(".//t:UnitTestResult", NS):
+        n = x.get("testName", "")
+        key = "Unreadable" if "UnreadableWindow" in n else ("Readable" if "ReadableWindow" in n else None)
+        if key:
+            control[(meta["cond"], key)][x.get("outcome")] += 1
+
+# de-duplicate by pid
+uniq = {}
+for l in launches:
+    uniq.setdefault((l["index"], l["pid"]), l)
+launches = list(uniq.values())
+
+def label(ft):
+    if ft == "Program Manager": return "desktop"
+    if ft == "C92 PLAIN WINDOW": return "plain window"
+    if ft == "unseen": return "unseen"
+    return "other: " + ft
+
+print(f"runs in plan={len(plan)} set-failed={sum(1 for m in plan.values() if not m['set_ok'])} launches={len(launches)} unseen-by-watcher={sum(1 for l in launches if not l['seen'])}")
+print("\n== by condition (set succeeded) ==")
+for c in "DWS":
+    L = [l for l in launches if l["cond"] == c and l["set_ok"]]
+    k = sum(1 for l in L if l["framework"] == "Win32"); n = len(L); lo, hi = wilson(k, n)
+    took = sum(1 for l in L if l["app_took_fg"])
+    print(f"{c}: launches={n} win32={k} rate={k / n if n else 0:.3f} CI95=({lo:.3f},{hi:.3f}) app_took_fg={took}/{n} "
+          f"control Unreadable={dict(control[(c, 'Unreadable')])} Readable={dict(control[(c, 'Readable')])}")
+    print("   fg at launch:", dict(collections.Counter(label(l["fg_at_launch"]) for l in L)))
+print("\n== first launch of each run only (the one the set foreground actually precedes) ==")
+byrun = collections.defaultdict(list)
+for l in launches:
+    if l["seen"]:
+        byrun[l["index"]].append(l)
+firsts = [min(v, key=lambda x: x["seen_at"]) for v in byrun.values()]
+for c in "DWS":
+    L = [l for l in firsts if l["cond"] == c and l["set_ok"]]
+    k = sum(1 for l in L if l["framework"] == "Win32"); n = len(L); lo, hi = wilson(k, n)
+    print(f"{c}: first launches={n} win32={k} rate={(k / n if n else 0):.3f} CI95=({lo:.3f},{hi:.3f}) fg:",
+          dict(collections.Counter(label(l["fg_at_launch"]) for l in L)))
+print("\n== by actual foreground at launch (all conditions) ==")
+groups = collections.defaultdict(list)
+for l in launches:
+    if l["set_ok"]:
+        groups[label(l["fg_at_launch"])].append(l)
+for g, L in sorted(groups.items()):
+    k = sum(1 for l in L if l["framework"] == "Win32"); n = len(L); lo, hi = wilson(k, n)
+    print(f"{g}: launches={n} win32={k} rate={k / n:.3f} CI95=({lo:.3f},{hi:.3f})")
+print("\n== by whether the app ever took the foreground ==")
+for flag in (True, False):
+    L = [l for l in launches if l["set_ok"] and l["app_took_fg"] == flag]
+    k = sum(1 for l in L if l["framework"] == "Win32"); n = len(L); lo, hi = wilson(k, n)
+    print(f"app_took_fg={flag}: launches={n} win32={k} rate={(k / n if n else 0):.3f} CI95=({lo:.3f},{hi:.3f})")
+print("\nwin32 shapes:", collections.Counter((l["launched"],) for l in launches if l["framework"] == "Win32"))
+print("free MB range:", min((int(m["free"]) for m in plan.values()), default=None), max((int(m["free"]) for m in plan.values()), default=None))
+with open(f"{BASE}/launches.tsv", "w", encoding="utf-8") as f:
+    f.write("index\tcond\tset_ok\tpid\tframework\tfg_at_launch\tapp_took_fg\n")
+    for l in sorted(launches, key=lambda x: (x["index"], x["pid"])):
+        f.write(f"{l['index']}\t{l['cond']}\t{l['set_ok']}\t{l['pid']}\t{l['framework']}\t{l['fg_at_launch_pid']}|{l['fg_at_launch']}\t{l['app_took_fg']}\n")

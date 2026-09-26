@@ -1,0 +1,8 @@
+35435692486 ADV061 fractional 3072x3072 min=443754 med=453854 max=502674 us (runs=7, order=1.2)
+35434160819 ADV061 fractional 3072x3072 min=513064 med=585887 max=632696 us (runs=7, order=1.2)
+35433030120 ADV061 fractional 3072x3072 min=417463 med=428425 max=474070 us (runs=7, order=1.2)
+35431916186 ADV061 fractional 3072x3072 min=454496 med=468278 max=481519 us (runs=7, order=1.2)
+35430772488 ADV061 fractional 3072x3072 min=421755 med=436396 max=461436 us (runs=7, order=1.2)
+35429115353 ADV061 fractional 3072x3072 min=421545 med=441387 max=461644 us (runs=7, order=1.2)
+35426901178 ADV061 fractional 3072x3072 min=423043 med=438779 max=453593 us (runs=7, order=1.2)
+35424904958 ADV061 fractional 3072x3072 min=538838 med=545250 max=612330 us (runs=7, order=1.2)

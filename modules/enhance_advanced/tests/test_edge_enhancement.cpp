@@ -749,7 +749,8 @@ TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
 }
 
 /* ============================================================================
- * #179 (QA-B-84): REQ-ADV-061 measurement on the CI runner -- no time assertion
+ * #179: REQ-ADV-061 on the CI runner -- measurement (QA-B-84) turned into a
+ * REGRESSION GATE (QA-B-149)
  * ============================================================================ */
 
 /**
@@ -757,19 +758,38 @@ TEST_F(EdgeEnhancementTest, T311_NonSquareAspectRatio) {
  * scalar / 120 ms AVX2), and no CI job measured it: T308 is a 1024x1024 proxy
  * and ci.yml excludes it as a wall-clock case (QA-B-83).
  *
- * This case only MEASURES. A gate chosen from a developer machine has failed
- * on CI before (810 ms local vs 1340 ms CI), so the threshold is to be set
- * from the numbers this prints on the benchmark runner.
+ * IT NOW GATES, at med <= 700 ms, and the threshold came from CI rather than
+ * from this machine. Eight benchmark-workflow runs (2026-09-19) reported, in
+ * ms: med 428.4 / 436.4 / 438.8 / 441.4 / 453.9 / 468.3 / 545.3 / 585.9 and
+ * max up to 632.7. 700 is 1.19x the slowest median observed, so the 1.37x
+ * spread the shared runner actually shows passes and a doubling does not.
  *
- * The name carries "BenchmarkFreeze" so benchmark-regression.yml's -R pattern
- * selects it, and deliberately avoids "Performance" / "Within...ms", which
- * ci.yml's -E pattern would exclude.
+ * WHAT THIS GATE IS NOT. REQ-ADV-061's budget is 400 ms, and the CI runner
+ * has never met it -- the fastest single run across those eight was 417.5 ms.
+ * The SPEC number is a REFERENCE-HARDWARE claim (the recorded 302/320 ms come
+ * from a developer i7-12700); this runner is about 1.4x slower and is not that
+ * machine. So a green here says "no regression on this runner", never
+ * "REQ-ADV-061 is met" -- that verdict is blocked on reference-hardware
+ * measurement (#151-class) and the SPEC now carries both rows explicitly.
+ *
+ * MEDIAN, not max: max is the shared runner's tail and swings 454..633 ms
+ * across runs, so gating on it would fail on scheduling noise rather than on
+ * code.
+ *
+ * NAMING, and a reversal. The name carries "BenchmarkFreeze" so
+ * benchmark-regression.yml's -R pattern selects it. It now ALSO carries
+ * "Performance", which ci.yml's -E pattern excludes -- the opposite of what
+ * this comment said while the case only measured. The reason flipped with the
+ * assertion: ci.yml drops wall-clock cases on purpose because a shared runner
+ * measures the machine, so a timing GATE must not run there. Nothing is lost:
+ * the number is collected by the benchmark workflow, which is the only job
+ * that reads it.
  *
  * Same order (1.2) and step-edge shape as T308, at full size. One warm-up call,
  * then kRuns timed calls on a fresh copy of the input each time (the call is
  * in-place). Reported in microseconds as one grep-able line.
  */
-TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalMeasure3072) {
+TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalPerformanceRegressionGate3072) {
     constexpr int kSize = 3072;
     constexpr int kRuns = 7;
     const size_t n = static_cast<size_t>(kSize) * kSize;
@@ -807,6 +827,19 @@ TEST_F(EdgeEnhancementTest, BenchmarkFreeze_ADV061_FractionalMeasure3072) {
     RecordProperty("ADV061_min_us", std::to_string(us.front()));
     RecordProperty("ADV061_med_us", std::to_string(us[us.size() / 2]));
     RecordProperty("ADV061_max_us", std::to_string(us.back()));
+
+    // The gate. See the header for why 700 and why the median.
+    constexpr long long kRegressionBudgetUs = 700000;   // 700 ms
+    const long long medUs = us[us.size() / 2];
+    EXPECT_LE(medUs, kRegressionBudgetUs)
+        << "median " << (medUs / 1000.0) << " ms exceeds the "
+        << (kRegressionBudgetUs / 1000) << " ms CI REGRESSION budget (#179). "
+        << "THIS IS A REGRESSION GUARD, NOT A REQ-ADV-061 CONFORMANCE VERDICT. "
+        << "REQ-ADV-061 budgets 400 ms on reference hardware; this runner has "
+        << "never met that and is not that machine, so a green here never means "
+        << "the requirement is met (see the SPEC's two-row table). A red here "
+        << "means this runner got substantially slower than the eight runs the "
+        << "budget was derived from (medians 428..586 ms).";
 }
 
 // ---------------------------------------------------------------------------

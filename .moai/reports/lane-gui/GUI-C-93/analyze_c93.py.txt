@@ -1,0 +1,112 @@
+import glob, html, re, statistics, sys
+from datetime import datetime
+
+BASE = sys.argv[1] if len(sys.argv) > 1 else "build/e2e-c93/runs"
+
+def ts(s):
+    m = re.match(r"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\.\d+)?", s)
+    frac = (m.group(2) or ".0")[1:7].ljust(6, "0")
+    return datetime.strptime(m.group(1) + "." + frac, "%Y-%m-%dT%H:%M:%S.%f")
+
+rows = {}
+for t in sorted(glob.glob(f"{BASE}/*.trx")):
+    raw = html.unescape(open(t, encoding="utf-8-sig", errors="replace").read())
+    for m in re.finditer(r"XPE-C93-TIMING pid=(\d+) start=(\S+) mainWindow=(\S+) query=(\S+) result=(\S+) framework=(\S+) foreground=(\S+) fgEvents=(\d+)", raw):
+        key = (t, m.group(1))
+        rows[key] = dict(run=t, pid=m.group(1), start=m.group(2), main=ts(m.group(3)), query=ts(m.group(4)),
+                         result=m.group(5), framework=m.group(6), fg=m.group(7), events=int(m.group(8)))
+
+def ms(a, b):
+    return (a - b).total_seconds() * 1000.0
+
+launches = list(rows.values())
+for r in launches:
+    r["startT"] = ts(r["start"]) if r["start"][0].isdigit() else None
+    r["fgT"] = ts(r["fg"]) if r["fg"] != "never" else None
+    r["q_f"] = ms(r["query"], r["fgT"]) if r["fgT"] else None
+    r["m_f"] = ms(r["main"], r["fgT"]) if r["fgT"] else None
+    r["f_s"] = ms(r["fgT"], r["startT"]) if r["fgT"] and r["startT"] else None
+    r["q_s"] = ms(r["query"], r["startT"]) if r["startT"] else None
+    r["q_m"] = ms(r["query"], r["main"])
+
+bad = [r for r in launches if r["framework"] == "Win32"]
+good = [r for r in launches if r["framework"] != "Win32"]
+print(f"launches={len(launches)} win32={len(bad)} wpf={len(good)} foreground never={sum(1 for r in launches if r['fgT'] is None)}")
+
+def summary(name, xs):
+    xs = [x for x in xs if x is not None]
+    if not xs:
+        return f"{name}: n=0"
+    xs.sort()
+    q = lambda p: xs[min(len(xs) - 1, int(p * len(xs)))]
+    return f"{name}: n={len(xs)} min={xs[0]:.1f} p10={q(.1):.1f} median={statistics.median(xs):.1f} p90={q(.9):.1f} max={xs[-1]:.1f}"
+
+for metric in ("q_f", "m_f", "f_s", "q_s", "q_m"):
+    print(f"\n[{metric}] (ms)")
+    print("  Win32 ", summary("", [r[metric] for r in bad]))
+    print("  Wpf   ", summary("", [r[metric] for r in good]))
+
+print("\nhistogram of query - foreground (ms), 20 ms bins:")
+edges = list(range(-100, 301, 20))
+def binof(x):
+    for lo in edges:
+        if lo <= x < lo + 20:
+            return lo
+    return "out"
+from collections import Counter
+hb = Counter(binof(r["q_f"]) for r in bad if r["q_f"] is not None)
+hg = Counter(binof(r["q_f"]) for r in good if r["q_f"] is not None)
+for lo in edges + ["out"]:
+    if hb[lo] or hg[lo]:
+        print(f"  {str(lo):>5}: Win32={hb[lo]:3d}  Wpf={hg[lo]:3d}")
+
+# pre-registered criterion: the narrowest q_f interval holding >= 80% of Win32 launches,
+# and the share of Wpf launches inside it
+vals = sorted(r["q_f"] for r in bad if r["q_f"] is not None)
+if vals:
+    need = max(1, -(-len(vals) * 8 // 10))
+    best = min(((vals[i + need - 1] - vals[i], vals[i], vals[i + need - 1]) for i in range(len(vals) - need + 1)))
+    lo, hi = best[1], best[2]
+    inside_good = sum(1 for r in good if r["q_f"] is not None and lo <= r["q_f"] <= hi)
+    n_good = sum(1 for r in good if r["q_f"] is not None)
+    print(f"\ncriterion: narrowest interval with >=80% of Win32 ({need}/{len(vals)}): [{lo:.1f}, {hi:.1f}] ms "
+          f"width {hi - lo:.1f}; Wpf launches inside it: {inside_good}/{n_good} ({inside_good / n_good:.0%})")
+
+# Fixed window, set before the data (card example "tens of ms right after activation"): 0 <= q_f < 50.
+def share(rs, lo, hi):
+    xs = [r["q_f"] for r in rs if r["q_f"] is not None]
+    k = sum(1 for x in xs if lo <= x < hi)
+    return k, len(xs)
+kb, nb = share(bad, 0, 50); kg, ng = share(good, 0, 50)
+print(f"\nfixed window 0 <= q_f < 50 ms: Win32 {kb}/{nb} ({(kb / nb if nb else 0):.0%}), Wpf {kg}/{ng} ({(kg / ng if ng else 0):.0%})")
+kb, nb = share(bad, -10**6, 0); kg, ng = share(good, -10**6, 0)
+print(f"query BEFORE activation (q_f < 0): Win32 {kb}/{nb}, Wpf {kg}/{ng}")
+
+# Mann-Whitney U (normal approximation, ties averaged) on q_f between Win32 and Wpf
+xb = [r["q_f"] for r in bad if r["q_f"] is not None]
+xg = [r["q_f"] for r in good if r["q_f"] is not None]
+if xb and xg:
+    allv = sorted([(v, 0) for v in xb] + [(v, 1) for v in xg])
+    ranks = {}
+    i = 0
+    while i < len(allv):
+        j = i
+        while j + 1 < len(allv) and allv[j + 1][0] == allv[i][0]:
+            j += 1
+        for k in range(i, j + 1):
+            ranks[k] = (i + j) / 2 + 1
+        i = j + 1
+    rb = sum(ranks[k] for k, (v, g) in enumerate(allv) if g == 0)
+    n1, n2 = len(xb), len(xg)
+    u = rb - n1 * (n1 + 1) / 2
+    mu = n1 * n2 / 2
+    sd = (n1 * n2 * (n1 + n2 + 1) / 12) ** 0.5
+    z = (u - mu) / sd if sd else 0
+    p = 2 * (1 - 0.5 * (1 + __import__("math").erf(abs(z) / 2 ** 0.5)))
+    print(f"Mann-Whitney q_f Win32 vs Wpf: U={u:.1f} z={z:.2f} p~{p:.3f} (n1={n1}, n2={n2})")
+
+with open(f"{BASE}/../launches.tsv", "w", encoding="utf-8") as f:
+    f.write("run\tpid\tframework\tresult\tq_minus_fg_ms\tmain_minus_fg_ms\tfg_minus_start_ms\tquery_minus_start_ms\tquery_minus_main_ms\n")
+    for r in sorted(launches, key=lambda x: x["query"]):
+        g = lambda k: "" if r[k] is None else f"{r[k]:.1f}"
+        f.write(f"{r['run'].split('/')[-1]}\t{r['pid']}\t{r['framework']}\t{r['result']}\t{g('q_f')}\t{g('m_f')}\t{g('f_s')}\t{g('q_s')}\t{g('q_m')}\n")

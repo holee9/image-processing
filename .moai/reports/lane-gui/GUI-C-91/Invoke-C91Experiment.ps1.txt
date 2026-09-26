@@ -1,0 +1,86 @@
+# GUI-C-91 experiment (not part of the product or the suite). Desktop condition A / B / C,
+# WindowReacquireTests repeated; the probe lines are read from each run's trx afterwards.
+param(
+    [Parameter(Mandatory)][ValidateSet('A', 'B', 'C')][string]$Condition,
+    [int]$Runs = 25,
+    [int]$Start = 1,
+    [int]$MinFreeMB = 3000,
+    [string]$Out = 'build/e2e-c91'
+)
+$ErrorActionPreference = 'Stop'
+$repo = 'D:\workspace-github\xpe-gui'
+Set-Location $repo
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class C91Win {
+    public delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    public static List<string> List() {
+        var fg = GetForegroundWindow();
+        var rows = new List<string>();
+        int z = 0;
+        EnumWindows((h, l) => {
+            if (!IsWindowVisible(h)) return true;
+            var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
+            if (sb.Length == 0) return true;
+            uint pid; GetWindowThreadProcessId(h, out pid);
+            bool top = (GetWindowLong(h, -20) & 0x8) != 0;
+            rows.Add(string.Format("z={0} pid={1} min={2} topmost={3} fg={4} title={5}", z++, pid, IsIconic(h), top, h == fg, sb));
+            return true;
+        }, IntPtr.Zero);
+        return rows;
+    }
+}
+'@
+
+$dir = Join-Path $Out $Condition
+New-Item -ItemType Directory -Force $dir | Out-Null
+$shell = New-Object -ComObject Shell.Application
+$topmost = $null
+
+if ($Condition -eq 'C') {
+    $formScript = @'
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'C91 TOPMOST PROBE WINDOW'
+$f.TopMost = $true
+$f.Width = 900; $f.Height = 700
+$f.StartPosition = 'Manual'; $f.Left = 0; $f.Top = 0
+[void]$f.ShowDialog()
+'@
+    $topmost = Start-Process powershell -PassThru -ArgumentList @('-NoProfile', '-Command', $formScript)
+    Start-Sleep -Seconds 3
+}
+
+$env:XPE_E2E_BACKEND = 'Native'
+$env:XPE_NATIVE_DIR = (Resolve-Path 'build/ci-776292b/bin').Path
+
+try {
+    for ($i = $Start; $i -le $Runs; $i++) {
+        $free = [int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1024)
+        if ($free -lt $MinFreeMB) { Write-Host "$Condition stopped before run ${i}: free memory $free MB < $MinFreeMB MB"; break }
+        if ($Condition -eq 'B') { $shell.MinimizeAll(); Start-Sleep -Milliseconds 800 }
+        [C91Win]::List() | Set-Content (Join-Path $dir ("windows-{0:D2}.txt" -f $i)) -Encoding utf8
+        $trx = "run-{0:D2}.trx" -f $i
+        $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        & dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-build `
+            --filter 'FullyQualifiedName~WindowReacquireTests' `
+            --logger "trx;LogFileName=$trx" --results-directory $dir 2>&1 | Out-Null
+        $ErrorActionPreference = $previous
+        Write-Host "$Condition run $i done"
+    }
+}
+finally {
+    if ($topmost) { Stop-Process -Id $topmost.Id -Force -ErrorAction SilentlyContinue }
+    if ($Condition -eq 'B') { $shell.UndoMinimizeALL() }
+}

@@ -76,16 +76,21 @@ TEST(DisplayIntegration, FullPipeline_LinearModality_LinearVoi_PresLut) {
     voi.minOut = 0.0f;
     voi.maxOut = 1.0f;
     ASSERT_EQ(xpe_apply_voi_lut(&img, &voi), XPE_OK);
-    // (100 - (100-100)) / 200 * 1 + 0 = 0.5
-    EXPECT_NEAR(float_pixels(img)[0], 0.5f, 0.01f);
+    // UPDATED by QA-B-149 (#156 resolved). DICOM PS3.3 C.11.2.1.2.1 windows
+    // about center - 0.5 over width - 1:
+    //   (100 - 99.5) / 199 + 0.5 = 0.5025126
+    // The old expectation 0.5 is the LINEAR_EXACT value, which is what LINEAR
+    // used to compute.
+    EXPECT_NEAR(float_pixels(img)[0], 0.5025126f, 1e-5f);
 
-    // Stage 3: Presentation LUT — identity maps 0.5 -> index 512 -> 512
+    // Stage 3: Presentation LUT — identity maps 0.5025126 -> index 514 -> 514
+    //   round(0.5025126 * 1023) = round(514.07) = 514   (#156, QA-B-149)
     XpePresentationLutParams plut{};
     make_identity_plut(plut);
     ASSERT_EQ(xpe_apply_presentation_lut(&img, &plut), XPE_OK);
 
     EXPECT_EQ(img.format, XPE_PIXEL_UINT16);
-    EXPECT_EQ(uint16_pixels(img)[0], 512u);
+    EXPECT_EQ(uint16_pixels(img)[0], 514u);
     free_image(img);
 }
 

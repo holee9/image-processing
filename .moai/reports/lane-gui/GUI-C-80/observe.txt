@@ -1,0 +1,83 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xA90600 pid=9628 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:08.74]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale [FAIL]
+[xUnit.net 00:00:08.74]       The main window marks the image stale, but the detached viewer showing the same image reads '(absent)' (#171 ①).
+[xUnit.net 00:00:08.74]       Stack Trace:
+[xUnit.net 00:00:08.74]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs(211,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.<W25_DetachedViewer_MarksAnUnappliedEditStale>b__7_0(Window window)
+[xUnit.net 00:00:08.74]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs(246,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.Measure(String scenario, Action`1 body)
+[xUnit.net 00:00:08.74]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs(189,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale()
+[xUnit.net 00:00:08.74]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:08.74]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:08.74]       Output:
+[xUnit.net 00:00:08.74]         W25 preset: main hud=40000 detached hud=(none) main='source=1024x1024 v1; processed=1024x1024 v3' detached='source=1024x1024 v1; processed=1024x1024 v2'
+[xUnit.net 00:00:08.74]         W25 edit: main indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.' detached indicator='' detached hud=(none) detached texts=[Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+[xUnit.net 00:00:08.74]         W25: 7729 ms
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale [7 s]
+  오류 메시지:
+   The main window marks the image stale, but the detached viewer showing the same image reads '(absent)' (#171 ①).
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.<W25_DetachedViewer_MarksAnUnappliedEditStale>b__7_0(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs:line 211
+   at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.Measure(String scenario, Action`1 body) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs:line 246
+   at ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ViewportTruthScenarios.cs:line 189
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ W25 preset: main hud=40000 detached hud=(none) main='source=1024x1024 v1; processed=1024x1024 v3' detached='source=1024x1024 v1; processed=1024x1024 v2'
+ W25 edit: main indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.' detached indicator='' detached hud=(none) detached texts=[Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+ W25: 7729 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [6 s]
+  표준 출력 메시지:
+ W15 detachedRect={X=208,Y=208,Width=1280,Height=820} point={X=848,Y=618} mainRect={X=156,Y=156,Width=1560,Height=920}
+ W15 control point={X=1676,Y=196} name=''
+ W15 zoom fit -> 85%
+ W15: 6072 ms
+
+
+XPE-C56-PROBE hwnd=0xAA0600 pid=8624 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [3 s]
+  표준 출력 메시지:
+ W16 afterF8='Mode=DifferenceHeatmap, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%' afterF5='Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%'
+ W16: 3630 ms
+
+
+[xUnit.net 00:00:21.92]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [FAIL]
+[xUnit.net 00:00:21.92]       System.NullReferenceException : Object reference not set to an instance of an object.
+[xUnit.net 00:00:21.92]       Stack Trace:
+[xUnit.net 00:00:21.92]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\WorkbenchObservation.cs(86,0): at ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.ApplyDisplayPipeline(Window window)
+[xUnit.net 00:00:21.92]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs(98,0): at ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer()
+[xUnit.net 00:00:21.92]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:21.92]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:21.92]       Output:
+[xUnit.net 00:00:21.92]         W26 start: status='faultInjection=display-pipeline-after:1 calls=1' detached='source=1024x1024 v1; processed=1024x1024 v1' indicator=''
+[xUnit.net 00:00:21.95]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [2 s]
+  오류 메시지:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.ApplyDisplayPipeline(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\WorkbenchObservation.cs:line 86
+   at ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs:line 98
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ W26 start: status='faultInjection=display-pipeline-after:1 calls=1' detached='source=1024x1024 v1; processed=1024x1024 v1' indicator=''
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 4
+     통과: 2
+     실패: 2
+ 총 시간: 22.3026 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

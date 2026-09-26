@@ -1,0 +1,9 @@
+[a] requested=Native dir=D:\workspace-github\xpe-gui\build\ci-common\bin exit=0
+    automation-report: BackendMode=Native ActualBackendMode=Native MockBackend=False BackendMatchesRequest=True Passed=True NativeSource='bin'
+    menu-command-report: actualBackendMode=Native mockBackend=False requestedBackendMode=Native settings.backendMode=Native backend.backendName=RealXpeBackend backend.nativeSource='bin'
+[b] requested=Native dir=D:\workspace-github\xpe-gui\build\e2e-c85\emptydir exit=1
+    automation-report: BackendMode=Native ActualBackendMode=Mock MockBackend=True BackendMatchesRequest=False Passed=False NativeSource=''
+    menu-command-report: actualBackendMode=Mock mockBackend=True requestedBackendMode=Native settings.backendMode=Native backend.backendName=MockXpeBackend backend.nativeSource=''
+[c] requested=Mock dir= exit=0
+    automation-report: BackendMode=Mock ActualBackendMode=Mock MockBackend=True BackendMatchesRequest=True Passed=True NativeSource=''
+    menu-command-report: actualBackendMode=Mock mockBackend=True requestedBackendMode=Mock settings.backendMode=Mock backend.backendName=MockXpeBackend backend.nativeSource=''

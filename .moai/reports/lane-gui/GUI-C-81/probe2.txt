@@ -1,0 +1,31 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.12]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x2A70308 pid=21456 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:08.73]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ZzOverlapProbe.Probe [7 s]
+  표준 출력 메시지:
+ main={X=104,Y=104,Width=1560,Height=920}
+ A no detached: menu={X=244,Y=247,Width=56,Height=18} hitAtMenuCentre='ImageProcTest GUI-S0' itemFound=True
+ detached={X=130,Y=130,Width=1280,Height=820}
+ B detached at default: menu={X=244,Y=247,Width=56,Height=18} hitAtMenuCentre='ImageProcTest Comparison Viewer' itemFound=False
+ detached moved={X=1714,Y=104,Width=1280,Height=820}
+ C detached moved away: menu={X=244,Y=247,Width=56,Height=18} hitAtMenuCentre='ImageProcTest GUI-S0' itemFound=True
+ detached back={X=104,Y=104,Width=1280,Height=820}
+ D detached moved back over menu: menu={X=244,Y=247,Width=56,Height=18} hitAtMenuCentre='ImageProcTest Comparison Viewer' itemFound=False
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 9.0705 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
