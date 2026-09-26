@@ -24,6 +24,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cmath>
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -156,7 +157,7 @@ TEST(ParameterDependency, VoiLut_EveryParameterReachesTheOutput) {
 // Not fixed: changing it changes displayed pixel values for every caller that
 // selects EXACT (#154 / #155 precedent).
 // ---------------------------------------------------------------------------
-TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
+TEST(ParameterDependency, Fixed156_VoiLinearExactDiffersFromVoiLinear) {
     auto run = [](XpeVoiLutMode mode) {
         std::vector<float> px = Gradient(-500.0f, 1500.0f);
         XpeImageBuffer img = WrapFloat32(px);
@@ -174,14 +175,22 @@ TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
     GTEST_LOG_(INFO) << "LINEAR vs LINEAR_EXACT maxdiff=" << diff
                      << " (one ulp at this scale is ~6e-08)";
 
-    EXPECT_LT(diff, 1e-6)
-        << "LINEAR_EXACT now differs from LINEAR -- REQ-DISP-010 has been "
-           "implemented; say how, and retire this case";
+    // INVERTED by QA-B-149, not deleted. Until #156 was fixed this asserted
+    // diff < 1e-6: the two branches computed the same expression and the mode
+    // selection did nothing. The fix went into LINEAR (it had lost the
+    // standard's `center - 0.5` / `width - 1` placement), so the modes now
+    // separate. The one-line flip is the visible arrival.
+    //
+    // Threshold, not `> 0`: the branches used to sit 6e-08 apart on float
+    // association alone, so `> 0` would have gone green on rounding noise.
+    EXPECT_GT(diff, 1e-4)
+        << "LINEAR and LINEAR_EXACT compute the same value again -- the mode "
+           "selection has stopped having an effect (#156)";
 }
 
 // ---------------------------------------------------------------------------
-// #156 (QA-B-66): the same fact, asserted the other way round -- and currently
-// FAILING on purpose.
+// #156 (QA-B-66, resolved QA-B-149): the same fact, asserted against the
+// STANDARD's own published example rather than against an arbitrary window.
 //
 // The case above pins what the code does today. That is worth having, but on its
 // own it has the wrong polarity for a defect: whoever finally implements
@@ -189,20 +198,22 @@ TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
 // cheapest reading of a red test is "I broke something". The risk is that the
 // fix gets reverted to make the suite green again.
 //
-// So the requirement is asserted here as well, in the direction the requirement
-// actually points: the two modes MUST differ. It fails today, which is correct
-// -- the defect is real. It is DISABLED_ rather than left red because the defect
-// is BLOCKED, not merely unfixed: REQ-DISP-010 says LINEAR_EXACT maps the window
-// "without the half-value offset", and voi_lut.cpp:50 still has `+ 0.5f`, but
-// what the branch should compute INSTEAD cannot be written without DICOM PS3.3
-// C.11.2.1.3 itself. Guessing a formula would put an unverifiable number into
-// the tree under the name "standard-compliant", which is why #156 is waiting on
-// an external document rather than on work.
+// THE STANDARD ARRIVED (leader supplied PS3.3 C.11.2, QA-B-149) and the
+// DISABLED_ prefix is removed. One correction to what this comment predicted:
+// the branch that needed fixing was LINEAR, not LINEAR_EXACT. EXACT already
+// matched the standard's published pseudo-code; LINEAR had lost the
+// `center - 0.5` / `width - 1` placement, which is what made them coincide.
 //
-// WHEN THE STANDARD ARRIVES: implement the branch, remove the DISABLED_ prefix,
-// and retire KnownDivergence_VoiLinearExactEqualsVoiLinear above. This case
-// turning green is the signal that the two modes finally differ; that one going
-// red is the same fact seen from the other side.
+// The expectations below are NOT re-derived through the module. They are the
+// window boundaries the standard states for its own worked examples, so they
+// hold whatever the implementation does:
+//
+//   c = 2048, w = 4096  ->  x <= 0  is minOut,  x > 4095 is maxOut
+//   c = 0,    w = 100   ->  x <= -50 is minOut, x > 49   is maxOut
+//
+// Both are exactly (c - 0.5) +/- (w - 1)/2. Under the OLD formula the first
+// example's boundaries would have been 0 and 4096, and the second's -50 and
+// 50 -- so these vectors separate the two formulas by themselves.
 //
 // THRESHOLD: kMeaningful (1e-4 on a [0,1] output), not `> 0`. The two branches
 // differ today by float-association noise of about 6e-08 -- one ulp at this
@@ -211,31 +222,107 @@ TEST(ParameterDependency, KnownDivergence_VoiLinearExactEqualsVoiLinear) {
 // what keeps "the modes differ" from meaning "the adds happened in a different
 // order".
 // ---------------------------------------------------------------------------
-TEST(ParameterDependency, DISABLED_VoiLinearExactMustDifferFromLinear) {
-    auto run = [](XpeVoiLutMode mode) {
-        std::vector<float> px = Gradient(-500.0f, 1500.0f);
-        XpeImageBuffer img = WrapFloat32(px);
+TEST(ParameterDependency, VoiLinearMatchesTheStandardsWorkedExamples_156) {
+    // One pixel per probe, so a boundary is read exactly rather than sampled.
+    auto at = [](float x, float center, float width) {
+        // A 1x1 buffer, not WrapFloat32: that helper hardcodes kW x kH, and a
+        // boundary must be read exactly rather than sampled off a gradient.
+        std::vector<float> px{x};
+        XpeImageBuffer img{};
+        img.width         = 1;
+        img.height        = 1;
+        img.format        = XPE_PIXEL_FLOAT32;
+        img.bitsAllocated = 32;
+        img.bitsStored    = 32;
+        img.data          = px.data();
+        img.dataSize      = static_cast<uint32_t>(sizeof(float));
         XpeVoiLutParams p{};
-        p.mode   = mode;
-        p.center = 500.0f;
-        p.width  = 1000.0f;
+        p.mode   = XPE_VOI_LINEAR;
+        p.center = center;
+        p.width  = width;
         p.minOut = 0.0f;
         p.maxOut = 1.0f;
         EXPECT_EQ(XPE_OK, xpe_apply_voi_lut(&img, &p));
-        return px;
+        return px[0];
     };
 
-    constexpr double kMeaningful = 1e-4;
-    const double diff = MaxDiff(run(XPE_VOI_LINEAR), run(XPE_VOI_LINEAR_EXACT));
-    GTEST_LOG_(INFO) << "LINEAR vs LINEAR_EXACT maxdiff=" << diff
-                     << " (threshold " << kMeaningful
-                     << "; one ulp at this scale is ~6e-08)";
+    struct Example { const char* name; float c, w, loEdge, hiEdge; };
+    const Example examples[] = {
+        { "PS3.3 example 1", 2048.0f, 4096.0f,   0.0f, 4095.0f },
+        { "PS3.3 example 2",    0.0f,  100.0f, -50.0f,   49.0f },
+    };
 
-    EXPECT_GT(diff, kMeaningful)
-        << "REQ-DISP-010 asks LINEAR_EXACT to map the window without the "
-           "half-value offset, which would make it differ from LINEAR. Both "
-           "branches currently evaluate the same expression, so the mode "
-           "selection has no effect. Blocked on DICOM PS3.3 C.11.2.1.3 (#156).";
+    for (const Example& e : examples) {
+        const float atLo   = at(e.loEdge, e.c, e.w);
+        const float atHi   = at(e.hiEdge, e.c, e.w);
+        const float below  = at(e.loEdge - 1.0f, e.c, e.w);
+        const float above  = at(e.hiEdge + 1.0f, e.c, e.w);
+        GTEST_LOG_(INFO) << "  " << e.name << " c=" << e.c << " w=" << e.w
+                         << ": f(" << e.loEdge << ")=" << atLo
+                         << "  f(" << e.hiEdge << ")=" << atHi
+                         << "  f(below)=" << below << "  f(above)=" << above;
+
+        // The standard's stated boundaries. Under the pre-#156 formula the
+        // upper edge of example 1 evaluated to 0.99976 and of example 2 to
+        // 0.99 -- these two numbers are what separate the formulas.
+        EXPECT_NEAR(0.0f, atLo, 1e-6f) << e.name << ": lower boundary";
+        EXPECT_NEAR(1.0f, atHi, 1e-6f) << e.name << ": upper boundary";
+        EXPECT_FLOAT_EQ(0.0f, below)   << e.name << ": below the window";
+        EXPECT_FLOAT_EQ(1.0f, above)   << e.name << ": above the window";
+    }
+
+    // width == 1 makes (width - 1) zero. REQ-DISP-015 only rejects width <= 0,
+    // so this is a legal input: the standard's thresholds partition the line
+    // and the interior division is never reached.
+    EXPECT_FLOAT_EQ(0.0f, at(0.0f, 10.0f, 1.0f)) << "width==1, below centre";
+    EXPECT_FLOAT_EQ(1.0f, at(20.0f, 10.0f, 1.0f)) << "width==1, above centre";
+    EXPECT_TRUE(std::isfinite(at(9.5f, 10.0f, 1.0f))) << "width==1 divided by zero";
+}
+
+// ---------------------------------------------------------------------------
+// #177 (QA-B-149): the control the (A) verdict needs.
+//
+// REQ-DISP-017 was revised on 2026-09-17 so the presets act on detector DN
+// rather than CT HU. Reading the revised code is not evidence that the revision
+// WORKS -- the original symptom (GUI-C-84: an HU window crushes raw DN to a
+// single output level) was observed in the gui lane, not here. This measures
+// the symptom directly, on this side, so "the presets no longer crush DN" is an
+// observation rather than a reading.
+//
+// The measurement is the number of DISTINCT output levels produced from a raw
+// DN ramp of 1024 samples spanning 0..65535.
+//
+//   shipped full-DN window (32768 / 65535) : 1024 levels
+//   the HU window the revision removed (40 / 400, restored to measure) : 5
+//
+// A 205x collapse -- the reported defect. Both numbers were MEASURED, not
+// predicted: this comment first said "2" on the reasoning that an HU window
+// pins everything to minOut or maxOut, and the control returned 5, because the
+// window still spans DN -160..240 and a few ramp samples land inside it. The
+// measured number is the one that belongs in a comment.
+// ---------------------------------------------------------------------------
+TEST(ParameterDependency, VoiPresetDoesNotCrushRawDetectorDn_177) {
+    std::vector<float> px(static_cast<size_t>(kW) * kH);
+    for (size_t i = 0; i < px.size(); ++i) {
+        px[i] = 65535.0f * static_cast<float>(i) / static_cast<float>(px.size() - 1);
+    }
+    XpeImageBuffer img = WrapFloat32(px);
+
+    XpeVoiLutParams p{};
+    ASSERT_EQ(XPE_OK, xpe_voi_preset_create(&p, XPE_BODY_ABDOMEN));
+    GTEST_LOG_(INFO) << "  preset ABDOMEN: c=" << p.center << " w=" << p.width
+                     << " out=[" << p.minOut << ", " << p.maxOut << "]";
+    ASSERT_EQ(XPE_OK, xpe_apply_voi_lut(&img, &p));
+
+    std::vector<float> levels = px;
+    std::sort(levels.begin(), levels.end());
+    levels.erase(std::unique(levels.begin(), levels.end()), levels.end());
+    GTEST_LOG_(INFO) << "  distinct output levels from a 0..65535 DN ramp: "
+                     << levels.size() << " (measured: HU window 40/400 gives 5)";
+
+    EXPECT_GT(levels.size(), 64u)
+        << "the preset collapsed a full-scale DN ramp to " << levels.size()
+        << " levels -- an HU-domain window is back in the preset table (#177)";
 }
 
 // ---------------------------------------------------------------------------
