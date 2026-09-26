@@ -51,7 +51,7 @@ modules/display/tests\test_modality_lut.cpp
      L240   EXPECT_LE(ms, 20) << "ModalityLUT LINEAR 3072x3072 took " << ms << "ms (limit 20ms)";
 modules/display/tests\test_presentation_lut.cpp
   PresentationLut.Performance_3072x3072   time=1 func=1
-     L251   EXPECT_LE(ms, 30) << "PresentationLUT 3072x3072 took " << ms << "ms (limit 30ms, Release target 
+     L251   EXPECT_LE(ms, 30) << "PresentationLUT 3072x3072 took " << ms << "ms (limit 30ms, Release target
 modules/display/tests\test_voi_lut.cpp
   VoiLut.Performance_3072x3072   time=1 func=1
      L295   EXPECT_LE(ms, 16) << "VoiLUT LINEAR 3072x3072 took " << ms << "ms (limit 16ms)";
