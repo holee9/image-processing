@@ -1,0 +1,17 @@
+# GUI-C-130 (#163) raw tallies, recovered verbatim from the session transcript
+# source: C:/Users/drake/.claude/projects/D--workspace-github-xpe-gui/0d70b202-b0c6-4320-99d2-76bc1de4f5b8.jsonl
+# command (identical in all three arms, only the file content differed):
+#   unset XPE_E2E_BACKEND XPE_NATIVE_DIR; pass=0; fail=0
+#   for i in $(seq 1 20); do R=$(dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj \
+#        -c Debug --no-build -nologo --filter "FullyQualifiedName~ComparisonEntryPointScenarios.W13" \
+#        2>&1 | grep -cE "<failed!>"); if [ "$R" -gt 0 ]; then fail=$((fail+1)); echo "run$i FAIL"; \
+#        else pass=$((pass+1)); fi; done
+
+ARM_A(Expand): 통과 20 / 실패 0 (20회)
+ARM_B(Click): 통과 15 / 실패 5 (20회)
+ARM_A2(Expand 복귀): 통과 20 / 실패 0 (20회)
+
+# ARM_B failing runs: run2 run4 run13 run17 run20
+# arm-B injection confirmed before measuring: "arm B injected" / build errors 0 /
+#   line 224: compare!.AsMenuItem().Click();   // ARM B (#163, GUI-C-130)
+# restore confirmed: grep -c "ARM B" -> 0, build errors 0
