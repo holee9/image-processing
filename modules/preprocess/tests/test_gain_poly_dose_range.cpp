@@ -104,6 +104,24 @@ protected:
         return out;
     }
 
+    /** QA-A-141: a frame that is mostly @p inside with ONE pixel at @p outlier.
+     *  Used as the control for the all-outside wording -- a partial clamp must
+     *  keep the plain count message. */
+    XpeErrorCode correctedMixed(uint16_t inside, uint16_t outlier) {
+        std::vector<uint16_t> in(N, inside);
+        in[0] = outlier;
+        std::vector<float>    out(N, -1.0f);
+        XpeImageBuffer ib{}, ob{};
+        ib.data = in.data(); ib.width = W; ib.height = H;
+        ib.bitsAllocated = 16; ib.bitsStored = 16; ib.format = XPE_PIXEL_UINT16;
+        ib.dataSize = static_cast<uint32_t>(in.size() * sizeof(uint16_t));
+        ob.data = out.data(); ob.width = W; ob.height = H;
+        ob.bitsAllocated = 32; ob.bitsStored = 32; ob.format = XPE_PIXEL_FLOAT32;
+        ob.dataSize = static_cast<uint32_t>(out.size() * sizeof(float));
+        XpeImageMetadata meta{};
+        return xpe_gain_correct(&ib, &ob, &meta);
+    }
+
     /** Run one uniform frame through gain correction; return the output. */
     float correctedValue(uint16_t raw, XpeErrorCode* rc_out = nullptr) {
         std::vector<uint16_t> in(N, raw);
@@ -267,6 +285,47 @@ TEST_F(GainPolyDoseRangeTest, AFrameInsideTheRangeRaisesNoClampAlert) {
 
     EXPECT_FALSE(alertContains("fell outside the gain polynomial"))
         << "no pixel was out of range, so nothing should be reported";
+}
+
+/** QA-A-141 (#194 item 2): every pixel out of range reads differently from a
+ *  few saturated ones, and it is the shape a mis-united calibration makes.
+ *
+ *  The frame here is uniform at 5, far below the ladder's D_min of 14037 -- the
+ *  arrangement a dose ladder fitted in mGy would produce against ADU pixels.
+ *  The assertion is on the WORDING, because that is the whole change: the
+ *  count-only message was already correct and already fired here. What was
+ *  missing was that the reader could not tell "a handful of saturated pixels"
+ *  from "nothing landed in range at all".
+ *
+ *  CONTROL below: a partial clamp must NOT get this wording, or the sentence
+ *  would appear on ordinary frames and say nothing. */
+TEST_F(GainPolyDoseRangeTest, AFrameEntirelyOutOfRangeSaysSo) {
+    const std::string poly = generatePoly("a141_alloutside.xcal", 3);
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+
+    xpe_clear_alerts();
+    (void)correctedValue(5u);  // every pixel below D_min = 14037
+
+    EXPECT_TRUE(alertContains("ALL "))
+        << "the whole frame clamped; the alert did not say so";
+    EXPECT_TRUE(alertContains("pixel values (ADU)"))
+        << "the mis-load hint is what makes this wording worth having";
+}
+
+/** CONTROL for the wording: a frame that is mostly inside the range still gets
+ *  the plain count message, not the all-outside one. Without this the new
+ *  sentence could be printed unconditionally and the test above would pass. */
+TEST_F(GainPolyDoseRangeTest, APartialClampKeepsThePlainWording) {
+    const std::string poly = generatePoly("a141_partial.xcal", 3);
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+
+    xpe_clear_alerts();
+    (void)correctedMixed(20985u, 65535u);  // one pixel out, the rest inside
+
+    EXPECT_TRUE(alertContains("fell outside the gain polynomial"))
+        << "one pixel was out of range, so the count message is expected";
+    EXPECT_FALSE(alertContains("ALL "))
+        << "only one pixel clamped; the all-outside wording must not appear";
 }
 
 /* ---------------------------------------------------------------------------
