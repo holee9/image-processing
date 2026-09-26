@@ -530,11 +530,33 @@ For EI ROI correction (SWU-2.10):
 removed its parse, clamp, default and log line under #162 — the fractional path has nothing
 for it to drive, so it is no longer parsed. The key name stays in `kKnown` so a caller that
 still sends it gets the inert-key warning rather than a misleading "unknown key".)
-Six keys named below — `gaussian_sigma`,
-> `overshoot_limit_enabled`, `canny_threshold_low`, `canny_threshold_high`,
-> `hough_peak_threshold_ratio`, `ei_ref` — appear in **no file under `modules/`**. This block
-> is retained as design intent rather than deleted; a caller that writes it today is configuring
-> nothing. Tracked as an open item; do not cite §6.1 as the current config contract.
+> Six keys named below — `gaussian_sigma`, `overshoot_limit_enabled`, `canny_threshold_low`,
+> `canny_threshold_high`, `hough_peak_threshold_ratio`, `ei_ref` — appear in **no file under
+> `modules/`** (대조군 `edge_gain` 9건으로 검색 유효 확인). A caller that writes them today is
+> configuring nothing. Do not cite §6.1 as the current config contract.
+>
+> **정정 (`#145`, 2026-09-26) — 여섯 개는 한 덩어리가 아니다.** SPEC 요구가 있는지를 기준으로
+> 갈랐다(`.moai/specs/` 검색, 대조군 `REQ-ADV` 9건):
+>
+> | 키 | `.moai/specs/` | 판정 |
+> |---|---|---|
+> | `gaussian_sigma` · `canny_threshold_low` · `canny_threshold_high` · `hough_peak_threshold_ratio` · `ei_ref` | **0건** | **설계 의도로만 남긴다.** 이들을 노출하라는 요구가 없으므로 구현하지 않는다. 문서를 코드에 맞추는 쪽(`#145` 선택지 1) |
+> | **`overshoot_limit_enabled`** | **2건** | **미구현 안전 요구다.** 문서 잡음이 아니다 |
+>
+> `overshoot_limit_enabled` 는 `SPEC-XPE-P2-ADV/acceptance.md:205` 의 **AC-EDGE-005**
+> (`REQ-ADV-051`, SAF-100)가 이름으로 지목한다 — *config JSON 에 `"overshoot_limit_enabled": false`
+> 가 오면 `XPE_ERR_SAFETY_VIOLATION`*. 그런데 `enhance_advanced_helpers.cpp` 의 `forbiddenKeys`
+> 는 `overshoot_limiting` · `overshoot_limit` · `overshoot_factor` · `disable_overshoot_limit` ·
+> `overshoot` 다섯 개뿐이고 **이 이름이 없다.** `nlohmann::json::contains` 는 정확 일치이므로
+> `overshoot_limit` 가 `overshoot_limit_enabled` 를 걸러 주지 않는다 — 즉 **AC 가 지목한 바로 그
+> 키로는 SAF-100 이 발동하지 않고 조용히 통과한다.**
+>
+> 시험도 없다. `tasks.md:82` 의 T-068(`test_overshoot_safety.cpp`)은 `pending` 이고 그 파일은
+> 존재하지 않는다. 요구·구현·시험 셋이 같은 이름에서 동시에 비어 있어서, **어느 하나를 봐도
+> 드러나지 않았다** — 문서 정합성 점검이 아니었으면 계속 안 보였을 자리다.
+>
+> 구현은 post 레인 몫으로 카드를 냈다. 이 표의 첫 행(다섯 개)은 이 문서 쪽 결론이고 더 이상
+> 열린 결정이 아니다.
 
 
 ```json

@@ -1,0 +1,183 @@
+modules/enhance_basic/tests/test_contrast_enhance.cpp:46:    for (int i = 0; i < n; i++) {
+modules/enhance_basic/tests/test_contrast_enhance.cpp:133:    for (uint32_t y = 0; y < H; y++) {
+modules/enhance_basic/tests/test_contrast_enhance.cpp:142:    for (int y = 64; y < 192; y++) {
+modules/enhance_basic/tests/test_contrast_enhance.cpp:158:    for (int y = 64; y < 192; y++) {
+modules/enhance_basic/tests/test_contrast_enhance.cpp:185:    for (uint32_t i = 1; i < W * H; i++) {
+modules/enhance_basic/tests/test_edge_enhance.cpp:119:    for (uint32_t i = 0; i < W * H; i++) px[i] = (float)(i % 256) * 2.5f;
+modules/enhance_basic/tests/test_edge_enhance.cpp:132:    for (uint32_t i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_edge_enhance.cpp:145:    for (uint32_t x = 0; x < W; x++) {
+modules/enhance_basic/tests/test_edge_enhance.cpp:160:    for (uint32_t i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_edge_enhance.cpp:183:    for (uint32_t i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:64:    for (size_t i = 0; i < n; ++i) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:77:    for (size_t i = 0; i < n; ++i) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:105:    for (uint32_t y = 0; y < H; ++y) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:140:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:171:    for (uint32_t y = 0; y < H; ++y) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:186:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:245:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:278:    for (uint32_t y = 0; y < H; ++y) {
+modules/enhance_basic/tests/test_enh01_log_noise.cpp:302:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_basic/tests/test_enhance_integration.cpp:179:    for (int i = 0; i < N; i++) {
+modules/enhance_basic/tests/test_enhance_integration.cpp:217:    for (int i = 0; i < N; i++) {
+modules/enhance_basic/tests/test_enhance_integration.cpp:242:    for (int i = 0; i < ENDURANCE_WARMUP; i++) {
+modules/enhance_basic/tests/test_enhance_integration.cpp:249:    for (int i = 0; i < ENDURANCE_CYCLES; i++) {
+modules/enhance_basic/tests/test_enhance_integration.cpp:309:    for (int i = 0; i < ENDURANCE_WARMUP; i++) one_cycle(i);
+modules/enhance_basic/tests/test_enhance_integration.cpp:313:    for (int i = 0; i < ENDURANCE_CYCLES; i++) one_cycle(i);
+modules/enhance_basic/tests/test_log_transform.cpp:121:    for (int i = 0; i < W * H; i++) px[i] = (float)(i + 1) * 10.0f;
+modules/enhance_basic/tests/test_log_transform.cpp:131:    for (int i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_noise_reduce.cpp:46:    for (int i = 0; i < n; i++) {
+modules/enhance_basic/tests/test_noise_reduce.cpp:83:    for (uint32_t i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_noise_reduce.cpp:97:    for (int i = 0; i < N; i++) {
+modules/enhance_basic/tests/test_noise_reduce.cpp:108:    for (int i = 0; i < N; i++) {
+modules/enhance_basic/tests/test_noise_reduce.cpp:198:    for (uint32_t i = 0; i < W * H; i++) {
+modules/enhance_basic/tests/test_parameter_dependency.cpp:37:    for (uint32_t y = 0; y < kH; ++y) {
+modules/enhance_basic/tests/test_parameter_dependency.cpp:62:    for (size_t i = 0; i < a.size(); ++i) {
+modules/enhance_advanced/tests/test_collimation_detect.cpp:321:    for (int y = 0; y < height; ++y) {
+modules/enhance_advanced/tests/test_collimation_detect.cpp:326:    for (int y = 0; y < 5; ++y) {
+modules/enhance_advanced/tests/test_collimation_detect_ext.cpp:49:    for (uint32_t y = 0; y < h; ++y)
+modules/enhance_advanced/tests/test_collimation_detect_ext.cpp:66:    for (size_t i = 0; i < n; ++i) p[i] = value;
+modules/enhance_advanced/tests/test_collimation_detect_ext.cpp:263:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:73:    for (uint32_t y = 0; y < kH; ++y) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:90:    for (uint32_t y = inset; y + inset < kH; ++y) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:123:    for (size_t i = 0; i < a.size(); ++i) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:166:    for (int i = 0; i < 256; ++i) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:476:    for (int i = 0; i < 256; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:51:    for (size_t i = 0; i < px.size(); ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:71:    for (int i = 0; i < 256; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:93:    for (int i = 0; i < n; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:161:    for (int i = 0; i < 20; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:200:    for (int i = 0; i < 50; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:219:    for (int i = 0; i < 30; ++i) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:228:    for (int i = 0; i < 30; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:187:    for (int i = 0; i < width * height; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:211:    for (int i = 0; i < width * height; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:217:    for (int i = 0; i < width * height; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:367:    for (int y = 0; y < height; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:374:    for (int y = 256; y < height; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:381:    for (int y = 100; y < 200; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:416:    for (int y = 200; y < 300; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:615:    for (int y = 0; y < height; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:721:    for (int y = 0; y < height; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:47:    for (size_t i = 0; i < n; ++i) p[i] = value;
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:62:    for (uint32_t y = 0; y < h; ++y)
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:114:    for (size_t i = 0; i < 32 * 32; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:214:    for (uint32_t y = 1; y < H - 1; ++y) {
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:253:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i)
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:294:    for (size_t i = 0; i < 32 * 32; ++i) {
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:356:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_exposure_index.cpp:356:    for (int y = y0; y <= y1; ++y) {
+modules/enhance_advanced/tests/test_exposure_index_ext.cpp:46:    for (size_t i = 0; i < n; ++i) p[i] = value;
+modules/enhance_advanced/tests/test_integration.cpp:56:    for (int i = 0; i < 512 * 512; ++i) {
+modules/enhance_advanced/tests/test_integration.cpp:177:    for (int y = 0; y < 512; ++y) {
+modules/enhance_advanced/tests/test_integration.cpp:220:    for (int i = 0; i < 512 * 512; ++i) {
+modules/enhance_advanced/tests/test_integration.cpp:266:    for (int y = 0; y < 512; ++y) {
+modules/enhance_advanced/tests/test_integration.cpp:325:    for (int t = 0; t < NUM_THREADS; ++t) {
+modules/enhance_advanced/tests/test_integration.cpp:416:    for (int cycle = 0; cycle < CYCLES; ++cycle) {
+modules/enhance_advanced/tests/test_integration.cpp:621:    for (int i = 0; i < IMG_SIZE * IMG_SIZE; ++i) {
+modules/enhance_advanced/tests/test_integration.cpp:839:    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+modules/enhance_advanced/tests/test_integration.cpp:842:    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+modules/enhance_advanced/tests/test_integration_ext.cpp:44:    for (size_t i = 0; i < n; ++i) p[i] = value;
+modules/enhance_advanced/tests/test_integration_ext.cpp:97:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_integration_ext.cpp:105:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_integration_ext.cpp:208:    for (int i = 0; i < 5; ++i) {
+modules/enhance_advanced/tests/test_integration_ext.cpp:230:    for (int i = 0; i < 20; ++i) {
+modules/enhance_advanced/tests/test_integration_ext.cpp:256:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_lifecycle_ext.cpp:160:    for (size_t i = 0; i < W * H; ++i) data[i] = 500.0f;
+modules/enhance_advanced/tests/test_mfp_scalar.cpp:75:    for (size_t i = 0; i < testData_.size(); ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar.cpp:192:    for (size_t i = 0; i < testData_.size(); ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:48:    for (size_t i = 0; i < n; ++i) p[i] = value;
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:63:    for (uint32_t y = 0; y < h; ++y)
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:80:    for (uint32_t y = 0; y < h; ++y)
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:202:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:229:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:260:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:346:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:372:    for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:387:    for (int i = 0; i < 10; ++i) {
+modules/enhance_advanced/tests/test_parameter_dependency.cpp:32:    for (uint32_t y = 0; y < kH; ++y) {
+modules/enhance_advanced/tests/test_parameter_dependency.cpp:57:    for (size_t i = 0; i < a.size(); ++i) {
+modules/ai/tests/test_ai_abi.cpp:130:    for (int i = 0; i < 10; ++i) {
+modules/ai/tests/test_ai_fallback.cpp:76:    for (int i = 0; i < 10; ++i) {
+modules/ai/tests/test_ai_fallback.cpp:589:    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+modules/ai/tests/test_ai_fallback.cpp:592:    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+modules/ai/tests/test_ai_fallback.cpp:881:    for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+modules/ai/tests/test_ai_worker_isolation.cpp:134:    for (int i = 0; i < 50; ++i) {
+modules/ai/tests/test_ai_worker_isolation.cpp:179:    for (int t = 0; t < kNumThreads; ++t) {
+modules/ai/tests/test_ai_worker_isolation.cpp:209:    for (int t = 0; t < kNumThreads; ++t) {
+modules/ai/tests/test_ai_worker_isolation.cpp:261:    for (int i = 0; i < 20; ++i) {
+modules/ai/tests/test_ai_worker_isolation.cpp:277:    for (int cycle = 0; cycle < 5; ++cycle) {
+modules/ai/tests/test_config_warning.cpp:33:    for (int i = 0; i < 64; ++i) {
+modules/display/tests/test_display_integration.cpp:31:    for (size_t i = 0; i < (size_t)w * h; ++i) px[i] = fill_value;
+modules/display/tests/test_display_integration.cpp:50:    for (int i = 0; i < 1024; ++i) p.lutData[i] = static_cast<uint16_t>(i);
+modules/display/tests/test_display_integration.cpp:341:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_display_integration.cpp:465:    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+modules/display/tests/test_display_integration.cpp:468:    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+modules/display/tests/test_display_integration.cpp:513:    for (size_t i = 0; i < count; ++i) px[i] = 0.5f;
+modules/display/tests/test_display_integration.cpp:537:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_gsdf_characterization.cpp:90:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_gsdf_characterization.cpp:112:    for (int i = 1; i < 1024; ++i) {
+modules/display/tests/test_gsdf_characterization.cpp:136:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_modality_lut.cpp:29:    for (size_t i = 0; i < (size_t)w * h; ++i) px[i] = fill_value;
+modules/display/tests/test_parameter_dependency.cpp:42:    for (size_t i = 0; i < kN; ++i) {
+modules/display/tests/test_parameter_dependency.cpp:63:    for (size_t i = 0; i < a.size() && i < b.size(); ++i) {
+modules/display/tests/test_parameter_dependency.cpp:308:    for (size_t i = 0; i < kN; ++i) if (rising[i] != falling[i]) ++differing;
+modules/display/tests/test_parameter_dependency.cpp:337:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_presentation_lut.cpp:32:    for (size_t i = 0; i < (size_t)w * h; ++i) px[i] = fill_value;
+modules/display/tests/test_presentation_lut.cpp:44:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_presentation_lut.cpp:52:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_presentation_lut.cpp:100:    for (int i = 1; i < 1024; ++i) params.lutData[i] = 0;
+modules/display/tests/test_presentation_lut.cpp:191:    for (int i = 0; i < 10; ++i) lum[i] = 1.0f + i * 10.0f; // 1..91 cd/m^2
+modules/display/tests/test_presentation_lut.cpp:199:    for (int i = 1; i < 1024; ++i) {
+modules/display/tests/test_presentation_lut.cpp:277:    for (uint32_t i = 0; i < 16u * 16u; ++i) {
+modules/display/tests/test_presentation_lut.cpp:282:    for (int i = 0; i < 1024; ++i) {
+modules/display/tests/test_presentation_lut.cpp:348:    for (; desc->Name != 0; ++desc) {
+modules/display/tests/test_voi_lut.cpp:29:    for (size_t i = 0; i < (size_t)w * h; ++i) px[i] = fill_value;
+modules/dicom/tests/mock_scp.cpp:79:    while (!ok && std::chrono::steady_clock::now() < deadline) {
+modules/dicom/tests/mock_scp.cpp:207:    while (m_running && std::chrono::steady_clock::now() < deadline) {
+modules/dicom/tests/mock_scp.cpp:229:    for (int i = 0; i < count; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:69:    for (uint32_t i = 0; i < img.width * img.height; ++i) px[i] = static_cast<uint16_t>(i & 0xFFFF);
+modules/dicom/tests/test_dicom_reader.cpp:330:    for (size_t i = 0; i + 3 < buf.size(); ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:341:    for (size_t k = 0; k < count; ++k) {
+modules/dicom/tests/test_dicom_reader.cpp:669:    for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:722:    while (i + 4 <= b.size()) {
+modules/dicom/tests/test_dicom_reader.cpp:912:    for (int predictor = 1; predictor <= 7; ++predictor) {
+modules/dicom/tests/test_dicom_reader.cpp:966:    for (int t = 0; t < kThreads; ++t) {
+modules/dicom/tests/test_dicom_reader.cpp:1223:    for (int i = 0; i < kWarmup; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:1231:    for (int i = 0; i < kCycles; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:1452:    for (size_t i = 0; i < n; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:1506:    for (uint32_t k = 0; k < img.width * img.height; ++k) {
+modules/dicom/tests/test_dicom_reader.cpp:2093:    for (size_t i = 0; i < static_cast<size_t>(img.width) * img.height; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:2233:    for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
+modules/dicom/tests/test_dicom_reader.cpp:2695:    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14SV1, p });
+modules/dicom/tests/test_dicom_reader.cpp:2696:    for (int p = 1; p <= 7; ++p) rows.push_back({ nullptr, EXS_JPEGProcess14,    p });
+modules/dicom/tests/test_dicom_validator.cpp:477:    for (size_t i = 0; i < sizeof(guarded); ++i) {
+modules/dicom/tests/test_dicom_validator.cpp:494:    for (size_t i = 2; i < sizeof(guarded); ++i) {
+modules/dicom/tests/test_dicom_writer.cpp:73:    for (uint32_t i = 0; i < m_img.width * m_img.height && pixelExact; ++i)
+modules/dicom/tests/test_dicom_writer.cpp:144:    for (uint32_t i = 0; i < m_img.width * m_img.height && pixelExact; ++i)
+modules/dicom/tests/test_dicom_writer.cpp:276:    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+modules/dicom/tests/test_dicom_writer.cpp:279:    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+modules/dicom/tests/test_parameter_dependency.cpp:55:    for (uint32_t i = 0; i < kW * kH; ++i) {
+modules/gsvg/tests/test_config_warning.cpp:34:    for (int i = 0; i < 64; ++i) {
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:57:    for (int y = 0; y < kAbiHeight; ++y) {
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:80:    for (int y = 0; y < kAbiHeight; ++y) {
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:171:    for (size_t i = 0; i < kAbiCount; i += kSampleStride) {
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:219:    for (int i = 0; i < kCycles; ++i) {
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:372:    for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
+modules/gsvg/tests/test_gsvg_abi_smoke.cpp:375:    for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
+modules/gsvg/tests/test_gsvg_benchmark.cpp:14:    for (int i = 0; i < kIterations; ++i) {
+modules/gsvg/tests/test_gsvg_coverage.cpp:18:    for (int y = 0; y < kHeight; ++y) {
+modules/gsvg/tests/test_gsvg_coverage.cpp:31:    for (int x = 0; x < kWidth; ++x) {
+modules/gsvg/tests/test_gsvg_degraded.cpp:42:    for (int y = 0; y < kHeight; ++y) {
+modules/gsvg/tests/test_gsvg_degraded.cpp:80:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_gsvg_degraded.cpp:115:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_gsvg_degraded.cpp:153:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_gsvg_degraded.cpp:215:    for (int i = 0; i < 3; ++i) {
+modules/gsvg/tests/test_gsvg_edge_cases.cpp:18:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_gsvg_extended_coverage.cpp:18:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_gsvg_extended_coverage.cpp:42:    for (int i = 0; i < kCount; ++i) {
+modules/gsvg/tests/test_parameter_dependency.cpp:46:    for (int y = 0; y < kH; ++y) {
+modules/gsvg/tests/test_parameter_dependency.cpp:58:    for (size_t i = 0; i < kN; ++i) {
+modules/gsvg/tests/test_parameter_dependency.cpp:66:    for (size_t i = 0; i < a.size(); ++i) if (a[i] != b[i]) ++n;
+modules/gsvg/tests/test_parameter_dependency.cpp:99:    for (int y = 0; y < kH; ++y) {
+tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp:54:    for (int64_t i = 0; i < n; ++i) {
+tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp:122:    for (uint32_t i = 0; i < 1024; ++i) {

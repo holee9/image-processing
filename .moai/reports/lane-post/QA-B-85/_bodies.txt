@@ -1,0 +1,456 @@
+
+##### ContrastEnhance.Performance_3072x3072_Within50ms  (modules/enhance_basic/tests/test_contrast_enhance.cpp:192)
+191: // REQ-ENH-017: Performance <= 50ms for 3072x3072
+192: TEST(ContrastEnhance, Performance_3072x3072_Within50ms) {
+194:     XpeClaheParams params{};
+195:     params.clip_limit = 3.0f;
+196:     params.tile_width = 8;
+197:     params.tile_height = 8;
+199:     auto t0 = std::chrono::high_resolution_clock::now();
+200:     ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params));
+201:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+202:         std::chrono::high_resolution_clock::now() - t0).count();
+203:     EXPECT_LE(ms, 50) << "CLAHE 3072x3072 took " << ms << "ms, budget 50ms";
+
+##### EdgeEnhance.Performance_3072x3072_Within20ms  (modules/enhance_basic/tests/test_edge_enhance.cpp:190)
+189: // REQ-ENH-022: Performance <= 20ms for 3072x3072
+190: TEST(EdgeEnhance, Performance_3072x3072_Within20ms) {
+192:     XpeUsmParams params{};
+193:     params.amount = 0.5f;
+194:     params.radius = 2.0f;
+195:     params.threshold = 10.0f;
+197:     auto t0 = std::chrono::high_resolution_clock::now();
+198:     ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &params));
+199:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+200:         std::chrono::high_resolution_clock::now() - t0).count();
+201:     EXPECT_LE(ms, 20) << "USM 3072x3072 took " << ms << "ms, budget 20ms";
+
+##### Enh01LogNoise.Bilateral_OnNoisyImage_SNRImprovement_Above_6dB  (modules/enhance_basic/tests/test_enh01_log_noise.cpp:158)
+159:     constexpr uint32_t W = 256;
+160:     constexpr uint32_t H = 256;
+161:     constexpr float    SIGMA = 15.0f;
+168:     // Smooth signal: low-frequency gradient plus a broad bright region.
+171:     for (uint32_t y = 0; y < H; ++y) {
+172:         for (uint32_t x = 0; x < W; ++x) {
+186:     for (size_t i = 0; i < static_cast<size_t>(W) * H; ++i) {
+192:     XpeNoiseReduceParams p{};
+200:     auto t0 = std::chrono::high_resolution_clock::now();
+202:     auto t1 = std::chrono::high_resolution_clock::now();
+203:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+208:     EXPECT_GT(gain_db, 6.0) << "SNR before=" << snr_before
+211:                             << " dB, elapsed=" << ms << " ms)";
+
+##### EnhanceIntegration.FullPipeline_3072x3072_Within200ms  (modules/enhance_basic/tests/test_enhance_integration.cpp:106)
+105: // AC-09 / REQ-ENH-CC-005: Full pipeline 3072x3072 within 200ms
+106: TEST(EnhanceIntegration, FullPipeline_3072x3072_Within200ms) {
+114:     // Prepare params
+115:     XpeNoiseReduceParams nr_params{};
+116:     nr_params.mode = XPE_NOISE_BILATERAL;
+117:     nr_params.sigma_space = 3.0f;
+118:     nr_params.sigma_range = 50.0f;
+120:     XpeClaheParams clahe_params{};
+121:     clahe_params.clip_limit = 3.0f;
+122:     clahe_params.tile_width = 8;
+123:     clahe_params.tile_height = 8;
+125:     XpeUsmParams usm_params{};
+126:     usm_params.amount = 0.5f;
+127:     usm_params.radius = 2.0f;
+128:     usm_params.threshold = 10.0f;
+130:     auto t0 = std::chrono::high_resolution_clock::now();
+135:     ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &nr_params));
+136:     ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &clahe_params));
+137:     ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &usm_params));
+139:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+140:         std::chrono::high_resolution_clock::now() - t0).count();
+141:     EXPECT_LE(ms, 200) << "Full pipeline took " << ms << "ms, budget 200ms";
+
+##### ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline  (modules/enhance_basic/tests/test_exposure_index.cpp:247)
+248:     constexpr int kWidth = 512;
+249:     constexpr int kHeight = 512;
+250:     constexpr auto kMaxMs = 25;
+257:     auto start = std::chrono::steady_clock::now();
+259:     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+260:         std::chrono::steady_clock::now() - start);
+264:     EXPECT_LT(elapsed.count(), kMaxMs)
+267:     RecordProperty("baseline_ms_max", kMaxMs);
+
+##### ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline  (modules/enhance_basic/tests/test_exposure_index.cpp:272)
+273:     constexpr int kWidth = 512;
+274:     constexpr int kHeight = 512;
+275:     constexpr auto kMaxMs = 25;
+276:     constexpr float kMean = 3000.0f;
+284:     auto start = std::chrono::steady_clock::now();
+286:     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+287:         std::chrono::steady_clock::now() - start);
+293:     EXPECT_GT(std::fabs(outDI), 3.0f);
+294:     EXPECT_LT(elapsed.count(), kMaxMs)
+297:     RecordProperty("baseline_ms_max", kMaxMs);
+
+##### LogTransform.Performance_3072x3072_Within15ms  (modules/enhance_basic/tests/test_log_transform.cpp:141)
+140: // REQ-ENH-006: Performance <= 15ms for 3072x3072 float32
+141: TEST(LogTransform, Performance_3072x3072_Within15ms) {
+143:     auto start = std::chrono::high_resolution_clock::now();
+145:     auto end = std::chrono::high_resolution_clock::now();
+146:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+147:     EXPECT_LE(ms, 15) << "xpe_log_transform took " << ms << "ms, budget is 15ms";
+
+##### LogTransform.InversePerformance_3072x3072_Within15ms  (modules/enhance_basic/tests/test_log_transform.cpp:152)
+151: // REQ-ENH-006: Inverse performance <= 15ms for 3072x3072 float32
+152: TEST(LogTransform, InversePerformance_3072x3072_Within15ms) {
+154:     auto start = std::chrono::high_resolution_clock::now();
+156:     auto end = std::chrono::high_resolution_clock::now();
+157:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+158:     EXPECT_LE(ms, 15) << "xpe_log_inverse took " << ms << "ms, budget is 15ms";
+
+##### NoiseReduce.Performance_Bilateral_Small_Within100ms  (modules/enhance_basic/tests/test_noise_reduce.cpp:223)
+222: // REQ-ENH-012: Performance <= 100ms for 512x512 bilateral (smaller for test speed)
+223: TEST(NoiseReduce, Performance_Bilateral_Small_Within100ms) {
+225:     XpeNoiseReduceParams params{};
+226:     params.mode = XPE_NOISE_BILATERAL;
+227:     params.sigma_space = 3.0f;
+228:     params.sigma_range = 50.0f;
+230:     auto t0 = std::chrono::high_resolution_clock::now();
+231:     ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &params));
+232:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+233:         std::chrono::high_resolution_clock::now() - t0).count();
+234:     EXPECT_LE(ms, 100) << "Bilateral 512x512 took " << ms << "ms, budget 100ms";
+
+##### CollimationDetectTest.LargeImagePerformance  (modules/enhance_advanced/tests/test_collimation_detect.cpp:377)
+379:     const int width = 2048;
+380:     const int height = 2048;
+384:         width, height, 100, 100, 1900, 1900, 800.0f);
+389:     auto start = std::chrono::high_resolution_clock::now();
+391:     auto end = std::chrono::high_resolution_clock::now();
+396:     // REQ-ADV-062: Performance budget < 500ms for 3072x3072
+398:     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+399:     EXPECT_LT(duration.count(), 500) << "Collimation detection exceeds 500ms for 2048x2048 image";
+
+##### CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline  (modules/enhance_advanced/tests/test_collimation_detect.cpp:408)
+409:     constexpr int kWidth = 512;
+410:     constexpr int kHeight = 512;
+411:     constexpr auto kMaxMs = 500;
+421:     auto start = std::chrono::steady_clock::now();
+423:     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+424:         std::chrono::steady_clock::now() - start);
+431:     EXPECT_LT(elapsed.count(), kMaxMs)
+434:     RecordProperty("baseline_ms_max", kMaxMs);
+
+##### EdgeEnhancementTest.T308_PerformanceBudget  (modules/enhance_advanced/tests/test_edge_enhancement.cpp:610)
+605:  * Test that fractional-order edge enhancement meets performance budget.
+607:  * REQ-ADV-061: Edge Enhancement Performance Budget
+608:  * Target: < 400ms for 3072x3072 FLOAT32 frame (scalar)
+610: TEST_F(EdgeEnhancementTest, T308_PerformanceBudget) {
+612:     int width = 1024;  // Smaller than full 3072 for faster test
+613:     int height = 1024;
+614:     XpeImageBuffer img = createFloatImage(width, height, 0.5f);
+618:     for (int y = 0; y < height; ++y) {
+619:         for (int x = width / 2; x < width; ++x) {
+620:             data[y * width + x] = 1.0f;
+625:     auto startTime = std::chrono::high_resolution_clock::now();
+629:     auto endTime = std::chrono::high_resolution_clock::now();
+630:     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+635:     // Performance budget for 1024x1024 (scaled down from 3072x3072 budget)
+636:     // Original budget: 400ms for 3072x3072
+637:     // Scaled budget: 400ms * (1024/3072)^2 ≈ 44ms
+638:     // Use generous threshold for test environment variability
+639:     EXPECT_LT(duration.count(), 100)
+640:         << "Performance test exceeded budget: " << duration.count() << "ms";
+642:     std::cout << "Performance: " << duration.count() << "ms for "
+643:               << width << "x" << height << " image\n";
+
+##### EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalMeasure3072  (modules/enhance_advanced/tests/test_edge_enhancement.cpp:771)
+751:  * #179 (QA-B-84): REQ-ADV-061 measurement on the CI runner -- no time assertion
+755:  * REQ-ADV-061 budgets xpe_fractional_process at 3072x3072 FLOAT32 (400 ms
+756:  * scalar / 120 ms AVX2), and no CI job measured it: T308 is a 1024x1024 proxy
+757:  * and ci.yml excludes it as a wall-clock case (QA-B-83).
+760:  * on CI before (810 ms local vs 1340 ms CI), so the threshold is to be set
+764:  * selects it, and deliberately avoids "Performance" / "Within...ms", which
+767:  * Same order (1.2) and step-edge shape as T308, at full size. One warm-up call,
+768:  * then kRuns timed calls on a fresh copy of the input each time (the call is
+772:     constexpr int kSize = 3072;
+773:     constexpr int kRuns = 7;
+774:     const size_t n = static_cast<size_t>(kSize) * kSize;
+777:     for (int y = 0; y < kSize; ++y) {
+778:         for (int x = kSize / 2; x < kSize; ++x) {
+779:             pristine[static_cast<size_t>(y) * kSize + x] = 1.0f;
+783:     XpeImageBuffer img = createFloatImage(kSize, kSize);
+788:         const auto t0 = std::chrono::steady_clock::now();
+790:         const auto t1 = std::chrono::steady_clock::now();
+792:         return std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+795:     runOnce();  // warm-up, not recorded
+797:     std::vector<long long> us;
+798:     for (int i = 0; i < kRuns; ++i) {
+799:         us.push_back(runOnce());
+803:     std::sort(us.begin(), us.end());
+804:     std::printf("ADV061 fractional 3072x3072 min=%lld med=%lld max=%lld us (runs=%d, order=1.2)\n",
+805:                 us.front(), us[us.size() / 2], us.back(), kRuns);
+806:     RecordProperty("ADV061_min_us", std::to_string(us.front()));
+807:     RecordProperty("ADV061_med_us", std::to_string(us[us.size() / 2]));
+808:     RecordProperty("ADV061_max_us", std::to_string(us.back()));
+
+##### ExposureIndexTest.T508_PerformanceBudget  (modules/enhance_advanced/tests/test_exposure_index.cpp:533)
+528:  * Test that EI calculation meets performance budget.
+530:  * REQ-ADV-062: Total pipeline performance budget
+531:  * Target: < 50ms for EI calculation (scalar)
+533: TEST_F(ExposureIndexTest, T508_PerformanceBudget) {
+535:     int width = 2048;  // Close to full 3072x3072
+536:     int height = 2048;
+537:     XpeImageBuffer img = createFloatImage(width, height, 1.0f);
+545:     auto startTime = std::chrono::high_resolution_clock::now();
+549:     auto endTime = std::chrono::high_resolution_clock::now();
+550:     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+555:     // Performance budget for 2048x2048 (scaled from 3072x3072 budget)
+556:     // Original budget: 50ms for 3072x3072
+557:     // Scaled budget: 50ms * (2048/3072)^2 ≈ 22ms
+558:     // Use generous threshold for test environment variability
+559:     EXPECT_LT(duration.count(), 100)
+560:         << "Performance test exceeded budget: " << duration.count() << "ms";
+562:     std::cout << "EI Calculation Performance: " << duration.count() << "ms for "
+563:               << width << "x" << height << " image\n";
+
+##### IntegrationTest.T602_DiagnosticLogging  (modules/enhance_advanced/tests/test_integration.cpp:113)
+99:  * T-602: Diagnostic Logging Verification (REQ-ADV-091)
+107:  * - REQ-ADV-091: Per-stage execution time and parameters logged
+108:  * - Log format: {"stage":"MFP","levels":4,"time_ms":450,"body_part":"CHEST"}
+118:     XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
+119:     img.width = 512;
+120:     img.height = 512;
+123:     img.dataSize = static_cast<size_t>(512) * (512) * 4;
+124:     std::memset(img.data, 0, 512 * 512 * sizeof(float));
+127:     std::memset(&meta, 0, sizeof(meta));
+134:     auto start = high_resolution_clock::now();
+136:     auto end = high_resolution_clock::now();
+142:     EXPECT_GT(duration, 0);  // Some time elapsed
+
+##### IntegrationTest.T603_FullPipelineIntegration  (modules/enhance_advanced/tests/test_integration.cpp:163)
+158:  * - Total time < 2500ms for 3072x3072 (relaxed to 500ms for 512x512 test)
+168:     XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
+169:     img.width = 512;
+170:     img.height = 512;
+173:     img.dataSize = static_cast<size_t>(512) * (512) * 4;
+177:     for (int y = 0; y < 512; ++y) {
+178:         for (int x = 0; x < 512; ++x) {
+187:     std::memset(&meta, 0, sizeof(meta));
+193:     auto pipelineStart = high_resolution_clock::now();
+213:     auto pipelineEnd = high_resolution_clock::now();
+220:     for (int i = 0; i < 512 * 512; ++i) {
+229:     EXPECT_GE(x0, 0);
+230:     EXPECT_GE(y0, 0);
+231:     EXPECT_LT(x1, 512);
+232:     EXPECT_LT(y1, 512);
+233:     EXPECT_LE(x0, x1);
+234:     EXPECT_LE(y0, y1);
+239:     EXPECT_GT(ei, 0.0f) << "EI should be positive: " << ei;
+241:     // The time budget lives in T603b_FullPipeline_PerformanceBudget below (#120).
+
+##### IntegrationTest.T603b_FullPipeline_PerformanceBudget  (modules/enhance_advanced/tests/test_integration.cpp:255)
+251:  * T603b: time budget for the same pipeline, separated from the functional case.
+252:  * Full spec: < 2500ms for 3072x3072; test target < 500ms for 512x512
+255: TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
+258:     XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
+259:     img.width = 512;
+260:     img.height = 512;
+263:     img.dataSize = static_cast<size_t>(512) * (512) * 4;
+266:     for (int y = 0; y < 512; ++y) {
+267:         for (int x = 0; x < 512; ++x) {
+276:     std::memset(&meta, 0, sizeof(meta));
+281:     auto pipelineStart = high_resolution_clock::now();
+290:     auto pipelineEnd = high_resolution_clock::now();
+293:     EXPECT_LT(totalDuration, 500) << "Pipeline exceeded time budget: " << totalDuration << "ms";
+
+##### IntegrationTest.T608_PerformanceBudgetVerification  (modules/enhance_advanced/tests/test_integration.cpp:605)
+588:  * T-608: Performance Budget Verification (AC-PIPE-001)
+592:  * @test T-608_PerformanceBudgetVerification
+593:  * @brief Verify each function meets performance budget
+597:  * - MFP: < 800ms (scalar), < 250ms (AVX2) for 3072x3072
+598:  * - Fractional: < 400ms (scalar), < 120ms (AVX2) for 3072x3072
+599:  * - Collimation: < 500ms (scalar), < 200ms (AVX2) for 3072x3072
+600:  * - EI: < 50ms (scalar), < 20ms (AVX2) for 3072x3072
+603:  * Budget is scaled proportionally.
+605: TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
+612:     XpeImageBuffer img{};  // value-initialised: an indeterminate dataSize is UB (#123)
+613:     img.width = IMG_SIZE;
+614:     img.height = IMG_SIZE;
+617:     img.dataSize = static_cast<size_t>(IMG_SIZE) * (IMG_SIZE) * 4;
+621:     for (int i = 0; i < IMG_SIZE * IMG_SIZE; ++i) {
+626:     std::memset(&meta, 0, sizeof(meta));
+630:     // Budget: < 800ms for 3072x3072 -> ~22ms for 512x512
+631:     auto start = high_resolution_clock::now();
+633:     auto end = high_resolution_clock::now();
+636:     EXPECT_LT(mfpTime, 100) << "MFP exceeded budget: " << mfpTime << "ms";
+639:     std::memset(data, 0, IMG_SIZE * IMG_SIZE * sizeof(float));
+642:     // Budget: < 400ms for 3072x3072 -> ~11ms for 512x512
+643:     start = high_resolution_clock::now();
+645:     end = high_resolution_clock::now();
+648:     EXPECT_LT(fracTime, 50) << "Fractional exceeded budget: " << fracTime << "ms";
+651:     // Budget: < 500ms for 3072x3072 -> ~14ms for 512x512
+652:     start = high_resolution_clock::now();
+655:     end = high_resolution_clock::now();
+658:     EXPECT_LT(collTime, 50) << "Collimation exceeded budget: " << collTime << "ms";
+661:     // Budget: < 50ms for 3072x3072 -> ~1.4ms for 512x512
+662:     start = high_resolution_clock::now();
+665:     end = high_resolution_clock::now();
+668:     EXPECT_LT(eiTime, 10000) << "EI exceeded budget: " << eiTime << "us";
+
+##### ModalityLut.Performance_3072x3072_Linear  (modules/display/tests/test_modality_lut.cpp:226)
+223: // REQ-DISP-008: Performance test (<= 20ms for 3072x3072)
+227:     // REQ-DISP-008: LINEAR mode <= 20ms for 3072x3072
+229:     XpeModalityLutParams params{};
+230:     params.mode             = XPE_MODALITY_LUT_LINEAR;
+231:     params.rescaleSlope     = 1.0f;
+232:     params.rescaleIntercept = -1024.0f;
+234:     auto t0 = std::chrono::high_resolution_clock::now();
+235:     XpeErrorCode rc = xpe_apply_modality_lut(&img, &params);
+236:     auto t1 = std::chrono::high_resolution_clock::now();
+237:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+240:     EXPECT_LE(ms, 20) << "ModalityLUT LINEAR 3072x3072 took " << ms << "ms (limit 20ms)";
+
+##### PresentationLut.Performance_3072x3072  (modules/display/tests/test_presentation_lut.cpp:240)
+237: // REQ-DISP-025: Performance test (<= 25ms for 3072x3072)
+241:     // REQ-DISP-025: presentation LUT <= 25ms for 3072x3072
+243:     XpePresentationLutParams params{};
+244:     make_identity_lut(params);
+246:     auto t0 = std::chrono::high_resolution_clock::now();
+247:     XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+248:     auto t1 = std::chrono::high_resolution_clock::now();
+249:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+252:     EXPECT_LE(ms, 30) << "PresentationLUT 3072x3072 took " << ms << "ms (limit 30ms, Release target 25ms per REQ-DISP-028)";
+
+##### VoiLut.Performance_3072x3072  (modules/display/tests/test_voi_lut.cpp:336)
+333: // REQ-DISP-016: Performance test (<= 16ms for 3072x3072)
+337:     // REQ-DISP-016: LINEAR windowing <= 16ms for 3072x3072
+339:     XpeVoiLutParams params{};
+340:     params.mode   = XPE_VOI_LINEAR;
+341:     params.center = 500.0f;
+342:     params.width  = 1000.0f;
+343:     params.minOut = 0.0f;
+344:     params.maxOut = 255.0f;
+346:     auto t0 = std::chrono::high_resolution_clock::now();
+347:     XpeErrorCode rc = xpe_apply_voi_lut(&img, &params);
+348:     auto t1 = std::chrono::high_resolution_clock::now();
+349:     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+352:     EXPECT_LE(ms, 16) << "VoiLUT LINEAR 3072x3072 took " << ms << "ms (limit 16ms)";
+
+##### DicomNetworkTest.CancelCStore_TerminatesOperation  (modules/dicom/tests/test_dicom_network_scu.cpp:177)
+177: TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
+188:     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+##### GsvgAbiSmoke.Lifecycle3072_PassThroughIsByteEqual  (modules/gsvg/tests/test_gsvg_abi_smoke.cpp:100)
+97: // Confirms the DLL accepts a clinically sized frame and the pass-through
+109:     const auto start = std::chrono::steady_clock::now();
+111:     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+112:         std::chrono::steady_clock::now() - start);
+113:     (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
+
+##### GsvgAbiSmoke.Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact  (modules/gsvg/tests/test_gsvg_abi_smoke.cpp:132)
+130: // range, and the source buffer is unchanged (REQ-GSVG-022).
+146:     const auto start = std::chrono::steady_clock::now();
+148:     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+149:         std::chrono::steady_clock::now() - start);
+150:     (void)elapsed;  // budget asserted in Lifecycle3072_PerformanceBudget (#120)
+154:     // REQ-GSVG-022: the source buffer is never mutated when src != dst.
+160:     // REQ-GSVG-026: every output pixel must stay inside the uint16 range.
+169:     constexpr int kSampleStride = 137;  // Co-prime with the row pattern.
+171:     for (size_t i = 0; i < kAbiCount; i += kSampleStride) {
+178:     EXPECT_GT(sampled, 0);
+
+##### GsvgAbiSmoke.Lifecycle3072_PerformanceBudget  (modules/gsvg/tests/test_gsvg_abi_smoke.cpp:258)
+254: // Time budget for both 3072x3072 lifecycle paths, separated from the functional
+258: TEST(GsvgAbiSmoke, Lifecycle3072_PerformanceBudget)
+266:         const auto start = std::chrono::steady_clock::now();
+269:         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+270:             std::chrono::steady_clock::now() - start);
+271:         EXPECT_LT(elapsed.count(), kAbiMaxMs)
+272:             << "ABI smoke pass-through exceeded " << kAbiMaxMs << " ms ceiling.";
+283:         const auto start = std::chrono::steady_clock::now();
+286:         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+287:             std::chrono::steady_clock::now() - start);
+288:         EXPECT_LT(elapsed.count(), kAbiMaxMs)
+289:             << "ABI smoke vignette+grid exceeded " << kAbiMaxMs << " ms ceiling.";
+
+##### BenchmarkFreeze.BP06_GsvgVersionProbeBaseline  (modules/gsvg/tests/test_gsvg_benchmark.cpp:7)
+9:     constexpr auto kIterations = 1024;
+10:     constexpr auto kMaxTotalUs = 5000;
+13:     auto start = std::chrono::steady_clock::now();
+14:     for (int i = 0; i < kIterations; ++i) {
+17:     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+18:         std::chrono::steady_clock::now() - start);
+22:     EXPECT_LT(elapsed.count(), kMaxTotalUs)
+25:     RecordProperty("baseline_total_us_max", kMaxTotalUs);
+26:     RecordProperty("iterations", kIterations);
+
+##### GsvgDegradedMode.BP07_NullVignetteMap_IdentityOutput  (modules/gsvg/tests/test_gsvg_degraded.cpp:59)
+68:     const auto start = std::chrono::steady_clock::now();
+70:     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+71:         std::chrono::steady_clock::now() - start);
+72:     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+80:     for (int i = 0; i < kCount; ++i) {
+87:     RecordProperty("max_ms", kMaxMs);
+
+##### GsvgDegradedMode.BP08_AllOnesVignetteMap_OutputEqualsInput  (modules/gsvg/tests/test_gsvg_degraded.cpp:95)
+105:     const auto start = std::chrono::steady_clock::now();
+107:     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+108:         std::chrono::steady_clock::now() - start);
+109:     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+115:     for (int i = 0; i < kCount; ++i) {
+116:         EXPECT_LE(dst[i], 65535);
+124:     RecordProperty("max_ms", kMaxMs);
+
+##### GsvgDegradedMode.BP09_GridDisabled_VignetteOnly  (modules/gsvg/tests/test_gsvg_degraded.cpp:133)
+143:     const auto start = std::chrono::steady_clock::now();
+145:     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+146:         std::chrono::steady_clock::now() - start);
+147:     (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+153:     for (int i = 0; i < kCount; ++i) {
+162:     RecordProperty("max_ms", kMaxMs);
+
+##### GsvgDegradedMode.DegradedMode_PerformanceBudget  (modules/gsvg/tests/test_gsvg_degraded.cpp:206)
+201: // Time budget for the three degraded-mode paths, separated from the functional
+203: // only in the vignette gain map (absent / all-ones / all-twos), so the arms
+204: // below vary exactly that — no timing coverage is lost by the split.
+206: TEST(GsvgDegradedMode, DegradedMode_PerformanceBudget)
+215:     for (int i = 0; i < 3; ++i) {
+223:         const auto start = std::chrono::steady_clock::now();
+226:         const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+227:             std::chrono::steady_clock::now() - start);
+229:         EXPECT_LT(elapsed.count(), kMaxMs)
+230:             << labels[i] << " exceeded " << kMaxMs << " ms wall clock budget.";
+
+##### FullPipelineE2E.PostProcess_3072x3072_Within3000ms  (tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp:270)
+270: TEST(FullPipelineE2E, PostProcess_3072x3072_Within3000ms) {
+271:     constexpr uint32_t kWidth = 3072;
+272:     constexpr uint32_t kHeight = 3072;
+273:     int64_t total_ms = 0;
+275:     XpeErrorCode err = run_pipeline(kWidth, kHeight, total_ms);
+278:     std::cout << "[ E2E ] Full post-processing pipeline (E2E) took " << total_ms
+279:               << "ms for " << kWidth << "x" << kHeight
+280:               << " image (budget: 3000ms)" << std::endl;
+282:     EXPECT_LE(total_ms, 3000)
+283:         << "Full post-processing pipeline (E2E) took " << total_ms
+284:         << "ms for " << kWidth << "x" << kHeight
+285:         << " image (budget: 3000ms)";
+
+##### FullPipelineE2E.PostProcess_512x512_Within200ms  (tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp:288)
+288: TEST(FullPipelineE2E, PostProcess_512x512_Within200ms) {
+289:     constexpr uint32_t kWidth = 512;
+290:     constexpr uint32_t kHeight = 512;
+291:     int64_t total_ms = 0;
+293:     XpeErrorCode err = run_pipeline(kWidth, kHeight, total_ms);
+296:     std::cout << "[ E2E ] Full pipeline (512x512) took " << total_ms
+297:               << "ms (budget: 200ms)" << std::endl;
+299:     EXPECT_LE(total_ms, 200)
+300:         << "Full pipeline (512x512) took " << total_ms << "ms (budget: 200ms)";
+
+##### FullPipelineE2E.PostProcess_3072x3072_PeakMemory190MB  (tests/e2e_post_pipeline/test_e2e_full_pipeline.cpp:309)
+304:  * Gate G1b→G2: Peak working-set memory budget (Windows only)
+306:  * Budget: <= 190 MB peak working set during 3072×3072 Phase 1 pipeline.
+314:     SetProcessWorkingSetSizeEx(GetCurrentProcess(),
+318:     constexpr uint32_t kWidth = 3072;
+319:     constexpr uint32_t kHeight = 3072;
+320:     constexpr size_t kBudgetMB = 190;
+321:     int64_t total_ms = 0;
+323:     XpeErrorCode err = run_pipeline(kWidth, kHeight, total_ms);
+331:     const size_t peak_mb = pmc.PeakWorkingSetSize / (1024u * 1024u);
+334:               << " MB (budget: " << kBudgetMB << " MB)" << std::endl;
+336:     EXPECT_LE(peak_mb, kBudgetMB)
+337:         << "Peak working set " << peak_mb << " MB exceeds " << kBudgetMB << " MB budget";

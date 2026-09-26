@@ -1,0 +1,9 @@
+### test_display_voi_lut : 빨강 0
+### test_display_integration : 빨강 2
+[  FAILED  ] DisplayIntegration.FullPipeline_LinearModality_LinearVoi_PresLut
+### test_display_parameter_dependency : 빨강 2
+[  FAILED  ] ParameterDependency.KnownDivergence_VoiLinearExactEqualsVoiLinear
+### test_display_datasize_overread : 빨강 0
+### test_display_modality_lut : 빨강 0
+### test_display_presentation_lut : 빨강 0
+### test_display_gsdf_characterization : 빨강 0

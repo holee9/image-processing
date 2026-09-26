@@ -304,7 +304,26 @@ bool parse_fractional_config(const char* json,
         // SAF-100 (REQ-ADV-051): Reject any attempt to configure overshoot limiting.
         // These keys are forbidden because overshoot limiting is mandatory and
         // non-configurable under IEC 62304 Class B safety requirements.
+        //
+        // #145 (QA-B-150): "overshoot_limit_enabled" IS THE ONLY NAME THE SPEC
+        // ACTUALLY STATES, and it was the one name missing. AC-EDGE-005
+        // (acceptance.md:205, REQ-ADV-051/SAF-100) spells it out verbatim, and
+        // a scan of spec.md + acceptance.md + tasks.md finds exactly one quoted
+        // overshoot key -- that one. The other five below are names the
+        // implementation chose defensively; they overlap the SPEC in NOTHING.
+        //
+        // The miss survived because the names look alike. nlohmann::json::
+        // contains is an EXACT match, so "overshoot_limit" does not cover
+        // "overshoot_limit_enabled" -- the prefix reads as if it would.
+        // Requirement, implementation and test were all empty at the same name
+        // (T-068 did not exist), so no single one of them showed it.
+        //
+        // Prefix matching was considered and rejected: it would also block keys
+        // nobody forbade. The guard against the list drifting from the SPEC is
+        // test_overshoot_safety.cpp, which is written from the AC text rather
+        // than from this list.
         const std::vector<const char*> forbiddenKeys = {
+            "overshoot_limit_enabled",   // AC-EDGE-005, the SPEC's own name
             "overshoot_limiting",
             "overshoot_limit",
             "overshoot_factor",

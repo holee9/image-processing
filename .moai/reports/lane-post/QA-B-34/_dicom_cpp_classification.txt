@@ -1,0 +1,51 @@
+=== dicom.cpp 미커버 37줄 전수 (QA-B-34 2/3) ===
+결론: 전부 catch (...) 핸들러. 도달 가능 분기 0.
+
+ 48|     } catch (...) {
+ 49|         spdlog::error("[xpe_dicom] xpe_dicom_open: unexpected exception");
+ 50|         return XPE_ERR_PROCESSING_FAILED;
+ 51|     }
+   --
+ 59|     } catch (...) {
+ 60|         spdlog::error("[xpe_dicom] xpe_dicom_read_image: unexpected exception");
+ 61|         return XPE_ERR_PROCESSING_FAILED;
+ 62|     }
+   --
+ 70|     } catch (...) {
+ 71|         spdlog::error("[xpe_dicom] xpe_dicom_get_metadata: unexpected exception");
+ 72|         return XPE_ERR_PROCESSING_FAILED;
+ 73|     }
+   --
+ 80|     } catch (...) {
+ 81|         spdlog::error("[xpe_dicom] xpe_dicom_close: unexpected exception (ignored)");
+ 82|     }
+   --
+120|     } catch (...) {
+121|         spdlog::error("[xpe_dicom] xpe_dicom_write: unexpected exception");
+122|         return XPE_ERR_PROCESSING_FAILED;
+123|     }
+   --
+134|     } catch (...) {
+135|         spdlog::error("[xpe_dicom] xpe_dicom_write_j2k: unexpected exception");
+136|         return XPE_ERR_PROCESSING_FAILED;
+137|     }
+   --
+151|     } catch (...) {
+152|         spdlog::error("[xpe_dicom] xpe_dicom_validate: unexpected exception");
+153|         return XPE_ERR_PROCESSING_FAILED;
+154|     }
+   --
+170|     } catch (...) {
+171|         spdlog::error("[xpe_dicom] xpe_dicom_cstore: unexpected exception");
+172|         return XPE_ERR_NETWORK_FAILED;
+173|     }
+   --
+188|     } catch (...) {
+189|         spdlog::error("[xpe_dicom] xpe_dicom_cfind_mwl: unexpected exception");
+190|         return XPE_ERR_NETWORK_FAILED;
+191|     }
+   --
+198|     } catch (...) {
+199|         // cancel must never throw
+200|     }
+   --

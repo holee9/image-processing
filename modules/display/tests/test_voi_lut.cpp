@@ -59,18 +59,21 @@ TEST(VoiLut, Linear_CenterWindow) {
 
     XpeErrorCode rc = xpe_apply_voi_lut(&img, &params);
     EXPECT_EQ(rc, XPE_OK);
-    // (500 - (500 - 500)) / 1000 * 255 + 0 = 127.5
+    // UPDATED by QA-B-149 (#156 resolved): 127.5 -> 127.628.
     //
-    // Tolerance 0.05, not 0.5 (QA-B-121, #156). At 0.5 this case passed with a
-    // DIFFERENT formula in place: substituting DICOM PS3.3 C.11.2.1.2.1
-    // (`((x - (c - 0.5))/(w - 1) + 0.5) * range`) gives 127.628 here, and the
-    // 0.128 gap fitted inside the old margin -- so the assertion pinned the
-    // magnitude, not the formula (QA-B-120 measured it: the whole VOI file went
-    // 0 red when the formula was swapped).
+    // This case predicted its own change. QA-B-121 tightened the tolerance from
+    // 0.5 to 0.05 precisely so that swapping in DICOM PS3.3 C.11.2.1.2.1 would
+    // be VISIBLE, and wrote the number that formula would give -- 127.628. The
+    // formula was swapped in and the case went red at 127.62762, which is that
+    // prediction to five figures. The tightening did its job; the expectation
+    // now follows the code it was watching.
     //
-    // This says nothing about WHICH formula is right -- that is #156, still
-    // open. It pins the one the code has today, so a change to it is visible.
-    EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);
+    // Derived, not copied from the run:
+    //   ((500 - (500 - 0.5)) / (1000 - 1) + 0.5) * 255 = (0.5/999 + 0.5) * 255
+    //                                                  = 127.6276...
+    // The old value 127.5 is what `(x - (c - w/2))/w` gives, i.e. LINEAR_EXACT
+    // -- which is exactly why the two modes used to coincide.
+    EXPECT_NEAR(pixels(img)[0], 127.6276f, 0.001f);
     free_image(img);
 }
 

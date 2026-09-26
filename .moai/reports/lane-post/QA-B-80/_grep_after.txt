@@ -1,0 +1,5 @@
+./.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:250:internal.h defines `XPE_MFP_DEFAULT_NOISE_THRESH = 5.0f`
+modules/preprocess/src/pipeline.cpp:42:        static PipelineConfig fromJson(const char* configJson) {
+modules/preprocess/src/pipeline.cpp:329:    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
+modules/preprocess/src/pipeline.cpp:407:    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
+modules/preprocess/src/pipeline.cpp:452:    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);

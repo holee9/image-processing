@@ -1,0 +1,17 @@
+GRIDSUP floor005 axis=rows lpi=60 after/before=2.621e-05 after/baseline=165
+GRIDSUP floor005 axis=rows lpi=103 after/before=2.158e-05 after/baseline=381.2
+GRIDSUP floor005 axis=rows lpi=200 after/before=2.565e-05 after/baseline=81.27
+GRIDSUP floor005 axis=cols lpi=60 after/before=7.819e-05 after/baseline=21.62
+GRIDSUP floor005 axis=cols lpi=103 after/before=7.877e-05 after/baseline=176.1
+GRIDSUP floor005 axis=cols lpi=200 after/before=8.107e-05 after/baseline=48.4
+GRIDSUP floor008 lpi=170 detected=1 level=3 filtered=4 after/before=1.484e-05
+GRIDSUP floor008 lpi=175 detected=1 level=4 filtered=5 after/before=4.709e-05
+GRIDSUP floor008 lpi=180 detected=1 level=6 filtered=2 after/before=0.9836
+GRIDSUP floor008 lpi=183 detected=0 level=0 filtered=0 after/before=1
+GRIDSUP floor008 lpi=186 detected=1 level=5 filtered=4 after/before=0.1654
+VGRANGE t=10 cm median=0.0021 p95=0.0056 max=0.0071 aboveTable=0.0000
+VGRANGE t=15 cm median=0.0038 p95=0.0168 max=0.0220 aboveTable=0.0000
+VGRANGE t=20 cm median=0.0059 p95=0.0296 max=0.0363 aboveTable=0.0000
+VGRANGE t=25 cm median=0.0076 p95=0.0405 max=0.0485 aboveTable=0.0000
+VGRANGE t=30 cm median=0.0091 p95=0.0468 max=0.0540 aboveTable=0.3520
+VGMC floor018 step peak=1.4521 max=1.5522 |r-1| median=0.0623

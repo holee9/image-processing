@@ -1,0 +1,29 @@
+0  c1 ?= ?100|c1=100|c1 = 100
+0  c2 ?= ?0
+0  80 ?kVp|referenceKvp
+0  10 ?mAs|referenceMas
+5  0\.1f?, ?10|\[0\.1
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:832:g = clamp(g, 0.1, 10.0)
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:860:gain = clamp(gain, 0.1, 10.0);
+docs/enhance-advanced/RTM-ENHANCE-ADV-001_Requirements_Traceability_Matrix.md:99:| TC-013 | FR-800.1 | 10 | Unsharp masking | I_enh = I + α
+1  1e-3
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:864:if (EI <= 0) EI = 1e-3;
+2  sigma.*1e-6|1e-6.*sigma
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:406:if sigma_local < 1e-6:
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:455:        float limit = (sigma < 1e-6f) ? 0.1f : 3.0f * sigm
+7  0\.0625|0\.375|binomial|1, ?4, ?6, ?4, ?1
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:45:g(x) = (1/16) * [1, 4, 6, 4, 1]   (binomial coefficients, s
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:295:    // Pre-multiply by 1/16: [0.0625, 0.25, 0.375, 0.25, 0
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:296:    __m256 k0 = _mm256_set1_ps(0.0625f);
+3  numLines|windowSize|window_size
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:624:findPeaks(A, threshold, windowSize):
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:627:            if A(theta, rho) >= max of A in (theta +/- win
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:683:peaks = findPeaks(accumulator, threshold=50, windowSize=5)
+0  texture.?gain.*1\.2|1\.2.*texture
+2  noise.?threshold.*0\.02
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:250:internal.h defines `XPE_MFP_DEFAULT_NOISE_THRESH = 5.0f` (
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_implementer_enhance_advanced_notes.md:111:3. **MfpConfig field mismatch**: `mfp_scalar.h::MfpConfi
+27  Table B\.1|62494
+.moai/specs/SPEC-XPE-P2-ADV/plan.md:168:**Goal**: IEC 62494-1 compliant EI/DI calculation
+.moai/specs/SPEC-XPE-P2-ADV/plan.md:173:| M5-2 | `xpe_exposure_index.cpp` EI computation per IEC 62494-1            | M5-1       |
+.moai/specs/SPEC-XPE-P2-ADV/plan.md:178:**Algorithm Reference** (IEC 62494-1):

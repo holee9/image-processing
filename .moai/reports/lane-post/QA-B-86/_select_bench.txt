@@ -1,0 +1,20 @@
+Internal ctest changing into directory: D:/workspace-github/xpe-post/build/ci-post
+Test project D:/workspace-github/xpe-post/build/ci-post
+  Test  #84: LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072
+  Test  #85: LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogInverse3072
+  Test  #99: NoiseReduce.BenchmarkFreeze_Performance_REQ_ENH_012_Bilateral3072
+  Test #110: ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072
+  Test #122: EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072
+  Test #136: ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+  Test #137: ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+  Test #215: CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+  Test #216: CollimationDetectTest.BenchmarkFreeze_Performance_PERF_ADV_003_Collimation3072
+  Test #228: EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalMeasure3072
+  Test #238: ExposureIndexTest.BenchmarkFreeze_Performance_PERF_ADV_004_ExposureIndex3072
+  Test #419: ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072
+  Test #439: VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072
+  Test #455: PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072
+  Test #491: BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+  Test #544: FullPipelineE2E.PostProcess_3072x3072_Within3000ms
+
+Total Tests: 16

@@ -1,0 +1,24 @@
+===BENCH_AS_WORKFLOW===
+Internal ctest changing into directory: D:/workspace-github/xpe-post/build/ci-post
+Test project D:/workspace-github/xpe-post/build/ci-post
+    Start 131: ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+1/6 Test #131: ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline .....................   Passed    0.41 sec
+    Start 132: ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+2/6 Test #132: ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline .....................   Passed    0.42 sec
+    Start 210: CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+3/6 Test #210: CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline ...   Passed    0.02 sec
+    Start 222: EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalMeasure3072
+4/6 Test #222: EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalMeasure3072 ..........   Passed    7.68 sec
+    Start 481: BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+5/6 Test #481: BenchmarkFreeze.BP06_GsvgVersionProbeBaseline .............................   Passed    0.01 sec
+    Start 534: FullPipelineE2E.PostProcess_3072x3072_Within3000ms
+6/6 Test #534: FullPipelineE2E.PostProcess_3072x3072_Within3000ms ........................   Passed    0.18 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Label Time Summary:
+SPEC-XPE-P2-ADV     =   7.70 sec*proc (2 tests)
+enhance_advanced    =   7.70 sec*proc (2 tests)
+unit                =   7.70 sec*proc (2 tests)
+
+Total Test time (real) =   8.75 sec
