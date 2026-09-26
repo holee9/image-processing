@@ -97,7 +97,7 @@ The existing stub `enhance_basic_api.h` will be expanded to declare:
 |------|-------------|-----------|
 | T-EI-01 | Define EIT lookup table (bodyPart -> EIT value) | REQ-ENH-025 |
 | T-EI-02 | Implement mean pixel value computation | REQ-ENH-023 |
-| T-EI-03 | Implement EI = EIT * (mean / S0) formula | REQ-ENH-023 |
+| T-EI-03 | Implement EI = K_cal * (mean / S0) formula — EIT MUST NOT enter EI (`#154`) | REQ-ENH-023, REQ-ENH-023a |
 | T-EI-04 | Implement DI = 10 * log10(EI / EIT) | REQ-ENH-024 |
 | T-EI-05 | Add DI range alert (outside +/-3) | REQ-ENH-026 |
 | T-EI-06 | Validate NULL/empty inputs | REQ-ENH-027, REQ-ENH-028 |
