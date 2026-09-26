@@ -216,3 +216,85 @@ gui/ImageProcTest/Services/Native/GuiNativeLibraryResolver.cs:50
 읽으므로(§4) **같은 변수가 두 곳에서 다르게 작동하는 상태가 여전히 남아 있다.**
 
 🗿 MoAI
+
+---
+
+# 10. A 를 적용했다 — 최소 범위, 측정으로 확인
+
+## 10.1 무엇을 바꿨나 — 두 곳
+
+| 파일 | 변경 |
+|---|---|
+| `ImageProcTest.IntegrationTests.csproj` | 스테이징에 **`xpe_preprocess.dll` 추가**(ci-common·default 의 Debug/비Debug 4후보) |
+| `PInvoke/XpePreprocessNative.cs` `TryFindDll()` | **앱 디렉터리를 1순위로** 추가. `XPE_NATIVE_DIR`·`build/…` 후보는 fallback 으로 유지 |
+
+이제 시험 출력에 `xpe_common.dll` 과 `xpe_preprocess.dll` 이 함께 있고, 두 모듈이 **같은
+디렉터리**에서 해결된다 — GUI 가 resolver 하나로 하는 것과 같은 구성(§9)이다.
+
+## 10.2 범위를 `xpe_preprocess` 로 **한정한 이유** — 측정된 제약
+
+optional 군(`gsvg`·`xpe_display`·`xpe_dicom`·`xpe_enhance_advanced`)까지 복사하면
+**`NativeSearchPolicyTests.AllOptionalDllsAbsent_GradesEveryOptionalR0_AndNoRequiredOne`
+(`:148`)이 깨진다.** 그 시험은 `XPE_NATIVE_DIR` 을 빈 임시 디렉터리에 고정하고
+(`XPE_NATIVE_DIR_EXCLUSIVE=1`) optional 모듈이 **R0(못 찾음)** 로 등급되는 것을 단언한다.
+
+```
+XpeCommonLibraryLocator.cs:34   yield return AppContext.BaseDirectory        ← 먼저 나온다
+                        :41-45  if (StopAtInjectedDirectory) yield break;    ← EXCLUSIVE 는 그 다음
+NativeModuleLibraryLocator.cs:15,23-25  같은 순서
+```
+
+**앱 디렉터리가 EXCLUSIVE 검사보다 먼저 나오므로**, 앱 디렉터리에 사본이 있으면 EXCLUSIVE
+로도 가려지지 않는다. `xpe_preprocess` 는 그 시험의 **required 군**이라 단언이
+`NotEqual(NotReady)` 이고, 앱 디렉터리에서 찾혀도 만족한다 — 그래서 안전하다.
+
+**즉 A 는 "모든 모듈" 이 아니라 "required 모듈" 까지만 안전하다.** 이것이 4건을 읽어서는
+안 보이고 5번째 시험을 읽어야 나오는 제약이다.
+
+## 10.3 측정 — A 가 우회 없이도, 환경 변수에서도 듣는다
+
+`GUI-C-135` 의 우회를 **되돌린 상태**로 쟀다.
+
+```
+A 적용 + 우회 없음 + 환경 변수 없음
+  EveryPixel 단독 : 통과 1
+  SomePixels 단독 : 통과 1
+A 적용 + 우회 없음 + XPE_NATIVE_DIR=build/ci-common/bin (전체)
+  실패 4 — 정책 4건뿐. 클램프 2건은 통과
+```
+
+**C 가 못 고치던 환경 변수 팔을 A 는 고친다**(§4c 와 대조). 남은 정책 4건은 A 와 무관하다 —
+`XPE_NATIVE_DIR` 을 `/build/` 아래로 가리키면 **후보 자체가 `/build/` 경로**가 되므로
+`ByDefault_NoBuildDirectoryOrSiblingCheckoutIsOffered` 가 그것을 잡는 것이 정상이다.
+
+## 10.4 우회를 지웠다
+
+A 가 구조로 해결하므로 `GUI-C-135` 의 "먼저 묶기" 한 줄은 **죽은 코드**가 됐다. 지우고
+그 자리에 **왜 아무것도 필요 없는지**를 적었다 — 아무 일도 하지 않는 방어 코드를 남기면
+다음 사람이 그것을 필요한 것으로 읽는다.
+
+```
+grep -c "REVERTED202B|ORDER MATTERS" → 0
+```
+
+## 10.5 최종 상태
+
+```
+BUILD_EXIT=0
+IntegrationTests 전체 (환경 변수 없음) : 통과 265, 건너뜀 1, 실패 0
+EveryPixel 단독                        : 통과 1
+SomePixels 단독                        : 통과 1
+시험 출력의 xpe_*.dll                  : xpe_common.dll, xpe_preprocess.dll
+```
+
+## 10.6 이 변경의 미검증
+
+- **E2E 를 돌리지 않았다.** 바꾼 것은 IntegrationTests 의 스테이징과 그 프로젝트의 헬퍼
+  뿐이고 E2E 는 앱을 띄우므로 경로가 다르지만, **재지는 않았다.**
+- **CI 에서 확인하지 않았다.** CI 는 `build/ci-common/bin` 을 만들어 두므로 복사가 성립할
+  것으로 보지만, 그 디렉터리가 없는 구성에서는 복사가 조용히 건너뛰어지고(`Condition="Exists"`)
+  `TryFindDll()` 이 fallback 으로 내려간다 — 그 경로를 **재지 않았다.**
+- **optional 모듈까지 넓히면 깨진다는 것은 `AllOptionalDllsAbsent_…` 를 읽어 추론했다.**
+  실제로 복사해 깨뜨려 보지는 않았다(깨뜨리는 것이 목적이 아니므로).
+- `xpe_display`·`gsvg` 를 쓰는 시험이 같은 함정에 걸릴 수 있는지는 §7 대로 열려 있다 —
+  그 모듈들이 전역 상태를 갖는지 보지 않았다.

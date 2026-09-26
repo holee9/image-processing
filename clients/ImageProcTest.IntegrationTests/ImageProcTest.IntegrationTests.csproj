@@ -101,6 +101,23 @@
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\xpe_common.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\xpe_common.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\xpe_common.dll" />
+      <!--
+        #202: xpe_preprocess.dll joins the staging so the whole process resolves ONE copy of each
+        module. It used to be loaded out of build/… by absolute path while xpe_common.dll was copied
+        here, and Windows then bound that build copy's SIBLING xpe_common — two instances of a module
+        whose alert queue is global, so a push and a read landed in different queues (GUI-C-135).
+        Identical md5 does not make it one instance.
+
+        Scope is deliberate: ONLY the required modules. Copying the OPTIONAL ones (gsvg, xpe_display,
+        xpe_dicom, xpe_enhance_advanced) would break
+        NativeSearchPolicyTests.AllOptionalDllsAbsent_GradesEveryOptionalR0_AndNoRequiredOne, which
+        pins XPE_NATIVE_DIR to a temp directory and expects those to grade R0 — the app directory is
+        offered BEFORE the exclusive cut (XpeCommonLibraryLocator.cs:34), so a copy here would be found.
+      -->
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\Debug\xpe_preprocess.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\xpe_preprocess.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\xpe_preprocess.dll" />
+      <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\xpe_preprocess.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\Debug\spdlog.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\ci-common\bin\spdlog.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\spdlog.dll" />
