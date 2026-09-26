@@ -1,0 +1,14 @@
+row fill kVp mAs g EI target DI
+VeryDark 0.01 60 5 0.281250 0.2812 250 -29.4885
+Dark 0.1 70 8 0.612500 6.1250 250 -16.1083
+Normal 1 80 10 1.000000 100.0000 250 -3.9794
+Bright 10 90 12 1.518750 1518.7500 250 7.8355
+VeryBright 100 120 20 4.500000 45000.0000 250 22.5527
+mean giving DI=0 at 80kVp/10mAs, CHEST: 2.5
+Normal-input DI if bodyPart= CHEST -3.9794
+Normal-input DI if bodyPart= CHEST_LAT -3.0103
+Normal-input DI if bodyPart= ABDOMEN -6.0206
+Normal-input DI if bodyPart= PELVIS -5.4407
+Normal-input DI if bodyPart= SKULL -6.9897
+Normal-input DI if bodyPart= EXTREMITY 0.0000
+Normal-input DI if bodyPart= SPINE -4.7712

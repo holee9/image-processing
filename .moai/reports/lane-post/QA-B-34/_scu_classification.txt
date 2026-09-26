@@ -1,0 +1,57 @@
+DicomNetworkSCU.cpp — 미커버 54줄 분류 (7번째 dispatch 34486857040, 135/189 = 0.71)
+계측 줄 기준. 커버 근거는 coverage.xml 의 hits=0 목록(_uncovered7.txt).
+
+[A] 도달 가능 — 이번에 테스트로 덮음 (14줄)
+  69          meta 에 MediaStorageSOPClassUID 없음 → dataset 에서 SOPClassUID 조회
+  72          동일, SOPInstanceUID
+  76          둘 다 없음 → DX 기본 SOP class 대입
+              → CStoreFileWithoutSopUids_FallsBackToDxDefault (EWM_dataset + UID 삭제)
+  300-302     parseHostAet 의 "CALLED_AE@host" 분기 (3줄)
+              → CStoreCalledAeInHost_NegotiatesAndStores
+  213-214     buildFindRequest 실패 → releaseAssociation + PROCESSING_FAILED (2줄)
+  337-339     buildFindRequest 의 JSON parse catch (3줄)
+              → CFindMalformedQueryJson_ReturnsProcessingFailed (위 5줄을 한 번에)
+  328         query JSON 의 PatientName 키
+  334         query JSON 의 AccessionNumber 키
+              → CFindQueryWithNameAndAccession_ReturnsJsonArray
+  281         직렬화 결과가 outBufLen 초과 → BUFFER_TOO_SMALL
+              → CFindOutBufferTooSmall_ReturnsBufferTooSmall
+
+[B] 죽은 코드 — 호출자 0 (19줄)
+  344-345, 347-348, 350-355, 357-358, 360-361, 363-365, 367-368
+    DicomNetworkSCU::responseToJson(void*) 전체.
+    선언: DicomNetworkSCU.h:69 / 정의: DicomNetworkSCU.cpp:344.
+    호출자 전수: `grep -rn responseToJson modules/ tests/` → 선언과 정의 2건뿐.
+    cfindMwl 은 :254-287 에서 같은 일을 인라인으로 한다(중복 구현).
+    **삭제하지 않는다** — 카드 "하지 않을 것: 죽은 코드 삭제(목록만)".
+
+[C] 취소 경쟁 — 단일 스레드로 도달 불가 (6줄)
+  102, 194    association 이전 취소 검사.
+              cstore/cfindMwl 진입 즉시 s_cancelRequested.store(false) 를 하므로
+              (:43, :163) 호출 전에 cancel() 을 해도 플래그가 지워진다.
+              :43 과 :101 사이에 다른 스레드가 cancel() 을 해야만 참이 된다.
+  120-121     association 이후 취소 검사 (C-STORE)
+  219-220     association 이후 취소 검사 (C-FIND)
+              루프백 SCP 상대 C-STORE 가 ~1ms 에 끝나 취소가 항상 늦게 도착한다
+              (QA-B-29 관측). Cancel 스킵 결정 유지 — 경쟁을 단언하지 않는다.
+
+[D] 폴트 주입 필요 / 이 API 형태로는 도달 불가 (15줄)
+  59          DcmFileFormat::getDataset() 널. loadFile 이 성공하면 dataset 객체는
+              항상 존재한다(B-34 Validator 에서 meta 쪽으로 같은 성질을 관측).
+  108-109     initNetwork 실패. 소켓 계층 실패를 주입해야 한다.
+  200-201     동일 (C-FIND 쪽)
+  137-138     sendSTORERequest 실패
+  247, 249-250 sendFINDRequest 실패
+  143-144     C-STORE 응답 상태 != Success
+              → 137-138/143-144/247/249-250 은 "association 은 성립했는데 요청만
+                실패" 하는 SCP 가 있어야 한다. 지금 mock 은 정상 응답만 한다.
+                거부하는 mock 모드를 넣으면 도달 가능하나 카드 범위 밖.
+  236-238     findPresID == 0 (#137 의 실패 경로).
+              **이 API 형태로는 도달 불가**: cfindMwl 은 MWL 컨텍스트 하나만
+              제안하므로(:187-190), SCP 가 그것을 거부하면 컨텍스트가 0개가 되어
+              negotiateAssociation 이 :205-207 에서 먼저 실패한다. 즉 "협상은
+              됐는데 MWL 만 없다" 는 상태를 만들 수 없다.
+              방어 코드로서는 유효하다 — 제거 대상이 아니다.
+
+합계: 14(A) + 19(B) + 6(C) + 15(D) = 54
+이번 커밋 뒤 남는 미커버: 54 - 14 = 40줄

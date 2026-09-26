@@ -1,0 +1,91 @@
+modules/enhance_basic/tests/test_datasize_overread.cpp:178:    for (const auto& c : cases) {
+modules/enhance_basic/tests/test_empty_image_contract.cpp:119:    for (const auto& ep : kEntryPoints) {
+modules/enhance_basic/tests/test_empty_image_contract.cpp:127:    for (const auto& ep : kEntryPoints) {
+modules/enhance_basic/tests/test_empty_image_contract.cpp:135:    for (const auto& ep : kEntryPoints) {
+modules/enhance_basic/tests/test_empty_image_contract.cpp:145:    for (const auto& ep : kEntryPoints) {
+modules/enhance_basic/tests/test_parameter_dependency.cpp:85:        for (auto& v : px) v = v / 4096.0f;   // log-domain-ish input in [0,1)
+modules/enhance_advanced/tests/test_collimation_detect.cpp:79:                for (int x = std::max(0, x0 - 2); x <= std::min(width - 1, x0 + 2); ++x) {
+modules/enhance_advanced/tests/test_collimation_detect.cpp:88:                for (int x = std::max(0, x1 - 2); x <= std::min(width - 1, x1 + 2); ++x) {
+modules/enhance_advanced/tests/test_collimation_detect.cpp:96:            for (int y = std::max(0, y0 - 2); y <= std::min(height - 1, y0 + 2); ++y) {
+modules/enhance_advanced/tests/test_collimation_detect.cpp:105:            for (int y = std::max(0, y1 - 2); y <= std::min(height - 1, y1 + 2); ++y) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:211:    for (const auto& c : cases) {
+modules/enhance_advanced/tests/test_config_value_dependency.cpp:401:    for (float fg : kForegrounds) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:84:    for (const auto& a : alerts) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:114:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+modules/enhance_advanced/tests/test_config_warning_once.cpp:126:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/enhance_advanced/tests/test_config_warning_once.cpp:140:    for (const auto& a : ok) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/enhance_advanced/tests/test_config_warning_once.cpp:169:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+modules/enhance_advanced/tests/test_config_warning_once.cpp:183:    for (const char* cfg : seq) {
+modules/enhance_advanced/tests/test_config_warning_once.cpp:190:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "  " << a;
+modules/enhance_advanced/tests/test_config_warning_once.cpp:284:    for (const auto& s : alerts) GTEST_LOG_(INFO) << "  " << s;
+modules/enhance_advanced/tests/test_coverage_ext.cpp:236:    for (uint32_t n : {32u, 64u, 128u, 256u}) {
+modules/enhance_advanced/tests/test_coverage_ext.cpp:249:    for (const auto& wh : sizes) {
+modules/enhance_advanced/tests/test_coverage_ext.cpp:260:    for (uint32_t n : {1u, 2u, 3u, 5u}) {
+modules/enhance_advanced/tests/test_datasize_overread.cpp:152:    for (const auto& c : cases) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:267:    for (const auto& tc : testCases) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:458:    for (const auto& attempt : attempts) {
+modules/enhance_advanced/tests/test_edge_enhancement.cpp:507:    for (const auto& tc : testCases) {
+modules/enhance_advanced/tests/test_edge_enhancement_ext.cpp:276:    for (const char* config : forbiddenConfigs) {
+modules/enhance_advanced/tests/test_exposure_index.cpp:153:    for (const auto& tc : testCases) {
+modules/enhance_advanced/tests/test_exposure_index.cpp:301:    for (const auto& tc : testCases) {
+modules/enhance_advanced/tests/test_exposure_index.cpp:421:    for (const auto& tc : testCases) {
+modules/enhance_advanced/tests/test_exposure_index_ext.cpp:147:    for (const char* bp : bodyParts) {
+modules/enhance_advanced/tests/test_header_guards.cpp:42:    for (const void* fn : kDeclared) {
+modules/enhance_advanced/tests/test_integration.cpp:372:    for (auto& thread : threads) {
+modules/enhance_advanced/tests/test_integration.cpp:546:    for (auto* img : {&img1, &img2, &img3, &img4}) {
+modules/enhance_advanced/tests/test_mfp_scalar.cpp:266:    for (float pixel : testData_) {
+modules/enhance_advanced/tests/test_mfp_scalar.cpp:277:    for (float pixel : testData_) {
+modules/enhance_advanced/tests/test_mfp_scalar_ext.cpp:277:    for (const char* bp : bodyParts) {
+modules/ai/tests/test_ai_fallback.cpp:906:    for (const std::string& name : exports) {
+modules/ai/tests/test_ai_worker_isolation.cpp:183:    for (auto& t : threads) {
+modules/ai/tests/test_ai_worker_isolation.cpp:213:    for (auto& t : threads) {
+modules/ai/tests/test_config_warning.cpp:53:    for (const auto& a : alerts) {
+modules/ai/tests/test_config_warning.cpp:63:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/ai/tests/test_config_warning.cpp:69:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/ai/tests/test_config_warning.cpp:77:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/ai/tests/test_config_warning.cpp:85:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/ai/tests/test_config_warning.cpp:93:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/ai/tests/test_config_warning.cpp:102:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/ai/tests/test_config_warning.cpp:113:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/ai/tests/test_datasize_overread.cpp:143:    for (const auto& c : cases) {
+modules/display/tests/test_datasize_overread.cpp:148:    for (const auto& c : cases) {
+modules/display/tests/test_display_integration.cpp:558:    for (const auto& e : kDisplayEntries) {
+modules/display/tests/test_display_integration.cpp:568:    for (const auto& e : kDisplayEntries) {
+modules/display/tests/test_display_integration.cpp:578:    for (const auto& e : kDisplayEntries) {
+modules/display/tests/test_display_integration.cpp:590:    for (const auto& e : kDisplayEntries) {
+modules/display/tests/test_presentation_lut.cpp:350:        for (char& c : name) c = static_cast<char>(::tolower(c));
+modules/display/tests/test_presentation_lut.cpp:360:    for (const std::string& m : imports) {
+modules/display/tests/test_presentation_lut.cpp:371:    for (const std::string& v : s) { if (!out.empty()) out += ", "; out += v; }
+modules/dicom/tests/mock_scp.cpp:136:    for (const char* as : kAbstractSyntaxes) {
+modules/dicom/tests/test_dicom_reader.cpp:987:    for (auto& w : workers) {
+modules/dicom/tests/test_dicom_reader.cpp:1302:    for (const auto& c : cases) {
+modules/dicom/tests/test_dicom_reader.cpp:1598:    for (const auto& c : cases) {
+modules/dicom/tests/test_dicom_reader.cpp:2267:    for (const auto& c : kNativeSyntaxes) {
+modules/dicom/tests/test_dicom_reader.cpp:2290:    for (const auto& c : kNativeSyntaxes) {
+modules/dicom/tests/test_dicom_reader.cpp:2337:    for (const auto& c : kNativeSyntaxes) {
+modules/dicom/tests/test_dicom_reader.cpp:2496:    for (const auto& c : cases) {
+modules/dicom/tests/test_dicom_reader.cpp:2553:    for (const auto& c : cases) {
+modules/dicom/tests/test_dicom_reader.cpp:2590:    for (const auto& r : raws) {
+modules/dicom/tests/test_dicom_reader.cpp:2653:    for (const auto& r : rows) {
+modules/dicom/tests/test_dicom_reader.cpp:2700:    for (const auto& r : rows) {
+modules/dicom/tests/test_dicom_reader.cpp:2803:    for (int predictor : kP14Predictors) {
+modules/dicom/tests/test_dicom_validator.cpp:113:    for (const auto& e : j["errors"])
+modules/dicom/tests/test_dicom_validator.cpp:242:    for (const auto& e : j["errors"]) {
+modules/dicom/tests/test_dicom_validator.cpp:326:    for (const auto& e : j["errors"]) {
+modules/dicom/tests/test_dicom_validator.cpp:354:    for (const auto& e : j["errors"]) {
+modules/dicom/tests/test_dicom_validator.cpp:414:    for (const auto& e : report["errors"]) {
+modules/dicom/tests/test_dicom_writer.cpp:380:    for (const auto& w : kWriters) {
+modules/dicom/tests/test_dicom_writer.cpp:391:    for (const auto& w : kWriters) {
+modules/dicom/tests/test_dicom_writer.cpp:402:    for (const auto& w : kWriters) {
+modules/dicom/tests/test_dicom_writer.cpp:414:    for (const auto& w : kWriters) {
+modules/gsvg/tests/test_config_warning.cpp:55:    for (const auto& a : alerts) {
+modules/gsvg/tests/test_config_warning.cpp:67:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:74:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:81:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:97:    for (const auto& a : alerts2) GTEST_LOG_(INFO) << "alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:106:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:116:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:127:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/gsvg/tests/test_config_warning.cpp:140:    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+modules/gsvg/tests/test_gsvg_extended_coverage.cpp:106:    for (const auto pixel : dst) {
+modules/gsvg/tests/test_parameter_dependency.cpp:95:    for (uint16_t v : px) globalAcc += v;

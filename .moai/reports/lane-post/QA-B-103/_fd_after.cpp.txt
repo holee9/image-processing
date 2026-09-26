@@ -1,0 +1,427 @@
+/**
+ * @file fractional_derivative.cpp
+ * @brief Fractional-order differentiation implementation
+ *
+ * Implements Gruenwald-Letnikov fractional derivative with mandatory
+ * overshoot limiting (SAF-100).
+ *
+ * REQ-ADV-011: Fractional-order process execution
+ * REQ-ADV-032: No NaN/Inf in output
+ * REQ-ADV-051: Mandatory overshoot limiting (SAF-100)
+ */
+
+#include "detail/fractional_derivative.h"
+#include "detail/parallel_rows.h"
+
+// Thread-count request, stored in xpe_enhance_advanced.cpp (#179, QA-B-103).
+int XpeAdvThreadRequest();
+#include "xpe/common/xpe_error.h"
+#include "xpe/common/xpe_common_api.h"
+#include <cmath>
+#include <algorithm>
+#include <limits>
+#include <mutex>
+
+// @MX:ANCHOR: [AUTO] Fractional binomial coefficient computation
+// @MX:REASON: Core mathematical function used in mask generation and image convolution
+// @MX:SPEC: REQ-ADV-011, REQ-ADV-032
+
+namespace xpe {
+namespace enhance_advanced {
+
+/* ============================================================================
+ * Internal Helpers
+ * ============================================================================ */
+
+namespace {
+    /**
+     * @brief Compute binomial coefficient for fractional order
+     *
+     * C(alpha, k) = gamma(alpha + 1) / (gamma(k + 1) * gamma(alpha - k + 1))
+     *
+     * For computational efficiency, we use the recursive formula:
+     * C(alpha, 0) = 1
+     * C(alpha, k) = C(alpha, k-1) * (alpha - k + 1) / k
+     *
+     * @param alpha Fractional order
+     * @param k Coefficient index
+     * @return Binomial coefficient
+     */
+    float fractionalBinomial(float alpha, int k) {
+        if (k == 0) {
+            return 1.0f;
+        }
+
+        float result = 1.0f;
+        for (int i = 1; i <= k; ++i) {
+            result *= (alpha - static_cast<float>(i) + 1.0f) / static_cast<float>(i);
+        }
+
+        return result;
+    }
+
+    /**
+     * @brief Check if value is valid (not NaN or Inf)
+     * @param value Value to check
+     * @return true if value is valid
+     */
+    bool isValid(float value) {
+        return !std::isnan(value) && !std::isinf(value);
+    }
+
+    /**
+     * @brief Clamp value to valid range
+     * @param value Value to clamp
+     * @param min Minimum value
+     * @param max Maximum value
+     * @return Clamped value
+     */
+    float clamp(float value, float min, float max) {
+        return std::max(min, std::min(max, value));
+    }
+
+    /**
+     * @brief Safe float addition with overflow check
+     * @param a First operand
+     * @param b Second operand
+     * @return a + b, or +/-inf if overflow would occur
+     */
+    float safeAdd(float a, float b) {
+        // QA-B-102 (#179): the two guards returned exactly what IEEE-754
+        // addition returns anyway -- a finite sum that exceeds the float range
+        // overflows to the same signed infinity -- so the result is unchanged
+        // and the branches are gone.
+        return a + b;
+    }
+} // anonymous namespace
+
+/* ============================================================================
+ * Mask Generation
+ * ============================================================================ */
+
+std::vector<float> computeFractionalMask(float order, size_t maskSize) {
+    std::vector<float> mask(maskSize);
+
+    // Generate Gruenwald-Letnikov coefficients
+    // For alpha in [0, 2], we use a symmetric mask around center
+    // Mask coefficients: C(alpha, 0), -C(alpha, 1), C(alpha, 2), ...
+
+    for (size_t k = 0; k < maskSize; ++k) {
+        float coeff = fractionalBinomial(order, static_cast<int>(k));
+
+        // Alternate signs for derivative
+        if (k % 2 == 1) {
+            coeff = -coeff;
+        }
+
+        mask[k] = coeff;
+    }
+
+    return mask;
+}
+
+/* ============================================================================
+ * Local Statistics
+ * ============================================================================ */
+
+float calculateLocalStdDev(const float* data, int width, int height, int x, int y) {
+    float sum = 0.0f;
+    float sumSq = 0.0f;
+    int count = 0;
+
+    // QA-B-102 (#179): away from the border no neighbour is clamped, so the
+    // same nine values are read in the same order without the clamping and the
+    // per-neighbour index arithmetic.
+    if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+        const float* row = data + (static_cast<size_t>(y) - 1) * static_cast<size_t>(width) + x;
+        for (int dy = -1; dy <= 1; ++dy, row += width) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                const float val = row[dx];
+                if (!isValid(val)) continue;
+                sum = safeAdd(sum, val);
+                sumSq = safeAdd(sumSq, val * val);
+                ++count;
+            }
+        }
+    } else {
+    // 3x3 neighborhood
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            int nx = x + dx;
+            int ny = y + dy;
+
+            // Boundary check: clamp to image bounds (int overload)
+            nx = std::clamp(nx, 0, width - 1);
+            ny = std::clamp(ny, 0, height - 1);
+
+            float val = data[ny * static_cast<size_t>(width) + nx];
+
+            // Skip invalid values
+            if (!isValid(val)) {
+                continue;
+            }
+
+            sum = safeAdd(sum, val);
+            sumSq = safeAdd(sumSq, val * val);
+            ++count;
+        }
+    }
+    }
+
+    if (count == 0) {
+        return 0.0f;  // No valid neighbors
+    }
+
+    float mean = sum / static_cast<float>(count);
+    float variance = (sumSq / static_cast<float>(count)) - (mean * mean);
+
+    // Guard against negative variance due to numerical errors
+    variance = std::max(0.0f, variance);
+
+    return std::sqrt(variance);
+}
+
+/* ============================================================================
+ * Overshoot Limiting (SAF-100 - MANDATORY)
+ * ============================================================================ */
+
+void applyOvershootLimiting(const float* original, float* enhanced,
+                            int width, int height) {
+    const float overshootFactor = 3.0f;  // SAF-100: Fixed at 3*sigma
+
+    // #179 (QA-B-103): row bands. Each output pixel reads `original` only --
+    // never `enhanced` of another row -- so the bands are independent and the
+    // result does not depend on the thread count.
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
+        for (int x = 0; x < width; ++x) {
+            size_t idx = y * static_cast<size_t>(width) + x;
+
+            float baseValue = original[idx];
+
+            // REQ-ADV-032: Guard against NaN/Inf in original data.
+            // If the base value is non-finite, fallback to 0.0f.
+            if (!std::isfinite(baseValue)) {
+                enhanced[idx] = 0.0f;
+                continue;
+            }
+
+            float enhancedValue = enhanced[idx];
+            float boost = enhancedValue - baseValue;
+
+            // Calculate local standard deviation
+            float sigmaLocal = calculateLocalStdDev(original, width, height, x, y);
+
+            // SAF-100: Clip enhancement boost to +-3*sigma_local
+            float limit = overshootFactor * sigmaLocal;
+
+            // Handle zero sigma (uniform region)
+            if (sigmaLocal < 1e-6f) {
+                // In uniform regions, reject ALL enhancement (identity)
+                enhanced[idx] = baseValue;
+                continue;
+            }
+
+            // Apply clipping
+            if (boost > limit) {
+                enhanced[idx] = baseValue + limit;
+            } else if (boost < -limit) {
+                enhanced[idx] = baseValue - limit;
+            }
+
+            // Final sanity check: ensure output is valid
+            if (!isValid(enhanced[idx])) {
+                enhanced[idx] = baseValue;  // Fallback to original
+            }
+        }
+    }
+    });
+}
+
+/* ============================================================================
+ * Fractional Derivative Application
+ *
+ * Architecture:
+ *   1. Compute Dx = horizontal 1D GL fractional derivative from original
+ *   2. Compute Dy = vertical   1D GL fractional derivative from original
+ *   3. Gradient magnitude  G = sqrt(Dx^2 + Dy^2)
+ *   4. Enhanced image = original + gain * G
+ *   5. SAF-100 overshoot limiting (mandatory)
+ *
+ * The previous 2-pass separable approach (H then V on the H result) computed
+ * the mixed partial D_xy, which annihilates features oriented along a single
+ * axis (e.g. a horizontal ramp).  The gradient-magnitude approach correctly
+ * preserves all edge orientations.
+ *
+ * REQ-ADV-011: Fractional-order process execution
+ * REQ-ADV-032: No NaN/Inf in output
+ * REQ-ADV-051: Mandatory overshoot limiting (SAF-100)
+ * ============================================================================ */
+
+/// @brief Apply a 1D fractional derivative kernel along the horizontal axis
+static void convolveHorizontal(const float* src, float* dst,
+                               int width, int height,
+                               const float* mask, int maskSize) {
+    const int half = maskSize / 2;
+    // QA-B-102 (#179): columns half .. width-1-half read no clamped index, so
+    // the clamp and the row offset are hoisted out of the inner loop. Same
+    // values, same order of accumulation.
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
+        const float* row = src + y * static_cast<size_t>(width);
+        for (int x = 0; x < width; ++x) {
+            float sum = 0.0f;
+            if (x >= half && x + half < width) {
+                for (int k = 0; k < maskSize; ++k) {
+                    float val = row[x - k + half];
+                    if (!std::isfinite(val)) val = 0.0f;
+                    sum += val * mask[k];
+                }
+                if (!std::isfinite(sum)) sum = 0.0f;
+                dst[y * static_cast<size_t>(width) + x] = sum;
+                continue;
+            }
+            for (int k = 0; k < maskSize; ++k) {
+                int nx = x - k + half;
+                nx = std::clamp(nx, 0, width - 1);
+                float val = src[y * static_cast<size_t>(width) + nx];
+                if (!std::isfinite(val)) val = 0.0f;
+                sum += val * mask[k];
+            }
+            if (!std::isfinite(sum)) sum = 0.0f;
+            dst[y * static_cast<size_t>(width) + x] = sum;
+        }
+    }
+    });
+}
+
+/// @brief Apply a 1D fractional derivative kernel along the vertical axis
+static void convolveVertical(const float* src, float* dst,
+                             int width, int height,
+                             const float* mask, int maskSize) {
+    const int half = maskSize / 2;
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (int y = yBegin; y < yEnd; ++y) {
+        const bool interiorRow = y >= half && y + half < height;
+        for (int x = 0; x < width; ++x) {
+            float sum = 0.0f;
+            if (interiorRow) {
+                // QA-B-102 (#179): rows half .. height-1-half read no clamped
+                // index; same values, same order.
+                const float* col = src + (static_cast<size_t>(y) + half) * static_cast<size_t>(width) + x;
+                for (int k = 0; k < maskSize; ++k, col -= width) {
+                    float val = *col;
+                    if (!std::isfinite(val)) val = 0.0f;
+                    sum += val * mask[k];
+                }
+                if (!std::isfinite(sum)) sum = 0.0f;
+                dst[y * static_cast<size_t>(width) + x] = sum;
+                continue;
+            }
+            for (int k = 0; k < maskSize; ++k) {
+                int ny = y - k + half;
+                ny = std::clamp(ny, 0, height - 1);
+                float val = src[ny * static_cast<size_t>(width) + x];
+                if (!std::isfinite(val)) val = 0.0f;
+                sum += val * mask[k];
+            }
+            if (!std::isfinite(sum)) sum = 0.0f;
+            dst[y * static_cast<size_t>(width) + x] = sum;
+        }
+    }
+    });
+}
+
+XpeErrorCode applyFractionalDerivative(XpeImageBuffer* img, const FractionalConfig& config) {
+    if (img == nullptr) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
+    if (img->format != XPE_PIXEL_FLOAT32) {
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+
+    if (img->width == 0 || img->height == 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
+    // Order validation [0.0, 2.0]
+    if (config.order < 0.0f || config.order > 2.0f) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
+    int width = static_cast<int>(img->width);
+    int height = static_cast<int>(img->height);
+    float* data = static_cast<float*>(img->data);
+    size_t totalPixels = static_cast<size_t>(width) * height;
+
+    // REQ-ADV-032: Sanitize input NaN/Inf to 0.0f before processing.
+    const int threads = xpe_parallel::ResolveThreads(XpeAdvThreadRequest(), height);
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+        for (size_t i = static_cast<size_t>(yBegin) * width;
+             i < static_cast<size_t>(yEnd) * width; ++i) {
+            if (!std::isfinite(data[i])) {
+                data[i] = 0.0f;
+            }
+        }
+    });
+
+    // Store original for overshoot limiting and derivative computation
+    std::vector<float> original(data, data + totalPixels);
+
+    // For order = 0, no enhancement (identity)
+    if (config.order < 1e-6f) {
+        return XPE_OK;
+    }
+
+    // Compute fractional derivative mask
+    // Mask size: 5 for order <= 1.0, 7 for order > 1.0
+    const size_t maskSize = (config.order <= 1.0f) ? 5 : 7;
+    std::vector<float> mask = computeFractionalMask(config.order, maskSize);
+    const int mSize = static_cast<int>(maskSize);
+
+    // Step 1: Compute Dx (horizontal derivative from original)
+    std::vector<float> Dx(totalPixels);
+    convolveHorizontal(original.data(), Dx.data(), width, height, mask.data(), mSize);
+
+    // Step 2: Compute Dy (vertical derivative from original)
+    std::vector<float> Dy(totalPixels);
+    convolveVertical(original.data(), Dy.data(), width, height, mask.data(), mSize);
+
+    // Step 3: Gradient magnitude G = sqrt(Dx^2 + Dy^2) and
+    // Step 4: Enhanced = original + gain * G
+    //
+    // Gain: scales the derivative contribution into the enhancement.
+    // For order < 1 the derivative is sub-pixel; compensate with a
+    // slightly higher gain.  The gain is clamped so that overshoot
+    // limiting (SAF-100) still has room to clip cleanly.
+    const float gain = std::min(1.0f + 0.5f * config.order, 2.0f);
+
+    xpe_parallel::ForRows(height, threads, [&](int yBegin, int yEnd) {
+    for (size_t i = static_cast<size_t>(yBegin) * width;
+         i < static_cast<size_t>(yEnd) * width; ++i) {
+        float gx = Dx[i];
+        float gy = Dy[i];
+        float gMag = std::sqrt(gx * gx + gy * gy);
+
+        // REQ-ADV-032: Guard gradient magnitude
+        if (!std::isfinite(gMag)) gMag = 0.0f;
+
+        data[i] = original[i] + gain * gMag;
+
+        // REQ-ADV-032: Guard output
+        if (!std::isfinite(data[i])) data[i] = original[i];
+    }
+    });
+
+    // SAF-100: Apply overshoot limiting (MANDATORY)
+    applyOvershootLimiting(original.data(), data, width, height);
+
+    return XPE_OK;
+}
+
+} // namespace enhance_advanced
+} // namespace xpe

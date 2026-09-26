@@ -1,0 +1,15 @@
+file                     bucket                                      instr  uncov
+DicomNetworkSCU.cpp      pre-association (reachable without a peer)      7      7
+DicomNetworkSCU.cpp      association and after (needs a live SCP)      111     90
+DicomValidator.cpp       early-return paths (no meta / no dataset)      30     30
+DicomValidator.cpp       report buffer sizing                            3      3
+DicomValidator.cpp       buildReport json branches                      13      8
+DicomReader.cpp          J2K decode failure branches                    86     33
+DicomReader.cpp          open / transfer-syntax branches                21     16
+dicom.cpp                catch(...) handlers                            35     33
+dicom.cpp                data_size_is_consistent bpp branch              1      1
+DicomWriter.cpp          openjpeg failure handlers                      71     23
+DicomWriter.cpp          ordinary-input branches                         4      4
+
+buckets cover 382 instrumented lines (248 uncovered)
+report total  1156 instrumented lines (326 uncovered)

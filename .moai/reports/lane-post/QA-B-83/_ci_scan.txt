@@ -1,0 +1,5 @@
+35176868070 lines=5269 T308=0 T306(control)=2 perfline=0 totaltests=out of 515 out of 647 out of 69 
+35176092896 lines=5269 T308=0 T306(control)=2 perfline=0 totaltests=out of 647 out of 69 out of 515 
+35174939593 lines=5269 T308=0 T306(control)=2 perfline=0 totaltests=out of 515 out of 69 out of 647 
+35174139778 lines=5212 T308=0 T306(control)=2 perfline=0 totaltests=out of 647 out of 515 out of 69 
+35172821436 lines=5212 T308=0 T306(control)=2 perfline=0 totaltests=out of 647 out of 69 out of 515 

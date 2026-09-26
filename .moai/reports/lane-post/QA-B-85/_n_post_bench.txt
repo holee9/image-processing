@@ -1,0 +1,10 @@
+Internal ctest changing into directory: D:/workspace-github/xpe-post/build/ci-post
+Test project D:/workspace-github/xpe-post/build/ci-post
+  Test #131: ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+  Test #132: ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+  Test #210: CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+  Test #222: EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalMeasure3072
+  Test #481: BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+  Test #534: FullPipelineE2E.PostProcess_3072x3072_Within3000ms
+
+Total Tests: 6

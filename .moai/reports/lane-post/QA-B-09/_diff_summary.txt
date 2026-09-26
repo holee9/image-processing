@@ -1,0 +1,7 @@
+DIFFERS    test_api_header.cpp  (copy=144L module=54L, changed lines=168)
+DIFFERS    test_collimation_detect.cpp  (copy=304L module=435L, changed lines=593)
+DIFFERS    test_edge_enhancement.cpp  (copy=362L module=741L, changed lines=965)
+DIFFERS    test_exposure_index.cpp  (copy=319L module=610L, changed lines=781)
+DIFFERS    test_integration.cpp  (copy=294L module=708L, changed lines=874)
+DIFFERS    test_lifecycle.cpp  (copy=183L module=125L, changed lines=250)
+DIFFERS    test_mfp_scalar.cpp  (copy=389L module=323L, changed lines=608)

@@ -1,0 +1,7 @@
+== HEAD (before)
+HEAD:modules/enhance_advanced/src/detail/fractional_derivative.h:52:    static FractionalConfig fromJson(const char* configJsonOrNull);
+HEAD:modules/enhance_advanced/src/fractional_derivative.cpp:101:FractionalConfig FractionalConfig::fromJson(const char* configJsonOrNull) {
+HEAD:modules/enhance_advanced/src/mfp_scalar.cpp:16:MfpConfig MfpConfig::fromJson(const char* jsonConfig) {
+HEAD:modules/enhance_advanced/src/mfp_scalar.h:24:    static MfpConfig fromJson(const char* jsonConfig);
+== worktree (after)
+count_after=0
