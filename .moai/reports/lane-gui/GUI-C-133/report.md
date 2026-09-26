@@ -129,6 +129,90 @@ Mock E2E W-13 (ComparisonEntryPointScenarios): 20회 × 6항목 = 120 호출, �
   실패하는 경우가 있을 수 있고, 그러면 죽은 줄 알았던 경로가 살아난다 —
   게이트를 잘못된 기계에서 잡은 사례가 이미 있다.
 - `#163` 을 닫을지는 lead 결정이다. **원인은 확정됐고 현재 코드는 20/20 이지만**,
-  남은 `else` 가 그대로 있는 한 "고쳤다" 는 조건부다.
+  남은 `else` 가 그대로 있는 한 "고쳤다" 는 조건부다. → **§9 에서 처리했다.**
+
+---
+
+# 후속 — 클릭 대체를 **없앴다** (lead 결정)
+
+## 9. 무엇을 했나
+
+lead 판단: 죽은 코드지만 `TryGetPattern` 이 실패하는 기계·버전이 나오면 **그때 되살아나
+원인이 그대로 재발한다.** 그래서 두지 않되, 방향은 **토글을 더 안전하게 만드는 것이
+아니라 없애는 것**이다.
+
+`ComparisonEntryPointScenarios.cs` — `if/else` 를 **단언 하나**로 바꿨다.
+
+```csharp
+Assert.True(compare!.Patterns.ExpandCollapse.TryGetPattern(out var expand),
+    "The ExpandCollapse pattern for View → Compare Mode could not be obtained, and the click " +
+    "fallback was REMOVED in #163 (GUI-C-133) because clicking a submenu header toggles it and " +
+    "closes the parent popup about half the time (measured 5 of 20). If this fires, the menu " +
+    "needs a non-toggling way in — do not restore the click.");
+expand.Expand();
+```
+
+근거를 주석에 남겼다 — **상태를 모르고 토글을 누르면 반반이고, 그 반이 부모 팝업을
+닫는다. 조용히 절반 틀리는 것보다 시끄럽게 멈추는 쪽이 낫다.** 재시도는 토글을 더
+흔들기만 하므로 넣지 않았다.
+
+파일에 클릭이 **한 건도 남지 않았다**:
+
+```
+grep -c "compare.AsMenuItem().Click()"  → 0
+```
+
+## 10. 반증 — 도달 불가 경로가 실제로 단언에 걸리는가
+
+`G2`(되돌리면 실패가 재현)는 **요구되지 않았다** — 죽은 경로라 되돌려도 실패가 나지
+않는다(§3). 대신 **그 경로에 실제로 도달했을 때 새 메시지가 나오는지**를 반증으로 썼다.
+이 변경에 가능한 유일한 반증이다.
+
+패턴이 없는 요소를 강제로 넣었다 — `Button` 은 `ExpandCollapse` 를 갖지 않는다.
+
+```
+injection present: 1
+BUILD_ERRORS=0
+→ The ExpandCollapse pattern for View → Compare Mode could not be obtained, and the click
+  fallback was REMOVED in #163 (GUI-C-133) ... do not restore the click.
+```
+
+**새 메시지가 그대로 나왔다.** 단언이 눈멀지 않았고, 메시지가 다음 사람에게 무엇을
+하지 말아야 하는지까지 말한다.
+
+원복 확인:
+
+```
+FALSIFY left: 0
+click fallback left: 0
+BUILD_ERRORS=0
+```
+
+## 11. `G1` — 제거 뒤 n=20
+
+```
+G1 (no fallback): pass 20 / fail 0 (20회)
+```
+
+`n=20` 근거는 `GUI-C-130` 에서 세운 것과 같다 — `p=0.25` 에서 6회 무실패 확률이 18% 라
+6회로는 우연과 구별되지 않고, 20회면 0.32% 다.
+
+## 12. 게이트 정리
+
+| 게이트 | 결과 |
+|---|---|
+| **G1** (n=20 실패 0) | **통과** — 20/20 |
+| **G2** (되돌리면 실패 재현) | **요구되지 않음** — 죽은 경로 (lead 판단, §3 근거) |
+| **대체 반증** (도달 시 새 단언이 걸린다) | **통과** — §10 |
+| **G3** (다른 메뉴 경로 회귀) | **통과** — W-13·W-14·W-27 전부 같은 파일이고 20회 실행에 포함됐다 |
+
+## 13. 이 후속의 미검증
+
+- **`TryGetPattern` 이 자연히 실패하는 조건은 여전히 모른다.** §10 은 다른 요소를 넣어
+  **강제**한 것이고, 실제로 그 상황이 어느 기계·어느 UIA 버전에서 생기는지는 재지 못했다.
+- **CI 에서 이 단언이 걸리는지 보지 않았다.** 로컬 120/120 이 패턴을 얻었지만, CI 환경이
+  다르면 이제 **조용한 절반 실패 대신 명시적 빨강**이 난다 — 그것이 의도지만, 실제로
+  나는지는 다음 CI 실행이 말해 준다.
+- Native 백엔드에서는 재지 않았다(20회 전부 Mock).
 
 🗿 MoAI
