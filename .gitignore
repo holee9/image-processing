@@ -294,7 +294,22 @@ tests/test_data/**/*.pptx
 tests/test_data/**/Cluster_position.txt
 tests/test_data/**/PositionMap.raw
 .moai/logs/
-.moai/reports/
+
+# 레인 증거는 추적한다 — 다만 서술만 (#163 에서 드러남)
+#
+# 리더의 판정은 `.moai/reports/lane-<lane>/<카드>/` 를 읽고 내리는데, 이 경로가
+# 통째로 무시돼 있어 **인용한 증거가 이력에 남은 적이 없었다.** 게다가 보고서는
+# 레인 워크트리에만 있고 워크트리는 폐기 대상이라, 워크트리를 지우면 근거가
+# 사라진다. GUI-C-130 의 측정이 6일간 디스크에만 있었던 것이 그 실물이다.
+#
+# md/txt 만 담는다: 3레인 합쳐 815개 / 약 5MB, 100KB 초과 0건으로 측정됐다.
+# 나머지(.log 1213 · .bin 166 · .dll 16 · .bat 463)는 덩치이거나 산출물이라
+# 계속 무시한다. 큰 원문 출력은 md 안에 필요한 만큼만 인용한다.
+.moai/reports/**
+!.moai/reports/**/
+!.moai/reports/lane-*/**/*.md
+!.moai/reports/lane-*/**/*.txt
+
 .moai/lanes/
 .moai/plans/
 _workspace/
