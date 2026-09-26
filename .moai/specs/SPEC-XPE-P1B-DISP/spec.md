@@ -302,9 +302,41 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 
 ### 3.2 VOI LUT (SWU-3.2 / POST-12b) -- REQ-DISP-009..018
 
-**REQ-DISP-009**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR`, the system SHALL apply linear windowing to each pixel in-place: `output[i] = clamp((input[i] - (center - width/2)) / width * (maxOut - minOut) + minOut, minOut, maxOut)`.
+**REQ-DISP-009**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR`, the system SHALL apply the DICOM PS3.3 C.11.2.1.2.1 *Default LINEAR* function, which windows about `center - 0.5` over a width of `width - 1`:
 
-**REQ-DISP-010**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR_EXACT`, the system SHALL apply DICOM PS3.3 C.11.2.1.3 exact linear mapping where the full window maps exactly from minOut to maxOut without the half-value offset.
+```
+output[i] = clamp( ((input[i] - (center - 0.5)) / (width - 1) + 0.5) * (maxOut - minOut) + minOut,
+                   minOut, maxOut )
+```
+
+**REQ-DISP-010**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR_EXACT`, the system SHALL apply the DICOM PS3.3 C.11.2.1.3.2 *LINEAR_EXACT* function, which windows about `center` over a width of `width`:
+
+```
+output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + minOut,
+                   minOut, maxOut )
+```
+
+**REQ-DISP-010a** (vocabulary — binding): the `+ 0.5` term is present in **both** functions and is NOT what distinguishes them. It re-centres the normalized window onto `[0, 1]`; removing it would map the window to `[-0.5, +0.5]` and the output would never span `minOut..maxOut`. What separates the two functions is the **window-placement adjustment** — `LINEAR` shifts the centre by `-0.5` and shortens the width by `1`; `LINEAR_EXACT` uses `center` and `width` unadjusted. Any requirement, comment, or review that refers to a "half-value offset" SHALL name which of the two it means.
+
+> **정정 (`#156`, 2026-09-26).** 이전 `REQ-DISP-009` 는
+> `(input - (center - width/2)) / width * range + minOut` 였다. 전개하면
+> `((input - center)/width + 0.5) * range + minOut` 으로 **`REQ-DISP-010` 과 대수적으로 같은 식**이다.
+> 그래서 `XPE_VOI_LINEAR` 과 `XPE_VOI_LINEAR_EXACT` 가 같은 함수가 됐고 모드 선택이 무효였다
+> (측정된 차이 1 ulp = 5.96e-08 은 부동소수점 연산 순서일 뿐이다).
+>
+> **틀린 것은 SPEC 이고 코드는 충실했다** — `#154` 와 같은 형태다. `voi_lut.cpp` 의 `LINEAR_EXACT`
+> 분기는 처음부터 표준과 일치했고, `LINEAR` 분기가 그 EXACT 식을 구현하고 있었다.
+>
+> 근거는 2차 문서가 아니라 **DICOM PS3.3 원문**이다
+> (https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html).
+> `LINEAR_EXACT` 는 의사코드가 그대로 실려 있고, `LINEAR` 은 표준이 실어 둔 예제 셋에서 역산해
+> 교차 확인했다 — `c=2048,w=4096` → 경계 `0`/`4095`, 식 `(x-2047.5)/4095`;
+> `c=0,w=100` → 경계 `-50`/`49`, 식 `(x+0.5)/99`. 세 예제가 모두 `(c-0.5)`·`(w-1)` 과 맞는다.
+>
+> `REQ-DISP-010a` 를 새로 둔 이유: 옛 `REQ-DISP-010` 의 *"without the half-value offset"* 이
+> 무엇을 가리키는지 정하지 않아, `#156` 이 **`+0.5` 를 금지 대상으로** 읽었다. 그 읽기를 채택하면
+> 같은 요구의 앞부분("full window maps exactly from minOut to maxOut")이 깨진다.
+> 모호한 어휘 하나가 결함 보고의 방향을 뒤집은 자리다.
 
 **REQ-DISP-011**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_SIGMOID`, the system SHALL apply sigmoid windowing: `output[i] = (maxOut - minOut) / (1 + exp(-4 * (input[i] - center) / width)) + minOut`.
 

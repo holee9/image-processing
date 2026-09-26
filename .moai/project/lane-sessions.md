@@ -303,6 +303,28 @@ dev-plan §4.1 게이트 6항목. 전부 "통과/실패"가 기계적으로 갈�
 - `tests.log` — ctest 원문
 - `abi.log` — `dumpbin /dependents` 원문
 
+#### 공개 헤더를 건드렸으면 커밋 전에 한 줄 더 (`#159`)
+
+```bash
+python tools/docs/check_header_docs.py
+```
+
+**왜**: `Documentation Generation` 워크플로가 `WARN_AS_ERROR` 로 돌지만 **레인 기계에는 Doxygen 이 없다.** 그래서 `@param` 이 시그니처와 어긋나도 **작성 시점에는 안 보이고** 머지 뒤에야 빨개진다. 실제로 09-17 에 `preprocess_api.h:563` 의 `@param` 중복 하나가 **머지 8개에 걸쳐** CI 를 빨갛게 유지했다. 이 스크립트가 그 자리를 로컬에서(파이썬만으로) 대신 본다.
+
+**무엇을 잡는지 — 반증으로 확인한 범위** (`0` = 대조군, 정상 헤더):
+
+| 주입 | 결과 |
+|---|---|
+| 정상 | 0건 |
+| `@param` 중복 | `@param X is written twice` |
+| `@param` 누락 | `argument X has no @param` |
+| 없는 인자에 `@param` | `@param X is not in the argument list` |
+| doc 블록 없음 | `no doc block` |
+
+**한계 — 이것을 Doxygen 과 같다고 믿지 마라.** 정규식 근사이고, 파싱하지 못한 선언은 **조용히 건너뛴다.** 그래서 출력 끝줄의 `N declarations skipped as unparseable` 를 **반드시 읽어라**. 0 이 아니면 그만큼은 검사되지 않은 것이고, 그 선언은 사람이 봐야 한다. 이 검사가 초록인데 CI 가 빨간 경우가 생기면 스크립트 쪽 결함이니 리더에게 보고하라 — 근사 검사를 신뢰하게 된 상태가 검사가 없는 상태보다 나쁘다.
+
+게이트가 아니다(`text-lint` 소속). 막지 않고 보여 줄 뿐이다.
+
 ### L2 — CI 무심 판정 (이미 배선돼 있음)
 
 `.github/workflows/ci.yml` 이 **레인을 인식**한다:
