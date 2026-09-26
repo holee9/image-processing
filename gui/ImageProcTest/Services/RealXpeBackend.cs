@@ -162,7 +162,21 @@ public sealed class RealXpeBackend : IXpeBackend
             var presentation = XpePresentationLutParamsNative.CreateLinear(settings.GsdfEnabled);
             if (settings.GsdfEnabled)
             {
-                var luminanceValues = new[] { 0.05f, 1.0f, 10.0f, 100.0f, 400.0f };
+                // Two endpoints, not five (#155, GUI-C-131). REQ-DISP-029 gives the array a meaning
+                // it did not have before: element i is the luminance measured at driving level
+                // DDL_i = i/(count-1) x 65535. The five values here were a log grid (0.05, 1, 10, 100,
+                // 400) — correct under the old contract, where the header said only the minimum and
+                // maximum were used, and wrong under the new one, where the spacing IS the curve.
+                //
+                // No panel has been measured, so any interior value would be invented. count == 2 says
+                // exactly what is known: the luminance at driving level 0 and at full scale, with a
+                // linear display assumed between them — the same assumption the old call already made,
+                // now stated instead of implied. A plausible wrong curve is worse than an obviously
+                // unmeasured one.
+                //
+                // When a measured characteristic curve exists, extend this with values read at evenly
+                // spaced driving levels (panel measurement is blocked with #151).
+                var luminanceValues = new[] { 0.05f, 400.0f };
                 CheckNativeResult(
                     XpeDisplayNative.xpe_gsdf_calibrate(luminanceValues, (uint)luminanceValues.Length, ref presentation),
                     "xpe_gsdf_calibrate");
