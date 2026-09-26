@@ -1,0 +1,39 @@
+# GUI-C-135 (#194) — verbatim measurements
+
+=== the two branches, read from modules/preprocess/src/gain_correct.cpp (QA-A-141 / 0fa2acc) ===
+clamped_count == n : "ALL %zu pixel(s) fell outside the gain polynomial's fitted dose range
+                      [%.1f, %.1f] -- the whole frame was evaluated at one range edge, ...
+                      Check that the calibration's dose levels are in pixel values (ADU): ..."
+else               : "%zu pixel(s) fell outside the gain polynomial's fitted dose range
+                      [%.1f, %.1f] and were evaluated at the range edge; values beyond the
+                      calibrated levels are not extrapolated (issue #194)"
+
+=== ALL variant (all 4096 pixels out of range) ===
+alert: ALL 4096 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0]
+       -- the whole frame was evaluated at one range edge, so the gain applied is effectively
+       constant. Check that the calibration's dose levels are in pixel values (ADU): ...
+
+=== PARTIAL variant (half at 65535, half at the range midpoint) ===
+fitted range [8000, 20000] -> in-range value 14000
+alert: 2048 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0]
+       and were evaluated at the range edge; values beyond the calibrated levels are not
+       extrapolated (issue #194)
+clamped 2048 of 4096
+
+=== falsification: frames swapped, both directions ===
+FALSIFY135A (ALL test given the partial frame)     -> FAIL
+FALSIFY135B (partial test given the all-out frame) -> FAIL
+scalar-gain control                                -> pass
+실패!  - 실패: 2, 통과: 1, 건너뜀: 0, 전체: 3
+restore: FALSIFY135 left 0, BUILD_ERRORS=0
+
+=== order dependence found and fixed ===
+before: ALL test alone   -> "No clamp alert was pushed. Alerts seen: 0."
+        ALL test in suite -> pass
+two identical copies of the queue module:
+  build/ci-common/bin/xpe_common.dll               98bfc688bbe8e99e5b9dfe992260d4bc
+  clients/.../bin/Debug/net8.0/xpe_common.dll      98bfc688bbe8e99e5b9dfe992260d4bc
+after (queue module bound before xpe_preprocess):
+  ALL test alone     -> 통과 1
+  partial test alone -> 통과 1
+  full suite         -> 통과 265, 건너뜀 1, 실패 0

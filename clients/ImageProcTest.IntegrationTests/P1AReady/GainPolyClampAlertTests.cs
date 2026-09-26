@@ -31,10 +31,27 @@ public sealed class GainPolyClampAlertTests(Xunit.Abstractions.ITestOutputHelper
     /// <summary>The marker of the alert under test (gain_correct.cpp).</summary>
     private const string ClampMarker = "fell outside the gain polynomial";
 
+    /// <summary>
+    /// Quoted from <c>gain_correct.cpp</c>'s ALL branch (the literals there are concatenated:
+    /// <c>"Check that the calibration's " "dose levels are in pixel values (ADU): …"</c>). It appears in
+    /// the ALL variant only, which is what makes it usable as the discriminator between the two.
+    /// </summary>
+    private const string MisloadHint = "dose levels are in pixel values (ADU)";
+
     private static readonly string? DllPath = XpePreprocessNative.TryFindDll();
 
+    /// <summary>
+    /// QA-A-141 (#194 item 2) split the alert in two, and these are measured as two cases rather than by
+    /// loosening one regex to <c>^(ALL )?\d+</c>. A loosened pattern would pass on a build where the
+    /// distinction was removed again, which is the fact the split exists to state.
+    ///
+    /// <para>EVERY pixel clamping is the shape a mis-united calibration makes — <c>dose_levels</c> fitted
+    /// in mGy sit orders of magnitude away from pixel values, so nothing lands in range and the whole
+    /// frame pins to one edge. The module says so, and says explicitly that it is a coarse mis-load check
+    /// and not a unit check (the file carries no unit field).</para>
+    /// </summary>
     [SkippableFact]
-    public void PixelsOutsideTheFittedRange_RaiseOneAlertCarryingTheCount()
+    public void EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint()
     {
         Skip.If(DllPath is null, "xpe_preprocess.dll is not staged.");
         var fixture = GeneratePolyFixture(out var skipReason);
@@ -51,8 +68,75 @@ public sealed class GainPolyClampAlertTests(Xunit.Abstractions.ITestOutputHelper
                 "Either no pixel fell outside the fitted range, or the alert is not reaching the queue (#194).");
 
             // The count is the point of the alert: one line per frame, not per pixel.
-            Assert.Matches(@"^\d+ pixel\(s\) fell outside", clamp!);
             Assert.Single(alerts.Where(a => a.Contains(ClampMarker, StringComparison.Ordinal)));
+
+            // Every pixel of this frame is out of range, so the ALL variant is the one that must fire,
+            // and it must carry the count and the ADU hint. Anchored: "ALL" is a prefix, not a word
+            // that may appear anywhere.
+            Assert.Matches($@"^ALL {PixelCount} pixel\(s\) fell outside", clamp!);
+            Assert.Contains(MisloadHint, clamp!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            TryDelete(fixture);
+        }
+    }
+
+    /// <summary>
+    /// The control for the split: when only SOME pixels are out of range the PARTIAL variant fires —
+    /// no <c>ALL</c> prefix and no mis-load hint. Without this case an implementation that prefixed
+    /// every clamp alert with <c>ALL</c> would pass the case above, and the two branches would be
+    /// indistinguishable from one.
+    ///
+    /// <para><b>The in-range value is read from the module, not assumed.</b> The fitted dose range is
+    /// whatever the generator produced, so it is parsed out of the ALL-variant message
+    /// (<c>[min, max]</c>) and the midpoint is used. Hard-coding a range would make this case pass or
+    /// fail on the generator's choices rather than on the branch under test.</para>
+    /// </summary>
+    [SkippableFact]
+    public void SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint()
+    {
+        Skip.If(DllPath is null, "xpe_preprocess.dll is not staged.");
+        var fixture = GeneratePolyFixture(out var skipReason);
+        Skip.If(fixture is null, skipReason);
+
+        try
+        {
+            var polyPath = Path.Combine(fixture!, "gain_poly.xcal");
+
+            // Learn the fitted range from the ALL variant first.
+            var probeAlerts = RunGainCorrect(polyPath, OutOfRangeFrame());
+            output.WriteLine($"probe alerts: {probeAlerts.Count}");
+            foreach (var a in probeAlerts) output.WriteLine($"probe alert: {a}");
+            var probe = probeAlerts.FirstOrDefault(a => a.Contains(ClampMarker, StringComparison.Ordinal));
+            Assert.True(probe is not null,
+                $"The probe run produced no clamp alert, so the range is unknown. Alerts seen: {probeAlerts.Count}.");
+            var range = System.Text.RegularExpressions.Regex.Match(probe!, @"\[(-?[\d.]+), (-?[\d.]+)\]");
+            Assert.True(range.Success, $"Could not read the fitted range out of: {probe}");
+
+            var min = double.Parse(range.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            var max = double.Parse(range.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+            var inside = (ushort)Math.Clamp((min + max) / 2.0, 0, ushort.MaxValue);
+            output.WriteLine($"fitted range [{min}, {max}] -> in-range value {inside}");
+
+            var alerts = RunGainCorrect(polyPath, PartlyOutOfRangeFrame(inside));
+            foreach (var a in alerts) output.WriteLine($"alert: {a}");
+
+            var clamp = alerts.FirstOrDefault(a => a.Contains(ClampMarker, StringComparison.Ordinal));
+            Assert.True(clamp is not null,
+                $"Half of this frame is above the fitted range, so a clamp alert was expected. " +
+                $"Alerts seen: {alerts.Count}.");
+
+            // The partial variant: a bare count, no ALL prefix, no mis-load hint.
+            Assert.Matches(@"^\d+ pixel\(s\) fell outside", clamp!);
+            Assert.DoesNotContain("ALL ", clamp!, StringComparison.Ordinal);
+            Assert.DoesNotContain(MisloadHint, clamp!, StringComparison.Ordinal);
+
+            // And the count is a strict subset of the frame — otherwise "partial" is not what was measured
+            // and the ALL branch should have fired instead.
+            var counted = int.Parse(System.Text.RegularExpressions.Regex.Match(clamp!, @"^\d+").Value);
+            output.WriteLine($"clamped {counted} of {PixelCount}");
+            Assert.InRange(counted, 1, PixelCount - 1);
         }
         finally
         {
@@ -100,10 +184,38 @@ public sealed class GainPolyClampAlertTests(Xunit.Abstractions.ITestOutputHelper
         return pixels;
     }
 
+    /// <summary>
+    /// Half the frame above any fitted range, half of it INSIDE the range — so the partial branch is the
+    /// one reached. The in-range value is supplied by the caller, which read it out of the module's own
+    /// message rather than assuming what the generator fitted.
+    /// </summary>
+    private static ushort[] PartlyOutOfRangeFrame(ushort inside)
+    {
+        var pixels = new ushort[PixelCount];
+        for (var i = 0; i < PixelCount; i++)
+        {
+            pixels[i] = i % 2 == 0 ? (ushort)65535 : inside;
+        }
+
+        return pixels;
+    }
+
     /// <summary>Loads a gain calibration, runs the gain stage once, and returns what the queue holds.</summary>
     private List<string> RunGainCorrect(string gainPath, ushort[] pixels)
     {
         Assert.True(File.Exists(gainPath), $"{gainPath} was not produced by the generator.");
+
+        // ORDER MATTERS, and it was measured (GUI-C-135). Bind the queue module BEFORE xpe_preprocess:
+        // Windows matches an already-loaded module by NAME when resolving a dependency, so whichever
+        // xpe_common is in the process first is the one the gain stage pushes into. There are two copies
+        // with identical content — build/ci-common/bin (next to the xpe_preprocess this test loads) and
+        // the test assembly's own output directory — so leaving the order to chance decides which queue
+        // is written and which is read. Loading the reader's instance first makes them the same one.
+        //
+        // Without this line the two tests in this file PASSED in the whole suite and FAILED alone with
+        // "Alerts seen: 0": an earlier test happened to load the assembly-relative copy first, which is
+        // what GetCommonDelegate resolves. Green under one ordering only.
+        _ = GetCommonDelegate<PendingCountDelegate>("xpe_get_pending_alert_count");
 
         var handle = NativeLibrary.Load(DllPath!);
         try
