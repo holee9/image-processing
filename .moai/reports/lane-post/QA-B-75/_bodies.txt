@@ -7,7 +7,7 @@
 122:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, ep.fn(&img)) << ep.name << " accepted width == 0";
 123:     }
 124: }
-125: 
+125:
 126: TEST(EnhanceBasicEmptyImageContract, ZeroHeightIsInvalidInputEverywhere) {
 127:     for (const auto& ep : kEntryPoints) {
 128:         std::vector<float> backing;
@@ -15,7 +15,7 @@
 130:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, ep.fn(&img)) << ep.name << " accepted height == 0";
 131:     }
 132: }
-133: 
+133:
 134: TEST(EnhanceBasicEmptyImageContract, NullDataIsInvalidInputEverywhere) {
 
 ##### enhance_basic/tests/test_datasize_overread.cpp:178  [TEST(EnhanceBasicDataSizeProbe, ShortDataSizeIsRejectedWithoutOverreading) {]  test@122
@@ -42,10 +42,10 @@
 174:             });
 175:         }},
 176:     };
-177: 
+177:
 178:     for (const auto& c : cases) {
 179:         SCOPED_TRACE(c.name);
-180: 
+180:
 181:         // Control first -- see the enhance_advanced probe for why (QA-B-40).
 182:         ProbeImage full(kDeclaredBytes);
 183:         ASSERT_TRUE(full.buf.valid()) << "guard allocation failed; the probe would be blind";
@@ -57,7 +57,7 @@
 189:         ASSERT_NE(XPE_ERR_INVALID_INPUT, ctrl.rc)
 190:             << c.name << " rejects a well-formed image too, so a rejection of the "
 191:                          "short one says nothing about the dataSize check";
-192: 
+192:
 193:         ProbeImage short_(kShortBytes);
 194:         ASSERT_TRUE(short_.buf.valid());
 195:         const ProbeResult r = c.run(&short_.img);
@@ -66,21 +66,21 @@
 198:                          << " dataSize=" << kShortBytes << "B"
 199:                          << " rc=" << r.rc
 200:                          << " overread=" << (r.overread ? "YES" : "no");
-201: 
+201:
 202:         EXPECT_FALSE(r.overread) << c.name << " read past dataSize";
 203:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc)
 204:             << c.name << " accepted a buffer too small for the image it declares";
 205:     }
 206: }
-207: 
+207:
 208: #endif  // _WIN32
-209: 
+209:
 
 ##### enhance_basic/tests/test_enhance_integration.cpp:179  [TEST(EnhanceIntegration, ThreadSafety_ConcurrentBilateral) {]  test@170
 170: TEST(EnhanceIntegration, ThreadSafety_ConcurrentBilateral) {
 171:     const uint32_t W = 128, H = 128;
 172:     const int N = W * H;
-173: 
+173:
 174:     // Create two independent images with same data
 175:     auto img1 = make_f32(W, H, 0.0f);
 176:     auto img2 = make_f32(W, H, 0.0f);
@@ -91,26 +91,26 @@
 181:         px1[i] = v;
 182:         px2[i] = v;
 183:     }
-184: 
+184:
 185:     // Single-threaded reference: process a copy
 186:     auto ref = make_f32(W, H, 0.0f);
 187:     std::memcpy(ref.data, img1.data, (size_t)N * sizeof(float));
-188: 
+188:
 189:     XpeNoiseReduceParams params{};
 190:     params.mode = XPE_NOISE_BILATERAL;
 191:     params.sigma_space = 3.0f;
 192:     params.sigma_range = 50.0f;
-193: 
+193:
 194:     ASSERT_EQ(XPE_OK, xpe_noise_reduce(&ref, &params));
 
 ##### enhance_basic/tests/test_enhance_integration.cpp:217  [TEST(EnhanceIntegration, ThreadSafety_ConcurrentBilateral) {]  test@170
-193: 
+193:
 194:     ASSERT_EQ(XPE_OK, xpe_noise_reduce(&ref, &params));
-195: 
+195:
 196:     // Concurrent execution
 197:     XpeErrorCode rc1 = XPE_ERR_NOT_INITIALIZED;
 198:     XpeErrorCode rc2 = XPE_ERR_NOT_INITIALIZED;
-199: 
+199:
 200:     std::thread t1([&]() {
 201:         XpeNoiseReduceParams p = params;
 202:         rc1 = xpe_noise_reduce(&img1, &p);
@@ -119,25 +119,25 @@
 205:         XpeNoiseReduceParams p = params;
 206:         rc2 = xpe_noise_reduce(&img2, &p);
 207:     });
-208: 
+208:
 209:     t1.join();
 210:     t2.join();
-211: 
+211:
 212:     ASSERT_EQ(XPE_OK, rc1);
 213:     ASSERT_EQ(XPE_OK, rc2);
-214: 
+214:
 215:     // Results must match single-threaded reference
 216:     float* ref_px = static_cast<float*>(ref.data);
 217:     for (int i = 0; i < N; i++) {
 218:         EXPECT_FLOAT_EQ(ref_px[i], px1[i]) << "Thread 1 diverged at pixel " << i;
 219:         EXPECT_FLOAT_EQ(ref_px[i], px2[i]) << "Thread 2 diverged at pixel " << i;
 220:     }
-221: 
+221:
 222:     free_img(img1);
 223:     free_img(img2);
 224:     free_img(ref);
 225: }
-226: 
+226:
 227: // Endurance measurement constants (shared by the two heap-growth tests below).
 228: // WARMUP exists because the first calls of a run fault in fresh heap pages and
 229: // grow the CRT allocator arena; counting that one-time cost as "leak" would make
@@ -151,37 +151,37 @@
 283: #endif
 284:     auto img = make_f32(64, 64, 500.0f);
 285:     float* px = static_cast<float*>(img.data);
-286: 
+286:
 287:     XpeNoiseReduceParams nr_params{};
 288:     nr_params.mode = XPE_NOISE_BILATERAL;
 289:     nr_params.sigma_space = 3.0f;
 290:     nr_params.sigma_range = 50.0f;
-291: 
+291:
 292:     XpeClaheParams clahe_params{};
 293:     clahe_params.clip_limit = 3.0f;
 294:     clahe_params.tile_width = 8;
 295:     clahe_params.tile_height = 8;
-296: 
+296:
 297:     XpeUsmParams usm_params{};
 298:     usm_params.amount = 0.5f;
 299:     usm_params.radius = 2.0f;
 300:     usm_params.threshold = 10.0f;
-301: 
+301:
 302:     auto one_cycle = [&](int i) {
 303:         std::fill(px, px + 64 * 64, 500.0f);
 304:         ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &nr_params))     << "cycle " << i;
 305:         ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &clahe_params)) << "cycle " << i;
 306:         ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &usm_params))    << "cycle " << i;
 307:     };
-308: 
+308:
 309:     for (int i = 0; i < ENDURANCE_WARMUP; i++) one_cycle(i);
-310: 
+310:
 311:     const auto before = get_working_set_bytes();
-312: 
+312:
 313:     for (int i = 0; i < ENDURANCE_CYCLES; i++) one_cycle(i);
-314: 
+314:
 315:     const auto after = get_working_set_bytes();
-316: 
+316:
 317:     if (after > before) {
 318:         EXPECT_LT(after - before, ENDURANCE_ONE_MB)
 
@@ -189,19 +189,19 @@
 90: TEST(NoiseReduce, BilateralFilter_NoisyImage_SNRImproves) {
 91:     const uint32_t W = 256, H = 256;
 92:     const int N = W * H;
-93: 
+93:
 94:     // Create clean image with known pattern
 95:     auto clean = make_f32(W, H, 0.0f);
 96:     float* clean_px = static_cast<float*>(clean.data);
 97:     for (int i = 0; i < N; i++) {
 98:         clean_px[i] = 500.0f + 200.0f * std::sin((float)i * 0.01f);
 99:     }
-100: 
+100:
 101:     // Create noisy copy
 102:     auto noisy = make_f32(W, H, 0.0f);
 103:     std::memcpy(noisy.data, clean.data, (size_t)N * sizeof(float));
 104:     float* noisy_px = static_cast<float*>(noisy.data);
-105: 
+105:
 106:     std::mt19937 rng(42);
 107:     std::normal_distribution<float> noise(0.0f, 30.0f);
 108:     for (int i = 0; i < N; i++) {
@@ -227,11 +227,11 @@
 217:                     c.name, d, moveThreshold_);
 218:     }
 219: }
-220: 
+220:
 221: /* ==========================================================================
 222:  * multiscale -- values that are read and then discarded
 223:  * ========================================================================== */
-224: 
+224:
 225: // The legacy flat-schema key `levels` is parsed AFTER `num_levels` into the same
 226: // output variable, so a config carrying both silently loses `num_levels`. This
 227: // records the behaviour; it is not a statement that it is wrong.
@@ -248,7 +248,7 @@
 394:     const float kForegrounds[] = {20.5f, 21.0f, 21.5f, 22.0f, 22.5f, 23.0f,
 395:                                   24.0f, 25.0f, 40.0f, 80.0f, 200.0f, 900.0f};
 396:     const int kN = static_cast<int>(sizeof(kForegrounds) / sizeof(kForegrounds[0]));
-397: 
+397:
 398:     int splits = 0;
 399:     int lowDetectedHighFellBack = 0;
 400:     const Roi full{0, 0, static_cast<int32_t>(kW) - 1, static_cast<int32_t>(kH) - 1};
@@ -258,7 +258,7 @@
 404:             for (uint32_t x = 48; x + 48 < kW; ++x)
 405:                 pxLo[static_cast<size_t>(y) * kW + x] = fg;
 406:         std::vector<float> pxHi = pxLo;
-407: 
+407:
 408:         Roi lo{}, hi{};
 409:         XpeImageBuffer iLo = Wrap(pxLo);
 410:         XpeImageBuffer iHi = Wrap(pxHi);
@@ -266,7 +266,7 @@
 412:                   R"({"confidence_strictness":0.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
 413:         EXPECT_EQ(xpe_detect_collimation(&iHi, &hi.x0, &hi.y0, &hi.x1, &hi.y1,
 414:                   R"({"confidence_strictness":1.0,"min_area_ratio":0.05,"border_margin":0})"), XPE_OK);
-415: 
+415:
 416:         const bool split = !(lo == hi);
 417:         if (split) {
 418:             ++splits;
@@ -277,10 +277,10 @@
 423:                     lo.x0, lo.y0, lo.x1, lo.y1, hi.x0, hi.y0, hi.x1, hi.y1,
 424:                     split ? "SPLIT" : "same");
 425:     }
-426: 
+426:
 427:     std::printf("[  INFO ] strictness sweep: %d of %d edge strengths split 0.0 from 1.0\n",
 428:                 splits, kN);
-429: 
+429:
 430:     // Result 1: the parameter is NOT inert. QA-B-62's single fixture sat far
 431:     // above the detector's floor, which is why it showed nothing; the split
 432:     // appears only in the narrow band where detection itself is marginal.
@@ -306,7 +306,7 @@
 192:         << "the reintroduced typo was silent; a correct config must clear the "
 193:            "memory of what was last reported";
 194: }
-195: 
+195:
 196: // (4) Values may vary every frame. This is why the memory compares key names
 197: // rather than the config string.
 198: TEST_F(ConfigWarningOnce, VaryingTheValueEachFrameStillWarnsOnce) {
@@ -322,7 +322,7 @@
 241:             << "size " << n << "x" << n;
 242:     }
 243: }
-244: 
+244:
 245: // The derived bound uses min(w,h); these confirm that is the right dimension by
 246: // exercising non-square and extreme aspect ratios under ASan (#121 follow-up).
 247: TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnNonSquareImages) {
@@ -344,7 +344,7 @@
 254:             << "size " << wh[0] << "x" << wh[1];
 255:     }
 256: }
-257: 
+257:
 258: // The smallest images the API accepts must also survive the maximum level count.
 259: TEST_F(EnhanceAdvancedConfigTest, MultiscaleMaxLevelsOnTinyImages) {
 260:     for (uint32_t n : {1u, 2u, 3u, 5u}) {
@@ -365,7 +365,7 @@
 265:             << "size " << n << "x" << n;
 266:     }
 267: }
-268: 
+268:
 269: /* ============================================================================
 270:  * dataSize size-consistency contract (#123)
 271:  *
@@ -383,10 +383,10 @@
 249:     int height = 128;
 250:     int edgeX = width / 2;
 251:     XpeImageBuffer img = createStepEdgeImage(width, height, edgeX, 0.0f, 1.0f);
-252: 
+252:
 253:     std::vector<float> original(static_cast<float*>(img.data),
 254:                                 static_cast<float*>(img.data) + width * height);
-255: 
+255:
 256:     // Act & Assert: Test different fractional orders
 257:     struct TestCase {
 258:         float order;
@@ -397,40 +397,40 @@
 263:         {1.5f, "1.5-order derivative (enhanced edges)"},
 264:         {2.0f, "Second-order derivative (Laplacian-like)"}
 265:     };
-266: 
+266:
 267:     for (const auto& tc : testCases) {
 268:         // Create fresh copy for each test
 269:         XpeImageBuffer imgCopy = createFloatImage(width, height);
 270:         std::memcpy(imgCopy.data, original.data(), original.size() * sizeof(float));
-271: 
+271:
 272:         // Apply fractional derivative
 273:         XpeErrorCode result = xpe_fractional_process(&imgCopy, tc.order, nullptr);
-274: 
+274:
 275:         EXPECT_EQ(XPE_OK, result)
 276:             << "Failed for order=" << tc.order << " (" << tc.description << ")";
-277: 
+277:
 278:         EXPECT_FALSE(hasInvalidValues(imgCopy))
 279:             << "NaN/Inf found for order=" << tc.order;
-280: 
+280:
 281:         // Higher orders should produce stronger edge response
 282:         // This is a qualitative check - exact values depend on implementation
 283:         const float* data = static_cast<const float*>(imgCopy.data);
-284: 
+284:
 285:         // Sample points around the edge
 286:         float leftOfEdge = data[edgeX - 5];
 287:         float atEdge = data[edgeX];
 288:         [[maybe_unused]] float rightOfEdge = data[edgeX + 5];
-289: 
+289:
 290:         // Edge should be enhanced (higher response at edge)
 291:         EXPECT_GT(std::abs(atEdge - leftOfEdge), 0.0f)
 292:             << "No edge enhancement detected for order=" << tc.order;
 293:     }
 294: }
-295: 
+295:
 296: /* ============================================================================
 297:  * T-303: Overshoot Limiter Implementation (RED phase) - SAF-100 MANDATORY
 298:  * ============================================================================ */
-299: 
+299:
 300: /**
 301:  * T-303: Overshoot limiter implementation (SAF-100)
 302:  *
@@ -443,7 +443,7 @@
 442:     int width = 128;
 443:     int height = 128;
 444:     XpeImageBuffer img = createFloatImage(width, height, 0.5f);
-445: 
+445:
 446:     // Act & Assert: Try various config attempts to disable overshoot limiting
 447:     struct DisableAttempt {
 448:         const char* config;
@@ -455,22 +455,22 @@
 454:         {"{\"disable_overshoot_limit\": true}", "Direct disable attempt"},
 455:         {"{\"safety\": {\"overshoot\": false}}", "Nested safety disable"}
 456:     };
-457: 
+457:
 458:     for (const auto& attempt : attempts) {
 459:         XpeImageBuffer imgCopy = createFloatImage(width, height, 0.5f);
-460: 
+460:
 461:         XpeErrorCode result = xpe_fractional_process(&imgCopy, 1.0f, attempt.config);
-462: 
+462:
 463:         EXPECT_EQ(XPE_ERR_SAFETY_VIOLATION, result)
 464:             << "Failed to reject config: " << attempt.description
 465:             << " with config: " << attempt.config;
 466:     }
 467: }
-468: 
+468:
 469: /* ============================================================================
 470:  * T-306: Order Validation Test (RED phase)
 471:  * ============================================================================ */
-472: 
+472:
 473: /**
 474:  * T-306: Order parameter validation [0.0, 2.0]
 475:  *
@@ -483,7 +483,7 @@
 485:     int width = 128;
 486:     int height = 128;
 487:     XpeImageBuffer img = createFloatImage(width, height, 0.5f);
-488: 
+488:
 489:     struct OrderTestCase {
 490:         float order;
 491:         XpeErrorCode expectedResult;
@@ -501,22 +501,22 @@
 503:         {1.5f, XPE_OK, "Valid 1.5-order"},
 504:         {2.0f, XPE_OK, "Maximum valid order"}
 505:     };
-506: 
+506:
 507:     for (const auto& tc : testCases) {
 508:         XpeImageBuffer imgCopy = createFloatImage(width, height, 0.5f);
-509: 
+509:
 510:         XpeErrorCode result = xpe_fractional_process(&imgCopy, tc.order, nullptr);
-511: 
+511:
 512:         EXPECT_EQ(tc.expectedResult, result)
 513:             << "Order validation failed for " << tc.description
 514:             << " (order=" << tc.order << ")";
 515:     }
 516: }
-517: 
+517:
 518: /* ============================================================================
 519:  * T-307: NaN/Inf Handling Test (RED phase)
 520:  * ============================================================================ */
-521: 
+521:
 522: /**
 523:  * T-307: NaN/Inf handling
 524:  *
@@ -532,7 +532,7 @@
 272:         "{\"overshoot_factor\": 10.0}",
 273:         "{\"disable_overshoot_limit\": true}"
 274:     };
-275: 
+275:
 276:     for (const char* config : forbiddenConfigs) {
 277:         XpeImageBuffer img = MakeConstantImage(W, H, 0.5f);
 278:         XpeErrorCode err = xpe_fractional_process(&img, 1.0f, config);
@@ -541,15 +541,15 @@
 281:         FreeImageBuffer(img);
 282:     }
 283: }
-284: 
+284:
 285: // ============================================================================
 286: // REQ-ADV-032: NaN/Inf Output Guard
 287: // ============================================================================
-288: 
+288:
 289: TEST_F(EdgeEnhancementExtTest, NoNaNOrInfInOutput) {
 290:     XpeImageBuffer img = MakeStepEdgeImage(32, 32);
 291:     ASSERT_EQ(xpe_fractional_process(&img, 1.5f, nullptr), XPE_OK);
-292: 
+292:
 293:     float* result = static_cast<float*>(img.data);
 
 ##### enhance_advanced/tests/test_exposure_index.cpp:153  [TEST_F(ExposureIndexTest, T501_BodyPartEITargetLookup) {]  test@135
@@ -570,43 +570,43 @@
 149:         {"chest", "Chest (lowercase)", 250.0f},  // Case-insensitive test
 150:         {"AbDoMeN", "Abdomen (mixed case)", 400.0f}  // Case-insensitive test
 151:     };
-152: 
+152:
 153:     for (const auto& tc : testCases) {
 154:         // Create uniform image with known mean
 155:         int width = 256;
 156:         int height = 256;
 157:         XpeImageBuffer img = createFloatImage(width, height, 1.0f);
-158: 
+158:
 159:         XpeImageMetadata meta = createMetadata(tc.bodyPart, 80.0f, 10.0f);
-160: 
+160:
 161:         float ei = 0.0f;
 162:         float di = 0.0f;
-163: 
+163:
 164:         // Act: Calculate EI and DI
 165:         XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
-166: 
+166:
 167:         // Assert:
 168:         EXPECT_EQ(XPE_OK, result) << "Failed for body part: " << tc.description;
-169: 
+169:
 170:         // EI should be finite (AC-EI-001)
 171:         EXPECT_FALSE(isInvalidFloat(ei)) << "EI is NaN/Inf for " << tc.description;
-172: 
+172:
 173:         // DI should be finite (AC-EI-001)
 174:         EXPECT_FALSE(isInvalidFloat(di)) << "DI is NaN/Inf for " << tc.description;
-175: 
+175:
 176:         // When mean = 1.0 and gain = 1.0, DI should indicate deviation from target
 177:         // For mean=1.0, EI ≈ c1*1.0 + c2, DI = 10*log10(EI/EI_target)
 178:         // We expect DI to be calculable (not NaN/Inf)
 179:         EXPECT_TRUE(std::isfinite(di)) << "DI not finite for " << tc.description;
-180: 
+180:
 181:         std::cout << tc.description << ": EI=" << ei << ", DI=" << di << "\n";
 182:     }
 183: }
-184: 
+184:
 185: /* ============================================================================
 186:  * T-502: EI Computation (IEC 62494-1 Formula) (RED phase)
 187:  * ============================================================================ */
-188: 
+188:
 189: /**
 190:  * T-502: EI computation using IEC 62494-1 formula
 191:  *
@@ -618,7 +618,7 @@
 283:     // Arrange: Create very dark image (should produce negative DI)
 284:     int width = 256;
 285:     int height = 256;
-286: 
+286:
 287:     struct DIAlertTestCase {
 288:         float fillValue;
 289:         float kvp;
@@ -632,40 +632,40 @@
 297:         {10.0f, 90.0f, 12.0f, "Bright image", false},  // May or may not trigger
 298:         {100.0f, 120.0f, 20.0f, "Very bright image (overexposed)", true}
 299:     };
-300: 
+300:
 301:     for (const auto& tc : testCases) {
 302:         XpeImageBuffer img = createFloatImage(width, height, tc.fillValue);
 303:         XpeImageMetadata meta = createMetadata("CHEST", tc.kvp, tc.mas);
-304: 
+304:
 305:         float ei = 0.0f;
 306:         float di = 0.0f;
-307: 
+307:
 308:         // Act: Calculate EI and DI
 309:         XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
-310: 
+310:
 311:         // Assert:
 312:         EXPECT_EQ(XPE_OK, result) << "Failed for " << tc.description;
 313:         EXPECT_FALSE(isInvalidFloat(di)) << "DI is invalid for " << tc.description;
-314: 
+314:
 315:         // Check if QC alert condition is met
 316:         bool qcAlert = (std::abs(di) > 3.0f);
-317: 
+317:
 318:         if (tc.expectAlert) {
 319:             // For extreme values, we expect |DI| > 3
 320:             // Note: This depends on the actual EI constants c1 and c2
 321:             std::cout << tc.description << ": DI=" << di
 322:                       << (qcAlert ? " [QC ALERT]" : " [OK]") << "\n";
 323:         }
-324: 
+324:
 325:         // At minimum, verify DI is calculable
 326:         EXPECT_TRUE(std::isfinite(di));
 327:     }
 328: }
-329: 
+329:
 330: /* ============================================================================
 331:  * T-505: ROI-Aware Masking (RED phase)
 332:  * ============================================================================ */
-333: 
+333:
 334: /**
 335:  * T-505: ROI-aware masking
 336:  *
@@ -677,10 +677,10 @@
 398:     int height = 256;
 399:     XpeImageBuffer img = createFloatImage(width, height, 1.0f);
 400:     XpeImageMetadata meta = createMetadata("CHEST", 1.0f);
-401: 
+401:
 402:     float ei = 0.0f;
 403:     float di = 0.0f;
-404: 
+404:
 405:     // Act & Assert: Test NULL pointer combinations
 406:     struct NULLTestCase {
 407:         const char* description;
@@ -696,20 +696,20 @@
 417:         {"NULL diOut", &img, &meta, &ei, nullptr, XPE_ERR_INVALID_INPUT},
 418:         {"All valid", &img, &meta, &ei, &di, XPE_OK}
 419:     };
-420: 
+420:
 421:     for (const auto& tc : testCases) {
 422:         XpeErrorCode result = xpe_adv_calc_exposure_index(
 423:             tc.imgPtr, tc.metaPtr, tc.eiPtr, tc.diPtr);
-424: 
+424:
 425:         EXPECT_EQ(tc.expectedResult, result)
 426:             << "NULL check failed for: " << tc.description;
 427:     }
 428: }
-429: 
+429:
 430: /* ============================================================================
 431:  * T-507: NaN/Inf Handling (RED phase)
 432:  * ============================================================================ */
-433: 
+433:
 434: /**
 435:  * T-507: NaN/Inf handling
 436:  *
@@ -719,28 +719,28 @@
 ##### enhance_advanced/tests/test_exposure_index_ext.cpp:147  [TEST_F(ExposureIndexExtTest, DifferentBodyPartsProduceFiniteResults) {]  test@144
 144: TEST_F(ExposureIndexExtTest, DifferentBodyPartsProduceFiniteResults) {
 145:     const char* bodyParts[] = {"CHEST", "ABDOMEN", "EXTREMITY", "SKULL", "SPINE", "PELVIS"};
-146: 
+146:
 147:     for (const char* bp : bodyParts) {
 148:         XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
 149:         XpeImageMetadata meta = MakeMeta(bp, 80.0f, 10.0f);
 150:         float ei = 0.0f, di = 0.0f;
-151: 
+151:
 152:         XpeErrorCode err = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
 153:         ASSERT_EQ(err, XPE_OK) << "Failed for body part: " << bp;
 154:         EXPECT_TRUE(std::isfinite(ei)) << "EI not finite for " << bp;
 155:         EXPECT_TRUE(std::isfinite(di)) << "DI not finite for " << bp;
-156: 
+156:
 157:         FreeImageBuffer(img);
 158:     }
 159: }
-160: 
+160:
 161: TEST_F(ExposureIndexExtTest, ChestLatVsChestPA) {
 162:     // Chest LAT should have different EI target than Chest PA
 163:     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
-164: 
+164:
 165:     XpeImageMetadata metaPA = MakeMeta("CHEST", 80.0f, 10.0f);
 166:     XpeImageMetadata metaLAT = MakeMeta("CHEST LAT", 80.0f, 10.0f);
-167: 
+167:
 168:     float eiPA = 0.0f, diPA = 0.0f;
 169:     float eiLAT = 0.0f, diLAT = 0.0f;
 
@@ -748,10 +748,10 @@
 539: TEST(IntegrationTest, T607_IndependentFunctionCalling) {
 540:     // Initialize
 541:     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
-542: 
+542:
 543:     // Create independent test images for each function
 544:     XpeImageBuffer img1{}, img2{}, img3{}, img4{};
-545: 
+545:
 546:     for (auto* img : {&img1, &img2, &img3, &img4}) {
 547:         img->width = 256;
 548:         img->height = 256;
@@ -759,17 +759,17 @@
 550:         img->data = new float[256 * 256];
 551:         std::memset(img->data, 0, 256 * 256 * sizeof(float));
 552:     }
-553: 
+553:
 554:     XpeImageMetadata meta;
 555:     std::memset(&meta, 0, sizeof(meta));
 556:     strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
-557: 
+557:
 558:     // Test: Call each function independently (no dependency on others)
-559: 
+559:
 560:     // Function 1: Only multiscale
 561:     XpeErrorCode r1 = xpe_multiscale_process(&img1, &meta, nullptr);
 562:     EXPECT_EQ(r1, XPE_OK);
-563: 
+563:
 
 ##### enhance_advanced/tests/test_integration.cpp:825  [TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {]  test@808
 808: TEST(IntegrationTest, T605b_MemoryGrowthUnderOneMB) {
@@ -777,13 +777,13 @@
 810:     GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
 811: #endif
 812:     ASSERT_EQ(xpe_enhance_advanced_init(nullptr), XPE_OK);
-813: 
+813:
 814:     constexpr int IMG_SIZE = 128;
-815: 
+815:
 816:     XpeImageMetadata meta;
 817:     std::memset(&meta, 0, sizeof(meta));
 818:     strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
-819: 
+819:
 820:     auto one_cycle = [&](int i) {
 821:         XpeImageBuffer img{};
 822:         img.width    = IMG_SIZE;
@@ -792,38 +792,38 @@
 825:         img.data     = new float[IMG_SIZE * IMG_SIZE];
 826:         img.dataSize = static_cast<size_t>(IMG_SIZE) * IMG_SIZE * 4;
 827:         std::memset(img.data, 0, static_cast<size_t>(IMG_SIZE) * IMG_SIZE * sizeof(float));
-828: 
+828:
 829:         ASSERT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK) << "cycle " << i;
 830:         ASSERT_EQ(xpe_fractional_process(&img, 1.0f, nullptr), XPE_OK) << "cycle " << i;
 831:         int x0, y0, x1, y1;
 832:         ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK) << "cycle " << i;
 833:         float ei, di;
 834:         ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK) << "cycle " << i;
-835: 
+835:
 836:         delete[] static_cast<float*>(img.data);
 837:     };
-838: 
+838:
 839:     for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
-840: 
+840:
 841:     const auto before = get_working_set_bytes();
 842:     for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
 843:     const auto after = get_working_set_bytes();
-844: 
+844:
 845:     if (after > before) {
 846:         EXPECT_LT(after - before, ENDURANCE_ONE_MB)
 847:             << "Working set grew by " << (after - before) / 1024 << " KB over "
 848:             << ENDURANCE_CYCLES << " enhance_advanced alloc-process-free cycles";
 849:     }
-850: 
+850:
 851:     xpe_enhance_advanced_shutdown();
 852: }
-853: 
+853:
 
 ##### enhance_advanced/tests/test_mfp_scalar_ext.cpp:277  [TEST_F(MfpScalarExtTest, MultipleBodyPartsSucceed) {]  test@273
 273: TEST_F(MfpScalarExtTest, MultipleBodyPartsSucceed) {
 274:     const uint32_t W = 32, H = 32;
 275:     const char* bodyParts[] = {"CHEST", "ABDOMEN", "EXTREMITY", "SKULL", "SPINE"};
-276: 
+276:
 277:     for (const char* bp : bodyParts) {
 278:         XpeImageBuffer img = MakeConstantImage(W, H, 500.0f);
 279:         XpeImageMetadata meta = MakeMeta(bp);
@@ -832,11 +832,11 @@
 282:         FreeImageBuffer(img);
 283:     }
 284: }
-285: 
+285:
 286: // ============================================================================
 287: // Config Parsing
 288: // ============================================================================
-289: 
+289:
 290: TEST_F(MfpScalarExtTest, NullConfigUsesDefaults) {
 291:     XpeImageBuffer img = MakeConstantImage(32, 32, 500.0f);
 292:     XpeImageMetadata meta = MakeMeta("CHEST");
@@ -867,10 +867,10 @@
 148:             });
 149:         }},
 150:     };
-151: 
+151:
 152:     for (const auto& c : cases) {
 153:         SCOPED_TRACE(c.name);
-154: 
+154:
 155:         // CONTROL FIRST. A function that rejects every input would pass the
 156:         // short-dataSize assertion for the wrong reason -- the QA-B-40 lesson,
 157:         // where an 8x8 fixture was rejected on size and nearly credited the
@@ -886,17 +886,17 @@
 167:         ASSERT_NE(XPE_ERR_INVALID_INPUT, ctrl.rc)
 168:             << c.name << " rejects a well-formed image too, so a rejection of the "
 169:                          "short one says nothing about the dataSize check";
-170: 
+170:
 171:         ProbeImage short_(kShortBytes);
 172:         ASSERT_TRUE(short_.buf.valid()) << "guard allocation failed; the probe would be blind";
-173: 
+173:
 174:         const ProbeResult r = c.run(&short_.img);
 175:         GTEST_LOG_(INFO) << c.name
 176:                          << " declared=" << kDeclaredBytes << "B"
 177:                          << " dataSize=" << kShortBytes << "B"
 178:                          << " rc=" << r.rc
 179:                          << " overread=" << (r.overread ? "YES" : "no");
-180: 
+180:
 181:         EXPECT_FALSE(r.overread)
 182:             << c.name << " read past dataSize -- api-spec #123 says a short "
 183:                          "dataSize is XPE_ERR_INVALID_INPUT, not a licence to "
@@ -904,17 +904,17 @@
 185:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc)
 186:             << c.name << " accepted a buffer too small for the image it declares";
 187:     }
-188: 
+188:
 189:     xpe_enhance_advanced_shutdown();
 190: }
-191: 
+191:
 192: #endif  // _WIN32
-193: 
+193:
 
 ##### ai/tests/test_datasize_overread.cpp:143  [TEST(AiDataSizeProbe, ShortDataSizeIsRejectedWithoutOverreading) {]  test@121
 121: TEST(AiDataSizeProbe, ShortDataSizeIsRejectedWithoutOverreading) {
 122:     ASSERT_EQ(XPE_OK, xpe_ai_init("dummy_model_dir", nullptr));
-123: 
+123:
 124:     const struct {
 125:         const char* name;
 126:         ProbeResult (*run)(XpeImageBuffer*);
@@ -933,10 +933,10 @@
 139:             });
 140:         }},
 141:     };
-142: 
+142:
 143:     for (const auto& c : cases) {
 144:         SCOPED_TRACE(c.name);
-145: 
+145:
 146:         // Control first -- see the enhance_advanced probe for why (QA-B-40).
 147:         ProbeImage full(kDeclaredBytes);
 148:         ASSERT_TRUE(full.buf.valid()) << "guard allocation failed; the probe would be blind";
@@ -948,7 +948,7 @@
 154:         ASSERT_NE(XPE_ERR_INVALID_INPUT, ctrl.rc)
 155:             << c.name << " rejects a well-formed image too, so a rejection of the "
 156:                          "short one says nothing about the dataSize check";
-157: 
+157:
 158:         ProbeImage short_(kShortBytes);
 159:         ASSERT_TRUE(short_.buf.valid());
 160:         const ProbeResult r = c.run(&short_.img);
@@ -957,22 +957,22 @@
 163:                          << " dataSize=" << kShortBytes << "B"
 164:                          << " rc=" << r.rc
 165:                          << " overread=" << (r.overread ? "YES" : "no");
-166: 
+166:
 167:         EXPECT_FALSE(r.overread) << c.name << " read past dataSize";
 168:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc)
 169:             << c.name << " accepted a buffer too small for the image it declares";
 170:     }
-171: 
+171:
 172:     xpe_ai_shutdown();
 173: }
-174: 
+174:
 175: // xpe_bone_suppress and xpe_stitch_images both take an OUTPUT image as well, so
 176: // they are probed separately: the short buffer goes in as the INPUT, and the
 177: // output is a full, ordinary buffer. Mixing the two in one case would leave it
 178: // ambiguous which of the two the rejection came from.
 179: TEST(AiDataSizeProbe, ShortInputRejectedWhenOutputIsWellFormed) {
 180:     ASSERT_EQ(XPE_OK, xpe_ai_init("dummy_model_dir", nullptr));
-181: 
+181:
 
 ##### display/tests/test_datasize_overread.cpp:148  [TEST(DisplayDataSizeProbe, ShortDataSizeIsRejectedWithoutOverreading) {]  test@122
 124:         const char* name;
@@ -998,10 +998,10 @@
 144:             });
 145:         }},
 146:     };
-147: 
+147:
 148:     for (const auto& c : cases) {
 149:         SCOPED_TRACE(c.name);
-150: 
+150:
 151:         // Control first -- see the enhance_advanced probe for why (QA-B-40).
 152:         ProbeImage full(kDeclaredBytes);
 153:         ASSERT_TRUE(full.buf.valid()) << "guard allocation failed; the probe would be blind";
@@ -1013,7 +1013,7 @@
 159:         ASSERT_NE(XPE_ERR_INVALID_INPUT, ctrl.rc)
 160:             << c.name << " rejects a well-formed image too, so a rejection of the "
 161:                          "short one says nothing about the dataSize check";
-162: 
+162:
 163:         ProbeImage short_(kShortBytes);
 164:         ASSERT_TRUE(short_.buf.valid());
 165:         const ProbeResult r = c.run(&short_.img);
@@ -1022,16 +1022,16 @@
 168:                          << " dataSize=" << kShortBytes << "B"
 169:                          << " rc=" << r.rc
 170:                          << " overread=" << (r.overread ? "YES" : "no");
-171: 
+171:
 172:         EXPECT_FALSE(r.overread)
 173:             << c.name << " read past dataSize";
 174:         EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc)
 175:             << c.name << " accepted a buffer too small for the image it declares";
 176:     }
 177: }
-178: 
+178:
 179: #endif  // _WIN32
-180: 
+180:
 181: // xpe_apply_presentation_lut is probed separately and WITHOUT the guard page.
 182: //
 183: // REQ-DISP-019 has it change the image's domain in place: it std::malloc()s a
@@ -1050,7 +1050,7 @@
 563:         std::free(img.data);
 564:     }
 565: }
-566: 
+566:
 567: TEST(DisplayEmptyImageContract, ZeroHeightIsInvalidInput) {
 568:     for (const auto& e : kDisplayEntries) {
 569:         XpeImageBuffer img = make_contract_image();
@@ -1069,29 +1069,29 @@
 663:     XpeImageBuffer expected{};
 664:     ASSERT_EQ(XPE_OK, xpe_dicom_read_image(srcHandle, &expected));
 665:     xpe_dicom_close(srcHandle);
-666: 
+666:
 667:     ASSERT_GT(xpe::dicom::kSupportedTransferSyntaxCount, 0u);
-668: 
+668:
 669:     for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
 670:         const auto& ts = xpe::dicom::kSupportedTransferSyntaxes[i];
 671:         SCOPED_TRACE(std::string(ts.name) + " (" + ts.uid + ")");
-672: 
+672:
 673:         const auto path = s_tempDir / ("ts_" + std::to_string(i) + ".dcm");
 674:         std::string whyNot;
 675:         ASSERT_TRUE(WriteInTransferSyntax(ts.uid, s_validDcm, path, whyNot))
 676:             << "cannot build a fixture: " << whyNot
 677:             << " -- either teach this test to write that syntax, or remove it "
 678:                "from kSupportedTransferSyntaxes";
-679: 
+679:
 680:         XpeDicomHandle* handle = nullptr;
 681:         ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle))
 682:             << "listed as supported but open() rejected it";
-683: 
+683:
 684:         XpeImageBuffer actual{};
 685:         ASSERT_EQ(XPE_OK, xpe_dicom_read_image(handle, &actual))
 686:             << "listed as supported but the pixels could not be decoded";
 687:         xpe_dicom_close(handle);
-688: 
+688:
 689:         ASSERT_EQ(expected.width, actual.width);
 690:         ASSERT_EQ(expected.height, actual.height);
 691:         const size_t bytes = static_cast<size_t>(expected.width) * expected.height *
@@ -1101,15 +1101,15 @@
 695:                "be bit-exact";
 696:         xpe_free_image(&actual);
 697:     }
-698: 
+698:
 699:     xpe_free_image(&expected);
 700: }
-701: 
+701:
 702: // JPEG-LL stream inspection helpers. Written for QA-B-73 (#168); moved up by
 703: // QA-B-74 (#174) so the QA-B-46 predictor case below can check what it
 704: // actually received.
 705: namespace {
-706: 
+706:
 707: struct SosInfo {
 708:     bool     found     = false;
 
@@ -1122,19 +1122,19 @@
 1298:         {"empty fragment",      FragmentShape::kEmptyFragment,    XPE_ERR_DICOM_INVALID},
 1299:         {"offset table only",   FragmentShape::kOffsetTableOnly,  XPE_ERR_DICOM_INVALID},
 1300:     };
-1301: 
+1301:
 1302:     for (const auto& c : cases) {
 1303:         SCOPED_TRACE(c.name);
 1304:         const auto path = s_tempDir / (std::string("outstate_") +
 1305:                                        std::to_string(static_cast<int>(c.shape)) + ".dcm");
 1306:         ASSERT_TRUE(WriteCraftedJ2kFile(s_validDcm, path, s_bitstream, c.shape));
-1307: 
+1307:
 1308:         XpeImageBuffer img{};
 1309:         EXPECT_EQ(c.expected, ReadIntoSentinel(path, &img));
 1310:         ExpectUntouched(img, c.name);
 1311:     }
 1312: }
-1313: 
+1313:
 1314: // ---------------------------------------------------------------------------
 1315: // #120 (QA-B-48) §3: "J2K declared, native pixel data" -- resolved by observation.
 1316: //
@@ -1155,13 +1155,13 @@
 1601:         std::string whyNot;
 1602:         ASSERT_TRUE(WriteCompressedWithDeclaredRows(path, c.j2k, 256, 128, 128, whyNot))
 1603:             << whyNot;
-1604: 
+1604:
 1605:         XpeImageBuffer img{};
 1606:         ASSERT_EQ(XPE_OK, ReadWithSentinel(path, &img));
 1607:         EXPECT_EQ(256u, img.width);
 1608:         EXPECT_EQ(128u, img.height);
 1609:         ASSERT_NE(nullptr, img.data);
-1610: 
+1610:
 1611:         const uint16_t* px = static_cast<const uint16_t*>(img.data);
 1612:         const size_t n = static_cast<size_t>(img.width) * img.height;
 1613:         size_t zeros = 0;
@@ -1171,7 +1171,7 @@
 1617:         xpe_free_image(&img);
 1618:     }
 1619: }
-1620: 
+1620:
 1621: // ---------------------------------------------------------------------------
 1622: // #150 (QA-B-51): the OTHER direction -- a decoded frame LARGER than the dataset
 1623: // declares is a rejection too.
@@ -1188,14 +1188,14 @@
 2211: // contradiction, close the unreachable branch) and QA-B-72 implemented it.
 2212: // ---------------------------------------------------------------------------
 2213: namespace {
-2214: 
+2214:
 2215: struct NativeSyntaxCandidate {
 2216:     E_TransferSyntax xfer;
 2217:     const char*      uid;
 2218:     const char*      name;
 2219:     bool             onAcceptedList;
 2220: };
-2221: 
+2221:
 2222: // Native (non-encapsulated) syntaxes DCMTK knows. Encapsulated ones are excluded
 2223: // by construction -- QA-B-68 already showed the native path cannot read those,
 2224: // and this case is about the syntaxes where that structural block is absent.
@@ -1205,14 +1205,14 @@
 2228:     { EXS_BigEndianExplicit,             "1.2.840.10008.1.2.2",     "Explicit VR Big Endian",       false },
 2229:     { EXS_DeflatedLittleEndianExplicit,  "1.2.840.10008.1.2.1.99",  "Deflated Explicit VR LE",      false },
 2230: };
-2231: 
+2231:
 2232: bool IsOnAcceptedList(const char* uid) {
 2233:     for (size_t i = 0; i < xpe::dicom::kSupportedTransferSyntaxCount; ++i) {
 2234:         if (std::string(uid) == xpe::dicom::kSupportedTransferSyntaxes[i].uid) return true;
 2235:     }
 2236:     return false;
 2237: }
-2238: 
+2238:
 2239: // Dataset only -- no preamble, no group-2 elements. This is what reaches the
 2240: // TS-less branch of open() (measured by QA-B-71).
 2241: bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
@@ -1231,7 +1231,7 @@
 2269:             << "the table disagrees with kSupportedTransferSyntaxes about " << c.uid
 2270:             << " -- fix the table, not the list";
 2271:     }
-2272: 
+2272:
 2273:     // --- control 2: a meta-less SUPPORTED syntax must yield pixels ----------
 2274:     // Placed first: if the writer cannot produce a readable meta-less file at
 2275:     // all, every "no pixels" below is about the fixture and not about the reader.
@@ -1253,7 +1253,7 @@
 2490:         { EXS_JPEGProcess14SV1,     ".70 JPEG-LL (supported, encaps)", true  },
 2491:         { EXS_JPEGProcess14,        ".57 JPEG-LL (supported, encaps)", true  },
 2492:     };
-2493: 
+2493:
 2494:     DJEncoderRegistration::registerCodecs();
 2495:     int matched = 0, measured = 0;
 2496:     for (const auto& c : cases) {
@@ -1267,7 +1267,7 @@
 2504:         ++measured;
 2505:         const bool match = (b.detected == c.written);
 2506:         if (match) ++matched;
-2507: 
+2507:
 2508:         const char* branch = !b.loaded      ? "load-failed"
 2509:                            : b.metaIsNull   ? "meta NULL"
 2510:                            : !b.metaHasTs   ? "meta present, no TS element"
@@ -1282,12 +1282,12 @@
 2519:     // no DJEncoderRegistration::cleanup() needed for the decoder side; the
 2520:     // encoder registration is not what the reader depends on.
 2521:     DJEncoderRegistration::cleanup();
-2522: 
+2522:
 2523:     GTEST_LOG_(INFO) << "detected syntax matched the written one in " << matched
 2524:                      << " of " << measured << " measured files";
 2525:     SUCCEED();
 2526: }
-2527: 
+2527:
 2528: // ---------------------------------------------------------------------------
 2529: // #167 (QA-B-72) — measured before implementing check (2).
 
@@ -1301,19 +1301,19 @@
 2548:         { EXS_JPEGProcess14SV1,     ".70 JPEG-LL" },
 2549:         { EXS_JPEGProcess14,        ".57 JPEG-LL" },
 2550:     };
-2551: 
+2551:
 2552:     DJEncoderRegistration::registerCodecs();
 2553:     for (const auto& c : cases) {
 2554:         const auto path = s_tempDir / (std::string("b72_sig_") +
 2555:                                        std::to_string(static_cast<int>(c.written)) + ".dcm");
 2556:         if (!WriteDatasetOnly(s_validDcm, path, c.written)) continue;
-2557: 
+2557:
 2558:         DcmFileFormat ff;
 2559:         ASSERT_TRUE(ff.loadFile(path.string().c_str(), EXS_Unknown, EGL_noChange,
 2560:                                 DCM_MaxReadLength).good());
 2561:         DcmDataset* ds = ff.getDataset();
 2562:         ASSERT_NE(nullptr, ds);
-2563: 
+2563:
 2564:         bool undefLen = false, sv1 = false, p14 = false;
 2565:         DcmElement* el = nullptr;
 2566:         if (ds->findAndGetElement(DCM_PixelData, el).good() && el != nullptr) {
@@ -1331,7 +1331,7 @@
 2578:                          << " | detected=" << XferUid(ds->getOriginalXfer());
 2579:     }
 2580:     DJEncoderRegistration::cleanup();
-2581: 
+2581:
 2582:     // --- can anything reach getMetaInfo() == NULL? -------------------------
 2583:     struct Raw { const char* label; std::string bytes; };
 2584:     const Raw raws[] = {
@@ -1358,7 +1358,7 @@
 2578:                          << " | detected=" << XferUid(ds->getOriginalXfer());
 2579:     }
 2580:     DJEncoderRegistration::cleanup();
-2581: 
+2581:
 2582:     // --- can anything reach getMetaInfo() == NULL? -------------------------
 2583:     struct Raw { const char* label; std::string bytes; };
 2584:     const Raw raws[] = {
@@ -1385,8 +1385,8 @@
 2605:                      << (fresh.getMetaInfo() == nullptr);
 2606:     SUCCEED();
 2607: }
-2608: 
-2609: 
+2608:
+2609:
 2610: // ---------------------------------------------------------------------------
 2611: // #167 (QA-B-72) — the TS-less path, case by case.
 2612: //
@@ -1409,7 +1409,7 @@
 2647:         { "labelled .70 (normal path)",       EXS_JPEGProcess14SV1,     true,  XPE_OK,                     true  },
 2648:         { "labelled .57 (normal path)",       EXS_JPEGProcess14,        true,  XPE_OK,                     true  },
 2649:     };
-2650: 
+2650:
 2651:     DJEncoderRegistration::registerCodecs();
 2652:     int idx = 0;
 2653:     for (const auto& r : rows) {
@@ -1417,18 +1417,18 @@
 2655:         const bool wrote = r.withMeta ? WriteWithMeta(s_validDcm, path, r.xfer)
 2656:                                       : WriteDatasetOnly(s_validDcm, path, r.xfer);
 2657:         ASSERT_TRUE(wrote) << r.label << ": fixture could not be written";
-2658: 
+2658:
 2659:         const OpenResult got = OpenAndRead(path);
 2660:         GTEST_LOG_(INFO) << r.label << ": open=" << got.open << " read=" << got.read
 2661:                          << " pixels=" << got.gotPixels << " " << got.w << "x" << got.h;
-2662: 
+2662:
 2663:         EXPECT_EQ(r.expectOpen, got.open) << r.label;
 2664:         EXPECT_EQ(r.expectPixels, got.open == XPE_OK && got.read == XPE_OK && got.gotPixels)
 2665:             << r.label;
 2666:     }
 2667:     DJEncoderRegistration::cleanup();
 2668: }
-2669: 
+2669:
 2670: // ---------------------------------------------------------------------------
 2671: // #168 (QA-B-73) — can the bitstream tell .57 from .70?  (measurement only)
 2672: //
@@ -1449,7 +1449,7 @@
 386:             << w.name << " accepted width == 0";
 387:     }
 388: }
-389: 
+389:
 390: TEST_F(DicomWriterTest, EmptyImage_ZeroHeight_ReturnsInvalidInput) {
 391:     for (const auto& w : kWriters) {
 392:         XpeImageBuffer img = m_img;
@@ -1466,25 +1466,25 @@
 260:     GTEST_SKIP() << "Working-set measurement is Windows-only in this build";
 261: #endif
 262:     const auto path = (m_tempDir / "endurance.dcm").string();
-263: 
+263:
 264:     auto one_cycle = [&](int i) {
 265:         XpeImageBuffer img{};
 266:         ASSERT_EQ(xpe_alloc_image(64, 64, XPE_PIXEL_UINT16, &img), XPE_OK) << "cycle " << i;
 267:         auto* px = static_cast<uint16_t*>(img.data);
 268:         for (uint32_t k = 0; k < img.width * img.height; ++k)
 269:             px[k] = static_cast<uint16_t>(k & 0xFFFF);
-270: 
+270:
 271:         EXPECT_EQ(xpe_dicom_write(path.c_str(), &img, &m_meta), XPE_OK) << "cycle " << i;
-272: 
+272:
 273:         xpe_free_image(&img);
 274:     };
-275: 
+275:
 276:     for (int i = 0; i < ENDURANCE_WARMUP; ++i) one_cycle(i);
-277: 
+277:
 278:     const auto before = get_working_set_bytes();
 279:     for (int i = 0; i < ENDURANCE_CYCLES; ++i) one_cycle(i);
 280:     const auto after = get_working_set_bytes();
-281: 
+281:
 282:     if (after > before) {
 283:         EXPECT_LT(after - before, ENDURANCE_ONE_MB)
 284:             << "Working set grew by " << (after - before) / 1024 << " KB over "
