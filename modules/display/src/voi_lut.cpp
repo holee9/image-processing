@@ -35,11 +35,52 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
 
     switch (params->mode) {
         case XPE_VOI_LINEAR: {
-            // REQ-DISP-009: output[i] = clamp((input[i] - (center - width/2)) / width * range + minOut, minOut, maxOut)
-            const float lo = center - width * 0.5f;
+            // REQ-DISP-009: DICOM PS3.3 C.11.2.1.2.1 Default LINEAR. Windows
+            // about `center - 0.5` over a width of `width - 1`:
+            //
+            //   clamp( ((x - (center - 0.5)) / (width - 1) + 0.5) * range + minOut, ... )
+            //
+            // #156 (QA-B-149). WHAT WAS HERE BEFORE, and why it was wrong:
+            //
+            //     const float lo = center - width * 0.5f;
+            //     float val = (px[i] - lo) / width * range + minOut;
+            //
+            // That expands to ((x - center)/width + 0.5) * range + minOut --
+            // character for character the LINEAR_EXACT branch below. The two
+            // modes were algebraically identical (measured: 5.96e-08 apart on a
+            // [0,1] output, one ulp), so selecting LINEAR_EXACT did nothing.
+            //
+            // THE MISSING PIECE IS THE WINDOW-PLACEMENT ADJUSTMENT, NOT THE
+            // `+ 0.5`. #156's own text read the `+ 0.5` as the forbidden
+            // "half-value offset", but that term is in BOTH standard functions
+            // and only re-centres the normalized window onto [0,1]; removing it
+            // would map the window to [-0.5, +0.5] and REQ-DISP-010's "maps
+            // exactly from minOut to maxOut" would break. What separates the
+            // two is `center - 0.5` / `width - 1`, which LINEAR had lost.
+            // REQ-DISP-010a now says this in the SPEC so the next reader does
+            // not have to re-derive it.
+            //
+            // EXACT was already correct and is NOT touched by this change.
+            //
+            // Three branches rather than one clamped expression, because
+            // `width - 1` is zero at width == 1: the standard's thresholds
+            // partition the line there (everything maps to minOut or maxOut)
+            // and the interior division is never reached. REQ-DISP-015 only
+            // rejects width <= 0, so width == 1 is a legal input and must not
+            // divide by zero.
+            const float c = center - 0.5f;
+            const float w = width - 1.0f;
+            const float lo = c - w * 0.5f;
+            const float hi = c + w * 0.5f;
             for (size_t i = 0; i < count; ++i) {
-                float val = (px[i] - lo) / width * range + minOut;
-                px[i] = xpe_clamp(val, minOut, maxOut);
+                const float v = px[i];
+                if (v <= lo) {
+                    px[i] = minOut;
+                } else if (v > hi) {
+                    px[i] = maxOut;
+                } else {
+                    px[i] = xpe_clamp(((v - c) / w + 0.5f) * range + minOut, minOut, maxOut);
+                }
             }
             break;
         }
