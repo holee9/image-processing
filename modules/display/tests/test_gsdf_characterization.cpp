@@ -78,7 +78,7 @@ XpePresentationLutParams CalibrateOverDecades() {
 // GsdfCalibrate_BasicOutput passes on this, because monotonically
 // non-decreasing is exactly what a ramp is. That assertion would survive the
 // calibration being deleted and replaced with a loop that writes i*64.
-TEST(GsdfCharacterization, KnownDivergence_LutIsALinearRamp) {
+TEST(GsdfCharacterization, Stage2_LutIsNoLongerALinearRamp_155) {
     const XpePresentationLutParams lut = CalibrateOverDecades();
 
     const float first = static_cast<float>(lut.lutData[0]);
@@ -99,13 +99,18 @@ TEST(GsdfCharacterization, KnownDivergence_LutIsALinearRamp) {
 
     // Rounding alone accounts for half an output unit. Anything a perceptual
     // curve did would be orders of magnitude larger.
-    EXPECT_LE(maxDev, 1.0f)
-        << "the LUT now departs from a straight line -- a perceptual curve has "
-           "reached the output; say how, and retire this case";
+    // INVERTED by QA-B-145, not deleted. Until stage 2 this asserted
+    // maxDev <= 1: the LUT WAS the straight line through its own endpoints,
+    // because the perceptual model cancelled out. Stage 2 gave the model
+    // something to invert against (the measured curve), so the assertion flips.
+    // The one-line flip IS the visible arrival of the fix.
+    EXPECT_GT(maxDev, 1.0f)
+        << "the LUT is a straight line again -- the perceptual curve has stopped "
+           "reaching the output, which is #155 returning";
 }
 
 // The same statement as a step size: a ramp has one step, give or take rounding.
-TEST(GsdfCharacterization, KnownDivergence_StepSizeIsConstantUpToRounding) {
+TEST(GsdfCharacterization, Stage2_StepSizeVariesAcrossTheCurve_155) {
     const XpePresentationLutParams lut = CalibrateOverDecades();
 
     int minStep = INT32_MAX, maxStep = 0;
@@ -117,14 +122,15 @@ TEST(GsdfCharacterization, KnownDivergence_StepSizeIsConstantUpToRounding) {
     GTEST_LOG_(INFO) << "GSDF LUT step size: min=" << minStep << " max=" << maxStep;
 
     // 65535/1023 = 64.06, so a pure ramp alternates 64 and 65 and nothing else.
-    EXPECT_LE(maxStep - minStep, 1)
-        << "step size now varies by more than rounding -- the curve is no longer "
-           "linear; say how, and retire this case";
+    // INVERTED by QA-B-145 (was EXPECT_LE(.., 1) -- a ramp alternating 64/65).
+    EXPECT_GT(maxStep - minStep, 1)
+        << "step size varies by rounding only again -- the curve is linear, which "
+           "is #155 returning";
 }
 
 // And the luminance measurements barely reach the output: only the rounding
 // pattern moves when the calibration range changes by two decades.
-TEST(GsdfCharacterization, KnownDivergence_MeasurementsBarelyChangeTheCurve) {
+TEST(GsdfCharacterization, Stage2_MeasurementsMoveTheCurve_155) {
     const XpePresentationLutParams wide = CalibrateOverDecades();
 
     const float narrow_lum[3] = {80.0f, 100.0f, 120.0f};   // well under one decade
@@ -145,15 +151,17 @@ TEST(GsdfCharacterization, KnownDivergence_MeasurementsBarelyChangeTheCurve) {
 
     // Both calibrations reduce to the same ramp; what differs is float rounding,
     // never more than one output unit.
-    EXPECT_LE(maxDelta, 1)
-        << "the luminance measurements now move the curve by more than rounding "
-           "-- they are reaching the output; say how, and retire this case";
+    // INVERTED by QA-B-145 (was EXPECT_LE(.., 1): both reduced to one ramp).
+    EXPECT_GT(maxDelta, 1)
+        << "the two calibrations differ by rounding only again -- the measurements "
+           "have stopped reaching the output, which is #155 returning";
 }
 
 // ===========================================================================
 // #155 (QA-B-141): the one-axis sweep, and the CONTROL the earlier cases lack.
 //
-// KnownDivergence_MeasurementsBarelyChangeTheCurve above compares TWO luminance
+// Stage2_MeasurementsMoveTheCurve_155 above (then named KnownDivergence_
+// MeasurementsBarelyChangeTheCurve) compares TWO luminance
 // inputs and finds them a rounding unit apart. That is an ABSENCE assertion,
 // and an absence assertion with no control passes just as happily when the
 // measurement is blind -- the QA-B-58 lesson, and the QA-B-139 one. Two things
@@ -226,7 +234,7 @@ int MaxDeviationFromStraightRamp(const XpePresentationLutParams& lut) {
 
 }  // namespace
 
-TEST(GsdfCharacterization, KnownDivergence_LuminanceSweepDoesNotMoveTheCurve_155) {
+TEST(GsdfCharacterization, Stage2_LuminanceSweepMovesTheCurve_155) {
     struct Case { const char* name; std::vector<float> lum; };
     const std::vector<Case> cases = {
         { "sub-decade  80..120",     {80.0f, 100.0f, 120.0f} },
@@ -247,9 +255,10 @@ TEST(GsdfCharacterization, KnownDivergence_LuminanceSweepDoesNotMoveTheCurve_155
         const int dev = MaxDeviationFromStraightRamp(p);
         GTEST_LOG_(INFO) << "  " << c.name
                          << "  max|LUT - straight ramp| = " << dev << " of 65535";
-        EXPECT_LE(dev, 1)
-            << c.name << ": the curve has left the straight ramp (deviation "
-            << dev << ") -- the model is reaching the output; say how and retire this";
+        // INVERTED by QA-B-145 (was EXPECT_LE(dev, 1)).
+        EXPECT_GT(dev, 1)
+            << c.name << ": back on the straight ramp (deviation " << dev
+            << ") -- the model has stopped reaching the output";
         luts.push_back(p);
     }
 
@@ -264,9 +273,10 @@ TEST(GsdfCharacterization, KnownDivergence_LuminanceSweepDoesNotMoveTheCurve_155
             }
     GTEST_LOG_(INFO) << "largest difference between ANY two of the six LUTs: "
                      << worstPair << " (" << cases[wi].name << " vs " << cases[wj].name << ")";
-    EXPECT_LE(worstPair, 1)
-        << "two calibrations now differ by more than rounding -- the luminance "
-           "measurements reach the output; say how and retire this case";
+    // INVERTED by QA-B-145 (was EXPECT_LE(worstPair, 1)).
+    EXPECT_GT(worstPair, 1)
+        << "no two of the six calibrations differ by more than rounding -- the "
+           "luminance measurements have stopped reaching the output";
 }
 
 // The control. Without it the case above is an absence assertion with nothing
@@ -478,7 +488,15 @@ TEST(GsdfCharacterization, StandardEquationsMatchTableB1_155) {
 }
 
 // The comparison the card asks for: shipped LUT against the STANDARD curve.
-TEST(GsdfCharacterization, KnownDivergence_ShippedLutAgainstTheStandardCurve_155) {
+// RENAMED by QA-B-145. This was KnownDivergence_ShippedLutAgainstTheStandardCurve_155,
+// and the old name now overstates what it measures. StandardLut() has to ASSUME
+// a display characteristic (DDL linear in log10 L, or linear in L) because when
+// it was written the API carried no characteristic. Stage 2 made the array the
+// characteristic, so the distance below is "shipped vs two assumed displays",
+// not "shipped vs the right answer". The right answer is now checked directly,
+// against a display whose curve is supplied and whose LUT is known in closed
+// form -- Stage2_ReproducesTheAnalyticLutForSyntheticGammaDisplays_155.
+TEST(GsdfCharacterization, Stage2_ShippedLutAgainstTwoAssumedDisplayCharacteristics_155) {
     const float lum[5] = {1.0f, 10.0f, 50.0f, 200.0f, 500.0f};   // 1..500 cd/m^2
     XpePresentationLutParams shipped{};
     ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 5, &shipped));
@@ -586,7 +604,7 @@ uint64_t LutFingerprint(const XpePresentationLutParams& lut) {
 
 }  // namespace
 
-TEST(GsdfCharacterization, Stage1_LutIsStillTheStraightRampAfterTheCoefficientFix_155) {
+TEST(GsdfCharacterization, Stage2_LutIsNoLongerTheStraightRamp_155) {
     struct Case { const char* name; std::vector<float> lum; };
     const std::vector<Case> cases = {
         { "1..500",       {1.0f, 10.0f, 50.0f, 200.0f, 500.0f} },
@@ -613,10 +631,13 @@ TEST(GsdfCharacterization, Stage1_LutIsStillTheStraightRampAfterTheCoefficientFi
                          << " differing=" << differing << "/1024"
                          << "  (fingerprint " << LutFingerprint(p) << ", informational)";
 
-        EXPECT_LE(worst, 1)
-            << c.name << ": the LUT has left the straight ramp by " << worst
-            << " counts. The cancellation is gone -- either a real change reached "
-               "the output, or the analysis in #155 is wrong. Stop and measure.";
+        // THE GATE RETIREMENT, as one inverted line. QA-B-144 asserted
+        // worst <= 1 (stage 1 changed no output by construction); stage 2 is
+        // exactly the change that had to break it, so the assertion flips
+        // rather than the test being deleted.
+        EXPECT_GT(worst, 1)
+            << c.name << ": the LUT is within " << worst
+            << " counts of the straight ramp again -- the cancellation is back.";
     }
 }
 
@@ -640,7 +661,7 @@ TEST(GsdfCharacterization, Stage1_LutIsStillTheStraightRampAfterTheCoefficientFi
 // is declared. Whether the CONTRACT is what REQ-DISP-025 wants is a SPEC
 // question and is not decided here.
 // ===========================================================================
-TEST(GsdfCharacterization, KnownDivergence_OnlyTheLuminanceEndpointsAreUsed_155) {
+TEST(GsdfCharacterization, Stage2_TheInteriorOfTheCurveReachesTheOutput_155) {
     auto lutOf = [](const std::vector<float>& lum) {
         XpePresentationLutParams p{};
         EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum.data(),
@@ -648,14 +669,18 @@ TEST(GsdfCharacterization, KnownDivergence_OnlyTheLuminanceEndpointsAreUsed_155)
         return p;
     };
 
-    // All five share min = 1.0 and max = 500.0 and differ in everything else:
-    // the count, the spacing, the ordering, and the shape of the interior.
+    // All four share first = 1.0 and last = 500.0 and differ only in the
+    // interior: its count, its spacing, and its shape.
+    //
+    // The unordered variant { 500, 3, 1, 111, 7 } was HERE and is gone. It is
+    // not a variant any more -- QA-B-145 narrowed the contract to "measured at
+    // equally spaced driving levels, ascending", so an unordered array is now a
+    // caller error rather than an input whose handling this case pins.
     const std::vector<std::vector<float>> sameEndpoints = {
         { 1.0f, 500.0f },                                   // no interior at all
         { 1.0f, 10.0f, 50.0f, 200.0f, 500.0f },             // roughly log-spaced
         { 1.0f, 2.0f, 3.0f, 4.0f, 500.0f },                 // crowded at the bottom
         { 1.0f, 496.0f, 497.0f, 498.0f, 500.0f },           // crowded at the top
-        { 500.0f, 3.0f, 1.0f, 111.0f, 7.0f },               // unordered
     };
 
     const XpePresentationLutParams ref = lutOf(sameEndpoints[0]);
@@ -667,9 +692,13 @@ TEST(GsdfCharacterization, KnownDivergence_OnlyTheLuminanceEndpointsAreUsed_155)
                                              static_cast<int>(other.lutData[i])));
         GTEST_LOG_(INFO) << "  interior variant " << k << " (" << sameEndpoints[k].size()
                          << " values): max difference from the two-point call = " << worst;
-        EXPECT_EQ(0, worst)
-            << "variant " << k << " changed the LUT, so the interior measurements DO "
-               "reach the output -- display_api.h says they do not; one of them is wrong";
+        // INVERTED by QA-B-145. Until stage 2 this was EXPECT_EQ(0, worst):
+        // the interior was discarded and display_api.h said so. The interior is
+        // now the curve the standard's luminances are inverted against, so a
+        // different interior MUST produce a different LUT.
+        EXPECT_GT(worst, 0)
+            << "variant " << k << " left the LUT bit-identical, so the interior "
+               "measurements are being discarded again -- that is the stage-1 state";
     }
 
     // THE CONTROL, and a caveat about how weak it has to be.
@@ -695,4 +724,124 @@ TEST(GsdfCharacterization, KnownDivergence_OnlyTheLuminanceEndpointsAreUsed_155)
     EXPECT_GT(worstMoved, 0)
         << "changing BOTH endpoints leaves the LUT bit-identical -- then this test "
            "cannot see its input at all and proves nothing about the interior";
+}
+
+// ===========================================================================
+// #155 (QA-B-145) STAGE 2: VERIFYING WITHOUT HARDWARE.
+//
+// "We cannot check a GSDF calibration without a photometer" is the wrong
+// conclusion. What is needed is not a real measurement but a characteristic
+// curve whose right answer is known in closed form. A synthetic gamma display
+//
+//     L(d) = Lmin + (Lmax - Lmin) * (d / DDLmax)^gamma
+//
+// is exactly that: feed it in as the measured array, and the correct LUT falls
+// out analytically -- for P-Value i the standard requires luminance L(j_i)
+// (Equation 7-2 then 7-1), and the driving level producing it is
+//
+//     d / DDLmax = ((L - Lmin) / (Lmax - Lmin))^(1/gamma).
+//
+// The module never sees the formula; it only sees samples. So this is an
+// INDEPENDENTLY DERIVED control, the same move QA-B-142 made when it stopped
+// comparing the code against its own inverse and used Table B-1 instead.
+//
+// TWO different gammas are used deliberately. With one, an implementation that
+// happened to hard-code that curve would pass; with two it cannot. The case
+// also asserts the two LUTs differ, which is the falsification: if the module
+// went back to ignoring the array, both would collapse onto one answer.
+//
+// The residual is interpolation, not error: the module reads the curve as
+// piecewise-linear between samples while the analytic answer does not. The
+// tolerance below was set from the measured residual at this sample count and
+// is reported in the card, not guessed.
+// ===========================================================================
+namespace {
+
+constexpr float kGammaLumMin = 0.5f;
+constexpr float kGammaLumMax = 500.0f;
+constexpr uint32_t kGammaSamples = 257;   // equally spaced driving levels
+
+std::vector<float> GammaCurveSamples(double gamma) {
+    std::vector<float> lum(kGammaSamples);
+    for (uint32_t k = 0; k < kGammaSamples; ++k) {
+        const double d = static_cast<double>(k) / (kGammaSamples - 1);
+        lum[k] = static_cast<float>(kGammaLumMin +
+            (kGammaLumMax - kGammaLumMin) * std::pow(d, gamma));
+    }
+    return lum;
+}
+
+// The LUT such a display must receive, derived from the standard alone.
+std::vector<uint16_t> GammaExpectedLut(double gamma) {
+    const double jLo = GsdfJndIndex(kGammaLumMin);
+    const double jHi = GsdfJndIndex(kGammaLumMax);
+    std::vector<uint16_t> out(1024);
+    for (int i = 0; i < 1024; ++i) {
+        const double j = jLo + (static_cast<double>(i) / 1023.0) * (jHi - jLo);
+        double lum = GsdfLuminance(j);
+        if (lum < kGammaLumMin) lum = kGammaLumMin;
+        if (lum > kGammaLumMax) lum = kGammaLumMax;
+        const double frac = (lum - kGammaLumMin) / (kGammaLumMax - kGammaLumMin);
+        const double d = std::pow(frac, 1.0 / gamma);
+        long v = std::lround(d * 65535.0);
+        if (v < 0) v = 0;
+        if (v > 65535) v = 65535;
+        out[static_cast<size_t>(i)] = static_cast<uint16_t>(v);
+    }
+    return out;
+}
+
+}  // namespace
+
+TEST(GsdfCharacterization, Stage2_ReproducesTheAnalyticLutForSyntheticGammaDisplays_155) {
+    const double gammas[2] = {2.2, 1.8};
+    std::vector<XpePresentationLutParams> produced;
+
+    for (const double g : gammas) {
+        const std::vector<float> lum = GammaCurveSamples(g);
+        XpePresentationLutParams p{};
+        ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(lum.data(), kGammaSamples, &p))
+            << "gamma " << g;
+
+        const std::vector<uint16_t> expect = GammaExpectedLut(g);
+        const Diff d = Compare(p, expect);
+        GTEST_LOG_(INFO) << "  gamma " << g << " (" << kGammaSamples
+                         << " samples, " << kGammaLumMin << ".." << kGammaLumMax
+                         << " cd/m^2): max|module - analytic| = " << d.maxAbs
+                         << " of 65535 at index " << d.atIndex
+                         << ", mean " << d.mean;
+
+        // MEASURED, not guessed: 72 counts at gamma 2.2 and 48 at gamma 1.8
+        // (mean 0.7 either way), all of it piecewise-linear interpolation at
+        // the dim end where the curve bends hardest. 100 leaves headroom for
+        // platform rounding without admitting a structural difference -- and a
+        // structural difference is orders of magnitude larger: the straight
+        // ramp this LUT used to be sits thousands of counts away (logged).
+        EXPECT_LE(d.maxAbs, 100)
+            << "gamma " << g << ": the module's LUT is " << d.maxAbs
+            << " counts from the one the standard requires for this display";
+
+        int fromRamp = 0;
+        for (int i = 0; i < 1024; ++i) {
+            const int ramp = static_cast<int>(std::lround(
+                static_cast<double>(i) / 1023.0 * 65535.0));
+            fromRamp = std::max(fromRamp,
+                std::abs(static_cast<int>(p.lutData[i]) - ramp));
+        }
+        GTEST_LOG_(INFO) << "    for scale: distance from the straight ramp = " << fromRamp;
+
+        produced.push_back(p);
+    }
+
+    // THE FALSIFICATION. If the module went back to ignoring the array, both
+    // gammas would give the same LUT and the assertions above could still pass
+    // on a lucky tolerance. They must differ, and by far more than rounding.
+    int between = 0;
+    for (int i = 0; i < 1024; ++i)
+        between = std::max(between, std::abs(static_cast<int>(produced[0].lutData[i]) -
+                                             static_cast<int>(produced[1].lutData[i])));
+    GTEST_LOG_(INFO) << "  gamma 2.2 vs gamma 1.8: max difference = " << between;
+    EXPECT_GT(between, 1000)
+        << "two different display characteristics produced the same LUT -- the "
+           "measured curve is not reaching the output";
 }

@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstring>
 #include <algorithm>
+#include <vector>
 #include "perf_measure.h"
 
 #include "xpe/display/display_api.h"
@@ -439,4 +440,106 @@ TEST(PresentationLut, BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072) {
     EXPECT_EQ(img.format, XPE_PIXEL_UINT16);
     EXPECT_NE(img.data, nullptr);
     std::free(img.data);
+}
+
+// ===========================================================================
+// #155 (QA-B-146): the ordering contract, and the half of it that cannot be
+// checked.
+//
+// REQ-DISP-029 says luminanceValues is the display's characteristic curve
+// sampled at equally spaced driving levels, non-decreasing. Two halves, only
+// one of them detectable from inside this function:
+//
+//   non-decreasing                  -- a property of the array. Checked.
+//   equally spaced driving levels   -- NOT checked, and NOT checkable: no
+//                                      driving level is passed in. The GUI's
+//                                      {0.05, 1, 10, 100, 400} ascends and is
+//                                      accepted while still being wrong input.
+//
+// So these cases assert that the FIRST half is enforced. They must not be read
+// as "the contract is enforced".
+// ===========================================================================
+
+// The violation direction: a fall anywhere in the array is rejected, and the
+// caller's params are left alone -- not half-written, not flagged enabled.
+TEST(PresentationLut, GsdfCalibrate_Error_NonDecreasingViolation_155) {
+    struct Case { const char* name; std::vector<float> lum; };
+    const std::vector<Case> cases = {
+        { "falls at the end",   {1.0f, 10.0f, 100.0f, 50.0f} },
+        { "falls at the start", {10.0f, 1.0f, 100.0f, 500.0f} },
+        { "fully descending",   {500.0f, 100.0f, 10.0f, 1.0f} },
+        { "shuffled",           {500.0f, 3.0f, 1.0f, 111.0f, 7.0f} },
+    };
+
+    for (const Case& c : cases) {
+        XpePresentationLutParams p{};
+        p.gsdfEnabled = 0;
+        for (int i = 0; i < 1024; ++i) p.lutData[i] = 0xBEEF;   // sentinel
+
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT,
+                  xpe_gsdf_calibrate(c.lum.data(),
+                                     static_cast<uint32_t>(c.lum.size()), &p))
+            << c.name << ": a non-decreasing violation was accepted (REQ-DISP-029)";
+
+        // REQ-DISP-026's shape: rejected input leaves outParams untouched. The
+        // flag matters most -- a caller that only checks gsdfEnabled would
+        // otherwise apply a LUT that was never computed.
+        EXPECT_EQ(0, p.gsdfEnabled) << c.name << ": gsdfEnabled was set on a rejected call";
+        int written = 0;
+        for (int i = 0; i < 1024; ++i) if (p.lutData[i] != 0xBEEF) ++written;
+        EXPECT_EQ(0, written) << c.name << ": " << written
+                              << " LUT entries were written on a rejected call";
+    }
+}
+
+// The other direction. Without this the case above passes just as happily on an
+// implementation that rejects everything.
+TEST(PresentationLut, GsdfCalibrate_AscendingIsAccepted_155) {
+    const float lum[5] = {0.5f, 5.0f, 50.0f, 200.0f, 500.0f};
+    XpePresentationLutParams p{};
+    EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 5, &p));
+    EXPECT_EQ(1, p.gsdfEnabled);
+    for (int i = 1; i < 1024; ++i)
+        ASSERT_LE(p.lutData[i - 1], p.lutData[i]) << "at index " << i;
+}
+
+// The boundary. "non-decreasing" is <=, not <: a real panel can be flat over a
+// stretch of driving levels, so equal neighbours are input, not error.
+TEST(PresentationLut, GsdfCalibrate_EqualNeighboursAreAccepted_155) {
+    // Flat from DDL 16384 to 32768 (elements 1 and 2 of five).
+    const float lum[5] = {0.5f, 50.0f, 50.0f, 200.0f, 500.0f};
+    XpePresentationLutParams p{};
+    ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 5, &p))
+        << "equal neighbours were rejected -- the contract is non-decreasing (<=)";
+    EXPECT_EQ(1, p.gsdfEnabled);
+    for (int i = 1; i < 1024; ++i)
+        ASSERT_LE(p.lutData[i - 1], p.lutData[i]) << "at index " << i;
+
+    // THE PLATEAU RULE, pinned. Several driving levels produce 50.0 cd/m^2, so
+    // the inverse of 50.0 is a range and the module must pick one. It picks the
+    // LOWEST -- element 1, DDL = 1/4 * 65535 = 16384 (rounded) -- and that is a
+    // decision recorded in presentation_lut.cpp, not an accident of the loop.
+    // No LUT entry may land strictly inside the plateau's DDL range.
+    const int plateauLo = static_cast<int>(std::lround(1.0 / 4.0 * 65535.0));
+    const int plateauHi = static_cast<int>(std::lround(2.0 / 4.0 * 65535.0));
+    int inside = 0;
+    for (int i = 0; i < 1024; ++i) {
+        const int v = static_cast<int>(p.lutData[i]);
+        if (v > plateauLo && v < plateauHi) ++inside;
+    }
+    GTEST_LOG_(INFO) << "  plateau DDL range [" << plateauLo << ", " << plateauHi
+                     << "]: entries strictly inside = " << inside;
+    EXPECT_EQ(0, inside)
+        << inside << " entries landed inside the flat stretch, so the module is "
+           "no longer choosing the lowest driving level of the plateau";
+}
+
+// The control the card asks for: count == 2 still works, because that is what
+// the GUI caller passes after GUI-C-131.
+TEST(PresentationLut, GsdfCalibrate_TwoPointCurveStillWorks_155) {
+    const float lum[2] = {0.05f, 400.0f};
+    XpePresentationLutParams p{};
+    EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 2, &p));
+    EXPECT_EQ(1, p.gsdfEnabled);
+    EXPECT_LT(p.lutData[0], p.lutData[1023]) << "the two-point curve produced a flat LUT";
 }

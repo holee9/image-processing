@@ -323,6 +323,17 @@ struct CalibrationData {
     uint32_t nonlin_entries{0};
     uint32_t nonlin_extension_start{0};
     int64_t  nonlin_timestamp{0};
+
+    // QA-A-140 (#196): the no-op report is raised ONCE per condition, not once
+    // per frame. The message carries no per-frame data -- it is byte-identical
+    // every time -- and the alert queue holds 64 entries with FIFO eviction
+    // (xpe_common.cpp:59), so 65 frames of it would push every other alert out,
+    // including the #194 clamp count the operator actually needs. Contrast
+    // gain_correct.cpp:374, which is per-frame BECAUSE its message carries that
+    // frame's clamped-pixel count.
+    // Re-armed whenever the condition's input changes: a LUT being loaded or
+    // unloaded, or xpe_preprocess_shutdown() resetting this whole struct.
+    bool     nonlin_noop_reported{false};
 };
 
 extern CalibrationData g_calib;

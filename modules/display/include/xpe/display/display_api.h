@@ -295,24 +295,39 @@ XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 
  * @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
  * @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract
  * @MX:SPEC: SPEC-XPE-P1B-DISP
- * @MX:NOTE: [AUTO] GSDF Barten model approximation — simplified log-linear JND model
+ * @MX:NOTE: [AUTO] DICOM PS3.14 GSDF — Equation 7-2 (j from L) and 7-1 (L from j)
  * @MX:WARN: [AUTO] Numerical precision sensitive — validate with DICOM PS3.14 test vectors
- * @MX:REASON: Barten model uses empirical constants; different calibration data may require tuning
+ * @MX:REASON: Coefficients are transcribed from the standard and checked against Table B-1
  *
- * Uses a simplified Barten model approximation to compute JND indices from
- * luminance values. Produces a monotonically non-decreasing 1024-entry uint16 LUT.
+ * Applies the DICOM PS3.14 Grayscale Standard Display Function: 1024 P-Values
+ * spaced equally in JND index across the measured luminance range, each mapped
+ * to the driving level whose MEASURED luminance meets the standard's
+ * requirement. Produces a monotonically non-decreasing 1024-entry uint16 LUT.
  * Sets outParams->gsdfEnabled = 1 on success.
  *
- * @param luminanceValues [in]  Array of measured luminance values (cd/m^2), count >= 2.
- *                              Only the minimum and maximum of the array are
- *                              used; intermediate measurements do not affect
- *                              the resulting LUT.
+ * @param luminanceValues [in]  The display's measured characteristic curve
+ *                              (cd/m^2), count >= 2. Element i is the luminance
+ *                              measured at the EQUALLY SPACED driving level
+ *                              DDL_i = i/(count-1) * 65535, and the values must
+ *                              ASCEND. The whole array is used: the interior
+ *                              samples are what the standard's required
+ *                              luminances are inverted against.
+ *                              (#155, QA-B-145 — this narrows an earlier
+ *                              contract under which only the minimum and
+ *                              maximum were read.)
  * @param count           [in]  Number of entries in luminanceValues (must be >= 2).
  * @param outParams       [out] Populated with GSDF LUT; gsdfEnabled set to 1.
  *                              Requires xpe_apply_presentation_lut to be called
  *                              separately -- this function computes the LUT only.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL, or count < 2.
+ * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL,
+ *         count < 2, or the array is not non-decreasing (REQ-DISP-029; equal
+ *         neighbours are allowed, a fall is not). outParams is untouched.
+ *
+ * @note Only half of the REQ-DISP-029 contract is checked. The ordering is; the
+ *       "measured at equally spaced driving levels" half is NOT, because no
+ *       driving level reaches this function. An ascending but log-spaced ladder
+ *       is accepted and yields an incorrect LUT.
  *
  * @note Degenerate luminance input is silently coerced, not rejected: a
  *       non-positive minimum becomes 0.01 cd/m^2, and a maximum not above the
