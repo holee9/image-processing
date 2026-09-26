@@ -1,0 +1,73 @@
+modules/enhance_basic/tests\test_contrast_enhance.cpp
+  ContrastEnhance.Performance_3072x3072_Within50ms   time=1 func=1
+     L203   EXPECT_LE(ms, 50) << "CLAHE 3072x3072 took " << ms << "ms, budget 50ms";
+modules/enhance_basic/tests\test_edge_enhance.cpp
+  EdgeEnhance.Performance_3072x3072_Within20ms   time=1 func=1
+     L201   EXPECT_LE(ms, 20) << "USM 3072x3072 took " << ms << "ms, budget 20ms";
+modules/enhance_basic/tests\test_enhance_integration.cpp
+  EnhanceIntegration.FullPipeline_3072x3072_Within200ms   time=1 func=5
+     L141   EXPECT_LE(ms, 200) << "Full pipeline took " << ms << "ms, budget 200ms";
+modules/enhance_basic/tests\test_exposure_index.cpp
+  ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline   time=1 func=3
+     L264   EXPECT_LT(elapsed.count(), kMaxMs)
+modules/enhance_basic/tests\test_exposure_index.cpp
+  ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline   time=1 func=4
+     L294   EXPECT_LT(elapsed.count(), kMaxMs)
+modules/enhance_basic/tests\test_log_transform.cpp
+  LogTransform.Performance_3072x3072_Within15ms   time=1 func=1
+     L147   EXPECT_LE(ms, 15) << "xpe_log_transform took " << ms << "ms, budget is 15ms";
+modules/enhance_basic/tests\test_log_transform.cpp
+  LogTransform.InversePerformance_3072x3072_Within15ms   time=1 func=1
+     L158   EXPECT_LE(ms, 15) << "xpe_log_inverse took " << ms << "ms, budget is 15ms";
+modules/enhance_basic/tests\test_noise_reduce.cpp
+  NoiseReduce.Performance_Bilateral_Small_Within100ms   time=1 func=1
+     L234   EXPECT_LE(ms, 100) << "Bilateral 512x512 took " << ms << "ms, budget 100ms";
+modules/enhance_advanced/tests\test_collimation_detect.cpp
+  CollimationDetectTest.LargeImagePerformance   time=1 func=5
+     L398   EXPECT_LT(duration.count(), 500) << "Collimation detection exceeds 500ms for 2048x2048 image";
+modules/enhance_advanced/tests\test_collimation_detect.cpp
+  CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline   time=1 func=5
+     L430   EXPECT_LT(elapsed.count(), kMaxMs)
+modules/enhance_advanced/tests\test_edge_enhancement.cpp
+  EdgeEnhancementTest.T308_PerformanceBudget   time=1 func=1
+     L633   EXPECT_LT(duration.count(), 100)
+modules/enhance_advanced/tests\test_exposure_index.cpp
+  ExposureIndexTest.T508_PerformanceBudget   time=1 func=1
+     L558   EXPECT_LT(duration.count(), 100)
+modules/enhance_advanced/tests\test_integration.cpp
+  IntegrationTest.T602_DiagnosticLogging   time=1 func=2
+     L140   EXPECT_GT(duration, 0);  // Some time elapsed
+modules/enhance_advanced/tests\test_integration.cpp
+  IntegrationTest.T603b_FullPipeline_PerformanceBudget   time=1 func=5
+     L289   EXPECT_LT(totalDuration, 500) << "Pipeline exceeded time budget: " << totalDuration << "ms";
+modules/enhance_advanced/tests\test_integration.cpp
+  IntegrationTest.T608_PerformanceBudgetVerification   time=4 func=5
+     L628   EXPECT_LT(mfpTime, 100) << "MFP exceeded budget: " << mfpTime << "ms";
+     L640   EXPECT_LT(fracTime, 50) << "Fractional exceeded budget: " << fracTime << "ms";
+     L650   EXPECT_LT(collTime, 50) << "Collimation exceeded budget: " << collTime << "ms";
+     L660   EXPECT_LT(eiTime, 10000) << "EI exceeded budget: " << eiTime << "us";
+modules/display/tests\test_modality_lut.cpp
+  ModalityLut.Performance_3072x3072_Linear   time=1 func=1
+     L240   EXPECT_LE(ms, 20) << "ModalityLUT LINEAR 3072x3072 took " << ms << "ms (limit 20ms)";
+modules/display/tests\test_presentation_lut.cpp
+  PresentationLut.Performance_3072x3072   time=1 func=1
+     L251   EXPECT_LE(ms, 30) << "PresentationLUT 3072x3072 took " << ms << "ms (limit 30ms, Release target 
+modules/display/tests\test_voi_lut.cpp
+  VoiLut.Performance_3072x3072   time=1 func=1
+     L295   EXPECT_LE(ms, 16) << "VoiLUT LINEAR 3072x3072 took " << ms << "ms (limit 16ms)";
+modules/gsvg/tests\test_gsvg_abi_smoke.cpp
+  GsvgAbiSmoke.Lifecycle3072_PerformanceBudget   time=2 func=6
+     L291   EXPECT_LT(elapsed.count(), kAbiMaxMs)
+     L309   EXPECT_LT(elapsed.count(), kAbiMaxMs)
+modules/gsvg/tests\test_gsvg_benchmark.cpp
+  BenchmarkFreeze.BP06_GsvgVersionProbeBaseline   time=1 func=2
+     L22    EXPECT_LT(elapsed.count(), kMaxTotalUs)
+modules/gsvg/tests\test_gsvg_degraded.cpp
+  GsvgDegradedMode.DegradedMode_PerformanceBudget   time=1 func=3
+     L241   EXPECT_LT(elapsed.count(), kMaxMs)
+tests/e2e_post_pipeline\test_e2e_full_pipeline.cpp
+  FullPipelineE2E.PostProcess_3072x3072_Within3000ms   time=1 func=1
+     L214   EXPECT_LE(total_ms, 3000)
+tests/e2e_post_pipeline\test_e2e_full_pipeline.cpp
+  FullPipelineE2E.PostProcess_512x512_Within200ms   time=1 func=1
+     L231   EXPECT_LE(total_ms, 200)

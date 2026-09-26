@@ -1,0 +1,22 @@
+Thu Sep 17 23:11:39     2026
+
+
+Name                      : 12th Gen Intel(R) Core(TM) i7-12700
+NumberOfCores             : 12
+NumberOfLogicalProcessors : 20
+
+
+
+
+
+TotalPhysicalMemory : 34088599552
+
+
+
+전원 구성표 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (균형 조정)
+
+Caption : Microsoft Windows 11 Pro
+Version : 10.0.26200
+
+
+

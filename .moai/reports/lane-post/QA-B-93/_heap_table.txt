@@ -1,0 +1,65 @@
+AiEndurance.ThousandCycles_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 8192
+  CYCLES=1000  64000 B / 1000 blk, ws 94208
+  CYCLES=4000  256000 B / 4000 blk, ws 344064
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=77824/86016
+AiEndurance.ThousandCycles_CrtHeapDoesNotGrow
+  CYCLES=250   0 B / 0 blk, ws 0
+  CYCLES=1000  0 B / 0 blk, ws 0
+  CYCLES=4000  0 B / 0 blk, ws 0
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=0/0
+DicomJ2kFailureTest.FailurePathsDoNotGrowCrtHeap
+  CYCLES=250   0 B / 0 blk, ws 0
+  CYCLES=1000  0 B / 0 blk, ws 110592
+  CYCLES=4000  0 B / 0 blk, ws 57344
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=0/86016
+DicomJ2kFailureTest.FailurePaths_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 20480
+  CYCLES=1000  64000 B / 1000 blk, ws 61440
+  CYCLES=4000  256000 B / 4000 blk, ws 417792
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=36864/90112
+DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 20480
+  CYCLES=1000  64000 B / 1000 blk, ws 217088
+  CYCLES=4000  256000 B / 4000 blk, ws 528384
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=155648/237568
+DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow
+  CYCLES=250   0 B / 0 blk, ws 0
+  CYCLES=1000  0 B / 0 blk, ws 69632
+  CYCLES=4000  0 B / 0 blk, ws 139264
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=73728/90112
+DisplayEndurance.ThousandCycles_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 28672
+  CYCLES=1000  64000 B / 1000 blk, ws 176128
+  CYCLES=4000  256000 B / 4000 blk, ws 532480
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=86016/176128
+DisplayEndurance.ThousandCycles_CrtHeapDoesNotGrow
+  CYCLES=250   0 B / 0 blk, ws 4096
+  CYCLES=1000  0 B / 0 blk, ws 4096
+  CYCLES=4000  0 B / 0 blk, ws 176128
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=4096/4096
+EnhanceIntegration.NoHeapLeak_1000Iterations
+  CYCLES=250   0 B / 0 blk, ws 0
+  CYCLES=1000  0 B / 0 blk, ws 0
+  CYCLES=4000  0 B / 0 blk, ws 0
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=0/0
+EnhanceIntegration.NoHeapLeak_1000Iterations_AllocatingPaths
+  CYCLES=250   0 B / 0 blk, ws 0
+  CYCLES=1000  0 B / 0 blk, ws 8192
+  CYCLES=4000  0 B / 0 blk, ws 69632
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=0/8192
+EnhanceIntegration.NoHeapLeak_AllocatingPaths_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 16384
+  CYCLES=1000  64000 B / 1000 blk, ws 106496
+  CYCLES=4000  256000 B / 4000 blk, ws 413696
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=86016/106496
+IntegrationTest.T605b_ControlLeakIsCaught
+  CYCLES=250   16000 B / 250 blk, ws 94208
+  CYCLES=1000  64000 B / 1000 blk, ws 192512
+  CYCLES=4000  256000 B / 4000 blk, ws 446464
+  REPEAT10     n=10 (bytes,blocks) distinct=[(64000, 1000)] ws min/max=188416/634880
+IntegrationTest.T605b_CrtHeapDoesNotGrow
+  CYCLES=250   0 B / 0 blk, ws 69632
+  CYCLES=1000  0 B / 0 blk, ws 524288
+  CYCLES=4000  0 B / 0 blk, ws 528384
+  REPEAT10     n=10 (bytes,blocks) distinct=[(0, 0)] ws min/max=81920/528384

@@ -1,0 +1,17 @@
+
+Name                           CPU    Id
+----                           ---    --
+ChatGPT                54444.09375 16580
+ChatGPT               47784.390625 17652
+claude                40100.984375 11260
+claude                37385.765625 16964
+claude                36454.984375 15120
+logioptionsplus_agent    36438.125 15280
+claude                35132.203125 20284
+java                     30066.375 18936
+remoting_host         21838.390625 14632
+WindowsTerminal          19003.875 18560
+ChatGPT                14619.03125  6580
+ChatGPT                 12445.5625 10208
+
+
