@@ -1,0 +1,28 @@
+[Native actual=RealXpeBackend] synthetic_1024x1024.raw raw min=0 max=63426 mean=31713 inside[-160..240]=36/1048576 (0.00%) above240=100.00% slope=1 intercept=0
+     (preview format=Gray8)
+   VOI C=40 W=400: preview min=0 max=255 mean=255.0 at0=0.00% at255=100.00% distinctLevels=9 identicalToPrevious=False
+     summary: CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=40, W=400) -> GSDF(off)
+     (preview format=Gray8)
+   VOI C=32768 W=65535: preview min=0 max=255 mean=127.0 at0=0.00% at255=0.00% distinctLevels=256 identicalToPrevious=False
+     summary: CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+[Native actual=RealXpeBackend] wrist_lat_3072x3072.raw raw min=2481 max=15451 mean=4706 inside[-160..240]=0/9437184 (0.00%) above240=100.00% slope=1 intercept=0
+     (preview format=Gray8)
+   VOI C=40 W=400: preview min=0 max=0 mean=0.0 at0=100.00% at255=0.00% distinctLevels=1 identicalToPrevious=False
+     summary: CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=40, W=400) -> GSDF(off)
+     (preview format=Gray8)
+   VOI C=32768 W=65535: preview min=0 max=255 mean=43.0 at0=0.14% at255=0.00% distinctLevels=105 identicalToPrevious=False
+     summary: CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+[Mock actual=MockXpeBackend] synthetic_1024x1024.raw raw min=0 max=63426 mean=31713 inside[-160..240]=36/1048576 (0.00%) above240=100.00% slope=1 intercept=0
+     (preview format=Gray8)
+   VOI C=40 W=400: preview min=102 max=255 mean=255.0 at0=0.00% at255=99.99% distinctLevels=9 identicalToPrevious=False
+     summary: MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=40, W=400) -> GSDF(off)
+     (preview format=Gray8)
+   VOI C=32768 W=65535: preview min=0 max=240 mean=121.9 at0=0.00% at255=0.00% distinctLevels=241 identicalToPrevious=False
+     summary: MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+[Mock actual=MockXpeBackend] wrist_lat_3072x3072.raw raw min=2481 max=15451 mean=4706 inside[-160..240]=0/9437184 (0.00%) above240=100.00% slope=1 intercept=0
+     (preview format=Gray8)
+   VOI C=40 W=400: preview min=255 max=255 mean=255.0 at0=0.00% at255=100.00% distinctLevels=1 identicalToPrevious=False
+     summary: MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=40, W=400) -> GSDF(off)
+     (preview format=Gray8)
+   VOI C=32768 W=65535: preview min=9 max=59 mean=17.7 at0=0.00% at255=0.00% distinctLevels=43 identicalToPrevious=False
+     summary: MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)

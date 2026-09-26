@@ -1,0 +1,59 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.11]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x1702FC pid=23784 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x26F0308 pid=17784 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale [5 s]
+  표준 출력 메시지:
+ W23 start: title='ImageProcTest GUI-S0 — FAULT INJECTION ARMED' status='faultInjection=display-pipeline-after:2 calls=1'
+ W23 preset: v2 -> v3 indicator='' status='faultInjection=display-pipeline-after:2 calls=2'
+ W23 failed apply: v3 indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' status='faultInjection=display-pipeline-after:2 calls=3'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection [197 ms]
+  표준 출력 메시지:
+ W24 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 17784. hwnd launched=0x26F0308 reacquired=0x26F0308 topLevelWindowsForProcess=1
+ W24 title='ImageProcTest GUI-S0' status='faultInjection=off' viewport='source=1024x1024 v1; processed=1024x1024 v2'
+ W24: 196 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W21_Hud_NamesTheWindowThatProducedTheImage [7 s]
+  표준 출력 메시지:
+ W21 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 17784. hwnd launched=0x26F0308 reacquired=0x26F0308 topLevelWindowsForProcess=1
+ W21 preset: input=40000 hud=40000
+ W21 edit: input=12345 hud=40000
+ W21 apply: hud=12345
+ W21: 7849 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W20_MainViewport_ReceivesTheLoadedImage [185 ms]
+  표준 출력 메시지:
+ W20 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 17784. hwnd launched=0x26F0308 reacquired=0x26F0308 topLevelWindowsForProcess=1
+ W20 loaded=1024x1024 viewport='source=1024x1024 v1; processed=1024x1024 v5'
+ W20: 185 ms
+
+
+[xUnit.net 00:00:23.11]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W22_EditingVoiWithoutApplying_MarksTheImageStale [8 s]
+  표준 출력 메시지:
+ W22 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 17784. hwnd launched=0x26F0308 reacquired=0x26F0308 topLevelWindowsForProcess=1
+ W22 preset: v5 -> v6 indicator=''
+ W22 edit: v6 indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
+ W22 apply: v7 indicator=''
+ W22: 8106 ms
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 5
+     통과: 5
+ 총 시간: 23.4229 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

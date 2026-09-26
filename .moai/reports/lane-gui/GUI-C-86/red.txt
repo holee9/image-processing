@@ -1,0 +1,85 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.12]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xCC020C pid=17552 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:02.99]     ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot [FAIL]
+[xUnit.net 00:00:02.99]       Assert.Empty() Failure: Collection was not empty
+[xUnit.net 00:00:02.99]       Collection: ["D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\"···, "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\"···]
+[xUnit.net 00:00:02.99]       Stack Trace:
+[xUnit.net 00:00:02.99]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs(89,0): at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot()
+[xUnit.net 00:00:02.99]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:02.99]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.99]       Output:
+[xUnit.net 00:00:02.99]         EB03 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+[xUnit.net 00:00:02.99]         EB03 files directly under evidence/: before=0 after=[backend.json, verdicts.json]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot [2 s]
+  오류 메시지:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\"···, "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\"···]
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs:line 89
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ EB03 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+ EB03 files directly under evidence/: before=0 after=[backend.json, verdicts.json]
+
+
+XPE-C56-PROBE hwnd=0x194603B8 pid=25616 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:05.79]     ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend [FAIL]
+[xUnit.net 00:00:05.80]       Export failed: 'Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.' (#178).
+[xUnit.net 00:00:05.80]       Stack Trace:
+[xUnit.net 00:00:05.80]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs(31,0): at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend()
+[xUnit.net 00:00:05.80]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:05.80]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.80]       Output:
+[xUnit.net 00:00:05.80]         EB01 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend [2 s]
+  오류 메시지:
+   Export failed: 'Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.' (#178).
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs:line 31
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ EB01 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+
+
+XPE-C56-PROBE hwnd=0x3620308 pid=25328 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xCF020C pid=17080 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:51.22]     ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence [FAIL]
+[xUnit.net 00:00:51.22]       The first run set has no run id (status 'Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.').
+[xUnit.net 00:00:51.22]       Stack Trace:
+[xUnit.net 00:00:51.22]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs(67,0): at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence()
+[xUnit.net 00:00:51.22]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:51.22]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:51.22]       Output:
+[xUnit.net 00:00:51.22]         EB02-1 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+[xUnit.net 00:00:51.22]         EB02-2 status-bar='mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+[xUnit.net 00:00:51.22]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence [45 s]
+  오류 메시지:
+   The first run set has no run id (status 'Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.').
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\EvidenceBundleScenarios.cs:line 67
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ EB02-1 status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+ EB02-2 status-bar='mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' export='Export failed: The process cannot access the file 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence\bundles\.zip' because it is being used by another process.'
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 3
+     실패: 3
+ 총 시간: 51.5509 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

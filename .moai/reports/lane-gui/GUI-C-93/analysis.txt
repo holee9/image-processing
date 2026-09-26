@@ -1,0 +1,33 @@
+launches=70 win32=3 wpf=67 foreground never=0
+
+[q_f] (ms)
+  Win32  : n=3 min=86.2 p10=86.2 median=96.1 p90=120.9 max=120.9
+  Wpf    : n=67 min=71.5 p10=76.2 median=85.5 p90=98.8 max=119.5
+
+[m_f] (ms)
+  Win32  : n=3 min=78.6 p10=78.6 median=89.4 p90=105.0 max=105.0
+  Wpf    : n=67 min=67.3 p10=70.7 median=78.7 p90=88.7 max=100.5
+
+[f_s] (ms)
+  Win32  : n=3 min=485.8 p10=485.8 median=495.9 p90=502.0 max=502.0
+  Wpf    : n=67 min=440.1 p10=450.0 median=473.0 p90=500.5 max=524.5
+
+[q_s] (ms)
+  Win32  : n=3 min=581.9 p10=581.9 median=588.2 p90=616.8 max=616.8
+  Wpf    : n=67 min=511.7 p10=528.8 median=563.1 p90=599.3 max=644.0
+
+[q_m] (ms)
+  Win32  : n=3 min=6.8 p10=6.8 median=7.6 p90=15.8 max=15.8
+  Wpf    : n=67 min=3.3 p10=4.2 median=7.6 p90=12.2 max=20.5
+
+histogram of query - foreground (ms), 20 ms bins:
+     60: Win32=  0  Wpf= 15
+     80: Win32=  2  Wpf= 46
+    100: Win32=  0  Wpf=  6
+    120: Win32=  1  Wpf=  0
+
+criterion: narrowest interval with >=80% of Win32 (3/3): [86.2, 120.9] ms width 34.6; Wpf launches inside it: 31/67 (46%)
+
+fixed window 0 <= q_f < 50 ms: Win32 0/3 (0%), Wpf 0/67 (0%)
+query BEFORE activation (q_f < 0): Win32 0/3, Wpf 0/67
+Mann-Whitney q_f Win32 vs Wpf: U=160.0 z=1.73 p~0.084 (n1=3, n2=67)

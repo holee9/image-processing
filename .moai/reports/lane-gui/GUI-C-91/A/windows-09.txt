@@ -1,0 +1,7 @@
+﻿z=0 pid=18560 min=False topmost=False fg=True title=◑ xpe-leader
+z=1 pid=10712 min=False topmost=False fg=False title=Bright_test_gate__00 - 파일 탐색기
+z=2 pid=15836 min=False topmost=False fg=False title=설정
+z=3 pid=18208 min=False topmost=False fg=False title=설정
+z=4 pid=14748 min=True topmost=False fg=False title=Microsoft 365 Copilot
+z=5 pid=17392 min=False topmost=False fg=False title=Windows 입력 환경
+z=6 pid=10712 min=False topmost=False fg=False title=Program Manager

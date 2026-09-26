@@ -1,0 +1,57 @@
+import glob, html, math, re, collections, os
+import xml.etree.ElementTree as ET
+NS = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+
+def wilson(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = p + z * z / (2 * n)
+    s = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return (max(0.0, (c - s) / d), (c + s) / d)
+
+for cond in "ABC":
+    base = f"build/e2e-c91/{cond}"
+    trxs = sorted(glob.glob(f"{base}/run-*.trx"))
+    launches = win32 = runs_with = 0
+    unread = collections.Counter(); readable = collections.Counter(); skip170 = 0
+    fg = collections.Counter(); topmost_other = 0; nonmin_other = 0; list_runs = 0
+    shapes = collections.Counter()
+    for t in trxs:
+        raw = open(t, encoding="utf-8-sig", errors="replace").read()
+        probes = {}
+        for m in re.finditer(r"XPE-C56-PROBE hwnd=\S+ pid=(\d+) launched=(\S+) fromHandle=(\S+) fromTree=(\S+) framework=(\S+)", html.unescape(raw)):
+            probes[m.group(1)] = m.groups()
+        launches += len(probes)
+        w = [p for p in probes.values() if p[4] == "Win32"]
+        win32 += len(w)
+        runs_with += 1 if w else 0
+        for p in w:
+            shapes[(p[1], p[2], p[3])] += 1
+        root = ET.fromstring(raw.encode("utf-8"))
+        for x in root.findall(".//t:UnitTestResult", NS):
+            name = x.get("testName", "")
+            if "UnreadableWindow" in name:
+                unread[x.get("outcome")] += 1
+            if "ReadableWindow_IsKept" in name:
+                readable[x.get("outcome")] += 1
+                if x.get("outcome") == "NotExecuted" and "XPE-SKIP-ALLOWED:170" in "".join(x.itertext()):
+                    skip170 += 1
+        wl = t.replace("run-", "windows-").replace(".trx", ".txt")
+        if os.path.exists(wl):
+            list_runs += 1
+            rows = open(wl, encoding="utf-8-sig").read().splitlines()
+            for r in rows:
+                if "fg=True" in r:
+                    fg[re.sub(r"^.*title=", "", r)] += 1
+                if "topmost=True" in r:
+                    topmost_other += 1
+                if "min=False" in r and "Program Manager" not in r:
+                    nonmin_other += 1
+    lo, hi = wilson(win32, launches)
+    print(f"[{cond}] runs={len(trxs)} launches={launches} win32={win32} rate={win32 / launches if launches else 0:.3f} "
+          f"CI95=({lo:.3f}, {hi:.3f}) runs_with_win32={runs_with}")
+    print(f"     control UnreadableWindow={dict(unread)} ReadableWindow={dict(readable)} skip170={skip170}")
+    print(f"     win32 shapes (launched, fromHandle, fromTree)={dict(shapes)}")
+    print(f"     window lists={list_runs} foreground={dict(fg)} topmost rows={topmost_other} non-minimised rows={nonmin_other}")

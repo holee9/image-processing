@@ -1,0 +1,6 @@
+run 1  45.1s  FAIL: ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01a_Fallback_StatusBarNamesTheActualBackend, ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow
+
+=== 1 run(s), backend=Native ===
+runs with a failure: 1 / 1
+    1x  ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow
+    1x  ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01a_Fallback_StatusBarNamesTheActualBackend

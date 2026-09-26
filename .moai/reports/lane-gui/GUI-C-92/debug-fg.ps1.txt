@@ -1,0 +1,37 @@
+$src = (Get-Content 'build/e2e-c92/Invoke-C92Experiment.ps1' -Raw)
+$native = [regex]::Match($src, "(?s)\`$native = @'\r?\n(.*?)\r?\n'@").Groups[1].Value
+Add-Type -TypeDefinition $native
+Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public static class C92Dbg {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] public static extern IntPtr GetShellWindow();
+    [DllImport("user32.dll")] public static extern IntPtr GetDesktopWindow();
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
+}
+'@
+$formScript = @'
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'C92 DEBUG WINDOW'
+$f.StartPosition = 'Manual'; $f.Left = 1900; $f.Top = 100; $f.Width = 300; $f.Height = 200
+[void]$f.ShowDialog()
+'@
+$p = Start-Process powershell -PassThru -ArgumentList @('-NoProfile', '-Command', $formScript)
+Start-Sleep 3
+$h = [C92Fg]::FindWindow([NullString]::Value, 'C92 DEBUG WINDOW')
+"plain hwnd=$h desc=$([C92Fg]::Describe($h))"
+"fg before=$([C92Fg]::GetForegroundWindow()) $([C92Fg]::Describe([C92Fg]::GetForegroundWindow()))"
+$ok = [C92Fg]::Set($h)
+"Set(plain)=$ok fg now=$([C92Fg]::GetForegroundWindow()) $([C92Fg]::Describe([C92Fg]::GetForegroundWindow()))"
+$prog = [C92Fg]::FindWindow('Progman', [NullString]::Value)
+$shell = [C92Dbg]::GetShellWindow()
+"progman=$prog shell=$shell desc=$([C92Fg]::Describe($prog))"
+$ok = [C92Fg]::Set($prog)
+"Set(progman)=$ok fg now=$([C92Fg]::GetForegroundWindow()) $([C92Fg]::Describe([C92Fg]::GetForegroundWindow()))"
+(New-Object -ComObject Shell.Application).MinimizeAll(); Start-Sleep -Milliseconds 800
+"after MinimizeAll fg=$([C92Fg]::GetForegroundWindow()) $([C92Fg]::Describe([C92Fg]::GetForegroundWindow()))"
+[void][C92Dbg]::ShowWindow($h, 9); $ok = [C92Fg]::Set($h)
+"restore+Set(plain)=$ok fg=$([C92Fg]::Describe([C92Fg]::GetForegroundWindow()))"
+(New-Object -ComObject Shell.Application).UndoMinimizeALL()
+Stop-Process -Id $p.Id -Force

@@ -1,0 +1,4 @@
+GUI-S0 self-check passed.
+Fixture manifest: D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\fixture-manifest.json
+Fixture raw: D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw
+Settings file: D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\bin\Debug\net8.0-windows\appsettings.selfcheck.json

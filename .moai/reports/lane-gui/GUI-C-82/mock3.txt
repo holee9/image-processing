@@ -1,0 +1,6 @@
+run 1  142.5s  pass
+run 2  142.7s  pass
+run 3  141.7s  pass
+
+=== 3 run(s), backend=Mock ===
+runs with a failure: 0 / 3

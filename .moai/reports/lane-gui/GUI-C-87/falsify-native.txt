@@ -1,0 +1,5 @@
+run 1  47.8s  FAIL: ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow
+
+=== 1 run(s), backend=Native ===
+runs with a failure: 1 / 1
+    1x  ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow
