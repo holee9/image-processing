@@ -1,0 +1,147 @@
+# GUI-C-92 experiment (not part of the product or the suite): foreground set right before each run,
+# conditions D (desktop) / W (plain window) / S (let the app take the foreground), crossed in a seeded
+# random order. A watcher samples the foreground and the ImageProcTest processes every 100 ms, so the
+# foreground at each app launch can be read back by pid.
+param(
+    [int]$RunsPerCondition = 30,
+    [int]$Seed = 9217,
+    [int]$MinFreeMB = 1500,
+    [string]$Out = 'build/e2e-c92'
+)
+$ErrorActionPreference = 'Stop'
+$repo = 'D:\workspace-github\xpe-gui'
+Set-Location $repo
+New-Item -ItemType Directory -Force $Out | Out-Null
+$outAbs = (Resolve-Path $Out).Path
+
+$native = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class C92Fg {
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(int pid);
+    [DllImport("user32.dll")] public static extern bool LockSetForegroundWindow(uint code);
+    [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] public static extern IntPtr FindWindow(string cls, string title);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, IntPtr pid);
+    [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
+    [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+    [DllImport("user32.dll")] public static extern void SwitchToThisWindow(IntPtr h, bool alt);
+    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+    public static string Describe(IntPtr h) {
+        var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
+        uint pid; GetWindowThreadProcessId(h, out pid);
+        return pid + "|" + sb.ToString().Replace("|", "/");
+    }
+    public static bool Set(IntPtr h) {
+        // Alt tap: Windows lets a process set the foreground right after input it generated.
+        keybd_event(0x12, 0, 0, UIntPtr.Zero);
+        keybd_event(0x12, 0, 2, UIntPtr.Zero);
+        var fgThread = GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero);
+        var me = GetCurrentThreadId();
+        var attached = fgThread != me && AttachThreadInput(me, fgThread, true);
+        try {
+            BringWindowToTop(h);
+            SetForegroundWindow(h);
+        } finally {
+            if (attached) AttachThreadInput(me, fgThread, false);
+        }
+        System.Threading.Thread.Sleep(300);
+        if (GetForegroundWindow() != h) {
+            SwitchToThisWindow(h, true);
+            System.Threading.Thread.Sleep(300);
+        }
+        return GetForegroundWindow() == h;
+    }
+}
+'@
+Add-Type -TypeDefinition $native
+
+# Watcher: a separate process so sampling does not stall while dotnet test runs.
+$watchLog = Join-Path $outAbs 'watch.tsv'
+$watcher = @"
+Add-Type -TypeDefinition @'
+$native
+'@
+`$w = [System.IO.StreamWriter]::new('$watchLog', `$true)
+`$w.AutoFlush = `$true
+while (`$true) {
+    `$fg = [C92Fg]::Describe([C92Fg]::GetForegroundWindow())
+    `$apps = (Get-Process ImageProcTest -ErrorAction SilentlyContinue | ForEach-Object { `$_.Id }) -join ','
+    `$w.WriteLine(('{0}`t{1}`t{2}' -f [DateTime]::UtcNow.ToString('o'), `$fg, `$apps))
+    Start-Sleep -Milliseconds 100
+}
+"@
+$watcherFile = Join-Path $outAbs 'watcher.ps1'
+Set-Content $watcherFile $watcher -Encoding utf8
+$watchProc = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $watcherFile)
+
+# W: a plain window at the far right of the primary screen, away from the app (52,52 1560x920).
+$formScript = @'
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'C92 PLAIN WINDOW'
+$f.TopMost = $false
+$f.StartPosition = 'Manual'
+$f.Left = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea.Right - 420
+$f.Top = 100; $f.Width = 400; $f.Height = 300
+[void]$f.ShowDialog()
+'@
+$plain = Start-Process powershell -PassThru -ArgumentList @('-NoProfile', '-Command', $formScript)
+Start-Sleep -Seconds 3
+$plainHwnd = [IntPtr]::Zero
+for ($k = 0; $k -lt 20 -and $plainHwnd -eq [IntPtr]::Zero; $k++) {
+    $plainHwnd = [C92Fg]::FindWindow([NullString]::Value, 'C92 PLAIN WINDOW'); Start-Sleep -Milliseconds 250
+}
+$desktopHwnd = [C92Fg]::FindWindow('Progman', [NullString]::Value)
+
+$order = @()
+foreach ($c in 'D', 'W', 'S') { $order += @($c) * $RunsPerCondition }
+$rng = [System.Random]::new($Seed)
+$order = $order | Sort-Object { $rng.Next() }
+$planFile = Join-Path $outAbs 'plan.tsv'
+"index`tcondition`ttarget_set`tfg_before`tfree_mb`tstarted_utc`tended_utc`ttrx" | Set-Content $planFile -Encoding utf8
+
+$env:XPE_E2E_BACKEND = 'Native'
+$env:XPE_NATIVE_DIR = (Resolve-Path 'build/ci-776292b/bin').Path
+
+try {
+    for ($i = 0; $i -lt $order.Count; $i++) {
+        $c = $order[$i]
+        $free = [int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1024)
+        if ($free -lt $MinFreeMB) {
+            Write-Host "stopped before run ${i}: free memory $free MB < $MinFreeMB MB"
+            Add-Content $planFile ("{0}`t{1}`tSTOPPED-MEMORY`t`t{2}`t`t`t" -f $i, $c, $free)
+            break
+        }
+        switch ($c) {
+            'D' { $ok = [C92Fg]::Set($desktopHwnd) }
+            'W' { $ok = [C92Fg]::Set($plainHwnd) }
+            'S' {
+                # Make the foreground transferable to any process; the app's own Show may then take it.
+                $ok = [C92Fg]::Set($plainHwnd)
+                [void][C92Fg]::LockSetForegroundWindow(2)     # LSFW_UNLOCK
+                [void][C92Fg]::AllowSetForegroundWindow(-1)   # ASFW_ANY
+            }
+        }
+        $fgBefore = [C92Fg]::Describe([C92Fg]::GetForegroundWindow())
+        $trx = 'run-{0:D3}-{1}.trx' -f $i, $c
+        $started = [DateTime]::UtcNow.ToString('o')
+        $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        & dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-build `
+            --filter 'FullyQualifiedName~WindowReacquireTests' `
+            --logger "trx;LogFileName=$trx" --results-directory $outAbs 2>&1 | Out-Null
+        $ErrorActionPreference = $previous
+        $ended = [DateTime]::UtcNow.ToString('o')
+        Add-Content $planFile ("{0}`t{1}`t{2}`t{3}`t{4}`t{5}`t{6}`t{7}" -f $i, $c, $ok, $fgBefore, $free, $started, $ended, $trx)
+        Write-Host "run $i $c set=$ok"
+    }
+}
+finally {
+    Stop-Process -Id $watchProc.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $plain.Id -Force -ErrorAction SilentlyContinue
+}

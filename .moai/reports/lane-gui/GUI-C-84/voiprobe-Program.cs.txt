@@ -1,0 +1,86 @@
+// GUI-C-84 measurement probe (scratch, not committed): what does VOI 40/400 vs 32768/65535 do to the raw fixtures?
+using System.Reflection;
+using System.Windows.Media.Imaging;
+using ImageProcTest.Models;
+using ImageProcTest.Services;
+
+var nativeDir = args[0];
+Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", nativeDir);
+Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+var gui = typeof(XpeBackendFactory).Assembly;
+gui.GetType("ImageProcTest.Services.Native.GuiNativeLibraryResolver")!
+    .GetMethod("Install", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!.Invoke(null, null);
+
+var fixtures = new[]
+{
+    (File: args[1], W: 1024, H: 1024),
+    (File: args[2], W: 3072, H: 3072),
+};
+var d = new AppSettings();
+Console.WriteLine($"AppSettings defaults: C={d.VoiWindowCenter} W={d.VoiWindowWidth} mode={d.VoiLutMode} body={d.SelectedBodyPart} slope={d.ModalityRescaleSlope} intercept={d.ModalityRescaleIntercept}");
+var windows = new[] { (C: 40f, W: 400f), (C: 32768f, W: 65535f) };
+if (args.Length > 3)
+{
+    foreach (var m in new[] { "Native", "Mock" })
+    {
+        foreach (var fx in new[] { (File: args[1], W: 1024, H: 1024), (File: args[2], W: 3072, H: 3072) })
+        {
+            var st = new AppSettings { BackendMode = m, RawWidth = fx.W, RawHeight = fx.H, GsdfEnabled = false };
+            var be = XpeBackendFactory.Create(st);
+            be.Initialize(st);
+            var rf = be.LoadRawImage(fx.File, st);
+            foreach (var bp in Enum.GetValues<XpeBodyPartEnum>())
+            {
+                VoiPreset pr;
+                try { pr = be.CreateVoiPreset(bp); } catch (Exception ex) { Console.WriteLine($"[{m}] {bp}: preset failed {ex.Message}"); continue; }
+                st.VoiWindowCenter = pr.Center; st.VoiWindowWidth = pr.Width; st.VoiLutMode = pr.Mode;
+                var fr = be.ApplyDisplayPipeline(rf, st);
+                var px = Pixels(fr.ProcessedPreview!);
+                var h = new int[256]; foreach (var b in px) h[b]++;
+                Console.WriteLine($"PRESET [{m}] {System.IO.Path.GetFileName(fx.File)} {bp}: C={pr.Center} W={pr.Width} mode={pr.Mode} -> levels={h.Count(x => x > 0)} at0={100.0*h[0]/px.Length:0.00}% at255={100.0*h[255]/px.Length:0.00}%");
+            }
+        }
+    }
+    return;
+}
+
+foreach (var mode in new[] { "Native", "Mock" })
+{
+    foreach (var fx in fixtures)
+    {
+        var settings = new AppSettings { BackendMode = mode, RawWidth = fx.W, RawHeight = fx.H, GsdfEnabled = false, VoiLutMode = "Linear" };
+        var backend = XpeBackendFactory.Create(settings);
+        backend.Initialize(settings);
+        var raw = backend.LoadRawImage(fx.File, settings);
+        var rp = raw.RawPixels!;
+        var within = rp.Count(v => v >= 40 - 200 && v <= 40 + 200);
+        Console.WriteLine($"[{mode} actual={backend.GetRuntimeInfo().BackendName}] {System.IO.Path.GetFileName(fx.File)} raw min={rp.Min()} max={rp.Max()} mean={rp.Average(v => (double)v):0} " +
+                          $"inside[-160..240]={within}/{rp.Length} ({100.0 * within / rp.Length:0.00}%) above240={rp.Count(v => v > 240) * 100.0 / rp.Length:0.00}% " +
+                          $"slope={settings.ModalityRescaleSlope} intercept={settings.ModalityRescaleIntercept}");
+        byte[]? previous = null;
+        foreach (var w in windows)
+        {
+            settings.VoiWindowCenter = w.C;
+            settings.VoiWindowWidth = w.W;
+            var frame = backend.ApplyDisplayPipeline(raw, settings);
+            var px = Pixels(frame.ProcessedPreview!);
+            var hist = new int[256];
+            foreach (var b in px) hist[b]++;
+            var distinct = hist.Count(h => h > 0);
+            var same = previous is not null && previous.AsSpan().SequenceEqual(px);
+            Console.WriteLine($"   VOI C={w.C} W={w.W}: preview min={px.Min()} max={px.Max()} mean={px.Average(b => (double)b):0.0} " +
+                              $"at0={100.0 * hist[0] / px.Length:0.00}% at255={100.0 * hist[255] / px.Length:0.00}% distinctLevels={distinct} " +
+                              $"identicalToPrevious={same}");
+            Console.WriteLine($"     summary: {frame.DisplayPipelineSummary}");
+            previous = px;
+        }
+    }
+}
+
+static byte[] Pixels(BitmapSource bmp)
+{
+    var stride = bmp.PixelWidth * ((bmp.Format.BitsPerPixel + 7) / 8);
+    var data = new byte[stride * bmp.PixelHeight];
+    bmp.CopyPixels(data, stride, 0);
+    return data;
+}

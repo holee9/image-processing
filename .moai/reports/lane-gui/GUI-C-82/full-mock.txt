@@ -1,0 +1,506 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.17]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xCA0518 pid=16364 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfAnImageWithItself_IsOneColour [163 ms]
+  표준 출력 메시지:
+ SourceOnly        white->#565B69 (A=255)  black->#0B101E (A=255)
+ DifferenceHeatmap white->#0B101E (A=255)  black->#0B101E (A=255)
+
+
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.SourceOnlyAndProcessedOnly_RenderTheLayerTheyName [4 ms]
+  표준 출력 메시지:
+ source=white processed=black: SourceOnly -> #565B69 (A=255)
+ source=white processed=black: ProcessedOnly -> #0B101E (A=255)
+
+
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfIdenticalInputs_IsBlack [4 ms]
+  표준 출력 메시지:
+ identical white input -> #0B101E (A=255); black image -> #0B101E (A=255)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [653 ms]
+XPE-C56-PROBE hwnd=0xCB0518 pid=26080 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:01.65]     ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [SKIP]
+[xUnit.net 00:00:01.65]       XPE_E2E_BACKEND is not 'Native' — this run stages no native binaries.
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.UnreadableWindow_IsReplaced_AndTheRunSaysSo [622 ms]
+  표준 출력 메시지:
+ reacquire note: 'The launched window did not support AutomationId (framework=Wpf); re-located it by process id 26080. hwnd launched=0xCB0518 reacquired=0xCB0518 topLevelWindowsForProcess=1'
+
+
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [< 1 ms]
+  오류 메시지:
+   XPE_E2E_BACKEND is not 'Native' — this run stages no native binaries.
+
+XPE-C56-PROBE hwnd=0x29602B6 pid=24296 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:41.92]     ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock [FAIL]
+[xUnit.net 00:00:41.92]       System.NullReferenceException : Object reference not set to an instance of an object.
+[xUnit.net 00:00:41.92]       Stack Trace:
+[xUnit.net 00:00:41.92]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\WorkbenchObservation.cs(174,0): at ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.OpenDetached(Window window)
+[xUnit.net 00:00:41.92]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MockBackendDisclosureScenarios.cs(57,0): at ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock()
+[xUnit.net 00:00:41.92]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:41.92]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:41.92]       Output:
+[xUnit.net 00:00:41.92]         E01c main title='[MOCK] ImageProcTest GUI-S0'
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01b_Fallback_ShowsAPersistentBanner [10 ms]
+  표준 출력 메시지:
+ E01b banner text='MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01a_Fallback_StatusBarNamesTheActualBackend [25 ms]
+  표준 출력 메시지:
+ E01a status-bar='mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+
+
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock [898 ms]
+  오류 메시지:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.OpenDetached(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\WorkbenchObservation.cs:line 174
+   at ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MockBackendDisclosureScenarios.cs:line 57
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ E01c main title='[MOCK] ImageProcTest GUI-S0'
+
+
+XPE-C56-PROBE hwnd=0x29702B6 pid=12188 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [5 s]
+  표준 출력 메시지:
+ W26 runtime: requested=Mock status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+ W26 start: status='faultInjection=display-pipeline-after:1 calls=1' detached='source=1024x1024 v1; processed=1024x1024 v1' indicator=''
+ W26 failed apply: status='faultInjection=display-pipeline-after:1 calls=2' detached='source=1024x1024 v1; processed=1024x1024 v1' main indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' detached indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' texts=[C 32768 · W 65535  VOI: Linear | STALE — the display pipeline failed; the image shown is from before the failed attempt. | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+
+
+XPE-C56-PROBE hwnd=0xCE0518 pid=9028 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.EveryRenderedProvenance_LeadsWithTheTrustBoundary [20 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.LaneAndCi_ShareTheFieldsTheReaderDependsOn [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.ReaderAccepts_TheFileCiActuallyWrites [2 ms]
+  표준 출력 메시지:
+ note: this record is written by the staging procedure (ci.yml or Stage-NativeArtifacts.ps1), not independently verified — there is no signature, so it attests what was staged, not that the binaries are genuine.
+ native provenance: source=ci run=34536951123 head=e0e76cac583a7b3afdc2792092b19bed13eb43b6
+   directory: C:\Users\drake\AppData\Local\Temp\xpe_ci_provenance_9695f65bd8424e48ab2ea463fc6cbb93
+   27f63510950dcea7739cac11ee530393  xpe_common.dll  (file not present)
+   9fa1fd6152f23bdb6fe5658abf72a76d  xpe_display.dll  (file not present)
+   51792ec26649bde1dcd93473f470193d  xpe_enhance_advanced.dll  (file not present)
+   0fe0a29ab6560d459e4ee92b032056e5  xpe_enhance_basic.dll  (file not present)
+   ff248968a94f7ad46051d6e5059e6051  xpe_preprocess.dll  (file not present)
+
+
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.FlippedSign_IsTheRenderersDoing_NotTheMetrics [50 ms]
+  표준 출력 메시지:
+ (4) reference path: +64 -> 63.8/255, -64 -> 63.8/255 (gap 0.0)
+ (4) heatmap path:   +64 -> 63.6/255, -64 -> 63.6/255 (gap 0.0)
+
+
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MaximumContrast_OnTheReferencePath_ApproachesTheChannelRange [18 ms]
+  표준 출력 메시지:
+ (2) reference Δ255: separation 254.8/255 = 99.9% of the range
+
+
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.NothingChanged_MeasuresNearZero [23 ms]
+  표준 출력 메시지:
+ (1) identical inputs: separation -0.4/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MisalignedMask_CollapsesTheMeasurement [26 ms]
+  표준 출력 메시지:
+ (3) aligned 126.6/255 · patch moved 64px off the mask -3.2/255
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S03_ToolbarButtons_AreEnabledInMockMode [84 ms]
+  표준 출력 메시지:
+ S-03 elapsed 83 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S04_HelpMenu_OffersOfflineHelpHome [370 ms]
+  표준 출력 메시지:
+ S-04 elapsed 369 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S01_Launch_HasMainWindow [1 ms]
+  표준 출력 메시지:
+ S-01 elapsed 1 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S05_RuntimePanel_ShowsBackendVersion [26 ms]
+  표준 출력 메시지:
+ S-05 elapsed 26 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S02_MenuBar_HasSixGroups [118 ms]
+  표준 출력 메시지:
+ S-02 elapsed 118 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowImageSummaryPanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S06 ShowImageSummaryPanelMenuItem: 1297 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowAlertsPanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S06 ShowAlertsPanelMenuItem: 1384 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowMetadataPanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S06 ShowMetadataPanelMenuItem: 1434 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRuntimePanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S06 ShowRuntimePanelMenuItem: 1295 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRawSettingsPanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S06 ShowRawSettingsPanelMenuItem: 1200 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S10_ResetLayout_RestoresTheState [6 s]
+  표준 출력 메시지:
+ S10 log region on=True off=True afterReset=True
+ S10 reset layout: 6464 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S08_LogsToggle_ShowsAndHidesTheLogRegion [3 s]
+  표준 출력 메시지:
+ S08 descendants off=141 on=159 offAgain=141 (LogListBox off=False on=True)
+ S08 logs toggle: 3422 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowDisplaySettingsPanelMenuItem") [1 s]
+  표준 출력 메시지:
+ S07 ShowDisplaySettingsPanelMenuItem: 1217 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowCalibrationPanelMenuItem") [887 ms]
+  표준 출력 메시지:
+ S07 ShowCalibrationPanelMenuItem: 886 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S09_CalibrationSettings_DoesNotClaimAPanelAppeared [2 s]
+  표준 출력 메시지:
+ S09 log lines=8
+ S09 >> [11:02:15.780] Menu command: calibration settings — not implemented; no panel is shown (#165).
+ S09 >> [11:01:54.078] Defect calib dir = data/calibration/defect
+ S09 >> [11:01:54.078] Gain calib dir = data/calibration/gain
+ S09 >> [11:01:54.078] Offset calib dir = data/calibration/offset
+ S09 calibration settings: 2843 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow [1 s]
+  표준 출력 메시지:
+ S11 detached=True
+ S11: 1683 ms
+
+
+XPE-C56-PROBE hwnd=0x390320 pid=15848 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "identical mid-grey", source: 128, processed: 128) [23 ms]
+  표준 출력 메시지:
+ identical mid-grey: source=128 processed=128 |Δ|=0 -> max channel deviation 0/255, mean 0.0/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "opposite extremes (Δ255)", source: 255, processed: 0) [10 ms]
+  표준 출력 메시지:
+ opposite extremes (Δ255): source=255 processed=0 |Δ|=255 -> max channel deviation 0/255, mean 0.0/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "moderate (Δ64)", source: 96, processed: 160) [8 ms]
+  표준 출력 메시지:
+ moderate (Δ64): source=96 processed=160 |Δ|=64 -> max channel deviation 0/255, mean 0.0/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "near-identical (Δ8)", source: 128, processed: 136) [10 ms]
+  표준 출력 메시지:
+ near-identical (Δ8): source=128 processed=136 |Δ|=8 -> max channel deviation 0/255, mean 0.0/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.NoPairDeviates_FromAPerPixelDifference [34 ms]
+  표준 출력 메시지:
+ identical mid-grey: max 0/255, mean 0.0/255
+ near-identical (Δ8): max 0/255, mean 0.0/255
+ moderate (Δ64): max 0/255, mean 0.0/255
+ opposite extremes (Δ255): max 0/255, mean 0.0/255
+ largest deviation: identical mid-grey (0/255)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale [5 s]
+  표준 출력 메시지:
+ W23 start: title='[MOCK] ImageProcTest GUI-S0 — FAULT INJECTION ARMED' status='faultInjection=display-pipeline-after:2 calls=1'
+ W23 runtime: requested=Mock status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+ W23 preset: v2 -> v3 indicator='' status='faultInjection=display-pipeline-after:2 calls=2'
+ W23 failed apply: v3 indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' status='faultInjection=display-pipeline-after:2 calls=3'
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 32) [21 ms]
+  표준 출력 메시지:
+ patch 32px (Δ255, 961px located): heatmap separation 126.6/255, true-difference separation 126.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 8) [23 ms]
+  표준 출력 메시지:
+ patch 8px (Δ255, 49px located): heatmap separation 126.6/255, true-difference separation 126.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 64) [20 ms]
+  표준 출력 메시지:
+ patch 64px (Δ255, 3969px located): heatmap separation 126.6/255, true-difference separation 126.7/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 4) [22 ms]
+  표준 출력 메시지:
+ patch 4px (Δ255, 9px located): heatmap separation 126.6/255, true-difference separation 126.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 16) [20 ms]
+  표준 출력 메시지:
+ patch 16px (Δ255, 225px located): heatmap separation 126.6/255, true-difference separation 126.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 255) [22 ms]
+  표준 출력 메시지:
+ Δ255 patch 32px (961px located): heatmap separation 126.6/255, true-difference separation 126.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 64) [19 ms]
+  표준 출력 메시지:
+ Δ64 patch 32px (961px located): heatmap separation 63.6/255, true-difference separation 63.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 8) [21 ms]
+  표준 출력 메시지:
+ Δ8 patch 32px (961px located): heatmap separation 7.6/255, true-difference separation 7.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.SubtleChange_MeasuredAgainstTheRenderersOwnFloor [30 ms]
+  표준 출력 메시지:
+ Δ8 (961px located): heatmap separation 7.6/255 · true-difference separation 7.8/255 · identical-input floor 0.4/255 · signal-to-floor 18.70x
+
+
+XPE-C56-PROBE hwnd=0x2B90308 pid=13176 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.GradientBackground_WithALocalChange [23 ms]
+  표준 출력 메시지:
+ gradient background, Δ64 patch 32px (961px located): heatmap separation 63.6/255, true-difference separation 63.8/255
+
+
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalSeparation_MatchesTheTrueDifference [23 ms]
+  표준 출력 메시지:
+ P3 Δ64 patch 32px: heatmap 63.6/255 · true difference 63.8/255 · ratio 99.7% (GUI-C-54 measured 37 % here)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01b_ApplyDisplayPipeline_LeavesVoiInputsPopulated [2 s]
+  표준 출력 메시지:
+ W-01b elapsed 2738 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W02_RunPreprocessing_MatchesTheBackendItRunsOn [453 ms]
+  표준 출력 메시지:
+ W-02 elapsed 452 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01_RawImageLoaded_ViewportAndStatusReflectIt [1 s]
+  표준 출력 메시지:
+ W-01 elapsed 1849 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow [2 s]
+  표준 출력 메시지:
+ W-07 elapsed 2238 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03_BackendMenu_ReportsTheLaunchedModeAndOffersNoLiveSwitch [468 ms]
+  표준 출력 메시지:
+ W-03 elapsed 468 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [712 ms]
+  표준 출력 메시지:
+ W-10 status: Fixture pack available: D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0
+ W-10 elapsed 712 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W09_ExportAutomationReport_WritesAReportFileAndNamesIt [434 ms]
+  표준 출력 메시지:
+ W-09 status: Automation report exported: D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\menu-command-report.json
+ W-09 elapsed 434 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection [168 ms]
+  표준 출력 메시지:
+ W24 runtime: requested=Mock status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+ W24 title='[MOCK] ImageProcTest GUI-S0' status='faultInjection=off' viewport='source=1024x1024 v1; processed=1024x1024 v5'
+ W24: 168 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale [9 s]
+  표준 출력 메시지:
+ W25 preset: main hud=40000 detached hud=40000 main='source=1024x1024 v1; processed=1024x1024 v6' detached='source=1024x1024 v1; processed=1024x1024 v2'
+ W25 edit: main indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.' detached indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.' detached hud=40000 detached texts=[C 40000 · W 30000  VOI: Linear | STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it. | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+ W25 apply: main indicator='' detached indicator=''
+ W25: 9915 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W21_Hud_NamesTheWindowThatProducedTheImage [7 s]
+  표준 출력 메시지:
+ W21 preset: input=40000 hud=40000
+ W21 edit: input=12345 hud=40000
+ W21 apply: hud=12345
+ W21: 7241 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W20_MainViewport_ReceivesTheLoadedImage [228 ms]
+  표준 출력 메시지:
+ W20 loaded=1024x1024 viewport='source=1024x1024 v1; processed=1024x1024 v11'
+ W20: 228 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W22_EditingVoiWithoutApplying_MarksTheImageStale [7 s]
+  표준 출력 메시지:
+ W22 preset: v11 -> v12 indicator=''
+ W22 edit: v12 indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
+ W22 apply: v13 indicator=''
+ W22: 7490 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.BackendDisclosureControlScenarios.E01d_OrdinaryLaunch_DisclosesExactlyTheRequestedBackend [29 ms]
+  표준 출력 메시지:
+ E01d requested=Mock title='[MOCK] ImageProcTest GUI-S0' status-bar='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' banner='MOCK BACKEND — images and results are synthetic; not for clinical judgement.'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [6 s]
+  표준 출력 메시지:
+ W15 detachedRect={X=78,Y=78,Width=1280,Height=820} point={X=718,Y=488} mainRect={X=26,Y=26,Width=1560,Height=920}
+ W15 control point={X=1546,Y=66} name='MOCK BACKEND — images and results are synthetic; not for clinical judgement.'
+ W15 zoom fit -> 85%
+ W15: 6302 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [3 s]
+  표준 출력 메시지:
+ W16 afterF8='C 25000 · W 50000  VOI: Linear | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=DifferenceHeatmap, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%' afterF5='C 25000 · W 50000  VOI: Linear | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%'
+ W16: 3905 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Overlay", mode: "OverlayOpacity") [408 ms]
+  표준 출력 메시지:
+ W-11 Overlay elapsed 408 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Difference", mode: "DifferenceHeatmap") [398 ms]
+  표준 출력 메시지:
+ W-11 Difference elapsed 398 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Swipe", mode: "SwipeVertical") [364 ms]
+  표준 출력 메시지:
+ W-11 Swipe elapsed 364 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Split", mode: "SplitLocked") [393 ms]
+  표준 출력 메시지:
+ W-11 Split elapsed 393 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Swipe", mode: "SwipeVertical") [547 ms]
+  표준 출력 메시지:
+ W-12 Swipe: viewport reports SwipeVertical
+ W-12 Swipe elapsed 547 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Difference", mode: "DifferenceHeatmap") [567 ms]
+  표준 출력 메시지:
+ W-12 Difference: viewport reports DifferenceHeatmap
+ W-12 Difference elapsed 567 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Overlay", mode: "OverlayOpacity") [559 ms]
+  표준 출력 메시지:
+ W-12 Overlay: viewport reports OverlayOpacity
+ W-12 Overlay elapsed 559 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Split", mode: "SplitLocked") [558 ms]
+  표준 출력 메시지:
+ W-12 Split: viewport reports SplitLocked
+ W-12 Split elapsed 558 ms (Mock)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F6", mode: "SplitLocked") [739 ms]
+  표준 출력 메시지:
+ W-14 F6: viewport reports SplitLocked
+ W-14 F6: 738 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F5", mode: "SwipeVertical") [741 ms]
+  표준 출력 메시지:
+ W-14 F5: viewport reports SwipeVertical
+ W-14 F5: 740 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F7", mode: "OverlayOpacity") [789 ms]
+  표준 출력 메시지:
+ W-14 F7: viewport reports OverlayOpacity
+ W-14 F7: 789 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F8", mode: "DifferenceHeatmap") [806 ms]
+  표준 출력 메시지:
+ W-14 F8: viewport reports DifferenceHeatmap
+ W-14 F8: 806 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareProcessedOnlyMenuItem", mode: "ProcessedOnly") [1 s]
+  표준 출력 메시지:
+ W-13 CompareProcessedOnlyMenuItem: viewport reports ProcessedOnly
+ W-13 CompareProcessedOnlyMenuItem: 1654 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSplitMenuItem", mode: "SplitLocked") [1 s]
+  표준 출력 메시지:
+ W-13 CompareSplitMenuItem: viewport reports SplitLocked
+ W-13 CompareSplitMenuItem: 1758 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareDifferenceMenuItem", mode: "DifferenceHeatmap") [1 s]
+  표준 출력 메시지:
+ W-13 CompareDifferenceMenuItem: viewport reports DifferenceHeatmap
+ W-13 CompareDifferenceMenuItem: 1675 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareOverlayMenuItem", mode: "OverlayOpacity") [1 s]
+  표준 출력 메시지:
+ W-13 CompareOverlayMenuItem: viewport reports OverlayOpacity
+ W-13 CompareOverlayMenuItem: 1721 ms
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSourceOnlyMenuItem", mode: "SourceOnly") [1 s]
+  표준 출력 메시지:
+ W-13 CompareSourceOnlyMenuItem: viewport reports SourceOnly
+ W-13 CompareSourceOnlyMenuItem: 1725 ms
+
+
+[xUnit.net 00:02:20.77]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSwipeMenuItem", mode: "SwipeVertical") [1 s]
+  표준 출력 메시지:
+ W-13 CompareSwipeMenuItem: viewport reports SwipeVertical
+ W-13 CompareSwipeMenuItem: 1702 ms
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 83
+     통과: 81
+     실패: 1
+    건너뜀: 1
+ 총 시간: 2.3521 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

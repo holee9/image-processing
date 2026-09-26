@@ -1,0 +1,99 @@
+35183969652 none: no artifact matches any of the names or patterns provided
+35179642858 ok
+35178852195 ok
+35178756540 none: no valid artifacts found to download
+35178606077 none: no artifact matches any of the names or patterns provided
+35177717621 ok
+35176868070 ok
+35176092896 ok
+35175975697 none: no artifact matches any of the names or patterns provided
+35175773049 none: no artifact matches any of the names or patterns provided
+35174939593 ok
+35174139778 ok
+35172821436 ok
+35172287631 none: no artifact matches any of the names or patterns provided
+35171977558 none: no artifact matches any of the names or patterns provided
+35171936299 none: no valid artifacts found to download
+35171313145 ok
+35170799612 none: no artifact matches any of the names or patterns provided
+35170134561 ok
+35169465737 ok
+35169014909 none: no artifact matches any of the names or patterns provided
+35168967491 none: no valid artifacts found to download
+35168296575 ok
+35167691999 ok
+35167295646 none: no artifact matches any of the names or patterns provided
+35167111381 none: no artifact matches any of the names or patterns provided
+35166879563 none: no artifact matches any of the names or patterns provided
+35166741317 none: no artifact matches any of the names or patterns provided
+35166592344 none: no artifact matches any of the names or patterns provided
+35166466482 none: no artifact matches any of the names or patterns provided
+35166349494 none: no artifact matches any of the names or patterns provided
+35165653523 ok
+35088505529 ok
+35087698638 ok
+35086909457 ok
+35086013361 ok
+35085237869 ok
+35084439520 ok
+35084404486 none: no valid artifacts found to download
+35083872448 none: no artifact matches any of the names or patterns provided
+35083374649 none: no artifact matches any of the names or patterns provided
+35083077408 none: no artifact matches any of the names or patterns provided
+35082175253 ok
+35081101289 ok
+35080194377 ok
+35079473177 none: no artifact matches any of the names or patterns provided
+35078470599 ok
+35078368512 none: no valid artifacts found to download
+35076029873 ok
+35073697372 ok
+35073612733 none: no valid artifacts found to download
+35072583226 ok
+35072479909 none: no valid artifacts found to download
+35071370089 ok
+35070113507 ok
+35070020095 none: no valid artifacts found to download
+35069030005 ok
+35067336295 ok
+35067149916 none: no artifact matches any of the names or patterns provided
+35066656364 none: no artifact matches any of the names or patterns provided
+35066378391 none: no artifact matches any of the names or patterns provided
+35065537760 ok
+35065221304 none: no artifact matches any of the names or patterns provided
+35064944007 none: no artifact matches any of the names or patterns provided
+35064424019 none: no artifact matches any of the names or patterns provided
+35064299901 none: no artifact matches any of the names or patterns provided
+35063925872 none: no artifact matches any of the names or patterns provided
+35063342277 none: no artifact matches any of the names or patterns provided
+35062812361 none: no artifact matches any of the names or patterns provided
+35062618013 none: no artifact matches any of the names or patterns provided
+35061864518 ok
+35061612894 none: no artifact matches any of the names or patterns provided
+35060703307 ok
+35059950212 ok
+35058984903 ok
+35058278936 ok
+35057450795 ok
+35046332163 ok
+35045533185 ok
+35045147914 none: no artifact matches any of the names or patterns provided
+35044697592 none: no artifact matches any of the names or patterns provided
+35044465090 none: no artifact matches any of the names or patterns provided
+35043759929 ok
+35042910764 ok
+34673909539 none: no artifact matches any of the names or patterns provided
+34673717705 none: no artifact matches any of the names or patterns provided
+34673532800 none: no artifact matches any of the names or patterns provided
+34673387466 none: no artifact matches any of the names or patterns provided
+34673059876 none: no artifact matches any of the names or patterns provided
+34671704374 none: no artifact matches any of the names or patterns provided
+34671269879 none: no artifact matches any of the names or patterns provided
+34670888438 ok
+34670786707 none: no artifact matches any of the names or patterns provided
+34669771686 ok
+34669471655 none: no artifact matches any of the names or patterns provided
+34669221500 none: no artifact matches any of the names or patterns provided
+34668914068 none: no artifact matches any of the names or patterns provided
+34668522738 ok
+34667894186 ok

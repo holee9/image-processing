@@ -1,0 +1,28 @@
+import json, subprocess, os, re, sys
+GH = r"C:\Program Files\GitHub CLI\gh.exe"
+REPO = "holee9/image-processing"
+out = "build/e2e-c90/logs"
+os.makedirs(out, exist_ok=True)
+runs = json.load(open("build/e2e-c90/runs.json"))
+rows = []
+for r in runs:
+    rid = r["databaseId"]
+    jobs = json.loads(subprocess.run([GH, "run", "view", str(rid), "--repo", REPO, "--json", "jobs"],
+                                     capture_output=True, text=True, encoding="utf-8").stdout or "{}").get("jobs", [])
+    job = next((j for j in jobs if j["name"] == "gui-e2e-native"), None)
+    if job is None:
+        rows.append(dict(run=rid, sha=r["headSha"][:7], created=r["createdAt"], job="absent"))
+        continue
+    path = os.path.join(out, f"{rid}.log")
+    if not os.path.exists(path):
+        p = subprocess.run([GH, "run", "view", "--repo", REPO, "--job", str(job["databaseId"]), "--log"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(p.stdout)
+        if p.returncode != 0:
+            with open(path + ".err", "w", encoding="utf-8") as f:
+                f.write(p.stderr)
+    rows.append(dict(run=rid, sha=r["headSha"][:7], created=r["createdAt"], job=job["conclusion"] or job["status"],
+                     jobid=job["databaseId"], log=path))
+    print(rid, job["conclusion"], os.path.getsize(path), flush=True)
+json.dump(rows, open("build/e2e-c90/collected.json", "w"), indent=1)

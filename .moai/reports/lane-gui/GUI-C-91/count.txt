@@ -1,0 +1,12 @@
+[A] runs=25 launches=50 win32=1 rate=0.020 CI95=(0.004, 0.105) runs_with_win32=1
+     control UnreadableWindow={'Passed': 25} ReadableWindow={'Passed': 25} skip170=0
+     win32 shapes (launched, fromHandle, fromTree)={('PropertyNotSupportedException', 'ok', 'ok'): 1}
+     window lists=25 foreground={'✳ xpe-leader': 22, '◑ xpe-leader': 2, '◐ xpe-leader': 1} topmost rows=0 non-minimised rows=125
+[B] runs=25 launches=50 win32=10 rate=0.200 CI95=(0.112, 0.330) runs_with_win32=10
+     control UnreadableWindow={'Passed': 25} ReadableWindow={'Passed': 24, 'NotExecuted': 1} skip170=1
+     win32 shapes (launched, fromHandle, fromTree)={('PropertyNotSupportedException', 'ok', 'ok'): 10}
+     window lists=25 foreground={'✳ xpe-leader': 8, 'Program Manager': 17} topmost rows=0 non-minimised rows=92
+[C] runs=25 launches=50 win32=6 rate=0.120 CI95=(0.056, 0.238) runs_with_win32=6
+     control UnreadableWindow={'Passed': 25} ReadableWindow={'Passed': 25} skip170=0
+     win32 shapes (launched, fromHandle, fromTree)={('PropertyNotSupportedException', 'ok', 'ok'): 6}
+     window lists=25 foreground={'Windows PowerShell': 25} topmost rows=25 non-minimised rows=150

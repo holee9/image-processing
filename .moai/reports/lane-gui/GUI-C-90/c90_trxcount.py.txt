@@ -1,0 +1,60 @@
+import json, glob, re, collections, math, html
+import xml.etree.ElementTree as ET
+NS = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+rows = json.load(open("build/e2e-c90/counted.json"))
+table = []
+for r in rows:
+    files = glob.glob(f"build/e2e-c90/trx/{r['run']}/**/*.trx", recursive=True)
+    if not files:
+        continue
+    raw = open(files[0], encoding="utf-8-sig", errors="replace").read()
+    text = html.unescape(raw)
+    probes = {}
+    for m in re.finditer(r"XPE-C56-PROBE hwnd=(\S+) pid=(\d+) launched=(\S+) fromHandle=(\S+) fromTree=(\S+) framework=(\S+)", text):
+        probes[m.group(2)] = m.groups()
+    could_not = len(set(re.findall(r"XPE-C56-PROBE could not run: \S+", text)))
+    root = ET.fromstring(raw.encode("utf-8"))
+    results = root.findall(".//t:UnitTestResult", NS)
+    def outcome(name):
+        hits = [x for x in results if name in x.get("testName", "")]
+        return ",".join(sorted(set(x.get("outcome") for x in hits))) or "absent"
+    skip170 = 0
+    for x in results:
+        if x.get("outcome") == "NotExecuted":
+            msg = "".join(x.itertext())
+            if "XPE-SKIP-ALLOWED:170" in msg:
+                skip170 += 1
+    counters = root.find(".//t:ResultSummary/t:Counters", NS)
+    win32 = sum(1 for p in probes.values() if p[5] == "Win32")
+    table.append(dict(run=r["run"], created=r["created"], sha=r["sha"], job=r["job"],
+                      launches=len(probes), win32=win32,
+                      frameworks=dict(collections.Counter(p[5] for p in probes.values())),
+                      launched_bad=sum(1 for p in probes.values() if p[2] != "ok"),
+                      could_not=could_not, skip170=skip170,
+                      unreadable=outcome("UnreadableWindow_IsReplaced_AndTheRunSaysSo"),
+                      readable=outcome("ReadableWindow_IsKept_AndLeavesNoNote"),
+                      total=counters.get("total") if counters is not None else None,
+                      passed=counters.get("passed") if counters is not None else None,
+                      failed=counters.get("failed") if counters is not None else None))
+json.dump(table, open("build/e2e-c90/trx-table.json", "w"), indent=1)
+table.sort(key=lambda t: t["created"])
+for t in table:
+    print(t["created"][:16], t["run"], t["sha"], t["job"], "launch", t["launches"], "win32", t["win32"], "bad", t["launched_bad"],
+          "skip170", t["skip170"], "unread", t["unreadable"], "readable", t["readable"], "tot/pass/fail", t["total"], t["passed"], t["failed"])
+P = [t for t in table if t["launches"] > 0]
+NP = [t for t in table if t["launches"] == 0]
+L = sum(t["launches"] for t in P); W = sum(t["win32"] for t in P); R = sum(1 for t in P if t["win32"] > 0)
+def wilson(k, n, z=1.96):
+    if n == 0: return (0, 0)
+    p = k / n; d = 1 + z*z/n; c = p + z*z/(2*n); s = z*math.sqrt(p*(1-p)/n + z*z/(4*n*n))
+    return ((c - s)/d, (c + s)/d)
+print(f"\nwith probe: runs={len(P)} launches={L} win32={W} rate/launch={W/L if L else 0:.4f} CI95={wilson(W,L)}")
+print(f"runs with >=1 win32: {R}/{len(P)} rate/run={R/len(P) if P else 0:.4f} CI95={wilson(R,len(P))}")
+print("launched_bad total:", sum(t["launched_bad"] for t in P), " win32 vs bad identical per run:", all(t["win32"] == t["launched_bad"] for t in P))
+print("skip170 total:", sum(t["skip170"] for t in P), "runs:", sum(1 for t in P if t["skip170"]))
+print("unreadable outcomes (probe runs):", collections.Counter(t["unreadable"] for t in P))
+print("readable outcomes (probe runs):", collections.Counter(t["readable"] for t in P))
+print("frameworks:", sum((collections.Counter(t["frameworks"]) for t in P), collections.Counter()))
+print("launches per run:", collections.Counter(t["launches"] for t in P))
+print(f"without probe (trx present): {len(NP)}; newest {max((t['created'] for t in NP), default=None)}; oldest probe run {min((t['created'] for t in P), default=None)}")
+print("unreadable outcomes (no-probe runs):", collections.Counter(t["unreadable"] for t in NP))

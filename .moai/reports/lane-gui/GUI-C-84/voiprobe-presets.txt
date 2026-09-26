@@ -1,0 +1,17 @@
+AppSettings defaults: C=32768 W=65535 mode=Linear body=Abdomen slope=1 intercept=0
+PRESET [Native] synthetic_1024x1024.raw Bone: C=500 W=2000 mode=Linear -> levels=50 at0=0.00% at255=99.88%
+PRESET [Native] synthetic_1024x1024.raw Lung: C=-600 W=1600 mode=Linear -> levels=8 at0=0.00% at255=100.00%
+PRESET [Native] synthetic_1024x1024.raw Abdomen: C=40 W=400 mode=Linear -> levels=9 at0=0.00% at255=100.00%
+PRESET [Native] synthetic_1024x1024.raw Head: C=40 W=80 mode=Linear -> levels=4 at0=0.00% at255=100.00%
+PRESET [Native] wrist_lat_3072x3072.raw Bone: C=500 W=2000 mode=Linear -> levels=1 at0=100.00% at255=0.00%
+PRESET [Native] wrist_lat_3072x3072.raw Lung: C=-600 W=1600 mode=Linear -> levels=1 at0=100.00% at255=0.00%
+PRESET [Native] wrist_lat_3072x3072.raw Abdomen: C=40 W=400 mode=Linear -> levels=1 at0=100.00% at255=0.00%
+PRESET [Native] wrist_lat_3072x3072.raw Head: C=40 W=80 mode=Linear -> levels=1 at0=100.00% at255=0.00%
+PRESET [Mock] synthetic_1024x1024.raw Bone: C=40000 W=30000 mode=Linear -> levels=256 at0=31.61% at255=2.62%
+PRESET [Mock] synthetic_1024x1024.raw Lung: C=25000 W=50000 mode=Linear -> levels=256 at0=0.00% at255=7.85%
+PRESET [Mock] synthetic_1024x1024.raw Abdomen: C=32768 W=65535 mode=Linear -> levels=241 at0=0.00% at255=0.00%
+PRESET [Mock] synthetic_1024x1024.raw Head: C=35000 W=40000 mode=Linear -> levels=256 at0=11.40% at255=2.63%
+PRESET [Mock] wrist_lat_3072x3072.raw Bone: C=40000 W=30000 mode=Linear -> levels=1 at0=100.00% at255=0.00%
+PRESET [Mock] wrist_lat_3072x3072.raw Lung: C=25000 W=50000 mode=Linear -> levels=53 at0=0.00% at255=0.00%
+PRESET [Mock] wrist_lat_3072x3072.raw Abdomen: C=32768 W=65535 mode=Linear -> levels=43 at0=0.00% at255=0.00%
+PRESET [Mock] wrist_lat_3072x3072.raw Head: C=35000 W=40000 mode=Linear -> levels=2 at0=100.00% at255=0.00%
