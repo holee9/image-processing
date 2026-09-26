@@ -205,17 +205,15 @@ public sealed class GainPolyClampAlertTests(Xunit.Abstractions.ITestOutputHelper
     {
         Assert.True(File.Exists(gainPath), $"{gainPath} was not produced by the generator.");
 
-        // ORDER MATTERS, and it was measured (GUI-C-135). Bind the queue module BEFORE xpe_preprocess:
-        // Windows matches an already-loaded module by NAME when resolving a dependency, so whichever
-        // xpe_common is in the process first is the one the gain stage pushes into. There are two copies
-        // with identical content — build/ci-common/bin (next to the xpe_preprocess this test loads) and
-        // the test assembly's own output directory — so leaving the order to chance decides which queue
-        // is written and which is read. Loading the reader's instance first makes them the same one.
+        // #202: nothing needs binding first here any more. xpe_preprocess.dll is now staged into the
+        // test output directory alongside xpe_common.dll and TryFindDll() prefers that directory, so
+        // one copy of each module is resolved and the push and the read share a queue by construction.
         //
-        // Without this line the two tests in this file PASSED in the whole suite and FAILED alone with
-        // "Alerts seen: 0": an earlier test happened to load the assembly-relative copy first, which is
-        // what GetCommonDelegate resolves. Green under one ordering only.
-        _ = GetCommonDelegate<PendingCountDelegate>("xpe_get_pending_alert_count");
+        // GUI-C-135 needed a "bind the queue module first" line here because xpe_preprocess was loaded
+        // out of build/… and bound that copy's sibling xpe_common — two instances, two queues. That
+        // workaround was removed once the staging made it redundant: measured both ways, and with the
+        // staging in place these cases pass alone AND under XPE_NATIVE_DIR, which the workaround never
+        // managed.
 
         var handle = NativeLibrary.Load(DllPath!);
         try
