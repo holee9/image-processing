@@ -153,6 +153,54 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         });
     }
 
+    /// <summary>
+    /// L-06: the Reference lane's OWN dropdown reaches its OWN pixels.
+    ///
+    /// <para><b>The one question the design difference reduces to.</b> <c>docs/design/README.md</c> says
+    /// the workbench "runs both lane pipelines" and calls <c>LaneAImage</c> the "Reference render", while
+    /// <c>RenderLanes</c> reuses what the main viewport already composed (<c>LaneAImage = reference</c>)
+    /// rather than running a second pass. Reuse is only an implementation detail IF choosing a different
+    /// algorithm for Lane A still changes what Lane A draws. If it does not, the Lane A dropdown does
+    /// nothing and the workbench compares one algorithm against itself — which is the premise of a
+    /// two-lane comparison, not a detail.</para>
+    ///
+    /// <para><b>The mirror of L-04, and its own control.</b> L-04 moves the Candidate and requires the
+    /// Reference to hold still; this moves the Reference and requires the Candidate to hold still. Run
+    /// together they say the two dropdowns reach different pixels, which no single direction can: a
+    /// build where BOTH lanes follow one dropdown passes L-04 or this case, never both.</para>
+    ///
+    /// <para>Native only, for the reason L-04 states — under Mock every preset draws the same pixels.</para>
+    /// </summary>
+    [SkippableFact]
+    public void L06_AReferenceAlgorithm_MovesOnlyTheReference()
+    {
+        MeasureNative("L-06", window =>
+        {
+            MakeLanesIdentical(window);
+            ApplyDisplayPipeline(window);
+            var beforeA = ReadLane(window, "A");
+            var beforeB = ReadLane(window, "B");
+            output.WriteLine($"L-06 same algorithm: A={beforeA.Hash} B={beforeB.Hash}");
+            Assert.Equal(beforeA.Hash, beforeB.Hash);   // same algorithm, so the lanes must agree first
+
+            SelectAlgorithm(window, "A", CandidateAlgorithm);
+            ApplyDisplayPipeline(window);
+            var afterA = ReadLane(window, "A");
+            var afterB = ReadLane(window, "B");
+
+            output.WriteLine($"L-06 A: {beforeA.Hash} -> {afterA.Hash} (mean {beforeA.Mean:0.###} -> {afterA.Mean:0.###})");
+            output.WriteLine($"L-06 B: {beforeB.Hash} -> {afterB.Hash} (mean {beforeB.Mean:0.###} -> {afterB.Mean:0.###})");
+
+            Assert.True(afterA.Hash != beforeA.Hash,
+                $"Choosing '{CandidateAlgorithm}' for the Reference did not reach its drawn pixels: still " +
+                $"{afterA.Hash}. The Lane A dropdown then selects nothing, and the workbench compares one " +
+                "algorithm against itself (#173).");
+            Assert.True(afterB.Hash == beforeB.Hash,
+                $"The Candidate moved with an algorithm chosen for the Reference ({beforeB.Hash} -> " +
+                $"{afterB.Hash}) — the lane override did not hold, so the two lanes are not independent.");
+        });
+    }
+
     /// <summary>The value the main chain carries, so the lanes start in agreement.</summary>
     private const string MainDenoiseK = "2.0";
 
