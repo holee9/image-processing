@@ -164,24 +164,45 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     // XPE_FLAG_NONLINEARITY_CORRECTED is absent in both cases too. Turning the
     // error into a silent pass would drop the one signal the caller had.
     //
-    // ONCE PER CONDITION, NOT ONCE PER FRAME. The message carries no per-frame
-    // data -- it is byte-identical on every call -- and the alert queue holds
-    // 64 entries with FIFO eviction (xpe_common.cpp:59), so a stream of frames
-    // would push every other alert out, the #194 clamp count included. The
-    // latch is re-armed whenever a LUT is loaded or unloaded, so a no-op after
-    // the situation changed is reported again.
+    // ONE REPORT PER CALL -- QA-A-142 (#199) REMOVED THE SUPPRESSION LATCH
+    // QA-A-140 PUT HERE, AND THE REASON IS THAT ITS JUSTIFICATION DID NOT HOLD.
+    //
+    // QA-A-140 wrote: "the alert queue holds 64 entries with FIFO eviction, so
+    // a stream of frames would push every other alert out, the #194 clamp
+    // count included." That is the half that was wrong. It counted production
+    // and never looked at consumption: the host drains the queue in a `finally`
+    // after every native call (NativeAlertDrain.cs:109), so the queue is
+    // emptied per frame and nothing is ever evicted. The symptom was never
+    // information LOST; it was the same line repeating.
+    //
+    // WHAT THE LATCH ACTUALLY DELIVERED, MEASURED (QA-A-142, 20 runs):
+    //
+    //   host keeps the module up          20 calls -> 1 alert    (it worked)
+    //   host is init/../shutdown per run  20 calls -> 20 alerts  (it did not)
+    //
+    // The second row is the only host there is. GuiPreprocessRunner.cs wraps
+    // every run in init -> load -> stages -> finally { shutdown }, and
+    // xpe_preprocess_shutdown() assigns g_calib = CalibrationData{} (#176,
+    // deliberately clearing every module global), which put the latch back.
+    // So in the host that reported #199 the suppression rate was zero.
+    //
+    // AND IT COULD NOT BE FIXED IN THIS MODULE. Suppressing across that host's
+    // pattern means state that outlives xpe_preprocess_shutdown() -- exactly
+    // what #176 forbids and what test_global_state_hygiene.cpp fails a test
+    // for. Moving the flag out of g_calib does not change the measurement
+    // either, because shutdown still has to clear it: measured, still 20/20.
+    // De-duplicating an identical line belongs to whoever renders the log.
+    //
+    // WHAT IS LOST BY REMOVING IT: a host that DOES keep the module up now
+    // gets one line per frame instead of one per session. No such host exists
+    // today. If one appears, the decision is re-opened with its numbers --
+    // this comment is the record of why there is nothing to re-open yet.
     //
     // Contrast gain_correct.cpp:374, which alerts per frame BECAUSE its
     // message carries that frame's clamped-pixel count. Frequency follows what
-    // the message says, not a house style.
-    {
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        if (g_calib.nonlin_noop_reported) {
-            (void)img;
-            return XPE_OK;
-        }
-        g_calib.nonlin_noop_reported = true;
-    }
+    // the message says, not a house style -- and this message says the same
+    // thing every time, which is an argument for the CONSUMER collapsing it,
+    // not for the producer withholding it.
     xpe_alert_push("nonlinearity correction did nothing: no LUT is loaded and "
                    "panel.linear is not \"false\", so the frame passed through "
                    "unchanged; load a LUT with xpe_calib_load_nonlin_lut() if "
