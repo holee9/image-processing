@@ -59,24 +59,105 @@ Windows 가 **이름으로 이미 적재된 그것**에 묶는다. 그래서 읽
 **단독 실행에서는 그 픽스처가 안 돌아** `xpe_preprocess` 가 자기 이웃을 적재하고, 읽는
 쪽이 어셈블리 옆 사본을 새로 적재한다 → 큐가 둘.
 
-### 여기에 잠재된 뒤집기가 하나 더 있다
+### 여기에 뒤집기가 하나 더 있다 — **§4c 에서 측정했다**
 
-`NativeLibraryFixture` 의 우선순위 1번이 `XPE_NATIVE_DIR` 다. **그 변수를 `ci-common/bin`
-으로 두면 픽스처가 이웃 사본을 먼저 적재**하므로, 어느 인스턴스가 이기는지가 **반대로
-뒤집힌다.** IntegrationTests 에 `XPE_NATIVE_DIR` 을 설정하면 곤란했던 기록(`GUI-C-128`)과
-같은 계열이다 — 그때는 `NativeSearchPolicyTests` 4건이 빨개졌다.
+`NativeLibraryFixture` 의 우선순위 1번이 `XPE_NATIVE_DIR` 다. 그 변수를 `ci-common/bin`
+으로 두면 픽스처가 이웃 사본을 먼저 적재하므로 승자가 반대로 뒤집힌다 — **추론이 아니라
+실측이다(§4c).** IntegrationTests 에 `XPE_NATIVE_DIR` 을 설정하면 곤란했던 기록
+(`GUI-C-128`)과 같은 계열이고, 그때도 `NativeSearchPolicyTests` 4건이 빨개졌다.
+
+## 4a. `NativeSearchPolicyTests` 4건이 실제로 단언하는 것 — **A 와 부딪히지 않는다**
+
+읽었다. 4건은 **파일 존재가 아니라 locator 의 후보 목록**을 단언한다.
+
+```
+NativeSearchPolicyTests.cs:43  ByDefault_NoBuildDirectoryOrSiblingCheckoutIsOffered(locator)
+  Assert.All(candidates, c => Assert.False(LooksLikeFallback(c)))
+  LooksLikeFallback(c) := c 에 "/build/" 가 들어 있다            (:71-72)
+  Assert.NotEmpty(candidates)                                    ← 좁은 검색도 뭔가는 낸다
+:61  WithDeveloperSearch_BuildDirectoriesReturn(locator)
+  XPE_NATIVE_DEV_SEARCH=1 이면 fallback 이 다시 후보에 든다
+```
+
+locator 4개(`NativeModuleLibraryLocator`, `XpeEnhanceBasic…`, `XpePreprocess…`,
+`XpeCommon…`)의 후보 순서는 이렇다:
+
+```
+XpeCommonLibraryLocator.cs:34   AppContext.BaseDirectory              ← 앱(= 시험 출력) 디렉터리
+                        :39     XPE_NATIVE_DIR
+                        :48-74  (#129: opt-in) build/… 여러 곳
+```
+
+**즉 정책이 금지하는 것은 `/build/` 경로이고, 앱 디렉터리는 허용된 1순위다.**
+
+그러므로 **A 는 `#129` 와 충돌하지 않는다 — 오히려 정책을 확장한다.** 지금 함정을 만드는
+것은 `XpePreprocessNative.TryFindDll()` 이 `build/ci-common/bin/xpe_preprocess.dll` 을
+주는 것이고, 그것은 **locator 가 아니라 시험 헬퍼**라 4건의 단언 범위 밖이다. `/build/` 로
+손을 뻗는 행위자가 아직 하나 남아 있다는 뜻이다.
+
+## 4b. (D) 복사를 없애기 — **탈락. 복사에는 이유가 있다**
+
+`csproj` 가 이유를 적어 두었다.
+
+```
+DLL staging: … spdlog.dll and fmt.dll are required because the native build links them as
+shared libraries (BUILD_SHARED_LIBS=ON); copying xpe_common.dll alone produced a
+loadable-looking file that failed at P/Invoke with 0x8007007E (#98).
+```
+
+그리고 locator 의 1순위가 앱 디렉터리이므로, **복사가 곧 "환경 변수 없이도 기본 검색이
+찾을 수 있게" 만드는 장치다.** 복사를 없애면 기본 구성에서 후보가 하나도 실재하지 않아
+`DllImport` 기반 시험이 전부 `XPE_NATIVE_DIR` 이나 dev search 를 요구한다.
+
+**D 는 탈락이다** — lead 가 붙인 조건("복사가 왜 들어왔는지 먼저 확인, 이유가 있으면 탈락")에
+그대로 걸린다.
+
+## 4c. `XPE_NATIVE_DIR` 뒤집기 — **측정했다. 뒤집힌다**
+
+추론이었던 것을 쟀다. `GUI-C-135` 의 한 줄을 **되돌린 상태**로 전체 실행을 두 팔 돌렸다.
+
+| 팔 | 클램프 시험 | 정책 4건 |
+|---|---|---|
+| `XPE_NATIVE_DIR` 없음 | `ALL` **통과**, 부분 실패 | 통과 |
+| `XPE_NATIVE_DIR=build/ci-common/bin` | **둘 다 실패** | **4건 실패** |
+
+**환경 변수가 승자를 바꾼다.** 없을 때는 픽스처가 우선순위 2번(앱 디렉터리) 사본을 먼저
+적재해 읽는 쪽과 맞고, 있을 때는 우선순위 1번으로 `ci-common/bin` 사본을 먼저 적재해
+`xpe_preprocess` 가 그것에 묶이므로 읽는 쪽(어셈블리 옆)과 갈린다.
+
+### 그리고 이것이 `GUI-C-135` 수정의 한계를 드러냈다
+
+수정을 **복원한 뒤** 같은 환경 변수로 다시 쟀다.
+
+```
+수정 복원 + XPE_NATIVE_DIR 있음 : 실패 6 — 정책 4건 + 클램프 2건
+수정 복원 + 환경 변수 없음      : 통과 265, 건너뜀 1, 실패 0
+```
+
+**내 수정은 환경 변수가 걸린 경우를 고치지 못한다.** 이유는 기계적이다 — 그 경우 픽스처가
+`ci-common/bin` 사본을 **먼저** 적재하므로, 내 "먼저 묶기" 한 줄이 적재하는 어셈블리 옆
+사본은 **두 번째 인스턴스**가 되고 `xpe_preprocess` 는 첫 번째(이름이 이미 있는 것)에
+묶인다.
+
+`GUI-C-135` 보고서는 이 한계를 적지 않았다 — **그때 환경 변수 팔을 재지 않았기 때문이다.**
+회귀는 아니다(그 구성은 정책 4건이 이미 빨강인, 지원되지 않는 구성이다). 다만 **수정의
+범위가 보고서보다 좁다.**
 
 ## 5. 근본 고침의 지렛대 — 판정하지 않고 선택지만
 
 | 방향 | 무엇을 하는가 | 확인해야 할 것 |
 |---|---|---|
-| A. **한 디렉터리로 통일** | `xpe_preprocess` 등 나머지 네이티브 모듈도 시험 출력으로 복사하고 **전부 이름으로** 적재 | `NativeSearchPolicyTests` 4건이 *"기본 검색이 빌드 디렉터리를 제시하지 않는다"* 를 단언한다 — 사본을 늘리면 그 단언이 흔들릴 수 있다. **재야 한다** |
+| A. **한 디렉터리로 통일** | `xpe_preprocess` 등 나머지 네이티브 모듈도 시험 출력으로 복사하고 **전부 이름으로** 적재 | **확인 끝: 충돌하지 않는다**(§4a). 4건은 후보 목록의 `/build/` 만 금지하고 앱 디렉터리는 1순위다 |
 | B. **이웃으로 통일** | 공용 모듈을 항상 *"그것을 쓸 모듈의 이웃"* 으로 경로 적재 | `DllImport` 기반 시험은 어셈블리 옆 사본이 필요하다 — 그쪽은 여전히 두 인스턴스 |
 | C. **먼저 묶기** (`GUI-C-135` 가 한 것) | 쓰는 모듈보다 **읽는 모듈을 먼저** 적재 | 파일마다 넣어야 한다. **근본 고침이 아니라 우회**다 |
 
-**A 가 유일하게 "인스턴스가 하나" 를 만든다.** 다만 위 확인 없이 하면
-`NativeSearchPolicyTests` 를 깨뜨릴 수 있고, 그 시험은 **의도적으로** 빌드 디렉터리가
-검색에 안 잡히는 것을 지키고 있다. 두 요구가 충돌하는지는 **재 봐야 안다.**
+**A 가 유일하게 "인스턴스가 하나" 를 만들고, `#129` 와 충돌하지 않는다**(§4a — 4건은
+후보 목록의 `/build/` 만 금지하며 앱 디렉터리는 허용된 1순위다). **D 는 탈락**이다(§4b —
+복사에 `#98` 이라는 이유가 있고, 복사가 곧 기본 검색을 성립시키는 장치다). **C 는 우회이고,
+환경 변수가 걸리면 듣지 않는다**(§4c 측정).
+
+남는 판단은 A 의 범위다 — `TryFindDll()` 이 `/build/` 를 가리키는 것을 앱 디렉터리로 옮기면
+`#129` 정책이 시험 헬퍼까지 확장되는데, 그것이 의도인지는 lead 몫이다.
 
 ## 6. 측정한 것
 
@@ -93,9 +174,13 @@ xpe_common.dll 사본 (작업 트리 전체)                     : 19개 — 런
   안 걸린다** — §9.
 - **E2E 쪽을 세지 않았다.** 이 조사는 `clients/`·`gui/` 소스의 적재 지점이고, E2E 는 앱을
   띄우므로 프로세스가 다르다 — 그래도 같은 함정이 앱 안에서 가능한지는 위 항목과 같은 질문이다.
-- **선택지 A 를 실제로 시도하지 않았다.** `NativeSearchPolicyTests` 와 충돌하는지는
-  **추론**이고, 재지 않았다.
-- **`XPE_NATIVE_DIR` 로 뒤집히는 것을 실측하지 않았다.** 우선순위 코드를 읽고 추론했다.
+- **선택지 A 를 실제로 구현해 보지 않았다.** `NativeSearchPolicyTests` 와 충돌하지 않는다는
+  것은 **4건의 단언을 읽어** 확인했지만(§4a), A 를 적용한 트리에서 전체 실행을 돌린 것은
+  아니다 — 착수 승인 뒤의 일이다.
+- ~~`XPE_NATIVE_DIR` 로 뒤집히는 것을 실측하지 않았다~~ → **쟀다. 뒤집힌다** (§4c).
+- **`XPE_NATIVE_DIR` 이 걸린 구성 자체는 지원되지 않는다고 간주했다** — 정책 4건이 빨강이
+  되므로. 그 구성을 지원해야 하는지는 판단하지 않았고, `GUI-C-135` 수정이 그 구성에서
+  듣지 않는 것도 그 전제 아래 남겨 두었다(§4c).
 - `xpe_display`·`gsvg` 등 다른 공용 모듈이 전역 상태를 갖는지 보지 않았다. 알림 큐는
   `xpe_common` 에 있고, 그것만 확인했다.
 
