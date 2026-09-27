@@ -179,3 +179,117 @@ Mock E2E (ClearAlertsObservationScenarios) : 통과 1, 실패 0
   생산 측 6파일이 그 컬렉션에 쓰고 있는데 읽는 곳은 `ClearAlertsCommand` 뿐이다.
 
 🗿 MoAI
+
+---
+
+# 8. 단계 C — 방향 2a 를 구현했다 (lead 판정)
+
+## 8.1 시험을 먼저 넣었다
+
+lead 지시대로 **"지우면 안 되는 것까지 지우지 않는가" 를 고침 전에** 고정했다
+(`PressingClearAlerts_KeepsTheOrdinaryLogLines`, 커밋 `787a3e4`). 그때는 버튼이 아무것도
+바꾸지 않으므로 통과가 자명했다 — 그 가드의 일은 명령이 줄을 지우기 시작하는 순간부터다.
+**고침 뒤에 쓰면 구현에 맞춰 쓰게 된다.**
+
+개수가 아니라 **내용으로** 비교한다. 개수는 유지하면서 줄을 바꿔치기하는 구현은 통과하지
+못한다.
+
+## 8.2 착수 전 확인 — 표식은 있었다
+
+`RaiseAlert` 가 로그에 넣는 곳은 **한 곳**이고 접두가 붙는다
+(`MainWindowViewModel.cs:1966`).
+
+**그래도 문자열 대조는 쓰지 않았다.** `"ALERT "` 를 본문에 담은 일반 메시지가 함께 걸릴 수
+있다 — 지금은 그런 호출이 없지만 그것은 **오늘의 사실이지 계약이 아니다.** 대신 삽입한
+줄을 기억한다: `Log` 가 넣은 줄을 돌려주고, `RaiseAlert` 가 그것을 `_alertLogLines` 에
+담고, `ClearAlerts` 가 그 줄들만 `Logs` 에서 제거한다.
+
+`ClearLogs` 도 그 장부를 비운다 — 안 그러면 다음 `Clear Alerts` 가 사라진 줄을 지우려
+하거나, 우연히 같은 문자열이 된 새 줄을 지운다.
+
+## 8.3 측정 — §1 과 같은 표로
+
+| 대상 | 전 | `Clear Alerts` 후 | (대조군) `Clear Logs` 후 |
+|---|---|---|---|
+| 화면 로그 줄 수 | 11 | **8** | 0 |
+| 그중 알림 줄 수 | 3 | **0** | 0 |
+| 일반 줄 (내용 비교) | 8 | **8 — 전부 남음** | 0 |
+
+## 8.4 반증 — 되돌리면 다시 빨강
+
+`ClearAlerts` 를 `Alerts.Clear()` 로 되돌렸다.
+
+```
+AFTER Clear Alerts  log lines: 11, alert lines: 3      ← 고침 전으로 돌아간다
+실패 1 (관측 사례) / 통과 1 (가드는 그대로)
+원복 확인: FALSIFY136 잔존 0
+```
+
+**가드가 두 방향에서 다 통과한 것**도 의미가 있다 — 그것은 고침을 설명하는 시험이 아니라
+고침을 **넘어 살아남는** 시험이다.
+
+## 8.5 버튼별 계기 (lead 요청)
+
+`MainWindow.xaml.cs` 가 두 버튼을 함께 누르고 한 번만 기록했다. 하나씩 누르고 사이에
+기록하도록 바꿨다.
+
+```
+CI 와 같은 방식으로 자동화 실행: exit=0, Passed=True
+  InitialLogCount=11           InitialAlertCount=3
+  LogCountAfterClearAlerts=30  AlertCountAfterClearAlerts=0     ← 새 필드
+  LogCountAfterClear=0         AlertCountAfterClear=0
+```
+
+**이제 계기가 버튼별로 말한다.** `Clear Alerts` 뒤 알림 0 / 일반 로그 30줄 — 예전에는 둘 다
+0 이라 이 결함이 보고서 안에서 보이지 않았다.
+
+## 8.6 비용 표 정정
+
+| 방향 | 카드 때 추정 | 실제 |
+|---|---|---|
+| 2a | 파일 **1**, 깨지는 시험 0 | **파일 3**, 깨지는 시험 **0** |
+
+늘어난 둘은 lead 가 요청한 **계기 분리** 때문이다 — `MainWindow.xaml.cs`,
+`Models/GuiAutomationReport.cs`. 결함 고침 자체는 여전히 `MainWindowViewModel.cs`
+한 파일이다.
+
+## 8.7 이름과 주석도 고쳤다
+
+시험 이름이 옛 동작을 말하고 있었다 —
+`PressingClearAlerts_ChangesNothingTheUserSees…` →
+`PressingClearAlerts_TakesTheAlertLinesOffScreen…`. 클래스 주석도 "고치기 전에 관측한다" 에서
+"관측했고 2a 로 고쳤다" 로 바꿨다. **이름이 코드와 다르면 다음 사람이 이름을 믿는다.**
+
+## 8.8 카드 §5 의 낡은 래치 주석 — 별 커밋으로 정리했다
+
+`QA-A-142`(`f772b31`)가 `#196` 억제 래치를 제거했고, **그 근거가 이 레인의 측정**이다 —
+드레인이 `finally` 에서 돌아 축출이 없다는 것과, 종료 함수가 래치를 매 실행 되돌린다는 것.
+
+| 파일 | 무엇 |
+|---|---|
+| `NonlinearityNoopAlertScenarios.cs` | "once per condition" → "per frame, and that is now the design". 시험 이름·단언 메시지·대조군 설명까지 |
+| `NonlinearityLatchRearmTests.cs` → `NonlinearityLutCallSiteTests.cs` | 클래스·파일 이름이 사라진 래치를 가리켰다. **남는 사실 둘은 그대로 유효**하므로 파일은 남기고 이름과 서술만 |
+
+**단언은 바뀌지 않았다** — 래치가 있든 없든 이 호스트는 프레임당 1건이므로 수치가 같다.
+**재측정하지 않았고 그 사실을 파일에 적었다**: `f772b31` 은 이 레인이 스테이징한 산출물
+(`4a62fb0`)에 없고, 그것을 담은 CI 런은 아직 돌고 있었다.
+
+## 8.9 빌드·시험
+
+```
+BUILD_EXIT=0 (gui, IntegrationTests, E2ETests)
+IntegrationTests 전체                      : 통과 265, 건너뜀 1, 실패 0
+Mock E2E (ClearAlertsObservationScenarios) : 통과 2, 실패 0
+자동화 보고서 (CI 방식)                    : exit=0, Passed=True
+```
+
+## 8.10 단계 C 의 미검증
+
+- **Native 백엔드에서 재지 않았다.** 알림 3건은 Mock 기동 시의 것이다.
+- **`ClearAlertsMenuItem`(메뉴 경로)를 누르지 않았다** — 같은 명령에 묶인 것은 읽었지만
+  메뉴로 눌러 같은 결과가 나오는지는 재지 않았다.
+- **`f772b31` 이후 바이너리로 네이티브 알림 시나리오를 다시 돌리지 않았다**(§8.8).
+- **Mock E2E 전체를 2a 이후 다시 돌리지 않았다** — 관측 2건과 통합 전체만 돌렸다. 새 시험이
+  **전용 인스턴스**를 쓰므로 공유 상태는 건드리지 않지만, 그것으로 전체를 대신하지는 못한다.
+- **알림이 많은 상태(수십 건)에서 제거 비용을 재지 않았다** — `Logs.Remove` 는 선형 탐색이고
+  알림 수만큼 반복한다.
