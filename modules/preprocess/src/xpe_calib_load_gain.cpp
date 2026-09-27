@@ -144,10 +144,67 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                 const bool usable  = present && (hi_a > lo_a);
 
                 if (usable) {
-                    std::lock_guard<std::mutex> lock(g_calib_mutex);
-                    g_calib.gain_poly_has_range = true;
-                    g_calib.gain_poly_dose_min = lo_a;
-                    g_calib.gain_poly_dose_max = hi_a;
+                    {
+                        std::lock_guard<std::mutex> lock(g_calib_mutex);
+                        g_calib.gain_poly_has_range = true;
+                        g_calib.gain_poly_dose_min = lo_a;
+                        g_calib.gain_poly_dose_max = hi_a;
+                    }
+
+                    // QA-A-143 (#194 item 2): THE UNIT IS DOCUMENTED, SO SAY
+                    // SOMETHING WHEN THE NUMBERS DISAGREE WITH IT.
+                    //
+                    // preprocess_api.h pins dose_levels to pixel values (ADU),
+                    // but nothing enforces it: the file carries no unit field,
+                    // so a ladder fitted in mGy loads, applies, and yields a
+                    // wrong image with no error anywhere. Documentation alone
+                    // leaves that path open; this closes it as far as it can
+                    // be closed without a format change.
+                    //
+                    // IT IS A MAGNITUDE CHECK, NOT A UNIT CHECK, and the
+                    // difference matters: it cannot read a unit, only notice
+                    // that the numbers are nowhere near the pixel domain they
+                    // are supposed to index. A wrong unit whose values happen
+                    // to land in range passes silently, and that limit is why
+                    // the header DEBT marker stays.
+                    //
+                    // WHERE THE THRESHOLD COMES FROM -- measured in this
+                    // repository, not chosen for roundness:
+                    //
+                    //   smallest ADU dose the fixture generator emits   8000
+                    //     (xpe_calib_fixture_gen.cpp: 20000 * 0.40)
+                    //   smallest ADU dose in the reference dataset     14037
+                    //     (tests/test_data/cyan_test/README.md:186)
+                    //   pixel domain                              0..65535
+                    //   an mGy ladder, for contrast                  1..100
+                    //
+                    // 1000 sits 8x below the smallest real ADU ladder seen and
+                    // 10x above where an mGy ladder tops out, so both sides
+                    // have an order of magnitude of slack. A genuinely
+                    // low-dose ADU calibration would have to fall below an
+                    // eighth of anything measured here to reach it.
+                    //
+                    // ALERT, NOT REJECTION. Refusing would discard a
+                    // calibration on a heuristic; an operator who meant it can
+                    // ignore one line, and one who did not has the only clue
+                    // this format can give them.
+                    constexpr double kMinPlausibleAduDoseMax = 1000.0;
+                    if (hi_a < kMinPlausibleAduDoseMax) {
+                        char msg[320];
+                        std::snprintf(msg, sizeof(msg),
+                            "gain polynomial dose levels span [%.3f, %.3f], far "
+                            "below the pixel-value range they index (0..65535). "
+                            "CHECK THE UNIT OF THIS CALIBRATION'S dose_levels: "
+                            "they must be pixel values (ADU), and a ladder fitted "
+                            "in mGy loads without error while producing a wrong "
+                            "image. If the unit is right and the calibration is "
+                            "simply very dark, this warning can be ignored. This "
+                            "is a magnitude check, not a unit check -- the file "
+                            "carries no unit field (issue #194)",
+                            lo_a, hi_a);
+                        msg[sizeof(msg) - 1] = '\0';
+                        xpe_alert_push(msg, XPE_ALERT_WARNING);
+                    }
                 } else if (!present) {
                     // Not rejected: refusing would retire every calibration
                     // made before this field existed, which is the harder
