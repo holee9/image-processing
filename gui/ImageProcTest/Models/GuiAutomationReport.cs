@@ -46,6 +46,16 @@ public sealed class GuiAutomationReport
 
     public int AlertCountAfterLoad { get; set; }
 
+    /// <summary>
+    /// After <c>Clear Alerts</c> ALONE (#201 (a), GUI-C-136). The pair below is after Clear Logs as
+    /// well; recording only that pair could not say which button changed what, which is how "Clear
+    /// Alerts does nothing observable" stayed invisible in this report while both counts read 0.
+    /// </summary>
+    public int LogCountAfterClearAlerts { get; set; }
+
+    /// <inheritdoc cref="LogCountAfterClearAlerts"/>
+    public int AlertCountAfterClearAlerts { get; set; }
+
     public int LogCountAfterClear { get; set; }
 
     public int AlertCountAfterClear { get; set; }

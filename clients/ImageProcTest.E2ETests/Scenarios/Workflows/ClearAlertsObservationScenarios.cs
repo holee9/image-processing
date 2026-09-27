@@ -10,10 +10,15 @@ using Xunit.Abstractions;
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
 /// <summary>
-/// <c>#201</c>(a) says pressing <c>Clear Alerts</c> changes nothing the user can see: the command runs
-/// <c>Alerts.Clear()</c> on a collection no element is bound to, while the <c>ALERT …</c> lines
-/// GUI-C-125 put in the Application Log stay. The issue recorded that as READ FROM CODE, not observed —
-/// so this case observes it before anything is fixed.
+/// <c>#201</c>(a): pressing <c>Clear Alerts</c> used to change nothing the user could see — the command
+/// ran <c>Alerts.Clear()</c> on a collection no element is bound to, while the <c>ALERT …</c> lines
+/// GUI-C-125 put in the Application Log stayed. The issue recorded that as READ FROM CODE, so GUI-C-136
+/// observed it first (log 11 / alert 3, unchanged by the press, while Clear Logs took the same log to 0)
+/// and then fixed it by direction 2a: the command now removes the alert lines it wrote.
+///
+/// <para>The assertions below are the POST-fix numbers, and they are the falsification pair for the
+/// change: reverting <c>ClearAlerts</c> to <c>Alerts.Clear()</c> makes this case red again — measured,
+/// not assumed.</para>
 ///
 /// <para><b>The existing automation evidence cannot answer this.</b> <c>MainWindow.xaml.cs:378-384</c>
 /// presses <c>ClearLogsButton</c> AND <c>ClearAlertsButton</c> and then records both counts at zero, so
@@ -41,7 +46,7 @@ public sealed class ClearAlertsObservationScenarios(ITestOutputHelper output)
     private const string AlertMarker = "ALERT ";
 
     [SkippableFact]
-    public void PressingClearAlerts_ChangesNothingTheUserSees_WhileClearLogsDoes()
+    public void PressingClearAlerts_TakesTheAlertLinesOffScreen_AndClearLogsStillEmptiesTheLog()
     {
         using var app = new ApplicationFixture();
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
@@ -69,13 +74,21 @@ public sealed class ClearAlertsObservationScenarios(ITestOutputHelper output)
         output.WriteLine($"AFTER Clear Logs    log lines: {afterLogs.Length}, " +
                          $"alert lines: {afterLogs.Count(l => l.Contains(AlertMarker, StringComparison.Ordinal))}");
 
-        Assert.True(afterLogs.Length < afterAlerts.Length,
+        Assert.True(afterLogs.Length < afterAlerts.Length || afterAlerts.Length == 0,
             $"CONTROL FAILED: Clear Logs left the log at {afterLogs.Length} lines (was {afterAlerts.Length}), " +
             "so this run cannot tell 'Clear Alerts did nothing' from 'no button was pressed at all'.");
 
-        // The observation #201(a) predicted.
-        Assert.Equal(before.Length, afterAlerts.Length);
-        Assert.Equal(beforeAlerts, afterAlertCount);
+        // #201 (a) FIXED (GUI-C-136, direction 2a): the alert LINES leave the screen with the alerts.
+        //
+        // This assertion is the inversion of what was measured before the fix — log 11 / alert 3 both
+        // before and after. That measurement is why the numbers below are asserted rather than the
+        // earlier "nothing changes": reverting ClearAlerts to Alerts.Clear() makes this case red again,
+        // which is the falsification pair for the change.
+        Assert.Equal(0, afterAlertCount);
+
+        // And exactly the alert lines went — the ordinary ones stayed, so the log shrank by the number
+        // of alert lines and no more. PressingClearAlerts_KeepsTheOrdinaryLogLines pins that by content.
+        Assert.Equal(before.Length - beforeAlerts, afterAlerts.Length);
     }
 
     /// <summary>
