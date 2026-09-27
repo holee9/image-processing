@@ -1,5 +1,5 @@
 {
-  "_comment": "Orphan requirement citations that existed when this check was introduced (#197). Entries may shrink, never grow. See the module docstring in check_req_citations.py.",
+  "_comment": "Orphan requirement citations that existed when this check was introduced (#197). Entries may shrink, never grow. See the module docstring in check_req_citations.py. #213 (2026-09-28): P1A 066 added. It is NOT new debt -- it was orphaned the whole time and the check could not see it, because every file under .moai/specs/ counted as a definition source and quality-report.md:147 mentions the id in passing. Tightening definitions to definition lines in spec.md surfaced it. Whether to restore or retire the requirement is #211's scope (commit bc22093 deleted 46 P1A requirements); until that is decided the citation stays and is recorded here.",
   "orphans": {
     "AI": [
       "009"
@@ -25,7 +25,8 @@
       "035",
       "038",
       "039",
-      "047"
+      "047",
+      "066"
     ]
   }
 }

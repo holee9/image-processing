@@ -20,9 +20,26 @@ that moves the things citing it. This check is that step's alarm.
 
 WHAT IS CHECKED
   A citation is the literal token `REQ-<SERIES>-<NNN>` in a tracked file under
-  `modules/`, `clients/`, or `gui/`. The known-ID set for a series is every
-  `REQ-<SERIES>-<NNN>` appearing anywhere under `.moai/specs/`. A citation whose
-  ID is absent from its series' set is an orphan.
+  `modules/`, `clients/`, or `gui/`. The known-ID set for a series is every ID
+  on a DEFINITION LINE of a `spec.md` under `.moai/specs/` (see DEFINITION). A
+  citation whose ID is absent from its series' set is an orphan.
+
+A DEFECT THIS CHECK HAD, AND WHAT IT COST (#213)
+  Until 2026-09-28 the known-ID set was every ID appearing ANYWHERE under
+  `.moai/specs/`. That directory also holds quality-report.md, progress.md and
+  other reports, so an id merely MENTIONED in a report counted as DEFINED.
+
+  `REQ-P1A-066` was deleted from spec.md by bc22093 (#211). A whole test file
+  still implements it -- modules/preprocess/tests/test_req_p1a_066.cpp, four
+  error-path tests -- and modules/preprocess/CMakeLists.txt:432 cites it. This
+  check stayed GREEN because quality-report.md:147 says "Ghost 핸들 동시 접근
+  (REQ-P1A-066)" in passing.
+
+  Read the distinction: the section below is a LIMIT this check is designed
+  around. This was a DEFECT -- the existence test itself was consulting the
+  wrong source. Tightening to definition lines added exactly one orphan (066)
+  and flagged nothing that was live (control: REQ-P1A-012, cited in 10 files,
+  stays clean).
 
 WHAT IS NOT CHECKED — the important limit
   Only ID EXISTENCE. This check cannot see a citation that names a live ID while
@@ -34,7 +51,7 @@ WHAT IS NOT CHECKED — the important limit
   Do not read a green run as "citations are correct".
 
 WHY A RATCHET AND NOT A HARD FAIL
-  73 orphan citations exist today (20 IDs). A hard fail would make main red on
+  79 orphan citations exist today (21 IDs). A hard fail would make main red on
   the first run and would be switched off, which is the failure mode of a red
   nobody reads. So the baseline below records what exists; the check fails only
   when a series gains an orphan ID it did not have. Ten of twelve series are
@@ -65,6 +82,29 @@ BASELINE = REPO / "tools" / "docs" / "req_citation_baseline.json"
 SPEC_ROOT = ".moai/specs/"
 CODE_ROOTS = ("modules/", "clients/", "gui/")
 
+# #213: a requirement is DEFINED only by a definition line in a `spec.md`.
+#
+# This used to be `rel.startswith(SPEC_ROOT)` — every file under .moai/specs/
+# counted as a definition source. That directory also holds quality-report.md,
+# progress.md, tdd-progress-report.md and friends, so a requirement *mentioned*
+# in a report was indistinguishable from one *defined* in the SPEC. The cost was
+# measured: REQ-P1A-066 was deleted from spec.md by bc22093 (#211), yet
+# modules/preprocess/tests/test_req_p1a_066.cpp -- a whole file of four
+# error-path tests -- still cites it, and this check stayed green because
+# quality-report.md:147 mentions the id in passing.
+#
+# Two definition forms are in use, one per SPEC, and every SPEC that defines
+# ids uses exactly one of them (measured across all 20 spec.md files):
+#   `#### REQ-P1A-012: Defect Correction Execution`   (heading, 9 SPECs)
+#   `**REQ-AI-006** (Ubiquitous): ONNX Runtime ...`   (bold,    9 SPECs)
+# Both anchor at line start, which is what separates a definition from the same
+# id appearing mid-sentence in prose.
+SPEC_DEF_FILE = "spec.md"
+DEFINITION = re.compile(
+    r"^(?:#{2,4} \*{0,2}|\*\*)REQ-([A-Z0-9]+(?:-[A-Z0-9]+)*?)-(\d{3})",
+    re.MULTILINE,
+)
+
 # `REQ-P1A-012`, `REQ-GUI-IT-003`, `REQ-ENH-CC-002`. The series is non-greedy so
 # the trailing three digits are never swallowed into it.
 CITATION = re.compile(r"REQ-([A-Z0-9]+(?:-[A-Z0-9]+)*?)-(\d{3})")
@@ -88,7 +128,7 @@ def collect() -> tuple[dict[str, set[str]], dict[str, dict[str, list[str]]], int
     n_spec = n_code = 0
 
     for rel in tracked_files():
-        is_spec = rel.startswith(SPEC_ROOT)
+        is_spec = rel.startswith(SPEC_ROOT) and rel.endswith(SPEC_DEF_FILE)
         is_code = rel.startswith(CODE_ROOTS)
         if not (is_spec or is_code):
             continue
@@ -96,18 +136,21 @@ def collect() -> tuple[dict[str, set[str]], dict[str, dict[str, list[str]]], int
             text = (REPO / rel).read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        if is_spec:
+            defs = DEFINITION.findall(text)
+            if not defs:
+                continue
+            n_spec += 1
+            for series, num in defs:
+                spec_ids[series].add(num)
+            continue
         hits = CITATION.findall(text)
         if not hits:
             continue
-        if is_spec:
-            n_spec += 1
-            for series, num in hits:
-                spec_ids[series].add(num)
-        else:
-            n_code += 1
-            for lineno, line in enumerate(text.splitlines(), 1):
-                for series, num in CITATION.findall(line):
-                    cited[series][num].append(f"{rel}:{lineno}")
+        n_code += 1
+        for lineno, line in enumerate(text.splitlines(), 1):
+            for series, num in CITATION.findall(line):
+                cited[series][num].append(f"{rel}:{lineno}")
 
     orphans: dict[str, dict[str, list[str]]] = {}
     for series, per_id in cited.items():
