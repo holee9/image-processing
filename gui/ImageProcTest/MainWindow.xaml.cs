@@ -375,8 +375,17 @@ public partial class MainWindow : System.Windows.Window
                 helpWindow.Close();
             }
 
-            ClickButton(ClearLogsButton);
+            // #201 (a) / GUI-C-136: press them ONE AT A TIME and record between. Pressing both and
+            // recording once could not say which button did what — and that is exactly how the "Clear
+            // Alerts does nothing observable" defect stayed invisible in this report while both counts
+            // read 0. Clear Alerts goes first because it is the narrower of the two.
             ClickButton(ClearAlertsButton);
+            await Task.Delay(200);
+
+            report.LogCountAfterClearAlerts = viewModel.Logs.Count;
+            report.AlertCountAfterClearAlerts = viewModel.Alerts.Count;
+
+            ClickButton(ClearLogsButton);
             await Task.Delay(200);
 
             report.LogCountAfterClear = viewModel.Logs.Count;

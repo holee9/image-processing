@@ -1,4 +1,4 @@
-// #196 / #198 (GUI-C-132): the nonlinearity no-op alert reaches the screen, once per condition.
+// #196 / #198 (GUI-C-132, comments refreshed in GUI-C-136): the no-op alert reaches the screen, per frame.
 using System;
 using System.Linq;
 using System.Threading;
@@ -19,27 +19,34 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// <c>config</c> as null, so the alert was unreachable from here — module-side, not a wiring fault.
 /// QA-A-140 removed that guard; this case is the last leg, from the native queue to the screen.</para>
 ///
-/// <para><b>ONCE PER CONDITION, NOT ONCE PER FRAME — and that is what is asserted.</b> The message
-/// carries no per-frame data and the alert queue holds 64 entries with FIFO eviction, so one alert per
-/// frame would push every other alert out, the #194 clamp included. The module therefore latches on
-/// <c>g_calib.nonlin_noop_reported</c> and re-arms only when a LUT is loaded or unloaded. Asserting
-/// "one line per frame" would contradict the design; this asserts <b>exactly one</b> across several
-/// frames.</para>
+/// <para><b>ONE PER FRAME, and that is now the design.</b> The module used to latch the report on
+/// <c>g_calib.nonlin_noop_reported</c>; <c>QA-A-142</c> (<c>f772b31</c>) REMOVED that latch, and the
+/// stated reason is the pair of facts this lane measured: the host drains the queue in a <c>finally</c>
+/// after every native call (<c>NativeAlertDrain.cs:109</c>), so nothing is ever evicted and the feared
+/// 64-entry overflow does not happen; and <c>GuiPreprocessRunner</c> wraps each run in
+/// <c>init → … → finally shutdown</c>, where <c>xpe_preprocess_shutdown</c> clears every module global
+/// (#176) and put the latch back anyway. Measured there: 20 calls → 20 alerts, a suppression rate of
+/// zero. De-duplicating an identical line was handed to whoever renders the log.</para>
 ///
-/// <para><b>The control is the load-bearing half.</b> "Exactly one #196 line" is also what a DEAD
-/// queue produces. So the same run must show another alert still arriving — the #194 clamp, which is
-/// per-frame by design because its message carries that frame's count. One latched alert plus several
-/// per-frame alerts, in one log, is what separates "latched" from "the queue died".</para>
+/// <para><b>The control is still the load-bearing half.</b> A count that matches the frames is also
+/// what a queue delivering nothing new would produce if the lines came from somewhere else. So the same
+/// run must show another alert still arriving — the #194 clamp, which is per-frame because its message
+/// carries that frame's count. Two independent alerts arriving per frame, in one log, is what separates
+/// "the stage reports every frame" from "the queue died and these lines are stale".</para>
 ///
-/// <para><b>What the measurement actually found (GUI-C-132).</b> The latch does not hold across frames
-/// HERE, and the reason is not the gui's wiring: <c>GuiPreprocessRunner</c> wraps each run in
-/// <c>init → load → stages → finally shutdown</c>, and <c>xpe_preprocess_shutdown</c>
-/// (<c>preprocess.cpp:77</c>) resets <c>g_calib</c> wholesale — clearing <c>nonlin_noop_reported</c>
-/// with it. That is a THIRD re-arm path, absent from the module comment's list of two (LUT load and
-/// unload). The consequence is the one pre wanted to avoid: with one #196 per frame, a stream of frames
-/// fills the 64-entry queue and evicts other alerts, #194 among them. The assertion below therefore
-/// pins the measured count and says what a change in it would mean, rather than asserting an intent the
-/// implementation does not currently have.</para>
+/// <para><b>What GUI-C-132 measured, and what became of it.</b> This case found the latch not holding
+/// across frames and traced it to a third re-arm path the module's comment did not list —
+/// <c>xpe_preprocess_shutdown</c> (<c>preprocess.cpp:77</c>) resetting <c>g_calib</c> wholesale. That
+/// measurement is what <c>QA-A-142</c> acted on: the latch was removed rather than made to hold, because
+/// holding it across this host's pattern would need state that outlives <c>shutdown</c>, which #176
+/// forbids. So the count below is unchanged, and its reason is now simpler — the module reports every
+/// frame by design.</para>
+///
+/// <para><b>Not re-measured against a post-removal binary.</b> <c>f772b31</c> is not in the CI artifacts
+/// this lane has staged (the run carrying it had not finished), so the numbers here come from the
+/// latch-era build. They survive the change because both designs produce one line per frame in THIS
+/// host — the latch's suppression rate here was zero (measured 20/20 by QA-A-142). Worth re-running once
+/// a build with <c>f772b31</c> is staged.</para>
 /// </summary>
 public sealed class NonlinearityNoopAlertScenarios(ITestOutputHelper output)
 {
@@ -52,7 +59,7 @@ public sealed class NonlinearityNoopAlertScenarios(ITestOutputHelper output)
     private const int Frames = 3;
 
     [SkippableFact]
-    public void TheNoopAlert_ReachesTheLogOnce_WhileOtherAlertsKeepArriving()
+    public void TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving()
     {
         using var app = new PolynomialCalibrationApplicationFixture();
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
@@ -67,8 +74,9 @@ public sealed class NonlinearityNoopAlertScenarios(ITestOutputHelper output)
 
         OpenLogs(window);
 
-        // Several frames through the same stage. The gui never loads a nonlinearity LUT, so the
-        // condition holds on every one of them — the latch is what makes the count 1 rather than 3.
+        // Several frames through the same stage. The gui never loads a nonlinearity LUT, so the no-op
+        // condition holds on every one of them and the stage reports it every time (QA-A-142 removed the
+        // suppression latch; before that, this host re-armed it on every run anyway).
         for (var i = 1; i <= Frames; i++)
         {
             RunPreprocessing(window);
@@ -99,28 +107,27 @@ public sealed class NonlinearityNoopAlertScenarios(ITestOutputHelper output)
         Assert.Contains("ALERT", noop[0], StringComparison.Ordinal);
         Assert.Contains("NATIVE_ALERT", noop[0], StringComparison.Ordinal);
 
-        // (b1) MEASURED, not assumed: the latch does NOT survive a frame in the gui, and the reason is
-        // a third re-arm path the module's comment does not list. `GuiPreprocessRunner` wraps every run
-        // in `init → load → stages → finally shutdown`, and `xpe_preprocess_shutdown`
-        // (preprocess.cpp:77) does `g_calib = CalibrationData{}` — which clears `nonlin_noop_reported`
-        // along with everything else. So the latch is armed and discarded once per run, and the gui sees
-        // one #196 line per frame.
+        // (b1) One line per frame. GUI-C-132 measured this while the module still carried a
+        // suppression latch — and found it did not survive a frame here, because
+        // `xpe_preprocess_shutdown` (preprocess.cpp:77) assigns `g_calib = CalibrationData{}` and put
+        // the latch back on every run. QA-A-142 then removed the latch, citing that measurement: holding
+        // it across this host's pattern would need state outliving shutdown, which #176 forbids.
         //
-        // This case asserts what was measured rather than what the design intends, so that the number
-        // changing is visible: it fails at 1 (the latch started surviving — the intended behaviour, and
-        // a change worth noticing) and fails at 2×Frames (double-firing). Pinning it at 1 today would
-        // simply be red, and red on a correct implementation teaches nothing.
+        // So the number is unchanged and its reason is now simply the design. It still fails at 1 (a
+        // suppression that DOES survive a run — worth noticing, and a module-side change) and at
+        // 2×Frames (double-firing).
         Assert.True(noop.Length == Frames,
-            $"{Frames} frames produced {noop.Length} #196 line(s). The gui re-arms the latch on every " +
-            "run because xpe_preprocess_shutdown resets g_calib wholesale (preprocess.cpp:77), so one " +
-            "line per frame is the measured contract. A count of 1 means the latch now survives a run " +
-            "— tell the module owner rather than editing this number.");
+            $"{Frames} frames produced {noop.Length} #196 line(s). The stage reports the no-op on every " +
+            "frame (QA-A-142 removed the suppression latch), so one line per frame is the contract. A " +
+            "count of 1 means suppression came back — tell the module owner rather than editing this " +
+            "number.");
 
-        // (b2) The control — the queue is alive in this same run. Without this, "exactly one" is
-        // indistinguishable from a queue that stopped delivering after the first entry.
+        // (b2) The control — the queue is alive in this same run. Without it, a #196 count that matches
+        // the frames could equally come from a queue that stopped delivering while these lines sat
+        // there, so the count would not be attributable to the stage reporting at all.
         Assert.True(clamp.Length > 1,
             $"Only {clamp.Length} per-frame #194 clamp line(s) arrived across {Frames} frames, so " +
-            "\"exactly one #196 line\" cannot be attributed to the latch rather than to a dead queue.");
+            "the #196 count cannot be attributed to the stage reporting rather than to a dead queue.");
     }
 
     private static void RunPreprocessing(Window window)
