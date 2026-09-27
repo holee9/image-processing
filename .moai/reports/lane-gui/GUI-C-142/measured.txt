@@ -1,0 +1,35 @@
+=== GUI-C-142 measured.txt
+
+instruments:
+  clients/ImageProcTest.E2ETests/Scenarios/Workflows/SelectionVisibilityObservation.cs   (section A)
+  clients/ImageProcTest.E2ETests/Rendering/LogSelectionHighlightRenderTests.cs          (section C)
+
+--- section A (running app, no pixels)
+  window rect 156,156 1300x920
+  list   rect 1080,453 356x431 inside window=True
+  CONTROL (unfiltered, just clicked): raw 1081,454 1582x23 clipped 1081,454 355x23 verticallyInside=True offscreen=False => visible=True
+  moved row                         : raw 1081,454 1207x23 clipped 1081,454 355x23 verticallyInside=True offscreen=False => visible=True
+  VERDICT: the moved row is WHERE THE USER CAN SEE IT
+
+  (the FIRST version of this test asked for containment and said NOT VISIBLE — for the just-clicked
+   row as well. The control inside the measurement is what caught it. Item rects report 1582 wide
+   against a 356-wide list: an unclipped WPF item rect carries the text's desired width.)
+
+--- section B (screen capture) — REMOVED, positive control failed 3 times
+  attempt 3: both bands 217.65, |delta|=0.00
+  attempt 4: after SetForeground()/Focus(), both bands 180.30, |delta|=0.00
+  attempt 5 diagnostic: whole capture min=0.0 max=255.0 mean=214.6 samples=24552
+    -> the capture is NOT blank, but 214.6 is not a #14171e (~20) app: a brighter window is at those
+       screen coordinates. Capture() reads the screen, not the window's own content.
+
+--- section C (in-process render, no screen)
+  app style (Background=Transparent): selected 92.09  neighbour 48.34  |delta|=43.75
+  CONTROL A (setter removed)        : selected 92.09  neighbour 48.34  |delta|=43.75
+  CONTROL B (Background=Red)        : selected 97.07  neighbour 94.70  |delta|= 2.38
+    -> B moved the unselected row 48.34 -> 94.70, so the ItemContainerStyle IS applied;
+       therefore the equality of the first two is a real result, not an ignored style.
+
+--- no global style overrides it
+  ListBoxItem styles in gui xaml: 2 (AnalysisPanel log list, StudyQueue) — both local
+  App.xaml global styles: 0
+  CONTROL: the same search finds Button 7, Border 2 — it is reading the XAML
