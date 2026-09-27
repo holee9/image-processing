@@ -58,6 +58,10 @@ public partial class App : System.Windows.Application
         AutomationBackendMode = parsed.BackendMode;
         AutomationCalibrationDirectory = parsed.CalibrationDirectory;
         AutomationSettingsPath = parsed.SettingsPath;
+        // #200 (GUI-C-138): handed to the control directly. The viewport is created by XAML, so there is
+        // no constructor to carry it, and routing it through settings would make a diagnostic switch
+        // look like a user preference.
+        Controls.ImageComparisonViewport.AutomationRenderDumpPath = parsed.RenderDumpPath;
         AutomationRawWidth = parsed.RawWidth;
         AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationRawHeight = parsed.RawHeight;
