@@ -1,0 +1,43 @@
+raw: 1048576 px, min 0, max 63426, mean 31713.000
+
+baseline (pre-#156 render):
+       mean = 123.396868
+     stddev = 50.426561
+        p50 = 123.000000
+        p95 = 208.000000
+   nonzero% = 99.998569
+    mean|d| = 0.000000
+     max|d| = 0.000000
+   changed% = 0.000000
+
+|delta| vs the pre-#156 baseline
+ statistic |   legit #156 |     all zero |     constant |     scale x2 |        vflip |  one bad row
+      mean |     0.000019 |   123.396868 |     0.396868 |    86.191863 |     0.000019 |     0.007915
+    stddev |     0.000046 |    50.426561 |    50.426561 |    10.677102 |     0.000046 |     0.000688
+       p50 |     0.000000 |   123.000000 |     0.000000 |   123.000000 |     0.000000 |     0.000000
+       p95 |     0.000000 |   208.000000 |    85.000000 |    47.000000 |     0.000000 |     0.000000
+  nonzero% |     0.000000 |    99.998569 |     0.001431 |     0.000000 |     0.000000 |     0.000000
+   mean|d| |     0.000019 |   123.396868 |    41.172495 |    86.191863 |    61.758732 |     0.060593
+    max|d| |     1.000000 |   247.000000 |   124.000000 |   127.000000 |   124.000000 |   131.000000
+  changed% |     0.001907 |    99.998569 |    99.221420 |    99.998569 |    99.594879 |     0.099564
+
+gap = min(breakage |delta|) / legit |delta|
+       mean: legit 0.000019  worst-break 0.000019 (vflip)  ratio      1.00  -> UNUSABLE
+     stddev: legit 0.000046  worst-break 0.000046 (vflip)  ratio      1.00  -> UNUSABLE
+        p50: DEAD -- neither the correction nor any breakage moves it
+        p95: DEAD -- neither the correction nor any breakage moves it
+   nonzero%: DEAD -- neither the correction nor any breakage moves it
+    mean|d|: legit 0.000019  worst-break 0.060593 (one bad row)  ratio   3176.80  -> usable
+     max|d|: legit 1.000000  worst-break 124.000000 (constant)  ratio    124.00  -> usable
+   changed%: legit 0.001907  worst-break 0.099564 (one bad row)  ratio     52.20  -> usable
+tiled signature: 32x32 tile means = 1024 numbers (~8.0 KB as doubles)
+       variant |  mean|dtile| |   max|dtile|
+    legit #156 |     0.000019 |     0.019531
+      all zero |   123.396868 |   243.041016
+      constant |    41.144175 |   120.041016
+      scale x2 |    86.191863 |   126.160156
+         vflip |    61.758732 |   119.677734
+   one bad row |     0.060589 |     3.994141
+
+  mean|dtile| : legit 0.000019  worst-break 0.060589 (one bad row)  ratio 3176.60
+  max|dtile|  : legit 0.019531  worst-break 3.994141 (one bad row)  ratio 204.50

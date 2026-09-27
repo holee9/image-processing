@@ -1,0 +1,138 @@
+"""GUI-C-138 (#200) section 2 on REAL pixels: size the tile-cancelling blind spot.
+
+Baseline = the post-#156 real render (c138n_render_new.bgra). The legit correction's own numbers,
+measured in c138_real.py on the same two dumps, are the quiet-side reference:
+
+    legit #156 : mean|dtile| 0.002056  max|dtile| 0.032227  changed% 0.205612
+                 mean|dSD|   0.001084  max|dSD|   0.016971
+
+Candidate thresholds are therefore set from the REAL legit delta with headroom, not from the model:
+    mean|dtile| <= 0.010   (4.9x the legit 0.002056)
+    max |dtile| <= 0.300   (9.3x the legit 0.032227)
+
+Four breakages must go red (constant / scale / vflip / one-bad-row) and two mean-preserving
+patterns are swept for k to find where the signature stops seeing them.
+"""
+import array
+import math
+
+SP = r"C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-gui/0d70b202-b0c6-4320-99d2-76bc1de4f5b8/scratchpad"
+TILE = 32
+THRESH_MEAN, THRESH_MAX = 0.010, 0.300
+
+
+def load_gray(path):
+    with open(path, "rb") as f:
+        head = b""
+        while not head.endswith(b"\n"):
+            head += f.read(1)
+        p = head.decode("ascii").split()
+        w, h = int(p[1]), int(p[2])
+        buf = array.array("B")
+        buf.fromfile(f, w * h * 4)
+    return w, h, array.array("B", buf[0::4])
+
+
+W, H, BASE = load_gray(f"{SP}/c138n_render_new.bgra")
+N = W * H
+TH, TW = H // TILE, W // TILE
+
+
+def tile_stats(a):
+    means, sds = [], []
+    n = TH * TW
+    for ty in range(TILE):
+        for tx in range(TILE):
+            s = s2 = 0
+            for y in range(ty * TH, (ty + 1) * TH):
+                row = y * W + tx * TW
+                for v in a[row:row + TW]:
+                    s += v
+                    s2 += v * v
+            m = s / n
+            means.append(m)
+            var = s2 / n - m * m
+            sds.append(math.sqrt(var if var > 0 else 0.0))
+    return means, sds
+
+
+BM, BSD = tile_stats(BASE)
+
+
+def verdict(a):
+    m, sd = tile_stats(a)
+    dm = [abs(m[i] - BM[i]) for i in range(len(m))]
+    ds = [abs(sd[i] - BSD[i]) for i in range(len(sd))]
+    changed = sum(1 for i in range(N) if a[i] != BASE[i])
+    caught = []
+    if sum(dm) / len(dm) > THRESH_MEAN:
+        caught.append("mean")
+    if max(dm) > THRESH_MAX:
+        caught.append("max")
+    return (sum(dm) / len(dm), max(dm), sum(ds) / len(ds), max(ds),
+            100.0 * changed / N, "+".join(caught) if caught else "MISSED")
+
+
+def show(label, a):
+    mm, mx, sm, sx, ch, v = verdict(a)
+    print(f"{label:>26} | {mm:11.6f} | {mx:11.6f} | {sm:10.6f} | {sx:10.6f} | {ch:9.6f} | {v}")
+
+
+def corrupt(k, pattern, tiles=1):
+    out = array.array("B", BASE)
+    for t in range(tiles):
+        ty, tx = divmod(t, TILE)
+        for y in range(ty * TH, (ty + 1) * TH):
+            for x in range(tx * TW, (tx + 1) * TW):
+                i = y * W + x
+                up = ((x + y) % 2 == 0) if pattern == "checker" else ((y - ty * TH) < TH // 2)
+                v = out[i] + k if up else out[i] - k
+                out[i] = 0 if v < 0 else (255 if v > 255 else v)
+    return out
+
+
+def constant():
+    return array.array("B", bytes([int(sum(BASE) / N + 0.5)]) * N)
+
+
+def scale(f):
+    out = array.array("B", bytes(N))
+    for i in range(N):
+        v = int(BASE[i] * f + 0.5)
+        out[i] = 0 if v < 0 else (255 if v > 255 else v)
+    return out
+
+
+def vflip():
+    out = array.array("B", bytes(N))
+    for y in range(H):
+        src = (H - 1 - y) * W
+        out[y * W:(y + 1) * W] = BASE[src:src + W]
+    return out
+
+
+def one_bad_row(row=512, val=0):
+    out = array.array("B", BASE)
+    for x in range(W):
+        out[row * W + x] = val
+    return out
+
+
+print(f"baseline: REAL post-#156 render ({W}x{H}).  thresholds: mean|dtile| <= {THRESH_MEAN}, max|dtile| <= {THRESH_MAX}")
+print(f"{'variant':>26} | {'mean|dtile|':>11} | {'max|dtile|':>11} | {'mean|dSD|':>10} | {'max|dSD|':>10} | {'changed%':>9} | verdict")
+print("-" * 118)
+
+# quiet side: the legitimate correction must pass
+_, _, g_old = load_gray(f"{SP}/c138n_render_old.bgra")
+show("legit #156 (MUST pass)", g_old)
+
+print("-" * 118)
+show("constant", constant())
+show("scale x1.01", scale(1.01))
+show("vflip", vflip())
+show("one bad row (y=512 -> 0)", one_bad_row())
+
+print("-" * 118)
+for pattern in ("checker", "half-block"):
+    for k in (1, 2, 4, 8, 16):
+        show(f"{pattern} k={k} (1 tile)", corrupt(k, pattern))

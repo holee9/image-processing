@@ -174,7 +174,35 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
-- **Performance**: < 95ms for 3072x3072 UINT16 frame (scalar); < 30ms (AVX2)
+- **Performance** (재정의 2026-09-27, `#204` — 아래 주를 함께 읽을 것): `< 45 ms` (scalar, 3072x3072 **FLOAT32**, 결함 밀도 0.1% 군집 포함). AVX2 목표 없음. 이전 줄은 `< 95ms ... UINT16 frame (scalar); < 30ms (AVX2)` 였다.
+
+> **[재정의 근거 2026-09-27, `#204` / QA-A-144]**
+>
+> 옛 줄은 **세 가지가 동시에 틀렸습니다.**
+>
+> | 무엇 | 문제 |
+> |---|---|
+> | `UINT16` | **측정 불가능한 조건**이었습니다 — `defect_correct.cpp:124` 가 FLOAT32 가 아니면 거부합니다 |
+> | `< 30ms (AVX2)` | **없는 코드의 목표**입니다 — 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 스칼라가 이미 그보다 빠릅니다 |
+> | `< 95ms` | 유도 근거 없음(위 출처 정정 참조). 그리고 측정 하한의 **위**라 느슨했습니다 |
+>
+> **측정** (i7-12700, RelWithDebInfo, 단일 스레드, FLOAT32, 워밍업 폐기 + 7회 최솟값):
+>
+> ```
+> 결함 0      6.23 ms   <- 하한 아님. :173 에서 조기 반환해 보정 루프를 건너뜀
+> 결함 1     16.29 ms   <- 진짜 하한
+> 결함 9437  18.45 ms (0.1% 고립) / 19.21 ms (군집)
+> 결함 94371 33.64 ms (1%)
+> 실행 편차 2.9~30.3%
+> ```
+>
+> **밀도 0 을 하한으로 삼을 뻔한 것을 레인이 잡았습니다.** 조기 반환이라 루프를 안 돌고, 결함 1개만 있어도 16.29 ms 입니다. SPEC 조건에서 보정 연산 자체는 전체의 **9%** 뿐입니다.
+>
+> 커널만은 직접 재지 못했습니다 — `xpe_interpolate_pixel` 이 DLL 에서 안 내보내져 `LNK2019`. *"제외했다고 적고 포함해 재는"* 것을 피하려 **밀도 기울기**로 유도했습니다(184 ns/결함, 교차확인 179).
+>
+> **`45 ms` 의 유도**: 최악 측정 `19.21` × CI 계수 `1.43`(이 저장소 실측: 검출이 로컬 65.6 → CI 93.8) × 편차 `1.3` → 올림.
+>
+> **회귀 게이트는 아직 없습니다.** 필요하지만 **로컬에서 유도하면 `#144` 의 실수를 반복**합니다 — CI 실측 뒤 절대 예산 형태로 4배를 잡습니다. 이 경로가 CI 에서 실제로 도는 것은 확인됐습니다(`ci.yml:185`·`:206` 이 필터 없이 전체를 두 번 돌리고, run 36233914831 로그의 `[perf-gate-machine]` 줄이 그 스텝 출력).
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
   - Correction recall on BPM-marked defects: >= 99% (no defect left uncorrected)
   - Artifact suppression: zero new edges introduced at defect sites — verified by gradient-magnitude delta at defect boundary (|grad_after - grad_before| < 10% of local contrast)

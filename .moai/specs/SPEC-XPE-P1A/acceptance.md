@@ -585,13 +585,25 @@ And the processed image is displayed in the GUI
 |--------------|----------------------------------|---------------|-----------------|---------------|
 | PERF-001     | Offset correction                | 3072x3072 U16 | < 55ms          | < 15ms        |
 | PERF-002     | Gain correction                  | 3072x3072 U16 | < 55ms          | < 15ms        |
-| PERF-003     | Defect correction (bilinear)     | 3072x3072 U16 | < 95ms          | < 30ms        |
+| PERF-003     | Defect correction                | 3072x3072 **FLOAT32** | **< 45ms** (주 참조) | **N/A** (경로 없음) |
 | PERF-004     | Full pipeline (offset+gain+defect)| 3072x3072 U16 | < 500ms         | < 100ms       |
 | PERF-005     | XCal file load (offset)          | 3072x3072     | < 50ms          | N/A           |
 | PERF-006     | Calibration generate (10 frames) | 3072x3072     | < 200ms         | < 80ms        |
 | PERF-007     | Runtime detection (Hampel)       | 3072x3072 **FLOAT32** | ~~< 35ms~~ **<= 60 ms (dev machine)** | ~~< 12ms~~ see spec.md |
 
 > **PERF-007 정정 2026-09-17 (QA-A-85).** 이 행은 `spec.md` 가 2026-09-12 에 **폐기한 수치**(`< 35ms` / `< 12ms`)를 그대로 들고 있었습니다 — 두 값 모두 측정된 하한보다 낮아 어떤 구현도 도달할 수 없었습니다(QA-A-56). 형식도 `U16` 이었으나 검출 경로의 입력은 **FLOAT32** 입니다(`spec.md:220`). 현행 목표와 그 기계 정의는 `spec.md` 의 Performance 절이 원본입니다.
+
+> **PERF-003 정정 2026-09-27 (`#204` / QA-A-144).** 이 행은 **세 가지가 동시에 틀렸습니다.**
+>
+> - `bilinear` — **구현된 적 없는 알고리즘**입니다(`#125` 정정: 유효 4근방 **비가중** 평균, 군집은 3×3 median). 이름에서 뺐습니다
+> - `U16` — **측정 불가능한 조건**이었습니다. `defect_correct.cpp:124` 가 FLOAT32 가 아니면 거부합니다
+> - `< 30ms (AVX2)` — **없는 코드의 목표**입니다. 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 스칼라가 이미 그보다 빠릅니다
+>
+> `< 45ms` 는 측정 하한에서 유도했습니다(i7-12700 실측 최악 19.21 ms × CI 계수 1.43 × 편차 1.3). **유도 근거와 측정표는 `spec.md` 의 REQ-P1A-012 Performance 절이 원본입니다** — 여기서 인용하지 마십시오.
+>
+> **미검증**: `PERF-001`·`002`·`004`·`005`·`006` 은 **다시 보지 않았습니다.** 같은 표에 있고 같은 출처 문제를 공유하지만(위 `spec.md:569` 출처 정정 참조), 이 카드의 범위는 `PERF-003` 뿐이었습니다. 그 행들을 판정 근거로 인용하기 전에 같은 확인이 필요합니다.
+>
+> **`AC-SIMD-003`(§ Defect Correction Parity)은 이 정정과 별개로 더 큰 문제가 있습니다** — 별도 이슈로 다룹니다.
 
 ---
 

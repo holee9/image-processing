@@ -1,0 +1,95 @@
+"""GUI-C-137 (#200), part 2: does a TILED signature keep the discrimination without storing a frame?
+
+A stored baseline frame is what mean|d| / max|d| need, and for the 3072^2 wrist frame that is ~9 MB
+in the repository. A 32x32 grid of tile means is ~1 KB. The question is whether it still separates
+the #156 correction from the breakages — in particular from the vertical flip, which every
+whole-frame summary statistic is blind to.
+"""
+import array
+
+RAW = r"D:/workspace-github/xpe-gui/gui/ImageProcTest/fixtures/gui-s0/raw/synthetic_1024x1024.raw"
+W = H = 1024
+N = W * H
+CENTER, WIDTH = 32768.0, 65535.0
+RANGE = 255.0
+
+raw = array.array("H")
+with open(RAW, "rb") as f:
+    raw.fromfile(f, N)
+
+
+def render(center, width):
+    out = array.array("B", bytes(N))
+    for i in range(N):
+        v = ((raw[i] - center) / width + 0.5) * RANGE
+        v = int(v + 0.5) if v >= 0 else int(v - 0.5)
+        out[i] = 0 if v < 0 else (255 if v > 255 else v)
+    return out
+
+
+old = render(CENTER, WIDTH)
+new = render(CENTER - 0.5, WIDTH - 1.0)
+
+
+def flip_vertical(a):
+    out = array.array("B", bytes(N))
+    for y in range(H):
+        src = (H - 1 - y) * W
+        out[y * W:(y + 1) * W] = a[src:src + W]
+    return out
+
+
+def one_bad_row(a):
+    out = array.array("B", a)
+    y = H // 2
+    for x in range(W):
+        out[y * W + x] = 255 - out[y * W + x]
+    return out
+
+
+mean_new = sum(new) / N
+variants = {
+    "legit #156": new,
+    "all zero": array.array("B", bytes(N)),
+    "constant": array.array("B", bytes([int(mean_new + 0.5)]) * N),
+    "scale x2": array.array("B", (min(255, v * 2) for v in new)),
+    "vflip": flip_vertical(new),
+    "one bad row": one_bad_row(new),
+}
+
+TILE = 32
+TH, TW = H // TILE, W // TILE
+
+
+def tile_means(a):
+    out = []
+    for ty in range(TILE):
+        for tx in range(TILE):
+            tot = 0
+            for y in range(ty * TH, (ty + 1) * TH):
+                row = y * W + tx * TW
+                tot += sum(a[row:row + TW])
+            out.append(tot / (TH * TW))
+    return out
+
+
+base = tile_means(old)
+print(f"tiled signature: {TILE}x{TILE} tile means = {len(base)} numbers (~{len(base)*8/1024:.1f} KB as doubles)")
+print(f"{'variant':>14} | {'mean|dtile|':>12} | {'max|dtile|':>12}")
+
+rows = {}
+for name, arr in variants.items():
+    t = tile_means(arr)
+    d = [abs(t[i] - base[i]) for i in range(len(t))]
+    rows[name] = (sum(d) / len(d), max(d))
+    print(f"{name:>14} | {rows[name][0]:12.6f} | {rows[name][1]:12.6f}")
+
+legit = rows["legit #156"]
+breaks = {k: v for k, v in rows.items() if k != "legit #156"}
+wm = min(v[0] for v in breaks.values())
+wx = min(v[1] for v in breaks.values())
+wm_name = min(breaks, key=lambda k: breaks[k][0])
+wx_name = min(breaks, key=lambda k: breaks[k][1])
+print()
+print(f"  mean|dtile| : legit {legit[0]:.6f}  worst-break {wm:.6f} ({wm_name})  ratio {wm/legit[0] if legit[0] else float('inf'):.2f}")
+print(f"  max|dtile|  : legit {legit[1]:.6f}  worst-break {wx:.6f} ({wx_name})  ratio {wx/legit[1] if legit[1] else float('inf'):.2f}")
