@@ -130,14 +130,8 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
 
         // A log long enough to scroll. The chain is re-run rather than the frame re-loaded: GUI-C-139
         // measured that each run adds lines (8 on the native path, 5 on the mock one).
-        for (var i = 0; i < 12; i++)
+        GrowTheLog(window, 12);
         {
-            if (!Invoke(window, "RunPreprocessingMenuItem") && !Invoke(window, "ApplyDisplayPipelineMenuItem"))
-            {
-                break;
-            }
-
-            Thread.Sleep(200);
         }
 
         var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
@@ -154,6 +148,77 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         MeasureCondition(window, listRect, "S1 bottom", 100.0, offScreenSelection: false);
         MeasureCondition(window, listRect, "S2 middle", 50.0, offScreenSelection: false);
         MeasureCondition(window, listRect, "S3 bottom, selection above", 100.0, offScreenSelection: true);
+    }
+
+    /// <summary>
+    /// Grows the log by re-running the chain. Each run adds lines and, on the native path, one alert
+    /// (measured, GUI-C-139). Returns how many runs actually went through.
+    /// </summary>
+    private int GrowTheLog(Window window, int runs)
+    {
+        var done = 0;
+        for (var i = 0; i < runs; i++)
+        {
+            if (!Invoke(window, "RunPreprocessingMenuItem") && !Invoke(window, "ApplyDisplayPipelineMenuItem"))
+            {
+                break;
+            }
+
+            done++;
+            Thread.Sleep(200);
+        }
+
+        return done;
+    }
+
+    /// <summary>
+    /// GUI-C-143 closed with "the moved selection is visible, whatever the scroll position" and named ONE
+    /// hole: every condition it measured left the FILTERED list short enough to fit one screen
+    /// (<c>viewSize</c> 100% after the filter), and the selection always moved to the first row, which is
+    /// the top of a list that needs no scrolling. If the filtered list were LONGER than the screen, the
+    /// first row would be above the viewport unless the list scrolled there.
+    ///
+    /// <para><b>The hole is reachable, and the verdict does not survive it.</b> 34 chain re-runs (measured:
+    /// 28.6 s) put 27 alerts in the log, so the filtered list reports <c>viewSize</c> 71.4% — longer than
+    /// one screen. In that state the selection still moves to the first alert, the list does NOT scroll to
+    /// it, and the row lands above the visible area: <c>offscreen=True</c>, clipped to nothing.</para>
+    ///
+    /// <para><b>What makes it a defect rather than ordinary scrolling</b> is the pair GUI-C-143 built for
+    /// exactly this: the row was VISIBLE before the filter and NOT visible after (S0/S1/S2). The user did
+    /// not scroll it away — the filter moved the selection somewhere the user cannot see, and <c>Copy</c>
+    /// reads that selection.</para>
+    ///
+    /// <para>Observation only: the assertions here are the condition and the controls. Whether to fix it,
+    /// and how, is not this case's to decide.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAboveIt()
+    {
+        using var app = new WorkflowApplicationFixture();
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+
+        var window = app.MainWindow!;
+        OpenLogs(window);
+
+        var ran = GrowTheLog(window, 34);
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
+        var listRect = list.BoundingRectangle;
+
+        // The condition this case exists for: the FILTERED list must not fit one screen. Asserted rather
+        // than hoped — with fewer alerts this collapses into GUI-C-143's S0 and would pass saying nothing.
+        SetFilter(window, true);
+        var filteredView = ViewSize(window);
+        var filteredRows = list.FindAllChildren().Length;
+        SetFilter(window, false);
+        output.WriteLine($"§A3 setup: {ran} re-runs, filtered rows={filteredRows} filtered viewSize={filteredView:0.0}%");
+
+        Assert.True(filteredView >= 0 && filteredView < 99.5,
+            $"CONDITION NOT MET: with the filter on viewSize={filteredView:0.0}% — the alerts still fit one "
+          + $"screen ({filteredRows} rows), so this is GUI-C-143's S0 again. More alerts are needed before "
+          + "this case says anything.");
+
+        MeasureCondition(window, listRect, "§A3 top", 0.0, offScreenSelection: false);
+        MeasureCondition(window, listRect, "§A3 bottom", 100.0, offScreenSelection: false);
     }
 
     /// <summary>
