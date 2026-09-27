@@ -55,7 +55,7 @@ xpe-gui/ (Lane C, dev/gui)
 |-----|--------|------|
 | REQ-SIMD-001 Offset | test_offset_correct_avx2_parity.cpp | SKIP (calibration 필요 — 의도적) |
 | REQ-SIMD-002 Gain | test_gain_correct_avx2_parity.cpp | SKIP (calibration 필요 — 의도적) |
-| REQ-SIMD-003 Defect | test_defect_correct_avx2_parity.cpp | ✅ NEW API 재작성 완료 |
+| REQ-SIMD-003 Defect | test_defect_correct_determinism.cpp | ✅ NEW API 재작성 완료 |
 | REQ-SIMD-004 Runtime | test_runtime_detection_avx2_parity.cpp | ✅ 픽셀 포맷 수정 완료 |
 
 ### 1.1.1 Lane 브랜치 현황 (2026-04-22 기준)
