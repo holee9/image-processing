@@ -42,6 +42,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     private readonly HashSet<string> _alertLogLines = new(StringComparer.Ordinal);
     private int _drainedBackendAlertCount;
+    /// <summary>#206 (GUI-C-140): off by default — the filter is a reader's tool, not a new default view.</summary>
+    private bool _showAlertsOnly;
     private bool _showRuntimePanel = true;
     private bool _showRawSettingsPanel = true;
     private bool _showCalibrationPanel = true;
@@ -97,6 +99,11 @@ public sealed class MainWindowViewModel : ObservableObject
         _backend = _backendFactory(settings);
 
         Logs = new ObservableCollection<string>();
+        // #206 (GUI-C-140): the view the list binds to. Built here rather than lazily so the filter
+        // predicate exists before the first line is written — a log line inserted before the view was
+        // created would be in Logs but not in the view until a Refresh nobody calls.
+        LogsView = new CollectionViewSource { Source = Logs }.View;
+        LogsView.Filter = item => !ShowAlertsOnly || (item is string line && _alertLogLines.Contains(line));
         Alerts = new ObservableCollection<AlertEntry>();
         BackendModeOptions = new[] { "Mock", "Native" };
         CalibrationStageModeOptions = CalibrationStageMode.Options;
@@ -229,6 +236,35 @@ public sealed class MainWindowViewModel : ObservableObject
     public string[] CompareModeOptions { get; }
 
     public ObservableCollection<string> Logs { get; }
+
+    /// <summary>
+    /// What the log list actually shows (#206, GUI-C-140). A view over <see cref="Logs"/> rather than a
+    /// second collection: a copy would have to be kept in step with every insert and removal, and
+    /// <c>Clear Alerts</c> already removes lines (#201 (a), GUI-C-136) — two collections drifting apart
+    /// is the failure that would produce.
+    ///
+    /// <para>The filter tests membership of <see cref="_alertLogLines"/> — the exact lines
+    /// <see cref="RaiseAlert"/> wrote — NOT a text match on "ALERT ". GUI-C-136 chose that set for the
+    /// same reason: an ordinary message containing the word would be caught by a text rule, and a
+    /// filter that hides ordinary lines while claiming to show alerts is worse than no filter.</para>
+    /// </summary>
+    public ICollectionView LogsView { get; }
+
+    /// <summary>
+    /// Show only the alert lines (#206, GUI-C-140). GUI-C-139 measured why this exists: the depth a
+    /// reader must cover to be sure they have seen every alert grows by 8 lines per chain run on the
+    /// native path and leaves the visible page after 3-4 runs, while the alert SHARE moves in the
+    /// opposite direction and so cannot report the cost.
+    /// </summary>
+    public bool ShowAlertsOnly
+    {
+        get => _showAlertsOnly;
+        set
+        {
+            if (!SetProperty(ref _showAlertsOnly, value)) return;
+            LogsView.Refresh();
+        }
+    }
 
     public ObservableCollection<AlertEntry> Alerts { get; }
 

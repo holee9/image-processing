@@ -108,16 +108,86 @@ public sealed class LogAlertDiscriminabilityObservation(ITestOutputHelper output
         output.WriteLine($"extra chain runs invoked: {ran} of {ExtraRuns}");
         var frequent = Measure(window, "C after re-runs");
 
+        // #206 (GUI-C-140): the same log, the same four numbers, with the filter on. Measured here rather
+        // than in a new scenario on purpose — a second instrument would not be comparable with the
+        // GUI-C-139 table, and the whole point of the filter direction was that its effect shows up in
+        // the unit that card established.
+        SetFilter(window, true);
+        var filtered = Measure(window, "D filter on");
+        SetFilter(window, false);
+        var restored = Measure(window, "E filter off");
+
         // Instrument check: the log actually grew, so "C3 did not move" would mean the cost is bounded
         // rather than that nothing happened.
         Assert.True(frequent.Lines > rare.Lines,
             $"CONTROL FAILED: the log stayed at {frequent.Lines} lines after {ran} re-runs (was "
           + $"{rare.Lines}), so this run cannot tell a bounded cost from an idle harness.");
+
+        // #206 target: finding every alert must cost no more than the number of alerts there are.
+        Assert.True(filtered.All <= filtered.Alerts,
+            $"The filter did not reduce the depth: C3={filtered.All} against {filtered.Alerts} alert "
+          + $"lines (unfiltered C3 was {frequent.All}). Either the filter is not hiding the ordinary "
+          + "lines or it is hiding alert lines too — read what the list contains before changing the "
+          + "threshold.");
+
+        // And turning it off is not a one-way door. This is asserted on the CONTENT extent, not on the
+        // UIA child count: a first version compared the child counts and failed at 81 vs 27, which looked
+        // like the filter had eaten 54 lines. It had not — the scroll pattern still reported the content
+        // as about 84 lines long (VerticalViewSize 30.86% of a 26-line page), so what changed was which
+        // containers were realized. Asserting the child count here would have measured the instrument.
+        Assert.True(Math.Abs(restored.ViewSize - frequent.ViewSize) < 2.0,
+            $"Turning the filter off did not bring the whole log back: the viewport now shows "
+          + $"{restored.ViewSize:0.0}% of the content, against {frequent.ViewSize:0.0}% before the filter "
+          + "was switched on. The view size is the content extent, so a change here means lines really "
+          + "left the list rather than merely leaving the automation tree.");
+    }
+
+    /// <summary>
+    /// The other direction of the falsification (#206, GUI-C-140 §4): with the filter on and NO alert in
+    /// the log, the list must be empty. A filter that leaves lines behind here is not filtering on what it
+    /// claims to — and the positive case above would pass anyway, because a depth of "the few lines that
+    /// happen to be left" also satisfies C3 ≤ alert count.
+    ///
+    /// <para>The alert-free state is made rather than waited for: every launch writes alerts (measured —
+    /// 1 on the native path, 3 on the mock one), so <c>Clear Alerts</c> is what produces a log with
+    /// ordinary lines and no alerts. That also exercises the §3 overlap — the filter hiding items and
+    /// <c>Clear Alerts</c> removing them are the same lines.</para>
+    /// </summary>
+    [SkippableFact]
+    public void F_WithNoAlertLeft_TheFilteredListIsEmpty()
+    {
+        using var app = new WorkflowApplicationFixture();
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+
+        var window = app.MainWindow!;
+        OpenLogs(window);
+
+        var before = Measure(window, "F before");
+        Skip.If(before.Alerts == 0, $"No alert line is in the log ({before.Lines} lines) to clear.");
+
+        Press(window, "ClearAlertsButton");
+        var cleared = Measure(window, "F after Clear Alerts");
+
+        SetFilter(window, true);
+        var filtered = Measure(window, "F filter on, no alerts");
+        SetFilter(window, false);
+
+        // The ordinary lines are still there — otherwise "the filtered list is empty" would be trivial.
+        Assert.True(cleared.Lines > 0,
+            $"CONTROL FAILED: Clear Alerts left {cleared.Lines} lines, so an empty filtered list says "
+          + "nothing about the filter.");
+        Assert.Equal(0, cleared.Alerts);
+        Assert.Equal(0, filtered.Lines);
     }
 
     // ---- measurement ---------------------------------------------------------------------------
 
-    private sealed record Observation(int Page, int Lines, int Alerts, int Newest, int All, int Gap);
+    /// <summary>
+    /// <paramref name="ViewSize"/> is the fraction of the list's CONTENT that fits the viewport, read from
+    /// the scroll pattern. It is in the record because <paramref name="Lines"/> cannot be trusted as a
+    /// content length in every state: see <see cref="Measure"/>.
+    /// </summary>
+    private sealed record Observation(int Page, int Lines, int Alerts, int Newest, int All, int Gap, double ViewSize);
 
     private Observation Measure(Window window, string label)
     {
@@ -139,11 +209,12 @@ public sealed class LogAlertDiscriminabilityObservation(ITestOutputHelper output
             previous = at;
         }
 
-        var observation = new Observation(page, lines.Length, alertAt.Length, newest, all, gap);
+        var observation = new Observation(page, lines.Length, alertAt.Length, newest, all, gap, ViewSize(window));
         output.WriteLine(
             $"{label,-18} C1 page={observation.Page,3}  lines={observation.Lines,3}  alerts={observation.Alerts,3}  "
           + $"C2 newest={observation.Newest,3}  C3 all={observation.All,3}  C4 gap={observation.Gap,3}  "
           + $"share={(observation.Lines is 0 ? 0 : 100.0 * observation.Alerts / observation.Lines):0.0}%  "
+          + $"viewSize={observation.ViewSize:0.0}%  "
           + $"C3<=C1? {(observation.All < 0 ? "n/a" : observation.All <= observation.Page ? "yes" : "NO")}");
         return observation;
     }
@@ -175,6 +246,52 @@ public sealed class LogAlertDiscriminabilityObservation(ITestOutputHelper output
     {
         var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
         return list is null ? [] : list.FindAllChildren().Select(i => i.Name ?? string.Empty).ToArray();
+    }
+
+    /// <summary>
+    /// Sets the "Alerts only" toggle to <paramref name="on"/> through its Toggle pattern, and asserts the
+    /// state it ended in — a click that silently did nothing would make the filter look ineffective.
+    /// </summary>
+    private static void SetFilter(Window window, bool on)
+    {
+        var toggle = window.FindFirstDescendant(cf => cf.ByAutomationId("AlertsOnlyFilterToggle"));
+        Assert.True(toggle is not null, "AlertsOnlyFilterToggle is not in the tree.");
+
+        var want = on ? FlaUI.Core.Definitions.ToggleState.On : FlaUI.Core.Definitions.ToggleState.Off;
+        if (toggle!.Patterns.Toggle.Pattern.ToggleState != want)
+        {
+            toggle.Patterns.Toggle.Pattern.Toggle();
+            Thread.Sleep(300);
+        }
+
+        Assert.Equal(want, toggle.Patterns.Toggle.Pattern.ToggleState.Value);
+    }
+
+    private static void Press(Window window, string automationId)
+    {
+        var button = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        Assert.True(button is not null, $"{automationId} is not in the tree.");
+        button!.AsButton().Invoke();
+        Thread.Sleep(400);
+    }
+
+    /// <summary>
+    /// What fraction of the list's content the viewport shows, from the scroll pattern. 100 means the whole
+    /// content fits (or there is nothing to scroll); a small number means the content is much longer than
+    /// the page. -1 when the pattern is unavailable.
+    ///
+    /// <para>This exists because the UIA child count is NOT always the content length. Measured: with 81
+    /// lines appended one at a time the tree exposed all 81, but immediately after the filter view is
+    /// refreshed it exposed 27 — while the scroll pattern still reported <c>VerticalViewSize</c> 30.86%,
+    /// i.e. 26 visible of about 84. The content was whole; only the realized containers had changed. The
+    /// list virtualizes, and a refresh re-realizes just the viewport.</para>
+    /// </summary>
+    private static double ViewSize(Window window)
+    {
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+        return list is not null && list.Patterns.Scroll.TryGetPattern(out var scroll)
+            ? scroll.VerticalViewSize.Value
+            : -1.0;
     }
 
     /// <summary>Invokes a menu item and says whether it was there and enabled, rather than throwing.</summary>
