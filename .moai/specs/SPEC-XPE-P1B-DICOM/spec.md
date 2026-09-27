@@ -127,6 +127,24 @@ xpe_dicom_close(handle) --> free all resources
 - 1.2.840.10008.1.2.1 (Explicit VR Little Endian)
 - 1.2.840.10008.1.2.4.90 (JPEG 2000 Image Compression Lossless Only)
 - 1.2.840.10008.1.2.4.70 (JPEG Lossless, Non-Hierarchical, First-Order Prediction)
+- 1.2.840.10008.1.2.4.57 (JPEG Lossless, Non-Hierarchical, Process 14)
+
+> **[정정 2026-09-27, #147]** `.57` 을 추가했습니다. 이 요구가 `.70` 만 적는 동안
+> `SPEC-XPE-IOP` 의 `REQ-IOP-003` 은 `.57` 을 "at minimum" 으로 요구해, 두 SPEC 이
+> **JPEG Lossless 의 다른 변종**을 요구하는 상태였습니다.
+>
+> `.57` 과 `.70` 은 오타가 아니라 **서로 다른 실제 전송 구문**입니다 — `.70` 은
+> Process 14 에 Selection Value 1(1차 예측)을 더해 제약한 것이고, 코드도 둘을 갈라
+> 씁니다(`DicomReader.cpp`: `EXS_JPEGProcess14` 대 `EXS_JPEGProcess14SV1`).
+>
+> `QA-B-68` 이 `.57` 디코드를 넣어 구현은 네 구문을 모두 지원합니다. 따라서 이 정정은
+> **요구를 넓히는 것이 아니라 이미 있는 동작을 적는 것**입니다. `REQ-IOP-003` 은 이미
+> 충족 상태이며, 이슈가 결정을 기다리던 "연동 대상이 어느 변종을 쓰는가" 는 둘 다
+> 지원하므로 **답하지 않아도 되는 질문이 됐습니다.**
+>
+> 근거: `modules/dicom/src/DicomReader.h` 의 `kSupportedTransferSyntaxes` 는 항목마다
+> 왕복 픽스처를 요구하는 순회 시험(`EverySupportedTransferSyntaxActuallyReads`)에
+> 걸려 있어, 표에 적혔는데 읽지 못하면 빌드의 시험이 실패합니다.
 
 **REQ-DICOM-005**: IF the file uses an unsupported Transfer Syntax, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT`.
 

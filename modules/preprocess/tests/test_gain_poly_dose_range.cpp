@@ -329,6 +329,56 @@ TEST_F(GainPolyDoseRangeTest, APartialClampKeepsThePlainWording) {
 }
 
 /* ---------------------------------------------------------------------------
+ * QA-A-143 (#194 item 2): the load-time magnitude check.
+ *
+ * The unit is documented and cannot be enforced -- the file carries no unit
+ * field -- so the loader says something when the numbers are nowhere near the
+ * pixel domain they index. The two tests below are a pair: without the second,
+ * an implementation that warned on every load would pass the first.
+ * ------------------------------------------------------------------------- */
+
+/** An mGy-magnitude ladder is the shape the warning exists for. The values are
+ *  the ADU ladder divided by 1000, so the FIT is identical in shape and only
+ *  the abscissa's magnitude differs -- the test isolates magnitude and nothing
+ *  else. */
+TEST_F(GainPolyDoseRangeTest, AMilligrayMagnitudeLadderIsReported) {
+    std::vector<double> mgy;
+    for (double d : kDoses) mgy.push_back(d / 1000.0);   // 14.0 .. 42.7
+
+    std::vector<std::string> paths;
+    std::vector<const char*> ptrs;
+    for (size_t i = 0; i < mgy.size(); ++i) {
+        const std::string lvl = p(("a143_mgy_lvl" + std::to_string(i) + ".xcal").c_str());
+        ASSERT_EQ(XPE_OK, MakeGainXCal(lvl.c_str(), W, H, kGains[i]));
+        paths.push_back(lvl);
+    }
+    for (const auto& s : paths) ptrs.push_back(s.c_str());
+
+    const std::string out = p("a143_mgy.xcal");
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(
+        ptrs.data(), mgy.data(), static_cast<int32_t>(mgy.size()), 3, out.c_str()));
+
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain(out.c_str()))
+        << "a suspicious magnitude is reported, not rejected";
+    EXPECT_TRUE(alertContains("below the pixel-value range"))
+        << "an mGy-magnitude ladder loaded without the magnitude warning";
+}
+
+/** CONTROL, and the one that makes the test above mean something: the real ADU
+ *  ladder must stay silent. A warning on every load would be indistinguishable
+ *  from a working check when only the positive case is asserted. */
+TEST_F(GainPolyDoseRangeTest, ANormalAduLadderIsNotReported) {
+    const std::string poly = generatePoly("a143_adu.xcal", 3);
+
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(poly.c_str()));
+
+    EXPECT_FALSE(alertContains("below the pixel-value range"))
+        << "the reference dataset's own ADU ladder must not be flagged";
+}
+
+/* ---------------------------------------------------------------------------
  * Path 2: the file carries no range -> loaded, one alert, no clamp.
  * ------------------------------------------------------------------------- */
 

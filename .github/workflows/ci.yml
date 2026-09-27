@@ -85,6 +85,19 @@ jobs:
         shell: pwsh
         run: python tools/docs/check_spec_test_refs.py
 
+      # The mirror of the check above: that one guards SPEC -> test, this one
+      # guards code -> SPEC. Changing a requirement ID has no step that moves
+      # the code citing it, so the break is silent. #197 (a SPEC replaced
+      # wholesale, reusing the REQ-P1A- namespace from 001 -- 66 citations left
+      # behind) and #195 (the same shape between RTM and SRS) landed days apart.
+      # A ratchet, not a hard gate: 73 orphan citations exist today and are
+      # recorded in req_citation_baseline.json; the check fails only when a
+      # series gains an orphan it did not have. Ten of twelve series are clean
+      # and this freezes them there.
+      - name: Check code requirement citations
+        shell: pwsh
+        run: python tools/docs/check_req_citations.py
+
   common-build:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
