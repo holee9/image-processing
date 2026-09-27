@@ -281,7 +281,8 @@ CI 와 같은 방식으로 자동화 실행: exit=0, Passed=True
 ```
 BUILD_EXIT=0 (gui, IntegrationTests, E2ETests)
 IntegrationTests 전체                      : 통과 265, 건너뜀 1, 실패 0
-Mock E2E (ClearAlertsObservationScenarios) : 통과 2, 실패 0
+Mock E2E (관측 2건)                        : 통과 2, 실패 0
+Mock E2E 전체                              : 통과 126, 건너뜀 26, 실패 0 (7m 37s)
 자동화 보고서 (CI 방식)                    : exit=0, Passed=True
 ```
 
@@ -291,7 +292,8 @@ Mock E2E (ClearAlertsObservationScenarios) : 통과 2, 실패 0
 - **`ClearAlertsMenuItem`(메뉴 경로)를 누르지 않았다** — 같은 명령에 묶인 것은 읽었지만
   메뉴로 눌러 같은 결과가 나오는지는 재지 않았다.
 - **`f772b31` 이후 바이너리로 네이티브 알림 시나리오를 다시 돌리지 않았다**(§8.8).
-- **Mock E2E 전체를 2a 이후 다시 돌리지 않았다** — 관측 2건과 통합 전체만 돌렸다. 새 시험이
-  **전용 인스턴스**를 쓰므로 공유 상태는 건드리지 않지만, 그것으로 전체를 대신하지는 못한다.
+- ~~Mock E2E 전체를 2a 이후 다시 돌리지 않았다~~ → **돌렸다: 통과 126, 건너뜀 26, 실패 0**
+  (7m 37s, 전체 152 — 새 가드 1건 포함). `Logs` 를 읽는 다른 시나리오가 2a 로 영향받지
+  않는 것이 확인됐다.
 - **알림이 많은 상태(수십 건)에서 제거 비용을 재지 않았다** — `Logs.Remove` 는 선형 탐색이고
   알림 수만큼 반복한다.
