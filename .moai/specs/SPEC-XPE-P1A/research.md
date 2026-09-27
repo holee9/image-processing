@@ -217,7 +217,7 @@ Covers static BPM + runtime detection. State-of-the-art 2022-2026:
 Pixel-accuracy targets for REQ-P1A-012:
 - Defect-pixel correction rate (recall): >= 99% for isolated defects in BPM
 - Artifact suppression: zero new edges introduced at defect sites (gradient check at defect boundary)
-- Processing time (baseline path, bilinear): < 60ms for 3072x3072 with typical 0.1% defect density
+- Processing time: **see `spec.md` §REQ-P1A-012 Performance** — 재정의됨 (2026-09-27, `#204`). 이전 줄은 `(baseline path, bilinear): < 60ms for 3072x3072 with typical 0.1% defect density` 였고, **두 곳이 틀렸습니다**: `bilinear` 는 구현된 적 없는 알고리즘이며(`#125` 정정 — 유효 4근방 **비가중** 평균), `60ms` 는 유도 근거가 없었습니다. 현행 목표는 측정 하한에서 유도한 `< 45ms` 이고 근거는 `spec.md` 에 있습니다 — **여기서 수치를 인용하지 마십시오.**
 
 Pixel-accuracy targets for REQ-P1A-013 (Runtime):
 - True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%

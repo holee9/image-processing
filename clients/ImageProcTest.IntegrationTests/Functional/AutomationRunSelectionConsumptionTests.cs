@@ -42,6 +42,11 @@ public sealed class AutomationRunSelectionConsumptionTests
         ["SettingsPath"] = "#173 (GUI-C-119) names WHERE settings live, which CreateSettings decides — not WHAT the run " +
                            "selects, so ApplyRunSelection is the wrong place for it. Its effect is observed end to end by " +
                            "E2E UnreadableSettingsScenarios, both directions (corrupt file reported / good file silent)",
+        ["RenderDumpPath"] = "#200 (GUI-C-138) a diagnostic export sink: it names where the rendered BGRA buffer is " +
+                             "written, and changes nothing about what the run computes. It is handed straight to " +
+                             "ImageComparisonViewport.AutomationRenderDumpPath in App.OnStartup, so ApplyRunSelection " +
+                             "would be the wrong place for it. Its effect is observed by the dump file existing with " +
+                             "the XPEBGRA header and width*height*4 payload bytes",
     };
 
     /// <summary>

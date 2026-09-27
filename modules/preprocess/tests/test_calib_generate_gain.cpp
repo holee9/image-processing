@@ -245,7 +245,19 @@ TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
     gain_files.reserve(num_levels);
     std::vector<const char*> gain_paths;
     gain_paths.reserve(num_levels);
-    std::vector<double> dose_levels = {10.0, 20.0, 30.0};  // mGy
+    // QA-A-143 (#194 item 2): these were {10.0, 20.0, 30.0} with the comment
+    // "mGy". That comment was the only place in the repository that claimed a
+    // dose ladder could be in mGy, and it is wrong: preprocess_api.h pins
+    // dose_levels to pixel values (ADU), because the applier indexes the fitted
+    // curve with the pixel's own value. Values of 10..30 also trip the
+    // magnitude warning the loader now raises, which is the point of that
+    // warning -- it fired on the one place in the tree that disagreed.
+    //
+    // The numbers are the reference dataset's own lowest three rungs
+    // (tests/test_data/cyan_test/README.md:186), so this test now exercises a
+    // ladder of the shape the format actually takes. Nothing else about the
+    // test changes: it still asserts that three levels fit and a file appears.
+    std::vector<double> dose_levels = {14037.0, 17285.0, 20985.0};  // ADU
 
     for (int i = 0; i < num_levels; ++i) {
         gain_files.emplace_back("gain_poly_" + std::to_string(i) + ".xcal");
@@ -298,7 +310,8 @@ TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
 // Test 7: Polynomial generation with null paths
 // =============================================================================
 TEST_F(GenerateGainTest, GenerateGainPolynomial_NullPaths) {
-    std::vector<double> dose_levels = {10.0, 20.0, 30.0};
+    // Values are never read: this asserts the null-paths rejection (QA-A-143).
+    std::vector<double> dose_levels = {14037.0, 17285.0, 20985.0};  // ADU
     TempFile output("gain_poly_null.xcal");
 
     XpeErrorCode rc = xpe_calib_generate_gain_polynomial(

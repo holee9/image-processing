@@ -33,6 +33,14 @@ public sealed class MainWindowViewModel : ObservableObject
     private BackendRuntimeInfo _runtimeInfo = new();
     private LoadedImageFrame? _activeImageFrame;
     private int _drainedBackendLogCount;
+
+    /// <summary>
+    /// The exact log lines <see cref="RaiseAlert"/> wrote, so <c>Clear Alerts</c> can remove those and
+    /// nothing else (#201 (a), GUI-C-136). A set of the inserted strings rather than a text pattern: the
+    /// timestamp makes each line unique in practice, and an ordinary message that happens to contain
+    /// "ALERT " is not caught by accident.
+    /// </summary>
+    private readonly HashSet<string> _alertLogLines = new(StringComparer.Ordinal);
     private int _drainedBackendAlertCount;
     private bool _showRuntimePanel = true;
     private bool _showRawSettingsPanel = true;
@@ -115,10 +123,10 @@ public sealed class MainWindowViewModel : ObservableObject
         BrowseOffsetCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Offset));
         BrowseGainCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Gain));
         BrowseDefectCalibrationDirectoryCommand = new RelayCommand(() => BrowseCalibrationDirectory(CalibrationPathKind.Defect));
-        ClearLogsCommand = new RelayCommand(() => Logs.Clear());
+        ClearLogsCommand = new RelayCommand(ClearLogs);
         // Disabled while nothing is selected (#173, GUI-C-123) — see the command's own note.
         CopySelectedLogCommand = new RelayCommand(CopySelectedLog, () => !string.IsNullOrEmpty(SelectedLog));
-        ClearAlertsCommand = new RelayCommand(() => Alerts.Clear());
+        ClearAlertsCommand = new RelayCommand(ClearAlerts);
         ResetLayoutCommand = new RelayCommand(ResetLayout);
         ShowNativeDiagnosticsCommand = new RelayCommand(ShowNativeDiagnostics);
         ShowCalibrationSettingsCommand = new RelayCommand(ShowCalibrationSettings);
@@ -1963,12 +1971,53 @@ public sealed class MainWindowViewModel : ObservableObject
     private void RaiseAlert(AlertEntry alert)
     {
         Alerts.Insert(0, alert);
-        Log($"ALERT {alert.Severity} {alert.Code}: {alert.Message}");
+        // #201 (a), GUI-C-136: remember the exact line so Clear Alerts can take it back out. Matching
+        // the text later would be a heuristic — an ordinary message containing "ALERT " would be caught
+        // with it. The line that was inserted is the only thing that identifies it without guessing.
+        _alertLogLines.Add(Log($"ALERT {alert.Severity} {alert.Code}: {alert.Message}"));
     }
 
-    private void Log(string message)
+    /// <summary>Writes one line and returns it, so a caller can record which line it wrote.</summary>
+    private string Log(string message)
     {
-        Logs.Insert(0, $"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
+        var line = $"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}";
+        Logs.Insert(0, line);
+        return line;
+    }
+
+    /// <summary>
+    /// #201 (a) (GUI-C-136): clearing alerts takes the alert LINES off the screen too.
+    ///
+    /// <para>Before this, the command ran <c>Alerts.Clear()</c> on a collection no element is bound to,
+    /// so pressing it changed nothing a user could see — measured: log 11 lines / 3 alert lines before
+    /// and after, while Clear Logs took the same log to 0. "The button does nothing observable" was the
+    /// defect, not a missing panel.</para>
+    ///
+    /// <para><b>Only the lines RaiseAlert wrote.</b> The Application Log is not this button's to empty —
+    /// Clear Logs is a different button, and <c>PressingClearAlerts_KeepsTheOrdinaryLogLines</c> (written
+    /// BEFORE this change) is what says so.</para>
+    /// </summary>
+    private void ClearAlerts()
+    {
+        Alerts.Clear();
+
+        foreach (var line in _alertLogLines)
+        {
+            Logs.Remove(line);
+        }
+
+        _alertLogLines.Clear();
+    }
+
+    /// <summary>
+    /// Clear Logs empties the log, so the alert-line bookkeeping goes with it — otherwise a later Clear
+    /// Alerts would try to remove lines that are gone, and a NEW line that happened to match an old
+    /// string could be removed instead.
+    /// </summary>
+    private void ClearLogs()
+    {
+        Logs.Clear();
+        _alertLogLines.Clear();
     }
 
     private enum CalibrationPathKind

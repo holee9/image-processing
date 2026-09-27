@@ -174,7 +174,35 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
-- **Performance**: < 95ms for 3072x3072 UINT16 frame (scalar); < 30ms (AVX2)
+- **Performance** (재정의 2026-09-27, `#204` — 아래 주를 함께 읽을 것): `< 45 ms` (scalar, 3072x3072 **FLOAT32**, 결함 밀도 0.1% 군집 포함). AVX2 목표 없음. 이전 줄은 `< 95ms ... UINT16 frame (scalar); < 30ms (AVX2)` 였다.
+
+> **[재정의 근거 2026-09-27, `#204` / QA-A-144]**
+>
+> 옛 줄은 **세 가지가 동시에 틀렸습니다.**
+>
+> | 무엇 | 문제 |
+> |---|---|
+> | `UINT16` | **측정 불가능한 조건**이었습니다 — `defect_correct.cpp:124` 가 FLOAT32 가 아니면 거부합니다 |
+> | `< 30ms (AVX2)` | **없는 코드의 목표**입니다 — 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 스칼라가 이미 그보다 빠릅니다 |
+> | `< 95ms` | 유도 근거 없음(위 출처 정정 참조). 그리고 측정 하한의 **위**라 느슨했습니다 |
+>
+> **측정** (i7-12700, RelWithDebInfo, 단일 스레드, FLOAT32, 워밍업 폐기 + 7회 최솟값):
+>
+> ```
+> 결함 0      6.23 ms   <- 하한 아님. :173 에서 조기 반환해 보정 루프를 건너뜀
+> 결함 1     16.29 ms   <- 진짜 하한
+> 결함 9437  18.45 ms (0.1% 고립) / 19.21 ms (군집)
+> 결함 94371 33.64 ms (1%)
+> 실행 편차 2.9~30.3%
+> ```
+>
+> **밀도 0 을 하한으로 삼을 뻔한 것을 레인이 잡았습니다.** 조기 반환이라 루프를 안 돌고, 결함 1개만 있어도 16.29 ms 입니다. SPEC 조건에서 보정 연산 자체는 전체의 **9%** 뿐입니다.
+>
+> 커널만은 직접 재지 못했습니다 — `xpe_interpolate_pixel` 이 DLL 에서 안 내보내져 `LNK2019`. *"제외했다고 적고 포함해 재는"* 것을 피하려 **밀도 기울기**로 유도했습니다(184 ns/결함, 교차확인 179).
+>
+> **`45 ms` 의 유도**: 최악 측정 `19.21` × CI 계수 `1.43`(이 저장소 실측: 검출이 로컬 65.6 → CI 93.8) × 편차 `1.3` → 올림.
+>
+> **회귀 게이트는 아직 없습니다.** 필요하지만 **로컬에서 유도하면 `#144` 의 실수를 반복**합니다 — CI 실측 뒤 절대 예산 형태로 4배를 잡습니다. 이 경로가 CI 에서 실제로 도는 것은 확인됐습니다(`ci.yml:185`·`:206` 이 필터 없이 전체를 두 번 돌리고, run 36233914831 로그의 `[perf-gate-machine]` 줄이 그 스텝 출력).
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
   - Correction recall on BPM-marked defects: >= 99% (no defect left uncorrected)
   - Artifact suppression: zero new edges introduced at defect sites — verified by gradient-magnitude delta at defect boundary (|grad_after - grad_before| < 10% of local contrast)
@@ -568,7 +596,29 @@ Verification:
 
 > **⚠ 출처 정정 2026-09-17 (QA-A-85).** 이 표는 `XPE-ALG-001` 을 출처로 인용했지만, **그 문서에 이 표의 수치가 없습니다** — `docs/post-processing/xpe/XPE-ALG-001_…md` 에서 `55 ms` 계열 0건, `95 ms` 계열 0건 (대조군: 같은 검색이 그 문서의 ms 값 86줄을 찾음). 오히려 ALG-001 의 `xpe_offset_correct` 주석은 `≤500ms (SRS-PERF-001)` 이고, 이 파일의 offset 목표는 `< 55ms` 입니다.
 >
-> **아래 표의 수치는 유도 근거를 찾지 못했습니다** (탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체). 기계도 적혀 있지 않습니다. 성능 판정의 근거로 **인용하지 마십시오**. 런타임 검출의 현행 목표는 위 Performance 절(개발 기계 기준 60 ms)입니다. 그리고 같은 defect 연산에 목표가 **둘**입니다 — `research.md:215` 는 `< 60ms`, 이 파일과 `acceptance.md:583` 은 `< 95ms`. 어느 쪽인지 정해지지 않았습니다.
+> **아래 표의 수치는 유도 근거를 찾지 못했습니다** (탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체). 기계도 적혀 있지 않습니다. 성능 판정의 근거로 **인용하지 마십시오**. 런타임 검출의 현행 목표는 위 Performance 절(개발 기계 기준 60 ms)입니다.
+>
+> **[정정 2026-09-27, #144 — 충돌은 검출이 아니라 보정에 있습니다]**
+>
+> 이 주석이 *"같은 defect 연산에 목표가 둘"* 이라고 적었는데, **두 연산을 섞었습니다.**
+> 두 수치는 서로 다른 요구에 붙어 있습니다:
+>
+> | 요구 | 연산 | `research.md` | 이 파일 · `acceptance.md` |
+> |---|---|---|---|
+> | `REQ-P1A-012` | defect **보정** (이웃 평균 / 군집 median) | `:218` **`< 60ms`** | `:177`·`:577` **`< 95ms`** ← **충돌은 여기** |
+> | `REQ-P1A-013` | 런타임 **검출** (Hampel: median + MAD) | `:224` `< 35ms` scalar / `< 12ms` AVX2 | 위 Performance 절 **60 ms** (2026-09-12 재정의) |
+>
+> **검출(013)에는 충돌이 없습니다.** 옛 `35/12 ms` 는 측정 하한(`260.3 ms` / `27.1 ms`) 아래라
+> 도달 불가여서 위 절이 대체했고, 그 재정의는 근거가 기록돼 있습니다. 현재 개발 기계에서
+> **1.1배**(CI 러너 1.6배) 남아 사실상 달성입니다.
+>
+> **충돌은 보정(012)에 있습니다 — `60` 대 `95`.** 그리고 **어느 쪽도 유도 근거가 없습니다**
+> (위 출처 정정 참조). `research.md` 쪽은 *"baseline path, bilinear"* 라 적는데 `#125` 가
+> 정정했듯 **구현에 가중치가 없습니다** — 서술부터 현재 알고리즘과 다릅니다.
+>
+> **따라서 둘 중 하나를 고르지 않습니다.** 근거 없는 수치 둘 중에서 고르는 것은 근거 없는
+> 수치를 하나 남기는 일입니다. 검출(013)을 고친 방식 그대로 — **측정 하한을 먼저 재고 그
+> 측정에서 목표를 세웁니다.** 그때까지 보정 목표는 **미정**이며 판정 근거로 쓰지 마십시오.
 
 | Algorithm          | Target     | SIMD Target (AVX2) |
 |--------------------|------------|--------------------|

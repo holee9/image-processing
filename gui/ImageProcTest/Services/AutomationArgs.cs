@@ -24,7 +24,8 @@ public sealed record AutomationArgs(
     int? RawHeight,
     string? Error,
     int? DisplayPipelineFailAfter = null,
-    string? SettingsPath = null)
+    string? SettingsPath = null,
+    string? RenderDumpPath = null)
 {
     /// <summary>
     /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
@@ -54,6 +55,7 @@ public sealed record AutomationArgs(
 
         string? rawPath = null, reportPath = null, backendMode = null, calibrationDirectory = null, error = null;
         string? settingsPath = null;
+        string? renderDumpPath = null;
         int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
 
         for (var i = 0; i < args.Length; i++)
@@ -93,6 +95,14 @@ public sealed record AutomationArgs(
                 }
 
                 backendMode = canonical;
+            }
+            else if (Is(switchName, "--automation-export-render"))
+            {
+                // #200 (GUI-C-138): writes the drawn pixels of the processed layer to this path on every
+                // render. The automation surface reports a hash and a mean; the pixels are what a
+                // statistic study needs, and a screenshot is the composited control rather than the
+                // frame the pipeline produced.
+                renderDumpPath = Path.GetFullPath(value);
             }
             else if (Is(switchName, "--automation-settings"))
             {
@@ -155,7 +165,7 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter, settingsPath)
+                displayPipelineFailAfter, settingsPath, renderDumpPath)
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);

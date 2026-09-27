@@ -1,0 +1,149 @@
+"""GUI-C-137 (#200): which statistic separates a legitimate correction from a broken render?
+
+The legitimate case is NOT invented: it is the #156 formula change, read from
+modules/display/src/voi_lut.cpp:71-74.
+
+  old LINEAR : out = ((x - center)      / width       + 0.5) * range + minOut
+  new LINEAR : out = ((x - (center-0.5))/ (width - 1) + 0.5) * range + minOut
+
+The breakages are synthetic transforms of the NEW render, per the card: all-zero, constant,
+scale x2, vertical flip.
+
+Pure stdlib on purpose: no package is added to the environment for a one-off measurement.
+Percentiles are exact because the data is uint8 (256-bin histogram).
+"""
+import array
+import math
+
+RAW = r"D:/workspace-github/xpe-gui/gui/ImageProcTest/fixtures/gui-s0/raw/synthetic_1024x1024.raw"
+W = H = 1024
+N = W * H
+CENTER, WIDTH = 32768.0, 65535.0
+RANGE, MIN_OUT = 255.0, 0.0
+
+raw = array.array("H")
+with open(RAW, "rb") as f:
+    raw.fromfile(f, N)
+print(f"raw: {len(raw)} px, min {min(raw)}, max {max(raw)}, mean {sum(raw)/N:.3f}")
+
+
+def render(center, width):
+    out = array.array("B", bytes(N))
+    for i in range(N):
+        v = ((raw[i] - center) / width + 0.5) * RANGE + MIN_OUT
+        v = int(v + 0.5) if v >= 0 else int(v - 0.5)      # rint, away from zero
+        out[i] = 0 if v < 0 else (255 if v > 255 else v)
+    return out
+
+
+old = render(CENTER, WIDTH)
+new = render(CENTER - 0.5, WIDTH - 1.0)
+
+
+def flip_vertical(a):
+    out = array.array("B", bytes(N))
+    for y in range(H):
+        src = (H - 1 - y) * W
+        out[y * W:(y + 1) * W] = a[src:src + W]
+    return out
+
+
+def scaled(a, k):
+    return array.array("B", (min(255, v * k) for v in a))
+
+
+def one_bad_row(a):
+    out = array.array("B", a)
+    y = H // 2
+    for x in range(W):
+        out[y * W + x] = 255 - out[y * W + x]
+    return out
+
+
+mean_new = sum(new) / N
+variants = {
+    "legit #156": new,
+    "all zero": array.array("B", bytes(N)),
+    "constant": array.array("B", bytes([int(mean_new + 0.5)]) * N),
+    "scale x2": scaled(new, 2),
+    "vflip": flip_vertical(new),
+    # A LOCAL breakage: one row wrong. Averaging statistics dilute it by 1/H, which is exactly
+    # the case that says whether max|d| earns its place next to mean|d|.
+    "one bad row": one_bad_row(new),
+}
+
+
+def hist(a):
+    h = [0] * 256
+    for v in a:
+        h[v] += 1
+    return h
+
+
+def stats(a, baseline):
+    h = hist(a)
+    total = sum(v * c for v, c in enumerate(h))
+    mean = total / N
+    var = sum((v - mean) ** 2 * c for v, c in enumerate(h)) / N
+    def pct(p):
+        want = p / 100.0 * N
+        run = 0
+        for v, c in enumerate(h):
+            run += c
+            if run >= want:
+                return float(v)
+        return 255.0
+    diffs = 0
+    dsum = 0
+    dmax = 0
+    for i in range(N):
+        d = a[i] - baseline[i]
+        if d:
+            diffs += 1
+            ad = -d if d < 0 else d
+            dsum += ad
+            if ad > dmax:
+                dmax = ad
+    return {
+        "mean": mean,
+        "stddev": math.sqrt(var),
+        "p50": pct(50),
+        "p95": pct(95),
+        "nonzero%": 100.0 * (N - h[0]) / N,
+        "mean|d|": dsum / N,
+        "max|d|": float(dmax),
+        "changed%": 100.0 * diffs / N,
+    }
+
+
+base = stats(old, old)
+print("\nbaseline (pre-#156 render):")
+for k, v in base.items():
+    print(f"  {k:>9} = {v:.6f}")
+
+rows = {name: stats(arr, old) for name, arr in variants.items()}
+deltas = {name: {k: abs(rows[name][k] - base[k]) for k in base} for name in rows}
+
+keys = list(base.keys())
+names = list(rows.keys())
+print("\n|delta| vs the pre-#156 baseline")
+print(f"{'statistic':>10} | " + " | ".join(f"{n:>12}" for n in names))
+for k in keys:
+    print(f"{k:>10} | " + " | ".join(f"{deltas[n][k]:12.6f}" for n in names))
+
+print("\ngap = min(breakage |delta|) / legit |delta|")
+legit = "legit #156"
+breaks = [n for n in names if n != legit]
+for k in keys:
+    l = deltas[legit][k]
+    b = min(deltas[n][k] for n in breaks)
+    worst = min(breaks, key=lambda n: deltas[n][k])
+    if l == 0 and b == 0:
+        print(f"  {k:>9}: DEAD -- neither the correction nor any breakage moves it")
+    elif l == 0:
+        print(f"  {k:>9}: legit 0.000000  worst-break {b:.6f} ({worst})  -> ratio INF, usable")
+    else:
+        r = b / l
+        verdict = "usable" if r > 10 else ("weak" if r > 1 else "UNUSABLE")
+        print(f"  {k:>9}: legit {l:.6f}  worst-break {b:.6f} ({worst})  ratio {r:9.2f}  -> {verdict}")
+
