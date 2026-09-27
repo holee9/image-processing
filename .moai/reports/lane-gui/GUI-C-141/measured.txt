@@ -1,0 +1,41 @@
+=== GUI-C-141 measured.txt
+
+instrument: clients/ImageProcTest.E2ETests/Scenarios/Workflows/HiddenSelectionCopyObservation.cs
+
+######## backend=Mock
+ F' unfiltered before=18 (alerts 3)
+ F' filtered before Clear Alerts=3
+ F' filtered after  Clear Alerts=0
+ F' unfiltered after Clear Alerts=15 (alerts 0)
+ log lines=18 alerts=3 ordinary sample='[21:49:42.864] Chain gsvg: NotRequested — switched off'
+ Q3 CanSelectMultiple=False
+ C-1 plain copy: button enabled=True clipboard='[21:49:42.864] Chain gsvg: NotRequested — switched off' status='Log line copied.'
+ C-3 after filter on: visible=3 all alerts=True
+ Q1 selection after filter on: uia selected='[21:49:42.503] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: Real ...' copy button enabled=True
+ Q2 clipboard after Copy with a hidden selection: '[21:49:42.503] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: Real ...' => a VISIBLE line copied; status='Log line copied.'
+ Q4 alert selected, filter off: uia selected='[21:49:42.503] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: Real ...' kept=True copy enabled=True
+######## backend=Native
+ F' unfiltered before=17 (alerts 1)
+ F' filtered before Clear Alerts=1
+ F' filtered after  Clear Alerts=0
+ F' unfiltered after Clear Alerts=16 (alerts 0)
+ log lines=17 alerts=1 ordinary sample='[21:50:54.086] Chain gsvg: NotRequested — switched off'
+ Q3 CanSelectMultiple=False
+ C-1 plain copy: button enabled=True clipboard='[21:50:54.086] Chain gsvg: NotRequested — switched off' status='Log line copied.'
+ C-3 after filter on: visible=1 all alerts=True
+ Q1 selection after filter on: uia selected='[21:50:53.713] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Re...' copy button enabled=True
+ Q2 clipboard after Copy with a hidden selection: '[21:50:53.713] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Re...' => a VISIBLE line copied; status='Log line copied.'
+ Q4 alert selected, filter off: uia selected='[21:50:53.713] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Re...' kept=True copy enabled=True
+
+=== the two FAILED instrument attempts (probes removed from the test afterwards)
+attempt 1 — per-item Capture():
+  Q1b highlight, unfiltered (baseline): selected mean=48.8 unselected mean=48.8 |delta|=0.0
+  CONTROL: longest(260 chars) mean=48.8  shortest(34 chars) mean=48.8  |delta|=0.0  <- FAILED
+  rect probe: 1003,376 1582x23 offscreen=False len=54
+  rect probe: 1003,399 1582x23 offscreen=False len=60
+  rect probe: 1003,422 1582x22 offscreen=False len=260
+  (rects differ, width 1582 extends past the screen)
+attempt 2 — list-level Capture():
+  list mean with item0 selected=180.506  with item1=180.506  |delta|=0.000
+  (the panel is #14171e ~ 20; a mean of 180.5 is not that panel)
+  => 'is the moved selection visible?' is UNMEASURED
