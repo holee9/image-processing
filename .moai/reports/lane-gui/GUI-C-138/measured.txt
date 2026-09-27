@@ -1,0 +1,57 @@
+=== GUI-C-138 (#200) measured.txt — REAL rendered pixels ===
+
+--- provenance: automation runs (exit 0 both, Passed=true both)
+old {'Passed': True, 'MockBackend': False, 'ActualBackendMode': 'Native', 'NativeSource': 'c134-stage-old', 'DisplayVersion': '1.0.0', 'DisplayPipelineSummary': 'CalibrationEval(Offset=Off, Gain=Auto, Defect=On, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)'}
+new {'Passed': True, 'MockBackend': False, 'ActualBackendMode': 'Native', 'NativeSource': 'c134-stage-new', 'DisplayVersion': '1.0.0', 'DisplayPipelineSummary': 'CalibrationEval(Offset=Off, Gain=Auto, Defect=On, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)'}
+
+--- staged dll md5 (instrument differs)
+aee517236b910f557af42fb87f9c467f *D:/workspace-github/xpe-gui/build/c134-stage-old/xpe_display.dll
+b6a1736e2709fe0cf8e92ea4aba80ac7 *D:/workspace-github/xpe-gui/build/c134-stage-new/xpe_display.dll
+
+--- dump md5 (arms differ => the swap reaches the pixels)
+45929fdeac892d39896a40ad90f88a93 *C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-gui/0d70b202-b0c6-4320-99d2-76bc1de4f5b8/scratchpad/c138n_render_old.bgra
+8f795ea584d19b7a725ece2ac17c16e7 *C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-gui/0d70b202-b0c6-4320-99d2-76bc1de4f5b8/scratchpad/c138n_render_new.bgra
+
+--- section 1: c138_real.py
+old: pixels=1048576 B!=G:0 B!=R:0 distinct A:[255]
+new: pixels=1048576 B!=G:0 B!=R:0 distinct A:[255]
+
+=== full-frame statistics (REAL rendered pixels) ===
+      stat |          old |          new |      |delta|
+      mean |   127.007571 |   127.009627 |     0.002056
+        sd |    52.113142 |    52.115020 |     0.001878
+        p1 |    18.000000 |    18.000000 |     0.000000
+       p50 |   127.000000 |   127.000000 |     0.000000
+       p99 |   236.000000 |   236.000000 |     0.000000
+       min |     0.000000 |     0.000000 |     0.000000
+       max |   255.000000 |   255.000000 |     0.000000
+  nonzero% |    99.996567 |    99.996567 |     0.000000
+
+changed pixels: 2156 (0.205612%)
+max |per-pixel delta|: 1
+
+=== 32x32 tile signature (1024 tiles) ===
+tile mean   : mean|d| 0.002056  max|d| 0.032227
+tile stddev : mean|d| 0.001084  max|d| 0.016971
+
+--- section 2: c138_real_blindspot.py
+baseline: REAL post-#156 render (1024x1024).  thresholds: mean|dtile| <= 0.01, max|dtile| <= 0.3
+                   variant | mean|dtile| |  max|dtile| |  mean|dSD| |   max|dSD| |  changed% | verdict
+----------------------------------------------------------------------------------------------------------------------
+    legit #156 (MUST pass) |    0.002056 |    0.032227 |   0.001084 |   0.016971 |  0.205612 | MISSED
+----------------------------------------------------------------------------------------------------------------------
+                  constant |   42.511741 |  123.645508 |   1.653998 |   1.709349 | 99.317551 | mean+max
+               scale x1.01 |    1.262670 |    2.582031 |   0.017037 |   0.302900 | 92.274666 | mean+max
+                     vflip |   63.826700 |  123.765625 |   0.040984 |   0.110097 | 99.606895 | mean+max
+  one bad row (y=512 -> 0) |    0.124094 |    5.904297 |   0.652044 |  31.639369 |  0.097656 | mean+max
+----------------------------------------------------------------------------------------------------------------------
+      checker k=1 (1 tile) |    0.000019 |    0.019531 |   0.000233 |   0.238827 |  0.095749 | MISSED
+      checker k=2 (1 tile) |    0.000088 |    0.089844 |   0.000781 |   0.799679 |  0.095749 | MISSED
+      checker k=4 (1 tile) |    0.000496 |    0.507812 |   0.002032 |   2.080608 |  0.095749 | max
+      checker k=8 (1 tile) |    0.002258 |    2.312500 |   0.004076 |   4.173863 |  0.095749 | max
+     checker k=16 (1 tile) |    0.006165 |    6.312500 |   0.007940 |   8.130247 |  0.095749 | max
+   half-block k=1 (1 tile) |    0.000000 |    0.000000 |   0.000317 |   0.324104 |  0.097656 | MISSED
+   half-block k=2 (1 tile) |    0.000000 |    0.000000 |   0.000038 |   0.038401 |  0.097656 | MISSED
+   half-block k=4 (1 tile) |    0.000179 |    0.183594 |   0.001410 |   1.443573 |  0.097656 | MISSED
+   half-block k=8 (1 tile) |    0.001791 |    1.833984 |   0.003581 |   3.666535 |  0.097656 | max
+  half-block k=16 (1 tile) |    0.005697 |    5.833984 |   0.007454 |   7.633001 |  0.097656 | max

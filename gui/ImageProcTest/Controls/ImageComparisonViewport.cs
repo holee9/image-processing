@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -181,10 +183,56 @@ public sealed class ImageComparisonViewport : FrameworkElement
 
             _hashedValue = hash.ToString("x16", CultureInfo.InvariantCulture);
             _hashedMean = buffer.Length == 0 ? -1.0 : sum / (buffer.Length / 4.0 * 3.0);
+
+            DumpForAutomation(buffer, converted.PixelWidth, converted.PixelHeight);
         }
 
         return _hashedValue;
     }
+
+    /// <summary>
+    /// #200 (GUI-C-138): write the drawn pixels out when an automation run asks for them.
+    ///
+    /// <para><b>Why the app has to do this.</b> The automation surface reports a hash and a mean, and
+    /// GUI-C-137 needed the pixels themselves — to apply known transforms to a REAL render and see which
+    /// statistic separates a legitimate correction from a broken one. A screenshot is not a substitute:
+    /// it is the composited, scaled control, not the frame the pipeline produced.</para>
+    ///
+    /// <para><b>It reuses the buffer the hash already made</b> (no second pixel path), writes only when
+    /// the switch is set, and never throws into the render: a failed write is not worth losing a frame
+    /// over. Header line then raw BGRA rows, so the reader needs no image library.</para>
+    /// </summary>
+    private static void DumpForAutomation(byte[] buffer, int width, int height)
+    {
+        var path = AutomationRenderDumpPath;
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
+            var header = Encoding.ASCII.GetBytes(
+                string.Create(CultureInfo.InvariantCulture, $"XPEBGRA {width} {height}\n"));
+            stream.Write(header, 0, header.Length);
+            stream.Write(buffer, 0, buffer.Length);
+        }
+        catch (IOException)
+        {
+            // Automation-only diagnostics: a locked or unwritable path must not disturb the render.
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Where <see cref="DumpForAutomation"/> writes, or null. Set once from the command line
+    /// (<c>--automation-export-render</c>); static because the viewport is created by XAML and has no
+    /// constructor argument to carry it.
+    /// </summary>
+    internal static string? AutomationRenderDumpPath { get; set; }
 
     /// <summary>
     /// Mean of the processed layer's colour bytes (#180, GUI-C-102), so a test can say whether a setting
