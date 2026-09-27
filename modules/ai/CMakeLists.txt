@@ -6,10 +6,17 @@
 # REQ-AI-001: Layer 1 dependency (xpe_common only, no lateral DLL deps)
 # REQ-AI-003: Worker isolation (xpe_ai_worker.exe over named pipe IPC)
 # REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+#   -- REQUIREMENT, NOT CURRENT STATE. No build of this module links ONNX
+#      Runtime today: src/ai_onnx_session.cpp takes the same stub path in both
+#      branches ("For now, use stub implementation even in full build", :198),
+#      and EP availability is a hardcoded list, not a query. #130 tracks it.
 #
-# Build modes:
-#   XPE_AI_USE_ONNXRUNTIME=ON  -- Full ONNX Runtime integration (default OFF)
-#   XPE_AI_STUB_BUILD=ON       -- Stub build without ONNX (default ON)
+# Build modes (the two are NOT independent -- see the guard at :57):
+#   XPE_AI_USE_ONNXRUNTIME=ON  -- Ask for ONNX Runtime        (default OFF)
+#   XPE_AI_STUB_BUILD=ON       -- Build stubs without ONNX    (default ON)
+#   Turning only the first one ON is a FATAL_ERROR, because the documented
+#   defaults contradict each other. An ONNX build needs BOTH:
+#   -DXPE_AI_USE_ONNXRUNTIME=ON -DXPE_AI_STUB_BUILD=OFF
 # ============================================================================
 
 cmake_minimum_required(VERSION 3.20)
@@ -64,20 +71,36 @@ if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)
 endif()
 
 # ---------------------------------------------------------------------------
-# ONNX Runtime via FetchContent (optional)
+# ONNX Runtime acquisition -- CALLER-SUPPLIED ONLY. Nothing is downloaded.
 # ---------------------------------------------------------------------------
+# #130 (QA-B-155). WHAT THIS COMMENT USED TO SAY:
+#
+#   "ONNX Runtime via FetchContent (optional)"
+#   "FetchContent downloads pre-built NuGet package on Windows or builds
+#    from source on Linux."
+#   "Set ONNXRUNTIME_ROOT ..., or let this script attempt FetchContent."
+#
+# There was no FetchContent here: `FetchContent_Declare` count in this block
+# was 0 (control: :304 gtest in this same file, and modules/common:19,26, are
+# real). The lead read those lines while deciding #130's procurement path and
+# concluded acquisition was automated; counting the declares showed it was not.
+# Measured: with ONNXRUNTIME_ROOT unset and -DXPE_AI_USE_ONNXRUNTIME=ON
+# -DXPE_AI_STUB_BUILD=OFF, configure exits 1 with the FATAL_ERROR below --
+# nothing is fetched.
+#
+# THE ACTUAL PATH, and the #130 decision it implements:
+#   procurement    pre-built binaries, downloaded and placed by the caller
+#                  https://github.com/microsoft/onnxruntime/releases
+#   vcpkg          NOT used (no onnxruntime in vcpkg.json)
+#   auto-download  NOT performed (no FetchContent, no ExternalProject)
+#
+#   1. ONNXRUNTIME_ROOT defined  -> IMPORTED target from <root>/include + /lib
+#   2. otherwise                 -> find_package(onnxruntime QUIET CONFIG), once
+#   3. neither resolves          -> FATAL_ERROR (QA-B-153; never a silent stub)
+#
+# ONNX Runtime ships no standard CMake config package, so path 2 succeeds only
+# where something else installed one.
 if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
-    include(FetchContent)
-
-    # ONNX Runtime 1.20+ -- FetchContent downloads pre-built NuGet package
-    # on Windows or builds from source on Linux.
-    #
-    # NOTE: ONNX Runtime does not provide a standard CMake config package.
-    # The recommended approach is to use pre-built binaries from:
-    #   https://github.com/microsoft/onnxruntime/releases
-    #
-    # Set ONNXRUNTIME_ROOT to the extracted directory before building,
-    # or let this script attempt FetchContent.
 
     if(DEFINED ONNXRUNTIME_ROOT)
         # User-provided ONNX Runtime installation
@@ -99,7 +122,8 @@ if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
 
         message(STATUS "ONNX Runtime: using pre-built from ${ONNXRUNTIME_ROOT}")
     else()
-        # Attempt to find onnxruntime via find_package or pkg-config
+        # find_package only. (This said "find_package or pkg-config"; there is
+        # no pkg-config call here -- pkg_check_modules count in this file: 0.)
         find_package(onnxruntime QUIET CONFIG)
 
         if(NOT onnxruntime_FOUND)
@@ -253,7 +277,10 @@ else()
     )
 endif()
 
-endif()  # End of temporarily disabled worker build
+endif()  # if(TRUE) above. This said "End of temporarily disabled worker
+         # build" while the guard it closes is `if(TRUE)` -- the worker HAS
+         # been built all along (xpe_ai_worker.exe is produced; #205 found the
+         # single-process step tripping over it). QA-B-155.
 
 # ---------------------------------------------------------------------------
 # Unit Tests (Google Test)
