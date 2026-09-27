@@ -730,7 +730,7 @@ struct ImageBuffer {
 |---------|------|---------|---------|---------|:----------:|
 | SOUP-001 | OpenCV | 4.9.x | Image processing primitives (filter, transform) | Apache 2.0 | B |
 | SOUP-002 | dcmtk | 3.6.8 | DICOM read/write/network | BSD-3 | B |
-| SOUP-003 | ONNX Runtime | 1.17.x | DL model inference (Phase 3) | MIT | B |
+| SOUP-003 | ONNX Runtime | **미확정** (`XPE-SOUP-001` 주 참조) | DL model inference (Phase 3) | MIT | B |
 | SOUP-004 | spdlog | 1.13.x | Logging framework | MIT | A |
 | SOUP-005 | nlohmann/json | 3.11.x | JSON configuration parsing | MIT | A |
 | SOUP-006 | Google Test | 1.14.x | Unit testing (dev only) | BSD-3 | N/A |
