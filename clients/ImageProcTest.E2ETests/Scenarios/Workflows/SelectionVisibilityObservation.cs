@@ -82,7 +82,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         // list's, and said no — for the unfiltered row too. The reason is the same broken rectangle that
         // defeated GUI-C-141: the list is 356 wide and the item reports 1582, because an unclipped WPF
         // item rectangle carries the text's desired width. The row IS visible; the width is not.
-        var control = Visibility(listRect, ordinary, "§A CONTROL (unfiltered, user just clicked it)");
+        var control = Visibility(window, ordinary, "§A CONTROL (unfiltered, user just clicked it)");
         Assert.True(control.Visible,
             $"CONTROL FAILED: the row the user just selected is judged invisible ({control.Why}). The test "
           + "for visibility is wrong, so the filtered case below cannot be read.");
@@ -92,7 +92,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         var moved = SelectedItem(window);
         Assert.True(moved is not null, "After the filter, nothing reports itself as selected.");
         output.WriteLine($"§A selection moved to '{Trim(moved!.Name)}'");
-        var movedVisibility = Visibility(listRect, moved, "§A moved row");
+        var movedVisibility = Visibility(window, moved, "§A moved row");
         output.WriteLine($"§A VERDICT: the moved row is " +
                          $"{(movedVisibility.Visible ? "WHERE THE USER CAN SEE IT" : "NOT IN THE VISIBLE AREA")}" +
                          $" ({movedVisibility.Why})");
@@ -144,10 +144,10 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
             $"CONDITION NOT MET: viewSize={view:0.0}% — the log fits the list, so S1-S3 are S0 and 'all four "
           + "conditions hold' would say nothing. Grow the log before reading this case.");
 
-        MeasureCondition(window, listRect, "S0 top", 0.0, offScreenSelection: false);
-        MeasureCondition(window, listRect, "S1 bottom", 100.0, offScreenSelection: false);
-        MeasureCondition(window, listRect, "S2 middle", 50.0, offScreenSelection: false);
-        MeasureCondition(window, listRect, "S3 bottom, selection above", 100.0, offScreenSelection: true);
+        MeasureCondition(window, "S0 top", 0.0, offScreenSelection: false);
+        MeasureCondition(window, "S1 bottom", 100.0, offScreenSelection: false);
+        MeasureCondition(window, "S2 middle", 50.0, offScreenSelection: false);
+        MeasureCondition(window, "S3 bottom, selection above", 100.0, offScreenSelection: true);
     }
 
     /// <summary>
@@ -197,9 +197,21 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         using var app = new WorkflowApplicationFixture();
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
 
+        // The mock backend cannot reach this condition BY CONSTRUCTION: it adds a fixed three alerts with no
+        // loop and no knob, so the filtered list stays 3 rows however often the chain is re-run (measured:
+        // 34 re-runs, filtered rows=3, viewSize 100%). Skipped here for that stated structural reason
+        // rather than by loosening the condition assertion below — that assertion still has to bite on the
+        // native path if alerts ever stop accumulating.
+        Skip.If(string.Equals(app.BackendMode, "Mock", StringComparison.OrdinalIgnoreCase),
+            "The mock backend raises a fixed 3 alerts, so the filtered list cannot exceed one screen "
+          + "(GUI-C-145 §5 — the card puts the mock path out of scope for this reason). Needs the native path.");
+
         var window = app.MainWindow!;
         OpenLogs(window);
 
+        // 34 rather than the 27 that just clears the bar: 27 leaves the filtered list at viewSize 89.3%
+        // against the 99.5% limit, 34 leaves it at 71.4%, and the two cost the same (measured 1 m 26 s vs
+        // 1 m 27 s — the re-run count is not what this case spends its time on).
         var ran = GrowTheLog(window, 34);
         var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
         var listRect = list.BoundingRectangle;
@@ -217,8 +229,8 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
           + $"screen ({filteredRows} rows), so this is GUI-C-143's S0 again. More alerts are needed before "
           + "this case says anything.");
 
-        MeasureCondition(window, listRect, "§A3 top", 0.0, offScreenSelection: false);
-        MeasureCondition(window, listRect, "§A3 bottom", 100.0, offScreenSelection: false);
+        MeasureCondition(window, "§A3 top", 0.0, offScreenSelection: false);
+        MeasureCondition(window, "§A3 bottom", 100.0, offScreenSelection: false);
     }
 
     /// <summary>
@@ -228,7 +240,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
     /// only the second is a defect candidate.
     /// </summary>
     private void MeasureCondition(
-        Window window, Rectangle listRect, string label, double scrollPercent, bool offScreenSelection)
+        Window window, string label, double scrollPercent, bool offScreenSelection)
     {
         SetFilter(window, false);
         Scroll(window, offScreenSelection ? 0.0 : scrollPercent);
@@ -236,7 +248,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
         var candidate = list.FindAllChildren().FirstOrDefault(i =>
             !(i.Name ?? string.Empty).Contains(AlertMarker, StringComparison.Ordinal)
-            && IsRowVisible(listRect, i));
+            && IsRowVisible(window, i));
         if (candidate is null)
         {
             output.WriteLine($"{label}: no visible ordinary row to select — condition not measured");
@@ -248,7 +260,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
 
         // The control, per condition: the row just clicked must be visible. For S3 this is the click-time
         // check — the scroll below is what takes it out of sight on purpose.
-        var control = Visibility(listRect, candidate, $"{label} CONTROL (just clicked)");
+        var control = Visibility(window, candidate, $"{label} CONTROL (just clicked)");
         if (!control.Visible)
         {
             output.WriteLine($"{label}: CONTROL FAILED — this condition's measurement is void");
@@ -258,7 +270,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         if (offScreenSelection)
         {
             Scroll(window, scrollPercent);
-            var away = Visibility(listRect, candidate, $"{label} after scrolling away (must NOT be visible)");
+            var away = Visibility(window, candidate, $"{label} after scrolling away (must NOT be visible)");
             if (away.Visible)
             {
                 output.WriteLine($"{label}: the scroll did not hide the selected row — this became S1, void");
@@ -266,7 +278,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
             }
         }
 
-        var beforeFilter = Visibility(listRect, candidate, $"{label} selected row BEFORE the filter");
+        var beforeFilter = Visibility(window, candidate, $"{label} selected row BEFORE the filter");
         var viewBefore = ViewSize(window);
 
         SetFilter(window, true);
@@ -279,7 +291,7 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
             return;
         }
 
-        var after = Visibility(listRect, moved, $"{label} selected row AFTER the filter");
+        var after = Visibility(window, moved, $"{label} selected row AFTER the filter");
         var sameRow = string.Equals(moved.Name, candidate.Name, StringComparison.Ordinal);
         output.WriteLine(
             $"{label}: viewSize before={viewBefore:0.0}% after={viewAfter:0.0}% — "
@@ -290,8 +302,10 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         SetFilter(window, false);
     }
 
-    private static bool IsRowVisible(Rectangle listRect, AutomationElement item)
+    private static bool IsRowVisible(Window window, AutomationElement item)
     {
+        var listRect = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))?.BoundingRectangle
+                       ?? Rectangle.Empty;
         var raw = item.BoundingRectangle;
         return Rectangle.Intersect(listRect, raw).Width > 0
             && raw.Y >= listRect.Y && raw.Bottom <= listRect.Bottom
@@ -364,8 +378,14 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
     /// span must be inside the list's client area — the second is the scroll question. Both numbers are
     /// printed so the verdict can be checked rather than trusted.</para>
     /// </summary>
-    private Visibility_ Visibility(Rectangle listRect, AutomationElement item, string label)
+    private Visibility_ Visibility(Window window, AutomationElement item, string label)
     {
+        // The list rectangle is read HERE, not passed in. Measured (#214, GUI-C-145): a rect captured at the
+        // start of a case and reused was 13 px above the list's position at measurement time, which made a
+        // row sitting correctly at the list's top read as 12 of its 23 pixels cut off. The geometry probe
+        // that caught it printed list 976,308 and the selected row 977,309 — contiguous, fully inside.
+        var listRect = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))?.BoundingRectangle
+                       ?? Rectangle.Empty;
         var raw = item.BoundingRectangle;
         var clipped = Rectangle.Intersect(listRect, raw);
         var verticallyInside = raw.Y >= listRect.Y && raw.Bottom <= listRect.Bottom;

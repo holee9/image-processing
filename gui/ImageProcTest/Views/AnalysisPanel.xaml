@@ -524,6 +524,8 @@
                         reader's cost against the unfiltered list and that comparison has to stay valid.
                     -->
                     <ListBox AutomationProperties.AutomationId="LogListBox"
+                             x:Name="LogList"
+                             SelectionChanged="OnLogSelectionChanged"
                              ItemsSource="{Binding LogsView}"
                              SelectedItem="{Binding SelectedLog, Mode=TwoWay}"
                              Background="Transparent" BorderThickness="0"
