@@ -89,6 +89,87 @@ protected:
     }
 };
 
+/* ---------------------------------------------------------------------------
+ * QA-A-146 (#209): in-place is a supported call shape, and it must give the
+ * SAME answer as the out-of-place one.
+ *
+ * WHY THIS PAIR AND NOT A SINGLE TEST. The function keeps an uncorrected
+ * snapshot so a neighbour read never sees an already-corrected pixel. Reading
+ * the input directly is enough for that -- the input is never written --
+ * UNLESS the caller passed one buffer for both, which two call sites do
+ * (test_integration.cpp:100, :131). The snapshot is therefore taken only when
+ * the buffers overlap, and these two tests are what makes that branch
+ * checkable: same input, two call shapes, identical output.
+ *
+ * A test that only ran the in-place case and asserted "rc == XPE_OK" would
+ * pass against a version that skipped the snapshot and produced order-
+ * dependent values, because nothing would compare them to anything. The
+ * out-of-place run is the independently derived answer.
+ *
+ * The defects are adjacent so both the 4-neighbour mean and the 3x3 median
+ * path run; a single isolated defect would leave the cluster path untested.
+ * ------------------------------------------------------------------------- */
+TEST_F(DefectCorrectTest, InPlaceMatchesOutOfPlace) {
+    // A cluster (two adjacent) plus an isolated defect, all interior.
+    defectPixels[5 * W + 5] = 1;
+    defectPixels[5 * W + 6] = 1;
+    defectPixels[9 * W + 9] = 1;
+    // A solid 3x3 block: its centre has no valid 4-neighbour, so the r=1..3
+    // ring fallback in xpe_interpolate_pixel runs -- the widest read radius
+    // this function has, and the one most likely to reach a written pixel.
+    for (uint32_t dy = 0; dy < 3; ++dy)
+        for (uint32_t dx = 0; dx < 3; ++dx)
+            defectPixels[(20 + dy) * W + (20 + dx)] = 1;
+    for (uint32_t i = 0; i < W * H; ++i) {
+        imgPixels[i] = 1000.0f + static_cast<float>(i % 37);
+    }
+    loadDefectMap();
+
+    // Out-of-place: distinct buffers.
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const std::vector<float> expected = outPixels;
+
+    // In-place: one buffer for both, the shape test_integration.cpp uses.
+    std::vector<float> both = imgPixels;
+    XpeImageBuffer buf = img;
+    buf.data     = both.data();
+    buf.dataSize = both.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&buf, &buf, &metadata));
+
+    for (size_t i = 0; i < both.size(); ++i) {
+        ASSERT_EQ(expected[i], both[i])
+            << "in-place and out-of-place diverged at index " << i
+            << " (" << expected[i] << " vs " << both[i] << ")";
+    }
+}
+
+/** CONTROL for the branch: the out-of-place path, which now SKIPS the
+ *  snapshot, still corrects. Without this, deleting the correction entirely
+ *  would leave the pair above passing -- both shapes would be equally wrong. */
+TEST_F(DefectCorrectTest, OutOfPlaceStillCorrectsWithoutTheSnapshot) {
+    defectPixels[7 * W + 7] = 1;
+    for (uint32_t i = 0; i < W * H; ++i) {
+        imgPixels[i] = 1000.0f + static_cast<float>(i % 37);
+    }
+    // The defect reads as a STUCK pixel, not as another ramp sample. With the
+    // ramp value in place the 4-neighbour mean happens to equal the centre
+    // (1009 either way), so "the value changed" could not distinguish a
+    // correction from a plain copy -- the first version of this test asserted
+    // exactly that and failed for that reason.
+    imgPixels[7 * W + 7] = 5.0f;
+    loadDefectMap();
+
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
+
+    // The defect's own value must have been replaced by its neighbours' mean,
+    // computed here from the INPUT rather than by re-running the kernel.
+    const float mean = (imgPixels[7 * W + 6] + imgPixels[7 * W + 8] +
+                        imgPixels[6 * W + 7] + imgPixels[8 * W + 7]) / 4.0f;
+    EXPECT_FLOAT_EQ(mean, out[7 * W + 7]);
+    EXPECT_NE(imgPixels[7 * W + 7], out[7 * W + 7]) << "the defect was not corrected";
+}
+
 // REQ-P1A-024: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     loadDefectMap();

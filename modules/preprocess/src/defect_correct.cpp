@@ -178,8 +178,38 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
         return XPE_OK;
     }
 
-    // Use a source snapshot for neighbor lookups during correction
-    std::vector<float> source(src, src + n);
+    // IN-PLACE IS SAFE BECAUSE READS AND WRITES NEVER TOUCH THE SAME PIXEL
+    // -- QA-A-146 (#209).
+    //
+    // There used to be a second full-frame copy here
+    // (`std::vector<float> source(src, src + n)`), kept in case a caller
+    // aliased input and output: a write to dst would then be visible to a
+    // later neighbour read through src, making the result scan-order
+    // dependent. It cost 36 MB and 12.45 ms of an 18.45 ms call at 3072x3072
+    // (QA-A-145) -- the largest single item in this function.
+    //
+    // The hazard it guarded cannot occur. This function WRITES only pixels
+    // the defect map marks (`dm[idx] != 0`), and both correction kernels READ
+    // only pixels it does not: median_filter_cluster takes a neighbour when
+    // `defectMask[idx] == 0` (above, :96) and xpe_interpolate_pixel does the
+    // same in try_add, on the 4-neighbour path and on the r=1..3 ring
+    // fallback alike (helpers.cpp:30). The two sets are disjoint, so a read
+    // can never see a corrected value -- aliased or not.
+    //
+    // In-place callers exist and must keep working: test_integration.cpp:100
+    // and :131 call xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta).
+    // Searched every call site in the repository (all files, build/ and report
+    // logs excluded); the pipeline stages into a separate vector
+    // (pipeline.cpp:263) and the GUI passes distinct buffers
+    // (GuiPreprocessRunner.cs:155).
+    //
+    // WHAT REPLACES THE COPY IS A TEST, NOT A COMMENT. The invariant above is
+    // a property of the current kernels; a future kernel that reads a
+    // defective neighbour would break in-place silently. DefectCorrectTest.
+    // InPlaceMatchesOutOfPlace runs the same input both ways -- including a
+    // solid 3x3 block that forces the ring fallback -- and compares
+    // element-wise, so that change goes red instead of quiet.
+    const float* const source = src;
 
     // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> processed(n, false);
@@ -193,11 +223,11 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
-                        dst[cidx] = median_filter_cluster(source.data(), dm, cx, cy, W, H);
+                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H);
                         processed[cidx] = true;
                     }
                 } else {
-                    dst[idx] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
+                    dst[idx] = xpe_interpolate_pixel(source, dm, x, y, W, H);
                     processed[idx] = true;
                 }
             }
