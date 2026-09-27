@@ -584,12 +584,30 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             SetNumber(window, "GsvgDenoiseKInput", "0");
             SetNumber(window, "GsvgPyramidGainInput", "1.0");
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
-            SetNumber(window, "GsvgGridFrequencyInput", "60");
+            SetNumber(window, "GsvgGridFrequencyInput", "60");;;
             SetNumber(window, "GsvgAirSignalInput", "60000");
             var render = MeasureRender(window);
 
-            output.WriteLine($"P10 hash={Field(window, "processed")} mean={Mean(window):0.000}");
-            Assert.Equal(PreviewBaselineHash, Field(window, "processed"));
+            var drawnHash = Field(window, "processed");
+            output.WriteLine($"P10 hash={drawnHash} mean={Mean(window):0.000}");
+
+            // The message says WHAT THIS TEST KNOWS and no more (#200, GUI-C-138): a hash separates
+            // "identical" from "not identical" and nothing else — it cannot say how far off the render
+            // is, so it must not be read as evidence of a breakage. P-11 is the test that answers the
+            // magnitude question, and the two are deliberately worded to be told apart when both are
+            // red at once.
+            Assert.True(
+                string.Equals(PreviewBaselineHash, drawnHash, StringComparison.Ordinal),
+                $"SOMETHING CHANGED the drawn pixels — this test does not say whether that is a defect. "
+              + $"Drawn hash {drawnHash}, recorded {PreviewBaselineHash}. A hash is bit-exact, so a "
+              + "one-count rounding shift reads the same here as a broken render (measured: the #156 VOI "
+              + "placement correction moved every LINEAR pixel by at most 0.0039 of a count and changed "
+              + "this hash completely). WHAT TO DO: find the change that moved the pixels, then read "
+              + "P11_ThePreviewRender_StillCarriesTheRecordedTileSignature in the same run — if P-11 is "
+              + "GREEN the change is within the tolerance derived from a legitimate correction, and this "
+              + "hash is the one to re-record after citing that change (see PreviewBaselineHash). If "
+              + "P-11 is also RED the change exceeded that tolerance and is likely a breakage; do not "
+              + "re-record either one until the cause is identified.");
         }
         finally
         {
@@ -715,7 +733,7 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             SetNumber(window, "GsvgDenoiseKInput", "0");
             SetNumber(window, "GsvgPyramidGainInput", "1.0");
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
-            SetNumber(window, "GsvgGridFrequencyInput", "60");
+            SetNumber(window, "GsvgGridFrequencyInput", "60");;;
             SetNumber(window, "GsvgAirSignalInput", "60000");
             MeasureRender(window);
 
@@ -752,9 +770,13 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
             // PreviewTileSignatureTolerance for why re-recording without a fresh derivation is refused.
             Assert.True(
                 mean <= PreviewTileSignatureTolerance && max <= PreviewTileSignatureMaxTolerance,
-                $"The drawn per-tile brightness left the recorded signature: mean|dtile|={mean:0.000000} "
-              + $"(<= {PreviewTileSignatureTolerance:0.000}), max|dtile|={max:0.000000} "
-              + $"(<= {PreviewTileSignatureMaxTolerance:0.000}), worst tile {worstTile}. "
+                $"THE PIXELS MOVED BEYOND THE TOLERANCE — likely a breakage, not a rounding shift. "
+              + $"mean|dtile|={mean:0.000000} (<= {PreviewTileSignatureTolerance:0.000}), "
+              + $"max|dtile|={max:0.000000} (<= {PreviewTileSignatureMaxTolerance:0.000}), "
+              + $"worst tile {worstTile}. This is the magnitude question that "
+              + "P10_ThePreviewChange_KeptTheDrawnPixels cannot answer: its hash goes red on any change "
+              + "at all, while this threshold was derived from a legitimate correction, so exceeding it "
+              + "means the change is larger than one of those. "
               + "Find the change that moved the pixels before touching this test. If it is a legitimate "
               + "correction, render its before and after, re-derive BOTH thresholds from that "
               + "measurement, and record the numbers with their provenance in "
