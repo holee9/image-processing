@@ -71,6 +71,20 @@ public class ApplicationFixture : IDisposable
     }
 
     /// <summary>
+    /// #200 (GUI-C-138): extra switches WITHOUT giving up the leftover sweep. The overload above sets
+    /// <c>skipLeftoverSweep: true</c> because its caller runs its own app; a fixture that only adds a
+    /// diagnostic switch still wants the sweep, and silently losing it would let a leaked app from an
+    /// earlier class be driven by this one.
+    /// </summary>
+    protected ApplicationFixture(
+        string? rawImageRelativePath,
+        IReadOnlyList<string> extraArguments,
+        bool skipLeftoverSweep)
+        : this(rawImageRelativePath, simulateUnreadableChecks: 0, skipLeftoverSweep, extraArguments)
+    {
+    }
+
+    /// <summary>
     /// #175 (GUI-C-82): Native requested, with the native search pinned to
     /// <paramref name="forcedNativeDirectory"/> whatever <c>XPE_E2E_BACKEND</c> says. Pointed at a
     /// directory without the DLLs, this is the silent Mock fallback HAZ-GUI-005 is about.

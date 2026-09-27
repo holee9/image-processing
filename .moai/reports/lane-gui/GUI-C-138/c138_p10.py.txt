@@ -1,0 +1,129 @@
+"""GUI-C-138 (#200) section 1: re-measure the C-137 table on P10's REAL rendered pixels.
+
+Input: two --automation-export-render dumps taken from the same frame with the old and the new
+staged xpe_display.dll (NativeSource in each report names which). Header "XPEBGRA <w> <h>\\n",
+then w*h*4 bytes BGRA.
+
+The C-137 table was computed on a python model of the VOI formula. This script recomputes the
+same statistics from the actual rendered buffer, so the thresholds are set against what the app
+draws rather than against a re-derivation of the formula it is supposed to implement.
+"""
+import array
+import math
+import sys
+
+SP = r"C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-gui/0d70b202-b0c6-4320-99d2-76bc1de4f5b8/scratchpad"
+TILE = 32
+
+
+def load(path):
+    with open(path, "rb") as f:
+        head = b""
+        while not head.endswith(b"\n"):
+            head += f.read(1)
+        parts = head.decode("ascii").split()
+        assert parts[0] == "XPEBGRA", parts
+        w, h = int(parts[1]), int(parts[2])
+        buf = array.array("B")
+        buf.fromfile(f, w * h * 4)
+        extra = f.read()
+    assert not extra, f"{len(extra)} trailing bytes"
+    return w, h, buf
+
+
+def channel_report(name, w, h, buf):
+    """Is this grayscale replicated across B=G=R? A is what?"""
+    n = w * h
+    bg = br = 0
+    alphas = set()
+    for i in range(0, n * 4, 4):
+        b, g, r, a = buf[i], buf[i + 1], buf[i + 2], buf[i + 3]
+        if b != g:
+            bg += 1
+        if b != r:
+            br += 1
+        alphas.add(a)
+    print(f"{name}: pixels={n} B!=G:{bg} B!=R:{br} distinct A:{sorted(alphas)[:5]}")
+
+
+def gray(w, h, buf):
+    """One byte per pixel. Uses B; the channel report above says whether that loses anything."""
+    return array.array("B", buf[0::4])
+
+
+def stats(a):
+    n = len(a)
+    hist = [0] * 256
+    for v in a:
+        hist[v] += 1
+    total = sum(i * hist[i] for i in range(256))
+    mean = total / n
+    var = sum(hist[i] * (i - mean) ** 2 for i in range(256)) / n
+    def pct(p):
+        want = p * n / 100.0
+        run = 0
+        for i in range(256):
+            run += hist[i]
+            if run >= want:
+                return i
+        return 255
+    return {
+        "mean": mean,
+        "sd": math.sqrt(var),
+        "p1": pct(1), "p50": pct(50), "p99": pct(99),
+        "min": next(i for i in range(256) if hist[i]),
+        "max": next(i for i in range(255, -1, -1) if hist[i]),
+        "nonzero%": 100.0 * (n - hist[0]) / n,
+    }
+
+
+def tiles(a, w, h, fn):
+    th, tw = h // TILE, w // TILE
+    out = []
+    for ty in range(TILE):
+        for tx in range(TILE):
+            vals = []
+            for y in range(ty * th, (ty + 1) * th):
+                row = y * w + tx * tw
+                vals.extend(a[row:row + tw])
+            out.append(fn(vals))
+    return out
+
+
+def tmean(v):
+    return sum(v) / len(v)
+
+
+def tsd(v):
+    m = sum(v) / len(v)
+    return math.sqrt(sum((x - m) ** 2 for x in v) / len(v))
+
+
+w, h, buf_old = load(f"{SP}/c138p10_old.bgra")
+w2, h2, buf_new = load(f"{SP}/c138p10_new.bgra")
+assert (w, h) == (w2, h2)
+
+channel_report("old", w, h, buf_old)
+channel_report("new", w, h, buf_new)
+
+g_old, g_new = gray(w, h, buf_old), gray(w, h, buf_new)
+
+s_old, s_new = stats(g_old), stats(g_new)
+print("\n=== full-frame statistics (REAL rendered pixels) ===")
+print(f"{'stat':>10} | {'old':>12} | {'new':>12} | {'|delta|':>12}")
+for k in s_old:
+    d = abs(s_new[k] - s_old[k])
+    print(f"{k:>10} | {s_old[k]:12.6f} | {s_new[k]:12.6f} | {d:12.6f}")
+
+changed = sum(1 for i in range(len(g_old)) if g_old[i] != g_new[i])
+print(f"\nchanged pixels: {changed} ({100.0*changed/len(g_old):.6f}%)")
+maxdiff = max(abs(g_old[i] - g_new[i]) for i in range(len(g_old)))
+print(f"max |per-pixel delta|: {maxdiff}")
+
+tm_old, tm_new = tiles(g_old, w, h, tmean), tiles(g_new, w, h, tmean)
+dm = [abs(tm_new[i] - tm_old[i]) for i in range(len(tm_old))]
+ts_old, ts_new = tiles(g_old, w, h, tsd), tiles(g_new, w, h, tsd)
+ds = [abs(ts_new[i] - ts_old[i]) for i in range(len(ts_old))]
+print(f"\n=== 32x32 tile signature ({TILE*TILE} tiles) ===")
+print(f"tile mean   : mean|d| {sum(dm)/len(dm):.6f}  max|d| {max(dm):.6f}")
+print(f"tile stddev : mean|d| {sum(ds)/len(ds):.6f}  max|d| {max(ds):.6f}")
