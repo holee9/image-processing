@@ -170,6 +170,29 @@ defect_correct.cpp:169-173
 
 **수치는 제안하지 않습니다.** 로컬 19.21 ms 에서 유도하면 `#144` 에서 한 실수를 반복하는 것입니다. **`dev/preprocess` 를 한 번 밀어 CI 실측을 받은 뒤** 그 값의 4배(검출과 같은 규율)로 정하는 것을 제안합니다.
 
+#### 게이트가 CI 에서 실제로 도는가 — **돕니다. 관측으로 확인했습니다**
+
+> **[추가 2026-09-27]** 처음 이 보고서를 쓸 때 **빠져 있던 항목**입니다. 게이트가 필요하다고만 적고 *"그 게이트가 CI 에서 실행되기는 하는가"* 를 보지 않았습니다. 같은 자리에서 post 가 정반대 결과를 찾았습니다 — `ai` 시험이 **어떤 CI 잡에도 없습니다**(`#205`). 게이트를 넣어 놓고 돌지 않으면, 막는다고 믿는 동안 아무것도 안 막습니다.
+
+`ci.yml` 의 `preprocess-tests` 잡이 **필터 없이** 이 바이너리를 두 번 돌립니다:
+
+```
+:185   ctest --test-dir build/ci-preprocess --build-config RelWithDebInfo --output-on-failure
+:206   Run preprocess test binary as one process (#176)   ← 같은 exe, 단일 프로세스
+```
+
+**추론이 아니라 실물로 확인했습니다.** QA-A-141 에서 읽은 CI 로그(run `36233914831`, `60e7db9`)의 아래 줄이 **바로 그 `:206` 스텝의 출력**입니다:
+
+```
+preprocess-tests  Run preprocess test binary as one process (#176)
+  [perf-gate-machine] cpu="AMD EPYC 7763 64-Core Processor" logical=4 avx2=1 bandwidth=22.6 GB/s
+  [perf-gate-abs]     3072 best=93.8 ms budget=400.0 ms
+```
+
+검출 게이트가 그 스텝에서 실제로 실행돼 수치를 찍었으므로, **`xpe_preprocess_tests` 에 들어간 시험은 CI 에서 돕니다.** 보정 게이트를 같은 바이너리에 넣으면 같은 경로로 실행되고, CI 실측도 그 출력에서 바로 읽힙니다.
+
+**"돌 것이다" 와 "돌았다" 는 다릅니다** — 위 근거는 후자입니다.
+
 ---
 
 ## §4 반증 — 측정 카드용 두 가지
