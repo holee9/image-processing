@@ -2,10 +2,33 @@
  * @file ai_onnx_session.cpp
  * @brief ONNX Runtime session manager implementation (T-003)
  *
- * Implements session management with stub/full mode support.
- * Stub mode provides functional API without ONNX Runtime dependency.
+ * THERE IS NO FULL MODE YET. This file calls no ONNX Runtime API at all --
+ * counted across modules/ (#130, QA-B-156): `Ort::` 0, `onnxruntime_c_api` 0,
+ * `OrtApi` 0, `OrtSession` 0, `OrtGetApiBase` 0, `OrtEnv` 0. The search is not
+ * blind: in this same file `spdlog` is 4, `nlohmann` 2, and `XpeErrorCode` is
+ * 841 across modules/. Both arms of every `#if ONNX_RUNTIME_STUB_BUILD` below
+ * take the stub path -- the `#else` arm in OnnxSession::Create says so itself:
+ * "For now, use stub implementation even in full build".
+ *
+ * That is UNIMPLEMENTED WORK, not a design choice, and it is what #130 is
+ * actually about. This header used to read "Implements session management with
+ * stub/full mode support. Stub mode provides functional API without ONNX
+ * Runtime dependency." -- which reads as though the full arm exists. Deleting
+ * those lines would have hidden the absence instead of recording it; the
+ * hazard is a reader concluding the inference path is implemented.
+ *
+ * Consequence for callers: linking a real ONNX Runtime changes nothing here.
+ * GetAvailableExecutionProviders() returns a HARDCODED list in its "full" arm
+ * (kCuda, kTensorRt, kDirectMl pushed unconditionally under a "TODO: Query
+ * ONNX Runtime for available EPs"), not a runtime query, so an EP it names may
+ * not exist on the machine.
+ *
+ * @MX:TODO: implement the ONNX Runtime session path (create session, extract
+ *           input/output metadata, query available execution providers)
+ * @MX:SPEC: SPEC-XPE-P3-AI REQ-AI-006
  *
  * REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+ *   -- REQUIREMENT, NOT CURRENT STATE (see above).
  * REQ-AI-008: Model versioning and metadata
  */
 

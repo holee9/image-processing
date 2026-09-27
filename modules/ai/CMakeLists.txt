@@ -8,10 +8,14 @@
 # REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
 #   -- REQUIREMENT, NOT CURRENT STATE. No build of this module links ONNX
 #      Runtime today: src/ai_onnx_session.cpp takes the same stub path in both
-#      branches ("For now, use stub implementation even in full build", :198),
-#      and EP availability is a hardcoded list, not a query. #130 tracks it.
+#      branches -- OnnxSession::Create's "full" arm says "For now, use stub
+#      implementation even in full build" -- and EP availability is a hardcoded
+#      list, not a query. #130 tracks it. (Cited by function name, not by line:
+#      QA-B-156's own header edit moved that file by +25/-2 lines and the ":198"
+#      written here in QA-B-155 went stale the same day.)
 #
-# Build modes (the two are NOT independent -- see the guard at :57):
+# Build modes (the two are NOT independent -- see the contradiction guard
+# below, the `if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)` FATAL_ERROR):
 #   XPE_AI_USE_ONNXRUNTIME=ON  -- Ask for ONNX Runtime        (default OFF)
 #   XPE_AI_STUB_BUILD=ON       -- Build stubs without ONNX    (default ON)
 #   Turning only the first one ON is a FATAL_ERROR, because the documented
@@ -49,8 +53,9 @@ option(XPE_AI_STUB_BUILD      "Build stubs without ONNX Runtime" ON)
 #       still reported USE_ONNXRUNTIME=ON. That one is worse: the variable a
 #       reader would inspect said the opposite of what was built.
 #
-# `ON` can only come from the caller: option() defaults it to OFF at :26 and
-# nothing else in the tree sets it (grepped across CMakeLists/*.cmake/presets).
+# `ON` can only come from the caller: option(XPE_AI_USE_ONNXRUNTIME) above
+# defaults it to OFF, and nothing else in the tree sets it (grepped across
+# CMakeLists/*.cmake/presets).
 # So no default-vs-user-supplied detection is needed here -- the value itself
 # is the request. The `if(DEFINED VAR)`-before-option() trick was considered
 # and rejected: it reports TRUE on every RE-configure once the cache holds the
@@ -81,8 +86,9 @@ endif()
 #   "Set ONNXRUNTIME_ROOT ..., or let this script attempt FetchContent."
 #
 # There was no FetchContent here: `FetchContent_Declare` count in this block
-# was 0 (control: :304 gtest in this same file, and modules/common:19,26, are
-# real). The lead read those lines while deciding #130's procurement path and
+# was 0. Control, so the count is not a blind search: the googletest declare in
+# this same file's test block is real, and modules/common/CMakeLists.txt has
+# four. The lead read those lines while deciding #130's procurement path and
 # concluded acquisition was automated; counting the declares showed it was not.
 # Measured: with ONNXRUNTIME_ROOT unset and -DXPE_AI_USE_ONNXRUNTIME=ON
 # -DXPE_AI_STUB_BUILD=OFF, configure exits 1 with the FATAL_ERROR below --
