@@ -60,3 +60,12 @@ instrument: clients/.../SelectionVisibilityObservation.cs (A3 from GUI-C-143, un
      Fixed by skipping on that backend with the structural reason stated, NOT by loosening the
      condition assertion (which must still bite on native if alerts stop accumulating).
      After: Mock 1 skipped / Native 3 run and pass.
+
+--- CI (dev/gui run 36329237577, ab557c8) = completed/success, 9 jobs, 0 failures
+  gui-e2e-native : Passed A3 [39 s], Passed A2 [37 s], Passed A [5 s]
+  gui-automation : Skipped A3 (that job names skips); summary Failed: 0, Passed: 134, Skipped: 28
+  => A3 costs 39 s in CI, not the 1 m 27 s measured locally: +3.8% of gui-e2e-native, not +8.5%
+
+--- the previous commit 8aac84f WAS red (run 36323013107)
+  gui-automation, 1 failure: A3_WhenTheFilteredListIsLongerThanTheScreen
+  same cause this card fixed; I had run A3 on Native only before committing it
