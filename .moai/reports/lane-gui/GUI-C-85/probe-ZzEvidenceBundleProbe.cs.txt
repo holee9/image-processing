@@ -1,0 +1,61 @@
+// TEMPORARY GUI-C-85 probe — not committed. Reads the backend mode out of an exported evidence bundle.
+using System.IO.Compression;
+using FlaUI.Core.AutomationElements;
+using ImageProcTest.E2ETests.Fixtures;
+using Xunit;
+using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
+
+namespace ImageProcTest.E2ETests.Scenarios.Workflows;
+
+public sealed class ZzProbeNativeFixture() : ApplicationFixture(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw",
+    new DirectoryInfo(@"D:\workspace-github\xpe-gui\build\ci-common\bin"));
+
+public sealed class ZzProbeFallbackFixture() : ApplicationFixture(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw",
+    new DirectoryInfo(@"D:\workspace-github\xpe-gui\build\e2e-c85\emptydir"));
+
+public sealed class ZzProbeMockFixture() : ApplicationFixture(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", Array.Empty<string>());
+
+public abstract class ZzBundleProbeBase(ITestOutputHelper output)
+{
+    protected void Probe(string label, ApplicationFixture app)
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "unavailable");
+        var window = app.MainWindow!;
+        output.WriteLine($"[{label}] status-bar='{RuntimeSummary(window)}' title='{window.Title}'");
+
+        var evidence = @"D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\evidence";
+        foreach (var f in new[] { "backend.json", "verdicts.json", @"bundles\.zip" }) File.Delete(Path.Combine(evidence, f));
+
+        var pass = window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Button))
+            .First(b => (b.Name ?? string.Empty).Contains("Pass", StringComparison.Ordinal));
+        pass.AsButton().Invoke();
+        Thread.Sleep(600);
+        foreach (var f in new[] { "backend.json", "verdicts.json" })
+        {
+            var path = Path.Combine(evidence, f);
+            var exists = File.Exists(path);
+            output.WriteLine($"[{label}] {path} exists={exists}");
+            if (exists)
+            {
+                output.WriteLine(File.ReadAllText(path));
+                File.Copy(path, Path.Combine(@"D:\workspace-github\xpe-gui\build\e2e-c85", $"evidence-{label}-{f}"), true);
+            }
+        }
+
+        var export = window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Button))
+            .First(b => b.Name == "Export bundle");
+        export.AsButton().Invoke();
+        Thread.Sleep(1200);
+        var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+        output.WriteLine($"[{label}] export status='{status}'");
+    }
+}
+
+[Collection("ZzA")] public sealed class ZzBundleA(ZzProbeNativeFixture app, ITestOutputHelper o) : ZzBundleProbeBase(o) { [SkippableFact] public void A() => Probe("a", app); }
+[Collection("ZzB")] public sealed class ZzBundleB(ZzProbeFallbackFixture app, ITestOutputHelper o) : ZzBundleProbeBase(o) { [SkippableFact] public void B() => Probe("b", app); }
+[Collection("ZzC")] public sealed class ZzBundleC(ZzProbeMockFixture app, ITestOutputHelper o) : ZzBundleProbeBase(o) { [SkippableFact] public void C() => Probe("c", app); }
+
+[CollectionDefinition("ZzA")] public sealed class ZzA : ICollectionFixture<ZzProbeNativeFixture>;
+[CollectionDefinition("ZzB")] public sealed class ZzB : ICollectionFixture<ZzProbeFallbackFixture>;
+[CollectionDefinition("ZzC")] public sealed class ZzC : ICollectionFixture<ZzProbeMockFixture>;

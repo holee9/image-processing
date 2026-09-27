@@ -1,0 +1,9 @@
+﻿z=0 pid=20516 min=False topmost=True fg=False title=C91 TOPMOST PROBE WINDOW
+z=1 pid=18560 min=False topmost=False fg=True title=Windows PowerShell
+z=2 pid=18560 min=False topmost=False fg=False title=✳ xpe-leader
+z=3 pid=10712 min=True topmost=False fg=False title=Bright_test_gate__00 - 파일 탐색기
+z=4 pid=15836 min=False topmost=False fg=False title=설정
+z=5 pid=18208 min=False topmost=False fg=False title=설정
+z=6 pid=14748 min=True topmost=False fg=False title=Microsoft 365 Copilot
+z=7 pid=17392 min=False topmost=False fg=False title=Windows 입력 환경
+z=8 pid=10712 min=False topmost=False fg=False title=Program Manager

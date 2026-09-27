@@ -1,0 +1,39 @@
+# GUI-C-85: automation report + menu-command-report, three cases.
+$ErrorActionPreference = 'Stop'
+$repo = 'D:\workspace-github\xpe-gui'
+$bin = Join-Path $repo 'gui\ImageProcTest\bin\Debug\net8.0-windows'
+$exe = Join-Path $bin 'ImageProcTest.exe'
+$out = Join-Path $repo 'build\e2e-c85'
+New-Item -ItemType Directory -Force $out | Out-Null
+$empty = Join-Path $out 'emptydir'
+New-Item -ItemType Directory -Force $empty | Out-Null
+Get-ChildItem $empty | Remove-Item -Force
+
+$cases = @(
+  @{ Name = 'a'; Backend = 'Native'; Dir = (Join-Path $repo 'build\ci-common\bin') },
+  @{ Name = 'b'; Backend = 'Native'; Dir = $empty },
+  @{ Name = 'c'; Backend = 'Mock';   Dir = $null }
+)
+
+$menuReport = Join-Path $bin 'menu-command-report.json'
+foreach ($c in $cases) {
+  if (Test-Path $menuReport) { Remove-Item $menuReport -Force }
+  if ($c.Dir) { $env:XPE_NATIVE_DIR = $c.Dir; $env:XPE_NATIVE_DIR_EXCLUSIVE = '1' }
+  else { Remove-Item Env:XPE_NATIVE_DIR -ErrorAction SilentlyContinue; Remove-Item Env:XPE_NATIVE_DIR_EXCLUSIVE -ErrorAction SilentlyContinue }
+  $rep = Join-Path $out ("automation-report-{0}.json" -f $c.Name)
+  if (Test-Path $rep) { Remove-Item $rep -Force }
+  $p = Start-Process -FilePath $exe -WorkingDirectory $bin -WindowStyle Hidden -Wait -PassThru -ArgumentList @(
+    '--automation-raw', 'fixtures/gui-s0/raw/synthetic_1024x1024.raw', '--automation-report', $rep,
+    '--automation-backend', $c.Backend, '--automation-width', '1024', '--automation-height', '1024')
+  $r = Get-Content $rep -Raw | ConvertFrom-Json
+  "[{0}] requested={1} dir={2} exit={3}" -f $c.Name, $c.Backend, $c.Dir, $p.ExitCode
+  "    automation-report: BackendMode={0} ActualBackendMode={1} MockBackend={2} BackendMatchesRequest={3} Passed={4} NativeSource='{5}'" -f $r.BackendMode, $r.ActualBackendMode, $r.MockBackend, $r.BackendMatchesRequest, $r.Passed, $r.NativeSource
+  if (Test-Path $menuReport) {
+    $copy = Join-Path $out ("menu-command-report-{0}.json" -f $c.Name)
+    Copy-Item $menuReport $copy -Force
+    $m = Get-Content $copy -Raw | ConvertFrom-Json
+    "    menu-command-report: actualBackendMode={0} mockBackend={1} requestedBackendMode={2} settings.backendMode={3} backend.backendName={4} backend.nativeSource='{5}'" -f $m.actualBackendMode, $m.mockBackend, $m.requestedBackendMode, $m.settings.backendMode, $m.backend.backendName, $m.backend.nativeSource
+  } else {
+    "    menu-command-report: NOT WRITTEN"
+  }
+}

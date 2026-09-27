@@ -218,17 +218,25 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
 
         var compare = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CompareModeMenuItem")));
         Assert.True(compare is not null, "View → Compare Mode was not found after opening the View menu.");
-        // EXPERIMENT (#163, GUI-C-108): Expand instead of Click. Clicking a submenu header TOGGLES it,
-        // and moving the mouse onto it can already have opened it on hover — so the click can close the
-        // menu rather than open the submenu, which is exactly what the failure probe sees.
-        if (compare!.Patterns.ExpandCollapse.TryGetPattern(out var expand))
-        {
-            expand.Expand();
-        }
-        else
-        {
-            compare.AsMenuItem().Click();
-        }
+        // #163 (GUI-C-108 → GUI-C-130 → GUI-C-133): Expand, and NO click fallback.
+        //
+        // Clicking a submenu header TOGGLES it, and moving the mouse onto it can already have opened it
+        // on hover — so the click can CLOSE the menu instead of opening the submenu. GUI-C-130 measured
+        // that as the cause, in both directions: forcing the click failed 5 of 20 runs (run 2, 4, 13,
+        // 17, 20) while Expand passed 20 of 20, and restoring Expand made the failures go away again.
+        //
+        // The click used to live here as a fallback for a missing ExpandCollapse pattern. GUI-C-133
+        // measured how often that fallback actually ran: 0 times in 120 invocations across 20 runs. It
+        // was dead code that would resurrect the defect on any machine or UIA version where the pattern
+        // IS unavailable — so it is removed rather than made safer. Pressing a toggle without knowing
+        // its state is right about half the time; failing loudly beats being silently wrong half the
+        // time, and a retry would only shake the state further.
+        Assert.True(compare!.Patterns.ExpandCollapse.TryGetPattern(out var expand),
+            "The ExpandCollapse pattern for View → Compare Mode could not be obtained, and the click " +
+            "fallback was REMOVED in #163 (GUI-C-133) because clicking a submenu header toggles it and " +
+            "closes the parent popup about half the time (measured 5 of 20). If this fires, the menu " +
+            "needs a non-toggling way in — do not restore the click.");
+        expand.Expand();
 
         Thread.Sleep(200);
 

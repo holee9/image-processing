@@ -604,8 +604,30 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// <summary>
     /// The drawn hash of the virtual-grid frame at the documented settings, recorded BEFORE the preview
     /// change (GUI-C-102 P-03 baseline, and again in GUI-C-103). It is the control for P-10.
+    ///
+    /// <para><b>Updated in GUI-C-134 (#156): <c>36fc547e253b07f1</c> → <c>f2a5640e9bd1a7fc</c>.</b> The
+    /// old value is not a regression that was lost — it was printed by a WRONG formula. <c>efd14c1</c>
+    /// changed <c>XPE_VOI_LINEAR</c> to the DICOM PS3.3 C.11.2.1.2.1 window placement
+    /// (<c>center-0.5</c> / <c>width-1</c>), so every LINEAR output moved by design. This is a
+    /// correction, not a regression.</para>
+    ///
+    /// <para><b>Measured both directions before touching this number</b> (GUI-C-134 §3), because
+    /// updating a golden erases the evidence that would have identified the real cause:</para>
+    /// <code>
+    /// pre-efd14c1  xpe_display.dll : 36fc547e253b07f1  mean=85.205   (the golden returns)
+    /// post-efd14c1 xpe_display.dll : f2a5640e9bd1a7fc  mean=85.206
+    /// </code>
+    ///
+    /// <para><b>The size of the change is 0.001 counts of 255.</b> This scenario runs the default window
+    /// (<c>c=32768, w=65535</c>), where the formula difference is at most <c>0.5/(w-1)</c> ≈ 0.0039 of a
+    /// count — invisible on screen, yet the hash changes completely. Worth knowing about this assertion:
+    /// a hash answers "are the pixels bit-identical", NOT the question its name asks
+    /// ("KeptTheDrawnPixels"). It cannot distinguish a one-count rounding shift from a broken render.</para>
+    ///
+    /// <para><b>If this constant ever needs updating again</b>, the display pipeline's formula changed
+    /// again — find and cite that change first. A hash that moved with no such change is a regression.</para>
     /// </summary>
-    private const string PreviewBaselineHash = "36fc547e253b07f1";
+    private const string PreviewBaselineHash = "f2a5640e9bd1a7fc";
 
     // ---- helpers -------------------------------------------------------------------------------
 

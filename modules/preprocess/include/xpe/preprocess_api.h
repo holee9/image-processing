@@ -398,8 +398,34 @@ XPE_API void xpe_calib_unload_nonlin_lut(void);
  *   4. Reduce degree if non-monotone (min degree = 1)
  *   5. Store coefficient array: (d+1) × W × H
  *
+ * UNITS OF `dose_levels`: PIXEL VALUES (ADU). Not mGy.
+ *
+ * QA-A-141 (#194 item 2, lead decision 2026-09-26). This line used to read
+ * "mGy or relative units", which permitted a unit the implementation cannot
+ * accept. The applier indexes the fitted curve with the PIXEL'S OWN VALUE
+ * (gain_correct.cpp), and the recorded [dose_min, dose_max] clamp is compared
+ * against pixel values too, so the abscissa is in ADU by construction. The
+ * reference dataset agrees -- tests/test_data/cyan_test names its CalSet
+ * levels by ADU.
+ *
+ * WHAT THIS DOES NOT BUY. Writing "ADU" here does not make a wrong unit
+ * detectable: the XCal file carries no dose-unit field, so a file fitted in
+ * mGy loads, applies, and produces a WRONG IMAGE WITHOUT ANY ERROR. The
+ * failure is silent. Pinning the documented unit removes the half of the
+ * problem that was the documentation contradicting the code; the other half
+ * needs a format change and is deferred -- see the DEBT marker below.
+ *
+ * @MX:DEBT: dose unit is documented, not enforced
+ * @MX:CEILING: no dose-unit field exists in the XCal header; every file is
+ *              assumed ADU and a mis-united file cannot be distinguished
+ * @MX:UPGRADE: when #151 supplies real-detector calibration files, check what
+ *              unit they actually carry; if any is not ADU, add the header
+ *              dose-unit field (#194 option 1) and decide how pre-field files
+ *              are read
+ *
  * @param gain_file_paths Array of N gain file paths (from FUNC-026)
- * @param dose_levels Array of N dose levels (mGy or relative units)
+ * @param dose_levels Array of N dose levels, in PIXEL VALUES (ADU) -- see the
+ *                    UNITS note above; not enforced, and not detectable if wrong
  * @param num_levels Number of dose levels (≥ 3)
  * @param max_degree Maximum polynomial degree (1 ≤ max_degree ≤ 4)
  * @param output_path Output XCal file path for gain polynomial

@@ -1,0 +1,16 @@
+import json, subprocess, os, glob
+GH = r"C:\Program Files\GitHub CLI\gh.exe"
+REPO = "holee9/image-processing"
+rows = json.load(open("build/e2e-c90/counted.json"))
+for r in rows:
+    if not r.get("jobid"):
+        continue
+    dest = f"build/e2e-c90/trx/{r['run']}"
+    if os.path.isdir(dest) and glob.glob(dest + "/**/*.trx", recursive=True):
+        r["trx"] = "have"; continue
+    os.makedirs(dest, exist_ok=True)
+    p = subprocess.run([GH, "run", "download", str(r["run"]), "--repo", REPO, "-n", "xpe-gui-e2e-native-results", "-D", dest],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    r["trx"] = "ok" if p.returncode == 0 else ("none: " + (p.stderr.strip().splitlines() or ["?"])[-1][:120])
+    print(r["run"], r["trx"], flush=True)
+json.dump(rows, open("build/e2e-c90/counted.json", "w"), indent=1)

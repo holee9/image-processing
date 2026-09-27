@@ -1,0 +1,7 @@
+run 1  43.3s  FAIL: ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection, ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer, ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale
+
+=== 1 run(s), backend=Native ===
+runs with a failure: 1 / 1
+    1x  ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale
+    1x  ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer
+    1x  ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection

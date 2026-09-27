@@ -1,7 +1,7 @@
 /**
  * @file test_nonlin_noop_report.cpp
- * @brief The no-op report reaches the caller that passes no config, and does
- *        so once per condition rather than once per frame (QA-A-140, #196).
+ * @brief The no-op report reaches the caller that passes no config, and is
+ *        raised once per call (QA-A-140 #196; frequency revised by QA-A-142 #199).
  *
  * WHAT WAS WRONG. `xpe_nonlinearity_apply` returned early on
  * `if (!configJsonOrNull) return XPE_OK;`, which sat AHEAD of the no-op alert
@@ -15,13 +15,15 @@
  * REQ-P1A-013, is a renumbering orphan: in the current set that number is
  * defect correction.
  *
- * WHY THE FREQUENCY IS ASSERTED WITH A NUMBER. The message carries no
- * per-frame data, and the alert queue holds 64 entries with FIFO eviction
- * (xpe_common.cpp:59). One alert per frame would evict every other alert
- * within 65 frames -- including the #194 clamp count that the same operator
- * needs. So the report is latched per condition and re-armed when a LUT is
- * loaded or unloaded, and ManyFramesRaiseOneAlert pins that with a count
- * rather than with a claim.
+ * WHY THE FREQUENCY IS ASSERTED WITH A NUMBER, AND WHY THE NUMBER CHANGED.
+ * QA-A-140 latched this report to once per condition, on the argument that a
+ * per-frame alert would evict everything else from a 64-entry queue.
+ * QA-A-142 (#199) measured that argument and it failed: the host drains the
+ * queue after every native call, so nothing is evicted, and -- measured over
+ * 20 runs -- the latch suppressed 20->1 only when the module stayed up and
+ * 20->20 in the host that actually exists, which tears the module down per
+ * run. The latch is gone. EveryNoopFrameReportsOnce pins the frequency that
+ * replaced it, still with a count rather than a claim.
  *
  * THE CONTROL THAT MAKES THE REST MEAN SOMETHING. A test that only checks
  * "alert present" in three no-op cases would pass equally against a function
@@ -154,7 +156,7 @@ TEST_F(NonlinNoopReportTest, ConfigPresentStillReports) {
 TEST_F(NonlinNoopReportTest, LutLoadedIsSilentAndActuallyChangesTheFrame) {
     ASSERT_EQ(XPE_OK, WriteHalvingLut(lutPath()));
     ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(lutPath().c_str()));
-    xpe_clear_alerts();  // the load path re-arms the latch; start from empty
+    xpe_clear_alerts();  // the load itself may report; start from an empty queue
 
     XpeImageBuffer b = buffer();
     EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&b, nullptr));
@@ -172,34 +174,58 @@ TEST_F(NonlinNoopReportTest, NonLinearPanelWithoutLutIsStillAnError) {
     EXPECT_EQ(0, alertsContaining(kNoopNeedle)) << "this path is an error, not a no-op";
 }
 
-// FREQUENCY, as a number. 200 frames is past the queue's 64-entry cap, so a
-// per-frame alert would both flood and evict.
-TEST_F(NonlinNoopReportTest, ManyFramesRaiseOneAlert) {
-    for (int i = 0; i < 200; ++i) {
+// FREQUENCY, as a number. One report per no-op call -- QA-A-142 (#199).
+// Asserted rather than left implicit because the previous number was 1, and a
+// test that stopped asserting the count would leave the change invisible.
+// 40 rather than 200: the queue caps at 64 (xpe_common.cpp:59), so a run past
+// it would measure the cap instead of the producer.
+TEST_F(NonlinNoopReportTest, EveryNoopFrameReportsOnce) {
+    constexpr int kFrames = 40;
+    for (int i = 0; i < kFrames; ++i) {
         XpeImageBuffer b = buffer();
         ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&b, nullptr));
     }
-    EXPECT_EQ(1, alertsContaining(kNoopNeedle))
-        << "200 no-op frames should report once, not once per frame";
-    EXPECT_LE(xpe_get_pending_alert_count(), 2)
-        << "the queue should not have been flooded";
+    EXPECT_EQ(kFrames, alertsContaining(kNoopNeedle))
+        << "each no-op call reports; suppression belongs to the consumer";
 }
 
-// The latch is a report suppressor, not a permanent mute: once the situation
-// changes, a later no-op is new information.
-TEST_F(NonlinNoopReportTest, LoadingThenUnloadingALutReArmsTheReport) {
-    XpeImageBuffer b1 = buffer();
-    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&b1, nullptr));
-    ASSERT_EQ(1, alertsContaining(kNoopNeedle));
+// The host this module actually has drains after every call, which is the
+// condition under which one-per-call is the right frequency: the operator sees
+// the line once per frame rendered, not a queue filling up behind them.
+// Modelled here by draining between calls, as NativeAlertDrain.cs:109 does.
+TEST_F(NonlinNoopReportTest, WithAHostThatDrainsEachCallTheQueueNeverGrows) {
+    for (int i = 0; i < 40; ++i) {
+        XpeImageBuffer b = buffer();
+        ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&b, nullptr));
+        EXPECT_EQ(1, alertsContaining(kNoopNeedle)) << "at frame " << i;
+        xpe_clear_alerts();
+    }
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
 
+// CONTROL for the removal -- QA-A-142 (#199) §4. Taking suppression away must
+// not take anything else with it: the LUT path has to stay silent, and the
+// non-linear-panel path has to keep its own ERROR. A removal that also
+// silenced those would pass EveryNoopFrameReportsOnce and still be wrong.
+TEST_F(NonlinNoopReportTest, RemovingSuppressionDidNotSilenceTheOtherPaths) {
     ASSERT_EQ(XPE_OK, WriteHalvingLut(lutPath()));
     ASSERT_EQ(XPE_OK, xpe_calib_load_nonlin_lut(lutPath().c_str()));
-    xpe_calib_unload_nonlin_lut();
+    xpe_clear_alerts();
 
-    XpeImageBuffer b2 = buffer();
-    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&b2, nullptr));
-    EXPECT_EQ(2, alertsContaining(kNoopNeedle))
-        << "the LUT came and went; the next no-op is a new fact";
+    for (int i = 0; i < 5; ++i) {
+        XpeImageBuffer b = buffer();
+        ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&b, nullptr));
+    }
+    EXPECT_EQ(0, alertsContaining(kNoopNeedle)) << "a LUT is loaded and applied";
+
+    xpe_calib_unload_nonlin_lut();
+    xpe_clear_alerts();
+
+    XpeImageBuffer b = buffer();
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED,
+              xpe_nonlinearity_correct(&b, R"({"panel.linear":"false"})"));
+    EXPECT_EQ(1, alertsContaining(kNonLinearNeedle))
+        << "the explicit non-linear error must survive the removal";
 }
 
 }  // namespace

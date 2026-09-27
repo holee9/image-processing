@@ -1,0 +1,57 @@
+2026-09-12T02:31 34667894186 287744f success launch 0 win32 0 bad 0 skip170 0 unread absent readable absent tot/pass/fail 27 27 0
+2026-09-12T02:45 34668522738 5da813d success launch 0 win32 0 bad 0 skip170 0 unread absent readable absent tot/pass/fail 27 27 0
+2026-09-12T03:13 34669771686 a46abc5 success launch 0 win32 0 bad 0 skip170 0 unread absent readable absent tot/pass/fail 27 27 0
+2026-09-12T03:37 34670888438 b1936ba success launch 0 win32 0 bad 0 skip170 0 unread absent readable absent tot/pass/fail 27 27 0
+2026-09-16T01:08 35042910764 67c4f8e success launch 0 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 29 29 0
+2026-09-16T01:21 35043759929 d8261b5 success launch 0 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 29 29 0
+2026-09-16T01:48 35045533185 7279cd1 success launch 0 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 44 44 0
+2026-09-16T02:00 35046332163 78670bc success launch 0 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 48 48 0
+2026-09-16T04:54 35057450795 89aade5 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 48 48 0
+2026-09-16T05:07 35058278936 7e8af30 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 48 48 0
+2026-09-16T05:18 35058984903 f754dec success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 49 49 0
+2026-09-16T05:32 35059950212 be9f68a success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 49 49 0
+2026-09-16T05:44 35060703307 f20f7b1 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 58 58 0
+2026-09-16T06:01 35061864518 f19321a success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 59 59 0
+2026-09-16T06:50 35065537760 f25e2c1 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 59 59 0
+2026-09-16T07:12 35067336295 59a50a6 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 59 59 0
+2026-09-16T07:32 35069030005 21d30ff success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 65 65 0
+2026-09-16T07:44 35070113507 81d0627 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 67 67 0
+2026-09-16T07:59 35071370089 31a1435 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 69 69 0
+2026-09-16T08:13 35072583226 c5c5afc success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 69 69 0
+2026-09-16T08:25 35073697372 e276eb6 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 69 69 0
+2026-09-16T08:50 35076029873 64dd855 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 70 70 0
+2026-09-16T09:16 35078470599 10b00af failure launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 71 1
+2026-09-16T09:34 35080194377 b08da40 failure launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 71 1
+2026-09-16T09:44 35081101289 7b29995 failure launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 71 1
+2026-09-16T09:55 35082175253 4c778fe failure launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 71 1
+2026-09-16T10:20 35084439520 88d7e1c success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-16T10:29 35085237869 6f4c1d1 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-16T10:37 35086013361 742a066 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-16T10:47 35086909457 4306640 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-16T10:56 35087698638 9d10eca success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-16T11:06 35088505529 b3dd3b8 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-17T00:13 35165653523 3c89919 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-17T00:43 35167691999 100f53f success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-17T00:52 35168296575 9be1cc9 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-17T01:09 35169465737 a9852a4 success launch 4 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 72 72 0
+2026-09-17T01:19 35170134561 3fdde65 success launch 5 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 77 77 0
+2026-09-17T01:38 35171313145 3537a13 success launch 6 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 79 79 0
+2026-09-17T02:01 35172821436 7d42ba7 success launch 6 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 79 79 0
+2026-09-17T02:22 35174139778 15f415b success launch 6 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 79 79 0
+2026-09-17T02:34 35174939593 d0737d8 success launch 7 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 83 83 0
+2026-09-17T02:53 35176092896 8976f73 success launch 7 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 85 85 0
+2026-09-17T03:05 35176868070 ead6c64 success launch 7 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 85 85 0
+2026-09-17T03:19 35177717621 83a7c2d success launch 7 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 85 85 0
+2026-09-17T03:37 35178852195 776292b success launch 7 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 85 85 0
+2026-09-17T03:50 35179642858 2bf9952 success launch 11 win32 0 bad 0 skip170 0 unread Passed readable Passed tot/pass/fail 88 88 0
+
+with probe: runs=38 launches=181 win32=0 rate/launch=0.0000 CI95=(0.0, 0.02078320031854301)
+runs with >=1 win32: 0/38 rate/run=0.0000 CI95=(0.0, 0.09181293258383999)
+launched_bad total: 0  win32 vs bad identical per run: True
+skip170 total: 0 runs: 0
+unreadable outcomes (probe runs): Counter({'Passed': 38})
+readable outcomes (probe runs): Counter({'Passed': 38})
+frameworks: Counter({'Wpf': 181})
+launches per run: Counter({4: 28, 7: 5, 6: 3, 5: 1, 11: 1})
+without probe (trx present): 8; newest 2026-09-16T02:00:58Z; oldest probe run 2026-09-16T04:54:55Z
+unreadable outcomes (no-probe runs): Counter({'absent': 4, 'Passed': 4})

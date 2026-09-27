@@ -1,0 +1,38 @@
+Reading run 35178852195 ...
+Downloading xpe-ci-common-binaries ...
+Downloading xpe-ci-preprocess-binaries ...
+Downloading xpe-ci-post-binaries ...
+
+Staged 29 file(s) into build/ci-776292b/bin
+  run    35178852195  (XPE CI Pipeline, main)
+  head   776292bf49ee959c19ebd2f4ca1e5927264e9596
+  bd16ef7739ac36387cf50316317ee74f  fmt.dll
+  b8cce8882548a09ddebac4b24fa18b61  gmock.dll
+  6d18787b5568891bca80cb6613bc73cf  gmock_main.dll
+  e88dbe9b50a9b19d2704ef5d83456e78  gsvg.dll
+  0a1f6b55b885e84380109a55083edf3e  gsvg_tests.exe
+  d898c8d9226231099effde42bdff3c67  gtest.dll
+  6db18c7bbe923ef0899fd2c7660d5ea5  gtest_main.dll
+  b4fc781990efa8b35f4de1aa2a2e3cef  spdlog.dll
+  5597c72d5a0f309e7b351111e34a4313  test_display_datasize_overread.exe
+  0c4c4976d256c7d39970a1c41522cdae  test_display_gsdf_characterization.exe
+  8f1b9f075864424fa535bf2d8ccf2696  test_display_integration.exe
+  aa58a8109efec4403ac73278a25067cc  test_display_modality_lut.exe
+  bf310c9b52882a892223be613c9fb4ba  test_display_parameter_dependency.exe
+  af55a776656bdb1f9ae4be691de4a395  test_display_presentation_lut.exe
+  c7d926f99fae787eeecc531be9ee631d  test_display_voi_lut.exe
+  a58df8d0e246634d5f88823de52e3b85  test_e2e_post_pipeline.exe
+  ad5ac44d191967f0427a2aaef4a3f430  test_xpe_common.exe
+  45df759f1bfd91f55a98ac059ab6f79f  test_xpe_enhance_advanced.exe
+  219533cb0315b21e676a5c1fe90bf6ee  xpe_calib_fixture_gen.exe
+  72b255f28927115aeee2564477f71bda  xpe_common.dll
+  fb7fc766f2b73646a85b4a46a56b9e12  xpe_detect_experiment.exe
+  f60c6ff63d369dc897fa388c043820f6  xpe_display.dll
+  ce32a5a4d8c0b22ead528a91f1cbf765  xpe_enhance_advanced.dll
+  e343fdce7154aee8725c0ad92f4e72aa  xpe_enhance_basic.dll
+  773427c870c09a037247b9d41175fde6  xpe_enhance_basic_tests.exe
+  ca4bb048f065f6785d82a79bcf6f7a55  xpe_preprocess.dll
+  e6f462befdd254aa342f6fe4e247841a  xpe_preprocess_tests.exe
+  8113d7360871bb77393ea0285ea67259  xpe_real_frames.exe
+  7bf77ea93c8391efe8a44e8327994cce  xpe_struct_frames.exe
+Provenance: build\ci-776292b\bin\provenance.json

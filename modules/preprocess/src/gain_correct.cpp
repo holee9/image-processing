@@ -372,13 +372,43 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             // would put tens of thousands of identical lines in the queue and
             // make the queue itself useless.
             if (clamped_count > 0) {
-                char msg[256];
-                std::snprintf(msg, sizeof(msg),
-                    "%zu pixel(s) fell outside the gain polynomial's fitted "
-                    "dose range [%.1f, %.1f] and were evaluated at the range "
-                    "edge; values beyond the calibrated levels are not "
-                    "extrapolated (issue #194)",
-                    clamped_count, poly_dose_min, poly_dose_max);
+                // QA-A-141 (#194 item 2). EVERY pixel clamping is a different
+                // fact from a few saturated ones, and it is the shape a
+                // mis-united calibration makes: dose_levels fitted in mGy are
+                // orders of magnitude away from pixel values, so no pixel can
+                // land inside the range and the whole frame pins to one edge.
+                //
+                // THIS IS A COARSE MIS-LOAD CHECK, NOT A UNIT CHECK. It cannot
+                // tell mGy from ADU -- the file carries no unit field (see the
+                // DEBT marker on xpe_calib_generate_gain_polynomial). An ADU
+                // ladder legitimately narrower than the frame's content
+                // produces the same signal, and a wrong unit whose numbers
+                // happen to overlap the pixel range produces none. It says
+                // "nothing landed in range", which is worth saying, and
+                // nothing more.
+                //
+                // It costs one comparison per frame because the count is
+                // already there; a separate scan would not have been worth it.
+                char msg[320];
+                if (clamped_count == n) {
+                    std::snprintf(msg, sizeof(msg),
+                        "ALL %zu pixel(s) fell outside the gain polynomial's "
+                        "fitted dose range [%.1f, %.1f] -- the whole frame was "
+                        "evaluated at one range edge, so the gain applied is "
+                        "effectively constant. Check that the calibration's "
+                        "dose levels are in pixel values (ADU): a file fitted "
+                        "in other units loads without error and produces this "
+                        "(issue #194)",
+                        clamped_count, poly_dose_min, poly_dose_max);
+                } else {
+                    std::snprintf(msg, sizeof(msg),
+                        "%zu pixel(s) fell outside the gain polynomial's fitted "
+                        "dose range [%.1f, %.1f] and were evaluated at the range "
+                        "edge; values beyond the calibrated levels are not "
+                        "extrapolated (issue #194)",
+                        clamped_count, poly_dose_min, poly_dose_max);
+                }
+                msg[sizeof(msg) - 1] = '\0';
                 xpe_alert_push(msg, XPE_ALERT_WARNING);
             }
         }

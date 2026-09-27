@@ -363,6 +363,53 @@ constexpr double kRatio3072Limit = 1.45;
 /** Reported, never asserted: the SPEC improvement target we are not near yet. */
 constexpr double kImprovementTargetMs = 60.0;
 
+/**
+ * QA-A-141 (#144, lead decision 2026-09-26): THE ABSOLUTE BUDGET THAT REPLACES
+ * THE SUSPENDED RATIO ASSERTION.
+ *
+ * The suspension (QA-A-119, recorded at the assertion site below) was a
+ * property of the RATIO, not of gating this path: one machine moved the two
+ * sides in opposite directions, so passing it needed a limit above the
+ * regression the gate exists to catch. An absolute ceiling has no denominator
+ * to misbehave, and it only has to be loose enough to absorb machine spread
+ * while staying far under the class of regression that matters.
+ *
+ * WHERE 400 COMES FROM -- recorded CI measurements, not this developer's PC:
+ *
+ *   detector, Xeon 6973P-C (CI)   93.3 ms and 119.6 ms   (QA-A-119 record)
+ *   detector, i7-12700 (local)    65.6 ms                (QA-A-141 measurement)
+ *   the regression class it must catch: the pre-optimisation scalar path
+ *                                  1340.9 ms on CI       (QA-A-59 record)
+ *
+ * 400 ms is 3.3x the slowest detector time any CI machine has been recorded
+ * at, and 3.4x under the regression that must not pass. The lead's rule was
+ * "at least 4x the CI median, and not above 400"; 4x the recorded CI pair
+ * (~106 ms) is 426, so the 400 ceiling binds and is what is used.
+ *
+ * [HARD] THIS NUMBER IS NOT RE-TUNED TO MAKE A FAILING RUN PASS. If a run
+ * exceeds it, the detector got slower or a machine is far outside anything
+ * recorded -- both are findings, and both are reported before the constant is
+ * touched. The same rule the reference kernel carries.
+ *
+ * CONFIRMED ON CI -- QA-A-141, run 36233914831 on dev/preprocess @ 60e7db9.
+ * The paragraph above was written from the QA-A-119 record because this lane
+ * had not run CI; it has now, and the inherited number held:
+ *
+ *   AMD EPYC 7763, 4 logical, avx2=1, 22.6-23.1 GB/s
+ *   3072x3072 detector, four runs:  93.0 / 93.3 / 93.8 / 97.9 ms
+ *   worst against this budget:      97.9 / 400 = 4.1x of margin
+ *   ratio, same runs:               1.316 .. 1.322  (limit 1.45, still printed)
+ *   SPEC 60 ms target:              1.6x on this machine (1.1x on the dev PC)
+ *
+ * Two things that matter beyond "it passed". The 93.3 ms in the derivation
+ * above was a number read from another card's record; this run reproduced it
+ * to the tenth on the same class of machine, so it stopped being inherited.
+ * And the SPEC-target multiple is 1.6x here against 1.1x locally -- the
+ * remaining optimisation gap is machine-dependent and the dev PC understates
+ * it, which is worth knowing before anyone reports "nearly at target".
+ */
+constexpr double kAbsoluteBudget3072Ms = 400.0;
+
 // QA-A-60: five repeats, not three. The small-frame ratio moved 0.739..1.123
 // across runs at three (52% spread), which is wider than the gap between a clean
 // run and a real regression -- a gate cannot live inside its own noise. More
@@ -538,6 +585,20 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
      * effective GB/s (both printed above, added by QA-A-118) from a Xeon
      * 6973P-C run; once the cause is established, fix the kernel or the limit
      * with that evidence and restore this assertion. The lead tracks it.
+     *
+     * ---- WHY THE PATH IS GATED AGAIN -- QA-A-141 (#144), lead decision
+     *      2026-09-26. The record above is kept verbatim rather than deleted:
+     *      why it was switched off has to survive alongside why it was
+     *      switched back on, or the next person re-derives both.
+     *
+     *      Nothing above is retracted. The RATIO assertion stays suspended for
+     *      exactly the reason given -- that machine still breaks the premise a
+     *      ratio rests on. What changed is that the cost recorded above ("a
+     *      real slowdown reaches main unchallenged") no longer has to be paid,
+     *      because an ABSOLUTE ceiling gates the same path without a
+     *      denominator: see kAbsoluteBudget3072Ms and the assertion below it.
+     *      The ratio is still measured and printed, so the evidence the
+     *      recovery condition asks for keeps accumulating on every run.
      * -------------------------------------------------------------------- */
     if (best > kRatio3072Limit) {
         std::printf("[perf-gate-OVER] 3072 ratio=%.3f exceeds limit=%.3f"
@@ -551,6 +612,19 @@ TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
                     " (assertion suspended, #179)\n", best, kRatio3072Limit);
     }
     EXPECT_GT(best, 0.0) << "the gate must still have measured something";
+
+    // QA-A-141 (#144): the absolute ceiling. This is the live assertion on this
+    // path; the ratio above is a printed diagnostic while its premise is under
+    // investigation (#179).
+    std::printf("[perf-gate-abs] 3072 best=%.1f ms budget=%.1f ms\n",
+                bestTiming.best, kAbsoluteBudget3072Ms);
+    EXPECT_LE(bestTiming.best, kAbsoluteBudget3072Ms)
+        << "3072x3072 runtime detection took " << bestTiming.best
+        << " ms, over the " << kAbsoluteBudget3072Ms << " ms ceiling.\n"
+        << "That ceiling is 3.3x the slowest time any recorded CI machine has\n"
+        << "produced for this path, so a machine alone should not reach it.\n"
+        << "Read the absolutes printed above before touching the constant --\n"
+        << "it is not re-tuned to make a failing run pass (see its comment).";
 }
 
 /**

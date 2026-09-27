@@ -1,0 +1,18 @@
+# GUI-C-93: WindowReacquireTests repeated with XPE_C93_TIMING=1 (Native, desktop left as it is).
+param([int]$Runs = 35, [int]$MinFreeMB = 1500, [string]$Out = 'build/e2e-c93/runs')
+$ErrorActionPreference = 'Stop'
+Set-Location 'D:\workspace-github\xpe-gui'
+New-Item -ItemType Directory -Force $Out | Out-Null
+$env:XPE_E2E_BACKEND = 'Native'
+$env:XPE_NATIVE_DIR = (Resolve-Path 'build/ci-776292b/bin').Path
+$env:XPE_C93_TIMING = '1'
+for ($i = 1; $i -le $Runs; $i++) {
+    $free = [int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1024)
+    if ($free -lt $MinFreeMB) { Write-Host "stopped before run ${i}: free $free MB"; break }
+    $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    & dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-build `
+        --filter 'FullyQualifiedName~WindowReacquireTests' `
+        --logger ("trx;LogFileName=run-{0:D2}.trx" -f $i) --results-directory $Out 2>&1 | Out-Null
+    $ErrorActionPreference = $previous
+    Write-Host "run $i free=$free"
+}
