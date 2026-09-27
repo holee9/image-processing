@@ -89,6 +89,19 @@ internal static class XpePreprocessNative
     /// </summary>
     public static string? TryFindDll()
     {
+        // #202: the app directory comes FIRST, matching what every locator does
+        // (XpeCommonLibraryLocator.cs:34) and what the #129 policy sanctions. The build directories
+        // below are the reason this helper used to create a second module instance: xpe_common is
+        // copied next to this assembly, so loading xpe_preprocess out of build/… bound that copy's
+        // SIBLING xpe_common instead — one process, two alert queues, and the push and the read landed
+        // in different ones (measured in GUI-C-135; the census is #202).
+        //
+        // The build-directory candidates are KEPT as the fallback: a developer who has not built into
+        // the test output directory still gets a resolution, and the test then says "not staged" rather
+        // than failing for a reason that is not the code's.
+        var appDir = Path.Combine(AppContext.BaseDirectory, DllName);
+        if (File.Exists(appDir)) return appDir;
+
         var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
         if (!string.IsNullOrEmpty(envDir))
         {
