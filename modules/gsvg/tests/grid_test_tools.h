@@ -96,6 +96,27 @@ struct GridSpec {
     double phase = 0.3;
 };
 
+// THIS IS POINT SAMPLING, AND NEAR NYQUIST THAT OVERSTATES THE GRID (#192,
+// QA-B-151). The factor is evaluated once at the pixel centre; a real detector
+// integrates over the pixel aperture, which multiplies a sinusoid's amplitude
+// by sinc(pi * f * a). Measured against a full-fill aperture (a = pitch) at
+// the product pitch 0.140 mm:
+//
+//     lpi    f*pitch   |sinc|     this scene is stronger by
+//      60     0.331    0.830           1.2x
+//     103     0.568    0.548           1.8x
+//     170     0.937    0.0668         15.0x
+//     180     0.992    0.00794       126.0x
+//     186     1.025    0.0246         40.7x
+//     200     1.102    0.0913         11.0x
+//
+// The scene is deliberately left as it is: a strong, stable input is what a
+// suppression REGRESSION measurement wants, and none of these cases is a
+// visibility claim. What must not happen is reading a suppression ratio
+// measured here as "this is how visible the grid is on the product" -- at
+// 180 lpi that would overstate the residue by two orders of magnitude.
+// Whether the real grid is visible at all depends on the aperture fill factor,
+// which this repository does not have (#192 is blocked on that one number).
 inline double GridFactor(const GridSpec& g, int x, int y) {
     const int i = (g.axis == GridAxis::Rows) ? y : x;
     const double t = static_cast<double>(i) * g.pitchMm;   // pixel centre, mm
