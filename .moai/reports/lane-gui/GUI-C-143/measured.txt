@@ -1,0 +1,33 @@
+=== GUI-C-143 measured.txt
+
+instrument: clients/ImageProcTest.E2ETests/Scenarios/Workflows/SelectionVisibilityObservation.cs
+            A2_WithTheLogScrolled_IsTheMovedRowStillWhereTheUserCanSeeIt
+            (reuses the Visibility() helper from GUI-C-142 section A — no new probe)
+
+--- Native (XPE_NATIVE_DIR=build/c134-stage-new)
+ §A2 setup: list 1106,451 339x600 realized rows=58 viewSize=22.1%
+ S0 top CONTROL (just clicked): raw 1107,483 1540x23, clipped 1107,483 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S0 top selected row BEFORE the filter: raw 1107,483 1540x23, clipped 1107,483 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S0 top selected row AFTER the filter: raw 1107,452 1540x23, clipped 1107,452 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S0 top: viewSize before=22.1% after=100.0% — selection MOVED to '[22:15:46.380] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S1 bottom CONTROL (just clicked): raw 1107,483 1540x23, clipped 1107,483 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S1 bottom selected row BEFORE the filter: raw 1107,483 1540x23, clipped 1107,483 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S1 bottom selected row AFTER the filter: raw 1107,452 1540x23, clipped 1107,452 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S1 bottom: viewSize before=22.1% after=100.0% — selection MOVED to '[22:15:46.380] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S2 middle CONTROL (just clicked): raw 1107,460 1540x23, clipped 1107,460 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S2 middle selected row BEFORE the filter: raw 1107,460 1540x23, clipped 1107,460 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S2 middle selected row AFTER the filter: raw 1107,452 1540x23, clipped 1107,452 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S2 middle: viewSize before=22.1% after=100.0% — selection MOVED to '[22:15:46.380] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S3 bottom, selection above CONTROL (just clicked): raw 1107,483 1540x23, clipped 1107,483 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S3 bottom, selection above after scrolling away (must NOT be visible): raw 1107,-157 1540x22, clipped 0,0 0x0, verticallyInside=False, overlaps=False, offscreen=True => visible=False
+ S3 bottom, selection above selected row BEFORE the filter: raw 1107,-157 1540x22, clipped 0,0 0x0, verticallyInside=False, overlaps=False, offscreen=True => visible=False
+ S3 bottom, selection above selected row AFTER the filter: raw 1107,452 1540x23, clipped 1107,452 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ S3 bottom, selection above: viewSize before=22.1% after=100.0% — selection MOVED to '[22:15:46.380] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=False visibleAfter=True => VISIBLE
+
+--- Mock
+ §A2 setup: list 1132,505 339x600 realized rows=78 viewSize=32.1%
+ S0 top: viewSize before=32.1% after=100.0% — selection MOVED to '[22:16:27.751] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: R...', visibleBefore=True visibleAfter=True => VISIBLE
+ S1 bottom: viewSize before=32.1% after=100.0% — selection MOVED to '[22:16:27.751] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: R...', visibleBefore=True visibleAfter=True => VISIBLE
+ S2 middle: viewSize before=32.1% after=100.0% — selection MOVED to '[22:16:27.751] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: R...', visibleBefore=True visibleAfter=True => VISIBLE
+ S3 bottom, selection above after scrolling away (must NOT be visible): raw 1133,-126 1582x23, clipped 0,0 0x0, verticallyInside=False, overlaps=False, offscreen=True => visible=False
+ S3 bottom, selection above: viewSize before=32.1% after=100.0% — selection MOVED to '[22:16:27.751] ALERT ERROR NO_REAL_DICOM_IN_GUI_S0: R...', visibleBefore=False visibleAfter=True => VISIBLE

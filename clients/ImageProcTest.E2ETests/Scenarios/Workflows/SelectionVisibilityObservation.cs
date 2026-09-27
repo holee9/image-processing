@@ -100,6 +100,193 @@ public sealed class SelectionVisibilityObservation(ITestOutputHelper output)
         SetFilter(window, false);
     }
 
+    /// <summary>
+    /// GUI-C-143: the one path that could overturn GUI-C-142's verdict. That card measured a log short
+    /// enough to fit the list (17 rows in a 431-pixel list, <c>viewSize</c> 100%), so nothing was scrolled
+    /// out of sight. With a log long enough to scroll, <c>verticallyInside</c> can be false and
+    /// "the moved selection is visible" would become conditional.
+    ///
+    /// <para><b>Four conditions, the same instrument.</b> S0 top / S1 bottom / S2 middle with a visible row
+    /// selected, and S3 with a row selected while scrolled up and then scrolled away. The measurement is
+    /// <see cref="Visibility"/> from GUI-C-142 — no new probe, or the numbers would not be comparable.</para>
+    ///
+    /// <para><b>S3's control applies at click time.</b> S3 deliberately puts the selected row off screen, so
+    /// "the just-clicked row is visible" cannot hold after the scroll. It is checked when the row is
+    /// clicked, and the scroll-away is then asserted to have actually hidden it — without that assertion S3
+    /// would silently become S1.</para>
+    ///
+    /// <para><b>Scrollability is asserted, not assumed.</b> <c>viewSize</c> is printed on every row and has
+    /// to be under 100%: with a log that fits, S1-S3 collapse into S0 and reading that as "all four
+    /// conditions hold" would be the emptiest kind of pass.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A2_WithTheLogScrolled_IsTheMovedRowStillWhereTheUserCanSeeIt()
+    {
+        using var app = new WorkflowApplicationFixture();
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+
+        var window = app.MainWindow!;
+        OpenLogs(window);
+
+        // A log long enough to scroll. The chain is re-run rather than the frame re-loaded: GUI-C-139
+        // measured that each run adds lines (8 on the native path, 5 on the mock one).
+        for (var i = 0; i < 12; i++)
+        {
+            if (!Invoke(window, "RunPreprocessingMenuItem") && !Invoke(window, "ApplyDisplayPipelineMenuItem"))
+            {
+                break;
+            }
+
+            Thread.Sleep(200);
+        }
+
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
+        var listRect = list.BoundingRectangle;
+        var rows = list.FindAllChildren().Length;
+        var view = ViewSize(window);
+        output.WriteLine($"§A2 setup: list {Fmt(listRect)} realized rows={rows} viewSize={view:0.0}%");
+
+        Assert.True(view >= 0 && view < 99.5,
+            $"CONDITION NOT MET: viewSize={view:0.0}% — the log fits the list, so S1-S3 are S0 and 'all four "
+          + "conditions hold' would say nothing. Grow the log before reading this case.");
+
+        MeasureCondition(window, listRect, "S0 top", 0.0, offScreenSelection: false);
+        MeasureCondition(window, listRect, "S1 bottom", 100.0, offScreenSelection: false);
+        MeasureCondition(window, listRect, "S2 middle", 50.0, offScreenSelection: false);
+        MeasureCondition(window, listRect, "S3 bottom, selection above", 100.0, offScreenSelection: true);
+    }
+
+    /// <summary>
+    /// One condition: scroll, select, check the control, turn the filter on, and report where the selection
+    /// ended up. The position BEFORE the filter is recorded next to the position AFTER, because that pair is
+    /// what separates "the user scrolled it out of sight" from "the filter moved the selection off screen" —
+    /// only the second is a defect candidate.
+    /// </summary>
+    private void MeasureCondition(
+        Window window, Rectangle listRect, string label, double scrollPercent, bool offScreenSelection)
+    {
+        SetFilter(window, false);
+        Scroll(window, offScreenSelection ? 0.0 : scrollPercent);
+
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"))!;
+        var candidate = list.FindAllChildren().FirstOrDefault(i =>
+            !(i.Name ?? string.Empty).Contains(AlertMarker, StringComparison.Ordinal)
+            && IsRowVisible(listRect, i));
+        if (candidate is null)
+        {
+            output.WriteLine($"{label}: no visible ordinary row to select — condition not measured");
+            return;
+        }
+
+        candidate.Patterns.SelectionItem.Pattern.Select();
+        Thread.Sleep(300);
+
+        // The control, per condition: the row just clicked must be visible. For S3 this is the click-time
+        // check — the scroll below is what takes it out of sight on purpose.
+        var control = Visibility(listRect, candidate, $"{label} CONTROL (just clicked)");
+        if (!control.Visible)
+        {
+            output.WriteLine($"{label}: CONTROL FAILED — this condition's measurement is void");
+            return;
+        }
+
+        if (offScreenSelection)
+        {
+            Scroll(window, scrollPercent);
+            var away = Visibility(listRect, candidate, $"{label} after scrolling away (must NOT be visible)");
+            if (away.Visible)
+            {
+                output.WriteLine($"{label}: the scroll did not hide the selected row — this became S1, void");
+                return;
+            }
+        }
+
+        var beforeFilter = Visibility(listRect, candidate, $"{label} selected row BEFORE the filter");
+        var viewBefore = ViewSize(window);
+
+        SetFilter(window, true);
+        var moved = SelectedItem(window);
+        var viewAfter = ViewSize(window);
+        if (moved is null)
+        {
+            output.WriteLine($"{label}: after the filter nothing reports itself selected — its own fact");
+            SetFilter(window, false);
+            return;
+        }
+
+        var after = Visibility(listRect, moved, $"{label} selected row AFTER the filter");
+        var sameRow = string.Equals(moved.Name, candidate.Name, StringComparison.Ordinal);
+        output.WriteLine(
+            $"{label}: viewSize before={viewBefore:0.0}% after={viewAfter:0.0}% — "
+          + $"selection {(sameRow ? "UNCHANGED" : "MOVED")} to '{Trim(moved.Name)}', "
+          + $"visibleBefore={beforeFilter.Visible} visibleAfter={after.Visible} => "
+          + $"{(after.Visible ? "VISIBLE" : "NOT VISIBLE")}");
+
+        SetFilter(window, false);
+    }
+
+    private static bool IsRowVisible(Rectangle listRect, AutomationElement item)
+    {
+        var raw = item.BoundingRectangle;
+        return Rectangle.Intersect(listRect, raw).Width > 0
+            && raw.Y >= listRect.Y && raw.Bottom <= listRect.Bottom
+            && !item.IsOffscreen;
+    }
+
+    /// <summary>Scrolls the list to a percentage of its content, through the scroll pattern.</summary>
+    private void Scroll(Window window, double percent)
+    {
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+        if (list is null || !list.Patterns.Scroll.TryGetPattern(out var scroll))
+        {
+            output.WriteLine($"scroll to {percent:0}%: no scroll pattern");
+            return;
+        }
+
+        if (!scroll.VerticallyScrollable.Value)
+        {
+            output.WriteLine($"scroll to {percent:0}%: not scrollable (viewSize {scroll.VerticalViewSize.Value:0.0}%)");
+            return;
+        }
+
+        scroll.SetScrollPercent(-1, percent);
+        Thread.Sleep(400);
+    }
+
+    /// <summary>The share of the content the viewport shows. Under 100 means there is something to scroll.</summary>
+    private static double ViewSize(Window window)
+    {
+        var list = window.FindFirstDescendant(cf => cf.ByAutomationId("LogListBox"));
+        return list is not null && list.Patterns.Scroll.TryGetPattern(out var scroll)
+            ? scroll.VerticalViewSize.Value
+            : -1.0;
+    }
+
+    /// <summary>Invokes a Pipeline menu item; says whether it was there and enabled rather than throwing.</summary>
+    private static bool Invoke(Window window, string automationId)
+    {
+        var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
+        if (menu is null)
+        {
+            return false;
+        }
+
+        menu.Patterns.ExpandCollapse.Pattern.Expand();
+        Thread.Sleep(200);
+
+        var item = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        if (item is null || !item.IsEnabled)
+        {
+            menu.Patterns.ExpandCollapse.Pattern.Collapse();
+            Thread.Sleep(100);
+            return false;
+        }
+
+        item.AsMenuItem().Invoke();
+        Thread.Sleep(200);
+        return true;
+    }
+
     private readonly record struct Visibility_(bool Visible, string Why);
 
     /// <summary>
