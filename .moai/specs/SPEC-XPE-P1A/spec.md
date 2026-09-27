@@ -174,6 +174,26 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
+- **Buffer aliasing contract** (신설 2026-09-27, `#209` / QA-A-146): `input->data` 와 `output->data` 는 **완전히 같거나 완전히 분리**돼야 합니다.
+  - `input->data == output->data` (in-place) — **허용**. 결과는 분리 버퍼 호출과 **비트 단위로 동일**합니다
+  - 두 범위가 겹치지 않음 — 허용 (통상 경로)
+  - **부분 겹침** — `XPE_ERR_INVALID_INPUT`, 아무것도 쓰기 전에 반환
+  - 비교 기준은 이 함수가 실제로 건드리는 `n * sizeof(float)` 바이트 범위입니다. `dataSize` 는 `#123` 계약상 `0` 이 미지정을 뜻해 길이로 신뢰할 수 없습니다
+
+> **[in-place 가 안전한 이유 — 그리고 부분 겹침을 허용하지 않는 이유]**
+>
+> **쓰기와 읽기가 같은 화소를 건드리지 않습니다.** 이 함수는 결함 지도가 표시한 화소(`dm[idx] != 0`)에만 쓰고, 두 커널은 표시되지 **않은** 화소에서만 읽습니다 — `median_filter_cluster` 가 `defectMask[idx] == 0` 일 때만 이웃을 취하고(`defect_correct.cpp:96`), `xpe_interpolate_pixel` 의 `try_add` 가 4근방과 r=1..3 링 대체 경로 양쪽에서 같은 조건을 겁니다(`helpers.cpp:30`). 군집 좌표를 모으는 `analyzeCluster` 도 `defectMask[nidx] != 0` 인 것만 큐에 넣습니다. **두 집합이 서로소이므로 읽기가 이미 정정된 값을 볼 수 없습니다** — 별칭 여부와 무관하게.
+>
+> 이 불변식은 **현재 커널의 성질**이지 구조적 보장이 아닙니다. 결함 이웃을 읽는 커널이 들어오면 in-place 가 조용히 깨집니다. 그래서 지키는 것은 주석이 아니라 시험입니다 — `DefectCorrectTest.InPlaceMatchesOutOfPlace` 가 같은 입력을 두 방식으로 돌려 원소 단위로 비교하고, 링 대체 경로를 강제하는 꽉 찬 3×3 블록까지 태웁니다.
+>
+> **부분 겹침은 틀렸다고 알려져서가 아니라, 아무도 그렇게 부른 적이 없어 결과가 옳은지 아무것도 재지 않기 때문에** 거부합니다. 계약을 그쪽으로 넓히면 **어떤 시험도 관측하지 않는 동작을 보증**하게 되고, 그것이 `#207` 의 형태입니다(없는 AVX2 경로를 AC 가 보증하던 것). 문서화하지 않고 두면 신호 없는 UB 로 갑니다 — 오류 코드가 계약 위반을 호출자에게 **관측 가능하게** 만듭니다.
+>
+> **인자 검증 순서**: 이 검사는 `REQ-P1A-020`(미초기화 → `XPE_ERR_NOT_INITIALIZED`)보다 **앞섭니다**. 기존 인자 검증(NULL·치수·버퍼 크기)과 같은 자리이며, 잘못된 인자는 모듈 상태보다 먼저 답한다는 기존 규칙을 따릅니다.
+>
+> **측정**: 스냅숏 제거로 `18.72 → 10.82 ms` (절감 `7.90 ms`, 42%). 예산 `45 ms` 대비 여유 **4.16배**. 제거 전 값은 `#204` 의 `18.45 ms` 가 아니라 **같은 세션에서 다시 잰 값**입니다 — 다른 세션 수치를 baseline 으로 쓰지 않았습니다.
+>
+> **미검증**: 부분 겹침이 실제로 틀린 값을 내는지는 재지 않았습니다(이제 거부하므로 잴 수 없고, 그것이 결정의 취지입니다). 겹침 판정의 포인터 비교는 서로 다른 할당 사이에서 표준상 미명세이며 평탄한 주소 공간을 전제합니다 — 그 대가로 조용한 UB 를 막습니다.
+
 - **Performance** (재정의 2026-09-27, `#204` — 아래 주를 함께 읽을 것): `< 45 ms` (scalar, 3072x3072 **FLOAT32**, 결함 밀도 0.1% 군집 포함). AVX2 목표 없음. 이전 줄은 `< 95ms ... UINT16 frame (scalar); < 30ms (AVX2)` 였다.
 
 > **[재정의 근거 2026-09-27, `#204` / QA-A-144]**
