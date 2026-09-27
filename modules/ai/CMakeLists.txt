@@ -27,6 +27,43 @@ option(XPE_AI_USE_ONNXRUNTIME "Link ONNX Runtime for inference" OFF)
 option(XPE_AI_STUB_BUILD      "Build stubs without ONNX Runtime" ON)
 
 # ---------------------------------------------------------------------------
+# #130 (QA-B-153): AN EXPLICITLY REQUESTED `ON` IS NEVER SILENTLY DOWNGRADED.
+#
+# Two silent paths were measured (QA-B-152/153). Both ended with a successful
+# configure, a successful build, and no onnxruntime in the DLL's PE import
+# table -- so "I turned the option on and it built" read as "ONNX is linked":
+#
+#   (1) USE_ONNXRUNTIME=ON with STUB_BUILD=OFF: the acquisition block below
+#       could not find a runtime and reset BOTH cache entries with
+#       set(... FORCE), leaving only a message(WARNING).
+#   (2) USE_ONNXRUNTIME=ON with STUB_BUILD left at its default ON: the
+#       acquisition block is not even entered (its condition is
+#       `USE AND NOT STUB`), so there was NOT EVEN A WARNING -- and the cache
+#       still reported USE_ONNXRUNTIME=ON. That one is worse: the variable a
+#       reader would inspect said the opposite of what was built.
+#
+# `ON` can only come from the caller: option() defaults it to OFF at :26 and
+# nothing else in the tree sets it (grepped across CMakeLists/*.cmake/presets).
+# So no default-vs-user-supplied detection is needed here -- the value itself
+# is the request. The `if(DEFINED VAR)`-before-option() trick was considered
+# and rejected: it reports TRUE on every RE-configure once the cache holds the
+# entry, so it cannot tell a default apart from a caller's value on the second
+# run. (That limitation is reasoned from CMake's cache semantics, not measured.)
+#
+# Auto-clearing STUB_BUILD when USE_ONNXRUNTIME is ON was also rejected: it is
+# the same "quietly change what the caller asked for" move being removed here,
+# only in the friendlier direction. An error that names the fix costs one line
+# of friction and cannot be misread.
+if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)
+    message(FATAL_ERROR
+        "xpe_ai: XPE_AI_USE_ONNXRUNTIME=ON and XPE_AI_STUB_BUILD=ON contradict "
+        "each other, and the stub wins -- the build would produce a stub while "
+        "the cache reported ONNX as enabled (#130).\n"
+        "  For an ONNX build:  -DXPE_AI_USE_ONNXRUNTIME=ON -DXPE_AI_STUB_BUILD=OFF\n"
+        "  For a stub build:   -DXPE_AI_USE_ONNXRUNTIME=OFF  (the default)")
+endif()
+
+# ---------------------------------------------------------------------------
 # ONNX Runtime via FetchContent (optional)
 # ---------------------------------------------------------------------------
 if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
@@ -66,12 +103,28 @@ if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
         find_package(onnxruntime QUIET CONFIG)
 
         if(NOT onnxruntime_FOUND)
-            message(WARNING
-                "ONNX Runtime not found. Set ONNXRUNTIME_ROOT or install onnxruntime. "
-                "Falling back to stub build."
-            )
-            set(XPE_AI_STUB_BUILD ON CACHE BOOL "Fallback to stub" FORCE)
-            set(XPE_AI_USE_ONNXRUNTIME OFF CACHE BOOL "ONNX unavailable" FORCE)
+            # #130 (QA-B-153). WHAT WAS HERE BEFORE:
+            #
+            #   message(WARNING "ONNX Runtime not found. ... Falling back to stub build.")
+            #   set(XPE_AI_STUB_BUILD      ON  CACHE BOOL "Fallback to stub" FORCE)
+            #   set(XPE_AI_USE_ONNXRUNTIME OFF CACHE BOOL "ONNX unavailable"  FORCE)
+            #
+            # Configure and build both returned 0 and the produced xpe_ai.dll
+            # imported no onnxruntime (PE import table: xpe_common, spdlog, CRT
+            # only). A caller who asked for ONNX got a stub and a green build.
+            #
+            # The runtime is not optional once it has been asked for: the whole
+            # inference path, REQ-AI-002's deterministic fallback contract and
+            # SOUP-003's Class B record all describe a build that HAS it.
+            # Choosing the stub on the caller's behalf decides that for them.
+            message(FATAL_ERROR
+                "xpe_ai: XPE_AI_USE_ONNXRUNTIME=ON was requested but no ONNX "
+                "Runtime was found, so the build cannot honour it (#130). It is "
+                "NOT downgraded to a stub -- that used to happen silently and a "
+                "green build then meant nothing.\n"
+                "  Point at a pre-built runtime:  -DONNXRUNTIME_ROOT=<dir containing include/ and lib/>\n"
+                "  or install one find_package(onnxruntime CONFIG) can see\n"
+                "  or build the stub on purpose:  -DXPE_AI_USE_ONNXRUNTIME=OFF")
         endif()
     endif()
 endif()
