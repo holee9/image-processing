@@ -1,0 +1,10 @@
+136:61/74 Test #61: DegradedMode.BP06_GsvgMissingReportsR0 .....................................***Skipped   0.01 sec
+138:62/74 Test #62: DegradedMode.BP07_CollimationMissingEnhanceAdvancedReportsR0 ...............***Skipped   0.01 sec
+140:63/74 Test #63: DegradedMode.BP08_EiMissingEnhanceBasicReportsR0 ...........................***Skipped   0.01 sec
+142:64/74 Test #64: DegradedMode.BP09_DicomMissingReportsR0 ....................................***Skipped   0.01 sec
+144:65/74 Test #65: DegradedMode.BP10_DisplayMissingReportsR0 ..................................***Skipped   0.01 sec
+169:	 61 - DegradedMode.BP06_GsvgMissingReportsR0 (Skipped)
+170:	 62 - DegradedMode.BP07_CollimationMissingEnhanceAdvancedReportsR0 (Skipped)
+171:	 63 - DegradedMode.BP08_EiMissingEnhanceBasicReportsR0 (Skipped)
+172:	 64 - DegradedMode.BP09_DicomMissingReportsR0 (Skipped)
+173:	 65 - DegradedMode.BP10_DisplayMissingReportsR0 (Skipped)

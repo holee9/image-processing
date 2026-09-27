@@ -1,0 +1,7 @@
+ modules/preprocess/CMakeLists.txt                  |   2 +
+ .../xpe/preprocess/xpe_preprocess_internal.h       |  43 +++
+ modules/preprocess/src/xpe_calib_generate_gain.cpp |  96 ++++++-
+ modules/preprocess/src/xpe_calib_load_gain.cpp     |  10 +
+ modules/preprocess/src/xpe_calib_mode.cpp          |  75 ++++++
+ .../preprocess/tests/test_calib_quality_meta.cpp   | 297 +++++++++++++++++++++
+ 6 files changed, 520 insertions(+), 3 deletions(-)

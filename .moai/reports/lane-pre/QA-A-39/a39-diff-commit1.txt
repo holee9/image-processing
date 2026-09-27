@@ -1,0 +1,10 @@
+ modules/preprocess/include/xpe/preprocess_api.h    | 23 ++++++++++++++++++++-
+ .../preprocess/src/xpe_calib_generate_offset.cpp   | 15 ++++++++------
+ .../preprocess/tests/test_calibration_manager.cpp  |  6 +++---
+ .../tests/test_calibration_roundtrip.cpp           | 12 +++++------
+ modules/preprocess/tests/test_error_precedence.cpp |  4 ++--
+ modules/preprocess/tests/test_sigma_clip_nmin.cpp  |  2 +-
+ .../tests/test_xpe_calib_generate_offset.cpp       | 24 +++++++++++-----------
+ .../tests/test_xpe_preprocess_calibration.cpp      | 10 ++++-----
+ modules/preprocess/tools/xpe_calib_fixture_gen.cpp |  2 +-
+ 9 files changed, 61 insertions(+), 37 deletions(-)

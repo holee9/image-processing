@@ -1,0 +1,4 @@
+ modules/preprocess/include/runtime_detection.h     | 75 ++++++++++++++++++++--
+ .../tests/test_runtime_detection_functional.cpp    | 58 ++++++++++++-----
+ .../tests/test_runtime_detection_rates.cpp         | 56 ++++++++++++----
+ 3 files changed, 155 insertions(+), 34 deletions(-)

@@ -1,0 +1,6 @@
+ .../preprocess/src/xpe_calib_generate_offset.cpp   |  74 ++++++-
+ .../src/xpe_calib_generate_offset_methods.cpp      |  70 +++++-
+ .../src/xpe_calib_generate_offset_methods.hpp      |  61 +++++-
+ .../tests/test_sigma_clip_conformance.cpp          |  39 ++--
+ modules/preprocess/tests/test_sigma_clip_nmin.cpp  | 235 ++++++++++-----------
+ 5 files changed, 327 insertions(+), 152 deletions(-)

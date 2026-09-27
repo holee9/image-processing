@@ -1,0 +1,21 @@
+=== 1. AVX2 references inside the runtime-detection path ===
+(no matches)
+
+=== 2. what xpe_defect_detect_runtime actually calls ===
+112:    // DetectDefectivePixel(img, x, y, config) directly.
+125:    for (uint32_t y = 0; y < img->height; ++y) {
+126:        for (uint32_t x = 0; x < img->width; ++x) {
+127:            bool isDefective = xpe::preprocess::internal::DetectDefectivePixel(
+
+=== 3. AVX2 dispatch that DOES exist elsewhere in the module ===
+modules/preprocess/src/gain_correct.cpp
+modules/preprocess/src/offset_correct.cpp
+modules/preprocess/src/simd_dispatch.cpp
+
+=== 4. the suite named 'AVX2 parity' for runtime detection ===
+3: * @brief AVX2 parity: runtime defect detection must be bit-identical across calls
+6: * Verifies that xpe_defect_detect_runtime produces identical TPR/FPR (and defect map)
+75:TEST_F(RuntimeDetectAVX2ParityTest, DefectMapBitIdentical) {
+84:TEST_F(RuntimeDetectAVX2ParityTest, DifferentInputProducesDifferentOutput) {
+122:TEST_F(RuntimeDetectAVX2ParityTest, RepeatedCallParity_5x) {
+144:TEST_F(RuntimeDetectAVX2ParityTest, NullConfigUsesDefaults) {

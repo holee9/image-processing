@@ -1,0 +1,19 @@
+modules/gsvg/include/xpe/gsvg/gsvg_api.h:20: * step (identity). This enables DegradedMode / pass-through operation when
+modules/gsvg/src/gsvg.cpp:14: *    DegradedMode and BP-06..09 benchmarks. A proper FFT-based notch filter
+modules/gsvg/src/gsvg.cpp:126: * tests and DegradedMode coverage.
+modules/gsvg/src/gsvg.cpp:189:    // config is supplied. This aligns with DegradedMode expectations.
+modules/gsvg/tests/test_gsvg_degraded.cpp:3: * @brief DegradedMode GTest for GSVG — BP-06..BP-09 coverage.
+modules/gsvg/tests/test_gsvg_degraded.cpp:59:TEST(GsvgDegradedMode, BP07_NullVignetteMap_IdentityOutput)
+modules/gsvg/tests/test_gsvg_degraded.cpp:75:    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+modules/gsvg/tests/test_gsvg_degraded.cpp:98:TEST(GsvgDegradedMode, BP08_AllOnesVignetteMap_OutputEqualsInput)
+modules/gsvg/tests/test_gsvg_degraded.cpp:115:    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+modules/gsvg/tests/test_gsvg_degraded.cpp:139:TEST(GsvgDegradedMode, BP09_GridDisabled_VignetteOnly)
+modules/gsvg/tests/test_gsvg_degraded.cpp:156:    (void)elapsed;  // budget asserted in DegradedMode_PerformanceBudget (#120)
+modules/gsvg/tests/test_gsvg_degraded.cpp:178:TEST(GsvgDegradedMode, InitWithNullConfig_DefaultsToPassThrough)
+modules/gsvg/tests/test_gsvg_degraded.cpp:197:TEST(GsvgDegradedMode, ProcessWithNullHandle_ReturnsInvalidInput)
+modules/gsvg/tests/test_gsvg_degraded.cpp:206:TEST(GsvgDegradedMode, ShutdownNullHandle_NoOp)
+modules/gsvg/tests/test_gsvg_degraded.cpp:217:TEST(GsvgDegradedMode, DegradedMode_PerformanceBudget)
+modules/preprocess/CMakeLists.txt:194:        # BP-01~05 DegradedMode benchmark smoke tests (null/identity calibration)
+modules/preprocess/CMakeLists.txt:196:        # BP-01~05 DegradedMode — see test_preprocess_degraded.cpp above
+modules/preprocess/tests/test_preprocess_degraded.cpp:3: * @brief BP-01~05 DegradedMode smoke tests for the preprocess benchmark pack.
+modules/preprocess/tests/test_preprocess_degraded.cpp:83: * Each DegradedMode smoke test must complete in < 100 ms.

@@ -1,0 +1,1 @@
+wrote /root/mcsim/runs/IAEA_pmma20_80kV  mean=43.58 keV  HVL1=3.029 mm Al  dropped<5keV=0.000e+00  aperture=17.0615 deg  field_at_detector=30.000 cm
