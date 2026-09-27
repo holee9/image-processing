@@ -67,6 +67,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_grid_tools.cpp
         # #180 (QA-B-90): DWT grid suppression, measured with the tools above
         tests/test_grid_suppression.cpp
+        tests/test_grid_visibility_192.cpp
         # #180 (QA-B-91): virtual grid on self-consistent synthetic images
         tests/test_virtual_grid.cpp
         # #180 (QA-B-95): virtual grid against the MC-GPU phantoms (tests/data/mc)
