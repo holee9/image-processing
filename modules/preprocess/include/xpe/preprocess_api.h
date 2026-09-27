@@ -230,13 +230,48 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * The defect map is not a parameter: it is loaded into the global calibration
  * by xpe_calib_load_defect_map() (#117 decision B).
  *
+ * BUFFER ALIASING CONTRACT (SPEC-XPE-P1A REQ-P1A-012, #209 / QA-A-146):
+ * input->data and output->data must be either EXACTLY THE SAME or FULLY
+ * DISJOINT.
+ *  - input->data == output->data (in-place): ALLOWED. The result is
+ *    BIT-IDENTICAL to the same call with separate buffers.
+ *  - Ranges that do not overlap: allowed (the ordinary path).
+ *  - PARTIAL OVERLAP: XPE_ERR_INVALID_INPUT, returned before anything is
+ *    written.
+ * The comparison is over the n * sizeof(float) byte range this function
+ * actually touches; dataSize is not the basis, because per the #123 contract
+ * 0 means *unspecified* and is not a reliable length.
+ *
+ * In-place is safe because WRITES AND READS NEVER TOUCH THE SAME PIXEL: this
+ * function writes only pixels the defect map marks (dm[idx] != 0), and both
+ * kernels read only unmarked ones (defect_correct.cpp:96, helpers.cpp:30 on
+ * the 4-neighbour path and the r=1..3 ring fallback alike). The two sets are
+ * disjoint, so a read can never see an already-corrected value.
+ * That invariant is a property of the CURRENT kernels, not a structural
+ * guarantee -- a kernel that read a defective neighbour would break in-place
+ * silently, so what holds it is a test, not this comment:
+ * DefectCorrectTest.InPlaceMatchesOutOfPlace.
+ *
+ * Partial overlap is refused not because it is known to be wrong, but because
+ * no caller does it, so nothing measures whether the result would be right;
+ * widening the contract would guarantee behaviour no test observes (the shape
+ * of #207). An error code makes the violation observable instead of letting
+ * it run into UB in silence.
+ *
+ * ARGUMENT-CHECK ORDER: this check precedes REQ-P1A-020 (uninitialized ->
+ * XPE_ERR_NOT_INITIALIZED). It sits with the other argument checks (NULL,
+ * dimensions, buffer size), following the existing rule that a bad argument
+ * is answered before module state -- so a partially overlapping call made
+ * while uninitialized returns XPE_ERR_INVALID_INPUT.
+ *
  * @param input Input image buffer (gain-corrected, FLOAT32)
  * @param output Output image buffer (defect-corrected, FLOAT32)
  * @param metadata Image metadata for dose-dependent threshold
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
- *         XPE_ERR_INVALID_INPUT if NULL pointers
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the input and output
+ *                               buffers overlap partially (see above)
  *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,

@@ -1,0 +1,1 @@
+wrote /root/mcsim/runs/B_broad_10cm_104kVp_30cm  mean=50.04 keV  HVL1=3.614 mm Al  dropped<5keV=0.000e+00  aperture=17.0615 deg

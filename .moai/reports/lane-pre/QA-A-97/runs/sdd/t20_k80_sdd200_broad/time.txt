@@ -1,0 +1,3 @@
+wall_s=13.7
+gpu_samples=28 max_util_pct=100 max_mem_mib=1277
+mean_speed_xrays_per_s=1.96e+08 over 10 launches

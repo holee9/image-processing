@@ -137,6 +137,32 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
         return XPE_ERR_INVALID_INPUT;
     if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
+    // ALIASING CONTRACT -- QA-A-146c (#209). Exactly two shapes are supported:
+    //   input->data == output->data   in-place, bit-identical to out-of-place
+    //   fully disjoint ranges         the ordinary case
+    // PARTIAL OVERLAP IS REFUSED HERE, before anything is written.
+    //
+    // It is not refused because it is known to be wrong -- it is refused
+    // because nobody has ever called it that way, so nothing measures whether
+    // the result would be right. Widening the contract to cover it would
+    // guarantee behaviour no test observes, which is the shape of defect #207
+    // (an AC promising an AVX2 path that did not exist). Left merely
+    // undocumented it would instead run into UB with no signal at all; an
+    // error code makes the contract violation observable to the caller.
+    //
+    // Compared in BYTES over the range this function actually touches
+    // (n * sizeof(float) on both sides). input->dataSize is not used as the
+    // basis: per the #123 contract 0 means *unspecified*, so it is not a
+    // reliable length -- and where it is specified it equals this.
+    {
+        const auto* in_b  = static_cast<const unsigned char*>(input->data);
+        const auto* out_b = static_cast<const unsigned char*>(output->data);
+        const size_t bytes = n * sizeof(float);
+        const bool identical = (in_b == out_b);
+        const bool disjoint  = (in_b + bytes <= out_b) || (out_b + bytes <= in_b);
+        if (!identical && !disjoint) return XPE_ERR_INVALID_INPUT;
+    }
+
     std::unique_lock<std::mutex> lock(g_calib_mutex);
     // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
     // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
@@ -163,8 +189,14 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     float*         dst = static_cast<float*>(output->data);
     const uint8_t* dm  = dm_local.data();
 
-    // Copy input → output first
-    std::memcpy(dst, src, n * sizeof(float));
+    // Copy input -> output first. SKIPPED WHEN THE CALLER PASSED ONE BUFFER:
+    // std::memcpy requires non-overlapping regions, so dst == src is undefined
+    // behaviour even though it happens to work on this toolchain. In-place is
+    // a documented, supported call shape as of QA-A-146 (#209) -- the contract
+    // must not rest on UB. The copy is also pure waste there.
+    if (dst != src) {
+        std::memcpy(dst, src, n * sizeof(float));
+    }
 
     bool hasDefects = false;
     for (size_t i = 0; i < n; ++i) {
@@ -178,8 +210,38 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
         return XPE_OK;
     }
 
-    // Use a source snapshot for neighbor lookups during correction
-    std::vector<float> source(src, src + n);
+    // IN-PLACE IS SAFE BECAUSE READS AND WRITES NEVER TOUCH THE SAME PIXEL
+    // -- QA-A-146 (#209).
+    //
+    // There used to be a second full-frame copy here
+    // (`std::vector<float> source(src, src + n)`), kept in case a caller
+    // aliased input and output: a write to dst would then be visible to a
+    // later neighbour read through src, making the result scan-order
+    // dependent. It cost 36 MB and 12.45 ms of an 18.45 ms call at 3072x3072
+    // (QA-A-145) -- the largest single item in this function.
+    //
+    // The hazard it guarded cannot occur. This function WRITES only pixels
+    // the defect map marks (`dm[idx] != 0`), and both correction kernels READ
+    // only pixels it does not: median_filter_cluster takes a neighbour when
+    // `defectMask[idx] == 0` (above, :96) and xpe_interpolate_pixel does the
+    // same in try_add, on the 4-neighbour path and on the r=1..3 ring
+    // fallback alike (helpers.cpp:30). The two sets are disjoint, so a read
+    // can never see a corrected value -- aliased or not.
+    //
+    // In-place callers exist and must keep working: test_integration.cpp:100
+    // and :131 call xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta).
+    // Searched every call site in the repository (all files, build/ and report
+    // logs excluded); the pipeline stages into a separate vector
+    // (pipeline.cpp:263) and the GUI passes distinct buffers
+    // (GuiPreprocessRunner.cs:155).
+    //
+    // WHAT REPLACES THE COPY IS A TEST, NOT A COMMENT. The invariant above is
+    // a property of the current kernels; a future kernel that reads a
+    // defective neighbour would break in-place silently. DefectCorrectTest.
+    // InPlaceMatchesOutOfPlace runs the same input both ways -- including a
+    // solid 3x3 block that forces the ring fallback -- and compares
+    // element-wise, so that change goes red instead of quiet.
+    const float* const source = src;
 
     // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> processed(n, false);
@@ -193,11 +255,11 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
-                        dst[cidx] = median_filter_cluster(source.data(), dm, cx, cy, W, H);
+                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H);
                         processed[cidx] = true;
                     }
                 } else {
-                    dst[idx] = xpe_interpolate_pixel(source.data(), dm, x, y, W, H);
+                    dst[idx] = xpe_interpolate_pixel(source, dm, x, y, W, H);
                     processed[idx] = true;
                 }
             }

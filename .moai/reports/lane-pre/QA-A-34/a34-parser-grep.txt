@@ -1,0 +1,13 @@
+# ParseWindowSize / ParseSigmaThreshold 호출자
+modules/preprocess/src/runtime_detection.cpp:27:static int32_t ParseWindowSize(const char* configJson, int32_t defaultValue) {
+modules/preprocess/src/runtime_detection.cpp:53:static float ParseSigmaThreshold(const char* configJson, float defaultValue) {
+modules/preprocess/src/runtime_detection.cpp:156:    config.windowSize = ParseWindowSize(nullptr, config.windowSize);
+modules/preprocess/src/runtime_detection.cpp:157:    config.sigmaThreshold = ParseSigmaThreshold(nullptr, config.sigmaThreshold);
+modules/preprocess/tests/test_runtime_detection_functional.cpp:23: * point: the shipped `xpe_defect_detect_runtime` calls `ParseWindowSize(nullptr,
+modules/preprocess/tests/test_runtime_detection_functional.cpp:24: * ...)` and `ParseSigmaThreshold(nullptr, ...)` (runtime_detection.cpp:156-157),
+
+# SPEC 에 창 크기/시그마 외부 설정 요구가 있는가
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:624:findPeaks(A, threshold, windowSize):
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:627:            if A(theta, rho) >= max of A in (theta +/- windowSize/2, rho +/- windowSize/2):
+.moai/specs/SPEC-XPE-P2-ADV/_workspace/02_algorithm_enhance_advanced_notes.md:683:peaks = findPeaks(accumulator, threshold=50, windowSize=5);
+spec_hits_above

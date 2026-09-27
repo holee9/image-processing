@@ -1,0 +1,4 @@
+ modules/preprocess/CMakeLists.txt                  |  45 ++
+ .../preprocess/tests/test_calib_fixture_gen.cpp    | 216 ++++++++++
+ modules/preprocess/tools/xpe_calib_fixture_gen.cpp | 452 +++++++++++++++++++++
+ 3 files changed, 713 insertions(+)

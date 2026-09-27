@@ -1,0 +1,4 @@
+ modules/preprocess/src/xpe_calib_generate_gain.cpp | 52 ++++++++++++---
+ .../preprocess/tests/test_calib_gain_poly_load.cpp | 78 ++++++++++++++++++++++
+ modules/preprocess/tests/test_xcal_validator.cpp   | 30 ++++++++-
+ 3 files changed, 149 insertions(+), 11 deletions(-)

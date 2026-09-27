@@ -1,0 +1,2 @@
+79:xpe_target_warnings_as_errors(xpe_preprocess)
+251:    xpe_target_warnings_as_errors(xpe_preprocess_tests)

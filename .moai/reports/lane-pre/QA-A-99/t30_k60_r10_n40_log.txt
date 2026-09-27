@@ -1,0 +1,182 @@
+
+
+     *****************************************************************************
+     ***     MC-GPU, version 1.5b_DBT (https://github.com/DIDSR/VICTRE_MCGPU)  ***
+     ***                              (http://code.google.com/p/mcgpu/)        ***
+     ***                                                                       ***
+     ***  A. Badal and A. Badano, "Accelerating Monte Carlo simulations of     ***
+     ***  photon transport in a voxelized geometry using a massively parallel  ***
+     ***  Graphics Processing Unit", Medical Physics 36, pp. 4878–4880 (2009)  ***
+     ***                                                                       ***
+     ***                     Andreu Badal (Andreu.Badal-Soler{at}fda.hhs.gov)  ***
+     *****************************************************************************
+
+****** Code execution started on: Thu Sep 17 21:31:45 2026
+
+
+
+             *** CUDA SIMULATION IN THE GPU ***
+
+    -- INITIALIZATION phase:
+
+    -- Reading the input file 'run.in':
+       Input Euler angles to rotate the source from (0,1,0) to the input direction [deg]: rotZ1=0.000000 , rotY2=0.000000 , rotZ3=0.000000
+
+   !!read_input!! Negative gain or Swank factor input: reporting pixel values as energy fluence, disabling conversion to detected charges and electronic noise.
+
+       Material dose deposition tally DISABLED.
+       3D voxel dose deposition tally DISABLED.
+
+       Voxel value to Monte Carlo material number conversion table (material number corresponds to order in input file):
+		voxelId = 0  -->  Material = 1
+		voxelId = 1  -->  Material = 2
+		voxelId = 2  -->  Material = 3
+		voxelId = 29  -->  Material = 4
+		voxelId = 33  -->  Material = 5
+		voxelId = 40  -->  Material = 7
+		voxelId = 50  -->  Material = 11
+		voxelId = 65  -->  Material = 14
+		voxelId = 66  -->  Material = 15
+		voxelId = 88  -->  Material = 6
+		voxelId = 95  -->  Material = 10
+		voxelId = 125  -->  Material = 8
+		voxelId = 150  -->  Material = 9
+		voxelId = 200  -->  Material = 12
+		voxelId = 225  -->  Material = 9
+		voxelId = 250  -->  Material = 13
+
+       Rotations from the detector plane to default detector plane at Y=0 [deg]: rotZ=-0.000000 , rotY=-0.000000 , rotZ=-0.000000
+       Array for 4 scatter images correctly allocated (900 pixels, 0.027466 Mbytes)
+    -- Reading the energy spectrum and initializing the Walker aliasing sampling algorithm.
+
+    -- Data read from the input file:
+              x-ray tracks to simulate = 100000000
+                   initial random seed = 424242011
+      NOTE: sampling only upper half of collimated cone beam, with beam offset to edge of the image (eg, mammo).
+      azimuthal (phi), polar apertures = 17.061531 , 17.061531 degrees
+              (max_height_at_y1cm = 0.150000 , max_width_at_y1cm = 0.150000)
+                      source direction = (0.000000, 1.000000, 0.000000)
+                   focal spot position = (30.000000, -68.000000, 30.000000)
+         focal spot Gaussian blur FWHM = 0.000000  (3D Gaussian dist. cropped at 2*sigma)
+              focal spot rotation blur = 0.000000 degrees
+              source-detector distance = 100.000000 cm
+              detector center position = (30.000000, 32.000000, 30.000000)
+      image offset from beam at center = (0.000000, 0.000000)
+              detector layer thickness = 0.100000 cm (=1000.00 micron)
+         detector material average MFP = 0.000001 cm
+       detector material K-edge energy = 1000000000.000000 eV
+         fluorescence energy and yield = 0.000000 eV , 0.000000
+            MFP at fluorescence energy = 1.000000 cm
+              detector cover thickness = 0.000000 cm
+          cover average mean free path = 0.000000 cm
+                Antiscatter grid ratio = 10.000000
+            Antiscatter grid frequency = 40.000000 lines per cm
+      Antiscatter grid strip thickness = 0.005000 cm (=50.00 micron)
+      Computed antiscatter grid height = 0.200000 cm (=2000.00 micron)
+         strips average mean free path = 0.009718 cm
+     interspace average mean free path = 4.033166 cm
+          Antiscatter grid orientation = 1 --> 1D collimated grid with strips parallel to lateral direction (DBT style)
+                number of pixels image = 30x30 = 900
+                            pixel size = 0.20000x0.20000 cm
+                         detector size = 6.00000x6.00000 cm
+                 number of projections = 1
+                     output image file = image.dat
+                      input voxel file = slab.vox
+                 voxel geometry offset = (0.000000, 0.000000, 0.000000) cm
+   size coarse voxels for binary trees = 0 x 0 x 0
+
+                  energy spectrum file = beam.spc
+            number of energy bins read = 110
+             minimum, maximum energies = 5.000, 60.000 keV
+                  mean energy spectrum = 35.950 keV
+
+
+    -- Reading voxel file 'slab.vox':
+         (note that MC-GPU can also read voxel and material files compressed with gzip)
+       Number of voxels in the input geometry file: 1 x 1 x 1 =  1
+       Size of the input voxels: 60.000000 x 30.000000 x 60.000000 cm  (voxel volume=108000.000000 cm^3)
+       Voxel bounding box size:  60.000000 x 30.000000 x 60.000000 cm
+       Voxel geometry offset:    0.000000,  0.000000,  0.000000 cm
+
+
+!!WARNING!! The conversion table assigning a fixed density to each material (global memory array "density_LUT") has to be given in the input file or the hardcoded default from VICTRE is used.
+            The densities given in the ASCII input .vox file are not used in the actual simulation!
+
+    -- Initializing the voxel material vector (0.000004 Mbytes).
+
+       Total number of voxels read: 1
+
+       !!bitree!! Binary tree structure disabled: standard voxelized geometry in use.
+
+       >> RAM memory allocation: voxelized geometry = 0.000004 MBytes; image vector = 0.027466 MBytes; data structures = 1.469343 Mbytes
+
+    -- Reading the material data files (MAX_MATERIALS=15):
+         Mat 1: File '/root/mcsim/mat150/water.mcgpu'
+                Nominal density = 1.000000 g/cm^3; Density in voxels = 1.000000 g/cm^3
+                Number of energy values in the mean free path database: 25005.
+                Linear interpolation data correctly allocated (8.775558 Mbytes)
+                Lowest energy first bin = 5000.000000 eV, last bin = 149994.201160 eV; bin width = 5.798840 eV
+         Mat 2: File '/root/mcsim/mat150/air.mcgpu'
+                This material is not used in any voxel.
+
+       ==> CUDA: 1 CUDA enabled GPU detected! Using device #0: "NVIDIA GeForce RTX 4070 Ti"
+                 Compute capability: 8.9, Number multiprocessors: 60
+                 Clock rate: 2.62 GHz, Global memory: 12281.500 Mbyte, Constant memory: 64.00 kbyte
+                 Shared memory per block: 48.00 kbyte, Registers per block: 64.00 kbyte
+                 CUDA Driver Version: 13.10, Runtime Version: 12.90
+
+
+
+
+   !!WARNING!! The selected GPU is connected to a display and therefore CUDA driver will limit the kernel run time to 5 seconds and the simulation will likely fail!!
+              You can fix this by executing the simulation in a different GPU (select number in the input file) or by turning off the window manager and using the text-only Linux shell.
+
+
+       ==> CUDA: Constant data successfully copied to the device. CONSTANT memory used: 0.445312 kbytes (0.7%)
+       ==> CUDA: Device global memory correctly allocated. GLOBAL memory used: 10.272556 Mbytes (0.1%)
+       ==> CUDA: Launching kernel to initialize the device image to 0: number of blocks = 8, threads per block = 128
+                 Time spent allocating and copying memory to the device: 0.002751 s
+
+    -- INITIALIZATION finished: elapsed time = 0.079 s.
+
+
+
+    -- MONTE CARLO LOOP phase. Time: Thu Sep 17 21:31:45 2026
+
+
+
+        ==> CUDA: Executing 5209 blocks of 128 threads, with 150 histories in each thread: 100012800 histories in total (random seed=424242011, num_p=0).
+
+
+          *** IMAGE TALLY PERFORMANCE REPORT ***
+              Simulated x rays:    100012800
+              Simulation time [s]: 0.46
+              Speed [x-rays/s]:    215342943.58
+
+              Fraction of initial energy arriving at the detector (over the mean energy of the spectrum):  0.002%
+              Maximum energy fluence detected in pixel 335: (x,y)=(5,11). Maximum pixel value = 0.075885 eV/cm^2 per hist.
+
+       ==> CUDA: Launching kernel to reset the device image to 0: number of blocks = 8, threads per block = 128
+       ==> CUDA: Time freeing the device memory and ending the GPU threads: 0.008195 s
+
+
+       ==> CUDA: Time reporting the dose data: 0.000000 s
+
+
+
+    -- SIMULATION FINISHED!
+
+
+       ****** TOTAL SIMULATION PERFORMANCE (including initialization and reporting) ******
+
+          >>> Execution time including initialization, transport and report: 0.553 s.
+          >>> Time spent in the Monte Carlo transport only: 0.464 s.
+          >>> Time spent in initialization, reporting and clean up: 0.088 s.
+          >>> Total number of simulated x rays:  100012800
+          >>> Total speed (using 1 thread, including transport, initialization and report times) [x-rays/s]:  180907642.19
+          >>> Total speed Monte Carlo transport only (using 1 thread) [x-rays/s]:  215342943.58
+
+
+****** Code execution finished on: Thu Sep 17 21:31:45 2026
+
+

@@ -121,11 +121,14 @@ TEST(PreprocessDegraded, BP01_OffsetNullCalibrationReturnsNotInitialized) {
         rc = xpe_offset_correct(&input, &output, &meta);
     });
 
-    // Must return a defined error code, not crash.
-    // Accept NOT_INITIALIZED (no calibration loaded) or OK (if a prior test
-    // populated g_calib). Both paths are graceful degradation.
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
-        << "Unexpected error code: " << rc;
+    // Must return a defined error code, not crash. QA-A-148 (#212): MEASURED
+    // -- rc is XPE_ERR_NOT_INITIALIZED in the default order and under shuffle
+    // seeds 1/2/9, never anything else. The set used to also admit XPE_OK
+    // "if a prior test populated g_calib"; that sentence recorded an
+    // observation, not a decision, and it made this test green THROUGH a
+    // global-state leak -- the exact defect the single-process shuffle
+    // harness (#162, #176) exists to catch.
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);
 
     // Timing budget for 64x64 image.
     EXPECT_LT(ms, kDegradedBudgetMs);
@@ -173,8 +176,7 @@ TEST(PreprocessDegraded, BP02_GainIdentityPreservesInputStatistics) {
         rc = xpe_gain_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
-        << "Unexpected error code: " << rc;
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-148 (#212): measured, see BP-01
 
     EXPECT_LT(ms, kDegradedBudgetMs);
 
@@ -220,8 +222,7 @@ TEST(PreprocessDegraded, BP03_DefectEmptyListIsNoOp) {
         rc = xpe_defect_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)
-        << "Unexpected error code: " << rc;
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-148 (#212): measured, see BP-01
 
     EXPECT_LT(ms, kDegradedBudgetMs);
 

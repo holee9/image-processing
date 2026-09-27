@@ -1,0 +1,1 @@
+wrote /root/mcsim/runs/B_al4.0  mean=52.65 keV  HVL1=4.618 mm Al  dropped<5keV=0.000e+00  aperture=17.0615 deg  field_at_detector=30.000 cm

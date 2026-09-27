@@ -1,0 +1,72 @@
+commit 7fd3436a17577fa20411bcdeba41b968e3bb213e
+Author: drake.lee <hnabyz2023@gmail.com>
+Date:   Tue Aug 18 17:29:53 2026 +0900
+
+    fix(preprocess): SigmaClip 표준편차를 모집단 정의로 수정 — 과도 클리핑 해소
+
+    XPE-ALG-001 §9.8.2.1은 모집단 표준편차(나눗수 |S|)를 명시하나
+    stddev_of가 표본 표준편차(Bessel 보정, 나눗수 N-1)를 사용하고 있었다.
+
+    반복 클리핑이 진행되며 |S|가 줄어들 때 Bessel 보정이 σ를 왜곡시켜,
+    outlier 제거 후에도 정상값을 계속 깎아내는 과도 클리핑이 발생했다.
+
+    재현 (입력 {100,110,105,108,500}, sigma=1.0):
+      iter1: n=5 mean=184.600 σ=176.354 → 500 제거   (정상)
+      iter2: n=4 mean=105.750 σ=  4.349 → 100 제거   (과도)
+      iter3: n=3 mean=107.667 σ=  2.517 → 105 제거   (과도)
+      iter4: n=2 mean=109.000 → 수렴 → 109 (기대 106±2)
+
+    수정 후 동일 입력이 107로 수렴하여 기대 범위 내 진입.
+    다른 sigma_clip 테스트 4건(T5/T7/T15/T18)은 값 불변 — 회귀 없음.
+
+    검증: cmake --build --preset ci-preprocess → BUILD_EXIT=0
+          ctest ci-preprocess → 345/345 통과 (수정 전 344/345)
+          MultiOffsetTest.SigmaClip_CustomSigma Passed
+
+    규제: SRS-CALIB-FUNC-034 (IEC 62304 Class B) 커버 기능.
+          VVP/RTM 갱신 필요 — 별도 처리.
+
+    Refs #97
+
+ modules/preprocess/src/xpe_calib_generate_offset_methods.cpp | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+commit 7fd3436a17577fa20411bcdeba41b968e3bb213e
+Author: drake.lee <hnabyz2023@gmail.com>
+Date:   Tue Aug 18 17:29:53 2026 +0900
+
+    fix(preprocess): SigmaClip 표준편차를 모집단 정의로 수정 — 과도 클리핑 해소
+
+    XPE-ALG-001 §9.8.2.1은 모집단 표준편차(나눗수 |S|)를 명시하나
+    stddev_of가 표본 표준편차(Bessel 보정, 나눗수 N-1)를 사용하고 있었다.
+
+    반복 클리핑이 진행되며 |S|가 줄어들 때 Bessel 보정이 σ를 왜곡시켜,
+    outlier 제거 후에도 정상값을 계속 깎아내는 과도 클리핑이 발생했다.
+
+    재현 (입력 {100,110,105,108,500}, sigma=1.0):
+      iter1: n=5 mean=184.600 σ=176.354 → 500 제거   (정상)
+      iter2: n=4 mean=105.750 σ=  4.349 → 100 제거   (과도)
+      iter3: n=3 mean=107.667 σ=  2.517 → 105 제거   (과도)
+      iter4: n=2 mean=109.000 → 수렴 → 109 (기대 106±2)
+
+    수정 후 동일 입력이 107로 수렴하여 기대 범위 내 진입.
+    다른 sigma_clip 테스트 4건(T5/T7/T15/T18)은 값 불변 — 회귀 없음.
+
+    검증: cmake --build --preset ci-preprocess → BUILD_EXIT=0
+          ctest ci-preprocess → 345/345 통과 (수정 전 344/345)
+          MultiOffsetTest.SigmaClip_CustomSigma Passed
+
+    규제: SRS-CALIB-FUNC-034 (IEC 62304 Class B) 커버 기능.
+          VVP/RTM 갱신 필요 — 별도 처리.
+
+    Refs #97
+
+diff --git a/modules/preprocess/src/xpe_calib_generate_offset_methods.cpp b/modules/preprocess/src/xpe_calib_generate_offset_methods.cpp
+index 73a6891..535480e 100644
+--- a/modules/preprocess/src/xpe_calib_generate_offset_methods.cpp
++++ b/modules/preprocess/src/xpe_calib_generate_offset_methods.cpp
+@@ -117,8 +117,11 @@ double stddev_of(const std::vector<double>& values, double mean) noexcept
+         const double d = v - mean;
+         sum_sq += d * d;
+     }
+-    // Sample stddev (Bessel's correction, /N-1): more accurate for small frame counts.
+-    return std::sqrt(sum_sq / static_cast<double>(values.size() - 1u));

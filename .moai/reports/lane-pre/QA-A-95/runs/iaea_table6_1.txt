@@ -1,0 +1,34 @@
+
+                                                                                  133
+                                    CHAPTER 6
+
+
+
+TABLE 6.1. DEPENDENCE OF SF AND SPR ON POSITION IN X RAY FIELD
+(30 cm × 30 cm PMMA phantom, 20 cm thick, at 80 kV, 3 mm Al equivalent,
+total filtration, 100 cm FID and 5 cm OID, 30 cm × 30 cm X ray field at image
+receptor)
+
+Distance from                 On axis                          Diagonal
+centre (cm)            SF               SPR               SF              SPR
+0                     0.856             5.93             0.856            5.93
+2.5                   0.854             5.84             0.854            5.87
+5.0                   0.845             5.47             0.848            5.56
+7.5                   0.831             4.92             0.834            5.04
+10.0                  0.806             4.17             0.824            4.68
+12.5                  0.781             3.57             0.794            3.85
+15.0                    —               —                0.750            3.00
+of the displayed image is independently adjustable.
+      If the energy absorbed in a small region of the image receptor due to primary
+rays is Ep, and that due to secondary rays is Es, then scatter may be quantified by
+the scatter fraction:
+
+SF = Es/(Ep + Es)                                                               (6.2)
+
+or by the scatter to primary ratio:
+
+SPR = Es/Ep                                                                     (6.3)
+
+        The relationship between the two is:
+
+SF = ((SPR–1) + 1)–1                                                            (6.4)

@@ -1,0 +1,1 @@
+wrote /root/mcsim/runs/A_fieldEntr  mean=42.65 keV  HVL1=2.734 mm Al  dropped<5keV=0.000e+00  aperture=21.7711 deg  field_at_detector=38.462 cm

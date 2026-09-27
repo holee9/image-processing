@@ -359,10 +359,18 @@ if(_XPE_BUILD_TESTS)
         # BP-01~05 DegradedMode benchmark smoke tests (null/identity calibration)
         tests/test_preprocess_degraded.cpp
         # BP-01~05 DegradedMode — see test_preprocess_degraded.cpp above
-        # SPEC-SIMD-001: AVX2 parity tests (3-arg API)
+        # SPEC-SIMD-001: AVX2 parity tests (3-arg API). Each compares the
+        # shipped vector path against an independently derived scalar
+        # reference -- xpe_offset_apply_scalar_reference and
+        # xpe_gain_apply_scalar_reference respectively.
         tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct_avx2_parity.cpp
-        tests/test_defect_correct_avx2_parity.cpp
+        # QA-A-145 (#207): renamed from test_defect_correct_avx2_parity.cpp.
+        # Correction has NO AVX2 path (_mm256 0 hits; control: the two files
+        # above have 12 and 13), and the file never compared one -- it calls
+        # the same function twice. It is a determinism test and is now named
+        # as one.
+        tests/test_defect_correct_determinism.cpp
         # QA-A-42 (#144): renamed from test_runtime_detection_avx2_parity.cpp --
         # it asserts determinism, not AVX2 parity. QA-A-65 (#144) then added an
         # AVX2 path to the per-pixel loop, so the freed name is in use again by

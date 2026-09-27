@@ -1,0 +1,5 @@
+ modules/preprocess/CMakeLists.txt                  |   2 +
+ modules/preprocess/include/runtime_detection.h     |  26 +++-
+ modules/preprocess/src/runtime_detection.cpp       |  13 +-
+ .../tests/test_runtime_detection_buffer_reuse.cpp  | 153 +++++++++++++++++++++
+ 4 files changed, 190 insertions(+), 4 deletions(-)

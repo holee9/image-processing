@@ -80,10 +80,15 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
 
     EXPECT_EQ(XPE_OK, xpe_temp_compensate(&rawBuf, 25.0f, nullptr));
 
-    // Accepts NOT_INITIALIZED when calibration not loaded (memleak test, not functional test)
+    // QA-A-148 (#212): MEASURED -- rc is XPE_ERR_CALIB_NOT_LOADED, on all 2200
+    // calls of a run, identical in the default order and under shuffle seeds
+    // 1/2/9. The module IS initialized above, so NOT_INITIALIZED was the wrong
+    // code for the old comment to name; the old set also admitted XPE_OK,
+    // which would have passed a call that silently did nothing. Being a leak
+    // test rather than a functional one is not a reason to keep an assertion
+    // looser than the measurement supports.
     auto rc = xpe_offset_correct(&rawBuf, &offsetBuf, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)
-        << "xpe_offset_correct returned " << rc;
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, rc);
 
     xpe_preprocess_shutdown();
 }

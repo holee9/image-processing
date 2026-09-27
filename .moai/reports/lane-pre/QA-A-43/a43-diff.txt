@@ -1,0 +1,7 @@
+ modules/preprocess/include/runtime_detection.h     | 63 +++++++++++++++++++++-
+ modules/preprocess/src/runtime_detection.cpp       |  9 +++-
+ .../tests/test_runtime_detection_buffer_reuse.cpp  | 13 ++++-
+ .../tests/test_runtime_detection_functional.cpp    | 29 +++++-----
+ .../tests/test_runtime_detection_rates.cpp         | 54 ++++++++++---------
+ modules/preprocess/tools/xpe_detect_experiment.cpp |  2 +-
+ 6 files changed, 125 insertions(+), 45 deletions(-)

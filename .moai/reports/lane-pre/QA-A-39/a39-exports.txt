@@ -1,0 +1,127 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file build\ci-preprocess\bin\xpe_preprocess.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_preprocess.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          50 number of functions
+          50 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00003FE9 ?read_xcal_file@@YAHPEBDAEAUXCalFileHeader@@AEAV?$vector@EV?$allocator@E@std@@@std@@2_NH@Z = @ILT+12260(?read_xcal_file@@YAHPEBDAEAUXCalFileHeader@@AEAV?$vector@EV?$allocator@E@std@@@std@@2_NH@Z)
+          2    1 00001B13 ?validate_xcal_header@@YAHAEBUXCalFileHeader@@H@Z = @ILT+2830(?validate_xcal_header@@YAHAEBUXCalFileHeader@@H@Z)
+          3    2 000023E2 ?write_xcal_file@@YAHPEBDUXCalFileHeader@@PEBE_K23@Z = @ILT+5085(?write_xcal_file@@YAHPEBDUXCalFileHeader@@PEBE_K23@Z)
+          4    3 00001A3C ?write_xcal_file_ex@@YAHPEBDUXCalFileHeader@@PEBE_K23_N@Z = @ILT+2615(?write_xcal_file_ex@@YAHPEBDUXCalFileHeader@@PEBE_K23_N@Z)
+          5    4 000031D9 ?xcal_bytes_per_pixel@@YA_KI@Z = @ILT+8660(?xcal_bytes_per_pixel@@YA_KI@Z)
+          6    5 0000296E xpe_binning_correct = @ILT+6505(xpe_binning_correct)
+          7    6 00001DD9 xpe_bpm_generate = @ILT+3540(xpe_bpm_generate)
+          8    7 00001E15 xpe_calib_cache_clear = @ILT+3600(xpe_calib_cache_clear)
+          9    8 00002D51 xpe_calib_cache_set_max_size = @ILT+7500(xpe_calib_cache_set_max_size)
+         10    9 00001032 xpe_calib_check_expiry = @ILT+45(xpe_calib_check_expiry)
+         11    A 000038E6 xpe_calib_generate_gain = @ILT+10465(xpe_calib_generate_gain)
+         12    B 000030C1 xpe_calib_generate_gain_polynomial = @ILT+8380(xpe_calib_generate_gain_polynomial)
+         13    C 00003486 xpe_calib_generate_offset = @ILT+9345(xpe_calib_generate_offset)
+         14    D 000022D4 xpe_calib_get_max_points = @ILT+4815(xpe_calib_get_max_points)
+         15    E 000021DF xpe_calib_get_mode = @ILT+4570(xpe_calib_get_mode)
+         16    F 00001CE9 xpe_calib_get_poly_degree = @ILT+3300(xpe_calib_get_poly_degree)
+         17   10 00002C25 xpe_calib_get_quality_meta = @ILT+7200(xpe_calib_get_quality_meta)
+         18   11 00003427 xpe_calib_load_defect_cached = @ILT+9250(xpe_calib_load_defect_cached)
+         19   12 00002801 xpe_calib_load_defect_map = @ILT+6140(xpe_calib_load_defect_map)
+         20   13 000013ED xpe_calib_load_gain = @ILT+1000(xpe_calib_load_gain)
+         21   14 00003D91 xpe_calib_load_gain_cached = @ILT+11660(xpe_calib_load_gain_cached)
+         22   15 00003AB7 xpe_calib_load_offset = @ILT+10930(xpe_calib_load_offset)
+         23   16 00003CF1 xpe_calib_load_offset_cached = @ILT+11500(xpe_calib_load_offset_cached)
+         24   17 00003B48 xpe_calib_save = @ILT+11075(xpe_calib_save)
+         25   18 0000148D xpe_calib_set_mode = @ILT+1160(xpe_calib_set_mode)
+         26   19 000029AF xpe_calib_state_load = @ILT+6570(xpe_calib_state_load)
+         27   1A 00002CBB xpe_calib_state_release = @ILT+7350(xpe_calib_state_release)
+         28   1B 00003FF8 xpe_crc32 = @ILT+12275(xpe_crc32)
+         29   1C 000016EF xpe_defect_correct = @ILT+1770(xpe_defect_correct)
+         30   1D 0000406B xpe_defect_detect_runtime = @ILT+12390(xpe_defect_detect_runtime)
+         31   1E 000016A4 xpe_gain_correct = @ILT+1695(xpe_gain_correct)
+         32   1F 00004174 xpe_ghost_correct = @ILT+12655(xpe_ghost_correct)
+         33   20 0000337D xpe_ghost_create = @ILT+9080(xpe_ghost_create)
+         34   21 000020BD xpe_ghost_destroy = @ILT+4280(xpe_ghost_destroy)
+         35   22 00001537 xpe_ghost_reset = @ILT+1330(xpe_ghost_reset)
+         36   23 000014BA xpe_nonlinearity_correct = @ILT+1205(xpe_nonlinearity_correct)
+         37   24 00003ACB xpe_offset_correct = @ILT+10950(xpe_offset_correct)
+         38   25 000025A9 xpe_preprocess_get_param_range = @ILT+5540(xpe_preprocess_get_param_range)
+         39   26 000010F0 xpe_preprocess_init = @ILT+235(xpe_preprocess_init)
+         40   27 000028E7 xpe_preprocess_pipeline = @ILT+6370(xpe_preprocess_pipeline)
+         41   28 00001BB3 xpe_preprocess_pipeline_batch = @ILT+2990(xpe_preprocess_pipeline_batch)
+         42   29 00003DC3 xpe_preprocess_pipeline_ex = @ILT+11710(xpe_preprocess_pipeline_ex)
+         43   2A 00002CDE xpe_preprocess_shutdown = @ILT+7385(xpe_preprocess_shutdown)
+         44   2B 000014D3 xpe_preprocess_version = @ILT+1230(xpe_preprocess_version)
+         45   2C 00003F0D xpe_temp_compensate = @ILT+12040(xpe_temp_compensate)
+         46   2D 00001C08 xpe_validate_readout_artifact = @ILT+3075(xpe_validate_readout_artifact)
+         47   2E 00004192 xpe_verify_defect = @ILT+12685(xpe_verify_defect)
+         48   2F 00001AE1 xpe_verify_gain = @ILT+2780(xpe_verify_gain)
+         49   30 00002C48 xpe_verify_offset = @ILT+7235(xpe_verify_offset)
+         50   31 00001CF3 xpe_verify_pipeline = @ILT+3310(xpe_verify_pipeline)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        3000 .idata
+        7000 .pdata
+       16000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       92000 .text
+===== COMMON =====
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file build\ci-preprocess\bin\xpe_common.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_common.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          16 number of functions
+          16 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00001019 xpe_alert_push = @ILT+20(xpe_alert_push)
+          2    1 00001DA7 xpe_alloc_image = @ILT+3490(xpe_alloc_image)
+          3    2 00001DCF xpe_clear_alerts = @ILT+3530(xpe_clear_alerts)
+          4    3 000020F9 xpe_configure = @ILT+4340(xpe_configure)
+          5    4 00001E83 xpe_copy_image = @ILT+3710(xpe_copy_image)
+          6    5 000011E0 xpe_error_string = @ILT+475(xpe_error_string)
+          7    6 00001B59 xpe_free_image = @ILT+2900(xpe_free_image)
+          8    7 00002360 xpe_get_param_range = @ILT+4955(xpe_get_param_range)
+          9    8 000015BE xpe_get_pending_alert = @ILT+1465(xpe_get_pending_alert)
+         10    9 000011AE xpe_get_pending_alert_count = @ILT+425(xpe_get_pending_alert_count)
+         11    A 00001361 xpe_init = @ILT+860(xpe_init)
+         12    B 00001EF1 xpe_log_flush = @ILT+3820(xpe_log_flush)
+         13    C 00001235 xpe_log_set_file = @ILT+560(xpe_log_set_file)
+         14    D 00001A5A xpe_log_set_level = @ILT+2645(xpe_log_set_level)
+         15    E 00002220 xpe_shutdown = @ILT+4635(xpe_shutdown)
+         16    F 000023D3 xpe_version = @ILT+5070(xpe_version)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        4000 .idata
+        3000 .pdata
+        9000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       29000 .text
