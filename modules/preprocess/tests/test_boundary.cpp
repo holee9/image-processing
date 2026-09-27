@@ -39,13 +39,24 @@ static XpeImageBuffer make_img(void* data, uint32_t w, uint32_t h,
 
 /* === 1x1 image edge cases (new 3-arg API; g_calib not loaded → NOT_INITIALIZED) === */
 
+/* QA-A-147 (#212): the four sites below read
+ *   EXPECT_TRUE(rc == XPE_OK || rc == NOT_INITIALIZED || rc == CALIB_NOT_LOADED)
+ * so each passed whether the call worked or did nothing. This file never calls
+ * xpe_preprocess_init() or xpe_calib_load_*, so the correction entry points can
+ * only refuse; the XPE_OK / CALIB_NOT_LOADED branches were unreachable. Same
+ * shape and same cause as test_integration.cpp (widened defensively by
+ * f3ccb0ec when XPE_ERR_CALIB_NOT_LOADED was introduced).
+ *
+ * Asserting the single code that occurs also makes leaked global init from
+ * another test go red here, which is what we want -- verified across the
+ * default order and shuffle seeds 1/2/9. */
 TEST(Boundary, OffsetCorrect1x1) {
     uint16_t in_px = 500, out_px = 0;
     auto input  = make_img(&in_px,  1, 1, XPE_PIXEL_UINT16, 2);
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_UINT16, 2);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_offset_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-147 (#212): measured, see header
 }
 
 TEST(Boundary, GainCorrect1x1) {
@@ -55,7 +66,7 @@ TEST(Boundary, GainCorrect1x1) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_FLOAT32, 4);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_gain_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-147 (#212): measured, see header
 }
 
 TEST(Boundary, DefectCorrect1x1NoDefect) {
@@ -64,7 +75,7 @@ TEST(Boundary, DefectCorrect1x1NoDefect) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_FLOAT32, 4);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_defect_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-147 (#212): measured, see header
 }
 
 /* === Overflow / max value === */
@@ -76,7 +87,7 @@ TEST(Boundary, OffsetCorrectMaxUint16NoCrash) {
     auto output = make_img(&out_px, 1, 1, XPE_PIXEL_UINT16, 2);
     XpeImageMetadata meta{};
     XpeErrorCode rc = xpe_offset_correct(&input, &output, &meta);
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-147 (#212): measured, see header
     if (rc == XPE_OK) EXPECT_EQ(0u, out_px); // clamped to 0
 }
 

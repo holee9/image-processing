@@ -67,8 +67,39 @@ struct PipelineBuffers {
     }
 };
 
-// Full 7-stage pipeline on a small image
-TEST(Integration, FullPipelineSmallImage) {
+/* ---------------------------------------------------------------------------
+ * QA-A-147 (#212): renamed from FullPipelineSmallImage, and the three
+ * correction stages now assert the code they actually return.
+ *
+ * WHAT THIS TEST ANSWERS: do the seven entry points COMPOSE -- buffer and
+ * format handoff from stage to stage, in order, without a crash -- when no
+ * calibration is loaded. That is the only thing here no other test covers.
+ *
+ * WHAT IT DOES NOT ANSWER: whether each stage computes the right pixels.
+ * That is covered per stage, with pixel-level assertions, in
+ * test_golden_reference.cpp (offset :161/:192, gain :254, ghost :349/:364,
+ * temp :463). Loading calibration here would duplicate that and introduce
+ * global state into a test that has none.
+ *
+ * WHY THE NAME CHANGED. "FullPipelineSmallImage" promised a full pipeline.
+ * This test never calls xpe_preprocess_init() or xpe_calib_load_*, so three
+ * of the seven stages cannot do any work -- MEASURED, not assumed: a probe
+ * printed rc for stages 4/5/6 and got -6 (XPE_ERR_NOT_INITIALIZED) in all
+ * three contexts (this test alone, the full default order, and shuffle seed
+ * 9). Nothing else was ever returned.
+ *
+ * WHY THE ALLOWED SETS WENT. They read
+ *   EXPECT_TRUE(rc == XPE_OK || rc == NOT_INITIALIZED || rc == CALIB_NOT_LOADED)
+ * so the stage passed whether it worked or did nothing at all -- that is how
+ * a sentinel injected into xpe_defect_correct (QA-A-146b) left this test
+ * green. git blame: the set was widened by f3ccb0ec (2026-09-10) when
+ * XPE_ERR_CALIB_NOT_LOADED was introduced, added defensively to every site
+ * rather than because any site returned it. Per the measurement above, the
+ * XPE_OK / CALIB_NOT_LOADED / UNSUPPORTED_FORMAT branches are unreachable
+ * here. Asserting the single code that does occur also makes leaked global
+ * init from another test go red, which is the behaviour we want.
+ * ------------------------------------------------------------------------- */
+TEST(Integration, UncalibratedPipelineComposes) {
     PipelineBuffers buf(64, 64);
     bool dropped = false, nonuniform = false;
 
@@ -82,23 +113,23 @@ TEST(Integration, FullPipelineSmallImage) {
     // Stage 3: Nonlinearity correction
     ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf.rawBuf, nullptr));
 
-    // Stage 4: Offset correction — accepts NOT_INITIALIZED when no calibration loaded
+    // Stage 4: Offset correction -- refuses; no calibration is loaded
     {
         auto rc = xpe_offset_correct(&buf.rawBuf, &buf.offsetBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+        EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);
     }
 
-    // Stage 5: Gain correction — accepts NOT_INITIALIZED when no calibration loaded
+    // Stage 5: Gain correction -- refuses; no calibration is loaded
     {
         auto rc = xpe_gain_correct(&buf.rawBuf, &buf.gainBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED);
+        EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);
     }
 
-    // Stage 6: Defect correction — accepts NOT_INITIALIZED when no calibration loaded
-    // Note: new API requires FLOAT32 input; defect stage runs after gain conversion
+    // Stage 6: Defect correction -- refuses; no calibration is loaded.
+    // Called in-place, which the buffer aliasing contract allows (REQ-P1A-012).
     {
         auto rc = xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta);
-        EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_ERR_UNSUPPORTED_FORMAT);
+        EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);
     }
 
     // Stage 7: Ghost correction (requires FLOAT32 input from gain stage)
@@ -108,6 +139,17 @@ TEST(Integration, FullPipelineSmallImage) {
 
     // Binning (no-op for 1x1)
     ASSERT_EQ(XPE_OK, xpe_binning_correct(&buf.gainBuf, 1, nullptr));
+
+    // END STATE, IN PIXELS -- QA-A-147 (#212). Before this the test asserted no
+    // pixel at all, so an identity implementation of every stage passed. The
+    // three refusing stages leave gainBuf at its initial 1.0f, ghost frame 0 is
+    // a documented exact pass-through (test_golden_reference.cpp:349), and 1x1
+    // binning is a no-op -- so the composed run must leave the buffer intact.
+    // Any stage that writes where it should not now shows up here.
+    for (size_t i = 0; i < buf.gain.size(); ++i) {
+        ASSERT_FLOAT_EQ(1.0f, buf.gain[i])
+            << "pixel[" << i << "] changed; no stage in this run may write gainBuf";
+    }
 
     // QA-A-140 (#196): the nonlinearity stage above runs with no LUT loaded and
     // now reports its no-op, so this pipeline leaves one alert behind. Drained
