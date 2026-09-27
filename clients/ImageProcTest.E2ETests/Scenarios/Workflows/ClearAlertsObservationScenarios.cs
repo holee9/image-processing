@@ -78,6 +78,49 @@ public sealed class ClearAlertsObservationScenarios(ITestOutputHelper output)
         Assert.Equal(beforeAlerts, afterAlertCount);
     }
 
+    /// <summary>
+    /// The guard #201 asked for BEFORE (a) is fixed: <c>Clear Alerts</c> must not take the ORDINARY log
+    /// lines with it. Written first on purpose — a guard authored after the fix is written to match the
+    /// implementation, and this one has to survive the fix rather than describe it.
+    ///
+    /// <para>Today it passes trivially, because the button changes nothing at all (the case above). Its
+    /// job starts the moment the command begins removing lines: if someone implements "clear alerts" as
+    /// "clear the log", this is what says no.</para>
+    /// </summary>
+    [SkippableFact]
+    public void PressingClearAlerts_KeepsTheOrdinaryLogLines()
+    {
+        using var app = new ApplicationFixture();
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+
+        var window = app.MainWindow!;
+        OpenLogs(window);
+
+        var before = LogLines(window);
+        var ordinaryBefore = before.Where(l => !l.Contains(AlertMarker, StringComparison.Ordinal)).ToArray();
+        output.WriteLine($"BEFORE  log lines: {before.Length}, ordinary: {ordinaryBefore.Length}");
+        foreach (var l in ordinaryBefore.Take(6)) output.WriteLine($"  ordinary: {l}");
+
+        // Without ordinary lines there is nothing for the button to wrongly remove.
+        Skip.If(ordinaryBefore.Length == 0, "The log carries no ordinary line, so this guard measures nothing.");
+
+        Press(window, "ClearAlertsButton");
+
+        var after = LogLines(window);
+        var ordinaryAfter = after.Where(l => !l.Contains(AlertMarker, StringComparison.Ordinal)).ToArray();
+        output.WriteLine($"AFTER   log lines: {after.Length}, ordinary: {ordinaryAfter.Length}");
+
+        // Every ordinary line that was there must still be there — by content, not by count, so a
+        // replacement that keeps the count but swaps the lines cannot pass.
+        var missing = ordinaryBefore.Except(ordinaryAfter, StringComparer.Ordinal).ToArray();
+        foreach (var l in missing) output.WriteLine($"  MISSING: {l}");
+
+        Assert.True(missing.Length == 0,
+            $"Clear Alerts removed {missing.Length} ordinary log line(s). It must only remove the lines " +
+            "RaiseAlert wrote (#201 (a)); the Application Log is not its to empty — Clear Logs is a " +
+            "different button.");
+    }
+
     private static void Press(Window window, string automationId)
     {
         window.SetForeground();
