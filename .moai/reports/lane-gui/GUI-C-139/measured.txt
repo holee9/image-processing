@@ -1,0 +1,52 @@
+=== GUI-C-139 (#206) measured.txt — C1~C4, 두 백엔드
+
+measurement scenario: clients/ImageProcTest.E2ETests/Scenarios/Workflows/LogAlertDiscriminabilityObservation.cs
+commands:
+  XPE_E2E_BACKEND=Native XPE_NATIVE_DIR=build/c134-stage-new dotnet test ... --filter ~LogAlertDiscriminabilityObservation
+  XPE_E2E_BACKEND=Mock                                  dotnet test ... --filter ~LogAlertDiscriminabilityObservation
+
+######## backend=Native
+ A no frame         C1 page=  9  lines=  9  alerts=  1  C2 newest=  2  C3 all=  2  C4 gap=  1  share=11.1%  C3<=C1? yes
+ B after load       C1 page= 17  lines= 17  alerts=  1  C2 newest= 10  C3 all= 10  C4 gap=  9  share=5.9%  C3<=C1? yes
+ C run 1            C1 page= 25  lines= 25  alerts=  2  C2 newest=  3  C3 all= 18  C4 gap= 14  share=8.0%  C3<=C1? yes
+ C run 2            C1 page= 26  lines= 33  alerts=  3  C2 newest=  3  C3 all= 26  C4 gap= 14  share=9.1%  C3<=C1? yes
+ C run 3            C1 page= 26  lines= 41  alerts=  4  C2 newest=  3  C3 all= 34  C4 gap= 14  share=9.8%  C3<=C1? NO
+ C run 4            C1 page= 26  lines= 49  alerts=  5  C2 newest=  3  C3 all= 42  C4 gap= 14  share=10.2%  C3<=C1? NO
+ C run 5            C1 page= 26  lines= 57  alerts=  6  C2 newest=  3  C3 all= 50  C4 gap= 14  share=10.5%  C3<=C1? NO
+ C run 6            C1 page= 26  lines= 65  alerts=  7  C2 newest=  3  C3 all= 58  C4 gap= 14  share=10.8%  C3<=C1? NO
+ C run 7            C1 page= 26  lines= 73  alerts=  8  C2 newest=  3  C3 all= 66  C4 gap= 14  share=11.0%  C3<=C1? NO
+ C run 8            C1 page= 26  lines= 81  alerts=  9  C2 newest=  3  C3 all= 74  C4 gap= 14  share=11.1%  C3<=C1? NO
+ extra chain runs invoked: 8 of 8
+ C after re-runs    C1 page= 26  lines= 81  alerts=  9  C2 newest=  3  C3 all= 74  C4 gap= 14  share=11.1%  C3<=C1? NO
+######## backend=Mock
+ A no frame         C1 page= 11  lines= 11  alerts=  3  C2 newest=  2  C3 all=  4  C4 gap=  1  share=27.3%  C3<=C1? yes
+ B after load       C1 page= 18  lines= 18  alerts=  3  C2 newest=  9  C3 all= 11  C4 gap=  8  share=16.7%  C3<=C1? yes
+ C run 1            C1 page= 23  lines= 23  alerts=  3  C2 newest= 14  C3 all= 16  C4 gap= 13  share=13.0%  C3<=C1? yes
+ C run 2            C1 page= 26  lines= 28  alerts=  3  C2 newest= 19  C3 all= 21  C4 gap= 18  share=10.7%  C3<=C1? yes
+ C run 3            C1 page= 26  lines= 33  alerts=  3  C2 newest= 24  C3 all= 26  C4 gap= 23  share=9.1%  C3<=C1? yes
+ C run 4            C1 page= 26  lines= 38  alerts=  3  C2 newest= 29  C3 all= 31  C4 gap= 28  share=7.9%  C3<=C1? NO
+ C run 5            C1 page= 26  lines= 43  alerts=  3  C2 newest= 34  C3 all= 36  C4 gap= 33  share=7.0%  C3<=C1? NO
+ C run 6            C1 page= 26  lines= 48  alerts=  3  C2 newest= 39  C3 all= 41  C4 gap= 38  share=6.3%  C3<=C1? NO
+ C run 7            C1 page= 26  lines= 53  alerts=  3  C2 newest= 44  C3 all= 46  C4 gap= 43  share=5.7%  C3<=C1? NO
+ C run 8            C1 page= 26  lines= 58  alerts=  3  C2 newest= 49  C3 all= 51  C4 gap= 48  share=5.2%  C3<=C1? NO
+ extra chain runs invoked: 8 of 8
+ C after re-runs    C1 page= 26  lines= 58  alerts=  3  C2 newest= 49  C3 all= 51  C4 gap= 48  share=5.2%  C3<=C1? NO
+
+=== premise verification (section 1)
+--- premise 1: the DataTemplate
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap"
+                                           Foreground="#b0b6c0" Margin="0,2" />
+                            </DataTemplate>
+--- premise 2: Alerts is bound by no XAML (control: bindings that DO exist)
+  "{Binding BodyPartOptions}"
+  "{Binding Logs}"
+  "{Binding Studies}"
+  "{Binding VoiLutModeOptions}"
+  Alerts bindings: 0
+--- premise 3: who wrote the template
+54a3ae7f (drake.lee 2026-05-09 514)                             <DataTemplate>
+54a3ae7f (drake.lee 2026-05-09 515)                                 <TextBlock Text="{Binding}" TextWrapping="Wrap"
+54a3ae7f (drake.lee 2026-05-09 516)                                            Foreground="#b0b6c0" Margin="0,2" />
+  C-123 commit 2849903 lines touching DataTemplate/Foreground#b0b6c0: 0
