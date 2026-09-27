@@ -629,6 +629,232 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// </summary>
     private const string PreviewBaselineHash = "f2a5640e9bd1a7fc";
 
+    // ---- P-11: the tile signature that answers what the hash cannot (#200, GUI-C-138) -----------
+
+    /// <summary>32×32 tiles over the 1024×1024 render — 1024 numbers, 10,842 bytes as stored.</summary>
+    private const int SignatureTilesPerSide = 32;
+
+    /// <summary>
+    /// The largest mean absolute per-tile difference P-11 accepts, and the largest single-tile one.
+    ///
+    /// <para><b>Where these came from (GUI-C-138 §1).</b> Both are derived from ONE observation: the
+    /// legitimate <c>#156</c> VOI-placement correction, rendered twice on P-10's own frame and settings
+    /// with the pre- and post-<c>efd14c1</c> <c>xpe_display.dll</c>. That correction moves the pixels by
+    /// design, so it is the largest change this assertion must stay quiet for:</para>
+    /// <code>
+    /// legit #156, this frame, this moment : mean|dtile| 0.001321   max|dtile| 0.043945  (119/1024 tiles moved)
+    /// nearest breakage (one row zeroed)   : mean|dtile| 0.039853   max|dtile| 3.999023
+    /// </code>
+    /// <para>The thresholds sit between them: 7.6× the legit mean, 6.8× the legit max.</para>
+    ///
+    /// <para><b>The measurement moment is part of the provenance.</b> The render dump is
+    /// last-render-wins, and every scenario here restores the defaults in a <c>finally</c> — which
+    /// renders again. A first attempt recorded the signature from a dump copied after the test process
+    /// exited, i.e. from the teardown render, and it disagreed with the measured render by
+    /// <c>mean|dtile| 13.06</c>. The recorded file is read at the assertion moment, from the same call
+    /// this test compares.</para>
+    ///
+    /// <para><b>This assertion deliberately stays quiet for a <c>#156</c>-scale correction</b>, which is
+    /// the opposite of what P-10's pinned hash does: the hash goes red on a one-count rounding shift
+    /// (measured — <c>36fc547e253b07f1</c> with the pre-<c>efd14c1</c> DLL against
+    /// <c>f2a5640e9bd1a7fc</c> with the post one). P-11 answers the question P-10's NAME asks, not the
+    /// question its hash asks. The two are not interchangeable, and removing the hash is a decision
+    /// about which question the suite should ask — not a consequence of this test existing.</para>
+    ///
+    /// <para><b>The legitimate side is n=1.</b> Breakages can be synthesised without limit, so the upper
+    /// boundary is well characterised; the lower one rests on a single real correction, on a single
+    /// frame. Raising the frame count would not help — it would apply the SAME correction to more
+    /// pixels. What fills this axis is the NEXT genuine display-formula correction, and that correction
+    /// is the real test of these two numbers.</para>
+    ///
+    /// <para><b>A python model of the formula was measured first and was wrong by 108×</b>
+    /// (<c>mean|dtile| 0.000019</c>, which would have put the threshold at <c>0.001</c> — a value the
+    /// real correction already exceeds). The thresholds above are from rendered pixels only. Why the
+    /// model under-predicted is not established; treat its numbers as an approximation that does not
+    /// reproduce the render path.</para>
+    ///
+    /// <para><b>What this signature cannot see</b> (GUI-C-138 §2, measured on this frame): a change that
+    /// preserves each tile's mean. Alternating <c>+k/-k</c> within one tile is missed up to
+    /// <c>k = 2</c> (<c>k = 2</c> reaches <c>max|dtile| 0.279297</c>, just inside the 0.300 wall) and a
+    /// half-tile <c>+k</c> / half-tile <c>-k</c> split is missed up to <c>k = 4</c>. A per-tile standard
+    /// deviation was measured as a second statistic and rejected: it is not monotone in <c>k</c>
+    /// (half-block <c>k = 2</c> gives a SMALLER signal than <c>k = 1</c>), so no threshold can be set on
+    /// it.</para>
+    ///
+    /// <para><b>If this assertion fails, do NOT re-record the signature to make it pass.</b> Re-recording
+    /// is what turns this test into a rubber stamp, and a rubber stamp is worse than no test. Instead:
+    /// find the change that moved the pixels and decide whether it is a correction or a regression. If
+    /// it is a correction, re-derive BOTH thresholds by rendering that correction's before and after —
+    /// as this comment records for <c>#156</c> — and write the new numbers here with their provenance.
+    /// A signature re-recorded without that measurement carries no information.</para>
+    /// </summary>
+    private const double PreviewTileSignatureTolerance = 0.010;
+
+    /// <summary>The per-tile ceiling. Provenance and update procedure: <see cref="PreviewTileSignatureTolerance"/>.</summary>
+    private const double PreviewTileSignatureMaxTolerance = 0.300;
+
+    /// <summary>
+    /// P-11 (#200, GUI-C-138): the drawn pixels still carry the recorded per-tile brightness pattern.
+    ///
+    /// <para>This exists because a hash answers a different question than P-10's name asks. A hash says
+    /// "bit-identical or not" — it cannot separate a one-count rounding shift from a broken render, and
+    /// it cannot say how far off a failing render is. Whole-frame summary statistics fail the other way:
+    /// a vertical flip is a PERMUTATION, permutations preserve the value multiset, and mean, standard
+    /// deviation, every percentile and the non-zero fraction are functions of that multiset alone — so
+    /// those statistics are provably identical across a flip. That is an identity, not a measurement.
+    /// A tile mean is bound to a position, which is what makes it able to see the flip (measured:
+    /// <c>mean|dtile| 32.895002</c>).</para>
+    /// </summary>
+    [SkippableFact]
+    public void P11_ThePreviewRender_StillCarriesTheRecordedTileSignature()
+    {
+        var window = Ready();
+        try
+        {
+            SetMode(window, "GsvgModeVirtualGrid");
+            SetNumber(window, "GsvgDenoiseKInput", "0");
+            SetNumber(window, "GsvgPyramidGainInput", "1.0");
+            SetNumber(window, "GsvgPyramidLevelsInput", "0");
+            SetNumber(window, "GsvgGridFrequencyInput", "60");
+            SetNumber(window, "GsvgAirSignalInput", "60000");
+            MeasureRender(window);
+
+            var drawn = ReadTileSignatureFromRenderDump();
+            // Writes the drawn signature where asked, for the ONE case that needs it: re-deriving the
+            // thresholds from a legitimate correction's before and after (the procedure in
+            // PreviewTileSignatureTolerance). It exists because the signature can only be read at this
+            // moment — a dump copied after the process exits holds the teardown render, which is how the
+            // first recording came out wrong by mean|dtile| 13.06. Writing a new file is NOT the fix for
+            // a failing assertion: without a fresh threshold derivation the new file asserts nothing.
+            if (Environment.GetEnvironmentVariable("XPE_GUI_C138_RECORD") is { Length: > 0 } recordPath)
+            {
+                File.WriteAllLines(recordPath, drawn.Select(v => v.ToString("0.000000", CultureInfo.InvariantCulture)));
+            }
+
+            var recorded = ReadRecordedTileSignature();
+            Assert.Equal(recorded.Length, drawn.Length);
+
+            var deltas = new double[recorded.Length];
+            for (var i = 0; i < recorded.Length; i++)
+            {
+                deltas[i] = Math.Abs(drawn[i] - recorded[i]);
+            }
+
+            var mean = deltas.Average();
+            var max = deltas.Max();
+            var worstTile = Array.IndexOf(deltas, max);
+            output.WriteLine(
+                $"P11 tiles={deltas.Length} mean|dtile|={mean:0.000000} max|dtile|={max:0.000000} " +
+                $"worst tile={worstTile} (row {worstTile / SignatureTilesPerSide}, " +
+                $"col {worstTile % SignatureTilesPerSide})");
+
+            // The message names the measurement and the procedure, NOT "update the file": see
+            // PreviewTileSignatureTolerance for why re-recording without a fresh derivation is refused.
+            Assert.True(
+                mean <= PreviewTileSignatureTolerance && max <= PreviewTileSignatureMaxTolerance,
+                $"The drawn per-tile brightness left the recorded signature: mean|dtile|={mean:0.000000} "
+              + $"(<= {PreviewTileSignatureTolerance:0.000}), max|dtile|={max:0.000000} "
+              + $"(<= {PreviewTileSignatureMaxTolerance:0.000}), worst tile {worstTile}. "
+              + "Find the change that moved the pixels before touching this test. If it is a legitimate "
+              + "correction, render its before and after, re-derive BOTH thresholds from that "
+              + "measurement, and record the numbers with their provenance in "
+              + "PreviewTileSignatureTolerance — the thresholds currently rest on ONE observation "
+              + "(#156, mean 0.001321 / max 0.043945). Re-recording the signature to make this pass "
+              + "removes the only evidence that would identify the cause.");
+        }
+        finally
+        {
+            SetNumber(window, "GsvgDenoiseKInput", "2");
+            SetNumber(window, "GsvgPyramidGainInput", "1.3");
+            SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            SetMode(window, "GsvgModeNone");
+            Apply(window);
+        }
+    }
+
+    /// <summary>
+    /// The 1024 tile means of the render the app last drew, read from the dump the fixture asked for.
+    ///
+    /// <para>Skips rather than fails when the dump is absent: a missing dump means the app was launched
+    /// without the switch or the render never reached the bitmap branch, which is a harness condition,
+    /// not a statement about the pixels. Reporting it as a failure would read as a defect in the app.</para>
+    /// </summary>
+    private static double[] ReadTileSignatureFromRenderDump()
+    {
+        var path = LargeFrameApplicationFixture.RenderDumpPath;
+        Skip.IfNot(File.Exists(path), $"No render dump at {path}; the app was launched without --automation-export-render.");
+
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var header = new List<byte>();
+        int read;
+        while ((read = stream.ReadByte()) is not -1 and not (byte)'\n')
+        {
+            header.Add((byte)read);
+        }
+
+        var fields = System.Text.Encoding.ASCII.GetString(header.ToArray()).Split(' ');
+        Assert.Equal("XPEBGRA", fields[0]);
+        var width = int.Parse(fields[1], CultureInfo.InvariantCulture);
+        var height = int.Parse(fields[2], CultureInfo.InvariantCulture);
+
+        var pixels = new byte[checked(width * height * 4)];
+        var filled = 0;
+        while (filled < pixels.Length)
+        {
+            var got = stream.Read(pixels, filled, pixels.Length - filled);
+            Assert.True(got > 0, $"The dump ended after {filled} of {pixels.Length} pixel bytes.");
+            filled += got;
+        }
+
+        // One channel is enough and this was checked rather than assumed: across all 1,048,576 pixels
+        // of both measured renders B==G==R held and A was 255 everywhere (GUI-C-138 §0).
+        var tileHeight = height / SignatureTilesPerSide;
+        var tileWidth = width / SignatureTilesPerSide;
+        var signature = new double[SignatureTilesPerSide * SignatureTilesPerSide];
+        for (var ty = 0; ty < SignatureTilesPerSide; ty++)
+        {
+            for (var tx = 0; tx < SignatureTilesPerSide; tx++)
+            {
+                long total = 0;
+                for (var y = ty * tileHeight; y < (ty + 1) * tileHeight; y++)
+                {
+                    var row = (y * width + tx * tileWidth) * 4;
+                    for (var x = 0; x < tileWidth; x++)
+                    {
+                        total += pixels[row + (x * 4)];
+                    }
+                }
+
+                signature[(ty * SignatureTilesPerSide) + tx] = (double)total / (tileHeight * tileWidth);
+            }
+        }
+
+        return signature;
+    }
+
+    /// <summary>The recorded signature, embedded in this assembly so a skipped copy step cannot stale it.</summary>
+    private static double[] ReadRecordedTileSignature()
+    {
+        const string resource = "ImageProcTest.E2ETests.Fixtures.P10PreviewTileSignature.txt";
+        using var stream = typeof(GsvgLargeFrameScenarios).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"Embedded resource {resource} is missing.");
+        using var reader = new StreamReader(stream);
+
+        var values = new List<double>();
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.Length is 0 || line[0] is '#')
+            {
+                continue;
+            }
+
+            values.Add(double.Parse(line, CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal(SignatureTilesPerSide * SignatureTilesPerSide, values.Count);
+        return [.. values];
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private sealed record Render(double TotalMs, double StageMs, string Status);

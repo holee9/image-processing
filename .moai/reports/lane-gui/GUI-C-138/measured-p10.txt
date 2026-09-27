@@ -1,0 +1,80 @@
+=== GUI-C-138 measured-p10.txt — P10 의 실제 프레임 (sections 5-7) ===
+
+--- what the app loads, asked directly (width/height 1024 vs 3072)
+w=h=1024 'RAW 1024x1024, min=2481, max=6080, bytes=18874368 | MOCK CalibrationEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=A
+w=h=3072 'RAW 3072x3072, min=2481, max=15451, bytes=18874368 | MOCK CalibrationEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=
+
+--- C-134 reproduced, DLL pinned (P10)
+stage-old -> hash=36fc547e253b07f1 mean=85.205 FAIL (old golden returns)
+stage-new -> PASS
+unpinned  -> hash=41df876b2207111d mean=13.432 (not a regression: DLL not pinned)
+
+--- legit #156 delta from the ASSERTION-MOMENT signatures
+tiles 1024  mean|dtile|=0.001321  max|dtile|=0.043945  tiles moved=119
+(teardown-render capture, invalid: mean 0.001427 max 0.073242)
+
+--- section 6 statistics on P10 frame dumps
+old: pixels=1048576 B!=G:0 B!=R:0 distinct A:[255]
+new: pixels=1048576 B!=G:0 B!=R:0 distinct A:[255]
+
+=== full-frame statistics (REAL rendered pixels) ===
+      stat |          old |          new |      |delta|
+      mean |    77.587466 |    77.588893 |     0.001427
+        sd |    54.607949 |    54.609737 |     0.001788
+        p1 |     0.000000 |     0.000000 |     0.000000
+       p50 |   104.000000 |   104.000000 |     0.000000
+       p99 |   154.000000 |   154.000000 |     0.000000
+       min |     0.000000 |     0.000000 |     0.000000
+       max |   255.000000 |   255.000000 |     0.000000
+  nonzero% |    98.755074 |    98.755074 |     0.000000
+
+changed pixels: 310 (0.029564%)
+max |per-pixel delta|: 5
+
+=== 32x32 tile signature (1024 tiles) ===
+tile mean   : mean|d| 0.001427  max|d| 0.073242
+tile stddev : mean|d| 0.001258  max|d| 0.069625
+
+--- section 6 blind spot on P10 frame
+baseline: REAL post-#156 render (1024x1024).  thresholds: mean|dtile| <= 0.01, max|dtile| <= 0.3
+                   variant | mean|dtile| |  max|dtile| |  mean|dSD| |   max|dSD| |  changed% | verdict
+----------------------------------------------------------------------------------------------------------------------
+    legit #156 (MUST pass) |    0.001427 |    0.073242 |   0.001258 |   0.069625 |  0.029564 | MISSED
+----------------------------------------------------------------------------------------------------------------------
+                  constant |   26.976966 |   70.541016 |  41.336520 |  61.975870 | 100.000000 | mean+max
+               scale x1.01 |    0.616190 |    1.687500 |   0.396508 |   0.756585 | 57.143593 | mean+max
+                     vflip |   32.895002 |  132.687500 |  11.523974 |  46.838224 | 93.571854 | mean+max
+  one bad row (y=512 -> 0) |    0.039853 |    3.999023 |   0.094326 |  15.973956 |  0.097370 | mean+max
+----------------------------------------------------------------------------------------------------------------------
+      checker k=1 (1 tile) |    0.000136 |    0.139648 |   0.000079 |   0.080695 |  0.084019 | MISSED
+      checker k=2 (1 tile) |    0.000273 |    0.279297 |   0.000106 |   0.108173 |  0.084019 | MISSED
+      checker k=4 (1 tile) |    0.000546 |    0.558594 |   0.000003 |   0.002901 |  0.084019 | max
+      checker k=8 (1 tile) |    0.001709 |    1.750000 |   0.000232 |   0.237120 |  0.084019 | max
+     checker k=16 (1 tile) |    0.004519 |    4.626953 |   0.001825 |   1.868295 |  0.084019 | max
+   half-block k=1 (1 tile) |    0.000050 |    0.050781 |   0.000570 |   0.584115 |  0.092697 | MISSED
+   half-block k=2 (1 tile) |    0.000099 |    0.101562 |   0.001101 |   1.126945 |  0.092697 | MISSED
+   half-block k=4 (1 tile) |    0.000198 |    0.203125 |   0.002021 |   2.069538 |  0.092697 | MISSED
+   half-block k=8 (1 tile) |    0.000797 |    0.816406 |   0.003632 |   3.719290 |  0.092697 | max
+  half-block k=16 (1 tile) |    0.002610 |    2.672852 |   0.004825 |   4.940777 |  0.092697 | max
+
+--- section 7 falsification (all through the app)
+post-#156 DLL           : PASS
+pre-#156 DLL            : PASS (by design, legit correction stays quiet)
+grid frequency 60 -> 40 : FAIL mean=0.565287 max=2.456055
+baseline from wrong render: FAIL mean=13.062531 max=60.031250
+large-frame collection (Native): 14/14 passed
+large-frame collection (Mock)  : 14 skipped
+
+--- section 4 CI observation (run 36308748910, commit 8bb3263)
+GsvgLargeFrameScenarios.P01_RenderCost_OnA3072Frame
+GsvgLargeFrameScenarios.P02_RepeatedRender_RunsTheStageAgain
+GsvgLargeFrameScenarios.P03_AssumedDefaults_ChangeTheImageByThisMuch
+GsvgLargeFrameScenarios.P04_TheDrawnHud_NamesTheChain
+GsvgLargeFrameScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag
+GsvgLargeFrameScenarios.P06_WhatTheModuleDid_PerMode
+GsvgLargeFrameScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases
+GsvgLargeFrameScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread
+GsvgLargeFrameScenarios.P09_PyramidLevels_ChangeTheDrawnPixels
+GsvgLargeFrameScenarios.P10_ThePreviewChange_KeptTheDrawnPixels
+SKIP lines for that class: 0
+gui-e2e-native	Run FlaUI E2E smoke (Native)	2026-09-27T09:32:02.4250559Z   Passed ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [17 s]

@@ -33,6 +33,15 @@
   </ItemGroup>
 
   <!--
+    #200 (GUI-C-138): the P10 tile-mean signature travels INSIDE the assembly rather than being copied
+    beside it. A copied file can go stale against the test that reads it (the copy is a separate build
+    step that a partial build can skip); an embedded one cannot.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\P10PreviewTileSignature.txt" />
+  </ItemGroup>
+
+  <!--
     Linked source, not a ProjectReference: referencing the WPF app would make this test assembly
     depend on ImageProcTest.exe, and a leftover app instance holding that exe already broke the
     build once (GUI-C-35, MSB3027). The repository uses the same linked-source pattern in
