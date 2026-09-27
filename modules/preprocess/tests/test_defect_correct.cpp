@@ -170,6 +170,39 @@ TEST_F(DefectCorrectTest, OutOfPlaceStillCorrectsWithoutTheSnapshot) {
     EXPECT_NE(imgPixels[7 * W + 7], out[7 * W + 7]) << "the defect was not corrected";
 }
 
+/** QA-A-146c (#209): the aliasing contract admits exactly two shapes --
+ *  identical buffers, or fully disjoint ones. A PARTIAL overlap is refused
+ *  before anything is written.
+ *
+ *  Not because it is known to produce a wrong answer, but because no caller
+ *  does it and nothing measures whether it would be right; an error code
+ *  makes the violation observable instead of letting it run into UB in
+ *  silence. This test is what keeps the refusal from being dead code. */
+TEST_F(DefectCorrectTest, PartiallyOverlappingBuffersAreRefused) {
+    defectPixels[7 * W + 7] = 1;
+    loadDefectMap();
+
+    // One allocation, two windows into it offset by a single pixel.
+    std::vector<float> shared(W * H + 1, 1000.0f);
+    XpeImageBuffer in = img;
+    in.data     = shared.data();
+    in.dataSize = W * H * sizeof(float);
+    XpeImageBuffer out = output;
+    out.data     = shared.data() + 1;   // overlaps `in` everywhere but one end
+    out.dataSize = W * H * sizeof(float);
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(&in, &out, &metadata));
+
+    // The two admitted shapes still pass, so the check is not simply refusing
+    // everything -- the control for the refusal above.
+    EXPECT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    std::vector<float> same = imgPixels;
+    XpeImageBuffer buf = img;
+    buf.data     = same.data();
+    buf.dataSize = same.size() * sizeof(float);
+    EXPECT_EQ(XPE_OK, xpe_defect_correct(&buf, &buf, &metadata));
+}
+
 // REQ-P1A-024: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     loadDefectMap();

@@ -137,6 +137,32 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
         return XPE_ERR_INVALID_INPUT;
     if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
 
+    // ALIASING CONTRACT -- QA-A-146c (#209). Exactly two shapes are supported:
+    //   input->data == output->data   in-place, bit-identical to out-of-place
+    //   fully disjoint ranges         the ordinary case
+    // PARTIAL OVERLAP IS REFUSED HERE, before anything is written.
+    //
+    // It is not refused because it is known to be wrong -- it is refused
+    // because nobody has ever called it that way, so nothing measures whether
+    // the result would be right. Widening the contract to cover it would
+    // guarantee behaviour no test observes, which is the shape of defect #207
+    // (an AC promising an AVX2 path that did not exist). Left merely
+    // undocumented it would instead run into UB with no signal at all; an
+    // error code makes the contract violation observable to the caller.
+    //
+    // Compared in BYTES over the range this function actually touches
+    // (n * sizeof(float) on both sides). input->dataSize is not used as the
+    // basis: per the #123 contract 0 means *unspecified*, so it is not a
+    // reliable length -- and where it is specified it equals this.
+    {
+        const auto* in_b  = static_cast<const unsigned char*>(input->data);
+        const auto* out_b = static_cast<const unsigned char*>(output->data);
+        const size_t bytes = n * sizeof(float);
+        const bool identical = (in_b == out_b);
+        const bool disjoint  = (in_b + bytes <= out_b) || (out_b + bytes <= in_b);
+        if (!identical && !disjoint) return XPE_ERR_INVALID_INPUT;
+    }
+
     std::unique_lock<std::mutex> lock(g_calib_mutex);
     // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
     // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --

@@ -182,3 +182,85 @@ test_defect_correct.cpp(140): error: Expected equality of these values:
   계약 문구가 부분 겹침까지 허용한다면 `memmove` 또는 범위 비교로 올려야 합니다 — **리더 판단 필요**.
 
 🗿 MoAI
+
+---
+
+# QA-A-146c — 부분 겹침을 오류로 거부 (리더 결정)
+
+리더 결정: **완전 일치 in-place 만 허용, 부분 겹침은 `XPE_ERR_INVALID_INPUT`.**
+카드의 "부분 겹침 포함" 제안 문구는 리더가 철회했습니다.
+
+이유는 제 미검증 항목 그대로입니다 — 부분 겹침은 아무도 호출한 적이 없어 결과가 옳은지 **잰 적이
+없습니다**. 그것을 계약에 넣으면 관측되지 않은 동작을 보증하게 되고, 이는 `#207` 에서 방금 닫은
+결함과 같은 형태입니다(없는 AVX2 경로를 AC 가 보증). `memmove` 로 올려도 memcpy UB 만 사라질 뿐
+"겹친 범위에서 결과가 같은가" 는 여전히 미측정으로 남습니다.
+
+좁히기만 하면 부분 겹침 호출이 **아무 신호 없이 UB** 로 가므로, 거부해서 계약 위반을 관측 가능하게
+만듭니다.
+
+## 구현
+
+처리 전(쓰기 전) 세 갈래로 판정합니다.
+
+| 형태 | 결과 |
+|---|---|
+| `input->data == output->data` | 허용 — memcpy 스킵 분기(QA-A-146b) |
+| 완전히 분리 | 허용 — memcpy |
+| 그 외 겹침 | **`XPE_ERR_INVALID_INPUT`** |
+
+**바이트 범위로 비교**합니다. 기준은 이 함수가 실제로 건드리는 `n * sizeof(float)` 이며,
+`input->dataSize` 를 쓰지 않았습니다 — `#123` 계약상 0 은 *미지정*이라 길이로 신뢰할 수 없고,
+지정된 경우에는 이 값과 같습니다. (사유를 소스 주석에 적었습니다.)
+
+## 반증
+
+거부를 런타임-거짓(`volatile`)으로 무력화:
+
+```
+test_defect_correct.cpp(194): error: Expected equality of these values:
+    Which is: 0
+[  FAILED  ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused
+```
+
+기대 `XPE_ERR_INVALID_INPUT` 대신 `XPE_OK`(0). **같은 증상으로 빨강** — 거부가 죽은 코드가 아닙니다.
+(`BUILD_EXIT=0`, DLL 타임스탬프 21:01:21 갱신 확인)
+
+새 시험 `PartiallyOverlappingBuffersAreRefused` 는 한 할당 안에 화소 하나만큼 어긋난 두 창을 만들어
+실제로 부분 겹침으로 호출하고, **양성 대조**로 허용되는 두 형태(분리·완전 일치)가 여전히 `XPE_OK`
+인지도 같은 시험에서 확인합니다 — 전부 거부하는 검사가 아님을 보이기 위해서입니다.
+
+## 검증
+
+| 항목 | 결과 |
+|---|---|
+| 빌드 | `BUILD_EXIT=0` |
+| 전체 ctest | **757 / 757** (`CTEST_EXIT=0`) |
+| 한 프로세스 네 순서 (기본 + seed 1/2/9) | 각각 `ran=688`, `PASSED 680`, 실패 0 |
+
+---
+
+## 곁가지 기록 — `FullPipelineSmallImage` 가 무엇을 단언하는가 (리더 요청)
+
+`modules/preprocess/tests/test_integration.cpp`. 리더 요청대로 한 줄 이상 적습니다 —
+**"rc 만 본다" 보다 약합니다.**
+
+- 앞의 세 단계(offset·gain·defect)는 반환값을 이렇게 받습니다:
+  `EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)`
+  (`:88`, `:94`, `:101` — defect 단계는 `XPE_ERR_UNSUPPORTED_FORMAT` 까지 추가로 허용).
+  즉 **그 단계가 아무 일도 하지 않아도 통과**합니다.
+- `xpe_ghost_create` / `xpe_ghost_correct` / `xpe_binning_correct` 만 `ASSERT_EQ(XPE_OK, …)` 입니다.
+- 화소값을 보는 단언은 **없습니다.** 유일한 정량 단언은 `EXPECT_LE(ms, 500)` — 소요 시간입니다.
+
+QA-A-146b 의 센티넬(`dst[0] = -12345.0f`)에도 이 시험이 초록이었던 이유가 이것입니다.
+defect 경로에 국한된 이야기가 아니며, 카드는 리더가 따로 세웁니다 — 여기서는 사실만 남깁니다.
+
+## 미검증
+
+- 부분 겹침이 **실제로 틀린 값을 내는지**는 여전히 재지 않았습니다. 이제 거부하므로 잴 수도 없고,
+  그것이 결정의 취지입니다 — 계약이 보증하지 않는 것을 관측 가능한 오류로 바꾼 것이지, 옳고 그름을
+  판정한 것이 아닙니다.
+- 겹침 판정은 두 버퍼가 **같은 할당 안**일 때만 표준상 정의된 포인터 비교입니다. 서로 다른 할당의
+  포인터를 `<=` 로 비교하는 것은 미명세(unspecified)이며, 실무상 평탄한 주소 공간에서 동작합니다.
+  이 대가로 조용한 UB 를 막습니다.
+
+🗿 MoAI
