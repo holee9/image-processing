@@ -1,24 +1,23 @@
-// #196 (GUI-C-132) §5: is the gui a host that never re-arms the process-global no-op latch?
+// #196 (GUI-C-132; doc refreshed GUI-C-136 after QA-A-142 removed the latch): the gui's LUT call sites.
 using System.Text.RegularExpressions;
 
 namespace ImageProcTest.IntegrationTests.Functional;
 
 /// <summary>
-/// The #196 no-op report is latched on <c>g_calib.nonlin_noop_reported</c>, which is process-global and
-/// re-armed in exactly two places — <c>xpe_calib_load_nonlin_lut.cpp:76</c> (load) and <c>:102</c>
-/// (unload). pre reported the consequence without checking any particular host: a host that changes
-/// calibration profiles WITHOUT calling <c>xpe_calib_unload_nonlin_lut()</c> never gets a second report.
+/// What the gui does and does not call around the nonlinearity LUT. Two facts, both about call sites.
 ///
-/// <para><b>The question is whether the gui is that host, and the answer is yes.</b> The gui loads
-/// offset, gain and defect calibration by name and has no call site for the nonlinearity LUT at all —
-/// neither load nor unload. So the latch arms on the first preprocess run of a process and is never
-/// re-armed for the life of that process.</para>
+/// <para><b>Written for a question that has since been answered elsewhere.</b> GUI-C-132 asked whether
+/// the gui is a host that never re-arms the #196 suppression latch, because that latch was process-global
+/// and re-armed only on LUT load/unload. The answer was yes — and the measurement went further: the latch
+/// did not survive a single frame here either, because <c>xpe_preprocess_shutdown</c> clears every module
+/// global (#176) and put it back on every run. <c>QA-A-142</c> (<c>f772b31</c>) then REMOVED the latch,
+/// citing exactly that. So there is no latch to re-arm any more.</para>
 ///
-/// <para><b>What that means for a real user</b> is milder than it first sounds, and the reason is the
-/// same absence: because the gui can never LOAD a nonlinearity LUT either, the no-op condition never
-/// stops holding. One report per process launch is therefore complete rather than lossy — there is no
-/// second condition to report. It would become lossy the moment the gui gains a way to load a LUT, and
-/// at that point the unload call has to arrive with it.</para>
+/// <para><b>The two facts outlived the latch, which is why this file stays.</b> The gui loads offset, gain
+/// and defect calibration by name and has NO call site for the nonlinearity LUT — neither load nor unload
+/// — and it does invoke the stage, with a null config. Together they say why the no-op condition holds on
+/// every frame: the gui has no way to stop it holding. If a way to load a LUT is ever added, the unload
+/// call has to arrive with it, and the first case here is what will notice its absence.</para>
 ///
 /// <para><b>Why a source guard and not a runtime one.</b> A runtime measurement cannot tell "never
 /// called" from "called and the outcome was the same" — the frame is byte-identical either way. Only
@@ -27,7 +26,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// result is indistinguishable from a search that was looking in the wrong place.</para>
 /// </summary>
 [Trait("Category", "Functional")]
-public sealed class NonlinearityLatchRearmTests(Xunit.Abstractions.ITestOutputHelper output)
+public sealed class NonlinearityLutCallSiteTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     [Fact]
     public void TheGui_NeverLoadsOrUnloadsTheNonlinearityLut_WhileItDoesLoadTheOthers()
@@ -58,7 +57,8 @@ public sealed class NonlinearityLatchRearmTests(Xunit.Abstractions.ITestOutputHe
     }
 
     /// <summary>
-    /// The stage IS invoked — the latch is armed by a real call, not by nothing happening. Without this
+    /// The stage IS invoked — the no-op condition is reached by a real call, not by nothing happening.
+    /// Without this
     /// the case above would also pass on a gui that never ran the nonlinearity stage at all, which is a
     /// different world with the same absence.
     /// </summary>
