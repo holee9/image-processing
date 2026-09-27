@@ -129,3 +129,56 @@ i7-12700, 3072×3072 FLOAT32, 결함 밀도 0.1 %, RelWithDebInfo, 워밍업 1�
 - 링 대체 경로는 3×3 블록 하나로만 태웠습니다. r=2, r=3 까지 가는 더 큰 블록은 시험하지 않았습니다.
 
 🗿 MoAI
+
+---
+
+# QA-A-146b — `:167` memcpy 자기복사 가드 (리더 지적)
+
+리더 확인 중 남은 항목: `std::memcpy(dst, src, …)` 에 `dst != src` 가드가 없었습니다.
+
+## 왜 지금 문제가 되는가
+
+전에는 "우연히 in-place 로 부르는 곳이 있다" 였습니다. 이번 변경이 in-place 를 **명시적 계약으로
+올리므로**, `memcpy` 의 비중첩 요구를 어기는 자기복사(UB)를 계약이 보증하게 됩니다. 이 툴체인에서
+동작하는 것과 표준이 보장하는 것은 다릅니다 — ASAN/UBSAN 이나 다른 구현에서 터질 자리입니다.
+
+조치: `if (dst != src) std::memcpy(...)`. 사유를 소스 주석에 적었습니다. 부수 효과로 in-place 경로에서
+프레임 복사 한 번이 더 사라집니다.
+
+## 반증 — 그 분기를 실제로 타는가
+
+`else` 에 센티넬을 넣어 skip 경로가 실행되는지 직접 확인:
+
+```cpp
+if (dst != src) { std::memcpy(dst, src, n * sizeof(float)); }
+else            { dst[0] = -12345.0f; }   // control
+```
+
+```
+test_defect_correct.cpp(140): error: Expected equality of these values:
+    Which is: 1000
+    Which is: -12345
+[  FAILED  ] DefectCorrectTest.InPlaceMatchesOutOfPlace
+```
+
+**in-place 호출이 실제로 skip 분기를 탑니다.** 가드가 죽은 코드가 아닙니다. (`BUILD_EXIT=0`)
+
+곁가지 확인: 같은 실행에서 `FullPipelineSmallImage` 는 이 센티넬에도 **초록**입니다 — `rc` 만 보기
+때문이며, QA-A-146 본문에서 "in-place 호출자가 있어도 그 시험은 값을 안 본다" 고 적은 것과 같은 사실입니다.
+
+## 검증 (가드 적용 후)
+
+| 항목 | 결과 |
+|---|---|
+| 빌드 | `BUILD_EXIT=0` |
+| 전체 ctest | **756 / 756** (`CTEST_EXIT=0`) |
+| 한 프로세스 네 순서 (기본 + seed 1/2/9) | 각각 `ran=687`, `PASSED 679`, 실패 0 |
+
+## 미검증
+
+- in-place 경로의 추가 절감은 재측정하지 않았습니다. 3072² 프레임 `memcpy` 1회분(`#204` 분해에서
+  3.04 ms)이 빠지지만, in-place 호출자는 현재 시험뿐이라 제품 성능 수치로 쓸 곳이 없습니다.
+- 부분 겹침(`dst != src` 이지만 범위가 겹침)은 여전히 `memcpy` 를 탑니다. 그런 호출자는 없고,
+  계약 문구가 부분 겹침까지 허용한다면 `memmove` 또는 범위 비교로 올려야 합니다 — **리더 판단 필요**.
+
+🗿 MoAI

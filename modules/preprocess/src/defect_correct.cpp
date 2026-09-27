@@ -163,8 +163,14 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     float*         dst = static_cast<float*>(output->data);
     const uint8_t* dm  = dm_local.data();
 
-    // Copy input → output first
-    std::memcpy(dst, src, n * sizeof(float));
+    // Copy input -> output first. SKIPPED WHEN THE CALLER PASSED ONE BUFFER:
+    // std::memcpy requires non-overlapping regions, so dst == src is undefined
+    // behaviour even though it happens to work on this toolchain. In-place is
+    // a documented, supported call shape as of QA-A-146 (#209) -- the contract
+    // must not rest on UB. The copy is also pure waste there.
+    if (dst != src) {
+        std::memcpy(dst, src, n * sizeof(float));
+    }
 
     bool hasDefects = false;
     for (size_t i = 0; i < n; ++i) {
