@@ -5,7 +5,7 @@
  *        Tier 1: LTI deconvolution
  *        Tier 2: Exposure-weighted LTI
  *        Tier 3: NLCSC (Nonlinear Causal Spatial Context)
- *        REQ-P1A-029 to REQ-P1A-034
+ *        REQ-P1A-085 to REQ-P1A-087
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -19,14 +19,14 @@
 
 // @MX:ANCHOR: [AUTO] xpe_ghost_create — resource allocation for ghost corrector
 // @MX:REASON: All ghost functions fan in; handle is the invariant contract point
-// @MX:SPEC: REQ-P1A-029
+// @MX:SPEC: REQ-P1A-085
 XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                                const char* configJsonOrNull,
                                void** handleOut)
 {
     if (!handleOut || width == 0 || height == 0) return XPE_ERR_INVALID_INPUT;
 
-    // REQ-P1A-029: allocate handle with frame history buffer
+    // REQ-P1A-085: allocate handle with frame history buffer
     // REQ-P1A-030: configJsonOrNull for IRF coefficient override
     // REQ-P1A-031: XPE_ERR_OUT_OF_MEMORY on allocation failure
     auto* handle = new (std::nothrow) GhostCorrectorHandle();

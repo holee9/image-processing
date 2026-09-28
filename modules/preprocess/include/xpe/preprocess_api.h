@@ -554,14 +554,14 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
                                                     float* max_value);
 
 /* =============================================================================
- * Phase 6: Ghost/Lag Correction (REQ-P1A-029 to REQ-P1A-034)
+ * Phase 6: Ghost/Lag Correction (REQ-P1A-085 to REQ-P1A-087)
  * SWU-1.4: Ghost/Lag Correction Tier 1/2/3 — LTI/NLCSC deconvolution (PRE-04)
  * ============================================================================ */
 
 /**
  * @brief Allocate an opaque ghost corrector handle with frame history buffer
  *
- * REQ-P1A-029: Allocate handle with frame history buffer
+ * REQ-P1A-085: Allocate handle with frame history buffer
  * REQ-P1A-030: Config JSON for IRF coefficient override
  * REQ-P1A-031: Return XPE_ERR_OUT_OF_MEMORY on allocation failure
  *
@@ -627,8 +627,8 @@ XPE_API void xpe_ghost_destroy(void* handle);
  * @brief Adjust pixel values for dark current temperature dependence
  *
  * REQ-P1A-005: Apply temperature-dependent dark current scaling
- * REQ-P1A-007: NaN -> use 25.0C fallback
- * REQ-P1A-008: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
+ * REQ-P1A-081: NaN -> use 25.0C fallback
+ * REQ-P1A-081: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
  * Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
  *
  * @param img [in/out] Image to correct (uint16 format)
@@ -664,7 +664,7 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
  * REQ-P1A-020: No-op for binningMode == 1
  * REQ-P1A-021: XPE_ERR_CONFIG_INVALID for unknown binning mode
  * REQ-P1A-022: Float32 format (post-gain-correct stage)
- * REQ-P1A-023: Per-mode correction profile
+ * REQ-P1A-090: Per-mode correction profile
  *
  * @param img [in/out] Image to correct (float32 format)
  * @param binningMode Binning factor (1 = no-op, 2 = 2x2, 4 = 4x4)
@@ -678,7 +678,7 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
                                           const char* configJsonOrNull);
 
 /* =============================================================================
- * Phase 8: Full Pre-Processing Pipeline (REQ-P1A-041 to REQ-P1A-047)
+ * Phase 8: Full Pre-Processing Pipeline (REQ-P1A-095 to REQ-P1A-099)
  * SWU-1.9: Readout Artifact Validation (PRE-01)
  * Pipeline stages: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  * ============================================================================ */
@@ -704,7 +704,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
 /**
  * @brief Execute full pre-processing pipeline with bypass logic
  *
- * REQ-P1A-041 to REQ-P1A-047: Full pipeline integration
+ * REQ-P1A-095 to REQ-P1A-099: Full pipeline integration
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
