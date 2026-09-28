@@ -8,7 +8,7 @@
  * that functions return non-null or non-error.
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
- * REQ coverage: REQ-P1A-010, REQ-P1A-021, REQ-P1A-016..019, REQ-P1A-029..034,
+ * REQ coverage: REQ-P1A-010, REQ-P1A-021, REQ-P1A-016..019, REQ-P1A-085..087,
  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
  */
 
@@ -311,7 +311,7 @@ TEST_F(GoldenGainTest, ZeroGainIsRefusedAtLoad) {
 // hist1[i]        = decay1*hist1[i] + raw[n,i]   decay1 = exp(-1/tau1)
 // hist2[i]        = decay2*hist2[i] + raw[n,i]   decay2 = exp(-1/tau2)
 //
-// REQ-P1A-029 to REQ-P1A-034
+// REQ-P1A-085 to REQ-P1A-087
 // ==========================================================================
 class GoldenGhostTest : public ::testing::Test {
 protected:
@@ -435,7 +435,7 @@ TEST_F(GoldenGhostTest, GhostSubtractedAfterFirstFrame) {
 // scale    = exp(constant/T_abs) / exp(constant/T_ref)
 //            where constant = -Eg/(2*kB) ≈ -6498 K
 // corrected[i] ≈ raw[i] / scale
-// REQ-P1A-005 to REQ-P1A-008
+// REQ-P1A-080 to REQ-P1A-082
 // ==========================================================================
 class GoldenTempTest : public ::testing::Test {
 protected:
@@ -469,7 +469,7 @@ TEST_F(GoldenTempTest, RefTempProducesNoChange) {
         EXPECT_EQ(5000u, out[i]) << "pixel[" << i << "] T=25°C must be unchanged";
 }
 
-// REQ-P1A-006: Above 25°C, dark current higher → scale > 1 → corrected < raw
+// REQ-P1A-080: Above 25°C, dark current higher → scale > 1 → corrected < raw
 TEST_F(GoldenTempTest, Above25cReducesPixelValues) {
     const uint16_t rawVal = 3000u;
     std::fill(pixels.begin(), pixels.end(), rawVal);
@@ -492,7 +492,7 @@ TEST_F(GoldenTempTest, Below25cScaleIsLessThanOne) {
     EXPECT_LT(scale(-10.0), 1.0) << "scale at -10°C must be < 1";
 }
 
-// REQ-P1A-008: Out-of-range temperature returns XPE_ERR_INVALID_INPUT
+// REQ-P1A-081: Out-of-range temperature returns XPE_ERR_INVALID_INPUT
 TEST_F(GoldenTempTest, OutOfRangeReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&img, -25.0f, nullptr));
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&img,  65.0f, nullptr));
@@ -502,7 +502,7 @@ TEST_F(GoldenTempTest, OutOfRangeReturnsError) {
 // SWU-1.8: Binning Correction
 // Formula: output[i] = raw[i] * (1.0f / (mode * mode))
 // mode=1: no-op | mode=2: ÷4 | mode=4: ÷16
-// REQ-P1A-020 to REQ-P1A-023
+// REQ-P1A-090, REQ-P1A-091
 // ==========================================================================
 class GoldenBinningTest : public ::testing::Test {
 protected:
@@ -547,7 +547,7 @@ TEST_F(GoldenBinningTest, Mode4DividesBySixteen) {
         EXPECT_FLOAT_EQ(1000.0f, out[i]) << "pixel[" << i << "] mode=4";
 }
 
-// REQ-P1A-023: unknown mode returns XPE_ERR_CONFIG_INVALID
+// REQ-P1A-091: unknown mode returns XPE_ERR_CONFIG_INVALID
 TEST_F(GoldenBinningTest, UnknownModeReturnsError) {
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_binning_correct(&img, 3, nullptr));
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_binning_correct(&img, 8, nullptr));

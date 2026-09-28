@@ -23,7 +23,7 @@ set(XPE_PREPROCESS_SOURCES
     src/nonlinearity_correct.cpp # SWU-1.7 REQ-P1A-012..015
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-020..023
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012, REQ-P1A-013 (new 3-arg g_calib API)
-    src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
+    src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-085..087
     src/calibration_manager.cpp  # SWU-1.5 CRC-32 only (legacy helpers removed)
     src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
     src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection

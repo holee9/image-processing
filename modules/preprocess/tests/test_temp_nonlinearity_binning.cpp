@@ -2,7 +2,11 @@
  * @file test_temp_nonlinearity_binning.cpp
  * @brief TDD RED tests for SWU-1.6/1.7/1.8:
  *        xpe_temp_compensate, xpe_nonlinearity_correct, xpe_binning_correct
- *        REQ-P1A-005 to REQ-P1A-008, REQ-P1A-012 to REQ-P1A-023
+ *        REQ-P1A-080 to REQ-P1A-082 (temp), REQ-P1A-090/091 (binning)
+ *
+ * QA-A-150 (#211): nonlinearity correction is exercised here but has NO current
+ * requirement -- old 012~015 were dropped by bc22093 and nothing replaced them.
+ * Reported rather than mapped to a neighbouring number.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -59,7 +63,7 @@ TEST(TempCompensate, NullImgReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(nullptr, 25.0f, nullptr));
 }
 
-// REQ-P1A-007: NaN temperature uses 25.0C fallback — must not return error
+// REQ-P1A-081: NaN temperature uses 25.0C fallback — must not return error
 TEST(TempCompensate, NanTemperatureUsesFallback) {
     std::vector<uint16_t> data(16, 1000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
@@ -67,7 +71,7 @@ TEST(TempCompensate, NanTemperatureUsesFallback) {
     EXPECT_EQ(XPE_OK, xpe_temp_compensate(&buf, nan_temp, nullptr));
 }
 
-// REQ-P1A-008: temperature out of [-20, +60] returns XPE_ERR_INVALID_INPUT
+// REQ-P1A-081: temperature out of [-20, +60] returns XPE_ERR_INVALID_INPUT
 TEST(TempCompensate, TempBelowRangeReturnsError) {
     std::vector<uint16_t> data(16, 1000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);

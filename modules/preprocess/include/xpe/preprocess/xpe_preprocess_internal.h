@@ -26,7 +26,7 @@
 
 /* =========================================================================
  * SWU-1.4: GhostCorrectorHandle — opaque handle backing xpe_ghost_create
- * REQ-P1A-029 to REQ-P1A-034
+ * REQ-P1A-085 to REQ-P1A-087
  * ========================================================================= */
 
 // @MX:ANCHOR: [AUTO] GhostCorrectorHandle — opaque handle for xpe_ghost_* API

@@ -1,7 +1,7 @@
 /**
  * @file pipeline.cpp
  * @brief Full pre-processing pipeline integration (stages 0.5-4)
- *        REQ-P1A-041 to REQ-P1A-047
+ *        REQ-P1A-095 to REQ-P1A-099
  *        Extended: pre-loaded calibration state, batch processing
  * SPEC: SPEC-XPE-P1A v1.0.0
  *
@@ -21,7 +21,7 @@
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
- * REQ-P1A-041 to REQ-P1A-047
+ * REQ-P1A-095 to REQ-P1A-099
  * ========================================================================= */
 
 namespace {
@@ -322,7 +322,7 @@ namespace {
 // budget of SRS-CALIB-PERF-001.
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline — full pipeline integration
 // @MX:REASON: Main pipeline entry point; all correction stages fan in here
-// @MX:SPEC: REQ-P1A-041 to REQ-P1A-047
+// @MX:SPEC: REQ-P1A-095 to REQ-P1A-099
 XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
                                   XpeImageMetadata* meta,
                                   const char* calibPath,
