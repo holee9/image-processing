@@ -524,7 +524,7 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | SRS-CALIB-FUNC-015~021 | E2E 지표 보고서 | E2E fixture 테스트 | PRE-E2E-* | ⚠️ 부분 |
 | SRS-CALIB-SAFE-001 | 필수 보정 강제 | `test_boundary.cpp` | `MandatoryStage*` | ✅ |
 | SRS-CALIB-SAFE-002 | 만료 하드블록 | `test_calibration_manager.cpp` | `ExpiryHardBlock` | ✅ |
-| SRS-CALIB-SAFE-003 | CRC 무결성 | `test_calibration_manager.cpp` | `CRC_Validation*` | ✅ |
+| SRS-CALIB-SAFE-003 | **SHA-256** 무결성 (`#203` 정정) | `test_calibration_manager.cpp` | `CRC_Validation*` ← 시험 **이름만** 옛 것 | ✅ |
 | SRS-CALIB-SAFE-004 | 입력 버퍼 보존 | `test_boundary.cpp` | `InputPreservation` | ✅ |
 | SRS-CALIB-SAFE-005 | float32 범위 보호 | `test_gain_correct.cpp` | `OverflowProtection` | ✅ |
 | SRS-CALIB-PERF-001 | 500ms 성능 예산 | 벤치마크 (`perf_benchmark.cpp`) | `PipelineLatency` | ⚠️ 수동 |
