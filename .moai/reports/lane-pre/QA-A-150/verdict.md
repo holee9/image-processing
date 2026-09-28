@@ -194,3 +194,36 @@ test_temp_...:70       REQ-P1A-008: temperature out of [-20, +60] returns XPE_ER
   오래된 표가 남은 것일 수도 있습니다.
 
 🗿 MoAI
+
+---
+
+# 정정 (2026-09-28) — §2(c) "비선형 보정에 요구가 없습니다" 는 **틀렸습니다**
+
+요구는 **있습니다**: `SRS-CALIB-FUNC-006` / `-006-EXT` (`SRS-CALIB-001`).
+구현이 이미 인용하고 있습니다 — `nonlinearity_correct.cpp:4`·`:37`.
+독립 확인: `docs/calibration/` 의 네 문서가 같은 ID 로 이 함수를 매핑합니다.
+
+**오류의 형태는 부재 단언의 범위입니다.** `REQ-P1A-` 정의 한 표만 보고
+"요구가 없다" 를 **전 계열에 대해** 단정했습니다. 검색이 눈먼 것이 아니라
+**검색한 범위를 결론의 범위로 잘못 옮긴 것**입니다.
+
+더 나쁜 것은 답이 **옆 파일에 이미 있었다**는 점입니다. `nonlinearity_correct.cpp:6-8` 의
+머리말이 *"The REQ-P1A-012..015 citation that used to sit here named four requirements about
+defect correction and calibration loading"* 라고 적고 **옳은 ID 를 바로 위에 인용**합니다.
+`#196`·`#199` 에서 제가 손댄 파일입니다.
+
+**도구도 같은 범위입니다.** `check_req_citations.py` 의 orphan 목록은
+*"REQ-P1A 요구가 없다"* 이지 *"요구가 없다"* 가 아닙니다. 리더 확인으로 이 함정에
+두 번 물렸습니다 — `xpe_calib_get_quality_meta`(`SRS-CALIB-FUNC-033`, `#140`)와 이번 건.
+
+조치: `test_temp_nonlinearity_binning.cpp` 머리말의 틀린 문장을 **지우지 않고 정정으로
+바꿨습니다**(`718ba06`) — 무엇을 왜 틀렸는지 남겨야 다음 사람이 같은 범위 착각을 반복하지
+않습니다. 옛 `REQ-P1A-012~015` 가 대체 없이 사라진 것도 **결함이 아니라 정상**입니다.
+
+나머지 판정((a)·(b)·(d)·(e)·(f))은 리더가 확인했고 변경 없습니다.
+`§5.6` 표는 리더가 죽은 계획임을 확인해 무효 표기했습니다(`c69babc`) — 지우지 않은 이유는
+같습니다.
+
+검증: `BUILD_EXIT=0`, 전체 ctest **757/757**.
+
+🗿 MoAI
