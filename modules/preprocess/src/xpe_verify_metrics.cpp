@@ -76,6 +76,23 @@ namespace {
     constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- NO REQUIREMENT FOUND (scope above)
 
     // Helper: Compute robust mean using median (more resistant to outliers)
+    /* QA-A-156 (#220): the canonical metrics are defined on the ARITHMETIC mean.
+     * Preprocessing-E2E-Automated-Evaluation-Protocol.md:203 `DarkBias =
+     * mean(Y_dark_roi)`, :204 `DSNU_ADU = std(Y_dark_roi)`, :218 `PRNU_CV =
+     * std(Y_flat_roi) / max(mean(Y_flat_roi), eps)`.
+     *
+     * compute_robust_mean below returns the MEDIAN, and compute_std takes the
+     * centre as an argument -- so passing the median moved BOTH the centre of
+     * the deviation sum and the divisor. Median + RMS is not a known estimator
+     * pair (a robust design pairs the median with MAD), which is what decided
+     * #220: the substitution was partial, so it is not the canon. */
+    double compute_mean(const std::vector<double>& values) noexcept {
+        if (values.empty()) return 0.0;
+        double sum = 0.0;
+        for (double v : values) sum += v;
+        return sum / static_cast<double>(values.size());
+    }
+
     double compute_robust_mean(const std::vector<double>& values) noexcept {
         if (values.empty()) return 0.0;
 
@@ -238,17 +255,34 @@ XPE_API XpeErrorCode xpe_verify_offset(
         // Uniform raw image: no distinguishable dark regions.
         // dark_bias = 0 (can't measure residual dark without variation)
         //
-        // QA-A-152 (#216): UNMEASURABLE IS REPORTED AS PASS HERE, and the gain
-        // path does the opposite for the same situation -- no valid pixels
-        // there sets overall_pass = false (:315). A caller cannot tell "passed"
-        // from "could not be measured" through this field. Reported rather than
-        // changed: which way an unmeasurable frame should report is a product
-        // decision. A uniform synthetic frame reaches this branch, which is the
-        // shape of #148 (a floor validated only on uniform frames).
+        // UNMEASURABLE REPORTS AS FAILURE -- QA-A-157 (#219).
+        //
+        // This used to set overall_pass = true, which made a frame nobody could
+        // measure indistinguishable from a frame that passed. QA-A-152 reported
+        // it; #219 decided (a): match the gain path, which answers the same
+        // situation with false (no valid pixels -> false, below).
+        //
+        // WHY false AND NOT true. The two mistakes are not symmetric. A caller
+        // that believes a false "pass" ships an unverified frame; a caller that
+        // believes a false "fail" looks at a good frame once more. Only the
+        // first one is silent.
+        //
+        // WHICH SIDE WAS THE DESIGN: the gain path's false came with the
+        // feature (b6c19b8, 2026-04-26 21:35). This branch was added 35 minutes
+        // later by 86d2894 "fix(calibration): 테스트-구현 불일치 4건 수정",
+        // whose own summary calls it "uniform 이미지 처리 개선" -- it was
+        // written so a uniform-image test would stop failing, not as a product
+        // judgement. That is why the gain path was the thing to match.
+        //
+        // LIMIT, AND IT IS REAL: overall_pass is one bool for three states --
+        // passed, failed, could not be measured. (a) folds the third into the
+        // second because that is the safe fold, and a caller still cannot tell
+        // them apart. A separate status field is the actual fix; it needs a
+        // requirement first, so it is not made here (#219).
         metrics->dark_bias = 0.0;
         metrics->dsnu = 0.0;
         metrics->residual_noise = 0.0;
-        metrics->overall_pass = true;
+        metrics->overall_pass = false;
         return XPE_OK;
     }
 
@@ -275,7 +309,9 @@ XPE_API XpeErrorCode xpe_verify_offset(
     }
 
     // Compute metrics
-    double mean = compute_robust_mean(dark_corrected);
+    // Protocol.md:203 `DarkBias = mean(Y_dark_roi)`, :204 `DSNU_ADU = std(...)`.
+    // QA-A-156 (#220): was compute_robust_mean (median).
+    double mean = compute_mean(dark_corrected);
     double stddev = compute_std(dark_corrected, mean);
 
     metrics->dark_bias = mean;
@@ -365,12 +401,15 @@ XPE_API XpeErrorCode xpe_verify_gain(
     }
 
     // Compute PRNU before gain correction
-    double mean_before = compute_robust_mean(before_vals);
+    // Protocol.md:218 `PRNU_CV = std(Y_flat_roi) / max(mean(Y_flat_roi), eps)`.
+    // QA-A-156 (#220): was compute_robust_mean (median).
+    double mean_before = compute_mean(before_vals);
     double std_before = compute_std(before_vals, mean_before);
     metrics->prnu_before = (mean_before > 0.0) ? (std_before / mean_before) * 100.0 : 0.0;
 
     // Compute PRNU after gain correction
-    double mean_after = compute_robust_mean(after_vals);
+    // Protocol.md:218, same as above -- this is the value FUNC-017 gates.
+    double mean_after = compute_mean(after_vals);
     double std_after = compute_std(after_vals, mean_after);
     metrics->prnu_after = (mean_after > 0.0) ? (std_after / mean_after) * 100.0 : 0.0;
 

@@ -130,18 +130,39 @@ protected:
 // =============================================================================
 // Test 1: Verify offset correction with perfect correction
 // =============================================================================
+/* QA-A-157 (#219): THIS CASE WAS PINNING THE DEFECT, and its fixture never
+ * exercised what its name promises.
+ *
+ * It used a UNIFORM raw frame, which has no distinguishable dark region, so the
+ * call took the unmeasurable early return (xpe_verify_metrics.cpp:254 ff) and
+ * got overall_pass = true without measuring anything. The assertions below then
+ * passed on a frame where dark_bias and dsnu had been set to 0 by that branch
+ * rather than computed.
+ *
+ * That branch exists because of this case: 86d2894 "fix(calibration): 테스트-
+ * 구현 불일치 4건 수정" (2026-04-26 22:10) added it 35 minutes after the
+ * feature commit, summarised as "uniform 이미지 처리 개선". #219 decided the
+ * branch must report false, so the fixture is corrected here to have a real
+ * dark region -- which is what "perfect offset correction" needed all along.
+ */
 TEST_F(VerifyMetricsTest, VerifyOffset_PerfectCorrection) {
     const uint16_t dark_level = 500;
     const uint16_t signal_level = 2000;
 
-    // Raw image = dark + signal
-    U16ImageHelper raw(W, H, dark_level + signal_level);
-
-    // Dark reference
-    U16ImageHelper dark(W, H, dark_level);
-
-    // Corrected image = signal (perfect offset correction)
-    U16ImageHelper corrected(W, H, signal_level);
+    // The dark ROI is "raw below the 10th percentile" (xpe_verify_metrics.cpp
+    // :291-300), so the dark pixels must both be a minority AND carry spread --
+    // a flat dark block puts the percentile ON its own value, `<` admits
+    // nothing, and the fallback silently measures the WHOLE frame instead.
+    // 20% dark with a 10-ADU jitter; the rest lit. Corrected removes the dark
+    // exactly, so every dark-ROI pixel lands on 0.
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;              // 80% lit, 20% dark
+        const uint16_t dark = static_cast<uint16_t>(dark_level - 10 + ((i / 5u) % 10u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? dark + signal_level : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? signal_level : 0));
+    }
 
     XpeImageMetadata meta = createMetadata();
     XpeCalibrationMetrics metrics{};
@@ -330,6 +351,110 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
     double expected_density = (static_cast<double>(num_defects) / (W * H)) * 100.0;
     EXPECT_NEAR(metrics.defect_density, expected_density, 0.01)
         << "Defect density should match expected value";
+}
+
+/* ---------------------------------------------------------------------------
+ * QA-A-157 (#219): a frame nobody can measure must not report as passed.
+ *
+ * A uniform raw frame has no dark region to find, so xpe_verify_offset cannot
+ * compute dark_bias or dsnu. It used to answer overall_pass = true anyway,
+ * which is the shape that let a broken fixture go green during QA-A-156 -- the
+ * value was wrong and the verdict said nothing, so only someone who doubted
+ * the number caught it. #219 folds that state into false, matching the gain
+ * path (no valid pixels -> false).
+ *
+ * This is the exact input that was silent.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyOffset_UnmeasurableFrameDoesNotPass) {
+    U16ImageHelper raw(W, H, 1500);        // uniform: no distinguishable dark
+    U16ImageHelper corrected(W, H, 1500);
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m))
+        << "an unmeasurable frame is not an error -- the call still succeeds";
+    EXPECT_FALSE(m.overall_pass)
+        << "nothing was measured here, so this must not read as a pass";
+
+    // The metrics here are the branch's placeholders, not measurements.
+    // Asserted so a future reader does not mistake them for computed values.
+    EXPECT_DOUBLE_EQ(0.0, m.dark_bias);
+    EXPECT_DOUBLE_EQ(0.0, m.dsnu);
+}
+
+/* ---------------------------------------------------------------------------
+ * QA-A-156 (#220): the estimator, pinned at the point where it used to change
+ * the verdict.
+ *
+ * FlatResidualPct is defined on the ARITHMETIC mean -- Preprocessing-E2E-
+ * Automated-Evaluation-Protocol.md:218. The implementation used to pass the
+ * MEDIAN into compute_std, which moved both the centre of the deviation sum
+ * and the divisor. QA-A-155 measured the gap across 23 inputs and found one
+ * that straddled the 1.0% gate: 10% of pixels lifted by +3.2% gives
+ *
+ *     protocol  0.9569  PASS      implementation (median)  1.0118  FAIL
+ *
+ * so a panel the requirement accepted was rejected. This case fixes that
+ * input. It fails if the median is reinstated anywhere on this path -- the
+ * divisor or the deviation centre, either one.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyGain_FlatResidualUsesTheArithmeticMean) {
+    constexpr uint32_t TW = 128, TH = 128;
+    const float base = 1000.0f;
+
+    U16ImageHelper before(TW, TH, static_cast<uint16_t>(base));
+    F32ImageHelper gain(TW, TH, 1.0f);
+    F32ImageHelper after(TW, TH, base);
+    // 10% of the frame lifted by +3.2%: skewed, so mean and median disagree.
+    for (uint32_t i = 0; i < (TW * TH) / 10u; ++i) {
+        after.set(i / TW, i % TW, base * 1.032f);
+    }
+
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&before.buf, &after.buf, &gain.buf, &m));
+
+    EXPECT_NEAR(0.9569, m.prnu_after, 0.0050)
+        << "FlatResidualPct must be std/mean*100 about the arithmetic mean; "
+        << "the median form gives ~1.0118 here";
+    EXPECT_LE(m.prnu_after, 1.0)
+        << "SRS-CALIB-FUNC-017 accepts this panel (protocol value 0.9569%)";
+}
+
+/* QA-A-156 (#220): the same substitution on the offset path, where the centre
+ * is not a ratio but the reported value itself -- DarkBias is gated directly
+ * at 5 ADU (SRS-CALIB-FUNC-016, the one threshold QA-A-152 found a source for).
+ * Protocol.md:203 defines it as mean(Y_dark_roi).
+ *
+ * The dark region here is deliberately skewed so mean and median separate. */
+TEST_F(VerifyMetricsTest, VerifyOffset_DarkBiasUsesTheArithmeticMean) {
+    // raw MUST vary: a uniform raw frame takes the early return at
+    // xpe_verify_metrics.cpp:199, which reports dark_bias = 0 and
+    // overall_pass = true without measuring (QA-A-152 reported that branch).
+    // A first version of this case used a uniform raw and failed there -- the
+    // assertion was right, the fixture was not.
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        raw.set(i / W, i % W, static_cast<uint16_t>(400 + (i % 200)));
+        // Every tenth pixel sits at +30 ADU, so whichever 10% slice the
+        // implementation selects carries the same skew: mean 3.0, median 0.
+        corrected.set(i / W, i % W, static_cast<uint16_t>((i % 10u == 0u) ? 30 : 0));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    // The dark region is the bottom 10% of the raw histogram; raw is uniform
+    // here, so the region is a slice of a uniform frame and the corrected
+    // values in it carry the skew above. What the case pins is that the
+    // reported centre is the arithmetic mean of that region, not its median.
+    EXPECT_GT(m.dark_bias, 0.0)
+        << "the median of this region is 0; the arithmetic mean is not";
 }
 
 /* ---------------------------------------------------------------------------
