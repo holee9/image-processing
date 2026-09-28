@@ -163,8 +163,8 @@ All metrics computed in C# after native stage execution. No new P/Invoke require
 
 | Metric | Formula | Unit | Gate |
 |--------|---------|------|------|
-| `PRNU_CV` | `stdev(I_gain_output) / mean(I_gain_output) × 100` | % | ≤ 1% |
-| `FlatResidualPct` | same as PRNU_CV (alias) | % | ≤ 1.0% (release: ≤ 0.5%) |
+| `PRNU_CV` | **`stdev / mean` — 분수입니다** (`#218` 정정, 2026-09-28). 이 표는 `× 100` 을 붙여 두었으나 정본 `Preprocessing-E2E-…-Protocol.md:218` 은 배율 없는 분수로 정의합니다 | 분수 (단위 없음) | ≤ 0.01 |
+| `FlatResidualPct` | **`100 × PRNU_CV`** (같은 프로토콜 `:219`). ~~same as PRNU_CV (alias)~~ — **alias 가 아닙니다**: 같은 양이되 **배율이 100배** 다릅니다 | % | ≤ 1.0% (release: ≤ 0.5%) |
 | `FPN_Reduction_dB` | `20 × log10(PRNU_CV_before / PRNU_CV_after)` | dB | ≥ 20 dB |
 | `LineArtifactScore` | see §5.1.2 | % | ≤ 10% (target ≤ 5%) |
 
@@ -646,9 +646,9 @@ New adapter type `"bpm-generator"` treated as `canRun = true` when `xpe_bpm_gene
 | 1 | Load CalData_6 fixture | 6 Gain files + 1 Offset file shown |
 | 2 | Load bright06.raw as target | Preview shows flat-field |
 | 3 | Offset **On**, Gain **On**, Defect **Off** | |
-| 4 | Apply Calibration | FlatResidualPct ≤ 1.0%; PRNU_CV ≤ 1% |
+| 4 | Apply Calibration | FlatResidualPct ≤ 1.0%; PRNU_CV ≤ 0.01 (분수 — `#218` 정정) |
 | 5 | Verify gain file count = 6 | Meets FUNC-024 min_frames_bright ≥ 5 |
-| **Gate** | FlatResidualPct ≤ 1.0% AND PRNU_CV ≤ 1% | **PASS** |
+| **Gate** | FlatResidualPct ≤ 1.0% (= PRNU_CV ≤ 0.01 — 같은 조건입니다, 배율만 다릅니다) | **PASS** |
 
 ### 6.3 PRE-QA-003: BPM Generation Verification (FUNC-022~025)
 
