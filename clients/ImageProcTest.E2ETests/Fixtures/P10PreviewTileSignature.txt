@@ -6,7 +6,7 @@
 # exits holds the teardown render (defaults restored), not the measured one. A signature recorded
 # that way disagreed with the measured render by mean|dtile| 13.06 (GUI-C-138 falsification).
 # Lines starting with '#' are ignored.
-# HOW TO UPDATE: read PreviewTileSignatureTolerance in GsvgLargeFrameScenarios.cs first. Do not
+# HOW TO UPDATE: read PreviewTileSignatureTolerance in GsvgWristSliceScenarios.cs first. Do not
 # re-record this file to make a failing assertion pass.
 71.006836
 68.900391

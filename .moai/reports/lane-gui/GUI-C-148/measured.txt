@@ -1,0 +1,67 @@
+GUI-C-148 / #208 — measured output (verbatim), worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] CITATION CENSUS taken BEFORE renaming — old test name (all files; .git/bin/obj/build excluded)
+  GsvgLargeFrameScenarios.cs:35              <- the only binding citation (declaration)
+  .moai/reports/lane-gui/GUI-C-138/measured-p10.txt:69   <- historical record
+  .moai/reports/lane-gui/GUI-C-147/report.md:111         <- where I reported this defect
+  (prefix collisions, unrelated lineage: BP01_GainOffset_4k, BP01_OffsetNullCalibration..., BP-01-05-preprocess-manifest.md)
+  => 1 binding citation -> card's FIRST branch: rename
+
+[2] CITATION CENSUS — class name GsvgLargeFrameScenarios
+43
+  occurrences TOTAL at the moment this file was written — of which 16 are this very report
+  and its measured.txt, so the pre-card count is 33 (verified: 49 total - 16 mine = 33).
+  Files below:
+./.moai/reports/lane-gui/GUI-C-102/report.md
+./.moai/reports/lane-gui/GUI-C-103/report.md
+./.moai/reports/lane-gui/GUI-C-104/report.md
+./.moai/reports/lane-gui/GUI-C-105/report.md
+./.moai/reports/lane-gui/GUI-C-106/report.md
+./.moai/reports/lane-gui/GUI-C-134/measured.txt
+./.moai/reports/lane-gui/GUI-C-134/report.md
+./.moai/reports/lane-gui/GUI-C-137/report.md
+./.moai/reports/lane-gui/GUI-C-138/measured-p10.txt
+./.moai/reports/lane-gui/GUI-C-138/report.md
+./.moai/reports/lane-gui/GUI-C-147/measured.txt
+./.moai/reports/lane-gui/GUI-C-147/report.md
+./.moai/reports/lane-gui/GUI-C-148/measured.txt
+./.moai/reports/lane-gui/GUI-C-148/report.md
+./clients/ImageProcTest.E2ETests/Fixtures/P10PreviewTileSignature.txt
+./clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgLargeFrameScenarios.cs
+  CI workflow references:
+    none
+  => many, and one is #200's P10PreviewTileSignature.txt -> card's SECOND branch: do not rename
+
+[3] residual 3072 mentions in the file after the fix (all factual)
+2:// #208 (GUI-C-148): the frame is the wrist slice the fixture loads — 1024x1024, NOT 3072x3072.
+20:/// <para><b>Which frame that is (#208, GUI-C-148).</b> The wrist file on disk is 3072×3072, but the app
+22:/// "Measurements on the 3072×3072 frame", which was never true of what ran here.</para>
+30:/// 3072², met by the post lane (QA-B-102/103, 713–757 ms). Nothing below compares against it, and the
+31:/// end-to-end time of a 3072² frame through the GUI has never been measured.</para>
+52:    /// <c>P01_RenderCost_OnA3072Frame</c>. The frame is the 1024² wrist slice, not 3072² — and the name
+
+[4] residual OLD test name (binding must be 0)
+./clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgLargeFrameScenarios.cs:52:    /// <c>P01_RenderCost_OnA3072Frame</c>. The frame is the 1024² wrist slice, not 3072² — and the name
+  -> the single hit is the historical mention inside the new doc comment
+
+[5] CONTROL: new name present in code
+1
+
+[6] Native run, whole scenario class
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [13 s]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 3 m 19 s - ImageProcTest.E2ETests.dll (net8.0)
+
+[7] renamed test OBSERVED BY NAME (detailed logger)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [9 s]
+ P01 GsvgModeNone first: total=2247 ms, stage=0 ms, status='chain: preprocess=NotRequested, gsvg=NotRequested; times: preprocess=0 ms, gsvg=0 ms; display input=raw'
+ P01 GsvgModeNone second: total=2290 ms, stage=0 ms
+ P01 GsvgModeNone GUI share (second render): 2290 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [8 s]
+ P01 GsvgModeVirtualGrid first: total=2000 ms, stage=84 ms, status='chain: preprocess=NotRequested, gsvg=Applied; times: preprocess=0 ms, gsvg=84 ms; display input=chain'
+ P01 GsvgModeVirtualGrid second: total=2473 ms, stage=76 ms
+ P01 GsvgModeVirtualGrid GUI share (second render): 2397 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [8 s]
+ P01 GsvgModeGridSuppression first: total=2029 ms, stage=69 ms, status='chain: preprocess=NotRequested, gsvg=Applied; times: preprocess=0 ms, gsvg=69 ms; display input=chain'
+ P01 GsvgModeGridSuppression second: total=2406 ms, stage=65 ms
+ P01 GsvgModeGridSuppression GUI share (second render): 2341 ms
+     통과: 3

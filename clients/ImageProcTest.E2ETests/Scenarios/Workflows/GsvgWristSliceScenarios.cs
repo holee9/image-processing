@@ -1,4 +1,5 @@
-// #180 (GUI-C-102): what the GSVG stage costs on a 3072x3072 frame, and what the defaults do to the image.
+﻿// #180 (GUI-C-102): what the GSVG stage costs, and what the defaults do to the image.
+// #208 (GUI-C-148): the frame is the wrist slice the fixture loads — 1024x1024, NOT 3072x3072.
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -13,7 +14,29 @@ using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
 /// <summary>
-/// Measurements on the 3072×3072 frame, all of them read from the running app:
+/// Measurements on the frame <see cref="Wrist1024SliceApplicationFixture"/> loads, all of them read
+/// from the running app.
+///
+/// <para><b>Which frame that is (#208, GUI-C-148).</b> The wrist file on disk is 3072×3072, but the app
+/// loads its FIRST 1024×1024 — so these are measurements on a 1024² slice. This summary used to say
+/// "Measurements on the 3072×3072 frame", which was never true of what ran here.</para>
+///
+/// <para><b>Renamed (#208, GUI-C-149).</b> This class was <c>GsvgLargeFrameScenarios</c>. "LargeFrame"
+/// promised a large frame; what runs here is the 1024² slice. The only code that cited the old name
+/// was this file and one prose line in <c>P10PreviewTileSignature.txt</c> — the #200 signature is
+/// addressed by that FILENAME and its values, neither of which carries a class name, so renaming
+/// costs it nothing. Past reports and local logs keep the old name: they are records, not addresses.</para>
+///
+/// <para><b>What the slice is for, positively.</b> Not size — pixel CONTENT. At the same 1024² the wrist
+/// slice is a different image from the default synthetic frame, and that is what lets these scenarios see
+/// the stage doing something: GUI-C-117 found an assertion that passed on the synthetic frame even with
+/// the stage disconnected, and moved it onto this fixture.</para>
+///
+/// <para><b>REQ-GSVG-019 is not measured here.</b> That 1.0 s requirement is on the MODULE at a real
+/// 3072², met by the post lane (QA-B-102/103, 713–757 ms). Nothing below compares against it, and the
+/// end-to-end time of a 3072² frame through the GUI has never been measured.</para>
+///
+/// What is read from the running app:
 /// <list type="bullet">
 /// <item>how long a render takes with the GSVG stage on, and how much of that the stage itself took
 /// (the chain status carries <c>times: …</c> from a Stopwatch around the backend call);</item>
@@ -25,14 +48,24 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// GUI-C-90 measured what a loaded machine does to numbers like these.
 /// </summary>
 [Collection(Wrist1024SliceApplicationCollection.Name)]
-public sealed class GsvgLargeFrameScenarios(Wrist1024SliceApplicationFixture app, ITestOutputHelper output)
+public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app, ITestOutputHelper output)
 {
-    /// <summary>P-01: the cost of one render with each GSVG mode, split into the stage and the rest.</summary>
+    /// <summary>
+    /// P-01: the cost of one render with each GSVG mode, split into the stage and the rest — REPORTED,
+    /// not gated.
+    ///
+    /// <para><b>Renamed (#208, GUI-C-148), for two reasons.</b> It was
+    /// <c>P01_RenderCost_OnA3072Frame</c>. The frame is the 1024² wrist slice, not 3072² — and the name
+    /// promised a cost assertion this test does not make. The only thing asserted is the containment
+    /// invariant below: the stage is part of the render, so it cannot exceed it. The millisecond figures
+    /// are written to the output as measurements — GUI-C-90 measured what a loaded machine does to
+    /// numbers like these, so they are not a gate and no threshold is compared against.</para>
+    /// </summary>
     [SkippableTheory]
     [InlineData("GsvgModeNone")]
     [InlineData("GsvgModeGridSuppression")]
     [InlineData("GsvgModeVirtualGrid")]
-    public void P01_RenderCost_OnA3072Frame(string radioId)
+    public void P01_TheStageFitsInsideTheRender_OnTheWristSlice(string radioId)
     {
         var window = Ready();
         try
@@ -87,9 +120,14 @@ public sealed class GsvgLargeFrameScenarios(Wrist1024SliceApplicationFixture app
     /// <summary>
     /// P-03: what the lead's two assumed defaults do. Grid line density 60 vs 40 (both are designs in the
     /// product table) and air signal 60000 vs 45000, measured as the drawn pixels and their mean.
+    ///
+    /// <para><b>Renamed (#208, GUI-C-149).</b> It was <c>P03_AssumedDefaults_ChangeTheImageByThisMuch</c>
+    /// — "by this much" promises a magnitude, and no magnitude is asserted. The Δmean figures are written
+    /// to the output as measurements; what is ASSERTED is only that the two settings reach the drawn
+    /// pixels at all, which is what the new name says. (The body already said so; the name did not.)</para>
     /// </summary>
     [SkippableFact]
-    public void P03_AssumedDefaults_ChangeTheImageByThisMuch()
+    public void P03_AssumedDefaults_ReachTheDrawnPixels()
     {
         var window = Ready();
         try
@@ -518,9 +556,13 @@ public sealed class GsvgLargeFrameScenarios(Wrist1024SliceApplicationFixture app
     /// Measured: levels 0 and levels 4 give a byte-identical drawn hash, at ~10 ms extra cost. The
     /// connection is therefore asserted with the gain moved off 1.0, which is the only way the setting
     /// reaches a pixel. The stage cost is reported but not asserted — one machine cannot gate it.</para>
+    /// <para><b>Renamed (#208, GUI-C-149).</b> It was <c>P09_PyramidLevels_ChangeTheDrawnPixels</c>,
+    /// which this test's own assertion contradicts: <c>Assert.Equal(offHash, unityHash)</c> says levels
+    /// alone leave the pixels byte-identical at gain 1.0. The pixels move when the GAIN moves. The
+    /// paragraph above always said this; the name said the opposite.</para>
     /// </summary>
     [SkippableFact]
-    public void P09_PyramidLevels_ChangeTheDrawnPixels()
+    public void P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot()
     {
         var window = Ready();
         try
@@ -858,7 +900,7 @@ public sealed class GsvgLargeFrameScenarios(Wrist1024SliceApplicationFixture app
     private static double[] ReadRecordedTileSignature()
     {
         const string resource = "ImageProcTest.E2ETests.Fixtures.P10PreviewTileSignature.txt";
-        using var stream = typeof(GsvgLargeFrameScenarios).Assembly.GetManifestResourceStream(resource)
+        using var stream = typeof(GsvgWristSliceScenarios).Assembly.GetManifestResourceStream(resource)
             ?? throw new InvalidOperationException($"Embedded resource {resource} is missing.");
         using var reader = new StreamReader(stream);
 
