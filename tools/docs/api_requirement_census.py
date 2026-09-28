@@ -1,4 +1,17 @@
-"""#211: exported preprocess API vs requirements that name it.
+"""#211: exported preprocess API vs REQ-P1A requirements that name it.
+
+SCOPE LIMIT -- read before believing a "no requirement" row.
+
+This scans SPEC-XPE-P1A ONLY. A function whose requirement lives in another
+series is reported as uncovered even though it is not. That has already bitten
+twice (2026-09-28):
+
+  xpe_calib_get_quality_meta  -> SRS-CALIB-FUNC-033 (#140, dispositioned)
+  xpe_nonlinearity_correct    -> SRS-CALIB-FUNC-006 + -006-EXT (#186)
+
+Both are real requirements in the SRS-CALIB series. Treat an orphan row as
+"no REQ-P1A requirement names this", never as "this function has no
+requirement" -- confirm against SRS-CALIB-001 before acting.
 
 An API is COVERED when some requirement's body names the function. The control
 is deliberate: run the same match against a function that is known to be named
