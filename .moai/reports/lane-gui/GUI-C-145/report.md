@@ -149,7 +149,13 @@ if (LogList.SelectedItem is { } selected)
 - `ScrollIntoView` 가 **바깥 `ScrollViewer`** 까지 처리하는지는 미확정. 이 측정에서는 필요하지
   않았다(행이 온전히 안쪽으로 들어왔다). `BringIntoView` 는 효과가 귀속되지 않아 제거했다
 - 26~27 경계 지점 측정은 **범위 밖**(카드 §5)
-- **CI 에서 아직 안 돌았다** (이 커밋 미푸시)
+- ~~**CI 에서 아직 안 돌았다**~~ → **돌았고 초록이다.** leader 가 `ab557c8` 을 푸시한 뒤 `dev/gui`
+  런 `36329237577` 이 `completed/success`(9개 잡 실패 0)이고, 로그에서 의도대로 갈린 것을 확인했다:
+  `gui-e2e-native` 에서 세 케이스 전부 `Passed`(A3 **39초**, A2 37초, A 5초), `gui-automation`(Mock)
+  에서 **A3 만 `Skipped`** (그 잡은 건너뛴 이름을 찍는다 — 요약 `Failed: 0, Passed: 134, Skipped: 28`)
+- **그 직전 커밋 `8aac84f` 은 CI 를 빨갛게 만들었다** — 같은 A3 가 Mock 잡에서 실패했다(런
+  `36323013107`). 원인은 이 카드가 고친 것과 같고, 내가 A3 를 **Native 만 돌리고 커밋**했기 때문이다.
+  CI 가 같은 스위트를 두 구성으로 돌리는데 한쪽만 봤다
 
 ---
 
