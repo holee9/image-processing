@@ -13,6 +13,18 @@ Both are real requirements in the SRS-CALIB series. Treat an orphan row as
 "no REQ-P1A requirement names this", never as "this function has no
 requirement" -- confirm against SRS-CALIB-001 before acting.
 
+SECOND CAUSE, MEASURED (QA-A-151): the scope above is only half of it. This
+matcher looks for the C SYMBOL in the requirement body, and SRS-CALIB-001
+describes requirements as CAPABILITIES, not symbols -- FUNC-033 is titled
+"Calibration Quality Metadata Recording" and never writes the function name
+once. So widening the scope would NOT fix the over-count on its own; a symbol
+matcher is blind to that document by construction.
+
+What worked instead: capability matching plus RTM back-reference. Doing that
+took the count from 21 uncovered to 5 genuinely uncovered (4 more on the
+boundary, 1 that should have its export withdrawn). Read this tool's orphan
+count as an UPPER BOUND on both axes -- scope and matching method.
+
 An API is COVERED when some requirement's body names the function. The control
 is deliberate: run the same match against a function that is known to be named
 in a requirement (xpe_defect_correct, REQ-P1A-012) and against one that cannot
