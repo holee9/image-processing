@@ -23,19 +23,52 @@
 
 namespace {
 
+    /* THRESHOLD PROVENANCE -- QA-A-152 (#216).
+     * These constants decide `overall_pass`, so each one is a pass/fail
+     * criterion for a Class B function. Two have a requirement behind them and
+     * four do not; the search scope for the four is docs/ (SRS-CALIB-001,
+     * RTM-CALIB-001) plus .moai/specs/SPEC-XPE-P1A/spec.md, searched by value
+     * (3 dB, 0.99, 99%, 2 dB) and by concept (PRNU, coverage, SNR
+     * improvement). docs/quality-eval/ is excluded on purpose: its own README
+     * states it documents a separate Python production-line QA tool, "안전
+     * 등급: 해당 없음 (… 진단 소프트웨어 아님)", so it is reference material,
+     * not a requirement source for this module. */
+
     // Offset correction thresholds
-    constexpr double DARK_BIAS_MAX       = 5.0;     // ADU — corrected dark should be near zero
-    constexpr double DSNU_MAX_PCT        = 1.0;     // % — dark non-uniformity should be small
+    constexpr double DARK_BIAS_MAX       = 5.0;     // ADU. SRS-CALIB-FUNC-016:
+                                                    // "acceptance shall require abs(DarkBias) <= 5 ADU"
+    constexpr double DSNU_MAX_PCT        = 1.0;     // % -- NO REQUIREMENT FOUND (scope above).
+                                                    // docs/quality-eval/01_Noise_...:1185 carries
+                                                    // "DSNU RMS < 1% of full scale", but that is a
+                                                    // DIFFERENT QUANTITY: this metric is
+                                                    // stddev/mean*100 over the dark region (:236),
+                                                    // i.e. a coefficient of variation, not a
+                                                    // fraction of full scale. Same numeral, different
+                                                    // denominator -- do not adopt it as the source.
 
     // Gain correction thresholds
-    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB — gain correction should improve PRNU
-    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // 99% of gain values must be valid
+    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB -- NO REQUIREMENT FOUND (scope above).
+                                                    // Also misnamed: it is compared against
+                                                    // snr_improvement_db (:348), not PRNU.
+    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- NO REQUIREMENT FOUND (scope above)
 
     // Defect correction thresholds
-    constexpr double DEFECT_DENSITY_MAX  = 0.05;    // 5% max defect density
+    constexpr double DEFECT_DENSITY_MAX  = 5.0;     // %. SRS-CALIB-FUNC-003: "Maximum 5% defect
+                                                    // density tolerance".
+                                                    // QA-A-153 (#217): was 0.05. The metric is a
+                                                    // PERCENT (count/pixels*100, below), so the
+                                                    // fraction made this a 0.05 % gate -- 1/100 of
+                                                    // what the requirement allows, rejecting panels
+                                                    // the requirement accepts. Correcting the unit
+                                                    // is not a product decision: the requirement and
+                                                    // the comment both already said 5 %; the value
+                                                    // was the only thing disagreeing.
+                                                    // The metric stays in percent because its
+                                                    // consumers are (tests, reports, GUI) -- the one
+                                                    // wrong thing was this comparison.
 
     // Overall thresholds
-    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // minimum SNR improvement
+    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- NO REQUIREMENT FOUND (scope above)
 
     // Helper: Compute robust mean using median (more resistant to outliers)
     double compute_robust_mean(const std::vector<double>& values) noexcept {
@@ -199,6 +232,14 @@ XPE_API XpeErrorCode xpe_verify_offset(
     if (!has_variation) {
         // Uniform raw image: no distinguishable dark regions.
         // dark_bias = 0 (can't measure residual dark without variation)
+        //
+        // QA-A-152 (#216): UNMEASURABLE IS REPORTED AS PASS HERE, and the gain
+        // path does the opposite for the same situation -- no valid pixels
+        // there sets overall_pass = false (:315). A caller cannot tell "passed"
+        // from "could not be measured" through this field. Reported rather than
+        // changed: which way an unmeasurable frame should report is a product
+        // decision. A uniform synthetic frame reaches this branch, which is the
+        // shape of #148 (a floor validated only on uniform frames).
         metrics->dark_bias = 0.0;
         metrics->dsnu = 0.0;
         metrics->residual_noise = 0.0;

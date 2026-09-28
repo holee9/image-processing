@@ -62,7 +62,7 @@ TEST_F(GhostCorrectTest, NullHandleOutReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_create(W, H, nullptr, nullptr));
 }
 
-// REQ-P1A-034: xpe_ghost_reset clears history
+// REQ-P1A-088: xpe_ghost_reset clears history
 TEST_F(GhostCorrectTest, ResetSucceeds) {
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     EXPECT_EQ(XPE_OK, xpe_ghost_reset(handle));

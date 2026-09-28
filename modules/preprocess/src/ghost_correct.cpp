@@ -248,7 +248,7 @@ XpeErrorCode xpe_ghost_reset(void* handle)
 {
     if (!GhostCorrectorHandle::isValid(handle)) return XPE_ERR_INVALID_INPUT;
     auto* gh = static_cast<GhostCorrectorHandle*>(handle);
-    // REQ-P1A-034: clear accumulated frame history
+    // REQ-P1A-088: clear accumulated frame history
     std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
     std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
     gh->lastAcqTimeSec = 0.0;

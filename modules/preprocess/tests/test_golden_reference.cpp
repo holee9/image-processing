@@ -383,7 +383,7 @@ TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
             << "pixel[" << i << "] frame1 formula mismatch";
 }
 
-// REQ-P1A-034: After reset(), next frame uses zero history (passthrough again)
+// REQ-P1A-088: After reset(), next frame uses zero history (passthrough again)
 TEST_F(GoldenGhostTest, AfterResetHistoryIsZero) {
     const float V = 500.0f;
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
