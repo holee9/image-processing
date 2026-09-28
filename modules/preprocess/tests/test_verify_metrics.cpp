@@ -333,6 +333,56 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
 }
 
 /* ---------------------------------------------------------------------------
+ * QA-A-154 (#218): a real improvement that still misses the requirement.
+ *
+ * SRS-CALIB-FUNC-017 gates xpe_verify_gain on FlatResidualPct <= 1.0%.
+ * Before this gate existed, overall_pass was decided only on RELATIVE terms
+ * (PRNU went down, SNR improved by >= 3 dB, coverage >= 99%), so a correction
+ * that took a panel from 10% non-uniformity to 5% passed: a 6 dB improvement,
+ * and five times the residual the requirement allows.
+ *
+ * That is the input this case builds. It is the falsification the card asked
+ * for -- if no such input existed, the two axes would be measuring the same
+ * thing and the new gate would be redundant.
+ *
+ * FlatResidualPct is not a new number: the protocol defines it as
+ * 100 * PRNU_CV, and prnu_after is std/mean*100 already.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyGain_ImprovedButStillAboveOnePercentFails) {
+    const float mean_level = 1000.0f;
+
+    // Raw: +/-10% non-uniformity (alternating), i.e. PRNU ~ 10%.
+    // Corrected: +/-5%. Genuine improvement (6 dB), still 5x the 1% allowed.
+    U16ImageHelper raw(W, H, static_cast<uint16_t>(mean_level));   // the "before" buffer is UINT16
+    F32ImageHelper corrected(W, H, mean_level);
+    F32ImageHelper gain(W, H, 1.0f);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            const bool up = ((x + y) % 2) == 0;
+            raw.set(y, x, static_cast<uint16_t>(mean_level * (up ? 1.10f : 0.90f)));
+            corrected.set(y, x, mean_level * (up ? 1.05f : 0.95f));
+        }
+    }
+
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, &m));
+
+    // The relative axes are satisfied -- this is what used to carry the pass.
+    EXPECT_LT(m.prnu_after, m.prnu_before) << "PRNU must actually improve";
+    EXPECT_GE(m.snr_improvement_db, 3.0)   << "improvement must clear the SNR bar";
+    EXPECT_GE(m.gain_coverage, 0.99)       << "gain map is all-valid here";
+
+    // And the requirement's own criterion is not.
+    EXPECT_GT(m.prnu_after, 1.0)
+        << "this fixture is built to sit above FlatResidualPct 1.0% (got "
+        << m.prnu_after << ")";
+    EXPECT_FALSE(m.overall_pass)
+        << "SRS-CALIB-FUNC-017 requires FlatResidualPct <= 1.0%; residual was "
+        << m.prnu_after << "% with " << m.snr_improvement_db << " dB improvement";
+}
+
+/* ---------------------------------------------------------------------------
  * QA-A-153 (#217): the defect gate itself, at three densities.
  *
  * NOTHING ASSERTED `overall_pass` FOR THIS PATH BEFORE. The four existing
