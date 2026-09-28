@@ -1,7 +1,15 @@
 /**
  * @file test_defect_correct.cpp
  * @brief TDD RED tests for SWU-1.3:
- *        xpe_defect_correct, xpe_defect_detect_runtime (REQ-P1A-024 to REQ-P1A-028)
+ *        xpe_defect_correct, xpe_defect_detect_runtime (REQ-P1A-012, REQ-P1A-013)
+ *
+ * QA-A-149 (#211): the per-case REQ labels below were relabelled from what each
+ * case actually asserts, NOT by renumbering. They did not match the old text
+ * either -- old 024 was "replace bad pixels by interpolation" yet labelled the
+ * no-defect case, old 025 was interpolation-mode selection yet labelled the
+ * single-defect case, and old 027 was runtime detection yet labelled a NULL
+ * argument case. Old 028 (set XPE_FLAG_DEFECT_CORRECTED) has no current
+ * requirement and is reported, not silently remapped.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  *
  * #117 decision B (QA-A-20): the defect map is not a parameter. It is loaded
@@ -203,7 +211,7 @@ TEST_F(DefectCorrectTest, PartiallyOverlappingBuffersAreRefused) {
     EXPECT_EQ(XPE_OK, xpe_defect_correct(&buf, &buf, &metadata));
 }
 
-// REQ-P1A-024: no defects -> pixels unchanged
+// REQ-P1A-012: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     loadDefectMap();
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
@@ -211,7 +219,7 @@ TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     EXPECT_NEAR(1000.0f, out[W + 1], 1e-3f); // interior pixel
 }
 
-// REQ-P1A-025: single defect pixel replaced by interpolated value
+// REQ-P1A-012: single defect pixel replaced by interpolated value
 TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     // Set center pixel as defect with a very different value
     const uint32_t cx = 4, cy = 4;
@@ -225,7 +233,7 @@ TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     EXPECT_NEAR(1000.0f, out[cy * W + cx], 100.0f);
 }
 
-// REQ-P1A-027: float32 format required
+// REQ-P1A-005: NULL argument is refused (the case asserts NULL, not format)
 TEST_F(DefectCorrectTest, NullInputReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(nullptr, &output, &metadata));
 }

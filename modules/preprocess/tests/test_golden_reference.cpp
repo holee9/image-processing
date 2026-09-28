@@ -8,7 +8,7 @@
  * that functions return non-null or non-error.
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
- * REQ coverage: REQ-P1A-009..011, REQ-P1A-016..019, REQ-P1A-029..034,
+ * REQ coverage: REQ-P1A-010, REQ-P1A-021, REQ-P1A-016..019, REQ-P1A-029..034,
  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
  */
 
@@ -114,7 +114,7 @@ static XpeImageBuffer makeF32Buf(std::vector<float>& v,
 // ==========================================================================
 // SWU-1.1: Offset Correction
 // Formula: corrected[i] = max((int)raw[i] - (int)offset[i], 0)
-// REQ-P1A-009 to REQ-P1A-011
+// REQ-P1A-010, REQ-P1A-021
 // ==========================================================================
 class GoldenOffsetTest : public ::testing::Test {
 protected:
@@ -157,7 +157,7 @@ protected:
     }
 };
 
-// REQ-P1A-009: corrected[i] = max(raw[i] - offsetMap[i], 0)
+// REQ-P1A-010: corrected[i] = max(raw[i] - offsetMap[i], 0)
 TEST_F(GoldenOffsetTest, SpecificPixelValues) {
     // (raw, offset) → expected
     struct Case { uint16_t r; float o; uint16_t e; };
