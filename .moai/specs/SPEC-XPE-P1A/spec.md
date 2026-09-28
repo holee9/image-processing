@@ -516,6 +516,15 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **측정된 계약** (`:209`): **FLOAT32 전용** — `REQ-P1A-080`(온도, UINT16)과 형식이 다릅니다. 파이프라인 단계 순서상 게인 보정 이후이기 때문입니다
 - **Verification**: Test
 
+#### REQ-P1A-088: Ghost Corrector Reset
+
+**When** `xpe_ghost_reset(handle)` is called with a valid handle, the module **shall** clear the accumulated frame history and the exposure state, so that the next `xpe_ghost_correct` behaves as if the handle had just been created.
+
+- **측정된 계약** (`ghost_correct.cpp` `xpe_ghost_reset`): `hist1`·`hist2` 를 `0.0f` 로 채우고, `lastAcqTimeSec = 0.0` · `lastFrameMean = 0.0f` · `exposureWeight = 1.0` 로 되돌립니다. **이력 두 개만이 아니라 노출 상태 셋도 함께** 초기화합니다
+- **왜 별도 요구인가**: `REQ-P1A-086`(핸들 유효성 가드)이 `reset` 을 **이름으로 부르지만** *"이력을 비운다"* 는 말하지 않습니다. 유효성과 의미론은 다른 계약이고, `086` 에 끼워 넣으면 그 요구가 두 가지를 말하게 됩니다
+- **`#211` 경위**: 옛 `REQ-P1A-034` 를 인용하던 4곳이 실제로는 **이 동작**을 서술하고 있었습니다(옛 `032` 의 내용 — 번호가 밀린 채). 레인(`QA-A-150`)이 *"`096` 으로 옮기면 정반대가 된다"* 며 옮기지 않고 보고했고, 그 판단이 이 요구를 만들었습니다
+- **Verification**: Test (`test_ghost_correct.cpp`)
+
 #### REQ-P1A-090: Binning Correction Execution
 
 **When** `xpe_binning_correct(img, binningMode, …)` is called with a **FLOAT32** buffer and `binningMode` is `2` or `4`, the module **shall** normalize each pixel by `1 / binningMode²` to compensate summed charge, in place.
@@ -583,6 +592,34 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **근거** (`:292-294`, QA-A-104): 고스트 보정은 in-place 로 동작합니다. 이전에는 stage-6 을 정정하면서 **비어 있는** stage-7 버퍼를 되복사해 **출력이 0** 이었습니다. 이 복사가 그 결함의 수정이고, **요구로 고정하지 않으면 최적화로 다시 제거될 수 있습니다**
 - **Verification**: Test
+
+#### REQ-P1A-100: Pipeline Data Domain Transition
+
+**When** the pipeline runs, stages before gain correction **shall** operate on `UINT16` and stages from gain correction onward **shall** operate on `FLOAT32`; the transition **shall** occur inside the gain stage.
+
+- **측정된 계약** (`pipeline.cpp:194`·`:199`): *"This performs UINT16 → FLOAT32 domain transition"* — stage 4(gain) 에서 전이하고, 이후 stage 5·6·7 이 모두 `XPE_PIXEL_FLOAT32`(`:219`·`:262`·`:286`)
+- **옛 `REQ-P1A-043` 과의 차이**: 옛 문구는 *"stage 2(gain correction)"* 라 적었습니다. **단계 번호 체계가 달라졌을 뿐** 전이가 게인에서 일어난다는 내용은 같습니다 — 번호가 아니라 **함수 이름**으로 다시 썼습니다
+- **왜 요구로 고정하는가**: 이 전이 지점이 바뀌면 이후 모든 단계의 버퍼 형식이 바뀝니다. `REQ-P1A-080`(온도, **UINT16**)과 `REQ-P1A-087`·`090`(고스트·비닝, **FLOAT32**)이 서로 다른 형식을 요구하는 이유가 이 경계입니다
+- **Verification**: Test
+
+#### REQ-P1A-101: Defect Stage Calibration Availability
+
+**If** the defect stage is reached and no defect map is loaded, the pipeline **shall** return `XPE_ERR_CALIB_NOT_LOADED` without running that stage or any later stage.
+
+- **측정된 계약** (`pipeline.cpp:248-253`): `defectAvailable = (g_calib.defect_map != nullptr)`, 거짓이면 즉시 반환
+- **⚠️ 옛 `REQ-P1A-046` 과 두 곳이 다릅니다:**
+  - 옛 문구는 **`XPE_ERR_CALIBRATION_EXPIRED`** 를 요구했습니다. 실재는 **`XPE_ERR_CALIB_NOT_LOADED`** 입니다 — `#117` 결정 B 가 "미초기화" 와 "캘리브 미적재" 를 나눈 뒤의 코드이고, `EXPIRED`(만료)는 또 다른 상태입니다. **실재가 맞습니다**
+  - 옛 문구는 *"**각** 단계가 대응 캘리브 가용성을 확인"* 이라 적었습니다. **실재는 결함 단계 하나뿐입니다** — `available` 검사가 `pipeline.cpp` 전체에서 `:248-253` 한 곳입니다
+- **Verification**: Test
+
+> **`REQ-P1A-101` 이 덮지 않는 것 — 기록**
+>
+> 오프셋·게인 단계에는 **파이프라인 수준의 가용성 검사가 없습니다.** 그 단계들은 개별 보정 함수가 자기 안에서 `XPE_ERR_CALIB_NOT_LOADED` 를 반환하고(`REQ-P1A-020a`), 파이프라인은 그 반환을 그대로 올립니다.
+>
+> **결과는 비슷하지만 계약이 다릅니다** — 결함은 *"단계에 들어가기 전에"* 막고, 나머지는 *"함수가 거부해서"* 막힙니다. 옛 `046` 이 요구한 **균일한 단계별 검사는 구현된 적이 없고**, 이 요구는 실재하는 한 곳만 고정합니다.
+>
+> 균일하게 만들지는 별건입니다. 지금 요구로 적으면 **없는 동작을 보증**하게 됩니다.
+
 
 > **이 절의 미검증**
 >
