@@ -130,18 +130,39 @@ protected:
 // =============================================================================
 // Test 1: Verify offset correction with perfect correction
 // =============================================================================
+/* QA-A-157 (#219): THIS CASE WAS PINNING THE DEFECT, and its fixture never
+ * exercised what its name promises.
+ *
+ * It used a UNIFORM raw frame, which has no distinguishable dark region, so the
+ * call took the unmeasurable early return (xpe_verify_metrics.cpp:254 ff) and
+ * got overall_pass = true without measuring anything. The assertions below then
+ * passed on a frame where dark_bias and dsnu had been set to 0 by that branch
+ * rather than computed.
+ *
+ * That branch exists because of this case: 86d2894 "fix(calibration): 테스트-
+ * 구현 불일치 4건 수정" (2026-04-26 22:10) added it 35 minutes after the
+ * feature commit, summarised as "uniform 이미지 처리 개선". #219 decided the
+ * branch must report false, so the fixture is corrected here to have a real
+ * dark region -- which is what "perfect offset correction" needed all along.
+ */
 TEST_F(VerifyMetricsTest, VerifyOffset_PerfectCorrection) {
     const uint16_t dark_level = 500;
     const uint16_t signal_level = 2000;
 
-    // Raw image = dark + signal
-    U16ImageHelper raw(W, H, dark_level + signal_level);
-
-    // Dark reference
-    U16ImageHelper dark(W, H, dark_level);
-
-    // Corrected image = signal (perfect offset correction)
-    U16ImageHelper corrected(W, H, signal_level);
+    // The dark ROI is "raw below the 10th percentile" (xpe_verify_metrics.cpp
+    // :291-300), so the dark pixels must both be a minority AND carry spread --
+    // a flat dark block puts the percentile ON its own value, `<` admits
+    // nothing, and the fallback silently measures the WHOLE frame instead.
+    // 20% dark with a 10-ADU jitter; the rest lit. Corrected removes the dark
+    // exactly, so every dark-ROI pixel lands on 0.
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;              // 80% lit, 20% dark
+        const uint16_t dark = static_cast<uint16_t>(dark_level - 10 + ((i / 5u) % 10u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? dark + signal_level : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? signal_level : 0));
+    }
 
     XpeImageMetadata meta = createMetadata();
     XpeCalibrationMetrics metrics{};
@@ -330,6 +351,37 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
     double expected_density = (static_cast<double>(num_defects) / (W * H)) * 100.0;
     EXPECT_NEAR(metrics.defect_density, expected_density, 0.01)
         << "Defect density should match expected value";
+}
+
+/* ---------------------------------------------------------------------------
+ * QA-A-157 (#219): a frame nobody can measure must not report as passed.
+ *
+ * A uniform raw frame has no dark region to find, so xpe_verify_offset cannot
+ * compute dark_bias or dsnu. It used to answer overall_pass = true anyway,
+ * which is the shape that let a broken fixture go green during QA-A-156 -- the
+ * value was wrong and the verdict said nothing, so only someone who doubted
+ * the number caught it. #219 folds that state into false, matching the gain
+ * path (no valid pixels -> false).
+ *
+ * This is the exact input that was silent.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyOffset_UnmeasurableFrameDoesNotPass) {
+    U16ImageHelper raw(W, H, 1500);        // uniform: no distinguishable dark
+    U16ImageHelper corrected(W, H, 1500);
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m))
+        << "an unmeasurable frame is not an error -- the call still succeeds";
+    EXPECT_FALSE(m.overall_pass)
+        << "nothing was measured here, so this must not read as a pass";
+
+    // The metrics here are the branch's placeholders, not measurements.
+    // Asserted so a future reader does not mistake them for computed values.
+    EXPECT_DOUBLE_EQ(0.0, m.dark_bias);
+    EXPECT_DOUBLE_EQ(0.0, m.dsnu);
 }
 
 /* ---------------------------------------------------------------------------

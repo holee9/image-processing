@@ -255,17 +255,34 @@ XPE_API XpeErrorCode xpe_verify_offset(
         // Uniform raw image: no distinguishable dark regions.
         // dark_bias = 0 (can't measure residual dark without variation)
         //
-        // QA-A-152 (#216): UNMEASURABLE IS REPORTED AS PASS HERE, and the gain
-        // path does the opposite for the same situation -- no valid pixels
-        // there sets overall_pass = false (:315). A caller cannot tell "passed"
-        // from "could not be measured" through this field. Reported rather than
-        // changed: which way an unmeasurable frame should report is a product
-        // decision. A uniform synthetic frame reaches this branch, which is the
-        // shape of #148 (a floor validated only on uniform frames).
+        // UNMEASURABLE REPORTS AS FAILURE -- QA-A-157 (#219).
+        //
+        // This used to set overall_pass = true, which made a frame nobody could
+        // measure indistinguishable from a frame that passed. QA-A-152 reported
+        // it; #219 decided (a): match the gain path, which answers the same
+        // situation with false (no valid pixels -> false, below).
+        //
+        // WHY false AND NOT true. The two mistakes are not symmetric. A caller
+        // that believes a false "pass" ships an unverified frame; a caller that
+        // believes a false "fail" looks at a good frame once more. Only the
+        // first one is silent.
+        //
+        // WHICH SIDE WAS THE DESIGN: the gain path's false came with the
+        // feature (b6c19b8, 2026-04-26 21:35). This branch was added 35 minutes
+        // later by 86d2894 "fix(calibration): 테스트-구현 불일치 4건 수정",
+        // whose own summary calls it "uniform 이미지 처리 개선" -- it was
+        // written so a uniform-image test would stop failing, not as a product
+        // judgement. That is why the gain path was the thing to match.
+        //
+        // LIMIT, AND IT IS REAL: overall_pass is one bool for three states --
+        // passed, failed, could not be measured. (a) folds the third into the
+        // second because that is the safe fold, and a caller still cannot tell
+        // them apart. A separate status field is the actual fix; it needs a
+        // requirement first, so it is not made here (#219).
         metrics->dark_bias = 0.0;
         metrics->dsnu = 0.0;
         metrics->residual_noise = 0.0;
-        metrics->overall_pass = true;
+        metrics->overall_pass = false;
         return XPE_OK;
     }
 
