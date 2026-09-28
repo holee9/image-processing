@@ -995,15 +995,17 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
  * ============================================================================ */
 
 /**
- * @brief Compute CRC-32 checksum using ISO-HDLC polynomial (0xEDB88320)
+ * @brief (withdrawn) xpe_crc32 -- QA-A-152 (#216)
  *
- * Used internally by calibration manager for file integrity verification.
+ * This export is gone. It had no caller in clients/, gui/, modules/, tools/
+ * or tests/ (build outputs excluded), and the integrity mechanism it served
+ * was replaced by SHA-256 (SRS-CALIB-001:43-44). The doc comment said "used
+ * internally by calibration manager", which had stopped being true.
  *
- * @param data Data buffer to checksum
- * @param len Length of data in bytes
- * @return CRC-32 checksum value
+ * ABI NOTE: removing an export changes the DLL surface. No caller existed, so
+ * nothing in this repository breaks; a binary built against an older header
+ * that resolved this symbol would not.
  */
-XPE_API uint32_t xpe_crc32(const uint8_t* data, size_t len) noexcept;
 
 #ifdef __cplusplus
 }
