@@ -537,6 +537,60 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > - `#211` 의 (C) 갈래(파이프라인 6건·성능 예산 3건·로깅·1×1 edge case)는 **아직 판정하지 않았습니다**
 > - 원문 추출 실패 4건(`045` `051` `053` `055`)은 아직 읽지 않았습니다
 
+### 4.3c Pipeline Requirements (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 수출 API 48개를 요구와 전수 대조한 결과(대조군 양성 `xpe_defect_correct` → 3개 요구, 음성 지어낸 이름 → 0건) **23개가 고유 요구 없이 수출**되고 있었고, 파이프라인 4종이 그중에 있었습니다. `spec.md` 정의행 제목에 `pipeline` 이 **0건**입니다.
+>
+> 아래는 `pipeline.cpp` 를 읽어 쓴 것입니다. 옛 요구(`043`~`049`)와 다른 곳은 그 자리에 적었습니다.
+
+#### REQ-P1A-095: Pipeline Stage Order
+
+**When** `xpe_preprocess_pipeline(img, meta, calibPath, ghostHandle, configJsonOrNull)` is called, the module **shall** run the correction stages in this fixed order, each consuming the previous stage's output:
+
+`readout validation → temperature → offset → nonlinearity → gain → binning → defect → ghost`
+
+- **측정된 계약** (`pipeline.cpp:122`·`139`·`155`·`181`·`203`·`230`·`273`·`297`): 여덟 단계, 각각 성공 시 대응 `XPE_FLAG_*` 를 설정합니다
+- **Verification**: Test
+
+#### REQ-P1A-096: Pipeline Stage Flags
+
+**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED` · `GAIN_CORRECTED` · `BINNING_CORRECTED` · `DEFECT_CORRECTED` · `GHOST_CORRECTED`.
+
+- **측정된 계약**: 플래그 설정은 **파이프라인만** 합니다. 개별 보정 함수를 직접 부르면 설정되지 않습니다 — `REQ-P1A-082` 가 온도에 대해 같은 것을 말합니다
+- 비선형만 조건이 하나 더 있습니다 — `meta && applied` (`:181`). 적용되지 않으면 플래그가 서지 않습니다
+- **Verification**: Test
+
+#### REQ-P1A-097: Per-Stage Bypass Configuration
+
+**If** `configJsonOrNull` sets a stage's bypass key to `"true"`, the pipeline **shall** skip that stage without error and **shall not** set its flag.
+
+- **측정된 계약** (`:52-80`): 여덟 단계 각각에 bypass 키가 있습니다. 문자열 `"true"` 와의 정확한 일치로 판정합니다 — 다른 값은 bypass 하지 않습니다
+- **⚠️ 옛 `REQ-P1A-049` 와 다른 점**: 옛 문구는 *"비활성인데 캘리브 데이터가 실려 있으면 DEBUG 로그"* 를 요구했습니다. 확인하지 않았습니다 — 로깅은 이 절의 범위 밖으로 둡니다
+- **Verification**: Test
+
+#### REQ-P1A-098: Ghost Stage Handle Dependency
+
+**While** `ghostHandle` is `NULL`, the pipeline **shall** skip the ghost stage and complete the remaining stages successfully, leaving `XPE_FLAG_GHOST_CORRECTED` unset.
+
+- **측정된 계약** (`:280`): `if (!cfg.bypassGhost && ghostHandle)` — 핸들이 없으면 **조용히** 건너뜁니다
+- **⚠️ 옛 `REQ-P1A-045` 와 다른 점**: 옛 문구는 건너뛸 때 *"post a WARNING alert indicating lag artifacts may be present"* 를 요구했습니다. **파이프라인 전체에 알림 호출이 0건**입니다(`alert`·`Alert` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함입니다
+- **플래그가 안 서는 것이 유일한 신호입니다.** 호출자가 플래그를 안 보면 잔상 보정이 빠진 것을 알 수 없습니다 — 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-099: Ghost Stage Buffer Isolation
+
+**When** the ghost stage runs, the pipeline **shall** give `xpe_ghost_correct` its own copy of the previous stage's frame rather than the stage-6 buffer itself.
+
+- **근거** (`:292-294`, QA-A-104): 고스트 보정은 in-place 로 동작합니다. 이전에는 stage-6 을 정정하면서 **비어 있는** stage-7 버퍼를 되복사해 **출력이 0** 이었습니다. 이 복사가 그 결함의 수정이고, **요구로 고정하지 않으면 최적화로 다시 제거될 수 있습니다**
+- **Verification**: Test
+
+> **이 절의 미검증**
+>
+> - `xpe_preprocess_pipeline_ex` 와 `_batch` 는 **아직 서술하지 않았습니다.** `_ex` 는 `REQ-P1A-016a` 가 이름을 부르지만 그것은 캘리브 상태 계약이지 파이프라인 계약이 아닙니다. `_batch` 는 어떤 요구도 부르지 않습니다
+> - 옛 `043`(uint16→float32 전이 지점) `044`(비닝 비활성 시 건너뜀) `046`(단계별 캘리브 가용성 확인) `047`(단계별 플래그)은 위 요구와 겹치거나 더 구체적입니다 — **건별 대조를 하지 않았습니다**
+> - 성능 예산(옛 `050` 500ms)은 여기 넣지 않았습니다 → `#204`
+> - 로깅(옛 `049`·`068`)은 범위 밖입니다
+
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
 #### REQ-P1A-030: No Exceptions Across C ABI
