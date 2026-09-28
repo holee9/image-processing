@@ -1,5 +1,5 @@
 {
-  "_comment": "Orphan requirement citations that existed when this check was introduced (#197). Entries may shrink, never grow. See the module docstring in check_req_citations.py. #213 (2026-09-28): P1A 066 added. It is NOT new debt -- it was orphaned the whole time and the check could not see it, because every file under .moai/specs/ counted as a definition source and quality-report.md:147 mentions the id in passing. Tightening definitions to definition lines in spec.md surfaced it. Whether to restore or retire the requirement is #211's scope (commit bc22093 deleted 46 P1A requirements); until that is decided the citation stays and is recorded here.",
+  "_comment": "Orphan requirement citations. Entries may shrink, never grow. See the module docstring in check_req_citations.py. 2026-09-28 (#211/QA-A-149): lowered 21->14 ids, 79->58 citations. The lane checked each row of the lead's mapping table against the pre-deletion spec (d6bde7d) rather than applying it, and three rows were wrong -- 059 and 063 name different requirements than the table claimed, 025 is retired rather than absorbed. It also refused a mechanical range substitution: old 011 was an underflow clamp, current 011 is Gain Correction Execution, so 009..011 -> 010..011 would have pointed an offset comment at a gain requirement while this check stayed green. P1A 066 stays: orphaned all along, surfaced by the #213 definition-scope fix; restore-or-retire is #211's call.",
   "orphans": {
     "AI": [
       "009"
@@ -13,18 +13,11 @@
       "006",
       "007",
       "008",
-      "009",
       "023",
-      "024",
-      "025",
       "026",
       "027",
-      "028",
       "029",
       "034",
-      "035",
-      "038",
-      "039",
       "047",
       "066"
     ]

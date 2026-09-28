@@ -110,6 +110,19 @@ DEFINITION = re.compile(
 CITATION = re.compile(r"REQ-([A-Z0-9]+(?:-[A-Z0-9]+)*?)-(\d{3})")
 
 
+# QA-A-149 (2026-09-28): a lane hit UnicodeEncodeError here and had to set
+# PYTHONIOENCODING=utf-8 by hand. The tool prints repository paths, and this
+# repo has Korean filenames, so on a cp949 console the print itself dies --
+# the check never reports its result. Forcing the stream removes that
+# environment dependency; the same decode() guard already exists in
+# tracked_files() for the input side.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass  # not a reconfigurable stream (redirected, or an older runtime)
+
+
 def tracked_files() -> list[str]:
     """Tracked paths. Decoded explicitly: the repo has Korean filenames and the
     Windows default codec (cp949) raises on them."""
