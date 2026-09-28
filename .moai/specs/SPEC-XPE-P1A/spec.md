@@ -460,6 +460,83 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **SRS**: SRS-SAFE-004
 - **Traceability**: SWU-1.1, SWU-1.2
 
+### 4.3b Subsystem Requirements — 온도 보상 · 고스트 · 비닝 (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 커밋 `bc22093`(2026-04-16)이 이 SPEC 을 585행 → 361행으로 줄이면서 요구 46개를 지웠습니다(`REQ-P1A-` 정의 **71 → 25**). 대부분은 살아남은 번호로 흡수됐지만, **세 서브시스템은 흡수처 없이 사라졌습니다** — 정의행 제목 27개 중 `temp`·`ghost`·`binning` 을 담은 것이 **0건**(대조군 `offset` 3건)인데, 셋 다 구현돼 있고 `xpe_ghost_*` 는 **수출 API** 입니다.
+>
+> **옛 문구를 복원하지 않았습니다.** 아래는 현재 구현을 읽어 쓴 것이고, 옛 요구와 다른 곳은 그 자리에 적었습니다 — `#204`·`#207`·`#209` 에서 옛 문구가 실재와 달랐던 전례가 있습니다.
+>
+> 새 번호(`080~`)를 씁니다. 옛 번호를 재사용하면 코드에 남은 옛 인용이 **다른 뜻으로 되살아납니다** — `#197` 이 그 형태였습니다.
+
+#### REQ-P1A-080: Temperature Compensation Execution
+
+**When** `xpe_temp_compensate(img, detectorTempC, configJsonOrNull)` is called with a **UINT16** buffer, the module **shall** scale each pixel by the inverse of the dark-current factor relative to `T_ref = 25 °C`, computed as `exp(-Eg/2kT) / exp(-Eg/2kT_ref)`, writing the result **in place** and clamping to `65535`.
+
+- **측정된 계약** (`temp_compensate.cpp`): 단일 버퍼 in-place — `input`/`output` 쌍이 아닙니다. **UINT16 전용** (`xpe_buffer_has_format(img, XPE_PIXEL_UINT16, …)`); **`REQ-P1A-012`(결함 보정)가 FLOAT32 전용인 것과 반대**입니다
+- `exp_ref < 1e-300` 이면 보정 없이 `XPE_OK` — 물리적으로 불가능하나 방어적으로 둡니다
+- **Verification**: Test
+- **Status**: 구현 있음, 요구는 이 항목이 처음입니다
+
+#### REQ-P1A-081: Temperature Input Guard
+
+**If** `detectorTempC` is `NaN`, the module **shall** substitute `25.0 °C`. **If** the (substituted) value is outside `[-20.0, +60.0] °C`, the module **shall** return `XPE_ERR_INVALID_INPUT` without modifying the image.
+
+- **측정된 계약** (`temp_compensate.cpp:33`, `:36-37`): NaN 치환이 범위 검사보다 **앞섭니다** — `NaN` 은 `25.0` 이 되어 통과합니다
+- **⚠️ 옛 `REQ-P1A-007` 과 다른 점**: 옛 문구는 NaN 치환 시 *"post an INFO-level alert"* 를 요구했습니다. **구현에 알림이 0건**입니다(`xpe_alert`·`post_alert`·`XPE_ALERT` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함이고, 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-082: Temperature Compensation Flag
+
+**While** the pre-processing pipeline runs the temperature stage successfully, the pipeline **shall** set `XPE_FLAG_TEMP_COMPENSATED` in `XpeImageMetadata.flags`.
+
+- **측정된 계약**: 플래그는 **`pipeline.cpp:139` 가** 설정합니다. `xpe_temp_compensate` 를 **직접 호출하면 플래그가 설정되지 않습니다** — 그 함수는 메타데이터를 받지 않습니다
+- **⚠️ 옛 `REQ-P1A-008` 과 다른 점**: 옛 문구는 주체를 밝히지 않아 *"보정 함수가 설정한다"* 로 읽혔습니다. 실재는 파이프라인입니다
+- **Verification**: Test (`test_pipeline_stages.cpp:115`, `:197`)
+
+#### REQ-P1A-085: Ghost Corrector Handle Lifecycle
+
+**When** `xpe_ghost_create(width, height, …)` is called with non-zero dimensions, the module **shall** allocate an opaque handle holding frame history and return it through `handleOut`; **if** allocation fails it **shall** return `XPE_ERR_OUT_OF_MEMORY`. `xpe_ghost_destroy` **shall** invalidate the handle before freeing it.
+
+- **측정된 계약** (`ghost_correct.cpp:27`, `:33`, `:264`): `!handleOut || width == 0 || height == 0` → `XPE_ERR_INVALID_INPUT`. `destroy` 는 `magic = 0` 으로 **무효화한 뒤** 해제합니다
+- **Traceability**: 수출 API 4종 — `xpe_ghost_create`·`correct`·`reset`·`destroy` (`preprocess_api.h:578`·`595`·`608`·`617`)
+- **Verification**: Test
+
+#### REQ-P1A-086: Ghost Handle Validity Guard
+
+**If** `xpe_ghost_correct`, `xpe_ghost_reset`, or `xpe_ghost_destroy` receives a handle that was never created or has been destroyed, the module **shall** return `XPE_ERR_INVALID_INPUT` (and `xpe_ghost_destroy` **shall** return without effect) rather than dereference it.
+
+- **측정된 계약**: `GhostCorrectorHandle::isValid(handle)` 가 **세 지점 모두**에서 호출됩니다 — `:202`·`:249`·`:262` (정의 `xpe_preprocess_internal.h:65`)
+- **조사 기록**: 리더가 `magic` 을 `grep` 했을 때 `:264`(쓰기) 하나만 보여 *"쓰기만 되고 읽히지 않는다 = use-after-free"* 로 갈 뻔했습니다. 읽는 쪽은 헤더의 `isValid` 안에 있었습니다. **한 파일 grep 으로 부재를 단정하면 없는 결함을 만듭니다**
+- **Verification**: Test
+
+#### REQ-P1A-087: Ghost Correction Execution
+
+**When** `xpe_ghost_correct(handle, img, meta)` is called with a valid handle and a **FLOAT32** buffer, the module **shall** subtract the lag contribution estimated from the handle's frame history, in place.
+
+- **측정된 계약** (`:209`): **FLOAT32 전용** — `REQ-P1A-080`(온도, UINT16)과 형식이 다릅니다. 파이프라인 단계 순서상 게인 보정 이후이기 때문입니다
+- **Verification**: Test
+
+#### REQ-P1A-090: Binning Correction Execution
+
+**When** `xpe_binning_correct(img, binningMode, …)` is called with a **FLOAT32** buffer and `binningMode` is `2` or `4`, the module **shall** normalize each pixel by `1 / binningMode²` to compensate summed charge, in place.
+
+- **측정된 계약** (`binning_correct.cpp:22`, `:36`): FLOAT32 전용, 정규화 계수 `1/mode²`
+- **Verification**: Test
+
+#### REQ-P1A-091: Binning Mode Guard
+
+**While** `binningMode == 1`, the module **shall** return `XPE_OK` without modifying the image. **If** `binningMode` is not `1`, `2`, or `4`, it **shall** return `XPE_ERR_CONFIG_INVALID`. **If** any pixel is non-finite during normalization, it **shall** return `XPE_ERR_PROCESSING_FAILED`.
+
+- **측정된 계약** (`:25`, `:30-31`, `:39`): 세 갈래 모두 실재합니다
+- **Verification**: Test
+
+> **이 절의 미검증**
+>
+> - 위 요구는 **현재 구현을 서술**한 것이고, 그 구현이 **임상적으로 옳은지는 이 절이 답하지 않습니다.** 온도 보상의 `Eg`·`k` 상수 출처와 UINT16 선택 근거는 확인하지 않았습니다
+> - 옛 요구 중 **`REQ-P1A-007` 의 INFO 알림**은 구현에 없어 요구에 넣지 않았습니다. 필요 여부는 별건입니다
+> - `#211` 의 (C) 갈래(파이프라인 6건·성능 예산 3건·로깅·1×1 edge case)는 **아직 판정하지 않았습니다**
+> - 원문 추출 실패 4건(`045` `051` `053` `055`)은 아직 읽지 않았습니다
+
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
 #### REQ-P1A-030: No Exceptions Across C ABI
