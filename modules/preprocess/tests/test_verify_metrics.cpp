@@ -333,6 +333,79 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
 }
 
 /* ---------------------------------------------------------------------------
+ * QA-A-156 (#220): the estimator, pinned at the point where it used to change
+ * the verdict.
+ *
+ * FlatResidualPct is defined on the ARITHMETIC mean -- Preprocessing-E2E-
+ * Automated-Evaluation-Protocol.md:218. The implementation used to pass the
+ * MEDIAN into compute_std, which moved both the centre of the deviation sum
+ * and the divisor. QA-A-155 measured the gap across 23 inputs and found one
+ * that straddled the 1.0% gate: 10% of pixels lifted by +3.2% gives
+ *
+ *     protocol  0.9569  PASS      implementation (median)  1.0118  FAIL
+ *
+ * so a panel the requirement accepted was rejected. This case fixes that
+ * input. It fails if the median is reinstated anywhere on this path -- the
+ * divisor or the deviation centre, either one.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyGain_FlatResidualUsesTheArithmeticMean) {
+    constexpr uint32_t TW = 128, TH = 128;
+    const float base = 1000.0f;
+
+    U16ImageHelper before(TW, TH, static_cast<uint16_t>(base));
+    F32ImageHelper gain(TW, TH, 1.0f);
+    F32ImageHelper after(TW, TH, base);
+    // 10% of the frame lifted by +3.2%: skewed, so mean and median disagree.
+    for (uint32_t i = 0; i < (TW * TH) / 10u; ++i) {
+        after.set(i / TW, i % TW, base * 1.032f);
+    }
+
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&before.buf, &after.buf, &gain.buf, &m));
+
+    EXPECT_NEAR(0.9569, m.prnu_after, 0.0050)
+        << "FlatResidualPct must be std/mean*100 about the arithmetic mean; "
+        << "the median form gives ~1.0118 here";
+    EXPECT_LE(m.prnu_after, 1.0)
+        << "SRS-CALIB-FUNC-017 accepts this panel (protocol value 0.9569%)";
+}
+
+/* QA-A-156 (#220): the same substitution on the offset path, where the centre
+ * is not a ratio but the reported value itself -- DarkBias is gated directly
+ * at 5 ADU (SRS-CALIB-FUNC-016, the one threshold QA-A-152 found a source for).
+ * Protocol.md:203 defines it as mean(Y_dark_roi).
+ *
+ * The dark region here is deliberately skewed so mean and median separate. */
+TEST_F(VerifyMetricsTest, VerifyOffset_DarkBiasUsesTheArithmeticMean) {
+    // raw MUST vary: a uniform raw frame takes the early return at
+    // xpe_verify_metrics.cpp:199, which reports dark_bias = 0 and
+    // overall_pass = true without measuring (QA-A-152 reported that branch).
+    // A first version of this case used a uniform raw and failed there -- the
+    // assertion was right, the fixture was not.
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        raw.set(i / W, i % W, static_cast<uint16_t>(400 + (i % 200)));
+        // Every tenth pixel sits at +30 ADU, so whichever 10% slice the
+        // implementation selects carries the same skew: mean 3.0, median 0.
+        corrected.set(i / W, i % W, static_cast<uint16_t>((i % 10u == 0u) ? 30 : 0));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    // The dark region is the bottom 10% of the raw histogram; raw is uniform
+    // here, so the region is a slice of a uniform frame and the corrected
+    // values in it carry the skew above. What the case pins is that the
+    // reported centre is the arithmetic mean of that region, not its median.
+    EXPECT_GT(m.dark_bias, 0.0)
+        << "the median of this region is 0; the arithmetic mean is not";
+}
+
+/* ---------------------------------------------------------------------------
  * QA-A-154 (#218): a real improvement that still misses the requirement.
  *
  * SRS-CALIB-FUNC-017 gates xpe_verify_gain on FlatResidualPct <= 1.0%.

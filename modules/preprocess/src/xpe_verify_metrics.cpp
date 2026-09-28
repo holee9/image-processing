@@ -76,6 +76,23 @@ namespace {
     constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- NO REQUIREMENT FOUND (scope above)
 
     // Helper: Compute robust mean using median (more resistant to outliers)
+    /* QA-A-156 (#220): the canonical metrics are defined on the ARITHMETIC mean.
+     * Preprocessing-E2E-Automated-Evaluation-Protocol.md:203 `DarkBias =
+     * mean(Y_dark_roi)`, :204 `DSNU_ADU = std(Y_dark_roi)`, :218 `PRNU_CV =
+     * std(Y_flat_roi) / max(mean(Y_flat_roi), eps)`.
+     *
+     * compute_robust_mean below returns the MEDIAN, and compute_std takes the
+     * centre as an argument -- so passing the median moved BOTH the centre of
+     * the deviation sum and the divisor. Median + RMS is not a known estimator
+     * pair (a robust design pairs the median with MAD), which is what decided
+     * #220: the substitution was partial, so it is not the canon. */
+    double compute_mean(const std::vector<double>& values) noexcept {
+        if (values.empty()) return 0.0;
+        double sum = 0.0;
+        for (double v : values) sum += v;
+        return sum / static_cast<double>(values.size());
+    }
+
     double compute_robust_mean(const std::vector<double>& values) noexcept {
         if (values.empty()) return 0.0;
 
@@ -275,7 +292,9 @@ XPE_API XpeErrorCode xpe_verify_offset(
     }
 
     // Compute metrics
-    double mean = compute_robust_mean(dark_corrected);
+    // Protocol.md:203 `DarkBias = mean(Y_dark_roi)`, :204 `DSNU_ADU = std(...)`.
+    // QA-A-156 (#220): was compute_robust_mean (median).
+    double mean = compute_mean(dark_corrected);
     double stddev = compute_std(dark_corrected, mean);
 
     metrics->dark_bias = mean;
@@ -365,12 +384,15 @@ XPE_API XpeErrorCode xpe_verify_gain(
     }
 
     // Compute PRNU before gain correction
-    double mean_before = compute_robust_mean(before_vals);
+    // Protocol.md:218 `PRNU_CV = std(Y_flat_roi) / max(mean(Y_flat_roi), eps)`.
+    // QA-A-156 (#220): was compute_robust_mean (median).
+    double mean_before = compute_mean(before_vals);
     double std_before = compute_std(before_vals, mean_before);
     metrics->prnu_before = (mean_before > 0.0) ? (std_before / mean_before) * 100.0 : 0.0;
 
     // Compute PRNU after gain correction
-    double mean_after = compute_robust_mean(after_vals);
+    // Protocol.md:218, same as above -- this is the value FUNC-017 gates.
+    double mean_after = compute_mean(after_vals);
     double std_after = compute_std(after_vals, mean_after);
     metrics->prnu_after = (mean_after > 0.0) ? (std_after / mean_after) * 100.0 : 0.0;
 
