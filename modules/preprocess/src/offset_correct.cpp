@@ -1,7 +1,7 @@
 /**
  * @file offset_correct.cpp
  * @brief SWU-1.1: Per-pixel dark offset subtraction (PRE-02)
- *        REQ-P1A-009 to REQ-P1A-011
+ *        REQ-P1A-010 (execution, incl. floor-at-zero), REQ-P1A-021 (dimensions)
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -141,7 +141,7 @@ void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* 
 
 // @MX:ANCHOR: [AUTO] xpe_offset_correct — public API entry point (new g_calib-based)
 // @MX:REASON: Called by pipeline; reads g_calib.offset_map (float32); fan_in >= 3
-// @MX:SPEC: REQ-P1A-009, REQ-P1A-020
+// @MX:SPEC: REQ-P1A-010, REQ-P1A-020
 extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,

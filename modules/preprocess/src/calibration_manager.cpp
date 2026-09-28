@@ -1,7 +1,7 @@
 /**
  * @file calibration_manager.cpp
  * @brief SWU-1.5: Calibration Manager — file I/O, CRC-32, expiry (SUP-01)
- *        REQ-P1A-035 to REQ-P1A-040
+ *        REQ-P1A-014 to REQ-P1A-019
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 

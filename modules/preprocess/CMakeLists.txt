@@ -16,13 +16,13 @@ endif()
 # ---------------------------------------------------------------------------
 set(XPE_PREPROCESS_SOURCES
     src/preprocess.cpp           # version + legacy entry point
-    src/offset_correct.cpp       # SWU-1.1 REQ-P1A-009..011 (new 3-arg g_calib API)
+    src/offset_correct.cpp       # SWU-1.1 REQ-P1A-010, REQ-P1A-021 (new 3-arg g_calib API)
     src/gain_correct.cpp         # SWU-1.2 REQ-P1A-016..019 (new 3-arg g_calib API)
     src/readout_validate.cpp     # SWU-1.9 REQ-P1A-001..004
     src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-005..008
     src/nonlinearity_correct.cpp # SWU-1.7 REQ-P1A-012..015
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-020..023
-    src/defect_correct.cpp       # SWU-1.3 REQ-P1A-024..028 (new 3-arg g_calib API)
+    src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012, REQ-P1A-013 (new 3-arg g_calib API)
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
     src/calibration_manager.cpp  # SWU-1.5 CRC-32 only (legacy helpers removed)
     src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
