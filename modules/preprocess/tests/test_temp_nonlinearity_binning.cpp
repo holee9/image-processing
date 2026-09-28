@@ -4,9 +4,17 @@
  *        xpe_temp_compensate, xpe_nonlinearity_correct, xpe_binning_correct
  *        REQ-P1A-080 to REQ-P1A-082 (temp), REQ-P1A-090/091 (binning)
  *
- * QA-A-150 (#211): nonlinearity correction is exercised here but has NO current
- * requirement -- old 012~015 were dropped by bc22093 and nothing replaced them.
- * Reported rather than mapped to a neighbouring number.
+ * Nonlinearity correction is exercised here too. Its requirement is
+ * SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), cited by the implementation
+ * at nonlinearity_correct.cpp:4 and :37 -- NOT a REQ-P1A- number. Old
+ * REQ-P1A-012~015 covered it before bc22093 and were dropped with no REQ-P1A
+ * replacement, which is correct: the requirement lives in the other series.
+ *
+ * QA-A-150 (#211) CORRECTION: this comment first read "has NO current
+ * requirement". That was an absence claim made from one table -- the REQ-P1A
+ * definitions -- and stated as if it covered every series. tools/docs/
+ * check_req_citations.py has the same scope, so its orphan list means "no
+ * REQ-P1A requirement", never "no requirement".
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
