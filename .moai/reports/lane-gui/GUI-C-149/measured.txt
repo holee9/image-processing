@@ -1,0 +1,35 @@
+GUI-C-149 / #208 — measured output (verbatim), worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] SELF-CORRECTION: code-bearing citations of the OLD class name (reports/build excluded), BEFORE the rename
+  clients/.../Fixtures/P10PreviewTileSignature.txt:9  # HOW TO UPDATE: read PreviewTileSignatureTolerance in GsvgLargeFrameScenarios.cs first. Do not
+  clients/.../Scenarios/Workflows/GsvgLargeFrameScenarios.cs:45  (class declaration)
+  clients/.../Scenarios/Workflows/GsvgLargeFrameScenarios.cs:888 (typeof(...).Assembly)
+  => 2 in source + 1 prose line. The #200 address is the FILENAME and the 1024 values; neither carries a class name.
+  My C-148 blocking premise was wrong. Verified independently here.
+
+[2] signature file diff after the rename (must be the prose line only)
+-# HOW TO UPDATE: read PreviewTileSignatureTolerance in GsvgLargeFrameScenarios.cs first. Do not
++# HOW TO UPDATE: read PreviewTileSignatureTolerance in GsvgWristSliceScenarios.cs first. Do not
+  value lines now / at HEAD:
+1024
+1024
+  (a BOM was introduced by my first write and removed immediately; verified byte-level)
+
+[3] residual OLD identifiers in code/config (historical doc mentions only)
+./clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:24:/// <para><b>Renamed (#208, GUI-C-149).</b> This class was <c>GsvgLargeFrameScenarios</c>. "LargeFrame"
+./clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:124:    /// <para><b>Renamed (#208, GUI-C-149).</b> It was <c>P03_AssumedDefaults_ChangeTheImageByThisMuch</c>
+./clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:559:    /// <para><b>Renamed (#208, GUI-C-149).</b> It was <c>P09_PyramidLevels_ChangeTheDrawnPixels</c>,
+
+[4] Native run of the renamed class
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [13 s]
+     통과: 13
+     실패: 1
+
+[5] renamed tests OBSERVED BY NAME
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [17 s]
+
+[6] POSITIVE CONTROL that the signature file still reads correctly
+ P11 tiles=1024 mean|dtile|=0.001321 max|dtile|=0.043945 worst tile=61 (row 1, col 29)
+  (GUI-C-138 recorded mean|dtile|=0.001321 / max=0.043945 — identical)
