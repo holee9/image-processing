@@ -247,7 +247,11 @@ TEST_F(AiIpcBridgeTest, Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput) {
 }
 
 // ============================================================================
-// Test Cases: Timeout Handling (REQ-AI-009)
+// Test Cases: Timeout Handling (REQ-AI-092; was AI requirement 009, a number
+// SPEC-XPE-P3-AI does not define -- #210, QA-B-157). These assert the
+// named-pipe connect/receive timeout, NOT an inference time budget: the
+// bridge is never wired into the inference path, so nothing here shows
+// REQ-AI-092 being enforced end to end.
 // ============================================================================
 
 /**
