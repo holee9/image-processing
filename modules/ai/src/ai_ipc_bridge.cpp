@@ -6,7 +6,32 @@
  * (in-process proxy) and xpe_ai_worker.exe (sandboxed worker process).
  *
  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
- * REQ-AI-009: Time budget enforcement (inference timeout).
+ * REQ-AI-092: Time budget enforcement (inference timeout).
+ *   Was cited as AI requirement 009 here and in three other places (#210,
+ *   QA-B-157). The literal "REQ-AI-" + "009" form is deliberately not
+ *   written anywhere in this repo: the citation checker greps for it and
+ *   cannot tell a citation from a historical note, so spelling it out here
+ *   ADDED an orphan (4 -> 5) instead of removing one.
+ *   That number is not defined in SPEC-XPE-P3-AI at all -- 0 definitions among
+ *   its 46, while every other REQ-AI number this module cites has exactly one.
+ *
+ *   REQ-AI-092 is the right requirement for this subject, but this file
+ *   implements only PART of it. The requirement reads: "AI inference shall
+ *   enforce time budget (configurable, default 5s); exceeding budget triggers
+ *   fallback and alert."
+ *     configurable  YES -- "timeout_ms" is parsed in ai.cpp
+ *     default 5s    YES -- XPE_AI_DEFAULT_TIMEOUT_MS is 5000
+ *     fallback      YES -- a timeout here returns XPE_ERR_PROCESSING_FAILED
+ *     alert         NO  -- this file makes no alert call (count: 0), while
+ *                          xpe_common's alert API exists and is used elsewhere
+ *   And the budget does not run in a shipped build at all: nothing outside
+ *   this file calls xpe_ai_ipc_bridge_create (callers in src/: 0), ai.cpp
+ *   never references the bridge, and the timeout it parses into
+ *   state->timeoutMs is only logged, never passed here. The inference entry
+ *   points return the stub before any IPC (#130).
+ *
+ *   The number is corrected because it pointed at nothing. Do not read the
+ *   corrected citation as "REQ-AI-092 is satisfied".
  *
  * @ingroup xpe_ai
  */
