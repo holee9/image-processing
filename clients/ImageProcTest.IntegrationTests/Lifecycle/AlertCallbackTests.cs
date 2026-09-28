@@ -1,4 +1,4 @@
-﻿// AC-11: Alert queue never crashes on empty.
+﻿// AC-10: Alert queue never crashes on empty.
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -6,7 +6,7 @@ namespace ImageProcTest.IntegrationTests.Lifecycle;
 
 /// <summary>
 /// Tests for the alert queue (get_pending_alert_count / get_pending_alert / clear_alerts).
-/// Covers REQ-GUI-IT-027, REQ-GUI-IT-028, AC-11.
+/// Covers REQ-GUI-IT-027, REQ-GUI-IT-028, AC-10 (SPEC AC numbering; GUI-C-146).
 /// </summary>
 [Trait("Category", "Lifecycle")]
 [Collection(NativeLibraryCollection.Name)]
