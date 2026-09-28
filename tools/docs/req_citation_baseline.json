@@ -1,11 +1,7 @@
 {
-  "_comment": "Orphan requirement citations. Entries may shrink, never grow. See the module docstring in check_req_citations.py. 2026-09-28 (#197/#211/#216): 21->3 ids, 79->14 citations across QA-A-149/150/151 and GUI-C-146. The lane refused two mechanical substitutions that would have gone green while pointing at the wrong requirement -- old 011 was an underflow clamp where current 011 is Gain Correction Execution, and old 063 named a contract that #117 decision B reversed. GUI-IT 032-034 were removed from the integration matrix: they are real ids in RTM-GUI-001:75-77 but are detector-firmware callbacks marked out of XPE scope, wrongly attached to alert-queue tests.",
+  "_comment": "Orphan requirement citations that existed when this check was introduced (#197). Entries may shrink, never grow. See the module docstring in check_req_citations.py.",
   "orphans": {
-    "AI": [
-      "009"
-    ],
     "P1A": [
-      "034",
       "066"
     ]
   }
