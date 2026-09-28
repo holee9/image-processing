@@ -598,7 +598,7 @@ XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
 /**
  * @brief Clear accumulated frame history without destroying the handle
  *
- * REQ-P1A-034: Clear accumulated frame history
+ * REQ-P1A-088: Clear accumulated frame history
  * Call between patient acquisitions or after detector power cycle.
  *
  * @param handle Ghost corrector handle
