@@ -332,6 +332,55 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
         << "Defect density should match expected value";
 }
 
+/* ---------------------------------------------------------------------------
+ * QA-A-153 (#217): the defect gate itself, at three densities.
+ *
+ * NOTHING ASSERTED `overall_pass` FOR THIS PATH BEFORE. The four existing
+ * overall_pass assertions in this file cover offset (:161), gain (:250, :291)
+ * and pipeline (:368); the defect case above checks `defect_count` and
+ * `defect_density` and stops there. So the gate ran unverified, which is how a
+ * unit error in it survived.
+ *
+ * The middle row is the one that matters: SRS-CALIB-FUNC-003 allows "Maximum
+ * 5% defect density", so a panel at 1% is a panel the requirement accepts.
+ * Before the QA-A-153 fix it was rejected, because the metric is a percent
+ * (count/pixels*100) while the constant was a fraction (0.05) -- a 0.05% gate.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyDefect_GateMatchesTheFivePercentRequirement) {
+    struct Case { double pct; bool expect_pass; const char* why; };
+    const Case cases[] = {
+        {0.01, true,  "far below the 5% tolerance"},
+        {1.00, true,  "1% is inside the 5% the requirement allows"},
+        {10.0, false, "10% exceeds the 5% tolerance"},
+    };
+
+    // The shared 32x32 fixture cannot express 0.01% (one pixel is 0.098%),
+    // so this case sizes its own image: 200x200 makes 0.01% exactly 4 pixels.
+    constexpr uint32_t TW = 200, TH = 200;
+
+    for (const Case& c : cases) {
+        const uint32_t defects = static_cast<uint32_t>(TW * TH * c.pct / 100.0);
+        ASSERT_GT(defects, 0u) << "case " << c.pct << "% must mark at least one pixel";
+
+        F32ImageHelper corrected(TW, TH, 1000.0f);
+        U8DefectHelper defect_map(TW, TH, 0);
+        for (uint32_t i = 0; i < defects; ++i) {
+            corrected.set(i / TW, i % TW, 0.0f);
+            defect_map.set(i / TW, i % TW, 1);
+        }
+
+        XpeCalibrationMetrics metrics{};
+        std::memset(&metrics, 0, sizeof(metrics));
+        ASSERT_EQ(XPE_OK, xpe_verify_defect(&corrected.buf, &defect_map.buf, &metrics));
+
+        EXPECT_NEAR(c.pct, metrics.defect_density, 0.05)
+            << "density is reported in percent (" << c.pct << "% case)";
+        EXPECT_EQ(c.expect_pass, metrics.overall_pass)
+            << "at " << c.pct << "% density: " << c.why
+            << " (reported density " << metrics.defect_density << ")";
+    }
+}
+
 // =============================================================================
 // Test 6: Verify pipeline SNR improvement
 // =============================================================================

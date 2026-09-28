@@ -53,14 +53,19 @@ namespace {
     constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- NO REQUIREMENT FOUND (scope above)
 
     // Defect correction thresholds
-    constexpr double DEFECT_DENSITY_MAX  = 0.05;    // SRS-CALIB-FUNC-003: "Maximum 5% defect density
-                                                    // tolerance". UNIT DISAGREES WITH THE METRIC:
-                                                    // defect_density is a PERCENT (count/pixels*100,
-                                                    // :430, pinned by test_verify_metrics.cpp:330),
-                                                    // so this fraction makes the gate 0.05 % --
-                                                    // 100x stricter than the requirement allows.
-                                                    // Left unchanged: moving a pass/fail line is a
-                                                    // product decision, not an editorial one (#216).
+    constexpr double DEFECT_DENSITY_MAX  = 5.0;     // %. SRS-CALIB-FUNC-003: "Maximum 5% defect
+                                                    // density tolerance".
+                                                    // QA-A-153 (#217): was 0.05. The metric is a
+                                                    // PERCENT (count/pixels*100, below), so the
+                                                    // fraction made this a 0.05 % gate -- 1/100 of
+                                                    // what the requirement allows, rejecting panels
+                                                    // the requirement accepts. Correcting the unit
+                                                    // is not a product decision: the requirement and
+                                                    // the comment both already said 5 %; the value
+                                                    // was the only thing disagreeing.
+                                                    // The metric stays in percent because its
+                                                    // consumers are (tests, reports, GUI) -- the one
+                                                    // wrong thing was this comparison.
 
     // Overall thresholds
     constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- NO REQUIREMENT FOUND (scope above)
