@@ -24,8 +24,8 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// Timings are wall-clock on a developer machine and are reported as measurements, not as a gate:
 /// GUI-C-90 measured what a loaded machine does to numbers like these.
 /// </summary>
-[Collection(LargeFrameApplicationCollection.Name)]
-public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, ITestOutputHelper output)
+[Collection(Wrist1024SliceApplicationCollection.Name)]
+public sealed class GsvgLargeFrameScenarios(Wrist1024SliceApplicationFixture app, ITestOutputHelper output)
 {
     /// <summary>P-01: the cost of one render with each GSVG mode, split into the stage and the rest.</summary>
     [SkippableTheory]
@@ -803,7 +803,7 @@ public sealed class GsvgLargeFrameScenarios(LargeFrameApplicationFixture app, IT
     /// </summary>
     private static double[] ReadTileSignatureFromRenderDump()
     {
-        var path = LargeFrameApplicationFixture.RenderDumpPath;
+        var path = Wrist1024SliceApplicationFixture.RenderDumpPath;
         Skip.IfNot(File.Exists(path), $"No render dump at {path}; the app was launched without --automation-export-render.");
 
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
