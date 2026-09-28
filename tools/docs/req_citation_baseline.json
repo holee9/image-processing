@@ -1,24 +1,11 @@
 {
-  "_comment": "Orphan requirement citations. Entries may shrink, never grow. See the module docstring in check_req_citations.py. 2026-09-28 (#211/QA-A-149): lowered 21->14 ids, 79->58 citations. The lane checked each row of the lead's mapping table against the pre-deletion spec (d6bde7d) rather than applying it, and three rows were wrong -- 059 and 063 name different requirements than the table claimed, 025 is retired rather than absorbed. It also refused a mechanical range substitution: old 011 was an underflow clamp, current 011 is Gain Correction Execution, so 009..011 -> 010..011 would have pointed an offset comment at a gain requirement while this check stayed green. P1A 066 stays: orphaned all along, surfaced by the #213 definition-scope fix; restore-or-retire is #211's call.",
+  "_comment": "Orphan requirement citations. Entries may shrink, never grow. See the module docstring in check_req_citations.py. 2026-09-28 (#197/#211/#216): 21->3 ids, 79->14 citations across QA-A-149/150/151 and GUI-C-146. The lane refused two mechanical substitutions that would have gone green while pointing at the wrong requirement -- old 011 was an underflow clamp where current 011 is Gain Correction Execution, and old 063 named a contract that #117 decision B reversed. GUI-IT 032-034 were removed from the integration matrix: they are real ids in RTM-GUI-001:75-77 but are detector-firmware callbacks marked out of XPE scope, wrongly attached to alert-queue tests.",
   "orphans": {
     "AI": [
       "009"
     ],
-    "GUI-IT": [
-      "032",
-      "033",
-      "034"
-    ],
     "P1A": [
-      "006",
-      "007",
-      "008",
-      "023",
-      "026",
-      "027",
-      "029",
       "034",
-      "047",
       "066"
     ]
   }
