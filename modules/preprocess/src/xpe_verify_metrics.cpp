@@ -51,6 +51,11 @@ namespace {
                                                     // Also misnamed: it is compared against
                                                     // snr_improvement_db (:348), not PRNU.
     constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- NO REQUIREMENT FOUND (scope above)
+    constexpr double FLAT_RESIDUAL_MAX_PCT = 1.0;   // %. SRS-CALIB-FUNC-017: "Phase 1 acceptance
+                                                    // shall require FlatResidualPct <= 1.0%"
+                                                    // (target <= 0.5% for release hardening).
+                                                    // The quantity is already computed as
+                                                    // metrics->prnu_after -- see QA-A-154 note below.
 
     // Defect correction thresholds
     constexpr double DEFECT_DENSITY_MAX  = 5.0;     // %. SRS-CALIB-FUNC-003: "Maximum 5% defect
@@ -389,7 +394,30 @@ XPE_API XpeErrorCode xpe_verify_gain(
     bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) ||
                         (metrics->prnu_before < 0.01 && metrics->prnu_after < 0.01);
 
-    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved;
+    /* QA-A-154 (#218): THE REQUIREMENT'S OWN CRITERION, which was missing.
+     *
+     * SRS-CALIB-FUNC-017 gates this function on `FlatResidualPct <= 1.0%`.
+     * Until now overall_pass was decided entirely on a different axis --
+     * relative improvement (prnu_improved, snr_improved) plus coverage -- so a
+     * correction that improved a bad panel to a still-bad one passed. 10% ->
+     * 5% is a 6 dB improvement and five times the residual the requirement
+     * allows; it used to pass.
+     *
+     * No new calculation was needed. Preprocessing-E2E-Automated-Evaluation-
+     * Protocol.md:218-219 defines `PRNU_CV = std/mean` and `FlatResidualPct =
+     * 100 * PRNU_CV`, and prnu_after is std/mean*100 (:370) -- the percent one.
+     * The metric was already here under the other name; only the gate was
+     * absent. (XPE-GUI-CALIB-001:167 calls FlatResidualPct "same as PRNU_CV
+     * (alias)", which is right about the quantity and silent about the 100x;
+     * the protocol is the one that states the relation.)
+     *
+     * ABSOLUTE AND RELATIVE ARE BOTH KEPT. Dropping the improvement checks
+     * would let a panel that is already flat-but-uncorrected pass, and
+     * dropping this one lets a badly-corrected panel pass. They fail different
+     * things. */
+    bool flat_residual_ok = (metrics->prnu_after <= FLAT_RESIDUAL_MAX_PCT);
+
+    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
 
     return XPE_OK;
 }

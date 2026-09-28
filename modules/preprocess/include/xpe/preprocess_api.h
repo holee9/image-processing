@@ -887,7 +887,15 @@ typedef struct {
 
     // Gain metrics
     double prnu_before;         ///< Photo Response Non-Uniformity before gain [%]
-    double prnu_after;          ///< PRNU after gain correction [%]
+    double prnu_after;          ///< PRNU after gain correction [%].
+                                ///< THIS IS `FlatResidualPct` -- QA-A-154 (#218).
+                                ///< Preprocessing-E2E-Automated-Evaluation-Protocol.md:218-219
+                                ///< defines `PRNU_CV = std/mean` (a FRACTION) and
+                                ///< `FlatResidualPct = 100 * PRNU_CV` (a PERCENT). This field is
+                                ///< computed as std/mean*100, so it is the percent one, and it is
+                                ///< what SRS-CALIB-FUNC-017 gates at <= 1.0%. The field keeps its
+                                ///< name because renaming a public struct member is an ABI change;
+                                ///< what was missing was the gate, not the number.
     double flatness_pct;        ///< Histogram flatness percentage (higher = more uniform)
     double gain_coverage;       ///< % of valid gain values (1.0 = all valid)
     uint32_t invalid_gain_count;///< Number of invalid gain pixels
