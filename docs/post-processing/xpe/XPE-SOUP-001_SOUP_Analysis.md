@@ -19,7 +19,15 @@ XPE에 사용되는 모든 SOUP(Software of Unknown Provenance)를 식별하고,
 |----|------|---------|---------|---------|---------|:----------:|
 | SOUP-001 | OpenCV | 4.9.x | Image processing primitives | Apache 2.0 | SWI-2 | B |
 | SOUP-002 | dcmtk | 3.6.8 | DICOM read/write/network | BSD-3 | SWI-4 | B |
-| SOUP-003 | ONNX Runtime | 1.17.x | DL model inference | MIT | SWI-2 | B |
+| SOUP-003 | ONNX Runtime | **미확정** (아래 주 참조) | DL model inference | MIT | SWI-2 | B |
+
+> **`SOUP-003` 버전 미확정 (`#130`, 2026-09-27 정정)**
+>
+> 이 표는 `1.17.x` 를 등록하고 있었고, 알려진 문제 항목도 *"Version ≥ 1.17 사용"* 으로 적혀 있었습니다. 그런데 **`REQ-AI-006` 은 `ONNX Runtime 1.20+` 을 요구합니다**(`SPEC-XPE-P3-AI/spec.md:130`). 등록된 버전이 요구를 만족하지 않습니다.
+>
+> **`SOUP-003` 이 존재한다는 것과 `REQ-AI-006` 을 만족한다는 것은 다른 상태입니다.** 앞의 것만 확인하고 뒤의 것을 확인하지 않아 한 번 잘못 보고했습니다.
+>
+> 현재 `modules/ai` 는 **스텁 빌드**이고 ONNX Runtime 이 조달된 적 없습니다(`XPE_AI_USE_ONNXRUNTIME=OFF` 기본). 조달되지 않은 것의 버전을 적는 것은 검증되지 않은 기록이므로 **미확정**으로 둡니다. 조달 경로(vcpkg 포팅 대 사전 빌드 바이너리)와 실제 버전은 **`#130`** 에서 확정하고, 그때 이 표와 아래 세 행(운용 환경·알려진 문제·위험)을 함께 채웁니다.
 | SOUP-004 | spdlog | 1.13.x | Logging framework | MIT | SWI-5 | A |
 | SOUP-005 | nlohmann/json | 3.11.x | JSON config parsing | MIT | SWI-5 | A |
 | SOUP-006 | Google Test | 1.14.x | Unit testing (dev only) | BSD-3 | — | N/A |

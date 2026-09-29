@@ -481,6 +481,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <!-- #206 (GUI-C-140): the "Alerts only" toggle took column 1; Copy and Clear moved right. -->
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Application Log" Foreground="#f0f2f5" FontSize="12"
                                    FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -491,21 +493,40 @@
                             but a ListBox item supports no text pattern, so without this the user has
                             to read the path off the screen and type it somewhere.
                         -->
-                        <Button Grid.Column="1" Content="Copy"
+                        <!--
+                            #206 (GUI-C-140): "Alerts only". GUI-C-139 measured that finding every alert
+                            costs 74 lines of reading after 8 chain runs on the native path, growing by 8
+                            a run with no bound, while the visible page stops at 26. This is the one
+                            direction whose effect is measurable in that same unit — colour leaves the
+                            depth at 74 and changes only the per-line cost.
+                        -->
+                        <CheckBox Grid.Column="1" Content="Alerts only"
+                                  AutomationProperties.AutomationId="AlertsOnlyFilterToggle"
+                                  IsChecked="{Binding ShowAlertsOnly, Mode=TwoWay}"
+                                  Foreground="#8a909c" FontSize="10" Cursor="Hand"
+                                  VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <Button Grid.Column="2" Content="Copy"
                                 AutomationProperties.AutomationId="CopyLogLineButton"
                                 Command="{Binding CopySelectedLogCommand}"
                                 Background="Transparent" Foreground="#8a909c"
                                 BorderThickness="0" FontSize="10" Cursor="Hand"
                                 Padding="8,2" />
-                        <Button Grid.Column="2" Content="Clear"
+                        <Button Grid.Column="3" Content="Clear"
                                 Command="{Binding ClearLogsCommand}"
                                 Background="Transparent" Foreground="#8a909c"
                                 BorderThickness="0" FontSize="10" Cursor="Hand"
                                 Padding="8,2" />
                     </Grid>
 
+                    <!--
+                        #206 (GUI-C-140): bound to LogsView, not Logs. With the filter off the view
+                        shows every line, so what the list renders is unchanged — GUI-C-139 measured the
+                        reader's cost against the unfiltered list and that comparison has to stay valid.
+                    -->
                     <ListBox AutomationProperties.AutomationId="LogListBox"
-                             ItemsSource="{Binding Logs}"
+                             x:Name="LogList"
+                             SelectionChanged="OnLogSelectionChanged"
+                             ItemsSource="{Binding LogsView}"
                              SelectedItem="{Binding SelectedLog, Mode=TwoWay}"
                              Background="Transparent" BorderThickness="0"
                              Foreground="#f0f2f5" MaxHeight="600"

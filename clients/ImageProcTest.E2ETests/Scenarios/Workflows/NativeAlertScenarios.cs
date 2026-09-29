@@ -27,8 +27,8 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// its own app, so one run cannot consume another run's alerts — the trap of an earlier call eating
 /// what the assertion was going to look for.</para>
 /// </summary>
-[Collection(LargeFrameApplicationCollection.Name)]
-public sealed class NativeAlertScenarios(LargeFrameApplicationFixture app, ITestOutputHelper output)
+[Collection(Wrist1024SliceApplicationCollection.Name)]
+public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, ITestOutputHelper output)
 {
     /// <summary>What the GUI stamps on an alert that came from the native queue.</summary>
     private const string NativeCode = "NATIVE_ALERT";

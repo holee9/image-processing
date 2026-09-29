@@ -1,0 +1,9 @@
+ tests/common/test_xpe_common.cpp         | 596 -------------------------------
+ tests/common_smoke/CMakeLists.txt        |  10 -
+ tests/common_smoke/test_common_smoke.cpp | 104 ------
+ tests/common_unit/CMakeLists.txt         |  10 -
+ tests/common_unit/test_xpe_common.cpp    | 491 -------------------------
+ 5 files changed, 1211 deletions(-)
+ modules/common/CMakeLists.txt            |  4 ++++
+ modules/common/tests/test_xpe_common.cpp | 35 ++++++++++++++++++++++++++++++++
+ 2 files changed, 39 insertions(+)

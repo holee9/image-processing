@@ -111,7 +111,7 @@
 > |---|---|---|
 > | Offset | `tests/test_offset_correct_avx2_parity.cpp` | 3 |
 > | Gain | `tests/test_gain_correct_avx2_parity.cpp` | 3 |
-> | Defect | `tests/test_defect_correct_avx2_parity.cpp` | 2 |
+> | Defect | `tests/test_defect_correct_determinism.cpp` | 2 |
 > | Runtime detection | `tests/test_runtime_detection_avx2_parity.cpp` | 12 |
 >
 > Twenty cases, deterministic seed `0x5EED`, each comparing a whole frame against an inline scalar
@@ -135,10 +135,10 @@
 - [x] Test coverage: 3 TEST cases, deterministic seed `0x5EED`
 - **Verification**: ~~100/100 parity checks passing (within 1 ULP)~~ — 1-ULP parity holds (QA-A-72); see the Phase M3 note above
 
-### AC-SIMD-003: Defect Parity (Bilinear)
-- [x] Scalar vs AVX2: Bit-identical (integer arithmetic only)
-- [x] Test coverage: 2 TEST cases, deterministic seed `0x5EED`
-- **Verification**: ~~100/100 parity checks passing~~ — see the Phase M3 note above
+### ~~AC-SIMD-003: Defect Parity (Bilinear)~~ — **RENAMED 2026-09-27 (QA-A-145, #207): `AC-DETERM-001` Defect Correction Determinism**
+- [x] **Same function called twice on identical FLOAT32 input** — byte-identical. NOT scalar-vs-AVX2: the correction path has no AVX2 (`_mm256` 0 hits; control `gain_correct` 13). `bilinear` was never implemented (`#125`)
+- [x] Test coverage: 2 TEST cases, deterministic seed `0x5EED`, `tests/test_defect_correct_determinism.cpp`
+- **Verification**: ~~100/100 parity checks passing~~ — this criterion **passes even if correction is consistently wrong**; accuracy lives in `AC-DEF-001~004`
 
 ### AC-SIMD-004: Runtime Detection Parity
 - [x] Scalar vs AVX2: Bit-identical (integer median)

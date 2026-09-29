@@ -1,0 +1,4 @@
+ modules/preprocess/include/runtime_detection.h     | 31 ++++++++++++++++++++++
+ modules/preprocess/src/runtime_detection.cpp       |  7 ++---
+ .../tests/test_runtime_detection_buffer_reuse.cpp  |  6 ++---
+ 3 files changed, 38 insertions(+), 6 deletions(-)

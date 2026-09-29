@@ -444,18 +444,22 @@ And neither path produces NaN or Inf when the other does not
 **Test Type**: Parity (harness Section 3, Rule: OneULP)
 **Test Count**: 300 (100 per 3 shapes)
 
-#### AC-SIMD-003: Defect Correction Parity (UINT16 Bit-Identical)
+#### AC-DETERM-001: Defect Correction Determinism (FLOAT32 Bit-Identical Across Calls)
+
+> **`AC-SIMD-003` 에서 개명·이전했습니다 (`#207`, 2026-09-27).** (`AC-DET-001` 은 §Transient Defect Detection 이 이미 쓰고 있어 `AC-DETERM-` 접두를 새로 뒀습니다.) SIMD 군에 있었지만 SIMD 를 재지 않습니다 — 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 옛 문구는 UINT16·scalar 대 AVX2·`bilinear`·Test Count 600 을 주장했고 **다섯 항목 전부 실재와 달랐습니다**(pre 레인 `QA-A-145` 측정). 아래는 시험이 실제로 하는 것입니다.
+>
+> **이 AC 는 정확성을 보증하지 않습니다** — 보정이 일관되게 틀려도 통과합니다. 정확성 쪽은 `AC-DEF-*` 가 맡습니다.
 
 ```gherkin
-Given 100 pseudo-random UINT16 frames + random defect maps (Bernoulli p=0.001)
-When scalar bilinear defect correction and AVX2 defect correction are both applied
-Then scalar_output == avx2_output (byte-level)
-And the same parity holds for median mode (cluster defects)
+Given pseudo-random FLOAT32 frames + random defect maps (deterministic seed 0x5EED)
+When the same defect correction is invoked twice on identical input
+Then the two outputs are byte-identical
+And the same holds for cluster (3x3 median) correction
 ```
 
-**REQ Mapping**: REQ-P1A-040
-**Test Type**: Parity (harness, Rule: Bit-identical)
-**Test Count**: 600 (100 per 3 shapes x 2 modes: bilinear + median)
+**REQ Mapping**: REQ-P1A-012
+**Test Type**: Determinism (harness, Rule: Bit-identical across calls)
+**Test Count**: 2 (`modules/preprocess/tests/test_defect_correct_determinism.cpp`)
 
 #### AC-SIMD-004: Runtime Detection Parity (UINT16 Bit-Identical)
 
@@ -603,7 +607,7 @@ And the processed image is displayed in the GUI
 >
 > **미검증**: `PERF-001`·`002`·`004`·`005`·`006` 은 **다시 보지 않았습니다.** 같은 표에 있고 같은 출처 문제를 공유하지만(위 `spec.md:569` 출처 정정 참조), 이 카드의 범위는 `PERF-003` 뿐이었습니다. 그 행들을 판정 근거로 인용하기 전에 같은 확인이 필요합니다.
 >
-> **`AC-SIMD-003`(§ Defect Correction Parity)은 이 정정과 별개로 더 큰 문제가 있습니다** — 별도 이슈로 다룹니다.
+> **`AC-SIMD-003`(§ Defect Correction Parity)은 이 정정과 별개로 더 큰 문제가 있었습니다** — `#207` 로 다뤘고, `AC-DETERM-001` 로 개명·재작성됐습니다.
 
 ---
 
@@ -670,7 +674,7 @@ Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Sectio
 | REQ-P1A-005   | AC-OFF-005, all NULL input tests                | High     |
 | REQ-P1A-010   | AC-OFF-001, AC-OFF-002                          | High     |
 | REQ-P1A-011   | AC-GAIN-001, AC-GAIN-002, AC-GAIN-003          | High     |
-| REQ-P1A-012   | AC-DEF-001~AC-DEF-004                           | High     |
+| REQ-P1A-012   | AC-DEF-001~AC-DEF-004, AC-DETERM-001            | High     |
 | REQ-P1A-013   | AC-DET-001                                      | Medium   |
 | REQ-P1A-014   | AC-CAL-001                                      | High     |
 | REQ-P1A-015   | AC-CAL-001 (gain variant)                       | High     |
@@ -685,7 +689,7 @@ Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Sectio
 | REQ-P1A-031   | AC-IEC-002                                      | High     |
 | REQ-P1A-032   | All error path tests                            | High     |
 | REQ-P1A-033   | AC-GAIN-002                                     | High     |
-| REQ-P1A-040   | AC-SIMD-001, AC-SIMD-002, AC-SIMD-003          | Medium   |
+| REQ-P1A-040   | AC-SIMD-001, AC-SIMD-002                        | Medium   |
 | REQ-P1A-041   | AC-PIPE-001                                     | Low      |
 | REQ-P1A-042   | Parameter range test                            | Medium   |
 

@@ -120,7 +120,7 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-FUNC-017** | Support field (on-site) calibration updates | SWU-1.5 | SAD §3.1.5 | UT-1.5-017 | IT-CALIB-004 | ST-017 | -- | Merge update |
 | **SRS-CALIB-SAFE-001** | Fail-safe if offset absent: return error, do not proceed | SWU-1.5 | SAD §3.1.5 | UT-1.5-001 | IT-CALIB-001 | ST-SAFE-001 | HAZ-CALIB-001 | Hard fail |
 | **SRS-CALIB-SAFE-002** | Fail-safe if gain absent: return error, do not proceed | SWU-1.5 | SAD §3.1.5 | UT-1.5-002 | IT-CALIB-001 | ST-SAFE-002 | HAZ-CALIB-002 | Hard fail |
-| **SRS-CALIB-SAFE-003** | Alert operator if calibration corrupted (CRC fail) | SWU-1.5 | SAD §3.1.5 | UT-1.5-010 | IT-CALIB-001 | ST-SAFE-003 | HAZ-CALIB-001 | Alert + fail |
+| **SRS-CALIB-SAFE-003** | Alert operator if calibration corrupted (**SHA-256** mismatch — 본문 정정 `#203`, 2026-09-28; 구현은 CRC-32 가 아닙니다) | SWU-1.5 | SAD §3.1.5 | UT-1.5-010 | IT-CALIB-001 | ST-SAFE-003 | HAZ-CALIB-001 | Alert + fail |
 | **SRS-CALIB-SAFE-004** | Alert operator if calibration expired | SWU-1.5 | SAD §3.1.5 | UT-1.5-012 | IT-CALIB-002 | ST-SAFE-004 | HAZ-CALIB-003 | Expiry alert |
 | **SRS-CALIB-SAFE-005** | Log all calibration load/unload events (audit trail) | SWU-1.5 | SAD §3.1.5 | UT-1.5-018 | IT-CALIB-004 | ST-SAFE-005 | -- | Audit log |
 | **SRS-CALIB-PERF-001** | Load all calibration maps within 200 ms (startup) | SWU-1.5 | SAD §3.1.5 | ST-PERF-001 | IT-CALIB-006 | ST-PERF-001 | -- | Perf budget |
@@ -243,9 +243,49 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 | SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047 | `xpe_verify_pipeline`, pipeline API comments | Pipeline verification metric tests; ctest 341/341 passed | Updated |
 | SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated |
 | SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`; ctest 341/341 passed | Added |
+| SRS-CALIB-FUNC-006 / FUNC-006-EXT | `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut` | 매핑 추가 `#216`, 2026-09-29 — **요구는 있었고 이름이 안 달려 있었습니다.** `api_requirement_census.py` 가 이 넷을 "요구 없음" 으로 세던 이유입니다(도구는 `REQ-P1A` 만 스캔하고, `SRS-CALIB-001` 은 능력으로 기술해 함수명을 쓰지 않습니다). `SRS-CALIB-001:376` 의 언급은 요구 문단이 아니라 §5.3 C ABI 서명 목록입니다 | Added |
 | SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
 
 ---
+
+## 5b. 폐기 결정 기록 (`#203`, 2026-09-28)
+
+> **왜 이 절이 있는가.** `#195` 가 이 RTM 의 `FUNC-004~017` 14행이 **옛 SRS 판본을 일관되게 추적**하고 있고, 그 판본의 데이터 관리 요구 일부가 현재 `SRS-CALIB-001` 에 없다는 것을 확정했습니다. 번호를 맞추는 것이 곧 **요구를 새로 세우는 일**이라 `#203` 으로 분리해 결정했습니다.
+>
+> 폐기는 문서에서 지우는 것이 아니라 **판단과 근거를 남기는 것**입니다. IEC 62304 Class B 에서 "없다" 와 "없애기로 했다" 는 다른 상태입니다.
+
+### 폐기 3건
+
+| 요구 (옛 판본) | 구현 | 폐기 근거 |
+|---|---|---|
+| **`FUNC-009` 데드존 거부** (offset > 5% 화소 거부) | **없음** (좁은·넓은 토큰 모두 0, 대조군 `xpe_calib_load` 49) | **`5%` 의 출처가 없습니다.** 근거 없는 상수로 방어를 세우면 잘못된 방어가 됩니다 — `#148`(전역 시그마 하한이 구조 있는 프레임에서 검출을 무력화, TPR 0)에서 본 형태입니다. 실장비 데이터(`#151`)가 오면 그때 **유도해서** 세웁니다 |
+| **`FUNC-016` 교정 포맷 버전 불일치 검출** | **없음** (1건, 무관) | `xcal_reader.cpp:168-184` 가 이미 헤더를 검증하고 `width × height × bpp` 로 payload 길이를 대조합니다. **버전 필드가 그 위에 무엇을 더 막는지 불명확**합니다. 막을 것이 특정되면 그때 세웁니다 |
+| **`FUNC-017` 필드(현장) 교정 갱신** | **없음** (`field_generate` 0) | **`FUNC-028` 필드 워크플로와 중복**입니다. 둘을 따로 두면 어느 쪽이 계약인지 모호해집니다 |
+
+### 폐기하지 않은 것 — 구현이 있어 세울 필요가 없습니다
+
+| 요구 | 상태 |
+|---|---|
+| **`FUNC-006`·`007` 치수 검증** | **구현돼 있습니다.** 적재 시점 `xcal_reader.cpp:168-184`, 적용 시점은 `SPEC-XPE-P1A` 의 **`REQ-P1A-021`**(Dimension Mismatch Guard)이 덮습니다(`defect_correct.cpp:178-179`, `gain_correct.cpp:253`). RTM 번호만 맞추면 됩니다 |
+| `FUNC-008`·`012`·`013`·`014` | 구현·SRS 대응 모두 있고 **번호만** 다릅니다 |
+| `FUNC-010` 무결성 | 있음 — 다만 **SHA-256** 이고 CRC-32 가 아닙니다. `SAFE-003` 본문을 `#203` 에서 정정했습니다 |
+
+### 판정 보류 1건
+
+**`FUNC-015` 검출기 프로파일** — `nonlinearity_correct.cpp` 주석에 *"panel profile 이 enable/disable 을 좌우한다"* 는 **서술**이 3건 있으나, 그 프로파일을 **읽는 코드**인지 확인하지 못했습니다. **`#186`**(FUNC-006 비선형 보정 미구현)과 같은 자리라 그 이슈에서 함께 봅니다.
+
+### 이 결정 과정의 기록 — 대조군이 한 번 잡았습니다
+
+치수 검증을 `calibration_manager.cpp` 에서 찾아 *"0건"* 을 봤는데, **같은 파일에서 대조군 `xpe_calib_load` 도 0건**이었습니다. 로더가 그 파일에 없었던 것입니다.
+
+**위치를 잘못 짚은 부재 판정**이었고, 대조군이 없었으면 `FUNC-006`·`007` 을 *"구현 없음 → 폐기"* 로 넘길 뻔했습니다. 실제로는 두 겹으로 구현돼 있습니다.
+
+### 미검증
+
+- `SAFE`·`PERF` 블록이 **같은 어긋남을 가졌는지 확인하지 않았습니다.** `FUNC` 에서 14건이 나왔으므로 볼 값이 있습니다
+- `SRS-CALIB-FUNC-018`·`020` 이 이 RTM 어디에도 없는 건은 **미해결**입니다
+- 폐기 3건은 **현재 시점의 판단**입니다. `#151`(실장비 파일)이 풀리면 `FUNC-009` 는 재검토 대상입니다
+
 
 ## 6. Sign-Off & Approval
 

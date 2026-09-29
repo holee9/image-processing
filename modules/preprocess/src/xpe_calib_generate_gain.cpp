@@ -2,8 +2,8 @@
  * @file xpe_calib_generate_gain.cpp
  * @brief Gain map generation implementation (SWU-1.12: FUNC-026, FUNC-027)
  *
- * REQ-P1A-026: Generate flat-field gain map from flat frames
- * REQ-P1A-027: Generate dose-dependent gain polynomial
+ * SRS-CALIB-FUNC-026: Generate flat-field gain map from flat frames
+ * SRS-CALIB-FUNC-027: Generate dose-dependent gain polynomial
  *
  * Algorithm (FUNC-026):
  *   1. Validate input dimensions consistency

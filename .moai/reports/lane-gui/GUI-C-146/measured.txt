@@ -1,0 +1,81 @@
+GUI-C-146 / #197 — measured output (verbatim)
+worktree: D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] SPEC AC-10 definition — .moai/specs/SPEC-XPE-GUI-IT/spec.md:517
+### AC-10: Alert Queue Never Crashes on Empty (REQ-GUI-IT-027, 028)
+`AlertTests`:
+- empty queue에서 count == 0, fetch(0)는 `INVALID_INPUT`
+- clear_alerts 3회 연속 호출 무예외
+
+[2] Census (before the fix)
+SPEC defined count: 36
+matrix rows: 36
+UNDEFINED in matrix: ['REQ-GUI-IT-032', 'REQ-GUI-IT-033', 'REQ-GUI-IT-034']
+defined-and-present control: ['REQ-GUI-IT-001', 'REQ-GUI-IT-002', 'REQ-GUI-IT-003', 'REQ-GUI-IT-004', 'REQ-GUI-IT-005']
+SPEC-defined but not in matrix: ['REQ-GUI-IT-063', 'REQ-GUI-IT-064', 'REQ-GUI-IT-065']
+REQ-GUI-IT-027 matrix ac= AC-11
+REQ-GUI-IT-028 matrix ac= AC-11
+REQ-GUI-IT-029 matrix ac= AC-12
+REQ-GUI-IT-030 matrix ac= AC-12
+REQ-GUI-IT-031 matrix ac= AC-12
+
+[3] ac-column cross-check vs SPEC "### AC-n:" headings (fixed parser)
+MISMATCH REQ-GUI-IT-005 matrix=AC-4   SPEC lists it under (none)
+MISMATCH REQ-GUI-IT-010 matrix=AC-7   SPEC lists it under (none)
+MISMATCH REQ-GUI-IT-043 matrix=AC-2   SPEC lists it under (none)
+MISMATCH REQ-GUI-IT-060 matrix=AC-14  SPEC lists it under ['AC-13']
+MISMATCH REQ-GUI-IT-061 matrix=AC-14  SPEC lists it under ['AC-13']
+MISMATCH REQ-GUI-IT-062 matrix=AC-14  SPEC lists it under ['AC-13']
+
+agree=27  mismatch=6  (control: 27 agreeing rows -> the parser reads both sides)
+
+NOTE on the instrument: the FIRST version of this parser reported 16 mismatches,
+including 003/004/028/030/031. That was the parser's fault, not the data's — the
+regex did not pick up bare comma continuations in "(REQ-GUI-IT-002, 003, 004)".
+Numbers above are from the corrected parser. The AC-10/AC-11 finding was reached
+by reading the headings directly, not from the broken regex.
+
+[4] Test attribute count — clients/.../Lifecycle/AlertCallbackTests.cs
+grep -c "SkippableFact|[Fact]|[Theory" -> 2
+Both are [SkippableFact]. A grep for "[Fact]" alone returns 0.
+
+[5] Phantom numbers exist elsewhere — docs/post-processing/xpe/RTM-GUI-001...md:75-77
+| REQ-GUI-IT-032 | Detector-firmware callback — Configure Default *(out of XPE scope; ABI smoke only)* |
+| REQ-GUI-IT-033 | Detector-firmware callback — Configure Invalid JSON *(out of XPE scope)* |
+| REQ-GUI-IT-034 | Detector-firmware callback — Poll Empty Queue *(out of XPE scope)* |
+The only place 032~034 appear in the SPEC: spec.md:483
+### AC-4: All 18 PInvoke Symbols Have a Functional Test (REQ-GUI-IT-020~034)
+(a range; no "#### REQ-GUI-IT-032" definition exists)
+
+[6] tools/docs/check_req_citations.py without PYTHONIOENCODING
+PYTHONIOENCODING=[unset]
+my HEAD's version:  exit=0
+  [check_req_citations] no new orphans (20 known orphan ids, 73 citations)
+311718f's version (run from a repo-relative path): exit=1
+  [check_req_citations] new orphan requirement citations:
+    REQ-P1A-066 is cited at modules/preprocess/CMakeLists.txt:424 but no SPEC under .moai/specs/ defines it
+No UnicodeEncodeError on either. 311718f is NOT an ancestor of my HEAD
+(git merge-base --is-ancestor 311718f HEAD -> false), which is why my numbers
+are 20/73 rather than the lead's 14/58.
+
+Why the tool passes 032~034 — tools/docs/req_citation_baseline.json:7-11
+  "GUI-IT": [ "032", "033", "034" ]
+
+[7] POSITIVE CONTROL that the tool really reads clients/
+appended `// probe REQ-GUI-IT-099` to clients/.../AlertCallbackTests.cs, then:
+  REQ-GUI-IT-099 is cited at clients/ImageProcTest.IntegrationTests/Lifecycle/AlertCallbackTests.cs:67 but no SPEC under .moai/specs/ defines it
+  REQ-P1A-066 is cited at modules/preprocess/CMakeLists.txt:424 but no SPEC under .moai/specs/ defines it
+reverted immediately; `git diff --stat` on that file -> empty (REVERTED-clean).
+No extension filter in the tool (it walks `git ls-files`), so the .json is in scope.
+
+[8] After the fix
+rows 33
+[('REQ-GUI-IT-027','AC-10'), ('REQ-GUI-IT-028','AC-10'),
+ ('REQ-GUI-IT-029','AC-11'), ('REQ-GUI-IT-030','AC-11'), ('REQ-GUI-IT-031','AC-11'),
+ ('REQ-GUI-IT-060','AC-13'), ('REQ-GUI-IT-061','AC-13'), ('REQ-GUI-IT-062','AC-13')]
+json.load succeeds (BOM + CRLF preserved).
+
+[9] Consumers of the matrix — grep over clients/ gui/ (*.cs, *.csproj), bin/obj excluded
+clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj:36:
+  <Content Include="Resources\requirement-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+1 match, copy-only. No test asserts on this file.

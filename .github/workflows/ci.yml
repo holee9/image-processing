@@ -323,15 +323,28 @@ jobs:
       #
       # cwd is modules/gsvg because gsvg_tests reads its phantoms by relative path; the
       # other binaries were measured to be cwd-independent under that setting (QA-B-140).
-      # ONE glob only — listing *.exe alongside test_*/`*_tests` visits the same file twice
-      # on Windows and inflated a 12-binary count to 22 during that card.
+      #
+      # #205 (2026-09-27): the binary list comes from CTEST, not from a glob. It used to be
+      # `Get-ChildItem -Filter *.exe` over build/ci-post/bin, which assumes every executable
+      # in that directory is a gtest binary. Turning on BUILD_AI put `xpe_ai_worker.exe`
+      # there — an IPC worker, not a test — and this step ran it and reported
+      # "no gtest summary line - the run did not complete". The glob could not tell a test
+      # from a program that merely sits next to one. ctest's own registry can: each
+      # registered test names the binary it runs, so a non-test executable is absent by
+      # construction and a renamed test binary cannot silently drop out of the list.
+      # (This also retires the earlier double-listing hazard the one-glob rule worked
+      # around — `Sort-Object -Unique` on the path is what dedupes now.)
       - name: Run post test binaries as one process each (#162)
         shell: pwsh
         working-directory: modules/gsvg
         run: |
           $binDir = Join-Path $env:GITHUB_WORKSPACE 'build/ci-post/bin'
-          $exes = @(Get-ChildItem -Path $binDir -Recurse -Filter *.exe -File)
-          if ($exes.Count -eq 0) { Write-Error "no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          $reg = ctest --test-dir "$env:GITHUB_WORKSPACE/build/ci-post" --build-config RelWithDebInfo --show-only=json-v1 | Out-String | ConvertFrom-Json
+          $paths = @($reg.tests | ForEach-Object { $_.command[0] } | Sort-Object -Unique)
+          $exes = @($paths | Where-Object { Test-Path $_ } | ForEach-Object { Get-Item $_ })
+          if ($exes.Count -eq 0) { Write-Error "ctest registered no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          if ($exes.Count -ne $paths.Count) { Write-Error ("ctest names {0} test binaries but only {1} exist on disk - the build and the registry disagree" -f $paths.Count, $exes.Count); exit 1 }
+          Write-Host ("single-process check will run {0} test binary(ies) named by ctest" -f $exes.Count)
           # Same exclusion as the ctest step above, for the same reason: these measure the
           # machine, not the code, and timing regressions are the benchmark workflow's gate.
           # Keep in sync with the ctest -E regex and XpeCoverage.cmake. Omitting it made this

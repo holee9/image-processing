@@ -16,14 +16,14 @@ endif()
 # ---------------------------------------------------------------------------
 set(XPE_PREPROCESS_SOURCES
     src/preprocess.cpp           # version + legacy entry point
-    src/offset_correct.cpp       # SWU-1.1 REQ-P1A-009..011 (new 3-arg g_calib API)
+    src/offset_correct.cpp       # SWU-1.1 REQ-P1A-010, REQ-P1A-021 (new 3-arg g_calib API)
     src/gain_correct.cpp         # SWU-1.2 REQ-P1A-016..019 (new 3-arg g_calib API)
     src/readout_validate.cpp     # SWU-1.9 REQ-P1A-001..004
     src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-005..008
     src/nonlinearity_correct.cpp # SWU-1.7 REQ-P1A-012..015
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-020..023
-    src/defect_correct.cpp       # SWU-1.3 REQ-P1A-024..028 (new 3-arg g_calib API)
-    src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-029..034
+    src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012, REQ-P1A-013 (new 3-arg g_calib API)
+    src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-085..087
     src/calibration_manager.cpp  # SWU-1.5 CRC-32 only (legacy helpers removed)
     src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
     src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection
@@ -359,10 +359,18 @@ if(_XPE_BUILD_TESTS)
         # BP-01~05 DegradedMode benchmark smoke tests (null/identity calibration)
         tests/test_preprocess_degraded.cpp
         # BP-01~05 DegradedMode — see test_preprocess_degraded.cpp above
-        # SPEC-SIMD-001: AVX2 parity tests (3-arg API)
+        # SPEC-SIMD-001: AVX2 parity tests (3-arg API). Each compares the
+        # shipped vector path against an independently derived scalar
+        # reference -- xpe_offset_apply_scalar_reference and
+        # xpe_gain_apply_scalar_reference respectively.
         tests/test_offset_correct_avx2_parity.cpp
         tests/test_gain_correct_avx2_parity.cpp
-        tests/test_defect_correct_avx2_parity.cpp
+        # QA-A-145 (#207): renamed from test_defect_correct_avx2_parity.cpp.
+        # Correction has NO AVX2 path (_mm256 0 hits; control: the two files
+        # above have 12 and 13), and the file never compared one -- it calls
+        # the same function twice. It is a determinism test and is now named
+        # as one.
+        tests/test_defect_correct_determinism.cpp
         # QA-A-42 (#144): renamed from test_runtime_detection_avx2_parity.cpp --
         # it asserts determinism, not AVX2 parity. QA-A-65 (#144) then added an
         # AVX2 path to the per-pixel loop, so the freed name is in use again by

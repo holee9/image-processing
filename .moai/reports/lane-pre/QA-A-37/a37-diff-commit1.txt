@@ -1,0 +1,7 @@
+ modules/preprocess/CMakeLists.txt                  |   2 +
+ .../xpe/preprocess/xpe_preprocess_internal.h       |  10 +
+ modules/preprocess/src/xcal_reader.cpp             |   4 +-
+ modules/preprocess/src/xcal_validator.cpp          |  19 +-
+ modules/preprocess/src/xpe_calib_load_gain.cpp     |  50 ++++-
+ .../preprocess/tests/test_calib_gain_poly_load.cpp | 203 +++++++++++++++++++++
+ 6 files changed, 278 insertions(+), 10 deletions(-)

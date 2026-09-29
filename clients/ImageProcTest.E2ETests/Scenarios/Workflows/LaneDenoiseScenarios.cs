@@ -23,8 +23,8 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// connected k from an unconnected one. That is the hazard this project has hit before with uniform
 /// synthetic data, and the fix is the fixture, not a looser assertion.</para>
 /// </summary>
-[Collection(LargeFrameApplicationCollection.Name)]
-public sealed class LaneDenoiseScenarios(LargeFrameApplicationFixture app, ITestOutputHelper output)
+[Collection(Wrist1024SliceApplicationCollection.Name)]
+public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, ITestOutputHelper output)
 {
     /// <summary>
     /// L-05: the Candidate's own virtual-grid de-noise k moves the Candidate and leaves the Reference

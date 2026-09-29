@@ -1,0 +1,4 @@
+ modules/common/tests/test_post_degraded_mode.cpp | 88 ------------------------
+ 1 file changed, 88 deletions(-)
+ modules/common/CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)

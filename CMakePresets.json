@@ -69,7 +69,7 @@
                 "BUILD_PREPROCESS": "OFF",
                 "BUILD_ENHANCE_BASIC": "ON",
                 "BUILD_ENHANCE_ADVANCED": "ON",
-                "BUILD_AI": "OFF",
+                "BUILD_AI": "ON",
                 "BUILD_DISPLAY": "ON",
                 "BUILD_DICOM": "OFF",
                 "XPE_WARNINGS_AS_ERRORS": "ON",

@@ -2,7 +2,7 @@
  * @file binning_correct.cpp
  * @brief SWU-1.8: Binning correction for gain/uniformity differences (PRE-09)
  *        No-op when binningMode == 1 (1x1, no binning).
- *        REQ-P1A-020 to REQ-P1A-023
+ *        REQ-P1A-090, REQ-P1A-091
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -26,7 +26,7 @@ XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
 
     // REQ-P1A-021: XPE_ERR_CONFIG_INVALID for unknown binning mode
     // REQ-P1A-022: float32 format (post-gain-correct stage)
-    // REQ-P1A-023: per-mode correction profile
+    // REQ-P1A-090: per-mode correction profile
     if (binningMode != 2 && binningMode != 4)
         return XPE_ERR_CONFIG_INVALID;
 

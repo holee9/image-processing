@@ -1,0 +1,154 @@
+GUI-C-151 / #224 — measured output (verbatim). Read-only investigation; no app was modified.
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] XAML inventory
+  clients:
+    clients/ImageProcTest/App.xaml
+    clients/ImageProcTest/Controls/EvaluationViewerPanel.xaml
+    clients/ImageProcTest/Controls/HistogramControl.xaml
+    clients/ImageProcTest/MainWindow.xaml
+  gui:
+    gui/ImageProcTest/App.xaml
+    gui/ImageProcTest/HelpWindow.xaml
+    gui/ImageProcTest/MainWindow.xaml
+    gui/ImageProcTest/Views/AlgorithmBar.xaml
+    gui/ImageProcTest/Views/AnalysisPanel.xaml
+    gui/ImageProcTest/Views/StudyQueue.xaml
+    gui/ImageProcTest/Views/TopBar.xaml
+    gui/ImageProcTest/Views/VerdictBar.xaml
+    gui/ImageProcTest/Views/ViewportShell.xaml
+
+[2] clients tabs
+  174:            <TabItem Header="Evaluation">
+  440:            <TabItem Header="Calibration">
+  691:            <TabItem Header="Diagnostics">
+  790:            <TabItem Header="Metrics">
+  918:            <TabItem Header="Reports">
+  950:            <TabItem Header="AI Module"
+  1147:            <TabItem Header="Help">
+   gui top-level menus
+  75:            <MenuItem x:Name="FileMenu"
+  113:            <MenuItem x:Name="BackendMenu"
+  157:            <MenuItem x:Name="ViewMenu"
+  305:            <MenuItem x:Name="PipelineMenu"
+  347:            <MenuItem x:Name="ToolsMenu"
+  395:            <MenuItem x:Name="HelpMenu"
+
+[3] feature-string presence (file counts)
+  AiBridge             clients=6   gui=0
+  ReadinessSnapshot    clients=9   gui=0
+  DefectMap            clients=1   gui=0
+  Metrics              clients=10  gui=1
+  Histogram            clients=11  gui=3
+  Dicom                clients=14  gui=4
+  Evaluation           clients=10  gui=7
+  Calibration          clients=15  gui=18
+
+[4] native symbol census (union of quoted strings + DllImport-declared names)
+clients  quoted=49  DllImport-declared=15  union(functions)=55
+gui      quoted=17  DllImport-declared=24  union(functions)=31
+
+clients only (29):
+  xpe_calib_check_expiry xpe_calib_generate_offset xpe_calib_save xpe_configure xpe_copy_image xpe_defect_detect_runtime xpe_dicom_cancel xpe_dicom_cfind_mwl xpe_dicom_close xpe_dicom_cstore xpe_dicom_get_metadata xpe_dicom_open xpe_dicom_read_image xpe_dicom_validate xpe_dicom_write_j2k xpe_enhance_basic_version xpe_error_string xpe_get_param_range xpe_init xpe_log_flush xpe_log_inverse xpe_log_set_file xpe_log_set_level xpe_noise_estimate_sigma xpe_preprocess_get_param_range xpe_preprocess_version xpe_shutdown xpe_validate_readout_artifact xpe_version
+
+gui only (5):
+  xpe_dicom_read xpe_gsvg_init xpe_gsvg_process_ex xpe_gsvg_shutdown xpe_nonlinearity_correct
+
+both (26):
+  xpe_alloc_image xpe_apply_modality_lut xpe_apply_presentation_lut xpe_apply_voi_lut xpe_calc_exposure_index xpe_calib_load_defect_map xpe_calib_load_gain xpe_calib_load_offset xpe_clear_alerts xpe_contrast_enhance xpe_defect_correct xpe_dicom_write xpe_display_version xpe_edge_enhance xpe_free_image xpe_gain_correct xpe_get_pending_alert xpe_get_pending_alert_count xpe_gsdf_calibrate xpe_gsvg_version xpe_log_transform xpe_noise_reduce xpe_offset_correct xpe_preprocess_init xpe_preprocess_shutdown xpe_voi_preset_create
+[5] linked-source census (what CI actually compiles)
+ImageProcTest.IntegrationTests
+  clients app sources linked: 11
+     ../ImageProcTest/Models/ModuleReadinessSnapshot.cs
+     ../ImageProcTest/Models/AiBridgeConnectionStatus.cs
+     ../ImageProcTest/Models/AiBridgePanelSnapshot.cs
+     ../ImageProcTest/Services/AiBridgeStatusComputer.cs
+     ../ImageProcTest/Diagnostics/NativeModuleLibraryLocator.cs
+     ../ImageProcTest/Services/ModuleReadinessGrading.cs
+     ../ImageProcTest/Diagnostics/NativeSearchPolicy.cs
+     ../ImageProcTest/Diagnostics/XpeEnhanceBasicLibraryLocator.cs
+     ../ImageProcTest/Diagnostics/XpePreprocessLibraryLocator.cs
+     ../ImageProcTest/Diagnostics/XpeCommonLibraryLocator.cs
+     ../ImageProcTest/Services/AlertDisplayFormatter.cs
+  gui app sources linked: 12
+     ../../gui/ImageProcTest/Models/AlgorithmPreset.cs
+     ../../gui/ImageProcTest/Models/AlertEntry.cs
+     ../../gui/ImageProcTest/Services/NativeAlertDrain.cs
+     ../../gui/ImageProcTest/Models/ComparisonModes.cs
+     ../../gui/ImageProcTest/Models/CalibrationStageMode.cs
+     ../../gui/ImageProcTest/Models/AppSettings.cs
+     ../../gui/ImageProcTest/ViewModels/ObservableObject.cs
+     ../../gui/ImageProcTest/Services/AppSettingsService.cs
+     ../../gui/ImageProcTest/Services/AutomationArgs.cs
+     ../../gui/ImageProcTest/Models/ProcessingChain.cs
+     ../../gui/ImageProcTest/Services/ProcessingChainRunner.cs
+     ../../gui/ImageProcTest/Services/ProcessingChainPlan.cs
+
+ImageProcTest.E2ETests
+  clients app sources linked: 0
+  gui app sources linked: 2
+     ../../gui/ImageProcTest/Controls/ImageComparisonViewport.cs
+     ../../gui/ImageProcTest/Models/ComparisonModes.cs
+
+[6] workflows building each app
+  clients/ImageProcTest/ImageProcTest.csproj:
+    0 hits
+  gui/ImageProcTest/ImageProcTest.csproj:
+    ci.yml hits: 2
+
+[7] README claim checks
+  XPE_NATIVE_DEV_SEARCH      clients=1 gui=0
+  XPE_NATIVE_DIR_EXCLUSIVE   clients=1 gui=1
+  XPE_NATIVE_DIR             clients=2 gui=2
+  ResolvedDllPath            clients=5 gui=0
+  native modules:            clients=1 gui=0
+
+[8] last commits touching each app, with diffstat
+  0e6a60a 2026-09-18 chore(clients): XPE_ERR_INVALID_CALIB_DATA(-17) 을 C# 미러 두 곳에 추가
+
+ clients/ImageProcTest/PInvokeWrapper.cs | 1 +
+ 1 file changed, 1 insertion(+)
+  aa17f9b 2026-09-18 feat(gui): GUI-C-100 — 화소 간격 140 µm 단일 설정, kVp 효과 측정 (#180, #182)
+
+ clients/ImageProcTest/DetectorDefaults.cs                | 16 ++++++++++++++++
+ .../Diagnostics/XpeEnhanceBasicReadinessProbe.cs         |  2 +-
+ .../Services/NativeEnhanceBasicPreviewService.cs         |  2 +-
+ .../Services/NativePreprocessPreviewService.cs           |  2 +-
+ .../Services/NativePresentationExportService.cs          |  2 +-
+ 5 files changed, 20 insertions(+), 4 deletions(-)
+  3d97a97 2026-09-10 feat(gui): 네이티브 DLL 탐색을 clients 와 같은 정책으로 통일
+
+ clients/ImageProcTest/Diagnostics/XpeCommonLibraryLocator.cs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  --- gui ---
+  ab557c8 2026-09-28 fix(gui): 필터가 옮긴 선택을 화면 안으로 스크롤한다 (GUI-C-145)
+
+ gui/ImageProcTest/Views/AnalysisPanel.xaml    |  2 ++
+ gui/ImageProcTest/Views/AnalysisPanel.xaml.cs | 35 +++++++++++++++++++++++++++
+  e5d86e3 2026-09-27 feat(gui): 로그에 "Alerts only" 필터를 넣고 C-139 의 단위로 효과를 잰다 (GUI-C-140)
+
+ .../ViewModels/MainWindowViewModel.cs              | 36 ++++++++++++++++++++++
+ gui/ImageProcTest/Views/AnalysisPanel.xaml         | 25 +++++++++++++--
+  8bb3263 2026-09-27 feat(gui): 렌더 화소 내보내기 경로 추가 + C-137 표를 실측으로 재검증 (GUI-C-138)
+
+ gui/ImageProcTest/App.xaml.cs                      |  4 ++
+ .../Controls/ImageComparisonViewport.cs            | 48 ++++++++++++++++++++++
+  d87c128 2026-09-27 fix(gui): Clear Alerts 가 로그의 알림 줄까지 지운다 — 방향 2a (GUI-C-136)
+
+ gui/ImageProcTest/MainWindow.xaml.cs               | 11 +++-
+ gui/ImageProcTest/Models/GuiAutomationReport.cs    | 10 ++++
+  bff8001 2026-09-19 fix(gui): GSDF 광도 배열을 끝점 둘로 줄인다 (GUI-C-131)
+
+ gui/ImageProcTest/Services/RealXpeBackend.cs | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+[9] 3d97a97 full stat (the DLL-policy unification)
+  3d97a97 2026-09-10 feat(gui): 네이티브 DLL 탐색을 clients 와 같은 정책으로 통일
+
+ .../Functional/GuiNativeSearchAdoptionTests.cs     |  92 ++++++++++++++++++
+ .../Diagnostics/XpeCommonLibraryLocator.cs         |   2 +-
+ gui/ImageProcTest/App.xaml.cs                      |   5 +
+ gui/ImageProcTest/ImageProcTest.csproj             |  13 +++
+ .../Services/Native/GuiNativeLibraryResolver.cs    | 107 +++++++++++++++++++++
+ gui/ImageProcTest/Services/XpeBackendFactory.cs    |  11 ++-
+ 6 files changed, 227 insertions(+), 3 deletions(-)

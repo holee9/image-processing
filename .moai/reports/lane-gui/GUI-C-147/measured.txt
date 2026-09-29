@@ -1,0 +1,27 @@
+GUI-C-147 / #208 — measured output (verbatim), worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] reference census AFTER rename (old identifiers; bin/obj/build excluded)
+./clients/ImageProcTest.E2ETests/Fixtures/Wrist1024SliceApplicationFixture.cs:10:/// because the class was previously called <c>LargeFrameApplicationFixture</c> and its summary said it
+-> the single hit is the deliberate historical mention in the new file's doc comment
+
+[2] CONTROL: new identifier present
+10
+(count of occurrences)
+
+[3] Native run AFTER the rename
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [14 s]
+실패!  - 실패:     1, 통과:    16, 건너뜀:     0, 전체:    17, 기간: 3 m 45 s - ImageProcTest.E2ETests.dll (net8.0)
+ P10 hash=36fc547e253b07f1 mean=85.205
+
+[4] BASELINE ARM — working tree reverted to HEAD (old names), rebuilt
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgLargeFrameScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [13 s]
+실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 27 s - ImageProcTest.E2ETests.dll (net8.0)
+ P10 hash=36fc547e253b07f1 mean=85.205
+
+[5] Mock run AFTER the rename
+건너뜀! - 실패:     0, 통과:     0, 건너뜀:    17, 전체:    17, 기간: 40 ms - ImageProcTest.E2ETests.dll (net8.0)
+
+[6] staged rename
+ .../Fixtures/LargeFrameApplicationFixture.cs       | 47 ----------------
+ .../Fixtures/Wrist1024SliceApplicationFixture.cs   | 65 ++++++++++++++++++++++
+ 2 files changed, 65 insertions(+), 47 deletions(-)

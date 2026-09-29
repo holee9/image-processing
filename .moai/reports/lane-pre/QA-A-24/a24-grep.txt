@@ -1,0 +1,18 @@
+# exact suite name TEST(DegradedMode, ...) — the deleted placeholder
+exit=1
+
+# test_post_degraded_mode references anywhere
+exit=1
+
+# XPE_DEGRADED_ABSENT_DLL (the placeholder's gate variable)
+./build/ci-common/Testing/Temporary/LastTest.log:1671:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-common/Testing/Temporary/LastTest.log:1703:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-common/Testing/Temporary/LastTest.log:1735:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-common/Testing/Temporary/LastTest.log:1767:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-common/Testing/Temporary/LastTest.log:1799:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-preprocess/Testing/Temporary/LastTest.log:1671:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-preprocess/Testing/Temporary/LastTest.log:1703:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-preprocess/Testing/Temporary/LastTest.log:1735:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-preprocess/Testing/Temporary/LastTest.log:1767:XPE_DEGRADED_ABSENT_DLL is not set.
+./build/ci-preprocess/Testing/Temporary/LastTest.log:1799:XPE_DEGRADED_ABSENT_DLL is not set.
+exit=0

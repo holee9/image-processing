@@ -253,7 +253,7 @@ XpeErrorCode publish_and_view(const std::string& path,
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_offset_cached — cached offset map loader
 // @MX:REASON: Pipeline calls this per-frame; caching eliminates repeated file I/O
-// @MX:SPEC: REQ-P1A-035
+// @MX:SPEC: REQ-P1A-014
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut)
 {
@@ -332,7 +332,14 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_defect_cached — cached defect map loader
 // @MX:REASON: Pipeline calls this per-frame; caching eliminates repeated file I/O
-// @MX:SPEC: REQ-P1A-024
+// @MX:SPEC: REQ-P1A-016
+// QA-A-149 (#211): this cited old 024, which was NOT merely a stale number --
+// old 024 was defect *correction* (replace bad pixels by interpolation), while
+// this function *loads* the defect map. The loader's requirement was old 037,
+// now REQ-P1A-016. Corrected to what the function does, not by renumbering.
+// (Old numbers are written bare here on purpose: spelling them with the
+// REQ-P1A- prefix would re-register them as live citations in
+// tools/docs/check_req_citations.py.)
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut)
 {

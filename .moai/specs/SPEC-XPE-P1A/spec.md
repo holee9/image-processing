@@ -174,6 +174,26 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
+- **Buffer aliasing contract** (신설 2026-09-27, `#209` / QA-A-146): `input->data` 와 `output->data` 는 **완전히 같거나 완전히 분리**돼야 합니다.
+  - `input->data == output->data` (in-place) — **허용**. 결과는 분리 버퍼 호출과 **비트 단위로 동일**합니다
+  - 두 범위가 겹치지 않음 — 허용 (통상 경로)
+  - **부분 겹침** — `XPE_ERR_INVALID_INPUT`, 아무것도 쓰기 전에 반환
+  - 비교 기준은 이 함수가 실제로 건드리는 `n * sizeof(float)` 바이트 범위입니다. `dataSize` 는 `#123` 계약상 `0` 이 미지정을 뜻해 길이로 신뢰할 수 없습니다
+
+> **[in-place 가 안전한 이유 — 그리고 부분 겹침을 허용하지 않는 이유]**
+>
+> **쓰기와 읽기가 같은 화소를 건드리지 않습니다.** 이 함수는 결함 지도가 표시한 화소(`dm[idx] != 0`)에만 쓰고, 두 커널은 표시되지 **않은** 화소에서만 읽습니다 — `median_filter_cluster` 가 `defectMask[idx] == 0` 일 때만 이웃을 취하고(`defect_correct.cpp:96`), `xpe_interpolate_pixel` 의 `try_add` 가 4근방과 r=1..3 링 대체 경로 양쪽에서 같은 조건을 겁니다(`helpers.cpp:30`). 군집 좌표를 모으는 `analyzeCluster` 도 `defectMask[nidx] != 0` 인 것만 큐에 넣습니다. **두 집합이 서로소이므로 읽기가 이미 정정된 값을 볼 수 없습니다** — 별칭 여부와 무관하게.
+>
+> 이 불변식은 **현재 커널의 성질**이지 구조적 보장이 아닙니다. 결함 이웃을 읽는 커널이 들어오면 in-place 가 조용히 깨집니다. 그래서 지키는 것은 주석이 아니라 시험입니다 — `DefectCorrectTest.InPlaceMatchesOutOfPlace` 가 같은 입력을 두 방식으로 돌려 원소 단위로 비교하고, 링 대체 경로를 강제하는 꽉 찬 3×3 블록까지 태웁니다.
+>
+> **부분 겹침은 틀렸다고 알려져서가 아니라, 아무도 그렇게 부른 적이 없어 결과가 옳은지 아무것도 재지 않기 때문에** 거부합니다. 계약을 그쪽으로 넓히면 **어떤 시험도 관측하지 않는 동작을 보증**하게 되고, 그것이 `#207` 의 형태입니다(없는 AVX2 경로를 AC 가 보증하던 것). 문서화하지 않고 두면 신호 없는 UB 로 갑니다 — 오류 코드가 계약 위반을 호출자에게 **관측 가능하게** 만듭니다.
+>
+> **인자 검증 순서**: 이 검사는 `REQ-P1A-020`(미초기화 → `XPE_ERR_NOT_INITIALIZED`)보다 **앞섭니다**. 기존 인자 검증(NULL·치수·버퍼 크기)과 같은 자리이며, 잘못된 인자는 모듈 상태보다 먼저 답한다는 기존 규칙을 따릅니다.
+>
+> **측정**: 스냅숏 제거로 `18.72 → 10.82 ms` (절감 `7.90 ms`, 42%). 예산 `45 ms` 대비 여유 **4.16배**. 제거 전 값은 `#204` 의 `18.45 ms` 가 아니라 **같은 세션에서 다시 잰 값**입니다 — 다른 세션 수치를 baseline 으로 쓰지 않았습니다.
+>
+> **미검증**: 부분 겹침이 실제로 틀린 값을 내는지는 재지 않았습니다(이제 거부하므로 잴 수 없고, 그것이 결정의 취지입니다). 겹침 판정의 포인터 비교는 서로 다른 할당 사이에서 표준상 미명세이며 평탄한 주소 공간을 전제합니다 — 그 대가로 조용한 UB 를 막습니다.
+
 - **Performance** (재정의 2026-09-27, `#204` — 아래 주를 함께 읽을 것): `< 45 ms` (scalar, 3072x3072 **FLOAT32**, 결함 밀도 0.1% 군집 포함). AVX2 목표 없음. 이전 줄은 `< 95ms ... UINT16 frame (scalar); < 30ms (AVX2)` 였다.
 
 > **[재정의 근거 2026-09-27, `#204` / QA-A-144]**
@@ -440,6 +460,174 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **SRS**: SRS-SAFE-004
 - **Traceability**: SWU-1.1, SWU-1.2
 
+### 4.3b Subsystem Requirements — 온도 보상 · 고스트 · 비닝 (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 커밋 `bc22093`(2026-04-16)이 이 SPEC 을 585행 → 361행으로 줄이면서 요구 46개를 지웠습니다(`REQ-P1A-` 정의 **71 → 25**). 대부분은 살아남은 번호로 흡수됐지만, **세 서브시스템은 흡수처 없이 사라졌습니다** — 정의행 제목 27개 중 `temp`·`ghost`·`binning` 을 담은 것이 **0건**(대조군 `offset` 3건)인데, 셋 다 구현돼 있고 `xpe_ghost_*` 는 **수출 API** 입니다.
+>
+> **옛 문구를 복원하지 않았습니다.** 아래는 현재 구현을 읽어 쓴 것이고, 옛 요구와 다른 곳은 그 자리에 적었습니다 — `#204`·`#207`·`#209` 에서 옛 문구가 실재와 달랐던 전례가 있습니다.
+>
+> 새 번호(`080~`)를 씁니다. 옛 번호를 재사용하면 코드에 남은 옛 인용이 **다른 뜻으로 되살아납니다** — `#197` 이 그 형태였습니다.
+
+#### REQ-P1A-080: Temperature Compensation Execution
+
+**When** `xpe_temp_compensate(img, detectorTempC, configJsonOrNull)` is called with a **UINT16** buffer, the module **shall** scale each pixel by the inverse of the dark-current factor relative to `T_ref = 25 °C`, computed as `exp(-Eg/2kT) / exp(-Eg/2kT_ref)`, writing the result **in place** and clamping to `65535`.
+
+- **측정된 계약** (`temp_compensate.cpp`): 단일 버퍼 in-place — `input`/`output` 쌍이 아닙니다. **UINT16 전용** (`xpe_buffer_has_format(img, XPE_PIXEL_UINT16, …)`); **`REQ-P1A-012`(결함 보정)가 FLOAT32 전용인 것과 반대**입니다
+- `exp_ref < 1e-300` 이면 보정 없이 `XPE_OK` — 물리적으로 불가능하나 방어적으로 둡니다
+- **Verification**: Test
+- **Status**: 구현 있음, 요구는 이 항목이 처음입니다
+
+#### REQ-P1A-081: Temperature Input Guard
+
+**If** `detectorTempC` is `NaN`, the module **shall** substitute `25.0 °C`. **If** the (substituted) value is outside `[-20.0, +60.0] °C`, the module **shall** return `XPE_ERR_INVALID_INPUT` without modifying the image.
+
+- **측정된 계약** (`temp_compensate.cpp:33`, `:36-37`): NaN 치환이 범위 검사보다 **앞섭니다** — `NaN` 은 `25.0` 이 되어 통과합니다
+- **⚠️ 옛 `REQ-P1A-007` 과 다른 점**: 옛 문구는 NaN 치환 시 *"post an INFO-level alert"* 를 요구했습니다. **구현에 알림이 0건**입니다(`xpe_alert`·`post_alert`·`XPE_ALERT` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함이고, 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-082: Temperature Compensation Flag
+
+**While** the pre-processing pipeline runs the temperature stage successfully, the pipeline **shall** set `XPE_FLAG_TEMP_COMPENSATED` in `XpeImageMetadata.flags`.
+
+- **측정된 계약**: 플래그는 **`pipeline.cpp:139` 가** 설정합니다. `xpe_temp_compensate` 를 **직접 호출하면 플래그가 설정되지 않습니다** — 그 함수는 메타데이터를 받지 않습니다
+- **⚠️ 옛 `REQ-P1A-008` 과 다른 점**: 옛 문구는 주체를 밝히지 않아 *"보정 함수가 설정한다"* 로 읽혔습니다. 실재는 파이프라인입니다
+- **Verification**: Test (`test_pipeline_stages.cpp:115`, `:197`)
+
+#### REQ-P1A-085: Ghost Corrector Handle Lifecycle
+
+**When** `xpe_ghost_create(width, height, …)` is called with non-zero dimensions, the module **shall** allocate an opaque handle holding frame history and return it through `handleOut`; **if** allocation fails it **shall** return `XPE_ERR_OUT_OF_MEMORY`. `xpe_ghost_destroy` **shall** invalidate the handle before freeing it.
+
+- **측정된 계약** (`ghost_correct.cpp:27`, `:33`, `:264`): `!handleOut || width == 0 || height == 0` → `XPE_ERR_INVALID_INPUT`. `destroy` 는 `magic = 0` 으로 **무효화한 뒤** 해제합니다
+- **Traceability**: 수출 API 4종 — `xpe_ghost_create`·`correct`·`reset`·`destroy` (`preprocess_api.h:578`·`595`·`608`·`617`)
+- **Verification**: Test
+
+#### REQ-P1A-086: Ghost Handle Validity Guard
+
+**If** `xpe_ghost_correct`, `xpe_ghost_reset`, or `xpe_ghost_destroy` receives a handle that was never created or has been destroyed, the module **shall** return `XPE_ERR_INVALID_INPUT` (and `xpe_ghost_destroy` **shall** return without effect) rather than dereference it.
+
+- **측정된 계약**: `GhostCorrectorHandle::isValid(handle)` 가 **세 지점 모두**에서 호출됩니다 — `:202`·`:249`·`:262` (정의 `xpe_preprocess_internal.h:65`)
+- **조사 기록**: 리더가 `magic` 을 `grep` 했을 때 `:264`(쓰기) 하나만 보여 *"쓰기만 되고 읽히지 않는다 = use-after-free"* 로 갈 뻔했습니다. 읽는 쪽은 헤더의 `isValid` 안에 있었습니다. **한 파일 grep 으로 부재를 단정하면 없는 결함을 만듭니다**
+- **Verification**: Test
+
+#### REQ-P1A-087: Ghost Correction Execution
+
+**When** `xpe_ghost_correct(handle, img, meta)` is called with a valid handle and a **FLOAT32** buffer, the module **shall** subtract the lag contribution estimated from the handle's frame history, in place.
+
+- **측정된 계약** (`:209`): **FLOAT32 전용** — `REQ-P1A-080`(온도, UINT16)과 형식이 다릅니다. 파이프라인 단계 순서상 게인 보정 이후이기 때문입니다
+- **Verification**: Test
+
+#### REQ-P1A-088: Ghost Corrector Reset
+
+**When** `xpe_ghost_reset(handle)` is called with a valid handle, the module **shall** clear the accumulated frame history and the exposure state, so that the next `xpe_ghost_correct` behaves as if the handle had just been created.
+
+- **측정된 계약** (`ghost_correct.cpp` `xpe_ghost_reset`): `hist1`·`hist2` 를 `0.0f` 로 채우고, `lastAcqTimeSec = 0.0` · `lastFrameMean = 0.0f` · `exposureWeight = 1.0` 로 되돌립니다. **이력 두 개만이 아니라 노출 상태 셋도 함께** 초기화합니다
+- **왜 별도 요구인가**: `REQ-P1A-086`(핸들 유효성 가드)이 `reset` 을 **이름으로 부르지만** *"이력을 비운다"* 는 말하지 않습니다. 유효성과 의미론은 다른 계약이고, `086` 에 끼워 넣으면 그 요구가 두 가지를 말하게 됩니다
+- **`#211` 경위**: 옛 `REQ-P1A-034` 를 인용하던 4곳이 실제로는 **이 동작**을 서술하고 있었습니다(옛 `032` 의 내용 — 번호가 밀린 채). 레인(`QA-A-150`)이 *"`096` 으로 옮기면 정반대가 된다"* 며 옮기지 않고 보고했고, 그 판단이 이 요구를 만들었습니다
+- **Verification**: Test (`test_ghost_correct.cpp`)
+
+#### REQ-P1A-090: Binning Correction Execution
+
+**When** `xpe_binning_correct(img, binningMode, …)` is called with a **FLOAT32** buffer and `binningMode` is `2` or `4`, the module **shall** normalize each pixel by `1 / binningMode²` to compensate summed charge, in place.
+
+- **측정된 계약** (`binning_correct.cpp:22`, `:36`): FLOAT32 전용, 정규화 계수 `1/mode²`
+- **Verification**: Test
+
+#### REQ-P1A-091: Binning Mode Guard
+
+**While** `binningMode == 1`, the module **shall** return `XPE_OK` without modifying the image. **If** `binningMode` is not `1`, `2`, or `4`, it **shall** return `XPE_ERR_CONFIG_INVALID`. **If** any pixel is non-finite during normalization, it **shall** return `XPE_ERR_PROCESSING_FAILED`.
+
+- **측정된 계약** (`:25`, `:30-31`, `:39`): 세 갈래 모두 실재합니다
+- **Verification**: Test
+
+> **이 절의 미검증**
+>
+> - 위 요구는 **현재 구현을 서술**한 것이고, 그 구현이 **임상적으로 옳은지는 이 절이 답하지 않습니다.** 온도 보상의 `Eg`·`k` 상수 출처와 UINT16 선택 근거는 확인하지 않았습니다
+> - 옛 요구 중 **`REQ-P1A-007` 의 INFO 알림**은 구현에 없어 요구에 넣지 않았습니다. 필요 여부는 별건입니다
+> - `#211` 의 (C) 갈래(파이프라인 6건·성능 예산 3건·로깅·1×1 edge case)는 **아직 판정하지 않았습니다**
+> - 원문 추출 실패 4건(`045` `051` `053` `055`)은 아직 읽지 않았습니다
+
+### 4.3c Pipeline Requirements (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 수출 API 48개를 요구와 전수 대조한 결과(대조군 양성 `xpe_defect_correct` → 3개 요구, 음성 지어낸 이름 → 0건) **23개가 고유 요구 없이 수출**되고 있었고, 파이프라인 4종이 그중에 있었습니다. `spec.md` 정의행 제목에 `pipeline` 이 **0건**입니다.
+>
+> 아래는 `pipeline.cpp` 를 읽어 쓴 것입니다. 옛 요구(`043`~`049`)와 다른 곳은 그 자리에 적었습니다.
+
+#### REQ-P1A-095: Pipeline Stage Order
+
+**When** `xpe_preprocess_pipeline(img, meta, calibPath, ghostHandle, configJsonOrNull)` is called, the module **shall** run the correction stages in this fixed order, each consuming the previous stage's output:
+
+`readout validation → temperature → offset → nonlinearity → gain → binning → defect → ghost`
+
+- **측정된 계약** (`pipeline.cpp:122`·`139`·`155`·`181`·`203`·`230`·`273`·`297`): 여덟 단계, 각각 성공 시 대응 `XPE_FLAG_*` 를 설정합니다
+- **Verification**: Test
+
+#### REQ-P1A-096: Pipeline Stage Flags
+
+**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED` · `GAIN_CORRECTED` · `BINNING_CORRECTED` · `DEFECT_CORRECTED` · `GHOST_CORRECTED`.
+
+- **측정된 계약**: 플래그 설정은 **파이프라인만** 합니다. 개별 보정 함수를 직접 부르면 설정되지 않습니다 — `REQ-P1A-082` 가 온도에 대해 같은 것을 말합니다
+- 비선형만 조건이 하나 더 있습니다 — `meta && applied` (`:181`). 적용되지 않으면 플래그가 서지 않습니다
+- **Verification**: Test
+
+#### REQ-P1A-097: Per-Stage Bypass Configuration
+
+**If** `configJsonOrNull` sets a stage's bypass key to `"true"`, the pipeline **shall** skip that stage without error and **shall not** set its flag.
+
+- **측정된 계약** (`:52-80`): 여덟 단계 각각에 bypass 키가 있습니다. 문자열 `"true"` 와의 정확한 일치로 판정합니다 — 다른 값은 bypass 하지 않습니다
+- **⚠️ 옛 `REQ-P1A-049` 와 다른 점**: 옛 문구는 *"비활성인데 캘리브 데이터가 실려 있으면 DEBUG 로그"* 를 요구했습니다. 확인하지 않았습니다 — 로깅은 이 절의 범위 밖으로 둡니다
+- **Verification**: Test
+
+#### REQ-P1A-098: Ghost Stage Handle Dependency
+
+**While** `ghostHandle` is `NULL`, the pipeline **shall** skip the ghost stage and complete the remaining stages successfully, leaving `XPE_FLAG_GHOST_CORRECTED` unset.
+
+- **측정된 계약** (`:280`): `if (!cfg.bypassGhost && ghostHandle)` — 핸들이 없으면 **조용히** 건너뜁니다
+- **⚠️ 옛 `REQ-P1A-045` 와 다른 점**: 옛 문구는 건너뛸 때 *"post a WARNING alert indicating lag artifacts may be present"* 를 요구했습니다. **파이프라인 전체에 알림 호출이 0건**입니다(`alert`·`Alert` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함입니다
+- **플래그가 안 서는 것이 유일한 신호입니다.** 호출자가 플래그를 안 보면 잔상 보정이 빠진 것을 알 수 없습니다 — 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-099: Ghost Stage Buffer Isolation
+
+**When** the ghost stage runs, the pipeline **shall** give `xpe_ghost_correct` its own copy of the previous stage's frame rather than the stage-6 buffer itself.
+
+- **근거** (`:292-294`, QA-A-104): 고스트 보정은 in-place 로 동작합니다. 이전에는 stage-6 을 정정하면서 **비어 있는** stage-7 버퍼를 되복사해 **출력이 0** 이었습니다. 이 복사가 그 결함의 수정이고, **요구로 고정하지 않으면 최적화로 다시 제거될 수 있습니다**
+- **Verification**: Test
+
+#### REQ-P1A-100: Pipeline Data Domain Transition
+
+**When** the pipeline runs, stages before gain correction **shall** operate on `UINT16` and stages from gain correction onward **shall** operate on `FLOAT32`; the transition **shall** occur inside the gain stage.
+
+- **측정된 계약** (`pipeline.cpp:194`·`:199`): *"This performs UINT16 → FLOAT32 domain transition"* — stage 4(gain) 에서 전이하고, 이후 stage 5·6·7 이 모두 `XPE_PIXEL_FLOAT32`(`:219`·`:262`·`:286`)
+- **옛 `REQ-P1A-043` 과의 차이**: 옛 문구는 *"stage 2(gain correction)"* 라 적었습니다. **단계 번호 체계가 달라졌을 뿐** 전이가 게인에서 일어난다는 내용은 같습니다 — 번호가 아니라 **함수 이름**으로 다시 썼습니다
+- **왜 요구로 고정하는가**: 이 전이 지점이 바뀌면 이후 모든 단계의 버퍼 형식이 바뀝니다. `REQ-P1A-080`(온도, **UINT16**)과 `REQ-P1A-087`·`090`(고스트·비닝, **FLOAT32**)이 서로 다른 형식을 요구하는 이유가 이 경계입니다
+- **Verification**: Test
+
+#### REQ-P1A-101: Defect Stage Calibration Availability
+
+**If** the defect stage is reached and no defect map is loaded, the pipeline **shall** return `XPE_ERR_CALIB_NOT_LOADED` without running that stage or any later stage.
+
+- **측정된 계약** (`pipeline.cpp:248-253`): `defectAvailable = (g_calib.defect_map != nullptr)`, 거짓이면 즉시 반환
+- **⚠️ 옛 `REQ-P1A-046` 과 두 곳이 다릅니다:**
+  - 옛 문구는 **`XPE_ERR_CALIBRATION_EXPIRED`** 를 요구했습니다. 실재는 **`XPE_ERR_CALIB_NOT_LOADED`** 입니다 — `#117` 결정 B 가 "미초기화" 와 "캘리브 미적재" 를 나눈 뒤의 코드이고, `EXPIRED`(만료)는 또 다른 상태입니다. **실재가 맞습니다**
+  - 옛 문구는 *"**각** 단계가 대응 캘리브 가용성을 확인"* 이라 적었습니다. **실재는 결함 단계 하나뿐입니다** — `available` 검사가 `pipeline.cpp` 전체에서 `:248-253` 한 곳입니다
+- **Verification**: Test
+
+> **`REQ-P1A-101` 이 덮지 않는 것 — 기록**
+>
+> 오프셋·게인 단계에는 **파이프라인 수준의 가용성 검사가 없습니다.** 그 단계들은 개별 보정 함수가 자기 안에서 `XPE_ERR_CALIB_NOT_LOADED` 를 반환하고(`REQ-P1A-020a`), 파이프라인은 그 반환을 그대로 올립니다.
+>
+> **결과는 비슷하지만 계약이 다릅니다** — 결함은 *"단계에 들어가기 전에"* 막고, 나머지는 *"함수가 거부해서"* 막힙니다. 옛 `046` 이 요구한 **균일한 단계별 검사는 구현된 적이 없고**, 이 요구는 실재하는 한 곳만 고정합니다.
+>
+> 균일하게 만들지는 별건입니다. 지금 요구로 적으면 **없는 동작을 보증**하게 됩니다.
+
+
+> **이 절의 미검증**
+>
+> - `xpe_preprocess_pipeline_ex` 와 `_batch` 는 **아직 서술하지 않았습니다.** `_ex` 는 `REQ-P1A-016a` 가 이름을 부르지만 그것은 캘리브 상태 계약이지 파이프라인 계약이 아닙니다. `_batch` 는 어떤 요구도 부르지 않습니다
+> - 옛 `043`(uint16→float32 전이 지점) `044`(비닝 비활성 시 건너뜀) `046`(단계별 캘리브 가용성 확인) `047`(단계별 플래그)은 위 요구와 겹치거나 더 구체적입니다 — **건별 대조를 하지 않았습니다**
+> - 성능 예산(옛 `050` 500ms)은 여기 넣지 않았습니다 → `#204`
+> - 로깅(옛 `049`·`068`)은 범위 밖입니다
+
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
 #### REQ-P1A-030: No Exceptions Across C ABI
@@ -576,7 +764,27 @@ Verification:
 |----|-----------------------------------|--------------|----------|
 | 14 | `xpe_preprocess_get_param_range()` | SRS-SAFE-002 | Medium   |
 
-### 5.6 Excluded Functions (Phase 2+)
+### 5.6 Excluded Functions (Phase 2+) — **이 표는 더 이상 유효하지 않습니다** (`#211`, 2026-09-28)
+
+> **결론 먼저: 아래 일곱 함수는 이 SPEC 의 모듈에 구현돼 있고, 이 SPEC 의 파이프라인에서 실행되며, 요구는 §4.3b·§4.3c 에 있습니다.** 표가 가리키는 이관 대상은 **하나도 만들어지지 않았습니다.**
+>
+> **측정** (`#211`, QA-A-150 이 지목 → 리더 확인):
+>
+> | 이관 대상 | 실재 |
+> |---|---|
+> | `SPEC-XPE-P1C` (temp) | **없음** |
+> | `SPEC-XPE-P1D` (nonlinearity) | **없음** |
+> | `SPEC-XPE-P1E` (binning) | **없음** |
+> | `SPEC-XPE-P1B` (ghost 4종) | 존재하나 **`-DICOM`·`-DISP`·`-ENH`** 셋뿐이고, 세 문서 전부 `ghost`·`temp_compensate`·`binning`·`nonlinearity` **0건** |
+>
+> 대조군: 같은 검색이 각 SPEC 의 주제어를 잡습니다 — `DICOM` 163 · `window` 10 · `enhance` 45. **검색이 눈먼 것이 아닙니다.**
+>
+> **그래서 이 표는 "나중에 다른 SPEC 에서" 를 약속했고, 그 나중이 오지 않은 채 구현이 여기 들어왔습니다.** 일곱 함수 모두 `modules/preprocess` 에 있고 `preprocess_api.h` 에서 수출되며 `pipeline.cpp` 가 단계로 실행합니다. 요구만 없었습니다 — `#211` 이 찾은 것이 그것입니다.
+>
+> **표를 지우지 않고 남깁니다.** 어느 시점에 그 분리가 계획됐다는 사실은 기록이고, 지우면 다음 사람이 "왜 P1A 에 다 있지" 를 다시 조사합니다. 다만 **현재 상태의 서술로 읽어서는 안 됩니다.**
+>
+> **되살릴 조건**: 실제로 `P1C`~`P1E` 를 세우고 구현을 옮긴다면 그때 §4.3b 의 `REQ-P1A-080`~`091` 을 그쪽으로 이관합니다. 그 결정은 이 이슈의 범위 밖입니다.
+
 
 | Function                    | Reason                          | Target SPEC  |
 |-----------------------------|---------------------------------|--------------|

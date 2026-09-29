@@ -1,6 +1,6 @@
 /**
  * @file test_ghost_correct.cpp
- * @brief TDD RED tests for SWU-1.4: Ghost/Lag Correction (REQ-P1A-029 to REQ-P1A-034)
+ * @brief TDD RED tests for SWU-1.4: Ghost/Lag Correction (REQ-P1A-085 to REQ-P1A-087)
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -43,7 +43,7 @@ protected:
     }
 };
 
-// REQ-P1A-029: xpe_ghost_create returns XPE_OK with valid dimensions
+// REQ-P1A-085: xpe_ghost_create returns XPE_OK with valid dimensions
 TEST_F(GhostCorrectTest, CreateSucceeds) {
     EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     EXPECT_NE(nullptr, handle);
@@ -62,7 +62,7 @@ TEST_F(GhostCorrectTest, NullHandleOutReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_create(W, H, nullptr, nullptr));
 }
 
-// REQ-P1A-034: xpe_ghost_reset clears history
+// REQ-P1A-088: xpe_ghost_reset clears history
 TEST_F(GhostCorrectTest, ResetSucceeds) {
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     EXPECT_EQ(XPE_OK, xpe_ghost_reset(handle));

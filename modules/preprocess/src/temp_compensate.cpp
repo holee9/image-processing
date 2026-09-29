@@ -2,7 +2,7 @@
  * @file temp_compensate.cpp
  * @brief SWU-1.6: Temperature compensation for dark current (PRE-07)
  *        Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
- *        REQ-P1A-005 to REQ-P1A-008
+ *        REQ-P1A-080 to REQ-P1A-082
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -14,7 +14,7 @@
 // Silicon bandgap energy (eV) and Boltzmann constant (eV/K)
 static constexpr double kEgSi   = 1.12;          // eV
 static constexpr double kBoltzV = 8.617333e-5;   // eV/K
-static constexpr float  kTempFallback = 25.0f;   // Celsius fallback (REQ-P1A-007)
+static constexpr float  kTempFallback = 25.0f;   // Celsius fallback (REQ-P1A-081)
 static constexpr float  kTempMin = -20.0f;
 static constexpr float  kTempMax =  60.0f;
 
@@ -29,10 +29,10 @@ XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
     size_t n = 0;
     if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16, &n)) return XPE_ERR_INVALID_INPUT;
 
-    // REQ-P1A-007: NaN -> use 25.0C fallback
+    // REQ-P1A-081: NaN -> use 25.0C fallback
     if (std::isnan(detectorTempC)) detectorTempC = kTempFallback;
 
-    // REQ-P1A-008: temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
+    // REQ-P1A-081: temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
     if (detectorTempC < kTempMin || detectorTempC > kTempMax)
         return XPE_ERR_INVALID_INPUT;
 

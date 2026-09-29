@@ -1,0 +1,71 @@
+=== GUI-C-145 (#214) measured.txt
+
+fix: gui/ImageProcTest/Views/AnalysisPanel.xaml.cs OnLogSelectionChanged -> LogList.ScrollIntoView(selected)
+     gui/ImageProcTest/Views/AnalysisPanel.xaml   x:Name=LogList + SelectionChanged
+instrument: clients/.../SelectionVisibilityObservation.cs (A3 from GUI-C-143, unchanged conditions)
+
+--- ARM: fix DISABLED (handler returns early), instrument reading the list rect fresh
+ §A3 top selected row AFTER the filter: raw 1003,335 1540x23, clipped 1003,335 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ §A3 top: viewSize before=8.7% after=71.4% — selection MOVED to '[22:53:40.706] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ §A3 bottom selected row AFTER the filter: raw 1003,289 1540x23, clipped 0,0 0x0, verticallyInside=False, overlaps=False, offscreen=True => visible=False
+ §A3 bottom: viewSize before=8.7% after=71.4% — selection MOVED to '[22:53:40.706] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=False => NOT VISIBLE
+
+--- ARM: fix ENABLED, inline ScrollIntoView only (the shipped version)
+ §A3 top selected row AFTER the filter: raw 1081,413 1540x23, clipped 1081,413 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ §A3 top: viewSize before=8.7% after=71.4% — selection MOVED to '[23:08:35.847] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ §A3 bottom selected row AFTER the filter: raw 1081,413 1540x23, clipped 1081,413 338x23, verticallyInside=True, overlaps=True, offscreen=False => visible=True
+ §A3 bottom: viewSize before=8.7% after=71.4% — selection MOVED to '[23:08:35.847] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+
+--- FINAL: all three rows of the card table
+ §A3 setup: 34 re-runs, filtered rows=27 filtered viewSize=71.4%
+ §A3 top: viewSize before=8.7% after=71.4% — selection MOVED to '[23:17:23.439] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ §A3 bottom: viewSize before=8.7% after=71.4% — selection MOVED to '[23:17:23.439] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ §A2 setup: list 1132,477 339x600 realized rows=58 viewSize=22.1%
+ S0 top: viewSize before=22.1% after=100.0% — selection MOVED to '[23:17:45.997] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S1 bottom: viewSize before=22.1% after=100.0% — selection MOVED to '[23:17:45.997] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S2 middle: viewSize before=22.1% after=100.0% — selection MOVED to '[23:17:45.997] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=True visibleAfter=True => VISIBLE
+ S3 bottom, selection above: viewSize before=22.1% after=100.0% — selection MOVED to '[23:17:45.997] ALERT WARN NATIVE_ALERT: nonlinearity ...', visibleBefore=False visibleAfter=True => VISIBLE
+
+--- the instrument error that produced the false '12 px' (geometry probe, temporary)
+  list rect now 976,308 339x600
+  row0 977,309 1540x23 selected=True
+  row1 977,332 1540x23 selected=False
+  row2 977,355 1540x22 selected=False
+  => rows are contiguous from the list top; the selected row IS fully inside.
+     The stale rect captured at case start was y=295, i.e. 13 px above -> read as '11 of 23 px'.
+
+--- arms tried while chasing that residual (all VISIBLE once the instrument was fixed)
+  inline only                         : VISIBLE  <- shipped
+  deferred Dispatcher.BeginInvoke     : VISIBLE  (removed)
+  deferred + container BringIntoView  : VISIBLE  (removed)
+  + VirtualizingPanel.ScrollUnit=Item : VISIBLE  (removed)
+
+--- CI cost (card section 4)
+  gui-e2e-native on main run 36319608397: started 12:48:25Z completed 13:05:28Z = 17 m 03 s
+  A3 alone, 34 re-runs: 1 m 27 s
+  A3 alone, 27 re-runs: 1 m 26 s   (filtered viewSize 89.3% vs 71.4%)
+  => +87 s on 1023 s = about +8.5%; cutting the re-run count saves 1 s
+
+--- regression
+  E2E Native: 162 passed / 0 skipped / 0 failed (14 m 10 s)
+
+  E2E Mock  : 133 passed / 29 skipped / 0 failed (8 m 27 s)
+  IntegrationTests: 265 passed / 1 skipped / 0 failed
+
+--- the one red the full Mock run produced, and why it was MY test
+  A3_WhenTheFilteredListIsLongerThanTheScreen [FAIL]
+  CONDITION NOT MET: with the filter on viewSize=100.0% - the alerts still fit one screen (3 rows)
+  §A3 setup: 34 re-runs, filtered rows=3 filtered viewSize=100.0%
+  => MockXpeBackend adds a fixed 3 alerts (no loop, no knob): the condition is unreachable there.
+     Fixed by skipping on that backend with the structural reason stated, NOT by loosening the
+     condition assertion (which must still bite on native if alerts stop accumulating).
+     After: Mock 1 skipped / Native 3 run and pass.
+
+--- CI (dev/gui run 36329237577, ab557c8) = completed/success, 9 jobs, 0 failures
+  gui-e2e-native : Passed A3 [39 s], Passed A2 [37 s], Passed A [5 s]
+  gui-automation : Skipped A3 (that job names skips); summary Failed: 0, Passed: 134, Skipped: 28
+  => A3 costs 39 s in CI, not the 1 m 27 s measured locally: +3.8% of gui-e2e-native, not +8.5%
+
+--- the previous commit 8aac84f WAS red (run 36323013107)
+  gui-automation, 1 failure: A3_WhenTheFilteredListIsLongerThanTheScreen
+  same cause this card fixed; I had run A3 on Native only before committing it
