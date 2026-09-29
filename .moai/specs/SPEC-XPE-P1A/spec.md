@@ -270,7 +270,14 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
 - **Performance** (redefined **2026-09-29, `#143`** — supersedes the 2026-09-12 `#144` definition;
   see the notes below): improvement target **<= 1.3x the measured lower bound of this algorithm,
-  same machine and same timing mode** (AVX2, single thread)
+  same machine, both terms taken as the minimum of repeated runs** (AVX2, single thread)
+  - **"Minimum of repeated runs", not "same mode" (corrected by `QA-A-168`).** The selection
+    term is bimodal -- two values, 0.2% reproducible within each. The **full path is not**:
+    12 runs give 121.2 121.2 122.1 123.5 123.9 124.1 126.5 127.5 129.9 133.7 143.2 155.9, a
+    continuous spread with max/min 1.29x and six of twelve clustered in 121-124. So there is no
+    mode to select on that side; the rule is the **minimum**, which is also what makes the two
+    terms comparable -- the denominator is a floor, so the numerator must be one too. Using the
+    tail (155.9) would report 2.05x and demand 29% more improvement than exists.
   - **Why a ratio and not milliseconds.** Two measurements made the absolute number unusable.
     (a) The 60 ms figure was derived from a lower bound that **did not contain the tile-sigma
     stage** (`QA-A-56`: 15.97 network + 11.1 global sigma = 27.1), and `QA-A-166` measured this
@@ -306,7 +313,18 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > QA-A-56), so that is the machine it refers to. This records where the number came from; it does not
 > change the number.
 >
-> **Status against that definition** (from existing reports, not re-measured): the lane machine
+> **Status against the 2026-09-29 definition** (`QA-A-168`, measured): shipped path
+> **121.2 ms** (minimum of 12 runs; 3072x3072 FLOAT32, AVX2, single thread, i7-12700) against a
+> **76 ms** lower bound = **1.59x**. Target is 1.3x, so the remaining improvement is **1.23x**,
+> or roughly **98.8 ms**. The bound is the sum of per-term minima and is therefore a floor, not
+> a reachable schedule -- nothing guarantees all three stages hit their best in one run.
+>
+> **Absolute milliseconds in this lane now carry their conditions** (`QA-A-168` §3): machine,
+> frame, build, and how the figure was reduced from repeated runs. Figures recorded before that
+> convention -- `QA-A-165`'s 131 ms and `QA-A-166`'s 122 ms among them -- do not, and were not
+> re-measured.
+>
+> **Superseded status line** (against the retired 60 ms definition): the lane machine
 > **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.**
 >
 > **Transcription corrected 2026-09-29 (`QA-A-166`, `#143`).** This line used to say *development
