@@ -354,6 +354,105 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
 }
 
 /* ---------------------------------------------------------------------------
+ * QA-A-159 (#223): the three fields FUNC-037 appended, pinned to the things
+ * that made them necessary.
+ * ------------------------------------------------------------------------- */
+
+// (i) The caller receives the SAME DarkReduction_dB the gate decided on.
+// Not compared against a re-derivation of the formula -- that would pass even
+// if both sides were wrong together. It is tied to the GATE OUTCOME: this frame
+// fails the bias clause, so a pass can only have come from this value clearing
+// 10 dB, and the field must show a value that explains that pass.
+TEST_F(VerifyMetricsTest, VerifyOffset_PublishesTheDarkReductionTheGateUsed) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;
+        const uint16_t dark = static_cast<uint16_t>(400 + ((i / 5u) % 100u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? 3000 : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2500 : 20 + (i % 2u)));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    ASSERT_GT(m.dark_bias, 5.0) << "precondition: the bias clause must FAIL";
+    ASSERT_TRUE(m.overall_pass) << "precondition: so the pass came from the other clause";
+    EXPECT_GE(m.dark_reduction_db, 10.0)
+        << "the published value must be the one that justified the pass, not 0";
+    EXPECT_TRUE((m.measured_mask & XPE_METRIC_DARK_REDUCTION) != 0u);
+}
+
+// (ii) The canonical name resolves to the canonical quantity, and the
+// historical `dsnu` keeps its own (different) meaning -- FUNC-037 forbids
+// changing it. This frame is built so the two genuinely differ.
+TEST_F(VerifyMetricsTest, VerifyOffset_DsnuAduIsTheCanonicalStdNotTheCv) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;
+        const uint16_t dark = static_cast<uint16_t>(490 + ((i / 5u) % 10u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? dark + 2000 : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2000 : 2 + 4 * (i % 2u)));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    EXPECT_DOUBLE_EQ(m.residual_noise, m.dsnu_adu)
+        << "dsnu_adu is the same ADU std as residual_noise -- Protocol.md:204";
+    EXPECT_NE(m.dsnu, m.dsnu_adu)
+        << "and it is NOT the percent CV that the field named `dsnu` holds";
+    EXPECT_GT(m.dsnu, m.dsnu_adu)
+        << "the CV blows up as the mean approaches zero -- the #222 finding";
+}
+
+// (iii) Unmeasurable input: the mask says NOT MEASURED, and overall_pass stays
+// false for the caller who never reads the mask. Both, together.
+TEST_F(VerifyMetricsTest, VerifyOffset_UnmeasurableFrameReportsNotMeasured) {
+    U16ImageHelper raw(W, H, 1500);
+    U16ImageHelper corrected(W, H, 1500);
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_DARK_BIAS)
+        << "dark_bias was not measured -- the field holds a placeholder";
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_DARK_REDUCTION)
+        << "nor was dark_reduction_db";
+    EXPECT_FALSE(m.overall_pass)
+        << "FUNC-036: the false REMAINS alongside the mask, for callers that "
+           "never read it -- removing it silently re-opens #219";
+}
+
+// Control for the two above: on a measurable frame the same bits are SET.
+// Without this, a mask that was never set at all would pass the test above.
+TEST_F(VerifyMetricsTest, VerifyOffset_MeasurableFrameReportsMeasured) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;
+        const uint16_t dark = static_cast<uint16_t>(490 + ((i / 5u) % 10u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? dark + 2000 : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2000 : 0));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    EXPECT_NE(0u, m.measured_mask & XPE_METRIC_DARK_BIAS);
+    EXPECT_NE(0u, m.measured_mask & XPE_METRIC_DARK_REDUCTION);
+}
+
+/* ---------------------------------------------------------------------------
  * QA-A-158 (#222/#221): the offset gate, pinned in all three directions the
  * change moves it. Two clauses got LOOSER (the `or` alternative appeared, the
  * unsourced dsnu clause left the gate) and one got STRICTER (a too-small dark

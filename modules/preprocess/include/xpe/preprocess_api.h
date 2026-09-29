@@ -908,7 +908,71 @@ typedef struct {
     // Overall
     double snr_improvement_db;  ///< SNR improvement in dB (before vs after)
     bool   overall_pass;        ///< Overall pass/fail based on thresholds
+
+    /* ---------------------------------------------------------------------
+     * APPENDED BY QA-A-159 (#223) -- SRS-CALIB-FUNC-037.
+     *
+     * Everything above keeps its name, type, and OFFSET. Three holes were
+     * closed in ONE widening rather than three, because they are one ABI
+     * decision about one struct:
+     *   (i)   dark_reduction_db -- the gate computed it and threw it away
+     *   (ii)  dsnu_adu          -- the canonical name resolved to the wrong value
+     *   (iii) measured_mask     -- "could not be measured" had no field
+     * ------------------------------------------------------------------- */
+
+    /// `DarkReduction_dB` -- Preprocessing-E2E-Automated-Evaluation-Protocol.md:205
+    /// `20*log10(std(R_dark_roi) / max(std(Y_dark_roi), epsilon))`, over the SAME
+    /// dark ROI as dark_bias. SRS-CALIB-FUNC-016 gates on this as the `or`
+    /// alternative to `abs(DarkBias) <= 5 ADU`; until #223 the value existed only
+    /// inside the gate, so a caller could not see WHICH clause passed it.
+    double dark_reduction_db;
+
+    /// `DSNU_ADU` -- Protocol.md:204 `DSNU_ADU = std(Y_dark_roi)`, in ADU.
+    ///
+    /// THIS DUPLICATES `residual_noise` ON PURPOSE, and the duplication is the
+    /// point. The canonical quantity was already computed and stored, but under
+    /// a name nobody searching for DSNU would find -- while the field actually
+    /// NAMED `dsnu` holds a coefficient of variation in percent, a different
+    /// quantity. QA-A-158 (#222) measured what that costs: on a real dark frame
+    /// a 0.51 ADU residual (a GOOD correction, 10x inside the 5 ADU budget)
+    /// produced dsnu = 129%, because a CV diverges as its mean approaches zero.
+    /// Reading the name instead of the formula produced a gate that rejected
+    /// good corrections. FUNC-037 (c): add the canonical name, change no
+    /// existing meaning. Both fields are written from the same variable at the
+    /// same place so they cannot drift.
+    double dsnu_adu;
+
+    /// Which metrics in this struct were actually MEASURED -- SRS-CALIB-FUNC-036.
+    /// A bitwise OR of XpeMetricMeasured flags; a clear bit means the verification
+    /// could not measure that metric and the corresponding field holds a
+    /// placeholder, NOT a measurement.
+    ///
+    /// Per-metric rather than one struct-wide flag, because the requirement asks
+    /// which VALUE is trustworthy, and one call can measure some and not others.
+    /// A bitmask over per-field booleans: it reserves 32 slots inside one field,
+    /// so the next metric needs no further ABI change.
+    ///
+    /// `overall_pass = false` on an unmeasurable input REMAINS -- see FUNC-036.
+    /// The two live together deliberately: this mask serves the caller who asks
+    /// what happened, and the false serves the caller who never reads the mask.
+    /// Removing the false would silently re-open #219 for every such caller.
+    uint32_t measured_mask;
 } XpeCalibrationMetrics;
+
+/**
+ * @brief Per-metric "was this actually measured" flags for `measured_mask`
+ *
+ * SRS-CALIB-FUNC-036. A set bit means the field was computed from data; a clear
+ * bit means it holds a placeholder.
+ */
+typedef enum {
+    XPE_METRIC_DARK_BIAS       = 1u << 0,  ///< dark_bias, dsnu, dsnu_adu, residual_noise
+    XPE_METRIC_DARK_REDUCTION  = 1u << 1,  ///< dark_reduction_db
+    XPE_METRIC_PRNU            = 1u << 2,  ///< prnu_before, prnu_after, flatness_pct
+    XPE_METRIC_GAIN_COVERAGE   = 1u << 3,  ///< gain_coverage, invalid_gain_count
+    XPE_METRIC_DEFECT          = 1u << 4,  ///< defect_count, defect_density, correction_error
+    XPE_METRIC_SNR             = 1u << 5   ///< snr_improvement_db
+} XpeMetricMeasured;
 
 /**
  * @brief Verify offset correction quality
