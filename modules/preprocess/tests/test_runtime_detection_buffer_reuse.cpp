@@ -78,15 +78,19 @@ protected:
         img.dataSize = static_cast<uint32_t>(pixels.size() * sizeof(float));
 
         // QA-A-43 (#143): the reference must use the SAME configuration as the
-        // entry point, which now fills in a frame-wide sigma floor. The default
-        // config leaves it at 0 (no floor) because only a caller that has seen
-        // the whole frame can compute it -- so the reference computes it the
-        // same way the entry point does. Without this the two sides would
-        // differ for a reason that has nothing to do with buffer reuse.
-        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
-        const float sigmaGlobal = xpe::preprocess::internal::ComputeGlobalSigma(&img);
-        cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
-        cfg.globalSigmaCap   = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
+        // entry point, because the default config leaves the frame-dependent
+        // fields empty -- only a caller that has seen the whole frame can fill
+        // them. Without this the two sides would differ for a reason that has
+        // nothing to do with buffer reuse.
+        //
+        // QA-A-164 (#143): this used to REBUILD those fields by hand (a global
+        // sigma floor and cap). When the sigma rule changed to a per-tile blend,
+        // the copy here did not, and this case failed reporting a path
+        // disagreement that was really a stale duplicate. Both sides now call
+        // the same builder, so the duplicate cannot come back.
+        std::vector<float> tileStorage;
+        RuntimeDetectionConfig cfg =
+            xpe::preprocess::internal::BuildFrameConfig(&img, tileStorage);
 
         const std::vector<uint8_t> ref = referenceMap(img, cfg);
         const std::vector<uint8_t> got = shippedMap(img);

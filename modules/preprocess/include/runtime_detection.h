@@ -170,6 +170,45 @@ extern "C" {
 #define RUNTIME_DETECTION_GLOBAL_SIGMA_CAP 0.0f
 
 /**
+ * @brief Tile edge, in pixels, for the per-tile reference sigma.
+ *
+ * QA-A-164 (#143). 128 was measured against 32 and 64 (QA-A-163, 5 seeds
+ * pooled, clean 1024^2 frames, pooled FPR):
+ *
+ *            uniform    scatter    edge       lines
+ *   tile  32 9.73e-06   1.01e-05   9.73e-06   3.05e-06   <- scatter misses
+ *   tile  64 8.20e-06   8.01e-06   8.20e-06   2.29e-06
+ *   tile 128 7.82e-06   7.82e-06   7.82e-06   2.29e-06   <- this
+ *
+ * 128 is equal or better on every family and costs less time than 64 (1.41x
+ * the scalar baseline against 1.54x), because a larger tile means fewer tiles
+ * to measure. Smaller tiles follow the noise more closely but estimate it from
+ * fewer samples, and at 32 that spread already shows as a scatter miss.
+ *
+ * Only three sizes were measured. The curve between them is not known, and
+ * QA-A-164 was told not to search further -- the value is a measured choice
+ * among three, not an optimum.
+ */
+#define RUNTIME_DETECTION_TILE_SIZE 128u
+
+/**
+ * @brief Weight on the LOCAL MAD when blending against the tile sigma.
+ *
+ * QA-A-164 (#143). `sigma = sqrt(w*mad^2 + (1-w)*tile^2)`, w = 0.10.
+ *
+ * Measured against w = 0.25 at the same tile (QA-A-163): 0.25 misses on three
+ * of four families (1.81e-05 / 1.77e-05 / 1.79e-05) because it lets more of the
+ * local estimate's spread through. Lower w leans harder on the tile value.
+ *
+ * The lower bound is not free either: at w -> 0 the estimate IS the reference,
+ * which is where #148 lived before the tile made that reference local. 0.10
+ * keeps a tenth of the local signal, and the tile keeps the reference honest.
+ *
+ * 0 disables the blend and restores the floor rule.
+ */
+#define RUNTIME_DETECTION_BLEND_WEIGHT 0.10f
+
+/**
  * @brief Configuration parameters for runtime detection.
  */
 struct RuntimeDetectionConfig {
@@ -177,6 +216,38 @@ struct RuntimeDetectionConfig {
     float sigmaThreshold;     /**< Sigma threshold for outlier detection (default: 5.0) */
     float globalSigmaFloor;   /**< Lower bound on the local sigma estimate; 0 = none */
     float globalSigmaCap;     /**< Upper bound on the local sigma estimate; 0 = none */
+    /**
+     * QA-A-164 (#143): SRS acceptance needs the sigma estimate to do two things
+     * at once, and one number cannot.
+     *
+     *   blendWeight  shrinks the SPREAD of the local estimate by mixing it with
+     *                a reference sigma:  sqrt(w*mad^2 + (1-w)*ref^2).
+     *   tileSigma    makes that reference LOCAL, so it follows noise that varies
+     *                across the frame.
+     *
+     * Measured separately (QA-A-162/163, 5 seeds pooled, 1024^2):
+     *   blend against the FRAME sigma   uniform FPR 1.2e-04 -> 7.8e-06  (15x)
+     *                                   but `edge` stayed at 7.5e-04 (75x over)
+     *   tile as a FLOOR, no blend       edge 7.5e-04 -> 1.2e-04 (6.3x)
+     *                                   but every frame stuck at baseline level
+     *   both together (this)            all four frame families under 1e-5
+     *
+     * Why `edge` needed the tile: that frame is sigma 12 on one half and 25 on
+     * the other, and the frame-wide estimate is 16.71. Every false positive --
+     * 3951 of 3951 -- landed on the NOISY half, where one global number sets the
+     * threshold too low. An ORACLE detector given the true local sigma split
+     * 12/16 across the halves and met the requirement, so the frame was never
+     * the problem; one global number was.
+     *
+     * blendWeight 0 keeps the historical rule (floor at globalSigmaFloor), so a
+     * caller that fills in neither field sees exactly the pre-#143 behaviour.
+     */
+    float blendWeight;        /**< 0 = old floor rule; else weight on the local MAD */
+    const float* tileSigma;   /**< Row-major table of per-tile sigma; null = use globalSigmaFloor's frame sigma */
+    uint32_t tileSize;        /**< Tile edge in pixels (QA-A-164 landed 128) */
+    uint32_t tilesX;          /**< Tiles per row, so the table can be indexed */
+    float blendReference;     /**< Reference sigma when tileSigma is null */
+
     /**
      * Number of worker threads. 1 (the default) keeps the single-threaded path.
      *
@@ -205,6 +276,14 @@ inline RuntimeDetectionConfig RuntimeDetection_DefaultConfig() {
     // has seen the whole frame can fill it in. xpe_defect_detect_runtime does.
     config.globalSigmaFloor = 0.0f;
     config.globalSigmaCap = 0.0f;
+    // QA-A-164: same reasoning as the floor -- a tile table is a frame-wide
+    // quantity, so only a caller that has seen the whole frame can fill it in.
+    // Zero weight keeps the historical rule for direct callers.
+    config.blendWeight = 0.0f;
+    config.tileSigma = nullptr;
+    config.tileSize = 0u;
+    config.tilesX = 0u;
+    config.blendReference = 0.0f;
     return config;
 }
 
@@ -765,6 +844,153 @@ inline void CollectNeighborValues(const XpeImageBuffer* img,
  *         window yields fewer than RUNTIME_DETECTION_MIN_NEIGHBORS neighbours,
  *         which is the SPEC's "skip rather than judge" rule at the border.
  */
+/**
+ * @brief The reference sigma this pixel's estimate is blended against.
+ *
+ * QA-A-164 (#143). One function so the scalar and AVX2 paths cannot drift --
+ * QA-A-62 measured what having two costs (a change landed in one while a tool
+ * measured the other).
+ */
+inline float BlendReferenceAt(const RuntimeDetectionConfig& config,
+                              uint32_t x, uint32_t y) noexcept {
+    if (config.tileSigma == nullptr || config.tileSize == 0u || config.tilesX == 0u) {
+        return config.blendReference;
+    }
+    const uint32_t tx = x / config.tileSize;
+    const uint32_t ty = y / config.tileSize;
+    return config.tileSigma[static_cast<size_t>(ty) * config.tilesX + tx];
+}
+
+/**
+ * @brief Apply the configured sigma rule to a raw local MAD.
+ *
+ * blendWeight == 0 is the historical rule -- floor, then optional cap. Above 0
+ * it is `sqrt(w*mad^2 + (1-w)*ref^2)`, with the cap still applied after.
+ */
+inline float ResolveSigma(float mad, const RuntimeDetectionConfig& config,
+                          uint32_t x, uint32_t y) noexcept {
+    float sigma;
+    if (config.blendWeight > 0.0f) {
+        const float ref = BlendReferenceAt(config, x, y);
+        sigma = std::sqrt(config.blendWeight * mad * mad +
+                          (1.0f - config.blendWeight) * ref * ref);
+    } else {
+        sigma = (config.globalSigmaFloor > mad) ? config.globalSigmaFloor : mad;
+    }
+    if (config.globalSigmaCap > 0.0f && sigma > config.globalSigmaCap) {
+        sigma = config.globalSigmaCap;
+    }
+    return sigma;
+}
+
+/**
+ * @brief Per-tile robust sigma, using the same difference-MAD as ComputeGlobalSigma.
+ *
+ * QA-A-164 (#143). Only the SCOPE changes: ComputeGlobalSigma measures the whole
+ * frame, this measures one tile, and the estimator is identical so the two are
+ * comparable. A tile smaller than 2 pixels in both directions yields 0 and the
+ * caller substitutes the frame value -- there is nothing to difference.
+ *
+ * A tile too small to hold one difference takes the MEDIAN OF THE MEASURED
+ * TILES rather than a frame-wide value. That is what removes the second full
+ * pass: QA-A-164 measured ComputeGlobalSigma at 55 ms and this at 72 ms on a
+ * 3072^2 frame -- 70% of the total for two estimates of the same quantity, when
+ * the blend rule reads only this one. The frame sigma is still computed for
+ * globalSigmaFloor, which the blend path does not use; the caller skips it.
+ *
+ * @param img Input frame (XPE_PIXEL_FLOAT32).
+ * @param tileSize Tile edge in pixels.
+ * @param outTilesX Receives the number of tiles per row.
+ * @return Row-major table of size ceil(w/tile) * ceil(h/tile).
+ */
+inline std::vector<float> ComputeTileSigmas(const XpeImageBuffer* img,
+                                            uint32_t tileSize,
+                                            uint32_t* outTilesX) {
+    constexpr float kUnmeasured = -1.0f;
+    const float fallback = kUnmeasured;
+    std::vector<float> table;
+    if (img == nullptr || img->data == nullptr || tileSize == 0u) {
+        if (outTilesX) *outTilesX = 0u;
+        return table;
+    }
+    const uint32_t w = img->width;
+    const uint32_t h = img->height;
+    const uint32_t tilesX = (w + tileSize - 1u) / tileSize;
+    const uint32_t tilesY = (h + tileSize - 1u) / tileSize;
+    if (outTilesX) *outTilesX = tilesX;
+    table.assign(static_cast<size_t>(tilesX) * tilesY, fallback);
+
+    const float* pixels = static_cast<const float*>(img->data);
+    std::vector<float> diffs;
+    diffs.reserve(static_cast<size_t>(tileSize) * tileSize * 2u);
+
+    for (uint32_t ty = 0; ty < tilesY; ++ty) {
+        for (uint32_t tx = 0; tx < tilesX; ++tx) {
+            const uint32_t x0 = tx * tileSize, x1 = (x0 + tileSize < w) ? x0 + tileSize : w;
+            const uint32_t y0 = ty * tileSize, y1 = (y0 + tileSize < h) ? y0 + tileSize : h;
+            diffs.clear();
+            for (uint32_t y = y0; y < y1; ++y)
+                for (uint32_t x = x0 + 1u; x < x1; ++x)
+                    diffs.push_back(pixels[static_cast<size_t>(y) * w + x] -
+                                    pixels[static_cast<size_t>(y) * w + x - 1u]);
+            for (uint32_t y = y0 + 1u; y < y1; ++y)
+                for (uint32_t x = x0; x < x1; ++x)
+                    diffs.push_back(pixels[static_cast<size_t>(y) * w + x] -
+                                    pixels[static_cast<size_t>(y - 1u) * w + x]);
+            if (diffs.empty()) continue;   // keeps the fallback; patched below
+            const size_t mid = diffs.size() / 2u;
+            const float median = SelectKthSmallest(diffs.data(), diffs.size(), mid);
+            for (float& v : diffs) v = std::abs(v - median);
+            // 1.4826 : MAD -> sigma.  1/sqrt(2) : undo Var(n1 - n2) = 2 sigma^2.
+            // Identical to ComputeGlobalSigma; see there for both constants.
+            table[static_cast<size_t>(ty) * tilesX + tx] =
+                SelectKthSmallest(diffs.data(), diffs.size(), mid) *
+                RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
+        }
+    }
+
+    // Fill any tile that could not be measured with the median of those that
+    // could. A 1-pixel-wide tile has no difference to take, and borrowing from
+    // its siblings is closer than borrowing from the whole frame.
+    std::vector<float> measured;
+    measured.reserve(table.size());
+    for (float v : table) if (v != kUnmeasured) measured.push_back(v);
+    const float substitute = measured.empty()
+        ? 0.0f
+        : SelectKthSmallest(measured.data(), measured.size(), measured.size() / 2u);
+    for (float& v : table) if (v == kUnmeasured) v = substitute;
+
+    return table;
+}
+
+/**
+ * @brief The frame-dependent part of the shipped configuration, in one place.
+ *
+ * QA-A-164 (#143). `xpe_defect_detect_runtime` used to build this inline and two
+ * parity tests rebuilt it by hand to compare against. When the sigma rule
+ * changed, the shipped side moved and the hand-written copies did not -- so the
+ * tests failed reporting a path disagreement that was really a stale copy.
+ *
+ * That is the failure QA-A-62 already recorded once (a change landed in one copy
+ * while a tool measured the other), so the copy is removed rather than updated.
+ *
+ * @param img Frame to measure. Must be XPE_PIXEL_FLOAT32 with data.
+ * @param tileStorage Caller-owned backing for the tile table. The returned
+ *        config points into it, so it must outlive the config.
+ */
+inline RuntimeDetectionConfig BuildFrameConfig(const XpeImageBuffer* img,
+                                               std::vector<float>& tileStorage) {
+    RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
+    tileStorage = ComputeTileSigmas(img, RUNTIME_DETECTION_TILE_SIZE, &config.tilesX);
+    config.blendWeight = RUNTIME_DETECTION_BLEND_WEIGHT;
+    config.tileSigma = tileStorage.empty() ? nullptr : tileStorage.data();
+    config.tileSize = RUNTIME_DETECTION_TILE_SIZE;
+    config.blendReference = 0.0f;
+    config.globalSigmaFloor = 0.0f;
+    config.globalSigmaCap = 0.0f;
+    return config;
+}
+
 inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
                                  uint32_t y,
@@ -792,15 +1018,10 @@ inline bool DetectDefectivePixel(const XpeImageBuffer* img,
     // robust sigma. Eight samples under-estimate sigma often enough to breach
     // the SPEC's 1% clean-input ceiling; the floor removes those flags without
     // touching the neighbourhood rule. Zero floor = mechanism off.
-    float sigmaEstimate = mad;
-    if (config.globalSigmaFloor > sigmaEstimate) {
-        sigmaEstimate = config.globalSigmaFloor;
-    }
-    // QA-A-46 (#143): and cap it from above. Disabled (0) unless a caller sets
-    // it -- see RUNTIME_DETECTION_GLOBAL_SIGMA_CAP for why the default is off.
-    if (config.globalSigmaCap > 0.0f && sigmaEstimate > config.globalSigmaCap) {
-        sigmaEstimate = config.globalSigmaCap;
-    }
+    // QA-A-164 (#143): the floor / cap / blend choice now lives in ResolveSigma
+    // so this path and the AVX2 one cannot diverge. The floor text above still
+    // describes what happens when blendWeight is 0.
+    const float sigmaEstimate = ResolveSigma(mad, config, x, y);
 
     // Flat-field windows produce MAD == 0. In that case, any non-trivial
     // deviation from the local median is an outlier rather than noise.
@@ -1008,8 +1229,23 @@ inline void DetectEightPixelsAvx2(const float* pixels,
     const __m256 mad = _mm256_mul_ps(MedianOfEight8(d),
                                      _mm256_set1_ps(RUNTIME_DETECTION_MAD_SCALE));
 
-    // sigmaEstimate = (floor > mad) ? floor : mad
-    __m256 sigma = SelectGreaterOf(_mm256_set1_ps(config.globalSigmaFloor), mad);
+    // QA-A-164 (#143): the same rule ResolveSigma applies, vectorised.
+    //
+    // The reference is broadcast, which is exactly why the caller only enters
+    // this function when all eight columns share one tile (see DetectRowRange).
+    // A run that straddles a tile boundary would need eight different references
+    // and goes down the scalar path instead -- same answer, fewer pixels at a
+    // time. With tile 128 and runs of 8 that is at most one run in sixteen.
+    __m256 sigma;
+    if (config.blendWeight > 0.0f) {
+        const float ref = BlendReferenceAt(config, x, y);
+        const __m256 weight = _mm256_set1_ps(config.blendWeight);
+        const __m256 refSq = _mm256_set1_ps((1.0f - config.blendWeight) * ref * ref);
+        sigma = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(weight, _mm256_mul_ps(mad, mad)), refSq));
+    } else {
+        // sigmaEstimate = (floor > mad) ? floor : mad
+        sigma = SelectGreaterOf(_mm256_set1_ps(config.globalSigmaFloor), mad);
+    }
     // ... then, only when the cap is enabled, (sigma > cap) ? cap : sigma.
     if (config.globalSigmaCap > 0.0f) {
         sigma = SelectLesserOf(_mm256_set1_ps(config.globalSigmaCap), sigma);
@@ -1117,15 +1353,31 @@ inline void DetectRowRange(const XpeImageBuffer* img,
     for (uint32_t y = y0; y < y1; ++y) {
 #if XPE_DETECT_HAS_AVX2
         if (useVector && y != 0u && y + 1u < h) {
+            // QA-A-164 (#143): a run may only be vectorised when its eight
+            // columns share ONE tile, because the reference sigma is broadcast.
+            // A straddling run takes the scalar path and gets the same answer.
+            const uint32_t tile = (config.blendWeight > 0.0f && config.tileSigma) ? config.tileSize : 0u;
+            auto oneTile = [tile](uint32_t xa) {
+                return tile == 0u || (xa / tile) == ((xa + 7u) / tile);
+            };
             scalarSpan(y, 0u, 1u);
             uint32_t x = 1u;
             for (; x + 8u <= w - 1u; x += 8u) {
-                DetectEightPixelsAvx2(pixels, w, x, y, config, map);
+                if (oneTile(x)) {
+                    DetectEightPixelsAvx2(pixels, w, x, y, config, map);
+                } else {
+                    scalarSpan(y, x, x + 8u);
+                }
             }
             // QA-A-69: one overlapping run finishes the interior columns the
             // forward walk could not start a run for. See DetectRowLastRunStart.
             if (x + 1u < w) {
-                DetectEightPixelsAvx2(pixels, w, DetectRowLastRunStart(w), y, config, map);
+                const uint32_t last = DetectRowLastRunStart(w);
+                if (oneTile(last)) {
+                    DetectEightPixelsAvx2(pixels, w, last, y, config, map);
+                } else {
+                    scalarSpan(y, last, last + 8u);
+                }
             }
             // Columns 0 and w-1 stay scalar whatever else changes: they have
             // fewer than eight neighbours, so they are a different computation,

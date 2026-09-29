@@ -897,3 +897,148 @@ TEST_F(A161Probe, DISABLED_ShippedTimingAtSpecFrameSize) {
                     run, ms);
     }
 }
+
+// QA-A-164 LANDING CONDITION: the SHIPPED path, now carrying 6d.
+//
+// Everything that chose 6d was measured on the probe's scalar loop. The shipped
+// path adds AVX2, and the tile table is a structure that path did not have --
+// QA-A-161 flagged exactly this for candidate 4a. Three questions:
+//   (1) does the shipped detector produce the SAME map as the scalar rule?
+//   (2) are the FPR / TPR the ones 6d was chosen for?
+//   (3) is AVX2 still running, or did the tile table push everything scalar?
+TEST_F(A161Probe, DISABLED_ShippedPathAfter6dLanded) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    struct Fam { const char* name; Frame (*make)(uint32_t); };
+    const Fam fams[] = {
+        {"uniform", uniform10}, {"scatter", scatterFrame},
+        {"edge", edgeFrame}, {"lines(p13)", lines13Frame},
+    };
+
+    // (1) shipped vs the probe's own 6d -- the tile table is built the same way
+    // by both, so a mismatch means the AVX2 run-splitting is wrong.
+    const Variant v6d{"6d tile128 blend 0.10", 3, SigmaRule::TileBlend, 0.10f, 128};
+    size_t totalDiff = 0;
+    for (const Fam& fam : fams) {
+        Frame f = fam.make(20260911u);
+        std::vector<float> a = f.px, b = f.px;
+        const std::vector<uint8_t> shipped = detectShipped(a, nullptr);
+        const std::vector<uint8_t> local = detectVariant(v6d, b, nullptr);
+        size_t d = 0;
+        for (size_t i = 0; i < kN; ++i) if (shipped[i] != local[i]) ++d;
+        std::printf("[a164] EQUIVALENCE %-10s shipped vs probe-6d differing = %zu / %zu\n",
+                    fam.name, d, kN);
+        totalDiff += d;
+    }
+    EXPECT_EQ(0u, totalDiff) << "the shipped path must compute what the probe measured";
+
+    // (2) the rates 6d was chosen for, through the shipped entry point
+    auto shippedDet = [](std::vector<float>& f, double* ms) { return detectShipped(f, ms); };
+    std::printf("\n| family     | FP total | pooled FPR | req | TPR@10s |\n");
+    std::printf("|------------|----------|------------|-----|---------|\n");
+    for (const Fam& fam : fams) {
+        size_t fp = 0;
+        for (uint32_t sd : seeds) {
+            Frame clean = fam.make(sd);
+            const std::vector<uint8_t> flagged = detectShipped(clean.px, nullptr);
+            for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fp;
+        }
+        const double pooled = static_cast<double>(fp) / (static_cast<double>(kN) * nSeeds);
+        const Result t = measureOn(fam.make, 10.0f, 20260911u, shippedDet);
+        std::printf("| %-10s | %8zu | %.4e | %-3s | %.4f  |\n",
+                    fam.name, fp, pooled, (pooled < kFprCap) ? "YES" : "no", t.tpr);
+    }
+
+    // (3) is AVX2 still alive? Compare the shipped path against the probe's
+    // scalar loop on the same frame. Before 6d the ratio was 8.4x.
+    Frame f = uniform10(20260911u);
+    std::vector<float> a = f.px, b = f.px;
+    double msShipped = 0.0, msScalar = 0.0;
+    detectShipped(a, &msShipped);
+    detectVariant(v6d, b, &msScalar);
+    std::printf("\n[a164] TIMING shipped %.1f ms vs probe scalar %.1f ms  -> %.1fx\n",
+                msShipped, msScalar, msScalar / msShipped);
+}
+
+// QA-A-164: WHERE the shipped time goes now.
+//
+// 6d was chosen partly on "1.41x the scalar baseline". On the shipped path the
+// measured cost is 2.68x (69.7 -> 187 ms at 3072^2), so the basis moved and the
+// difference has to be attributed before anyone decides what to do about it.
+TEST_F(A161Probe, DISABLED_WhereTheShippedTimeGoes) {
+    constexpr uint32_t kBigW = 3072, kBigH = 3072;
+    const size_t bigN = static_cast<size_t>(kBigW) * kBigH;
+    std::mt19937 rng(20260911u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> frame(bigN);
+    for (size_t i = 0; i < bigN; ++i) frame[i] = 3000.0f + 10.0f * g(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data(); img.width = kBigW; img.height = kBigH;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(bigN * sizeof(float));
+
+    for (int run = 0; run < 3; ++run) {
+        auto t0 = std::chrono::steady_clock::now();
+        const float gs = ComputeGlobalSigma(&img);
+        auto t1 = std::chrono::steady_clock::now();
+        uint32_t tilesX = 0;
+        std::vector<float> table = ComputeTileSigmas(&img, RUNTIME_DETECTION_TILE_SIZE, &tilesX);
+        auto t2 = std::chrono::steady_clock::now();
+
+        RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+        cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * gs;
+        cfg.blendWeight = RUNTIME_DETECTION_BLEND_WEIGHT;
+        cfg.tileSigma = table.data();
+        cfg.tileSize = RUNTIME_DETECTION_TILE_SIZE;
+        cfg.tilesX = tilesX;
+        cfg.blendReference = gs;
+        std::vector<uint8_t> map(bigN, 0);
+        std::vector<float> wv, dev;
+        auto t3 = std::chrono::steady_clock::now();
+        DetectRowRange(&img, cfg, map.data(), 0u, kBigH, wv, dev);
+        auto t4 = std::chrono::steady_clock::now();
+
+        const double msGlobal = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        const double msTile   = std::chrono::duration<double, std::milli>(t2 - t1).count();
+        const double msRows   = std::chrono::duration<double, std::milli>(t4 - t3).count();
+        std::printf("[a164] 3072^2 run %d : globalSigma %6.1f | tileSigmas %6.1f | rows %6.1f | sum %6.1f ms\n",
+                    run, msGlobal, msTile, msRows, msGlobal + msTile + msRows);
+    }
+}
+
+// QA-A-164 FALSIFICATION: the claim is that the two mechanisms are ORTHOGONAL --
+// neither alone reaches the requirement. Turning each off should break a
+// different column. If turning one off changes nothing, it is not load-bearing.
+TEST_F(A161Probe, DISABLED_OrthogonalityFalsification) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    struct Fam { const char* name; Frame (*make)(uint32_t); };
+    const Fam fams[] = {
+        {"uniform", uniform10}, {"scatter", scatterFrame},
+        {"edge", edgeFrame}, {"lines(p13)", lines13Frame},
+    };
+    const Variant cands[] = {
+        {"landed 6d",            3, SigmaRule::TileBlend,    0.10f, 128},
+        {"blend OFF (w=1, tile)",3, SigmaRule::TileBlend,    1.00f, 128},
+        {"tile OFF (frame ref)", 3, SigmaRule::Blend,        0.10f,   0},
+    };
+    std::printf("\n| variant                | uniform    | scatter    | edge       | lines      |\n");
+    std::printf("|------------------------|------------|------------|------------|------------|\n");
+    for (const Variant& v : cands) {
+        std::printf("| %-22s |", v.name);
+        for (const Fam& fam : fams) {
+            size_t fp = 0;
+            for (uint32_t sd : seeds) {
+                Frame clean = fam.make(sd);
+                const std::vector<uint8_t> flagged = detectVariant(v, clean.px, nullptr);
+                for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fp;
+            }
+            const double pooled = static_cast<double>(fp) / (static_cast<double>(kN) * nSeeds);
+            std::printf(" %.3e%s|", pooled, (pooled < kFprCap) ? " " : "*");
+        }
+        std::printf("\n");
+    }
+    std::printf("(* = over the 1e-5 requirement)\n");
+}
