@@ -48,17 +48,26 @@ using xpe::ai::ExecutionProvider;
 
 namespace {
 
-// gtest_discover_tests sets WORKING_DIRECTORY to modules/ai (CMakeLists).
-const char* kScale2 = "tests/data/min_scale2.onnx";
-const char* kScale3 = "tests/data/min_scale3.onnx";
-const char* kGarbage = "tests/data/not_a_model.onnx";
+// QA-B-162 (#130): absolute, baked in by CMake. These were relative
+// ("tests/data/..."), which resolves ONLY when the cwd is modules/ai -- that
+// is, only under ctest, which sets WORKING_DIRECTORY. main went red because
+// the #162 single-process step runs every binary from modules/gsvg, and the
+// repository root failed as well. A cwd-dependent fixture path is a test that
+// passes because of where it was started.
+#ifndef XPE_AI_TEST_DATA_DIR
+#error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
+#endif
+const std::string kDataDir = XPE_AI_TEST_DATA_DIR;
+const std::string kScale2 = kDataDir + "/min_scale2.onnx";
+const std::string kScale3 = kDataDir + "/min_scale3.onnx";
+const std::string kGarbage = kDataDir + "/not_a_model.onnx";
 
-bool Exists(const char* p) {
+bool Exists(const std::string& p) {
     std::ifstream f(p, std::ios::binary);
     return f.good();
 }
 
-OnnxSessionConfig Cfg(const char* path) {
+OnnxSessionConfig Cfg(const std::string& path) {
     OnnxSessionConfig c;
     c.model_path = path;
     c.execution_provider = ExecutionProvider::kCpu;
@@ -154,7 +163,7 @@ TEST(OnnxSessionRun, OutputIsNotAConstantIndependentOfInput) {
 // --- failure paths reach the caller as codes, not as crashes or as kOk -----
 
 TEST(OnnxSessionCreate, MissingModelIsInvalidModelPath) {
-    auto s = OnnxSession::Create(Cfg("tests/data/there_is_no_such_model.onnx"));
+    auto s = OnnxSession::Create(Cfg(kDataDir + "/there_is_no_such_model.onnx"));
     EXPECT_FALSE(s.has_value());
     EXPECT_EQ(OnnxErrorCode::kInvalidModelPath, s.code) << s.message;
     EXPECT_EQ(nullptr, s.value);

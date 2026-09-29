@@ -37,11 +37,20 @@
 
 namespace {
 
-// gtest_discover_tests sets WORKING_DIRECTORY to modules/ai (CMakeLists).
-const char* kDirX2      = "tests/data/models_x2";
-const char* kDirX3      = "tests/data/models_x3";
-const char* kDirMissing = "tests/data/models_missing";
-const char* kDirBroken  = "tests/data/models_broken";
+// QA-B-162 (#130): absolute, baked in by CMake -- see test_onnx_session.cpp
+// for the failure this replaces. These were relative and so resolved only when
+// the cwd happened to be modules/ai. They had not broken CI yet only because
+// xpe_ai_init accepts any directory string and the failure then surfaced as a
+// model-not-found code, which several tests here legitimately expect: the
+// defect would have shown up as tests passing for the wrong reason.
+#ifndef XPE_AI_TEST_DATA_DIR
+#error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
+#endif
+const std::string kDataDir   = XPE_AI_TEST_DATA_DIR;
+const std::string kDirX2      = kDataDir + "/models_x2";
+const std::string kDirX3      = kDataDir + "/models_x3";
+const std::string kDirMissing = kDataDir + "/models_missing";
+const std::string kDirBroken  = kDataDir + "/models_broken";
 
 constexpr uint32_t kW = 3, kH = 3;
 constexpr size_t   kN = static_cast<size_t>(kW) * kH;
@@ -66,9 +75,9 @@ struct Img {
 // be asserting about the previous test's model.
 struct BoneSuppressAbi : public ::testing::Test {
     void TearDown() override { xpe_ai_shutdown(); }
-    static void Init(const char* dir) {
+    static void Init(const std::string& dir) {
         xpe_ai_shutdown();
-        ASSERT_EQ(XPE_OK, xpe_ai_init(dir, nullptr)) << dir;
+        ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), nullptr)) << dir;
     }
 };
 
@@ -79,12 +88,12 @@ bool IsStub() { return xpe::ai::OnnxSession::IsStubBuild(); }
 // --- fixtures, or nothing below means anything -----------------------------
 
 TEST_F(BoneSuppressAbi, ModelDirectoriesArePresent) {
-    for (const char* d : {kDirX2, kDirX3, kDirBroken}) {
-        const std::string p = std::string(d) + "/bone_suppress.onnx";
+    for (const std::string& d : {kDirX2, kDirX3, kDirBroken}) {
+        const std::string p = d + "/bone_suppress.onnx";
         std::ifstream f(p, std::ios::binary);
         EXPECT_TRUE(f.good()) << p << " is missing; run tests/data/make_min_models.py";
     }
-    std::ifstream absent(std::string(kDirMissing) + "/bone_suppress.onnx", std::ios::binary);
+    std::ifstream absent(kDirMissing + "/bone_suppress.onnx", std::ios::binary);
     EXPECT_FALSE(absent.good())
         << kDirMissing << " must NOT contain a model -- it pins the not-found code";
 }
