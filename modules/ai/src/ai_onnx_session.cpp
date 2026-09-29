@@ -169,13 +169,24 @@ std::string EpToString(ExecutionProvider ep) {
 // OnnxSession Implementation
 // =============================================================================
 
-// Destructor and move-assignment both `delete pimpl_`, so both must sit AFTER
-// struct Impl is defined -- being in the .cpp is not enough on its own. The
-// destructor used to be defined above the struct, where Impl was still
-// incomplete, and MSVC's C4150 said so: "no destructor called". The product
-// build never showed it because modules/ai/CMakeLists.txt compiles with
-// /wd4150; the first target without that suppression was this card's tests,
-// under the ci-ai preset's warnings-as-errors (QA-B-161).
+// THE RULE, IN FULL -- both halves, because half of it is what let a real
+// defect live here (QA-B-161, QA-B-164, #226):
+//
+//   Anything that `delete pimpl_` must be (a) in the .cpp, AND
+//   (b) BELOW the definition of struct Impl.
+//
+// The comment that used to sit here said only "must be in .cpp for PIMPL".
+// The destructor obeyed that and was still wrong: it was defined ABOVE the
+// struct, where Impl is incomplete, so the compiler emitted no call to
+// ~Impl(). In a full build that leaks the ONNX session and env -- everything
+// Impl owns. MSVC says so as C4150, "no destructor called".
+//
+// It stayed invisible because modules/ai/CMakeLists.txt compiled the product
+// with /wd4150. The first target without that suppression was the test target
+// added in QA-B-161, under the ci-ai preset's warnings-as-errors.
+// #226 (QA-B-164) then removed the suppression from both product targets
+// after measuring 0 remaining occurrences -- so a future C4150 here will be
+// visible instead of silent.
 OnnxSession::~OnnxSession() {
     delete pimpl_;
 }
