@@ -1,0 +1,49 @@
+GUI-C-156 — recursion design, evidence (read-only; nothing implemented)
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] the two runners are console Exe projects that reference the app
+    gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj:3:    <OutputType>Exe</OutputType>
+    gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj:3:    <OutputType>Exe</OutputType>
+    gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj:13:    <ProjectReference Include="..\ImageProcTest\ImageProcTest.csproj" />
+    gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj:13:    <ProjectReference Include="..\ImageProcTest\ImageProcTest.csproj" />
+
+[2] neither launches ImageProcTest.exe
+    E2E/Program.cs — what it starts and what it news up:
+      
+      static void RunSelfCheck()
+      {
+          var repoRoot = FindRepoRoot(AppContext.BaseDirectory);
+          var selfCheckExe = Path.Combine(repoRoot, "gui", "ImageProcTest.SelfCheck", "bin", "Debug", "net8.0-windows", "ImageProcTest.SelfCheck.exe");
+          Assert(File.Exists(selfCheckExe), $"Self-check exe not found: {selfCheckExe}");
+      
+          using var process = Process.Start(new ProcessStartInfo
+          {
+          };
+      
+          var window = new MainWindow();
+          try
+    grep for the app exe in both runners:
+      0 hits
+
+[3] the clients suite DOES launch the app exe — this is where a cycle would come from
+    132:        var startInfo = new ProcessStartInfo(exePath)
+    498:          dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
+    615:          dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
+
+[4] the marker that already exists, and why IsAutomationMode is not enough
+        public bool IsAutomationMode =>
+            !string.IsNullOrWhiteSpace(RawPath) && !string.IsNullOrWhiteSpace(ReportPath);
+    
+            startInfo.ArgumentList.Add("--automation-backend");
+            startInfo.ArgumentList.Add(BackendMode);
+    -> the fixture always passes --automation-backend, but not --automation-report,
+       so IsAutomationMode is FALSE for a fixture-launched app while AutomationBackendMode is set.
+
+[5] neither runner is executed by any workflow
+    0 hits in .github/workflows
+    but both are in the solution:
+    3:  <Project Path="ImageProcTest.E2E/ImageProcTest.E2E.csproj" />
+    4:  <Project Path="ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj" />
+
+[6] nothing was changed by this investigation
+    (empty = clean)
