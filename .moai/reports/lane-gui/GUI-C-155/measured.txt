@@ -1,0 +1,65 @@
+GUI-C-155 / #225 — measured output (verbatim). App untouched; assertions only.
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] premise check — the Mock job has no native DLLs (card cited :550; actual location below)
+    455:    # so no native DLLs are needed; the Native variant follows GUI-C-26
+        # session-0 style CI desktop - this job IS that experiment. Mock backend,
+        # so no native DLLs are needed; the Native variant follows GUI-C-26
+
+[2] and gui-e2e-native DOES stage them, so A-03/R-06 assert there rather than skipping
+              XPE_E2E_BACKEND: Native
+              XPE_NATIVE_DIR: ${{ github.workspace }}/build/e2e-native-dlls
+              XPE_NATIVE_DIR_EXCLUSIVE: "1"
+
+[3] first run — two of my own premises were wrong, and the tests caught both
+      실패 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [732 ms]
+      오류 메시지:
+       Assert.Contains() Failure: Sub-string not found
+    String:    ""
+    Not found: "xpe_display_version"
+      스택 추적:
+    R-11a first attempt:
+      [xUnit.net 00:01:09.51]         R-11a status: Stop: no render is in flight.
+    R-11a second attempt (GSVG stage on, still lost the race):
+      [xUnit.net 00:01:10.93]         R-11a status: Stop: no render is in flight.
+    -> the background work is tens of ms (status bar: work=20 ms); no UI timing wins that race,
+       so the in-flight assertion moved to AutomationReportBackendTests.A03 (in-process).
+
+[4] after the fixes — Native
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R12_StageTiming_ShowsTheValuesTheRenderAlreadyReported [7 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R11b_StopWithNothingRunning_SaysSoAndDiscardsNothing [7 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [2 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [8 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [11 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [8 s]
+         통과: 6
+
+[5] after the fixes — Mock (skips carry their reason)
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R12_StageTiming_ShowsTheValuesTheRenderAlreadyReported [7 s]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R11b_StopWithNothingRunning_SaysSoAndDiscardsNothing [7 s]
+      건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [< 1 ms]
+      통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [8 s]
+      건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+      통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [8 s]
+         통과: 4
+        건너뜀: 2
+
+[6] evidence the assertions read (Native run)
+     R-12 chain='chain: preprocess=NotRequested, gsvg=NotRequested; times: preprocess=0 ms, gsvg=0 ms; display input=raw'
+     R-12 status='Stage timing: work=14 ms; vm=1 ms; display: marshal-in=3 ms, native=3 ms, marshal-out=1 ms, preview=8 ms || chain: preprocess=NotRequested, gsvg=NotRequested; times: preprocess=0 ms, gsvg=0 ms; display input=raw'
+     R-11b first: Stop: no render is in flight.
+     R-11b second: Stop: no render is in flight.
+     R-06 status: P/Invoke smoke: 3 of 3 probes answered.
+
+[7] full regression, before and after this card
+    C-154 (163 tests):
+      실패!  - 실패:     1, 통과:   162, 건너뜀:     0, 전체:   163, 기간: 14 m 40 s - ImageProcTest.E2ETests.dll (net8.0)
+    C-155 (167 tests):
+      실패!  - 실패:     1, 통과:   166, 건너뜀:     0, 전체:   167, 기간: 15 m - ImageProcTest.E2ETests.dll (net8.0)
+        실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [14 s]
+       P10 hash=36fc547e253b07f1 mean=85.205
+    -> +4 tests, same single failure, same hash (the known local-only P-10).
+
+[8] files changed
+     M clients/ImageProcTest.E2ETests/Scenarios/Smoke/AutomationReportBackendTests.cs
+    ?? clients/ImageProcTest.E2ETests/Scenarios/Workflows/MenuCommandScenarios.cs
