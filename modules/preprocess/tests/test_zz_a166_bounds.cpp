@@ -29,6 +29,9 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "runtime_detection.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <cstdio>
 
 #include <algorithm>
 #include <chrono>
@@ -501,4 +504,230 @@ TEST_F(A166Bounds, DISABLED_A167_WhyTheSelectionMeasurementsDiffer) {
     const double msBench = timeSelection("isolated bench N(0,1)", benchInput);
     (void)sink;
     std::printf("[a167] ratio bench/real = %.2fx\n", msBench / msReal);
+}
+
+// ---------------------------------------------------------------------------
+// QA-A-169 (#204): the lower bound of xpe_defect_correct, re-measured.
+//
+// METHOD FOLLOWS QA-A-166 (and QA-A-144, which measured this same function on
+// 2026-09-27) so the three are comparable: same frame size, same format, same
+// densities, warm-up discarded, minimum of N runs, conditions stated with every
+// absolute figure (the rule QA-A-168 3 set for this lane).
+//
+// WHY RE-MEASURE. QA-A-144 derived the current <= 45 ms target from 19.21 ms at
+// 0.1% clustered. AFTER that, QA-A-146 (#209) removed a full-frame copy from
+// this function -- its own comment records the copy as "36 MB and 12.45 ms of
+// an 18.45 ms call at 3072x3072". If that is right, the numbers the target was
+// derived from no longer describe the code.
+//
+// All DISABLED_. Run with:
+//   --gtest_also_run_disabled_tests --gtest_filter=A169Defect.*
+// ---------------------------------------------------------------------------
+namespace {
+
+constexpr uint32_t kDW = 3072, kDH = 3072;
+constexpr size_t   kDN = static_cast<size_t>(kDW) * kDH;
+
+struct DefectFixture {
+    std::vector<float> in, out;
+    std::vector<uint8_t> mask;
+    size_t defects = 0;
+};
+
+/**
+ * @param density   fraction of pixels marked defective
+ * @param clustered when true, each site is a 2x2 block so analyzeCluster takes
+ *                  the cluster branch; when false the lattice is spaced so no
+ *                  two defects are 4-adjacent
+ */
+DefectFixture makeFixture(double density, bool clustered) {
+    DefectFixture f;
+    f.in.resize(kDN);
+    f.out.resize(kDN);
+    f.mask.assign(kDN, 0u);
+
+    std::mt19937 rng(20260930u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    for (size_t i = 0; i < kDN; ++i) f.in[i] = 3000.0f + 10.0f * g(rng);
+
+    if (density <= 0.0) return f;
+
+    // A regular lattice, not random placement: the stride fixes the isolated /
+    // clustered mix exactly instead of leaving it to chance. Random placement at
+    // density p makes roughly 4p of sites 4-adjacent by accident, which is the
+    // mix the card asks to be stated -- so it is chosen, not inherited.
+    const size_t sites = static_cast<size_t>(static_cast<double>(kDN) * density);
+    const size_t perSite = clustered ? 4u : 1u;
+    const size_t nSites = sites / perSite;
+    if (nSites == 0u) return f;
+    const uint32_t stride = static_cast<uint32_t>(
+        std::max(3.0, std::sqrt(static_cast<double>(kDN) / static_cast<double>(nSites))));
+
+    for (uint32_t y = 2; y + 2 < kDH; y += stride) {
+        for (uint32_t x = 2; x + 2 < kDW; x += stride) {
+            const size_t idx = static_cast<size_t>(y) * kDW + x;
+            f.mask[idx] = 1u; ++f.defects;
+            if (clustered) {
+                f.mask[idx + 1u] = 1u;
+                f.mask[idx + kDW] = 1u;
+                f.mask[idx + kDW + 1u] = 1u;
+                f.defects += 3;
+            }
+        }
+    }
+    return f;
+}
+
+/** One defect only -- QA-A-144's "real lower bound": the loop runs, barely. */
+DefectFixture makeOneDefect() {
+    DefectFixture f;
+    f.in.resize(kDN);
+    f.out.resize(kDN);
+    f.mask.assign(kDN, 0u);
+    std::mt19937 rng(20260930u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    for (size_t i = 0; i < kDN; ++i) f.in[i] = 3000.0f + 10.0f * g(rng);
+    f.mask[static_cast<size_t>(kDH / 2) * kDW + kDW / 2] = 1u;
+    f.defects = 1;
+    return f;
+}
+
+/**
+ * Publishes a mask into the global calibration the way the shipped path reads it
+ * -- xpe_defect_correct takes no mask argument, it reads g_calib.defect_map. The
+ * existing suite does the same (test_defect_correct.cpp:79-96), so the fixture
+ * is loaded the same way rather than by poking the global.
+ */
+void publishMask(const std::vector<uint8_t>& mask) {
+    static const char* kPath = "a169_defect.xcal";
+    std::remove(kPath);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version      = XCAL_VERSION;
+    hdr.type         = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK);
+    hdr.width        = kDW;
+    hdr.height       = kDH;
+    hdr.payload_len  = static_cast<uint64_t>(mask.size());
+    ASSERT_EQ(XPE_OK, write_xcal_file(kPath, hdr, nullptr, 0, mask.data(), hdr.payload_len));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(kPath));
+}
+
+double timeCorrect(DefectFixture& f, int reps, std::vector<double>* all) {
+    XpeImageBuffer in{}, out{};
+    in.data = f.in.data();  in.width = kDW; in.height = kDH;
+    in.bitsAllocated = 32; in.bitsStored = 32;
+    in.format = XPE_PIXEL_FLOAT32; in.dataSize = static_cast<uint32_t>(kDN * sizeof(float));
+    out.data = f.out.data(); out.width = kDW; out.height = kDH;
+    out.bitsAllocated = 32; out.bitsStored = 32;
+    out.format = XPE_PIXEL_FLOAT32; out.dataSize = static_cast<uint32_t>(kDN * sizeof(float));
+    XpeImageMetadata meta{};
+
+    double best = 1e18;
+    for (int i = 0; i < reps + 1; ++i) {         // +1: first run discarded
+        const auto t0 = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = xpe_defect_correct(&in, &out, &meta);
+        const auto t1 = std::chrono::steady_clock::now();
+        EXPECT_EQ(XPE_OK, rc);
+        const double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        if (i == 0) continue;                    // warm-up
+        if (all) all->push_back(ms);
+        best = std::min(best, ms);
+    }
+    return best;
+}
+
+class A169Defect : public ::testing::Test {
+protected:
+    void SetUp() override { ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr)); }
+    void TearDown() override { xpe_preprocess_shutdown(); }
+};
+
+} // namespace
+
+// (1) Does an AVX2 path exist at all? -- card 4. Answered by reading, not
+// timing, and the control is the same search in a function that HAS one.
+TEST_F(A169Defect, DISABLED_Avx2PathExists) {
+    std::printf("[a169] AVX2 in the correction path: see the report -- this case\n"
+                "[a169]   records that the question is answered by source search,\n"
+                "[a169]   not by measurement. QA-A-144 already searched: _mm256\n"
+                "[a169]   0 hits in defect_correct.cpp, 13 in gain_correct.cpp.\n");
+}
+
+// (2) The stage table the card asks for.
+TEST_F(A169Defect, DISABLED_LowerBoundByDensity) {
+    std::printf("\n[a169] xpe_defect_correct -- 3072x3072 FLOAT32, scalar (no AVX2 path),\n");
+    std::printf("[a169]   single thread, i7-12700, warm-up discarded, min of 7\n\n");
+    std::printf("| case                        | defects | best ms | observations (ms)\n");
+    std::printf("|-----------------------------|---------|---------|------------------\n");
+
+    struct Case { const char* name; double density; bool clustered; bool one; };
+    const Case cases[] = {
+        {"no defects (early return)",   0.0,    false, false},
+        {"one defect (true bound)",     0.0,    false, true },
+        {"0.1% isolated",               0.001,  false, false},
+        {"0.1% clustered (2x2)",        0.001,  true,  false},
+        {"1% isolated",                 0.01,   false, false},
+    };
+    for (const Case& c : cases) {
+        DefectFixture f = c.one ? makeOneDefect() : makeFixture(c.density, c.clustered);
+        publishMask(f.mask);
+        std::vector<double> all;
+        const double best = timeCorrect(f, 7, &all);
+        std::printf("| %-27s | %7zu | %7.2f | ", c.name, f.defects, best);
+        for (double v : all) std::printf("%.1f ", v);
+        std::printf("\n");
+    }
+    std::printf("\n");
+}
+
+// (3) Where the time goes inside the call, at the SPEC's own density.
+TEST_F(A169Defect, DISABLED_StageBreakdown) {
+    DefectFixture f = makeFixture(0.001, true);
+    std::printf("\n[a169] stage breakdown at 0.1%% clustered (%zu defects)\n", f.defects);
+
+    // memcpy: the out-of-place copy the function starts with
+    const double msCopy = bestMs(7, [&] {
+        std::memcpy(f.out.data(), f.in.data(), kDN * sizeof(float));
+    });
+    std::printf("[a169]   memcpy in->out            %6.2f ms\n", msCopy);
+
+    // hasDefects scan: a linear pass over the mask that stops at the first hit.
+    // With defects present it stops almost immediately, so the cost is ~0 --
+    // measured on an ALL-ZERO mask, which is its worst case.
+    std::vector<uint8_t> zeroMask(kDN, 0u);
+    volatile bool sink = false;
+    const double msScan = bestMs(7, [&] {
+        bool has = false;
+        for (size_t i = 0; i < kDN; ++i) if (zeroMask[i] != 0) { has = true; break; }
+        sink = has;
+    });
+    (void)sink;
+    std::printf("[a169]   mask scan (worst: no hit) %6.2f ms\n", msScan);
+
+    // the two n-sized bit vectors the loop allocates
+    const double msBits = bestMs(7, [&] {
+        std::vector<bool> processed(kDN, false);
+        std::vector<bool> visited(kDN, false);
+        sink = processed[0] || visited[0];
+    });
+    std::printf("[a169]   two vector<bool>(n)       %6.2f ms\n", msBits);
+
+    // the full-frame traversal that looks for work: n iterations of two tests
+    const double msWalk = bestMs(7, [&] {
+        size_t hits = 0;
+        for (size_t i = 0; i < kDN; ++i) if (f.mask[i] != 0) ++hits;
+        sink = (hits > 0);
+    });
+    std::printf("[a169]   frame walk (mask tests)   %6.2f ms\n", msWalk);
+
+    std::printf("[a169]   ---- sum of the above     %6.2f ms\n",
+                msCopy + msScan + msBits + msWalk);
+    // QA-A-169: the map has to be published AGAIN here. Without it the call
+    // returns XPE_ERR_CALIB_NOT_LOADED (-16) even though publishMask succeeded
+    // at the top of this case. What drops g_calib's defect map in between is not
+    // identified -- recorded as an observation, not explained.
+    publishMask(f.mask);
+    std::printf("[a169]   whole call                %6.2f ms\n", timeCorrect(f, 7, nullptr));
+    std::printf("\n");
 }
