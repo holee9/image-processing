@@ -218,17 +218,23 @@ private:
 // Inline Implementations
 // =============================================================================
 
-// Note: Destructor implemented in .cpp to avoid incomplete type warning.
+// THE RULE, IN FULL (QA-B-161, QA-B-164, #130, #226):
 //
-// QA-B-161 (#130): move-ASSIGNMENT is in the .cpp for the same reason and it
-// is not cosmetic. It deletes pimpl_, and `Impl` is incomplete here, so MSVC
-// raised C4150 -- "no destructor called". That is a real leak of everything
-// Impl owns (in a full build, the ONNX session and env), not a style note.
+//   Anything that `delete pimpl_` must be (a) in the .cpp, AND
+//   (b) BELOW the definition of struct Impl.
 //
-// It went unseen because modules/ai/CMakeLists.txt compiles the product with
-// /wd4150, so only a target without that suppression could see it. The first
-// such target was this card's tests. The suppression is left in place and is
-// NOT the fix -- moving the definition is.
+// So the destructor and the move-ASSIGNMENT are both defined in the .cpp, and
+// both below the struct. This is not a style choice: deleting a pointer to an
+// incomplete type emits no call to ~Impl(), which in a full build leaks the
+// ONNX session and env. MSVC names it C4150, "no destructor called".
+//
+// Half of that rule is what kept a real defect alive. The note here used to
+// read only "implemented in .cpp to avoid incomplete type warning" -- and the
+// destructor, which obeyed it, was still wrong because it sat ABOVE the
+// struct. The product hid the warning with /wd4150 until QA-B-161's test
+// target, which had no suppression, surfaced it; #226 (QA-B-164) then removed
+// the suppression from both product targets after measuring 0 remaining
+// occurrences, so the next one is visible rather than silent.
 //
 // The move CONSTRUCTOR stays inline: it only takes the pointer, never deletes,
 // so an incomplete type is fine there.

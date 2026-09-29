@@ -217,7 +217,22 @@ target_link_libraries(${MODULE_NAME}
 target_compile_features(${MODULE_NAME} PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(${MODULE_NAME} PRIVATE /W4 /wd4996 /wd4150)  # Disable unsafe function and incomplete type warnings
+    # #226 (QA-B-164): /wd4150 REMOVED -- it is not needed and it was hiding a
+    # real defect. C4150 is "deletion of pointer to incomplete type; no
+    # destructor called", i.e. a leak of everything the hidden type owns.
+    # QA-B-161 found one behind this flag (OnnxSession's destructor sat ABOVE
+    # struct Impl, so the ONNX session and env were never released in a full
+    # build) and it only surfaced because the TEST target has no suppression.
+    #
+    # Measured before removing it: with /wd4150 gone, C4150 count is 0 in all
+    # four combinations (xpe_ai and xpe_ai_worker, stub and full). A positive
+    # control -- a deliberate `delete` of an incomplete type -- did produce
+    # exactly one C4150 in both configs, so the 0 is a measurement and not a
+    # build that quietly did nothing.
+    #
+    # /wd4996 stays: that is the deprecated-function warning, a different
+    # question, and not this card's.
+    target_compile_options(${MODULE_NAME} PRIVATE /W4 /wd4996)
 else()
     target_compile_options(${MODULE_NAME} PRIVATE
         -Wall -Wextra -Wpedantic
@@ -278,7 +293,10 @@ if(TARGET spdlog::spdlog)
 endif()
 
 if(MSVC)
-    target_compile_options(${WORKER_NAME} PRIVATE /W4 /wd4996 /wd4150)
+    # #226 (QA-B-164): /wd4150 removed here too -- 0 occurrences, measured.
+    # This target compiles one file (src/ai_worker_main.cpp) and has no PIMPL,
+    # which the issue flagged as unverified; checked, and it has none.
+    target_compile_options(${WORKER_NAME} PRIVATE /W4 /wd4996)
 else()
     target_compile_options(${WORKER_NAME} PRIVATE
         -Wall -Wextra -Wpedantic
