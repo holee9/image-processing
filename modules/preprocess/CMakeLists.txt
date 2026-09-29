@@ -442,6 +442,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_generate_offset_config.cpp
         # QA-A-40 (#120 #112): REQ-P1A-013 TPR/FPR quantitative harness
         tests/test_zz_a161_probe.cpp         # QA-A-161 (#143 #148) measurement probe
+        tests/test_zz_a166_bounds.cpp        # QA-A-166 (#143) lower-bound probe
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
