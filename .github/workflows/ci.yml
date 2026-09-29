@@ -334,9 +334,19 @@ jobs:
       # construction and a renamed test binary cannot silently drop out of the list.
       # (This also retires the earlier double-listing hazard the one-glob rule worked
       # around — `Sort-Object -Unique` on the path is what dedupes now.)
+      # `working-directory: modules/gsvg` was removed 2026-09-30 (#229). It was
+      # holding up 13 cwd-dependent test paths in gsvg -- not by design, by
+      # accident: the step skips the ctest layer on purpose (to see order
+      # dependence), and skipping ctest also removes the WORKING_DIRECTORY it
+      # would have set. gsvg happened to be the one directory where those
+      # relative paths resolved; modules/ai's did not, which is how #130 found
+      # the class. QA-B-162 and QA-B-163 pinned every path with a compile-time
+      # macro guarded by #error, so no binary here reads a relative path now.
+      # Checked before removing: enhance_basic, enhance_advanced and display
+      # have zero relative data paths in their tests, so the line held up gsvg
+      # alone.
       - name: Run post test binaries as one process each (#162)
         shell: pwsh
-        working-directory: modules/gsvg
         run: |
           $binDir = Join-Path $env:GITHUB_WORKSPACE 'build/ci-post/bin'
           $reg = ctest --test-dir "$env:GITHUB_WORKSPACE/build/ci-post" --build-config RelWithDebInfo --show-only=json-v1 | Out-String | ConvertFrom-Json
