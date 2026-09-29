@@ -1,0 +1,47 @@
+GUI-C-153 / #225 row 4 — measured output (verbatim)
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] DisabledFutureCommandCount — app actually run, same args both sides
+    command: ImageProcTest.exe --automation-raw fixtures/gui-s0/raw/synthetic_1024x1024.raw \
+             --automation-report <path> --automation-backend Mock --automation-width 1024 --automation-height 1024
+    BEFORE (HEAD files rebuilt) DisabledFutureCommandCount=21  Passed=True  BackendMode=Mock
+    AFTER  (my change)         DisabledFutureCommandCount=20  Passed=True  BackendMode=Mock
+    -> exactly one fewer.
+
+[2] who asserts that count
+    gui/ImageProcTest/MainWindow.xaml.cs:306:            report.DisabledFutureCommandCount = new[]
+    gui/ImageProcTest/MainWindow.xaml.cs:426:                report.DisabledFutureCommandCount >= 10 &&
+    gui/ImageProcTest/Models/GuiAutomationReport.cs:130:    public int DisabledFutureCommandCount { get; set; }
+    -> the only gate is >= 10 (MainWindow.xaml.cs:426); no test asserts an exact value.
+
+[3] E2E, Native backend
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [785 ms]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03_BackendMenu_DrivesTheBackendAndTheAppFollows [3 s]
+     W-03 launched mode: Native
+     W-03 after Mock: banner='MOCK BACKEND — images and results are synthetic; not for clinical judgement.' runtime='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+     W-03 elapsed 3115 ms (Native)
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W09_ExportAutomationReport_WritesAReportFileAndNamesIt [480 ms]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [2 s]
+     W-03b after Native: runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=bin'
+     W-03b elapsed 2442 ms (Native)
+         통과: 4
+
+[4] E2E, Mock backend
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [563 ms]
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03_BackendMenu_DrivesTheBackendAndTheAppFollows [2 s]
+     W-03 launched mode: Mock
+     W-03 after Mock: banner='MOCK BACKEND — images and results are synthetic; not for clinical judgement.' runtime='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+     W-03 elapsed 2920 ms (Mock)
+      통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W09_ExportAutomationReport_WritesAReportFileAndNamesIt [469 ms]
+      건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [3 ms]
+         통과: 3
+        건너뜀: 1
+
+[5] builds
+    gui/ImageProcTest:            오류0개
+    clients/ImageProcTest.E2ETests: 오류0개
+
+[6] files changed
+     M clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkflowMenuScenarios.cs
+     M gui/ImageProcTest/MainWindow.xaml
+     M gui/ImageProcTest/ViewModels/MainWindowViewModel.cs

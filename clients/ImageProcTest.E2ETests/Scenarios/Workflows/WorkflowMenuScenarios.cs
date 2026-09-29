@@ -1,9 +1,10 @@
-// XPE-GUI-E2E-001 §4.2 (GUI-C-43): the menu-driven rows of the workflow table.
+﻿// XPE-GUI-E2E-001 §4.2 (GUI-C-43): the menu-driven rows of the workflow table.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
+using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
@@ -18,71 +19,144 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// is branched on <see cref="ApplicationFixture.BackendMode"/> rather than skipped: a skip counts as
 /// a pass in the totals while measuring nothing, which is how GUI-C-37 nearly reported an
 /// unexercised preprocess path as working.
+///
+/// <para><b>One exception, added with its reason (#225, GUI-C-153).</b> W-03b skips under Mock. That is
+/// not a value differing by backend — under Mock the native DLLs are absent, so "switch back to Native"
+/// has nothing to switch to and the observation cannot be made at all. The alternative was to weaken the
+/// assertion until both configurations passed, which would make a working switch and a missing DLL the
+/// same green. W-03 itself still runs in both.</para>
 /// </summary>
 [Collection(WorkflowApplicationCollection.Name)]
 public sealed class WorkflowMenuScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
 {
     /// <summary>
-    /// W-03 (narrowed): the backend the run was launched with is the one the menu reports, and the
-    /// Native switch is inert.
+    /// W-03 (rewritten, #225 GUI-C-153 row 4): the Backend &gt; Mode menu is a LIVE switch, and driving
+    /// it changes what the app runs on.
     ///
-    /// The plan says "Backend→Backend Mode→Mock↔Real" and expects a runtime toggle. Measured:
-    /// <c>NativeBackendModeMenuItem</c> carries <c>IsEnabled="False"</c> in MainWindow.xaml, so there
-    /// is no toggle to drive — the mode is chosen at launch (<c>--automation-backend</c>, GUI-C-26)
-    /// and cannot be changed from the menu.
+    /// <para><b>Why this replaces the old assertion.</b> W-03 used to assert
+    /// <c>NativeBackendModeMenuItem.IsEnabled == false</c> and said, in its own words, that when that
+    /// started failing the scenario "must drive it and verify the runtime panel follows, rather than
+    /// asserting the item is inert". The switch became live; this is that rewrite, not a relaxation.</para>
     ///
-    /// That inertness is the thing worth guarding. If the item is ever enabled without the
-    /// underlying switch working, a user would select Native and get Mock silently — the same class
-    /// of defect GUI-C-31 measured on the command line.
+    /// <para><b>What is asserted is a RESULT, not a setting.</b> Reading back
+    /// <c>AppSettings.BackendMode</c> would pass even if nothing were re-initialised. Instead this drives
+    /// the menu to Mock and requires two independent surfaces to follow: the red MOCK BACKEND banner
+    /// (bound to <c>IsMockBackend</c>, i.e. the backend OBJECT, not the request) and the status bar's
+    /// <c>mode=</c> text. A request that fell back, or never re-initialised, moves neither.</para>
+    ///
+    /// <para><b>Runs in both backends.</b> Driving toward Mock is deterministic everywhere: the mock
+    /// backend cannot fail to load. The reverse direction — Mock back to Native — can only be observed
+    /// where the native DLLs exist, so it is a separate case (<see cref="W03b_SwitchingBackToNative_RestoresTheNativeBackend"/>)
+    /// rather than an assertion weakened until both configurations pass.</para>
     /// </summary>
     [SkippableFact]
-    public void W03_BackendMenu_ReportsTheLaunchedModeAndOffersNoLiveSwitch()
+    public void W03_BackendMenu_DrivesTheBackendAndTheAppFollows()
     {
         Measure("W-03", window =>
         {
-            var backendMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("BackendMenu"));
-            Assert.True(backendMenu is not null, "BackendMenu was not found.");
+            var launched = app.BackendMode;
+            output.WriteLine($"W-03 launched mode: {launched}");
 
-            backendMenu!.AsMenuItem().Expand();
-            try
-            {
-                var modeItem = WaitFor(() =>
-                    backendMenu.FindFirstDescendant(cf => cf.ByAutomationId("BackendModeMenuItem"))
-                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("BackendModeMenuItem")));
-                Assert.True(modeItem is not null, "BackendModeMenuItem was not found.");
+            var native = FindModeItem(window, "NativeBackendModeMenuItem");
+            Assert.True(
+                native.IsEnabled,
+                "NativeBackendModeMenuItem is disabled. Row 4 of #225 enabled it together with the " +
+                "command behind it; if it is inert again the command was removed and this scenario " +
+                "should fail rather than be rewritten back.");
+            CloseBackendMenu(window);
 
-                modeItem!.AsMenuItem().Expand();
+            // Drive to Mock and require the app — not the setting — to follow.
+            InvokeModeItem(window, "MockBackendModeMenuItem");
+            var bannerAfterMock = WaitFor(() => MockBannerText(window));
+            var runtimeAfterMock = RuntimeText(window);
+            output.WriteLine($"W-03 after Mock: banner='{bannerAfterMock}' runtime='{runtimeAfterMock}'");
 
-                var mock = WaitFor(() =>
-                    modeItem.FindFirstDescendant(cf => cf.ByAutomationId("MockBackendModeMenuItem"))
-                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("MockBackendModeMenuItem")));
-                var native = WaitFor(() =>
-                    modeItem.FindFirstDescendant(cf => cf.ByAutomationId("NativeBackendModeMenuItem"))
-                    ?? window.FindFirstDescendant(cf => cf.ByAutomationId("NativeBackendModeMenuItem")));
+            Assert.True(
+                bannerAfterMock is not null,
+                "The MOCK BACKEND banner did not appear after selecting Mock. The banner is bound to " +
+                "IsMockBackend — the backend object — so its absence means the backend was not replaced.");
+            Assert.Contains("mode=Mock", runtimeAfterMock, StringComparison.OrdinalIgnoreCase);
 
-                Assert.True(mock is not null, "MockBackendModeMenuItem was not found.");
-                Assert.True(native is not null, "NativeBackendModeMenuItem was not found.");
-
-                // The measured contract: no live switch exists. When this starts failing, the switch
-                // became live and W-03 must be rewritten to actually drive it — not relaxed.
-                Assert.False(
-                    native!.IsEnabled,
-                    "NativeBackendModeMenuItem is enabled. The plan's runtime Mock<->Real toggle was " +
-                    "never implemented; if it now is, this scenario must drive it and verify the " +
-                    "runtime panel follows, rather than asserting the item is inert.");
-            }
-            finally
-            {
-                try { backendMenu.AsMenuItem().Collapse(); } catch (Exception) { /* already closed */ }
-            }
-
-            // The launched mode is what the status bar reports — asserted in BOTH modes rather than
-            // skipping one, so a Mock run and a Native run each prove they exercised what they claim.
-            var runtime = window.FindFirstDescendant(cf => cf.ByAutomationId("RuntimeCommonVersionText"));
-            Assert.True(runtime is not null, "RuntimeCommonVersionText was not found.");
-            Assert.Contains(
-                $"mode={app.BackendMode}", runtime!.Name ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            // Leave the fixture on the mode it was launched with; the collection is shared.
+            InvokeModeItem(window, launched == "Native" ? "NativeBackendModeMenuItem" : "MockBackendModeMenuItem");
         });
+    }
+
+    /// <summary>
+    /// W-03b: switching back to Native actually returns to the native backend.
+    ///
+    /// <para>Native only, and for a structural reason rather than convenience: a run launched with the
+    /// mock backend has no native DLLs on the search path, so <c>XpeBackendFactory</c> falls back and
+    /// the observation cannot exist. Loosening the assertion so it passed there would make "the switch
+    /// works" and "the DLLs are missing" the same green.</para>
+    /// </summary>
+    [SkippableFact]
+    public void W03b_SwitchingBackToNative_RestoresTheNativeBackend()
+    {
+        Skip.If(app.BackendMode != "Native",
+            "The Mock backend has no native DLLs to switch back to; the round trip cannot be observed there.");
+
+        Measure("W-03b", window =>
+        {
+            InvokeModeItem(window, "MockBackendModeMenuItem");
+            Assert.True(WaitFor(() => MockBannerText(window)) is not null, "Mock did not take effect.");
+
+            InvokeModeItem(window, "NativeBackendModeMenuItem");
+            var runtime = WaitFor(() =>
+            {
+                var text = RuntimeText(window);
+                return text.Contains("mode=Native", StringComparison.OrdinalIgnoreCase) ? text : null;
+            });
+            output.WriteLine($"W-03b after Native: runtime='{runtime}'");
+
+            Assert.True(runtime is not null, "The status bar never reported mode=Native after switching back.");
+            Assert.True(
+                MockBannerText(window) is null,
+                "The MOCK BACKEND banner is still shown after switching back to Native — the request was " +
+                "accepted but the factory fell back.");
+        });
+    }
+
+    /// <summary>Opens Backend &gt; Backend Mode and returns the named child item.</summary>
+    private static AutomationElement FindModeItem(Window window, string automationId)
+    {
+        var backendMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("BackendMenu"));
+        Assert.True(backendMenu is not null, "BackendMenu was not found.");
+        backendMenu!.AsMenuItem().Expand();
+
+        var modeItem = WaitFor(() =>
+            backendMenu.FindFirstDescendant(cf => cf.ByAutomationId("BackendModeMenuItem"))
+            ?? window.FindFirstDescendant(cf => cf.ByAutomationId("BackendModeMenuItem")));
+        Assert.True(modeItem is not null, "BackendModeMenuItem was not found.");
+        modeItem!.AsMenuItem().Expand();
+
+        var item = WaitFor(() =>
+            modeItem.FindFirstDescendant(cf => cf.ByAutomationId(automationId))
+            ?? window.FindFirstDescendant(cf => cf.ByAutomationId(automationId)));
+        Assert.True(item is not null, $"{automationId} was not found.");
+        return item!;
+    }
+
+    private static void InvokeModeItem(Window window, string automationId)
+    {
+        var item = FindModeItem(window, automationId);
+        item.AsMenuItem().Invoke();
+        Thread.Sleep(400);
+        CloseBackendMenu(window);
+    }
+
+    private static void CloseBackendMenu(Window window)
+    {
+        var backendMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("BackendMenu"));
+        try { backendMenu?.AsMenuItem().Collapse(); } catch (Exception) { /* already closed */ }
+        Thread.Sleep(120);
+    }
+
+    private static string RuntimeText(Window window)
+    {
+        var runtime = window.FindFirstDescendant(cf => cf.ByAutomationId("RuntimeCommonVersionText"));
+        Assert.True(runtime is not null, "RuntimeCommonVersionText was not found.");
+        return runtime!.Name ?? string.Empty;
     }
 
     /// <summary>
