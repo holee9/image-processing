@@ -543,6 +543,61 @@ jobs:
           retention-days: 14
           path: build/dotnet-test-results/
 
+  # GUI shell contract runners (#227).
+  #
+  # WHY THIS JOB EXISTS. `gui/ImageProcTest.E2E` and `gui/ImageProcTest.SelfCheck`
+  # are built by the solution but were executed by NO workflow. #228 is what that
+  # costs: the E2E runner asserted a constant window title, HAZ-GUI-005 (#175)
+  # made the title dynamic so an operator cannot miss a mock backend, and the
+  # runner sat broken for TWELVE DAYS because nothing ran it. Two more of its
+  # assertions had gone stale the same way (menu items #225 enabled, a panel
+  # toggle #165 removed) and were only found once the first one was fixed.
+  #
+  # WHY IT IS NOT REDUNDANT. Measured before adding: these runners assert the
+  # XAML shell contract -- six canonical top-level menu groups, command bindings
+  # present, specific items still disabled -- and no suite that CI runs asserts
+  # any of it. `gui-automation` produces DisabledFutureCommandCount but nothing
+  # asserts it; the clients E2E suite drives the app through UIA and checks
+  # behaviour, not shell structure.
+  #
+  # Both runners resolve paths by walking up to the repository root, so they run
+  # only where a checkout exists -- which is true here and is exactly why they
+  # are a CI job rather than a shipped operator feature.
+  gui-shell-runners:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build operator app and runners
+        shell: pwsh
+        run: |
+          dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+          dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug
+          dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug
+
+      # SelfCheck first: the E2E runner shells out to it, so a SelfCheck failure
+      # would otherwise surface as an E2E failure with the wrong cause attached.
+      - name: Run SelfCheck
+        shell: pwsh
+        run: dotnet run --project gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug --no-build
+
+      # Creates its own MainWindow in-process (Program.cs:16-74) rather than
+      # searching the desktop, so it needs no interactive session and cannot
+      # attach to a stray window.
+      - name: Run GUI shell E2E
+        shell: pwsh
+        run: dotnet run --project gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-build
+
   gui-automation:
     # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
     # runner. GUI-C-25 (#136) showed a hidden-window non-interactive run works
