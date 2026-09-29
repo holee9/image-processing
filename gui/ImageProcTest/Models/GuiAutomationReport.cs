@@ -159,6 +159,12 @@ public sealed class GuiAutomationReport
     /// <summary>The status line it produced, so a failure says why rather than only that.</summary>
     public string? SelfCheckStatus { get; set; }
 
+    /// <summary>#225 row 16 (GUI-C-159): verdict of the GUI E2E runner the Tools menu launched.</summary>
+    public bool? GuiE2EPassed { get; set; }
+
+    /// <summary>#225 row 16: the status line the app showed after that run.</summary>
+    public string? GuiE2EStatus { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }
