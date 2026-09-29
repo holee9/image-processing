@@ -372,6 +372,22 @@ if(_XPE_AI_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp
         )
 
+        # #130 (QA-B-162): the test data directory is baked in at COMPILE time.
+        #
+        # It used to be the relative "tests/data/...", which resolves only when
+        # the cwd is modules/ai -- i.e. only under ctest, which sets
+        # WORKING_DIRECTORY. main went red because the #162 single-process step
+        # runs every binary with `working-directory: modules/gsvg` (gsvg's own
+        # tests carry the same relative-path habit, which is why that cwd is
+        # what it is). Running xpe_ai_tests.exe from the repository ROOT failed
+        # too, so this was never about gsvg: a cwd-dependent test breaks under
+        # any harness that does not happen to pick the one directory it wants.
+        #
+        # Baked in rather than passed as an argument: nothing in the harness has
+        # to know, and there is no cwd left to get wrong.
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+
         # The tests compile that file themselves, so they need the SAME build
         # mode the product got -- otherwise the stub/full arms diverge between
         # xpe_ai.dll and xpe_ai_tests and each would be testing the other's
