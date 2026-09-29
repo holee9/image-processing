@@ -7,6 +7,7 @@ using System.Windows.Data;
 using ImageProcTest.Controls;
 using ImageProcTest.Models;
 using ImageProcTest.Services;
+using ImageProcTest.Services.Native;
 using DataBinding = System.Windows.Data.Binding;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using FormsDialogResult = System.Windows.Forms.DialogResult;
@@ -64,6 +65,11 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _verdictNotes = string.Empty;
     private bool _roiActive;
     private bool _histogramActive;
+    private bool? _pInvokeSmokeTestPassed;
+    private string? _pInvokeSmokeTestDetail;
+    private CancellationTokenSource? _renderCancellation;
+    private int _stoppedRenderCount;
+    private string? _lastStageTimingReport;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -115,6 +121,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         SetBackendModeCommand = new RelayCommand<string>(SetBackendMode);
+        RunPInvokeSmokeTestCommand = new RelayCommand(RunPInvokeSmokeTest);
+        StopProcessingCommand = new RelayCommand(StopProcessing);
+        ShowStageTimingCommand = new RelayCommand(ShowStageTiming);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -341,6 +350,52 @@ public sealed class MainWindowViewModel : ObservableObject
     /// check marks follow the ACTUAL mode for that reason.</para>
     /// </summary>
     public RelayCommand<string> SetBackendModeCommand { get; }
+
+    /// <summary>
+    /// Calls three native entry points directly and reports whether they answered (#225, GUI-C-153/154,
+    /// table row 6).
+    ///
+    /// <para><b>It goes around the backend deliberately.</b> Every other native path in this app runs
+    /// through <see cref="IXpeBackend"/>, which falls back to the mock when the DLLs will not load — a
+    /// smoke test built on that abstraction would report success while nothing native ran, which is the
+    /// failure this command exists to make impossible. These probes are <c>DllImport</c> calls into
+    /// <c>xpe_common.dll</c> and <c>xpe_display.dll</c>; when the libraries are absent the runtime throws
+    /// and the command says FAILED.</para>
+    ///
+    /// <para><b>It can be red</b>, and that was checked rather than assumed: GUI-C-154 ran it with
+    /// <c>XPE_NATIVE_DIR</c> pointed at an empty directory and <c>XPE_NATIVE_DIR_EXCLUSIVE=1</c> — the
+    /// pin the shared search policy honours (#129, and GUI-C-31 measured what happens without it) — and
+    /// the report carried the failure. A smoke test that cannot go red is not a smoke test.</para>
+    /// </summary>
+    public RelayCommand RunPInvokeSmokeTestCommand { get; }
+
+    /// <summary>
+    /// Stops the render in flight (#225, GUI-C-154, table row 11).
+    ///
+    /// <para><b>What it actually does, stated rather than implied.</b> The work it stops is the
+    /// background task in <see cref="ApplyDisplayPipelineAsync"/> — the chain plus the display pipeline,
+    /// 2.3-2.5 s on the wrist slice (GUI-C-153 measured it). The native calls inside that task are
+    /// synchronous and are NOT interrupted: what cancelling does is discard their result instead of
+    /// applying it, so the viewport and the status keep describing the frame that is actually shown.
+    /// Claiming it aborts native work would be the kind of promise #208 spent two cards removing.</para>
+    ///
+    /// <para><b>Pressed with nothing running it says so.</b> A command that silently does nothing is the
+    /// #165 shape — enabled, and no way to tell whether it worked. The no-op path writes a status line.</para>
+    /// </summary>
+    public RelayCommand StopProcessingCommand { get; }
+
+    /// <summary>
+    /// Shows the timings the last render already reported (#225, GUI-C-154, table row 12).
+    ///
+    /// <para><b>It re-measures nothing.</b> The numbers come from <see cref="PipelineTimings"/> and
+    /// <see cref="ChainStatus"/>, which the render itself wrote. Timing the work again from this command
+    /// would produce a second set of numbers that disagrees with the status bar for reasons no reader
+    /// could resolve — #201 named that shape: an instrument that fires its own action cannot attribute.</para>
+    ///
+    /// <para><b>Before any render it says so</b> rather than showing an empty line, because "no timings
+    /// yet" and "the render reported nothing" are different states.</para>
+    /// </summary>
+    public RelayCommand ShowStageTimingCommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -969,6 +1024,195 @@ public sealed class MainWindowViewModel : ObservableObject
         InitializeBackend();
     }
 
+    /// <summary>
+    /// Runs the row-6 probes. Each is caught on its own so one missing library does not hide the state
+    /// of the others, and the outcome of every probe is written to the log rather than summarised away.
+    /// </summary>
+    private void RunPInvokeSmokeTest()
+    {
+        var outcomes = new List<string>();
+        var failed = 0;
+
+        // Probe 1: allocate and release a buffer through xpe_common. Chosen because it both crosses the
+        // ABI and returns something checkable — a code AND a non-null pointer.
+        try
+        {
+            var code = XpeCommonNative.xpe_alloc_image(16, 16, XpePixelFormatNative.UInt16, out var buffer);
+            if (code != 0)
+            {
+                failed++;
+                outcomes.Add($"xpe_alloc_image -> code {code} (expected 0)");
+            }
+            else if (buffer.Data == IntPtr.Zero)
+            {
+                failed++;
+                outcomes.Add("xpe_alloc_image -> code 0 but a null data pointer");
+                XpeCommonNative.xpe_free_image(ref buffer);
+            }
+            else
+            {
+                var freeCode = XpeCommonNative.xpe_free_image(ref buffer);
+                if (freeCode != 0)
+                {
+                    failed++;
+                    outcomes.Add($"xpe_free_image -> code {freeCode} (expected 0)");
+                }
+                else
+                {
+                    outcomes.Add("xpe_alloc_image/xpe_free_image -> ok");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            failed++;
+            outcomes.Add($"xpe_alloc_image threw {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // Probe 2: the display library answers with a version string, and it is not the mock's.
+        try
+        {
+            var version = XpeDisplayNative.GetVersion();
+            if (string.IsNullOrWhiteSpace(version) || version == "unknown")
+            {
+                failed++;
+                outcomes.Add($"xpe_display_version -> '{version}'");
+            }
+            else
+            {
+                outcomes.Add($"xpe_display_version -> '{version}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            failed++;
+            outcomes.Add($"xpe_display_version threw {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // Probe 3: the alert queue answers. A negative count would mean the call crossed but the
+        // contract did not hold, which is a different failure from the library being absent.
+        try
+        {
+            var count = XpeCommonNative.xpe_get_pending_alert_count();
+            if (count < 0)
+            {
+                failed++;
+                outcomes.Add($"xpe_get_pending_alert_count -> {count} (expected >= 0)");
+            }
+            else
+            {
+                outcomes.Add($"xpe_get_pending_alert_count -> {count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            failed++;
+            outcomes.Add($"xpe_get_pending_alert_count threw {ex.GetType().Name}: {ex.Message}");
+        }
+
+        var total = outcomes.Count;
+        PInvokeSmokeTestPassed = failed == 0;
+        PInvokeSmokeTestDetail = string.Join("; ", outcomes);
+        StatusText = failed == 0
+            ? $"P/Invoke smoke: {total} of {total} probes answered."
+            : $"P/Invoke smoke FAILED: {failed} of {total} probes did not answer.";
+
+        Log($"P/Invoke smoke ({(failed == 0 ? "PASS" : "FAIL")}): {string.Join("; ", outcomes)}");
+    }
+
+    /// <summary>
+    /// Whether the last <see cref="RunPInvokeSmokeTestCommand"/> run passed; null before it has run.
+    /// Exposed so the automation report and the E2E scenarios read the SAME value the user sees rather
+    /// than re-deriving it.
+    /// </summary>
+    public bool? PInvokeSmokeTestPassed
+    {
+        get => _pInvokeSmokeTestPassed;
+        private set => SetProperty(ref _pInvokeSmokeTestPassed, value);
+    }
+
+    /// <summary>
+    /// Per-probe outcomes of the last smoke run, in the order they ran; null before it has run.
+    ///
+    /// <para>Carried alongside the boolean because a bare <c>false</c> makes the next reader re-run the
+    /// thing to learn which probe failed — and the run that produced the false may not be reproducible
+    /// (it was launched with a pinned, empty native directory).</para>
+    /// </summary>
+    public string? PInvokeSmokeTestDetail
+    {
+        get => _pInvokeSmokeTestDetail;
+        private set => SetProperty(ref _pInvokeSmokeTestDetail, value);
+    }
+
+    /// <summary>
+    /// Cancels the render in flight, or reports that there is none.
+    /// </summary>
+    private void StopProcessing()
+    {
+        var cancellation = _renderCancellation;
+        if (cancellation is null || cancellation.IsCancellationRequested)
+        {
+            StatusText = "Stop: no render is in flight.";
+            Log("Stop processing: nothing was running.");
+            return;
+        }
+
+        cancellation.Cancel();
+        StatusText = "Stop requested; the render in flight will be discarded.";
+        Log("Stop processing: cancellation requested for the render in flight.");
+    }
+
+    /// <summary>
+    /// How many renders have been discarded by <see cref="StopProcessingCommand"/> in this session.
+    /// Read by the automation report so "it stopped" is a number rather than a claim.
+    /// </summary>
+    public int StoppedRenderCount
+    {
+        get => _stoppedRenderCount;
+        private set => SetProperty(ref _stoppedRenderCount, value);
+    }
+
+    /// <summary>
+    /// Surfaces the last render's own timing strings.
+    /// </summary>
+    private void ShowStageTiming()
+    {
+        var haveStage = !string.IsNullOrWhiteSpace(ChainStatus);
+        var haveTotals = !string.IsNullOrWhiteSpace(PipelineTimings);
+
+        if (!haveStage && !haveTotals)
+        {
+            StatusText = "Stage timing: no render has run yet.";
+            Log("Stage timing: nothing to show — no render has run in this session.");
+            return;
+        }
+
+        var parts = new List<string>();
+        if (haveTotals)
+        {
+            parts.Add(PipelineTimings);
+        }
+
+        if (haveStage)
+        {
+            parts.Add(ChainStatus);
+        }
+
+        LastStageTimingReport = string.Join(" || ", parts);
+        StatusText = $"Stage timing: {LastStageTimingReport}";
+        Log($"Stage timing (from the last render, not re-measured): {LastStageTimingReport}");
+    }
+
+    /// <summary>
+    /// What <see cref="ShowStageTimingCommand"/> last reported; null before it has run. Recorded so a
+    /// test can compare it against the status bar's own values rather than re-deriving them.
+    /// </summary>
+    public string? LastStageTimingReport
+    {
+        get => _lastStageTimingReport;
+        private set => SetProperty(ref _lastStageTimingReport, value);
+    }
+
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand
     private void InitializeBackend()
     {
@@ -1278,6 +1522,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        CancellationTokenSource? cancellationMarker = null;
         StatusText = "Applying display pipeline...";
         Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}, calibrationEval=[{CalibrationEvaluationSummary}].");
 
@@ -1290,6 +1535,17 @@ public sealed class MainWindowViewModel : ObservableObject
             // share. Neither covers the render itself — that is measured from outside, by the E2E.
             var total = System.Diagnostics.Stopwatch.StartNew();
             var work = System.Diagnostics.Stopwatch.StartNew();
+            // #225 (GUI-C-154, row 11): one cancellation source per render, replaced rather than
+            // reused so a stop can only ever affect the render it was pressed during.
+            var cancellation = new CancellationTokenSource();
+            _renderCancellation?.Dispose();
+            _renderCancellation = cancellation;
+            cancellationMarker = cancellation;
+            // Measured (GUI-C-154): without clearing this when the render ENDS, Stop answered
+            // "the render in flight will be discarded" on a render that had finished seconds earlier —
+            // the source stayed non-null, so the no-op path never ran. The marker is cleared in the
+            // finally below, and only when it is still this render's own source.
+
             // #180 (GUI-C-99): the chain runs first, on the same snapshot as the display (#171 ②), and the
             // display starts from the chain's last result — the raw frame only when no stage produced pixels.
             var (chain, processedFrame) = await Task.Run(() =>
@@ -1298,6 +1554,20 @@ public sealed class MainWindowViewModel : ObservableObject
                 return (chainResult, _backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
+
+            // The native calls above are synchronous and ran to completion; what cancellation decides is
+            // whether their result is APPLIED. Discarding it here keeps the viewport and the status
+            // describing the frame that is actually on screen.
+            if (cancellation.IsCancellationRequested)
+            {
+                StoppedRenderCount++;
+                PreviewStaleReason = StalePipelineFailed;
+                StatusText = $"Render stopped; the result was discarded after {workMs:0} ms of work.";
+                Log($"Display pipeline stopped by the user after {workMs:0} ms; result discarded.");
+                DrainBackendTelemetry();
+                return;
+            }
+
             DrainBackendTelemetry();
             ReportChain(chain);
 
@@ -1333,6 +1603,13 @@ public sealed class MainWindowViewModel : ObservableObject
                 Message = ex.Message,
                 Timestamp = DateTimeOffset.Now
             });
+        }
+        finally
+        {
+            if (ReferenceEquals(_renderCancellation, cancellationMarker))
+            {
+                _renderCancellation = null;
+            }
         }
     }
 

@@ -1,0 +1,57 @@
+GUI-C-154 / #225 rows 6, 11, 12 â€” measured output (verbatim)
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[0] the run I contaminated, and how it was re-measured
+    System.InvalidOperationException : The gui app executable is older than its sources, so this run would test the PREVIOUS build. exe 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.exe' written 2026-
+    -> 36 failures in that run were my edits during it, not a regression.
+    re-measured with row 6 set aside (git checkout HEAD -- the two files, rebuilt):
+    ì‹¤íŒ¨!  - ì‹¤íŒ¨:     1, í†µê³¼:   162, ê±´ë„ˆëœ€:     0, ì „ì²´:   163, ê¸°ê°„: 14 m 44 s - ImageProcTest.E2ETests.dll (net8.0)
+      ì‹¤íŒ¨ ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [14 s]
+
+[1] row 6 â€” both arms, same app, same args
+    A  DLLs present      PInvokeSmokeTestPassed=True   Passed(overall)=True
+       detail: xpe_alloc_image/xpe_free_image -> ok; xpe_display_version -> '1.0.0'; xpe_get_pending_alert_count -> 0
+    B  pinned empty dir  PInvokeSmokeTestPassed=False  Passed(overall)=False
+       detail: xpe_alloc_image threw DllNotFoundException: Unable to load DLL 'xpe_common.dll' or one of its dependencies: ÁöÁ¤µÈ ¸ðµâÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù. (0x8007007E); xpe_displ
+    CI-Mock-like         PInvokeSmokeTestPassed=False  Passed(overall)=True
+       detail: xpe_alloc_image threw DllNotFoundException: Unable to load DLL 'xpe_common.dll' or one of its dependencies: ÁöÁ¤µÈ ¸ðµâÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù. (0x8007007E); xpe_displ
+
+[2] rows 6+11+12 together (Native)
+    DisabledFutureCommandCount     17
+    Passed                         True
+    PInvokeSmokeTestPassed         True
+    StageTimingReport              work=18 ms; vm=1 ms; display: marshal-in=2 ms, native=3 ms, marshal-out=1 ms, preview=10 ms || chain: preprocess=RequestedNotApplied, gsvg=NotRequeste
+    StopInFlightStatus             Render stopped; the result was discarded after 14 ms of work.
+    StoppedRenderCount             1
+    StopWithNothingRunningStatus   Stop: no render is in flight.
+
+[3] same build, CI Mock job shape
+    Passed                         True
+    DisabledFutureCommandCount     17
+    PInvokeSmokeTestPassed         False
+    StopInFlightStatus             Render stopped; the result was discarded after 38 ms of work.
+    StopWithNothingRunningStatus   Stop: no render is in flight.
+
+[4] the defect my own observation caught (row 11, before the fix)
+    StopWithNothingRunningStatus BEFORE fix = Stop requested; the render in flight will be discarded.
+    StopWithNothingRunningStatus AFTER  fix = Stop: no render is in flight.
+
+[5] count, step by step (app actually run each time)
+    row 4 only (HEAD)  : 20
+    + row 6            : 19
+    + rows 11, 12      : 17
+
+[6] full E2E, before and after these three rows
+    baseline (row 4 only):
+      ì‹¤íŒ¨!  - ì‹¤íŒ¨:     1, í†µê³¼:   162, ê±´ë„ˆëœ€:     0, ì „ì²´:   163, ê¸°ê°„: 14 m 44 s - ImageProcTest.E2ETests.dll (net8.0)
+    with rows 6, 11, 12:
+      ì‹¤íŒ¨!  - ì‹¤íŒ¨:     1, í†µê³¼:   162, ê±´ë„ˆëœ€:     0, ì „ì²´:   163, ê¸°ê°„: 14 m 40 s - ImageProcTest.E2ETests.dll (net8.0)
+        ì‹¤íŒ¨ ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [13 s]
+       P10 hash=36fc547e253b07f1 mean=85.205
+    -> identical: same test, same hash, and it is the known local-only P-10.
+
+[7] files changed
+     M gui/ImageProcTest/MainWindow.xaml
+     M gui/ImageProcTest/MainWindow.xaml.cs
+     M gui/ImageProcTest/Models/GuiAutomationReport.cs
+     M gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
