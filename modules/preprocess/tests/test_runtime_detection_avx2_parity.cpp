@@ -107,13 +107,23 @@ std::vector<uint8_t> ScalarMap(const XpeImageBuffer* img, const RuntimeDetection
     return map;
 }
 
-RuntimeDetectionConfig ResolvedConfig(const XpeImageBuffer* img) {
-    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
-    const float sg = xpe::preprocess::internal::ComputeGlobalSigma(img);
-    cfg.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sg;
-    cfg.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sg;
-    return cfg;
-}
+// The frame-dependent configuration the shipped entry point runs with.
+//
+// QA-A-164 (#143): this used to rebuild those fields by hand (a frame-wide
+// sigma floor and cap). When the sigma rule became a per-tile blend, the copy
+// here did not follow and ShippedEntryPointAgreesWithTheScalarRule failed
+// reporting 7 differing pixels -- a stale duplicate, not a path disagreement.
+// Both sides now call BuildFrameConfig.
+//
+// The tile table is held BY VALUE here because the config points into it: a
+// function returning the config alone would dangle.
+struct Resolved {
+    std::vector<float> tiles;
+    RuntimeDetectionConfig cfg;
+    explicit Resolved(const XpeImageBuffer* img) {
+        cfg = xpe::preprocess::internal::BuildFrameConfig(img, tiles);
+    }
+};
 
 }  // namespace
 
@@ -250,7 +260,8 @@ TEST(Avx2ParityTest, FrameMapsAreIdenticalPixelForPixel) {
     for (const Case& c : cases) {
         std::vector<float> frame = MakeFrame(c.w, c.h, c.kind, 20260924u);
         XpeImageBuffer img = Wrap(frame, c.w, c.h);
-        const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+        const Resolved resolved(&img);
+    const RuntimeDetectionConfig& cfg = resolved.cfg;
 
         const std::vector<uint8_t> expected = ScalarMap(&img, cfg);
 
@@ -314,7 +325,8 @@ TEST(Avx2ParityTest, JudgingAColumnTwiceStoresTheSameByte) {
     const uint32_t w = 64u, h = 48u;
     std::vector<float> frame = MakeFrame(w, h, 0, 20260928u);
     XpeImageBuffer img = Wrap(frame, w, h);
-    const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+    const Resolved resolved(&img);
+    const RuntimeDetectionConfig& cfg = resolved.cfg;
 
     std::vector<uint8_t> once(frame.size(), 0u);
     std::vector<float> a, b;
@@ -347,7 +359,8 @@ TEST(Avx2ParityTest, OverlapBoundaryWidthsStillMatchTheScalarRule) {
         const uint32_t h = 12u;
         std::vector<float> frame = MakeFrame(w, h, 0, 20260928u);
         XpeImageBuffer img = Wrap(frame, w, h);
-        const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+        const Resolved resolved(&img);
+    const RuntimeDetectionConfig& cfg = resolved.cfg;
 
         const std::vector<uint8_t> expected = ScalarMap(&img, cfg);
 
@@ -478,7 +491,8 @@ TEST(Avx2ParityTest, VectorRunsNeverReadPastTheFrame) {
 TEST(Avx2ParityTest, TheComparedMapsAreNotTriviallyEmpty) {
     std::vector<float> frame = MakeFrame(640u, 480u, 0, 20260924u);
     XpeImageBuffer img = Wrap(frame, 640u, 480u);
-    const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+    const Resolved resolved(&img);
+    const RuntimeDetectionConfig& cfg = resolved.cfg;
 
     const std::vector<uint8_t> map = ScalarMap(&img, cfg);
     size_t flagged = 0;
@@ -508,7 +522,8 @@ TEST(Avx2ParityTest, ShippedEntryPointAgreesWithTheScalarRule) {
     XpeImageMetadata meta{};
     ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &meta, &out));
 
-    const std::vector<uint8_t> expected = ScalarMap(&img, ResolvedConfig(&img));
+    const Resolved resolved(&img);
+    const std::vector<uint8_t> expected = ScalarMap(&img, resolved.cfg);
 
     size_t mismatches = 0;
     for (size_t i = 0; i < expected.size(); ++i) if (expected[i] != mapOut[i]) ++mismatches;
@@ -586,7 +601,8 @@ TEST(DetectBuildParityTest, RowRangeMatchesTheScalarRuleAtRealFrameSize) {
     std::vector<float> frame = MakeFrame(kW, kH, 0, 20260929u);
     ASSERT_EQ(n, frame.size());
     XpeImageBuffer img = Wrap(frame, kW, kH);
-    const RuntimeDetectionConfig cfg = ResolvedConfig(&img);
+    const Resolved resolved(&img);
+    const RuntimeDetectionConfig& cfg = resolved.cfg;
 
     std::vector<uint8_t> viaRowRange(n, 0u);
     std::vector<float> a, b;
