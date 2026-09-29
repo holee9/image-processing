@@ -252,8 +252,17 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
       each pixel's TRUE local sigma (estimation error exactly zero) still measured
       **TPR@5-sigma = 0.5088**. No sigma-estimation improvement can reach 0.999 there.
     - Informative, same measurement, shipping algorithm: TPR **0.5536** @5-sigma,
-      **0.71** @6-sigma, **0.96** @8-sigma, **0.9990** @10-sigma. The amended requirement is
-      **met today**; what remains open is FPR (below).
+      **0.71** @6-sigma, **0.96** @8-sigma, **0.9865** @10-sigma.
+    - **The shipping algorithm does NOT meet the amended requirement either** (0.9865 < 0.999).
+      Corrected 2026-09-29 by `QA-A-162`. The 0.9990 quoted when this amendment was first
+      written came from `#143`'s issue body, which predates `QA-A-43`'s global sigma floor.
+      `test_runtime_detection_rates.cpp:279` records the transition in place --
+      `10 sigma 0.998959 -> 0.986472` -- and two independent harnesses now measure 0.9865.
+      The same file (:211) states the trade: the floor costs 9% of the detection rate and
+      buys a 168x reduction in false positives. That trade was taken at 5-sigma; it costs here too.
+    - Candidates measured by `QA-A-162` reach TPR 1.0000 @10-sigma on every structure class
+      while meeting FPR, so the amended pair is reachable -- by a change, not by the code as
+      it ships today.
     - The threshold and the amplitude at which TPR is specified are now different numbers
       on purpose. Do not re-align them.
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
