@@ -1,0 +1,63 @@
+GUI-C-150 / #224 — measured output (verbatim), worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] call sites of MetricsComputationService (clients/ + gui/, bin/obj excluded)
+clients/ImageProcTest/MainWindow.xaml.cs:1893:                MetricsComputationService.Empty("native calibration preview not run");
+clients/ImageProcTest/Services/MetricsComputationService.cs:15:    internal static class MetricsComputationService
+clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:232:                MetricsComputationService.Empty("all correction stages bypassed"),
+clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:474:            var detectorMetrics = MetricsComputationService.Compute(preview, finalValues, fixtureCase, stages);
+
+[2] display path
+clients/ImageProcTest/MainWindow.xaml.cs:1894:            DarkMetricsGrid.ItemsSource = detectorMetrics.DarkMetrics;
+clients/ImageProcTest/Services/GuiE2eReportService.cs:293:                AppendDetectorMetrics(builder, nativePreview.DetectorMetrics);
+clients/ImageProcTest/Services/GuiE2eReportService.cs:590:        private static void AppendDetectorMetrics(StringBuilder builder, DetectorDomainMetrics metrics)
+859:                        <DataGrid x:Name="DarkMetricsGrid"
+860:                                  AutomationProperties.AutomationId="DarkMetricsGrid"
+878:                        <DataGrid x:Name="FlatMetricsGrid"
+
+[3] TWO apps — which one is the operator app
+  gui/ metric strings:
+    (none — gui/ has no such code)
+  ci.yml references:
+451:    # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
+472:        run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+542:        run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+  clients/ImageProcTest app in any workflow:
+    NOT referenced in any workflow
+  ProjectReference to each app:
+clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj:45:    Linked source, not a ProjectReference: referencing the WPF app would make this test assembly
+gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj:13:    <ProjectReference Include="..\ImageProcTest\ImageProcTest.csproj" />
+gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj:13:    <ProjectReference Include="..\ImageProcTest\ImageProcTest.csproj" />
+  last commit touching each:
+    clients/ImageProcTest  0e6a60a 2026-09-18 chore(clients): XPE_ERR_INVALID_CALIB_DATA(-17) 을 C# 미러 두 곳에 추가
+    gui/ImageProcTest      ab557c8 2026-09-28 fix(gui): 필터가 옮긴 선택을 화면 안으로 스크롤한다 (GUI-C-145)
+
+[4] native symbols the preview service actually resolves
+162:                var init = GetRequiredDelegate<InitDelegate>(handle, "xpe_preprocess_init");
+163:                var shutdown = GetRequiredDelegate<ShutdownDelegate>(handle, "xpe_preprocess_shutdown");
+164:                var checkExpiry = GetRequiredDelegate<CalibrationExpiryDelegate>(handle, "xpe_calib_check_expiry");
+165:                var offsetCorrect = GetRequiredDelegate<OffsetCorrectionDelegate>(handle, "xpe_offset_correct");
+166:                var gainCorrect = GetRequiredDelegate<GainCorrectionDelegate>(handle, "xpe_gain_correct");
+167:                var defectCorrect = GetRequiredDelegate<DefectCorrectionDelegate>(handle, "xpe_defect_correct");
+1093:        private static TDelegate GetRequiredDelegate<TDelegate>(IntPtr handle, string exportName)
+  XpeCalibrationMetrics anywhere in clients/:
+    0 hits
+
+[5] CARD §4 PREMISE CHECK — the three new fields, searched on the remotes
+    origin/main              dsnu_adu=0 measured_mask=0
+    origin/dev/preprocess    dsnu_adu=0 measured_mask=0
+    origin/dev/postprocess   dsnu_adu=0 measured_mask=0
+    dark_reduction_db on origin/main:
+      origin/main:modules/preprocess/src/xpe_verify_metrics.cpp:370:    const double dark_reduction_db =
+      origin/main:modules/preprocess/src/xpe_verify_metrics.cpp:387:                            (dark_reduction_db >= DARK_REDUCTION_MIN_DB);
+    origin/main struct fields:
+          // Offset metrics
+          double dark_bias;           ///< Mean of corrected dark region (ADU, should → 0)
+          double dsnu;                ///< Dark Signal Non-Uniformity: std/mean × 100 [%]
+          double residual_noise;      ///< Standard deviation of corrected dark pixels
+
+[6] my worktree vs origin/main (left=main ahead, right=mine ahead)
+176	0
+
+[7] does clients/ImageProcTest still build?
+    경고 0개
+    오류 0개
