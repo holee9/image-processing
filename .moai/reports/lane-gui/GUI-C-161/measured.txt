@@ -1,0 +1,48 @@
+GUI-C-161 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== The defect (lead's CI observation, quoted) ==
+gui-automation (Mock):  Failed: 2, Passed: 136, Skipped: 32
+  A04_SelfCheck_ActuallyRuns_AndThePassIsReported
+  A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported
+  System.InvalidOperationException at System.Text.Json.JsonElement.GetBoolean()
+Cause: SelfCheckPassed / GuiE2EPassed are bool? and stay null when the runner exe is
+absent; the job builds gui/ImageProcTest only. GetBoolean() on a JSON null throws.
+
+== Falsification 1 — the skip actually happens (runners removed) ==
+mv ImageProcTest.SelfCheck.exe .hidden ; mv ImageProcTest.E2E.exe .hidden
+dotnet test --filter A04|A05|A06
+  A05: skipped — "ImageProcTest.SelfCheck.exe was not built, so its failure cannot be
+       observed."            (already correct before this card; same root cause)
+  A04: skipped — "The app reported no self-check verdict (SelfCheckPassed is null),
+       which means the command did not run: this configuration has no
+       ImageProcTest.SelfCheck executable beside the app — the gui-automation CI job
+       builds gui/ImageProcTest only, which is normal. The app's status line said:
+       'Self-check runner is not built.'."
+  A06: skipped — same shape, "GUI E2E runner is not built."
+
+== Falsification 2 — with the runners present the assertions come back ==
+runners restored; dotnet test --filter A04|A05|A06
+  통과!  실패: 0, 통과: 3, 건너뜀: 0, 전체: 3   (38 s)
+So the three states stay three: null -> skip, true/false -> asserted.
+
+== Full Mock suite IN THE CI SHAPE (runners absent) ==
+  통과!  실패: 0, 통과: 138, 건너뜀: 34, 전체: 172   (9 m 41 s)
+Compare: runners present (GUI-C-160) was 140 passed / 32 skipped / 0 failed.
+The two extra skips are exactly A04 and A06.
+
+== Why local never saw it ==
+This worktree builds all three projects, so both runner exes exist beside the app and
+both fields were always true. The absent-runner configuration had never been run here
+even once. It is now a recorded step (report.md §3).
+
+== The precedent claim I got wrong (GUI-C-160 §3.1) ==
+I reported "no place in the product code opens a shell via Process.Start — 0 hits".
+What I actually searched: "OpenEvidenceFolder", 'Process.Start("explorer', "explorer.exe".
+grep -rn "Process.Start" gui/ImageProcTest/ --include=*.cs  (excluding obj/):
+  Services/HelpBundleService.cs:52   Process.Start(new ProcessStartInfo{ FileName =
+                                     helpPagePath, UseShellExecute = true })
+  ViewModels/MainWindowViewModel.cs:1393  (the console-runner launch, GUI-C-158/159)
+The precedent exists. My search could not have found it — it contains no "explorer".
+The absence claim carried no stated search scope; stating it would have exposed the gap.
+
+Builds: E2ETests — 오류 0개.

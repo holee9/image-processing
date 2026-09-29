@@ -99,7 +99,8 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var (report, _) = Run("A04", "Mock", nativeDirectory: null);
 
         var status = report.GetProperty("SelfCheckStatus").GetString() ?? string.Empty;
-        Assert.True(report.GetProperty("SelfCheckPassed").GetBoolean(),
+        var verdict = VerdictOrSkip(report, "SelfCheckPassed", "self-check", "ImageProcTest.SelfCheck", status);
+        Assert.True(verdict,
             $"The self-check did not pass: '{status}'.");
         Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
     }
@@ -145,7 +146,8 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var (report, _) = Run("A06", "Mock", nativeDirectory: null);
 
         var status = report.GetProperty("GuiE2EStatus").GetString() ?? string.Empty;
-        Assert.True(report.GetProperty("GuiE2EPassed").GetBoolean(),
+        var verdict = VerdictOrSkip(report, "GuiE2EPassed", "GUI E2E", "ImageProcTest.E2E", status);
+        Assert.True(verdict,
             $"The GUI E2E runner did not pass when launched from the app: '{status}'.");
         Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
     }
@@ -181,6 +183,37 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         }
 
         return Path.Combine(target, "ImageProcTest.SelfCheck.exe");
+    }
+
+    /// <summary>
+    /// Reads a runner verdict that the app reports as THREE states, and keeps them three (#225,
+    /// GUI-C-161).
+    ///
+    /// <para><c>null</c> is "the command did not run", not "it failed": the app leaves the field null
+    /// when the runner executable is absent, exactly as <c>RunConsoleRunnerAsync</c> returns null rather
+    /// than false for a runner it could not reach. Reading it with <c>GetBoolean()</c> collapsed that
+    /// third state into an exception and turned main red — the test had erased a distinction the product
+    /// code makes. The same defect class as #219 and #221.</para>
+    ///
+    /// <para>The absent-runner configuration is NORMAL, not broken: the <c>gui-automation</c> CI job
+    /// builds <c>gui/ImageProcTest</c> only, so no runner exe exists beside the app there. That
+    /// configuration skips with the reason stated; a configuration that HAS the runner asserts. Passing
+    /// it loosely instead would make "the runner is absent" and "the runner failed" the same green
+    /// (#214, GUI-C-155).</para>
+    /// </summary>
+    private static bool VerdictOrSkip(
+        JsonElement report, string property, string label, string runnerProject, string status)
+    {
+        var present = report.TryGetProperty(property, out var value) &&
+                      value.ValueKind is JsonValueKind.True or JsonValueKind.False;
+
+        Skip.IfNot(present,
+            $"The app reported no {label} verdict ({property} is null), which means the command did not " +
+            $"run: this configuration has no {runnerProject} executable beside the app — the " +
+            "gui-automation CI job builds gui/ImageProcTest only, which is normal. The app's status " +
+            $"line said: '{status}'.");
+
+        return value.GetBoolean();
     }
 
     /// <summary>
