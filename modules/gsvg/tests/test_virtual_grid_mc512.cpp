@@ -35,6 +35,8 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
@@ -42,8 +44,12 @@ namespace {
 // The tables live with the 80 x 80 copies; the 512 images are read from the
 // producing directory rather than copied, because four 1 MB images per phantom
 // would put 8 MB of duplicated binaries into the repository.
-constexpr const char* kDir = "tests/data/mc/";
-constexpr const char* kPhantomDir = "../../tools/mcsim/phantoms/";
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kDir = xpe_gsvg_test::Data("mc") + "/";
+// #229 (QA-B-163): this one was relative with "../.." in it, so it needed
+// the cwd to be modules/gsvg exactly -- one level off and it read a
+// different tree. Absolute now, resolved by CMake.
+const std::string kPhantomDir = xpe_gsvg_test::McsimPhantomDir() + "/";
 constexpr int    kN = 512;
 constexpr double kPitchMm = 0.14;                 // json pixel_pitch_mm
 constexpr double kKvp = 80.0;

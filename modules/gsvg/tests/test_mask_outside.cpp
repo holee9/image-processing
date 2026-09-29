@@ -11,6 +11,8 @@
 #include <cstring>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
@@ -57,7 +59,7 @@ TEST(GsvgMaskOutside, BoundaryStepStaysNearThePostStepBaseline)
 {
     constexpr int k = 1024;
     vg::ParamTable table;
-    ASSERT_EQ(vg::LoadParamTable("data/vg_table_water_csi600_victre.csv", table), "");
+    ASSERT_EQ(vg::LoadParamTable(xpe_gsvg_test::ProductData("vg_table_water_csi600_victre.csv"), table), "");
 
     // Square field so "distance to the boundary" is exact.
     constexpr int kInset = 200;
@@ -104,7 +106,7 @@ TEST(GsvgMaskOutside, WithoutPostStepsEveryVariantIsBitIdentical)
 {
     constexpr int k = 256;
     vg::ParamTable table;
-    ASSERT_EQ(vg::LoadParamTable("data/vg_table_water_csi600_victre.csv", table), "");
+    ASSERT_EQ(vg::LoadParamTable(xpe_gsvg_test::ProductData("vg_table_water_csi600_victre.csv"), table), "");
 
     std::vector<double> src;
     std::vector<uint8_t> mask;
