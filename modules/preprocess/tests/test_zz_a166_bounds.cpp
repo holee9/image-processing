@@ -373,3 +373,132 @@ TEST_F(A166Bounds, DISABLED_SelectionLowerBound) {
                 100.0 * (msShipped - msReuse) / (msShipped - msCopyOnly));
     std::printf("[a166]   (per-tile copy subtracted from both: %.2f ms)\n", msCopyOnly);
 }
+
+// ---------------------------------------------------------------------------
+// QA-A-167 (#143): the 1.5x between the two selection measurements.
+//
+//   in-situ (real path)   63 ms
+//   isolated bench        97 ms
+//
+// HYPOTHESIS (QA-A-166): SelectKthSmallest splits on the TOP 16 BITS of the
+// float sort key. Its second pass re-scans only the elements whose top half
+// matches the chosen bucket, so a narrow dynamic range concentrates elements
+// into few top buckets and makes that second pass large.
+//
+// The hypothesis names a measurable difference, so it is measured: dynamic
+// range and occupied-bucket counts for both inputs, plus the size of the second
+// pass -- the quantity the hypothesis actually claims differs.
+//
+// If the two inputs look alike, the hypothesis is wrong and the cause is
+// elsewhere (cache residency, or how each was timed).
+// ---------------------------------------------------------------------------
+namespace {
+
+struct KeyStats {
+    float lo = 0.0f, hi = 0.0f;
+    size_t topBuckets = 0;      // distinct high-16 buckets occupied
+    size_t secondPass = 0;      // elements sharing the median's high-16 bucket
+};
+
+KeyStats keyStats(const float* v, size_t n) {
+    KeyStats s;
+    s.lo = *std::min_element(v, v + n);
+    s.hi = *std::max_element(v, v + n);
+
+    std::vector<uint32_t> hist(1u << 16, 0u);
+    for (size_t i = 0; i < n; ++i) ++hist[FloatSortKey(v[i]) >> 16];
+    for (uint32_t c : hist) if (c) ++s.topBuckets;
+
+    const size_t k = n / 2u;
+    size_t seen = 0;
+    for (size_t b = 0; b < hist.size(); ++b) {
+        if (seen + hist[b] > k) { s.secondPass = hist[b]; break; }
+        seen += hist[b];
+    }
+    return s;
+}
+
+void reportStats(const char* label, const KeyStats& s, size_t n) {
+    std::printf("[a167] %-26s range [%.4g, %.4g] span %.4g | top buckets %5zu"
+                " | second pass %7zu / %zu (%.1f%%)\n",
+                label, s.lo, s.hi, static_cast<double>(s.hi) - s.lo, s.topBuckets,
+                s.secondPass, n, 100.0 * static_cast<double>(s.secondPass) / n);
+}
+
+} // namespace
+
+TEST_F(A166Bounds, DISABLED_A167_WhyTheSelectionMeasurementsDiffer) {
+    constexpr uint32_t T = RUNTIME_DETECTION_TILE_SIZE;
+    const size_t perTile = 2u * static_cast<size_t>(T) * (T - 1u);
+
+    // --- input A: a real tile's differences, exactly as the shipped path makes
+    // them. Frame is the same N(3000, 10) the timing runs used.
+    std::vector<float> frame = noiseFrame();
+    std::vector<float> realDiffs;
+    realDiffs.reserve(perTile);
+    {
+        const uint32_t x0 = 5u * T, y0 = 5u * T;          // an interior tile
+        const uint32_t x1 = x0 + T, y1 = y0 + T;
+        for (uint32_t y = y0; y < y1; ++y) {
+            const float* row = frame.data() + static_cast<size_t>(y) * kW;
+            for (uint32_t x = x0 + 1u; x < x1; ++x) realDiffs.push_back(row[x] - row[x - 1u]);
+        }
+        for (uint32_t y = y0 + 1u; y < y1; ++y) {
+            const float* row = frame.data() + static_cast<size_t>(y) * kW;
+            const float* up = row - kW;
+            for (uint32_t x = x0; x < x1; ++x) realDiffs.push_back(row[x] - up[x]);
+        }
+    }
+
+    // --- input B: what the isolated bench fed -- N(0,1)
+    std::mt19937 rng(7u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> benchInput(perTile);
+    for (size_t i = 0; i < perTile; ++i) benchInput[i] = g(rng);
+
+    reportStats("real tile differences", keyStats(realDiffs.data(), realDiffs.size()), realDiffs.size());
+    reportStats("isolated bench N(0,1)", keyStats(benchInput.data(), benchInput.size()), benchInput.size());
+
+    // --- and the deviations each produces, which feed the SECOND selection
+    auto deviationsOf = [](const std::vector<float>& v) {
+        std::vector<float> d = v;
+        std::vector<float> tmp = d;
+        const size_t mid = d.size() / 2u;
+        std::nth_element(tmp.begin(), tmp.begin() + mid, tmp.end());
+        const float m = tmp[mid];
+        for (float& x : d) x = std::abs(x - m);
+        return d;
+    };
+    const std::vector<float> devReal = deviationsOf(realDiffs);
+    const std::vector<float> devBench = deviationsOf(benchInput);
+    reportStats("real |x - median|", keyStats(devReal.data(), devReal.size()), devReal.size());
+    reportStats("bench |x - median|", keyStats(devBench.data(), devBench.size()), devBench.size());
+
+    // --- time the two selections on each input: same loop, same tile count,
+    // only the data differs. This is the comparison the 1.5x has to survive.
+    const uint32_t tilesX = (kW + T - 1u) / T, tilesY = (kH + T - 1u) / T;
+    const size_t tiles = static_cast<size_t>(tilesX) * tilesY;
+    std::vector<float> scratch(perTile);
+    volatile float sink = 0.0f;
+
+    auto timeSelection = [&](const char* label, const std::vector<float>& input) {
+        const double msCopy = bestMs(3, [&] {
+            for (size_t t = 0; t < tiles; ++t) std::copy(input.begin(), input.end(), scratch.begin());
+        });
+        const double msAll = bestMs(3, [&] {
+            for (size_t t = 0; t < tiles; ++t) {
+                std::copy(input.begin(), input.end(), scratch.begin());
+                const float m = SelectKthSmallest(scratch.data(), perTile, perTile / 2u);
+                for (size_t i = 0; i < perTile; ++i) scratch[i] = std::abs(scratch[i] - m);
+                sink = SelectKthSmallest(scratch.data(), perTile, perTile / 2u);
+            }
+        });
+        std::printf("[a167] selection over %zu tiles, input = %-22s : %7.2f ms\n",
+                    tiles, label, msAll - msCopy);
+        return msAll - msCopy;
+    };
+    const double msReal  = timeSelection("real tile differences", realDiffs);
+    const double msBench = timeSelection("isolated bench N(0,1)", benchInput);
+    (void)sink;
+    std::printf("[a167] ratio bench/real = %.2fx\n", msBench / msReal);
+}
