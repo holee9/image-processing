@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -77,7 +77,27 @@ static void RunWpfE2E()
         window.Show();
         DoEvents();
 
-        Assert(window.Title == "ImageProcTest GUI-S0", "Main window title mismatch.");
+        // #228 (GUI-C-158): this was `window.Title == "ImageProcTest GUI-S0"` — a literal copy of a
+        // title the app stopped having. bc7f2f0 (#175, HAZ-GUI-005) made the title carry the backend:
+        // "[MOCK] " is prefixed when the running backend is the mock one, so an operator cannot mistake
+        // synthetic output for real. The requirement is right and this runner was stale; it had been
+        // failing for 12 days, unnoticed because no CI job runs it (#227).
+        //
+        // Not re-pinned to a new literal. Two things are asserted instead, and neither freezes the
+        // display: the base identity comes from the app's OWN constant (one definition, so a rename
+        // cannot silently drift again), and the safety prefix is REQUIRED rather than tolerated —
+        // this runner drives the mock backend, so a title without [MOCK] means HAZ-GUI-005's
+        // disclosure has regressed, which is worth failing on.
+        Assert(
+            window.Title.Contains(MainWindowViewModel.BaseWindowTitle, StringComparison.Ordinal),
+            $"Main window title '{window.Title}' does not carry '{MainWindowViewModel.BaseWindowTitle}'.");
+
+        if (window.DataContext is MainWindowViewModel titleViewModel && titleViewModel.IsMockBackend)
+        {
+            Assert(
+                window.Title.StartsWith("[MOCK] ", StringComparison.Ordinal),
+                $"The mock backend is running but the title '{window.Title}' does not disclose it (HAZ-GUI-005).");
+        }
 
         // --- Toolbar buttons ---
         var initializeButton = GetControl<Button>(window, "InitializeBackendButton");
@@ -126,9 +146,19 @@ static void RunWpfE2E()
         var openRuntimeLogsMenuItem = GetControl<MenuItem>(window, "OpenRuntimeLogsMenuItem");
         var pInvokeSmokeMenuItem = GetControl<MenuItem>(window, "PInvokeSmokeTestMenuItem");
 
-        Assert(!nativeModeMenuItem.IsEnabled, "Native backend mode must be disabled in GUI-S0.");
+        // #228 (GUI-C-158): two of these three became stale because the app GAINED the commands they
+        // were waiting for — #225 rows 4 and 6, landed in GUI-C-153/154. The assertions are not deleted,
+        // they are moved forward: what used to be "this is not built yet" is now "this is built and
+        // wired". A deleted assertion would leave the item unchecked; an inverted one still fails if a
+        // future change unbinds the command.
+        Assert(nativeModeMenuItem.IsEnabled, "Native backend mode is disabled; #225 row 4 made it a live switch.");
+        Assert(nativeModeMenuItem.Command is not null, "Native backend mode menu item has no command bound.");
+
+        // Still correct: row 5 of the #225 table (runtime log export) has not been implemented.
         Assert(!openRuntimeLogsMenuItem.IsEnabled, "Runtime logs menu must be disabled until persistent runtime log export exists.");
-        Assert(!pInvokeSmokeMenuItem.IsEnabled, "P/Invoke smoke menu must be disabled until SPRINT-P0-07.");
+
+        Assert(pInvokeSmokeMenuItem.IsEnabled, "P/Invoke smoke menu is disabled; #225 row 6 wired it.");
+        Assert(pInvokeSmokeMenuItem.Command is not null, "P/Invoke smoke menu item has no command bound.");
 
         // --- Pipeline menu items ---
         var applyDisplayPipelineMenuItem = GetControl<MenuItem>(window, "ApplyDisplayPipelineMenuItem");
@@ -144,7 +174,17 @@ static void RunWpfE2E()
         Assert(!openPipelineDiagnosticsMenuItem.IsEnabled, "Pipeline diagnostics must be disabled until pipeline traces exist.");
 
         // --- View menu items ---
-        var showRuntimePanelMenuItem = GetControl<MenuItem>(window, "ShowRuntimePanelMenuItem");
+        // #228 (GUI-C-158): ShowRuntimePanelMenuItem is GONE, and that is the current design, not a
+        // defect — #165 (GUI-C-64/65) measured that the Workbench redesign had replaced the panels
+        // three of these toggles named, and removed them rather than leave switches that flip a check
+        // and change nothing. The runner asked for it by name and threw "Control not found".
+        // Asserting its ABSENCE keeps the claim checkable: if it ever comes back, this fails and
+        // someone has to say which design won. (clients' PanelToggleScenarios asserts the same thing
+        // from the outside; this is the in-process half.)
+        Assert(
+            FindControl<MenuItem>(window, "ShowRuntimePanelMenuItem") is null,
+            "ShowRuntimePanelMenuItem is back in the View menu; #165 removed it with the panel it named.");
+
         var showDisplaySettingsPanelMenuItem = GetControl<MenuItem>(window, "ShowDisplaySettingsPanelMenuItem");
         var showLogsPanelMenuItem = GetControl<MenuItem>(window, "ShowLogsPanelMenuItem");
         var clearLogsMenuItem = GetControl<MenuItem>(window, "ClearLogsMenuItem");
@@ -153,7 +193,6 @@ static void RunWpfE2E()
         var zoomActualMenuItem = GetControl<MenuItem>(window, "ZoomActualMenuItem");
         var openEvidenceFolderMenuItem = GetControl<MenuItem>(window, "OpenEvidenceFolderMenuItem");
 
-        Assert(showRuntimePanelMenuItem.IsCheckable, "Runtime view menu item should be checkable.");
         Assert(showDisplaySettingsPanelMenuItem.IsCheckable, "Display settings view menu item should be checkable.");
         Assert(showLogsPanelMenuItem.IsCheckable, "Logs view menu item should be checkable.");
         Assert(clearLogsMenuItem.Command is not null, "Clear Logs menu command missing.");
@@ -316,6 +355,10 @@ static void RunWpfE2E()
         application.Shutdown();
     }
 }
+
+/// <summary>Like GetControl, but answers null instead of throwing — for asserting ABSENCE (#228).</summary>
+static T? FindControl<T>(FrameworkElement root, string name) where T : class =>
+    root.FindName(name) as T;
 
 static T GetControl<T>(FrameworkElement root, string name) where T : class
 {
