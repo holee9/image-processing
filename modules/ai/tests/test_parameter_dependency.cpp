@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "xpe/ai/ai_api.h"
+#include "xpe/ai/ai_onnx_session.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
@@ -148,6 +149,20 @@ TEST_F(AiParamDependency, InferenceEntryPointsStopBeforeTheModel) {
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bodypart)
         << "this entry point now produces a result in the stub build -- its "
            "parameters have become measurable and belong in the sweep above";
-    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bone);
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, denoise);
+
+    // QA-B-161 (#130): bone_suppress is the one entry point that now looks for
+    // a model, and "dummy_model_dir" holds none -- so it stops EARLIER than the
+    // other two and says why. These pixels are float32, so it gets past the
+    // format check and lands on the missing file.
+    //
+    // The answer is the same in BOTH builds, and that is not an accident worth
+    // hiding: whether a file exists is not a question ONNX Runtime answers, so
+    // OnnxSession::Create checks it before either arm. I first wrote this as a
+    // stub/full branch and measured -9 on both sides, which is the more useful
+    // fact -- the missing-model code is build-independent.
+    EXPECT_EQ(XPE_ERR_IO_FAILED, bone)
+        << "a missing model must be reported as such in either build, not as a "
+           "generic processing failure -- a caller has to tell 'install the "
+           "model' apart from 'inference failed'";
 }

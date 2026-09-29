@@ -320,6 +320,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_config_warning.cpp
         # #130 (QA-B-160): the ONNX Runtime inference path, end to end
         test_onnx_session.cpp
+        # #130 (QA-B-161): the first C ABI function wired to that path
+        test_bone_suppress_abi.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
