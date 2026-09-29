@@ -155,11 +155,14 @@
                           Header="Open Runtime _Logs (Phase 1a+)"
                           IsEnabled="False"
                           ToolTip="Enabled when persistent runtime log export is available." />
+                <!-- #225 (GUI-C-154, row 6): the integration the old tooltip waited for has happened,
+                     so this is a command now. It calls the DLLs directly rather than through the
+                     backend, because the backend falls back to the mock and would report success. -->
                 <MenuItem x:Name="PInvokeSmokeTestMenuItem"
                           AutomationProperties.AutomationId="PInvokeSmokeTestMenuItem"
-                          Header="Run P/_Invoke Smoke Test (SPRINT-P0-07)"
-                          IsEnabled="False"
-                          ToolTip="Requires xpe_common.dll and RealXpeBackend integration." />
+                          Header="Run P/_Invoke Smoke Test"
+                          Command="{Binding RunPInvokeSmokeTestCommand}"
+                          ToolTip="Call xpe_common and xpe_display directly and report whether they answered. Fails when the DLLs cannot be loaded." />
             </MenuItem>
 
             <MenuItem x:Name="ViewMenu"
@@ -334,17 +337,21 @@
                           Header="Run _Full Pipeline (Phase 2/3)"
                           IsEnabled="False"
                           ToolTip="Requires optional premium and assistive modules." />
+                <!-- #225 (GUI-C-154, row 11): stops the render in flight by discarding its result;
+                     the native calls inside are synchronous and are not interrupted. -->
                 <MenuItem x:Name="StopProcessingMenuItem"
                           AutomationProperties.AutomationId="StopProcessingMenuItem"
                           Header="_Stop Processing"
-                          IsEnabled="False"
-                          ToolTip="Enabled after a real processing run command exists." />
+                          Command="{Binding StopProcessingCommand}"
+                          ToolTip="Discard the render in flight. The native call already running is not interrupted; its result is dropped instead of being shown." />
                 <Separator />
+                <!-- #225 (GUI-C-154, row 12): shows what the last render already reported. It does
+                     not time anything itself — a second measurement would disagree with the status bar. -->
                 <MenuItem x:Name="StageTimingMenuItem"
                           AutomationProperties.AutomationId="StageTimingMenuItem"
                           Header="Stage _Timing"
-                          IsEnabled="False"
-                          ToolTip="Enabled when real pipeline timing evidence is available." />
+                          Command="{Binding ShowStageTimingCommand}"
+                          ToolTip="Show the last render's own timings: the work/vm/display split and the chain's per-stage times." />
                 <MenuItem x:Name="OpenPipelineDiagnosticsMenuItem"
                           AutomationProperties.AutomationId="OpenPipelineDiagnosticsMenuItem"
                           Header="Open Pipeline _Diagnostics (Phase 1a+)"

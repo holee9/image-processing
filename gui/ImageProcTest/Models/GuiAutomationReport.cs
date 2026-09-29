@@ -1,4 +1,4 @@
-namespace ImageProcTest.Models;
+﻿namespace ImageProcTest.Models;
 
 public sealed class GuiAutomationReport
 {
@@ -128,6 +128,30 @@ public sealed class GuiAutomationReport
     public bool ComparisonEvidenceExported { get; set; }
 
     public int DisabledFutureCommandCount { get; set; }
+
+    /// <summary>
+    /// Outcome of the P/Invoke smoke command (#225, GUI-C-154 row 6); null when it was not run.
+    ///
+    /// <para>Recorded rather than derived: the run that proves the smoke can FAIL — the app launched
+    /// with an empty <c>XPE_NATIVE_DIR</c> and <c>XPE_NATIVE_DIR_EXCLUSIVE=1</c> — needs a machine
+    /// readable answer, and re-deriving it from the log text would test the log format instead.</para>
+    /// </summary>
+    public bool? PInvokeSmokeTestPassed { get; set; }
+
+    /// <summary>Per-probe outcomes of that run, so a failure says which probe failed and why.</summary>
+    public string? PInvokeSmokeTestDetail { get; set; }
+
+    /// <summary>What Stage Timing reported (#225, GUI-C-154 row 12); null when it was not run.</summary>
+    public string? StageTimingReport { get; set; }
+
+    /// <summary>Status line after pressing Stop with nothing running (#225 row 11) — the defined no-op.</summary>
+    public string? StopWithNothingRunningStatus { get; set; }
+
+    /// <summary>Status line after stopping a render that WAS in flight (#225 row 11).</summary>
+    public string? StopInFlightStatus { get; set; }
+
+    /// <summary>How many renders the stop command discarded during this run (#225 row 11).</summary>
+    public int StoppedRenderCount { get; set; }
 
     public bool MenuCommandReportCreated { get; set; }
 

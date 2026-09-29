@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -337,6 +337,40 @@ public partial class MainWindow : System.Windows.Window
                     ShowDisplaySettingsPanelMenuItem
                 }
                 .Count(item => !item.IsEnabled);
+
+            // #225 (GUI-C-154, row 6): run the smoke through the MENU, so the automation run exercises
+            // the same command a user has, and record its verdict. Invoked before the report is exported
+            // so the value is in the file.
+            ClickMenuItem(PInvokeSmokeTestMenuItem);
+            await Task.Delay(200);
+            report.PInvokeSmokeTestPassed = viewModel.PInvokeSmokeTestPassed;
+            report.PInvokeSmokeTestDetail = viewModel.PInvokeSmokeTestDetail;
+
+            // #225 (GUI-C-154) rows 11 and 12, through the menu items a user has.
+            ClickMenuItem(StageTimingMenuItem);
+            await Task.Delay(150);
+            report.StageTimingReport = viewModel.LastStageTimingReport;
+
+            // Row 11, the case that matters: stop a render that IS in flight.
+            //
+            // Driven through the commands rather than the menu, and the reason is not convenience: the
+            // render is 2.3-2.5 s on the wrist slice but ~16 ms on this synthetic frame, and opening a
+            // menu takes longer than that. A menu-driven version would be a race the run sometimes lost,
+            // which is a flaky test rather than an observation. ApplyDisplayPipelineAsync creates its
+            // cancellation source synchronously, before its first await, so a stop issued on the next
+            // line always lands while the render is in flight.
+            viewModel.ApplyDisplayPipelineCommand.Execute(null);
+            viewModel.StopProcessingCommand.Execute(null);
+            await Task.Delay(1500);
+            report.StopInFlightStatus = viewModel.StatusText;
+            report.StoppedRenderCount = viewModel.StoppedRenderCount;
+
+            // Pressed with no render in flight: the defined no-op, recorded so "it does nothing" is
+            // distinguishable from "it did nothing and said nothing". This runs AFTER the render above
+            // has finished, which is the state a user is in most of the time.
+            ClickMenuItem(StopProcessingMenuItem);
+            await Task.Delay(150);
+            report.StopWithNothingRunningStatus = viewModel.StatusText;
 
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
