@@ -243,6 +243,7 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 | SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047 | `xpe_verify_pipeline`, pipeline API comments | Pipeline verification metric tests; ctest 341/341 passed | Updated |
 | SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated |
 | SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`; ctest 341/341 passed | Added |
+| SRS-CALIB-FUNC-006 / FUNC-006-EXT | `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut` | 매핑 추가 `#216`, 2026-09-29 — **요구는 있었고 이름이 안 달려 있었습니다.** `api_requirement_census.py` 가 이 넷을 "요구 없음" 으로 세던 이유입니다(도구는 `REQ-P1A` 만 스캔하고, `SRS-CALIB-001` 은 능력으로 기술해 함수명을 쓰지 않습니다). `SRS-CALIB-001:376` 의 언급은 요구 문단이 아니라 §5.3 C ABI 서명 목록입니다 | Added |
 | SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
 
 ---
