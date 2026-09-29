@@ -278,8 +278,16 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > QA-A-56), so that is the machine it refers to. This records where the number came from; it does not
 > change the number.
 >
-> **Status against that definition** (from existing reports, not re-measured): development machine
-> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.** The "1.6x on the CI runner" figure further
+> **Status against that definition** (from existing reports, not re-measured): the lane machine
+> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.**
+>
+> **Transcription corrected 2026-09-29 (`QA-A-166`, `#143`).** This line used to say *development
+> machine*. `QA-A-69`'s own words are *"이 기계에서 1.0~1.1배 (62.4~63.9 ms)"* -- **this machine**.
+> `QA-A-56` says the same. Both are lane-pre reports and **neither names a machine**; the identification
+> with the development machine was made here, not there. What is measurable across the two is
+> `memcpy`: **0.88x** (40.7 vs 35.9 GB/s, `QA-A-166`). The AVX2 terms are **not** comparable -- the
+> kernels differ (19-CE nine-element vs `MedianOfEight8`), so `QA-A-166`'s 7.71 ms must not be read
+> against `QA-A-56`'s 15.97 ms. The "1.6x on the CI runner" figure further
 > down has **no absolute CI time behind it in the lane reports** — it is a ratio-derived statement, and
 > no report records a CI millisecond value for the current code. CI does not enforce the 60 ms target
 > at all: the ratio gate guards CI against regression, and that is its only job there.
@@ -318,6 +326,44 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > **Machine caveat still applies.** `QA-A-165` did not establish that the lane machine is the
 > development machine of the line above; the ratio is the transferable part, the absolute ms is not.
+
+> **The 60 ms target now sits below the measured lower bound (`QA-A-166`, 2026-09-29, `#143`).**
+>
+> The table below retired two earlier targets for exactly this reason -- *"both sat below the measured
+> lower bound, so no implementation could reach them"*. **The same verdict now applies to 60 ms.**
+>
+> Lower bound for the shipped algorithm, lane machine, 3072x3072, best-of-N:
+>
+> | Term | ms |
+> |---|---|
+> | detection network (`MedianOfEight8`, AVX2) | 7.71 |
+> | tile-sigma difference generation | 5.28 |
+> | tile-sigma **selection** (in-situ) | **63** |
+> | memory traffic | 2.46 |
+> | **lower bound** | **~76** |
+> | *(global sigma, measured as a control -- not on the current path)* | *50.7 / 13.04 traffic bound* |
+>
+> Shipped today: **122 ms = 1.6x that bound.** Target 60 ms is **0.79x the bound** -- unreachable by
+> any implementation of this algorithm, as 35 ms and 12 ms were for the previous one.
+>
+> **Two corrections `QA-A-166` made to its own earlier work, both recorded because they change what is
+> believed:**
+>
+> 1. `QA-A-165` calculated *"remove the fixed cost and selection is 41 ms, total 98 ms"*. Implemented
+>    and measured, the fixed-cost-free variant is **20% SLOWER** (116.32 vs 97.28 ms). The calculation
+>    took the per-element cost of one large-`n` call as a fixed-cost-free floor, but at large `n` the
+>    fixed cost is **buried, not absent**; removing it at small `n` needs a touched-bucket list whose
+>    sort costs more than the 65536-slot linear walk. **The original implementation was already the
+>    good choice.**
+> 2. `nth_element` measured **239.27 ms**, 3.5x slower -- not an alternative. Probe only.
+>
+> **Open, and it changes the margin:** the selection term has two measurements that differ by 1.5x --
+> **63 ms in situ vs 97 ms isolated**. If the isolated figure is the honest one the bound is ~110 ms,
+> not ~76. The verdict (target below bound) holds either way; the size of the gap does not. The
+> hypothesis -- radix splits on the high 16 bits, so a narrow dynamic range makes the second pass
+> expensive -- is **unverified**.
+>
+> **No replacement number is set here.** It waits on that 1.5x being resolved.
 
 > **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
 >
