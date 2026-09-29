@@ -13,9 +13,47 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cmath>
+#include <cstddef>
 #include <algorithm>
 #include <numeric>
 #include <vector>
+
+/* =============================================================================
+ * ABI LOCK for XpeCalibrationMetrics -- SRS-CALIB-FUNC-037, QA-A-159 (#223)
+ *
+ * #223 widened this struct. FUNC-037 allows that only by APPENDING: every field
+ * that existed before keeps its name, its type, and its BYTE OFFSET. A caller
+ * built against the old header must be able to read every old field from a
+ * struct filled in by the new library.
+ *
+ * These assertions are what makes that a check rather than an intention. They
+ * fail at COMPILE TIME if a field is inserted, reordered, resized, or removed
+ * -- the three edits that look harmless in a diff and break binaries silently.
+ * Verified to actually fire: QA-A-159 §5 inserted a double before `dsnu` and
+ * every assertion from that point down went red, then reverted.
+ * ============================================================================ */
+
+static_assert(offsetof(XpeCalibrationMetrics, dark_bias)          ==   0, "ABI: dark_bias moved");
+static_assert(offsetof(XpeCalibrationMetrics, dsnu)               ==   8, "ABI: dsnu moved");
+static_assert(offsetof(XpeCalibrationMetrics, residual_noise)     ==  16, "ABI: residual_noise moved");
+static_assert(offsetof(XpeCalibrationMetrics, prnu_before)        ==  24, "ABI: prnu_before moved");
+static_assert(offsetof(XpeCalibrationMetrics, prnu_after)         ==  32, "ABI: prnu_after moved");
+static_assert(offsetof(XpeCalibrationMetrics, flatness_pct)       ==  40, "ABI: flatness_pct moved");
+static_assert(offsetof(XpeCalibrationMetrics, gain_coverage)      ==  48, "ABI: gain_coverage moved");
+static_assert(offsetof(XpeCalibrationMetrics, invalid_gain_count) ==  56, "ABI: invalid_gain_count moved");
+static_assert(offsetof(XpeCalibrationMetrics, defect_count)       ==  60, "ABI: defect_count moved");
+static_assert(offsetof(XpeCalibrationMetrics, defect_density)     ==  64, "ABI: defect_density moved");
+static_assert(offsetof(XpeCalibrationMetrics, correction_error)   ==  72, "ABI: correction_error moved");
+static_assert(offsetof(XpeCalibrationMetrics, snr_improvement_db) ==  80, "ABI: snr_improvement_db moved");
+static_assert(offsetof(XpeCalibrationMetrics, overall_pass)       ==  88, "ABI: overall_pass moved");
+
+// Appended by #223 -- these three must stay AFTER everything above.
+static_assert(offsetof(XpeCalibrationMetrics, dark_reduction_db)  >  offsetof(XpeCalibrationMetrics, overall_pass),
+              "ABI: appended fields must follow the pre-#223 fields");
+static_assert(offsetof(XpeCalibrationMetrics, dsnu_adu)           >  offsetof(XpeCalibrationMetrics, dark_reduction_db),
+              "ABI: appended fields must keep their order");
+static_assert(offsetof(XpeCalibrationMetrics, measured_mask)      >  offsetof(XpeCalibrationMetrics, dsnu_adu),
+              "ABI: appended fields must keep their order");
 
 /* =============================================================================
  * Pass/Fail Thresholds (configurable defaults)
@@ -265,11 +303,19 @@ XPE_API XpeErrorCode xpe_verify_offset(
         //
         // UNMEASURABLE REPORTS AS FAILURE -- SRS-CALIB-FUNC-036.
         //
-        // The requirement now states this: "Until a dedicated status field
-        // exists, an unmeasurable metric shall set overall_pass = false on
-        // every verification path." QA-A-158 (#221) promoted this comment from
-        // a decision to a citation -- it was decided in QA-A-157 (#219) before
-        // the requirement existed, and FUNC-036 was written from that finding.
+        // The requirement states this, and QA-A-158 (#221) promoted this
+        // comment from a decision to a citation -- it was decided in QA-A-157
+        // (#219) before the requirement existed, and FUNC-036 was written from
+        // that finding.
+        //
+        // THE FIELD NOW EXISTS (measured_mask, #223) AND THE false STAYS. The
+        // requirement's "until a dedicated status field exists" phrasing reads
+        // as if one replaces the other; it does not. They answer different
+        // callers: the mask tells a caller that asks WHICH metric is
+        // trustworthy, the false protects the caller that only reads
+        // overall_pass and never learns a mask was added. Dropping the false
+        // once the mask landed would re-open #219 for exactly that caller --
+        // silently, because their code still compiles and still says "passed".
         //
         // This used to set overall_pass = true, which made a frame nobody could
         // measure indistinguishable from a frame that passed. QA-A-152 reported
@@ -293,9 +339,14 @@ XPE_API XpeErrorCode xpe_verify_offset(
         // second because that is the safe fold, and a caller still cannot tell
         // them apart. A separate status field is the actual fix; it needs a
         // requirement first, so it is not made here (#219).
+        // measured_mask keeps DARK_BIAS and DARK_REDUCTION CLEAR: these are
+        // placeholders, not measurements -- SRS-CALIB-FUNC-036. The false below
+        // stays for the caller who never reads the mask (see the field comment).
         metrics->dark_bias = 0.0;
         metrics->dsnu = 0.0;
+        metrics->dsnu_adu = 0.0;
         metrics->residual_noise = 0.0;
+        metrics->dark_reduction_db = 0.0;
         metrics->overall_pass = false;
         return XPE_OK;
     }
@@ -342,9 +393,14 @@ XPE_API XpeErrorCode xpe_verify_offset(
         // is no longer "the darkest decile". On the real fixtures (CalData_6,
         // 7 frames, 9.4 Mpx) `<` selects 8.6-10.0%, an order of magnitude above
         // this 1% floor. So the strict form is right and the floor is the guard.
+        // measured_mask keeps DARK_BIAS and DARK_REDUCTION CLEAR: these are
+        // placeholders, not measurements -- SRS-CALIB-FUNC-036. The false below
+        // stays for the caller who never reads the mask (see the field comment).
         metrics->dark_bias = 0.0;
         metrics->dsnu = 0.0;
+        metrics->dsnu_adu = 0.0;
         metrics->residual_noise = 0.0;
+        metrics->dark_reduction_db = 0.0;
         metrics->overall_pass = false;
         return XPE_OK;
     }
@@ -357,7 +413,12 @@ XPE_API XpeErrorCode xpe_verify_offset(
 
     metrics->dark_bias = mean;
     metrics->dsnu = (mean > 0.0) ? (stddev / mean) * 100.0 : 0.0;
+    // residual_noise and dsnu_adu are the SAME quantity, Protocol.md:204
+    // `DSNU_ADU = std(Y_dark_roi)`. Written from one variable, adjacent, so the
+    // canonical name and the historical name cannot drift -- QA-A-159 (#223).
     metrics->residual_noise = stddev;
+    metrics->dsnu_adu = stddev;
+    metrics->measured_mask |= XPE_METRIC_DARK_BIAS;
 
     // Protocol.md:205 `DarkReduction_dB = 20*log10(std(R_dark_roi) /
     // max(std(Y_dark_roi), epsilon))` -- R is before correction, Y after, over
@@ -369,6 +430,10 @@ XPE_API XpeErrorCode xpe_verify_offset(
     const double raw_stddev_roi = compute_std(dark_raw, raw_mean_roi);
     const double dark_reduction_db =
         20.0 * std::log10(raw_stddev_roi / std::max(stddev, DARK_REDUCTION_EPS));
+    // QA-A-159 (#223): the gate reads this local; the caller reads the field.
+    // They are the same value by construction -- one assignment, no recompute.
+    metrics->dark_reduction_db = dark_reduction_db;
+    metrics->measured_mask |= XPE_METRIC_DARK_REDUCTION;
 
     // PASS/FAIL -- SRS-CALIB-FUNC-016:147 and Protocol.md:211, verbatim:
     //     `abs(DarkBias) <= 5 ADU` OR `DarkReduction_dB >= 10 dB`
@@ -482,6 +547,7 @@ XPE_API XpeErrorCode xpe_verify_gain(
 
     // Compute gain coverage
     metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
+    metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_GAIN_COVERAGE | XPE_METRIC_SNR;
 
     // Compute SNR improvement in dB
     if (metrics->prnu_before > 0.0 && metrics->prnu_after > 0.0) {
@@ -600,6 +666,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
 
     // Compute defect density
     metrics->defect_density = (static_cast<double>(metrics->defect_count) / pixel_count) * 100.0;
+    metrics->measured_mask |= XPE_METRIC_DEFECT;
 
     // Compute mean correction error
     metrics->correction_error = (error_samples > 0) ? (total_error / error_samples) : 0.0;
@@ -692,6 +759,7 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
     double snr_final = (mean_final > 0.0) ? (20.0 * std::log10(mean_final / std_final)) : 0.0;
 
     metrics->snr_improvement_db = snr_final - snr_raw;
+    metrics->measured_mask |= XPE_METRIC_SNR;
 
     // Pass/fail determination
     metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
