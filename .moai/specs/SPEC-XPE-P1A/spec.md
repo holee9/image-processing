@@ -268,7 +268,35 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
-- **Performance** (redefined 2026-09-12, #144 — see the note below): improvement target **<= 60 ms (AVX2, single thread) on the development machine** for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+- **Performance** (redefined **2026-09-29, `#143`** — supersedes the 2026-09-12 `#144` definition;
+  see the notes below): improvement target **<= 1.3x the measured lower bound of this algorithm,
+  same machine and same timing mode** (AVX2, single thread)
+  - **Why a ratio and not milliseconds.** Two measurements made the absolute number unusable.
+    (a) The 60 ms figure was derived from a lower bound that **did not contain the tile-sigma
+    stage** (`QA-A-56`: 15.97 network + 11.1 global sigma = 27.1), and `QA-A-166` measured this
+    algorithm's bound at **~76 ms** -- so 60 ms sat *below* its own floor, exactly the condition
+    that retired 35 ms and 12 ms. (b) `QA-A-167` found this lane's timings are **bimodal**: the
+    same binary, same arguments, same test alternates 65.50 / 96.19 / 65.35 / 96.17 ms --
+    **1.47x**, reproducible to 0.2% *within* each mode. An absolute millisecond target cannot be
+    stated against a machine that answers two numbers. **A ratio measured in one mode cancels
+    both problems**, and this file already took that step once -- the 810 ms gate became a ratio
+    for the same reason (2026-09-16 note below).
+  - **The bound is the fast mode.** `QA-A-56` cited a minimum for the same reason: a lower bound
+    is what the arithmetic cannot avoid, not what a loaded scheduler happens to deliver.
+    Components (`QA-A-166`, `QA-A-167`, 3072x3072): network 7.71 + tile difference 5.28 +
+    tile selection ~65 (three independent readings agree: 65.4 fast-mode, 63 in-situ, 64.8
+    same-loop) + memory 2.46 = **~76 ms**.
+  - **1.3x, and why that number.** The old target was 2.21x its bound (60 / 27.1) -- applied here
+    that would be 168 ms, *above* what already ships, so it would ask for nothing. The shipped
+    code is already at roughly 1.6x. 1.3x asks for a real improvement while staying above the
+    floor. **It is a target, not a gate**; the regression gate remains the ratio gate below.
+  - **Both terms must come from the same mode.** A ratio built from a fast-mode bound and a
+    slow-mode measurement reports 1.47x of improvement that does not exist. `QA-A-165`'s 131 ms
+    and `QA-A-166`'s 122 ms were **not** recorded with their mode, so the current ratio is not
+    yet established -- see the status note.
+  - **Machine identity closed (`QA-A-167`).** The `QA-A-84` note names the development machine as
+    i7-12700 and this lane runs a 12th Gen Intel Core i7-12700. Same **model**; not proof of the
+    same **unit**, and the `memcpy` 0.88x gap is within what the bimodality above can produce. for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
 
 > **Which machine the 60 ms target refers to (clarified 2026-09-17, QA-A-84).** Until this date the
 > line above named four conditions — AVX2, single thread, 3072x3072, FLOAT32 — and **no machine**. This
