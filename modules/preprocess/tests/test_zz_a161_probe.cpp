@@ -1042,3 +1042,98 @@ TEST_F(A161Probe, DISABLED_OrthogonalityFalsification) {
     }
     std::printf("(* = over the 1e-5 requirement)\n");
 }
+
+// QA-A-165: what is LEFT in ComputeTileSigmas after the push_back removal.
+//
+// The indexed-store surgery moved 3072^2 from 131 to ~122 ms, far less than the
+// 72 ms the stage costs. So push_back was not the dominant term and the rest has
+// to be attributed before anyone decides whether more is available.
+//
+// Two candidates: producing the differences (a strided read over the frame) and
+// selecting the two medians. This times the difference production alone against
+// the whole stage.
+TEST_F(A161Probe, DISABLED_WhatRemainsInTileSigmas) {
+    constexpr uint32_t kBigW = 3072, kBigH = 3072;
+    const size_t bigN = static_cast<size_t>(kBigW) * kBigH;
+    std::mt19937 rng(20260911u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> frame(bigN);
+    for (size_t i = 0; i < bigN; ++i) frame[i] = 3000.0f + 10.0f * g(rng);
+    XpeImageBuffer img{};
+    img.data = frame.data(); img.width = kBigW; img.height = kBigH;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(bigN * sizeof(float));
+
+    constexpr uint32_t T = RUNTIME_DETECTION_TILE_SIZE;
+    const uint32_t tilesX = (kBigW + T - 1u) / T, tilesY = (kBigH + T - 1u) / T;
+    const size_t maxPerTile = 2u * static_cast<size_t>(T) * (T - 1u);
+
+    for (int run = 0; run < 3; ++run) {
+        // differences only -- the same loops, no selection
+        std::unique_ptr<float[]> buf(new float[maxPerTile]);
+        volatile float sink = 0.0f;
+        auto t0 = std::chrono::steady_clock::now();
+        for (uint32_t ty = 0; ty < tilesY; ++ty)
+            for (uint32_t tx = 0; tx < tilesX; ++tx) {
+                const uint32_t x0 = tx * T, x1 = std::min(x0 + T, kBigW);
+                const uint32_t y0 = ty * T, y1 = std::min(y0 + T, kBigH);
+                float* out = buf.get(); size_t n = 0;
+                for (uint32_t y = y0; y < y1; ++y) {
+                    const float* row = frame.data() + static_cast<size_t>(y) * kBigW;
+                    for (uint32_t x = x0 + 1u; x < x1; ++x) out[n++] = row[x] - row[x - 1u];
+                }
+                for (uint32_t y = y0 + 1u; y < y1; ++y) {
+                    const float* row = frame.data() + static_cast<size_t>(y) * kBigW;
+                    const float* up = row - kBigW;
+                    for (uint32_t x = x0; x < x1; ++x) out[n++] = row[x] - up[x];
+                }
+                if (n) sink = out[n - 1u];
+            }
+        auto t1 = std::chrono::steady_clock::now();
+        uint32_t tx2 = 0;
+        std::vector<float> table = ComputeTileSigmas(&img, T, &tx2);
+        auto t2 = std::chrono::steady_clock::now();
+        (void)sink;
+        const double msDiff  = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        const double msWhole = std::chrono::duration<double, std::milli>(t2 - t1).count();
+        std::printf("[a165] run %d : differences only %6.1f ms | whole stage %6.1f ms"
+                    " -> selection %6.1f ms (%.0f%%)\n",
+                    run, msDiff, msWhole, msWhole - msDiff,
+                    100.0 * (msWhole - msDiff) / msWhole);
+    }
+}
+
+// QA-A-165: why the tile stage costs more PER ELEMENT than the frame stage.
+//
+// SelectKthSmallest allocates a 65536-entry histogram per call, zeroes it, then
+// zeroes it again between its two passes, and walks all 65536 buckets twice.
+// That is a fixed cost of roughly 200K operations per call, independent of n.
+//
+//   frame sigma : n = 9.4M, 2 calls   -> fixed cost is noise
+//   tile sigma  : n = 32512, 1152 calls -> fixed cost may dominate
+//
+// Same total elements, different call counts. If the split version is much
+// slower, the cost is per-call and not per-element.
+TEST_F(A161Probe, DISABLED_SelectionFixedCostPerCall) {
+    constexpr size_t kTotal = 18u * 1024u * 1024u;
+    std::mt19937 rng(20260911u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> data(kTotal);
+    for (size_t i = 0; i < kTotal; ++i) data[i] = g(rng);
+
+    for (size_t chunk : {kTotal, kTotal / 64u, static_cast<size_t>(32512)}) {
+        const size_t calls = (kTotal + chunk - 1u) / chunk;
+        volatile float sink = 0.0f;
+        const auto t0 = std::chrono::steady_clock::now();
+        for (size_t off = 0; off < kTotal; off += chunk) {
+            const size_t n = std::min(chunk, kTotal - off);
+            sink = SelectKthSmallest(data.data() + off, n, n / 2u);
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+        (void)sink;
+        const double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::printf("[a165] %8zu elements per call, %5zu calls : %7.1f ms  (%.1f ns/element)\n",
+                    chunk, calls, ms, ms * 1e6 / static_cast<double>(kTotal));
+    }
+}
