@@ -165,6 +165,35 @@ public sealed class GuiAutomationReport
     /// <summary>#225 row 16: the status line the app showed after that run.</summary>
     public string? GuiE2EStatus { get; set; }
 
+    /// <summary>#225 row 5 (GUI-C-160): the status line after the runtime-log export.</summary>
+    public string? RuntimeLogExportStatus { get; set; }
+
+    /// <summary>#225 row 5: the file the app says it wrote, so a test can open it.</summary>
+    public string? RuntimeLogExportPath { get; set; }
+
+    /// <summary>#225 row 5: lines actually present in that file, read back by the app after writing.</summary>
+    public int RuntimeLogExportLineCount { get; set; }
+
+    /// <summary>
+    /// #225 row 1 (GUI-C-160): entries the recent-file history already held when this process started,
+    /// BEFORE this run loaded anything. Non-zero only when a previous run wrote to the same settings
+    /// file — which is the persistence the row was missing.
+    /// </summary>
+    public int RecentRawFileCountAtStartup { get; set; }
+
+    /// <summary>#225 row 1: entries after this run's load.</summary>
+    public int RecentRawFileCount { get; set; }
+
+    /// <summary>#225 row 1: the newest entry after this run's load.</summary>
+    public string? MostRecentRawFile { get; set; }
+
+    /// <summary>
+    /// #225 row 1 (GUI-C-160): whether the settings file on disk already carried the newest history
+    /// entry BEFORE the scenario pressed Save. This is what attributes the persistence to the app
+    /// rather than to the operator's save.
+    /// </summary>
+    public bool RecentHistoryPersistedBeforeSave { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }

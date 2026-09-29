@@ -154,8 +154,11 @@ static void RunWpfE2E()
         Assert(nativeModeMenuItem.IsEnabled, "Native backend mode is disabled; #225 row 4 made it a live switch.");
         Assert(nativeModeMenuItem.Command is not null, "Native backend mode menu item has no command bound.");
 
-        // Still correct: row 5 of the #225 table (runtime log export) has not been implemented.
-        Assert(!openRuntimeLogsMenuItem.IsEnabled, "Runtime logs menu must be disabled until persistent runtime log export exists.");
+        // #225 row 5 landed in GUI-C-160, so this assertion moves forward the same way rows 4 and 6 did
+        // in GUI-C-158: what used to be "not built yet" is now "built and wired". GUI-C-158 recorded it
+        // as still correct at the time, which it was.
+        Assert(openRuntimeLogsMenuItem.IsEnabled, "Runtime logs menu is disabled; #225 row 5 wired it.");
+        Assert(openRuntimeLogsMenuItem.Command is not null, "Runtime logs menu item has no command bound.");
 
         Assert(pInvokeSmokeMenuItem.IsEnabled, "P/Invoke smoke menu is disabled; #225 row 6 wired it.");
         Assert(pInvokeSmokeMenuItem.Command is not null, "P/Invoke smoke menu item has no command bound.");

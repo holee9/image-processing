@@ -74,6 +74,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool? _selfCheckPassed;
     private bool _guiE2ERunning;
     private bool? _guiE2EPassed;
+    private string? _lastRuntimeLogExportPath;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -130,6 +131,10 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowStageTimingCommand = new RelayCommand(ShowStageTiming);
         RunSelfCheckCommand = new RelayCommand(() => _ = RunSelfCheckAsync());
         RunGuiE2ECommand = new RelayCommand(() => _ = RunGuiE2EAsync());
+        LoadRecentRawFileCommand = new RelayCommand<string>(path => _ = LoadRecentRawFileAsync(path));
+        // Seeded from the persisted settings: the history exists before this process does (#225 row 1).
+        RefreshRecentRawFiles();
+        ExportRuntimeLogsCommand = new RelayCommand(ExportRuntimeLogs);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -428,6 +433,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>#225 row 16: runs the GUI E2E runner and reports its verdict.</summary>
     public RelayCommand RunGuiE2ECommand { get; }
+
+    /// <summary>#225 row 5: writes the in-memory runtime log to a file under this run set's evidence.</summary>
+    public RelayCommand ExportRuntimeLogsCommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -1480,6 +1488,83 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// #225 row 1 (GUI-C-160): records a successfully loaded raw file at the head of the history and
+    /// persists it immediately.
+    ///
+    /// <para>Written only on a load that SUCCEEDED — this sits after the frame is in hand, so a path
+    /// that failed to load never enters the list. A history of files that cannot be opened is worse
+    /// than none: every entry is an invitation to the same failure.</para>
+    ///
+    /// <para>Saved here rather than waiting for File -> Save Settings, because "persisted" is the
+    /// feature; a list that only survives when the operator happens to save is not a history.</para>
+    /// </summary>
+    private void RememberRecentRawFile(string path)
+    {
+        const int capacity = 8;
+
+        var history = Settings.RecentRawFiles
+            .Where(entry => !string.Equals(entry, path, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        history.Insert(0, path);
+        if (history.Count > capacity)
+        {
+            history.RemoveRange(capacity, history.Count - capacity);
+        }
+
+        Settings.RecentRawFiles = history;
+        RefreshRecentRawFiles();
+
+        try
+        {
+            _settingsService.Save(Settings);
+        }
+        catch (Exception ex)
+        {
+            // The image is loaded either way; losing the history entry must not look like a load failure.
+            Log($"Recent-file history could not be persisted: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void RefreshRecentRawFiles()
+    {
+        RecentRawFiles.Clear();
+        foreach (var path in Settings.RecentRawFiles)
+        {
+            RecentRawFiles.Add(new RecentRawFile(path, LoadRecentRawFileCommand));
+        }
+
+        OnPropertyChanged(nameof(HasRecentRawFiles));
+    }
+
+    /// <summary>The Open Recent submenu's entries, newest first (#225 row 1).</summary>
+    public ObservableCollection<RecentRawFile> RecentRawFiles { get; } = new();
+
+    /// <summary>Whether Open Recent has anything to offer; the menu item is disabled when it does not.</summary>
+    public bool HasRecentRawFiles => RecentRawFiles.Count > 0;
+
+    /// <summary>Loads one entry of the history (#225 row 1).</summary>
+    public RelayCommand<string> LoadRecentRawFileCommand { get; }
+
+    private async Task LoadRecentRawFileAsync(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        if (!File.Exists(path))
+        {
+            // Kept in the list rather than dropped: a file on a disconnected share comes back, and
+            // silently removing the entry would make the operator think they never opened it.
+            StatusText = $"Recent file is not available: {path}";
+            Log(StatusText);
+            return;
+        }
+
+        await LoadImageFromPathAsync(path, "recent raw");
+    }
+
     private void SaveSettings()
     {
         _settingsService.Save(Settings);
@@ -1549,6 +1634,68 @@ public sealed class MainWindowViewModel : ObservableObject
             ? $"Fixture pack available: {fixtureRoot}"
             : $"Fixture pack missing: {fixtureRoot}";
         Log(StatusText);
+    }
+
+    /// <summary>
+    /// #225 row 5 (GUI-C-160): writes the runtime log the app is already keeping in memory to a file
+    /// under this run set's evidence directory, and reports the path.
+    ///
+    /// <para>Row 5's missing piece was named precisely: the list on screen was live, the way OUT of the
+    /// process was not. This writes; it deliberately does not launch anything to view the file — the
+    /// menu used to say "Open", and starting an external viewer from a medical-device GUI is a decision
+    /// nobody has made. The header now says Export, which is what it does.</para>
+    ///
+    /// <para>The directory is the one the app already owns — <c>evidence/&lt;RunId&gt;</c>, created by
+    /// <see cref="RecordVerdict"/> and zipped by the bundle export — so the log lands inside whatever a
+    /// later bundle packages rather than in a second place nobody collects.</para>
+    /// </summary>
+    private void ExportRuntimeLogs()
+    {
+        // Same guard as RecordVerdict and the bundle export (#178): without a run id the path collapses
+        // to evidence/ itself.
+        if (string.IsNullOrWhiteSpace(RunSet.RunId))
+        {
+            StatusText = "Runtime logs not exported: no run set has started.";
+            Log(StatusText);
+            return;
+        }
+
+        if (Logs.Count == 0)
+        {
+            StatusText = "Runtime logs not exported: the log is empty.";
+            return;
+        }
+
+        try
+        {
+            var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "runtime-log.txt");
+
+            // Snapshot first: Logs is an ObservableCollection the UI thread mutates, and enumerating it
+            // while a backend drain appends throws.
+            var lines = Logs.ToArray();
+            File.WriteAllLines(path, lines);
+
+            StatusText = $"Runtime logs exported ({lines.Length} lines): {path}";
+            LastRuntimeLogExportPath = path;
+            Log($"Runtime logs written to '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Runtime logs could not be exported: {ex.Message}";
+            Log($"Runtime log export failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Where <see cref="ExportRuntimeLogsCommand"/> last wrote; null before it has succeeded. Recorded
+    /// so a test can open the file the app claims it wrote rather than trusting the status line.
+    /// </summary>
+    public string? LastRuntimeLogExportPath
+    {
+        get => _lastRuntimeLogExportPath;
+        private set => SetProperty(ref _lastRuntimeLogExportPath, value);
     }
 
     private void ExportAutomationReport()
@@ -1721,6 +1868,7 @@ public sealed class MainWindowViewModel : ObservableObject
         MetadataText = loadedFrame.MetadataText;
         StatusText = $"Loaded {sourceLabel} '{path}'.";
         Log($"Loaded {sourceLabel} '{path}'.");
+        RememberRecentRawFile(path);
         await ApplyDisplayPipelineAsync();
     }
 
