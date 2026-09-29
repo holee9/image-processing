@@ -370,6 +370,17 @@ void row(const char* name, const Result& uni5, const Result& sc, const Result& e
                 (uni5.tpr >= kTprFloor && uni5.fpr < kFprCap) ? "YES" : "no");
 }
 
+// QA-A-162: the requirement now names 10 sigma for TPR, so the pass/fail column
+// reads TPR@10-sigma AND FPR. The structured columns are carried at the same
+// amplitude -- a candidate that meets the bar on uniform frames and collapses
+// on a ramp is not a candidate.
+void row10(const char* name, const Result& u, const Result& sc,
+           const Result& ed, const Result& li) {
+    std::printf("| %-26s | %8.4f | %.4f | %.4f | %.4f | %.3e | %7.1f | %-3s |\n",
+                name, u.tpr, sc.tpr, ed.tpr, li.tpr, u.fpr, u.ms,
+                (u.tpr >= kTprFloor && u.fpr < kFprCap) ? "YES" : "no");
+}
+
 class A161Probe : public ::testing::Test {
 protected:
     void SetUp() override { ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr)); }
@@ -407,6 +418,45 @@ TEST_F(A161Probe, DISABLED_PremiseStructuredFrameTprToday) {
         std::printf("[a161] PREMISE %-8s shipped TPR@5s=%.6f TPR@10s=%.6f FPR=%.3e\n",
                     name, r5.tpr, r10.tpr, r5.fpr);
     }
+}
+
+// QA-A-162 (#143): TPR is now specified at 10 sigma, so the whole table is
+// re-read at that amplitude. The question changed from "raise TPR@5s" to
+// "hold TPR@10s >= 0.999 while pushing FPR under 1e-5".
+TEST_F(A161Probe, DISABLED_CandidateTableAt10Sigma) {
+    std::printf("\n| candidate                  | uniTPR10 | scatTPR | edgeTPR | lineTPR | uniFPR    |   ms    | req |\n");
+    std::printf("|----------------------------|----------|---------|---------|---------|-----------|---------|-----|\n");
+
+    auto shippedDet = [](std::vector<float>& f, double* ms) { return detectShipped(f, ms); };
+    row10("0 baseline (shipped)",
+          measureOn(uniform10, 10.0f, 20260911u, shippedDet),
+          measureOn(scatterFrame, 10.0f, 20260911u, shippedDet),
+          measureOn(edgeFrame, 10.0f, 20260911u, shippedDet),
+          measureOn(lines13Frame, 10.0f, 20260911u, shippedDet));
+
+    const Variant variants[] = {
+        {"0L baseline scalar",      3, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"-- ORACLE true sigma",    3, SigmaRule::Oracle,       0.0f, 0},
+        {"1a window 5",             5, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"1b window 7",             7, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"1c window 9",             9, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"2b blend w=0.25",         3, SigmaRule::Blend,        0.25f, 0},
+        {"2c blend w=0.15",         3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",         3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",         3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25",    5, SigmaRule::Blend,        0.25f, 0},
+        {"5b w7 + blend w=0.25",    7, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15",    5, SigmaRule::Blend,        0.15f, 0},
+    };
+    for (const Variant& v : variants) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        row10(v.name,
+              measureOn(uniform10, 10.0f, 20260911u, det),
+              measureOn(scatterFrame, 10.0f, 20260911u, det),
+              measureOn(edgeFrame, 10.0f, 20260911u, det),
+              measureOn(lines13Frame, 10.0f, 20260911u, det));
+    }
+    std::printf("\n");
 }
 
 TEST_F(A161Probe, DISABLED_CandidateTable) {
@@ -454,6 +504,87 @@ TEST_F(A161Probe, DISABLED_CandidateTable) {
             measureOn(scatterFrame, 5.0f, 20260911u, det),
             measureOn(edgeFrame, 5.0f, 20260911u, det),
             measureOn(lines13Frame, 5.0f, 20260911u, det));
+    }
+    std::printf("\n");
+}
+
+// QA-A-162: THE TOP CANDIDATES ARE SEPARATED BY A HANDFUL OF PIXELS.
+//
+// FPR 1e-5 on a 1024x1024 frame is 10.49 pixels. The leading candidates landed
+// at 0, 1, 2 and 5 false pixels on one seed -- differences that a single frame
+// cannot resolve, because a count that small is dominated by Poisson noise.
+// Ranking them on one seed would be reading the seed, not the algorithm.
+//
+// This case re-measures FPR only, over several seeds, and reports the TOTAL
+// count and the pooled rate. It also reports TPR@10-sigma per seed so a
+// candidate cannot buy its FPR with detection it quietly gave up.
+TEST_F(A161Probe, DISABLED_FprAcrossSeeds) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const Variant cands[] = {
+        {"0L baseline scalar",   3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"-- ORACLE true sigma", 3, SigmaRule::Oracle,       0.0f,  0},
+        {"1b window 7",          7, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"1c window 9",          9, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"2b blend w=0.25",      3, SigmaRule::Blend,        0.25f, 0},
+        {"2c blend w=0.15",      3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",      3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",      3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25", 5, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15", 5, SigmaRule::Blend,        0.15f, 0},
+    };
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    const double budgetPixels = kFprCap * static_cast<double>(kN);
+
+    std::printf("\n| candidate                  | FP total | frames | pooled FPR | worst TPR10 | req |\n");
+    std::printf("|----------------------------|----------|--------|------------|-------------|-----|\n");
+    for (const Variant& v : cands) {
+        size_t fpTotal = 0;
+        double worstTpr = 1.0;
+        for (uint32_t sd : seeds) {
+            auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+            const Result r = measureOn(uniform10, 10.0f, sd, det);
+            fpTotal += r.fp;
+            worstTpr = std::min(worstTpr, r.tpr);
+        }
+        const double pooled = static_cast<double>(fpTotal) / (static_cast<double>(kN) * nSeeds);
+        std::printf("| %-26s | %8zu | %6zu | %.4e | %11.4f | %-3s |\n",
+                    v.name, fpTotal, nSeeds, pooled, worstTpr,
+                    (pooled < kFprCap && worstTpr >= kTprFloor) ? "YES" : "no");
+    }
+    std::printf("[a161] budget per frame = %.2f false pixels; %zu frames -> %.1f total\n",
+                budgetPixels, nSeeds, budgetPixels * nSeeds);
+}
+
+// QA-A-162: WHAT THE SURVIVORS PAY AT LOWER AMPLITUDES.
+//
+// 5c's pooled FPR (2.29e-06) is BELOW the ORACLE's (4.96e-06). A detector
+// cannot beat the true sigma by estimating better -- it beats it by estimating
+// sigma HIGH, which raises the threshold and buys false-positive reduction with
+// detection. At 10 sigma the margin hides that; the requirement's amplitude is
+// not the only amplitude a panel sees, so the price is measured here.
+//
+// This is the mirror of the risk already recorded for 4a (tile sigma came out
+// BELOW the true sigma, buying detection with false positives).
+TEST_F(A161Probe, DISABLED_AmplitudeSweepOfSurvivors) {
+    const Variant cands[] = {
+        {"0L baseline scalar",   3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"-- ORACLE true sigma", 3, SigmaRule::Oracle,       0.0f,  0},
+        {"2c blend w=0.15",      3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",      3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",      3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25", 5, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15", 5, SigmaRule::Blend,        0.15f, 0},
+    };
+    std::printf("\n| candidate                  | TPR@6s | TPR@7s | TPR@8s | TPR@10s |\n");
+    std::printf("|----------------------------|--------|--------|--------|---------|\n");
+    for (const Variant& v : cands) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        const Result r6  = measureOn(uniform10,  6.0f, 20260911u, det);
+        const Result r7  = measureOn(uniform10,  7.0f, 20260911u, det);
+        const Result r8  = measureOn(uniform10,  8.0f, 20260911u, det);
+        const Result r10 = measureOn(uniform10, 10.0f, 20260911u, det);
+        std::printf("| %-26s | %.4f | %.4f | %.4f | %7.4f |\n",
+                    v.name, r6.tpr, r7.tpr, r8.tpr, r10.tpr);
     }
     std::printf("\n");
 }
