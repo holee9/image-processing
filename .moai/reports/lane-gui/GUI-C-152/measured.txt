@@ -1,0 +1,105 @@
+GUI-C-152 â€” measured output (verbatim). Read-only; no implementation, no IsEnabled change.
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] disabled menu items (IsEnabled="False") in gui/ImageProcTest/MainWindow.xaml
+    count: 21
+    OpenRecentMenuItem                 :82    Open _Recent                                 | Enabled when recent file history is persisted.
+    OpenDicomMenuItem                  :87    Open _DICOM... (Phase 1b)                    | Real DICOM read/write is owned by xpe_dicom.dll in Phase 1b.
+    ExportEvidenceBundleMenuItem       :101   Export Evidence _Bundle (Phase 1a+)          | Enabled when deterministic run artifacts can be packaged as a review bundle.
+    NativeBackendModeMenuItem          :133   _Native (SPRINT-P0-07)                       | Native backend activation starts after RealXpeBackend and P/Invoke integration.
+    OpenRuntimeLogsMenuItem            :145   Open Runtime _Logs (Phase 1a+)               | Enabled when persistent runtime log export is available.
+    PInvokeSmokeTestMenuItem           :150   Run P/_Invoke Smoke Test (SPRINT-P0-07)      | Requires xpe_common.dll and RealXpeBackend integration.
+    ShowCalibrationPanelMenuItem       :178   Calibration Paths Panel (Phase 1a)           | (no tooltip)
+    ShowDisplaySettingsPanelMenuItem   :184   Display Settings Panel (Phase 1b)            | (no tooltip)
+    RunDeterministicBaselineMenuItem   :319   Run _Deterministic Baseline (Phase 1b)       | Requires preprocess, enhance_basic, display, and dicom modules.
+    RunFullPipelineMenuItem            :324   Run _Full Pipeline (Phase 2/3)               | Requires optional premium and assistive modules.
+    StopProcessingMenuItem             :329   _Stop Processing                             | Enabled after a real processing run command exists.
+    StageTimingMenuItem                :335   Stage _Timing                                | Enabled when real pipeline timing evidence is available.
+    OpenPipelineDiagnosticsMenuItem    :340   Open Pipeline _Diagnostics (Phase 1a+)       | Enabled when pipeline execution traces and timing diagnostics exist.
+    OpenEvidenceFolderMenuItem         :362   Open Evidence _Folder (Phase 1a+)            | Enabled when the evidence artifact directory is managed by the app.
+    RunSelfCheckMenuItem               :368   Run _Self-Check                              | Available through the current test runner; in-app launch is a later tools command.
+    RunGuiE2EMenuItem                  :373   Run GUI _E2E                                 | Available through the current test runner; in-app launch is a later tools command.
+    BenchmarkRunnerMenuItem            :378   _Benchmark Runner (Phase 1a+)                | Requires benchmark manifests and native module execution.
+    QaConstancyMenuItem                :383   _QA Constancy (Phase 1b+)                    | Requires QA workflow implementation.
+    GsdfCalibrateMenuItem              :388   _GSDF Calibrate... (Phase 1b+)               | Enabled when validated DICOM PS3.14 luminance calibration workflow exists.
+    OpenApiReferenceMenuItem           :416   _API Reference (DocFX/Doxygen)               | Enabled when generated API reference is packaged.
+    OpenTroubleshootingMenuItem        :421   _Troubleshooting (Phase 1b)                  | Enabled when deterministic baseline troubleshooting pages are packaged.
+
+[2] tally (scripted; asserts unclassified==0 and sum==21)
+    °¡´É         15  rows: 1 3 4 5 6 7 8 11 12 13 14 15 16 17 20
+    ¼±Çà ÇÊ¿ä       4  rows: 2 9 10 21
+    »ç¶÷ ÇÊ¿ä       2  rows: 18 19
+    
+    unclassified: 0
+    sum = 21  (must equal 21): OK
+
+[3] PipelineOrchestrator: external call sites
+    0 outside its own file
+
+[4] live vs dead-file native symbols in gui
+    gui total (as counted in C-151): 31
+    gui LIVE (excluding the unreferenced PipelineOrchestrator.cs): 24
+    
+    declared ONLY inside the dead file (7):
+       xpe_calc_exposure_index
+       xpe_contrast_enhance
+       xpe_dicom_read
+       xpe_dicom_write
+       xpe_edge_enhance
+       xpe_log_transform
+       xpe_noise_reduce
+    
+    live symbols (24):
+       xpe_alloc_image                RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_apply_modality_lut         RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_apply_presentation_lut     RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_apply_voi_lut              RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_calib_load_defect_map      XpePreprocessInterop.cs
+       xpe_calib_load_gain            XpePreprocessInterop.cs
+       xpe_calib_load_offset          XpePreprocessInterop.cs
+       xpe_clear_alerts               XpeDisplayInterop.cs
+       xpe_defect_correct             XpePreprocessInterop.cs
+       xpe_display_version            RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_free_image                 RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_gain_correct               XpePreprocessInterop.cs
+       xpe_get_pending_alert          XpeDisplayInterop.cs
+       xpe_get_pending_alert_count    XpeDisplayInterop.cs
+       xpe_gsdf_calibrate             RealXpeBackend.cs, XpeDisplayInterop.cs
+       xpe_gsvg_init                  XpeGsvgInterop.cs
+       xpe_gsvg_process_ex            XpeGsvgInterop.cs
+       xpe_gsvg_shutdown              XpeGsvgInterop.cs
+       xpe_gsvg_version               XpeGsvgInterop.cs
+       xpe_nonlinearity_correct       XpePreprocessInterop.cs
+       xpe_offset_correct             XpePreprocessInterop.cs
+       xpe_preprocess_init            XpePreprocessInterop.cs
+       xpe_preprocess_shutdown        XpePreprocessInterop.cs
+       xpe_voi_preset_create          RealXpeBackend.cs, XpeDisplayInterop.cs
+
+[5] QA constancy preconditions â€” searched, not guessed
+    flat/uniform reference image files (repo-wide, build excluded):
+      (none printed = none found)
+    image fixtures that DO exist:
+      gui/ImageProcTest/fixtures/gui-s0/raw/synthetic_1024x1024.raw
+      gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw
+    numeric SNR/uniformity criteria in docs+specs:
+      docs/ai-module/README.md:154:**ì„±ëŠ¥**: â‰¤ 2000ms, PSNR â‰¥ 33dB, SSIM â‰¥ 0.97  
+      docs/ai-module/SRS-AI-001_Software_Requirements_Specification.md:199:- í’ˆì§ˆ: PSNR â‰¥ 33dB, SSIM â‰¥ 0.97
+      docs/ai-module/xpe-ai-prd.md:165:- PSNR â‰¥ 33dB (vs ground truth)
+      docs/archive/superseded/XPE-Implementation-Analysis-Report.md:151:| **Bone Suppression** | Virtual dual-energy subtraction for lung nodule detection | PSNR >= 33dB, SSIM >= 0.97 |
+      (only AI-module PSNR/SSIM matched â€” a different requirement)
+    plan references:
+      docs/project/product.md:159:| `SUP-05` QA / constancy | `SWU-6.1` | release baseline validation surface |
+      .moai/specs/SPEC-XPE-MASTER/spec.md:329:| P1b-13 | QA Constancy Test (C#) | SWU-6.1 | SUP-05 | Should |
+      docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md:163:| `BI-02.05.02` | Add QA constancy test host workflow | `PRD-P1B-009` | Must | `BI-02.04.01`, `BI-03.03.01` |
+      docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md:266:| `BI-05.05.03` | Implement QA constancy baseline workflow and result artifact | `PRD-P1B-009` | Must | `BI-02.05.02`, `BI-05.04.03` |
+      docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md:267:| `BI-05.05.04` | Produce raw-to-DICOM Phase 1 demo package | `M3` | Must | `BI-05.05.03` |
+
+[6] preconditions present in repo (row evidence)
+    recent-file persistence    0 files
+    SelfCheck project          gui/ImageProcTest.SelfCheck/
+    E2E project                gui/ImageProcTest.E2E/
+    benchmark manifest         benchmark/BP-01-05-preprocess-manifest.md
+    docfx/doxygen config       ./docs/help/docfx/docfx.json ./docs/help/doxygen/Doxyfile 
+    gsdf live call             25:        "xpe_gsdf_calibrate"
+
+[7] no file in either app was modified
