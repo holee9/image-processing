@@ -921,30 +921,49 @@ inline std::vector<float> ComputeTileSigmas(const XpeImageBuffer* img,
     table.assign(static_cast<size_t>(tilesX) * tilesY, fallback);
 
     const float* pixels = static_cast<const float*>(img->data);
-    std::vector<float> diffs;
-    diffs.reserve(static_cast<size_t>(tileSize) * tileSize * 2u);
+
+    // QA-A-165 (#143): one buffer, sized once, written by index -- the same
+    // surgery QA-A-59 (#144) performed on ComputeGlobalSigma, for the same two
+    // reasons. push_back re-checks size against capacity and bumps the size
+    // member on every write; an indexed store does neither. And `new float[n]`
+    // rather than std::vector<float>(n) because vector value-initialises, which
+    // would add a zero-fill pass this never paid.
+    //
+    // The buffer is sized for the LARGEST tile, then reused across tiles. Edge
+    // tiles are smaller and simply use a prefix of it. Count per tile:
+    //   horizontal  rows * (cols - 1)
+    //   vertical    (rows - 1) * cols
+    // both at most tileSize * (tileSize - 1), so the sum bounds every tile.
+    const size_t maxPerTile = 2u * static_cast<size_t>(tileSize) * (tileSize - 1u);
+    std::unique_ptr<float[]> diffs(maxPerTile ? new float[maxPerTile] : nullptr);
 
     for (uint32_t ty = 0; ty < tilesY; ++ty) {
         for (uint32_t tx = 0; tx < tilesX; ++tx) {
             const uint32_t x0 = tx * tileSize, x1 = (x0 + tileSize < w) ? x0 + tileSize : w;
             const uint32_t y0 = ty * tileSize, y1 = (y0 + tileSize < h) ? y0 + tileSize : h;
-            diffs.clear();
-            for (uint32_t y = y0; y < y1; ++y)
-                for (uint32_t x = x0 + 1u; x < x1; ++x)
-                    diffs.push_back(pixels[static_cast<size_t>(y) * w + x] -
-                                    pixels[static_cast<size_t>(y) * w + x - 1u]);
-            for (uint32_t y = y0 + 1u; y < y1; ++y)
-                for (uint32_t x = x0; x < x1; ++x)
-                    diffs.push_back(pixels[static_cast<size_t>(y) * w + x] -
-                                    pixels[static_cast<size_t>(y - 1u) * w + x]);
-            if (diffs.empty()) continue;   // keeps the fallback; patched below
-            const size_t mid = diffs.size() / 2u;
-            const float median = SelectKthSmallest(diffs.data(), diffs.size(), mid);
-            for (float& v : diffs) v = std::abs(v - median);
+            float* out = diffs.get();
+            size_t n = 0;
+            // The two loops keep their original order and their original
+            // arithmetic, so the values land in the buffer in the order
+            // push_back produced them. The selection is order-independent, but
+            // matching it exactly is what makes this a pure optimisation.
+            for (uint32_t y = y0; y < y1; ++y) {
+                const float* row = pixels + static_cast<size_t>(y) * w;
+                for (uint32_t x = x0 + 1u; x < x1; ++x) out[n++] = row[x] - row[x - 1u];
+            }
+            for (uint32_t y = y0 + 1u; y < y1; ++y) {
+                const float* row = pixels + static_cast<size_t>(y) * w;
+                const float* up  = row - w;
+                for (uint32_t x = x0; x < x1; ++x) out[n++] = row[x] - up[x];
+            }
+            if (n == 0u) continue;   // keeps the fallback; patched below
+            const size_t mid = n / 2u;
+            const float median = SelectKthSmallest(out, n, mid);
+            for (size_t i = 0; i < n; ++i) out[i] = std::abs(out[i] - median);
             // 1.4826 : MAD -> sigma.  1/sqrt(2) : undo Var(n1 - n2) = 2 sigma^2.
             // Identical to ComputeGlobalSigma; see there for both constants.
             table[static_cast<size_t>(ty) * tilesX + tx] =
-                SelectKthSmallest(diffs.data(), diffs.size(), mid) *
+                SelectKthSmallest(out, n, mid) *
                 RUNTIME_DETECTION_MAD_SCALE * 0.70710678f;
         }
     }
