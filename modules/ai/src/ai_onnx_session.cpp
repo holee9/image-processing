@@ -73,11 +73,6 @@ namespace xpe::ai {
 // PIMPL Implementation
 // =============================================================================
 
-// Destructor implementation (must be in .cpp for PIMPL)
-OnnxSession::~OnnxSession() {
-    delete pimpl_;
-}
-
 struct OnnxSession::Impl {
     OnnxSessionConfig config;
     ExecutionProvider actual_ep;
@@ -174,8 +169,28 @@ std::string EpToString(ExecutionProvider ep) {
 // OnnxSession Implementation
 // =============================================================================
 
+// Destructor and move-assignment both `delete pimpl_`, so both must sit AFTER
+// struct Impl is defined -- being in the .cpp is not enough on its own. The
+// destructor used to be defined above the struct, where Impl was still
+// incomplete, and MSVC's C4150 said so: "no destructor called". The product
+// build never showed it because modules/ai/CMakeLists.txt compiles with
+// /wd4150; the first target without that suppression was this card's tests,
+// under the ci-ai preset's warnings-as-errors (QA-B-161).
+OnnxSession::~OnnxSession() {
+    delete pimpl_;
+}
+
 OnnxSession::OnnxSession()
     : pimpl_(new Impl()) {
+}
+
+OnnxSession& OnnxSession::operator=(OnnxSession&& other) noexcept {
+    if (this != &other) {
+        delete pimpl_;
+        pimpl_ = other.pimpl_;
+        other.pimpl_ = nullptr;
+    }
+    return *this;
 }
 
 OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(

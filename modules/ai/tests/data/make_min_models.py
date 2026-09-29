@@ -75,9 +75,22 @@ def type_proto_tensor(elem_type: int, dims) -> bytes:
     return f_msg(1, t)
 
 
+def tensor_shape_dynamic(param: str) -> bytes:
+    # One dimension carrying a NAME instead of a value: ONNX reads that as
+    # "any length". xpe_bone_suppress hands the model width*height floats, and
+    # that length is not known when the model is written (QA-B-161).
+    # Dimension { int64 dim_value = 1; string dim_param = 2; }
+    return f_msg(1, f_str(2, param))
+
+
 def value_info(name: str, dims) -> bytes:
     # ValueInfoProto { string name = 1; TypeProto type = 2; }
     return f_str(1, name) + f_msg(2, type_proto_tensor(FLOAT, dims))
+
+
+def value_info_dynamic(name: str, param: str) -> bytes:
+    t = f_varint(1, FLOAT) + f_msg(2, tensor_shape_dynamic(param))
+    return f_str(1, name) + f_msg(2, f_msg(1, t))
 
 
 def tensor_initializer(name: str, dims, floats) -> bytes:
@@ -102,6 +115,26 @@ def node(op_type: str, inputs, outputs, name: str) -> bytes:
         out += f_str(2, o)
     out += f_str(3, name)
     out += f_str(4, op_type)
+    return out
+
+
+def graph_dynamic(scale: float) -> bytes:
+    """Same Mul graph, but the input length is decided by the caller."""
+    out = b""
+    out += f_msg(1, node("Mul", ["X", "scale"], ["Y"], "scale_node"))
+    out += f_str(2, "xpe_min_dyn")
+    out += f_msg(5, tensor_initializer("scale", [], [scale]))
+    out += f_msg(11, value_info_dynamic("X", "N"))
+    out += f_msg(12, value_info_dynamic("Y", "N"))
+    return out
+
+
+def model_dynamic(scale: float) -> bytes:
+    out = b""
+    out += f_varint(1, 8)
+    out += f_str(2, "xpe-qa-b-161")
+    out += f_msg(7, graph_dynamic(scale))
+    out += f_msg(8, f_str(1, "") + f_varint(2, 13))
     return out
 
 
@@ -140,6 +173,35 @@ def main() -> int:
     # A file that is NOT a model, for the load-failure path.
     (here / "not_a_model.onnx").write_bytes(b"this is not an onnx model\n")
     print("not_a_model.onnx: deliberate garbage for the kModelLoadFailed path")
+
+    # QA-B-161: the C ABI feeds width*height floats, a length not known here,
+    # so the model directories carry a DYNAMIC-length twin. Two directories
+    # rather than two file names, because xpe_ai_init takes a model DIRECTORY
+    # and the C ABI resolves the file name itself -- swapping the directory is
+    # how a test swaps the model without inventing a second lookup rule.
+    for scale, dirname in ((2.0, "models_x2"), (3.0, "models_x3")):
+        d = here / dirname
+        d.mkdir(exist_ok=True)
+        blob = model_dynamic(scale)
+        (d / "bone_suppress.onnx").write_bytes(blob)
+        print(f"{dirname}/bone_suppress.onnx: {len(blob)} bytes, Y = X * {scale}, shape [N]")
+
+    # A directory whose model file is deliberately absent, so "no model there"
+    # can be told apart from "a model that is there but broken". It needs a
+    # tracked file of its own to survive git.
+    nd = here / "models_missing"
+    nd.mkdir(exist_ok=True)
+    (nd / "README.txt").write_text(
+        "QA-B-161: this directory has NO bone_suppress.onnx, on purpose.\n"
+        "It pins the error code for a model that is not there, which must\n"
+        "differ from the code for a model that is there but unreadable.\n")
+    print("models_missing/: no model on purpose")
+
+    # And a directory whose model file IS there but is not a model.
+    bd = here / "models_broken"
+    bd.mkdir(exist_ok=True)
+    (bd / "bone_suppress.onnx").write_bytes(b"this is not an onnx model\n")
+    print("models_broken/bone_suppress.onnx: garbage, for the load-failure code")
     return 0
 
 

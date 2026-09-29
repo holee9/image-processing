@@ -14,6 +14,7 @@
  */
 
 #include "xpe/ai/ai_api.h"
+#include "xpe/ai/ai_onnx_session.h"
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -99,7 +100,19 @@ TEST_F(AiWorkerIsolationTest, StubModeBoneSuppressFallsBackGracefully) {
     XpeImageBuffer out = makeTestBuffer(64, 64, out_storage);
 
     XpeErrorCode ec = xpe_bone_suppress(&img, &out, nullptr);
-    EXPECT_EQ(ec, XPE_ERR_PROCESSING_FAILED);
+    // QA-B-161 (#130): the expected code CHANGED, in both builds, and the
+    // change is deliberate. xpe_bone_suppress now feeds a float32 session, so
+    // the pixel format became a precondition -- and preconditions are checked
+    // before any resource is touched (the #119 precedence rule), which puts
+    // this ahead of the model lookup in a full build and ahead of the stub's
+    // deterministic failure in a stub build. These pixels are UINT16.
+    //
+    // Reinterpreting 16-bit pixels as floats would return numbers instead of
+    // an error, which is the outcome this rejects. NOT build-dependent: both
+    // builds must say the same thing about an input they cannot process.
+    EXPECT_EQ(ec, XPE_ERR_UNSUPPORTED_FORMAT)
+        << "non-float pixels must be rejected by name, not processed and not "
+           "reported as a generic processing failure";
 }
 
 TEST_F(AiWorkerIsolationTest, StubModeDlDenoiseFallsBackGracefully) {
