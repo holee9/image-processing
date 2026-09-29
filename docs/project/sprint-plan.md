@@ -292,7 +292,7 @@ SPRINT-P1A-01 (CalibManager)                   |
 
 **Risk Items**:
 - vcpkg FFTW3 package may require manual triplet configuration for Windows static linking
-- ONNX Runtime vcpkg port may lag behind required version (check 1.17+ availability)
+- ONNX Runtime: vcpkg 경유가 아니라 **사전 빌드 win-x64 1.30.0** 을 씁니다 (`#130`, 2026-09-29). 이 위험은 해소됐습니다
 
 ---
 

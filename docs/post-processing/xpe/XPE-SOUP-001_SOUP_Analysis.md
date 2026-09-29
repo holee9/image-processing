@@ -19,8 +19,12 @@ XPE에 사용되는 모든 SOUP(Software of Unknown Provenance)를 식별하고,
 |----|------|---------|---------|---------|---------|:----------:|
 | SOUP-001 | OpenCV | 4.9.x | Image processing primitives | Apache 2.0 | SWI-2 | B |
 | SOUP-002 | dcmtk | 3.6.8 | DICOM read/write/network | BSD-3 | SWI-4 | B |
-| SOUP-003 | ONNX Runtime | **미확정** (아래 주 참조) | DL model inference | MIT | SWI-2 | B |
+| SOUP-003 | ONNX Runtime | **1.30.0** (사전 빌드 `onnxruntime-win-x64`) | DL model inference | MIT | SWI-2 | B |
 
+> **[해소 `#130`, 2026-09-29]** 조달됐습니다. `QA-B-160` 이 **ONNX Runtime 1.30.0** 으로 `modules/ai` 를 실제로 빌드하고 세션을 띄워 추론을 돌렸습니다 — 표를 그 실측값으로 갱신했습니다. 라이선스 MIT, 배포 형태는 사전 빌드 `onnxruntime-win-x64`(zip 82,645,522 B 실측), 등급 B. **`REQ-AI-006`(1.20+)을 만족합니다.**
+>
+> 아래 원문은 지우지 않습니다 — 그때의 판단(*"조달되지 않은 것의 버전을 적는 것은 검증이 아니다"*)이 옳았고, 지금 적을 수 있게 된 이유가 **조달과 실행**이기 때문입니다.
+>
 > **`SOUP-003` 버전 미확정 (`#130`, 2026-09-27 정정)**
 >
 > 이 표는 `1.17.x` 를 등록하고 있었고, 알려진 문제 항목도 *"Version ≥ 1.17 사용"* 으로 적혀 있었습니다. 그런데 **`REQ-AI-006` 은 `ONNX Runtime 1.20+` 을 요구합니다**(`SPEC-XPE-P3-AI/spec.md:130`). 등록된 버전이 요구를 만족하지 않습니다.
@@ -66,7 +70,7 @@ XPE에 사용되는 모든 SOUP(Software of Unknown Provenance)를 식별하고,
 |---------|---------------|----------------------|-----------|
 | SOUP-001 | github.com/opencv/opencv/issues | CLAHE boundary artifact (fixed 4.8+) | Version ≥ 4.9 사용 |
 | SOUP-002 | github.com/DCMTK/dcmtk/issues | J2K codec edge case (rare) | DVTk conformance test |
-| SOUP-003 | github.com/microsoft/onnxruntime/issues | CUDA EP memory leak (fixed 1.16+) | Version ≥ 1.17 사용 |
+| SOUP-003 | github.com/microsoft/onnxruntime/issues | CUDA EP memory leak (fixed 1.16+) | **1.30.0 사용** — `REQ-AI-006`(1.20+) 만족 |
 | SOUP-008 | gitlab.com/libeigen/eigen/-/issues | Numerical precision at extreme scale | Condition number check |
 
 ### 5.2 Failure Mode Analysis
