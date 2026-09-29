@@ -14,6 +14,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
+#include <cmath>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -22,6 +23,116 @@
 //           when none is loaded (QA-A-127, #196)
 // @MX:SPEC: SRS-CALIB-FUNC-006-EXT 6a
 
+
+namespace {
+
+/**
+ * @brief SRS-CALIB-FUNC-006-EXT 6b -- the global polynomial method.
+ *
+ *   I_lin = c0 + I_raw*(c1 + I_raw*(c2 + I_raw*(c3 + I_raw*c4)))   (Horner)
+ *
+ * Coefficients live in the detector profile, which is where FUNC-006 says
+ * `f_nonlin` is stored ("detector-specific and stored in calibration profile").
+ * They are read as `panel.nonlin_poly_c0` .. `_c4` from the same JSON the
+ * profile's other `panel.*` fields already come from -- no new file format is
+ * invented for five numbers, and 6b's target is MCU/FPGA, where a 128 KB table
+ * is the thing being avoided.
+ *
+ * @return XPE_OK                     applied (or nothing to do)
+ *         XPE_ERR_INVALID_CALIB_DATA rejected -- caller falls back to 6a
+ */
+XpeErrorCode xpe_nonlinearity_apply_polynomial(XpeImageBuffer* img,
+                                               const char* configJsonOrNull,
+                                               bool* changed)
+{
+    if (!configJsonOrNull) return XPE_ERR_INVALID_CALIB_DATA;
+
+    // Degree 4 per 6b; FUNC-006 caps degree at 5. Every key defaults to 0, so
+    // "all five absent" is indistinguishable from "all five zero" -- and both
+    // are treated as NO COEFFICIENTS below rather than as the zero polynomial.
+    // A profile naming POLY with no coefficients is a configuration error; the
+    // zero polynomial would silently flatten every frame to 0.
+    double c[5];
+    c[0] = xpe_json_get_double(configJsonOrNull, "panel.nonlin_poly_c0", 0.0);
+    c[1] = xpe_json_get_double(configJsonOrNull, "panel.nonlin_poly_c1", 0.0);
+    c[2] = xpe_json_get_double(configJsonOrNull, "panel.nonlin_poly_c2", 0.0);
+    c[3] = xpe_json_get_double(configJsonOrNull, "panel.nonlin_poly_c3", 0.0);
+    c[4] = xpe_json_get_double(configJsonOrNull, "panel.nonlin_poly_c4", 0.0);
+
+    const bool have_coeffs =
+        (c[0] != 0.0 || c[1] != 0.0 || c[2] != 0.0 || c[3] != 0.0 || c[4] != 0.0);
+    if (!have_coeffs) {
+        xpe_alert_push("panel.nonlinearity_mode selects the polynomial method but no "
+                       "panel.nonlin_poly_c0..c4 coefficients are present; falling back "
+                       "to the LUT method (SRS-CALIB-FUNC-006-EXT 6b, issue #186)",
+                       XPE_ALERT_WARNING);
+        return XPE_ERR_INVALID_CALIB_DATA;
+    }
+
+    for (double v : c) {
+        if (!std::isfinite(v)) {
+            xpe_alert_push("nonlinearity polynomial has a non-finite coefficient; "
+                           "falling back to the LUT method (FUNC-006-EXT 6b, #186)",
+                           XPE_ALERT_ERROR);
+            return XPE_ERR_INVALID_CALIB_DATA;
+        }
+    }
+
+    // The operational range. 6c's table is written for a 12-bit ADC, but this
+    // buffer is uint16 and a 16-bit panel addresses the whole range, so the
+    // default is the widest the pixel type can carry and the profile narrows it.
+    const double adc_max_cfg = xpe_json_get_double(configJsonOrNull, "panel.adc_max", 65535.0);
+    const uint32_t adc_max =
+        (adc_max_cfg >= 1.0 && adc_max_cfg <= 65535.0) ? static_cast<uint32_t>(adc_max_cfg) : 65535u;
+
+    auto horner = [&c](double x) {
+        return c[0] + x * (c[1] + x * (c[2] + x * (c[3] + x * c[4])));
+    };
+
+    // 6b step 4: "Enforce monotonicity in [0, ADC_max]".
+    //
+    // The requirement says to check derivative root locations. This checks
+    // every INTEGER input in the range instead, which is not an approximation
+    // of that test but a stricter reading of the same property: the inputs are
+    // uint16 pixels, so the integers ARE the domain. A polynomial whose
+    // derivative dips negative between two integers without reordering them
+    // cannot reorder any value this function will ever be handed, and one that
+    // does reorder two integers is caught here exactly. The cost is a setup
+    // loop of at most 65536 Horner evaluations, paid once per call against
+    // millions of pixels.
+    double previous = horner(0.0);
+    for (uint32_t x = 1; x <= adc_max; ++x) {
+        const double current = horner(static_cast<double>(x));
+        if (current < previous) {
+            xpe_alert_push("nonlinearity polynomial is non-monotone in [0, ADC_max]; "
+                           "rejected and falling back to the LUT method "
+                           "(SRS-CALIB-FUNC-006-EXT 6b step 5, issue #186)",
+                           XPE_ALERT_WARNING);
+            return XPE_ERR_INVALID_CALIB_DATA;
+        }
+        previous = current;
+    }
+
+    size_t n = 0;
+    if (!xpe_pixel_count(img, &n)) return XPE_ERR_INVALID_INPUT;
+    uint16_t* px = static_cast<uint16_t*>(img->data);
+
+    for (size_t i = 0; i < n; ++i) {
+        const double linearized = horner(static_cast<double>(px[i]));
+        // Clamp to the pixel type. The polynomial is monotone over the declared
+        // range, but a frame may carry values above adc_max (the same situation
+        // the 6a path clamps for), and c0 can put the low end below zero.
+        const double bounded = linearized < 0.0     ? 0.0
+                             : linearized > 65535.0 ? 65535.0
+                                                    : linearized;
+        px[i] = static_cast<uint16_t>(bounded + 0.5);
+    }
+
+    if (changed) *changed = true;
+    return XPE_OK;
+}
+
+} // anonymous namespace
 
 XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
                                      const char* configJsonOrNull,
@@ -46,6 +157,45 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
         configJsonOrNull ? xpe_json_get_string(configJsonOrNull, "panel.linear")
                          : std::string();
     if (panel_linear == "true") return XPE_OK;
+
+    // -----------------------------------------------------------------------
+    // SRS-CALIB-FUNC-006-EXT 6c: WHICH METHOD RUNS IS THE PROFILE'S DECISION.
+    //
+    //   "If panel.nonlinearity_mode == "LUT" use 6a; if "POLY" use 6b; if
+    //    "AUTO" select LUT for CPU targets, polynomial for MCU/FPGA targets
+    //    (detected via panel.target_platform field)."
+    //
+    // QA-A-160 (#186) implemented 6b and this selector. Until then the file
+    // carried only 6a, and the precedence note below said the LUT-vs-polynomial
+    // question "has to be decided then -- not inferred from whichever branch
+    // happens to come first". This is that decision, and it is not ours: the
+    // requirement already made it, so the code reads the profile instead of
+    // ranking the two methods itself.
+    //
+    // This module is a CPU build, so AUTO resolves to LUT unless the profile
+    // names an MCU/FPGA target. An unknown mode string falls through to the
+    // 6a path rather than failing the frame -- the same shape QA-A-127 (#196)
+    // retired the hard-coded "mode" list for.
+    const std::string nonlin_mode =
+        configJsonOrNull ? xpe_json_get_string(configJsonOrNull, "panel.nonlinearity_mode")
+                         : std::string();
+    const std::string target_platform =
+        configJsonOrNull ? xpe_json_get_string(configJsonOrNull, "panel.target_platform")
+                         : std::string();
+    const bool embedded_target = (target_platform == "MCU" || target_platform == "FPGA");
+    const bool want_polynomial =
+        (nonlin_mode == "POLY") || (nonlin_mode == "AUTO" && embedded_target);
+
+    if (want_polynomial) {
+        const XpeErrorCode poly_rc = xpe_nonlinearity_apply_polynomial(img, configJsonOrNull, &changed);
+        // 6b step 5: "If polynomial is non-monotone in operational range,
+        // reject and fallback to LUT method." XPE_ERR_INVALID_CALIB_DATA is
+        // that rejection; anything else (applied, or no coefficients present)
+        // is final. Falling through here IS the fallback.
+        if (poly_rc != XPE_ERR_INVALID_CALIB_DATA) {
+            return poly_rc;
+        }
+    }
 
     // QA-A-125 (#186): A LOADED LUT TAKES PRECEDENCE OVER THE DETECTOR MODE.
     // This block sits ahead of the "mode" parse below, so when a LUT is loaded

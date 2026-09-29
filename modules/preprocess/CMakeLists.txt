@@ -275,6 +275,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_offset_correct.cpp
         tests/test_nonlin_lut_generate.cpp   # QA-A-110 (#186)
         tests/test_nonlin_lut_apply.cpp      # QA-A-111 (#186)
+        tests/test_nonlin_poly_apply.cpp     # QA-A-160 (#186) FUNC-006-EXT 6b/6c
         tests/test_global_state_hygiene.cpp  # QA-A-113 (#176)
         # QA-A-15 (#120): still unregistered. Not an argument-count mismatch --
         # the file is written against the SPEC signature xpe_gain_correct(img,
