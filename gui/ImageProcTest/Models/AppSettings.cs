@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using ImageProcTest.ViewModels;
 
 namespace ImageProcTest.Models;
@@ -8,6 +8,7 @@ namespace ImageProcTest.Models;
 /// </summary>
 public sealed class AppSettings : ObservableObject
 {
+    private List<string> _recentRawFiles = new();
     /// <summary>
     /// An independent copy of the persisted values (#171 ②).
     ///
@@ -209,6 +210,20 @@ public sealed class AppSettings : ObservableObject
     {
         get => _binningCorrectionMode;
         set => SetProperty(ref _binningCorrectionMode, CalibrationStageMode.Normalize(value));
+    }
+
+    /// <summary>
+    /// #225 row 1 (GUI-C-160): raw files this installation has opened, newest first.
+    ///
+    /// <para>Row 1's missing piece was the STORE, not the menu: <see cref="LastRawDirectory"/> kept a
+    /// directory so the file dialog could reopen there, which is not a history. This is persisted with
+    /// the rest of the settings, so the list survives the process — that is the whole feature.</para>
+    /// </summary>
+    [JsonPropertyName("recentRawFiles")]
+    public List<string> RecentRawFiles
+    {
+        get => _recentRawFiles;
+        set => SetProperty(ref _recentRawFiles, value ?? new List<string>());
     }
 
     /// <summary>

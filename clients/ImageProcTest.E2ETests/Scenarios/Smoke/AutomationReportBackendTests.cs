@@ -153,6 +153,60 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-07 (#225, GUI-C-160): row 5 — the runtime log leaves the process as a file.
+    ///
+    /// <para>The line count comes from reading the written file back, not from the status line: "the
+    /// app says it wrote 44 lines" and "a file with 44 lines exists" are different claims, and only the
+    /// second one is the feature row 5 was missing. The list on screen was already live; the way out
+    /// was not.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A07_RuntimeLogs_AreWrittenToAFile()
+    {
+        var (report, _) = Run("A07", "Mock", nativeDirectory: null);
+
+        var status = report.GetProperty("RuntimeLogExportStatus").GetString() ?? string.Empty;
+        Assert.Contains("exported", status, StringComparison.OrdinalIgnoreCase);
+        Assert.False(string.IsNullOrWhiteSpace(report.GetProperty("RuntimeLogExportPath").GetString()),
+            $"The app reported no export path: '{status}'.");
+        Assert.True(report.GetProperty("RuntimeLogExportLineCount").GetInt32() > 0,
+            $"The exported file held no lines, so nothing actually left the process: '{status}'.");
+    }
+
+    /// <summary>
+    /// A-08 (#225, GUI-C-160): row 1 — the recent-file history SURVIVES THE PROCESS.
+    ///
+    /// <para>Two runs share one settings file. The first starts with an empty history and ends with
+    /// one entry; the second must START with that entry, before it has loaded anything. Asserting only
+    /// "the list has an entry after loading" would pass on a purely in-memory list, which is what row 1
+    /// already had — <c>LastRawDirectory</c> kept a directory, not a history.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A08_RecentFileHistory_SurvivesTheProcess()
+    {
+        var settingsPath = Path.Combine(
+            Path.GetTempPath(), $"xpe-recent-a08-{Environment.ProcessId}.json");
+        File.Delete(settingsPath);
+
+        var (first, _) = Run("A08a", "Mock", nativeDirectory: null,
+            extraArgs: ["--automation-settings", settingsPath]);
+        Assert.Equal(0, first.GetProperty("RecentRawFileCountAtStartup").GetInt32());
+        Assert.True(first.GetProperty("RecentRawFileCount").GetInt32() >= 1,
+            "The first run loaded a raw file and recorded no history entry.");
+        // Attribution (#201): the scenario presses Save, so survival alone cannot say WHO persisted the
+        // entry. This reading is taken between the load and that Save — measured: without it, removing
+        // the app's own save left this scenario green.
+        Assert.True(first.GetProperty("RecentHistoryPersistedBeforeSave").GetBoolean(),
+            "The history reached disk only because the run pressed Save; the app did not persist it itself.");
+
+        var (second, _) = Run("A08b", "Mock", nativeDirectory: null,
+            extraArgs: ["--automation-settings", settingsPath]);
+        Assert.True(second.GetProperty("RecentRawFileCountAtStartup").GetInt32() >= 1,
+            "The second process started with an empty history, so nothing was persisted (#225 row 1).");
+        Assert.False(string.IsNullOrWhiteSpace(second.GetProperty("MostRecentRawFile").GetString()));
+    }
+
+    /// <summary>
     /// Copies the built self-check runner into a temporary directory OUTSIDE the checkout and returns
     /// the copied executable. Nothing in the repository is modified.
     /// </summary>

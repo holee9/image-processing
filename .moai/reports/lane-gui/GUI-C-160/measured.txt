@@ -1,0 +1,45 @@
+GUI-C-160 (#225) — measured, 2026-09-29, local (Windows 11, this worktree)
+
+== Carried over from GUI-C-159: Native full suite before starting (lead's instruction) ==
+XPE_E2E_BACKEND=Native XPE_NATIVE_DIR=build\c134-stage-new XPE_NATIVE_DIR_EXCLUSIVE=1
+dotnet test clients/ImageProcTest.E2ETests --no-build
+  통과!  실패: 0, 통과: 170, 건너뜀: 0, 전체: 170   (14 m 40 s)
+This closes GUI-C-159's largest gap. Note P-10 passed here; GUI-C-158 recorded it
+failing in a Native run. Not claimed as an improvement — not investigated.
+
+== Row 5 — runtime log export ==
+Automation run, report fields read from the written file (not from the status line):
+  RuntimeLogExportStatus = "Runtime logs exported (44 lines): ...\evidence\20260929-214500-9a3273\runtime-log.txt"
+  RuntimeLogExportPath   = <that path>
+  RuntimeLogExportLineCount = 44      (File.ReadAllLines on the file the app named)
+  DisabledFutureCommandCount = 14     (was 15)
+
+Falsification: ExportRuntimeLogs reports success without calling File.WriteAllLines
+  A07_RuntimeLogs_AreWrittenToAFile  [FAIL]   실패: 1, 통과: 0
+reverted -> 통과! 실패: 0, 통과: 1
+
+== Row 1 — recent-file history ==
+Two automation runs sharing ONE settings file (--automation-settings):
+  run1  RecentRawFileCountAtStartup = 0   RecentRawFileCount = 1
+  run2  RecentRawFileCountAtStartup = 1   RecentRawFileCount = 1
+  settings file on disk: "recentRawFiles": ["...\\fixtures\\gui-s0\\raw\\synthetic_1024x1024.raw"]
+  DisabledFutureCommandCount = 13     (was 14)
+
+Falsification, FIRST ATTEMPT — DID NOT FIRE:
+  arm: RememberRecentRawFile no longer calls _settingsService.Save
+  A08_RecentFileHistory_SurvivesTheProcess  [PASS]   <- the arm was not an injury
+  Cause, found by grep: the automation script clicks SaveSettingsButton
+  (MainWindow.xaml.cs:285), which persists the whole settings object including the
+  history. Survival across processes was real, but it could not be ATTRIBUTED.
+
+Repair: the report now reads the settings file from disk BETWEEN the load and the
+Save click (RecentHistoryPersistedBeforeSave), and A-08 asserts it.
+  same arm, after the repair:  A08  [FAIL]   실패: 1, 통과: 0
+  reverted -> 통과! 실패: 0, 통과: 1
+
+== Regression ==
+Mock configuration, full suite, after both items:
+  통과!  실패: 0, 통과: 140, 건너뜀: 32, 전체: 172   (10 m 12 s)
+Test count 170 -> 172 (A-07, A-08).
+
+Builds: ImageProcTest, ImageProcTest.E2E, E2ETests — 오류 0개.

@@ -184,6 +184,10 @@ public partial class MainWindow : System.Windows.Window
                 throw new InvalidOperationException("DataContext is not MainWindowViewModel.");
             }
 
+            // #225 (GUI-C-160) row 1: read FIRST, before this run loads anything — what is here now came
+            // from a previous process through the settings file, and that is the feature.
+            report.RecentRawFileCountAtStartup = viewModel.RecentRawFiles.Count;
+
             report.BackendVersion = viewModel.RuntimeInfo.Version;
             report.BackendMode = viewModel.Settings.BackendMode;
             report.BackendModeSource = string.IsNullOrWhiteSpace(App.AutomationBackendMode) ? "file" : "arg";
@@ -278,6 +282,17 @@ public partial class MainWindow : System.Windows.Window
             ClickMenuItem(ZoomFitMenuItem);
             await Task.Delay(100);
 
+            // #225 (GUI-C-160) row 1: read the settings file on disk BEFORE the Save click below.
+            // The script presses Save, so a check made after it cannot separate "the app persisted the
+            // history itself" from "the operator happened to save" — measured: removing the app's own
+            // save left the A-08 scenario green. Attribution needs the reading to sit between the two
+            // actions (#201).
+            report.RecentHistoryPersistedBeforeSave =
+                viewModel.RecentRawFiles.FirstOrDefault() is { } newest &&
+                File.Exists(_settingsFilePath) &&
+                File.ReadAllText(_settingsFilePath).Contains(
+                    newest.Path.Replace("\\", "\\\\"), StringComparison.OrdinalIgnoreCase);
+
             ClickButton(SaveSettingsButton);
             await Task.Delay(250);
 
@@ -290,9 +305,13 @@ public partial class MainWindow : System.Windows.Window
                 ToolsMenu is not null &&
                 HelpMenu is not null;
             report.PlannedMenuPlaceholdersDetected =
-                !OpenRecentMenuItem.IsEnabled &&
+                // OpenRecentMenuItem left this list in GUI-C-160: #225 row 1 is implemented. It is
+                // enabled whenever the history is non-empty, so requiring it to be disabled would make
+                // the flag depend on whether a file had been opened yet rather than on what is built.
                 !ExportEvidenceBundleMenuItem.IsEnabled &&
-                !OpenRuntimeLogsMenuItem.IsEnabled &&
+                // OpenRuntimeLogsMenuItem left this list in GUI-C-160: #225 row 5 is implemented, so
+                // requiring it to be disabled would make this flag claim the opposite of what the app
+                // does — the same correction RunPreprocessingMenuItem got in GUI-C-36.
                 !OpenPipelineDiagnosticsMenuItem.IsEnabled &&
                 !OpenEvidenceFolderMenuItem.IsEnabled &&
                 OpenCurrentWorkflowHelpMenuItem.IsEnabled;
@@ -305,11 +324,9 @@ public partial class MainWindow : System.Windows.Window
                 ReferenceEquals(ClearAlertsButton.Command, ClearAlertsMenuItem.Command);
             report.DisabledFutureCommandCount = new[]
                 {
-                    OpenRecentMenuItem,
                     OpenDicomMenuItem,
                     ExportEvidenceBundleMenuItem,
                     NativeBackendModeMenuItem,
-                    OpenRuntimeLogsMenuItem,
                     PInvokeSmokeTestMenuItem,
                     ZoomFitMenuItem,
                     ZoomActualMenuItem,
@@ -394,6 +411,21 @@ public partial class MainWindow : System.Windows.Window
 
             report.GuiE2EPassed = viewModel.GuiE2EPassed;
             report.GuiE2EStatus = viewModel.StatusText;
+
+            // #225 (GUI-C-160) row 5. The path and the line count are read back FROM DISK rather than
+            // from what the command said it did: "wrote 42 lines" and "a file with 42 lines exists" are
+            // different claims, and only the second one is the feature.
+            ClickMenuItem(OpenRuntimeLogsMenuItem);
+            await Task.Delay(200);
+            report.RuntimeLogExportStatus = viewModel.StatusText;
+            report.RuntimeLogExportPath = viewModel.LastRuntimeLogExportPath;
+            report.RecentRawFileCount = viewModel.RecentRawFiles.Count;
+            report.MostRecentRawFile = viewModel.RecentRawFiles.FirstOrDefault()?.Path;
+
+            report.RuntimeLogExportLineCount =
+                viewModel.LastRuntimeLogExportPath is { } logPath && File.Exists(logPath)
+                    ? File.ReadAllLines(logPath).Length
+                    : 0;
 
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);

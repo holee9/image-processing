@@ -79,11 +79,24 @@
                           AutomationProperties.AutomationId="OpenRawMenuItem"
                           Header="_Open Raw..."
                           Command="{Binding LoadImageCommand}" />
+                <!-- #225 (GUI-C-160, row 1): the history is persisted with the settings, so this is a
+                     live submenu now. Each entry carries its own command (see RecentRawFile) because a
+                     RelativeSource binding out of a popup resolves against a different visual tree. -->
                 <MenuItem x:Name="OpenRecentMenuItem"
                           AutomationProperties.AutomationId="OpenRecentMenuItem"
                           Header="Open _Recent"
-                          IsEnabled="False"
-                          ToolTip="Enabled when recent file history is persisted." />
+                          ItemsSource="{Binding RecentRawFiles}"
+                          IsEnabled="{Binding HasRecentRawFiles}"
+                          ToolTip="Raw files this installation has opened, newest first.">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Header" Value="{Binding Path}" />
+                            <Setter Property="Command" Value="{Binding OpenCommand}" />
+                            <Setter Property="CommandParameter" Value="{Binding Path}" />
+                            <Setter Property="AutomationProperties.AutomationId" Value="RecentRawFileMenuItem" />
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
                 <MenuItem x:Name="OpenDicomMenuItem"
                           AutomationProperties.AutomationId="OpenDicomMenuItem"
                           Header="Open _DICOM... (Phase 1b)"
@@ -152,9 +165,9 @@
                           Command="{Binding ShowNativeDiagnosticsCommand}" />
                 <MenuItem x:Name="OpenRuntimeLogsMenuItem"
                           AutomationProperties.AutomationId="OpenRuntimeLogsMenuItem"
-                          Header="Open Runtime _Logs (Phase 1a+)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when persistent runtime log export is available." />
+                          Header="Export Runtime _Logs"
+                          Command="{Binding ExportRuntimeLogsCommand}"
+                          ToolTip="Write the runtime log to runtime-log.txt under this run set's evidence directory. It does not open a viewer." />
                 <!-- #225 (GUI-C-154, row 6): the integration the old tooltip waited for has happened,
                      so this is a command now. It calls the DLLs directly rather than through the
                      backend, because the backend falls back to the mock and would report success. -->

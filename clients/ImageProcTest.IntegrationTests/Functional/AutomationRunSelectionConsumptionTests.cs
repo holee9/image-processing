@@ -47,6 +47,14 @@ public sealed class AutomationRunSelectionConsumptionTests
                              "ImageComparisonViewport.AutomationRenderDumpPath in App.OnStartup, so ApplyRunSelection " +
                              "would be the wrong place for it. Its effect is observed by the dump file existing with " +
                              "the XPEBGRA header and width*height*4 payload bytes",
+        ["SelfCheckExePath"] = "#225 (GUI-C-159) names WHERE the Run Self-Check command looks for its runner — a tool " +
+                               "location, not a value the run computes with. Nothing downstream of settings reads it: " +
+                               "MainWindowViewModel.RunSelfCheckAsync prefers it over the path derived from the " +
+                               "repository root, so ApplyRunSelection would be the wrong place for it, exactly as for " +
+                               "RenderDumpPath above. Its effect is observed end to end by E2E A-05: a copy of the " +
+                               "runner staged outside the checkout is pointed at through this switch, and the scenario " +
+                               "fails unless the app reports that runner's failure reason — so a switch that stopped " +
+                               "being consumed turns that scenario red rather than passing silently",
     };
 
     /// <summary>

@@ -1,0 +1,41 @@
+GUI-C-162 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== The failure (lead's CI observation, quoted) ==
+dotnet-tests:  Failed: 1, Passed: 264, Skipped: 1, Total: 266
+  EveryRunSelectionField_IsAppliedByApplyRunSelection
+  "These AutomationArgs fields are parsed but never applied in
+   gui/ImageProcTest/MainWindow.xaml.cs: SelfCheckExePath."
+
+Where it IS read (grep, whole product tree, excluding obj/):
+  gui/ImageProcTest/App.xaml.cs             AutomationSelfCheckExePath = parsed.SelfCheckExePath
+  gui/ImageProcTest/ViewModels/MainWindowViewModel.cs   App.AutomationSelfCheckExePath
+So "never applied" is true only inside the file the guard reads.
+
+== Answer chosen: an exemption row, with the reason (card §2) ==
+Added to NotRunSelection, keyed by the exact name:
+  "SelfCheckExePath" = names WHERE the Run Self-Check command looks for its runner — a
+  tool location, not a value the run computes with ... its effect is observed end to end
+  by E2E A-05.
+Same shape as the existing RenderDumpPath and SettingsPath rows.
+
+  dotnet test clients/ImageProcTest.IntegrationTests
+  통과!  실패: 0, 통과: 265, 건너뜀: 1, 전체: 266   (baseline was 264 passed / 1 failed)
+
+== Falsification 1 — does the exemption cover MORE than one field? ==
+This is the real risk of answering with an exemption: a wide row kills the guard.
+arm: added a second new field to AutomationArgs — `string? FalsificationProbePath = null`
+  실패!  실패: 1, 통과: 264, 건너뜀: 1, 전체: 266
+The guard still catches the NEXT switch. The dictionary is keyed by exact name with
+StringComparer.Ordinal, so the row cannot absorb anything else.
+reverted (git diff --stat on AutomationArgs.cs: empty)
+
+== Falsification 2 — is the observation the exemption cites real? ==
+The row claims A-05 observes the consumption. If that were wrong, the exemption would
+trade a guard for nothing.
+arm: MainWindowViewModel ignores the override (`if (false && ...)`)
+  A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason  [FAIL]
+reverted -> 통과! 실패: 0, 통과: 1
+(A runtime-false condition, not `#if` or deletion: the repo's own note is that /WX turns
+`if (false && ...)` into a build error in C++, but this is C# and it compiled — 오류 0개.)
+
+Builds: ImageProcTest — 오류 0개.
