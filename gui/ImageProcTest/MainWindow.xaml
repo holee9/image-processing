@@ -380,11 +380,14 @@
                           IsEnabled="False"
                           ToolTip="Enabled when the evidence artifact directory is managed by the app." />
                 <Separator />
+                <!-- #225 (GUI-C-158, row 15): runs gui/ImageProcTest.SelfCheck as a child process.
+                     Development-machine only — the runner walks up to the repository root for its
+                     fixtures — and it says so in the status bar rather than being disabled. -->
                 <MenuItem x:Name="RunSelfCheckMenuItem"
                           AutomationProperties.AutomationId="RunSelfCheckMenuItem"
                           Header="Run _Self-Check"
-                          IsEnabled="False"
-                          ToolTip="Available through the current test runner; in-app launch is a later tools command." />
+                          Command="{Binding RunSelfCheckCommand}"
+                          ToolTip="Run the GUI-S0 self-check and report its verdict. Needs the repository; about a second." />
                 <MenuItem x:Name="RunGuiE2EMenuItem"
                           AutomationProperties.AutomationId="RunGuiE2EMenuItem"
                           Header="Run GUI _E2E"

@@ -153,6 +153,12 @@ public sealed class GuiAutomationReport
     /// <summary>How many renders the stop command discarded during this run (#225 row 11).</summary>
     public int StoppedRenderCount { get; set; }
 
+    /// <summary>Verdict of the Run Self-Check command (#225 row 15); null when it was not run.</summary>
+    public bool? SelfCheckPassed { get; set; }
+
+    /// <summary>The status line it produced, so a failure says why rather than only that.</summary>
+    public string? SelfCheckStatus { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }

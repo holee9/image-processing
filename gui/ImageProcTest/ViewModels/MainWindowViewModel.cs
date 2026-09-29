@@ -70,6 +70,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private CancellationTokenSource? _renderCancellation;
     private int _stoppedRenderCount;
     private string? _lastStageTimingReport;
+    private bool _selfCheckRunning;
+    private bool? _selfCheckPassed;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -124,6 +126,7 @@ public sealed class MainWindowViewModel : ObservableObject
         RunPInvokeSmokeTestCommand = new RelayCommand(RunPInvokeSmokeTest);
         StopProcessingCommand = new RelayCommand(StopProcessing);
         ShowStageTimingCommand = new RelayCommand(ShowStageTiming);
+        RunSelfCheckCommand = new RelayCommand(() => _ = RunSelfCheckAsync());
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -396,6 +399,29 @@ public sealed class MainWindowViewModel : ObservableObject
     /// yet" and "the render reported nothing" are different states.</para>
     /// </summary>
     public RelayCommand ShowStageTimingCommand { get; }
+
+    /// <summary>
+    /// Runs the GUI-S0 self-check as a child process and reports its verdict (#225, GUI-C-158, row 15).
+    ///
+    /// <para><b>Measured before it was wired</b> (GUI-C-157): the runner takes about 1 s (1.05 s alone,
+    /// 0.78 s with this app already up) and exits 0 on success. That is short enough that a progress
+    /// line is enough and no cancellation is needed — but long enough that running it on the UI thread
+    /// would look like a hang, so it is awaited off-thread.</para>
+    ///
+    /// <para><b>The verdict is <c>ExitCode == 0</c>, and only that.</b> A failing run exits
+    /// <c>-532462766</c> (0xE0434352, the .NET unhandled-exception code), NOT 1 — the self-check
+    /// reports failure by throwing. GUI-C-157 nearly recorded "127" for this, which is what bash's
+    /// <c>$?</c> reports; the real process code came from reading it directly. Anything that tests for
+    /// a specific failure number here will be wrong.</para>
+    ///
+    /// <para><b>Development-machine only, and it says so.</b> The runner locates its fixtures by walking
+    /// up to the repository root, so outside a checkout it dies in ~150 ms with "Repository root could
+    /// not be located" (GUI-C-157 §4). This command therefore looks for the runner under the repository
+    /// and, when there is none, writes a status line rather than being disabled: a disabled item would
+    /// change <c>DisabledFutureCommandCount</c> depending on where the app was launched from, so the
+    /// same build would report different numbers (GUI-C-156 §3.2).</para>
+    /// </summary>
+    public RelayCommand RunSelfCheckCommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -1211,6 +1237,113 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _lastStageTimingReport;
         private set => SetProperty(ref _lastStageTimingReport, value);
+    }
+
+    /// <summary>Runs the self-check runner off the UI thread and reports what it said.</summary>
+    private async Task RunSelfCheckAsync()
+    {
+        if (SelfCheckRunning)
+        {
+            StatusText = "Self-check is already running.";
+            return;
+        }
+
+        string exePath;
+        try
+        {
+            var repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
+            exePath = Path.Combine(
+                repositoryRoot, "gui", "ImageProcTest.SelfCheck", "bin", "Debug", "net8.0-windows",
+                "ImageProcTest.SelfCheck.exe");
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusText = "Self-check needs the repository; this build is not running from a checkout.";
+            Log($"Self-check not run: {ex.Message}");
+            return;
+        }
+
+        if (!File.Exists(exePath))
+        {
+            StatusText = "Self-check runner is not built.";
+            Log($"Self-check not run: '{exePath}' does not exist. Build gui/ImageProcTest.SelfCheck first.");
+            return;
+        }
+
+        SelfCheckRunning = true;
+        SelfCheckPassed = null;
+        StatusText = "Running self-check…";
+        Log($"Self-check started: '{exePath}'.");
+
+        try
+        {
+            var (exitCode, lastLine, elapsedMs) = await Task.Run(() => RunProcess(exePath));
+
+            // == 0 and nothing else. See the command's remarks: failure is an exception code.
+            SelfCheckPassed = exitCode == 0;
+            StatusText = exitCode == 0
+                ? $"Self-check passed in {elapsedMs:0} ms."
+                : $"Self-check FAILED (exit {exitCode}): {lastLine}";
+            Log($"Self-check finished: exit={exitCode}, {elapsedMs:0} ms, last line: {lastLine}");
+        }
+        catch (Exception ex)
+        {
+            SelfCheckPassed = false;
+            StatusText = $"Self-check could not be started: {ex.Message}";
+            Log($"Self-check could not be started: {ex.GetType().Name}: {ex.Message}");
+        }
+        finally
+        {
+            SelfCheckRunning = false;
+        }
+    }
+
+    private static (int ExitCode, string LastLine, double ElapsedMs) RunProcess(string exePath)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo(exePath)
+        {
+            WorkingDirectory = Path.GetDirectoryName(exePath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        using var process = System.Diagnostics.Process.Start(start)
+            ?? throw new InvalidOperationException($"Process.Start returned null for '{exePath}'.");
+
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        stopwatch.Stop();
+
+        // Which line to report, measured rather than guessed (GUI-C-158): a failing runner throws, so
+        // stderr begins with "Unhandled exception. ...: <reason>" and CONTINUES with stack frames. The
+        // first attempt reported the LAST line and produced "at Program...line 62" — true, and useless.
+        // The reason is the FIRST stderr line; on success there is no stderr and the runner's verdict
+        // is the last stdout line.
+        var reported = string.IsNullOrWhiteSpace(stderr)
+            ? stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim()).LastOrDefault(line => line.Length > 0)
+            : stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim()).FirstOrDefault(line => line.Length > 0);
+
+        return (process.ExitCode, reported ?? "(no output)", stopwatch.Elapsed.TotalMilliseconds);
+    }
+
+    /// <summary>True while the self-check child process is running.</summary>
+    public bool SelfCheckRunning
+    {
+        get => _selfCheckRunning;
+        private set => SetProperty(ref _selfCheckRunning, value);
+    }
+
+    /// <summary>Verdict of the last self-check run; null before one has finished.</summary>
+    public bool? SelfCheckPassed
+    {
+        get => _selfCheckPassed;
+        private set => SetProperty(ref _selfCheckPassed, value);
     }
 
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand

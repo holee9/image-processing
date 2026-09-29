@@ -1,0 +1,52 @@
+GUI-C-158 / #228 #225 — measured output (verbatim)
+worktree D:/workspace-github/xpe-gui, branch dev/gui
+
+[1] the runner, before this card (12 days broken)
+    exit=-532462766  Main window title mismatch.   (Program.cs:80)
+
+[2] three stale assertions, found one at a time by running it
+    :80  title mismatch          -> #175/HAZ-GUI-005 put [MOCK] in the title
+    :149 'Native backend mode must be disabled'  -> #225 row 4 enabled it
+         'P/Invoke smoke menu must be disabled'  -> #225 row 6 wired it
+    :177 Control 'ShowRuntimePanelMenuItem' was not found -> #165 removed the toggle
+    (OpenRuntimeLogsMenuItem disabled: still correct, row 5 not implemented — left alone)
+
+[3] runner after the fix — first completion in 12 days
+    exit=0 elapsed=4086 ms   stdout: 'GUI-S0 E2E passed.'
+
+[4] FALSIFICATION of the title assertions
+    first attempt (WRONG): changed BaseWindowTitle itself -> exit=0, assertion never fired.
+      the assertion quotes that constant, so both sides moved together (self-comparison).
+    arm A — title loses the base:
+      exit=-532462766  "Main window title '[MOCK] FALSIFICATION-ARM-A' does not carry 'ImageProcTest GUI-S0'."
+    arm B — [MOCK] disclosure removed:
+      exit=-532462766  "The mock backend is running but the title 'ImageProcTest GUI-S0' does not disclose it (HAZ-GUI-005)."
+    restored: exit=0
+
+[5] row 15 — both arms, through the menu, recorded by the app
+    success  SelfCheckPassed=True   Self-check passed in 1285 ms.
+    failure  SelfCheckPassed=False  Self-check FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: VOI LUT mode should default to Linear.
+    (the failure was injected by making one assertion in the runner false, then reverted;
+     the first attempt — editing appsettings.selfcheck.json — did NOT work: the runner rewrites it)
+
+[6] reported line: first stderr line, not the last
+    before the fix: Self-check FAILED (exit -532462766): at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.
+    after  the fix: Self-check FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: VOI LUT mode should default to Linear.
+
+[7] count and Passed, app actually run
+    Native  DisabledFutureCommandCount=16  Passed=True
+    Mock    DisabledFutureCommandCount=16  Passed=True
+    (C-155 left it at 17)
+
+[8] full E2E regression
+    C-155: 실패 1, 통과 166, 전체 167
+    C-158: 실패!  - 실패:     1, 통과:   166, 건너뜀:     0, 전체:   167, 기간: 15 m 1 s - ImageProcTest.E2ETests.dll (net8.0)
+        실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [13 s]
+       P10 hash=36fc547e253b07f1 mean=85.205
+
+[9] files changed
+     M gui/ImageProcTest.E2E/Program.cs
+     M gui/ImageProcTest/MainWindow.xaml
+     M gui/ImageProcTest/MainWindow.xaml.cs
+     M gui/ImageProcTest/Models/GuiAutomationReport.cs
+     M gui/ImageProcTest/ViewModels/MainWindowViewModel.cs

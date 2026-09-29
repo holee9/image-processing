@@ -372,6 +372,18 @@ public partial class MainWindow : System.Windows.Window
             await Task.Delay(150);
             report.StopWithNothingRunningStatus = viewModel.StatusText;
 
+            // #225 (GUI-C-158) row 15. Driven through the menu, then awaited: the runner takes about a
+            // second (GUI-C-157) and the command is deliberately asynchronous, so reading the verdict
+            // immediately would record the state before it finished.
+            ClickMenuItem(RunSelfCheckMenuItem);
+            for (var waited = 0; waited < 60 && viewModel.SelfCheckRunning; waited++)
+            {
+                await Task.Delay(250);
+            }
+
+            report.SelfCheckPassed = viewModel.SelfCheckPassed;
+            report.SelfCheckStatus = viewModel.StatusText;
+
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
             var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
