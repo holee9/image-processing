@@ -37,7 +37,15 @@ namespace {
     // Offset correction thresholds
     constexpr double DARK_BIAS_MAX       = 5.0;     // ADU. SRS-CALIB-FUNC-016:
                                                     // "acceptance shall require abs(DarkBias) <= 5 ADU"
+    constexpr double DARK_REDUCTION_MIN_DB = 10.0;  // dB. SRS-CALIB-FUNC-016:147 /
+                                                    // Protocol.md:211, the `or` alternative to
+                                                    // DARK_BIAS_MAX -- QA-A-158 (#222).
     constexpr double DSNU_MAX_PCT        = 1.0;     // % -- NO REQUIREMENT FOUND (scope above).
+                                                    // QA-A-158 (#222) REMOVED THIS FROM THE GATE:
+                                                    // FUNC-016 does not name it, and an unsourced
+                                                    // threshold was blocking passes the requirement
+                                                    // allows. The value is still reported in
+                                                    // metrics->dsnu; only the gate stopped reading it.
                                                     // docs/quality-eval/01_Noise_...:1185 carries
                                                     // "DSNU RMS < 1% of full scale", but that is a
                                                     // DIFFERENT QUANTITY: this metric is
@@ -255,7 +263,13 @@ XPE_API XpeErrorCode xpe_verify_offset(
         // Uniform raw image: no distinguishable dark regions.
         // dark_bias = 0 (can't measure residual dark without variation)
         //
-        // UNMEASURABLE REPORTS AS FAILURE -- QA-A-157 (#219).
+        // UNMEASURABLE REPORTS AS FAILURE -- SRS-CALIB-FUNC-036.
+        //
+        // The requirement now states this: "Until a dedicated status field
+        // exists, an unmeasurable metric shall set overall_pass = false on
+        // every verification path." QA-A-158 (#221) promoted this comment from
+        // a decision to a citation -- it was decided in QA-A-157 (#219) before
+        // the requirement existed, and FUNC-036 was written from that finding.
         //
         // This used to set overall_pass = true, which made a frame nobody could
         // measure indistinguishable from a frame that passed. QA-A-152 reported
@@ -286,26 +300,53 @@ XPE_API XpeErrorCode xpe_verify_offset(
         return XPE_OK;
     }
 
-    // Identify dark regions (bottom 10% of raw histogram)
+    // DARK ROI SELECTION -- SRS-CALIB-FUNC-035. The rule is stated here rather
+    // than left to be inferred from the variable name: Y_dark_roi is the
+    // DARKEST DECILE OF THE RAW FRAME, `raw < percentile10(raw)`, and it needs
+    // at least `dark_roi_min_pixels = 1% of pixel_count` members.
     std::vector<uint16_t> raw_copy(raw, raw + pixel_count);
     std::sort(raw_copy.begin(), raw_copy.end());
     uint16_t dark_threshold = raw_copy[static_cast<size_t>(pixel_count * 0.1)];
 
-    // Extract corrected values for dark regions
-    std::vector<double> dark_corrected;
+    std::vector<double> dark_corrected;   // Y_dark_roi -- after correction
+    std::vector<double> dark_raw;         // R_dark_roi -- before, SAME pixels
     dark_corrected.reserve(pixel_count / 10);
+    dark_raw.reserve(pixel_count / 10);
 
     for (size_t i = 0; i < pixel_count; ++i) {
         if (raw[i] < dark_threshold) {
             dark_corrected.push_back(static_cast<double>(corrected[i]));
+            dark_raw.push_back(static_cast<double>(raw[i]));
         }
     }
 
-    if (dark_corrected.empty()) {
-        // No dark pixels found, use all pixels
-        for (size_t i = 0; i < pixel_count; ++i) {
-            dark_corrected.push_back(static_cast<double>(corrected[i]));
-        }
+    const size_t dark_roi_min_pixels =
+        static_cast<size_t>(static_cast<double>(pixel_count) * 0.01);
+
+    if (dark_corrected.size() < dark_roi_min_pixels) {
+        // TOO FEW CANDIDATES -> UNMEASURABLE, NOT A SUBSTITUTE POPULATION
+        // -- QA-A-158 (#221), SRS-CALIB-FUNC-035 + FUNC-036.
+        //
+        // This used to fall back to "no dark pixels found, use all pixels",
+        // with no signal to the caller. A dark residual measured over the whole
+        // frame is a DIFFERENT QUANTITY from one measured over dark pixels, and
+        // the FUNC-016 gate is written for the latter -- so the fallback did
+        // not degrade the measurement, it silently answered a different
+        // question. Observed: DarkBias reported as 1000 and 1599.6 ADU.
+        //
+        // WHY THE STRICT `<` IS KEPT (measured, QA-A-158 §2). Ties are what
+        // empty this set: on a frame whose values repeat, percentile10 lands ON
+        // a repeated value and `<` admits far fewer than a decile -- zero in the
+        // limit. Relaxing to `<=` is NOT the fix: measured on the same inputs it
+        // swings the other way, admitting 100% / 50% / 20% of the frame, which
+        // is no longer "the darkest decile". On the real fixtures (CalData_6,
+        // 7 frames, 9.4 Mpx) `<` selects 8.6-10.0%, an order of magnitude above
+        // this 1% floor. So the strict form is right and the floor is the guard.
+        metrics->dark_bias = 0.0;
+        metrics->dsnu = 0.0;
+        metrics->residual_noise = 0.0;
+        metrics->overall_pass = false;
+        return XPE_OK;
     }
 
     // Compute metrics
@@ -318,9 +359,32 @@ XPE_API XpeErrorCode xpe_verify_offset(
     metrics->dsnu = (mean > 0.0) ? (stddev / mean) * 100.0 : 0.0;
     metrics->residual_noise = stddev;
 
-    // Pass/fail determination
-    metrics->overall_pass = (metrics->dark_bias < DARK_BIAS_MAX) &&
-                            (metrics->dsnu < DSNU_MAX_PCT);
+    // Protocol.md:205 `DarkReduction_dB = 20*log10(std(R_dark_roi) /
+    // max(std(Y_dark_roi), epsilon))` -- R is before correction, Y after, over
+    // the SAME ROI. QA-A-158 (#222): FUNC-016 names this metric and gates on
+    // it, and it did not exist anywhere in modules/ (0 hits; controls
+    // `dark_bias` 4, `dsnu` 5).
+    constexpr double DARK_REDUCTION_EPS = 1e-9;
+    const double raw_mean_roi   = compute_mean(dark_raw);
+    const double raw_stddev_roi = compute_std(dark_raw, raw_mean_roi);
+    const double dark_reduction_db =
+        20.0 * std::log10(raw_stddev_roi / std::max(stddev, DARK_REDUCTION_EPS));
+
+    // PASS/FAIL -- SRS-CALIB-FUNC-016:147 and Protocol.md:211, verbatim:
+    //     `abs(DarkBias) <= 5 ADU` OR `DarkReduction_dB >= 10 dB`
+    //
+    // QA-A-158 (#222) brought three things to the requirement:
+    //  - the `or` alternative existed in the requirement but not in the code;
+    //  - `dsnu < DSNU_MAX_PCT` was ANDed in, a threshold the requirement does
+    //    not name (QA-A-152 marked DSNU_MAX_PCT as having no source). It is
+    //    removed from the GATE only -- `metrics->dsnu` is still reported;
+    //  - `<` was `<=` in the requirement.
+    //
+    // `std::abs` is a no-op today: `corrected` is `const uint16_t*` (:242), so
+    // dark_bias cannot be negative. It is written anyway because the day that
+    // type changes is the day its absence becomes a defect, silently.
+    metrics->overall_pass = (std::abs(metrics->dark_bias) <= DARK_BIAS_MAX) ||
+                            (dark_reduction_db >= DARK_REDUCTION_MIN_DB);
 
     return XPE_OK;
 }

@@ -354,6 +354,86 @@ TEST_F(VerifyMetricsTest, VerifyDefect_CountsDefects) {
 }
 
 /* ---------------------------------------------------------------------------
+ * QA-A-158 (#222/#221): the offset gate, pinned in all three directions the
+ * change moves it. Two clauses got LOOSER (the `or` alternative appeared, the
+ * unsourced dsnu clause left the gate) and one got STRICTER (a too-small dark
+ * ROI is unmeasurable instead of silently re-measured over the whole frame).
+ * ------------------------------------------------------------------------- */
+
+// LOOSER 1 -- SRS-CALIB-FUNC-016 `or DarkReduction_dB >= 10 dB`.
+// Bias is far above 5 ADU, so the first clause fails; the correction still cut
+// the dark-region spread by ~29 dB, which the requirement accepts. Before
+// #222 this input had no way to pass, because the alternative was not coded.
+TEST_F(VerifyMetricsTest, VerifyOffset_PassesByDarkReductionWhenBiasExceedsFive) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;                    // 80% lit, 20% dark
+        const uint16_t dark = static_cast<uint16_t>(400 + ((i / 5u) % 100u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? 3000 : dark));
+        // Corrected: wide raw spread collapsed to a tight, OFFSET residual.
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2500 : 20 + (i % 2u)));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    ASSERT_GT(m.dark_bias, 5.0) << "precondition: the abs(DarkBias) <= 5 clause must FAIL here";
+    EXPECT_TRUE(m.overall_pass)
+        << "DarkReduction_dB >= 10 is the requirement's other way to pass";
+}
+
+// LOOSER 2 -- the dsnu clause is gone from the gate (not from the report).
+// DSNU is 50%, fifty times the unsourced DSNU_MAX_PCT that used to be ANDed in.
+// The requirement never names it, and abs(DarkBias) <= 5 holds.
+TEST_F(VerifyMetricsTest, VerifyOffset_HighDsnuNoLongerBlocksTheGate) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 5u) != 0u;
+        const uint16_t dark = static_cast<uint16_t>(490 + ((i / 5u) % 10u));
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? dark + 2000 : dark));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2000 : 2 + 4 * (i % 2u)));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    ASSERT_LE(std::abs(m.dark_bias), 5.0) << "precondition: the requirement's clause must HOLD";
+    ASSERT_GT(m.dsnu, 1.0) << "precondition: dsnu must exceed the old ANDed threshold";
+    EXPECT_TRUE(m.overall_pass) << "an unsourced threshold must not block a passing frame";
+    EXPECT_GT(m.dsnu, 0.0) << "dsnu left the gate, not the report";
+}
+
+// STRICTER -- SRS-CALIB-FUNC-035: too few dark candidates is unmeasurable.
+// Two tied values, so percentile10 lands ON the dark value and the strict `<`
+// admits nothing. This frame used to be re-measured over ALL pixels with no
+// signal, reporting DarkBias = 1000 -- the mean of a different population.
+TEST_F(VerifyMetricsTest, VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame) {
+    U16ImageHelper raw(W, H, 0);
+    U16ImageHelper corrected(W, H, 0);
+    for (uint32_t i = 0; i < W * H; ++i) {
+        const bool lit = (i % 2u) == 1u;
+        raw.set(i / W, i % W, static_cast<uint16_t>(lit ? 2500 : 500));
+        corrected.set(i / W, i % W, static_cast<uint16_t>(lit ? 2000 : 0));
+    }
+
+    XpeImageMetadata meta = createMetadata();
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&raw.buf, &corrected.buf, &meta, &m));
+
+    EXPECT_FALSE(m.overall_pass) << "an unmeasurable ROI must not pass (FUNC-036)";
+    EXPECT_DOUBLE_EQ(0.0, m.dark_bias) << "placeholder, not a measurement";
+    EXPECT_NE(1000.0, m.dark_bias)
+        << "1000 is the WHOLE-FRAME mean -- the substitution this requirement forbids";
+}
+
+/* ---------------------------------------------------------------------------
  * QA-A-157 (#219): a frame nobody can measure must not report as passed.
  *
  * A uniform raw frame has no dark region to find, so xpe_verify_offset cannot
