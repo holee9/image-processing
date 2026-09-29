@@ -175,6 +175,25 @@ public:
     std::vector<TensorMetadata> GetOutputMetadata() const;
 
     /**
+     * @brief Run the loaded model on one float input tensor (REQ-AI-006)
+     *
+     * QA-B-160 (#130). The thinnest vertical slice of the inference path:
+     * one float input, one float output, first input and first output of the
+     * graph. It is NOT the general inference API -- multi-input graphs,
+     * non-float types and batching are not handled, and a model needing them
+     * returns kInvalidInput rather than guessing.
+     *
+     * @param input  values for the first input tensor; its element count must
+     *               equal the product of that tensor's declared dims
+     * @return output tensor values, or an error code:
+     *         kInvalidInput          session not valid, empty input, or a
+     *                                length that does not match the model
+     *         kSessionCreationFailed the runtime rejected the run
+     *         kModelLoadFailed       stub build -- there is no model to run
+     */
+    OnnxResult<std::vector<float>> Run(const std::vector<float>& input);
+
+    /**
      * @brief Query available execution providers
      *
      * @return List of EPs available in this build
