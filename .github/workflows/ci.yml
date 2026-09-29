@@ -388,6 +388,89 @@ jobs:
           retention-days: 14
           path: build/ci-post/bin/
 
+  # ONNX Runtime inference gate (#130, QA-B-160).
+  #
+  # WHY THIS IS ITS OWN JOB AND NOT A FLAG ON post-build.
+  # ci-post leaves XPE_AI_USE_ONNXRUNTIME off, so modules/ai builds as a stub
+  # and QA-B-160's five inference assertions call GTEST_SKIP. ctest counts a
+  # skip as a pass, which is exactly the shape of #205: a suite cited as green
+  # that never ran the thing it is named for. Turning ci-post itself into a
+  # full build would make an 82 MB download a precondition for every Lane B
+  # test, so a failed fetch would redden work that has nothing to do with AI.
+  # A separate job keeps that blast radius here.
+  #
+  # XPE_AI_EXPECT_ONNX=1 is the guard QA-B-160 added: with it set, a stub build
+  # FAILS instead of skipping. Measured both ways before landing --
+  # stub+expect = red, full+expect = green, stub+no-expect = green (control).
+  # Without that variable this job could pass while linking nothing.
+  ai-onnx:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    env:
+      ORT_VERSION: 1.30.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/ci/Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      # Keyed on the version so a bump re-downloads and a re-run does not.
+      # Measured payload: 82,645,522 B (QA-B-160).
+      - name: Cache ONNX Runtime
+        id: ort-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/_deps/onnxruntime-win-x64-${{ env.ORT_VERSION }}
+          key: ort-win-x64-${{ env.ORT_VERSION }}
+
+      - name: Fetch ONNX Runtime
+        if: steps.ort-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $v = $env:ORT_VERSION
+          $url = "https://github.com/microsoft/onnxruntime/releases/download/v$v/onnxruntime-win-x64-$v.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "ort.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $deps = Join-Path $env:GITHUB_WORKSPACE "_deps"
+          New-Item -ItemType Directory -Force -Path $deps | Out-Null
+          Expand-Archive -Path $zip -DestinationPath $deps -Force
+          Get-ChildItem $deps
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          $ort = Join-Path $env:GITHUB_WORKSPACE "_deps/onnxruntime-win-x64-$env:ORT_VERSION"
+          if (-not (Test-Path (Join-Path $ort 'lib/onnxruntime.lib'))) {
+            throw "onnxruntime.lib not found under $ort -- layout changed, see QA-B-160"
+          }
+          cmake --preset ci-ai "-DONNXRUNTIME_ROOT=$ort"
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-ai --parallel
+
+      # XPE_AI_EXPECT_ONNX=1 turns "skipped because this is a stub" into a
+      # failure. A green here therefore means the inference path ran.
+      - name: Run AI tests (a stub build fails here, it does not skip)
+        shell: pwsh
+        env:
+          XPE_AI_EXPECT_ONNX: '1'
+        run: ctest --test-dir build/ci-ai --build-config RelWithDebInfo --output-on-failure
+
   dotnet-tests:
     needs: [detect-lane, common-build, preprocess-tests, post-build]
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'

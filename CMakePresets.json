@@ -77,6 +77,28 @@
             }
         },
         {
+            "name": "ci-ai",
+            "displayName": "CI AI Full Build (ONNX Runtime linked)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "OFF",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "ON",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "OFF",
+                "XPE_AI_USE_ONNXRUNTIME": "ON",
+                "XPE_AI_STUB_BUILD": "OFF",
+                "XPE_WARNINGS_AS_ERRORS": "ON",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
+            }
+        },
+        {
             "name": "ci-preprocess",
             "displayName": "CI Preprocess Tests",
             "generator": "Ninja",
@@ -200,6 +222,10 @@
         {
             "name": "ci-post",
             "configurePreset": "ci-post"
+        },
+        {
+            "name": "ci-ai",
+            "configurePreset": "ci-ai"
         },
         {
             "name": "ci-preprocess",

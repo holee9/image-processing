@@ -117,7 +117,7 @@ xpe-engine vX.Y.Z  (Git tag: vX.Y.Z, SHA: {full})
 ├── SOUP versions (vcpkg.json snapshot)
 │   ├── opencv: 4.9.x
 │   ├── dcmtk: 3.6.8
-│   ├── onnxruntime: 1.17.x
+│   ├── onnxruntime: 1.30.0        # #130, 2026-09-29 조달 실측
 │   └── ...
 ├── Build environment (Dockerfile SHA)
 │   ├── OS: Ubuntu 24.04

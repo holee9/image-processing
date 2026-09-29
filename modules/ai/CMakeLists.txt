@@ -6,13 +6,15 @@
 # REQ-AI-001: Layer 1 dependency (xpe_common only, no lateral DLL deps)
 # REQ-AI-003: Worker isolation (xpe_ai_worker.exe over named pipe IPC)
 # REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
-#   -- REQUIREMENT, NOT CURRENT STATE. No build of this module links ONNX
-#      Runtime today: src/ai_onnx_session.cpp takes the same stub path in both
-#      branches -- OnnxSession::Create's "full" arm says "For now, use stub
-#      implementation even in full build" -- and EP availability is a hardcoded
-#      list, not a query. #130 tracks it. (Cited by function name, not by line:
-#      QA-B-156's own header edit moved that file by +25/-2 lines and the ":198"
-#      written here in QA-B-155 went stale the same day.)
+#   -- PARTLY MET as of QA-B-160 (#130). A full build now links ONNX Runtime
+#      and runs a model (verified against 1.30.0, so the "1.20+" half holds);
+#      src/ai_onnx_session.cpp's "full" arm no longer falls through to the stub
+#      and EP availability is a runtime query, not a hardcoded list.
+#      The multi-EP half is NOT met: only the CPU provider is registered.
+#      Until QA-B-160 neither half was -- no build linked ONNX at all.
+#      (Cited by function name, not by line: QA-B-156's own header edit moved
+#      that file by +25/-2 lines and the ":198" written here in QA-B-155 went
+#      stale the same day.)
 #
 # Build modes (the two are NOT independent -- see the contradiction guard
 # below, the `if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)` FATAL_ERROR):
@@ -316,6 +318,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_parameter_dependency.cpp
         # #145 (QA-B-60): unread config keys are named, valid configs stay quiet
         test_config_warning.cpp
+        # #130 (QA-B-160): the ONNX Runtime inference path, end to end
+        test_onnx_session.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
@@ -358,7 +362,24 @@ if(_XPE_AI_BUILD_TESTS)
         add_executable(xpe_ai_tests
             ${_XPE_AI_TEST_SOURCE_PATHS}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp
+            # #130 (QA-B-160): OnnxSession is a C++ class and xpe_ai.dll exports
+            # a C ABI only, so it is compiled in here for the same reason the IPC
+            # bridge is. Exporting a C++ class across the DLL boundary instead
+            # would put std::vector and std::string in the module's public
+            # contract, which the C ABI exists to keep out.
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp
         )
+
+        # The tests compile that file themselves, so they need the SAME build
+        # mode the product got -- otherwise the stub/full arms diverge between
+        # xpe_ai.dll and xpe_ai_tests and each would be testing the other's
+        # contract.
+        if(XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME)
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_STUB_BUILD=1)
+        else()
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
+            target_link_libraries(xpe_ai_tests PRIVATE onnxruntime)
+        endif()
 
         target_include_directories(xpe_ai_tests
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -374,6 +395,18 @@ if(_XPE_AI_BUILD_TESTS)
         # (heap-growth endurance measurement, #105 G3)
         if(WIN32)
             target_link_libraries(xpe_ai_tests PRIVATE psapi)
+        endif()
+
+        # #130 (QA-B-160). In a FULL build the loader needs onnxruntime.dll
+        # beside the test executable. Without this the tests do not fail an
+        # assertion -- they fail to start, which reads as an infrastructure
+        # problem rather than a test result.
+        if(WIN32 AND XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD AND DEFINED ONNXRUNTIME_ROOT)
+            add_custom_command(TARGET xpe_ai_tests POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                        "$<TARGET_FILE_DIR:xpe_ai_tests>"
+                COMMENT "xpe_ai_tests: staging onnxruntime.dll next to the test exe")
         endif()
 
         target_compile_features(xpe_ai_tests PRIVATE cxx_std_17)

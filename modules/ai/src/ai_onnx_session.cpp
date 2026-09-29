@@ -2,38 +2,46 @@
  * @file ai_onnx_session.cpp
  * @brief ONNX Runtime session manager implementation (T-003)
  *
- * THERE IS NO FULL MODE YET. This file calls no ONNX Runtime API at all --
- * counted across modules/ (#130, QA-B-156): `Ort::` 0, `onnxruntime_c_api` 0,
- * `OrtApi` 0, `OrtSession` 0, `OrtGetApiBase` 0, `OrtEnv` 0. The search is not
- * blind: in this same file `spdlog` is 4, `nlohmann` 2, and `XpeErrorCode` is
- * 841 across modules/. Both arms of every `#if ONNX_RUNTIME_STUB_BUILD` below
- * take the stub path -- the `#else` arm in OnnxSession::Create says so itself:
- * "For now, use stub implementation even in full build".
+ * The full arm now runs a real ONNX Runtime session (QA-B-160, #130). Until
+ * that card it did not: BOTH arms of every `#if ONNX_RUNTIME_STUB_BUILD` took
+ * the stub path, the `#else` arm saying so itself ("For now, use stub
+ * implementation even in full build"), and `Ort::` was 0 across modules/.
+ * That history is kept because the file still has two arms and a reader has
+ * to know which one their build took.
  *
- * That is UNIMPLEMENTED WORK, not a design choice, and it is what #130 is
- * actually about. This header used to read "Implements session management with
- * stub/full mode support. Stub mode provides functional API without ONNX
- * Runtime dependency." -- which reads as though the full arm exists. Deleting
- * those lines would have hidden the absence instead of recording it; the
- * hazard is a reader concluding the inference path is implemented.
+ * WHAT THE FULL ARM DOES, and only this (the thinnest vertical slice #130 was
+ * split into): load a model, read the first input/output tensor metadata,
+ * run one float tensor through it, hand back the output values, and turn a
+ * failure into an OnnxErrorCode. Verified against ONNX Runtime 1.30.0.
  *
- * Consequence for callers: linking a real ONNX Runtime changes nothing here.
- * GetAvailableExecutionProviders() returns a HARDCODED list in its "full" arm
- * (kCuda, kTensorRt, kDirectMl pushed unconditionally under a "TODO: Query
- * ONNX Runtime for available EPs"), not a runtime query, so an EP it names may
- * not exist on the machine.
+ * WHAT IT STILL DOES NOT DO -- do not read "full build" as more than the above:
+ *   - Only the CPU EP is registered on the session. GetAvailableExecutionProviders()
+ *     now ASKS the runtime (it used to assert CUDA/TensorRT/DirectML blindly),
+ *     but registering those providers needs their DLLs and is not done here.
+ *   - One input, one output, float32 only. Anything else returns kInvalidInput
+ *     instead of guessing.
+ *   - Worker-process isolation (REQ-AI-003) does not go through this class.
+ *   - `enable_profiling` is accepted and ignored.
  *
- * @MX:TODO: implement the ONNX Runtime session path (create session, extract
- *           input/output metadata, query available execution providers)
+ * STUB ARM: no model is loaded and Run() returns kModelLoadFailed. It does NOT
+ * echo the input -- an echo is what lets a green stub read as a working
+ * inference path (#205, QA-B-154).
+ *
+ * @MX:TODO: register non-CPU execution providers, and widen Run() past the
+ *           single float in / single float out shape
  * @MX:SPEC: SPEC-XPE-P3-AI REQ-AI-006
  *
  * REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
- *   -- REQUIREMENT, NOT CURRENT STATE (see above).
+ *   -- the 1.20+ half is met (built against 1.30.0); multi-EP is not.
  * REQ-AI-008: Model versioning and metadata
  */
 
 #include "xpe/ai/ai_onnx_session.h"
 #include "xpe/common/xpe_error.h"
+
+#if !ONNX_RUNTIME_STUB_BUILD
+    #include <onnxruntime_cxx_api.h>
+#endif
 
 #include <fstream>
 #include <sstream>
@@ -77,6 +85,16 @@ struct OnnxSession::Impl {
     std::vector<TensorMetadata> inputs;
     std::vector<TensorMetadata> outputs;
     bool is_valid;
+
+#if !ONNX_RUNTIME_STUB_BUILD
+    // QA-B-160 (#130). Held here rather than in the header so the header does
+    // not need the ONNX headers -- a stub-build consumer must keep compiling.
+    // Env must outlive Session; declaration order is the destruction contract.
+    std::unique_ptr<Ort::Env> env;
+    std::unique_ptr<Ort::Session> session;
+    std::string input_name;
+    std::string output_name;
+#endif
 
     Impl() : actual_ep(ExecutionProvider::kCpu), is_valid(false) {}
 };
@@ -217,20 +235,165 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
     session->pimpl_->inputs.clear();
     session->pimpl_->outputs.clear();
 #else
-    // Full build mode: Create actual ONNX Runtime session
-    // TODO: Implement actual ONNX Runtime session creation
-    // For now, use stub implementation even in full build
-    LOG_INFO("Creating ONNX session (ONNX Runtime integration TODO)");
-    session->pimpl_->is_valid = true;
+    // Full build: load the model into a real ONNX Runtime session (QA-B-160).
+    //
+    // A failure here is reported, never swallowed: a session that could not
+    // load must not come back is_valid, because every caller reads that flag
+    // as "the model is ready".
+    try {
+        session->pimpl_->env.reset(new Ort::Env(
+            config.log_level == LogLevel::kVerbose ? ORT_LOGGING_LEVEL_VERBOSE :
+            config.log_level == LogLevel::kInfo    ? ORT_LOGGING_LEVEL_INFO :
+            config.log_level == LogLevel::kError   ? ORT_LOGGING_LEVEL_ERROR :
+                                                     ORT_LOGGING_LEVEL_WARNING,
+            "xpe_ai"));
 
-    // TODO: Extract actual input/output metadata from model
-    session->pimpl_->inputs.clear();
-    session->pimpl_->outputs.clear();
+        Ort::SessionOptions opts;
+        opts.SetIntraOpNumThreads(config.num_threads > 0 ? config.num_threads : 1);
+        if (config.enable_profiling) {
+            // Left unset on purpose: profiling writes a file whose path is a
+            // policy question (REQ-AI-093 restricts writes), not a detail to
+            // decide here. The flag is accepted and has no effect yet.
+            LOG_WARN("enable_profiling is accepted but not wired (QA-B-160)");
+        }
+
+        // Only the CPU EP is registered. GetAvailableExecutionProviders()
+        // reports what this build could offer; registering CUDA/DirectML needs
+        // their provider DLLs and is out of this card's scope.
+#ifdef _WIN32
+        const std::wstring wide(config.model_path.begin(), config.model_path.end());
+        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, wide.c_str(), opts));
+#else
+        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, config.model_path.c_str(), opts));
+#endif
+
+        Ort::AllocatorWithDefaultOptions alloc;
+        Ort::Session& s = *session->pimpl_->session;
+
+        for (size_t i = 0; i < s.GetInputCount(); ++i) {
+            auto nameHolder = s.GetInputNameAllocated(i, alloc);
+            const auto info = s.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo();
+            TensorMetadata m;
+            m.name = nameHolder.get();
+            m.shape = info.GetShape();
+            m.type = "float32";
+            session->pimpl_->inputs.push_back(std::move(m));
+            if (i == 0) session->pimpl_->input_name = nameHolder.get();
+        }
+        for (size_t i = 0; i < s.GetOutputCount(); ++i) {
+            auto nameHolder = s.GetOutputNameAllocated(i, alloc);
+            const auto info = s.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo();
+            TensorMetadata m;
+            m.name = nameHolder.get();
+            m.shape = info.GetShape();
+            m.type = "float32";
+            session->pimpl_->outputs.push_back(std::move(m));
+            if (i == 0) session->pimpl_->output_name = nameHolder.get();
+        }
+
+        session->pimpl_->is_valid = true;
+        LOG_INFO("ONNX session created: " + config.model_path);
+    } catch (const Ort::Exception& e) {
+        session->pimpl_->is_valid = false;
+        result.code = OnnxErrorCode::kModelLoadFailed;
+        result.message = std::string("ONNX Runtime rejected the model: ") + e.what();
+        LOG_ERROR(result.message);
+        return result;               // result.value stays null
+    } catch (const std::exception& e) {
+        session->pimpl_->is_valid = false;
+        result.code = OnnxErrorCode::kSessionCreationFailed;
+        result.message = std::string("session creation failed: ") + e.what();
+        LOG_ERROR(result.message);
+        return result;
+    }
 #endif
 
     result.code = OnnxErrorCode::kOk;
     result.value = std::move(session);
     return result;
+}
+
+OnnxResult<std::vector<float>> OnnxSession::Run(const std::vector<float>& input) {
+    OnnxResult<std::vector<float>> result;
+
+    if (!pimpl_ || !pimpl_->is_valid) {
+        result.code = OnnxErrorCode::kInvalidInput;
+        result.message = "session is not valid";
+        return result;
+    }
+    if (input.empty()) {
+        result.code = OnnxErrorCode::kInvalidInput;
+        result.message = "input is empty";
+        return result;
+    }
+
+#if ONNX_RUNTIME_STUB_BUILD
+    // A stub build has no model, so there is nothing to run. It returns an
+    // ERROR rather than echoing the input: an echo would let a caller -- and a
+    // test -- mistake the stub for a working inference path, which is the
+    // failure this module already shipped once (#205, QA-B-154).
+    result.code = OnnxErrorCode::kModelLoadFailed;
+    result.message = "stub build: no ONNX Runtime, so no model was run";
+    return result;
+#else
+    // The declared element count of the first input, when the model fixes it.
+    // A dynamic dim (-1) means the model does not constrain that axis, so the
+    // caller's length is accepted for it.
+    size_t expected = 1;
+    bool fixed = true;
+    if (!pimpl_->inputs.empty()) {
+        for (const int64_t d : pimpl_->inputs.front().shape) {
+            if (d < 0) { fixed = false; break; }
+            expected *= static_cast<size_t>(d);
+        }
+    } else {
+        fixed = false;
+    }
+    if (fixed && expected != input.size()) {
+        result.code = OnnxErrorCode::kInvalidInput;
+        result.message = "input has " + std::to_string(input.size()) +
+                         " values but the model declares " + std::to_string(expected);
+        return result;
+    }
+
+    try {
+        std::vector<int64_t> shape;
+        if (fixed) {
+            shape = pimpl_->inputs.front().shape;
+        } else {
+            shape.push_back(static_cast<int64_t>(input.size()));
+        }
+
+        auto mem = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        // CreateTensor does not copy: `input` must outlive the Run call, and it
+        // does -- it is the caller's argument and Run is synchronous.
+        std::vector<float> scratch(input);
+        Ort::Value in = Ort::Value::CreateTensor<float>(
+            mem, scratch.data(), scratch.size(), shape.data(), shape.size());
+
+        const char* inNames[]  = {pimpl_->input_name.c_str()};
+        const char* outNames[] = {pimpl_->output_name.c_str()};
+        auto outs = pimpl_->session->Run(Ort::RunOptions{nullptr},
+                                         inNames, &in, 1, outNames, 1);
+        if (outs.empty() || !outs.front().IsTensor()) {
+            result.code = OnnxErrorCode::kSessionCreationFailed;
+            result.message = "the model produced no output tensor";
+            return result;
+        }
+
+        const auto info = outs.front().GetTensorTypeAndShapeInfo();
+        const size_t n = info.GetElementCount();
+        const float* data = outs.front().GetTensorData<float>();
+        result.value.assign(data, data + n);
+        result.code = OnnxErrorCode::kOk;
+        return result;
+    } catch (const Ort::Exception& e) {
+        result.code = OnnxErrorCode::kSessionCreationFailed;
+        result.message = std::string("ONNX Runtime failed the run: ") + e.what();
+        LOG_ERROR(result.message);
+        return result;
+    }
+#endif
 }
 
 bool OnnxSession::IsValid() const {
@@ -264,12 +427,17 @@ std::vector<ExecutionProvider> OnnxSession::GetAvailableExecutionProviders() {
     // Stub mode: Only CPU is available
     return eps;
 #else
-    // Full build: Check which EPs are actually available
-    // TODO: Query ONNX Runtime for available EPs
-    // For now, assume all EPs are available (will be validated at runtime)
-    eps.push_back(ExecutionProvider::kCuda);
-    eps.push_back(ExecutionProvider::kTensorRt);
-    eps.push_back(ExecutionProvider::kDirectMl);
+    // QA-B-160 (#130): ASK the runtime instead of asserting. This used to
+    // push kCuda/kTensorRt/kDirectMl unconditionally under a "TODO: Query
+    // ONNX Runtime", so it named providers that may not exist on the machine
+    // -- a caller checking availability got a yes that meant nothing.
+    for (const std::string& name : Ort::GetAvailableProviders()) {
+        if (name == "CUDAExecutionProvider")        eps.push_back(ExecutionProvider::kCuda);
+        else if (name == "TensorrtExecutionProvider") eps.push_back(ExecutionProvider::kTensorRt);
+        else if (name == "DmlExecutionProvider")      eps.push_back(ExecutionProvider::kDirectMl);
+        // CPU is already in the list; any other provider has no enum here and
+        // is deliberately not reported rather than mapped to something near.
+    }
     return eps;
 #endif
 }
