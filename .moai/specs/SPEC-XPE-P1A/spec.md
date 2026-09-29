@@ -243,7 +243,19 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   5. `lambda` is configurable via `configJsonOrNull` key `"hampel_threshold"` (range 3.0 to 10.0, default 5.0)
 - **Rationale**: Median + MAD is robust to clustered outliers (unlike mean + stddev which gets corrupted when defects cluster). 0.6745 scale factor makes z comparable to standard Gaussian z-score.
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
-  - True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%
+  - True-positive rate (TPR) on injected **10-sigma** transients: >= 99.9%
+    - **Amended 2026-09-29 (`#143`).** This line used to say *5-sigma*, which is the same
+      number as the detector threshold `lambda = 5.0` in Algorithm step 4. A transient whose
+      amplitude equals the threshold sits exactly on the decision boundary, so the neighbour
+      median's own noise splits it roughly in half -- **0.5 by construction, not by
+      implementation quality.** `QA-A-161` proved this mechanically: an ORACLE detector given
+      each pixel's TRUE local sigma (estimation error exactly zero) still measured
+      **TPR@5-sigma = 0.5088**. No sigma-estimation improvement can reach 0.999 there.
+    - Informative, same measurement, shipping algorithm: TPR **0.5536** @5-sigma,
+      **0.71** @6-sigma, **0.96** @8-sigma, **0.9990** @10-sigma. The amended requirement is
+      **met today**; what remains open is FPR (below).
+    - The threshold and the amplitude at which TPR is specified are now different numbers
+      on purpose. Do not re-align them.
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
