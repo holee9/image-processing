@@ -284,6 +284,41 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > no report records a CI millisecond value for the current code. CI does not enforce the 60 ms target
 > at all: the ratio gate guards CI against regression, and that is its only job there.
 
+> **The 60 ms target predates the algorithm that now meets the accuracy requirements (recorded 2026-09-29, `#143`).**
+>
+> The derivation above is explicit about what the 27.1 ms lower bound contains: **15.97 ms** (19-CE
+> network, AVX2, gather excluded) **+ 11.1 ms global sigma** (`QA-A-56`). It contains **no tile-sigma
+> stage**, because none existed. `QA-A-164` landed `6d` (tile 128 + blend w=0.10) because `QA-A-163`
+> measured that a single global sigma cannot meet FPR on structured frames -- `edge` was 75x over,
+> and the misdetections were 100% on the noisier half of the frame while an ORACLE detector given the
+> true local sigma balanced 12-to-16. **The second sigma estimator is what closed `#148`'s family.**
+>
+> So the target and the algorithm no longer describe the same computation. Measured on the lane
+> machine (`QA-A-164`, `QA-A-165`, 3072x3072):
+>
+> | Stage | ms |
+> |---|---|
+> | `ComputeGlobalSigma` | 55 -> **removed** (`QA-A-164` found it unread: `ResolveSigma` skips the floor branch when `blendWeight > 0`) |
+> | `ComputeTileSigmas` | 72 -> **63** after the `QA-A-59`-shaped allocation fix |
+> | detection row loop | 55 |
+> | **total** | 187 -> 131 -> **122** |
+>
+> `QA-A-165` decomposed why the allocation fix bought only 7%: **90-93% of the tile stage is median
+> selection**, not buffer growth. `SelectKthSmallest` carries a per-call fixed cost (a 65536-bucket
+> histogram allocated and zeroed twice, both ranges walked) that does not scale with `n`. The global
+> pass called it twice; the tile pass calls it **1152 times**. Removing that fixed cost entirely
+> still leaves `6 + 41 + 53 = 98 ms`, **1.6x the target** -- so 60 ms is not reachable by tuning; it
+> needs a different selection algorithm, which would move the accuracy numbers.
+>
+> **What this file does NOT do here:** it does not change the 60 ms number. A replacement target has
+> to be derived from a measured lower bound for *this* algorithm, the way `QA-A-56` derived the
+> current one -- that measurement does not exist yet. Until it does, treat 60 ms as **the target for
+> the pre-`6d` configuration** and this note as the record that the shipped algorithm is measured
+> against a number derived without its largest stage.
+>
+> **Machine caveat still applies.** `QA-A-165` did not establish that the lane machine is the
+> development machine of the line above; the ratio is the transferable part, the absolute ms is not.
+
 > **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
 >
 > | Old target | Measured lower bound | Ratio |
