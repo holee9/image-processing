@@ -29,6 +29,8 @@
 #include <cstdio>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
@@ -46,7 +48,7 @@ constexpr double kFreqPerCm = 40.0;
 
 const vg::ParamTable& ProductTable() {
     static vg::ParamTable t;
-    static const std::string err = vg::LoadParamTable("data/vg_table_water_csi600_victre.csv", t);
+    static const std::string err = vg::LoadParamTable(xpe_gsvg_test::ProductData("vg_table_water_csi600_victre.csv"), t);
     EXPECT_EQ(err, "");
     return t;
 }

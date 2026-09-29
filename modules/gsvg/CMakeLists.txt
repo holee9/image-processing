@@ -106,6 +106,22 @@ if(_XPE_BUILD_TESTS)
         target_link_libraries(gsvg_tests PRIVATE psapi)
     endif()
 
+    # #229 (QA-B-163): fixture paths are baked in at COMPILE time.
+    #
+    # They were relative ("tests/data/...", and "../../tools/mcsim/phantoms/"),
+    # so they resolved only when the cwd happened to be modules/gsvg -- which
+    # ctest arranges via WORKING_DIRECTORY below, and which the #162
+    # single-process CI step arranges with `working-directory: modules/gsvg`.
+    # Measured from the repository root instead: 63 of 164 tests fail. Outside
+    # the repository: the same. Same defect class as QA-B-162 in modules/ai,
+    # and fixed the same way so there is one pattern to recognise.
+    get_filename_component(_XPE_GSVG_MCSIM_PHANTOMS
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/mcsim/phantoms" ABSOLUTE)
+    target_compile_definitions(gsvg_tests PRIVATE
+        XPE_GSVG_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
+        XPE_GSVG_PRODUCT_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+        XPE_GSVG_MCSIM_PHANTOM_DIR="${_XPE_GSVG_MCSIM_PHANTOMS}")
+
     target_compile_features(gsvg_tests PRIVATE cxx_std_17)
 
     if(MSVC)

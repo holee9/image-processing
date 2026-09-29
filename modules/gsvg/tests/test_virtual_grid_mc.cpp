@@ -31,11 +31,14 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
 
-constexpr const char* kDir = "tests/data/mc/";
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kDir = xpe_gsvg_test::Data("mc") + "/";
 constexpr int    kN = 80;
 constexpr double kPitchMm = 4.0;       // json pixel_pitch_mm
 constexpr double kKvp = 80.0;          // json kvp
