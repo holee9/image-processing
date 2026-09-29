@@ -441,6 +441,7 @@ if(_XPE_BUILD_TESTS)
         # QA-A-39 (#138 #97): public config_json_or_null on generate_offset
         tests/test_calib_generate_offset_config.cpp
         # QA-A-40 (#120 #112): REQ-P1A-013 TPR/FPR quantitative harness
+        tests/test_zz_a161_probe.cpp         # QA-A-161 (#143 #148) measurement probe
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
