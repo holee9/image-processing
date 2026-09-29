@@ -178,6 +178,7 @@ enum class SigmaRule {
     Blend,          // candidate 2: sqrt(w*mad^2 + (1-w)*globalSigma^2)
     TilePooled,     // candidate 4: sigma from a local tile, not the frame
     Oracle,         // NOT a candidate: the TRUE local sigma. The ceiling.
+    TileBlend,      // QA-A-163: blend against the TILE sigma, not the frame's
     TwoStage        // candidate 3: handled separately (needs two passes)
 };
 
@@ -225,7 +226,7 @@ std::vector<uint8_t> detectVariant(const Variant& v, std::vector<float>& frame, 
     // Tile sigma table, built once per frame when the rule needs it.
     std::vector<float> tileTable;
     uint32_t tilesX = 0;
-    if (v.rule == SigmaRule::TilePooled) {
+    if (v.rule == SigmaRule::TilePooled || v.rule == SigmaRule::TileBlend) {
         tilesX = (kW + v.tile - 1u) / v.tile;
         const uint32_t tilesY = (kH + v.tile - 1u) / v.tile;
         tileTable.resize(static_cast<size_t>(tilesX) * tilesY);
@@ -247,6 +248,14 @@ std::vector<uint8_t> detectVariant(const Variant& v, std::vector<float>& frame, 
             case SigmaRule::Oracle:
                 return (g_oracleSigma && !g_oracleSigma->empty())
                            ? (*g_oracleSigma)[static_cast<size_t>(y) * kW + x] : mad;
+            case SigmaRule::TileBlend: {
+                // The two mechanisms measured so far are orthogonal: the blend
+                // shrinks the spread of the sigma estimate, the tile follows
+                // spatially varying noise. This does both -- same blend, local
+                // reference.
+                const float ts = tileTable[static_cast<size_t>(y / v.tile) * tilesX + (x / v.tile)];
+                return std::sqrt(v.blendW * mad * mad + (1.0f - v.blendW) * ts * ts);
+            }
             case SigmaRule::TilePooled: {
                 const float ts = tileTable[static_cast<size_t>(y / v.tile) * tilesX + (x / v.tile)];
                 return std::max(mad, RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * ts);
@@ -370,6 +379,17 @@ void row(const char* name, const Result& uni5, const Result& sc, const Result& e
                 (uni5.tpr >= kTprFloor && uni5.fpr < kFprCap) ? "YES" : "no");
 }
 
+// QA-A-162: the requirement now names 10 sigma for TPR, so the pass/fail column
+// reads TPR@10-sigma AND FPR. The structured columns are carried at the same
+// amplitude -- a candidate that meets the bar on uniform frames and collapses
+// on a ramp is not a candidate.
+void row10(const char* name, const Result& u, const Result& sc,
+           const Result& ed, const Result& li) {
+    std::printf("| %-26s | %8.4f | %.4f | %.4f | %.4f | %.3e | %7.1f | %-3s |\n",
+                name, u.tpr, sc.tpr, ed.tpr, li.tpr, u.fpr, u.ms,
+                (u.tpr >= kTprFloor && u.fpr < kFprCap) ? "YES" : "no");
+}
+
 class A161Probe : public ::testing::Test {
 protected:
     void SetUp() override { ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr)); }
@@ -407,6 +427,45 @@ TEST_F(A161Probe, DISABLED_PremiseStructuredFrameTprToday) {
         std::printf("[a161] PREMISE %-8s shipped TPR@5s=%.6f TPR@10s=%.6f FPR=%.3e\n",
                     name, r5.tpr, r10.tpr, r5.fpr);
     }
+}
+
+// QA-A-162 (#143): TPR is now specified at 10 sigma, so the whole table is
+// re-read at that amplitude. The question changed from "raise TPR@5s" to
+// "hold TPR@10s >= 0.999 while pushing FPR under 1e-5".
+TEST_F(A161Probe, DISABLED_CandidateTableAt10Sigma) {
+    std::printf("\n| candidate                  | uniTPR10 | scatTPR | edgeTPR | lineTPR | uniFPR    |   ms    | req |\n");
+    std::printf("|----------------------------|----------|---------|---------|---------|-----------|---------|-----|\n");
+
+    auto shippedDet = [](std::vector<float>& f, double* ms) { return detectShipped(f, ms); };
+    row10("0 baseline (shipped)",
+          measureOn(uniform10, 10.0f, 20260911u, shippedDet),
+          measureOn(scatterFrame, 10.0f, 20260911u, shippedDet),
+          measureOn(edgeFrame, 10.0f, 20260911u, shippedDet),
+          measureOn(lines13Frame, 10.0f, 20260911u, shippedDet));
+
+    const Variant variants[] = {
+        {"0L baseline scalar",      3, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"-- ORACLE true sigma",    3, SigmaRule::Oracle,       0.0f, 0},
+        {"1a window 5",             5, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"1b window 7",             7, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"1c window 9",             9, SigmaRule::ShippedFloor, 0.0f, 0},
+        {"2b blend w=0.25",         3, SigmaRule::Blend,        0.25f, 0},
+        {"2c blend w=0.15",         3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",         3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",         3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25",    5, SigmaRule::Blend,        0.25f, 0},
+        {"5b w7 + blend w=0.25",    7, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15",    5, SigmaRule::Blend,        0.15f, 0},
+    };
+    for (const Variant& v : variants) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        row10(v.name,
+              measureOn(uniform10, 10.0f, 20260911u, det),
+              measureOn(scatterFrame, 10.0f, 20260911u, det),
+              measureOn(edgeFrame, 10.0f, 20260911u, det),
+              measureOn(lines13Frame, 10.0f, 20260911u, det));
+    }
+    std::printf("\n");
 }
 
 TEST_F(A161Probe, DISABLED_CandidateTable) {
@@ -456,4 +515,385 @@ TEST_F(A161Probe, DISABLED_CandidateTable) {
             measureOn(lines13Frame, 5.0f, 20260911u, det));
     }
     std::printf("\n");
+}
+
+// QA-A-162: THE TOP CANDIDATES ARE SEPARATED BY A HANDFUL OF PIXELS.
+//
+// FPR 1e-5 on a 1024x1024 frame is 10.49 pixels. The leading candidates landed
+// at 0, 1, 2 and 5 false pixels on one seed -- differences that a single frame
+// cannot resolve, because a count that small is dominated by Poisson noise.
+// Ranking them on one seed would be reading the seed, not the algorithm.
+//
+// This case re-measures FPR only, over several seeds, and reports the TOTAL
+// count and the pooled rate. It also reports TPR@10-sigma per seed so a
+// candidate cannot buy its FPR with detection it quietly gave up.
+TEST_F(A161Probe, DISABLED_FprAcrossSeeds) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const Variant cands[] = {
+        {"0L baseline scalar",   3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"-- ORACLE true sigma", 3, SigmaRule::Oracle,       0.0f,  0},
+        {"1b window 7",          7, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"1c window 9",          9, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"2b blend w=0.25",      3, SigmaRule::Blend,        0.25f, 0},
+        {"2c blend w=0.15",      3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",      3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",      3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25", 5, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15", 5, SigmaRule::Blend,        0.15f, 0},
+    };
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    const double budgetPixels = kFprCap * static_cast<double>(kN);
+
+    std::printf("\n| candidate                  | FP total | frames | pooled FPR | worst TPR10 | req |\n");
+    std::printf("|----------------------------|----------|--------|------------|-------------|-----|\n");
+    for (const Variant& v : cands) {
+        size_t fpTotal = 0;
+        double worstTpr = 1.0;
+        for (uint32_t sd : seeds) {
+            auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+            const Result r = measureOn(uniform10, 10.0f, sd, det);
+            fpTotal += r.fp;
+            worstTpr = std::min(worstTpr, r.tpr);
+        }
+        const double pooled = static_cast<double>(fpTotal) / (static_cast<double>(kN) * nSeeds);
+        std::printf("| %-26s | %8zu | %6zu | %.4e | %11.4f | %-3s |\n",
+                    v.name, fpTotal, nSeeds, pooled, worstTpr,
+                    (pooled < kFprCap && worstTpr >= kTprFloor) ? "YES" : "no");
+    }
+    std::printf("[a161] budget per frame = %.2f false pixels; %zu frames -> %.1f total\n",
+                budgetPixels, nSeeds, budgetPixels * nSeeds);
+}
+
+// QA-A-162: WHAT THE SURVIVORS PAY AT LOWER AMPLITUDES.
+//
+// 5c's pooled FPR (2.29e-06) is BELOW the ORACLE's (4.96e-06). A detector
+// cannot beat the true sigma by estimating better -- it beats it by estimating
+// sigma HIGH, which raises the threshold and buys false-positive reduction with
+// detection. At 10 sigma the margin hides that; the requirement's amplitude is
+// not the only amplitude a panel sees, so the price is measured here.
+//
+// This is the mirror of the risk already recorded for 4a (tile sigma came out
+// BELOW the true sigma, buying detection with false positives).
+TEST_F(A161Probe, DISABLED_AmplitudeSweepOfSurvivors) {
+    const Variant cands[] = {
+        {"0L baseline scalar",   3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"-- ORACLE true sigma", 3, SigmaRule::Oracle,       0.0f,  0},
+        {"2c blend w=0.15",      3, SigmaRule::Blend,        0.15f, 0},
+        {"2d blend w=0.10",      3, SigmaRule::Blend,        0.10f, 0},
+        {"2e blend w=0.05",      3, SigmaRule::Blend,        0.05f, 0},
+        {"5a w5 + blend w=0.25", 5, SigmaRule::Blend,        0.25f, 0},
+        {"5c w5 + blend w=0.15", 5, SigmaRule::Blend,        0.15f, 0},
+    };
+    std::printf("\n| candidate                  | TPR@6s | TPR@7s | TPR@8s | TPR@10s |\n");
+    std::printf("|----------------------------|--------|--------|--------|---------|\n");
+    for (const Variant& v : cands) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        const Result r6  = measureOn(uniform10,  6.0f, 20260911u, det);
+        const Result r7  = measureOn(uniform10,  7.0f, 20260911u, det);
+        const Result r8  = measureOn(uniform10,  8.0f, 20260911u, det);
+        const Result r10 = measureOn(uniform10, 10.0f, 20260911u, det);
+        std::printf("| %-26s | %.4f | %.4f | %.4f | %7.4f |\n",
+                    v.name, r6.tpr, r7.tpr, r8.tpr, r10.tpr);
+    }
+    std::printf("\n");
+}
+
+// QA-A-163 LANDING CONDITION 1: FPR on CLEAN STRUCTURED frames.
+//
+// Everything measured so far took its FPR from a uniform frame. The
+// requirement says "clean clinical frames", and a clinical frame always has
+// anatomy in it -- which is the whole of #148. A candidate chosen on uniform
+// FPR alone is chosen on the input family that hides the failure mode.
+//
+// "Clean" here means the frame WITHOUT injected transients: the same generator,
+// no defects. Pooled over seeds, because 1e-5 on this frame size is 10.49
+// pixels and single-seed counts are Poisson noise (QA-A-162).
+TEST_F(A161Probe, DISABLED_StructuredFrameFprOfTheChosenCandidate) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+
+    struct Fam { const char* name; Frame (*make)(uint32_t); };
+    const Fam fams[] = {
+        {"uniform", uniform10}, {"scatter", scatterFrame},
+        {"edge", edgeFrame}, {"lines(p13)", lines13Frame},
+    };
+    const Variant cands[] = {
+        {"0L baseline scalar", 3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"2d blend w=0.10",    3, SigmaRule::Blend,        0.10f, 0},
+        {"2c blend w=0.15",    3, SigmaRule::Blend,        0.15f, 0},
+        {"2e blend w=0.05",    3, SigmaRule::Blend,        0.05f, 0},
+    };
+
+    std::printf("\n| candidate            | family     | FP total | pooled FPR | req |\n");
+    std::printf("|----------------------|------------|----------|------------|-----|\n");
+    for (const Variant& v : cands) {
+        for (const Fam& fam : fams) {
+            size_t fpTotal = 0;
+            for (uint32_t sd : seeds) {
+                Frame clean = fam.make(sd);
+                g_oracleSigma = &clean.localSigma;
+                const std::vector<uint8_t> flagged = detectVariant(v, clean.px, nullptr);
+                for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fpTotal;
+            }
+            const double pooled = static_cast<double>(fpTotal) / (static_cast<double>(kN) * nSeeds);
+            std::printf("| %-20s | %-10s | %8zu | %.4e | %-3s |\n",
+                        v.name, fam.name, fpTotal, pooled, (pooled < kFprCap) ? "YES" : "no");
+        }
+    }
+    std::printf("\n");
+}
+
+// QA-A-163: WHY `edge` BREAKS -- is it the detector or the fixture?
+//
+// The lines/period-8 resonance (QA-A-161) taught this question. `edge` is a
+// ONE-PIXEL-WIDE perfect step, and a real X-ray edge is not: scatter and focal
+// spot blur it over several pixels. So two things are measured.
+//
+//   (a) WHERE the false positives are. If they sit on the step, the detector is
+//       flagging the step itself -- which is arguably correct behaviour on an
+//       input that says "these two pixels differ by 60 sigma".
+//   (b) What a BLURRED step does. A step smeared over n pixels is the same
+//       structure with a realistic slope.
+TEST_F(A161Probe, DISABLED_WhyEdgeBreaks) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    const Variant v2d{"2d blend w=0.10", 3, SigmaRule::Blend, 0.10f, 0};
+
+    // (a) where are they?
+    std::printf("\n[a163] edge false positives by distance from the step (2d, 5 seeds)\n");
+    size_t onStep = 0, offStep = 0;
+    for (uint32_t sd : seeds) {
+        Frame clean = edgeFrame(sd);
+        const std::vector<uint8_t> flagged = detectVariant(v2d, clean.px, nullptr);
+        for (uint32_t y = 0; y < kH; ++y)
+            for (uint32_t x = 0; x < kW; ++x)
+                if (flagged[static_cast<size_t>(y) * kW + x]) {
+                    const int32_t d = std::abs(static_cast<int32_t>(x) - static_cast<int32_t>(kW / 2));
+                    if (d <= 1) ++onStep; else ++offStep;
+                }
+    }
+    const size_t offPixels = (static_cast<size_t>(kW) - 3u) * kH * nSeeds;
+    std::printf("[a163]   within 1 px of the step : %zu\n", onStep);
+    std::printf("[a163]   everywhere else         : %zu  -> FPR %.4e over %zu px\n",
+                offStep, static_cast<double>(offStep) / static_cast<double>(offPixels), offPixels);
+
+    // (b) what does a blurred step do?
+    std::printf("[a163] edge FPR vs step blur width (2d, 5 seeds)\n");
+    for (uint32_t blur : {0u, 1u, 2u, 4u, 8u}) {
+        size_t fp = 0;
+        for (uint32_t sd : seeds) {
+            std::mt19937 rng(sd);
+            std::normal_distribution<float> g(0.0f, 1.0f);
+            std::vector<float> px(kN);
+            for (uint32_t y = 0; y < kH; ++y)
+                for (uint32_t x = 0; x < kW; ++x) {
+                    // linear ramp of width `blur` centred on the step
+                    const double t = blur == 0u
+                        ? (x >= kW / 2 ? 1.0 : 0.0)
+                        : std::min(1.0, std::max(0.0,
+                              (static_cast<double>(x) - (kW / 2.0 - blur / 2.0)) / blur));
+                    const float I = static_cast<float>(1500.0 + 1500.0 * t);
+                    const float s = static_cast<float>(12.0 + 13.0 * t);
+                    px[static_cast<size_t>(y) * kW + x] = I + s * g(rng);
+                }
+            const std::vector<uint8_t> flagged = detectVariant(v2d, px, nullptr);
+            for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fp;
+        }
+        const double pooled = static_cast<double>(fp) / (static_cast<double>(kN) * nSeeds);
+        std::printf("[a163]   blur %u px : FP %6zu  FPR %.4e  %s\n",
+                    blur, fp, pooled, (pooled < kFprCap) ? "YES" : "no");
+    }
+}
+
+// QA-A-163: the third hypothesis -- SPATIALLY VARYING NOISE.
+//
+// The first two were falsified: the false positives are NOT on the step (12 of
+// 3951), and blurring the step over 8 pixels changes nothing (7.54e-4 ->
+// 7.46e-4). What is left is that `edge` has TWO noise levels (left sigma 12,
+// right sigma 25) and the blend has ONE global sigma. Where the global value
+// under-estimates the local noise, the threshold is too low and everything is
+// an outlier.
+//
+// Prediction, stated before measuring: the false positives concentrate on the
+// NOISIER half, and the ratio is far from 50/50.
+TEST_F(A161Probe, DISABLED_EdgeFalsePositivesBySide) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const Variant cands[] = {
+        {"0L baseline scalar", 3, SigmaRule::ShippedFloor, 0.0f,  0},
+        {"2d blend w=0.10",    3, SigmaRule::Blend,        0.10f, 0},
+        {"-- ORACLE true sigma", 3, SigmaRule::Oracle,     0.0f,  0},
+    };
+    std::printf("\n[a163] edge false positives by side (left sigma=12, right sigma=25), 5 seeds\n");
+    std::printf("| candidate            |   left |  right | right share | globalSigma |\n");
+    std::printf("|----------------------|--------|--------|-------------|-------------|\n");
+    for (const Variant& v : cands) {
+        size_t l = 0, r = 0;
+        float gsSeen = 0.0f;
+        for (uint32_t sd : seeds) {
+            Frame clean = edgeFrame(sd);
+            g_oracleSigma = &clean.localSigma;
+            XpeImageBuffer img = asImage(clean.px);
+            gsSeen = ComputeGlobalSigma(&img);
+            const std::vector<uint8_t> flagged = detectVariant(v, clean.px, nullptr);
+            for (uint32_t y = 0; y < kH; ++y)
+                for (uint32_t x = 0; x < kW; ++x)
+                    if (flagged[static_cast<size_t>(y) * kW + x]) {
+                        if (x < kW / 2) ++l; else ++r;
+                    }
+        }
+        const double share = (l + r) ? static_cast<double>(r) / static_cast<double>(l + r) : 0.0;
+        std::printf("| %-20s | %6zu | %6zu | %10.1f%% | %11.3f |\n",
+                    v.name, l, r, 100.0 * share, gsSeen);
+    }
+    std::printf("[a163] for reference: true sigma is 12 (left) and 25 (right)\n");
+}
+
+// QA-A-163: if ONE global sigma is the cause, a LOCAL one should fix it.
+//
+// The side split named the mechanism: global sigma is 16.71 while the true
+// noise is 12 on the left and 25 on the right, so the right half runs with a
+// threshold set for quieter pixels and flags everything. ORACLE, same frame and
+// same window with only the sigma made local, splits 12/16 and meets the
+// requirement -- so the frame is not hard; one global number is.
+//
+// That is what candidate 4a (tile sigma) does, and QA-A-161 flagged it as a
+// risk for the opposite reason (its `edge` TPR EXCEEDED the oracle's, meaning
+// the tile sigma came out BELOW the true value). Both observations are the same
+// mechanism seen from two sides, so the tile is measured here on clean frames.
+TEST_F(A161Probe, DISABLED_TileSigmaOnCleanStructuredFrames) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    struct Fam { const char* name; Frame (*make)(uint32_t); };
+    const Fam fams[] = {
+        {"uniform", uniform10}, {"scatter", scatterFrame},
+        {"edge", edgeFrame}, {"lines(p13)", lines13Frame},
+    };
+    const Variant cands[] = {
+        {"2d blend w=0.10",   3, SigmaRule::Blend,      0.10f, 0},
+        {"4a tile 64",        3, SigmaRule::TilePooled, 0.0f, 64},
+        {"4c tile 32",        3, SigmaRule::TilePooled, 0.0f, 32},
+        {"4d tile 128",       3, SigmaRule::TilePooled, 0.0f, 128},
+        {"-- ORACLE",         3, SigmaRule::Oracle,     0.0f,  0},
+    };
+    std::printf("\n| candidate         | family     | FP total | pooled FPR | req |\n");
+    std::printf("|-------------------|------------|----------|------------|-----|\n");
+    for (const Variant& v : cands) {
+        for (const Fam& fam : fams) {
+            size_t fp = 0;
+            for (uint32_t sd : seeds) {
+                Frame clean = fam.make(sd);
+                g_oracleSigma = &clean.localSigma;
+                const std::vector<uint8_t> flagged = detectVariant(v, clean.px, nullptr);
+                for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fp;
+            }
+            const double pooled = static_cast<double>(fp) / (static_cast<double>(kN) * nSeeds);
+            std::printf("| %-17s | %-10s | %8zu | %.4e | %-3s |\n",
+                        v.name, fam.name, fp, pooled, (pooled < kFprCap) ? "YES" : "no");
+        }
+    }
+    // and the TPR they keep
+    std::printf("\n| candidate         | TPR@10s uni | scatter | edge   | lines  |\n");
+    std::printf("|-------------------|-------------|---------|--------|--------|\n");
+    for (const Variant& v : cands) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        std::printf("| %-17s | %11.4f | %.4f | %.4f | %.4f |\n", v.name,
+                    measureOn(uniform10, 10.0f, 20260911u, det).tpr,
+                    measureOn(scatterFrame, 10.0f, 20260911u, det).tpr,
+                    measureOn(edgeFrame, 10.0f, 20260911u, det).tpr,
+                    measureOn(lines13Frame, 10.0f, 20260911u, det).tpr);
+    }
+    std::printf("\n");
+}
+
+// QA-A-163: the two mechanisms are ORTHOGONAL, so combine them.
+//
+//   blend  shrinks the SPREAD of the sigma estimate  -> uniform FPR 1.2e-4 -> 7.8e-6
+//   tile   follows SPATIALLY VARYING noise           -> edge FPR 7.5e-4 -> 1.2e-4
+//
+// Neither alone meets the requirement on every family. This measures the blend
+// taken against the TILE sigma instead of the frame sigma. Reported as a
+// measurement, not a proposal -- the choice is the lead's.
+TEST_F(A161Probe, DISABLED_TileBlendCombination) {
+    const uint32_t seeds[] = {20260911u, 7u, 1234u, 99991u, 424242u};
+    const size_t nSeeds = sizeof(seeds) / sizeof(seeds[0]);
+    struct Fam { const char* name; Frame (*make)(uint32_t); };
+    const Fam fams[] = {
+        {"uniform", uniform10}, {"scatter", scatterFrame},
+        {"edge", edgeFrame}, {"lines(p13)", lines13Frame},
+    };
+    const Variant cands[] = {
+        {"6a tile64 blend 0.10", 3, SigmaRule::TileBlend, 0.10f, 64},
+        {"6b tile64 blend 0.25", 3, SigmaRule::TileBlend, 0.25f, 64},
+        {"6c tile32 blend 0.10", 3, SigmaRule::TileBlend, 0.10f, 32},
+        {"6d tile128 blend 0.10",3, SigmaRule::TileBlend, 0.10f, 128},
+    };
+    std::printf("\n| candidate            | family     | FP total | pooled FPR | req |\n");
+    std::printf("|----------------------|------------|----------|------------|-----|\n");
+    for (const Variant& v : cands) {
+        for (const Fam& fam : fams) {
+            size_t fp = 0;
+            for (uint32_t sd : seeds) {
+                Frame clean = fam.make(sd);
+                const std::vector<uint8_t> flagged = detectVariant(v, clean.px, nullptr);
+                for (size_t i = 0; i < kN; ++i) if (flagged[i]) ++fp;
+            }
+            const double pooled = static_cast<double>(fp) / (static_cast<double>(kN) * nSeeds);
+            std::printf("| %-20s | %-10s | %8zu | %.4e | %-3s |\n",
+                        v.name, fam.name, fp, pooled, (pooled < kFprCap) ? "YES" : "no");
+        }
+    }
+    std::printf("\n| candidate            | TPR@10s uni | scatter | edge   | lines  |  ms   |\n");
+    std::printf("|----------------------|-------------|---------|--------|--------|-------|\n");
+    for (const Variant& v : cands) {
+        auto det = [&v](std::vector<float>& f, double* ms) { return detectVariant(v, f, ms); };
+        const Result u = measureOn(uniform10, 10.0f, 20260911u, det);
+        std::printf("| %-20s | %11.4f | %.4f | %.4f | %.4f | %5.1f |\n", v.name, u.tpr,
+                    measureOn(scatterFrame, 10.0f, 20260911u, det).tpr,
+                    measureOn(edgeFrame, 10.0f, 20260911u, det).tpr,
+                    measureOn(lines13Frame, 10.0f, 20260911u, det).tpr, u.ms);
+    }
+    std::printf("\n");
+}
+
+// QA-A-163 LANDING CONDITION 2 (partial): is the AVX2 path alive, and where
+// does the shipped detector sit against the 60 ms target?
+//
+// spec.md:271 -- "<= 60 ms (AVX2, single thread) on the development machine for
+// a 3072x3072 FLOAT32 frame". The candidates are all 1.2-1.4x the scalar
+// baseline, so what that costs depends on how much headroom exists today.
+//
+// The AVX2 path is taken only for windowSize == 3 (runtime_detection.h:1074),
+// which is why every surviving candidate keeps a 3x3 window. This measures the
+// shipped entry point at the spec's own frame size.
+TEST_F(A161Probe, DISABLED_ShippedTimingAtSpecFrameSize) {
+    constexpr uint32_t kBigW = 3072, kBigH = 3072;
+    const size_t bigN = static_cast<size_t>(kBigW) * kBigH;
+
+    std::mt19937 rng(20260911u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> frame(bigN);
+    for (size_t i = 0; i < bigN; ++i) frame[i] = 3000.0f + 10.0f * g(rng);
+
+    XpeImageBuffer img{};
+    img.data = frame.data(); img.width = kBigW; img.height = kBigH;
+    img.bitsAllocated = 32; img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.dataSize = static_cast<uint32_t>(bigN * sizeof(float));
+
+    std::vector<uint8_t> map(bigN, 0);
+    XpeImageBuffer out{};
+    out.data = map.data(); out.width = kBigW; out.height = kBigH;
+    out.bitsAllocated = 8; out.bitsStored = 8;
+    out.format = XPE_PIXEL_UINT8; out.dataSize = static_cast<uint32_t>(bigN);
+    XpeImageMetadata meta{};
+
+    // three runs: the first pays for page faults on a 36 MB frame
+    for (int run = 0; run < 3; ++run) {
+        const auto t0 = std::chrono::steady_clock::now();
+        ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, &meta, &out));
+        const auto t1 = std::chrono::steady_clock::now();
+        const double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::printf("[a163] shipped 3072x3072 run %d : %7.1f ms   (spec.md:271 target 60 ms)\n",
+                    run, ms);
+    }
 }
