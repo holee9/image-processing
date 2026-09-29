@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
@@ -114,6 +114,7 @@ public sealed class MainWindowViewModel : ObservableObject
         Settings.PropertyChanged += OnSettingsPropertyChanged;
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
+        SetBackendModeCommand = new RelayCommand<string>(SetBackendMode);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -317,6 +318,29 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     public RelayCommand InitializeBackendCommand { get; }
+
+    /// <summary>
+    /// Switches the requested backend and re-initialises, so the Backend &gt; Mode menu is a command
+    /// rather than a label (#225, GUI-C-153, table row 4).
+    ///
+    /// <para><b>What was missing.</b> The routing already existed — <c>XpeBackendFactory.Create</c> reads
+    /// <see cref="AppSettings.BackendMode"/>, and CI's gui-e2e-native drives that path through the
+    /// command line. What did not exist was any way to change it from inside the app: the <c>_Mock</c>
+    /// item was checkable but carried no command, and <c>_Native</c> was disabled behind a tooltip
+    /// saying the P/Invoke integration had not happened yet. It had.</para>
+    ///
+    /// <para><b>Why it re-initialises rather than only setting the property.</b> The backend object is
+    /// built once by the factory; setting the property alone changes what is REQUESTED and leaves the
+    /// running backend as it was — <see cref="RequestedBackendMode"/> would then disagree with
+    /// <see cref="ActualBackendMode"/> with nothing having happened. Re-initialising is what makes the
+    /// menu mean what it says.</para>
+    ///
+    /// <para><b>The fall-back stays visible.</b> The factory silently returns the mock backend when the
+    /// native DLLs cannot load, so asking for Native is not the same as getting it. That gap is already
+    /// surfaced by <see cref="ActualBackendMode"/> / <see cref="RequestedBackendMode"/>, and the menu
+    /// check marks follow the ACTUAL mode for that reason.</para>
+    /// </summary>
+    public RelayCommand<string> SetBackendModeCommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -918,6 +942,31 @@ public sealed class MainWindowViewModel : ObservableObject
         DrainBackendTelemetry();
         StatusText = "Backend shutdown.";
         Log("Backend shutdown requested.");
+    }
+
+    /// <summary>
+    /// Requests <paramref name="mode"/> and re-initialises. A request for the mode already running is
+    /// still honoured — re-initialising is what the Backend menu's Initialize item does too — so the
+    /// command never silently does nothing.
+    /// </summary>
+    private void SetBackendMode(string mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return;
+        }
+
+        var requested = BackendModeOptions.FirstOrDefault(
+            option => string.Equals(option, mode, StringComparison.OrdinalIgnoreCase));
+        if (requested is null)
+        {
+            Log($"Backend mode '{mode}' is not one of {string.Join(", ", BackendModeOptions)}; ignored.");
+            return;
+        }
+
+        Log($"Backend mode requested: {requested}.");
+        Settings.BackendMode = requested;
+        InitializeBackend();
     }
 
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand

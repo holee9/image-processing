@@ -1,4 +1,4 @@
-<Window x:Class="ImageProcTest.MainWindow"
+﻿<Window x:Class="ImageProcTest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ImageProcTest.Controls"
@@ -125,17 +125,25 @@
                 <MenuItem x:Name="BackendModeMenuItem"
                           AutomationProperties.AutomationId="BackendModeMenuItem"
                           Header="Backend _Mode">
+                    <!-- #225 (GUI-C-153, row 4): both items are commands now. The check marks follow
+                         ActualBackendMode, not the request: asking for Native and silently getting Mock
+                         (the factory falls back when the DLLs will not load) must not look like success. -->
                     <MenuItem x:Name="MockBackendModeMenuItem"
                               AutomationProperties.AutomationId="MockBackendModeMenuItem"
                               Header="_Mock"
                               IsCheckable="True"
-                              IsChecked="True" />
+                              IsChecked="{Binding ActualBackendMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=Mock}"
+                              Command="{Binding SetBackendModeCommand}"
+                              CommandParameter="Mock"
+                              ToolTip="Run without the native DLLs; stages report why they did not run." />
                     <MenuItem x:Name="NativeBackendModeMenuItem"
                               AutomationProperties.AutomationId="NativeBackendModeMenuItem"
-                              Header="_Native (SPRINT-P0-07)"
+                              Header="_Native"
                               IsCheckable="True"
-                              IsEnabled="False"
-                              ToolTip="Native backend activation starts after RealXpeBackend and P/Invoke integration." />
+                              IsChecked="{Binding ActualBackendMode, Mode=OneWay, Converter={StaticResource StringEquals}, ConverterParameter=Native}"
+                              Command="{Binding SetBackendModeCommand}"
+                              CommandParameter="Native"
+                              ToolTip="Re-initialise on the native DLLs. Falls back to Mock when they cannot load — the title bar then shows the requested mode next to the actual one." />
                 </MenuItem>
                 <Separator />
                 <MenuItem x:Name="NativeDllDiagnosticsMenuItem"
