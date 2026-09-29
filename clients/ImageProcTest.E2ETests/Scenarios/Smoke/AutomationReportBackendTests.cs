@@ -1,4 +1,4 @@
-// #175 (GUI-C-83): the self-driving automation run must not pass on a backend it was not asked to use.
+﻿// #175 (GUI-C-83): the self-driving automation run must not pass on a backend it was not asked to use.
 using System.Diagnostics;
 using System.Text.Json;
 using ImageProcTest.E2ETests.Fixtures;
@@ -45,6 +45,58 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         Assert.True(report.GetProperty("BackendMatchesRequest").GetBoolean());
         Assert.True(report.GetProperty("Passed").GetBoolean(), $"An intentional Mock automation run failed: Error='{report.GetProperty("Error")}'.");
         Assert.True(exitCode == 0, $"A passing automation run exited {exitCode}.");
+    }
+
+    /// <summary>
+    /// A-03 (#225, GUI-C-155): the three commands GUI-C-154 wired report what they did, and the smoke
+    /// answers from the real libraries.
+    ///
+    /// <para><b>Why here rather than through the menus.</b> The stop case has to catch a render that is
+    /// still running, and the render is tens of milliseconds — two attempts at a menu-driven version
+    /// lost that race (GUI-C-155). The automation run drives the same commands in-process, where the
+    /// cancellation is issued before the render's first await, so the observation is deterministic.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A03_TheWiredCommands_ReportWhatTheyDid()
+    {
+        var (report, _) = Run("A03", "Native", NativeDirectoryOrSkip());
+
+        // Row 6: answered, and from the real library — the mock display reports v0.0.0-mock-display, so
+        // asserting only "passed" would not separate a fallback from a native run.
+        Assert.True(report.GetProperty("PInvokeSmokeTestPassed").GetBoolean(),
+            $"The smoke failed on a run with the native DLLs staged: {report.GetProperty("PInvokeSmokeTestDetail")}");
+        var detail = report.GetProperty("PInvokeSmokeTestDetail").GetString() ?? string.Empty;
+        Assert.Contains("xpe_display_version", detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("mock-display", detail, StringComparison.OrdinalIgnoreCase);
+
+        // Row 11, in flight: the render was discarded, and the app counted it.
+        var stopped = report.GetProperty("StopInFlightStatus").GetString() ?? string.Empty;
+        Assert.StartsWith("Render stopped", stopped, StringComparison.Ordinal);
+        Assert.True(report.GetProperty("StoppedRenderCount").GetInt32() >= 1,
+            $"Stop was pressed during a render and the count stayed at {report.GetProperty("StoppedRenderCount")}.");
+
+        // Row 11, empty: the case GUI-C-154's first implementation got wrong — it answered "the render
+        // in flight will be discarded" on a render that had finished. Without this line it comes back.
+        Assert.Equal("Stop: no render is in flight.", report.GetProperty("StopWithNothingRunningStatus").GetString());
+
+        // Row 12: what it shows is the render's own chain line, not a second measurement.
+        var timing = report.GetProperty("StageTimingReport").GetString() ?? string.Empty;
+        Assert.Contains("chain:", timing, StringComparison.Ordinal);
+        Assert.DoesNotContain("no render has run yet", timing, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The staged native directory, or a skip. Row 6 asserts the libraries ANSWER, so a run without
+    /// them cannot observe it — and passing it anyway would make "the DLLs are absent" and "the DLLs
+    /// are broken" the same green (#214). ci.yml:454-455 says the Mock job has no native DLLs.
+    /// </summary>
+    private static string NativeDirectoryOrSkip()
+    {
+        var dir = Environment.GetEnvironmentVariable(ApplicationFixture.NativeDirVariable);
+        Skip.If(string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir),
+            $"{ApplicationFixture.NativeDirVariable} is not set to an existing directory, so no native " +
+            "libraries are staged for this run and the smoke cannot be observed answering.");
+        return dir!;
     }
 
     private (JsonElement Report, int ExitCode) Run(string scenario, string backend, string? nativeDirectory)
