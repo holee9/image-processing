@@ -218,20 +218,24 @@ private:
 // Inline Implementations
 // =============================================================================
 
-// Note: Destructor implemented in .cpp to avoid incomplete type warning
+// Note: Destructor implemented in .cpp to avoid incomplete type warning.
+//
+// QA-B-161 (#130): move-ASSIGNMENT is in the .cpp for the same reason and it
+// is not cosmetic. It deletes pimpl_, and `Impl` is incomplete here, so MSVC
+// raised C4150 -- "no destructor called". That is a real leak of everything
+// Impl owns (in a full build, the ONNX session and env), not a style note.
+//
+// It went unseen because modules/ai/CMakeLists.txt compiles the product with
+// /wd4150, so only a target without that suppression could see it. The first
+// such target was this card's tests. The suppression is left in place and is
+// NOT the fix -- moving the definition is.
+//
+// The move CONSTRUCTOR stays inline: it only takes the pointer, never deletes,
+// so an incomplete type is fine there.
 
 inline OnnxSession::OnnxSession(OnnxSession&& other) noexcept
     : pimpl_(other.pimpl_) {
     other.pimpl_ = nullptr;
-}
-
-inline OnnxSession& OnnxSession::operator=(OnnxSession&& other) noexcept {
-    if (this != &other) {
-        delete pimpl_;
-        pimpl_ = other.pimpl_;
-        other.pimpl_ = nullptr;
-    }
-    return *this;
 }
 
 } // namespace xpe::ai
