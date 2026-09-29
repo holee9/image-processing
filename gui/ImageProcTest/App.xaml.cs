@@ -35,6 +35,12 @@ public partial class App : System.Windows.Application
     /// <summary>#173 (GUI-C-119): the settings file this run reads and writes, when one was named.</summary>
     public static string? AutomationSettingsPath { get; private set; }
 
+    /// <summary>
+    /// Runner path for the Run Self-Check command, when the command line overrode it
+    /// (<c>--automation-selfcheck-exe</c>, #225/GUI-C-159). Null on a normal launch.
+    /// </summary>
+    public static string? AutomationSelfCheckExePath { get; private set; }
+
     public static int? AutomationRawWidth { get; private set; }
 
     public static int? AutomationRawHeight { get; private set; }
@@ -58,6 +64,7 @@ public partial class App : System.Windows.Application
         AutomationBackendMode = parsed.BackendMode;
         AutomationCalibrationDirectory = parsed.CalibrationDirectory;
         AutomationSettingsPath = parsed.SettingsPath;
+        AutomationSelfCheckExePath = parsed.SelfCheckExePath;
         // #200 (GUI-C-138): handed to the control directly. The viewport is created by XAML, so there is
         // no constructor to carry it, and routing it through settings would make a diagnostic switch
         // look like a user preference.

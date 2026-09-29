@@ -86,6 +86,104 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-04 (#225, GUI-C-159): row 15 — the self-check actually RUNS and the app reports the verdict.
+    ///
+    /// <para>GUI-C-158 wired the command and put <c>SelfCheckPassed</c> in the report, but nothing
+    /// asserted it — the shape GUI-C-155 was corrected for. Asserted on both backends: the runner drives
+    /// the mock display on purpose (its own assertion is <c>v0.0.0-mock-display</c>), so its verdict does
+    /// not depend on whether native libraries are staged, and there is no precondition to skip on.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A04_SelfCheck_ActuallyRuns_AndThePassIsReported()
+    {
+        var (report, _) = Run("A04", "Mock", nativeDirectory: null);
+
+        var status = report.GetProperty("SelfCheckStatus").GetString() ?? string.Empty;
+        Assert.True(report.GetProperty("SelfCheckPassed").GetBoolean(),
+            $"The self-check did not pass: '{status}'.");
+        Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A-05 (#225, GUI-C-159): row 15 — and a FAILING self-check is reported as a failure, WITH the
+    /// reason.
+    ///
+    /// <para>A-04 alone cannot separate "reports the verdict" from "reports everything as a pass", which
+    /// is the shape #205, #207 and #212 each turned out to be. The failure is produced structurally
+    /// rather than by breaking the runner's source: a copy of the runner staged outside the repository
+    /// cannot locate the repository root, which GUI-C-157 measured it dying on. The app is pointed at
+    /// that copy through <c>--automation-selfcheck-exe</c>.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason()
+    {
+        var staged = StageSelfCheckRunnerOutsideTheRepository("A05");
+
+        var (report, _) = Run("A05", "Mock", nativeDirectory: null,
+            extraArgs: ["--automation-selfcheck-exe", staged]);
+
+        var status = report.GetProperty("SelfCheckStatus").GetString() ?? string.Empty;
+        Assert.False(report.GetProperty("SelfCheckPassed").GetBoolean(),
+            $"The self-check was staged where it cannot run, and the app still reported a pass: '{status}'.");
+        // The reason, not just the verdict: GUI-C-158 first reported the LAST stderr line ("at
+        // Program...line 62"), which is true and tells the operator nothing.
+        Assert.Contains("Repository root", status, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A-06 (#225, GUI-C-159): row 16 — the GUI E2E runner actually runs from the Tools menu and the
+    /// app reports its verdict.
+    ///
+    /// <para>This is also the concurrency observation the card asked for, standing rather than one-off:
+    /// the runner is launched by an app that is already up, so a regression where two windows interfere
+    /// shows up here as a failed or never-finishing run rather than only in a report someone read once.
+    /// Backend-independent for the same reason A-04 is — the runner drives the mock display.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported()
+    {
+        var (report, _) = Run("A06", "Mock", nativeDirectory: null);
+
+        var status = report.GetProperty("GuiE2EStatus").GetString() ?? string.Empty;
+        Assert.True(report.GetProperty("GuiE2EPassed").GetBoolean(),
+            $"The GUI E2E runner did not pass when launched from the app: '{status}'.");
+        Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Copies the built self-check runner into a temporary directory OUTSIDE the checkout and returns
+    /// the copied executable. Nothing in the repository is modified.
+    /// </summary>
+    private static string StageSelfCheckRunnerOutsideTheRepository(string scenario)
+    {
+        var relative = Path.Combine(
+            "gui", "ImageProcTest.SelfCheck", "bin", "Debug", "net8.0-windows");
+
+        string? source = null;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, relative);
+            if (File.Exists(Path.Combine(candidate, "ImageProcTest.SelfCheck.exe")))
+            {
+                source = candidate;
+                break;
+            }
+        }
+
+        Skip.If(source is null, "ImageProcTest.SelfCheck.exe was not built, so its failure cannot be observed.");
+
+        var target = Path.Combine(Path.GetTempPath(), $"xpe-selfcheck-{scenario}-{Environment.ProcessId}");
+        if (Directory.Exists(target)) Directory.Delete(target, recursive: true);
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.GetFiles(source!))
+        {
+            File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
+        }
+
+        return Path.Combine(target, "ImageProcTest.SelfCheck.exe");
+    }
+
+    /// <summary>
     /// The staged native directory, or a skip. Row 6 asserts the libraries ANSWER, so a run without
     /// them cannot observe it — and passing it anyway would make "the DLLs are absent" and "the DLLs
     /// are broken" the same green (#214). ci.yml:454-455 says the Mock job has no native DLLs.
@@ -99,7 +197,8 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         return dir!;
     }
 
-    private (JsonElement Report, int ExitCode) Run(string scenario, string backend, string? nativeDirectory)
+    private (JsonElement Report, int ExitCode) Run(
+        string scenario, string backend, string? nativeDirectory, string[]? extraArgs = null)
     {
         var exe = ApplicationFixture.ResolveApplicationExecutable();
         Skip.If(exe is null, "ImageProcTest.exe was not built.");
@@ -115,6 +214,11 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
                      "--automation-raw", RawRelativePath, "--automation-report", reportPath,
                      "--automation-backend", backend, "--automation-width", "1024", "--automation-height", "1024",
                  })
+        {
+            start.ArgumentList.Add(arg);
+        }
+
+        foreach (var arg in extraArgs ?? [])
         {
             start.ArgumentList.Add(arg);
         }

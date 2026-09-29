@@ -1,0 +1,54 @@
+GUI-C-159 (#225) — measured, 2026-09-29, local (Windows 11, this worktree)
+
+== §2 measurement 1: completion time (two samples each) ==
+powershell c159_measure.ps1  (Start-Process -PassThru -Wait, real process exit code)
+  run 1  A_runner_alone:        exit=0  seconds=4.08
+  run 1  B_runner_with_app_up:  exit=0  seconds=3.04   gui_still_alive_after=True
+  run 2  A_runner_alone:        exit=0  seconds=4.07
+  run 2  B_runner_with_app_up:  exit=0  seconds=4.03   gui_still_alive_after=True
+Observation, not a falsification: the runner finishes with the operator app up, and
+the operator app survives. No sample was slower with the app up.
+
+== §2 measurement 2: concurrency (two windows) ==
+Structural, read from gui/ImageProcTest.E2E/Program.cs:16-74 — the runner starts its
+own STA thread, constructs `new Application` and `new MainWindow()` IN ITS OWN PROCESS,
+and never searches the desktop for a window. There is no window-identification step to
+get wrong, so the #228 failure shape cannot occur here.
+Observed alongside it: both B samples above ran with a second visible app window and
+exited 0; the automation run below launched the runner from inside a running app and
+got GuiE2EPassed=True in 3143 ms.
+
+== Row 16 implemented; the count moves ==
+gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe --automation-report ...
+  exit=0
+  Passed = True
+  SelfCheckPassed = True   SelfCheckStatus = "Self-check passed in 1602 ms."
+  GuiE2EPassed   = True    GuiE2EStatus   = "GUI E2E passed in 3143 ms."
+  DisabledFutureCommandCount = 15      (was 16 — GUI-C-158 §3.4)
+
+== §4 falsification 1 — row 15 scenario goes red when the self-check fails ==
+arm: gui/ImageProcTest.SelfCheck/Program.cs:62 assertion made false
+  A04_SelfCheck_ActuallyRuns_AndThePassIsReported  [FAIL]
+  실패: 1, 통과: 3, 건너뜀: 1
+reverted -> 실패: 0, 통과: 4, 건너뜀: 1
+
+== §4 falsification 2 — row 15 failure scenario is not blind ==
+arm: MainWindowViewModel always reports a pass (SelfCheckPassed = true, status "passed")
+  A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason  [FAIL]
+  실패: 1, 통과: 3, 건너뜀: 1
+reverted -> 통과! 실패: 0, 통과: 4, 건너뜀: 1
+
+== §4 falsification 3 — row 16 scenario goes red when the runner fails ==
+arm: gui/ImageProcTest.E2E/Program.cs title assertion made false
+  A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported  [FAIL]
+  실패: 1, 통과: 0, 전체: 1
+reverted; git diff --stat on both runner sources is empty.
+
+== Regression ==
+Mock configuration, full suite:
+  실패: 0, 통과: 139, 건너뜀: 31, 전체: 170   (9 m 32 s)
+Native configuration (XPE_E2E_BACKEND=Native, XPE_NATIVE_DIR=build/c134-stage-new,
+XPE_NATIVE_DIR_EXCLUSIVE=1), AutomationReportBackendTests only:
+  실패: 0, 통과: 6, 건너뜀: 0, 전체: 6   (1 m 16 s)
+
+Builds: ImageProcTest, ImageProcTest.SelfCheck, ImageProcTest.E2E, E2ETests — 오류 0개.

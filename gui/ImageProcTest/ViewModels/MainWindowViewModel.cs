@@ -72,6 +72,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _lastStageTimingReport;
     private bool _selfCheckRunning;
     private bool? _selfCheckPassed;
+    private bool _guiE2ERunning;
+    private bool? _guiE2EPassed;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -127,6 +129,7 @@ public sealed class MainWindowViewModel : ObservableObject
         StopProcessingCommand = new RelayCommand(StopProcessing);
         ShowStageTimingCommand = new RelayCommand(ShowStageTiming);
         RunSelfCheckCommand = new RelayCommand(() => _ = RunSelfCheckAsync());
+        RunGuiE2ECommand = new RelayCommand(() => _ = RunGuiE2EAsync());
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -422,6 +425,9 @@ public sealed class MainWindowViewModel : ObservableObject
     /// same build would report different numbers (GUI-C-156 §3.2).</para>
     /// </summary>
     public RelayCommand RunSelfCheckCommand { get; }
+
+    /// <summary>#225 row 16: runs the GUI E2E runner and reports its verdict.</summary>
+    public RelayCommand RunGuiE2ECommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -1248,53 +1254,119 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        string exePath;
+        SelfCheckRunning = true;
+        SelfCheckPassed = null;
         try
         {
-            var repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
-            exePath = Path.Combine(
-                repositoryRoot, "gui", "ImageProcTest.SelfCheck", "bin", "Debug", "net8.0-windows",
-                "ImageProcTest.SelfCheck.exe");
+            var verdict = await RunConsoleRunnerAsync(
+                "Self-check", "ImageProcTest.SelfCheck", "ImageProcTest.SelfCheck.exe",
+                App.AutomationSelfCheckExePath);
+            if (verdict.HasValue)
+            {
+                SelfCheckPassed = verdict;
+            }
         }
-        catch (InvalidOperationException ex)
+        finally
         {
-            StatusText = "Self-check needs the repository; this build is not running from a checkout.";
-            Log($"Self-check not run: {ex.Message}");
+            SelfCheckRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// #225 row 16 (GUI-C-159): runs the GUI E2E runner off the UI thread and reports what it said.
+    ///
+    /// <para>Measured before it was wired (GUI-C-159 §2), because GUI-C-157 could not: with the operator
+    /// app already up the runner still finished (4.03 s / 3.04 s over two samples, against 4.07 s / 4.08 s
+    /// with nothing else running) and exited 0, and the operator's window survived. It cannot attach to
+    /// the wrong window: it builds its own <c>MainWindow</c> on its own STA thread inside its own process
+    /// rather than searching the desktop for one — the failure shape #228 was is structurally absent
+    /// here.</para>
+    /// </summary>
+    private async Task RunGuiE2EAsync()
+    {
+        if (GuiE2ERunning)
+        {
+            StatusText = "GUI E2E is already running.";
             return;
+        }
+
+        GuiE2ERunning = true;
+        GuiE2EPassed = null;
+        try
+        {
+            var verdict = await RunConsoleRunnerAsync(
+                "GUI E2E", "ImageProcTest.E2E", "ImageProcTest.E2E.exe", overridePath: null);
+            if (verdict.HasValue)
+            {
+                GuiE2EPassed = verdict;
+            }
+        }
+        finally
+        {
+            GuiE2ERunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Resolves a console runner, runs it off the UI thread, and writes the verdict to the status bar.
+    /// Returns the verdict, or null when the runner could not be reached at all (no checkout, not built)
+    /// — that is "did not run", which is not the same as a failure and must not be recorded as one.
+    /// </summary>
+    private async Task<bool?> RunConsoleRunnerAsync(
+        string label, string projectDirectory, string executableName, string? overridePath)
+    {
+        string exePath;
+        if (!string.IsNullOrWhiteSpace(overridePath))
+        {
+            // Command-line override (#225, GUI-C-159). It exists so the FAILING path can be observed:
+            // a scenario stages a copy of the runner outside the repository, where it genuinely dies,
+            // and points this at it. Without it a test could only ever watch the self-check succeed,
+            // which cannot separate "reports success correctly" from "reports everything as success".
+            exePath = overridePath!;
+        }
+        else
+        {
+            try
+            {
+                var repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
+                exePath = Path.Combine(
+                    repositoryRoot, "gui", projectDirectory, "bin", "Debug", "net8.0-windows",
+                    executableName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                StatusText = $"{label} needs the repository; this build is not running from a checkout.";
+                Log($"{label} not run: {ex.Message}");
+                return null;
+            }
         }
 
         if (!File.Exists(exePath))
         {
-            StatusText = "Self-check runner is not built.";
-            Log($"Self-check not run: '{exePath}' does not exist. Build gui/ImageProcTest.SelfCheck first.");
-            return;
+            StatusText = $"{label} runner is not built.";
+            Log($"{label} not run: '{exePath}' does not exist. Build gui/{projectDirectory} first.");
+            return null;
         }
 
-        SelfCheckRunning = true;
-        SelfCheckPassed = null;
-        StatusText = "Running self-check…";
-        Log($"Self-check started: '{exePath}'.");
+        StatusText = $"Running {label}…";
+        Log($"{label} started: '{exePath}'.");
 
         try
         {
             var (exitCode, lastLine, elapsedMs) = await Task.Run(() => RunProcess(exePath));
 
             // == 0 and nothing else. See the command's remarks: failure is an exception code.
-            SelfCheckPassed = exitCode == 0;
             StatusText = exitCode == 0
-                ? $"Self-check passed in {elapsedMs:0} ms."
-                : $"Self-check FAILED (exit {exitCode}): {lastLine}";
-            Log($"Self-check finished: exit={exitCode}, {elapsedMs:0} ms, last line: {lastLine}");
+                ? $"{label} passed in {elapsedMs:0} ms."
+                : $"{label} FAILED (exit {exitCode}): {lastLine}";
+            Log($"{label} finished: exit={exitCode}, {elapsedMs:0} ms, reported line: {lastLine}");
+            return exitCode == 0;
         }
         catch (Exception ex)
         {
-            SelfCheckPassed = false;
-            StatusText = $"Self-check could not be started: {ex.Message}";
-            Log($"Self-check could not be started: {ex.GetType().Name}: {ex.Message}");
-        }
-        finally
-        {
-            SelfCheckRunning = false;
+            StatusText = $"{label} could not be started: {ex.Message}";
+            Log($"{label} could not be started: {ex.GetType().Name}: {ex.Message}");
+            return false;
         }
     }
 
@@ -1344,6 +1416,20 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _selfCheckPassed;
         private set => SetProperty(ref _selfCheckPassed, value);
+    }
+
+    /// <summary>True while the GUI E2E child process is running (#225 row 16).</summary>
+    public bool GuiE2ERunning
+    {
+        get => _guiE2ERunning;
+        private set => SetProperty(ref _guiE2ERunning, value);
+    }
+
+    /// <summary>Verdict of the last GUI E2E run; null before one has finished (#225 row 16).</summary>
+    public bool? GuiE2EPassed
+    {
+        get => _guiE2EPassed;
+        private set => SetProperty(ref _guiE2EPassed, value);
     }
 
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand

@@ -384,6 +384,17 @@ public partial class MainWindow : System.Windows.Window
             report.SelfCheckPassed = viewModel.SelfCheckPassed;
             report.SelfCheckStatus = viewModel.StatusText;
 
+            // #225 (GUI-C-159) row 16. Same shape as row 15 and awaited the same way; the runner takes
+            // about four seconds (GUI-C-159 §2, measured with this app already up).
+            ClickMenuItem(RunGuiE2EMenuItem);
+            for (var waited = 0; waited < 120 && viewModel.GuiE2ERunning; waited++)
+            {
+                await Task.Delay(250);
+            }
+
+            report.GuiE2EPassed = viewModel.GuiE2EPassed;
+            report.GuiE2EStatus = viewModel.StatusText;
+
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
             var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");

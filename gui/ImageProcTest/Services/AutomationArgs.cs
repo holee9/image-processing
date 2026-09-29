@@ -1,4 +1,4 @@
-// #136: command-line parsing for automation runs, kept out of the WPF Application class so it can
+﻿// #136: command-line parsing for automation runs, kept out of the WPF Application class so it can
 // be tested. Same move as GUI-C-24 made for the alert-drain wrapper.
 using System.IO;
 
@@ -25,7 +25,8 @@ public sealed record AutomationArgs(
     string? Error,
     int? DisplayPipelineFailAfter = null,
     string? SettingsPath = null,
-    string? RenderDumpPath = null)
+    string? RenderDumpPath = null,
+    string? SelfCheckExePath = null)
 {
     /// <summary>
     /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
@@ -33,6 +34,21 @@ public sealed record AutomationArgs(
     /// end. Command line only, off unless given, and an unknown fault is refused like any other switch.
     /// </summary>
     public const string DisplayPipelineFaultPrefix = "display-pipeline-after:";
+
+    /// <summary>
+    /// #225 (GUI-C-159): where the Run Self-Check command should look for its runner, overriding the
+    /// path derived from the repository root.
+    ///
+    /// <para>It exists for the same reason <see cref="DisplayPipelineFaultPrefix"/> does: the FAILING
+    /// path has to be observable. Without it a test can only watch the self-check succeed, and
+    /// "reports success correctly" and "reports everything as success" look identical — the shape
+    /// #205, #207 and #212 each turned out to be. A test points this at a copy of the runner staged
+    /// outside the repository, where it genuinely fails, and then asserts that the app says so.</para>
+    ///
+    /// <para>Command line only and off unless given, so a normal launch resolves the runner the usual
+    /// way.</para>
+    /// </summary>
+    public const string SelfCheckExeSwitch = "--automation-selfcheck-exe";
 
     /// <summary>Backend names the automation accepts, in their canonical spelling.</summary>
     public static readonly string[] AcceptedBackendModes = ["Mock", "Native"];
@@ -56,6 +72,7 @@ public sealed record AutomationArgs(
         string? rawPath = null, reportPath = null, backendMode = null, calibrationDirectory = null, error = null;
         string? settingsPath = null;
         string? renderDumpPath = null;
+        string? selfCheckExePath = null;
         int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
 
         for (var i = 0; i < args.Length; i++)
@@ -95,6 +112,10 @@ public sealed record AutomationArgs(
                 }
 
                 backendMode = canonical;
+            }
+            else if (Is(switchName, SelfCheckExeSwitch))
+            {
+                selfCheckExePath = Path.GetFullPath(value);
             }
             else if (Is(switchName, "--automation-export-render"))
             {
@@ -165,7 +186,7 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter, settingsPath, renderDumpPath)
+                displayPipelineFailAfter, settingsPath, renderDumpPath, selfCheckExePath)
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);

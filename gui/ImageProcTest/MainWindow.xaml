@@ -391,8 +391,8 @@
                 <MenuItem x:Name="RunGuiE2EMenuItem"
                           AutomationProperties.AutomationId="RunGuiE2EMenuItem"
                           Header="Run GUI _E2E"
-                          IsEnabled="False"
-                          ToolTip="Available through the current test runner; in-app launch is a later tools command." />
+                          Command="{Binding RunGuiE2ECommand}"
+                          ToolTip="Run the GUI E2E runner and report its verdict. Needs the repository; about four seconds." />
                 <MenuItem x:Name="BenchmarkRunnerMenuItem"
                           AutomationProperties.AutomationId="BenchmarkRunnerMenuItem"
                           Header="_Benchmark Runner (Phase 1a+)"
