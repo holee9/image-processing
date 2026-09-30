@@ -1,0 +1,67 @@
+GUI-C-165 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== §1.1 the condition the old assertion named: IS the bundle deterministic? NO ==
+Two automation runs, same input, evidence/ deleted first:
+  20260930-095949-487a00.zip  runtime-log.txt 5737 B  sha256 9c231676e8b3d1a5  mtime 09:59:58
+  20260930-100004-22a67e.zip  runtime-log.txt 5737 B  sha256 afde1a18801c6adc  mtime 10:00:14
+  zip sha256: 900da9b18b4addff  vs  a6ce1bb1b31736a6
+Same size, DIFFERENT content hash. Three sources of non-determinism, all measured above:
+the log's timestamps, the zip's own name (RunId carries a clock reading), and the member
+mtime. So "deterministic artifacts exist" is NOT satisfied.
+
+== Three stale assertions in the runner, not one ==
+The card named one; running the runner to completion found three.
+  :140  Open Recent must be disabled until recent-file history is implemented   (row 1, GUI-C-160)
+  :142  Evidence bundle export must be disabled until deterministic artifacts   (row 3, GUI-C-163)  <- the red one
+  :231  Open Evidence Folder must be disabled until evidence folder management  (row 14, GUI-C-163)
+:140 and :231 were NOT red: :140 passed because this runner's window starts with an empty
+history, so it was measuring "the list is empty" rather than "the feature is missing";
+:231 was reached only after :142 threw. After fixing :142 the runner failed at :231.
+Runner now: exit=0.
+
+Not touched, reported only: :200 `!runPreprocessingMenuItem.IsEnabled` ("until Phase 1a").
+#141/GUI-C-36 enabled that item on the native backend, and the automation script says so in
+a comment. It passes here because this runner drives Mock. Same accidental-pass shape as
+:140, but it is not this lane's row and it is not red — left for a decision.
+
+== Falsification, and TWO invalid results I had to throw away ==
+arm A  (row 3: IsEnabled="False" kept WITH the command binding)
+  first attempt: exit=0  -> I was about to record "WPF coerces IsEnabled from CanExecute,
+                 so the local False does nothing". THAT CONCLUSION WAS FALSE.
+arm A' (row 3: command binding removed)
+  first attempt: exit=0  -> also wrong.
+Cause, found by comparing timestamps:
+  gui/ImageProcTest.E2E/bin/.../ImageProcTest.dll   10:01:23
+  gui/ImageProcTest/bin/.../ImageProcTest.dll       10:03:33
+I rebuilt only the app project; the runner's bin still held the app dll from before the arm.
+Rebuilding gui/ImageProcTest.E2E (which copies the app dll) and re-running:
+  arm A'  exit=-532462766  "Evidence bundle export is disabled; #225 row 3 wired it."
+  arm A   exit=-532462766  (same assertion)
+Both arms DO fire. The "coercion" inference was an artifact of a stale binary.
+
+arm B  (row 1: ItemsSource binding removed)
+  exit=-532462766  "Open Recent has no ItemsSource, so the persisted history cannot reach
+                    the submenu (#225 row 1)."
+reverted; git diff --stat on MainWindow.xaml empty; runner exit=0.
+
+== A self-comparison I wrote and then removed ==
+My first replacement for :140 was
+    Assert(openRecentMenuItem.IsEnabled == viewModel.HasRecentRawFiles)
+The XAML binds IsEnabled="{Binding HasRecentRawFiles}", so both sides move together and the
+assertion can never fail. Replaced with an independent pair: IsEnabled vs the submenu's own
+Items.Count, plus ItemsSource is not null — which is what arm B proves fires.
+
+== §2: where the app looks for the runners ==
+MainWindowViewModel.RunConsoleRunnerAsync:
+  <repoRoot>/gui/<project>/bin/Debug/net8.0-windows/<exe>
+    project=ImageProcTest.SelfCheck  exe=ImageProcTest.SelfCheck.exe
+    project=ImageProcTest.E2E        exe=ImageProcTest.E2E.exe
+  repoRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory):
+    walks UP from the app's own directory for the marker docs/project/sprint-plan.md
+"Debug" and "net8.0-windows" are literals in that path (GUI-C-158 recorded this as a
+Release-build gap). The job already builds the app with -c Debug (ci.yml, gui-e2e-native
+"Build gui app"), so runner builds must use -c Debug too.
+
+Local evidence that building is sufficient: the Native-configuration run in GUI-C-159
+passed A04/A05/A06 6/6 with the runners present at exactly those paths and NO arguments
+passed. And GUI-C-161 measured the absent case: the skip reason names the missing exe.

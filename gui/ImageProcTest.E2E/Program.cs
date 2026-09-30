@@ -134,12 +134,47 @@ static void RunWpfE2E()
         var saveSettingsMenuItem = GetControl<MenuItem>(window, "SaveSettingsMenuItem");
         var exportEvidenceBundleMenuItem = GetControl<MenuItem>(window, "ExportEvidenceBundleMenuItem");
         var openDicomMenuItem = GetControl<MenuItem>(window, "OpenDicomMenuItem");
+        var viewModelForMenus = window.DataContext as MainWindowViewModel;
 
         Assert(openRawMenuItem.Command is not null, "Open Raw menu command missing.");
         Assert(saveSettingsMenuItem.Command is not null, "Save Settings menu command missing.");
-        Assert(!openRecentMenuItem.IsEnabled, "Open Recent must be disabled until recent-file history is implemented.");
+        // #225 rows 1 and 3 landed (GUI-C-160, GUI-C-163), so two of these three moved forward the way
+        // GUI-C-158 moved the earlier batch: not deleted, re-aimed at what the app now promises.
+        //
+        // Open Recent: the old line required it to be DISABLED. It was still passing, but by accident —
+        // this runner builds a fresh window whose persisted history happens to be empty, so it was
+        // measuring "the list is empty", not "the feature is missing". One saved raw file in the shipped
+        // settings would have turned it red with nothing broken. The real contract is the equivalence.
+        // NOT compared against HasRecentRawFiles: IsEnabled is BOUND to that property, so comparing the
+        // two moves both sides together and the assertion can never fail (GUI-C-165 caught this in its own
+        // first attempt — the same self-comparison shape GUI-C-158 hit with the window title). The
+        // independent observable is the submenu itself: the items come from the ItemsSource binding, the
+        // enabled state from the property, and a broken ItemsSource shows up as an enabled menu with
+        // nothing under it.
+        Assert(
+            openRecentMenuItem.IsEnabled == (openRecentMenuItem.Items.Count > 0),
+            $"Open Recent is {(openRecentMenuItem.IsEnabled ? "enabled" : "disabled")} with " +
+            $"{openRecentMenuItem.Items.Count} entries under it; #225 row 1 ties the two together.");
+        Assert(
+            openRecentMenuItem.ItemsSource is not null,
+            "Open Recent has no ItemsSource, so the persisted history cannot reach the submenu (#225 row 1).");
+
         Assert(!openDicomMenuItem.IsEnabled, "Open DICOM must be disabled in GUI-S0.");
-        Assert(!exportEvidenceBundleMenuItem.IsEnabled, "Evidence bundle export must be disabled until deterministic artifacts exist.");
+
+        // Evidence bundle: the old line said "disabled until deterministic artifacts exist". Measured in
+        // GUI-C-165: the artifacts are NOT deterministic — two runs of the same input produce bundles
+        // whose member hashes differ (the log carries timestamps, the run id carries a clock reading).
+        // The condition it named is therefore still unmet, which is why this is NOT replaced by a
+        // determinism assertion. What changed is that the condition never gated the capability: the same
+        // command has been on two workbench buttons since 54a3ae7 (2026-05-09), so the line only kept the
+        // export off the MENU while the operator could always run it from a button. GUI-C-163 removed
+        // that inconsistency. Whether determinism is a requirement to raise is the lead's call; what this
+        // runner can check is that the menu carries the app's own command rather than a copy.
+        Assert(exportEvidenceBundleMenuItem.IsEnabled, "Evidence bundle export is disabled; #225 row 3 wired it.");
+        Assert(
+            ReferenceEquals(exportEvidenceBundleMenuItem.Command, viewModelForMenus?.ExportEvidenceBundleCommand),
+            "The Evidence Bundle menu item does not carry the view model's command, so it can drift from " +
+            "the workbench buttons that do.");
 
         // --- Backend menu items ---
         var nativeModeMenuItem = GetControl<MenuItem>(window, "NativeBackendModeMenuItem");
@@ -202,7 +237,13 @@ static void RunWpfE2E()
         Assert(clearAlertsMenuItem.Command is not null, "Clear Alerts menu command missing.");
         Assert(zoomFitMenuItem.Command is not null, "Zoom Fit menu command missing.");
         Assert(zoomActualMenuItem.Command is not null, "Zoom 100% menu command missing.");
-        Assert(!openEvidenceFolderMenuItem.IsEnabled, "Open Evidence Folder must be disabled until evidence folder management exists.");
+        // #225 row 14 landed (GUI-C-163) after a lead decision, so this moves forward too. The condition
+        // it named — "evidence folder management exists" — was already satisfied before the row: the app
+        // creates and owns evidence/<RunId> (RecordVerdict) and evidence/bundles. What the row added was
+        // the command; the boundary the lead set is that the path is computed by the app and never taken
+        // from operator input, which is not a property this runner can see from the menu item.
+        Assert(openEvidenceFolderMenuItem.IsEnabled, "Open Evidence Folder is disabled; #225 row 14 wired it.");
+        Assert(openEvidenceFolderMenuItem.Command is not null, "Open Evidence Folder menu item has no command bound.");
 
         // --- Help menu items ---
         var helpHomeMenuItem = GetControl<MenuItem>(window, "OpenHelpIndexMenuItem");
