@@ -1,4 +1,4 @@
 ai               xpe_ai_tests                 2 .cpp | src/ compiled into the test exe: 2 ['${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp', '${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp']
-enhance_basic    xpe_enhance_basic_tests      0 .cpp | src/ compiled into the test exe: 0 
+enhance_basic    xpe_enhance_basic_tests      0 .cpp | src/ compiled into the test exe: 0
 gsvg             gsvg_tests                  24 .cpp | src/ compiled into the test exe: 3 ['src/grid_dwt.cpp', 'src/virtual_grid.cpp']
 preprocess       xpe_preprocess_tests         6 .cpp | src/ compiled into the test exe: 6 ['src/rle_codec.cpp', 'src/xpe_calib_generate_offset_methods.cpp']
