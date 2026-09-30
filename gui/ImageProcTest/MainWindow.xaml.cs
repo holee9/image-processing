@@ -308,12 +308,12 @@ public partial class MainWindow : System.Windows.Window
                 // OpenRecentMenuItem left this list in GUI-C-160: #225 row 1 is implemented. It is
                 // enabled whenever the history is non-empty, so requiring it to be disabled would make
                 // the flag depend on whether a file had been opened yet rather than on what is built.
-                !ExportEvidenceBundleMenuItem.IsEnabled &&
+                // ExportEvidenceBundleMenuItem and OpenEvidenceFolderMenuItem left this list in
+                // GUI-C-163: #225 rows 3 and 14 are implemented.
                 // OpenRuntimeLogsMenuItem left this list in GUI-C-160: #225 row 5 is implemented, so
                 // requiring it to be disabled would make this flag claim the opposite of what the app
                 // does — the same correction RunPreprocessingMenuItem got in GUI-C-36.
                 !OpenPipelineDiagnosticsMenuItem.IsEnabled &&
-                !OpenEvidenceFolderMenuItem.IsEnabled &&
                 OpenCurrentWorkflowHelpMenuItem.IsEnabled;
             report.ToolbarMenuCommandParity =
                 ReferenceEquals(InitializeBackendButton.Command, InitializeBackendMenuItem.Command) &&
@@ -325,7 +325,6 @@ public partial class MainWindow : System.Windows.Window
             report.DisabledFutureCommandCount = new[]
                 {
                     OpenDicomMenuItem,
-                    ExportEvidenceBundleMenuItem,
                     NativeBackendModeMenuItem,
                     PInvokeSmokeTestMenuItem,
                     ZoomFitMenuItem,
@@ -338,7 +337,6 @@ public partial class MainWindow : System.Windows.Window
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
                     OpenPipelineDiagnosticsMenuItem,
-                    OpenEvidenceFolderMenuItem,
                     RunSelfCheckMenuItem,
                     RunGuiE2EMenuItem,
                     BenchmarkRunnerMenuItem,
@@ -426,6 +424,29 @@ public partial class MainWindow : System.Windows.Window
                 viewModel.LastRuntimeLogExportPath is { } logPath && File.Exists(logPath)
                     ? File.ReadAllLines(logPath).Length
                     : 0;
+
+            // #225 (GUI-C-163) rows 3 and 14. AFTER the row-5 export on purpose: that is what creates
+            // evidence/<RunId> in a run that recorded no verdict, so the bundle has something to zip
+            // and the folder exists to resolve. Ordered the other way round, both commands would only
+            // ever be observed answering "there is nothing yet".
+            //
+            // Row 3 was a placeholder the capability outran: the same command object the workbench
+            // buttons bind is now on the menu item, and that identity is what is recorded — a copy of
+            // the logic behind the menu could drift from the buttons without any test noticing.
+            report.EvidenceBundleMenuSharesButtonCommand =
+                ReferenceEquals(ExportEvidenceBundleMenuItem.Command, viewModel.ExportEvidenceBundleCommand);
+            ClickMenuItem(ExportEvidenceBundleMenuItem);
+            await Task.Delay(300);
+            report.EvidenceBundleStatus = viewModel.StatusText;
+
+            // Row 14: everything except the launch runs here — see OpenEvidenceFolder's remarks and
+            // EvidenceFolderLaunchSuppressed.
+            ClickMenuItem(OpenEvidenceFolderMenuItem);
+            await Task.Delay(200);
+            report.EvidenceFolderStatus = viewModel.StatusText;
+            report.EvidenceFolderPath = viewModel.LastEvidenceFolderPath;
+            report.EvidenceFolderLaunchSuppressed = viewModel.EvidenceFolderLaunchSuppressed;
+
 
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);

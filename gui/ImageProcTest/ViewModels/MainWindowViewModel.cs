@@ -75,6 +75,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _guiE2ERunning;
     private bool? _guiE2EPassed;
     private string? _lastRuntimeLogExportPath;
+    private string? _lastEvidenceFolderPath;
+    private bool _evidenceFolderLaunchSuppressed;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -135,6 +137,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Seeded from the persisted settings: the history exists before this process does (#225 row 1).
         RefreshRecentRawFiles();
         ExportRuntimeLogsCommand = new RelayCommand(ExportRuntimeLogs);
+        OpenEvidenceFolderCommand = new RelayCommand(OpenEvidenceFolder);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -436,6 +439,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>#225 row 5: writes the in-memory runtime log to a file under this run set's evidence.</summary>
     public RelayCommand ExportRuntimeLogsCommand { get; }
+
+    /// <summary>#225 row 14: opens this run set's evidence directory in the OS file browser.</summary>
+    public RelayCommand OpenEvidenceFolderCommand { get; }
 
     public RelayCommand ShutdownBackendCommand { get; }
 
@@ -2541,6 +2547,86 @@ public sealed class MainWindowViewModel : ObservableObject
         LaneBGsvgDenoiseK = 2.0;
         StatusText = "Lane B overrides reset to defaults.";
         Log(StatusText);
+    }
+
+    /// <summary>
+    /// #225 row 14 (GUI-C-163): opens this run set's evidence directory in the OS file browser.
+    ///
+    /// <para><b>The boundary the lead set is not "shell or not" but "who owns the path".</b> The path
+    /// here is computed by the app (<c>evidence/&lt;RunId&gt;</c>, the same directory
+    /// <see cref="RecordVerdict"/> writes and <see cref="ExportEvidenceBundle"/> zips); no user string
+    /// reaches the shell. Opening an arbitrary path the operator typed is a DIFFERENT decision and is
+    /// deliberately not implemented here.</para>
+    ///
+    /// <para>Existence is checked before launching, and a missing directory answers on the status line
+    /// rather than creating an empty one — an empty folder would imply evidence exists. The live
+    /// precedent in <c>clients/ImageProcTest</c> creates instead of checking; that difference is
+    /// deliberate and recorded in the GUI-C-163 report.</para>
+    ///
+    /// <para><c>Process.Start</c> throws when no program is associated, so the failure is caught and
+    /// reported rather than swallowed: a menu item that silently does nothing is the defect this row
+    /// is supposed to remove.</para>
+    /// </summary>
+    private void OpenEvidenceFolder()
+    {
+        if (string.IsNullOrWhiteSpace(RunSet.RunId))
+        {
+            StatusText = "No evidence folder to open: no run set has started.";
+            Log(StatusText);
+            return;
+        }
+
+        var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        if (!Directory.Exists(directory))
+        {
+            StatusText = $"No evidence folder yet for this run set: {directory}";
+            Log(StatusText);
+            return;
+        }
+
+        LastEvidenceFolderPath = directory;
+
+        // An automation run is headless and unattended; leaving file-browser windows behind on a CI
+        // machine is not what a check should do. The resolution and the existence check above DO run,
+        // so a scenario observes everything except the launch itself — stated as a gap in the report
+        // and recorded in the report data as EvidenceFolderLaunchSuppressed.
+        if (App.IsAutomationMode)
+        {
+            EvidenceFolderLaunchSuppressed = true;
+            StatusText = $"Evidence folder resolved (launch suppressed under automation): {directory}";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = directory,
+                UseShellExecute = true
+            });
+            StatusText = $"Evidence folder opened: {directory}";
+            Log(StatusText);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Evidence folder could not be opened: {ex.Message}";
+            Log($"Evidence folder launch failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>The evidence directory <see cref="OpenEvidenceFolderCommand"/> last resolved; null before it succeeded.</summary>
+    public string? LastEvidenceFolderPath
+    {
+        get => _lastEvidenceFolderPath;
+        private set => SetProperty(ref _lastEvidenceFolderPath, value);
+    }
+
+    /// <summary>True when a run suppressed the file-browser launch because it is an automation run.</summary>
+    public bool EvidenceFolderLaunchSuppressed
+    {
+        get => _evidenceFolderLaunchSuppressed;
+        private set => SetProperty(ref _evidenceFolderLaunchSuppressed, value);
     }
 
     private void ExportEvidenceBundle()

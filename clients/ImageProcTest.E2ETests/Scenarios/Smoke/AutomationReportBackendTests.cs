@@ -240,6 +240,37 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-09 (#225, GUI-C-163): rows 3 and 14 — the bundle export and the evidence folder answer, and the
+    /// menu shares the workbench button's command object.
+    ///
+    /// <para>Row 3 was never a missing capability: the menu item arrived as a placeholder in f8f9bd5 and
+    /// the zip landed three weeks later in 54a3ae7 bound to two buttons. So what is asserted is the
+    /// IDENTITY of the command, not that a zip appears — a re-implementation behind the menu would
+    /// produce a zip too, and then drift from the buttons with nothing noticing.</para>
+    ///
+    /// <para>Row 14's launch is NOT asserted and cannot be: the app suppresses the file-browser launch
+    /// under automation rather than leaving windows on a CI machine. The suppression is asserted instead,
+    /// so the gap is visible in the data rather than hidden in prose.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A09_EvidenceBundleAndFolder_Answer()
+    {
+        var (report, _) = Run("A09", "Mock", nativeDirectory: null);
+
+        Assert.True(report.GetProperty("EvidenceBundleMenuSharesButtonCommand").GetBoolean(),
+            "The Export Evidence Bundle menu item does not carry the view model's command object, so it " +
+            "can drift from the workbench buttons that do.");
+        var bundle = report.GetProperty("EvidenceBundleStatus").GetString() ?? string.Empty;
+        Assert.Contains("Evidence bundle exported", bundle, StringComparison.Ordinal);
+
+        var folder = report.GetProperty("EvidenceFolderStatus").GetString() ?? string.Empty;
+        Assert.False(string.IsNullOrWhiteSpace(report.GetProperty("EvidenceFolderPath").GetString()),
+            $"The evidence folder command resolved no directory: '{folder}'.");
+        Assert.True(report.GetProperty("EvidenceFolderLaunchSuppressed").GetBoolean(),
+            "An automation run launched the file browser; that would leave windows behind on CI.");
+    }
+
+    /// <summary>
     /// Reads a runner verdict that the app reports as THREE states, and keeps them three (#225,
     /// GUI-C-161).
     ///

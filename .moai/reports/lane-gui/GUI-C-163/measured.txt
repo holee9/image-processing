@@ -1,0 +1,59 @@
+GUI-C-163 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== §3 answer: WHICH of the three — read from git, not guessed ==
+git log -L on the menu item, then -S on the capability:
+  menu item  ExportEvidenceBundleMenuItem, IsEnabled=False   f8f9bd5  2026-04-16
+  capability ExportEvidenceBundle + ZipFile.CreateFromDirectory
+             AND the two button bindings (TopBar.xaml, AnalysisPanel.xaml)
+                                                            54a3ae7  2026-05-09  (#78)
+=> Answer 1: "the menu item was the only thing missing." The placeholder predates the
+   capability by three weeks; the capability arrived bound to buttons and nobody came
+   back to the placeholder. It is NOT a guard protecting anything (answer 3), and the
+   menu means the same scope as the buttons (not answer 2) — the menu now carries the
+   SAME command object, measured below.
+
+== The precedents the decision rests on — checked, and one differs from the citation ==
+grep -rn "OpenInBrowser" gui/ clients/ --include=*.cs   (excluding obj/)
+  gui/ImageProcTest/Services/HelpBundleService.cs:44   <- the DEFINITION
+  ...and no call site at all.
+The gui app's help menu opens an in-app HelpWindow (MainWindow.xaml.cs OpenHelpPage),
+not the browser. So precedent #1 is a definition with zero callers; the File.Exists
+check cited as the pattern lives in code nothing runs.
+
+clients/ImageProcTest/MainWindow.xaml.cs:176-185  MenuOpenEvidenceFolder_Click
+  Process.Start(FileName = <base>/preprocess-gui-reports, UseShellExecute = true)
+  — a LIVE handler, literally this same feature in the other app. It calls
+    Directory.CreateDirectory first, i.e. it CREATES rather than checks.
+(That app is not built by any workflow, so "live" = wired to a click, not CI-exercised.)
+
+== Rows 3 and 14 working ==
+Automation run (evidence/ deleted first):
+  DisabledFutureCommandCount = 11                (was 13)
+  EvidenceBundleMenuSharesButtonCommand = True
+  EvidenceBundleStatus = "Evidence bundle exported: ...\evidence\bundles\20260930-090020-488a8f.zip"
+  EvidenceFolderStatus = "Evidence folder resolved (launch suppressed under automation): ...\evidence\20260930-090020-488a8f"
+  EvidenceFolderPath   = that directory
+  EvidenceFolderLaunchSuppressed = True
+  zip contents: ['runtime-log.txt']              <- not an empty zip
+
+== Falsification 1 (card §4) — no evidence directory: status line, no crash ==
+arm: ExportRuntimeLogs returns early (`if (true || Logs.Count == 0)`) so nothing creates
+     evidence/<RunId>; evidence/ deleted before the run
+  exit=0                                          <- the app did not die
+  EvidenceBundleStatus = "No evidence directory found for current run-set."
+  EvidenceFolderStatus = "No evidence folder yet for this run set: ...\evidence\20260930-090115-ba7d02"
+  EvidenceFolderPath   = null   EvidenceFolderLaunchSuppressed = False
+  evidence dir exists: False
+Neither command did nothing silently, and neither threw. reverted.
+
+== Falsification 2 — is A-09's identity assertion blind? ==
+arm: menu item bound to ExportAutomationReportCommand instead
+  A09_EvidenceBundleAndFolder_Answer  [FAIL]
+reverted -> 통과! 실패: 0, 통과: 1
+
+== Regression ==
+Mock configuration, full suite:
+  통과!  실패: 0, 통과: 142, 건너뜀: 31, 전체: 173   (10 m 56 s)
+Test count 172 -> 173 (A-09).
+
+Builds: ImageProcTest, E2ETests — 오류 0개.
