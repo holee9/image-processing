@@ -66,18 +66,32 @@ def effective_cache(presets, name, seen=None):
     return merged
 
 
-def normalise(value):
-    """Reduce a preset value and a cache value to a comparable form.
+ENV_MACRO = re.compile(r"\$env\{[^}]*\}")
 
-    Preset values may be bare strings or `{"type": ..., "value": ...}` objects,
-    and CMake spells booleans several ways. `${sourceDir}` is expanded so a path
-    variable compares as the path the cache actually holds.
-    """
+
+def raw_value(value):
     if isinstance(value, dict):
         value = value.get("value", "")
     if isinstance(value, bool):
         value = "ON" if value else "OFF"
-    text = str(value).replace("${sourceDir}", REPO).replace("\\", "/").strip()
+    return str(value)
+
+
+def normalise(value, source_dir):
+    """Reduce a preset value and a cache value to a comparable form.
+
+    Preset values may be bare strings or `{"type": ..., "value": ...}` objects,
+    and CMake spells booleans several ways.
+
+    `${sourceDir}` expands to `source_dir` -- the repository the BUILD DIRECTORY
+    belongs to, read from its own cache, NOT the repository this script happens
+    to live in. Those differ whenever the check is run across checkouts, which
+    is the normal case here: every lane works in a worktree. Expanding against
+    the script's repo reported `VCPKG_MANIFEST_DIR` as drifted for a directory
+    that had just been configured from the preset -- a false FAIL, and one
+    indistinguishable from real drift by anything but reading the paths.
+    """
+    text = raw_value(value).replace("${sourceDir}", source_dir).replace("\\", "/").strip()
     upper = text.upper()
     if upper in ("ON", "TRUE", "YES", "1"):
         return "ON"
@@ -128,21 +142,38 @@ def main(argv):
         return 1
 
     cache = read_cache(cache_path)
-    drift, absent = [], []
+
+    # The build directory's own repository root. `${sourceDir}` must expand
+    # against THIS, not against the checkout the script sits in.
+    source_dir = (cache.get("CMAKE_HOME_DIRECTORY") or REPO).replace("\\", "/").rstrip("/")
+
+    drift, absent, unresolved = [], [], []
     for key in sorted(declared):
-        want = normalise(declared[key])
+        raw = raw_value(declared[key])
+        if ENV_MACRO.search(raw):
+            # `$env{...}` resolves from the environment CMake was configured
+            # in, which this process cannot reconstruct. Comparing it would
+            # produce a verdict in both directions with nothing behind it, so
+            # it is reported as unchecked rather than guessed.
+            unresolved.append((key, raw))
+            continue
+        want = normalise(declared[key], source_dir)
         if key not in cache:
             absent.append((key, want))
-        elif normalise(cache[key]) != want:
-            drift.append((key, want, normalise(cache[key])))
+        elif normalise(cache[key], source_dir) != want:
+            drift.append((key, want, normalise(cache[key], source_dir)))
 
     print("preset %s  vs  %s" % (preset, cache_path))
-    print("  %d variables declared by the preset" % len(declared))
+    print("  source dir (from cache): %s" % source_dir)
+    print("  %d declared, %d compared, %d not comparable" %
+          (len(declared), len(declared) - len(unresolved), len(unresolved)))
 
     for key, want, got in drift:
         print("  DRIFT   %-34s preset=%-12s cache=%s" % (key, want, got))
     for key, want in absent:
         print("  ABSENT  %-34s preset=%-12s cache=(not present)" % (key, want))
+    for key, raw in unresolved:
+        print("  UNCHECKED %-32s %s" % (key, raw))
 
     if drift or absent:
         print("")
@@ -151,7 +182,11 @@ def main(argv):
         print("      the preset. Reconfigure: cmake --preset %s" % preset)
         return 1
 
-    print("  OK      every declared variable matches")
+    if unresolved:
+        print("  OK      every comparable variable matches"
+              " (%d left unchecked above)" % len(unresolved))
+    else:
+        print("  OK      every declared variable matches")
     return 0
 
 
