@@ -60,7 +60,13 @@ def effective_cache(presets, name, seen=None):
     if isinstance(parents, str):
         parents = [parents]
     merged = {}
-    for parent in parents:
+    # CMake resolves a conflict between multiple `inherits` parents in favour of
+    # the EARLIER one, so the later parents are applied first and the earlier
+    # ones overwrite them. The obvious loop (apply in listed order) gets this
+    # backwards; xpe-reviewer caught it by running the function on a synthetic
+    # left/right conflict. No preset here has two parents today, which is why
+    # none of my own arms could have hit it.
+    for parent in reversed(parents):
         merged.update(effective_cache(presets, parent, seen + [name]))
     merged.update(node.get("cacheVariables") or {})
     return merged
@@ -95,8 +101,12 @@ def normalise(value, source_dir):
     upper = text.upper()
     if upper in ("ON", "TRUE", "YES", "1"):
         return "ON"
-    if upper in ("OFF", "FALSE", "NO", "0", "NOTFOUND"):
+    if upper in ("OFF", "FALSE", "NO", "0"):
         return "OFF"
+    # NOTFOUND is deliberately NOT folded into OFF: "this path was not found"
+    # and "this option is disabled" are different states, and collapsing them
+    # made a missing toolchain compare equal to a disabled feature.
+
     return text
 
 
@@ -147,10 +157,24 @@ def main(argv):
     # against THIS, not against the checkout the script sits in.
     source_dir = (cache.get("CMAKE_HOME_DIRECTORY") or REPO).replace("\\", "/").rstrip("/")
 
-    drift, absent, unresolved = [], [], []
+    drift, absent, unresolved, unset = [], [], [], []
     for key in sorted(declared):
+        if declared[key] is None:
+            # A preset value of null means "do not set this variable". The cache
+            # agreeing means the key is absent; a present key is the drift.
+            if key in cache:
+                drift.append((key, "(unset)", normalise(cache[key], source_dir)))
+            else:
+                unset.append(key)
+            continue
         raw = raw_value(declared[key])
         if ENV_MACRO.search(raw):
+            # The VALUE cannot be reconstructed, but the key still has to exist.
+            # Skipping the presence check too let a cache that never set the
+            # variable pass -- xpe-reviewer's finding on line 153.
+            if key not in cache:
+                absent.append((key, raw))
+                continue
             # `$env{...}` resolves from the environment CMake was configured
             # in, which this process cannot reconstruct. Comparing it would
             # produce a verdict in both directions with nothing behind it, so
@@ -173,7 +197,9 @@ def main(argv):
     for key, want in absent:
         print("  ABSENT  %-34s preset=%-12s cache=(not present)" % (key, want))
     for key, raw in unresolved:
-        print("  UNCHECKED %-32s %s" % (key, raw))
+        print("  UNCHECKED %-32s %s   (key present, value not reconstructible)" % (key, raw))
+    for key in unset:
+        print("  UNSET-OK  %-32s preset declares null, cache has no key" % key)
 
     if drift or absent:
         print("")
