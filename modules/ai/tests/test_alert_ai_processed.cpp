@@ -72,10 +72,27 @@ struct Img {
 
 bool IsStub() { return xpe::ai::OnnxSession::IsStubBuild(); }
 
-/** True when the caller declared it expects a full ONNX build. */
+/**
+ * @brief True when the caller declared it expects a full ONNX build.
+ *
+ * getenv_s under MSVC, std::getenv elsewhere -- the same split
+ * test_onnx_session.cpp:234-240 uses, and for the same reason: /wd4996 is on
+ * the PRODUCT targets only, while xpe_ai_tests is the one target that gets
+ * /WX (QA-B-164), so a plain std::getenv here is C4996 -> C2220 and the test
+ * target stops building. QA-B-169a: that is exactly how this file broke the
+ * Benchmark Regression job at 4ed75e0.
+ */
 bool CallerExpectsOnnx() {
+#ifdef _MSC_VER
+    size_t len = 0;
+    char buf[8] = {0};
+    const bool present =
+        (getenv_s(&len, buf, sizeof(buf), "XPE_AI_EXPECT_ONNX") == 0) && len > 1;
+    return present && std::string(buf) == "1";
+#else
     const char* v = std::getenv("XPE_AI_EXPECT_ONNX");
-    return v && v[0] == '1' && v[1] == '\0';
+    return v && std::string(v) == "1";
+#endif
 }
 
 /** Number of queued alerts whose text contains @p needle. */
