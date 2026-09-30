@@ -1,10 +1,12 @@
-// XPE-GUI-E2E-001 §3: launches the WPF app under test and guarantees it is gone afterwards.
+﻿// XPE-GUI-E2E-001 §3: launches the WPF app under test and guarantees it is gone afterwards.
 using System.Diagnostics;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Exceptions;
 using FlaUI.UIA3;
 using Xunit;
+
+using ImageProcTest.Services;
 
 namespace ImageProcTest.E2ETests.Fixtures;
 
@@ -666,51 +668,22 @@ public class ApplicationFixture : IDisposable
         var guiRoot = FindGuiSourceRoot(exePath);
         if (guiRoot is null) return;   // cannot locate sources: stay quiet rather than invent a failure
 
-        var exeWrittenUtc = File.GetLastWriteTimeUtc(exePath);
-        FileInfo? newest = null;
-
-        foreach (var file in Directory.EnumerateFiles(guiRoot, "*", SearchOption.AllDirectories))
-        {
-            // bin/ and obj/ are build output, not sources — obj in particular is written DURING the
-            // build, so including it would compare the build against itself.
-            if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
-                file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            // Compile inputs only. The question to ask before adding an extension here is not "is this
-            // a source file?" but "does the program write into the directory being watched?" — that one
-            // catches more, and it would have caught this. Two reasons, both measured:
-            //
-            // The app WRITES into its own project directory — automation-report.json lands beside the
-            // sources when the hidden-window automation step runs, which in CI happens AFTER the build.
-            // Treating that as a source turned this guard into a false red on every gui-automation run
-            // (main, run 35399591335: 97 of 127 cases failed in 13 s, all on this exception).
-            //
-            // And content files would be wrong here even without that: editing appsettings.json and
-            // rebuilding copies the file without relinking, so the exe keeps its old timestamp and the
-            // guard would fire on a build that IS current. This guard answers "was the exe compiled
-            // from these sources", and only compile inputs can answer it.
-            var extension = Path.GetExtension(file);
-            if (extension is not (".cs" or ".xaml" or ".csproj" or ".resx")) continue;
-
-            var info = new FileInfo(file);
-            if (newest is null || info.LastWriteTimeUtc > newest.LastWriteTimeUtc) newest = info;
-        }
-
-        if (newest is null || newest.LastWriteTimeUtc <= exeWrittenUtc) return;
-
-        throw new InvalidOperationException(
-            $"The gui app executable is older than its sources, so this run would test the PREVIOUS build. " +
-            $"exe '{exePath}' written {exeWrittenUtc:O}; newest source '{newest.FullName}' written " +
-            $"{newest.LastWriteTimeUtc:O}. Build the app first: " +
-            $"dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug. " +
-            $"(This project does not reference the app on purpose — see the csproj note — so building " +
-            $"the tests alone never rebuilds it.)");
+        // #225 (GUI-C-166): the comparison itself now lives in ImageProcTest.Services.BuildFreshnessGuard,
+        // linked into this project. It moved because the two console runners needed the same check and a
+        // second copy of the "which files are compile inputs" rule would drift — that rule carries two
+        // measured decisions (bin/obj excluded because obj is written during the build; compile-input
+        // extensions only, because the app writes automation-report.json beside its own sources and
+        // treating that as a source turned this guard into a false red on 97 of 127 cases in CI run
+        // 35399591335). WHERE the sources are stays here, because it differs per caller.
+        BuildFreshnessGuard.EnsureArtifactIsNotOlderThanSources(
+            exePath,
+            guiRoot,
+            "gui app executable",
+            "Build the app first: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug. " +
+            "(This project does not reference the app on purpose — see the csproj note — so building " +
+            "the tests alone never rebuilds it.)");
     }
 
-    /// <summary>The gui project directory that produced <paramref name="exePath"/>, or null.</summary>
     private static string? FindGuiSourceRoot(string exePath)
     {
         // <gui root>/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe -> <gui root>/ImageProcTest
