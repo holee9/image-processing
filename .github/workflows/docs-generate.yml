@@ -69,6 +69,33 @@ jobs:
         run: docfx docs/help/docfx/docfx.json
         shell: bash
 
+      # GUI-C-169 found this job green with nothing in it: 0 API pages and a
+      # 52-byte xrefmap.yml. docfx's metadata src pointed at `../../gui`, which
+      # from docs/help/docfx/ resolves to docs/gui -- a directory that does not
+      # exist. The sibling Doxyfile at the same depth correctly uses `../../../`;
+      # only this file was short by one level. docfx finds no projects, emits
+      # nothing, and exits 0, so the job passed for as long as the path was wrong.
+      #
+      # The path is fixed. This step is the part that makes the fix hold: an
+      # empty generation is now a failure rather than a pass. The threshold is
+      # deliberately 1, not a count that tracks the project list -- this asserts
+      # "something was generated", which is the property that was silently false.
+      - name: Assert DocFX produced managed API pages
+        shell: pwsh
+        run: |
+          $api = 'docs/help/generated/docfx/api'
+          if (-not (Test-Path -LiteralPath $api)) {
+            Write-Error "docfx produced no api/ directory - metadata src matched no projects"
+            exit 1
+          }
+          $pages = @(Get-ChildItem -LiteralPath $api -Filter *.yml -Recurse |
+                     Where-Object { $_.Name -ne 'toc.yml' })
+          Write-Host ("managed API pages: {0}" -f $pages.Count)
+          if ($pages.Count -lt 1) {
+            Write-Error 'docfx emitted an empty api/ - a green job with no content'
+            exit 1
+          }
+
       - name: Upload DocFX artifact
         uses: actions/upload-artifact@v4
         with:
