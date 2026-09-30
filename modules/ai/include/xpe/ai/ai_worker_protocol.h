@@ -221,6 +221,34 @@ typedef enum XpeAiExecutionProvider {
  *   "fallback_recommended": true
  * }
  *
+ * Binary payload layout (QA-B-170). A message that carries an image sets
+ * XPE_AI_FLAG_HAS_BINARY_PAYLOAD, and its payload (payloadSize bytes in total)
+ * is:
+ *
+ *     uint32 little-endian  jsonSize
+ *     jsonSize bytes        JSON metadata
+ *     the rest              raw pixels, row-major, no padding
+ *
+ * The length prefix exists because the JSON has no terminator the reader can
+ * trust once binary bytes follow it.
+ *
+ * Bone suppress request (type BONE_SUPPRESS, binary):
+ *   JSON  {"width": 3, "height": 3, "format": "float32"}
+ *   pixels width*height float32 -- the binary part must be EXACTLY that long
+ *
+ * Bone suppress response (type BONE_SUPPRESS_RESP, binary):
+ *   JSON  {"success": true, "width": 3, "height": 3, "format": "float32"}
+ *   pixels width*height float32 -- the soft-tissue image
+ *
+ * A failed request gets XPE_AI_MSG_ERROR (no binary payload), whose error_code
+ * is the same XPE_ERR_* the in-process xpe_bone_suppress returns for the same
+ * fault: not found IO_FAILED, unloadable CONFIG_INVALID, and so on. The model
+ * is <model_dir from INIT>/bone_suppress.onnx, resolved as ai.cpp does.
+ *
+ * INIT response extension: worker_version, mode ("stub" or "full") and
+ * capabilities. capabilities is 1 when a real model serves BONE_SUPPRESS and 0
+ * when none does; a stub worker reports 0 because it cannot run one.
+ *
  * Model card response payload (JSON, REQ-AI-010/011):
  * {
  *   "model_id": "bone_suppress_v1",

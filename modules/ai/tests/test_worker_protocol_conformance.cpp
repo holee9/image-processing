@@ -29,6 +29,7 @@
 
 #include <gtest/gtest.h>
 
+#include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_onnx_session.h"
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/common/xpe_error.h"
@@ -37,7 +38,11 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
+#include <thread>
+#include <vector>
 
 extern "C" {
 typedef struct XpeAiIpcBridge XpeAiIpcBridge;
@@ -52,6 +57,11 @@ XpeErrorCode    xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
                                           void* payload,
                                           uint32_t payload_capacity,
                                           uint32_t* payload_size);
+XpeErrorCode    xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
+                                                uint32_t width,
+                                                uint32_t height,
+                                                const float* pixels_in,
+                                                float* pixels_out);
 void            xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge);
 }
 
@@ -65,6 +75,8 @@ namespace {
 constexpr DWORD kExitWaitMs = 3000;
 /** How long the bridge waits for a reply before calling it silence. */
 constexpr uint32_t kBridgeTimeoutMs = 1500;
+/** A worker still running this long into one test is stuck; see Worker. */
+constexpr DWORD kWatchdogMs = 30000;
 
 std::string UniquePipeName() {
     char buf[128];
@@ -85,6 +97,8 @@ struct Worker {
     PROCESS_INFORMATION pi{};
     XpeAiIpcBridge* bridge = nullptr;
     bool launched = false;
+    HANDLE done_event = nullptr;
+    std::thread watchdog;
 
     Worker() : pipe(UniquePipeName()) {
         std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + pipe;
@@ -92,9 +106,24 @@ struct Worker {
         si.cb = sizeof(si);
         launched = CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE,
                                   CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi) != 0;
+        if (launched) {
+            // A blocked ReadFile in the test body would otherwise wait for a
+            // worker that never answers, and the destructor that kills the
+            // worker only runs after the body returns. Killing it from outside
+            // breaks the pipe, which turns a hang into a failure.
+            done_event = CreateEventA(nullptr, TRUE, FALSE, nullptr);
+            watchdog = std::thread([this] {
+                if (WaitForSingleObject(done_event, kWatchdogMs) == WAIT_TIMEOUT) {
+                    TerminateProcess(pi.hProcess, 2);
+                }
+            });
+        }
     }
 
     ~Worker() {
+        if (done_event) SetEvent(done_event);
+        if (watchdog.joinable()) watchdog.join();
+        if (done_event) CloseHandle(done_event);
         if (bridge) xpe_ai_ipc_bridge_destroy(bridge);
         if (launched) {
             // The child may already be gone; TerminateProcess on an exited
@@ -279,6 +308,14 @@ TEST(WorkerProtocolConformance, TheInitResponseNamesTheBuildTheWorkerReallyIs) {
         << " build; the worker said: " << r.payload;
     EXPECT_EQ(stub, r.payload.find("-stub") != std::string::npos)
         << "the worker version string disagrees with its own mode: " << r.payload;
+
+    // capabilities: 1 = a real model serves BONE_SUPPRESS, 0 = none does. It
+    // used to be a constant 0 with a comment saying no inference message was
+    // handled. Now a full worker handles one, and a claim of "no capabilities"
+    // from a worker that can infer would be as false as the old version string.
+    EXPECT_NE(std::string::npos,
+              r.payload.find(stub ? "\"capabilities\":0" : "\"capabilities\":1"))
+        << "capabilities does not match what this build can do: " << r.payload;
 }
 
 TEST(WorkerProtocolConformance, HeartbeatPerTheHeaderIsAnsweredAsAHeartbeat) {
@@ -341,4 +378,297 @@ TEST(WorkerProtocolConformance, TheWorkerSourceDeclaresNoPrivateMessageEnum) {
         << "the worker still defines its own MessageType. The shared header is "
            "the single definition; a second one drifts silently because "
            "nothing compares them (QA-B-167 found three crossed numbers).";
+}
+
+
+// ============================================================================
+// QA-B-170 (#130): BONE_SUPPRESS over the wire.
+//
+// "A response arrived" is not the claim. Before QA-B-169 a response arrived for
+// every message -- the worker answered 99 to all of them. The claim here is
+// that the answer is the SAME answer the in-process xpe_bone_suppress gives for
+// the same model and the same pixels, and that it moves when the model moves.
+//
+// Two expected values are used and they are deliberately not the same kind:
+//   - the in-process result, which tests that the two paths agree, and
+//   - a value derived from the model directory's NAME (models_x2 multiplies by
+//     2, models_x3 by 3), which does not depend on either path being right.
+// Agreement alone passes when both are wrong the same way; the independent
+// value is what rules that out.
+// ============================================================================
+
+namespace {
+
+#ifndef XPE_AI_TEST_DATA_DIR
+#error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
+#endif
+const std::string kDataDir    = XPE_AI_TEST_DATA_DIR;
+const std::string kDirX2      = kDataDir + "/models_x2";
+const std::string kDirX3      = kDataDir + "/models_x3";
+const std::string kDirMissing = kDataDir + "/models_missing";
+const std::string kDirBroken  = kDataDir + "/models_broken";
+
+constexpr uint32_t kW = 3, kH = 3;
+constexpr size_t   kN = static_cast<size_t>(kW) * kH;
+constexpr float    kSentinel = -12345.0f;
+
+std::vector<float> Pixels(float base) {
+    std::vector<float> px(kN);
+    for (size_t i = 0; i < kN; ++i) px[i] = base + static_cast<float>(i);
+    return px;
+}
+
+struct Outcome {
+    XpeErrorCode rc = XPE_OK;
+    std::vector<float> out = std::vector<float>(kN, kSentinel);
+};
+
+bool IsStubBuild() { return xpe::ai::OnnxSession::IsStubBuild(); }
+
+/** The reference: the in-process C ABI, one init/shutdown cycle of its own. */
+Outcome InProcess(const std::string& dir, const std::vector<float>& px) {
+    Outcome o;
+    xpe_ai_shutdown();
+    o.rc = xpe_ai_init(dir.c_str(), nullptr);
+    if (o.rc != XPE_OK) return o;
+
+    std::vector<float> in_copy = px;
+    XpeImageBuffer in{}, out{};
+    in.width = out.width = kW;
+    in.height = out.height = kH;
+    in.bitsAllocated = out.bitsAllocated = 32;
+    in.bitsStored = out.bitsStored = 32;
+    in.format = out.format = XPE_PIXEL_FLOAT32;
+    in.data = in_copy.data();
+    in.dataSize = kN * sizeof(float);
+    out.data = o.out.data();
+    out.dataSize = kN * sizeof(float);
+    o.rc = xpe_bone_suppress(&in, &out, nullptr);
+    xpe_ai_shutdown();
+    return o;
+}
+
+/** INIT with a model directory, exactly as ai_worker_protocol.h documents it. */
+XpeErrorCode InitWorker(Worker& w, const std::string& dir) {
+    std::string escaped;
+    for (char c : dir) {
+        if (c == '\\' || c == '"') escaped += '\\';
+        escaped += c;
+    }
+    const std::string json = "{\"model_dir\":\"" + escaped + "\"}";
+
+    XpeAiMessageHeader h = Header(XPE_AI_MSG_INIT);
+    h.requestId = 900;
+    h.payloadSize = static_cast<uint32_t>(json.size());
+    const XpeErrorCode sent = xpe_ai_ipc_bridge_send(
+        w.bridge, &h, json.data(), static_cast<uint32_t>(json.size()));
+    if (sent != XPE_OK) return sent;
+
+    const Reply r = Receive(w);
+    if (r.rc != XPE_OK) return r.rc;
+    return r.header.messageType == XPE_AI_MSG_INIT_RESPONSE ? XPE_OK : XPE_ERR_IO_FAILED;
+}
+
+/** Through the real worker process. */
+Outcome ViaWorker(Worker& w, const std::vector<float>& px) {
+    Outcome o;
+    o.rc = xpe_ai_ipc_bridge_bone_suppress(w.bridge, kW, kH, px.data(), o.out.data());
+    return o;
+}
+
+/** Same MSVC getenv_s split the other tests use; /WX is on for this target. */
+bool CallerExpectsOnnxHere() {
+#ifdef _MSC_VER
+    size_t len = 0;
+    char buf[8] = {0};
+    const bool present =
+        (getenv_s(&len, buf, sizeof(buf), "XPE_AI_EXPECT_ONNX") == 0) && len > 1;
+    return present && std::string(buf) == "1";
+#else
+    const char* v = std::getenv("XPE_AI_EXPECT_ONNX");
+    return v && std::string(v) == "1";
+#endif
+}
+
+}  // namespace
+
+// --- the assertion the card calls the most important ------------------------
+
+TEST(WorkerBoneSuppress, IpcGivesTheSameAnswerAsInProcessForTheSameModelAndInput) {
+    const std::vector<float> px = Pixels(1.0f);
+    const Outcome ref = InProcess(kDirX2, px);
+
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX2));
+    const Outcome ipc = ViaWorker(w, px);
+
+    EXPECT_EQ(ref.rc, ipc.rc)
+        << "the two paths disagree about whether this succeeds: in-process rc="
+        << static_cast<int>(ref.rc) << ", via worker rc=" << static_cast<int>(ipc.rc);
+
+    if (!IsStubBuild()) {
+        // In a full build "both failed with the same code" would pass the line
+        // above and prove nothing, so success is required outright.
+        ASSERT_EQ(XPE_OK, ref.rc);
+        ASSERT_EQ(XPE_OK, ipc.rc);
+        EXPECT_EQ(ref.out, ipc.out)
+            << "same model, same pixels, different numbers";
+    } else {
+        EXPECT_EQ(kSentinel, ipc.out[0])
+            << "a failed request must not have written the caller's buffer";
+    }
+}
+
+TEST(WorkerBoneSuppress, ChangingTheModelChangesTheIpcOutput) {
+    if (IsStubBuild()) {
+        GTEST_SKIP() << "stub build: no model is ever run, so there is nothing "
+                        "for a different model to change. "
+                        "TheFullBuildIsProvableWhenTheCallerSaysSo turns this "
+                        "skip red under XPE_AI_EXPECT_ONNX=1.";
+    }
+    const std::vector<float> px = Pixels(1.0f);
+
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+
+    // One worker, re-initialised: the cached session must follow the directory.
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX2));
+    const Outcome a = ViaWorker(w, px);
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX3));
+    const Outcome b = ViaWorker(w, px);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+
+    EXPECT_NE(a.out, b.out)
+        << "two different models gave the same numbers: the worker is not "
+           "running the model it was told to load";
+
+    // The independent expected value: the directory names say x2 and x3.
+    for (size_t i = 0; i < kN; ++i) {
+        EXPECT_FLOAT_EQ(2.0f * px[i], a.out[i]) << "pixel " << i << " under models_x2";
+        EXPECT_FLOAT_EQ(3.0f * px[i], b.out[i]) << "pixel " << i << " under models_x3";
+    }
+    // And each still agrees with the in-process path.
+    EXPECT_EQ(InProcess(kDirX2, px).out, a.out);
+    EXPECT_EQ(InProcess(kDirX3, px).out, b.out);
+}
+
+TEST(WorkerBoneSuppress, DifferentPixelsGiveDifferentIpcOutput) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build";
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX2));
+
+    const std::vector<float> lo = Pixels(1.0f);
+    const std::vector<float> hi = Pixels(50.0f);
+    const Outcome a = ViaWorker(w, lo);
+    const Outcome b = ViaWorker(w, hi);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+    EXPECT_NE(a.out, b.out) << "a fixed answer ignores its input";
+    EXPECT_NE(lo, a.out) << "the output is the input echoed back";
+}
+
+// --- the two configurations must NOT agree ----------------------------------
+
+TEST(WorkerBoneSuppress, ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone) {
+    if (!IsStubBuild()) GTEST_SKIP() << "full build: inference succeeds";
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX2));
+
+    const Outcome ipc = ViaWorker(w, Pixels(1.0f));
+    EXPECT_NE(XPE_OK, ipc.rc)
+        << "a stub worker ran no model; reporting success would be a false claim";
+    // Not-OK alone is also what an UNIMPLEMENTED message gets, so on its own it
+    // would have passed before the worker could handle BONE_SUPPRESS at all.
+    // The stub's Run() refuses with a model-load failure, which the in-process
+    // xpe_bone_suppress reports as PROCESSING_FAILED; that specific code is the
+    // stub answering, as opposed to the worker not knowing the message.
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, ipc.rc);
+    for (size_t i = 0; i < kN; ++i) {
+        EXPECT_EQ(kSentinel, ipc.out[i]) << "pixel " << i << " was written";
+    }
+}
+
+TEST(WorkerBoneSuppress, TheFullBuildIsProvableWhenTheCallerSaysSo) {
+    if (!CallerExpectsOnnxHere()) {
+        GTEST_SKIP() << "XPE_AI_EXPECT_ONNX is not 1: the caller has not declared "
+                        "which build this is, so a skip above is not evidence.";
+    }
+    ASSERT_FALSE(IsStubBuild())
+        << "XPE_AI_EXPECT_ONNX=1 says a full build was expected, but this is a "
+           "stub build -- the model-dependent WorkerBoneSuppress tests were "
+           "skipped, not passed.";
+}
+
+// --- failures carry the same code as in-process -----------------------------
+
+TEST(WorkerBoneSuppress, FailuresCarryTheSameCodeAsInProcess) {
+    const std::vector<float> px = Pixels(1.0f);
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+
+    const std::string dirs[] = {kDirMissing, kDirBroken, kDirX2};
+    for (const std::string& dir : dirs) {
+        const Outcome ref = InProcess(dir, px);
+        ASSERT_EQ(XPE_OK, InitWorker(w, dir)) << dir;
+        const Outcome ipc = ViaWorker(w, px);
+        EXPECT_EQ(ref.rc, ipc.rc)
+            << dir << ": in-process rc=" << static_cast<int>(ref.rc)
+            << ", via worker rc=" << static_cast<int>(ipc.rc);
+    }
+
+    // Independent expected values, from the documented contract rather than
+    // from the in-process path: not-found and not-loadable are different codes.
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirMissing));
+    EXPECT_EQ(XPE_ERR_IO_FAILED, ViaWorker(w, px).rc);
+    if (!IsStubBuild()) {
+        ASSERT_EQ(XPE_OK, InitWorker(w, kDirBroken));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, ViaWorker(w, px).rc);
+    }
+}
+
+// --- a malformed request is refused and the stream stays usable -------------
+
+TEST(WorkerBoneSuppress, AWrongPixelCountIsRefusedAndTheWorkerStaysInSync) {
+    Worker w;
+    ASSERT_TRUE(w.launched);
+    ASSERT_TRUE(w.Connect());
+    ASSERT_EQ(XPE_OK, InitWorker(w, kDirX2));
+
+    // The metadata says 3x3 (nine floats) and only four follow.
+    const char json[] = "{\"width\":3,\"height\":3,\"format\":\"float32\"}";
+    const uint32_t json_size = static_cast<uint32_t>(sizeof(json) - 1);
+    const float four[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+    std::vector<uint8_t> payload(sizeof(uint32_t) + json_size + sizeof(four));
+    std::memcpy(payload.data(), &json_size, sizeof(json_size));
+    std::memcpy(payload.data() + sizeof(json_size), json, json_size);
+    std::memcpy(payload.data() + sizeof(json_size) + json_size, four, sizeof(four));
+
+    XpeAiMessageHeader h = Header(XPE_AI_MSG_BONE_SUPPRESS);
+    h.requestId = 901;
+    h.flags = XPE_AI_FLAG_HAS_BINARY_PAYLOAD;
+    h.payloadSize = static_cast<uint32_t>(payload.size());
+    ASSERT_EQ(XPE_OK, xpe_ai_ipc_bridge_send(w.bridge, &h, payload.data(),
+                                             static_cast<uint32_t>(payload.size())));
+
+    const Reply r = Receive(w);
+    ASSERT_TRUE(IsFramedReply(r, XPE_AI_MSG_ERROR, 901));
+    EXPECT_NE(std::string::npos, r.payload.find("\"error_code\":-1")) << r.payload;
+    // The code alone proves nothing: an unimplemented message type is ALSO
+    // answered with -1, so this test would have passed before the worker could
+    // handle BONE_SUPPRESS at all. The text has to name the actual fault.
+    EXPECT_NE(std::string::npos, r.payload.find("pixel"))
+        << "the refusal does not say the pixel count is wrong: " << r.payload;
+
+    // Refusing one request must not desynchronise the stream.
+    const Reply after = SendAndReceive(w, XPE_AI_MSG_HEARTBEAT, 902);
+    EXPECT_TRUE(IsFramedReply(after, XPE_AI_MSG_HEARTBEAT_ACK, 902));
 }

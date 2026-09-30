@@ -18,8 +18,12 @@
  * 4. Shutdown: Handle SHUTDOWN by exiting (the header defines no SHUTDOWN
  *    acknowledgement; the pipe closing is the acknowledgement)
  *
- * NOT HANDLED YET: the twelve inference and model-management messages
- * (10-23). They get an XPE_AI_MSG_ERROR reply that says so (QA-B-170).
+ * 5. Bone suppress (QA-B-170): the one inference message served so far. It is
+ *    the only one with an in-process reference (ai.cpp xpe_bone_suppress), so
+ *    its answer can be checked against the answer the other path gives.
+ *
+ * NOT HANDLED YET: the other eleven inference and model-management messages
+ * (10-13, 16-23). They get an XPE_AI_MSG_ERROR reply that says so.
  *
  * Build modes:
  * - STUB (default): No ONNX Runtime linked
@@ -35,14 +39,17 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
 // Protocol definitions -- the single source of truth for the wire format.
+#include "xpe/ai/ai_onnx_session.h"
 #include "xpe/ai/ai_worker_protocol.h"
+#include "xpe/common/xpe_error.h"
 
 namespace {
-    constexpr DWORD PIPE_BUFFER_SIZE = 512;
+    constexpr DWORD PIPE_BUFFER_SIZE = XPE_AI_PIPE_BUFFER_SIZE;
     constexpr DWORD PIPE_TIMEOUT_MS = 0;
     constexpr const char* XPE_AI_WORKER_PIPE_NAME = "\\\\.\\pipe\\xpe_ai_worker";
 
@@ -57,15 +64,76 @@ namespace {
     constexpr const char* WORKER_MODE_STRING    = "full";
 #endif
 
-    // xpe_error.h is not on this target's include path. Same value as
-    // XPE_ERR_INVALID_INPUT; the bridge reports the same code for the same
-    // class of fault.
-    constexpr int32_t ERR_INVALID_INPUT = -1;
-
     constexpr uint32_t PROTOCOL_VERSION_WORD =
         (static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR) << 16) |
         static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MINOR);
 }
+
+namespace {
+
+/**
+ * @brief Read a string field from a small flat JSON object.
+ *
+ * Deliberately minimal (no nlohmann on this target): finds "key", the colon,
+ * and a quoted value, and undoes backslash escapes. It does not parse nested
+ * objects and would match a key name that also appears inside a string value.
+ * The peer is the one local single client this pipe admits and the fields are
+ * the ones ai_worker_protocol.h documents, so that limit is accepted rather
+ * than hidden.
+ */
+bool JsonString(const std::string& json, const char* key, std::string& out) {
+    const std::string needle = std::string("\"") + key + "\"";
+    size_t at = json.find(needle);
+    if (at == std::string::npos) return false;
+    at = json.find(':', at + needle.size());
+    if (at == std::string::npos) return false;
+    ++at;
+    while (at < json.size() && json[at] == ' ') ++at;
+    if (at >= json.size() || json[at] != '"') return false;
+    ++at;
+    out.clear();
+    for (; at < json.size(); ++at) {
+        char c = json[at];
+        if (c == '"') return true;
+        if (c == '\\' && at + 1 < json.size()) c = json[++at];
+        out += c;
+    }
+    return false;   // unterminated string
+}
+
+/** Read an unsigned integer field; rejects a missing key, no digits, overflow. */
+bool JsonUInt(const std::string& json, const char* key, uint32_t& out) {
+    const std::string needle = std::string("\"") + key + "\"";
+    size_t at = json.find(needle);
+    if (at == std::string::npos) return false;
+    at = json.find(':', at + needle.size());
+    if (at == std::string::npos) return false;
+    ++at;
+    while (at < json.size() && json[at] == ' ') ++at;
+    uint64_t value = 0;
+    size_t digits = 0;
+    for (; at < json.size() && json[at] >= '0' && json[at] <= '9'; ++at, ++digits) {
+        value = value * 10 + static_cast<uint64_t>(json[at] - '0');
+        if (value > 0xFFFFFFFFull) return false;
+    }
+    if (digits == 0) return false;
+    out = static_cast<uint32_t>(value);
+    return true;
+}
+
+/** Escape a message for embedding in a JSON string (session errors carry paths). */
+std::string JsonEscape(const std::string& text) {
+    std::string out;
+    for (char c : text) {
+        if (out.size() > 300) break;   // an error message, not a log
+        if (c == '"' || c == '\\') out += '\\';
+        if (static_cast<unsigned char>(c) < 0x20) c = ' ';
+        out += c;
+    }
+    return out;
+}
+
+}  // namespace
 
 /**
  * @class WorkerServer
@@ -170,15 +238,15 @@ public:
             if (header.magic != XPE_AI_MSG_MAGIC) {
                 std::cerr << "[Worker] Bad magic 0x" << std::hex << header.magic
                           << std::dec << std::endl;
-                SendError(header.requestId, "bad message magic");
+                SendError(header.requestId, XPE_ERR_INVALID_INPUT, "bad message magic");
                 break;
             }
             if ((header.version >> 16) != static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR)) {
-                SendError(header.requestId, "unsupported protocol major version");
+                SendError(header.requestId, XPE_ERR_INVALID_INPUT, "unsupported protocol major version");
                 break;
             }
             if (header.payloadSize > XPE_AI_MAX_PAYLOAD_SIZE) {
-                SendError(header.requestId, "payload exceeds the protocol maximum");
+                SendError(header.requestId, XPE_ERR_INVALID_INPUT, "payload exceeds the protocol maximum");
                 break;
             }
 
@@ -188,7 +256,7 @@ public:
                 break;
             }
 
-            HandleMessage(header);
+            HandleMessage(header, payload);
         }
     }
 
@@ -228,10 +296,10 @@ private:
      * The numbers are the header enum. There is deliberately no second copy of
      * them in this file.
      */
-    void HandleMessage(const XpeAiMessageHeader& header) {
+    void HandleMessage(const XpeAiMessageHeader& header, const std::vector<char>& payload) {
         switch (header.messageType) {
             case XPE_AI_MSG_INIT:
-                HandleInit(header);
+                HandleInit(header, payload);
                 break;
 
             case XPE_AI_MSG_HEARTBEAT:
@@ -240,6 +308,10 @@ private:
 
             case XPE_AI_MSG_SHUTDOWN:
                 HandleShutdown();
+                break;
+
+            case XPE_AI_MSG_BONE_SUPPRESS:
+                HandleBoneSuppress(header, payload);
                 break;
 
             default:
@@ -253,20 +325,33 @@ private:
      * @MX:ANCHOR: Initializes worker protocol session. Called once per client connection.
      * @MX:REASON: Protocol handshake - must report what this build actually is.
      */
-    void HandleInit(const XpeAiMessageHeader& header) {
+    void HandleInit(const XpeAiMessageHeader& header, const std::vector<char>& payload) {
         std::cout << "[Worker] Received INIT message" << std::endl;
+
+        // model_dir is the one INIT field this worker acts on. Absent leaves the
+        // previous directory alone; the session cache is keyed on it, so a
+        // changed directory reloads the model on the next request.
+        if (!payload.empty()) {
+            std::string dir;
+            if (JsonString(std::string(payload.data(), payload.size()), "model_dir", dir)) {
+                model_dir_ = dir;
+            }
+        }
 
         // Extends the documented INIT response (ai_worker_protocol.h) with
         // worker_version, mode and capabilities: the fields the old private
         // INIT_ACK carried, so the handshake does not get less informative.
-        // capabilities is 0 because no inference message is handled yet.
+        // capabilities: 1 when a real model serves BONE_SUPPRESS, 0 when none
+        // does. It is read from what the session layer actually is rather than
+        // from a constant, so a stub worker cannot claim it.
         char json[256];
         std::snprintf(json, sizeof(json),
                       "{\"success\":true,\"loaded_models\":[],\"execution_provider\":\"cpu\","
                       "\"worker_pid\":%lu,\"worker_version\":\"%s\",\"mode\":\"%s\","
-                      "\"capabilities\":0}",
+                      "\"capabilities\":%d}",
                       static_cast<unsigned long>(GetCurrentProcessId()),
-                      WORKER_VERSION_STRING, WORKER_MODE_STRING);
+                      WORKER_VERSION_STRING, WORKER_MODE_STRING,
+                      xpe::ai::OnnxSession::IsStubBuild() ? 0 : 1);
         SendFrame(XPE_AI_MSG_INIT_RESPONSE, header.requestId, json);
     }
 
@@ -300,11 +385,11 @@ private:
     /**
      * @brief Handle a type this worker does not implement
      *
-     * Covers the inference and model-management messages (10-23), which are
-     * defined by the protocol and not yet handled here (QA-B-170), as well as
-     * numbers the protocol does not define at all. The reply says which, so a
-     * caller does not have to guess whether it sent nonsense or reached
-     * something unfinished.
+     * Covers the eleven inference and model-management messages still to do
+     * (10-13, 16-23), which the protocol defines and this worker does not yet
+     * handle, as well as numbers the protocol does not define at all. The reply
+     * says which, so a caller does not have to guess whether it sent nonsense
+     * or reached something unfinished.
      */
     void HandleUnsupported(const XpeAiMessageHeader& header) {
         std::cerr << "[Worker] Unhandled message type: " << header.messageType << std::endl;
@@ -313,30 +398,149 @@ private:
         std::snprintf(msg, sizeof(msg),
                       "message type %u is not handled by this worker",
                       static_cast<unsigned>(header.messageType));
-        SendError(header.requestId, msg);
-    }
-
-    void SendError(uint32_t request_id, const char* message) {
-        char json[256];
-        std::snprintf(json, sizeof(json),
-                      "{\"error_code\":%d,\"error_message\":\"%s\"}",
-                      static_cast<int>(ERR_INVALID_INPUT), message);
-        SendFrame(XPE_AI_MSG_ERROR, request_id, json);
+        SendError(header.requestId, XPE_ERR_INVALID_INPUT, msg);
     }
 
     /**
-     * @brief Send one framed message: header, then JSON payload
+     * @brief Handle BONE_SUPPRESS (QA-B-170): float32 image in, float32 image out
+     *
+     * The same model, the same path resolution and the same error mapping as
+     * the in-process xpe_bone_suppress in ai.cpp, on purpose: the two paths are
+     * compared against each other by tests/test_worker_protocol_conformance.cpp,
+     * and an error code that differed for the same fault would be a difference
+     * nobody chose. The check order also follows ai.cpp -- format first, then
+     * the size of the pixel data, then the model -- so a request that is
+     * malformed AND points at a missing model gets the malformed answer.
+     */
+    void HandleBoneSuppress(const XpeAiMessageHeader& header, const std::vector<char>& payload) {
+        const uint32_t id = header.requestId;
+
+        if ((header.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) == 0 ||
+            payload.size() < sizeof(uint32_t)) {
+            SendError(id, XPE_ERR_INVALID_INPUT,
+                      "bone suppress needs a length-prefixed JSON followed by pixel data");
+            return;
+        }
+        uint32_t json_size = 0;
+        std::memcpy(&json_size, payload.data(), sizeof(json_size));
+        if (json_size > payload.size() - sizeof(uint32_t)) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "metadata length exceeds the payload");
+            return;
+        }
+        const std::string meta(payload.data() + sizeof(uint32_t), json_size);
+        const size_t pixel_offset = sizeof(uint32_t) + json_size;
+        const size_t pixel_bytes = payload.size() - pixel_offset;
+
+        uint32_t width = 0, height = 0;
+        std::string format;
+        if (!JsonUInt(meta, "width", width) || !JsonUInt(meta, "height", height) ||
+            !JsonString(meta, "format", format)) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "metadata must carry width, height and format");
+            return;
+        }
+        if (format != "float32") {
+            SendError(id, XPE_ERR_UNSUPPORTED_FORMAT, "only float32 pixels are supported");
+            return;
+        }
+        const uint64_t count = static_cast<uint64_t>(width) * height;
+        if (count == 0 || count * sizeof(float) != pixel_bytes) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "pixel data does not match width*height");
+            return;
+        }
+
+        const std::string model_path = model_dir_.empty()
+            ? std::string("bone_suppress.onnx")
+            : model_dir_ + "/bone_suppress.onnx";
+
+        // Lazy load, and reload when INIT pointed somewhere else.
+        if (!session_ || session_dir_ != model_dir_) {
+            xpe::ai::OnnxSessionConfig cfg;
+            cfg.model_path = model_path;
+            cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
+            cfg.num_threads = 1;
+
+            auto created = xpe::ai::OnnxSession::Create(cfg);
+            if (!created.has_value()) {
+                // Three causes, three codes -- the same three ai.cpp separates.
+                switch (created.code) {
+                    case xpe::ai::OnnxErrorCode::kInvalidModelPath:
+                        SendError(id, XPE_ERR_IO_FAILED, "no model at " + model_path);
+                        break;
+                    case xpe::ai::OnnxErrorCode::kModelLoadFailed:
+                        SendError(id, XPE_ERR_CONFIG_INVALID,
+                                  "model unreadable: " + created.message);
+                        break;
+                    default:
+                        SendError(id, XPE_ERR_PROCESSING_FAILED,
+                                  "session failed: " + created.message);
+                        break;
+                }
+                return;
+            }
+            session_ = std::move(created.value);
+            session_dir_ = model_dir_;
+        }
+
+        std::vector<float> input(static_cast<size_t>(count));
+        std::memcpy(input.data(), payload.data() + pixel_offset, pixel_bytes);
+
+        auto out = session_->Run(input);
+        if (out.code != xpe::ai::OnnxErrorCode::kOk) {
+            // A stub build lands here on every request (its Run() refuses).
+            SendError(id,
+                      out.code == xpe::ai::OnnxErrorCode::kInvalidInput
+                          ? XPE_ERR_INVALID_INPUT : XPE_ERR_PROCESSING_FAILED,
+                      "run failed: " + out.message);
+            return;
+        }
+        if (out.value.size() != count) {
+            SendError(id, XPE_ERR_PROCESSING_FAILED, "model returned an unexpected pixel count");
+            return;
+        }
+
+        char json[128];
+        const int json_len = std::snprintf(
+            json, sizeof(json),
+            "{\"success\":true,\"width\":%u,\"height\":%u,\"format\":\"float32\"}",
+            static_cast<unsigned>(width), static_cast<unsigned>(height));
+        std::vector<char> reply(sizeof(uint32_t) + static_cast<size_t>(json_len) + pixel_bytes);
+        const uint32_t reply_json = static_cast<uint32_t>(json_len);
+        std::memcpy(reply.data(), &reply_json, sizeof(reply_json));
+        std::memcpy(reply.data() + sizeof(reply_json), json, reply_json);
+        std::memcpy(reply.data() + sizeof(reply_json) + reply_json,
+                    out.value.data(), pixel_bytes);
+        SendPayload(XPE_AI_MSG_BONE_SUPPRESS_RESP, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD,
+                    reply.data(), static_cast<uint32_t>(reply.size()));
+    }
+
+    void SendError(uint32_t request_id, int code, const std::string& message) {
+        const std::string json = "{\"error_code\":" + std::to_string(code) +
+                                 ",\"error_message\":\"" + JsonEscape(message) + "\"}";
+        SendFrame(XPE_AI_MSG_ERROR, request_id, json.c_str());
+    }
+
+    /**
+     * @brief Send one framed message with a JSON payload
      */
     void SendFrame(XpeAiMessageType type, uint32_t request_id, const char* json) {
-        const uint32_t size = static_cast<uint32_t>(std::strlen(json));
+        SendPayload(type, request_id, 0, json, static_cast<uint32_t>(std::strlen(json)));
+    }
 
+    /**
+     * @brief Send one framed message: header, then payload bytes
+     *
+     * @p flags carries XPE_AI_FLAG_HAS_BINARY_PAYLOAD when the payload is the
+     * length-prefixed JSON + pixels layout ai_worker_protocol.h documents.
+     */
+    void SendPayload(XpeAiMessageType type, uint32_t request_id, uint32_t flags,
+                     const void* payload, uint32_t size) {
         XpeAiMessageHeader header{};
         header.magic = XPE_AI_MSG_MAGIC;
         header.version = PROTOCOL_VERSION_WORD;
         header.messageType = static_cast<uint32_t>(type);
         header.requestId = request_id;
         header.payloadSize = size;
-        header.flags = 0;
+        header.flags = flags;
         header.timestamp = static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());
@@ -348,7 +552,7 @@ private:
             return;
         }
         if (size > 0 &&
-            (!WriteFile(pipe_handle_, json, size, &written, nullptr) || written != size)) {
+            (!WriteFile(pipe_handle_, payload, size, &written, nullptr) || written != size)) {
             std::cerr << "[Worker] WriteFile (payload) failed: " << GetLastError() << std::endl;
         }
     }
@@ -356,6 +560,13 @@ private:
     std::string pipe_name_;
     HANDLE pipe_handle_;
     bool running_;
+
+    // Set by INIT; BONE_SUPPRESS resolves <model_dir_>/bone_suppress.onnx.
+    std::string model_dir_;
+    // The loaded model and the directory it came from, so a changed model_dir_
+    // reloads instead of silently serving the old model.
+    std::unique_ptr<xpe::ai::OnnxSession> session_;
+    std::string session_dir_;
 };
 
 /**
