@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- net8.0-windows, not net8.0: FlaUI drives Win32/UIA and the app under test is a WPF exe. -->
@@ -48,6 +48,12 @@
     ImageProcTest.IntegrationTests. Only the one control under observation is linked.
   -->
   <ItemGroup>
+    <!-- #225 (GUI-C-166): the build-freshness guard is linked rather than copied. Two copies of the
+         "which files are compile inputs" rule would drift, and that rule is the load-bearing part —
+         its bin/obj exclusion and extension filter are both there for measured reasons. Linked, not
+         referenced, for the same MSB3027 reason as everything else in this ItemGroup. -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\BuildFreshnessGuard.cs"
+             Link="Fixtures\Linked\BuildFreshnessGuard.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Controls\ImageComparisonViewport.cs"
              Link="Rendering\Linked\ImageComparisonViewport.cs" />
     <!-- #161: the control resolves the mode through this, so it comes along. Pure strings. -->

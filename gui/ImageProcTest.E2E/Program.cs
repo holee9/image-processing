@@ -9,8 +9,15 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using ImageProcTest;
 using ImageProcTest.Controls;
+using ImageProcTest.Services;
 using ImageProcTest.ViewModels;
 using ImageProcTest.Views;
+
+// #225 (GUI-C-166) FIRST, before anything is asserted: this runner drives the app assembly sitting in
+// its OWN output directory, which only a build of THIS project refreshes. GUI-C-165 rebuilt the app,
+// left that copy two minutes old, and got exit 0 from two falsification arms that should both have been
+// red — the cost of that is not a wrong green but a wrong fact in a report.
+RunnerBuildFreshness.EnsureRunnerCarriesCurrentApp("ImageProcTest.E2E");
 
 RunSelfCheck();
 RunWpfE2EOnStaThread();

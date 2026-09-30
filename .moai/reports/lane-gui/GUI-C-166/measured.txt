@@ -1,0 +1,70 @@
+GUI-C-166 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== Sharing: possible, and how ==
+gui/ImageProcTest.E2E and gui/ImageProcTest.SelfCheck  -> ProjectReference gui/ImageProcTest
+clients/ImageProcTest.E2ETests                         -> NO ProjectReference, by decision
+  (csproj note: referencing the WPF app made the build depend on ImageProcTest.exe and a
+   leftover app instance holding it broke the build once — GUI-C-35, MSB3027. It uses
+   linked source for the one control under observation.)
+So: the comparison lives in gui/ImageProcTest/Services/BuildFreshnessGuard.cs; the runners
+get it by reference and the test project LINKS that single file (its established pattern).
+One implementation, three callers, no ProjectReference added.
+
+First attempt did not compile: the shared class also contained the runner helper, which
+calls GuiFixtureManifestService — not linked into the test project.
+  error CS0103: 'GuiFixtureManifestService' 이름이 현재 컨텍스트에 없습니다
+Split: BuildFreshnessGuard is dependency-free (timestamps only, linkable);
+RunnerBuildFreshness holds the repo-root lookup and is NOT linked.
+
+== Falsification 1 (card §3 first) — app-only rebuild must throw ==
+touch gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+dotnet build gui/ImageProcTest/ImageProcTest.csproj          (runners NOT rebuilt)
+  ImageProcTest.dll in gui/ImageProcTest.E2E/bin       10:43:14
+  ImageProcTest.dll in gui/ImageProcTest.SelfCheck/bin 10:43:14
+  ImageProcTest.dll in gui/ImageProcTest/bin           10:43:37   <- 23 s newer
+  ImageProcTest.E2E.exe  exit=-532462766
+  "The copy of the gui app that ImageProcTest.E2E runs against is older than its sources,
+   so this run would test the PREVIOUS build. ..."
+This is the exact GUI-C-165 situation, now refused.
+
+== Falsification 2 (card §3 second) — building the runners must NOT throw ==
+dotnet build gui/ImageProcTest.SelfCheck/... -c Debug ; dotnet build gui/ImageProcTest.E2E/... -c Debug
+  ImageProcTest.SelfCheck.exe  exit=0
+  ImageProcTest.E2E.exe        exit=0
+
+== Falsification 3 (card §3 third) — CI must not throw ==
+Cannot run CI from here. Reproduced the job's own command sequence from a CLEAN state
+(rm -rf bin obj on all three gui projects, as a fresh checkout would be), taken verbatim
+from origin/main (890fd5f) ci.yml gui-shell-runners:
+  dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug                  오류 0개
+  dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug  오류 0개
+  dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug              오류 0개
+  dotnet run --project ...SelfCheck... -c Debug --no-build   exit=0
+  dotnet run --project ...E2E...       -c Debug --no-build   "GUI-S0 E2E passed."
+Then the app-drives-runner path in the same state (gui-e2e-native builds app, then runners,
+then runs the clients suite):
+  A04, A05, A06, A09   통과! 실패: 0, 통과: 4, 건너뜀: 0, 전체: 4   (53 s)
+Why it cannot throw there: the guard compares the runner's dll copy against the app's
+SOURCES, not against the app's dll. Both jobs build app-then-runners from one unchanged
+checkout, so source timestamps precede every build output.
+
+== The existing guard was not weakened ==
+touch gui/ImageProcTest/MainWindow.xaml.cs   (no rebuild)
+  A_AnAppWithNoFrame (constructs ApplicationFixture):
+  "The gui app executable is older than its sources ... exe written 01:45:44.4257015Z;
+   newest source 'MainWindow.xaml.cs' written 01:47:30.7841491Z. Build the app first: ..."
+Same message, same throw, after the refactor.
+
+Incidental finding: the A0x automation-report scenarios do NOT go through that guard.
+They call ApplicationFixture.ResolveApplicationExecutable() and Process.Start directly,
+never constructing the fixture, so EnsureApplicationIsFresh never runs for them. First
+attempt at this falsification used A09 and passed with a touched source — that pass was the
+guard not being on that path, not the guard being broken.
+
+== After restoring the touched files ==
+git checkout HEAD -- <the two touched sources>; rebuild all four projects  오류 0개
+A_AnAppWithNoFrame + A09  통과! 실패: 0, 통과: 2, 전체: 2
+
+== Regression: full Mock suite (ApplicationFixture was modified) ==
+  통과!  실패: 0, 통과: 142, 건너뜀: 31, 전체: 173   (10 m 32 s)
+Identical to the GUI-C-163 baseline (142 / 31 / 173).

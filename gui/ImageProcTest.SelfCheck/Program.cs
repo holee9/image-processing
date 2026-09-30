@@ -1,6 +1,10 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using ImageProcTest.Services;
+
+// #225 (GUI-C-166): same guard, same reason as the E2E runner — this program asserts against the app
+// assembly in its own output directory, and only a build of THIS project refreshes it.
+RunnerBuildFreshness.EnsureRunnerCarriesCurrentApp("ImageProcTest.SelfCheck");
 
 var repoRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
 var fixtureRoot = GuiFixtureManifestService.GetRepositoryFixtureRoot(repoRoot);
