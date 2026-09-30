@@ -443,6 +443,7 @@ if(_XPE_BUILD_TESTS)
         # QA-A-40 (#120 #112): REQ-P1A-013 TPR/FPR quantitative harness
         tests/test_zz_a161_probe.cpp         # QA-A-161 (#143 #148) measurement probe
         tests/test_zz_a166_bounds.cpp        # QA-A-166 (#143) lower-bound probe
+        tests/test_zz_a172_path.cpp          # QA-A-172 (#230) stage sum vs whole
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
@@ -462,6 +463,7 @@ if(_XPE_BUILD_TESTS)
         src/xcal_reader.cpp
         src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
+        src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
     )
 
     target_include_directories(xpe_preprocess_tests
