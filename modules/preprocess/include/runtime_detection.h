@@ -819,37 +819,20 @@ inline void CollectNeighborValues(const XpeImageBuffer* img,
 }
 
 /**
- * @brief Detect defective pixel using Hampel 5-sigma filter.
- *
- * Algorithm:
- * 1. Collect values in sliding window around pixel
- * 2. Compute median of window
- * 3. Compute MAD (Median Absolute Deviation)
- * 4. Flag defective if: |value - median| > threshold * scaled_MAD
- *
- * @MX:NOTE: [AUTO] Hampel 5-sigma outlier detection -- REQ-P1A-013
- *          Robust to up to 50% outliers in window (median-based)
- *
- * @param img Input image (float32 format)
- * @param x Pixel X coordinate
- * @param y Pixel Y coordinate
- * @param config Detection configuration
- * @param windowValues Scratch buffer for the neighbour gather. Contents on entry
- *                     are discarded; on return it holds this pixel's neighbours
- *                     in unspecified order. Reused across pixels so the gather
- *                     costs no allocation.
- * @param deviations Second scratch buffer, for the absolute deviations the MAD
- *                   is taken over. Same contract as @p windowValues.
- * @return true if pixel is defective, false otherwise. Also false when the
- *         window yields fewer than RUNTIME_DETECTION_MIN_NEIGHBORS neighbours,
- *         which is the SPEC's "skip rather than judge" rule at the border.
- */
-/**
  * @brief The reference sigma this pixel's estimate is blended against.
  *
  * QA-A-164 (#143). One function so the scalar and AVX2 paths cannot drift --
  * QA-A-62 measured what having two costs (a change landed in one while a tool
  * measured the other).
+ *
+ * @param config Detection configuration. Supplies either the tile table
+ *        (@c tileSigma / @c tileSize / @c tilesX) or, when that is absent, the
+ *        single frame-wide @c blendReference.
+ * @param x Pixel X coordinate, used only to select the tile.
+ * @param y Pixel Y coordinate, used only to select the tile.
+ * @return The tile's sigma when a tile table is configured, otherwise
+ *         @c config.blendReference. Never reads outside the table: the tile
+ *         index is derived from the same @c tileSize the table was built with.
  */
 inline float BlendReferenceAt(const RuntimeDetectionConfig& config,
                               uint32_t x, uint32_t y) noexcept {
@@ -866,6 +849,16 @@ inline float BlendReferenceAt(const RuntimeDetectionConfig& config,
  *
  * blendWeight == 0 is the historical rule -- floor, then optional cap. Above 0
  * it is `sqrt(w*mad^2 + (1-w)*ref^2)`, with the cap still applied after.
+ *
+ * @param mad The raw local MAD for this pixel, already scaled by the caller.
+ * @param config Detection configuration. @c blendWeight selects the rule;
+ *        @c globalSigmaFloor applies only on the historical path, while
+ *        @c globalSigmaCap applies on both.
+ * @param x Pixel X coordinate, forwarded to BlendReferenceAt.
+ * @param y Pixel Y coordinate, forwarded to BlendReferenceAt.
+ * @return The sigma the Hampel threshold is multiplied by. QA-A-164 measured
+ *         w=0.10 with tile128 as the setting that met FPR on four frame
+ *         families and TPR@10sigma on three; the weight is not a free knob.
  */
 inline float ResolveSigma(float mad, const RuntimeDetectionConfig& config,
                           uint32_t x, uint32_t y) noexcept {
@@ -996,6 +989,11 @@ inline std::vector<float> ComputeTileSigmas(const XpeImageBuffer* img,
  * @param img Frame to measure. Must be XPE_PIXEL_FLOAT32 with data.
  * @param tileStorage Caller-owned backing for the tile table. The returned
  *        config points into it, so it must outlive the config.
+ * @return The shipped configuration for this frame: the default config with the
+ *         tile table attached and blendWeight set to
+ *         RUNTIME_DETECTION_BLEND_WEIGHT. globalSigmaFloor and globalSigmaCap
+ *         are left at 0 because the blend path does not read them -- that is
+ *         what lets the caller skip the second full-frame pass.
  */
 inline RuntimeDetectionConfig BuildFrameConfig(const XpeImageBuffer* img,
                                                std::vector<float>& tileStorage) {
@@ -1010,6 +1008,37 @@ inline RuntimeDetectionConfig BuildFrameConfig(const XpeImageBuffer* img,
     return config;
 }
 
+/**
+ * @brief Detect defective pixel using Hampel 5-sigma filter.
+ *
+ * Algorithm:
+ * 1. Collect values in sliding window around pixel
+ * 2. Compute median of window
+ * 3. Compute MAD (Median Absolute Deviation)
+ * 4. Flag defective if: |value - median| > threshold * scaled_MAD
+ *
+ * @MX:NOTE: [AUTO] Hampel 5-sigma outlier detection -- REQ-P1A-013
+ *          Robust to up to 50% outliers in window (median-based)
+ *
+ * This block sat 190 lines above its declaration until QA-A-170: QA-A-164 added
+ * BlendReferenceAt between the two, so Doxygen attached the parameter list below
+ * to that function instead and failed the docs workflow for five pushes. Keep
+ * this block adjacent to the declaration.
+ *
+ * @param img Input image (float32 format)
+ * @param x Pixel X coordinate
+ * @param y Pixel Y coordinate
+ * @param config Detection configuration
+ * @param windowValues Scratch buffer for the neighbour gather. Contents on entry
+ *                     are discarded; on return it holds this pixel's neighbours
+ *                     in unspecified order. Reused across pixels so the gather
+ *                     costs no allocation.
+ * @param deviations Second scratch buffer, for the absolute deviations the MAD
+ *                   is taken over. Same contract as @p windowValues.
+ * @return true if pixel is defective, false otherwise. Also false when the
+ *         window yields fewer than RUNTIME_DETECTION_MIN_NEIGHBORS neighbours,
+ *         which is the SPEC's "skip rather than judge" rule at the border.
+ */
 inline bool DetectDefectivePixel(const XpeImageBuffer* img,
                                  uint32_t x,
                                  uint32_t y,
