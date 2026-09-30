@@ -1,8 +1,10 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using ImageProcTest.Models;
 using ImageProcTest.Services;
 using ImageProcTest.ViewModels;
@@ -184,6 +186,10 @@ public partial class MainWindow : System.Windows.Window
                 throw new InvalidOperationException("DataContext is not MainWindowViewModel.");
             }
 
+            // #225 (GUI-C-168) row 13: read before anything renders. This is the "never rendered"
+            // state, and it can only be observed here — one line later the scenario has a chain.
+            report.PipelineDiagnosticsHadMeasurementAtStartup = viewModel.HasPipelineDiagnostics;
+
             // #225 (GUI-C-160) row 1: read FIRST, before this run loads anything — what is here now came
             // from a previous process through the settings file, and that is the feature.
             report.RecentRawFileCountAtStartup = viewModel.RecentRawFiles.Count;
@@ -226,6 +232,20 @@ public partial class MainWindow : System.Windows.Window
             report.StatusAfterLoad = viewModel.StatusText;
             report.LastRawDirectory = viewModel.Settings.LastRawDirectory;
             report.DisplayPipelineApplied = viewModel.ActiveImageFrame?.DisplayPipelineApplied ?? false;
+
+            // #225 (GUI-C-168) row 13, third distinction — measured HERE, right after the first
+            // successful render, and not later beside the panel. Measured why: by the time the panel is
+            // opened the row-11 stop test has already left PreviewStaleReason = StalePipelineFailed, and
+            // that reason is documented as NOT replaced by a later parameter edit. Reading it there
+            // showed a stale reason that had nothing to do with the edit — true, and not the thing being
+            // checked. Isolating it is the only way the parameters-changed path is actually observed.
+            report.StaleReasonBeforeParameterEdit = viewModel.PreviewStaleReason;
+            viewModel.Settings.VoiWindowCenter += 100.0f;
+            await Task.Delay(150);
+            report.StaleReasonAfterParameterEdit = viewModel.PreviewStaleReason;
+            viewModel.Settings.VoiWindowCenter -= 100.0f;
+            await Task.Delay(150);
+            report.StaleReasonAfterParameterRestored = viewModel.PreviewStaleReason;
 
             // #141: preprocessing needs a loaded frame, so it runs HERE — measured: placed earlier
             // it reported "menu enabled=True, frame loaded=False" and never attempted.
@@ -313,7 +333,7 @@ public partial class MainWindow : System.Windows.Window
                 // OpenRuntimeLogsMenuItem left this list in GUI-C-160: #225 row 5 is implemented, so
                 // requiring it to be disabled would make this flag claim the opposite of what the app
                 // does — the same correction RunPreprocessingMenuItem got in GUI-C-36.
-                !OpenPipelineDiagnosticsMenuItem.IsEnabled &&
+                // OpenPipelineDiagnosticsMenuItem left this list in GUI-C-168: #225 row 13 is implemented.
                 OpenCurrentWorkflowHelpMenuItem.IsEnabled;
             report.ToolbarMenuCommandParity =
                 ReferenceEquals(InitializeBackendButton.Command, InitializeBackendMenuItem.Command) &&
@@ -336,7 +356,6 @@ public partial class MainWindow : System.Windows.Window
                     RunFullPipelineMenuItem,
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
-                    OpenPipelineDiagnosticsMenuItem,
                     RunSelfCheckMenuItem,
                     RunGuiE2EMenuItem,
                     BenchmarkRunnerMenuItem,
@@ -441,6 +460,18 @@ public partial class MainWindow : System.Windows.Window
 
             // Row 14: everything except the launch runs here — see OpenEvidenceFolder's remarks and
             // EvidenceFolderLaunchSuppressed.
+            // #225 (GUI-C-168) row 13. The stage lines are read from the PANEL, through the same
+            // converter the operator sees — not rebuilt from LastChain here. Reading the model would
+            // assert that the data is right while leaving the one thing this row can get wrong (a
+            // switched-off stage rendered as "0 ms") entirely unobserved.
+            ClickMenuItem(OpenPipelineDiagnosticsMenuItem);
+            await Task.Delay(200);
+            report.PipelineDiagnosticsVisible = viewModel.ShowPipelineDiagnostics;
+            report.PipelineDiagnosticsHasMeasurement = viewModel.HasPipelineDiagnostics;
+            report.PipelineDiagnosticsStaleReason = viewModel.PreviewStaleReason;
+            report.PipelineDiagnosticsStageLines = ReadDiagnosticsStageLines();
+
+
             ClickMenuItem(OpenEvidenceFolderMenuItem);
             await Task.Delay(200);
             report.EvidenceFolderStatus = viewModel.StatusText;
@@ -643,6 +674,47 @@ public partial class MainWindow : System.Windows.Window
         };
         helpWindow.Show();
         helpWindow.Activate();
+    }
+
+    /// <summary>
+    /// #225 row 13 (GUI-C-168): each stage row of the diagnostics panel, as the panel renders it.
+    ///
+    /// <para>Walks the rendered <c>ItemsControl</c> rather than the model so the CONVERTER is in the
+    /// measurement. The defect this row risks lives in the rendering step: <c>ElapsedMs</c> is 0 for a
+    /// stage that was switched off, and a panel that prints that number says "instantaneous". Reading
+    /// the model would confirm the data and miss exactly that.</para>
+    /// </summary>
+    private string[]? ReadDiagnosticsStageLines()
+    {
+        // Find the PANEL first. FindDescendant<ItemsControl>(this) would return the window's first
+        // ItemsControl, which is a menu — it would have read the wrong control and reported its text as
+        // the diagnostics rows, silently.
+        var panel = FindDescendant<Views.PipelineDiagnosticsPanel>(this);
+        if (panel is null) return null;
+
+        var items = FindDescendant<ItemsControl>(panel);
+        if (items?.Items is null) return null;
+
+        var lines = new List<string>();
+        for (var i = 0; i < items.Items.Count; i++)
+        {
+            if (items.ItemContainerGenerator.ContainerFromIndex(i) is not DependencyObject container) continue;
+            var texts = new List<string>();
+            CollectTextBlocks(container, texts);
+            if (texts.Count > 0) lines.Add(string.Join(" ", texts).Trim());
+        }
+
+        return lines.ToArray();
+    }
+
+    private static void CollectTextBlocks(DependencyObject root, List<string> into)
+    {
+        if (root is TextBlock text && !string.IsNullOrWhiteSpace(text.Text)) into.Add(text.Text.Trim());
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            CollectTextBlocks(System.Windows.Media.VisualTreeHelper.GetChild(root, i), into);
+        }
     }
 
     private static T? FindDescendant<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject

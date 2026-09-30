@@ -271,6 +271,50 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-10 (#225, GUI-C-168): row 13 — the diagnostics panel keeps "no measurement" apart from "0 ms".
+    ///
+    /// <para>The three states the card requires kept apart, each asserted from what the PANEL rendered
+    /// rather than from the model: a run that has not rendered yet, a stage that was switched off, and a
+    /// value that predates the operator's last edit. Reading the model would confirm the data is right
+    /// while leaving the one thing this row can get wrong — a switched-off stage printed as 0 ms —
+    /// unobserved, because <c>StageOutcome.ElapsedMs</c> really is 0.0 there by construction.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero()
+    {
+        var (report, _) = Run("A10", "Mock", nativeDirectory: null);
+
+        Assert.True(report.GetProperty("PipelineDiagnosticsVisible").GetBoolean(),
+            "The Tools menu command did not show the diagnostics panel.");
+
+        // State 1: before this run rendered anything there was no measurement at all.
+        Assert.False(report.GetProperty("PipelineDiagnosticsHadMeasurementAtStartup").GetBoolean(),
+            "A freshly started app reported a pipeline measurement, so 'never rendered' is not distinguishable.");
+        Assert.True(report.GetProperty("PipelineDiagnosticsHasMeasurement").GetBoolean(),
+            "After a render the panel still reports no measurement.");
+
+        // State 2: a switched-off stage shows its status and NO number.
+        var lines = report.GetProperty("PipelineDiagnosticsStageLines").EnumerateArray()
+            .Select(line => line.GetString() ?? string.Empty).ToArray();
+        Assert.NotEmpty(lines);
+        foreach (var line in lines.Where(l => l.Contains("NotRequested", StringComparison.Ordinal)))
+        {
+            Assert.Contains("—", line, StringComparison.Ordinal);
+            Assert.DoesNotContain("0 ms", line, StringComparison.Ordinal);
+        }
+
+        // State 3: an edit with no re-render is visible AS an edit, and the mark comes off again.
+        // The before/after/restored triple is what makes it attributable — a non-null "after" alone can
+        // be left over from something else, which GUI-C-168's first attempt measured (the row-11 stop
+        // test had already set a different stale reason).
+        Assert.Null(report.GetProperty("StaleReasonBeforeParameterEdit").GetString());
+        Assert.Contains("display parameters changed",
+            report.GetProperty("StaleReasonAfterParameterEdit").GetString() ?? string.Empty,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Null(report.GetProperty("StaleReasonAfterParameterRestored").GetString());
+    }
+
+    /// <summary>
     /// Reads a runner verdict that the app reports as THREE states, and keeps them three (#225,
     /// GUI-C-161).
     ///

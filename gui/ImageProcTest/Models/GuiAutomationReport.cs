@@ -213,6 +213,43 @@ public sealed class GuiAutomationReport
     /// <summary>#225 row 3: whether the menu item shares the command object with the workbench button.</summary>
     public bool EvidenceBundleMenuSharesButtonCommand { get; set; }
 
+    /// <summary>#225 row 13 (GUI-C-168): whether the diagnostics panel was showing after the menu command.</summary>
+    public bool PipelineDiagnosticsVisible { get; set; }
+
+    /// <summary>
+    /// #225 row 13: what the panel showed for each stage, as the panel renders it — the status and the
+    /// TIME AS DISPLAYED. A stage that was switched off must appear here with no number, which is the
+    /// one thing this row can get wrong (a 0 read as "instantaneous").
+    /// </summary>
+    public string[]? PipelineDiagnosticsStageLines { get; set; }
+
+    /// <summary>#225 row 13: false before any chain has run — the "no measurement" state.</summary>
+    public bool PipelineDiagnosticsHasMeasurement { get; set; }
+
+    /// <summary>#225 row 13: the app's own staleness reason while the panel was open, or null.</summary>
+    public string? PipelineDiagnosticsStaleReason { get; set; }
+
+    /// <summary>
+    /// #225 row 13: whether a measurement existed at STARTUP, before this run rendered anything. False is
+    /// the "never rendered" state the panel must not print as 0 ms.
+    /// </summary>
+    public bool PipelineDiagnosticsHadMeasurementAtStartup { get; set; }
+
+    /// <summary>
+    /// #225 row 13 (GUI-C-168): the staleness reason immediately after the first successful render —
+    /// expected null. Recorded so the pair below is attributable: without a "before", a non-null "after"
+    /// could be left over from something else entirely, which is what a first attempt measured.
+    /// </summary>
+    public string? StaleReasonBeforeParameterEdit { get; set; }
+
+    /// <summary>#225 row 13: after changing a display parameter with NO re-render. This is the line that
+    /// tells the operator the panel's numbers predate their edit.</summary>
+    public string? StaleReasonAfterParameterEdit { get; set; }
+
+    /// <summary>#225 row 13: after putting the parameter back — the reason must clear, or "stale" would
+    /// just be a label that never comes off.</summary>
+    public string? StaleReasonAfterParameterRestored { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }

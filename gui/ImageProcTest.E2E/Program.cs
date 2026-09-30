@@ -216,7 +216,11 @@ static void RunWpfE2E()
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
         Assert(!runDeterministicBaselineMenuItem.IsEnabled, "Deterministic baseline menu must be disabled until Phase 1b.");
         Assert(!runFullPipelineMenuItem.IsEnabled, "Full pipeline menu must be disabled until Phase 2/3.");
-        Assert(!openPipelineDiagnosticsMenuItem.IsEnabled, "Pipeline diagnostics must be disabled until pipeline traces exist.");
+        // #225 row 13 landed (GUI-C-168), so this moves forward like the batches before it. The traces the
+        // old line waited for turned out to be what the last render already records (LastChain,
+        // IsPreviewStale) — the condition was met before the row was built.
+        Assert(openPipelineDiagnosticsMenuItem.IsEnabled, "Pipeline diagnostics menu is disabled; #225 row 13 wired it.");
+        Assert(openPipelineDiagnosticsMenuItem.Command is not null, "Pipeline diagnostics menu item has no command bound.");
 
         // --- View menu items ---
         // #228 (GUI-C-158): ShowRuntimePanelMenuItem is GONE, and that is the current design, not a
