@@ -688,7 +688,22 @@ jobs:
     # S-05 demands a real semver and fails if the app silently fell back to Mock.
     needs: [detect-lane, common-build, preprocess-tests, post-build]
     runs-on: windows-2025
-    timeout-minutes: 20
+    # 20 -> 30 (2026-09-30). Measured on main, same job, three consecutive runs:
+    # 18 min, 19 min, then 20:14 -- cancelled exactly at the 20-minute limit
+    # during "Run FlaUI E2E smoke (Native)". Ten other jobs were green in that
+    # run, so this is the suite outgrowing its budget, not a hang.
+    #
+    # This is a BUDGET change, not a fix, and it is deliberately not treated as
+    # one: raising a limit to clear a red light is how a real slowdown gets
+    # hidden. What the 18 -> 20 trend cannot tell apart is content growth
+    # (GUI-C-159 added ~5 s per automation run; C-160/161 added scenarios) from
+    # runner variance -- this repository has measured the same runner swinging
+    # 1.5x in a week. GUI-C-164 is dispatched to measure per-scenario duration
+    # so the next budget number is derived rather than guessed.
+    #
+    # 30 matches the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
+    # restores roughly 50% headroom over the last observed 20 min.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
