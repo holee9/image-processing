@@ -320,6 +320,18 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     {
         var exe = ApplicationFixture.ResolveApplicationExecutable();
         Skip.If(exe is null, "ImageProcTest.exe was not built.");
+
+        // #225 (GUI-C-167): these scenarios launch the app THEMSELVES rather than through
+        // ApplicationFixture, so they were the one launch path with no build-freshness check — found in
+        // GUI-C-166 when a falsification arm passed with a deliberately stale app and the right reading
+        // was "this scenario does not pass the guard", not "the guard broke".
+        //
+        // Here and not inside ResolveApplicationExecutable: the census (GUI-C-167 §1) found three call
+        // sites, and one of them — EvidenceBundleScenarios.EvidenceRoot — wants only the DIRECTORY and
+        // launches nothing. Guarding the resolver would throw there for a staleness that cannot affect
+        // it. Guarding every launch is what matters, and this helper is every launch in this class.
+        ApplicationFixture.EnsureLaunchTargetIsFresh(exe!);
+
         var workDir = Path.GetDirectoryName(exe)!;
         Skip.If(!File.Exists(Path.Combine(workDir, RawRelativePath)), "The fixture image is not staged next to the app.");
 
