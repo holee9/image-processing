@@ -717,6 +717,27 @@ jobs:
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
 
+      # A04/A05/A06 drive the two console runners THROUGH the app and assert it
+      # reports their verdict. This job built only the app, so all three landed
+      # as NotExecuted on every run -- and the skip guard then failed the job
+      # for an unexplained skip, which is how the gap surfaced at all.
+      #
+      # The alternative was an allow-list row saying "the runners are absent
+      # here". That is the #205 shape: three scenarios permanently accounted
+      # for and never run anywhere, because gui-shell-runners exercises the
+      # runners standalone and never through the app. Building them is the only
+      # option under which the scenarios produce a verdict.
+      #
+      # Whether building is SUFFICIENT is not established -- the app resolves
+      # the runners by path, and if it does not find them here the three skip
+      # again, with a reason that says why. GUI-C-165 is asked that question;
+      # this run is the measurement.
+      - name: Build the console runners the app drives
+        shell: pwsh
+        run: |
+          dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug
+          dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug
+
       - name: Stage native DLLs into a locator-only directory
         uses: actions/download-artifact@v6
         with:
