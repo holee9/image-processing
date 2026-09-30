@@ -130,6 +130,14 @@ public sealed class GuiAutomationReport
     public int DisabledFutureCommandCount { get; set; }
 
     /// <summary>
+    /// #225 (GUI-C-169): the same quantity as <see cref="DisabledFutureCommandCount"/>, derived by a second,
+    /// independent route — walking the live menu tree for greyed LEAF items that carry no command. The
+    /// first route is a hand-written list of names; this one is structural. They can only agree if the
+    /// list neither misses a placeholder nor lists something that is not one.
+    /// </summary>
+    public int UnimplementedMenuLeafCount { get; set; }
+
+    /// <summary>
     /// Outcome of the P/Invoke smoke command (#225, GUI-C-154 row 6); null when it was not run.
     ///
     /// <para>Recorded rather than derived: the run that proves the smoke can FAIL — the app launched
@@ -215,6 +223,15 @@ public sealed class GuiAutomationReport
 
     /// <summary>#225 row 13 (GUI-C-168): whether the diagnostics panel was showing after the menu command.</summary>
     public bool PipelineDiagnosticsVisible { get; set; }
+
+    /// <summary>#225 row 20 (GUI-C-169): the status line after Tools -> API Reference.</summary>
+    public string? ApiReferenceStatus { get; set; }
+
+    /// <summary>#225 row 20: the page the command resolved, or null when it had nothing to open.</summary>
+    public string? ApiReferencePath { get; set; }
+
+    /// <summary>#225 row 20: true when the browser launch was skipped because this is an automation run.</summary>
+    public bool ApiReferenceLaunchSuppressed { get; set; }
 
     /// <summary>
     /// #225 row 13: what the panel showed for each stage, as the panel renders it — the status and the

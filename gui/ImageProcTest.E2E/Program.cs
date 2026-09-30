@@ -211,6 +211,7 @@ static void RunWpfE2E()
         var runDeterministicBaselineMenuItem = GetControl<MenuItem>(window, "RunDeterministicBaselineMenuItem");
         var runFullPipelineMenuItem = GetControl<MenuItem>(window, "RunFullPipelineMenuItem");
         var openPipelineDiagnosticsMenuItem = GetControl<MenuItem>(window, "OpenPipelineDiagnosticsMenuItem");
+        var openApiReferenceMenuItem = GetControl<MenuItem>(window, "OpenApiReferenceMenuItem");
 
         Assert(applyDisplayPipelineMenuItem.Command is not null, "Apply Display Pipeline menu command missing.");
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
@@ -221,6 +222,14 @@ static void RunWpfE2E()
         // IsPreviewStale) — the condition was met before the row was built.
         Assert(openPipelineDiagnosticsMenuItem.IsEnabled, "Pipeline diagnostics menu is disabled; #225 row 13 wired it.");
         Assert(openPipelineDiagnosticsMenuItem.Command is not null, "Pipeline diagnostics menu item has no command bound.");
+
+        // #225 row 20 landed (GUI-C-169). There was NO line here for this item before — unlike rows 3, 13
+        // and 14 there was nothing stale to move forward — so this is added, not migrated. It is enabled
+        // unconditionally on purpose: "not generated yet" is answered on the status bar, not by greying the
+        // item, because a menu that is enabled or not depending on what is on disk would make the
+        // disabled-item count vary by machine.
+        Assert(openApiReferenceMenuItem.IsEnabled, "API Reference menu is disabled; #225 row 20 wired it.");
+        Assert(openApiReferenceMenuItem.Command is not null, "API Reference menu item has no command bound.");
 
         // --- View menu items ---
         // #228 (GUI-C-158): ShowRuntimePanelMenuItem is GONE, and that is the current design, not a

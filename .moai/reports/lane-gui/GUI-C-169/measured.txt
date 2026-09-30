@@ -1,0 +1,124 @@
+GUI-C-169 (#225) — measured, 2026-09-30, local (Windows 11, this worktree) + CI artifacts
+
+== Card premise check, before building anything ==
+Card said: HelpRoot = <app dir>/help  "오늘 비어 있음".
+Measured:  gui/ImageProcTest/help/ holds index.html, quick-start.html, scope.html, styles.css;
+           ImageProcTest.csproj:50  <Content Include="help\**\*">  copies them;
+           MainWindow.xaml.cs OpenHelpPage -> HelpBundleService.GetHelpPagePath / HelpPageExists -> HelpWindow.
+           HelpRoot is NOT empty: it is the in-app help, and it is in use.
+=> Repointing HelpRoot at docs/help/generated (path option 1 as the card wrote it) would have broken the
+   in-app help. HelpRoot is left alone; the API reference gets its own resolver.
+Still true: HelpBundleService.OpenInBrowser has zero callers (only its definition), as C-163 found.
+
+== The generator outputs, from the CI artifacts of the last green docs-generate run ==
+run 36670453753 (sha 6872f0c2, success); artifacts api-reference-native 700514 B, api-reference-managed 8912345 B
+native  (Doxygen): 265 entries; index.html at the artifact root (=> docs/help/generated/doxygen/html/index.html)
+managed (DocFX)  : 299 entries; top-level: content, favicon.ico, index.json, logo.svg, manifest.json, public,
+                   sitemap.xml, xrefmap.yml
+                   html pages: 5 — content/about, content/index, content/quickstart, content/scope-and-limits,
+                   content/troubleshooting.   NO root index.html.   NO api/ entries at all.
+                   xrefmap.yml = 52 bytes; occurrences of "ImageProcTest." in it: 0.
+=> The card's "docs/help/generated/docfx/" is the right directory, but it holds conceptual pages only. The menu
+   said "API Reference (DocFX/Doxygen)"; opening the DocFX side under that name would show something present
+   and empty as the reference. Left out; the header now says (Doxygen) and the tooltip says why.
+Not established: WHY the managed metadata is empty (docfx.json sends **/*.csproj under gui/ through metadata
+with allowCompilationErrors=true; a WPF net8.0-windows project on the docs runner is a candidate cause, unchecked).
+docs/ and the workflow are the lead's; reported, not touched.
+
+== Tools on this machine ==
+doxygen: not installed.  docfx: not installed.  (ci.yml:70 says lane sessions have no doxygen.)
+So no generator was run locally. The "generated" state below uses the REAL CI Doxygen output (the artifact
+above, 265 files) unpacked into docs/help/generated/doxygen/html — which is gitignored (docs/help/.gitignore:2)
+— and removed afterwards. Its timestamp is the extraction time, not the generation time.
+
+== §3 second box, measured with the real app (automation run, Mock) — three states ==
+1) never generated (the real state of this checkout; docs/help/generated absent)
+   ApiReferenceStatus = "API reference has not been generated. Generate it: in docs/help/doxygen run 'git clone
+     https://github.com/jothepro/doxygen-awesome-css doxygen-awesome' and then 'doxygen Doxyfile' (Doxygen 1.12+;
+     see docs/help/doxygen/README.md)."
+   ApiReferencePath = null   LaunchSuppressed = False
+2) generation stopped part-way (docs/help/generated/doxygen exists, no html/index.html)
+   ApiReferenceStatus = "API reference is incomplete: docs/help/generated/doxygen exists but has no
+     html/index.html. Generate it: ..."
+   ApiReferencePath = null   LaunchSuppressed = False
+3) REAL Doxygen output staged (265 files)
+   ApiReferenceStatus = "API reference (Doxygen) opened — generated 2026-09-30 13:56: D:\workspace-github\xpe-gui\
+     docs\help\generated\doxygen\html\index.html (launch suppressed under automation)"
+   ApiReferencePath = that file   LaunchSuppressed = True
+Never an empty window and never silence. cleanup verified: docs/help/generated exists = False.
+
+Why the hint carries a clone step: Doxyfile:73-75 reads HTML_EXTRA_STYLESHEET / HTML_EXTRA_FILES from
+doxygen-awesome/. README.md documents the clone, the CI job (ci.yml doxygen-headers) does it, and
+"doxygen Doxyfile" alone is an instruction that does not work on a clean checkout. NOT executed locally
+(no doxygen); the hint is copied from README + CI, and CI's green run of exactly those steps is the evidence.
+
+== An unrelated-looking failure that was mine: Passed=False, exit=1 on all three runs ==
+First measurement: every run reported Passed=False. Reading the report:
+  SelfCheckStatus / GuiE2EStatus = "... FAILED (exit -532462766): ... The copy of the gui app that
+  ImageProcTest.SelfCheck runs against is older than its sources ..."
+That was the GUI-C-166 guard, correctly: I had edited gui/ sources and rebuilt only the app.
+After building both runners the runner verdicts were True — and Passed was STILL False.
+The remaining cause, from the definition of Passed (MainWindow.xaml.cs, the verdict expression):
+     report.DisabledFutureCommandCount >= 10
+The count had just gone 10 -> 9, so the app's own self-verdict failed. This would have turned gui-automation
+(Mock) and A02 red.
+git log -S: the floor was written in d5432d2 (2026-04-16, "GUI 메뉴와 오프라인 도움말 추가"), the first menu
+commit, with no reason. C-168 (row 13) had landed at exactly 10; row 20 is the first to cross it.
+A floor on a set that is meant to shrink fails at the moment the work lands, and would fail again at 0.
+
+Replaced, not deleted. Verdict term is now  DisabledFutureCommandCount == UnimplementedMenuLeafCount, where the
+second number is a walk of the live menu tree counting greyed LEAF items with no Command (items with an
+ItemsSource are skipped: Open Recent with an empty history is greyed, childless and commandless, exactly the
+shape of a placeholder while meaning "nothing to list yet" — the trap GUI-C-165 found in the runner's :140).
+Three independent routes to one number, measured:
+  name list in the app          = 9
+  menu-tree walk in the app     = 9
+  MainWindow.xaml  IsEnabled="False" count = 9      (grep -c; also parsed properly in A-11)
+All three runs above: Passed=True, SelfCheckPassed=True, GuiE2EPassed=True, Disabled=9, TreeLeaves=9.
+
+Adjacent, found while there: PlannedMenuPlaceholdersDetected is named "placeholders detected" but, after cards
+160/163/168 each removed the item they implemented, it now reads only OpenCurrentWorkflowHelpMenuItem.IsEnabled.
+Each removal was correct locally; together they hollowed the flag. Kept (the check is real) and NOT renamed (a
+report field), with a comment saying what it tests now.
+
+== Tests ==
+ApiReferenceServiceTests (integration, temporary directories — the checkout is not touched):
+  NothingGenerated_SaysSoAndSaysHow_NotAnEmptyResult
+  AGenerationThatStoppedPartWay_IsNeitherAvailableNorNeverGenerated
+  Generated_ReturnsTheEntryPage_AndWhenItWasGenerated
+  TheGenerationHint_CarriesThePrerequisite_NotJustTheCommand
+  TheEntryPagePath_IsWhatTheDoxyfileActuallyWrites        (parses Doxyfile OUTPUT_DIRECTORY + HTML_OUTPUT)
+  TheHintsCloneCommand_IsTheOneTheReadmeGives             (README.md must contain the same clone command)
+  integration suite: 266 -> 272, 271 passed, 1 skipped (the baseline skip), 0 failed.
+A-11 (E2E): the app's claim vs the disk, the expected page derived from the Doxyfile independently of the
+app's constant, both branches asserting something; plus the three-way count equality.
+
+== Falsification ==
+Unit tests (three arms, service file rewritten and restored in a finally; restored == True):
+  arm 1 hint loses the doxygen-awesome clone     -> fails: TheGenerationHint_CarriesThePrerequisite..., TheHintsCloneCommand...
+  arm 2 entry page drifts (html/index.htm)       -> fails: Generated_ReturnsTheEntryPage..., TheEntryPagePath_IsWhatTheDoxyfile...
+  arm 3 half-generated reported as never         -> fails: AGenerationThatStoppedPartWay...
+  control (unmodified)                           -> none failed
+A-11 (each arm: mutate, rebuild app + both runners, run A-11, restore, unstage):
+  control, not generated on disk                       pass
+  control, REAL doxygen output staged                  pass      <- both branches of the claim check exercised
+  arm N1  app claims a page that does not exist        FAIL
+  arm G1  app looks under the wrong file name (staged) FAIL
+  arm C1  a placeholder left out of the name list      FAIL
+  arm C2  a NEW greyed commandless item in the XAML, not listed  FAIL
+  no arm was a freshness-guard artifact (the script would have flagged it); restored + rebuilt True;
+  generated/ left behind False; final control pass.
+Runner (gui-shell-runners contract), new assertions for the item (enabled, command bound):
+  arm  item greyed and unbound again -> runner exit 0xE0434352 "API Reference menu is disabled; #225 row 20 wired it."
+  restored -> runner exit 0.  There was NO prior runner line for this item, so this is added, not migrated.
+
+== Two guards fired on me during this card (recorded, both correct) ==
+1. GUI-C-166: rebuilt only the app -> runner copies of the app dll older than gui/ sources -> both runner
+   verdicts False, reported by the app with the guard's own message.
+2. GUI-C-167: my falsification script restored a source by rewriting it; content identical, mtime newer than
+   the exe -> A-11 threw "older than its sources" in 15 ms. The guard compares timestamps, not content — its
+   stated limitation, seen from the other side: a byte-identical restore still needs a rebuild.
+
+== Regression ==
+E2E Mock full (trx logger, nothing else running): 실패 0, 통과 144, 건너뜀 31, 전체 175 (10m57s)  [174 -> 175, passed 143 -> 144]
+Integration: 실패 0, 통과 271, 건너뜀 1 (baseline skip), 전체 272  [266 -> 272]

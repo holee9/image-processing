@@ -324,6 +324,11 @@ public partial class MainWindow : System.Windows.Window
                 PipelineMenu is not null &&
                 ToolsMenu is not null &&
                 HelpMenu is not null;
+            // GUI-C-169: NAMED "placeholders detected" but no longer tests any placeholder. Cards 160, 163 and
+            // 168 each removed the item they implemented, correctly, and the last removal left only the
+            // Help term below — so today this is "the Help menu item is enabled". Kept (that check is
+            // real), not renamed (a report field others may read), and the placeholder question is now
+            // answered by DisabledFutureCommandCount == UnimplementedMenuLeafCount in the verdict.
             report.PlannedMenuPlaceholdersDetected =
                 // OpenRecentMenuItem left this list in GUI-C-160: #225 row 1 is implemented. It is
                 // enabled whenever the history is non-empty, so requiring it to be disabled would make
@@ -361,7 +366,6 @@ public partial class MainWindow : System.Windows.Window
                     BenchmarkRunnerMenuItem,
                     QaConstancyMenuItem,
                     GsdfCalibrateMenuItem,
-                    OpenApiReferenceMenuItem,
                     OpenTroubleshootingMenuItem,
                     // #165 (GUI-C-65): the two panel toggles MENU-001 §9.2 schedules for 1a and 1b.
                     // They were enabled and did nothing; now they are disabled and counted here with
@@ -371,6 +375,10 @@ public partial class MainWindow : System.Windows.Window
                     ShowDisplaySettingsPanelMenuItem
                 }
                 .Count(item => !item.IsEnabled);
+
+            // #225 (GUI-C-169): the independent second derivation of the same number. See the verdict below
+            // for why this replaced a floor.
+            report.UnimplementedMenuLeafCount = CountUnimplementedMenuLeaves(MainMenu.Items);
 
             // #225 (GUI-C-154, row 6): run the smoke through the MENU, so the automation run exercises
             // the same command a user has, and record its verdict. Invoked before the report is exported
@@ -460,6 +468,15 @@ public partial class MainWindow : System.Windows.Window
 
             // Row 14: everything except the launch runs here — see OpenEvidenceFolder's remarks and
             // EvidenceFolderLaunchSuppressed.
+            // #225 (GUI-C-169) row 20. Clicked through the menu, then read from the app's own state. The
+            // scenario compares what the app CLAIMS against the disk independently (see A-11), so the
+            // claim is checked rather than merely recorded.
+            ClickMenuItem(OpenApiReferenceMenuItem);
+            await Task.Delay(200);
+            report.ApiReferenceStatus = viewModel.StatusText;
+            report.ApiReferencePath = viewModel.LastApiReferencePath;
+            report.ApiReferenceLaunchSuppressed = viewModel.ApiReferenceLaunchSuppressed;
+
             // #225 (GUI-C-168) row 13. The stage lines are read from the PANEL, through the same
             // converter the operator sees — not rebuilt from LastChain here. Reading the model would
             // assert that the data is right while leaving the one thing this row can get wrong (a
@@ -564,7 +581,14 @@ public partial class MainWindow : System.Windows.Window
                 report.CanonicalMenuGroupsDetected &&
                 report.PlannedMenuPlaceholdersDetected &&
                 report.ToolbarMenuCommandParity &&
-                report.DisabledFutureCommandCount >= 10 &&
+                // GUI-C-169: was "DisabledFutureCommandCount >= 10", a snapshot from the very first menu
+                // commit (d5432d2, 2026-04-16) with no stated reason. A floor on a set that is MEANT to
+                // shrink fails at the point the work lands: #225 row 13 stopped at exactly 10 and row 20 took
+                // the count to 9, which made the app's own verdict fail. Replaced, not deleted: the two
+                // counts are derived independently (a list of names vs a walk of the menu tree), so this
+                // still catches a placeholder that is not counted or a counted item that is not a
+                // placeholder — and it stays true at 0, when every row is built.
+                report.DisabledFutureCommandCount == report.UnimplementedMenuLeafCount &&
                 report.MenuCommandReportCreated &&
                 report.LogCountAfterClear == 0 &&
                 report.AlertCountAfterClear == 0 &&
@@ -715,6 +739,39 @@ public partial class MainWindow : System.Windows.Window
         {
             CollectTextBlocks(System.Windows.Media.VisualTreeHelper.GetChild(root, i), into);
         }
+    }
+
+    /// <summary>
+    /// #225 (GUI-C-169): counts greyed leaf menu items that have no command — the structural definition of
+    /// "not implemented yet".
+    ///
+    /// <para><b>Items with an <c>ItemsSource</c> are skipped on purpose.</b> "Open Recent" is a data-driven
+    /// submenu: with an empty history it is greyed and has no children, which is exactly the shape of a
+    /// placeholder while meaning "nothing to list yet". Counting it would make this number depend on
+    /// whether a file had been opened — the same trap GUI-C-165 found in the runner's Open Recent line,
+    /// which measured "the list is empty" instead of "the feature is missing".</para>
+    ///
+    /// <para>A greyed item WITH a command is not counted: that is a state-disabled command, not an
+    /// unbuilt one.</para>
+    /// </summary>
+    private static int CountUnimplementedMenuLeaves(System.Windows.Controls.ItemCollection items)
+    {
+        var count = 0;
+        foreach (var item in items)
+        {
+            if (item is not System.Windows.Controls.MenuItem menuItem) continue;
+
+            if (menuItem.Items.Count > 0)
+            {
+                count += CountUnimplementedMenuLeaves(menuItem.Items);
+            }
+            else if (menuItem.ItemsSource is null && !menuItem.IsEnabled && menuItem.Command is null)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private static T? FindDescendant<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject

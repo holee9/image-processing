@@ -458,11 +458,14 @@
                           ToolTip="Opens help for the current GUI-S0 workflow."
                           Click="OpenCurrentWorkflowHelpMenuItem_OnClick" />
                 <Separator />
+                <!-- #225 (GUI-C-169, row 20). The header no longer says DocFX: measured on the last green
+                     docs-generate run, the DocFX output holds 5 conceptual pages and NO API pages, so a
+                     menu that opened it under this name would show something empty as the reference. -->
                 <MenuItem x:Name="OpenApiReferenceMenuItem"
                           AutomationProperties.AutomationId="OpenApiReferenceMenuItem"
-                          Header="_API Reference (DocFX/Doxygen)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when generated API reference is packaged." />
+                          Header="_API Reference (Doxygen)"
+                          Command="{Binding OpenApiReferenceCommand}"
+                          ToolTip="Open the generated native API reference from docs/help/generated. If it has not been generated, the status bar says how. DocFX is not offered: its generated output currently has no API pages." />
                 <MenuItem x:Name="OpenTroubleshootingMenuItem"
                           AutomationProperties.AutomationId="OpenTroubleshootingMenuItem"
                           Header="_Troubleshooting (Phase 1b)"
