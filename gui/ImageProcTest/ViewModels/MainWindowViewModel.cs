@@ -78,6 +78,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _lastEvidenceFolderPath;
     private bool _evidenceFolderLaunchSuppressed;
     private bool _showPipelineDiagnostics;
+    private string? _lastApiReferencePath;
+    private bool _apiReferenceLaunchSuppressed;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -139,6 +141,7 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshRecentRawFiles();
         ExportRuntimeLogsCommand = new RelayCommand(ExportRuntimeLogs);
         OpenEvidenceFolderCommand = new RelayCommand(OpenEvidenceFolder);
+        OpenApiReferenceCommand = new RelayCommand(OpenApiReference);
         OpenPipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = true);
         ClosePipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = false);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
@@ -2601,6 +2604,88 @@ public sealed class MainWindowViewModel : ObservableObject
         StatusText = "Lane B overrides reset to defaults.";
         Log(StatusText);
     }
+
+    /// <summary>
+    /// #225 row 20 (GUI-C-169): opens the generated native (Doxygen) API reference, or says why it cannot.
+    ///
+    /// <para><b>Same boundary as row 14:</b> the path is computed from the repository root by
+    /// <see cref="ApiReferenceService"/>, never taken from operator input, and existence is checked before
+    /// anything is launched.</para>
+    ///
+    /// <para>The three answers are all real and all different: not generated (with how to generate it),
+    /// generated part-way, opened (with when it was generated). None of them opens an empty window or does
+    /// nothing, which are the two ways a documentation menu quietly lies.</para>
+    /// </summary>
+    private void OpenApiReference()
+    {
+        string repositoryRoot;
+        try
+        {
+            repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Same answer rows 15 and 16 give: this menu needs a checkout, and a build running from
+            // somewhere else says so rather than being greyed out (which would make the enabled count
+            // depend on where the app happens to run).
+            StatusText = "API reference needs the repository; this build is not running from a checkout.";
+            Log($"API reference not opened: {ex.Message}");
+            return;
+        }
+
+        var status = ApiReferenceService.Resolve(repositoryRoot);
+        LastApiReferencePath = status.IndexPath;
+        if (!status.IsAvailable)
+        {
+            StatusText = status.Message;
+            Log(status.Message);
+            return;
+        }
+
+        // Automation is headless and unattended; a browser window left on a CI machine is not what a check
+        // should do. Resolution and the existence check above DO run, so a scenario observes everything but
+        // the launch, and the suppression is recorded in the report data (as for row 14).
+        if (App.IsAutomationMode)
+        {
+            ApiReferenceLaunchSuppressed = true;
+            StatusText = $"{status.Message} (launch suppressed under automation)";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = status.IndexPath!,
+                UseShellExecute = true
+            });
+            StatusText = status.Message;
+            Log(status.Message);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"API reference could not be opened: {ex.Message}";
+            Log($"API reference launch failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>The page <see cref="OpenApiReferenceCommand"/> resolved last; null when it had nothing to open.</summary>
+    public string? LastApiReferencePath
+    {
+        get => _lastApiReferencePath;
+        private set => SetProperty(ref _lastApiReferencePath, value);
+    }
+
+    /// <summary>True when a run suppressed the browser launch because it is an automation run.</summary>
+    public bool ApiReferenceLaunchSuppressed
+    {
+        get => _apiReferenceLaunchSuppressed;
+        private set => SetProperty(ref _apiReferenceLaunchSuppressed, value);
+    }
+
+    /// <summary>#225 row 20: opens the generated Doxygen API reference, or says how to generate it.</summary>
+    public RelayCommand OpenApiReferenceCommand { get; }
 
     /// <summary>
     /// #225 row 14 (GUI-C-163): opens this run set's evidence directory in the OS file browser.

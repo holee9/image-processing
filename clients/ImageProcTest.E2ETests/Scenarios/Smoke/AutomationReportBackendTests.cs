@@ -315,6 +315,93 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-11 (#225, GUI-C-169): row 20 — the API Reference menu's CLAIM matches the disk, and the count of
+    /// unimplemented menu items agrees across three independent derivations.
+    ///
+    /// <para><b>Claim versus disk.</b> The expected entry page is derived here from the Doxyfile's own
+    /// <c>OUTPUT_DIRECTORY</c> and <c>HTML_OUTPUT</c>, not from the app's constant, and existence is read
+    /// from the filesystem by the test. Whatever state the checkout happens to be in, the app must describe
+    /// THAT state: a path and a suppressed launch when the page exists, no path and the how-to-generate line
+    /// when it does not. Both branches assert something, so neither configuration is a silent pass; the
+    /// deterministic per-state coverage lives in <c>ApiReferenceServiceTests</c>, against temporary
+    /// directories.</para>
+    ///
+    /// <para><b>Three counts.</b> The app's hand-written list of names, its structural walk of the menu tree
+    /// and this test's parse of <c>MainWindow.xaml</c> are independent routes to one number, and they must
+    /// agree. This replaced a floor (<c>&gt;= 10</c>) inside the app's own verdict that failed the moment
+    /// row 20 took the count to 9; equality survives the count reaching 0.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree()
+    {
+        var repoRoot = RepositoryRootOrSkip();
+        var (report, _) = Run("A11", "Mock", nativeDirectory: null);
+
+        // -- the claim, against an independent reading of the disk ------------------------------------
+        var expectedIndex = ExpectedDoxygenIndex(repoRoot);
+        var status = report.GetProperty("ApiReferenceStatus").GetString() ?? string.Empty;
+        var reportedPath = report.GetProperty("ApiReferencePath").GetString();
+        var suppressed = report.GetProperty("ApiReferenceLaunchSuppressed").GetBoolean();
+
+        if (File.Exists(expectedIndex))
+        {
+            Assert.Equal(expectedIndex, reportedPath);
+            Assert.True(suppressed, "The page exists but the automation run did not record suppressing the launch.");
+            Assert.Contains("generated", status, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            Assert.Null(reportedPath);
+            Assert.False(suppressed, "Nothing was opened, yet the run recorded a suppressed launch.");
+            Assert.Contains("doxygen Doxyfile", status, StringComparison.Ordinal);
+            Assert.Contains("doxygen-awesome", status, StringComparison.Ordinal);
+        }
+
+        // -- the count, three ways --------------------------------------------------------------------
+        var listed = report.GetProperty("DisabledFutureCommandCount").GetInt32();
+        var walked = report.GetProperty("UnimplementedMenuLeafCount").GetInt32();
+        var declared = CountMenuItemsDisabledInXaml(repoRoot);
+        Assert.True(listed == walked && walked == declared,
+            $"Unimplemented menu items disagree: the app's name list says {listed}, its menu-tree walk says " +
+            $"{walked}, MainWindow.xaml declares {declared} MenuItem(s) with IsEnabled=\"False\". A placeholder " +
+            "is uncounted, or something counted is not one.");
+    }
+
+    private static string RepositoryRootOrSkip()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "docs", "project", "sprint-plan.md"))) return dir.FullName;
+        }
+
+        Skip.If(true, "The repository root (docs/project/sprint-plan.md) is not above the test binaries, so the " +
+                      "sources this scenario compares the app against are not available.");
+        return string.Empty;
+    }
+
+    private static string ExpectedDoxygenIndex(string repoRoot)
+    {
+        var doxyDir = Path.Combine(repoRoot, "docs", "help", "doxygen");
+        var text = File.ReadAllText(Path.Combine(doxyDir, "Doxyfile"));
+        string Value(string key)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(
+                text, $@"^{key}\s*=\s*(\S+)\s*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+            Assert.True(m.Success, $"{key} not found in the Doxyfile.");
+            return m.Groups[1].Value;
+        }
+
+        return Path.GetFullPath(Path.Combine(doxyDir, Value("OUTPUT_DIRECTORY"), Value("HTML_OUTPUT"), "index.html"));
+    }
+
+    private static int CountMenuItemsDisabledInXaml(string repoRoot)
+    {
+        var xaml = System.Xml.Linq.XDocument.Load(Path.Combine(repoRoot, "gui", "ImageProcTest", "MainWindow.xaml"));
+        return xaml.Descendants()
+            .Count(e => e.Name.LocalName == "MenuItem" && (string?)e.Attribute("IsEnabled") == "False");
+    }
+
+    /// <summary>
     /// Reads a runner verdict that the app reports as THREE states, and keeps them three (#225,
     /// GUI-C-161).
     ///
