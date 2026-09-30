@@ -1,0 +1,40 @@
+Note: Google Test filter = TileLanesTest.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from TileLanesTest
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128 (91 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100 (39 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize (8 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16 (20 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 1
+400x200 tile 8: 1 pixels differ from the scalar rule; first at row 58 col 297
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8 (15 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7 (20 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4 (21 ms)
+[ RUN      ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees
+[       OK ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees (4 ms)
+[ RUN      ] TileLanesTest.HistoricalRuleIsUnchanged
+[       OK ] TileLanesTest.HistoricalRuleIsUnchanged (3 ms)
+[ RUN      ] TileLanesTest.ThreadedRunsMatchOneThread
+[       OK ] TileLanesTest.ThreadedRunsMatchOneThread (79 ms)
+[----------] 10 tests from TileLanesTest (314 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (314 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+
+ 1 FAILED TEST

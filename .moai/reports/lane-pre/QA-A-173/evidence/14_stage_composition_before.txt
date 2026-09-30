@@ -1,0 +1,33 @@
+Note: Google Test filter = A172Path.DISABLED_StageSumVsWhole
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A172Path
+[ RUN      ] A172Path.DISABLED_StageSumVsWhole
+
+[a172] shipped entry point vs its stages -- 3072x3072 FLOAT32, AVX2,
+[a172]   single thread, i7-12700, 12 rounds, 1 warm-up discarded
+
+| round | whole | tile sigma | memset | rows  | stage sum | whole - sum |
+|-------|-------|------------|--------|-------|-----------|-------------|
+|     0 | 147.5 |       85.6 |   0.57 |  61.7 |     147.9 |        -0.4 |
+|     1 | 148.9 |      109.5 |   0.57 |  74.4 |     184.5 |       -35.6 |
+|     2 | 149.7 |       88.8 |   0.59 |  64.2 |     153.5 |        -3.8 |
+|     3 | 148.3 |       83.9 |   0.56 |  63.8 |     148.3 |         0.1 |
+|     4 | 142.0 |       84.1 |   0.54 |  63.7 |     148.4 |        -6.4 |
+|     5 | 148.3 |       80.8 |   0.54 |  65.0 |     146.3 |         2.0 |
+|     6 | 151.3 |      100.5 |   0.64 |  77.5 |     178.6 |       -27.3 |
+|     7 | 186.5 |       89.3 |   0.45 |  71.2 |     161.0 |        25.4 |
+|     8 | 146.9 |       84.2 |   0.55 |  67.0 |     151.7 |        -4.9 |
+|     9 | 146.6 |       82.5 |   0.51 |  66.9 |     149.9 |        -3.3 |
+|    10 | 151.0 |       81.1 |   0.57 |  67.2 |     148.9 |         2.1 |
+|    11 | 154.2 |       77.5 |   0.58 |  73.9 |     152.1 |         2.2 |
+
+[a172]   MINIMUM of each:  whole 142.0 | tile 77.5 | memset 0.45 | rows 61.7
+[a172]   sum of minima    139.7   vs   whole minimum 142.0   (gap 2.3 ms)
+
+[       OK ] A172Path.DISABLED_StageSumVsWhole (3986 ms)
+[----------] 1 test from A172Path (3988 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3988 ms total)
+[  PASSED  ] 1 test.

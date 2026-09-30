@@ -1,0 +1,4 @@
+args='' EXIT=0 | [==========] 721 tests from 94 test suites ran. | [  PASSED  ] 713 tests. | failed lines: 0
+args='--gtest_shuffle --gtest_random_seed=1' EXIT=0 | [==========] 721 tests from 94 test suites ran. | [  PASSED  ] 713 tests. | failed lines: 0
+args='--gtest_shuffle --gtest_random_seed=2' EXIT=0 | [==========] 721 tests from 94 test suites ran. | [  PASSED  ] 713 tests. | failed lines: 0
+args='--gtest_shuffle --gtest_random_seed=9' EXIT=0 | [==========] 721 tests from 94 test suites ran. | [  PASSED  ] 713 tests. | failed lines: 0

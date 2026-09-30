@@ -1,0 +1,11 @@
+category          files  differing  pixels differ
+acc_edge             30         24             74
+acc_lines13          30          0              0
+acc_lines8           30          0              0
+acc_noisescale       12          0              0
+acc_scatter          30          6              6
+acc_uniform          30          8              8
+boundary_            10         10          97874
+real_                21         18             39
+var_                119         23           1186
+TOTAL               312         89          99187

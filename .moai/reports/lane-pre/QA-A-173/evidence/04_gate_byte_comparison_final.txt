@@ -1,0 +1,4 @@
+files before: 312  after: 312  same name set: True
+map files compared: 312  total pixels: 469207386
+files that differ: 0  differing pixels: 0
+thread comparisons in log: 364  nonzero: 0
