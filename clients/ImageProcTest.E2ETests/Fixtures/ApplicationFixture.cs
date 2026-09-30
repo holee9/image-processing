@@ -663,6 +663,16 @@ public class ApplicationFixture : IDisposable
     /// <para>The reference is NOT restored — that would bring back the locking fault. This reads
     /// timestamps instead, which needs no build-graph edge.</para>
     /// </summary>
+    /// <summary>
+    /// The same check the fixture runs, for a scenario that launches the app itself (#225, GUI-C-167).
+    ///
+    /// <para>Exposed rather than duplicated: <c>AutomationReportBackendTests.Run</c> starts its own
+    /// process and so never passed through the constructor's guard. It is internal and named for what it
+    /// guards — a LAUNCH — because the third caller of <see cref="ResolveApplicationExecutable"/> only
+    /// derives a directory and must not be forced through it.</para>
+    /// </summary>
+    internal static void EnsureLaunchTargetIsFresh(string exePath) => EnsureApplicationIsFresh(exePath);
+
     private static void EnsureApplicationIsFresh(string exePath)
     {
         var guiRoot = FindGuiSourceRoot(exePath);

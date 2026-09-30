@@ -1,0 +1,75 @@
+GUI-C-167 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== §1 census: every caller of ResolveApplicationExecutable ==
+grep -rn "ResolveApplicationExecutable" clients/ --include=*.cs   (obj/ excluded)
+  Fixtures/ApplicationFixture.cs:695   internal static ... ResolveApplicationExecutable()   <- the declaration
+  Fixtures/ApplicationFixture.cs:109   var exePath = ResolveApplicationExecutable();        <- LAUNCHES, guarded at :121
+  Scenarios/Smoke/AutomationReportBackendTests.cs:321                                       <- LAUNCHES, NOT guarded
+  Scenarios/Workflows/EvidenceBundleScenarios.cs:210                                        <- PATH ONLY
+
+Call sites excluding the declaration: 3.
+Nature of the third (EvidenceBundleScenarios.cs:205-210):
+    private static string EvidenceRoot(ApplicationFixture app) =>
+        Path.Combine(Path.GetDirectoryName(ApplicationFixture.ResolveApplicationExecutable()!)!, "evidence");
+It derives a DIRECTORY and launches nothing; its app was started through a fixture (the
+parameter type is ApplicationFixture), so that launch is already guarded.
+
+Scenarios in the blind spot — counted, not remembered:
+  [SkippableFact] in AutomationReportBackendTests.cs : 9
+  Run("A..") call sites in that file                 : 10   (A-08 launches twice: A08a, A08b)
+  names: A01 A02 A03 A04 A05 A06 A07 A08a A08b A09
+So my GUI-C-166 report's "아홉 건" was right for SCENARIOS but was never measured, and it
+said nothing about call sites — which is what decides §2. The lead's extra hit
+(EvidenceBundleScenarios.cs:210) is real and is the one that settles the placement.
+
+== §2 placement: Run(), not ResolveApplicationExecutable() ==
+The census decides it: a path-only caller exists. Guarding the resolver would throw in
+EvidenceRoot for a staleness that cannot affect a directory name. The guard is named for
+what it protects — ApplicationFixture.EnsureLaunchTargetIsFresh(exePath) — and is called
+from Run(), which is every launch in that class (10 of 10).
+Not duplicated: the new internal method forwards to the existing EnsureApplicationIsFresh.
+
+== Falsification 1 — the formerly blind scenarios now throw ==
+touch gui/ImageProcTest/MainWindow.xaml.cs   (no rebuild)
+  A01 and A09 both:
+  "The gui app executable is older than its sources ... exe written 01:48:36.9521252Z;
+   newest source 'MainWindow.xaml.cs' written 02:07:16.2488009Z. Build the app first: ..."
+Before this card the same arm passed (GUI-C-166 §5.1).
+
+== Falsification 2 — normal state does not throw, including the path-only caller ==
+git checkout HEAD -- <touched file>; rebuild all four projects  오류 0개
+  AutomationReportBackendTests + EvidenceBundleScenarios:
+  통과!  실패: 0, 통과: 12, 건너뜀: 2, 전체: 14   (3 m 14 s)
+The two skips are configuration (this run has no native staging), not the guard.
+
+== Falsification 3 — CI ==
+Same structural argument as GUI-C-166 §4.1 and it holds for the same reason: the guard
+compares the app exe against gui/ sources, and every job builds the app from one unchanged
+checkout, so the sources precede the build output. Reproduced there from a clean state;
+this card adds no new build-order dependency (the guard call sits inside a test helper that
+runs after the job's build steps).
+Lead-reported CI observation on 890fd5f (before this card): gui-e2e-native
+total=173 executed=173 passed=173 failed=0 notExecuted=0, with A04/A05/A06 all Passed.
+
+== Second census, by BEHAVIOUR rather than by name ==
+The name-based census can only see callers of ResolveApplicationExecutable. Widened to the
+act of launching:
+grep -rn "Process.Start" clients/ImageProcTest.E2ETests/ --include=*.cs   (obj/ excluded)
+  Fixtures/ApplicationFixture.cs:506                  -> the CALIBRATION GENERATOR tool, not the app
+  Fixtures/PolynomialCalibrationApplicationFixture.cs:74 -> same generator (--gain-poly)
+  Scenarios/Smoke/AutomationReportBackendTests.cs:362 -> the app  (guarded by this card, via Run())
+  Scenarios/Smoke/NativeProvenanceTests.cs:69         -> git rev-parse, not the app
+grep -rn "Application.Launch|Application.Attach"
+  Fixtures/ApplicationFixture.cs:190                  -> the app (the already-guarded path)
+
+PolynomialCalibrationApplicationFixture : ApplicationFixture — it INHERITS, so its app launch
+runs the base constructor and passes the guard at :121.
+
+So every launch of the app is now guarded: two sites (fixture + Run()), and nothing else in
+this project starts it. The GUI-C-166 report listed "widen to Process.Start" as unverified;
+it is now measured.
+
+== Regression ==
+Mock configuration, full suite:
+  통과!  실패: 0, 통과: 142, 건너뜀: 31, 전체: 173   (10 m 33 s)
+Identical to the GUI-C-163 / GUI-C-166 baseline. Widening the guard turned nothing red.
