@@ -19,8 +19,9 @@
  *   The PID suffix ensures uniqueness when multiple XPE host processes run.
  *
  * Wire format:
- *   All messages are little-endian. The envelope is fixed-size (32 bytes)
- *   followed by a variable-length JSON payload.
+ *   All messages are little-endian. The envelope is fixed-size (40 bytes:
+ *   six uint32 fields, a uint64 timestamp and 8 reserved bytes -- pinned by
+ *   the static_assert below) followed by a variable-length JSON payload.
  *
  * @ingroup xpe_ai
  */
@@ -64,7 +65,7 @@ extern "C" {
 #define XPE_AI_MAX_BODYPART_LEN    64
 
 /* ==========================================================================
- * Message Envelope (fixed 32-byte header)
+ * Message Envelope (fixed 40-byte header)
  * -------------------------------------------------------------------------- */
 
 #pragma pack(push, 8)
@@ -87,6 +88,16 @@ typedef struct XpeAiMessageHeader {
 } XpeAiMessageHeader;
 
 #pragma pack(pop)
+
+/* This header said "32 bytes" in two places while sizeof was 40 (QA-B-169
+ * measured it): six uint32 (24) + uint64 timestamp (8) + reserved[8] (8).
+ * A comment that is wrong about the wire format misleads every reader and
+ * fails no build, so the number is pinned here instead. */
+#ifdef __cplusplus
+static_assert(sizeof(XpeAiMessageHeader) == 40, "XpeAiMessageHeader wire size changed");
+#else
+_Static_assert(sizeof(XpeAiMessageHeader) == 40, "XpeAiMessageHeader wire size changed");
+#endif
 
 /** Magic number for protocol validation. */
 #define XPE_AI_MSG_MAGIC  0x58504541u

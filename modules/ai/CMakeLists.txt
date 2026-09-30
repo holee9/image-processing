@@ -344,6 +344,10 @@ if(_XPE_AI_BUILD_TESTS)
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
         test_alert_ai_processed.cpp
+        # #130 (QA-B-169): the bridge against the REAL worker process -- the
+        # first test that connects the two halves QA-B-167 found speaking
+        # different message enums
+        test_worker_protocol_conformance.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
@@ -409,6 +413,18 @@ if(_XPE_AI_BUILD_TESTS)
         # to know, and there is no cwd left to get wrong.
         target_compile_definitions(xpe_ai_tests PRIVATE
             XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+
+        # QA-B-169: test_worker_protocol_conformance.cpp launches the real
+        # worker. The path is the TARGET's output, resolved at generate time,
+        # so it cannot drift from what the build actually produced; the source
+        # path is for the one assertion that reads the worker's text. The
+        # dependency is what guarantees the exe exists before any test runs --
+        # without it the worker is only built when someone asks for it, and a
+        # test that cannot launch it would fail for the wrong reason.
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_WORKER_EXE="$<TARGET_FILE:xpe_ai_worker>"
+            XPE_AI_WORKER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_main.cpp")
+        add_dependencies(xpe_ai_tests xpe_ai_worker)
 
         # The tests compile that file themselves, so they need the SAME build
         # mode the product got -- otherwise the stub/full arms diverge between
