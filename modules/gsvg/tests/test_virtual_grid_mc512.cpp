@@ -571,7 +571,26 @@ TEST(GsvgVirtualGridMc512, StepErrorAgainstDistanceToTheBoundary)
                 jumps, median(wref));
 
     // (1) Error against distance to the nearest jump.
-    std::printf("VGMC125 profile: distance_px, distance_mm, n, median|r-1|\n");
+    //
+    // QA-B-166 (#191 blind spot 1) added the SPREAD columns. The median alone
+    // cannot say whether a difference between two bins is real: the far bins
+    // hold far fewer pixels, and a trend read across bins whose spread
+    // overlaps is a trend read out of noise. p05/p95 and n are printed so the
+    // reader can see how much each bin is supported by -- the same reason the
+    // wedge reference is printed next to it rather than remembered.
+    //
+    // This bin set stops at 4.5 mm because the 0.5 cm staircase puts no pixel
+    // further from a boundary than half a step. run_512_wide_steps.sh exists
+    // to lift that to ~25 mm; until that phantom is produced, the last bin
+    // here is the edge of what this data can answer, not a converged value.
+    auto quantile = [](std::vector<double> a, double q) {
+        if (a.empty()) return 0.0;
+        std::sort(a.begin(), a.end());
+        size_t k = static_cast<size_t>(q * static_cast<double>(a.size()));
+        if (k >= a.size()) k = a.size() - 1;
+        return a[k];
+    };
+    std::printf("VGMC125 profile: distance_px, distance_mm, n, median|r-1|, p05, p95\n");
     const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
     for (size_t b = 0; b + 1 < sizeof(edges) / sizeof(edges[0]); ++b) {
         std::vector<double> a;
@@ -581,9 +600,9 @@ TEST(GsvgVirtualGridMc512, StepErrorAgainstDistanceToTheBoundary)
             if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
             a.push_back(std::fabs(imgStep[i] / s.primary[i] - 1.0));
         }
-        std::printf("VGMC125 profile d=[%3d,%3d) = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+        std::printf("VGMC125 profile d=[%3d,%3d) = [%.2f,%.2f) mm n=%6zu median=%.4f p05=%.4f p95=%.4f\n",
                     edges[b], edges[b + 1], edges[b] * kPitchMm, edges[b + 1] * kPitchMm,
-                    a.size(), median(a));
+                    a.size(), median(a), quantile(a, 0.05), quantile(a, 0.95));
     }
 
     // (2) The median with a +-N ring around every jump removed.
