@@ -77,6 +77,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _lastRuntimeLogExportPath;
     private string? _lastEvidenceFolderPath;
     private bool _evidenceFolderLaunchSuppressed;
+    private bool _showPipelineDiagnostics;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -138,6 +139,8 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshRecentRawFiles();
         ExportRuntimeLogsCommand = new RelayCommand(ExportRuntimeLogs);
         OpenEvidenceFolderCommand = new RelayCommand(OpenEvidenceFolder);
+        OpenPipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = true);
+        ClosePipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = false);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
@@ -443,6 +446,40 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>#225 row 14: opens this run set's evidence directory in the OS file browser.</summary>
     public RelayCommand OpenEvidenceFolderCommand { get; }
 
+    /// <summary>#225 row 13: shows the pipeline diagnostics panel.</summary>
+    public RelayCommand OpenPipelineDiagnosticsCommand { get; }
+
+    /// <summary>#225 row 13: hides it again.</summary>
+    public RelayCommand ClosePipelineDiagnosticsCommand { get; }
+
+    /// <summary>
+    /// #225 row 13 (GUI-C-168): whether the pipeline diagnostics panel is showing.
+    ///
+    /// <para><b>Session state, deliberately not persisted.</b> Three reasons, and the third is the one
+    /// that decided it. (1) It is a view preference, not a run selection — #136 separated those because
+    /// a persisted value let whatever a PREVIOUS run left behind decide what a check sees. (2) The
+    /// automation report already emits the chain itself (<c>stages</c>, <c>displayInput</c>), so a
+    /// scenario checks the DATA without needing this panel open; a report field for its visibility would
+    /// buy nothing. (3) The flag needs a READER, and here the panel is it — which is exactly what
+    /// <see cref="ShowCalibrationPanel"/> lacks and what <c>Settings.ShowDisplayPanel</c> also lacks
+    /// despite being persisted and reported. Following either of those conventions would have reproduced
+    /// the defect rather than the pattern.</para>
+    /// </summary>
+    public bool ShowPipelineDiagnostics
+    {
+        get => _showPipelineDiagnostics;
+        private set => SetProperty(ref _showPipelineDiagnostics, value);
+    }
+
+    /// <summary>
+    /// #225 row 13: whether there is a measurement to show at all — <see cref="LastChain"/> is null until
+    /// a chain has run.
+    ///
+    /// <para>The panel needs this as its own line because an EMPTY LIST reads as "nothing happened"
+    /// rather than "nothing was measured". Derived, not stored: nothing here can go stale.</para>
+    /// </summary>
+    public bool HasPipelineDiagnostics => LastChain is not null;
+
     public RelayCommand ShutdownBackendCommand { get; }
 
     public RelayCommand LoadImageCommand { get; }
@@ -474,7 +511,13 @@ public sealed class MainWindowViewModel : ObservableObject
     public ChainResult? LastChain
     {
         get => _lastChain;
-        private set => SetProperty(ref _lastChain, value);
+        private set
+        {
+            if (!SetProperty(ref _lastChain, value)) return;
+            // #225 row 13 (GUI-C-168): the panel's "no measurement yet" line is derived from this, so
+            // without this raise the first chain leaves the panel still saying nothing has run.
+            OnPropertyChanged(nameof(HasPipelineDiagnostics));
+        }
     }
 
     /// <summary>
@@ -856,8 +899,18 @@ public sealed class MainWindowViewModel : ObservableObject
 
     // No readers since GUI-C-68: ShowRuntimePanel, ShowRawSettingsPanel, ShowImageSummaryPanel,
     // ShowMetadataPanel and ShowAlertsPanel name panels that do not exist — their menu items were
-    // removed (C-65) and the automation report stopped emitting them (C-68). Removal is a separate
-    // card; ShowCalibrationPanel and ShowLogsPanel below are still read and stay.
+    // removed (C-65) and the automation report stopped emitting them (C-68). Removal is a separate card.
+    //
+    // #225 (GUI-C-168) CORRECTION to the line that used to end this comment. It said "ShowCalibrationPanel
+    // and ShowLogsPanel below are still read and stay", and only HALF of that is true. Measured:
+    //   ShowLogsPanel      — read by the log region. True as written.
+    //   ShowCalibrationPanel — the ONLY reader is its own menu item's IsChecked binding
+    //                          (MainWindow.xaml:211). No panel reads it, so it is in the same state as
+    //                          the five above, not with ShowLogsPanel. Kept, not deleted: #225 row 7
+    //                          is the card that will either give it a reader or retire it, and the
+    //                          measurement belongs here where the next reader looks.
+    // The same check on the neighbouring flag: Settings.ShowDisplayPanel is persisted and reported
+    // (automation DisplayPanelVisible) and ALSO has no panel — persistence is not a reader.
     public bool ShowRuntimePanel
     {
         get => _showRuntimePanel;

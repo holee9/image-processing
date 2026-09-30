@@ -1,0 +1,82 @@
+GUI-C-168 (#225) — measured, 2026-09-30, local (Windows 11, this worktree)
+
+== §3 the toggle question: the measurement changed the question ==
+The menu item is NOT checkable — MainWindow.xaml:372-376 has no IsCheckable, and the header reads
+"Open Pipeline _Diagnostics". So row 13 carries a COMMAND, not a two-state toggle like rows 7/8.
+What still had to be decided is where the panel's visibility lives, and the two existing
+conventions are both defective:
+  ShowCalibrationPanel        VM property; only reader is its own menu item's IsChecked (xaml:211)
+  Settings.ShowDisplayPanel   persisted, reported as DisplayPanelVisible — and no panel reads it
+Chosen: a session-only VM property (ShowPipelineDiagnostics). Reasons in the code; the deciding one
+is that the flag now has a READER (the panel's Visibility), which is the thing both conventions lack.
+
+== The material, read before building (no new measurement state was added) ==
+  LastChain            ChainResult?   null until a chain runs           :511
+  StageOutcome.Status  NotRequested | Applied | AppliedNoChange | RequestedNotApplied
+  StageOutcome.ElapsedMs  XML doc: "Zero for a stage that was not requested"
+  ChainResult.Timings     already renders that zero as "preprocess=0 ms"
+  IsPreviewStale / PreviewStaleReason  StaleParametersChanged | StalePipelineFailed
+So §2's lie is ALREADY present in the existing string: Timings prints 0 ms for a stage that never
+ran. On the status bar the status sits beside it; on a panel of times it would stand alone.
+
+== The three states, measured from the RENDERED panel ==
+Automation run (Mock), read through the same converter the operator sees:
+  PipelineDiagnosticsHadMeasurementAtStartup = False      <- state 1: never rendered
+  PipelineDiagnosticsHasMeasurement          = True       <- after the render
+  PipelineDiagnosticsVisible                 = True
+  stage lines:
+    preprocess · NotRequested · — switched off             <- state 2: no number, not "0 ms"
+    gsvg · NotRequested · — switched off
+  DisabledFutureCommandCount = 10                          (was 11)
+
+== State 3 — the first attempt measured the wrong thing ==
+First probe read PreviewStaleReason beside the panel, after the edit:
+  StaleReason = "STALE — the display pipeline failed; the image shown is from before the failed attempt."
+That is NOT the parameters-changed path. The row-11 stop test earlier in the same script leaves
+StalePipelineFailed, and that reason is documented as not replaced by a later parameter edit. The
+field was non-null for a reason unrelated to the injection — true, and not the thing being checked.
+
+Isolated: probe moved to immediately after the first successful render, as a triple.
+  StaleReasonBeforeParameterEdit    = null
+  StaleReasonAfterParameterEdit     = "STALE — display parameters changed since this image was
+                                       rendered. Apply the display pipeline to update it."
+  StaleReasonAfterParameterRestored = null
+Before/after/restored is what makes it attributable, and the restore arm also shows the mark comes
+off rather than being a label that sticks.
+
+== Falsification ==
+arm A — the converter prints the documented zero as a time
+  (return $"{stage.ElapsedMs:0} ms" unconditionally)
+  A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero  [FAIL]
+arm B — the report reads the lines from the MODEL instead of the rendered panel
+  (rebuild from LastChain.Stages, bypassing the converter)
+  A10  [FAIL]
+Both reverted; git diff --stat on the converter empty; A10 green again.
+Arm B is the one that matters: it shows that reading the rendered panel is what gives this scenario
+its discriminating power. A model-read version would have passed both arms.
+
+== Native configuration — the branch that DOES show a number ==
+XPE_NATIVE_DIR=build\c134-stage-new, XPE_NATIVE_DIR_EXCLUSIVE=1, --automation-backend Native
+  ActualBackendMode = Native, Passed = True
+  preprocess · RequestedNotApplied · 1 ms  Preprocessing skipped: calibration file(s) not found — ...
+  gsvg · NotRequested · —  switched off
+Two different not-applied statuses, rendered differently in ONE screen: the stage that was attempted
+carries its measured 1 ms and its reason; the stage that was switched off carries no number. This is
+the strongest form of the distinction — it is not "numbers vs no numbers per run" but per stage,
+side by side.
+Still not observed: a stage with status Applied (needs a calibration set). The branch that prints a
+number IS observed; that particular status value is not.
+
+== Regression — the first run's 2 failures were MY contamination ==
+run 1:  실패: 2, 통과: 141, 건너뜀: 31, 전체: 174   (10 m 16 s)   <- no trx logger; names lost
+run 2:  실패: 0, 통과: 143, 건너뜀: 31, 전체: 174   (10 m 48 s)   <- nothing else running
+While run 1 was in flight I launched a SECOND app instance for the Native observation above
+(ImageProcTest.exe --automation-backend Native). ApplicationFixture kills leftovers and attaches to
+a window; a foreign instance starting at that moment disturbs exactly that. Run 2, with nothing else
+running, is clean.
+Test count 173 -> 174 (A10); passed 142 -> 143. Both moved by exactly what was added.
+Two defects in my own method, recorded rather than smoothed over:
+  - the repository lesson is "do not edit sources during a measurement"; launching another instance
+    of the app under test is the same class of mistake with a process instead of a file.
+  - run 1 had no trx logger, so the two failure names are unrecoverable. I can say they did not
+    reproduce; I cannot say what they were.

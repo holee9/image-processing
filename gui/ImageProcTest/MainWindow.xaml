@@ -69,6 +69,11 @@
         <!-- Workbench AlgorithmBar (Slice 3) -->
         <views:AlgorithmBar DockPanel.Dock="Top" />
 
+        <!-- #225 row 13 (GUI-C-168). Collapsed until the Tools menu opens it; the flag has a reader
+             here, which is what ShowCalibrationPanel and Settings.ShowDisplayPanel both lack. -->
+        <views:PipelineDiagnosticsPanel DockPanel.Dock="Right"
+                                        Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
+
         <Menu x:Name="MainMenu"
               AutomationProperties.AutomationId="MainMenu"
               DockPanel.Dock="Top">
@@ -369,11 +374,14 @@
                           Header="Stage _Timing"
                           Command="{Binding ShowStageTimingCommand}"
                           ToolTip="Show the last render's own timings: the work/vm/display split and the chain's per-stage times." />
+                <!-- #225 (GUI-C-168, row 13): the traces the old tooltip waited for are what the last
+                     render already records (LastChain, IsPreviewStale). A command, not a toggle — the
+                     header says "Open" and the item carries no IsCheckable. -->
                 <MenuItem x:Name="OpenPipelineDiagnosticsMenuItem"
                           AutomationProperties.AutomationId="OpenPipelineDiagnosticsMenuItem"
-                          Header="Open Pipeline _Diagnostics (Phase 1a+)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when pipeline execution traces and timing diagnostics exist." />
+                          Header="Open Pipeline _Diagnostics"
+                          Command="{Binding OpenPipelineDiagnosticsCommand}"
+                          ToolTip="Show what the LAST render recorded per stage. It re-measures nothing, and a stage that was switched off shows no time rather than 0 ms." />
             </MenuItem>
 
             <MenuItem x:Name="ToolsMenu"

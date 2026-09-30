@@ -1,0 +1,111 @@
+﻿<UserControl x:Class="ImageProcTest.Views.PipelineDiagnosticsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:ImageProcTest.Converters"
+             AutomationProperties.AutomationId="PipelineDiagnosticsPanel"
+             Width="420"
+             Background="#14171e">
+    <!--
+        #225 row 13 (GUI-C-168). Reads what the last render already recorded; it measures nothing.
+
+        Three states have to stay apart on screen, and each is carried by something that already
+        exists — no new state was added for this panel:
+
+          never rendered      LastChain is null      -> the "no chain has run" block below
+          stage switched off  Status=NotRequested    -> status shown, time suppressed to an em dash
+                                                        by StageMeasurementConverter
+          stage ran           Status + ElapsedMs     -> both shown
+
+        And "is what I am looking at current?" is answered by IsPreviewStale/PreviewStaleReason, which
+        the display pipeline already maintains. Without that line, someone who changes a setting and
+        opens this panel reads the previous render's numbers as the new ones (GUI-C-159 fixed the same
+        confusion for the status bar's HUD).
+    -->
+    <UserControl.Resources>
+        <converters:StageMeasurementConverter x:Key="StageMeasurement" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Pipeline diagnostics"
+                   Foreground="#e6e9ef"
+                   FontWeight="Bold"
+                   FontSize="14" />
+
+        <TextBlock DockPanel.Dock="Top"
+                   AutomationProperties.AutomationId="PipelineDiagnosticsProvenance"
+                   Text="Values are from the last render. Nothing here re-measures."
+                   Foreground="#8b93a7"
+                   TextWrapping="Wrap"
+                   Margin="0,4,0,8" />
+
+        <!-- The staleness line. Visible only while the app itself says the preview is stale, and it
+             prints the app's own reason rather than a phrasing of its own. -->
+        <Border DockPanel.Dock="Top"
+                AutomationProperties.AutomationId="PipelineDiagnosticsStaleBanner"
+                Background="#3a2a12"
+                Padding="8,6"
+                Margin="0,0,0,8"
+                Visibility="{Binding IsPreviewStale, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock AutomationProperties.AutomationId="PipelineDiagnosticsStaleReason"
+                       Text="{Binding PreviewStaleReason}"
+                       Foreground="#ffd479"
+                       TextWrapping="Wrap" />
+        </Border>
+
+        <!-- No chain has run. The list below is empty in this state, and an empty list on its own
+             reads as "nothing happened" rather than "nothing was measured". -->
+        <TextBlock DockPanel.Dock="Top"
+                   AutomationProperties.AutomationId="PipelineDiagnosticsNoChain"
+                   Text="No chain has run yet — there is no measurement to show."
+                   Foreground="#e6e9ef"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasPipelineDiagnostics}" Value="False">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <Button DockPanel.Dock="Bottom"
+                x:Name="ClosePipelineDiagnosticsButton"
+                AutomationProperties.AutomationId="ClosePipelineDiagnosticsButton"
+                Content="Close"
+                Command="{Binding ClosePipelineDiagnosticsCommand}"
+                HorizontalAlignment="Right"
+                Margin="0,8,0,0"
+                Padding="12,4" />
+
+        <ItemsControl AutomationProperties.AutomationId="PipelineDiagnosticsStages"
+                      ItemsSource="{Binding LastChain.Stages}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="#1b1f29" Padding="8,6" Margin="0,0,0,6">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding StageId}" Foreground="#e6e9ef" FontWeight="Bold" />
+                                <TextBlock Text=" · " Foreground="#8b93a7" />
+                                <!-- Status first: it is what makes the time readable, and on a
+                                     NotRequested stage it is the ONLY honest thing to show. -->
+                                <TextBlock Text="{Binding Status}" Foreground="#9fd0ff" />
+                                <TextBlock Text=" · " Foreground="#8b93a7" />
+                                <TextBlock Text="{Binding Converter={StaticResource StageMeasurement}}"
+                                           Foreground="#c8f7c5" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding Reason}"
+                                       Foreground="#8b93a7"
+                                       TextWrapping="Wrap"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>
