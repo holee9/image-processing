@@ -1,0 +1,25 @@
+Note: Google Test filter = A172Path.DISABLED_StraddleFallbackCost
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A172Path
+[ RUN      ] A172Path.DISABLED_StraddleFallbackCost
+
+[a172] tile-straddle fallback -- 3072x3072 FLOAT32, AVX2, single thread,
+[a172]   i7-12700, tile 128, 12 interleaved rounds, minimum reported
+
+[a172]   pixels sent to the scalar path per row : 184 of 3072 (5.99%)
+[a172]   ... over the frame                      : 564880 of 9437184 (5.99%)
+[a172]   rows, shipped                           :   53.0 ms
+[a172]   rows, no straddling run (time only)     :   18.5 ms
+[a172]   ==> time difference                     :   34.4 ms
+[a172]   those pixels through the scalar path    :   35.4 ms  (62.6 ns/pixel)
+[a172]   the same runs through the vector path   :    3.4 ms
+[a172]   ==> scalar - vector for those runs      :   31.9 ms
+[a172]   the two estimates differ by             :    2.5 ms
+
+[       OK ] A172Path.DISABLED_StraddleFallbackCost (1358 ms)
+[----------] 1 test from A172Path (1359 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1359 ms total)
+[  PASSED  ] 1 test.

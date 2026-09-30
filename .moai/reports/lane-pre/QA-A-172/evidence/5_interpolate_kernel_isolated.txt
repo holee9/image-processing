@@ -1,0 +1,16 @@
+Note: Google Test filter = A172Path.DISABLED_InterpolateKernelIsolated
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A172Path
+[ RUN      ] A172Path.DISABLED_InterpolateKernelIsolated
+
+[a172] xpe_interpolate_pixel in isolation -- 3072x3072 FLOAT32, isolated
+[a172]   defects, 9216 sites (0.098% of the frame), 200 passes, best of 7
+[a172]   5.9 ns per call  ->  one pass over all sites = 0.054 ms
+
+[       OK ] A172Path.DISABLED_InterpolateKernelIsolated (180 ms)
+[----------] 1 test from A172Path (180 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (180 ms total)
+[  PASSED  ] 1 test.
