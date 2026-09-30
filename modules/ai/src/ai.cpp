@@ -658,6 +658,29 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     }
 
     std::memcpy(softTissueOut->data, out.value.data(), count * sizeof(float));
+
+    // SRS-ALERT-004 (QA-B-168, #130): DL processing was applied -- Info,
+    // "AI-processed".
+    //
+    // PLACEMENT IS THE CONTRACT. This sits after the memcpy, on the single
+    // success exit, so it cannot fire on a path that returned an image the
+    // model never touched. Every early return above -- unsupported format, no
+    // model, unloadable model, a failed Run (which is EVERY call in a stub
+    // build) -- leaves the queue untouched. Hoisting it earlier would make an
+    // "always fires" alert that still passes a test asserting only that it
+    // fires; the negative assertions in test_alert_ai_processed.cpp are what
+    // pin this position.
+    //
+    // WHY Info AND WHY HERE. SRS-ALERT-004 reads "DL processing 적용됨 / Info /
+    // AI-processed label" (XPE-SRS-001:102). SDD:874 used to attribute it to
+    // worker failure; that line was corrected to SRS-SAFE-008 in a3330d9 --
+    // failure is SAFE-008, success is ALERT-004. Severity settles it on its
+    // own: every failure row in the SRS alert table is Warning or Error.
+    //
+    // The module raises it, not the GUI: all 20 product xpe_alert_push call
+    // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
+    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)",
+                   XPE_ALERT_INFO);
     return XPE_OK;
 }
 
