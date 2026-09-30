@@ -160,7 +160,9 @@ The display pipeline transforms float32 post-enhancement images into final uint1
 
 ### 1.2 Out of Scope (Exclusions -- What NOT to Build)
 
-- LUT Manager (SWU-3.4: preset CRUD, auto-select) -- separate SPEC or deferred within P1B-DISP iteration 2
+- LUT Manager (SWU-3.4: preset CRUD, auto-select) -- separate SPEC or deferred within P1B-DISP iteration 2.
+  **Tracked by `#215`** (2026-09-30) -- the "separate SPEC" was never created, so before that issue
+  this exclusion pointed at nothing. Still `Must` in `SPEC-XPE-MASTER/spec.md:324` (`P1b-08`).
 - Overlay rendering (DICOM PS3.3 C.9 graphic/text overlays)
 - Pseudo-color LUT (false-color mapping for non-diagnostic display)
 - 3D LUT or ICC color profile management
