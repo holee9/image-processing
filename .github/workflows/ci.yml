@@ -888,6 +888,51 @@ jobs:
           retention-days: 14
           path: build/e2e-native-results/
 
+  doxygen-headers:
+    # QA-A-170: `Documentation Generation` caught a real header-doc regression
+    # and stayed red for five runs because it triggers only on push to main --
+    # after the merge -- and nothing reads its conclusion. The check itself was
+    # fine; its placement was not. This job runs the identical command on the
+    # lane branches and on every PR, so the lane sees it before the merge.
+    #
+    # It does NOT replace tools/docs/check_header_docs.py (#159). That script
+    # reported "20 headers, 0 findings, EXIT=0" on the same broken tree: its
+    # declaration regex matches only `XPE_API xpe_*`, so the four inline
+    # `xpe::preprocess::internal` functions were invisible, and it models
+    # neither missing @return nor comment-block adjacency. Widening it would
+    # still miss both of those -- which is why the gate is doxygen itself.
+    #
+    # Steps are copied verbatim from docs-generate.yml rather than simplified:
+    # a different invocation would produce a different verdict, and the point
+    # is that this job and that workflow agree. The awesome-css clone is not
+    # decoration -- HTML_EXTRA_STYLESHEET points into it, and a missing file
+    # is a warning, which WARN_AS_ERROR=FAIL_ON_WARNINGS turns into a failure.
+    name: Header docs (doxygen)
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        uses: ssciwr/doxygen-install@v2
+        with:
+          version: "1.12.0"
+
+      - name: Clone doxygen-awesome-css
+        run: |
+          git clone --depth 1 https://github.com/jothepro/doxygen-awesome-css.git docs/help/doxygen/doxygen-awesome
+        shell: bash
+
+      - name: Create Doxygen output directory
+        run: mkdir -p docs/help/generated/doxygen
+        shell: bash
+
+      - name: Generate Doxygen documentation
+        run: doxygen Doxyfile
+        working-directory: docs/help/doxygen
+        shell: bash
+
   coverage:
     # Dispatch-only and self-contained (own configure/build). Not gated on the
     # test jobs: a single flaky assertion there must not skip the coverage
