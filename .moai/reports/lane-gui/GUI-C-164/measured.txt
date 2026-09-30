@@ -1,0 +1,72 @@
+GUI-C-164 (#225) — measured, 2026-09-30, from CI artifacts (no new instrumentation)
+
+Source: xpe-gui-e2e-native-results / e2e-smoke-native.trx, downloaded with gh api.
+All three runs are the same job on the same label: gui-e2e-native, windows-2025.
+  baseline 4b6e6c2e  run 36528240483  job 06:02:48 -> 06:19:33  (1005 s)  success  162 scenarios
+  mid      0e767a9c  run 36639832164                                      failure  170 scenarios
+  current  1ebba5c9  run 36642944716  job 23:10:17 -> 23:29:42  (1165 s)  failure  170 scenarios
+(The 20:14 cancelled run f112ccf uploaded no native artifact — cancelled before the
+upload step, so it cannot be read. The three above are what exists.)
+
+== Card §5 falsification FIRST: is the per-scenario table even the answer? ==
+                       trx duration sum   trx Times span   outside scenarios
+  baseline                     935.1 s          944.7 s      9.6 s  (1.0%)
+  current                     1091.3 s         1103.1 s     11.8 s  (1.1%)
+  job wall - trx span:   baseline 60 s, current 62 s   (build + staging, stable)
+99% of the test step is inside the scenarios, and the sum does NOT exceed the span, so
+execution is serial and per-scenario durations are additive. The table IS the answer.
+
+== Card §3: the same-run unchanged tests, and a third run that settles it ==
+current vs baseline, naively:
+  growth in trx sum                     +156.2 s
+    the 9 new scenarios                  +48.2 s  (31%)
+    the 161 unchanged scenarios         +108.1 s  (69%)
+      of which ONE unchanged scenario    +82.7 s  (77% of that)
+      the other 160 unchanged             +2.7%
+The three biggest movers are unchanged SOURCE — verified:
+  git diff --stat 4b6e6c2e 1ebba5c9 -- <each file>   => empty for
+  LogAlertDiscriminabilityObservation.cs, ClampAlertOnScreenScenarios.cs,
+  NonlinearityNoopAlertScenarios.cs
+
+The mid run has the SAME 170 scenarios as current, which separates content from spike:
+  A_AnAppWithNoFrame_ShowsWhatTheReadingPathReturns   baseline 2.7 s | mid 2.7 s | current 85.4 s
+
+  content cost  (baseline 162 -> mid 170, neither run spiking)   935.1 -> 992.0 s   +57.0 s  (+6.1%)
+  same-content run-to-run swing (mid -> current, both 170)        992.0 -> 1091.3 s  +99.2 s  (+10.0%)
+
+== The scenarios over 30 s, and which one spikes ==
+  scenarios > 30 s: baseline 5 (327.3 s = 35% of suite), mid 5 (348.7 s = 35%),
+                    current 6 (396.2 s = 36%)
+
+  scenario                                    base     mid     cur    swing
+  TheClampAlert_ReachesTheLog                 61.5    81.3    81.1     x1
+  P08_TheAppsOwnStageTime_StaysWithinIts      60.3    59.7    61.3     x1
+  TheNoopAlert_ReachesTheLogEveryFrame        70.2    89.3    89.0     x1
+  A2_WithTheLogScrolled_IsTheMovedRow         34.6    29.3    39.6     x1
+  ClearAlerts_PressedWhileTheFilterIsOn        4.7    81.6     5.4    x17   <- spiked in mid
+  A_AnAppWithNoFrame_ShowsWhatTheReading       2.7     2.7    85.4    x32   <- spiked in current
+  A3_WhenTheFilteredListIsLongerThanThe      100.7    36.8    39.8     x3   <- spiked in baseline
+
+Each run has exactly one ~80-100 s spike, and it lands on a DIFFERENT scenario each time.
+All three spiking scenarios read the log list through UIA. The four stable 60-90 s
+scenarios are steady to within a few percent across all three runs.
+
+== The 9 new scenarios, per-scenario cost (current run) ==
+  11.1 s  A03_TheWiredCommands_ReportWhatTheyDid            (Passed)
+   9.0 s  A04_SelfCheck_ActuallyRuns_AndThePassIsReported   (NotExecuted)
+   8.0 s  A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported (NotExecuted)
+   7.7 s  R11b_StopWithNothingRunning_SaysSoAndDiscards     (Passed)
+   6.8 s  R12_StageTiming_ShowsTheValuesTheRenderReported   (Passed)
+   2.3 s  R06_PInvokeSmoke_AnswersFromTheNativeLibraries    (Passed)
+   1.6 s  W03b_SwitchingBackToNative_RestoresTheNative      (Passed)
+   1.6 s  W03_BackendMenu_DrivesTheBackendAndTheAppFollows  (Passed)
+   0.0 s  A05_AFailingSelfCheck_IsReportedAsAFailure        (NotExecuted)
+  total 48.2 s in this run (57.0 s measured against the spike-free pair above)
+
+A04 and A06 were skipped in this run (pre-GUI-C-161 build) and STILL cost 9.0 + 8.0 s:
+the skip decision is made after Run() has launched the app and read its report, so the
+skip does not save the app launch. A05 costs 0.0 s because its skip happens earlier, in
+the staging step, before any launch.
+
+Not measured: nothing in this card ran a test locally; every number above is read from
+CI artifacts, which is what the card asked for.
