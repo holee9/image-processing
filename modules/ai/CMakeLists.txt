@@ -265,11 +265,19 @@ set(WORKER_NAME xpe_ai_worker)
 
 add_executable(${WORKER_NAME}
     src/ai_worker_main.cpp
+    # QA-B-170: the worker runs the model now. It compiles the session layer
+    # itself for the same reason xpe_ai_tests does -- OnnxSession is a C++ class
+    # and xpe_ai.dll exports a C ABI only.
+    src/ai_onnx_session.cpp
 )
 
 target_include_directories(${WORKER_NAME}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            # Headers only (xpe_error.h for the XPE_ERR_* codes the worker
+            # returns). The worker does not link xpe_common: that would drag a
+            # DLL into a process that needs none of its functions.
+            $<TARGET_PROPERTY:xpe_common,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_features(${WORKER_NAME} PRIVATE cxx_std_17)
@@ -285,6 +293,19 @@ else()
     target_compile_definitions(${WORKER_NAME} PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
     target_link_libraries(${WORKER_NAME} PRIVATE onnxruntime)
     message(STATUS "xpe_ai_worker: FULL build with ONNX Runtime")
+
+    # QA-B-170: until now this link was decorative -- nothing in the worker
+    # referenced ONNX Runtime, so the linker dropped the import and the exe
+    # started without the DLL. It calls Ort:: now, so the loader needs
+    # onnxruntime.dll beside it, and a worker that cannot start looks like a
+    # protocol failure rather than a missing file.
+    if(WIN32 AND DEFINED ONNXRUNTIME_ROOT)
+        add_custom_command(TARGET ${WORKER_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                    "$<TARGET_FILE_DIR:${WORKER_NAME}>"
+            COMMENT "xpe_ai_worker: staging onnxruntime.dll next to the worker exe")
+    endif()
 endif()
 
 # Optional spdlog for worker logging
