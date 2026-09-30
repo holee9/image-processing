@@ -111,11 +111,15 @@
                           AutomationProperties.AutomationId="ExportAutomationReportMenuItem"
                           Header="Export _Automation Report"
                           Command="{Binding ExportAutomationReportCommand}" />
+                <!-- #225 (GUI-C-163, row 3): the menu item was the ONLY thing missing. It arrived as a
+                     placeholder in f8f9bd5 (2026-04-16); the capability landed three weeks later in
+                     54a3ae7 (#78) bound to two workbench buttons, and nobody came back to the
+                     placeholder. Same command object as those buttons, so the menu cannot drift. -->
                 <MenuItem x:Name="ExportEvidenceBundleMenuItem"
                           AutomationProperties.AutomationId="ExportEvidenceBundleMenuItem"
-                          Header="Export Evidence _Bundle (Phase 1a+)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when deterministic run artifacts can be packaged as a review bundle." />
+                          Header="Export Evidence _Bundle"
+                          Command="{Binding ExportEvidenceBundleCommand}"
+                          ToolTip="Zip this run set's evidence directory into evidence/bundles/&lt;RunId&gt;.zip. Same command as the workbench Export bundle button." />
                 <Separator />
                 <MenuItem x:Name="ExitMenuItem"
                           AutomationProperties.AutomationId="ExitMenuItem"
@@ -387,11 +391,13 @@
                           AutomationProperties.AutomationId="ExportEvidenceSnapshotMenuItem"
                           Header="Export _Evidence Snapshot"
                           Command="{Binding ExportAutomationReportCommand}" />
+                <!-- #225 (GUI-C-163, row 14). Allowed by lead decision, on a stated boundary: the
+                     path is computed by the app, never taken from operator input. -->
                 <MenuItem x:Name="OpenEvidenceFolderMenuItem"
                           AutomationProperties.AutomationId="OpenEvidenceFolderMenuItem"
-                          Header="Open Evidence _Folder (Phase 1a+)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when the evidence artifact directory is managed by the app." />
+                          Header="Open Evidence _Folder"
+                          Command="{Binding OpenEvidenceFolderCommand}"
+                          ToolTip="Open this run set's evidence directory in the file browser. Says so on the status bar when the directory does not exist yet." />
                 <Separator />
                 <!-- #225 (GUI-C-158, row 15): runs gui/ImageProcTest.SelfCheck as a child process.
                      Development-machine only — the runner walks up to the repository root for its

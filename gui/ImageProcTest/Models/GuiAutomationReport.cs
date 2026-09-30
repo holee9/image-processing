@@ -194,6 +194,25 @@ public sealed class GuiAutomationReport
     /// </summary>
     public bool RecentHistoryPersistedBeforeSave { get; set; }
 
+    /// <summary>#225 row 14 (GUI-C-163): the status line after Open Evidence Folder.</summary>
+    public string? EvidenceFolderStatus { get; set; }
+
+    /// <summary>#225 row 14: the directory the command resolved, or null when it declined.</summary>
+    public string? EvidenceFolderPath { get; set; }
+
+    /// <summary>
+    /// #225 row 14: true when the file-browser launch was skipped because this is an automation run.
+    /// Recorded in the DATA rather than only in prose, so a reader of the report can see that the
+    /// launch itself is the one step no scenario observes.
+    /// </summary>
+    public bool EvidenceFolderLaunchSuppressed { get; set; }
+
+    /// <summary>#225 row 3 (GUI-C-163): the status line after Export Evidence Bundle.</summary>
+    public string? EvidenceBundleStatus { get; set; }
+
+    /// <summary>#225 row 3: whether the menu item shares the command object with the workbench button.</summary>
+    public bool EvidenceBundleMenuSharesButtonCommand { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }
