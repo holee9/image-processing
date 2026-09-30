@@ -1,0 +1,16 @@
+Note: Google Test filter = A173Gate.DISABLED_SigmaExpressionExposure
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A173Gate
+[ RUN      ] A173Gate.DISABLED_SigmaExpressionExposure
+
+[a173] sigma expression exposure over 50000000 random (mad, ref) pairs, w = 0.10
+[a173]   vector expression as shipped   w*(mad*mad)+refSq  differs from scalar ResolveSigma in 2024048 (4.048096%)
+[a173]   vector, scalar association     (w*mad)*mad+refSq  differs from scalar ResolveSigma in 0 (0.000000%)
+
+[       OK ] A173Gate.DISABLED_SigmaExpressionExposure (425 ms)
+[----------] 1 test from A173Gate (425 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (425 ms total)
+[  PASSED  ] 1 test.

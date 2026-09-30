@@ -1,0 +1,39 @@
+Note: Google Test filter = TileLanesTest.*
+[==========] Running 15 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 15 tests from TileLanesTest
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128 (93 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100 (36 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize (9 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16 (16 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8 (12 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128 (191 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100 (215 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize (101 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16 (715 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8 (752 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7 (16 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4 (17 ms)
+[ RUN      ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees
+[       OK ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees (4 ms)
+[ RUN      ] TileLanesTest.HistoricalRuleIsUnchanged
+[       OK ] TileLanesTest.HistoricalRuleIsUnchanged (3 ms)
+[ RUN      ] TileLanesTest.ThreadedRunsMatchOneThread
+[       OK ] TileLanesTest.ThreadedRunsMatchOneThread (79 ms)
+[----------] 15 tests from TileLanesTest (2276 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 1 test suite ran. (2276 ms total)
+[  PASSED  ] 15 tests.

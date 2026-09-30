@@ -1,0 +1,62 @@
+Note: Google Test filter = TileLanesTest.Hazard*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from TileLanesTest
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(233): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 365
+1024x512 tile 128: 365 pixels differ from the scalar rule; first at row 4 col 121
+
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128 (209 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(233): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 357
+1000x400 tile 100: 357 pixels differ from the scalar rule; first at row 4 col 97
+
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100 (216 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(233): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 255
+517x203 tile 64: 255 pixels differ from the scalar rule; first at row 4 col 57
+
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize (103 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(233): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 1367
+640x240 tile 16: 1367 pixels differ from the scalar rule; first at row 4 col 9
+
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16 (718 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(233): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 1228
+400x200 tile 8: 1228 pixels differ from the scalar rule; first at row 4 col 10
+
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8 (743 ms)
+[----------] 5 tests from TileLanesTest (1992 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (1992 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16
+[  FAILED  ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8
+
+ 5 FAILED TESTS

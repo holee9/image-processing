@@ -444,6 +444,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_zz_a161_probe.cpp         # QA-A-161 (#143 #148) measurement probe
         tests/test_zz_a166_bounds.cpp        # QA-A-166 (#143) lower-bound probe
         tests/test_zz_a172_path.cpp          # QA-A-172 (#230) stage sum vs whole
+        tests/test_zz_a173_gate.cpp          # QA-A-173 (#230) before/after map gate harness
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
@@ -453,6 +454,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_runtime_detection_sigma_buffer_parity.cpp
         tests/test_runtime_detection_thread_parity.cpp
         tests/test_runtime_detection_map_length.cpp
+        # QA-A-173 (#230): straddling runs stay vector; threshold-pixel fixture, tile table + threads
+        tests/test_runtime_detection_tile_lanes.cpp
     )
 
     add_executable(xpe_preprocess_tests

@@ -1,0 +1,21 @@
+Note: Google Test filter = ThreadParityTest.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from ThreadParityTest
+[ RUN      ] ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount
+[       OK ] ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount (666 ms)
+[ RUN      ] ThreadParityTest.DetectFrameClearsTheMapItself
+[       OK ] ThreadParityTest.DetectFrameClearsTheMapItself (70 ms)
+[ RUN      ] ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount
+[       OK ] ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount (642 ms)
+[ RUN      ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount
+[       OK ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount (194 ms)
+[ RUN      ] ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent
+[       OK ] ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent (49 ms)
+[ RUN      ] ThreadParityTest.RepeatedThreadedRunsAreDeterministic
+[       OK ] ThreadParityTest.RepeatedThreadedRunsAreDeterministic (226 ms)
+[----------] 6 tests from ThreadParityTest (1850 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (1850 ms total)
+[  PASSED  ] 6 tests.

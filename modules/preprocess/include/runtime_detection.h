@@ -1279,17 +1279,52 @@ inline void DetectEightPixelsAvx2(const float* pixels,
 
     // QA-A-164 (#143): the same rule ResolveSigma applies, vectorised.
     //
-    // The reference is broadcast, which is exactly why the caller only enters
-    // this function when all eight columns share one tile (see DetectRowRange).
-    // A run that straddles a tile boundary would need eight different references
-    // and goes down the scalar path instead -- same answer, fewer pixels at a
-    // time. With tile 128 and runs of 8 that is at most one run in sixteen.
+    // QA-A-173 (#230): the reference is per LANE when the eight columns straddle
+    // a tile boundary. It used to be broadcast, so a straddling run was sent to
+    // the scalar path -- 6% of the pixels at tile 128, and QA-A-172 measured them
+    // at two thirds of the row loop (62.6 ns per pixel against 1.96).
+    //
+    // The two cases evaluate the sigma DIFFERENTLY, on purpose, and that is what
+    // keeps the map bit-identical to what the scalar path used to produce:
+    //   - a run inside one tile keeps `weight * (mad * mad)`, the expression this
+    //     function has always used for those pixels;
+    //   - a straddling run uses `(weight * mad) * mad`, the association the scalar
+    //     rule ResolveSigma has -- the pixels that used to be decided by it. The
+    //     two associations differ in the last place for about 4% of (mad, ref)
+    //     pairs (QA-A-173 measured 2,024,048 of 50,000,000), so a pixel sitting
+    //     one ulp from the threshold can flip if the wrong one is used. The
+    //     scalar association matched ResolveSigma in all 50,000,000.
+    // Unifying them would be tidier and would change the map. Do not.
     __m256 sigma;
     if (config.blendWeight > 0.0f) {
-        const float ref = BlendReferenceAt(config, x, y);
-        const __m256 weight = _mm256_set1_ps(config.blendWeight);
-        const __m256 refSq = _mm256_set1_ps((1.0f - config.blendWeight) * ref * ref);
-        sigma = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(weight, _mm256_mul_ps(mad, mad)), refSq));
+        const float weightF = config.blendWeight;
+        const __m256 weight = _mm256_set1_ps(weightF);
+        const float refLeft = BlendReferenceAt(config, x, y);
+        const float refSqLeft = (1.0f - weightF) * refLeft * refLeft;
+
+        // First lane that belongs to the tile of column x+7; 0 = one tile.
+        // A tile narrower than 8 columns can put a run across THREE tiles, which
+        // two references cannot express -- DetectRowRange keeps those runs scalar
+        // and never calls this function for them.
+        uint32_t cut = 0u;
+        if (config.tileSigma != nullptr && config.tileSize >= 8u) {
+            const uint32_t boundary = ((x + 7u) / config.tileSize) * config.tileSize;
+            if (boundary > x) cut = boundary - x;                 // 1..7
+        }
+
+        if (cut == 0u) {
+            const __m256 refSq = _mm256_set1_ps(refSqLeft);
+            sigma = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(weight, _mm256_mul_ps(mad, mad)), refSq));
+        } else {
+            const float refRight = BlendReferenceAt(config, x + 7u, y);
+            const float refSqRight = (1.0f - weightF) * refRight * refRight;
+            const __m256i lane = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+            const __m256 inLeftTile = _mm256_castsi256_ps(
+                _mm256_cmpgt_epi32(_mm256_set1_epi32(static_cast<int32_t>(cut)), lane));
+            const __m256 refSq = _mm256_blendv_ps(_mm256_set1_ps(refSqRight),
+                                                  _mm256_set1_ps(refSqLeft), inLeftTile);
+            sigma = _mm256_sqrt_ps(_mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(weight, mad), mad), refSq));
+        }
     } else {
         // sigmaEstimate = (floor > mad) ? floor : mad
         sigma = SelectGreaterOf(_mm256_set1_ps(config.globalSigmaFloor), mad);
@@ -1401,17 +1436,21 @@ inline void DetectRowRange(const XpeImageBuffer* img,
     for (uint32_t y = y0; y < y1; ++y) {
 #if XPE_DETECT_HAS_AVX2
         if (useVector && y != 0u && y + 1u < h) {
-            // QA-A-164 (#143): a run may only be vectorised when its eight
-            // columns share ONE tile, because the reference sigma is broadcast.
-            // A straddling run takes the scalar path and gets the same answer.
+            // QA-A-164 (#143) sent every run that straddles a tile boundary down
+            // the scalar path, because the reference sigma was broadcast.
+            // QA-A-173 (#230): from tile 8 upward such a run stays in the vector
+            // path -- DetectEightPixelsAvx2 takes one reference per lane. What
+            // remains scalar is a tile NARROWER than 8 columns, where a run can
+            // span three tiles and two references do not suffice.
             const uint32_t tile = (config.blendWeight > 0.0f && config.tileSigma) ? config.tileSize : 0u;
-            auto oneTile = [tile](uint32_t xa) {
-                return tile == 0u || (xa / tile) == ((xa + 7u) / tile);
+            const uint32_t narrowTile = (tile != 0u && tile < 8u) ? tile : 0u;
+            auto vectorisable = [narrowTile](uint32_t xa) {
+                return narrowTile == 0u || (xa / narrowTile) == ((xa + 7u) / narrowTile);
             };
             scalarSpan(y, 0u, 1u);
             uint32_t x = 1u;
             for (; x + 8u <= w - 1u; x += 8u) {
-                if (oneTile(x)) {
+                if (vectorisable(x)) {
                     DetectEightPixelsAvx2(pixels, w, x, y, config, map);
                 } else {
                     scalarSpan(y, x, x + 8u);
@@ -1421,7 +1460,7 @@ inline void DetectRowRange(const XpeImageBuffer* img,
             // forward walk could not start a run for. See DetectRowLastRunStart.
             if (x + 1u < w) {
                 const uint32_t last = DetectRowLastRunStart(w);
-                if (oneTile(last)) {
+                if (vectorisable(last)) {
                     DetectEightPixelsAvx2(pixels, w, last, y, config, map);
                 } else {
                     scalarSpan(y, last, last + 8u);
