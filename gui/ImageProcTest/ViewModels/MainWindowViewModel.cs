@@ -79,6 +79,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showPipelineDiagnostics;
     private string? _lastApiReferencePath;
     private bool _apiReferenceLaunchSuppressed;
+    private string? _lastTroubleshootingPagePath;
+    private bool _troubleshootingLaunchSuppressed;
     private bool _benchmarkRunning;
     private bool? _benchmarkPassed;
     private bool _benchmarkLaunchSuppressed;
@@ -145,6 +147,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ExportRuntimeLogsCommand = new RelayCommand(ExportRuntimeLogs);
         OpenEvidenceFolderCommand = new RelayCommand(OpenEvidenceFolder);
         OpenApiReferenceCommand = new RelayCommand(OpenApiReference);
+        OpenTroubleshootingCommand = new RelayCommand(OpenTroubleshooting);
         OpenPipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = true);
         ClosePipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = false);
         ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
@@ -2802,6 +2805,82 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>#225 row 20: opens the generated Doxygen API reference, or says how to generate it.</summary>
     public RelayCommand OpenApiReferenceCommand { get; }
+
+    /// <summary>
+    /// #225 row 21 (GUI-C-181): opens the generated Troubleshooting page, or says why it cannot.
+    ///
+    /// <para>Row 20's boundary and row 20's three answers: the path is computed from the repository root by
+    /// <see cref="TroubleshootingPageService"/>, never taken from operator input, and existence is checked before
+    /// anything is launched. Not generated (with how to generate it), generated part-way, opened (with when it was
+    /// generated) — none of them opens an empty window or does nothing.</para>
+    /// </summary>
+    private void OpenTroubleshooting()
+    {
+        string repositoryRoot;
+        try
+        {
+            repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // The answer rows 15, 16, 17 and 20 give: this menu needs a checkout, and says so rather than being greyed out.
+            StatusText = "Troubleshooting page needs the repository; this build is not running from a checkout.";
+            Log($"Troubleshooting page not opened: {ex.Message}");
+            return;
+        }
+
+        var status = TroubleshootingPageService.Resolve(repositoryRoot);
+        LastTroubleshootingPagePath = status.PagePath;
+        if (!status.IsAvailable)
+        {
+            StatusText = status.Message;
+            Log(status.Message);
+            return;
+        }
+
+        // Automation is headless and unattended: resolution and the existence check above run, the browser launch
+        // does not, and the suppression is recorded (as for rows 14 and 20).
+        if (App.IsAutomationMode)
+        {
+            TroubleshootingLaunchSuppressed = true;
+            StatusText = $"{status.Message} (launch suppressed under automation)";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = status.PagePath!,
+                UseShellExecute = true
+            });
+            StatusText = status.Message;
+            Log(status.Message);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Troubleshooting page could not be opened: {ex.Message}";
+            Log($"Troubleshooting page launch failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>The page <see cref="OpenTroubleshootingCommand"/> resolved last; null when it had nothing to open.</summary>
+    public string? LastTroubleshootingPagePath
+    {
+        get => _lastTroubleshootingPagePath;
+        private set => SetProperty(ref _lastTroubleshootingPagePath, value);
+    }
+
+    /// <summary>True when a run suppressed the browser launch because it is an automation run.</summary>
+    public bool TroubleshootingLaunchSuppressed
+    {
+        get => _troubleshootingLaunchSuppressed;
+        private set => SetProperty(ref _troubleshootingLaunchSuppressed, value);
+    }
+
+    /// <summary>#225 row 21: opens the generated Troubleshooting page, or says how to generate it.</summary>
+    public RelayCommand OpenTroubleshootingCommand { get; }
 
     /// <summary>
     /// #225 row 14 (GUI-C-163): opens this run set's evidence directory in the OS file browser.

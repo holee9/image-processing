@@ -1,0 +1,19 @@
+# GUI-C-181 — real sources broken on purpose; the named test must go red with a successful build; sources restored byte-identical
+
+ARM wrong-page-path: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:     3, 건너뜀:     0, 전체:     5, 기간: 38 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 TroubleshootingPageServiceTests.ThePagePath_IsWhereDocfxWritesTheSourceMarkdown [5 ms]', '실패 TroubleshootingPageServiceTests.Generated_ReturnsThePage_AndWhenItWasGenerated [2 ms]']
+   restored byte-identical: True
+ARM hint-drops-the-run-command: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     4, 건너뜀:     0, 전체:     5, 기간: 38 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 TroubleshootingPageServiceTests.TheGenerationHint_IsTheTwoCommandsTheDocsWorkflowRuns [1 ms]']
+   restored byte-identical: True
+ARM menu-disabled-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 15 s - ImageProcTest.E2ETests.dll (net8.0)']
+   failed: ['실패 AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [15 s]']
+   restored byte-identical: True
+ARM says-not-generated-although-it-exists: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 15 s - ImageProcTest.E2ETests.dll (net8.0)']
+   failed: ['실패 AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [15 s]']
+   restored byte-identical: True
+sources: 7dfb5a40d0f8 060f850a91c9

@@ -445,6 +445,90 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-16 (#225, GUI-C-181): row 21, the state with NO generated page — the menu says so and says how, and nothing is
+    /// opened, started or left blank.
+    ///
+    /// <para>Whether the page exists is read from the disk by this test, independently of the app. Without a page the
+    /// answer depends on whether DocFX's output folder exists (never generated, or generated part-way); both are asserted
+    /// against what the disk shows. CI has no generated DocFX output, so this is the state observed there. A checkout that
+    /// already holds a generated page cannot produce this state, and says so (A-17 covers that one).</para>
+    /// </summary>
+    [SkippableFact]
+    public void A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing()
+    {
+        var repoRoot = RepositoryRootOrSkip();
+        var page = TroubleshootingPageOnDisk(repoRoot);
+        Skip.If(File.Exists(page),
+            "This checkout already holds a generated Troubleshooting page, so the not-generated state cannot be produced here; " +
+            "the generated state is A-17's, and a CI run has no generated DocFX output.");
+
+        var outputFolderExists = Directory.Exists(Path.GetDirectoryName(Path.GetDirectoryName(page)!));
+        var (report, _) = Run("A16", "Mock", nativeDirectory: null);
+
+        var status = report.GetProperty("TroubleshootingStatus").GetString() ?? string.Empty;
+        Assert.Null(report.GetProperty("TroubleshootingPagePath").GetString());
+        Assert.False(report.GetProperty("TroubleshootingLaunchSuppressed").GetBoolean(),
+            "Nothing existed to open, yet the run recorded a suppressed launch.");
+        Assert.Contains(outputFolderExists ? "is incomplete" : "has not been generated", status, StringComparison.Ordinal);
+        Assert.Contains("dotnet tool install -g docfx", status, StringComparison.Ordinal);
+        Assert.Contains("docfx docs/help/docfx/docfx.json", status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A-17 (#225, GUI-C-181): row 21, the state WITH a generated page — it is resolved, its path is reported, and the
+    /// browser launch is suppressed because this is an automation run.
+    ///
+    /// <para>The page is a stub staged in the checkout's gitignored <c>docs/help/generated</c> folder when the checkout has
+    /// none, and removed again (with the folders this test created, nothing else). A page that is already there is used
+    /// as it is and left alone. The assertions read the disk, not the app.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation()
+    {
+        var repoRoot = RepositoryRootOrSkip();
+        var page = TroubleshootingPageOnDisk(repoRoot);
+        var createdFile = false;
+        var createdDirectories = new List<string>();
+
+        if (!File.Exists(page))
+        {
+            for (var dir = Path.GetDirectoryName(page)!; !Directory.Exists(dir); dir = Path.GetDirectoryName(dir)!)
+            {
+                createdDirectories.Add(dir);
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(page)!);
+            File.WriteAllText(page, "<html><body>A-17 stub</body></html>");
+            createdFile = true;
+        }
+
+        try
+        {
+            var (report, _) = Run("A17", "Mock", nativeDirectory: null);
+
+            var status = report.GetProperty("TroubleshootingStatus").GetString() ?? string.Empty;
+            Assert.Equal(page, report.GetProperty("TroubleshootingPagePath").GetString());
+            Assert.True(report.GetProperty("TroubleshootingLaunchSuppressed").GetBoolean(),
+                $"A page exists, yet the run did not record suppressing the launch. Status: '{status}'.");
+            Assert.Contains("Troubleshooting page opened", status, StringComparison.Ordinal);
+            Assert.Contains("launch suppressed", status, StringComparison.Ordinal);
+            Assert.DoesNotContain("not been generated", status, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (createdFile) File.Delete(page);
+            foreach (var dir in createdDirectories)
+            {
+                // Deepest first (the list was built from the leaf upwards); only folders this test created, and only when empty.
+                if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any()) Directory.Delete(dir);
+            }
+        }
+    }
+
+    private static string TroubleshootingPageOnDisk(string repoRoot) =>
+        Path.Combine(repoRoot, "docs", "help", "generated", "docfx", "content", "troubleshooting.html");
+
+    /// <summary>
     /// A-12 (#225, GUI-C-170): rows 7 and 8 — what the two panels RENDER, read from the panels.
     ///
     /// <para>Two runs, because the calibration panel has two states that must not look alike: with a

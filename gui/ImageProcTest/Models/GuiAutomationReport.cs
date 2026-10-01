@@ -252,6 +252,15 @@ public sealed class GuiAutomationReport
     /// <summary>#225 row 20: true when the browser launch was skipped because this is an automation run.</summary>
     public bool ApiReferenceLaunchSuppressed { get; set; }
 
+    /// <summary>#225 row 21 (GUI-C-181): the status line after Help -> Troubleshooting.</summary>
+    public string? TroubleshootingStatus { get; set; }
+
+    /// <summary>#225 row 21: the page the command resolved, or null when it had nothing to open.</summary>
+    public string? TroubleshootingPagePath { get; set; }
+
+    /// <summary>#225 row 21: true when the browser launch was skipped because this is an automation run.</summary>
+    public bool TroubleshootingLaunchSuppressed { get; set; }
+
     /// <summary>#225 row 17 (GUI-C-176): ctest's verdict, or null when nothing ran (no build tree, or a suppressed launch).</summary>
     public bool? BenchmarkPassed { get; set; }
 

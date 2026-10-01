@@ -377,7 +377,7 @@ public partial class MainWindow : System.Windows.Window
                     GsdfCalibrateMenuItem,
                     // #225 rows 7 and 8 (GUI-C-170): the two panel toggles that were counted here
                     // (#165, GUI-C-65) are real now and enabled, so they left the list.
-                    OpenTroubleshootingMenuItem
+                    // #225 row 21 (GUI-C-181): Troubleshooting opens its generated page now, so it left the list too.
                 }
                 .Count(item => !item.IsEnabled);
 
@@ -490,6 +490,14 @@ public partial class MainWindow : System.Windows.Window
             report.ApiReferenceStatus = viewModel.StatusText;
             report.ApiReferencePath = viewModel.LastApiReferencePath;
             report.ApiReferenceLaunchSuppressed = viewModel.ApiReferenceLaunchSuppressed;
+
+            // #225 (GUI-C-181) row 21. Same shape as row 20: clicked through the menu, read from the app's own state,
+            // and compared against the disk independently by the scenario (A-16 and A-17).
+            ClickMenuItem(OpenTroubleshootingMenuItem);
+            await Task.Delay(200);
+            report.TroubleshootingStatus = viewModel.StatusText;
+            report.TroubleshootingPagePath = viewModel.LastTroubleshootingPagePath;
+            report.TroubleshootingLaunchSuppressed = viewModel.TroubleshootingLaunchSuppressed;
 
             // #225 rows 7 and 8 (GUI-C-170). Both panels are switched ON through their View toggles, then
             // read from what is RENDERED (the panel's own visibility and its text blocks), not from the
