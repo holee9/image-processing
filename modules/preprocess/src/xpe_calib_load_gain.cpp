@@ -114,6 +114,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             g_calib.gain_width  = hdr.width;
             g_calib.gain_height = hdr.height;
             g_calib.gain_timestamp = hdr.created_epoch_ms;
+            g_calib.gain_expiry_ms = hdr.expiry_epoch_ms;
+            g_calib.gain_config_json.assign(config_json.begin(), config_json.end());
             poly_loaded = is_poly;
 
             std::memset(g_calib.gain_session_id, 0, sizeof(g_calib.gain_session_id));

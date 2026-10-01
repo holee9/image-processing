@@ -57,6 +57,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
             g_calib.offset_width  = hdr.width;
             g_calib.offset_height = hdr.height;
             g_calib.offset_timestamp = hdr.created_epoch_ms;
+            g_calib.offset_expiry_ms = hdr.expiry_epoch_ms;
 
             // Copy session_id (null-terminated, up to 63 chars)
             std::memset(g_calib.offset_session_id, 0, sizeof(g_calib.offset_session_id));

@@ -1,0 +1,6 @@
+ARM A1_no_expiry_recheck (BUILD_EXIT=0, exit=1): CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+ARM A2_no_stamp_compare (BUILD_EXIT=0, exit=1): CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+ARM A2b_size_not_compared (BUILD_EXIT=0, exit=1): CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+ARM A2c_mtime_not_compared (BUILD_EXIT=0, exit=1): CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+ARM A3_no_quality_meta_on_hit (BUILD_EXIT=0, exit=1): CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+ARM A4_poly_not_reported_ok (BUILD_EXIT=0, exit=1): CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess

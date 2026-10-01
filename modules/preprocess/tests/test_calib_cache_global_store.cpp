@@ -210,22 +210,6 @@ TEST_F(CacheGlobalStore, ShutdownEmptiesTheCache) {
            "shutdown must read the file again (100 here means the old entry survived)";
 }
 
-// (3) the key is the path string; a changed file is not noticed until the cache is cleared --------
-TEST_F(CacheGlobalStore, ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear) {
-    writeOffset("cgs_a.xcal", 100.0f);
-    XpeImageBuffer v{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("cgs_a.xcal", &v));
-    ASSERT_FLOAT_EQ(100.0f, static_cast<const float*>(v.data)[0]);
-
-    writeOffset("cgs_a.xcal", 300.0f);
-    XpeImageBuffer stale{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("cgs_a.xcal", &stale));
-    EXPECT_FLOAT_EQ(100.0f, static_cast<const float*>(stale.data)[0])
-        << "the key is the path string: the rewritten file is not noticed";
-
-    xpe_calib_cache_clear();
-    XpeImageBuffer fresh{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("cgs_a.xcal", &fresh));
-    EXPECT_FLOAT_EQ(300.0f, static_cast<const float*>(fresh.data)[0])
-        << "xpe_calib_cache_clear() makes the next load read the file";
-}
+// (3) The old "changed file is not noticed" test lived here. Since QA-A-196 a changed size or
+// write time cancels the hit; the surviving limit (same size AND same write time) is pinned in
+// test_calib_cache_same_verdict.cpp.

@@ -56,6 +56,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
             g_calib.defect_map    = std::move(map);
             g_calib.defect_width  = hdr.width;
             g_calib.defect_height = hdr.height;
+            g_calib.defect_expiry_ms = hdr.expiry_epoch_ms;
         }
 
         return XPE_OK;

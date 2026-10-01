@@ -3,11 +3,17 @@
  * @brief LRU cache for calibration maps to eliminate repeated file I/O.
  *
  * Keeps recently used calibration maps in memory. The cache key is the file
- * path string exactly as the caller passed it: a file that changes on disk is
- * not noticed until xpe_calib_cache_clear() (or module shutdown, which empties
- * the cache). A hit still leaves the module-global calibration store holding the
- * cached map, as a miss does (QA-A-193, #216). Thread-safety: all LRU/index
- * mutations are protected by an internal mutex (IEC 62304 Class B).
+ * path string exactly as the caller passed it. A hit leaves the module-global
+ * calibration store holding the cached map, as a miss does (QA-A-193, #216), and
+ * reaches the verdict a miss would reach (QA-A-196, #216):
+ *  - expiry is re-checked on every hit from the entry's stored expiry;
+ *  - the file's size and last-write time are compared with what the entry recorded, and a
+ *    difference (or a file that cannot be examined) cancels the hit so the miss path reloads
+ *    and re-hashes it;
+ *  - the gain quality metadata is applied again from the entry's stored config JSON.
+ * A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is
+ * not noticed until xpe_calib_cache_clear() (or module shutdown, which empties the cache).
+ * Thread-safety: all LRU/index mutations are protected by an internal mutex (IEC 62304 Class B).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0
  * IEC 62304 Class B
@@ -16,14 +22,17 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <new>
 #include <unordered_map>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -38,13 +47,60 @@ namespace {
  *
  * Owns the pixel data buffer (allocated via malloc, freed on eviction).
  */
+/** Size and last-write time of a file, as the cache compares them on a hit. */
+struct FileStamp {
+    bool     ok{false};
+    uint64_t size{0};
+    int64_t  mtime{0};
+    bool operator==(const FileStamp& o) const noexcept {
+        return ok && o.ok && size == o.size && mtime == o.mtime;
+    }
+};
+
+FileStamp stamp_of(const char* path) noexcept
+{
+    FileStamp st;
+    try {
+        std::error_code ec;
+        const std::filesystem::path p(path);
+        const auto size = std::filesystem::file_size(p, ec);
+        if (ec) return st;
+        const auto mtime = std::filesystem::last_write_time(p, ec);
+        if (ec) return st;
+        st.size  = static_cast<uint64_t>(size);
+        st.mtime = static_cast<int64_t>(mtime.time_since_epoch().count());
+        st.ok    = true;
+    } catch (...) {
+        st.ok = false;
+    }
+    return st;
+}
+
+int64_t now_epoch_ms() noexcept
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+/**
+ * What the plain loader and the file record next to the pixels. Kept in the entry so that a hit
+ * can put the global store back exactly as the loader did and judge the file as the read would.
+ * timestamp / sessionId are zero for a defect map; configJson is kept for gain only.
+ */
+struct EntryMeta {
+    int64_t     timestamp{0};
+    char        sessionId[64]{};
+    int64_t     expiryMs{0};   ///< file's expiry_epoch_ms, 0 = never expires
+    FileStamp   stamp;         ///< size and last-write time taken before the file was read
+    std::string configJson;
+};
+
+enum class HitState { Miss, Hit, Expired };
+
 struct CachedMap {
     XpeImageBuffer buffer;  ///< Image buffer (owns data pointer)
     std::string    path;    ///< File path used as cache key
-    // What the plain loader records next to the pixels (offset and gain files only; zero for a
-    // defect map). Kept so that a hit can put the global store back exactly as the loader did.
-    int64_t        timestamp{0};
-    char           sessionId[64]{};
+    EntryMeta      meta;
 };
 
 /**
@@ -96,14 +152,30 @@ public:
      * install happens outside the cache lock (g_calib_mutex is never taken while this mutex is
      * held, so the two cannot deadlock), which is why the pixels are copied out here: the cache's
      * own buffer may be evicted the moment the lock is released.
+     *
+     * QA-A-196 (#216): a hit must reach the verdict a miss would. `now` is the file's current
+     * size and write time: when it differs from the entry's (or either could not be read), the entry
+     * is dropped and the result is Miss, so the caller reloads the file. When the entry's expiry has
+     * passed, the entry is dropped and the result is Expired.
      */
     template <typename T>
-    XpeErrorCode get_copy(const std::string& path, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
-                          int64_t* timestamp, char* sessionId64, bool* hit) {
+    XpeErrorCode get_copy(const std::string& path, const FileStamp& now, int64_t nowMs,
+                          XpeImageBuffer* view, std::unique_ptr<T[]>* pixels, EntryMeta* meta,
+                          HitState* state) {
         std::lock_guard<std::mutex> lock(mutex_);
+        *state = HitState::Miss;
         auto it = index_.find(path);
-        *hit = (it != index_.end());
-        if (!*hit) return XPE_OK;
+        if (it == index_.end()) return XPE_OK;
+
+        if (!(it->second->meta.stamp == now)) {
+            erase_locked(it);
+            return XPE_OK;
+        }
+        if (it->second->meta.expiryMs != 0 && nowMs > it->second->meta.expiryMs) {
+            erase_locked(it);
+            *state = HitState::Expired;
+            return XPE_OK;
+        }
 
         lru_.splice(lru_.begin(), lru_, it->second);
         const CachedMap& entry = *it->second;
@@ -119,8 +191,8 @@ public:
 
         std::memcpy(view, &entry.buffer, sizeof(XpeImageBuffer));
         *pixels = std::move(copy);
-        *timestamp = entry.timestamp;
-        std::memcpy(sessionId64, entry.sessionId, sizeof(entry.sessionId));
+        *meta = entry.meta;
+        *state = HitState::Hit;
         return XPE_OK;
     }
 
@@ -137,7 +209,7 @@ public:
         if (!buffer || !buffer->data) return;
 
         std::lock_guard<std::mutex> lock(mutex_);
-        put_locked(path, buffer, 0, nullptr);
+        put_locked(path, buffer, EntryMeta{});
     }
 
     /**
@@ -155,11 +227,11 @@ public:
      * @return true when the entry was inserted and read back
      */
     bool put_and_get(const std::string& path, XpeImageBuffer* buffer,
-                     XpeImageBuffer* out, int64_t timestamp, const char* sessionId64) {
+                     XpeImageBuffer* out, const EntryMeta& meta) {
         if (!buffer || !buffer->data) return false;
 
         std::lock_guard<std::mutex> lock(mutex_);
-        put_locked(path, buffer, timestamp, sessionId64);
+        put_locked(path, buffer, meta);
 
         auto it = index_.find(path);
         if (it == index_.end()) return false;
@@ -170,9 +242,15 @@ public:
     }
 
 private:
+    /** Frees and unlinks one entry; the caller holds mutex_. */
+    void erase_locked(std::unordered_map<std::string, ListIter>::iterator it) {
+        std::free(it->second->buffer.data);
+        lru_.erase(it->second);
+        index_.erase(it);
+    }
+
     /** put(), with the caller already holding mutex_. */
-    void put_locked(const std::string& path, XpeImageBuffer* buffer, int64_t timestamp,
-                    const char* sessionId64) {
+    void put_locked(const std::string& path, XpeImageBuffer* buffer, const EntryMeta& meta) {
         // Check if already cached — replace
         auto it = index_.find(path);
         if (it != index_.end()) {
@@ -193,8 +271,7 @@ private:
         // Insert new entry at front
         CachedMap entry;
         entry.path = path;
-        entry.timestamp = timestamp;
-        if (sessionId64) std::memcpy(entry.sessionId, sessionId64, sizeof(entry.sessionId));
+        entry.meta = meta;
         // Transfer ownership of buffer data to cache
         std::memcpy(&entry.buffer, buffer, sizeof(XpeImageBuffer));
         // Clear the caller's pointer to prevent double-free
@@ -275,8 +352,7 @@ XpeErrorCode publish_and_view(const std::string& path,
                               const XpeImageBuffer& desc,
                               const void* src,
                               XpeImageBuffer* out,
-                              int64_t timestamp,
-                              const char* sessionId64)
+                              const EntryMeta& meta)
 {
     XpeImageBuffer entry = desc;
     entry.data = std::malloc(static_cast<size_t>(entry.dataSize));
@@ -288,7 +364,7 @@ XpeErrorCode publish_and_view(const std::string& path,
     // eviction could remove the entry between the two calls, turning a
     // successful load into XPE_ERR_PROCESSING_FAILED. put_and_get takes
     // ownership of entry.data and nulls it, exactly as put() did.
-    if (!g_calibCache.put_and_get(path, &entry, out, timestamp, sessionId64)) {
+    if (!g_calibCache.put_and_get(path, &entry, out, meta)) {
         return XPE_ERR_PROCESSING_FAILED;
     }
     return XPE_OK;
@@ -300,8 +376,8 @@ XpeErrorCode publish_and_view(const std::string& path,
  * A miss gets there through the plain loader. A hit has no file read to lean on, so it puts the
  * cached pixels and metadata where the loader would have put them -- the same fields, written under
  * g_calib_mutex, and for gain the same "scalar map and polynomial are alternatives" reset.
- * Not restored on a hit: the expiry / session / SHA-256 checks of the file read, and the quality
- * metadata the gain loader parses from the file's config JSON (the entry does not carry them).
+ * What a hit re-checks instead of the file read (QA-A-196): expiry from the entry, the file's size and
+ * write time against the entry's. Not repeated on a hit: the SHA-256 and session checks.
  * ----------------------------------------------------------------------- */
 void copy_session(char* dst64, const char* src64) noexcept
 {
@@ -358,18 +434,23 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 {
     if (!filePath || !offsetMapOut) return XPE_ERR_INVALID_INPUT;
 
-    // Cache hit: return the cached view AND leave the global store holding that map (QA-A-193).
+    // Taken BEFORE the lookup and before any file read: if the file changes while it is read, the
+    // entry keeps the older stamp and the next call sees the difference and reloads (QA-A-196).
+    const FileStamp stamp = stamp_of(filePath);
+
+    // Cache hit: return the cached view AND leave the global store holding that map (QA-A-193),
+    // with the verdict a miss would give (QA-A-196).
     {
         XpeImageBuffer view{};
         std::unique_ptr<float[]> pixels;
-        int64_t timestamp = 0;
-        char sessionId[64] = {};
-        bool hit = false;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), &view, &pixels,
-                                                           &timestamp, sessionId, &hit);
+        EntryMeta meta;
+        HitState state = HitState::Miss;
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), stamp, now_epoch_ms(),
+                                                           &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
-        if (hit) {
-            install_offset(std::move(pixels), view, timestamp, sessionId);
+        if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
+        if (state == HitState::Hit) {
+            install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -383,8 +464,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
     // back the cache's view of it (#127).
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
-    int64_t timestamp = 0;
-    char sessionId[64] = {};
+    EntryMeta meta;
+    meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.offset_map || g_calib.offset_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -399,11 +480,12 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
-        timestamp = g_calib.offset_timestamp;
-        std::memcpy(sessionId, g_calib.offset_session_id, sizeof(sessionId));
+        meta.timestamp = g_calib.offset_timestamp;
+        meta.expiryMs  = g_calib.offset_expiry_ms;
+        std::memcpy(meta.sessionId, g_calib.offset_session_id, sizeof(meta.sessionId));
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut, timestamp, sessionId);
+    return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut, meta);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_gain_cached — cached gain map loader
@@ -414,17 +496,21 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 {
     if (!filePath || !gainMapOut) return XPE_ERR_INVALID_INPUT;
 
+    const FileStamp stamp = stamp_of(filePath);
+
     {
         XpeImageBuffer view{};
         std::unique_ptr<float[]> pixels;
-        int64_t timestamp = 0;
-        char sessionId[64] = {};
-        bool hit = false;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), &view, &pixels,
-                                                           &timestamp, sessionId, &hit);
+        EntryMeta meta;
+        HitState state = HitState::Miss;
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), stamp, now_epoch_ms(),
+                                                           &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
-        if (hit) {
-            install_gain(std::move(pixels), view, timestamp, sessionId);
+        if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
+        if (state == HitState::Hit) {
+            install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            // The quality metadata a miss parses from the file: applied again, the same way.
+            xpe_calib_apply_quality_meta_json(meta.configJson.c_str());
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -438,10 +524,17 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
     // back the cache's view of it (#127).
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
-    int64_t timestamp = 0;
-    char sessionId[64] = {};
+    EntryMeta meta;
+    meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
+        // A gain POLYNOMIAL file loaded: the store holds it and xpe_gain_correct() uses it, but there
+        // is no scalar map to hand back and nothing is cached (QA-A-196). The load succeeded, so the
+        // call reports success with an empty buffer rather than an error.
+        if (!g_calib.gain_map && g_calib.gain_poly_coeffs && g_calib.gain_poly_num_coeffs != 0) {
+            std::memset(gainMapOut, 0, sizeof(XpeImageBuffer));
+            return XPE_OK;
+        }
         if (!g_calib.gain_map || g_calib.gain_width == 0) return XPE_ERR_NOT_INITIALIZED;
 
         const size_t pixelCount = static_cast<size_t>(g_calib.gain_width) * g_calib.gain_height;
@@ -454,11 +547,13 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.gain_map.get(), staging.size());
-        timestamp = g_calib.gain_timestamp;
-        std::memcpy(sessionId, g_calib.gain_session_id, sizeof(sessionId));
+        meta.timestamp  = g_calib.gain_timestamp;
+        meta.expiryMs   = g_calib.gain_expiry_ms;
+        meta.configJson = g_calib.gain_config_json;
+        std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut, timestamp, sessionId);
+    return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut, meta);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_defect_cached — cached defect map loader
@@ -476,16 +571,18 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
 {
     if (!filePath || !defectMapOut) return XPE_ERR_INVALID_INPUT;
 
+    const FileStamp stamp = stamp_of(filePath);
+
     {
         XpeImageBuffer view{};
         std::unique_ptr<uint8_t[]> pixels;
-        int64_t timestamp = 0;
-        char sessionId[64] = {};
-        bool hit = false;
-        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), &view, &pixels,
-                                                           &timestamp, sessionId, &hit);
+        EntryMeta meta;
+        HitState state = HitState::Miss;
+        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), stamp, now_epoch_ms(),
+                                                           &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
-        if (hit) {
+        if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
+        if (state == HitState::Hit) {
             install_defect(std::move(pixels), view);
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -500,6 +597,8 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
     // back the cache's view of it (#127).
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
+    EntryMeta meta;
+    meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.defect_map || g_calib.defect_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -514,9 +613,10 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
 
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
+        meta.expiryMs = g_calib.defect_expiry_ms;
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, 0, nullptr);
+    return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);
 }
 
 XPE_API void xpe_calib_cache_clear(void)

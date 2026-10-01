@@ -830,21 +830,32 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *
  * Returns a cache-owned view of the map: XPE_PIXEL_FLOAT32, 32 bits, dataSize = width * height * 4.
  *
- * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
- *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
- * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
- *   correction called right after a successful load works. The expiry, SHA-256 and session checks
- *   of the file read are not repeated on a hit.
+ * - Cache key: @p filePath compared as a string, exactly.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code).
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
  * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
- *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
- *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
  *
  * @param filePath Path to calibration file
  * @param offsetMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
- *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
  *         XPE_ERR_NOT_INITIALIZED if the load left no offset map in the store
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */
@@ -857,25 +868,39 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  * Returns a cache-owned view of the scalar gain map: XPE_PIXEL_FLOAT32, 32 bits,
  * dataSize = width * height * 4.
  *
- * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
- *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
- * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
- *   correction called right after a successful load works. The expiry, SHA-256 and session checks
- *   of the file read are not repeated on a hit.
+ * - Cache key: @p filePath compared as a string, exactly.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code).
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
  * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
- *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
- *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
- * - A gain POLYNOMIAL file (XCAL_TYPE_GAIN_POLY) loads into the store, where xpe_gain_correct() uses it,
- *   but this function returns XPE_ERR_NOT_INITIALIZED for it and caches nothing: it hands back scalar
- *   maps only (observed, QA-A-193).
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
+ * - Quality metadata: a hit applies the entry's stored config JSON again, so
+ *   xpe_calib_get_quality_meta() reports what a miss would report.
+ * - A gain POLYNOMIAL file (XCAL_TYPE_GAIN_POLY) loads into the store, where xpe_gain_correct() uses it.
+ *   There is no scalar map to hand back, so this function returns XPE_OK with @p gainMapOut zeroed
+ *   (data NULL, dataSize 0) and caches nothing: every call reads the file again. Use xpe_gain_correct()
+ *   rather than the returned buffer for such a file.
  *
  * @param filePath Path to calibration file
  * @param gainMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
- *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
- *         XPE_ERR_NOT_INITIALIZED if the load left no scalar gain map in the store (this is what a gain polynomial file returns)
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
+ *         XPE_ERR_NOT_INITIALIZED if the load left neither a scalar gain map nor a polynomial in the store
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
@@ -886,22 +911,33 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *
  * Returns a cache-owned view of the map: XPE_PIXEL_UINT8, 8 bits, dataSize = width * height.
  *
- * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
- *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
- * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
- *   correction called right after a successful load works. The expiry, SHA-256 and session checks
- *   of the file read are not repeated on a hit.
+ * - Cache key: @p filePath compared as a string, exactly.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code).
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
  * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
- *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
- *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
 
  *
  * @param filePath Path to defect map file
  * @param defectMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
- *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
  *         XPE_ERR_NOT_INITIALIZED if the load left no defect map in the store
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */

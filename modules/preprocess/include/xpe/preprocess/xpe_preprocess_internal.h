@@ -288,12 +288,18 @@ struct CalibrationData {
     uint32_t offset_height{0};
     int64_t  offset_timestamp{0};
     char     offset_session_id[64]{};
+    // What the cached loaders need from the file the plain loader just read (QA-A-196, #216): the
+    // file's expiry (0 = never) and, for gain, its config JSON. The plain loaders write them so the
+    // cache can keep them in its entry and judge a later hit as the file read would have.
+    int64_t  offset_expiry_ms{0};
 
     std::unique_ptr<float[]>   gain_map;
     uint32_t gain_width{0};
     uint32_t gain_height{0};
     int64_t  gain_timestamp{0};
     char     gain_session_id[64]{};
+    int64_t  gain_expiry_ms{0};
+    std::string gain_config_json;
 
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
@@ -321,6 +327,7 @@ struct CalibrationData {
     std::unique_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};
+    int64_t  defect_expiry_ms{0};
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
     // indexed by raw ADU. `nonlin_extension_start` is the first index the
