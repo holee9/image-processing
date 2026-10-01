@@ -1,0 +1,210 @@
+== xpe_enhance_basic_tests
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard.ForRows*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(463): error: Expected: (b.first) < (b.second), actual: 0 vs -1073741824
+threads=2: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(466): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -1073741824
+threads=2: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(463): error: Expected: (b.first) < (b.second), actual: 0 vs -715827882
+threads=3: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(466): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -715827882
+threads=3: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(463): error: Expected: (b.first) < (b.second), actual: 0 vs -536870911
+threads=4: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(466): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -536870911
+threads=4: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(463): error: Expected: (b.first) < (b.second), actual: 0 vs -306783377
+threads=7: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(466): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -306783377
+threads=7: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(463): error: Expected: (b.first) < (b.second), actual: 0 vs -33554431
+threads=64: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(466): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -33554431
+threads=64: the bands must cover every row
+
+[  FAILED  ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (0 ms)
+[ RUN      ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (92 ms)
+[----------] 2 tests from ExceptionGuard (92 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (92 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+
+ 1 FAILED TEST
+exit=0
+== gsvg_tests
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgExceptionGuard.ForRows*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(163): error: Expected: (b.first) < (b.second), actual: 0 vs -1073741824
+threads=2: no empty band
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(166): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -1073741824
+threads=2: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(163): error: Expected: (b.first) < (b.second), actual: 0 vs -715827882
+threads=3: no empty band
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(166): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -715827882
+threads=3: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(163): error: Expected: (b.first) < (b.second), actual: 0 vs -536870911
+threads=4: no empty band
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(166): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -536870911
+threads=4: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(163): error: Expected: (b.first) < (b.second), actual: 0 vs -306783377
+threads=7: no empty band
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(166): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -306783377
+threads=7: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(163): error: Expected: (b.first) < (b.second), actual: 0 vs -33554431
+threads=64: no empty band
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(166): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -33554431
+threads=64: the bands must cover every row
+
+[  FAILED  ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (0 ms)
+[ RUN      ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (1 ms)
+[----------] 2 tests from GsvgExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+
+ 1 FAILED TEST
+exit=0
+== test_xpe_enhance_advanced
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = AdvExceptionGuard.ForRows*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from AdvExceptionGuard
+[ RUN      ] AdvExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(85): error: Expected: (b.first) < (b.second), actual: 0 vs -1073741824
+threads=2: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(88): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -1073741824
+threads=2: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(85): error: Expected: (b.first) < (b.second), actual: 0 vs -715827882
+threads=3: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(88): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -715827882
+threads=3: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(85): error: Expected: (b.first) < (b.second), actual: 0 vs -536870911
+threads=4: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(88): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -536870911
+threads=4: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(85): error: Expected: (b.first) < (b.second), actual: 0 vs -306783377
+threads=7: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(88): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -306783377
+threads=7: the bands must cover every row
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(85): error: Expected: (b.first) < (b.second), actual: 0 vs -33554431
+threads=64: no empty band
+
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exception_guard.cpp(88): error: Expected equality of these values:
+  0x7FFFFFFF
+    Which is: 2147483647
+  next
+    Which is: -33554431
+threads=64: the bands must cover every row
+
+[  FAILED  ] AdvExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (0 ms)
+[ RUN      ] AdvExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] AdvExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (1 ms)
+[----------] 2 tests from AdvExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AdvExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+
+ 1 FAILED TEST
+exit=0

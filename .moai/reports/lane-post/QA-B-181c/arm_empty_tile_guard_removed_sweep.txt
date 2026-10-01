@@ -1,0 +1,35 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard.ContrastEnhanceNever*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ExceptionGuard
+[ RUN      ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(404): error: Value of: RunContrastCatchingAv(&img, &p, &rc)
+  Actual: false
+Expected: true
+the 11x11 / 5x5 case read past the buffer
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(428): error: Failed
+access violation for 5x9 tiles 2x4
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(428): error: Failed
+access violation for 5x11 tiles 2x5
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(428): error: Failed
+access violation for 5x13 tiles 2x6
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(438): error: Expected equality of these values:
+  0
+  violations
+    Which is: 287
+
+[  FAILED  ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile (102 ms)
+[----------] 1 test from ExceptionGuard (102 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (102 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+
+ 1 FAILED TEST

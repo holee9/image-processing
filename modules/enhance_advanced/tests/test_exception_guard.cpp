@@ -13,6 +13,12 @@
  */
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <mutex>
+#include <utility>
+#include <cstdint>
+#include <vector>
+
 #include <chrono>
 #include <future>
 #include <new>
@@ -20,6 +26,7 @@
 
 #include "xpe/enhance_advanced/internal.h"
 #include "xpe/enhance_advanced/xpe_enhance_advanced_api.h"
+#include "../src/detail/parallel_rows.h"
 
 TEST(AdvExceptionGuard, BadAllocBecomesOutOfMemory) {
     EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, XpeAdvGuardedCall([]() -> XpeErrorCode { throw std::bad_alloc(); }));
@@ -57,4 +64,47 @@ TEST(AdvExceptionGuard, InitStillMapsOrdinaryInputsAndLeavesItsLockFree) {
     ASSERT_TRUE(InitReturnsWithin("{\"mfp\": {}}", &rc));
     EXPECT_EQ(XPE_OK, rc);
     xpe_enhance_advanced_shutdown();
+}
+
+// ---- QA-B-181c (Codex #37): the row-band split of ForRows ---------------------------------------------------------
+
+TEST(AdvExceptionGuard, ForRowsPartitionsRowsNearIntMaxWithoutOverflow) {
+    // The bodies only record their band, so INT32_MAX rows cost nothing. `(rows + threads - 1) / threads` left int
+    // here and produced a negative band size.
+    for (int threads : {2, 3, 4, 7, 64}) {
+        std::mutex m;
+        std::vector<std::pair<int, int>> bands;
+        xpe_parallel::ForRows(0x7FFFFFFF, threads, [&](int y0, int y1) {
+            std::lock_guard<std::mutex> g(m);
+            bands.emplace_back(y0, y1);
+        });
+        std::sort(bands.begin(), bands.end());
+        int64_t next = 0;
+        for (const auto& b : bands) {
+            EXPECT_EQ(next, b.first) << "threads=" << threads << ": bands must be contiguous";
+            EXPECT_LT(b.first, b.second) << "threads=" << threads << ": no empty band";
+            next = b.second;
+        }
+        EXPECT_EQ(0x7FFFFFFF, next) << "threads=" << threads << ": the bands must cover every row";
+        EXPECT_FALSE(bands.empty()) << "control: the body ran";
+    }
+}
+
+TEST(AdvExceptionGuard, ForRowsNeverPlansMoreBandsThanRows) {
+    // A caller-supplied thread count is not trusted: 100000 threads over 10 rows is 10 bands, not 100000 slots.
+    std::mutex m;
+    std::vector<std::pair<int, int>> bands;
+    xpe_parallel::ForRows(10, 100000, [&](int y0, int y1) {
+        std::lock_guard<std::mutex> g(m);
+        bands.emplace_back(y0, y1);
+    });
+    std::sort(bands.begin(), bands.end());
+    int next = 0;
+    for (const auto& b : bands) {
+        EXPECT_EQ(next, b.first);
+        EXPECT_LT(b.first, b.second);
+        next = b.second;
+    }
+    EXPECT_EQ(10, next);
+    EXPECT_LE(bands.size(), 10u);
 }

@@ -18,6 +18,10 @@
  */
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <mutex>
+#include <utility>
+
 #include <windows.h>
 
 #include <cstdint>
@@ -27,6 +31,7 @@
 
 #include "test_data_paths.h"
 #include "xpe/gsvg/gsvg_api.h"
+#include "../src/parallel_rows.h"
 
 namespace {
 
@@ -137,4 +142,47 @@ TEST(GsvgExceptionGuard, AnOrdinaryLargeFrameIsNotRejectedBySizeBound) {
     const int w = 1024, h = 1024;
     std::vector<uint16_t> px(static_cast<size_t>(w) * h, 1000), out(px.size(), 0);
     EXPECT_EQ(XPE_OK, xpe_gsvg_process(hd.h, px.data(), px.size(), out.data(), out.size(), w, h, nullptr, 0));
+}
+
+// ---- QA-B-181c (Codex #37): the row-band split of ForRows ---------------------------------------------------------
+
+TEST(GsvgExceptionGuard, ForRowsPartitionsRowsNearIntMaxWithoutOverflow) {
+    // The bodies only record their band, so INT32_MAX rows cost nothing. `(rows + threads - 1) / threads` left int
+    // here and produced a negative band size.
+    for (int threads : {2, 3, 4, 7, 64}) {
+        std::mutex m;
+        std::vector<std::pair<int, int>> bands;
+        xpe_parallel::ForRows(0x7FFFFFFF, threads, [&](int y0, int y1) {
+            std::lock_guard<std::mutex> g(m);
+            bands.emplace_back(y0, y1);
+        });
+        std::sort(bands.begin(), bands.end());
+        int64_t next = 0;
+        for (const auto& b : bands) {
+            EXPECT_EQ(next, b.first) << "threads=" << threads << ": bands must be contiguous";
+            EXPECT_LT(b.first, b.second) << "threads=" << threads << ": no empty band";
+            next = b.second;
+        }
+        EXPECT_EQ(0x7FFFFFFF, next) << "threads=" << threads << ": the bands must cover every row";
+        EXPECT_FALSE(bands.empty()) << "control: the body ran";
+    }
+}
+
+TEST(GsvgExceptionGuard, ForRowsNeverPlansMoreBandsThanRows) {
+    // A caller-supplied thread count is not trusted: 100000 threads over 10 rows is 10 bands, not 100000 slots.
+    std::mutex m;
+    std::vector<std::pair<int, int>> bands;
+    xpe_parallel::ForRows(10, 100000, [&](int y0, int y1) {
+        std::lock_guard<std::mutex> g(m);
+        bands.emplace_back(y0, y1);
+    });
+    std::sort(bands.begin(), bands.end());
+    int next = 0;
+    for (const auto& b : bands) {
+        EXPECT_EQ(next, b.first);
+        EXPECT_LT(b.first, b.second);
+        next = b.second;
+    }
+    EXPECT_EQ(10, next);
+    EXPECT_LE(bands.size(), 10u);
 }

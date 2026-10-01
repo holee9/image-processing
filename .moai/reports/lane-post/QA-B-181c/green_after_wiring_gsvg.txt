@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgVirtualGridChecked.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from GsvgVirtualGridChecked
+[ RUN      ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax
+[       OK ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel
+[       OK ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable
+[       OK ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit
+[       OK ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit (8 ms)
+[ RUN      ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused
+[       OK ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused (7 ms)
+[ RUN      ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused
+[       OK ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused (0 ms)
+[----------] 6 tests from GsvgVirtualGridChecked (16 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (16 ms total)
+[  PASSED  ] 6 tests.

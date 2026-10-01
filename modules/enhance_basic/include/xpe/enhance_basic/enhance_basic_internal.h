@@ -5,6 +5,7 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include <algorithm>
 #include <cstdint>
 #include <new>
 
@@ -84,6 +85,24 @@ inline XpeErrorCode xpe_guarded_call(F&& body) noexcept {
  */
 static inline int xpe_ceil_div(int size, int parts) {
     return size / parts + (size % parts != 0 ? 1 : 0);
+}
+
+/**
+ * @brief Bounds [start, end) of tile @p t on an axis of length @p size, clamped to the axis (QA-B-181c).
+ *
+ * The product t * tile_size is taken in 64 bits (it can pass INT32_MAX for the trailing tiles of a very wide
+ * image). A tile that starts at or past the edge comes out EMPTY (start == end == size); callers must not read
+ * a pixel for it.
+ */
+static inline void xpe_tile_bounds(int t, int tile_size, int size, int& start, int& end) {
+    const int64_t s = static_cast<int64_t>(t) * tile_size;
+    start = static_cast<int>((std::min<int64_t>)(s, size));
+    end = static_cast<int>((std::min<int64_t>)(s + tile_size, size));
+}
+
+/** The tile holding position @p pos (0 <= pos < size) when the axis is cut into @p tiles tiles of @p tile_size. */
+static inline int xpe_tile_of(int pos, int tile_size, int tiles) {
+    return (std::min)(pos / tile_size, tiles - 1);
 }
 
 inline float* float_pixels(XpeImageBuffer* img) {

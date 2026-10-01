@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -1111,4 +1112,93 @@ TEST(GsvgVirtualGridCapChoice, CompareCandidates)
     EXPECT_GE(zeroScenes, 3);
     // Why not C1: it binds on the under-estimated table.
     EXPECT_GT(at("step", 0.5, "C1").capped, 0.0);
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-181c (Codex #37): checked integer arithmetic of the reduced grid and the Gaussian kernels
+// ---------------------------------------------------------------------------
+TEST(GsvgVirtualGridChecked, CeilDivIntMatchesTheWideReferenceNearIntMax)
+{
+    const int sizes[] = {0, 1, 2, 3, 255, 256, 257, 0x3FFFFFFF, 0x40000000, 0x7FFFFFFD, 0x7FFFFFFE, 0x7FFFFFFF};
+    const int parts[] = {1, 2, 3, 4, 7, 100, 0x3FFFFFFF, 0x40000000, 0x7FFFFFFF};
+    for (int s : sizes)
+        for (int p : parts) {
+            const int want = static_cast<int>((static_cast<long long>(s) + p - 1) / p);
+            EXPECT_EQ(want, vg::CeilDivInt(s, p)) << "size=" << s << " parts=" << p;
+        }
+}
+
+TEST(GsvgVirtualGridChecked, GaussKernelRadiusRejectsWhatCannotBeAKernel)
+{
+    int r = -1;
+    ASSERT_TRUE(vg::GaussKernelRadius(2.5, r));
+    EXPECT_EQ(10, r);                                  // ceil(4 * 2.5)
+    ASSERT_TRUE(vg::GaussKernelRadius(0.1, r));
+    EXPECT_EQ(1, r);                                   // at least one tap each side
+    ASSERT_TRUE(vg::GaussKernelRadius(vg::kMaxGaussRadius / 4.0, r));
+    EXPECT_EQ(vg::kMaxGaussRadius, r);                 // the limit itself is accepted
+
+    const double bad[] = {0.0, -1.0, -1e300, std::numeric_limits<double>::quiet_NaN(),
+                          std::numeric_limits<double>::infinity(), 1e300,
+                          vg::kMaxGaussRadius / 4.0 * 1.0001, 4e9};
+    for (double s : bad) {
+        r = 12345;
+        EXPECT_FALSE(vg::GaussKernelRadius(s, r)) << "sigma=" << s;
+        EXPECT_EQ(12345, r) << "the radius must be left untouched on refusal, sigma=" << s;
+    }
+}
+
+TEST(GsvgVirtualGridChecked, DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable)
+{
+    EXPECT_EQ(4, vg::DerivedReductionFactor(0.9, 0.1));      // floor(0.5 * 0.9 / 0.1) = floor(4.5)
+    EXPECT_EQ(2, vg::DerivedReductionFactor(4.0, 1.0));
+    EXPECT_EQ(1, vg::DerivedReductionFactor(0.9, 1.0));      // 0.45: at least 1
+    const double edge = static_cast<double>(vg::kMaxReductionFactor);
+    EXPECT_EQ(vg::kMaxReductionFactor, vg::DerivedReductionFactor(2.0 * edge, 1.0));   // the limit is accepted
+    EXPECT_EQ(0, vg::DerivedReductionFactor(2.0 * edge + 2.0, 1.0)) << "one above the limit";
+    EXPECT_EQ(0, vg::DerivedReductionFactor(1.0, 1e-10)) << "5e9: a double-to-int cast of it is undefined";
+    EXPECT_EQ(0, vg::DerivedReductionFactor(1e300, 0.01)) << "no kernel term was found (sMin stays at 1e300)";
+    EXPECT_EQ(0, vg::DerivedReductionFactor(std::numeric_limits<double>::quiet_NaN(), 0.01));
+}
+
+// A kernel wider than the limit is refused by the estimate (an empty result is its failure signal), not read as an
+// int of undefined value. The pitch below makes every term of the table at least 1.4 times the limit; the old code
+// converted that radius without a check and returned an estimate.
+TEST(GsvgVirtualGridChecked, ScatterEstimateRefusesAKernelWiderThanTheLimit)
+{
+    const int n = 8;
+    std::vector<double> p(n * n, 1000.0), t(n * n, 10.0);
+    const auto control = vg::ScatterEstimate(p, t, n, n, Table(), 80.0, 0.1);
+    ASSERT_EQ(control.size(), p.size()) << "control: an ordinary pitch gives an estimate";
+    const auto wide = vg::ScatterEstimate(p, t, n, n, Table(), 80.0, 2.5e-6);   // sigma ~ 4.4e5 px and up
+    EXPECT_TRUE(wide.empty());
+}
+
+namespace {
+vg::VgReport RunSmall(const vg::VgSettings& st, const vg::VgSwitches& sw)
+{
+    std::vector<double> img(16 * 16, kI0 * 0.5);
+    return vg::RunVirtualGrid(img, 16, 16, Table(), st, sw);
+}
+}  // namespace
+
+TEST(GsvgVirtualGridChecked, AReductionFactorAboveTheLimitIsRefused)
+{
+    vg::VgSwitches sw;
+    const vg::VgReport control = RunSmall(Settings(1), sw);
+    ASSERT_EQ("", control.error) << "control: the small image runs with default settings";
+
+    sw.reductionFactor = vg::kMaxReductionFactor;
+    EXPECT_EQ("", RunSmall(Settings(1), sw).error) << "the limit itself is accepted";
+    sw.reductionFactor = vg::kMaxReductionFactor + 1;
+    EXPECT_NE("", RunSmall(Settings(1), sw).error);
+    sw.reductionFactor = 0x7FFFFFFF;   // `(width + f - 1)` leaves int
+    EXPECT_NE("", RunSmall(Settings(1), sw).error);
+}
+
+TEST(GsvgVirtualGridChecked, ADerivedReductionFactorThatCannotBeRepresentedIsRefused)
+{
+    vg::VgSettings st = Settings(1);
+    st.pixelPitchMm = 1e-9;            // 0.5 * sMin / pitch is about 4e9: not an int
+    EXPECT_NE("", RunSmall(st, vg::VgSwitches{}).error);
 }
