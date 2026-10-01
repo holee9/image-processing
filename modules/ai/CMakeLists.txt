@@ -169,6 +169,7 @@ set(MODULE_NAME xpe_ai)
 set(XPE_AI_SOURCES
     src/ai.cpp
     src/ai_ipc_bridge.cpp  # T-001: Named pipe IPC bridge
+    src/ai_worker_supervisor.cpp  # QA-B-171B: owns the worker process (launch, kill on fault, restart)
     src/ai_onnx_session.cpp  # T-003: ONNX Runtime session manager
 )
 
@@ -372,6 +373,9 @@ if(_XPE_AI_BUILD_TESTS)
         # #130 (QA-B-171): the bridge's time budget against a worker that stops
         # answering -- the conditions QA-B-170's five arms never injected
         test_ipc_deadline.cpp
+        # #130 (QA-B-171B): the supervisor against the real worker -- restart on
+        # death, kill on stall, exit kind read from the held process handle
+        test_worker_supervisor.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
@@ -414,6 +418,8 @@ if(_XPE_AI_BUILD_TESTS)
         add_executable(xpe_ai_tests
             ${_XPE_AI_TEST_SOURCE_PATHS}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp
+            # QA-B-171B: internal like the bridge, so compiled in rather than exported
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_supervisor.cpp
             # #130 (QA-B-160): OnnxSession is a C++ class and xpe_ai.dll exports
             # a C ABI only, so it is compiled in here for the same reason the IPC
             # bridge is. Exporting a C++ class across the DLL boundary instead

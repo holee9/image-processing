@@ -1,0 +1,6 @@
+build\ci-post\CMakeCache.txt:BUILD_AI:BOOL=ON
+build\ci-post\CMakeCache.txt:XPE_AI_STUB_BUILD:BOOL=ON
+build\ci-post\CMakeCache.txt:XPE_AI_USE_ONNXRUNTIME:BOOL=OFF
+build\ci-ai\CMakeCache.txt:BUILD_AI:BOOL=ON
+build\ci-ai\CMakeCache.txt:XPE_AI_STUB_BUILD:BOOL=OFF
+build\ci-ai\CMakeCache.txt:XPE_AI_USE_ONNXRUNTIME:BOOL=ON

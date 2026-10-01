@@ -1,0 +1,75 @@
+Note: Google Test filter = WorkerSupervisor.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (33 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(167): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+the call after a kill must succeed
+
+[  FAILED  ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (44 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(183): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+
+[  FAILED  ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (38 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(199): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+
+[  FAILED  ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (45 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(221): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+
+[  FAILED  ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (32 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(254): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (1062 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (42 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(283): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(318): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -6
+
+[  FAILED  ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (31 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (701 ms)
+[----------] 10 tests from WorkerSupervisor (2039 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (2039 ms total)
+[  PASSED  ] 3 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[  FAILED  ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[  FAILED  ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[  FAILED  ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[  FAILED  ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+
+ 6 FAILED TESTS
