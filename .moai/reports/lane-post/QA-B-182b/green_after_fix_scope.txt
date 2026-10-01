@@ -1,0 +1,51 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_*:DicomReaderTest.J2kScope_*
+[==========] Running 17 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 17 tests from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[       OK ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads (5 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+[       OK ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed (30 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+[       OK ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame (6 ms)
+[ RUN      ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+[       OK ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData (35 ms)
+[ RUN      ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+[       OK ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord (56 ms)
+[ RUN      ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+[       OK ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit (4 ms)
+[ RUN      ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit
+[       OK ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit (12 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision
+[       OK ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision (15 ms)
+[ RUN      ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+[2026-10-02 03:58:53.846] [error] [DicomReader] J2K codestream carries 2 components, the dataset says 1
+[2026-10-02 03:58:53.856] [error] [DicomReader] J2K codestream is signed, the dataset says unsigned pixels
+[2026-10-02 03:58:53.873] [error] [DicomReader] J2K codestream precision 12 does not match the dataset (bits stored 16, bits allocated 16)
+[2026-10-02 03:58:53.882] [error] [DicomReader] J2K codestream precision 8 does not match the dataset (bits stored 16, bits allocated 16)
+[2026-10-02 03:58:53.892] [error] [DicomReader] J2K codestream precision 16 does not match the dataset (bits stored 12, bits allocated 16)
+[2026-10-02 03:58:53.904] [warning] [DicomReader] J2K codestream precision 20 exceeds the 16 bits this reader returns
+[       OK ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused (78 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+[2026-10-02 03:58:53.933] [error] [DicomReader] J2K codestream precision 16 does not match the dataset (bits stored 16, bits allocated 8)
+[       OK ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix (28 ms)
+[ RUN      ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+[       OK ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack (4 ms)
+[ RUN      ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+[       OK ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame (12 ms)
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (14 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[       OK ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (5 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (5 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (14 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (4 ms)
+[----------] 17 tests from DicomReaderTest (336 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 1 test suite ran. (357 ms total)
+[  PASSED  ] 17 tests.

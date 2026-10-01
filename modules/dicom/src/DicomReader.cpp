@@ -259,46 +259,74 @@ XpeErrorCode DicomReader::open() {
     return XPE_OK;
 }
 
-// QA-B-182 (#235, QA-B-180): what the reader can hand back is ONE plane of UNSIGNED 16-bit words, copied as stored.
+// QA-B-182 / QA-B-182b (#235, QA-B-180): what the reader can hand back is ONE plane of UNSIGNED 16-bit words.
 // A dataset that says otherwise used to be copied anyway and come back as OK with wrong pixels: a signed pixel
 // became a large unsigned one, a 3-frame image became its first frame, an RGB image became byte pairs read as 16-bit
-// words, an 8-bit image was refused as "short" (a corrupt file) when it is merely unsupported. They are refused
-// here, before anything is allocated or written, so outImg and the handle are untouched (the QA-B-48 contract).
+// words, a 1- or 32-bit image became 16-bit words, an 8-bit image was refused as "short" (a corrupt file) when it
+// is merely unsupported. They are refused here, before anything is allocated or written, so outImg is untouched and
+// the handle still answers the same way (the QA-B-48 contract; the handle's internal parse state is not part of it,
+// DCMTK loads elements lazily).
 //
-// Missing attributes take the value DICOM gives their absence or this reader's long-standing default: no
-// NumberOfFrames is a single frame, no SamplesPerPixel is one sample, no PixelRepresentation is unsigned. An
-// attribute that IS present but cannot be read as the number it must be (empty, not numeric) is a malformed
-// file, not a default.
+// Two kinds of refusal, kept apart on purpose:
+//   XPE_ERR_DICOM_INVALID       the file is malformed: a Type 1 attribute of the Image Pixel module (PS3.3
+//                               C.7.6.3.1.1: Samples per Pixel, Pixel Representation, Bits Allocated) is absent,
+//                               empty or not a number, or Number of Frames is present and not a positive number.
+//                               There is no default for a Type 1 attribute; reading its absence as a value was how
+//                               a damaged file used to be accepted.
+//   XPE_ERR_UNSUPPORTED_FORMAT  the file is well formed and this reader cannot return it faithfully.
+// Number of Frames alone may be absent (it belongs to the Multi-frame Module): absent means one frame.
+//
+// Native and JPEG Lossless pixel data are copied as 16-bit words, so they are accepted only as
+// Bits Allocated == 16, Bits Stored <= 16, High Bit == Bits Stored - 1 (8 bits included: the general rule absorbs
+// the earlier special case). A present Bits Stored / High Bit that breaks the rule is unsupported; one that is
+// absent keeps the long-standing default (Bits Stored = Bits Allocated, High Bit = Bits Stored - 1), a decision
+// left open for the owner of #235 because those two are Type 1 as well.
+//
+// JPEG 2000 is judged against its codestream (decodeJ2KBitstream, before any output is allocated): PS3.5 8.2.4
+// requires these attributes to be consistent with the codestream, and the codestream's own characteristics are the
+// ones used for decoding. Here only what the dataset alone can say is checked: Bits Allocated is 8 or 16.
 //
 // MONOCHROME1, RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a
 // design decision still open in #235, and they keep their current behaviour (stored words, unchanged).
-//
-// BitsAllocated == 8 is refused for the NATIVE paths (uncompressed, JPEG Lossless), where the pixel data is
-// copied as 16-bit words. The J2K path decodes through OpenJPEG into 16-bit samples itself and is not judged by
-// it: an 8-bit codestream may be a working case, and nothing here measured it.
-static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, Uint16 bitsAlloc, bool isJ2K) {
+static bool readType1Uint16(DcmDataset* ds, const DcmTagKey& key, Uint16& out) {
+    return ds->tagExists(key) && ds->findAndGetUint16(key, out).good();
+}
+
+static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
+    Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0;
+    if (!readType1Uint16(ds, DCM_SamplesPerPixel, samples) ||
+        !readType1Uint16(ds, DCM_PixelRepresentation, pixelRepresentation) ||
+        !readType1Uint16(ds, DCM_BitsAllocated, bitsAlloc)) {
+        return XPE_ERR_DICOM_INVALID;
+    }
+
     long frames = 1;
     if (ds->tagExists(DCM_NumberOfFrames)) {
         Sint32 v = 0;
         if (ds->findAndGetSint32(DCM_NumberOfFrames, v).bad() || v < 1) return XPE_ERR_DICOM_INVALID;
         frames = v;
     }
+
+    Uint16 bitsStored = bitsAlloc;
+    if (ds->tagExists(DCM_BitsStored) && ds->findAndGetUint16(DCM_BitsStored, bitsStored).bad()) {
+        return XPE_ERR_DICOM_INVALID;
+    }
+    Uint16 highBit = static_cast<Uint16>(bitsStored - 1);
+    if (ds->tagExists(DCM_HighBit) && ds->findAndGetUint16(DCM_HighBit, highBit).bad()) {
+        return XPE_ERR_DICOM_INVALID;
+    }
+
     if (frames > 1) return XPE_ERR_UNSUPPORTED_FORMAT;
-
-    Uint16 samples = 1;
-    if (ds->tagExists(DCM_SamplesPerPixel) && ds->findAndGetUint16(DCM_SamplesPerPixel, samples).bad()) {
-        return XPE_ERR_DICOM_INVALID;
-    }
     if (samples != 1) return XPE_ERR_UNSUPPORTED_FORMAT;
-
-    Uint16 pixelRepresentation = 0;
-    if (ds->tagExists(DCM_PixelRepresentation) &&
-        ds->findAndGetUint16(DCM_PixelRepresentation, pixelRepresentation).bad()) {
-        return XPE_ERR_DICOM_INVALID;
-    }
     if (pixelRepresentation != 0) return XPE_ERR_UNSUPPORTED_FORMAT;
 
-    if (!isJ2K && bitsAlloc == 8) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (isJ2K) {
+        if (bitsAlloc != 8 && bitsAlloc != 16) return XPE_ERR_UNSUPPORTED_FORMAT;
+        return XPE_OK;
+    }
+    if (bitsAlloc != 16 || bitsStored < 1 || bitsStored > 16 || highBit != bitsStored - 1) {
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
     return XPE_OK;
 }
 
@@ -316,7 +344,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) return XPE_ERR_DICOM_INVALID;
     ds->findAndGetUint16(DCM_BitsAllocated, bitsAlloc);
     ds->findAndGetUint16(DCM_BitsStored, bitsStored);
-    if (bitsAlloc == 0) bitsAlloc = 16;
+    // Bits Allocated is Type 1: checkSupportedImageModule below refuses its absence, so no default is taken here.
     if (bitsStored == 0) bitsStored = bitsAlloc;
 
     bool isJ2K = (m_tsUID == TS_J2K_LOSSLESS);
@@ -330,7 +358,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // QA-B-182 (#235): refuse what this reader cannot return faithfully, before any decode or allocation.
     {
-        const XpeErrorCode scope = checkSupportedImageModule(ds, bitsAlloc, isJ2K);
+        const XpeErrorCode scope = checkSupportedImageModule(ds, isJ2K);
         if (scope != XPE_OK) return scope;
     }
 
@@ -596,6 +624,37 @@ XpeErrorCode DicomReader::decompressPixelData(DcmFileFormat* dcm, XpeImageBuffer
     );
 }
 
+// The codestream header against the dataset (QA-B-182b). Codes: a file whose own parts contradict each other is
+// malformed (DICOM_INVALID, as for a codestream of the wrong size); a codestream this reader cannot return in a
+// 16-bit unsigned buffer is unsupported.
+static XpeErrorCode checkJ2kCodestreamShape(const opj_image_t* image, uint32_t rows, uint32_t cols,
+                                            uint16_t bitsAlloc, uint16_t bitsStored) {
+    if (image->numcomps != 1 || image->comps == nullptr) {
+        spdlog::error("[DicomReader] J2K codestream carries {} components, the dataset says 1", image->numcomps);
+        return XPE_ERR_DICOM_INVALID;
+    }
+    const opj_image_comp_t& c = image->comps[0];
+    if (c.sgnd != 0) {
+        spdlog::error("[DicomReader] J2K codestream is signed, the dataset says unsigned pixels");
+        return XPE_ERR_DICOM_INVALID;
+    }
+    if (c.prec > 16) {
+        spdlog::warn("[DicomReader] J2K codestream precision {} exceeds the 16 bits this reader returns", c.prec);
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+    if (c.prec != bitsStored || bitsAlloc < bitsStored) {
+        spdlog::error("[DicomReader] J2K codestream precision {} does not match the dataset (bits stored {}, bits "
+                      "allocated {})", c.prec, bitsStored, bitsAlloc);
+        return XPE_ERR_DICOM_INVALID;
+    }
+    if (c.w != cols || c.h != rows) {
+        spdlog::error("[DicomReader] J2K codestream size does not match the declared size: dataset says {}x{}, "
+                      "codestream carries {}x{}", cols, rows, c.w, c.h);
+        return XPE_ERR_DICOM_INVALID;
+    }
+    return XPE_OK;
+}
+
 XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kLen,
                                                uint32_t rows, uint32_t cols,
                                                uint16_t bitsAlloc, uint16_t bitsStored,
@@ -680,6 +739,23 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
         return XPE_ERR_PROCESSING_FAILED;
     }
 
+    // QA-B-182b (#235, Codex #39): the codestream is judged BEFORE it is decoded and before anything is allocated.
+    // PS3.5 8.2.4: the Image Pixel attributes shall be consistent with the compressed data stream, and the
+    // stream's own characteristics are the ones used for decoding. readImage has already refused every dataset
+    // that is not one unsigned sample per pixel (checkSupportedImageModule), so the codestream is compared with
+    // exactly that: one component, unsigned, at most 16 bits of precision, Bits Stored equal to the precision,
+    // and the declared size. The first component is read below as 16-bit words, so any other shape would be
+    // decoded into wrong pixels (a second component dropped, a signed one reinterpreted, bits above 16 cut).
+    {
+        const XpeErrorCode shape = checkJ2kCodestreamShape(image, rows, cols, bitsAlloc, bitsStored);
+        if (shape != XPE_OK) {
+            opj_image_destroy(image);
+            opj_stream_destroy(stream);
+            opj_destroy_codec(codec);
+            return shape;
+        }
+    }
+
     ok = opj_decode(codec, stream, image);
     if (!ok) {
         opj_image_destroy(image);
@@ -693,7 +769,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     opj_stream_destroy(stream);
     opj_destroy_codec(codec);
 
-    // Validate dimensions
+    // Dimensions (already compared with the declared ones from the header; the decoder does not change them)
     uint32_t imgW = image->comps[0].w;
     uint32_t imgH = image->comps[0].h;
 
@@ -722,8 +798,11 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
             opj_image_destroy(image);
             return allocRc;
         }
-        outImg->bitsAllocated = static_cast<uint32_t>(bitsAlloc);
-        outImg->bitsStored    = static_cast<uint32_t>(bitsStored);
+        // The buffer is UINT16, two bytes per sample: it holds 16 allocated bits whatever the file allocated (an
+        // 8-bit file used to be described as bitsAllocated 8 over 2-byte samples). Bits Stored is the codestream's
+        // precision, which the check above made equal to the dataset's.
+        outImg->bitsAllocated = 16;
+        outImg->bitsStored    = static_cast<uint32_t>(image->comps[0].prec);
 
         // Convert OPJ int32 array to uint16
         uint16_t* dst = static_cast<uint16_t*>(outImg->data);

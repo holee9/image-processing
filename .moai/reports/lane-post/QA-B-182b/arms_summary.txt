@@ -1,0 +1,26 @@
+required_attributes: build_ok=True red_tests=1
+    DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+frames: build_ok=True red_tests=1
+    DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+samples: build_ok=True red_tests=2
+    DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+    DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+signed: build_ok=True red_tests=3
+    DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+    DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+    DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+native_bits_rule: build_ok=True red_tests=3
+    DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+    DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+    DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+j2k_alloc_rule: build_ok=True red_tests=1
+    DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+j2k_components: build_ok=True red_tests=1
+    DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+j2k_signed: build_ok=True red_tests=1
+    DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+j2k_precision_limit: build_ok=True red_tests=1
+    DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+j2k_precision_match: build_ok=True red_tests=2
+    DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+    DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix

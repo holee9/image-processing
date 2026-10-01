@@ -153,6 +153,8 @@ if(_XPE_BUILD_TESTS)
     target_link_libraries(test_dicom_reader PRIVATE
         xpe_dicom
         GTest::gtest_main
+        # QA-B-182b: the J2K scope tests encode variant codestreams with OpenJPEG directly.
+        openjp2
     )
     # #124 (QA-B-25): this suite derives its negative-path fixtures with DCMTK
     # (see the test's SetUpTestSuite), so it links DCMTK the same way xpe_dicom

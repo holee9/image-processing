@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.J2kScope_AnImageWritten*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+[2026-10-02 03:59:15.115] [error] [DicomReader] J2K codestream precision 16 does not match the dataset (bits stored 12, bits allocated 16)
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3326): error: Expected equality of these values:
+  0
+  r.read
+    Which is: -13
+
+[  FAILED  ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack (5 ms)
+[----------] 1 test from DicomReaderTest (14 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (30 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+
+ 1 FAILED TEST

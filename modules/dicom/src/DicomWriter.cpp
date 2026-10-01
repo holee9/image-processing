@@ -241,14 +241,30 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     params.cp_disto_alloc = 1;
     params.tcp_rates[0]   = 0;     // lossless = rate 0
 
-    // Create grayscale image with single 16-bit component
+    // Create grayscale image with a single unsigned component.
+    //
+    // QA-B-182b: the precision is the Bits Stored the dataset declares (populateDataset writes the same value).
+    // PS3.5 8.2.4 requires the attributes to be consistent with the codestream, and the reader refuses a file in
+    // which they are not; this used to encode 16-bit precision under a 12-bit declaration. A value outside the
+    // declared precision cannot be stored faithfully, so it fails the write instead of being encoded anyway.
+    const uint32_t prec = (img->bitsStored >= 1 && img->bitsStored <= 16) ? img->bitsStored : 16;
+    if (prec < 16) {
+        const uint16_t* check = static_cast<const uint16_t*>(img->data);
+        const size_t count = static_cast<size_t>(img->width) * img->height;
+        for (size_t i = 0; i < count; ++i) {
+            if (check[i] >> prec) {
+                spdlog::warn("[DicomWriter] pixel {} = {} does not fit the declared {} bits stored", i, check[i], prec);
+                return {};
+            }
+        }
+    }
     opj_image_cmptparm_t cmptparm{};
     cmptparm.dx   = 1;
     cmptparm.dy   = 1;
     cmptparm.w    = img->width;
     cmptparm.h    = img->height;
-    cmptparm.prec = 16;
-    cmptparm.bpp  = 16;
+    cmptparm.prec = prec;
+    cmptparm.bpp  = prec;
     cmptparm.sgnd = 0;  // unsigned
 
     opj_image_t* opjImg = opj_image_create(1, &cmptparm, OPJ_CLRSPC_GRAY);

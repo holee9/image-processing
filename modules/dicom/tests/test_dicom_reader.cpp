@@ -26,6 +26,7 @@
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
+#include <openjpeg.h>   // QA-B-182b: encode variant codestreams inside the test
 #include <atomic>
 #include <map>
 #include <set>
@@ -2939,6 +2940,9 @@ struct ScopeRead {
     XpeErrorCode metaAfter = XPE_OK;
     std::vector<uint16_t> words;
     bool outUntouchedOnFailure = true;
+    XpePixelFormat format = XPE_PIXEL_FLOAT32;   // descriptor of a successful read
+    uint32_t bitsAllocated = 0;
+    uint32_t bitsStored = 0;
 };
 
 /** Opens, reads (into a sentinel-filled buffer), then asks for the metadata on the SAME handle. */
@@ -2960,6 +2964,9 @@ ScopeRead ReadScope(const fs::path& p) {
         const size_t n = static_cast<size_t>(img.width) * img.height;
         const uint16_t* d = static_cast<const uint16_t*>(img.data);
         r.words.assign(d, d + n);
+        r.format = img.format;
+        r.bitsAllocated = img.bitsAllocated;
+        r.bitsStored = img.bitsStored;
         xpe_free_image(&img);
     } else {
         r.outUntouchedOnFailure = img.width == 7 && img.height == 9 && img.bitsAllocated == 99 &&
@@ -2998,18 +3005,327 @@ TEST_F(DicomReaderTest, Scope_OrdinaryUnsignedSingleFrame16BitStillReads) {
     EXPECT_EQ(r.words, e.words) << "stating the defaults must not change the pixels";
 }
 
-// Absent attributes take their defaults (no NumberOfFrames = one frame, no SamplesPerPixel = one, no
-// PixelRepresentation = unsigned): a file that omits them is not refused.
-TEST_F(DicomReaderTest, Scope_AbsentAttributesTakeTheirDefaults) {
+// PS3.3 C.7.6.3.1.1: Samples per Pixel, Pixel Representation and Bits Allocated are Type 1 (required, with a value).
+// There is no default for them. Absent, empty: the file is malformed (QA-B-182b; QA-B-182 had them default).
+TEST_F(DicomReaderTest, Scope_AbsentOrEmptyRequiredAttributesAreMalformed) {
+    struct Required { const char* name; DcmTagKey key; };
+    const Required required[] = {
+        {"samples_per_pixel", DCM_SamplesPerPixel},
+        {"pixel_representation", DCM_PixelRepresentation},
+        {"bits_allocated", DCM_BitsAllocated},
+    };
+    for (const Required& r : required) {
+        const fs::path absent = MakeScopeVariant(s_validDcm, (std::string("absent_") + r.name).c_str(),
+                                                 [&](DcmDataset* ds) { delete ds->remove(r.key); });
+        const ScopeRead a = ReadScope(absent);
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, a.read) << r.name << " absent";
+        EXPECT_TRUE(a.outUntouchedOnFailure) << r.name << " absent";
+        EXPECT_EQ(XPE_OK, a.metaAfter) << r.name << " absent: the handle still serves its metadata";
+
+        const fs::path empty = MakeScopeVariant(s_validDcm, (std::string("empty_") + r.name).c_str(),
+                                                [&](DcmDataset* ds) { ds->putAndInsertString(r.key, ""); });
+        const ScopeRead e = ReadScope(empty);
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, e.read) << r.name << " empty";
+        EXPECT_TRUE(e.outUntouchedOnFailure) << r.name << " empty";
+    }
+}
+
+// Number of Frames is the one attribute that may be absent (Multi-frame Module): absent is a single frame.
+TEST_F(DicomReaderTest, Scope_AbsentNumberOfFramesIsASingleFrame) {
     const std::vector<uint16_t> baseline = Words(s_validDcm);
-    const fs::path stripped = MakeScopeVariant(s_validDcm, "absent_attributes", [](DcmDataset* ds) {
+    const fs::path stripped = MakeScopeVariant(s_validDcm, "absent_frames", [](DcmDataset* ds) {
         delete ds->remove(DCM_NumberOfFrames);
-        delete ds->remove(DCM_SamplesPerPixel);
-        delete ds->remove(DCM_PixelRepresentation);
     });
     const ScopeRead r = ReadScope(stripped);
     EXPECT_EQ(XPE_OK, r.read);
     EXPECT_EQ(baseline, r.words);
+}
+
+// Uncompressed pixel data is copied as 16-bit words, so only a 16-bit declaration can be honest.
+// Bits Allocated {1, 8, 12, 16, 32}: 16 is the control, everything else is unsupported (a well-formed file this
+// reader cannot return), never a read of 16-bit words out of data that is not.
+TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData) {
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    for (int bits : {1, 8, 12, 16, 32}) {
+        const fs::path p = MakeScopeVariant(s_validDcm, (std::string("alloc_") + std::to_string(bits)).c_str(),
+                                            [&](DcmDataset* ds) {
+            ds->putAndInsertUint16(DCM_BitsAllocated, static_cast<Uint16>(bits));
+            ds->putAndInsertUint16(DCM_BitsStored, static_cast<Uint16>(bits < 16 ? bits : 16));
+            ds->putAndInsertUint16(DCM_HighBit, static_cast<Uint16>((bits < 16 ? bits : 16) - 1));
+        });
+        const ScopeRead r = ReadScope(p);
+        if (bits == 16) {
+            EXPECT_EQ(XPE_OK, r.read) << "control: 16 bits allocated reads";
+            EXPECT_EQ(baseline, r.words);
+        } else {
+            EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "BitsAllocated=" << bits;
+            EXPECT_TRUE(r.outUntouchedOnFailure) << "BitsAllocated=" << bits;
+            EXPECT_EQ(XPE_OK, r.metaAfter) << "BitsAllocated=" << bits;
+        }
+    }
+    // 32 bits with pixel data of the right size for 32 bits: no longer read as 16-bit words.
+    const fs::path p32 = MakeScopeVariant(s_validDcm, "alloc_32_real", [](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsAllocated, 32);
+        ds->putAndInsertUint16(DCM_BitsStored, 32);
+        ds->putAndInsertUint16(DCM_HighBit, 31);
+        std::vector<uint16_t> words(256u * 256u * 2u, 0x1234);
+        ds->putAndInsertUint16Array(DCM_PixelData, words.data(), static_cast<unsigned long>(words.size()));
+    });
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ReadScope(p32).read);
+}
+
+// With 16 bits allocated, Bits Stored must fit and High Bit must be Bits Stored - 1: a High Bit above that means
+// the significant bits are not the low ones, and the words would come back unshifted.
+TEST_F(DicomReaderTest, Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord) {
+    struct Case { int stored, high; bool ok; };
+    const Case cases[] = {
+        {16, 15, true}, {12, 11, true}, {1, 0, true},            // the low bits: fine
+        {12, 15, false},                                          // data held in the high 12 bits
+        {12, 12, false}, {16, 14, false},                         // High Bit is not Bits Stored - 1
+        {17, 16, false}, {0, 0xFFFF, false},                      // wider than the word / nothing stored
+    };
+    for (const Case& c : cases) {
+        const fs::path p = MakeScopeVariant(s_validDcm,
+            (std::string("stored_") + std::to_string(c.stored) + "_" + std::to_string(c.high)).c_str(),
+            [&](DcmDataset* ds) {
+                ds->putAndInsertUint16(DCM_BitsStored, static_cast<Uint16>(c.stored));
+                ds->putAndInsertUint16(DCM_HighBit, static_cast<Uint16>(c.high));
+            });
+        const ScopeRead r = ReadScope(p);
+        EXPECT_EQ(c.ok ? XPE_OK : XPE_ERR_UNSUPPORTED_FORMAT, r.read)
+            << "BitsStored=" << c.stored << " HighBit=" << c.high;
+    }
+}
+
+// ---- QA-B-182b: JPEG 2000 is judged against its codestream -------------------------------------------------
+namespace {
+
+struct J2kSpec {
+    uint32_t width = 256, height = 256;
+    uint32_t components = 1;
+    uint32_t precision = 16;
+    bool isSigned = false;
+};
+
+/** A real codestream of the given characteristics, lossless, encoded with OpenJPEG inside the test. */
+std::vector<uint8_t> EncodeJ2k(const J2kSpec& s, const std::vector<int32_t>& planeInterleavedByComponent) {
+    opj_cparameters_t params;
+    opj_set_default_encoder_parameters(&params);
+    params.irreversible = 0;
+    params.numresolution = 1;
+    params.tcp_numlayers = 1;
+    params.cp_disto_alloc = 1;
+    params.tcp_rates[0] = 0;
+    std::vector<opj_image_cmptparm_t> cp(s.components);
+    for (auto& c : cp) {
+        c = opj_image_cmptparm_t{};
+        c.dx = 1;
+        c.dy = 1;
+        c.w = s.width;
+        c.h = s.height;
+        c.prec = s.precision;
+        c.bpp = s.precision;
+        c.sgnd = s.isSigned ? 1 : 0;
+    }
+    opj_image_t* img = opj_image_create(s.components, cp.data(),
+                                        s.components == 1 ? OPJ_CLRSPC_GRAY : OPJ_CLRSPC_UNSPECIFIED);
+    if (!img) return {};
+    img->x0 = 0;
+    img->y0 = 0;
+    img->x1 = s.width;
+    img->y1 = s.height;
+    const size_t n = static_cast<size_t>(s.width) * s.height;
+    for (uint32_t c = 0; c < s.components; ++c)
+        for (size_t i = 0; i < n; ++i) img->comps[c].data[i] = planeInterleavedByComponent[c * n + i];
+
+    std::vector<uint8_t> out;
+    opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
+    opj_set_error_handler(codec, nullptr, nullptr);
+    opj_set_warning_handler(codec, nullptr, nullptr);
+    opj_set_info_handler(codec, nullptr, nullptr);
+    if (codec && opj_setup_encoder(codec, &params, img)) {
+        struct Sink { std::vector<uint8_t>* v; size_t pos; } sink{&out, 0};
+        opj_stream_t* stream = opj_stream_default_create(OPJ_FALSE);
+        opj_stream_set_user_data(stream, &sink, nullptr);
+        opj_stream_set_write_function(stream, [](void* buf, OPJ_SIZE_T nb, void* ud) -> OPJ_SIZE_T {
+            Sink* k = static_cast<Sink*>(ud);
+            if (k->v->size() < k->pos + nb) k->v->resize(k->pos + nb);
+            std::memcpy(k->v->data() + k->pos, buf, nb);
+            k->pos += nb;
+            return nb;
+        });
+        opj_stream_set_seek_function(stream, [](OPJ_OFF_T off, void* ud) -> OPJ_BOOL {
+            Sink* k = static_cast<Sink*>(ud);
+            if (off < 0) return OPJ_FALSE;
+            if (k->v->size() < static_cast<size_t>(off)) k->v->resize(static_cast<size_t>(off));
+            k->pos = static_cast<size_t>(off);
+            return OPJ_TRUE;
+        });
+        opj_stream_set_skip_function(stream, [](OPJ_OFF_T nb, void* ud) -> OPJ_OFF_T {
+            Sink* k = static_cast<Sink*>(ud);
+            k->pos += static_cast<size_t>(nb);
+            if (k->v->size() < k->pos) k->v->resize(k->pos);
+            return nb;
+        });
+        const bool ok = opj_start_compress(codec, img, stream) && opj_encode(codec, stream) &&
+                        opj_end_compress(codec, stream);
+        opj_stream_destroy(stream);
+        if (!ok) out.clear();
+    }
+    if (codec) opj_destroy_codec(codec);
+    opj_image_destroy(img);
+    return out;
+}
+
+/** The donor J2K file with its codestream replaced and its pixel attributes set as given. */
+template <class F>
+fs::path MakeJ2kVariant(const fs::path& donor, const char* name, const std::vector<uint8_t>& codestream, F mutate) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(donor.string().c_str()).good());
+    DcmDataset* ds = ff.getDataset();
+    ds->findAndDeleteElement(DCM_PixelData);
+    DcmPixelSequence* seq = new DcmPixelSequence(DcmTag(DCM_PixelData, EVR_OB));
+    seq->insert(new DcmPixelItem(DcmTag(DCM_Item, EVR_OB)));
+    DcmPixelItem* frag = new DcmPixelItem(DcmTag(DCM_Item, EVR_OB));
+    frag->putUint8Array(codestream.data(), static_cast<Uint32>(codestream.size()));
+    seq->insert(frag);
+    DcmPixelData* pd = new DcmPixelData(DcmTag(DCM_PixelData, EVR_OB));
+    pd->putOriginalRepresentation(EXS_JPEG2000LosslessOnly, nullptr, seq);
+    EXPECT_TRUE(ds->insert(pd, OFTrue).good());
+    mutate(ds);
+    const fs::path out = donor.parent_path() / (std::string("j2k_") + name + ".dcm");
+    EXPECT_TRUE(ff.saveFile(out.string().c_str(), EXS_JPEG2000LosslessOnly).good());
+    return out;
+}
+
+void SetPixelAttrs(DcmDataset* ds, int samples, int pixelRep, int alloc, int stored, int high) {
+    ds->putAndInsertUint16(DCM_SamplesPerPixel, static_cast<Uint16>(samples));
+    ds->putAndInsertUint16(DCM_PixelRepresentation, static_cast<Uint16>(pixelRep));
+    ds->putAndInsertUint16(DCM_BitsAllocated, static_cast<Uint16>(alloc));
+    ds->putAndInsertUint16(DCM_BitsStored, static_cast<Uint16>(stored));
+    ds->putAndInsertUint16(DCM_HighBit, static_cast<Uint16>(high));
+}
+
+std::vector<int32_t> Ramp(size_t n, int mod) {
+    std::vector<int32_t> v(n);
+    for (size_t i = 0; i < n; ++i) v[i] = static_cast<int32_t>((i * 7 + i / 256) % static_cast<size_t>(mod));
+    return v;
+}
+
+}  // namespace
+
+// The control: this project's own 16-bit J2K file. The result describes what it holds: UINT16, 16 allocated.
+TEST_F(DicomReaderTest, J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit) {
+    const ScopeRead r = ReadScope(s_j2kDcm);
+    ASSERT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(XPE_PIXEL_UINT16, r.format);
+    EXPECT_EQ(16u, r.bitsAllocated);
+    EXPECT_EQ(16u, r.bitsStored);
+    EXPECT_EQ(Words(s_validDcm), r.words) << "lossless: the same pixels as the uncompressed file";
+}
+
+// The 8-bit exception, measured. An unsigned 8-bit, one-component codestream with tags that say so is read: the
+// pixels are the original 0..255 and the result is UINT16 with bitsAllocated 16 (it used to claim 8 for a buffer
+// of 2-byte samples) and bitsStored = the codestream's precision.
+TEST_F(DicomReaderTest, J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit) {
+    J2kSpec spec;
+    spec.precision = 8;
+    const std::vector<int32_t> px = Ramp(256u * 256u, 256);
+    const auto cs = EncodeJ2k(spec, px);
+    ASSERT_FALSE(cs.empty());
+    const fs::path p = MakeJ2kVariant(s_j2kDcm, "gray8", cs, [](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, 8, 8, 7); });
+    const ScopeRead r = ReadScope(p);
+    ASSERT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(XPE_PIXEL_UINT16, r.format);
+    EXPECT_EQ(16u, r.bitsAllocated) << "a UINT16 buffer holds 16 allocated bits whatever the file allocated";
+    EXPECT_EQ(8u, r.bitsStored);
+    ASSERT_EQ(px.size(), r.words.size());
+    size_t differing = 0;
+    for (size_t i = 0; i < px.size(); ++i) differing += (r.words[i] != static_cast<uint16_t>(px[i]));
+    EXPECT_EQ(0u, differing) << "every pixel must equal the original 0..255 value";
+}
+
+TEST_F(DicomReaderTest, J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision) {
+    J2kSpec spec;
+    spec.precision = 12;
+    const std::vector<int32_t> px = Ramp(256u * 256u, 4096);
+    const fs::path p = MakeJ2kVariant(s_j2kDcm, "gray12", EncodeJ2k(spec, px),
+                                      [](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, 16, 12, 11); });
+    const ScopeRead r = ReadScope(p);
+    ASSERT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(16u, r.bitsAllocated);
+    EXPECT_EQ(12u, r.bitsStored);
+    ASSERT_EQ(px.size(), r.words.size());
+    for (size_t i = 0; i < px.size(); ++i) ASSERT_EQ(static_cast<uint16_t>(px[i]), r.words[i]) << i;
+}
+
+// A codestream that disagrees with the dataset about what it holds is refused BEFORE any output exists. PS3.5 8.2.4:
+// the attributes shall be consistent with the compressed data stream, and the stream's own characteristics are the
+// ones used for decoding. A file that contradicts itself is malformed: DICOM_INVALID (as for a codestream of the
+// wrong size). Each variant changes ONE thing; the control above shows the rest of the file is accepted.
+TEST_F(DicomReaderTest, J2kScope_ACodestreamThatContradictsTheTagsIsRefused) {
+    struct Case { const char* name; J2kSpec spec; int mod; int samples, rep, alloc, stored, high; XpeErrorCode want; };
+    J2kSpec twoComp;   twoComp.components = 2;
+    J2kSpec signedCs;  signedCs.isSigned = true;
+    J2kSpec prec12;    prec12.precision = 12;
+    J2kSpec prec8;     prec8.precision = 8;
+    J2kSpec prec20;    prec20.precision = 20;
+    const Case cases[] = {
+        {"two_components_tags_say_one", twoComp, 65536, 1, 0, 16, 16, 15, XPE_ERR_DICOM_INVALID},
+        {"signed_codestream_tags_say_unsigned", signedCs, 30000, 1, 0, 16, 16, 15, XPE_ERR_DICOM_INVALID},
+        {"precision_12_tags_say_16", prec12, 4096, 1, 0, 16, 16, 15, XPE_ERR_DICOM_INVALID},
+        {"precision_8_tags_say_16", prec8, 256, 1, 0, 16, 16, 15, XPE_ERR_DICOM_INVALID},
+        {"precision_16_tags_say_12", J2kSpec{}, 4096, 1, 0, 16, 12, 11, XPE_ERR_DICOM_INVALID},
+        {"precision_20_beyond_the_16_bit_output", prec20, 65536, 1, 0, 16, 16, 15, XPE_ERR_UNSUPPORTED_FORMAT},
+    };
+    for (const Case& c : cases) {
+        const size_t n = 256u * 256u * c.spec.components;
+        const auto cs = EncodeJ2k(c.spec, Ramp(n, c.mod));
+        ASSERT_FALSE(cs.empty()) << c.name << ": the variant codestream could not be encoded";
+        const fs::path p = MakeJ2kVariant(s_j2kDcm, c.name, cs, [&](DcmDataset* ds) {
+            SetPixelAttrs(ds, c.samples, c.rep, c.alloc, c.stored, c.high);
+        });
+        const ScopeRead r = ReadScope(p);
+        EXPECT_EQ(c.want, r.read) << c.name;
+        EXPECT_TRUE(r.outUntouchedOnFailure) << c.name;
+        EXPECT_EQ(XPE_OK, r.metaAfter) << c.name << ": the handle still serves its metadata";
+    }
+}
+
+// What the dataset alone can already say about a J2K file: allocation of 8 or 16 only, and never less than the
+// bits stored.
+TEST_F(DicomReaderTest, J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix) {
+    const auto cs = EncodeJ2k(J2kSpec{}, Ramp(256u * 256u, 65536));
+    ASSERT_FALSE(cs.empty());
+    auto read = [&](const char* name, int samples, int rep, int alloc, int stored, int high) {
+        return ReadScope(MakeJ2kVariant(s_j2kDcm, name, cs, [&](DcmDataset* ds) {
+            SetPixelAttrs(ds, samples, rep, alloc, stored, high);
+        })).read;
+    };
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, read("tags_alloc_32", 1, 0, 32, 16, 15));
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, read("tags_alloc_1", 1, 0, 1, 1, 0));
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, read("tags_rgb", 3, 0, 16, 16, 15));
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, read("tags_signed", 1, 1, 16, 16, 15));
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, read("tags_stored_above_alloc", 1, 0, 8, 16, 15));
+}
+
+// The module's own writer must produce files its reader accepts: a 12-bit image written as J2K has a codestream of
+// 12-bit precision, the same as the Bits Stored it declares (it used to encode 16-bit precision under a 12 bit tag).
+TEST_F(DicomReaderTest, J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack) {
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(64, 48, XPE_PIXEL_UINT16, &img));
+    img.bitsStored = 12;
+    auto* px = static_cast<uint16_t*>(img.data);
+    for (uint32_t i = 0; i < img.width * img.height; ++i) px[i] = static_cast<uint16_t>((i * 5) & 0x0FFF);
+    std::vector<uint16_t> original(px, px + static_cast<size_t>(img.width) * img.height);
+    XpeImageMetadata meta{};
+    const fs::path p = s_tempDir / "written_12bit.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write_j2k(p.string().c_str(), &img, &meta));
+    xpe_free_image(&img);
+    const ScopeRead r = ReadScope(p);
+    ASSERT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(12u, r.bitsStored);
+    EXPECT_EQ(original, r.words);
 }
 
 TEST_F(DicomReaderTest, Scope_MultiFrameIsUnsupportedNotTheFirstFrame) {
