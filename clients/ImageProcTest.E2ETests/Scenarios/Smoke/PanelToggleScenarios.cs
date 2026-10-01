@@ -113,9 +113,20 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
                 Assert.False(PanelPresent(window, panelId), $"{panelId} is up although its toggle was just switched off.");
 
                 OpenViewMenu(window);
+                var anchor = WaitForTheViewMenu(window);
                 var item = window.FindFirstDescendant(cf => cf.ByAutomationId(toggleId));
                 var enabled = item?.IsEnabled;
                 CloseMenu();
+
+                // GUI-C-170b: an absence proves nothing until something that MUST be there is found beside
+                // it — the S06 rule, which this scenario did not carry over when it was rewritten. Without
+                // it, "the menu did not open" and "the item is gone" were the same message, and a lost first
+                // click read as a missing item. There is deliberately NO retry: a click that is lost must
+                // show up as a failure of its own name, not be retried until it passes.
+                Assert.True(
+                    anchor is not null,
+                    $"The View menu did not open: ShowLogsPanelMenuItem, which is always in it, was not visible within {ViewMenuWaitMilliseconds} ms of the click, " +
+                    $"so this run cannot say whether '{toggleId}' is present.");
                 Assert.True(item is not null, $"'{toggleId}' is gone from the View menu.");
                 Assert.True(enabled, $"'{toggleId}' is disabled again, but its panel exists (#225 rows 7/8).");
 
@@ -133,6 +144,25 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
                 EnsurePanelOff(window, toggleId, panelId);
             }
         });
+    }
+
+    private const int ViewMenuWaitMilliseconds = 2000;
+
+    /// <summary>
+    /// The View menu's always-present item, waited for after the click. Returns null when the menu never
+    /// showed it. This waits; it does not click again.
+    /// </summary>
+    private static AutomationElement? WaitForTheViewMenu(Window window)
+    {
+        var waited = Stopwatch.StartNew();
+        AutomationElement? anchor;
+        while ((anchor = window.FindFirstDescendant(cf => cf.ByAutomationId("ShowLogsPanelMenuItem"))) is null
+               && waited.ElapsedMilliseconds < ViewMenuWaitMilliseconds)
+        {
+            Thread.Sleep(50);
+        }
+
+        return anchor;
     }
 
     private static bool PanelPresent(Window window, string panelId) =>
