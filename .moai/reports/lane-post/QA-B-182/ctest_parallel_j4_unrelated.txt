@@ -1,0 +1,1797 @@
+Internal ctest changing into directory: D:/workspace-github/xpe-post/build/ci-dicom
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+        Start 158: DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow
+        Start 159: DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+        Start 202: DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed
+        Start 203: DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray
+  1/205 Test #202: DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed ......   Passed    1.58 sec
+        Start 200: DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault
+  2/205 Test #203: DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray ......................   Passed    1.59 sec
+        Start 204: DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall
+  3/205 Test #158: DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow .....................................   Passed    1.86 sec
+        Start 192: DicomNetworkTest.CFindEmpty_ReturnsEmptyArray
+  4/205 Test #159: DicomWriterTest.ThousandCycles_ControlLeakIsCaught ....................................***Failed    1.84 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomWriterTest
+[ RUN      ] DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+[2026-10-02 01:52:55.571] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 978
+
+[2026-10-02 01:52:55.572] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 979
+
+[2026-10-02 01:52:55.572] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 980
+
+[2026-10-02 01:52:55.572] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 981
+
+[2026-10-02 01:52:55.572] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 982
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 983
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 984
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 985
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 986
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 987
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 988
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 989
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 990
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 991
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 992
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 993
+
+[2026-10-02 01:52:55.573] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 994
+
+[2026-10-02 01:52:55.574] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 995
+
+[2026-10-02 01:52:55.574] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 996
+
+[2026-10-02 01:52:55.574] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 997
+
+[2026-10-02 01:52:55.574] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 998
+
+[2026-10-02 01:52:55.574] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(279): error: Expected equality of these values:
+  xpe_dicom_write(path.c_str(), &img, &m_meta)
+    Which is: -9
+  0
+cycle 999
+
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(283):: control 64 B/cycle: heap growth 103522 bytes / 1228 blocks over 1000 cycles, working set 520192 bytes (not asserted)
+[  FAILED  ] DicomWriterTest.ThousandCycles_ControlLeakIsCaught (1810 ms)
+[----------] 1 test from DicomWriterTest (1810 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1810 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+
+ 1 FAILED TEST
+
+        Start 191: DicomNetworkTest.CFindResults_ReturnsJsonArray
+  5/205 Test #192: DicomNetworkTest.CFindEmpty_ReturnsEmptyArray .........................................   Passed    0.57 sec
+        Start 189: DicomNetworkTest.CStoreSuccess_ReturnsOK
+  6/205 Test #189: DicomNetworkTest.CStoreSuccess_ReturnsOK ..............................................   Passed    0.59 sec
+        Start 205: DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+  7/205 Test #204: DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall .........................   Passed    1.82 sec
+  8/205 Test #200: DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault ........................   Passed    1.84 sec
+        Start 198: DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed
+        Start 190: DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed
+  9/205 Test #191: DicomNetworkTest.CFindResults_ReturnsJsonArray ........................................   Passed    1.62 sec
+        Start 193: DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed
+ 10/205 Test #205: DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput .........................***Failed    1.01 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomNetworkTest
+[ RUN      ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+[       OK ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput (0 ms)
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_network_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomNetworkTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (550 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomNetworkTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 141: DicomJ2kFailureTest.FailurePathsDoNotGrowCrtHeap
+ 11/205 Test #141: DicomJ2kFailureTest.FailurePathsDoNotGrowCrtHeap ......................................   Passed    0.46 sec
+        Start  49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid
+ 12/205 Test  #49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid .....................................   Passed    0.28 sec
+        Start 140: DicomJ2kFailureTest.OffsetTableOnly_ReturnsDicomInvalid
+ 13/205 Test #140: DicomJ2kFailureTest.OffsetTableOnly_ReturnsDicomInvalid ...............................   Passed    0.06 sec
+        Start  48: XpeCommonTest.FreeImageNullDataDoesNotCrash
+ 14/205 Test  #48: XpeCommonTest.FreeImageNullDataDoesNotCrash ...........................................   Passed    0.01 sec
+        Start 201: DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+ 15/205 Test #190: DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed ...................................   Passed    1.57 sec
+        Start 142: DicomJ2kFailureTest.FailurePaths_ControlLeakIsCaught
+ 16/205 Test #198: DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed ...................................   Passed    2.21 sec
+ 17/205 Test #193: DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed ....................................   Passed    2.18 sec
+        Start   2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid
+        Start 199: DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed
+ 18/205 Test   #2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid .......................................   Passed    0.03 sec
+        Start  44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError
+ 19/205 Test  #44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError ...................................   Passed    0.02 sec
+        Start  82: DicomReaderTest.GetMetadata_FieldsPopulated
+ 20/205 Test  #82: DicomReaderTest.GetMetadata_FieldsPopulated ...........................................   Passed    0.04 sec
+        Start  21: XpeCommonTest.ShutdownReleasesLogFileSink
+ 21/205 Test  #21: XpeCommonTest.ShutdownReleasesLogFileSink .............................................   Passed    0.02 sec
+        Start  46: XpeCommonTest.AllocImageZeroInitializesMemory
+ 22/205 Test  #46: XpeCommonTest.AllocImageZeroInitializesMemory .........................................   Passed    0.02 sec
+        Start  35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit
+ 23/205 Test  #35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit ................................   Passed    0.02 sec
+        Start 195: DicomNetworkTest.CancelNoOp_WhenIdle
+ 24/205 Test #142: DicomJ2kFailureTest.FailurePaths_ControlLeakIsCaught ..................................   Passed    0.95 sec
+        Start  31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid
+ 25/205 Test  #31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid ......................................   Passed    0.01 sec
+        Start 197: DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput
+ 26/205 Test #199: DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed ....................................   Passed    0.57 sec
+        Start 196: DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput
+ 27/205 Test #195: DicomNetworkTest.CancelNoOp_WhenIdle ..................................................   Passed    0.58 sec
+        Start 172: DicomValidatorTest.NullOutBuf_ReturnsInvalidInput
+ 28/205 Test #201: DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores .............................***Failed    1.57 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomNetworkTest
+[ RUN      ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+[2026-10-02 01:52:59.103] [warning] [DicomNetworkSCU] cstore: file load failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(280): error: Expected equality of these values:
+  0
+  xpe_dicom_cstore( ("XPEMOCKSCP@localhost"), s_storePort, "TESTSCU", s_testDcm.string().c_str(), 5000)
+    Which is: -9
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(281): error: Expected: (s_scp.scp().storeRequests.load()) > (before), actual: 0 vs 0
+the called-AE form must reach the SCP, not just parse
+
+[  FAILED  ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores (0 ms)
+[----------] 1 test from DicomNetworkTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1546 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+
+ 1 FAILED TEST
+
+        Start 124: DicomReaderTest.KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured
+ 29/205 Test #172: DicomValidatorTest.NullOutBuf_ReturnsInvalidInput .....................................   Passed    0.04 sec
+        Start 123: DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure
+ 30/205 Test #123: DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure .............................***Failed    0.09 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: TS-less Explicit VR LE (control): open=0 read=0 pixels=1 256x256
+[2026-10-02 01:53:00.215] [warning] [DicomReader] no TransferSyntaxUID in meta; detected syntax '1.2.840.10008.1.2' is not supported -- refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: TS-less Implicit VR LE: open=-7 read=-12 pixels=0 0x0
+[2026-10-02 01:53:00.223] [warning] [DicomReader] no TransferSyntaxUID in meta; detected syntax '1.2.840.10008.1.2.2' is not supported -- refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: TS-less Explicit VR BE: open=-7 read=-12 pixels=0 0x0
+[2026-10-02 01:53:00.228] [warning] [DicomReader] no TransferSyntaxUID in meta; PixelData is encapsulated but the detected syntax '1.2.840.10008.1.2.1' is native -- the detection cannot be trusted, refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: TS-less .70: open=-7 read=-12 pixels=0 0x0
+[2026-10-02 01:53:00.235] [warning] [DicomReader] no TransferSyntaxUID in meta; PixelData is encapsulated but the detected syntax '1.2.840.10008.1.2.1' is native -- the detection cannot be trusted, refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: TS-less .57: open=-7 read=-12 pixels=0 0x0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: labelled .70 (normal path): open=0 read=0 pixels=1 256x256
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2706):: labelled .57 (normal path): open=0 read=0 pixels=1 256x256
+[       OK ] DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure (49 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (49 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (67 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 102: DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument
+ 31/205 Test #124: DicomReaderTest.KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured ............   Passed    0.84 sec
+ 32/205 Test #197: DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput ...............................   Passed    1.25 sec
+        Start 125: DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct
+        Start  96: DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput
+ 33/205 Test #196: DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput ...................................   Passed    1.02 sec
+        Start 122: DicomReaderTest.KnownDivergence_EncapsulationSignalsAndMetaNullReachability
+ 34/205 Test #125: DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct ..........***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2886):: .57 predictor 1 | Ss=1 | fragment bytes=16740 | open=0 read=0 | 256x256 | differing pixels=0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2886):: .57 predictor 2 | Ss=2 | fragment bytes=81766 | open=0 read=0 | 256x256 | differing pixels=0
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2859): error: Value of: fp.ok
+  Actual: false
+Expected: true
+first fragment not readable
+Google Test trace:
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2850): .57 predictor 3
+
+[  FAILED  ] DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct (21 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (21 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (39 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct
+
+ 1 FAILED TEST
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+ 35/205 Test  #96: DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput ...............................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput
+[       OK ] DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput (0 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (21 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 178: DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency
+        Start 121: DicomReaderTest.KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured
+ 36/205 Test #102: DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument ....................***Failed    0.83 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(967):: .70 encoder: requests=7 distinct streams=1
+[       OK ] DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument (70 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (70 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (90 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash
+ 37/205 Test #122: DicomReaderTest.KnownDivergence_EncapsulationSignalsAndMetaNullReachability ...........   Passed    0.10 sec
+ 38/205 Test #178: DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency ..................   Passed    0.06 sec
+        Start 118: DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels
+        Start 119: DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes
+ 39/205 Test #121: DicomReaderTest.KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured ............   Passed    0.09 sec
+        Start 101: DicomReaderTest.ReadJpegLosslessSV1_Predictor1PixelExact
+ 40/205 Test #118: DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels ......................***Failed    0.08 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2326):: control: meta-less Explicit VR LE (SUPPORTED) open=0 read=0 pixels=1 256x256
+[2026-10-02 01:53:01.164] [warning] [DicomReader] Unsupported Transfer Syntax: 1.2.840.10008.1.2
+[2026-10-02 01:53:01.167] [warning] [DicomReader] no TransferSyntaxUID in meta; detected syntax '1.2.840.10008.1.2' is not supported -- refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2357):: Implicit VR Little Endian (1.2.840.10008.1.2): with-meta open=-7 | meta-less open=-7 read=-12 pixels=0 0x0
+[2026-10-02 01:53:01.175] [warning] [DicomReader] Unsupported Transfer Syntax: 1.2.840.10008.1.2.2
+[2026-10-02 01:53:01.175] [warning] [DicomReader] no TransferSyntaxUID in meta; detected syntax '1.2.840.10008.1.2.2' is not supported -- refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2357):: Explicit VR Big Endian (1.2.840.10008.1.2.2): with-meta open=-7 | meta-less open=-7 read=-12 pixels=0 0x0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2344):: Deflated Explicit VR LE (1.2.840.10008.1.2.1.99): DCMTK cannot write this syntax here -- not measured
+[       OK ] DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels (26 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (26 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (48 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 168: DicomValidatorTest.ValidateMissingPatientID_ReportsError
+ 41/205 Test #119: DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes ............***Failed    0.08 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes
+[2026-10-02 01:53:01.186] [warning] [DicomReader] Unsupported Transfer Syntax: 1.2.840.10008.1.2
+[2026-10-02 01:53:01.186] [warning] [DicomReader] loadFile failed: No such file or directory
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2396):: Implicit VR Little Endian (1.2.840.10008.1.2): with-meta=-7 meta-less open=-9 read=-12 pixels=0 0x0
+[2026-10-02 01:53:01.195] [warning] [DicomReader] Unsupported Transfer Syntax: 1.2.840.10008.1.2.2
+[2026-10-02 01:53:01.195] [warning] [DicomReader] no TransferSyntaxUID in meta; detected syntax '1.2.840.10008.1.2.2' is not supported -- refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2396):: Explicit VR Big Endian (1.2.840.10008.1.2.2): with-meta=-7 meta-less open=-7 read=-12 pixels=0 0x0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2389):: Deflated Explicit VR LE: not writable here -- not measured
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2406):: native unsupported syntaxes yielding pixels without a meta-header: 0 (#167)
+[       OK ] DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes (33 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (33 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (51 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 109: DicomReaderTest.CompressedMatchedSize_StillReadsNormally
+ 42/205 Test  #55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash ......................................   Passed    0.87 sec
+ 43/205 Test #101: DicomReaderTest.ReadJpegLosslessSV1_Predictor1PixelExact ..............................   Passed    0.81 sec
+ 44/205 Test #168: DicomValidatorTest.ValidateMissingPatientID_ReportsError ..............................   Passed    0.77 sec
+        Start 100: DicomReaderTest.EverySupportedTransferSyntaxActuallyReads
+        Start  88: DicomReaderTest.ReadImageNullHandle_ReturnsInvalidInput
+        Start 171: DicomValidatorTest.NullFilePath_ReturnsInvalidInput
+ 45/205 Test #109: DicomReaderTest.CompressedMatchedSize_StillReadsNormally ..............................***Failed    0.83 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.CompressedMatchedSize_StillReadsNormally
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.CompressedMatchedSize_StillReadsNormally
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmFileFormat: Meta Information Header is not updated!
+[       OK ] DicomReaderTest.CompressedMatchedSize_StillReadsNormally (55 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (55 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (75 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 112: DicomReaderTest.KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway
+ 46/205 Test  #88: DicomReaderTest.ReadImageNullHandle_ReturnsInvalidInput ...............................   Passed    0.08 sec
+ 47/205 Test #100: DicomReaderTest.EverySupportedTransferSyntaxActuallyReads .............................***Failed    0.11 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.EverySupportedTransferSyntaxActuallyReads
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.EverySupportedTransferSyntaxActuallyReads
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(686): error: Value of: WriteInTransferSyntax(ts.uid, s_validDcm, path, whyNot)
+  Actual: false
+Expected: true
+cannot build a fixture:  -- either teach this test to write that syntax, or remove it from kSupportedTransferSyntaxes
+Google Test trace:
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(682): JPEG Lossless, Non-Hierarchical, First-Order (1.2.840.10008.1.2.4.70)
+
+[  FAILED  ] DicomReaderTest.EverySupportedTransferSyntaxActuallyReads (30 ms)
+[----------] 1 test from DicomReaderTest (30 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (47 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.EverySupportedTransferSyntaxActuallyReads
+
+ 1 FAILED TEST
+
+        Start 151: DicomWriterTest.WriteJ2KRoundTrip_PixelExact
+        Start 143: DicomJ2kFailureTest.FailedReadLeavesOutputUntouched
+ 48/205 Test #171: DicomValidatorTest.NullFilePath_ReturnsInvalidInput ...................................   Passed    0.09 sec
+        Start 115: DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels
+ 49/205 Test #112: DicomReaderTest.KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway ................   Passed    0.08 sec
+        Start 114: DicomReaderTest.Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured
+ 50/205 Test #151: DicomWriterTest.WriteJ2KRoundTrip_PixelExact ..........................................   Passed    0.70 sec
+        Start 110: DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid
+ 51/205 Test #143: DicomJ2kFailureTest.FailedReadLeavesOutputUntouched ...................................   Passed    0.71 sec
+ 52/205 Test #115: DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels ..............................***Failed    0.69 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels
+[2026-10-02 01:53:02.154] [warning] [DicomReader] no TransferSyntaxUID in meta; PixelData is encapsulated but the detected syntax '1.2.840.10008.1.2.1' is native -- the detection cannot be trusted, refusing
+[2026-10-02 01:53:02.155] [warning] [DicomReader] no TransferSyntaxUID in meta; PixelData is encapsulated but the detected syntax '1.2.840.10008.1.2.1' is native -- the detection cannot be trusted, refusing
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2051):: meta-less .57: open=-7 read=-12 pixels=0 0x0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2053):: meta-less .70: open=-7 read=-12 pixels=0 0x0
+[       OK ] DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels (6 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (25 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  47: XpeCommonTest.AllocImageUint16Format
+        Start  70: DicomParameterDependency.RoundTripReproducesTheInput
+ 53/205 Test #114: DicomReaderTest.Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured ....................   Passed    0.70 sec
+        Start 120: DicomReaderTest.KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured
+ 54/205 Test  #47: XpeCommonTest.AllocImageUint16Format ..................................................   Passed    0.05 sec
+        Start  45: XpeCommonTest.LogFlushDoesNotCrash
+ 55/205 Test  #45: XpeCommonTest.LogFlushDoesNotCrash ....................................................   Passed    0.03 sec
+        Start  30: XpeCommonTest.FreeImageReleasesMemory
+ 56/205 Test  #70: DicomParameterDependency.RoundTripReproducesTheInput ..................................   Passed    0.08 sec
+        Start 108: DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid
+ 57/205 Test #120: DicomReaderTest.KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured ...................   Passed    0.07 sec
+        Start 117: DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat
+ 58/205 Test  #30: XpeCommonTest.FreeImageReleasesMemory .................................................   Passed    0.04 sec
+        Start 111: DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid
+ 59/205 Test #108: DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid ..............***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid
+W: DcmFileFormat: Meta Information Header is not updated!
+[2026-10-02 01:53:02.943] [error] [DicomReader] JPEG frame size does not match the declared size: dataset says 256x256, frame carries 256x128
+[       OK ] DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid (17 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (40 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 103: DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption
+ 60/205 Test #117: DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat ......................***Failed    0.07 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat
+W: invalid value for 'BitsAllocated' (16), > 8 for OB encoded uncompressed 'PixelData'
+[2026-10-02 01:53:02.955] [warning] [DicomReader] Unsupported Transfer Syntax: 1.2.840.10008.1.2.4.50
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2182):: JPEG Baseline (.50, compressed, not accepted): open=-7
+[       OK ] DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat (12 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (12 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (41 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 116: DicomReaderTest.ReadJpegLosslessProcess14_DecodesPixelExact
+ 61/205 Test #110: DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid ...................***Failed    0.21 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid
+W: DcmFileFormat: Meta Information Header is not updated!
+[2026-10-02 01:53:02.956] [error] [DicomReader] J2K codestream size does not match the declared size: dataset says 256x128, codestream carries 256x256
+[       OK ] DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid (18 ms)
+unknown file: error: C++ exception with description "remove_all: The directory is not empty.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (54 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  73: DicomParameterDependency.MetadataFieldsReachTheFile
+ 62/205 Test #111: DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid ...............***Failed    0.08 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid
+W: DcmFileFormat: Meta Information Header is not updated!
+[2026-10-02 01:53:02.963] [warning] [DicomReader] JPEG-LL chooseRepresentation failed: Corrupted data
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(1704): error: Expected equality of these values:
+  -13
+  ReadWithSentinel(path, &img)
+    Which is: -3
+this shape used to surface as XPE_ERR_PROCESSING_FAILED from DCMTK's decoder -- a decoder fault, which is not what is wrong with the file; the SOF check now names it as the dimension mismatch it is
+
+[  FAILED  ] DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid (19 ms)
+[----------] 1 test from DicomReaderTest (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid
+
+ 1 FAILED TEST
+
+        Start 107: DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid
+ 63/205 Test #116: DicomReaderTest.ReadJpegLosslessProcess14_DecodesPixelExact ...........................   Passed    0.05 sec
+ 64/205 Test #103: DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption .............................***Failed    0.07 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+[2026-10-02 01:53:03.010] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(1034): error: Expected equality of these values:
+  0
+  openFailures.load()
+    Which is: 7
+open failed under contention
+
+[  FAILED  ] DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption (24 ms)
+[----------] 1 test from DicomReaderTest (24 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (42 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption
+
+ 1 FAILED TEST
+
+        Start 139: DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid
+        Start 137: DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed
+ 65/205 Test #107: DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid ..................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:03.016] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:03.021] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid
+[2026-10-02 01:53:03.023] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(1603): error: Value of: WriteCompressedWithDeclaredRows(path, true, 256, 128, 256, whyNot)
+  Actual: false
+Expected: true
+xpe_dicom_write_j2k failed on the source image
+
+[  FAILED  ] DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid (2 ms)
+[----------] 1 test from DicomReaderTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (17 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid
+
+ 1 FAILED TEST
+
+ 66/205 Test  #73: DicomParameterDependency.MetadataFieldsReachTheFile ...................................   Passed    0.07 sec
+        Start 138: DicomJ2kFailureTest.TruncatedBitstream_ReturnsProcessingFailed
+        Start 113: DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured
+ 67/205 Test #139: DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid .................................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomJ2kFailureTest
+[ RUN      ] DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid
+[       OK ] DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid (20 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomJ2kFailureTest (20 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomJ2kFailureTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 106: DicomReaderTest.SurplusPixelData_IsIgnoredAndReadSucceeds
+ 68/205 Test #137: DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed ..........................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomJ2kFailureTest
+[ RUN      ] DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed
+[2026-10-02 01:53:03.084] [warning] [DicomReader] opj_read_header failed
+[       OK ] DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed (19 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomJ2kFailureTest (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (39 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomJ2kFailureTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  72: DicomParameterDependency.ImageDimensionsReachTheFile
+ 69/205 Test #113: DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured ......................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(1843):: DCMTK encoder: .57 (EXS_JPEGProcess14)=1  .70 (EXS_JPEGProcess14SV1)=1
+[       OK ] DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured (2 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (18 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  71: DicomParameterDependency.PixelDataReachesTheFile
+ 70/205 Test #138: DicomJ2kFailureTest.TruncatedBitstream_ReturnsProcessingFailed ........................   Passed    0.73 sec
+        Start 105: DicomReaderTest.ShortPixelData_ReturnsDicomInvalid
+ 71/205 Test  #72: DicomParameterDependency.ImageDimensionsReachTheFile ..................................   Passed    0.69 sec
+ 72/205 Test #106: DicomReaderTest.SurplusPixelData_IsIgnoredAndReadSucceeds .............................   Passed    0.70 sec
+        Start 104: DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen
+        Start 186: DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput
+ 73/205 Test  #71: DicomParameterDependency.PixelDataReachesTheFile ......................................   Passed    0.70 sec
+        Start  98: DicomReaderTest.OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid
+ 74/205 Test #105: DicomReaderTest.ShortPixelData_ReturnsDicomInvalid ....................................   Passed    0.05 sec
+        Start  99: DicomReaderTest.ReadJpegLossless_DecodesPixelExact
+ 75/205 Test #104: DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen ................................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:03.814] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(1370): error: Value of: ff.loadFile(s_validDcm.string().c_str()).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen
+
+ 1 FAILED TEST
+
+        Start 183: DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass
+ 76/205 Test #186: DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput .........................   Passed    0.06 sec
+        Start  94: DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid
+ 77/205 Test  #98: DicomReaderTest.OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid ................   Passed    0.06 sec
+        Start 182: DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+ 78/205 Test  #99: DicomReaderTest.ReadJpegLossless_DecodesPixelExact ....................................   Passed    0.06 sec
+        Start 181: DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+ 79/205 Test  #94: DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid .............................***Failed    0.04 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:03.883] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:03.888] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(419): error: Value of: ff.loadFile(s_validDcm.string().c_str()).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid
+
+ 1 FAILED TEST
+
+        Start 177: DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+ 80/205 Test #183: DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass ...............   Passed    0.06 sec
+        Start 180: DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+ 81/205 Test #182: DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant .......................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[2026-10-02 01:53:03.894] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_validator.cpp(368): error: Value of: ff.loadFile(s_conformantDcm.string().c_str()).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant (0 ms)
+[----------] 1 test from DicomValidatorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+
+ 1 FAILED TEST
+
+        Start 188: DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize
+ 82/205 Test #181: DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid ..............***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid (6 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_validator_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomValidatorTest (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (25 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomValidatorTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 179: DicomValidatorTest.ValidateWriterOutput_IsConformant
+ 83/205 Test #177: DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta ................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+[       OK ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta (6 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_validator_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomValidatorTest (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (27 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomValidatorTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 184: DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance
+ 84/205 Test #180: DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency ...............***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency (6 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_validator_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomValidatorTest (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (24 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomValidatorTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+ 85/205 Test #179: DicomValidatorTest.ValidateWriterOutput_IsConformant ..................................***Failed    0.04 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateWriterOutput_IsConformant
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[2026-10-02 01:53:03.960] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomValidatorTest.ValidateWriterOutput_IsConformant
+[2026-10-02 01:53:03.960] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_validator.cpp(285): error: Expected equality of these values:
+  0
+  xpe_dicom_write(path.string().c_str(), &img, &meta)
+    Which is: -9
+
+[  FAILED  ] DicomValidatorTest.ValidateWriterOutput_IsConformant (0 ms)
+[----------] 1 test from DicomValidatorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomValidatorTest.ValidateWriterOutput_IsConformant
+
+ 1 FAILED TEST
+
+ 86/205 Test #188: DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize ......................   Passed    0.05 sec
+        Start  97: DicomReaderTest.GetMetadataNullOutput_ReturnsInvalidInput
+        Start 187: DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow
+        Start  92: DicomReaderTest.ReadJ2K_CorruptBody_ReturnsProcessingFailed
+ 87/205 Test #184: DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance .........   Passed    0.06 sec
+        Start 185: DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax
+ 88/205 Test  #97: DicomReaderTest.GetMetadataNullOutput_ReturnsInvalidInput .............................   Passed    0.05 sec
+ 89/205 Test #187: DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow ..................   Passed    0.04 sec
+        Start  93: DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE
+        Start  91: DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed
+ 90/205 Test  #92: DicomReaderTest.ReadJ2K_CorruptBody_ReturnsProcessingFailed ...........................   Passed    0.06 sec
+        Start 166: DicomWriterTest.EmptyImageContract_ValidImageStillAccepted
+ 91/205 Test  #93: DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE ......................***Failed    0.04 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:04.043] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(400): error: Value of: ff.loadFile(s_validDcm.string().c_str()).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE
+
+ 1 FAILED TEST
+
+ 92/205 Test #185: DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax ......   Passed    0.06 sec
+        Start  95: DicomReaderTest.OpenEmptyPath_ReturnsIoFailed
+        Start  90: DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid
+ 93/205 Test  #91: DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed .........................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:04.054] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:04.059] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(357): error: Value of: corrupt_j2k_codestream(s_j2kDcm, path, 4, 24)
+  Actual: false
+Expected: true
+no J2K codestream found in the fixture
+
+[  FAILED  ] DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed
+
+ 1 FAILED TEST
+
+        Start  81: DicomReaderTest.ReadJ2KDecompress_ProducesUint16
+ 94/205 Test #166: DicomWriterTest.EmptyImageContract_ValidImageStillAccepted ............................   Passed    0.05 sec
+        Start 176: DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing
+ 95/205 Test  #95: DicomReaderTest.OpenEmptyPath_ReturnsIoFailed .........................................   Passed    0.05 sec
+        Start  79: DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat
+ 96/205 Test  #90: DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid ...............................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:04.099] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid
+[       OK ] DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid (12 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (12 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (34 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 175: DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall
+ 97/205 Test  #81: DicomReaderTest.ReadJ2KDecompress_ProducesUint16 ......................................   Passed    0.06 sec
+        Start 173: DicomValidatorTest.ValidateBadUID_ReportsWarning
+ 98/205 Test #176: DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing .............................   Passed    0.06 sec
+ 99/205 Test  #79: DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat ................................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:04.135] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:04.140] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(170): error: Value of: fs::exists(s_implicitLEDcm)
+  Actual: false
+Expected: true
+Implicit LE fixture was not written
+
+[  FAILED  ] DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat
+
+ 1 FAILED TEST
+
+        Start  74: DicomReaderTest.OpenValid_ReturnsOkAndNonNullHandle
+        Start 174: DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall
+100/205 Test #173: DicomValidatorTest.ValidateBadUID_ReportsWarning ......................................***Failed    0.03 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomValidatorTest.ValidateBadUID_ReportsWarning
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[2026-10-02 01:53:04.168] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomValidatorTest.ValidateBadUID_ReportsWarning
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_validator.cpp(161): error: Value of: fs::exists(s_badUidDcm)
+  Actual: false
+Expected: true
+bad-UID fixture was not written
+
+[  FAILED  ] DicomValidatorTest.ValidateBadUID_ReportsWarning (0 ms)
+[----------] 1 test from DicomValidatorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomValidatorTest.ValidateBadUID_ReportsWarning
+
+ 1 FAILED TEST
+
+101/205 Test #175: DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall ...............   Passed    0.05 sec
+        Start  78: DicomReaderTest.ReadJ2KLossless_Succeeds
+        Start  80: DicomReaderTest.ReadImage_PixelDimensionsMatch
+102/205 Test  #74: DicomReaderTest.OpenValid_ReturnsOkAndNonNullHandle ...................................   Passed    0.04 sec
+        Start 161: DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput
+103/205 Test #174: DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall .................   Passed    0.72 sec
+104/205 Test  #80: DicomReaderTest.ReadImage_PixelDimensionsMatch ........................................***Failed    0.70 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadImage_PixelDimensionsMatch
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.ReadImage_PixelDimensionsMatch
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(183): error: Expected equality of these values:
+  0
+  xpe_dicom_read_image(handle, &img)
+    Which is: -13
+
+[  FAILED  ] DicomReaderTest.ReadImage_PixelDimensionsMatch (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ReadImage_PixelDimensionsMatch
+
+ 1 FAILED TEST
+
+        Start 167: DicomValidatorTest.ValidateConformant_ReturnsValid
+        Start  86: DicomReaderTest.NullFilePath_ReturnsInvalidInput
+105/205 Test  #78: DicomReaderTest.ReadJ2KLossless_Succeeds ..............................................   Passed    0.75 sec
+        Start  75: DicomReaderTest.OpenMissingFile_ReturnsIOFailed
+106/205 Test #161: DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput .............................   Passed    0.74 sec
+        Start 146: DicomWriterTest.WriteMetadata_Preserved
+107/205 Test #167: DicomValidatorTest.ValidateConformant_ReturnsValid ....................................   Passed    0.06 sec
+        Start 162: DicomWriterTest.WriteUint8Format_NotRejectedBySizeGuard
+108/205 Test  #75: DicomReaderTest.OpenMissingFile_ReturnsIOFailed .......................................   Passed    0.05 sec
+        Start  83: DicomReaderTest.GetMetadata_MissingTagsDefault
+109/205 Test #162: DicomWriterTest.WriteUint8Format_NotRejectedBySizeGuard ...............................   Passed    0.04 sec
+110/205 Test #146: DicomWriterTest.WriteMetadata_Preserved ...............................................   Passed    0.05 sec
+        Start 170: DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall
+        Start 145: DicomWriterTest.WriteRoundTrip_PixelExact
+111/205 Test  #83: DicomReaderTest.GetMetadata_MissingTagsDefault ........................................   Passed    0.04 sec
+        Start  87: DicomReaderTest.NullOutHandle_ReturnsInvalidInput
+112/205 Test #170: DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall ...............................   Passed    0.04 sec
+        Start  77: DicomReaderTest.ReadExplicitLE_Succeeds
+113/205 Test #145: DicomWriterTest.WriteRoundTrip_PixelExact .............................................   Passed    0.05 sec
+        Start 169: DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid
+114/205 Test  #86: DicomReaderTest.NullFilePath_ReturnsInvalidInput ......................................***Failed    0.17 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.NullFilePath_ReturnsInvalidInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.NullFilePath_ReturnsInvalidInput
+[       OK ] DicomReaderTest.NullFilePath_ReturnsInvalidInput (0 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (26 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start  76: DicomReaderTest.OpenInvalidDicom_ReturnsDicomInvalid
+115/205 Test  #87: DicomReaderTest.NullOutHandle_ReturnsInvalidInput .....................................   Passed    0.06 sec
+        Start  84: DicomReaderTest.CloseValid_NoLeak
+116/205 Test  #77: DicomReaderTest.ReadExplicitLE_Succeeds ...............................................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.ReadExplicitLE_Succeeds
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:05.069] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:05.074] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.ReadExplicitLE_Succeeds
+[2026-10-02 01:53:05.074] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(142): error: Expected equality of these values:
+  0
+  xpe_dicom_open(s_validDcm.string().c_str(), &handle)
+    Which is: -9
+
+[  FAILED  ] DicomReaderTest.ReadExplicitLE_Succeeds (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.ReadExplicitLE_Succeeds
+
+ 1 FAILED TEST
+
+        Start  89: DicomReaderTest.GetMetadataNullHandle_ReturnsInvalidInput
+117/205 Test #169: DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid ...............................   Passed    0.05 sec
+        Start 152: DicomWriterTest.RescaleDefaults_OneAndZero
+118/205 Test  #76: DicomReaderTest.OpenInvalidDicom_ReturnsDicomInvalid ..................................   Passed    0.05 sec
+        Start 163: DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+119/205 Test  #84: DicomReaderTest.CloseValid_NoLeak .....................................................***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.CloseValid_NoLeak
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:05.112] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.CloseValid_NoLeak
+[2026-10-02 01:53:05.117] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(242): error: Expected equality of these values:
+  0
+  xpe_dicom_open(s_validDcm.string().c_str(), &handle)
+    Which is: -9
+
+[  FAILED  ] DicomReaderTest.CloseValid_NoLeak (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.CloseValid_NoLeak
+
+ 1 FAILED TEST
+
+        Start  85: DicomReaderTest.CloseNull_NoOp
+120/205 Test  #89: DicomReaderTest.GetMetadataNullHandle_ReturnsInvalidInput .............................   Passed    0.05 sec
+        Start 165: DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput
+121/205 Test #163: DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput ..............................***Failed    0.03 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomWriterTest
+[ RUN      ] DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_writer_test"" thrown in TearDown().
+
+[  FAILED  ] DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput (0 ms)
+[----------] 1 test from DicomWriterTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+
+ 1 FAILED TEST
+
+        Start 157: DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted
+122/205 Test #152: DicomWriterTest.RescaleDefaults_OneAndZero ............................................   Passed    0.06 sec
+        Start 160: DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+123/205 Test #165: DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput ...............................   Passed    0.03 sec
+        Start 164: DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput
+124/205 Test  #85: DicomReaderTest.CloseNull_NoOp ........................................................   Passed    0.06 sec
+        Start  56: XpeCommonTest.ConcurrentAlertQueueAccess
+125/205 Test #157: DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted ..........................   Passed    0.04 sec
+126/205 Test #160: DicomWriterTest.WriteEmptyBodyPart_StillWritesFile ....................................***Failed    0.03 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomWriterTest
+[ RUN      ] DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+[2026-10-02 01:53:05.189] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(301): error: Expected equality of these values:
+  0
+  xpe_dicom_write(path.string().c_str(), &m_img, &meta)
+    Which is: -9
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(302): error: Value of: fs::exists(path)
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomWriterTest.WriteEmptyBodyPart_StillWritesFile (8 ms)
+[----------] 1 test from DicomWriterTest (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+
+ 1 FAILED TEST
+
+        Start 144: DicomWriterTest.WriteBasic_CreatesFile
+        Start 156: DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted
+127/205 Test #164: DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput .............................   Passed    0.04 sec
+        Start 147: DicomWriterTest.WriteIOError_ReturnsIOFailed
+128/205 Test  #56: XpeCommonTest.ConcurrentAlertQueueAccess ..............................................   Passed    0.04 sec
+        Start  69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
+129/205 Test #144: DicomWriterTest.WriteBasic_CreatesFile ................................................   Passed    0.04 sec
+        Start 155: DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput
+130/205 Test #156: DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted .............................   Passed    0.04 sec
+        Start  64: AlertQueueOverflowTest.LossAlertIsNeverEvicted
+131/205 Test  #69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState ..............   Passed    0.71 sec
+132/205 Test #147: DicomWriterTest.WriteIOError_ReturnsIOFailed ..........................................   Passed    0.72 sec
+        Start  67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists
+        Start  68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped
+133/205 Test #155: DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput ..............   Passed    0.72 sec
+        Start 153: DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput
+134/205 Test  #67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists ............................   Passed    0.03 sec
+        Start  62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError
+135/205 Test #153: DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput ...................................   Passed    0.02 sec
+        Start  65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter
+136/205 Test  #62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError ....................   Passed    0.02 sec
+        Start  66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow
+137/205 Test  #65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter ................................   Passed    0.02 sec
+        Start  63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace
+138/205 Test  #66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow .....................................   Passed    0.02 sec
+        Start  32: XpeCommonTest.CopyImageSucceeds
+139/205 Test  #63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace .............................   Passed    0.02 sec
+        Start  60: XpeCommonTest.CopyImageReproducesEveryByte
+140/205 Test  #32: XpeCommonTest.CopyImageSucceeds .......................................................   Passed    0.02 sec
+        Start 148: DicomWriterTest.WriteNullPath_ReturnsInvalidInput
+141/205 Test  #60: XpeCommonTest.CopyImageReproducesEveryByte ............................................   Passed    0.02 sec
+        Start 149: DicomWriterTest.WriteNullImg_ReturnsInvalidInput
+142/205 Test  #64: AlertQueueOverflowTest.LossAlertIsNeverEvicted ........................................   Passed    0.80 sec
+        Start 150: DicomWriterTest.WriteNullMeta_ReturnsInvalidInput
+143/205 Test #148: DicomWriterTest.WriteNullPath_ReturnsInvalidInput .....................................   Passed    0.03 sec
+        Start 154: DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput
+144/205 Test  #68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped ..........................   Passed    0.13 sec
+145/205 Test #149: DicomWriterTest.WriteNullImg_ReturnsInvalidInput ......................................   Passed    0.03 sec
+        Start  23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid
+        Start   1: XpeCommonTest.InitReturnsOk
+146/205 Test #150: DicomWriterTest.WriteNullMeta_ReturnsInvalidInput .....................................   Passed    0.05 sec
+        Start  59: XpeCommonTest.ErrorStringForInvalidInputHasExactText
+147/205 Test #154: DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput .................   Passed    0.05 sec
+148/205 Test  #23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid .....................................   Passed    0.04 sec
+        Start  61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself
+        Start  33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall
+149/205 Test   #1: XpeCommonTest.InitReturnsOk ...........................................................   Passed    0.05 sec
+        Start  50: XpeCommonTest.GetParamRangeForDifferentBodyParts
+150/205 Test  #59: XpeCommonTest.ErrorStringForInvalidInputHasExactText ..................................   Passed    0.05 sec
+        Start  20: XpeCommonTest.LogSetFileReopensSink
+151/205 Test  #33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall ...........................   Passed    0.04 sec
+        Start  57: XpeCommonTest.MemoryLeakTestThousandCycles
+152/205 Test  #50: XpeCommonTest.GetParamRangeForDifferentBodyParts ......................................   Passed    0.04 sec
+        Start  22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash
+153/205 Test  #20: XpeCommonTest.LogSetFileReopensSink ...................................................   Passed    0.03 sec
+        Start  54: XpeCommonTest.AlertQueueFifoOrder
+154/205 Test  #57: XpeCommonTest.MemoryLeakTestThousandCycles ............................................   Passed    0.03 sec
+        Start  58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions
+155/205 Test  #22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash .......................................   Passed    0.03 sec
+        Start  51: XpeCommonTest.ErrorStringForUnknownErrorCode
+156/205 Test  #54: XpeCommonTest.AlertQueueFifoOrder .....................................................   Passed    0.03 sec
+        Start  34: XpeCommonTest.InitDoubleInitReturnsOk
+157/205 Test  #58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions ..................................   Passed    0.04 sec
+        Start  52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds
+158/205 Test  #51: XpeCommonTest.ErrorStringForUnknownErrorCode ..........................................   Passed    0.04 sec
+159/205 Test  #61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself ...............................   Passed    0.14 sec
+        Start  41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative
+        Start  29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid
+160/205 Test  #34: XpeCommonTest.InitDoubleInitReturnsOk .................................................   Passed    0.04 sec
+        Start  28: XpeCommonTest.AllocImageForUint8Format
+161/205 Test  #52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds .....................................   Passed    0.04 sec
+162/205 Test  #41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative .......................   Passed    0.03 sec
+        Start  24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid
+        Start   7: XpeCommonTest.ConfigureWithValidJsonSucceeds
+163/205 Test  #29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid ......................................   Passed    0.04 sec
+        Start  53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash
+164/205 Test  #28: XpeCommonTest.AllocImageForUint8Format ................................................   Passed    0.04 sec
+165/205 Test  #24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid ..............................   Passed    0.03 sec
+        Start  36: XpeCommonTest.InitShutdownCycleRepeated
+        Start  40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid
+166/205 Test   #7: XpeCommonTest.ConfigureWithValidJsonSucceeds ..........................................   Passed    0.04 sec
+        Start  27: XpeCommonTest.AllocImageForFloat32Format
+167/205 Test  #53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash ........................................   Passed    0.04 sec
+168/205 Test  #36: XpeCommonTest.InitShutdownCycleRepeated ...............................................   Passed    0.03 sec
+        Start  26: XpeCommonTest.AllocImageSucceedsForValidInput
+        Start  13: XpeCommonTest.InjectedAlertAppearsInQueue
+169/205 Test  #40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid ............................   Passed    0.64 sec
+        Start  17: XpeCommonTest.ClearAlertsEmptiesQueue
+170/205 Test  #27: XpeCommonTest.AllocImageForFloat32Format ..............................................   Passed    0.64 sec
+171/205 Test  #26: XpeCommonTest.AllocImageSucceedsForValidInput .........................................   Passed    0.63 sec
+        Start   8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid
+        Start  25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid
+172/205 Test  #13: XpeCommonTest.InjectedAlertAppearsInQueue .............................................   Passed    0.04 sec
+        Start   5: XpeCommonTest.ConfigureWithNullReturnsInvalid
+173/205 Test  #17: XpeCommonTest.ClearAlertsEmptiesQueue .................................................   Passed    0.04 sec
+174/205 Test   #8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid ..................................   Passed    0.03 sec
+        Start  42: XpeCommonTest.VersionFormatSemanticVersioning
+        Start   6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid
+175/205 Test  #25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid .............................   Passed    0.04 sec
+        Start   3: XpeCommonTest.ShutdownWithoutInitIsNoOp
+176/205 Test  #42: XpeCommonTest.VersionFormatSemanticVersioning .........................................   Passed    0.03 sec
+        Start  11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes
+177/205 Test   #6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid ..................................   Passed    0.03 sec
+        Start   9: XpeCommonTest.GetParamRangeReturnsValidValues
+178/205 Test   #3: XpeCommonTest.ShutdownWithoutInitIsNoOp ...............................................   Passed    0.03 sec
+        Start  18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid
+179/205 Test  #11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes ....................................   Passed    0.03 sec
+        Start  39: XpeCommonTest.ConfigureAfterReinitSucceeds
+180/205 Test   #9: XpeCommonTest.GetParamRangeReturnsValidValues .........................................   Passed    0.03 sec
+        Start  38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk
+181/205 Test  #18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid ...............................   Passed    0.03 sec
+        Start  14: XpeCommonTest.GetPendingAlertRetrievesMessage
+182/205 Test  #39: XpeCommonTest.ConfigureAfterReinitSucceeds ............................................   Passed    0.03 sec
+        Start  37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid
+183/205 Test  #38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk .......................................   Passed    0.03 sec
+        Start  43: XpeCommonTest.LogSetLevelEachLevel
+184/205 Test  #14: XpeCommonTest.GetPendingAlertRetrievesMessage .........................................   Passed    0.03 sec
+        Start  12: XpeCommonTest.GetPendingAlertCountInitiallyZero
+185/205 Test  #37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid ..................................   Passed    0.03 sec
+186/205 Test   #5: XpeCommonTest.ConfigureWithNullReturnsInvalid .........................................   Passed    0.14 sec
+        Start   4: XpeCommonTest.VersionReturnsValidString
+        Start  19: XpeCommonTest.LogSetLevelAcceptsValidRange
+187/205 Test  #43: XpeCommonTest.LogSetLevelEachLevel ....................................................   Passed    0.04 sec
+        Start  10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults
+188/205 Test   #4: XpeCommonTest.VersionReturnsValidString ...............................................   Passed    0.03 sec
+        Start  16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall
+189/205 Test  #19: XpeCommonTest.LogSetLevelAcceptsValidRange ............................................   Passed    0.03 sec
+        Start  15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid
+190/205 Test  #10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults .............................   Passed    0.04 sec
+        Start 126: DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+191/205 Test  #16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall .....................   Passed    0.04 sec
+        Start 127: DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults
+192/205 Test  #15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid ................................   Passed    0.04 sec
+        Start 128: DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+193/205 Test  #12: XpeCommonTest.GetPendingAlertCountInitiallyZero .......................................   Passed    0.12 sec
+        Start 129: DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+194/205 Test #126: DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads ......................***Failed    0.07 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[       OK ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads (9 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (41 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 130: DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+195/205 Test #127: DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults ...............................***Failed    0.07 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults
+[       OK ] DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults (7 ms)
+unknown file: error: C++ exception with description "remove_all: The directory is not empty.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 131: DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+196/205 Test #128: DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame .........................   Passed    0.07 sec
+        Start 132: DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+197/205 Test #129: DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup .....................................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:07.284] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3040): error: Expected equality of these values:
+  -7
+  r16.read
+    Which is: -13
+
+[  FAILED  ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (17 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (36 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+
+ 1 FAILED TEST
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 133: DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+198/205 Test #130: DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted ......................   Passed    0.06 sec
+        Start 134: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored
+199/205 Test #131: DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile ............................***Failed    0.06 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:07.313] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2932): error: Value of: ff.saveFile(out.string().c_str(), EXS_LittleEndianExplicit).good()
+  Actual: false
+Expected: true
+
+[2026-10-02 01:53:07.314] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3079): error: Expected equality of these values:
+  -7
+  r.read
+    Which is: 0
+it used to be XPE_ERR_DICOM_INVALID ('PixelData is short')
+
+[  FAILED  ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+
+ 1 FAILED TEST
+
+        Start 135: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported
+200/205 Test #132: DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted ..........***Failed    0.07 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (18 ms)
+unknown file: error: C++ exception with description "remove_all: The process cannot access the file because it is being used by another process.: "C:\Users\drake\AppData\Local\Temp\xpe_dicom_reader_test"" thrown in TearDownTestSuite().
+
+[----------] 1 test from DicomReaderTest (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (37 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+
+ 1 FAILED TEST
+[  FAILED  ] DicomReaderTest: SetUpTestSuite or TearDownTestSuite
+
+ 1 FAILED TEST SUITE
+
+        Start 136: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked
+201/205 Test #133: DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain ............................   Passed    0.05 sec
+        Start 194: DicomNetworkTest.CancelCStore_TerminatesOperation
+202/205 Test #134: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored .....***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:07.361] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored
+[2026-10-02 01:53:07.366] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3121): error: Expected equality of these values:
+  0
+  r.read
+    Which is: -13
+
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored (5 ms)
+[----------] 1 test from DicomReaderTest (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (23 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored
+
+ 1 FAILED TEST
+
+203/205 Test #135: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported ....***Failed    0.05 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:07.379] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported
+[2026-10-02 01:53:07.380] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3132): error: Expected equality of these values:
+  0
+  r.read
+    Which is: -13
+
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported (7 ms)
+[----------] 1 test from DicomReaderTest (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (27 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported
+
+ 1 FAILED TEST
+
+204/205 Test #136: DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked ...***Failed    0.04 sec
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[2026-10-02 01:53:07.389] [warning] [DicomWriter] saveFile failed: ������ ��θ� ã�� �� �����ϴ�.
+[2026-10-02 01:53:07.395] [warning] [DicomWriter] saveFile(J2K) failed: ������ ��θ� ã�� �� �����ϴ�.
+[ RUN      ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked
+[2026-10-02 01:53:07.395] [warning] [DicomReader] loadFile failed: No such file or directory
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2929): error: Value of: ff.loadFile(src.string().c_str()).good()
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(2932): error: Value of: ff.saveFile(out.string().c_str(), EXS_LittleEndianExplicit).good()
+  Actual: false
+Expected: true
+
+[2026-10-02 01:53:07.395] [warning] [DicomReader] loadFile failed: No such file or directory
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked (0 ms)
+[----------] 1 test from DicomReaderTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked
+
+ 1 FAILED TEST
+
+205/205 Test #194: DicomNetworkTest.CancelCStore_TerminatesOperation .....................................***Skipped   0.58 sec
+
+77% tests passed, 47 tests failed out of 205
+
+Total Test time (real) =  14.34 sec
+
+The following tests did not run:
+	194 - DicomNetworkTest.CancelCStore_TerminatesOperation (Skipped)
+
+The following tests FAILED:
+	 77 - DicomReaderTest.ReadExplicitLE_Succeeds (Failed)
+	 79 - DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat (Failed)
+	 80 - DicomReaderTest.ReadImage_PixelDimensionsMatch (Failed)
+	 84 - DicomReaderTest.CloseValid_NoLeak (Failed)
+	 86 - DicomReaderTest.NullFilePath_ReturnsInvalidInput (Failed)
+	 90 - DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid (Failed)
+	 91 - DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed (Failed)
+	 93 - DicomReaderTest.OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE (Failed)
+	 94 - DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid (Failed)
+	 96 - DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput (Failed)
+	100 - DicomReaderTest.EverySupportedTransferSyntaxActuallyReads (Failed)
+	102 - DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument (Failed)
+	103 - DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption (Failed)
+	104 - DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen (Failed)
+	107 - DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid (Failed)
+	108 - DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid (Failed)
+	109 - DicomReaderTest.CompressedMatchedSize_StillReadsNormally (Failed)
+	110 - DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid (Failed)
+	111 - DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid (Failed)
+	113 - DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured (Failed)
+	115 - DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels (Failed)
+	117 - DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat (Failed)
+	118 - DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels (Failed)
+	119 - DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes (Failed)
+	123 - DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure (Failed)
+	125 - DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct (Failed)
+	126 - DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads (Failed)
+	127 - DicomReaderTest.Scope_AbsentAttributesTakeTheirDefaults (Failed)
+	129 - DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (Failed)
+	131 - DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (Failed)
+	132 - DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (Failed)
+	134 - DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored (Failed)
+	135 - DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported (Failed)
+	136 - DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked (Failed)
+	137 - DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed (Failed)
+	139 - DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid (Failed)
+	159 - DicomWriterTest.ThousandCycles_ControlLeakIsCaught (Failed)
+	160 - DicomWriterTest.WriteEmptyBodyPart_StillWritesFile (Failed)
+	163 - DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput (Failed)
+	173 - DicomValidatorTest.ValidateBadUID_ReportsWarning (Failed)
+	177 - DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta (Failed)
+	179 - DicomValidatorTest.ValidateWriterOutput_IsConformant (Failed)
+	180 - DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency (Failed)
+	181 - DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid (Failed)
+	182 - DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant (Failed)
+	201 - DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores (Failed)
+	205 - DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput (Failed)
+Errors while running CTest
