@@ -152,4 +152,7 @@ inline void LogText(spdlog::level::level_enum level, const std::string& text) no
 #define AI_LOG_INFO(...)  do { std::printf("[AI INFO] " __VA_ARGS__); std::printf("\n"); } while (0)
 #define AI_LOG_WARN(...)  do { std::printf("[AI WARN] " __VA_ARGS__); std::printf("\n"); } while (0)
 #define AI_LOG_ERROR(...) do { std::printf("[AI ERROR] " __VA_ARGS__); std::printf("\n"); } while (0)
+// A finished-string message with no logger: the arguments are NOT evaluated (like the other no-op levels), so
+// a call costs nothing and its `level` token need not exist (spdlog is not included here).
+#define AI_LOG_TEXT(level, msg) do {} while (0)
 #endif
