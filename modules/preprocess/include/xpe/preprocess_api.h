@@ -1018,7 +1018,12 @@ typedef enum {
  * Dark bias measures how well offset correction removes the dark current pedestal.
  * DSNU measures residual non-uniformity in dark regions.
  *
- * SRS-CALIB-FUNC-016 / REQ-P1A-010: Offset correction verification
+ * SRS-CALIB-FUNC-016: Offset correction verification.
+ * No REQ-P1A- requirement covers xpe_verify_* (spec.md does not mention them); the
+ * REQ-P1A-010 this line used to cite is "Offset Correction Execution" (xpe_offset_correct),
+ * not verification.
+ * SRS-CALIB-FUNC-036 states the measured/unmeasured reporting contract for every
+ * xpe_verify_*.
  *
  * @param raw_image Original raw image (UINT16)
  * @param corrected_image Offset-corrected image (UINT16)
@@ -1041,7 +1046,12 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * PRNU (Photo Response Non-Uniformity) measures pixel-to-pixel gain variation.
  * Flatness measures histogram uniformity (ideal flat-field response).
  *
- * SRS-CALIB-FUNC-017 / REQ-P1A-011: Gain correction verification
+ * SRS-CALIB-FUNC-017: Gain correction verification.
+ * No REQ-P1A- requirement covers xpe_verify_* (spec.md does not mention them); the
+ * REQ-P1A-011 this line used to cite is "Gain Correction Execution" (xpe_gain_correct),
+ * not verification.
+ * SRS-CALIB-FUNC-036 states the measured/unmeasured reporting contract for every
+ * xpe_verify_*.
  *
  * @param before_gain Offset-corrected image (UINT16)
  * @param after_gain Gain-corrected image (FLOAT32)
@@ -1063,7 +1073,12 @@ XPE_API XpeErrorCode xpe_verify_gain(
  * Computes defect count, density, and correction error metrics.
  * Correction error measures how well defective pixels are interpolated from neighbors.
  *
- * SRS-CALIB-FUNC-019 / REQ-P1A-012: Defect correction verification
+ * SRS-CALIB-FUNC-019: Defect correction verification.
+ * No REQ-P1A- requirement covers xpe_verify_* (spec.md does not mention them); the
+ * REQ-P1A-012 this line used to cite is "Defect Correction Execution" (xpe_defect_correct),
+ * not verification.
+ * SRS-CALIB-FUNC-036 states the measured/unmeasured reporting contract for every
+ * xpe_verify_*.
  *
  * @param corrected_image Defect-corrected image (FLOAT32)
  * @param defect_map BPM used (UINT8)
