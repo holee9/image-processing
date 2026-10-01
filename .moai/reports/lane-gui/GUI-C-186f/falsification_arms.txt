@@ -1,0 +1,110 @@
+ARM the-telemetry-store-takes-no-lock:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   unit run 2: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   unit run 3: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendTelemetryTests.WritersAndADrainer_OverlappingOnABarrier_LoseNothingRepeatNothingAndNeverDisagreeWithTheirOwnCount [5 ms]
+   restored byte-identical: True
+ARM a-shutdown-does-not-raise-the-generation:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ATicket_IsCurrentUntilAShutdownOrAReplacementStarts_EvenWhenTheBackendObjectIsTheSame [15 ms]
+   restored byte-identical: True
+ARM a-ticket-ignores-the-backend-object:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ATicket_ForAnotherBackendObject_IsNeverCurrent [< 1 ms]
+   restored byte-identical: True
+ARM a-ticket-ignores-the-generation:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ATicket_IsCurrentUntilAShutdownOrAReplacementStarts_EvenWhenTheBackendObjectIsTheSame [< 1 ms]
+   restored byte-identical: True
+ARM a-ticket-ignores-a-running-transition:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ATicket_TakenWhileATransitionRuns_IsNotCurrent [< 1 ms]
+   restored byte-identical: True
+ARM the-view-model-always-calls-a-ticket-current:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [8 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [1 started Apply vs shutdown] the held Apply's result was applied after the shutdown began
+   scenario: [1 started Apply vs shutdown] a Lane B chain was started after the shutdown began (chain calls 4, expected 3)
+   scenario: [1 started Apply vs shutdown] the drop was not logged
+   scenario: [1b started Apply fails after shutdown] timed out waiting for: the stale failure to be recognised
+   scenario: [1b started Apply fails after shutdown] a stale Apply failure raised an alert
+   scenario: [1b started Apply fails after shutdown] a stale Apply failure marked the preview stale
+   restored byte-identical: True
+ARM apply-does-not-recheck-after-its-chain:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [5 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [1 started Apply vs shutdown] the held Apply's result was applied after the shutdown began
+   scenario: [1 started Apply vs shutdown] the drop was not logged
+   restored byte-identical: True
+ARM apply-does-not-recheck-in-its-failure-path:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [6 ms]
+   restored byte-identical: True
+ARM apply-does-not-recheck-after-the-lanes:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [5 ms]
+   restored byte-identical: True
+ARM lane-b-is-scheduled-without-asking-the-ticket:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [8 ms]
+   restored byte-identical: True
+ARM a-stale-lane-b-success-is-applied:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     2, 통과:    31, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [8 ms]
+   red: BackendLifecycleTests.TheCandidateLane_RunsItsChainInTheBackground_ForTheBackendThatWasCurrent [1 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [3b stale succeeding Lane B] timed out waiting for: the stale success to be dropped
+   scenario: [3b stale succeeding Lane B] a stale lane success replaced Lane B after the shutdown
+   restored byte-identical: True
+ARM a-stale-lane-b-failure-erases-the-lanes:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [5 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [3 stale failing Lane B] a stale lane failure erased or replaced the new lanes
+   scenario: [3 stale failing Lane B] the stale failure was not recognised as stale
+   restored byte-identical: True
+ARM restart-ai-does-not-recheck-after-its-await:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [8 ms]
+   restored byte-identical: True
+ARM load-image-is-not-refused-during-the-transition:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [5 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [2 entry points vs transition] a backend call was made during the transition (calls 5 -> 6)
+   scenario: [2 entry points vs transition] the screen changed during the transition
+   restored byte-identical: True
+ARM the-voi-preset-is-not-refused-during-the-transition:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [9 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [2 entry points vs transition] a backend call was made during the transition (calls 5 -> 6)
+   restored byte-identical: True
+ARM a-replacement-does-not-raise-the-generation:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [6 ms]
+   restored byte-identical: True
+AFTER RESTORE: unit 0 True ['통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] | SelfCheck exit 0 built True failure lines 0
+sources: b76215f6e47c f4ff2f3a2048 799905f84fd6
+
+# ADDENDUM: two arms re-run with the real-view-model SelfCheck attached. The first full run's attempt to attach it to them did not take effect
+# (the edit of the arm script matched nothing), so their SelfCheck result was missing from the run above.
+ARM apply-does-not-recheck-in-its-failure-path:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [6 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [1b started Apply fails after shutdown] timed out waiting for: the stale failure to be recognised
+   scenario: [1b started Apply fails after shutdown] a stale Apply failure raised an alert
+   scenario: [1b started Apply fails after shutdown] a stale Apply failure marked the preview stale
+   scenario: [1b started Apply fails after shutdown] a stale Apply failure changed the status line ('Backend shutdown.' -> 'Display pipeline failed: scripted failure of the held chain
+   restored byte-identical: True
+ARM apply-does-not-recheck-after-the-lanes:
+   unit run 1: exit=1 built_ok=True ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [5 ms]
+   SelfCheck: exit=3762504530 built_ok=True
+   scenario: [3b stale succeeding Lane B] the dropped render's timing line was written after the lanes' wait
+   restored byte-identical: True
+AFTER RESTORE: unit 0 True ['통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] | SelfCheck exit 0 built True failure lines 0
+sources: b76215f6e47c f4ff2f3a2048 799905f84fd6

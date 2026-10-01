@@ -1,5 +1,6 @@
 // #225 row 10 (GUI-C-186c A1 + A3, GUI-C-186d): the status is read in the background with no limit and applied only while current;
 // an init that threw has ONE reason string; no control byte stands in for a regex backreference.
+#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using System.Collections.Concurrent;
 using ImageProcTest.Models;
 using ImageProcTest.Services;

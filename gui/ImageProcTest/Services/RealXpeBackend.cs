@@ -28,8 +28,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     private readonly RawImageLoader _rawImageLoader;
     private readonly string _commonDllPath;
     private readonly string _displayDllPath;
-    private readonly List<AlertEntry> _alerts = new();
-    private readonly List<string> _logs = new();
+    private readonly BackendTelemetry _telemetry = new();
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public RealXpeBackend(RawImageLoader rawImageLoader, string commonDllPath, string displayDllPath)
@@ -47,8 +46,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
 
     public BackendRuntimeInfo Initialize(AppSettings settings)
     {
-        _alerts.Clear();
-        _logs.Clear();
+        _telemetry.Clear();
 
         var displayVersion = GetDisplayVersion();
         _runtimeInfo = new BackendRuntimeInfo
@@ -71,7 +69,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         AddLog($"xpe_display.dll = {_displayDllPath}");
         AddLog($"Display version = {displayVersion}");
 
-        _alerts.Add(new AlertEntry
+        _telemetry.AddAlert(new AlertEntry
         {
             Severity = "INFO",
             Code = "REAL_DISPLAY_BACKEND_ACTIVE",
@@ -260,7 +258,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         }
 
         var drained = NativeAlertDrain.Drain(pending, ReadNativeAlert, DateTimeOffset.Now);
-        _alerts.AddRange(drained);
+        _telemetry.AddAlerts(drained);
         AddLog($"Drained {drained.Count} native alert(s) from the xpe_common queue.");
 
         XpeCommonNative.xpe_clear_alerts();
@@ -350,13 +348,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         InvokeNative(() => Native.GuiAiSession.Restart(modelDirectory));
 
-    public int GetAlertCount() => _alerts.Count;
-
-    public AlertEntry? GetAlert(int index) => index >= 0 && index < _alerts.Count ? _alerts[index] : null;
-
-    public int GetLogCount() => _logs.Count;
-
-    public string? GetLog(int index) => index >= 0 && index < _logs.Count ? _logs[index] : null;
+    public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _telemetry.Since(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _runtimeInfo;
 
@@ -481,7 +473,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
 
     private void AddLog(string message)
     {
-        _logs.Add($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
+        _telemetry.AddLog($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
     }
 
     private static bool HasExports(string dllPath, IEnumerable<string> requiredExports)

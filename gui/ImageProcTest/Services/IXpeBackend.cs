@@ -53,24 +53,12 @@ public interface IXpeBackend
     VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart);
 
     /// <summary>
-    /// Returns the number of queued alerts available for the GUI alert panel.
+    /// The queued log lines and alerts after the first <paramref name="logsSeen"/> / <paramref name="alertsSeen"/> of each, with the
+    /// totals, read as ONE step under the backend's own lock (GUI-C-186f, Codex #36 finding 4). Replaces the four count-and-index
+    /// reads: a count and the items it counts can disagree when another thread writes between two calls, and the lists are written
+    /// from pool threads (chain and display calls, a background shutdown) while the UI thread drains them.
     /// </summary>
-    int GetAlertCount();
-
-    /// <summary>
-    /// Returns a queued alert by index.
-    /// </summary>
-    AlertEntry? GetAlert(int index);
-
-    /// <summary>
-    /// Returns the number of queued log entries available for the GUI log panel.
-    /// </summary>
-    int GetLogCount();
-
-    /// <summary>
-    /// Returns a queued log entry by index.
-    /// </summary>
-    string? GetLog(int index);
+    TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen);
 
     /// <summary>
     /// Returns the current runtime state used by the GUI runtime panel.
