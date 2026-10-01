@@ -178,6 +178,8 @@ All metrics computed in C# after native stage execution. No new P/Invoke require
 | `GoodPixelDeltaP99` | `percentile99(|Y(good_pixels) − Y_no_defect_stage(good_pixels)|)` — the defect stage's own input and output, not the whole pipeline | ADU | ≤ 1 ADU |
 
 > **2026-10-01 (#218, `GUI-C-182`) — aligned to the canonical protocol.** `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md` §5.5 is the source of these formulas and gates. This table previously said recall ≥ 95%, FPR ≤ 0.001%, P99 ≤ 0 ADU, and defined the residual as `mean(|I_corrected[bad_pixels]|)` — the absolute value of a corrected pixel, which is the image level, not an error, so a ≤ 2 ADU gate on it could not be met by real data. The protocol defines the residual against a neighbour model and sets no threshold for it, so it is reported without a gate until one is justified.
+>
+> `neighbor_model` is not defined by the protocol. The app uses: the mean of the **oracle-good** pixels in the defect pixel's 3×3 window, excluding the pixel itself and any other defect pixel; a defect pixel with no good neighbour is left out of the mean (all such → NaN). Defined by `GUI-C-182` in `DefectMetricRows.Residual`; change it there if a different model is chosen.
 
 #### 5.1.2 LineArtifactScore Calculation
 
