@@ -1,0 +1,141 @@
+// GUI-C-183 observation harness (scratch, NOT in the repository). Starts the REAL old app (clients/ImageProcTest), waits for its
+// Window_Loaded to finish, selects the tab that holds DefectMetricsGrid, and reads the text the grid actually RENDERED (visual
+// tree: DataGridCell -> TextBlock). Phase A reads the startup state untouched. Phase B/C set the grid's ItemsSource to rows built
+// by the app's own DefectMetricRows.Build from small synthetic arrays (no file, no native DLL, no real input) and read it again.
+using System.Collections;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
+
+namespace Harness;
+
+internal static class Program
+{
+    private static readonly StringBuilder Log = new();
+
+    [STAThread]
+    private static int Main()
+    {
+        var outPath = Path.Combine(AppContext.BaseDirectory, "observation.txt");
+        var app = new ImageProcTest.App();
+        app.InitializeComponent();
+        var stage = 0;
+        DateTime loadedAt = default;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        timer.Tick += (_, _) =>
+        {
+            try
+            {
+                var window = app.MainWindow as ImageProcTest.MainWindow;
+                if (window is null || !window.IsLoaded) return;
+                if (loadedAt == default) { loadedAt = DateTime.UtcNow; return; }
+                if (DateTime.UtcNow - loadedAt < TimeSpan.FromSeconds(3)) return; // let Window_Loaded and its dispatcher work settle
+
+                var grid = (DataGrid)window.FindName("DefectMetricsGrid");
+                if (grid is null) { Finish(app, outPath, timer, "DefectMetricsGrid not found"); return; }
+                if (stage == 0)
+                {
+                    SelectTabHolding(window, grid);
+                    window.UpdateLayout();
+                    Dump("A: startup state, nothing injected", grid);
+                    stage = 1;
+                    return;
+                }
+
+                var asm = typeof(ImageProcTest.App).Assembly;
+                var rowsType = asm.GetType("ImageProcTest.DefectMetricRows", throwOnError: true);
+                var imagesType = asm.GetType("ImageProcTest.DefectStageImages", throwOnError: true);
+                var build = rowsType.GetMethod("Build", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                const int w = 5, h = 5;
+                var oracle = new bool[w * h]; oracle[2 * w + 2] = true;
+                var predicted = (bool[])oracle.Clone();
+                var output = Enumerable.Repeat(100f, w * h).ToArray(); output[2 * w + 2] = 400f; // residual 300 ADU
+                var before = Enumerable.Repeat(1170f, w * h).ToArray();
+                var after = (float[])before.Clone();
+
+                if (stage == 1)
+                {
+                    var images = Activator.CreateInstance(imagesType, before, after);
+                    var rows = (IEnumerable)build.Invoke(null, new object[] { oracle, predicted, output, images, w, h });
+                    grid.ItemsSource = rows;
+                    window.UpdateLayout();
+                    Dump("B: rows from DefectMetricRows.Build, defect stage ran (synthetic 5x5)", grid);
+                    stage = 2;
+                    return;
+                }
+
+                var rowsNoStage = (IEnumerable)build.Invoke(null, new object[] { oracle, null, output, null, w, h });
+                grid.ItemsSource = rowsNoStage;
+                window.UpdateLayout();
+                Dump("C: rows from DefectMetricRows.Build, no predicted map and defect stage NOT run (synthetic 5x5)", grid);
+                Finish(app, outPath, timer, null);
+            }
+            catch (Exception ex)
+            {
+                Finish(app, outPath, timer, "EXCEPTION: " + ex);
+            }
+        };
+        timer.Start();
+        app.Run();
+        return 0;
+    }
+
+    private static void Finish(Application app, string outPath, DispatcherTimer timer, string note)
+    {
+        timer.Stop();
+        if (note is not null) Log.AppendLine(note);
+        File.WriteAllText(outPath, Log.ToString(), new UTF8Encoding(false));
+        app.Shutdown();
+    }
+
+    private static void SelectTabHolding(ImageProcTest.MainWindow window, DependencyObject element)
+    {
+        DependencyObject node = element;
+        while (node is not null && node is not TabItem)
+        {
+            node = LogicalTreeHelper.GetParent(node) ?? VisualTreeHelper.GetParent(node);
+        }
+
+        if (node is TabItem tab && tab.Parent is TabControl control)
+        {
+            control.SelectedItem = tab;
+            Log.AppendLine($"(selected tab: '{tab.Header}')");
+        }
+        else
+        {
+            Log.AppendLine("(no TabItem ancestor found)");
+        }
+    }
+
+    private static void Dump(string title, DataGrid grid)
+    {
+        Log.AppendLine();
+        Log.AppendLine("== " + title);
+        Log.AppendLine($"grid visible={grid.IsVisible} loaded={grid.IsLoaded} items={grid.Items.Count} actualWidth={grid.ActualWidth:0}");
+        Log.AppendLine("headers: " + string.Join(" | ", grid.Columns.Select(c => c.Header)));
+        foreach (var item in grid.Items)
+        {
+            var row = grid.ItemContainerGenerator.ContainerFromItem(item) as DataGridRow;
+            if (row is null) { Log.AppendLine("  (row container not generated)"); continue; }
+            row.ApplyTemplate();
+            var cells = Descendants<DataGridCell>(row).ToList();
+            var texts = cells.Select(c => c.Content is TextBlock tb ? tb.Text : c.Content?.ToString() ?? "").ToList();
+            Log.AppendLine("  " + string.Join(" | ", texts) + $"   [cells={cells.Count}, rowVisible={row.IsVisible}]");
+        }
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T t) yield return t;
+            foreach (var d in Descendants<T>(child)) yield return d;
+        }
+    }
+}
