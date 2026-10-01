@@ -3625,6 +3625,136 @@ TEST_F(DicomReaderTest, Scope_JpegLosslessComponentCountIsComparedWithSamplesPer
     EXPECT_TRUE(named) << "the refusal names the component count";
 }
 
+// ---- QA-B-182f: PhotometricInterpretation (Type 1) and the rest of the Image Pixel Description Macro -------------
+// PS3.3 Table C.7-11c (Image Pixel Description Macro): Samples per Pixel, Photometric Interpretation, Rows, Columns,
+// Bits Allocated, Bits Stored, High Bit and Pixel Representation are Type 1. C.7.6.3.1.2 defines the values:
+// MONOCHROME1 / MONOCHROME2 "may be used only when Samples per Pixel has a Value of 1" (a single plane, minimum
+// displayed as white / black); PALETTE COLOR is a single plane whose value is an index into the palette tables (so a
+// gray uint16 buffer would misrepresent it); RGB, YBR_FULL, YBR_FULL_422, YBR_PARTIAL_420, YBR_ICT, YBR_RCT "may be
+// used only when Samples per Pixel has a Value of 3" (so with one sample they are a malformed dataset); other values
+// are "permitted if supported by the Transfer Syntax but the meaning is not defined by this Standard".
+namespace {
+bool AlertNames(const char* needle) {
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find(needle) != std::string::npos) return true;
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182f.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+
+    enum Want { OK, INV, UNS };
+    struct Row { const char* label; const char* pi; int samples; Want want; };   // pi == nullptr: absent
+    const Row rows[] = {
+        {"control_monochrome2", "MONOCHROME2", 1, OK},
+        {"monochrome2_padded", "MONOCHROME2 ", 1, OK},          // a CS value of odd length is padded with a space
+        {"monochrome2_leading_space", " MONOCHROME2", 1, OK},   // leading and trailing spaces of a CS are not significant (PS3.5 6.2)
+        {"monochrome1", "MONOCHROME1", 1, OK},                  // read as stored (#235 decides the inversion policy)
+        {"absent", nullptr, 1, INV},
+        {"empty", "", 1, INV},
+        {"palette_color", "PALETTE COLOR", 1, UNS},             // valid, but the value is an index, not a gray level
+        {"rgb_one_sample", "RGB", 1, INV},                      // RGB is defined only for 3 samples
+        {"ybr_full_one_sample", "YBR_FULL", 1, INV},
+        {"ybr_full_422_one_sample", "YBR_FULL_422", 1, INV},
+        {"ybr_rct_one_sample", "YBR_RCT", 1, INV},
+        {"xyb", "XYB", 1, UNS},
+        {"undefined_value", "FOO", 1, UNS},                     // "permitted ... but the meaning is not defined"
+        {"rgb_three_samples", "RGB", 3, UNS},                   // well formed colour, which this reader cannot return
+    };
+    const XpeErrorCode answer[] = {XPE_OK, XPE_ERR_DICOM_INVALID, XPE_ERR_UNSUPPORTED_FORMAT};
+    int n = 0;
+    for (const Row& r : rows) {
+        auto mutate = [&](DcmDataset* ds) {
+            if (r.pi == nullptr) delete ds->remove(DCM_PhotometricInterpretation);
+            else ds->putAndInsertString(DCM_PhotometricInterpretation, r.pi);
+            if (r.samples != 1) ds->putAndInsertUint16(DCM_SamplesPerPixel, static_cast<Uint16>(r.samples));
+        };
+        struct Run { const char* name; fs::path file; };
+        const Run runs[] = {
+            {"native", MakeSameSyntaxVariant(s_validDcm, (std::string("f_nat_") + r.label).c_str(), mutate)},
+            {"jpeg_lossless", MakeSameSyntaxVariant(jpegLl, (std::string("f_ll_") + r.label).c_str(), mutate)},
+            {"j2k", MakeJ2kVariant(s_j2kDcm, (std::string("f_j2k_") + r.label).c_str(), codestream, mutate)},
+        };
+        for (const Run& run : runs) {
+            xpe_clear_alerts();
+            const ScopeRead got = ReadScope(run.file);
+            EXPECT_EQ(answer[r.want], got.read) << run.name << " PhotometricInterpretation=" << (r.pi ? r.pi : "<absent>") << " samples=" << r.samples;
+            if (r.want != OK) {
+                EXPECT_TRUE(got.outUntouchedOnFailure) << run.name << " " << r.label;
+                EXPECT_EQ(XPE_OK, got.metaAfter) << run.name << " " << r.label;
+                EXPECT_TRUE(AlertNames("PhotometricInterpretation") || AlertNames("SamplesPerPixel")) << run.name << " " << r.label << ": the refusal names the attribute";
+            }
+            ++n;
+        }
+    }
+    EXPECT_EQ(14 * 3, n);
+}
+
+TEST_F(DicomReaderTest, Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored) {
+    xpe_clear_alerts();
+    const fs::path absent = MakeScopeVariant(s_validDcm, "f_alert_absent", [](DcmDataset* ds) { delete ds->remove(DCM_PhotometricInterpretation); });
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(absent).read);
+    EXPECT_TRUE(AlertNames("PhotometricInterpretation (0028,0004) is absent")) << "absent attribute not named";
+
+    xpe_clear_alerts();
+    const fs::path palette = MakeScopeVariant(s_validDcm, "f_alert_palette", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "PALETTE COLOR"); });
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ReadScope(palette).read);
+    EXPECT_TRUE(AlertNames("PALETTE COLOR")) << "the unsupported value is named";
+
+    xpe_clear_alerts();
+    const fs::path rgb1 = MakeScopeVariant(s_validDcm, "f_alert_rgb1", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB"); });
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(rgb1).read);
+    EXPECT_TRUE(AlertNames("RGB") && AlertNames("SamplesPerPixel")) << "the value and the sample count that contradict each other are named";
+
+    // MONOCHROME1 is read exactly as MONOCHROME2 is: the words come back as stored, and nothing tells the caller.
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    xpe_clear_alerts();
+    const fs::path mono1 = MakeScopeVariant(s_validDcm, "f_mono1", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); });
+    const ScopeRead r = ReadScope(mono1);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(baseline, r.words) << "no inversion";
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "no alert tells the caller the stored values are inverted-sense (current state, #235)";
+}
+
+// Rows and Columns are Type 1 too. They were read, and an absent or zero value was refused with the right code, but
+// silently: the other Type 1 attributes post an alert that names the cause (QA-B-182c).
+TEST_F(DicomReaderTest, Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182f_rc.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+    struct Tag { const char* name; DcmTagKey key; };
+    const Tag tags[] = {{"Rows", DCM_Rows}, {"Columns", DCM_Columns}};
+    for (const Tag& t : tags) {
+        for (int mode = 0; mode < 2; ++mode) {   // 0 absent, 1 zero
+            auto mutate = [&](DcmDataset* ds) {
+                if (mode == 0) delete ds->remove(t.key);
+                else ds->putAndInsertUint16(t.key, 0);
+            };
+            const std::string base = std::string("f_rc_") + t.name + (mode == 0 ? "_absent" : "_zero");
+            const struct { const char* name; fs::path file; } runs[] = {
+                {"native", MakeSameSyntaxVariant(s_validDcm, (base + "_nat").c_str(), mutate)},
+                {"jpeg_lossless", MakeSameSyntaxVariant(jpegLl, (base + "_ll").c_str(), mutate)},
+                {"j2k", MakeJ2kVariant(s_j2kDcm, (base + "_j2k").c_str(), codestream, mutate)},
+            };
+            for (const auto& run : runs) {
+                xpe_clear_alerts();
+                const ScopeRead got = ReadScope(run.file);
+                EXPECT_EQ(XPE_ERR_DICOM_INVALID, got.read) << run.name << " " << base;
+                EXPECT_TRUE(got.outUntouchedOnFailure) << run.name << " " << base;
+                EXPECT_TRUE(AlertNames(t.name)) << run.name << " " << base << ": the refusal names the attribute";
+            }
+        }
+    }
+}
+
 // The refusal reaches the operator: an alert names the attribute or the two values that disagree. (The module's
 // only other channel is its log.) The alert wording is a contract with the clients that display alerts.
 TEST_F(DicomReaderTest, Scope_ARefusalPostsAnAlertThatNamesTheCause) {

@@ -331,6 +331,20 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool i
         }
     }
 
+    // QA-B-182f (Codex #54): PhotometricInterpretation (0028,0004) is Type 1 in the Image Pixel Description Macro
+    // (PS3.3 Table C.7-11c) and was never read, so a file without it, or with PALETTE COLOR, came back as a gray
+    // uint16 image. A CS value of odd length is padded with a space and leading and trailing spaces are not
+    // significant (PS3.5 6.2); DCMTK normalises both when it hands the string over (measured: the values " MONOCHROME2"
+    // and "MONOCHROME2 " read as MONOCHROME2 with the reader's own trimming removed), so none is done here.
+    std::string pi;
+    {
+        OFString v;
+        if (ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good()) pi.assign(v.c_str());
+    }
+    if (pi.empty()) {
+        return refuse(XPE_ERR_DICOM_INVALID, "PhotometricInterpretation (0028,0004) is absent, empty or not a string (it is a Type 1 attribute and has no default)");
+    }
+
     long frames = 1;
     if (ds->tagExists(DCM_NumberOfFrames)) {
         Sint32 v = 0;
@@ -343,6 +357,20 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool i
     if (frames > 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "NumberOfFrames %ld (only single-frame images are supported)", frames);
     if (samples != 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "SamplesPerPixel %u (only one sample per pixel is supported)", static_cast<unsigned>(samples));
     if (pixelRepresentation != 0) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PixelRepresentation %u (only unsigned pixels are supported)", static_cast<unsigned>(pixelRepresentation));
+
+    // QA-B-182f: SamplesPerPixel is 1 here. The buffer this API returns is one gray uint16 plane, so only the two
+    // monochrome values describe it (PS3.3 C.7.6.3.1.2). A value the standard defines for three samples only is a
+    // malformed dataset when SamplesPerPixel is 1; PALETTE COLOR (the value is an index into palette tables), the
+    // retired values and values whose meaning the standard does not define are well formed, or at least not
+    // malformed, and cannot be returned faithfully. MONOCHROME1 is read as stored: how to invert it is #235.
+    if (pi != "MONOCHROME1" && pi != "MONOCHROME2") {
+        const bool threeSamplesOnly = pi == "RGB" || pi == "YBR_FULL" || pi == "YBR_FULL_422" || pi == "YBR_PARTIAL_420" ||
+                                      pi == "YBR_ICT" || pi == "YBR_RCT";
+        if (threeSamplesOnly) {
+            return refuse(XPE_ERR_DICOM_INVALID, "PhotometricInterpretation %s with SamplesPerPixel 1 (PS3.3 C.7.6.3.1.2: it may be used only when SamplesPerPixel is 3)", pi.c_str());
+        }
+        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PhotometricInterpretation %s (only MONOCHROME1 and MONOCHROME2 are supported)", pi.c_str());
+    }
 
     // QA-B-182e: the bits attributes are classified against the standard (text quoted in the QA-B-182e report).
     //   VIOLATION (XPE_ERR_DICOM_INVALID): the dataset breaks a "shall" of PS3.5 8.1.1, which holds for every Pixel
@@ -392,8 +420,14 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // Read image dimensions
     Uint16 rows = 0, cols = 0, bitsAlloc = 0, bitsStored = 0;
-    if (ds->findAndGetUint16(DCM_Rows, rows).bad() || rows == 0) return XPE_ERR_DICOM_INVALID;
-    if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) return XPE_ERR_DICOM_INVALID;
+    // QA-B-182f: Rows and Columns are Type 1 (PS3.3 Table C.7-11c). The code was already DICOM_INVALID; the alert that
+    // names the cause (as for the other Type 1 attributes, QA-B-182c) was missing.
+    if (ds->findAndGetUint16(DCM_Rows, rows).bad() || rows == 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "Rows (0028,0010) is absent, empty, not a number or zero (it is a Type 1 attribute and has no default)");
+    }
+    if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "Columns (0028,0011) is absent, empty, not a number or zero (it is a Type 1 attribute and has no default)");
+    }
     ds->findAndGetUint16(DCM_BitsAllocated, bitsAlloc);
     ds->findAndGetUint16(DCM_BitsStored, bitsStored);
     // Bits Allocated and Bits Stored are Type 1: checkSupportedImageModule below refuses their absence, so no

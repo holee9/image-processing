@@ -125,6 +125,10 @@ Refs #235
 - **부호**: JPEG Lossless 프레임 헤더(SOF3)에는 부호 플래그가 없다 (PixelRepresentation 은 데이터셋에만 있다). 스트림과 대조할 값 자체가 없다. J2K 는 코드스트림이 부호를 담아 182b 에서 대조했다.
 - **성분 수 (Nf)**: 시험 파일은 donor JPEG LL 의 SOF 를 성분 3개를 선언하도록 다시 쓴다 (헤더 길이와 성분 명세 추가, 조각 item 의 길이도 같이 증가 — 처음에는 item 길이를 고치지 않아 파일이 깨졌고 `DcmSequenceOfItems: Parse error in sequence (7fe0,0010)` 가 나왔다. 그 상태의 결과는 버렸다). 데이터셋은 SamplesPerPixel=1 그대로다.
 - **측정**: reader 의 새 검사를 뺀 상태에서 이 파일을 읽으면 **`rc=-3` (`XPE_ERR_PROCESSING_FAILED`)**. 즉 DCMTK 는 불일치를 거부하지만 코드가 "내부 알고리즘 실패"라 원인을 가리키지 않고, 알림도 없고, 디코드를 이미 시작한 뒤다.
-- **조치**: reader 가 SOF 의 Nf 를 읽어 1 이 아니면 디코드·할당 전에 `XPE_ERR_DICOM_INVALID` + 알림 `JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)`. 카드의 "거부하지 않으면 대조를 넣는다" 조건과는 다르게 DCMTK 가 거부는 하지만, 코드와 시점을 바로잡는 쪽이 낫다고 판단해 넣었다. 코드가 `PROCESSING_FAILED` → `DICOM_INVALID` 로 바뀌는 입력이다 (레인 간 계약, §4 표에 한 줄 추가: 성분 수가 SamplesPerPixel 과 다른 JPEG LL, 이전 `PROCESSING_FAILED`, 이후 `DICOM_INVALID`).
+- **조치**: reader 가 SOF 의 Nf 를 읽어 1 이 아니면 디코드·할당 전에 `XPE_ERR_DICOM_INVALID` + 알림 `JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)`. 카드의 "거부하지 않으면 대조를 넣는다" 조건과는 다르게 DCMTK 가 거부는 하지만, 코드와 시점을 바로잡는 쪽이 낫다고 판단해 넣었다. 코드가 `PROCESSING_FAILED` → `DICOM_INVALID` 로 바뀌는 입력이다 (레인 간 계약: 성분 수가 SamplesPerPixel 과 다른 JPEG LL, 이전 `PROCESSING_FAILED`, 이후 `DICOM_INVALID`. §4 표에는 옮기지 않고 이 절에만 적었다).
 - **시험**: `Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding` — 성분 1 대조군은 읽힘, 성분 3 은 `DICOM_INVALID` + 출력 버퍼 미변경 + 알림에 `component`. 검사를 지우면 `rc=-3` 으로 빨강. 리더 시험 86건 통과, `ctest ci-dicom` `100% tests passed, 0 tests failed out of 233`.
 - **Gaps**: 성분 수 불일치의 다른 방향(스트림 1개, 데이터셋 3 → 이미 SamplesPerPixel≠1 로 UNSUPPORTED)은 조작하지 않았다. 처음 깨진 파일은 `rc=0` 으로 읽혔는데(조각 길이가 틀린 상태) 그것이 reader 의 결함인지는 조사하지 않았다 — 한 번 관측했고 재현 파일을 남기지 않았다.
+
+## 10. 정정 (QA-B-182f 에서 추가)
+
+§7 의 첫 Gap("PS3.3 C.7.6.3 의 BitsStored/HighBit 속성 정의는 인용하지 못했다")은 **해소됐다.** PS3.3 표 C.7-11c Image Pixel Description Macro (https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.3.html) 가 같은 규칙을 직접 적는다: "Bits Allocated (0028,0100) shall be either 1, or a multiple of 8." / "High Bit (0028,0102) shall be one less than Bits Stored (0028,0101)." PS3.5 8.1.1 과 같은 문장이라 위 분류는 바뀌지 않는다. 원문은 `.moai/reports/lane-post/QA-B-182f/standard_quotes.txt` [1].
