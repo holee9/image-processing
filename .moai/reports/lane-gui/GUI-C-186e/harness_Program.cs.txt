@@ -1,0 +1,142 @@
+// GUI-C-186e reproduction harness (scratch, NOT in the repository).
+// Builds the REAL MainWindowViewModel with a backend whose RunChain waits for a "gate" the way an AI frame would (a plain lock held by
+// another task), turns Lane B on, loads an image through the app's own path (LoadImageFromPathAsync -> ApplyDisplayPipelineAsync ->
+// RenderLanes) and measures how late the UI dispatcher runs a probe posted every 50 ms while that happens.
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Windows.Threading;
+using ImageProcTest.Models;
+using ImageProcTest.Services;
+using ImageProcTest.ViewModels;
+
+namespace Harness;
+
+internal sealed class GateWaitingBackend(IXpeBackend inner, object gate, int holdMs) : IXpeBackend
+{
+    public int ChainCalls;
+    public bool GateOnShutdown;
+    public int ApplyCalls;
+    public readonly List<string> CallThreads = new();
+    public bool GateHeldByOther;
+
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var n = Interlocked.Increment(ref ChainCalls);
+        lock (CallThreads) CallThreads.Add($"call {n} on {(Thread.CurrentThread.IsThreadPoolThread ? "pool thread" : "the UI thread")}");
+        if (n == 2)
+        {
+            // Call 2 is the one RenderLanes makes for Lane B. Another frame holds the gate when it arrives (as a restart or
+            // another render would): this call must wait for it, exactly as an AI stage waits for the session gate.
+            var held = new ManualResetEventSlim();
+            Task.Run(() => { lock (gate) { held.Set(); Thread.Sleep(holdMs); } });
+            held.Wait();
+            lock (gate) { }
+        }
+
+        return inner.RunChain(rawFrame, stages, settings);
+    }
+
+    public BackendRuntimeInfo Initialize(AppSettings settings) => inner.Initialize(settings);
+    public string GetVersion() => inner.GetVersion();
+    public LoadedImageFrame LoadRawImage(string path, AppSettings settings) => inner.LoadRawImage(path, settings);
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        Interlocked.Increment(ref ApplyCalls);
+        return inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+    }
+    public bool SupportsPreprocessing => inner.SupportsPreprocessing;
+    public string GetDisplayVersion() => inner.GetDisplayVersion();
+    public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart) => inner.CreateVoiPreset(bodyPart);
+    public int GetAlertCount() => inner.GetAlertCount();
+    public AlertEntry GetAlert(int index) => inner.GetAlert(index);
+    public int GetLogCount() => inner.GetLogCount();
+    public string GetLog(int index) => inner.GetLog(index);
+    public BackendRuntimeInfo GetRuntimeInfo() => inner.GetRuntimeInfo();
+    public void Shutdown()
+    {
+        if (GateOnShutdown) { lock (gate) { } }
+        inner.Shutdown();
+    }
+}
+
+internal static partial class Program
+{
+    [STAThread]
+    private static int Main(string[] args)
+    {
+        var holdMs = args.Length > 0 ? int.Parse(args[0]) : 3000;
+        var mode = args.Length > 1 ? args[1] : "lanes";
+        var outPath = Path.Combine(AppContext.BaseDirectory, "observation.txt");
+        var log = new StringBuilder();
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        dispatcher.InvokeAsync(async () =>
+        {
+            try { await (mode == "shutdown" ? ShutdownScenario(dispatcher, log, holdMs) : Scenario(dispatcher, log, holdMs)); }
+            catch (Exception ex) { log.AppendLine("EXCEPTION: " + ex); }
+            finally
+            {
+                File.WriteAllText(outPath, log.ToString(), new UTF8Encoding(false));
+                dispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
+            }
+        });
+        Dispatcher.Run();
+        return 0;
+    }
+
+    private static async Task Scenario(Dispatcher dispatcher, StringBuilder log, int holdMs)
+    {
+        var raw = @"D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw";
+        var tmp = Path.Combine(Path.GetTempPath(), "xpe-c186e-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            var settings = new AppSettings { RawWidth = 1024, RawHeight = 1024, LaneBVoiWindowWidth = 500f };
+            var mock = new MockXpeBackend(new RawImageLoader(), "xpe_common.dll", false, "xpe_display.dll", false);
+            var gate = new object();
+            var backend = new GateWaitingBackend(mock, gate, holdMs);
+            var vm = new MainWindowViewModel(settings, new AppSettingsService(Path.Combine(tmp, "appsettings.json")), _ => backend);
+
+            var load = typeof(MainWindowViewModel).GetMethod("LoadImageFromPathAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            log.AppendLine($"gate held by another task for {holdMs} ms when the lane render's call arrives; Lane B differs (LaneBVoiWindowWidth=500)");
+
+            var stop = false;
+            long maxLatencyTicks = 0;
+            var probes = 0;
+            var probe = Task.Run(() =>
+            {
+                while (!Volatile.Read(ref stop))
+                {
+                    var posted = Stopwatch.GetTimestamp();
+                    dispatcher.BeginInvoke(() =>
+                    {
+                        var late = Stopwatch.GetTimestamp() - posted;
+                        lock (log) { probes++; if (late > maxLatencyTicks) maxLatencyTicks = late; }
+                    }, DispatcherPriority.Normal);
+                    Thread.Sleep(50);
+                }
+            });
+
+            var total = Stopwatch.StartNew();
+            await (Task)load.Invoke(vm, new object[] { raw, "harness" });
+            total.Stop();
+            Volatile.Write(ref stop, true);
+            await probe;
+            await Task.Delay(100); // let the last probe run
+
+            lock (log)
+            {
+                log.AppendLine($"render finished in {total.ElapsedMilliseconds} ms; probes run = {probes}");
+                log.AppendLine($"WORST UI-dispatcher probe latency = {maxLatencyTicks * 1000.0 / Stopwatch.Frequency:0} ms");
+            }
+
+            foreach (var line in backend.CallThreads) log.AppendLine("  " + line);
+            log.AppendLine("Lane B image set: " + (vm.LaneBImage is not null) + " ; status: " + vm.StatusText);
+        }
+        finally
+        {
+            try { Directory.Delete(tmp, true); } catch { }
+        }
+    }
+}

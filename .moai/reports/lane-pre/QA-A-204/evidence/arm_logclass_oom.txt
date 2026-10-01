@@ -1,0 +1,80 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from CommonOom
+[ RUN      ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary (0 ms)
+[ RUN      ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (full queue)                    4 allocation points covered
+[       OK ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert (8 ms)
+[ RUN      ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (room in the queue)             2 allocation points covered
+[       OK ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (loss alert present)            2 allocation points covered
+[       OK ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_init (first init)                          1 allocation points covered
+[       OK ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized (0 ms)
+[ RUN      ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_init (re-init)                             1 allocation points covered
+[       OK ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone (0 ms)
+[ RUN      ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_configure                                 21 allocation points covered
+[       OK ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration (0 ms)
+[ RUN      ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(97): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_log_set_file: allocation #1 failed, rc -9: an allocation failure must be XPE_ERR_OUT_OF_MEMORY
+
+[  FAILED  ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure (0 ms)
+[----------] 8 tests from CommonOom (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (9 ms total)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+
+ 1 FAILED TEST

@@ -1,0 +1,6 @@
+gui + clients build: exit 0, 0 errors, xUnit1031 warnings 0
+SelfCheck (real view model): Lifetime scenarios passed (9 scenarios). GUI-S0 self-check passed.
+BackendLifecycleTests: 16 passed
+Functional (Category=Functional): 354 passed, 1 skipped, 0 failed
+E2E (Mock) ProcessingChainScenarios+AutomationReportBackendTests+MenuCommandScenarios: exit 0, 22 passed, 8 skipped (A04: no SelfCheck.exe beside the app, cause not established), 0 failed
+Native E2E: NOT run locally (#98)

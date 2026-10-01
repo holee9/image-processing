@@ -100,7 +100,9 @@ public sealed class AiStatusRefresherTests
 
         Assert.Empty(rig.Applied);                 // the frame still has the gate: nothing to show yet
         frameMayEnd.Set();                         // the frame ends; nobody asks again
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Applied.Count == 1, "The read that was waiting for the gate never reached the screen.");
 
         Assert.Equal(Disabled, rig.Applied[0]);
@@ -133,7 +135,9 @@ public sealed class AiStatusRefresherTests
         rig.Pump();
 
         frameMayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Applied.Count == 1, "The read never completed after the frame ended.");
 
         Assert.True(requested < TimeSpan.FromSeconds(1), $"Request waited {requested.TotalMilliseconds:0} ms for a gate that was held: the UI thread would have waited the same.");
@@ -333,12 +337,16 @@ public sealed class AiStatusRefresherTests
         Assert.True(frameIn.Wait(Long));
 
         var read = Task.Run(() => gate.WithLock(() => 7));
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(read.Wait(TimeSpan.FromMilliseconds(400)), "The read got through a gate that a frame was holding.");
+        #pragma warning restore xUnit1031
 
         frameMayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(read.Wait(Long));
         Assert.Equal(7, read.Result);
+        #pragma warning restore xUnit1031
     }
 
     [Fact]
@@ -364,19 +372,19 @@ public sealed class AiStatusRefresherTests
         Assert.True(reset >= 0 && build > reset && catchAt > build && request > catchAt,
             "InitializeBackend must reset before it builds the backend and request a read after the try/catch.");
 
-        // The shutdown: Reset before the backend is shut down, a read afterwards.
-        var shutdown = source.IndexOf("public void ShutdownBackend()", StringComparison.Ordinal);
-        var shutdownBody = source[shutdown..(shutdown + 500)];
-        Assert.True(shutdownBody.IndexOf("AiStatus.Reset();", StringComparison.Ordinal) is var r && r >= 0
-            && shutdownBody.IndexOf("_backend.Shutdown();", StringComparison.Ordinal) > r
-            && shutdownBody.IndexOf("RefreshAiWorkerStatus();", StringComparison.Ordinal) > r,
-            "ShutdownBackend must reset, shut down, then request a read.");
+        // The shutdown (GUI-C-186e moved it to the background): the status is reset when it starts, and read again when it is done.
+        var begin = source.IndexOf("public void BeginShutdown(", StringComparison.Ordinal);
+        var finish = source.IndexOf("private void FinishShutdown(", begin, StringComparison.Ordinal);
+        var finishEnd = source.IndexOf("public void ShutdownBackendBlocking()", finish, StringComparison.Ordinal);
+        Assert.True(begin >= 0 && finish > begin && finishEnd > finish, "BeginShutdown / FinishShutdown were not found.");
+        Assert.Contains("AiStatus.Reset();", source[begin..finish], StringComparison.Ordinal);
+        Assert.Contains("RefreshAiWorkerStatus();", source[finish..finishEnd], StringComparison.Ordinal);
 
-        // The close: updates stop before the backend is shut down.
+        // The close: updates stop before the shutdown that precedes the close is started.
         var window = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/MainWindow.xaml.cs"));
         var stop = window.IndexOf("viewModel.StopAiStatusUpdates();", StringComparison.Ordinal);
-        Assert.True(stop >= 0 && window.IndexOf("viewModel.ShutdownBackend();", stop, StringComparison.Ordinal) > stop,
-            "OnClosed must stop the status updates before it shuts the backend down.");
+        Assert.True(stop >= 0 && window.IndexOf("viewModel.BeginShutdown(", stop, StringComparison.Ordinal) > stop,
+            "OnClosing must stop the status updates before it starts the shutdown.");
 
         // The old structure is gone: no bounded read, no timer, no retry numbers, anywhere in the app's sources.
         var banned = new[] { "TryWithLock", "StateReadWait", "ScheduleOnUiThread", "MaxRetries", "RetryDelay" };

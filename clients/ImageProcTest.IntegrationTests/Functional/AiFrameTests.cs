@@ -137,8 +137,10 @@ public sealed class AiFrameTests
         Assert.False(restartDone.Wait(Short), "the restart got in while frame A was inside its call");
 
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(restart.Wait(Long));
+        #pragma warning restore xUnit1031
 
         Assert.Equal(["A: in the call", "A: call returned", "B: shutdown + init"], log);
     }
@@ -164,9 +166,13 @@ public sealed class AiFrameTests
         Assert.True(inCall.Wait(Long));
         var b = Task.Run(() => AiFrame.Run(gate, second, Path.Combine(Path.GetTempPath(), "xpe-frame-tests", "other")));
 
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(b.Wait(Short), "the second frame got through while the first was inside its call");
+        #pragma warning restore xUnit1031
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(a.Wait(Long) && b.Wait(Long));
+        #pragma warning restore xUnit1031
         Assert.Equal(["first: call returned", "second: init"], log.Take(2));
     }
 
@@ -203,12 +209,16 @@ public sealed class AiFrameTests
         Assert.True(inCall.Wait(Long));
 
         var read = Task.Run(() => gate.WithLock(() => 7));
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(read.Wait(Short), "the read got through while the frame held the gate");
+        #pragma warning restore xUnit1031
 
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(read.Wait(Long));
         Assert.Equal(7, read.Result);
+        #pragma warning restore xUnit1031
     }
 
     [Fact]

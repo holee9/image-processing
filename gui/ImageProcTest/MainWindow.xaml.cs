@@ -42,6 +42,12 @@ public partial class MainWindow : System.Windows.Window
         }
 
         Loaded += OnLoaded;
+
+        // A Windows session end must not be held up by a cancelled close (GUI-C-186e).
+        if (System.Windows.Application.Current is { } application)
+        {
+            application.SessionEnding += (_, _) => _forceClose = true;
+        }
     }
 
     /// <summary>
@@ -148,12 +154,46 @@ public partial class MainWindow : System.Windows.Window
         return (isolated, new AppSettingsService(Path.Combine(isolatedDirectory, "appsettings.json")), null, false);
     }
 
+    // GUI-C-186e (Codex #33): closing the window waits for the AI session gate (a frame that waits on a silent worker holds it for
+    // up to the module's time budget), so the first close request only STARTS the shutdown in the background and keeps the window
+    // open, responsive, saying "Backend shutting down..."; the window closes itself when the shutdown is done. There is no upper
+    // limit and no "close anyway": a native call cannot be interrupted, the wait ends inside the module's own time budget, and
+    // whether the worker process would be left behind by a forced exit could not be checked.
+    private bool _closeAfterShutdown;
+    private bool _closeScheduled;
+    private bool _forceClose;
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_closeAfterShutdown && !_forceClose && DataContext is MainWindowViewModel viewModel)
+        {
+            e.Cancel = true;
+            viewModel.StopAiStatusUpdates(); // a status read started or running now must not touch the closing screen (GUI-C-186d)
+            if (!_closeScheduled)
+            {
+                _closeScheduled = true;
+                viewModel.BeginShutdown(() =>
+                {
+                    _closeAfterShutdown = true;
+                    Close();
+                });
+            }
+        }
+
+        base.OnClosing(e);
+    }
+
     protected override void OnClosed(System.EventArgs e)
     {
         if (DataContext is MainWindowViewModel viewModel)
         {
-            viewModel.StopAiStatusUpdates(); // a status read started or running now must not touch the closed screen (GUI-C-186d)
-            viewModel.ShutdownBackend();
+            viewModel.StopAiStatusUpdates();
+            if (!_closeAfterShutdown)
+            {
+                // Only reached when the close could not wait: the automation self-run ends with Application.Shutdown(code), and a
+                // Windows session end must not be held up by a cancelled close. Nothing is left to keep responsive.
+                viewModel.ShutdownBackendBlocking();
+            }
         }
 
         base.OnClosed(e);
@@ -598,6 +638,12 @@ public partial class MainWindow : System.Windows.Window
             report.AlertCountAfterClear = viewModel.Alerts.Count;
 
             ClickButton(ShutdownBackendButton);
+            // GUI-C-186e: the shutdown runs in the background now; wait for it to finish (bounded) before reading the state it leaves.
+            for (var waited = 0; viewModel.IsBackendTransitioning && waited < 200; waited++)
+            {
+                await Task.Delay(50);
+            }
+
             await Task.Delay(200);
 
             report.RuntimeStateAfterShutdown = viewModel.RuntimeInfo.State;
@@ -664,6 +710,7 @@ public partial class MainWindow : System.Windows.Window
 
             // GUI-C-84: Shutdown(code) closes the windows itself. Closing the main window first had already
             // shut the app down with 0 (main-window-close shutdown), so the code passed afterwards was ignored.
+            _forceClose = true; // GUI-C-186e: the self-run ends the process; a window close that waits in the background must not hold it up
             System.Windows.Application.Current.Shutdown(report.Passed ? 0 : App.AutomationFailedExitCode);
         }
     }

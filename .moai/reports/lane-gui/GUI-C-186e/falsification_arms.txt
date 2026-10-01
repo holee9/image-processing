@@ -1,0 +1,64 @@
+ARM shutdown-work-runs-on-the-calling-thread: exit=1 built_ok=True
+   ['실패!  - 실패:     4, 통과:    21, 건너뜀:     0, 전체:    25, 기간: 41 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ShuttingDown_WhileAFrameHoldsTheGate_ReturnsAtOnce_AndTheUiThreadKeepsWorking_UntilItIsDone [10 s]
+   red: BackendLifecycleTests.WhatFollows_RunsOnceTheTransitionIsDone_AndNotBefore [10 s]
+   red: BackendLifecycleTests.ProcessingRequests_AreRefusedDuringTheTransition_AndAdmittedAfterIt [10 s]
+   red: BackendLifecycleTests.ASecondTransition_WhileOneRuns_StartsNothing [10 s]
+   restored byte-identical: True
+ARM requests-are-always-admitted: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ProcessingRequests_AreRefusedDuringTheTransition_AndAdmittedAfterIt [< 1 ms]
+   restored byte-identical: True
+ARM a-second-transition-is-not-refused: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ASecondTransition_WhileOneRuns_StartsNothing [< 1 ms]
+   restored byte-identical: True
+ARM what-follows-runs-at-once-even-during-the-transition: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.WhatFollows_RunsOnceTheTransitionIsDone_AndNotBefore [1 ms]
+   restored byte-identical: True
+ARM the-transition-never-ends: exit=1 built_ok=True
+   ['실패!  - 실패:     4, 통과:    21, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ShuttingDown_WhileAFrameHoldsTheGate_ReturnsAtOnce_AndTheUiThreadKeepsWorking_UntilItIsDone [2 ms]
+   red: BackendLifecycleTests.WhatFollows_RunsOnceTheTransitionIsDone_AndNotBefore [1 ms]
+   red: BackendLifecycleTests.AShutdownThatThrows_ReportsTheError_AndLeavesTheTransition [14 ms]
+   red: BackendLifecycleTests.ProcessingRequests_AreRefusedDuringTheTransition_AndAdmittedAfterIt [9 ms]
+   restored byte-identical: True
+ARM the-viewmodel-runs-the-shutdown-on-the-ui-thread: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheViewModel_ShutsDownInTheBackground_AndRefusesRequestsWhileItDoes [20 ms]
+   restored byte-identical: True
+ARM the-shutdown-call-moves-out-of-the-background-work: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheViewModel_ShutsDownInTheBackground_AndRefusesRequestsWhileItDoes [1 ms]
+   restored byte-identical: True
+ARM the-candidate-lane-runs-on-the-ui-thread-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheCandidateLane_RunsItsChainInTheBackground_ForTheBackendThatWasCurrent [1 ms]
+   restored byte-identical: True
+ARM the-lane-result-is-applied-even-after-a-replacement: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheCandidateLane_RunsItsChainInTheBackground_ForTheBackendThatWasCurrent [1 ms]
+   restored byte-identical: True
+ARM the-display-pipeline-does-not-refuse-during-the-transition: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheViewModel_ShutsDownInTheBackground_AndRefusesRequestsWhileItDoes [2 ms]
+   restored byte-identical: True
+ARM a-backend-replacement-does-not-wait-its-turn: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheViewModel_ShutsDownInTheBackground_AndRefusesRequestsWhileItDoes [2 ms]
+   restored byte-identical: True
+ARM the-first-close-request-closes-at-once: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheWindow_StartsTheShutdownInTheBackgroundAndClosesItselfWhenDone_WithNoCloseAnyway [1 ms]
+   restored byte-identical: True
+ARM a-second-close-request-schedules-another-close: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.TheWindow_StartsTheShutdownInTheBackgroundAndClosesItselfWhenDone_WithNoCloseAnyway [1 ms]
+   restored byte-identical: True
+ARM initialize-starts-touching-the-ai-session: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: BackendLifecycleTests.ReplacingTheBackend_TakesNoAiGate_BecauseNoBackendIsDisposable_AndInitializeDoesNotTouchTheSession [11 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    25, 건너뜀:     0, 전체:    25, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: 499d0f543295 61caa0604e1c a59ef403ffbd 0a43232c6389

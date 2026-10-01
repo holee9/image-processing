@@ -1,0 +1,155 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.APartialQuality*:OomPipeline.ARecordWithNoQuality*:OomPipeline.AGeneratedRecord*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OomPipeline
+[ RUN      ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1907): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  c.previous_r_squared
+    Which is: -1
+the partial record in between must not turn the history into -1.0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1896): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1907): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  c.previous_r_squared
+    Which is: -1
+the partial record in between must not turn the history into -1.0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1896): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1907): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  c.previous_r_squared
+    Which is: -1
+the partial record in between must not turn the history into -1.0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1896): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1904): error: Expected equality of these values:
+  0
+  way.load(qcur::kDirC)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1896): xpe_preprocess_pipeline
+
+[  FAILED  ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC (27 ms)
+[ RUN      ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1921): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+A -> partial -> none: the last known R2 is still A's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+two records without quality in a row
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1927): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  qcur::current().previous_r_squared
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1921): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+A -> partial -> none: the last known R2 is still A's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+two records without quality in a row
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1927): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  qcur::current().previous_r_squared
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1921): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+A -> partial -> none: the last known R2 is still A's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  d.previous_r_squared
+    Which is: -1
+two records without quality in a row
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1927): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  qcur::current().previous_r_squared
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1918): error: Expected equality of these values:
+  0
+  way.load(qcur::kDirNone)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1915): xpe_preprocess_pipeline
+
+[  FAILED  ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC (15 ms)
+[ RUN      ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1943): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: -1
+the generation's history skips the partial record: A's R2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1948): error: Expected equality of these values:
+  0.99
+    Which is: 0.98999999999999999
+  q.previous_r_squared
+    Which is: -1
+the last known R2 is the generation's
+
+[  FAILED  ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC (13 ms)
+[----------] 3 tests from OomPipeline (56 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (56 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+[  FAILED  ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+[  FAILED  ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+
+ 3 FAILED TESTS

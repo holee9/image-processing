@@ -1,0 +1,8 @@
+loaded; backends built so far = 2; the ACTIVE one is the last built (the constructor builds one and InitializeBackend replaces it); its display calls = 1
+BeginShutdown returned after 3010 ms; IsBackendTransitioning=True; status='Backend shutting down...'
+Apply during the shutdown: display calls on the active backend 1 -> 1; status='Backend shutdown.'
+Initialize backend during the shutdown: backends built 2 -> 3
+whenDone ran = True after 3012 ms; IsBackendTransitioning=False; runtime state='Initialized'; status='Backend initialized: v0.0.0-mock'
+Initialize backend after the shutdown: backends built = 4
+Apply after the new backend: new backend display calls = 1; old (shut down) backend calls = 1
+WORST UI-dispatcher probe latency over the whole run = 3013 ms

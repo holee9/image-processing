@@ -1,0 +1,112 @@
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 16 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (23 ms total)
+
+[----------] 11 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1129 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (111 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by offset, asked by gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(383): error: The difference between 250.0f and g is 240, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 10, and
+0.01f evaluates to 0.0099999997764825821.
+the refused call must leave the gain Q map in the store
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by offset, asked by gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by offset, asked by defect
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by gain, asked by offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(382): error: Expected equality of these values:
+  700
+  o
+    Which is: 998
+the refused call must leave the offset Q map in the store
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by gain, asked by offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by gain, asked by defect
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by defect, asked by offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(376): error: Expected equality of these values:
+  missVerdict
+    Which is: -4
+  kCached[other]("csv_x.xcal", &wrong)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(356): cached by defect, asked by gain
+
+[  FAILED  ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (50 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (98 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad
+[       OK ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad (8 ms)
+[----------] 11 tests from CacheSameVerdict (1446 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 2 test suites ran. (1469 ms total)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+
+ 1 FAILED TEST

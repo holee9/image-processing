@@ -1,0 +1,17 @@
+Note: Google Test filter = PreprocessVersion.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+[       OK ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[       OK ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (0 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[       OK ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+[       OK ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[----------] 4 tests from PreprocessVersion (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (8 ms total)
+[  PASSED  ] 4 tests.

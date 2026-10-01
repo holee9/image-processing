@@ -1,0 +1,84 @@
+Note: Google Test filter = GainSemantics.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from GainSemantics
+[ RUN      ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(93): error: Expected equality of these values:
+  r.knownPasses
+    Which is: false
+  m.overall_pass
+    Which is: true
+semantics=1 residual=0.55001678543634902% (known semantics: line is 0.5%)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(93): error: Expected equality of these values:
+  r.knownPasses
+    Which is: false
+  m.overall_pass
+    Which is: true
+semantics=2 residual=0.55001678543634902% (known semantics: line is 0.5%)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(93): error: Expected equality of these values:
+  r.knownPasses
+    Which is: false
+  m.overall_pass
+    Which is: true
+semantics=1 residual=0.800024415180144% (known semantics: line is 0.5%)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(93): error: Expected equality of these values:
+  r.knownPasses
+    Which is: false
+  m.overall_pass
+    Which is: true
+semantics=2 residual=0.800024415180144% (known semantics: line is 0.5%)
+
+[  FAILED  ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown (3 ms)
+[ RUN      ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics
+[       OK ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics (0 ms)
+[ RUN      ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(124): error: Expected equality of these values:
+  -1
+  c.run(static_cast<XpeGainSemantics>(bad), &m)
+    Which is: 0
+value -1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(125): error: Expected equality of these values:
+  0
+  std::memcmp(&before, &m, sizeof m)
+    Which is: 1
+metrics were modified for value -1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(124): error: Expected equality of these values:
+  -1
+  c.run(static_cast<XpeGainSemantics>(bad), &m)
+    Which is: 0
+value 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(125): error: Expected equality of these values:
+  0
+  std::memcmp(&before, &m, sizeof m)
+    Which is: 1
+metrics were modified for value 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(124): error: Expected equality of these values:
+  -1
+  c.run(static_cast<XpeGainSemantics>(bad), &m)
+    Which is: 0
+value 99
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_gain_semantics.cpp(125): error: Expected equality of these values:
+  0
+  std::memcmp(&before, &m, sizeof m)
+    Which is: 1
+metrics were modified for value 99
+
+[  FAILED  ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput (0 ms)
+[----------] 3 tests from GainSemantics (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+[  FAILED  ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput
+
+ 2 FAILED TESTS

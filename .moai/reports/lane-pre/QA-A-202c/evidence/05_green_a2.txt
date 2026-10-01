@@ -1,0 +1,136 @@
+Note: Google Test filter = GhostFailedFrame.*:*Ghost*
+[==========] Running 47 tests from 11 test suites.
+[----------] Global test environment set-up.
+[----------] 11 tests from GhostCorrectTest
+[ RUN      ] GhostCorrectTest.CreateSucceeds
+[       OK ] GhostCorrectTest.CreateSucceeds (0 ms)
+[ RUN      ] GhostCorrectTest.ZeroWidthReturnsError
+[       OK ] GhostCorrectTest.ZeroWidthReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.ZeroHeightReturnsError
+[       OK ] GhostCorrectTest.ZeroHeightReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.NullHandleOutReturnsError
+[       OK ] GhostCorrectTest.NullHandleOutReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.ResetSucceeds
+[       OK ] GhostCorrectTest.ResetSucceeds (0 ms)
+[ RUN      ] GhostCorrectTest.ResetNullHandleReturnsError
+[       OK ] GhostCorrectTest.ResetNullHandleReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.DestroyNullIsNoOp
+[       OK ] GhostCorrectTest.DestroyNullIsNoOp (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectSucceedsOnValidHandle
+[       OK ] GhostCorrectTest.CorrectSucceedsOnValidHandle (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectNullHandleReturnsError
+[       OK ] GhostCorrectTest.CorrectNullHandleReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectDimensionMismatchReturnsError
+[       OK ] GhostCorrectTest.CorrectDimensionMismatchReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection
+[       OK ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection (0 ms)
+[----------] 11 tests from GhostCorrectTest (0 ms total)
+
+[----------] 10 tests from GhostTierTest
+[ RUN      ] GhostTierTest.Tier2FirstFrameIsUnchanged
+[       OK ] GhostTierTest.Tier2FirstFrameIsUnchanged (0 ms)
+[ RUN      ] GhostTierTest.Tier2SecondFrameIsReducedByHistory
+[       OK ] GhostTierTest.Tier2SecondFrameIsReducedByHistory (0 ms)
+[ RUN      ] GhostTierTest.Tier2ExposureWeightScalesWithSignal
+[       OK ] GhostTierTest.Tier2ExposureWeightScalesWithSignal (0 ms)
+[ RUN      ] GhostTierTest.Tier3RunsWithSpatialContext
+[       OK ] GhostTierTest.Tier3RunsWithSpatialContext (0 ms)
+[ RUN      ] GhostTierTest.Tier3SkipsSpatialContextOnTinyImage
+[       OK ] GhostTierTest.Tier3SkipsSpatialContextOnTinyImage (0 ms)
+[ RUN      ] GhostTierTest.Tier3BetaStrengthensSignalDependence
+[       OK ] GhostTierTest.Tier3BetaStrengthensSignalDependence (0 ms)
+[ RUN      ] GhostTierTest.EachTierRejectsNonFiniteInput
+[       OK ] GhostTierTest.EachTierRejectsNonFiniteInput (0 ms)
+[ RUN      ] GhostTierTest.OutOfRangeTierFallsBackToTierOne
+[       OK ] GhostTierTest.OutOfRangeTierFallsBackToTierOne (0 ms)
+[ RUN      ] GhostTierTest.NonIncreasingTimestampUsesGuardedDelta
+[       OK ] GhostTierTest.NonIncreasingTimestampUsesGuardedDelta (0 ms)
+[ RUN      ] GhostTierTest.Alpha1OverrideChangesTheCorrection
+[       OK ] GhostTierTest.Alpha1OverrideChangesTheCorrection (0 ms)
+[----------] 10 tests from GhostTierTest (0 ms total)
+
+[----------] 1 test from Boundary
+[ RUN      ] Boundary.GhostUseAfterDestroyReturnsError
+[       OK ] Boundary.GhostUseAfterDestroyReturnsError (0 ms)
+[----------] 1 test from Boundary (0 ms total)
+
+[----------] 4 tests from GoldenGhostTest
+[ RUN      ] GoldenGhostTest.Frame0PassesThroughExactly
+[       OK ] GoldenGhostTest.Frame0PassesThroughExactly (0 ms)
+[ RUN      ] GoldenGhostTest.Frame1MatchesDualExponentialFormula
+[       OK ] GoldenGhostTest.Frame1MatchesDualExponentialFormula (0 ms)
+[ RUN      ] GoldenGhostTest.AfterResetHistoryIsZero
+[       OK ] GoldenGhostTest.AfterResetHistoryIsZero (0 ms)
+[ RUN      ] GoldenGhostTest.GhostSubtractedAfterFirstFrame
+[       OK ] GoldenGhostTest.GhostSubtractedAfterFirstFrame (0 ms)
+[----------] 4 tests from GoldenGhostTest (0 ms total)
+
+[----------] 1 test from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+[       OK ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity (0 ms)
+[----------] 1 test from PreprocessDegraded (0 ms total)
+
+[----------] 2 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected
+[       OK ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected (3 ms)
+[ RUN      ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+[       OK ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput (3 ms)
+[----------] 2 tests from PipelineStageValueTest (7 ms total)
+
+[----------] 1 test from P1A066
+[ RUN      ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError
+[       OK ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError (0 ms)
+[----------] 1 test from P1A066 (0 ms total)
+
+[----------] 4 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (54 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (54 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (29 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (253 ms)
+[----------] 4 tests from GhostThreadSafety (392 ms total)
+
+[----------] 3 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[----------] 3 tests from ConfigStrictParse (0 ms total)
+
+[----------] 2 tests from GhostFailedFrame
+[ RUN      ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+[       OK ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas (0 ms)
+[ RUN      ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+[       OK ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory (1 ms)
+[----------] 2 tests from GhostFailedFrame (1 ms total)
+
+[----------] 8 tests from AllCombinations/PipelineComboTest
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect (2 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect (7 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect (4 ms)
+[----------] 8 tests from AllCombinations/PipelineComboTest (33 ms total)
+
+[----------] Global test environment tear-down
+[==========] 47 tests from 11 test suites ran. (436 ms total)
+[  PASSED  ] 47 tests.
+
+  YOU HAVE 2 DISABLED TESTS
+

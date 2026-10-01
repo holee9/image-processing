@@ -93,12 +93,14 @@ var runtime = backend.Initialize(loadedSettings);
 
 Assert(runtime.Version == manifest.ExpectedTelemetry.BackendVersion, "Mock version should match.");
 Assert(!string.IsNullOrWhiteSpace(backend.GetVersion()), "GetVersion should be non-empty.");
-Assert(backend.GetLogCount() == manifest.ExpectedTelemetry.InitialLogCount, "Mock backend log count should match fixture manifest.");
-Assert(backend.GetAlertCount() == manifest.ExpectedTelemetry.InitialAlertCount, "Mock backend alert count should match fixture manifest.");
+// GUI-C-186f: the counts and the alerts come from ONE snapshot call (the backend lists are written from several threads).
+var telemetry = backend.GetTelemetrySince(0, 0);
+Assert(telemetry.LogTotal == manifest.ExpectedTelemetry.InitialLogCount, "Mock backend log count should match fixture manifest.");
+Assert(telemetry.AlertTotal == manifest.ExpectedTelemetry.InitialAlertCount, "Mock backend alert count should match fixture manifest.");
 Assert(backend.GetDisplayVersion() == "v0.0.0-mock-display", "Mock display version should match.");
-Assert(backend.GetAlert(0)?.Severity == "INFO", "First alert should be INFO.");
-Assert(backend.GetAlert(1)?.Severity == "WARN", "Second alert should be WARN.");
-Assert(backend.GetAlert(2)?.Severity == "ERROR", "Third alert should be ERROR.");
+Assert(telemetry.Alerts[0].Severity == "INFO", "First alert should be INFO.");
+Assert(telemetry.Alerts[1].Severity == "WARN", "Second alert should be WARN.");
+Assert(telemetry.Alerts[2].Severity == "ERROR", "Third alert should be ERROR.");
 
 var frame = backend.LoadRawImage(rawPath, loadedSettings);
 Assert(frame.Preview.PixelWidth == manifest.RawSample.Width, "Preview width should match fixture.");
@@ -116,6 +118,9 @@ Assert(displayFrame.ProcessedPreview is not null, "Mock display pipeline should 
 Assert(!ReferenceEquals(displayFrame.Preview, displayFrame.ProcessedPreview), "Mock display pipeline should provide a distinct processed preview for comparison.");
 Assert(displayFrame.DisplayPipelineSummary.Contains("VOI", StringComparison.Ordinal), "Display summary should include VOI settings.");
 Assert(displayFrame.DisplayPipelineSummary.Contains("CalibrationEval", StringComparison.Ordinal), "Display summary should include calibration evaluation settings.");
+
+// GUI-C-186f: the real view model through a shutdown / a replacement (work that outlives a backend; every entry point refuses meanwhile).
+ImageProcTest.SelfCheck.LifetimeScenarios.Run();
 
 Console.WriteLine("GUI-S0 self-check passed.");
 Console.WriteLine($"Fixture manifest: {manifestPath}");

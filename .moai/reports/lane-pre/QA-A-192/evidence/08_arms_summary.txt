@@ -1,0 +1,4 @@
+ARM A_semantics_ignored_always_1pct (BUILD_EXIT=0, test exit=1): GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+ARM B_always_half_percent (BUILD_EXIT=0, test exit=1): GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+ARM C_reciprocal_treated_as_unknown (BUILD_EXIT=0, test exit=1): GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+ARM D_range_check_removed (BUILD_EXIT=0, test exit=1): GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput

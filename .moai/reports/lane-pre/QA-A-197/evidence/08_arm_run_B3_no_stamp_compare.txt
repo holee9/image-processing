@@ -1,0 +1,110 @@
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 16 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (8 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (23 ms total)
+
+[----------] 11 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1115 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(214): error: Expected equality of these values:
+  missO
+    Which is: -4
+  xpe_calib_load_offset_cached("csv_oe.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(215): error: Expected equality of these values:
+  missG
+    Which is: -4
+  xpe_calib_load_gain_cached("csv_ge.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(216): error: Expected equality of these values:
+  missD
+    Which is: -4
+  xpe_calib_load_defect_cached("csv_de.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(222): error: Expected equality of these values:
+  700
+  o
+    Which is: 900
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(223): error: The difference between 250.0f and g is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(224): error: The difference between 5000.0f and d is 4000, which exceeds 0.01f, where
+5000.0f evaluates to 5000,
+d evaluates to 1000, and
+0.01f evaluates to 0.0099999997764825821.
+
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (115 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(240): error: Expected equality of these values:
+  300.0f
+    Which is: 300
+  static_cast<const float*>(after.data)[0]
+    Which is: 100
+a changed write time cancels the hit; the miss path reads the file again (100 = stale hit)
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (7 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(261): error: Expected equality of these values:
+  300.0f
+    Which is: 300
+  static_cast<const float*>(after.data)[0]
+    Which is: 100
+a changed size cancels the hit (100 = stale hit)
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (6 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (60 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(432): error: Expected equality of these values:
+  miss
+    Which is: -4
+  xpe_calib_load_gain_cached("csv_ge.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(435): error: The difference between 250.0f and g is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused call must leave the Q map in the store
+
+[  FAILED  ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (94 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad
+[       OK ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad (9 ms)
+[----------] 11 tests from CacheSameVerdict (1440 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 2 test suites ran. (1463 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[  FAILED  ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[  FAILED  ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+
+ 4 FAILED TESTS

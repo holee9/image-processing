@@ -1,0 +1,32 @@
+Note: Google Test filter = PreprocessVersion.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(44): error: Expected: (nullptr) != (v), actual: (nullptr) vs NULL
+
+[  FAILED  ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(50): error: Expected: (nullptr) != (first), actual: (nullptr) vs NULL
+
+[  FAILED  ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (0 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(63): error: Expected: (nullptr) != (before), actual: (nullptr) vs NULL
+
+[  FAILED  ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(83): error: Expected: (nullptr) != (v), actual: (nullptr) vs NULL
+
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[----------] 4 tests from PreprocessVersion (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] PreprocessVersion.IsNeverNullAndNonEmpty
+[  FAILED  ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[  FAILED  ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+
+ 4 FAILED TESTS

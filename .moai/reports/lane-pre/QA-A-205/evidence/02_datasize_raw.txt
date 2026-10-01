@@ -1,0 +1,48 @@
+preprocess/src/calibration_cache.cpp:245:        const size_t bytes = static_cast<size_t>(entry.buffer.dataSize);
+preprocess/src/calibration_cache.cpp:349:        buffer->dataSize = 0;
+preprocess/src/calibration_cache.cpp:461:    CacheBufferPtr owner(cache_buffer_alloc(static_cast<size_t>(entry.dataSize)));
+preprocess/src/calibration_cache.cpp:463:    std::memcpy(entry.data, src, static_cast<size_t>(entry.dataSize));
+preprocess/src/calibration_cache.cpp:590:        desc.dataSize      = pixelCount * sizeof(float);
+preprocess/src/calibration_cache.cpp:592:        staging.resize(static_cast<size_t>(desc.dataSize));
+preprocess/src/calibration_cache.cpp:669:        desc.dataSize      = pixelCount * sizeof(float);
+preprocess/src/calibration_cache.cpp:671:        staging.resize(static_cast<size_t>(desc.dataSize));
+preprocess/src/calibration_cache.cpp:748:        desc.dataSize      = pixelCount * sizeof(uint8_t);
+preprocess/src/calibration_cache.cpp:750:        staging.resize(static_cast<size_t>(desc.dataSize));
+preprocess/src/defect_correct.cpp:134:    // #123 dataSize input contract (docs/project/api-spec.md, 2026-09-10):
+preprocess/src/defect_correct.cpp:138:    if (input->dataSize != 0 && input->dataSize < n * sizeof(float))
+preprocess/src/defect_correct.cpp:140:    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+preprocess/src/defect_correct.cpp:156:    // (n * sizeof(float) on both sides). input->dataSize is not used as the
+preprocess/src/defect_correct.cpp:212:        output->dataSize      = n * sizeof(float);
+preprocess/src/defect_correct.cpp:275:    output->dataSize      = n * sizeof(float);
+preprocess/src/gain_correct.cpp:257:    // #123 dataSize input contract (docs/project/api-spec.md, 2026-09-10):
+preprocess/src/gain_correct.cpp:261:    if (input->dataSize != 0 && input->dataSize < n * sizeof(uint16_t))
+preprocess/src/gain_correct.cpp:264:    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+preprocess/src/gain_correct.cpp:429:        output->dataSize      = n * sizeof(float);
+preprocess/src/offset_correct.cpp:162:    // #123 dataSize input contract (docs/project/api-spec.md, 2026-09-10):
+preprocess/src/offset_correct.cpp:166:    if (input->dataSize != 0 && input->dataSize < n * sizeof(uint16_t))
+preprocess/src/offset_correct.cpp:168:    if (output->dataSize < n * sizeof(uint16_t)) return XPE_ERR_BUFFER_TOO_SMALL;
+preprocess/src/offset_correct.cpp:208:    output->dataSize      = n * sizeof(uint16_t);
+preprocess/src/pipeline.cpp:139:            std::memcpy(stage1Data.data(), img->data, img->dataSize);
+preprocess/src/pipeline.cpp:142:            stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
+preprocess/src/pipeline.cpp:157:            stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
+preprocess/src/pipeline.cpp:173:            stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
+preprocess/src/pipeline.cpp:204:            stage4.dataSize = stage4Data.size() * sizeof(float);
+preprocess/src/pipeline.cpp:229:            stage5.dataSize = stage5Data.size() * sizeof(float);
+preprocess/src/pipeline.cpp:272:            stage6.dataSize = stage6Data.size() * sizeof(float);
+preprocess/src/pipeline.cpp:296:            stage7.dataSize = stage7Data.size() * sizeof(float);
+preprocess/src/pipeline.cpp:312:        const size_t copySize = std::min(img->dataSize, finalStage->dataSize);
+preprocess/src/runtime_detection.cpp:94:    if (img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
+preprocess/src/runtime_detection.cpp:100:    if (defectMapOut->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+preprocess/src/xpe_calib_generate_nonlin_lut.cpp:96:    if (frame.dataSize < n * sizeof(uint16_t)) return false;
+preprocess/src/xpe_calib_generate_offset_methods.cpp:94:        if (frame.dataSize < n_pixels * sizeof(uint16_t)) {
+preprocess/src/xpe_calib_generate_offset_methods.cpp:414:        if (output->dataSize < result.size() * sizeof(uint16_t)) {
+preprocess/src/xpe_calib_generate_offset_methods.cpp:426:        output->dataSize = result.size() * sizeof(uint16_t);
+preprocess/src/xpe_defect_gen.cpp:464:    if (bpm_out->dataSize < num_pixels) {
+common/src/xpe_memory.cpp:45:    size_t dataSize = (size_t)width * height * bytesPerPixel;
+common/src/xpe_memory.cpp:47:    void* data = std::malloc(dataSize);
+common/src/xpe_memory.cpp:51:    std::memset(data, 0, dataSize);
+common/src/xpe_memory.cpp:59:    out->dataSize = dataSize;
+common/src/xpe_memory.cpp:71:    buf->dataSize = 0;
+common/src/xpe_memory.cpp:78:    if (dst->dataSize < src->dataSize)
+common/src/xpe_memory.cpp:81:    std::memcpy(dst->data, src->data, src->dataSize);
+common/src/xpe_memory.cpp:87:    dst->dataSize = src->dataSize;

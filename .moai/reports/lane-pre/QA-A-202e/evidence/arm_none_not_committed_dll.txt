@@ -1,0 +1,740 @@
+Note: Google Test filter = ConfigStrictParse.*:CalibQualityMeta*:*QualityMeta*
+[==========] Running 31 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from CalibModeTest
+[ RUN      ] CalibModeTest.QualityMeta_InitialState
+[       OK ] CalibModeTest.QualityMeta_InitialState (17 ms)
+[ RUN      ] CalibModeTest.QualityMeta_NullPointer_Rejected
+[       OK ] CalibModeTest.QualityMeta_NullPointer_Rejected (0 ms)
+[----------] 2 tests from CalibModeTest (17 ms total)
+
+[----------] 15 tests from CalibQualityMetaTest
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit
+[       OK ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit (17 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold (5 ms)
+[ RUN      ] CalibQualityMetaTest.GoodFitRaisesNoWarning
+[       OK ] CalibQualityMetaTest.GoodFitRaisesNoWarning (4 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Regression
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Regression (9 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Stable
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Stable (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields
+[       OK ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields (10 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree (9 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues
+[       OK ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit
+[       OK ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit (8 ms)
+[ RUN      ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad
+[       OK ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad (1 ms)
+[ RUN      ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted
+[       OK ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted (1 ms)
+[ RUN      ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads
+[       OK ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads (1 ms)
+[ RUN      ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored
+[       OK ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored (1 ms)
+[----------] 15 tests from CalibQualityMetaTest (102 ms total)
+
+[----------] 1 test from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (5 ms)
+[----------] 1 test from CacheSameVerdict (5 ms total)
+
+[----------] 13 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (11 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (10 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: the key's name at the end of a string value: not a key  {"note":"see \"fit_r_squared"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: the key's name at the end of a string value: not a key  {"note":"see \"fit_r_squared"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: the key's name at the end of a string value: not a key  {"note":"see \"fit_r_squared"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: the key's name at the end of a string value: not a key  {"note":"see \"fit_r_squared"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: the key's name at the end of a string value: not a key  {"note":"see \"fit_r_squared"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object: not given (the nested value is not read)  {"nested":{"polynomial_degree":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object: not given (the nested value is not read)  {"nested":{"polynomial_degree":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object: not given (the nested value is not read)  {"nested":{"polynomial_degree":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object: not given (the nested value is not read)  {"nested":{"polynomial_degree":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object: not given (the nested value is not read)  {"nested":{"polynomial_degree":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"polynomial_degree":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"polynomial_degree":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"polynomial_degree":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"polynomial_degree":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"polynomial_degree":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: in a nested array of objects only: not given  {"list":[{"polynomial_degree":7},{"polynomial_degree":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: in a nested array of objects only: not given  {"list":[{"polynomial_degree":7},{"polynomial_degree":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: in a nested array of objects only: not given  {"list":[{"polynomial_degree":7},{"polynomial_degree":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: in a nested array of objects only: not given  {"list":[{"polynomial_degree":7},{"polynomial_degree":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: in a nested array of objects only: not given  {"list":[{"polynomial_degree":7},{"polynomial_degree":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: the key's name at the end of a string value: not a key  {"note":"see \"polynomial_degree"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: the key's name at the end of a string value: not a key  {"note":"see \"polynomial_degree"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: the key's name at the end of a string value: not a key  {"note":"see \"polynomial_degree"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: the key's name at the end of a string value: not a key  {"note":"see \"polynomial_degree"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): polynomial_degree: the key's name at the end of a string value: not a key  {"note":"see \"polynomial_degree"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object: not given (the nested value is not read)  {"nested":{"actual_dose_levels":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object: not given (the nested value is not read)  {"nested":{"actual_dose_levels":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object: not given (the nested value is not read)  {"nested":{"actual_dose_levels":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object: not given (the nested value is not read)  {"nested":{"actual_dose_levels":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object: not given (the nested value is not read)  {"nested":{"actual_dose_levels":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"actual_dose_levels":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"actual_dose_levels":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"actual_dose_levels":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"actual_dose_levels":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"actual_dose_levels":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: in a nested array of objects only: not given  {"list":[{"actual_dose_levels":7},{"actual_dose_levels":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: in a nested array of objects only: not given  {"list":[{"actual_dose_levels":7},{"actual_dose_levels":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: in a nested array of objects only: not given  {"list":[{"actual_dose_levels":7},{"actual_dose_levels":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: in a nested array of objects only: not given  {"list":[{"actual_dose_levels":7},{"actual_dose_levels":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: in a nested array of objects only: not given  {"list":[{"actual_dose_levels":7},{"actual_dose_levels":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: the key's name at the end of a string value: not a key  {"note":"see \"actual_dose_levels"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: the key's name at the end of a string value: not a key  {"note":"see \"actual_dose_levels"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: the key's name at the end of a string value: not a key  {"note":"see \"actual_dose_levels"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: the key's name at the end of a string value: not a key  {"note":"see \"actual_dose_levels"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): actual_dose_levels: the key's name at the end of a string value: not a key  {"note":"see \"actual_dose_levels"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object: not given (the nested value is not read)  {"nested":{"calibration_mode":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object: not given (the nested value is not read)  {"nested":{"calibration_mode":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object: not given (the nested value is not read)  {"nested":{"calibration_mode":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object: not given (the nested value is not read)  {"nested":{"calibration_mode":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object: not given (the nested value is not read)  {"nested":{"calibration_mode":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"calibration_mode":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"calibration_mode":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"calibration_mode":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"calibration_mode":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"calibration_mode":"bad"}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: in a nested array of objects only: not given  {"list":[{"calibration_mode":7},{"calibration_mode":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: in a nested array of objects only: not given  {"list":[{"calibration_mode":7},{"calibration_mode":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: in a nested array of objects only: not given  {"list":[{"calibration_mode":7},{"calibration_mode":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: in a nested array of objects only: not given  {"list":[{"calibration_mode":7},{"calibration_mode":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: in a nested array of objects only: not given  {"list":[{"calibration_mode":7},{"calibration_mode":8}]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: the key's name at the end of a string value: not a key  {"note":"see \"calibration_mode"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 0.5
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: the key's name at the end of a string value: not a key  {"note":"see \"calibration_mode"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(550): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: the key's name at the end of a string value: not a key  {"note":"see \"calibration_mode"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(551): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: the key's name at the end of a string value: not a key  {"note":"see \"calibration_mode"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): calibration_mode: the key's name at the end of a string value: not a key  {"note":"see \"calibration_mode"}
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (73 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (0 ms)
+[----------] 13 tests from ConfigStrictParse (101 ms total)
+
+[----------] Global test environment tear-down
+[==========] 31 tests from 4 test suites ran. (228 ms total)
+[  PASSED  ] 30 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+
+ 1 FAILED TEST

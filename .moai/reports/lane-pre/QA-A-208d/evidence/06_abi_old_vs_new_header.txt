@@ -1,0 +1,9 @@
+# XpeCalibQualityMeta sizeof/offsets, each compiled (MSVC x64) against a different public header
+# orig = before QA-A-202e (5d003c4f^), old = before this card (96a67d97), new = this working tree
+orig:
+sizeof=88 mode=0 deg=1 pts=2 r2=8 ts=16 serial=24 fw=56 pass=72 prev=80
+old:
+sizeof=88 mode=0 deg=1 pts=2 valid=3 r2=8 ts=16 serial=24 fw=56 pass=72 prev=80
+new:
+sizeof=88 mode=0 deg=1 pts=2 valid=3 r2=8 ts=16 serial=24 fw=56 pass=72 prev=80
+new: has_r_squared=4 has_previous_r_squared=73

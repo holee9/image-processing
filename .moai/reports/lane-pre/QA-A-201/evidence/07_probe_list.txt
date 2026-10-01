@@ -1,0 +1,20 @@
+[audit-list] 0	xpe_alert_push (empty queue)
+[audit-list] 1	xpe_alert_push (full queue, evicts)
+[audit-list] 2	xpe_init (with config)
+[audit-list] 3	xpe_configure
+[audit-list] 4	xpe_shutdown
+[audit-list] 5	xpe_log_set_file (valid path)
+[audit-list] 6	xpe_log_set_level
+[audit-list] 7	xpe_log_flush
+[audit-list] 8	xpe_get_pending_alert_count
+[audit-list] 9	xpe_get_pending_alert
+[audit-list] 10	xpe_clear_alerts
+[audit-list] 11	xpe_offset_correct
+[audit-list] 12	xpe_gain_correct
+[audit-list] 13	xpe_defect_correct
+[audit-list] 14	xpe_ghost_create (with config)
+[audit-list] 15	xpe_ghost_create (config with long values)
+[audit-list] 16	xpe_ghost_correct
+[audit-list] 17	xpe_preprocess_pipeline_ex (all stages, valid)
+[audit-list] 18	xpe_verify_offset
+[audit-list] 19	xpe_verify_gain

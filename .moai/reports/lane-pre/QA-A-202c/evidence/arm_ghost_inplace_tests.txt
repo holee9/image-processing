@@ -1,0 +1,31 @@
+Note: Google Test filter = GhostFailedFrame.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from GhostFailedFrame
+[ RUN      ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_failed_frame.cpp(96): error: Value of: stateOf(ghost_) == seeded
+  Actual: false
+Expected: true
+a failed frame must leave the history, the time of the last frame and the exposure estimate as they were
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_failed_frame.cpp(103): error: Expected equality of these values:
+  0
+  xpe_ghost_correct(ghost_, &n2, &m)
+    Which is: -3
+
+[  FAILED  ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas (0 ms)
+[ RUN      ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_failed_frame.cpp(168): error: Expected: (0u) != (metas[1].flags & 0x00000001u), actual: 0 vs 0
+control: the batch carried on and corrected the second frame
+
+[  FAILED  ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory (1 ms)
+[----------] 2 tests from GhostFailedFrame (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+[  FAILED  ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+
+ 2 FAILED TESTS

@@ -1,0 +1,11 @@
+Note: Google Test filter = CacheSameVerdict.AScalarGainHit*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad
+[       OK ] CacheSameVerdict.AScalarGainHitReplacesAPolynomialInTheStoreLikeALoad (8 ms)
+[----------] 1 test from CacheSameVerdict (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.

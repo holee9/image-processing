@@ -1,0 +1,28 @@
+Note: Google Test filter = GhostFailedFrame.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from GhostFailedFrame
+[ RUN      ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_failed_frame.cpp(96): error: Value of: stateOf(ghost_) == seeded
+  Actual: false
+Expected: true
+a failed frame must leave the history, the time of the last frame and the exposure estimate as they were
+
+[  FAILED  ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas (0 ms)
+[ RUN      ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_failed_frame.cpp(172): error: Value of: stateOf(ghost_) == after_reference
+  Actual: false
+Expected: true
+and the handle must hold the same history as the run without the failed frame
+
+[  FAILED  ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory (2 ms)
+[----------] 2 tests from GhostFailedFrame (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (10 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+[  FAILED  ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+
+ 2 FAILED TESTS

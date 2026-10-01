@@ -1,0 +1,6 @@
+gui + clients build: exit 0, 0 errors
+SelfCheck: Lifetime scenarios passed (9 scenarios); 12 runs in a row 0 failures, 1.8-2.4 s (mean 1.9 s)
+Functional (Category=Functional): 354 passed, 1 skipped, 0 failed
+E2E (Mock) ProcessingChainScenarios+AutomationReportBackendTests+MenuCommandScenarios+RunnerVerdictWordingTests: exit 0, 31 passed, 7 skipped (Native-only: R06, A03, C02, C04, C06, C07, C09), 0 failed; A04 passed
+Stress (24 parallel x 3): old f1028a83 68/72 runs failed, new 0/72
+Native E2E: NOT run locally (#98)

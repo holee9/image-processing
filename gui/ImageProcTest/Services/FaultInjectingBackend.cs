@@ -85,13 +85,7 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     public VoiPreset CreateVoiPreset(XpeBodyPartEnum bodyPart) => _inner.CreateVoiPreset(bodyPart);
 
-    public int GetAlertCount() => _inner.GetAlertCount();
-
-    public AlertEntry? GetAlert(int index) => _inner.GetAlert(index);
-
-    public int GetLogCount() => _inner.GetLogCount();
-
-    public string? GetLog(int index) => _inner.GetLog(index);
+    public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
 

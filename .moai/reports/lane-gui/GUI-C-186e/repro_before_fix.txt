@@ -1,0 +1,6 @@
+gate held by another task for 3000 ms when the lane render's call arrives; Lane B differs (LaneBVoiWindowWidth=500)
+render finished in 3148 ms; probes run = 51
+WORST UI-dispatcher probe latency = 3028 ms
+  call 1 on pool thread
+  call 2 on the UI thread
+Lane B image set: True ; status: chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)

@@ -18,9 +18,9 @@
 #include <cstring>
 #include <vector>
 
-extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {
+XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noexcept {
     try {
-        if (filepath == nullptr) {
+        if (filepath == nullptr || out == nullptr) {
             return XPE_ERR_INVALID_INPUT;
         }
 
@@ -47,17 +47,41 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
 
         // Allocate and copy BPM data
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
-        std::unique_ptr<uint8_t[]> map(new uint8_t[expected]);
-        std::memcpy(map.get(), payload.data(), payload.size());
+        StagedDefect staged;
+        staged.map.reset(new uint8_t[expected]);
+        std::memcpy(staged.map.get(), payload.data(), payload.size());
+        staged.width    = hdr.width;
+        staged.height   = hdr.height;
+        staged.expiryMs = hdr.expiry_epoch_ms;
 
-        // Commit under mutex
-        {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
-            g_calib.defect_map    = std::move(map);
-            g_calib.defect_width  = hdr.width;
-            g_calib.defect_height = hdr.height;
+        *out = std::move(staged);
+        return XPE_OK;
+
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
+    g_calib.defect_map       = std::move(staged.map);
+    g_calib.defect_width     = staged.width;
+    g_calib.defect_height    = staged.height;
+    g_calib.defect_expiry_ms = staged.expiryMs;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {
+    try {
+        StagedDefect staged;
+        const XpeErrorCode rc = xpe_calib_stage_defect(filepath, &staged);
+        if (rc != XPE_OK) {
+            return rc;
         }
 
+        // Commit under mutex
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        xpe_calib_commit_defect_locked(staged);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

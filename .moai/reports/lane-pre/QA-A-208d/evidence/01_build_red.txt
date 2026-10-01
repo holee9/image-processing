@@ -1,0 +1,216 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_manager.cpp.obj
+[2/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\temp_compensate.cpp.obj
+[3/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\offset_correct.cpp.obj
+[4/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\readout_validate.cpp.obj
+[5/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\binning_correct.cpp.obj
+[6/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_save.cpp.obj
+[7/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_defect_map.cpp.obj
+[8/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj
+[9/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_offset.cpp.obj
+[10/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calibration.cpp.obj
+[11/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_gain.cpp.obj
+[12/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj
+[13/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_check_expiry.cpp.obj
+[14/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\defect_correct.cpp.obj
+[15/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\ghost_correct.cpp.obj
+[16/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_mode.cpp.obj
+[17/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\pipeline.cpp.obj
+[18/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\runtime_detection.cpp.obj
+[19/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\gain_correct.cpp.obj
+[20/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\temp_compensate.cpp.obj
+[21/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\binning_correct.cpp.obj
+[22/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\offset_correct.cpp.obj
+[23/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[24/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_offset.cpp.obj
+[25/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\readout_validate.cpp.obj
+[26/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\gain_correct.cpp.obj
+[27/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_nonlin_lut.cpp.obj
+[28/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_verify_metrics.cpp.obj
+[29/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_correct.cpp.obj
+[30/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\ghost_correct.cpp.obj
+[31/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_cache.cpp.obj
+[32/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_gain.cpp.obj
+[33/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\runtime_detection.cpp.obj
+[34/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\preprocess.cpp.obj
+[35/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\helpers.cpp.obj
+[36/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_manager.cpp.obj
+[37/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\nonlinearity_correct.cpp.obj
+[38/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calibration.cpp.obj
+[39/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_defect_map.cpp.obj
+[40/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset.cpp.obj
+[41/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_save.cpp.obj
+[42/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_nonlin_lut.cpp.obj
+[43/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_offset.cpp.obj
+[44/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[45/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+FAILED: modules/preprocess/CMakeFiles/xpe_preprocess_oom_tests.dir/tests/test_oom_injection.cpp.obj
+C:\PROGRA~1\MICROS~1\2022\PROFES~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_CACHE_TEST_HOOKS -DXPE_DLL_EXPORT -ID:\workspace-github\xpe-pre\modules\preprocess\include -ID:\workspace-github\xpe-pre\modules\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest -external:W0 /DWIN32 /D_WINDOWS /EHsc /Zi /O2 /Ob1 /DNDEBUG -std:c++17 -MD /arch:AVX2 /W4 /utf-8 /WX /wd4251 /wd4275 /showIncludes /Fomodules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj /Fdmodules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\ /FS -c D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1705): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1705): error C2618: offsetof의 멤버 지정자가 잘못되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1705): note: offsetof에 builtin 의미가 있습니다. /Zc:offsetof-를 사용하여 이전의 일치하지 않는 정의로 되돌리세요.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1705): error C2338: static_assert failed: 'has_r_squared sits in the padding before r_squared (QA-A-208d)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1706): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1706): error C2618: offsetof의 멤버 지정자가 잘못되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1706): note: offsetof에 builtin 의미가 있습니다. /Zc:offsetof-를 사용하여 이전의 일치하지 않는 정의로 되돌리세요.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1706): error C2338: static_assert failed: 'has_previous_r_squared sits in the padding after calibration_pass (QA-A-208d)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1924): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1924): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1924): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1924): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1924): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1925): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1928): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1928): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1928): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1928): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1928): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1929): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1929): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1929): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1929): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1929): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2009): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2009): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2009): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2009): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2009): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2012): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2012): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2012): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2012): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2012): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2017): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2017): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2017): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2017): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2017): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2024): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2024): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2024): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2024): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2024): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2028): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2028): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2028): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2028): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2028): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2030): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2030): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2030): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2030): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2030): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2039): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2039): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2039): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2039): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2039): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2042): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2042): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2042): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2042): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2042): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2043): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2043): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2043): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2043): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2043): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2047): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2047): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2047): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2047): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2047): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2054): error C2039: 'has_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2054): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2054): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2054): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2054): note: 인수 목록 '(const char [3], const char [16], unsigned int)'을(를) 일치시키는 동안
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2060): error C2039: 'has_previous_r_squared': 'XpeCalibQualityMeta'의 멤버가 아닙니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess_api.h(1570): note: 'XpeCalibQualityMeta' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2060): error C2660: 'testing::internal::EqHelper::Compare': 함수는 3개의 인수를 사용하지 않습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1407): note: 'testing::internal::EqHelper::Compare' 선언을 참조하십시오.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1414): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2060): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,std::nullptr_t,T *)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include\gtest/gtest.h(1395): note: 또는       'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)'
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2060): note: 'testing::AssertionResult testing::internal::EqHelper::Compare(const char *,const char *,const T1 &,const T2 &)': 4개의 인수가 필요합니다. 3개가 제공되었습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2060): note: 인수 목록 '(const char [3], const char [25], unsigned int)'을(를) 일치시키는 동안
+[46/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_defect_gen.cpp.obj
+[47/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_gain.cpp.obj
+[48/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_check_expiry.cpp.obj
+[49/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_verify_metrics.cpp.obj
+[50/73] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\pipeline.cpp.obj
+[51/73] Linking CXX shared library bin\xpe_preprocess.dll
+[52/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_cache.cpp.obj
+[53/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_mode.cpp.obj
+[54/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_gain.cpp.obj
+[55/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\preprocess.cpp.obj
+[56/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\helpers.cpp.obj
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1

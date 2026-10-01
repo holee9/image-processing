@@ -1,0 +1,31 @@
+Note: Google Test filter = ConfigStrictParse.AQualityFieldIsTaken*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(540): error: Expected equality of these values:
+  row.read
+    Which is: false
+  changed
+    Which is: true
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(536): error: Expected equality of these values:
+  0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object, malformed: not given (the nested value does not poison the load)  {"nested":{"fit_r_squared":"bad"}}
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (22 ms)
+[----------] 1 test from ConfigStrictParse (22 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (23 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+
+ 1 FAILED TEST

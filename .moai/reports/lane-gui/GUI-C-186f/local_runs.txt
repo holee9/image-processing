@@ -1,0 +1,23 @@
+GUI-C-186f local runs (this tree: dev/gui at 62e6da04 = main 53ec370a merged, plus the working-tree changes of this card)
+
+[gui/ImageProcTest.slnx, clients/ImageProcTest.slnx] dotnet build -c Debug (nothing else running): exit=0, errors 0, warnings 0 (xUnit1031 0)
+
+[BackendLifecycleTests + BackendTelemetryTests + AiStatusRefresherTests (33 tests), six consecutive runs (tests that use threads and a barrier)]:
+run 1: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 2: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 3: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 4: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 5: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 6: 통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+[Category=Functional, all]:
+통과!  - 실패:     0, 통과:   346, 건너뜀:     1, 전체:   347, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+[SelfCheck = the CI gui-shell-runners command, with the 5 lifetime scenarios on the real view model, three runs]:
+SelfCheck run 1 exit=0 Lifetime scenarios passed (5 scenarios).
+SelfCheck run 2 exit=0 Lifetime scenarios passed (5 scenarios).
+SelfCheck run 3 exit=0 Lifetime scenarios passed (5 scenarios).
+
+[E2E, Mock backend: ProcessingChainScenarios + AutomationReportBackendTests + MenuCommandScenarios] (UI Automation patterns only)
+  run 1 (INVALID: I started a non-incremental rebuild while it ran; copying the running app failed with MSB3021): 19 passed, 4 failed (A06, A14, R12, R11b)
+  run 2 (rebuilt with nothing else running): exit=0, 23 passed, 0 failed, 7 skipped (each with its reason), no ImageProcTest.exe left running

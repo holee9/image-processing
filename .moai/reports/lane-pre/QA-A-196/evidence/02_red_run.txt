@@ -1,0 +1,147 @@
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (15 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (4 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (4 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (31 ms total)
+
+[----------] 6 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(168): error: Expected equality of these values:
+  -5
+  xpe_calib_load_offset_cached("csv_oe.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(169): error: Expected equality of these values:
+  -5
+  xpe_calib_load_gain_cached("csv_ge.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(170): error: Expected equality of these values:
+  -5
+  xpe_calib_load_defect_cached("csv_de.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(176): error: Expected equality of these values:
+  700
+  o
+    Which is: 900
+the refused hit must leave the offset Q map (1000 - 300) in the store
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(177): error: The difference between 250.0f and g is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused hit must leave the gain Q map (1000 / 4) in the store
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(178): error: The difference between 5000.0f and d is 4000, which exceeds 0.01f, where
+5000.0f evaluates to 5000,
+d evaluates to 1000, and
+0.01f evaluates to 0.0099999997764825821.
+the refused hit must leave the defect Q map (no defects) in the store
+
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1137 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(214): error: Expected equality of these values:
+  missO
+    Which is: -4
+  xpe_calib_load_offset_cached("csv_oe.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(215): error: Expected equality of these values:
+  missG
+    Which is: -4
+  xpe_calib_load_gain_cached("csv_ge.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(216): error: Expected equality of these values:
+  missD
+    Which is: -4
+  xpe_calib_load_defect_cached("csv_de.xcal", &hit)
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(222): error: Expected equality of these values:
+  700
+  o
+    Which is: 900
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(223): error: The difference between 250.0f and g is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(224): error: The difference between 5000.0f and d is 4000, which exceeds 0.01f, where
+5000.0f evaluates to 5000,
+d evaluates to 1000, and
+0.01f evaluates to 0.0099999997764825821.
+
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (114 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(240): error: Expected equality of these values:
+  300.0f
+    Which is: 300
+  static_cast<const float*>(after.data)[0]
+    Which is: 100
+a changed write time cancels the hit; the miss path reads the file again (100 = stale hit)
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (7 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(290): error: Expected equality of these values:
+  0
+  std::memcmp(&afterMiss, &afterHit, sizeof afterMiss)
+    Which is: 1
+hit r2=0.5 degree=1 vs miss r2=0.90000000000000002 degree=2
+
+[  FAILED  ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(304): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("csv_poly.xcal", &out)
+    Which is: -6
+call 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(305): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  out.data
+    Which is: 0000000000000001
+a polynomial file has no scalar map to hand back (call 1)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(304): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("csv_poly.xcal", &out)
+    Which is: -6
+call 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(305): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  out.data
+    Which is: 0000000000000001
+a polynomial file has no scalar map to hand back (call 2)
+
+[  FAILED  ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[----------] 6 tests from CacheSameVerdict (1282 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (1314 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[  FAILED  ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[  FAILED  ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+
+ 5 FAILED TESTS

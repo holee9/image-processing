@@ -1,0 +1,42 @@
+// QA-A-193 TEMPORARY timing probe (not committed): cost of a cache hit at 3072x3072.
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+TEST(A193Timing, DISABLED_CachedHitCost) {
+    constexpr uint32_t W = 3072, H = 3072; constexpr size_t N = size_t(W) * H;
+    std::vector<float> m(N, 100.0f);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_OFFSET; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = m.size() * sizeof(float);
+    const char* path = "a193_big.xcal";
+    std::remove(path);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, nullptr, 0, reinterpret_cast<const uint8_t*>(m.data()), hdr.payload_len));
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    xpe_calib_cache_clear();
+    XpeImageBuffer v{};
+    auto t0 = std::chrono::steady_clock::now();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(path, &v));
+    auto t1 = std::chrono::steady_clock::now();
+    std::printf("[a193t] miss: %.1f ms\n", std::chrono::duration<double, std::milli>(t1 - t0).count());
+    std::vector<double> ms;
+    for (int i = 0; i < 30; ++i) {
+        auto a = std::chrono::steady_clock::now();
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(path, &v));
+        auto b = std::chrono::steady_clock::now();
+        ms.push_back(std::chrono::duration<double, std::milli>(b - a).count());
+    }
+    std::sort(ms.begin(), ms.end());
+    std::printf("[a193t] hit (30 calls): median %.2f ms, min %.2f ms, max %.2f ms\n", ms[ms.size() / 2], ms.front(), ms.back());
+    xpe_calib_cache_clear();
+    xpe_preprocess_shutdown();
+    std::remove(path);
+}

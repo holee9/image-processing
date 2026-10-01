@@ -9,6 +9,7 @@
  * Calibration maps loaded via g_calib (xpe_calib_load_offset/gain/defect_map)
  */
 
+#include "xpe_strict_parse.hpp"
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
@@ -18,11 +19,18 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <new>
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
  * REQ-P1A-095 to REQ-P1A-101
  * ========================================================================= */
+
+#ifdef XPE_CACHE_TEST_HOOKS
+void (*xpe_calib_after_set_commit_hook)() = nullptr;
+void (*xpe_calib_in_set_commit_hook)() = nullptr;
+void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
+#endif
 
 namespace {
     // Pipeline configuration from JSON
@@ -45,11 +53,14 @@ namespace {
         float detectorTempC{25.0f};
         int32_t binningMode{1};
 
-        static PipelineConfig fromJson(const char* configJson) {
+        // QA-A-202 (#233): a number that is not a number is a refusal, not an exception. Every conversion
+        // below is strict (the whole value, finite, in range -- xpe_strict_parse.hpp); a failure is
+        // XPE_ERR_CONFIG_INVALID and `*out` is left as it was.
+        static XpeErrorCode fromJson(const char* configJson, PipelineConfig* out) {
             // set first so an early return still carries it
             PipelineConfig cfg;
             cfg.rawJson = configJson;
-            if (!configJson) return cfg;
+            if (!configJson) { *out = cfg; return XPE_OK; }
 
             // Parse bypass flags
             std::string bypassStr = xpe_json_get_string(configJson, "bypassReadout");
@@ -78,15 +89,54 @@ namespace {
 
             // Parse temperature
             std::string tempStr = xpe_json_get_string(configJson, "detectorTempC");
-            if (!tempStr.empty()) cfg.detectorTempC = std::stof(tempStr);
+            if (!tempStr.empty() && !xpe_strict::parse_float(tempStr, &cfg.detectorTempC))
+                return XPE_ERR_CONFIG_INVALID;
 
             // Parse binning mode
             std::string binningStr = xpe_json_get_string(configJson, "binningMode");
-            if (!binningStr.empty()) cfg.binningMode = std::stoi(binningStr);
+            if (!binningStr.empty() && !xpe_strict::parse_int(binningStr, &cfg.binningMode))
+                return XPE_ERR_CONFIG_INVALID;
 
-            return cfg;
+            *out = cfg;
+            return XPE_OK;
         }
     };
+
+    /**
+     * width * height * elemSize as a size_t. False when a side is 0 or the product does not fit: two uint32
+     * sides need 64 bits, and the byte count needs one or two more, so the unchecked product wrapped to a
+     * small number that then passed the size checks and sized the copies (QA-A-205b, Codex #29 A3).
+     */
+    bool frame_bytes(uint32_t width, uint32_t height, size_t elemSize, size_t* bytes) {
+        if (width == 0 || height == 0) return false;
+        if (width > SIZE_MAX / height) return false;
+        const size_t pixels = static_cast<size_t>(width) * height;
+        if (pixels > SIZE_MAX / elemSize) return false;
+        *bytes = pixels * elemSize;
+        return true;
+    }
+
+    /**
+     * Whether the frame the pipeline hands back is float32 -- some stage from the gain stage on runs -- or still
+     * the uint16 frame it was given. Mirrors the stage conditions in pipeline_core.
+     */
+    bool final_result_is_float(const PipelineConfig& cfg, const void* ghostHandle) {
+        return !cfg.bypassGain
+            || (!cfg.bypassBinning && cfg.binningMode > 1)
+            || !cfg.bypassDefect
+            || (!cfg.bypassGhost && ghostHandle != nullptr);
+    }
+
+    /**
+     * Whether the buffer a stage is about to read is what that stage takes: this format, at least this many bytes.
+     * The stages after the gain stage take float32; a buffer that is not one -- the uint16 frame of a bypassed
+     * gain stage, before QA-A-208 -- was read as floats anyway. On the normal path this never fails; it is the
+     * check that turns a future slip in the stage chain into an error instead of a read past a buffer
+     * (QA-A-208, Codex #34).
+     */
+    bool stage_input_is(const XpeImageBuffer& b, decltype(XpeImageBuffer::format) format, size_t bytes) {
+        return b.data != nullptr && b.format == format && b.dataSize >= bytes;
+    }
 
     /**
      * @brief Internal pipeline core using new 3-arg API.
@@ -98,15 +148,39 @@ namespace {
      * @param meta        [in/out] Metadata
      * @param ghostHandle [in]     Ghost corrector handle
      * @param cfg         [in]     Pipeline configuration
+     * @param calib       [in]     The calibration set this frame is processed with: every stage that reads a
+     *                             map reads it from here, never from g_calib, so a set loaded while the frame
+     *                             runs does not reach it (QA-A-202d, Codex #32 A2)
      * @return XPE_OK or error code
      */
     XpeErrorCode pipeline_core(
         const XpeImageBuffer* img,
         XpeImageMetadata* meta,
         void* ghostHandle,
-        const PipelineConfig& cfg)
+        const PipelineConfig& cfg,
+        const CalibSnapshot& calib)
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
+
+        // QA-A-205b (#234, Codex #29 A1-A3): before any stage runs, the frame the caller describes is checked
+        // against the room the caller gives -- for the frame that is read AND for the frame that will be written
+        // back, which is float32 (4 bytes a pixel) when any stage from the gain stage on runs.
+        //  * A side that is 0, or a byte count that does not fit in a size_t: XPE_ERR_INVALID_INPUT.
+        //  * 0 < dataSize < the uint16 frame the dimensions describe: XPE_ERR_INVALID_INPUT -- the buffer does
+        //    not hold the input (QA-A-205, the #123 input rule: a non-zero size that is too small).
+        //  * dataSize smaller than the final frame (0 included): XPE_ERR_BUFFER_TOO_SMALL -- the pipeline writes
+        //    its result into the buffer it read from, so this is an output buffer, and an output dataSize of
+        //    0 is not "unspecified" (api-spec.md, output buffers; a float result written into a buffer of 0 or
+        //    width*height*2 bytes used to come back as OK and a truncated frame).
+        // Nothing is read, written or flagged before these refusals.
+        size_t inputBytes = 0;
+        size_t floatBytes = 0;
+        if (!frame_bytes(img->width, img->height, sizeof(uint16_t), &inputBytes) ||
+            !frame_bytes(img->width, img->height, sizeof(float), &floatBytes))
+            return XPE_ERR_INVALID_INPUT;
+        const size_t outputBytes = final_result_is_float(cfg, ghostHandle) ? floatBytes : inputBytes;
+        if (img->dataSize != 0 && img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
+        if (img->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
 
         XpeErrorCode result = XPE_OK;
         const size_t pixelCount = static_cast<size_t>(img->width) * img->height;
@@ -128,7 +202,10 @@ namespace {
 
         if (!cfg.bypassTemp) {
             stage1Data.resize(pixelCount);
-            std::memcpy(stage1Data.data(), img->data, img->dataSize);
+            // The work buffer holds exactly inputBytes. This copied img->dataSize bytes, and a dataSize larger
+            // than the frame -- the size a caller must give for the float result of the gain stage to be
+            // written back -- overran it (#234).
+            std::memcpy(stage1Data.data(), img->data, inputBytes);
 
             stage1.data = stage1Data.data();
             stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
@@ -149,11 +226,14 @@ namespace {
             stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
 
             // Use new 3-arg API: xpe_offset_correct(input, output, metadata)
-            result = xpe_offset_correct(&stage1, &stage2, meta);
+            result = xpe_offset_correct_in(calib, &stage1, &stage2, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_OFFSET_CORRECTED;
         }
+#ifdef XPE_CACHE_TEST_HOOKS
+        if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(2);
+#endif
 
         // Stage 3: Nonlinearity Correction (PRE-08) - uint16 in/out
         XpeImageBuffer stage3 = stage2;
@@ -197,12 +277,29 @@ namespace {
 
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
-            result = xpe_gain_correct(&stage3, &stage4, meta);
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+        } else if (final_result_is_float(cfg, ghostHandle) && stage3.format == XPE_PIXEL_UINT16) {
+            // QA-A-208 (Codex #34 A1): a bypassed gain stage means "gain = 1", and a float stage follows
+            // (binning, defect or ghost), so the frame is converted to float32 here, explicitly -- every float
+            // stage then reads a float32 buffer of its own size. It used to pass the uint16 buffer on (N*2 bytes)
+            // and binning and ghost copied N*4 bytes out of it. A gain map of ones gives this frame bit for bit:
+            // x * (1/1) is exact, as is the conversion of a uint16.
+            stage4Data.resize(pixelCount);
+            stage4.width = img->width;
+            stage4.height = img->height;
+            stage4.bitsAllocated = 32u;
+            stage4.bitsStored = 32u;
+            stage4.format = XPE_PIXEL_FLOAT32;
+            stage4.data = stage4Data.data();
+            stage4.dataSize = stage4Data.size() * sizeof(float);
+
+            const uint16_t* in16 = static_cast<const uint16_t*>(stage3.data);
+            for (size_t i = 0; i < pixelCount; ++i) stage4Data[i] = static_cast<float>(in16[i]);
         } else {
-            // No gain correction: stage4 = stage3 (uint16)
+            // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
         }
 
@@ -223,6 +320,7 @@ namespace {
             // In place on its own copy of the stage-4 frame. QA-A-104: it used
             // to bin stage4 while the (empty) stage5 buffer went on to the
             // defect stage, so a binned frame came out as zeros.
+            if (!stage_input_is(stage4, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
             result = xpe_binning_correct(&stage5, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
@@ -245,12 +343,7 @@ namespace {
         // that was never defect-corrected (SRS-ALERT-001). Skipping is only ever
         // the result of the explicit bypass flag.
         if (!cfg.bypassDefect) {
-            bool defectAvailable = false;
-            {
-                std::lock_guard<std::mutex> calibLock(g_calib_mutex);
-                defectAvailable = (g_calib.defect_map != nullptr);
-            }
-            if (!defectAvailable) return XPE_ERR_CALIB_NOT_LOADED;
+            if (!calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
         }
 
         if (!cfg.bypassDefect) {
@@ -267,7 +360,8 @@ namespace {
             // meta, not nullptr: xpe_defect_correct rejects a null metadata
             // pointer. This stage never ran before the gate was fixed above, so
             // the malformed call had never been reached.
-            result = xpe_defect_correct(&stage5, &stage6, meta);
+            if (!stage_input_is(stage5, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
+            result = xpe_defect_correct_in(calib, &stage5, &stage6, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
@@ -290,6 +384,7 @@ namespace {
             // Ghost correction works in place; give it its own copy of the
             // stage-6 frame. QA-A-104: it used to correct stage6 while the
             // (empty) stage7 buffer was copied back, so the output was zeros.
+            if (!stage_input_is(stage6, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
             result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
@@ -297,12 +392,18 @@ namespace {
             if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
 
-        // Copy final result back to original img buffer.
-        // Preserves the output format (float32 after gain correction, uint16 otherwise).
-        // Caller must ensure img->data is large enough for the final stage data.
+        // Copy the final frame back to the original img buffer: all of it -- outputBytes, which the room check
+        // above guaranteed fits (this was min(dataSize, final size), a truncated frame reported as OK, #234).
+        // Preserves the output format (float32 after gain correction, uint16 otherwise). When no stage made a
+        // buffer of its own the final stage IS the caller's buffer and there is nothing to copy (a memcpy of a
+        // range onto itself is undefined). A stage buffer is never smaller than the frame it holds; if one were,
+        // the call refuses here, before it writes, rather than reading past the end of the stage buffer.
         const XpeImageBuffer* finalStage = &stage7;
-        const size_t copySize = std::min(img->dataSize, finalStage->dataSize);
-        std::memcpy(const_cast<void*>(img->data), finalStage->data, copySize);
+        if (finalStage->dataSize < outputBytes ||
+            finalStage->format != (final_result_is_float(cfg, ghostHandle) ? XPE_PIXEL_FLOAT32 : XPE_PIXEL_UINT16))
+            return XPE_ERR_PROCESSING_FAILED;
+        if (finalStage->data != img->data)
+            std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
 
         // Update img metadata to reflect actual output format
         const_cast<XpeImageBuffer*>(img)->format = finalStage->format;
@@ -314,6 +415,54 @@ namespace {
 
 } // anonymous namespace
 
+/**
+ * Loads offset.xcal, gain.xcal and defect.xcal from `calibPath` as a SET: all three are read, validated and
+ * allocated first (nothing global is touched), and only when every one succeeded are they committed to the
+ * store, together, under one lock (QA-A-202c, #233 / Codex #27 A1). Any failure -- a missing or corrupt file,
+ * an expired one, a wrong type, a malformed quality field, an allocation failure -- leaves the calibration
+ * store, the quality metadata and the alerts exactly as the call found them. The three individual loaders
+ * (xpe_calib_load_offset / _gain / _defect_map) are unchanged: each is its own stage + commit.
+ *
+ * On success `*snapshot` is the snapshot of the set just committed, taken in the same critical section
+ * (QA-A-202d, Codex #32 A2): the frame, or the batch, is processed with exactly the set this call loaded, even
+ * if another thread loads a different one a moment later.
+ */
+static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* snapshot)
+{
+    char offsetPath[512] = {0};
+    char gainPath[512] = {0};
+    char defectPath[512] = {0};
+    std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+    std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
+    std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
+
+    StagedOffset offset;
+    StagedGain gain;
+    StagedDefect defect;
+    XpeErrorCode rc = xpe_calib_stage_offset(offsetPath, &offset);
+    if (rc != XPE_OK) return rc;
+    rc = xpe_calib_stage_gain(gainPath, &gain);
+    if (rc != XPE_OK) return rc;
+    rc = xpe_calib_stage_defect(defectPath, &defect);
+    if (rc != XPE_OK) return rc;
+
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        xpe_calib_commit_offset_locked(offset);
+        xpe_calib_commit_gain_locked(gain);
+        xpe_calib_commit_defect_locked(defect);
+        *snapshot = xpe_calib_snapshot_locked();
+#ifdef XPE_CACHE_TEST_HOOKS
+        if (xpe_calib_in_set_commit_hook) xpe_calib_in_set_commit_hook();
+#endif
+    }
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_calib_after_set_commit_hook) xpe_calib_after_set_commit_hook();
+#endif
+    xpe_calib_after_gain_commit(gain);
+    return XPE_OK;
+}
+
 // @MX:WARN: [AUTO] Re-reads the three calibration files on every call (about
 // 475 ms at 3072x3072). The per-frame path is xpe_calib_state_load() once plus
 // xpe_preprocess_pipeline_ex() per frame -- see the header (QA-A-105, #179).
@@ -323,7 +472,7 @@ namespace {
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline — full pipeline integration
 // @MX:REASON: Main pipeline entry point; all correction stages fan in here
 // @MX:SPEC: REQ-P1A-095 to REQ-P1A-101
-XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+static XpeErrorCode pipeline_impl(XpeImageBuffer* img,
                                   XpeImageMetadata* meta,
                                   const char* calibPath,
                                   void* ghostHandle,
@@ -331,30 +480,22 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
 {
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
-    // Load calibration maps to g_calib (global calibration state)
+    // The configuration is read first: a refused configuration must not have loaded anything.
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
+
+    // Load the calibration set (all three files, or none -- see load_calibration_set); the frame is processed
+    // with the set just loaded. With no path, with the set that is current as the frame starts.
+    CalibSnapshot calib;
     if (calibPath) {
-        // Load offset calibration (1-arg: populates g_calib internally)
-        char offsetPath[512] = {0};
-        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
-        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
-        if (rc != XPE_OK) return rc;
-
-        // Load gain calibration (1-arg: populates g_calib internally)
-        char gainPath[512] = {0};
-        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-        rc = xpe_calib_load_gain(gainPath);
-        if (rc != XPE_OK) return rc;
-
-        // Load defect calibration (1-arg: populates g_calib internally)
-        char defectPath[512] = {0};
-        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-        rc = xpe_calib_load_defect_map(defectPath);
-        if (rc != XPE_OK) return rc;
+        const XpeErrorCode loadRc = load_calibration_set(calibPath, &calib);
+        if (loadRc != XPE_OK) return loadRc;
+    } else {
+        calib = xpe_calib_snapshot();
     }
 
-    // Execute pipeline core (g_calib is now populated)
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
-    return pipeline_core(img, meta, ghostHandle, cfg);
+    return pipeline_core(img, meta, ghostHandle, cfg, calib);
 }
 
 /* =========================================================================
@@ -422,7 +563,7 @@ void xpe_calib_state_release(void* state)
 
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline_ex — optimized pipeline with pre-loaded state
 // @MX:REASON: Eliminates per-frame file I/O; used in batch and streaming scenarios
-XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
+static XpeErrorCode pipeline_ex_impl(XpeImageBuffer* img,
                                           XpeImageMetadata* meta,
                                           const void* calibState,
                                           void* ghostHandle,
@@ -431,14 +572,17 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
     // Calibration should already be loaded in g_calib via xpe_calib_state_load
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
 
     // calibState is accepted for source compatibility but carries no maps:
     // xpe_calib_state_load() loads into g_calib and leaves the struct empty by
     // contract (#117 decision B). Every stage reads g_calib.
     (void)calibState;
 
-    return pipeline_core(img, meta, ghostHandle, cfg);
+    // The frame is processed with the set that is current as it starts (one snapshot, every stage).
+    return pipeline_core(img, meta, ghostHandle, cfg, xpe_calib_snapshot());
 }
 
 /* =========================================================================
@@ -448,7 +592,7 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline_batch — multi-frame batch processing
 // @MX:REASON: Batch API for multi-frame acquisition; SIMD parallelism for offset
 // @MX:WARN: Ghost correction is stateful per-handle; batch must use sequential ghost
-XpeErrorCode xpe_preprocess_pipeline_batch(
+static XpeErrorCode pipeline_batch_impl(
     XpeImageBuffer* images,
     uint32_t imageCount,
     XpeImageMetadata* metas,
@@ -458,25 +602,21 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
 {
     if (!images || !metas || imageCount == 0) return XPE_ERR_INVALID_INPUT;
 
-    // Load calibration once (to g_calib, 1-arg: populates g_calib internally)
+    // The configuration is read first: a refused configuration must not have loaded anything.
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
+
+    // Load the calibration set once (all three files, or none -- see load_calibration_set). Every frame of the
+    // batch is processed with that one set ("all frames share the same calibration maps"), even if another
+    // load lands while the batch runs. With no path, the set current as the batch starts.
+    CalibSnapshot calib;
     if (calibPath) {
-        char offsetPath[512] = {0};
-        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
-        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
-        if (rc != XPE_OK) return rc;
-
-        char gainPath[512] = {0};
-        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-        rc = xpe_calib_load_gain(gainPath);
-        if (rc != XPE_OK) return rc;
-
-        char defectPath[512] = {0};
-        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-        rc = xpe_calib_load_defect_map(defectPath);
-        if (rc != XPE_OK) return rc;
+        const XpeErrorCode loadRc = load_calibration_set(calibPath, &calib);
+        if (loadRc != XPE_OK) return loadRc;
+    } else {
+        calib = xpe_calib_snapshot();
     }
-
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
 
     // Process each image with graceful degradation:
     // Continue processing remaining frames even if one frame fails.
@@ -484,7 +624,18 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
     XpeErrorCode firstError = XPE_OK;
 
     for (uint32_t i = 0; i < imageCount; ++i) {
-        XpeErrorCode result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg);
+        // QA-A-202b: a frame that runs out of memory is that frame's failure, like any other error --
+        // the batch carries on and reports the first one -- and it leaves the frame's metadata as found.
+        const XpeImageMetadata saved = metas[i];
+        XpeErrorCode result = XPE_OK;
+        try {
+            result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg, calib);
+        } catch (const std::bad_alloc&) {
+            result = XPE_ERR_OUT_OF_MEMORY;
+        } catch (...) {
+            result = XPE_ERR_PROCESSING_FAILED;
+        }
+        if (result == XPE_ERR_OUT_OF_MEMORY) metas[i] = saved;
         if (result != XPE_OK) {
             if (firstError == XPE_OK) {
                 firstError = result;
@@ -495,3 +646,68 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
 
     return firstError;
 }
+
+/* =========================================================================
+ * Exported entry points (QA-A-202b, Codex #23)
+ *
+ * The bodies above read the configuration (strings), stage the frame in up to seven buffers and call
+ * stages that allocate; any of those can throw std::bad_alloc, and an exception must not leave a C ABI
+ * function. Each entry point runs its body inside one try block: bad_alloc -> OUT_OF_MEMORY, anything else ->
+ * PROCESSING_FAILED. A call that fails for lack of memory leaves the metadata as it found it (the stages
+ * set their flags as they go, and the frame itself is written only at the very end, so on failure the
+ * image is untouched and a flag would claim work that never reached it). The other error codes keep
+ * their long-standing behaviour: the flags of the stages that completed stay set.
+ * ========================================================================= */
+
+#define XPE_PIPELINE_GUARD(metaPtr, call)                                                 \
+    XpeImageMetadata saved{};                                                              \
+    if (metaPtr) saved = *(metaPtr);                                                       \
+    try {                                                                                  \
+        const XpeErrorCode rc = (call);                                                    \
+        if (rc == XPE_ERR_OUT_OF_MEMORY && (metaPtr)) *(metaPtr) = saved;                  \
+        return rc;                                                                         \
+    } catch (const std::bad_alloc&) {                                                      \
+        if (metaPtr) *(metaPtr) = saved;                                                   \
+        return XPE_ERR_OUT_OF_MEMORY;                                                      \
+    } catch (...) {                                                                        \
+        if (metaPtr) *(metaPtr) = saved;                                                   \
+        return XPE_ERR_PROCESSING_FAILED;                                                  \
+    }
+
+XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+                                     XpeImageMetadata* meta,
+                                     const char* calibPath,
+                                     void* ghostHandle,
+                                     const char* configJsonOrNull)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_impl(img, meta, calibPath, ghostHandle, configJsonOrNull))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
+                                        XpeImageMetadata* meta,
+                                        const void* calibState,
+                                        void* ghostHandle,
+                                        const char* configJsonOrNull)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_ex_impl(img, meta, calibState, ghostHandle, configJsonOrNull))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_batch(XpeImageBuffer* images,
+                                           uint32_t imageCount,
+                                           XpeImageMetadata* metas,
+                                           const char* calibPath,
+                                           void* ghostHandle,
+                                           const char* configJsonOrNull)
+{
+    // The metadata of each frame is restored by the frame's own guard inside the loop; what can still
+    // throw out here is reading the configuration and loading the calibration files, before any frame.
+    try {
+        return pipeline_batch_impl(images, imageCount, metas, calibPath, ghostHandle, configJsonOrNull);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+#undef XPE_PIPELINE_GUARD

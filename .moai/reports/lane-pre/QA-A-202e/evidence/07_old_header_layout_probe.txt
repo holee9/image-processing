@@ -1,0 +1,6 @@
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-pre\68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5\scratchpad\oldhdr\xpe/preprocess_api.h(1): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+D:\workspace-github\xpe-pre\modules\common\include\xpe/common/xpe_types.h(1): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+D:\workspace-github\xpe-pre\modules\common\include\xpe/common/xpe_error.h(1): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-pre\68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5\scratchpad\oldhdr\xpe/preprocess_api.h(573): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-pre\68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5\scratchpad\oldhdr\xpe/preprocess_api.h(1032): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+CL_EXIT=0

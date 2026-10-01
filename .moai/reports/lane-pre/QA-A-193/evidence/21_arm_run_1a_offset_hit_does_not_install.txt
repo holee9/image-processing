@@ -1,0 +1,32 @@
+Note: Google Test filter = CacheGlobalStore.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(134): error: Expected equality of these values:
+  900u
+    Which is: 900
+  px
+    Which is: 700
+after the hit the store must hold A (1000 - 100), not B
+
+[  FAILED  ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (16 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (4 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (4 ms)
+[ RUN      ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear
+[       OK ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear (4 ms)
+[----------] 6 tests from CacheGlobalStore (43 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (43 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+
+ 1 FAILED TEST

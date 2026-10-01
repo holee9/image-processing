@@ -1,0 +1,9 @@
+# stale phrases (old marker-value rule, old ranges) -- must be 0 hits:
+hits=0
+
+# control: the new phrases ARE found by the same kind of search:
+has_r_squared: 13
+has_previous_r_squared: 8
+BUILD-MATCHED USE: 2
+0\.\.4: 1
+1\.\.10: 2

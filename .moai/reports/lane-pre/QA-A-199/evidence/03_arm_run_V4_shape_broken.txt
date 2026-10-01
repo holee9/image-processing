@@ -1,0 +1,26 @@
+Note: Google Test filter = PreprocessVersion.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+[       OK ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[       OK ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (0 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[       OK ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(84): error: Value of: isDottedTriple(v)
+  Actual: false
+Expected: true
+version string: "v0.1.0"
+
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[----------] 4 tests from PreprocessVersion (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+
+ 1 FAILED TEST

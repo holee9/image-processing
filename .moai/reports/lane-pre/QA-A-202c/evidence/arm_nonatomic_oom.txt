@@ -1,0 +1,144 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    15 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (7 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       32 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (14 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 45 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (20 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (4 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (5 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (4 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal corrupted (checksum)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal with a malformed quality field
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / defect.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / defect.xcal expired
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal corrupted (checksum)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal with a malformed quality field
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / defect.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / defect.xcal expired
+
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (33 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(284): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline: allocation #7 failed (rc -2): the store is neither set A nor set B: a failed load replaced part of it
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1075): error: Value of: *seenB
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline: control: some failing allocation lands after the set was committed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(284): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline_batch: allocation #7 failed (rc -2): the store is neither set A nor set B: a failed load replaced part of it
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1075): error: Value of: *seenB
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline_batch: control: some failing allocation lands after the set was committed
+
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (8 ms)
+[----------] 8 tests from OomPipeline (99 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (99 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+
+ 2 FAILED TESTS

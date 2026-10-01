@@ -172,7 +172,9 @@ TEST_F(CalibFixtureGenTest, GeneratedSetDrivesThePipeline) {
     img.bitsAllocated = 16;
     img.bitsStored    = 16;
     img.format        = XPE_PIXEL_UINT16;
-    img.dataSize      = static_cast<uint32_t>(static_cast<size_t>(kW) * kH * sizeof(uint16_t));
+    // The room the buffer really has -- its float32 result is written back into it (QA-A-205b: this claimed
+    // the uint16 size, half of what the result needs, and the pipeline accepted that and truncated).
+    img.dataSize      = static_cast<uint32_t>(static_cast<size_t>(kW) * kH * sizeof(float));
 
     XpeImageMetadata meta{};
     // Only the three stages the fixture supplies calibration for are left on.

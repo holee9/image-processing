@@ -1,0 +1,116 @@
+Note: Google Test filter = CacheSameVerdict.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(161): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_oe.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (6 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(204): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_oe.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (5 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(245): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_a.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (6 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(263): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_a.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (6 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(283): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_a.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (5 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(304): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("csv_ge.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (16 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(377): error: Expected equality of these values:
+  0
+  kCached[owner]("csv_x.xcal", &first)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(369): cached by offset, asked by gain
+
+[  FAILED  ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (5 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(414): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("csv_oe.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (10 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(431): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("csv_ge.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (5 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(462): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("csv_ge.xcal", &v)
+    Which is: -3
+
+[  FAILED  ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (6 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(530): error: Expected equality of these values:
+  0
+  kCached[k]("csv_x.xcal", &first)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): offset
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(581): error: Expected equality of these values:
+  0
+  kCached[k]("csv_x.xcal", &first)
+    Which is: -3
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(573): offset
+
+[  FAILED  ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired (4 ms)
+[----------] 13 tests from CacheSameVerdict (91 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (91 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 12 tests, listed below:
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[  FAILED  ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[  FAILED  ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[  FAILED  ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[  FAILED  ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[  FAILED  ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[  FAILED  ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[  FAILED  ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+
+12 FAILED TESTS

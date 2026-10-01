@@ -1,0 +1,286 @@
+Note: Google Test filter = ConfigStrictParse.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_ex detectorTempC = " +25"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_ex detectorTempC = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_ex detectorTempC = " 0.5"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_ex detectorTempC = "	3"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_ex binningMode = " +2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_ex binningMode = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_ex binningMode = " 4"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_ex binningMode = "	2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline detectorTempC = " +25"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline detectorTempC = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline detectorTempC = " 0.5"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline detectorTempC = "	3"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline binningMode = " +2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline binningMode = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline binningMode = " 4"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline binningMode = "	2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_batch detectorTempC = " +25"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_batch detectorTempC = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_batch detectorTempC = " 0.5"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): pipeline_batch detectorTempC = "	3"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_batch binningMode = " +2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_batch binningMode = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_batch binningMode = " 4"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): pipeline_batch binningMode = "	2"
+
+[  FAILED  ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): xpe_ghost_create alpha1 = " +25"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): xpe_ghost_create alpha1 = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): xpe_ghost_create alpha1 = " 0.5"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(267): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(263): xpe_ghost_create alpha1 = "	3"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): xpe_ghost_create tier = " +2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): xpe_ghost_create tier = "+2"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): xpe_ghost_create tier = " 4"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(274): error: Expected equality of these values:
+  r.accepted ? 0 : -4
+    Which is: 0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(270): xpe_ghost_create tier = "	2"
+
+[  FAILED  ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[----------] 8 tests from ConfigStrictParse (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (4 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[  FAILED  ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+
+ 2 FAILED TESTS

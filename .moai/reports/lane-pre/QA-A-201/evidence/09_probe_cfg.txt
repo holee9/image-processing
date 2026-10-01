@@ -1,0 +1,18 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+[audit] pipeline_ex config {"detectorTempC":"abc"}                      -> THREW std::exception: invalid stof argument
+[audit] pipeline_ex config {"binningMode":"x"}                          -> THREW std::exception: invalid stoi argument
+[audit] pipeline_ex config {"detectorTempC":"1e999"}                    -> THREW std::exception: stof argument out of range
+[audit] pipeline_ex config {"binningMode":"99999999999999999999"}       -> THREW std::exception: stoi argument out of range
+[audit] ghost_create config {"alpha1":"abc"}         -> THREW std::exception: invalid stod argument ; live blocks +4 ; handleOut=null
+[audit] ghost_create config {"tier":"x"}             -> THREW std::exception: invalid stoi argument ; live blocks +4 ; handleOut=null
+[audit] ghost_create config {"tau2":"1e999"}         -> THREW std::exception: stod argument out of range ; live blocks +4 ; handleOut=null
+[       OK ] AuditProbe.Sweep (11 ms)
+[----------] 1 test from AuditProbe (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 1 test.

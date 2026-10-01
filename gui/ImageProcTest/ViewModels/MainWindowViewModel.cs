@@ -150,7 +150,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OpenTroubleshootingCommand = new RelayCommand(OpenTroubleshooting);
         OpenPipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = true);
         ClosePipelineDiagnosticsCommand = new RelayCommand(() => ShowPipelineDiagnostics = false);
-        ShutdownBackendCommand = new RelayCommand(ShutdownBackend);
+        ShutdownBackendCommand = new RelayCommand(() => BeginShutdown());
         LoadImageCommand = new RelayCommand(LoadImage);
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
@@ -552,6 +552,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>The state as one line for automation (read from the AI checkbox's help text), e.g. <c>worker=Active; failures=0; ceiling=3</c>.</summary>
     public string AiWorkerStatusSummary => AiBoneSuppressionStage.DescribeStatus(_aiWorkerStatus);
 
+    /// <summary>
+    /// What the native AI session saw (the module's own answers: its state before this process's init, the init call, the raw state
+    /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
+    /// operator (GUI-C-189).
+    /// </summary>
+    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
 
@@ -599,10 +606,16 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(AiWorkerMarkVisible));
         OnPropertyChanged(nameof(AiWorkerBannerText));
         OnPropertyChanged(nameof(AiWorkerStatusSummary));
+        OnPropertyChanged(nameof(AiWorkerDiagnostics));
     }
 
     private async void RestartAiSession()
     {
+        if (RefusedWhileTransitioning("Restart AI"))
+        {
+            return;
+        }
+
         if (_backend is not IAiSessionBackend session)
         {
             StatusText = "AI session restart needs the native backend.";
@@ -611,16 +624,29 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        var ticket = TakeTicket();
         try
         {
             var directory = Settings.AiModelDirectory;
             var result = await Task.Run(() => session.RestartAiSession(directory));
+            if (!IsCurrent(ticket))
+            {
+                Log("AI session restart finished for a backend that is no longer current; its result was dropped.");
+                return;
+            }
+
             DrainBackendTelemetry();
             StatusText = result.Message;
             Log(result.Message);
         }
         catch (Exception ex)
         {
+            if (!IsCurrent(ticket))
+            {
+                Log($"AI session restart of a backend that is no longer current failed ({ex.Message}); dropped.");
+                return;
+            }
+
             StatusText = $"AI session could not be restarted: {ex.Message}";
             Log(StatusText);
         }
@@ -1215,15 +1241,97 @@ public sealed class MainWindowViewModel : ObservableObject
         set => SetProperty(ref _histogramActive, value);
     }
 
-    public void ShutdownBackend()
+    private BackendLifecycle? _backendLifecycle;
+
+    private BackendLifecycle Lifecycle => _backendLifecycle ??= new BackendLifecycle(work => Task.Run(work), PostToUi);
+
+    /// <summary>True while the backend is being shut down in the background; processing requests are refused meanwhile (GUI-C-186e).</summary>
+    public bool IsBackendTransitioning => Lifecycle.IsTransitioning;
+
+    /// <summary>
+    /// GUI-C-186e (Codex #33): ends the backend WITHOUT making the UI thread wait. The shutdown waits for the AI session gate
+    /// (a frame that waits on a silent worker holds it for up to the module's time budget), so it runs in the background; this
+    /// method only starts it and shows "shutting down". The screen is brought up to date when it is done, and
+    /// <paramref name="whenDone"/> (closing the window) runs then. A second call while one is running starts nothing.
+    /// </summary>
+    public void BeginShutdown(Action? whenDone = null)
     {
-        AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown (below) says what is left
+        var backend = _backend;
+        var started = Lifecycle.Begin(() => backend.Shutdown(), error => FinishShutdown(backend, error));
+        if (started)
+        {
+            AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown says what is left
+            StatusText = "Backend shutting down...";
+            Log("Backend shutdown requested.");
+            OnPropertyChanged(nameof(IsBackendTransitioning));
+        }
+        else
+        {
+            Log("Backend shutdown is already in progress.");
+        }
+
+        if (whenDone is not null)
+        {
+            Lifecycle.WhenIdle(whenDone);
+        }
+    }
+
+    private void FinishShutdown(IXpeBackend backend, Exception? error)
+    {
+        OnPropertyChanged(nameof(IsBackendTransitioning));
+        if (ReferenceEquals(backend, _backend))
+        {
+            RuntimeInfo = _backend.GetRuntimeInfo();
+            DrainBackendTelemetry();
+            RefreshAiWorkerStatus();
+        }
+
+        StatusText = error is null ? "Backend shutdown." : $"Backend shutdown failed: {error.Message}";
+        Log(error is null ? "Backend shutdown completed." : StatusText);
+    }
+
+    /// <summary>
+    /// The application is ending without a window close that could wait (Application.Shutdown from the automation self-run,
+    /// or a session end): the one place the shutdown still runs on the calling thread, because nothing is left to keep responsive.
+    /// </summary>
+    public void ShutdownBackendBlocking()
+    {
+        if (Lifecycle.IsTransitioning)
+        {
+            return; // the background shutdown is already doing it
+        }
+
         _backend.Shutdown();
         RuntimeInfo = _backend.GetRuntimeInfo();
         DrainBackendTelemetry();
-        RefreshAiWorkerStatus();
-        StatusText = "Backend shutdown.";
-        Log("Backend shutdown requested.");
+    }
+
+    // GUI-C-186f (Codex #36): the lifetime generation. Every piece of work that uses the backend and outlives one UI turn takes a
+    // ticket (the backend and the generation) when it starts, asks IsCurrent after every await and before it schedules anything
+    // further, and changes neither the screen nor the lanes when the answer is no.
+    private BackendTicket TakeTicket() => Lifecycle.Take(_backend);
+
+    private BackendTicket TakeRequestTicket() => Lifecycle.TakeRequest(_backend);
+
+    /// <summary>The reason a ticket is no longer current, for the log: a newer Apply started, or the backend was shut down or replaced.</summary>
+    private string WhyStale(BackendTicket ticket) =>
+        Lifecycle.IsSuperseded(ticket)
+            ? $"a newer Apply started meanwhile (this one was request {ticket.Request}, the newest is {Lifecycle.Request})."
+            : $"the backend was shut down or replaced meanwhile (request {ticket.Request}, newest {Lifecycle.Request}, generation {ticket.Generation} of {Lifecycle.Generation}).";
+
+    private bool IsCurrent(BackendTicket ticket) => Lifecycle.IsCurrent(ticket, _backend);
+
+    /// <summary>A processing request while the backend is shutting down is refused with a line, not queued behind it.</summary>
+    private bool RefusedWhileTransitioning(string what)
+    {
+        if (Lifecycle.TryAdmit(out var refusal))
+        {
+            return false;
+        }
+
+        StatusText = refusal!;
+        Log($"{what}: {refusal}");
+        return true;
     }
 
     /// <summary>
@@ -1710,6 +1818,18 @@ public sealed class MainWindowViewModel : ObservableObject
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand
     private void InitializeBackend()
     {
+        // GUI-C-186e: replacing a backend while its shutdown is still waiting in the background would leave two owners of one
+        // session. The replacement itself takes no AI gate (the backends are not IDisposable and Initialize does not touch
+        // the session), so it stays synchronous; it just waits its turn.
+        if (RefusedWhileTransitioning("Initialize backend"))
+        {
+            return;
+        }
+
+        // GUI-C-186f: everything started for the backend being replaced is stale from NOW (not from the moment the new one is
+        // attached): a task of the old backend that finishes during this method must already find its ticket out of date.
+        Lifecycle.Bump();
+
         // GUI-C-186d: the status on screen belongs to the backend being replaced. Raise the generation and show Unknown NOW, so a
         // read still running for the old backend cannot be applied; the read for the new one is requested after the
         // initialisation has finished, whether it worked or not (below).
@@ -2135,6 +2255,13 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private async Task LoadImageFromPathAsync(string path, string sourceLabel)
     {
+        // GUI-C-186f: asked here, which is also where a file dialog's answer arrives (the dialog is modal and may outlive the moment the
+        // command was accepted), so a shutdown that began while it was open refuses the load.
+        if (RefusedWhileTransitioning("Load image"))
+        {
+            return;
+        }
+
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
         var loadedFrame = _backend.LoadRawImage(path, Settings);
         DrainBackendTelemetry();
@@ -2156,6 +2283,15 @@ public sealed class MainWindowViewModel : ObservableObject
     // @MX:NOTE: [AUTO] Display pipeline runs on Task.Run (thread pool); await resumes on dispatcher thread, so ObservableCollection writes are safe
     private async Task ApplyDisplayPipelineAsync()
     {
+        if (RefusedWhileTransitioning("Display pipeline"))
+        {
+            return;
+        }
+
+        // GUI-C-190: an Apply takes a new request number too, so a result that arrives after a NEWER Apply started is dropped.
+        var ticket = TakeRequestTicket();
+        var backend = (IXpeBackend)ticket.Backend!;
+
         if (ActiveImageFrame is null)
         {
             StatusText = "Display pipeline requires a loaded raw image.";
@@ -2198,10 +2334,18 @@ public sealed class MainWindowViewModel : ObservableObject
             // display starts from the chain's last result — the raw frame only when no stage produced pixels.
             var (chain, processedFrame) = await Task.Run(() =>
             {
-                var chainResult = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
-                return (chainResult, _backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
+                var chainResult = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
+                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
+
+            // GUI-C-186f: a shutdown or a replacement may have started while the chain waited (for the AI gate, for instance). Its
+            // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
+            if (!IsCurrent(ticket))
+            {
+                Log($"Display pipeline result dropped after {workMs:0} ms: {WhyStale(ticket)}");
+                return;
+            }
 
             // The native calls above are synchronous and ran to completion; what cancellation decides is
             // whether their result is APPLIED. Discarding it here keeps the viewport and the status
@@ -2229,7 +2373,12 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
-            RenderLanes(sourceFrame, inputs, ProcessedImage);
+            await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);
+            if (!IsCurrent(ticket))
+            {
+                return; // the lanes' wait outlived the backend: the timing line below would describe a render that was dropped
+            }
+
             PipelineTimings = string.Join("; ", new[]
             {
                 $"work={workMs:0} ms",
@@ -2240,6 +2389,12 @@ public sealed class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            if (!IsCurrent(ticket))
+            {
+                Log($"Display pipeline of a backend that is no longer current failed ({ex.Message}); dropped.");
+                return;
+            }
+
             OnPropertyChanged(nameof(FaultInjectionStatus));
             PreviewStaleReason = StalePipelineFailed;   // #171 ③
             StatusText = $"Display pipeline failed: {ex.Message}";
@@ -2389,6 +2544,11 @@ public sealed class MainWindowViewModel : ObservableObject
     // @MX:REASON: Bound to RelayCommand; must remain async void for command infrastructure compatibility
     private async void ApplyBodyPartPreset()
     {
+        if (RefusedWhileTransitioning("VOI preset"))
+        {
+            return;
+        }
+
         if (!Enum.TryParse<XpeBodyPartEnum>(Settings.SelectedBodyPart, ignoreCase: true, out var bodyPart))
         {
             bodyPart = XpeBodyPartEnum.Abdomen;
@@ -2748,25 +2908,14 @@ public sealed class MainWindowViewModel : ObservableObject
 
         lock (_telemetryLock)
         {
-            pendingLogs = new List<string>();
-            var logCount = _backend.GetLogCount();
-            for (var i = _drainedBackendLogCount; i < logCount; i++)
-            {
-                var log = _backend.GetLog(i);
-                if (!string.IsNullOrWhiteSpace(log))
-                    pendingLogs.Add(log);
-            }
-            _drainedBackendLogCount = logCount;
+            // GUI-C-186f: ONE snapshot call under the backend's own lock. The VM's lock only serialises drains with each other; the
+            // backend lists are also written from pool threads, so a count read here and items read later could disagree.
+            var snapshot = _backend.GetTelemetrySince(_drainedBackendLogCount, _drainedBackendAlertCount);
+            pendingLogs = snapshot.Logs.Where(log => !string.IsNullOrWhiteSpace(log)).ToList();
+            _drainedBackendLogCount = snapshot.LogTotal;
 
-            pendingAlerts = new List<AlertEntry>();
-            var alertCount = _backend.GetAlertCount();
-            for (var i = _drainedBackendAlertCount; i < alertCount; i++)
-            {
-                var alert = _backend.GetAlert(i);
-                if (alert is not null)
-                    pendingAlerts.Add(alert);
-            }
-            _drainedBackendAlertCount = alertCount;
+            pendingAlerts = snapshot.Alerts.Where(alert => alert is not null).ToList();
+            _drainedBackendAlertCount = snapshot.AlertTotal;
         }
 
         foreach (var log in pendingLogs)
@@ -3164,8 +3313,21 @@ public sealed class MainWindowViewModel : ObservableObject
     /// and must draw identical pixels. That is the control case: if they differ there, the lanes are
     /// not drawing the same original.</para>
     /// </summary>
-    private void RenderLanes(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference)
+    private async Task RenderLanesAsync(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference, BackendTicket ticket)
     {
+        // GUI-C-186e: the Candidate's chain (which can include the AI stage, and so the AI session gate) runs in the background like the
+        // main render's does. It used to run here, on the UI thread, after the await above: measured 3028 ms of UI-dispatcher
+        // latency behind a gate held for 3000 ms. Only the result comes back.
+        // GUI-C-186f: the ticket is the Apply's own (backend + lifetime generation). It is asked BEFORE the lanes are touched or any
+        // work is scheduled, after the await, and in the failure path: a lane task of a backend that was shut down or replaced neither
+        // draws, nor starts more work, nor erases the lanes a newer render drew.
+        var backend = (IXpeBackend)ticket.Backend!;
+        if (!IsCurrent(ticket))
+        {
+            Log("Lane rendering skipped: the backend was shut down or replaced since this render started.");
+            return;
+        }
+
         try
         {
             // The Reference IS what the main viewport just drew — same original, same settings. Running
@@ -3194,7 +3356,14 @@ public sealed class MainWindowViewModel : ObservableObject
                 // it from the lane's settings without knowing a lane exists.
                 candidate.GsvgDenoiseK = inputs.LaneBGsvgDenoiseK;
 
-                LaneBImage = RenderLane(sourceFrame, candidate);
+                var candidateImage = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
+                if (!IsCurrent(ticket))
+                {
+                    Log($"Lane B result dropped: {WhyStale(ticket)}");
+                    return;
+                }
+
+                LaneBImage = candidateImage;
             }
             else
             {
@@ -3208,16 +3377,23 @@ public sealed class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            if (!IsCurrent(ticket))
+            {
+                // The failure is a stale task's: the lanes on screen belong to a newer render (or to nothing), so they stay.
+                Log($"Lane rendering of a backend that is no longer current failed ({ex.Message}); dropped.");
+                return;
+            }
+
             Log($"Lane rendering failed: {ex.Message}");
             LaneAImage = null;
             LaneBImage = null;
         }
     }
 
-    private System.Windows.Media.ImageSource? RenderLane(LoadedImageFrame sourceFrame, AppSettings settings)
+    private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
-        var chain = _backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
-        var frame = _backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
+        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
         return frame.ProcessedPreview ?? frame.Preview;
     }
 

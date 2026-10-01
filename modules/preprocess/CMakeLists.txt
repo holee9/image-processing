@@ -66,6 +66,10 @@ target_include_directories(xpe_preprocess
 
 target_link_libraries(xpe_preprocess
     PUBLIC xpe_common
+    # nlohmann-json parses the config of a calibration file (helpers.cpp, QA-A-208b). Header-only, the same
+    # dependency and version as xpe_common's (third_party/common/vcpkg.json); it already reached this target
+    # through xpe_common's PUBLIC link -- stated here so that it is a declared dependency, not an accident.
+    PRIVATE nlohmann_json::nlohmann_json
 )
 
 if(WIN32)
@@ -450,6 +454,13 @@ if(_XPE_BUILD_TESTS)
         tests/test_ghost_thread_safety.cpp   # QA-A-185 (#232) SRS-CALIB-NFR-003: one ghost handle, several threads
         tests/test_calib_dim_mismatch.cpp    # QA-A-185 (#232) REQ-P1A-021: calibration map vs input dimensions
         tests/test_defect_oracle.cpp         # QA-A-188 (#218) SRS-CALIB-FUNC-019 synthetic BPM oracle: recall, FPR, GoodPixelDeltaP99
+        tests/test_verify_gain_semantics.cpp # QA-A-192 (#220) xpe_verify_gain gain-semantics argument: 0.5% known / 1.0% unknown
+        tests/test_calib_cache_global_store.cpp # QA-A-193 (#216) cached loaders: global store on a hit, shutdown empties the cache
+        tests/test_calib_cache_same_verdict.cpp # QA-A-196 a cache hit reaches the same verdict as a miss
+        tests/test_preprocess_version.cpp # QA-A-199 xpe_preprocess_version contract (REQ-P1A-106 draft)
+        tests/test_config_strict_parse.cpp # QA-A-202 (#233) a malformed config number is CONFIG_INVALID, not an exception
+        tests/test_correct_map_sharing.cpp # QA-A-202 (#233) offset/defect correction read a shared map outside the lock
+        tests/test_ghost_failed_frame.cpp # QA-A-202c (#233) a failed ghost frame changes nothing the next frame can see
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_runtime_detection_rates.cpp
@@ -516,6 +527,41 @@ if(_XPE_BUILD_TESTS)
     target_include_directories(xpe_preprocess_tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
     gtest_discover_tests(xpe_preprocess_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # QA-A-200 (#216): allocation-failure injection. The replacement operator new in
+    # tests/test_oom_injection.cpp only reaches code built into the same executable -- the
+    # xpe_preprocess DLL binds to its own runtime's allocator -- so this target compiles the product
+    # sources into itself instead of linking the DLL.
+    add_executable(xpe_preprocess_oom_tests
+        tests/test_oom_injection.cpp
+        ${XPE_PREPROCESS_SOURCES}
+    )
+    target_include_directories(xpe_preprocess_oom_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+    )
+    # XPE_CACHE_TEST_HOOKS: the cache's test-only delay point (xpe_preprocess_internal.h); never defined for the library.
+    target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
+    target_link_libraries(xpe_preprocess_oom_tests
+        PRIVATE xpe_common
+                nlohmann_json::nlohmann_json
+                GTest::gtest_main
+    )
+    if(WIN32)
+        target_link_libraries(xpe_preprocess_oom_tests PRIVATE bcrypt)
+    endif()
+    target_compile_features(xpe_preprocess_oom_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_preprocess_oom_tests PRIVATE /W4 /arch:AVX2)
+    else()
+        target_compile_options(xpe_preprocess_oom_tests PRIVATE -Wall -Wextra -mavx2)
+    endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_oom_tests)
+
+    gtest_discover_tests(xpe_preprocess_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()

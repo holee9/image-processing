@@ -135,10 +135,22 @@ XPE_API XpeErrorCode xpe_log_set_level(int32_t level);
  * @brief Redirects log output to the specified file path.
  *
  * The file is opened in append mode. Pass NULL to revert to stderr.
- * If the file cannot be opened, the previous output destination is retained.
+ * If the file cannot be opened, the previous output destination is retained -- and so it is when the call
+ * fails for any other reason, including XPE_ERR_OUT_OF_MEMORY: the previous logger is flushed and the new
+ * one built completely before anything is replaced, and nothing that can fail runs after the new logger is
+ * installed, so a failed call leaves later log lines going where they went before. A flush of the previous
+ * output that fails is reported (XPE_ERR_IO_FAILED) and the switch does not happen. Naming the file that is
+ * already the log file again appends to it: lines written so far are kept.
+ *
+ * The caller serializes: do not call this while another thread is logging through the same spdlog registry
+ * (the module's own calls are serialized by an internal lock, but a log call made directly on spdlog is not --
+ * spdlog documents that its default logger must not be replaced while it is in use from another thread).
+ * What a line written during a switch does is therefore not specified; a line written before the call returns
+ * ends up in the previous file or the new one, and that is a description of a race, not a guarantee.
  *
  * @param filePath  UTF-8 file path, or NULL to use stderr.
- * @return XPE_OK, XPE_ERR_IO_FAILED (cannot open), XPE_ERR_INVALID_INPUT.
+ * @return XPE_OK, XPE_ERR_IO_FAILED (cannot open), XPE_ERR_INVALID_INPUT,
+ *         XPE_ERR_OUT_OF_MEMORY (an allocation failed; an allocation failure is never reported as an I/O failure).
  *
  * SRS: SRS-LOG-002
  */

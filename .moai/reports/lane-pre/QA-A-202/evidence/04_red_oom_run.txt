@@ -1,0 +1,124 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 16 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 16 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (12 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            7 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (6 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          5 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (4 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      5 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (5 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             15 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)        9 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           13 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           13 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               3 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             3 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (1 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             3 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (1 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(388): error: Expected equality of these values:
+  0
+  allocations
+    Which is: 1
+a frame must not allocate (a map copy per frame is the defect this pins)
+
+[  FAILED  ] OomInjection.AnOffsetCorrectionAllocatesNothing (1 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(203): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_defect_correct: an exception left the C ABI function when allocation #1 failed (and the calibration store lock stayed held)
+
+[  FAILED  ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (0 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(422): error: Value of: threw
+  Actual: true
+Expected: false
+{"alpha1":"abc"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+{"alpha1":"abc"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(425): error: Expected equality of these values:
+  before
+    Which is: 38
+  after
+    Which is: 41
+{"alpha1":"abc"}: blocks left behind by a refused creation
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(422): error: Value of: threw
+  Actual: true
+Expected: false
+{"tier":"x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+{"tier":"x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(425): error: Expected equality of these values:
+  before
+    Which is: 36
+  after
+    Which is: 39
+{"tier":"x"}: blocks left behind by a refused creation
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(422): error: Value of: threw
+  Actual: true
+Expected: false
+{"tau2":"1e999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+{"tau2":"1e999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(425): error: Expected equality of these values:
+  before
+    Which is: 34
+  after
+    Which is: 37
+{"tau2":"1e999"}: blocks left behind by a refused creation
+
+[  FAILED  ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[----------] 16 tests from OomInjection (59 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 1 test suite ran. (59 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[  FAILED  ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[  FAILED  ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+
+ 3 FAILED TESTS
