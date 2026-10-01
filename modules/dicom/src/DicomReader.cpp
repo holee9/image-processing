@@ -394,6 +394,14 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool i
         if (!inTable) {
             return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u for JPEG 2000 (PS3.5 Table 8.2.4-1 lists 1, 8, 16, 24, 32 and 40)", static_cast<unsigned>(bitsAlloc));
         }
+        // QA-B-181g (Codex #57): Table 8.2.4-1 limits BitsStored to 1-38 and HighBit to 0-37 as well, separately from
+        // the allocation. BitsAllocated 40 is listed, so a BitsStored of 39 or 40 under it is a value the table does
+        // not list (a violation), not a well-formed file this reader merely does not return. With HighBit = BitsStored - 1
+        // (checked above) the two limits are one, and this is judged before the "unsupported" test below.
+        if (bitsStored > 38) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u for JPEG 2000 (PS3.5 Table 8.2.4-1 lists BitsStored 1-38 and HighBit 0-37)",
+                          static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit));
+        }
         if (bitsAlloc != 8 && bitsAlloc != 16) {
             return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u for JPEG 2000 (8 or 16 are supported)", static_cast<unsigned>(bitsAlloc));
         }

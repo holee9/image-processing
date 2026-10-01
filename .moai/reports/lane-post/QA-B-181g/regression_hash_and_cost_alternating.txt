@@ -1,0 +1,40 @@
+=== round 1 old
+bilateral 3072^2           rc=0 median    99.72 ms  min    95.99  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    16.73 ms  min    16.10  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   241.66 ms  min   235.62  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    39.98 ms  min    34.80  hash 4303e96e746e95fb
+=== round 1 new
+bilateral 3072^2           rc=0 median   102.90 ms  min   100.73  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    18.15 ms  min    17.68  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   244.15 ms  min   242.92  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    34.81 ms  min    34.32  hash 4303e96e746e95fb
+=== round 2 old
+bilateral 3072^2           rc=0 median    98.84 ms  min    96.46  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    16.08 ms  min    15.95  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   246.51 ms  min   239.39  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    35.31 ms  min    33.76  hash 4303e96e746e95fb
+=== round 2 new
+bilateral 3072^2           rc=0 median   107.38 ms  min   102.36  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    18.47 ms  min    17.94  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   244.24 ms  min   240.04  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    34.17 ms  min    33.90  hash 4303e96e746e95fb
+=== round 3 old
+bilateral 3072^2           rc=0 median    99.18 ms  min    95.39  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    17.51 ms  min    16.74  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   242.08 ms  min   238.99  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    34.43 ms  min    34.01  hash 4303e96e746e95fb
+=== round 3 new
+bilateral 3072^2           rc=0 median   101.75 ms  min    99.85  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    18.77 ms  min    17.85  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   245.86 ms  min   237.94  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    34.57 ms  min    34.11  hash 4303e96e746e95fb
+=== round 4 old
+bilateral 3072^2           rc=0 median   102.68 ms  min    99.55  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    16.59 ms  min    16.14  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   246.90 ms  min   241.03  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    35.02 ms  min    33.04  hash 4303e96e746e95fb
+=== round 4 new
+bilateral 3072^2           rc=0 median   103.30 ms  min    97.85  hash 1947d0c162a1cfca
+edge_enhance 3072^2        rc=0 median    18.47 ms  min    17.71  hash 1ad563c2b69b9a36
+multiscale 3072^2          rc=0 median   245.18 ms  min   241.13  hash 809ff322095efe67
+nlm 96^2 (win 11, patch 5) rc=0 median    35.00 ms  min    34.42  hash 4303e96e746e95fb

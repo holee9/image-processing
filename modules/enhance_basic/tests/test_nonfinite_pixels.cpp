@@ -240,3 +240,119 @@ TEST(NonFinitePixels, NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndPara
         }
     }
 }
+
+// ---- QA-B-181g (Codex #57): the producers 181f missed -- noise_reduce and edge_enhance on +-FLT_MAX ---------------
+// QA-B-181f's "measured, none" for noise_reduce used a few small sigma values. The worst input is an image at +-FLT_MAX:
+// the weighted sums (bilateral, NLM) and the blur and sharpen terms (edge_enhance) are float, so they leave float and
+// the call answered rc=0 with a non-finite image. The call is now refused before the first write (the filters work in
+// place), bounded by what the float arithmetic can hold; images far below that bound are processed exactly as before.
+namespace {
+
+constexpr float kFltMax = std::numeric_limits<float>::max();
+
+std::vector<float> Flat(int w, int h, float v) { return std::vector<float>(static_cast<size_t>(w) * h, v); }
+
+XpeNoiseReduceParams Bilateral(float space, float range) {
+    XpeNoiseReduceParams p{};
+    p.mode = XPE_NOISE_BILATERAL; p.sigma_space = space; p.sigma_range = range;
+    p.search_window = 21; p.patch_size = 7; p.h_param = 10.0f;
+    return p;
+}
+
+XpeNoiseReduceParams Nlm(int window, int patch, float h) {
+    XpeNoiseReduceParams p{};
+    p.mode = XPE_NOISE_NLM; p.sigma_space = 3.0f; p.sigma_range = 50.0f;
+    p.search_window = window; p.patch_size = patch; p.h_param = h;
+    return p;
+}
+
+}  // namespace
+
+TEST(NonFinitePixels, BilateralRefusesAnImageWhoseWeightedSumWouldLeaveFloat) {
+    const XpeNoiseReduceParams p = Bilateral(3.0f, 50.0f);
+    for (float v : {kFltMax, -kFltMax}) {
+        std::vector<float> px = Flat(32, 32, v);
+        const std::vector<float> before = px;
+        XpeImageBuffer img = Wrap(px, 32, 32);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &p)) << "flat " << v;
+        EXPECT_TRUE(SameBytes(before, px)) << "flat " << v << ": nothing may be written";
+    }
+    std::vector<float> checker = Flat(32, 32, 0.0f);
+    for (int i = 0; i < 32 * 32; ++i) checker[static_cast<size_t>(i)] = (((i % 32) + (i / 32)) & 1) ? kFltMax : -kFltMax;
+    const std::vector<float> before = checker;
+    XpeImageBuffer img = Wrap(checker, 32, 32);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &p));
+    EXPECT_TRUE(SameBytes(before, checker));
+}
+
+TEST(NonFinitePixels, BilateralRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes) {
+    const XpeNoiseReduceParams p = Bilateral(3.0f, 50.0f);
+    for (int i = 0; i < 3; ++i) ExpectRefusedUntouched([&](XpeImageBuffer* img) { return xpe_noise_reduce(img, &p); }, kBad[i], kBadName[i]);
+    std::vector<float> big = Flat(32, 32, 1.0e30f);
+    XpeImageBuffer img = Wrap(big, 32, 32);
+    ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &p)) << "1e30 is far inside the float range: processed";
+    for (float v : big) ASSERT_TRUE(std::isfinite(v));
+}
+
+TEST(NonFinitePixels, NlmRefusesAnImageWhoseWeightedSumWouldLeaveFloat) {
+    const XpeNoiseReduceParams p = Nlm(5, 3, 10.0f);
+    for (float v : {kFltMax, -kFltMax}) {
+        std::vector<float> px = Flat(24, 24, v);
+        const std::vector<float> before = px;
+        XpeImageBuffer img = Wrap(px, 24, 24);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &p)) << "flat " << v;
+        EXPECT_TRUE(SameBytes(before, px)) << "flat " << v;
+    }
+}
+
+TEST(NonFinitePixels, NlmRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes) {
+    const XpeNoiseReduceParams p = Nlm(5, 3, 10.0f);
+    for (int i = 0; i < 3; ++i) ExpectRefusedUntouched([&](XpeImageBuffer* img) { return xpe_noise_reduce(img, &p); }, kBad[i], kBadName[i]);
+    std::vector<float> big = Flat(24, 24, 1.0e30f);
+    XpeImageBuffer img = Wrap(big, 24, 24);
+    ASSERT_EQ(XPE_OK, xpe_noise_reduce(&img, &p));
+    for (float v : big) ASSERT_TRUE(std::isfinite(v));
+}
+
+TEST(NonFinitePixels, EdgeEnhanceRefusesImagesWhoseBlurOrSharpenTermsWouldLeaveFloat) {
+    // The cases from Codex #57: a bright FLT_MAX centre among -FLT_MAX, with amount 1 and threshold FLT_MAX, wrote +inf.
+    struct Case { float amount, radius, threshold; };
+    const Case cases[] = {{1.0f, 2.0f, kFltMax}, {0.5f, 10.0f, std::numeric_limits<float>::infinity()}, {5.0f, 10.0f, kFltMax}};
+    for (const Case& c : cases) {
+        for (int pat = 0; pat < 3; ++pat) {
+            std::vector<float> px = Flat(32, 32, pat == 1 ? -kFltMax : kFltMax);
+            if (pat == 2) {
+                for (float& v : px) v = -kFltMax;
+                px[16u * 32u + 16u] = kFltMax;
+            }
+            const std::vector<float> before = px;
+            XpeImageBuffer img = Wrap(px, 32, 32);
+            XpeUsmParams p{c.amount, c.radius, c.threshold};
+            EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_edge_enhance(&img, &p)) << "amount " << c.amount << " radius " << c.radius << " threshold " << c.threshold << " pattern " << pat;
+            EXPECT_TRUE(SameBytes(before, px)) << "pattern " << pat;
+        }
+    }
+}
+
+TEST(NonFinitePixels, EdgeEnhanceRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes) {
+    for (int i = 0; i < 3; ++i) {
+        ExpectRefusedUntouched([](XpeImageBuffer* img) { XpeUsmParams p{1.0f, 2.0f, 10.0f}; return xpe_edge_enhance(img, &p); }, kBad[i], kBadName[i]);
+    }
+    std::vector<float> big = Ramp(32, 32, 1.0e28f);
+    XpeImageBuffer img = Wrap(big, 32, 32);
+    XpeUsmParams p{1.0f, 2.0f, 10.0f};
+    ASSERT_EQ(XPE_OK, xpe_edge_enhance(&img, &p)) << "values near 1e30 are far inside the float range: processed";
+    for (float v : big) ASSERT_TRUE(std::isfinite(v));
+}
+
+TEST(NonFinitePixels, NlmRefusesANonFiniteHParam) {
+    // `h_param <= 0` is false for +inf in every floating-point mode and for NaN under /fp:precise; +inf made h2_inv 0.
+    for (float h : {kNaN, kInf}) {
+        std::vector<float> px = Ramp(24, 24, 0.01f);
+        const std::vector<float> before = px;
+        XpeImageBuffer img = Wrap(px, 24, 24);
+        const XpeNoiseReduceParams p = Nlm(5, 3, h);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &p)) << "h_param = " << h;
+        EXPECT_TRUE(SameBytes(before, px)) << "h_param = " << h;
+    }
+}

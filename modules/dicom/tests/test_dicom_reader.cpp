@@ -3475,6 +3475,11 @@ TEST_F(DicomReaderTest, Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelD
         {24, 24, 23, UNS, INV, UNS},
         {32, 32, 31, UNS, INV, UNS},
         {48, 48, 47, UNS, INV, INV},    // beyond Table 8.2.4-1 as well
+        // QA-B-181g (Codex #57): Table 8.2.4-1 lists BitsAllocated 40 AND BitsStored 1-38 / HighBit 0-37 for JPEG 2000.
+        // An allocation the table allows can still carry a BitsStored it does not.
+        {40, 40, 39, UNS, INV, INV},    // BitsStored 40 is beyond 38
+        {40, 39, 38, UNS, INV, INV},    // BitsStored 39 is beyond 38 (the Codex case)
+        {40, 38, 37, UNS, INV, UNS},    // the table allows it, this reader does not return it
     };
     const XpeErrorCode answer[] = {XPE_OK, XPE_ERR_DICOM_INVALID, XPE_ERR_UNSUPPORTED_FORMAT, XPE_OK};
     int n = 0;
