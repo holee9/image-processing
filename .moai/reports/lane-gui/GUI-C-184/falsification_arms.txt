@@ -1,0 +1,35 @@
+# GUI-C-184 - real sources broken on purpose; the named tests must go red with a successful build; restored byte-identical
+
+ARM failure-code-minus3-read-as-success: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    19, 건너뜀:     0, 전체:    22, 기간: 145 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.AFailedCall_WhoseOutputEqualsTheInput_IsRequestedNotApplied_NotAppliedNoChange(failureCode:
+   red: AiBoneSuppressionStageTests.TheReturnCode_IsClassified(code: -3, expected: "Failed") [< 1 ms]
+   red: AiBoneSuppressionStageTests.NotAttempted_IsSaidApartFromFailed [< 1 ms]
+   restored byte-identical: True
+ARM label-also-given-to-AppliedNoChange: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    21, 건너뜀:     0, 전체:    22, 기간: 138 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheLabel_IsNeverGiven_ToAnyStatusButApplied_OrToAnotherStagesSuccess [3 ms]
+   restored byte-identical: True
+ARM success-message-carries-the-label: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    21, 건너뜀:     0, 전체:    22, 기간: 137 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheSuccessMessage_DoesNotCarryTheLabel [< 1 ms]
+   restored byte-identical: True
+ARM minus7-read-as-a-failed-attempt: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    20, 건너뜀:     0, 전체:    22, 기간: 137 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheReturnCode_IsClassified(code: -7, expected: "NotAttempted") [< 1 ms]
+   red: AiBoneSuppressionStageTests.NotAttempted_IsSaidApartFromFailed [< 1 ms]
+   restored byte-identical: True
+ARM ai-stage-ignores-its-setting: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    21, 건너뜀:     0, 전체:    22, 기간: 151 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ThePlan_PutsTheAiStageThirdAndOffByDefault [1 ms]
+   restored byte-identical: True
+ARM shutdown-called-outside-the-one-place: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    21, 건너뜀:     0, 전체:    22, 기간: 151 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.InitAndShutdown_AreCalledInOnePlace_UnderTheLock(call: "XpeAiNative.xpe_ai_shutdown(") [36 m
+   restored byte-identical: True
+ARM row-10-menu-disabled-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 14 s - ImageProcTest.E2ETests.dll (net8.0)']
+   red: AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [14 s]
+   restored byte-identical: True
+AFTER RESTORE: 0 (True, ['통과!  - 실패:     0, 통과:    22, 건너뜀:     0, 전체:    22, 기간: 127 ms - ImageProcTest.IntegrationTests.dll (net8.0)'])
+sources: 61166e0a32bf cf1fd756a146 94667657a0fb 0c15190a5481

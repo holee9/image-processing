@@ -174,8 +174,9 @@ public sealed class ProcessingChainRunnerTests
     }
 
     /// <summary>
-    /// The plan is preprocess then GSVG, in that order (GUI-C-101), and each stage follows its own
-    /// setting. The order is asserted because the chain feeds each stage the previous one's output.
+    /// The plan is preprocess, GSVG, then AI bone suppression (#225 row 10, GUI-C-184), in that order (GUI-C-101),
+    /// and each stage follows its own setting. The order is asserted because the chain feeds each stage the
+    /// previous one's output. The AI stage is off unless its own setting is on.
     /// </summary>
     [Theory]
     [InlineData(false, GsvgModes.None, false, false)]
@@ -186,9 +187,10 @@ public sealed class ProcessingChainRunnerTests
     {
         var stages = ProcessingChainPlan.BuildStages(new AppSettings { PreprocessInChain = preprocess, GsvgMode = gsvgMode });
 
-        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg], stages.Select(s => s.StageId));
+        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
         Assert.Equal(preprocessEnabled, stages[0].Enabled);
         Assert.Equal(gsvgEnabled, stages[1].Enabled);
+        Assert.False(stages[2].Enabled);
     }
 
     /// <summary>An unknown GSVG mode is None — the module's own pass-through default.</summary>

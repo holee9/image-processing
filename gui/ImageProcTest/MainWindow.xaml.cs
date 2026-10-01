@@ -367,7 +367,6 @@ public partial class MainWindow : System.Windows.Window
                     // enabled on the native backend, so counting it as a disabled future command
                     // would make this report claim the opposite of what the app now does.
                     RunDeterministicBaselineMenuItem,
-                    RunFullPipelineMenuItem,
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
                     RunSelfCheckMenuItem,

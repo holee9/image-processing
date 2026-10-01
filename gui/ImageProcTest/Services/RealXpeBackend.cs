@@ -294,6 +294,7 @@ public sealed class RealXpeBackend : IXpeBackend
         {
             StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -333,6 +334,15 @@ public sealed class RealXpeBackend : IXpeBackend
         return new StageExecution(result.Ran, result.Pixels, result.Message);
     }
 
+    /// <summary>
+    /// #225 row 10 (GUI-C-184): AI bone suppression. InvokeNative so the alert drain runs afterwards on every path:
+    /// the module raises its own alerts (success Info, failure Warnings, the third failure's "disabled for this
+    /// session"), and the GUI only reads the queue. Success is the return code's, never "the pixels differ"
+    /// (see <see cref="AiBoneSuppressionStage"/>).
+    /// </summary>
+    private StageExecution RunAiStage(ushort[] input, int width, int height, AppSettings settings) =>
+        InvokeNative(() => Native.GuiAiRunner.Run(input, width, height, settings.AiModelDirectory));
+
     public int GetAlertCount() => _alerts.Count;
 
     public AlertEntry? GetAlert(int index) => index >= 0 && index < _alerts.Count ? _alerts[index] : null;
@@ -346,6 +356,7 @@ public sealed class RealXpeBackend : IXpeBackend
     public void Shutdown()
     {
         AddLog("RealXpeBackend shutdown requested.");
+        Native.GuiAiSession.Shutdown();
         _runtimeInfo = new BackendRuntimeInfo
         {
             BackendName = "RealXpeBackend",

@@ -13,11 +13,13 @@ public static class ProcessingChainPlan
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        // Order (#180, GUI-C-101): preprocess, then GSVG, then the display pipeline.
+        // Order (#180, GUI-C-101): preprocess, then GSVG, then (#225 row 10, GUI-C-184) AI bone suppression, then the
+        // display pipeline.
         return
         [
             new StageRequest(StageIds.Preprocess, settings.PreprocessInChain),
             new StageRequest(StageIds.Gsvg, GsvgModes.Normalize(settings.GsvgMode) != GsvgModes.None),
+            new StageRequest(StageIds.AiBoneSuppression, settings.AiBoneSuppressionInChain),
         ];
     }
 }

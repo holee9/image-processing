@@ -233,6 +233,13 @@
                               Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,8"
                               ToolTip="Runs xpe_preprocess.dll on the raw frame and feeds the result to the display pipeline. Needs the native backend and a calibration set; otherwise the stage shows as not applied." />
 
+                    <!-- #225 row 10 (GUI-C-184): the AI stage's switch. The Run AI menu entry turns it on; this is where it is seen and turned off. -->
+                    <CheckBox AutomationProperties.AutomationId="AiBoneSuppressionInChainCheckBox"
+                              Content="AI bone suppression"
+                              IsChecked="{Binding Settings.AiBoneSuppressionInChain, Mode=TwoWay}"
+                              Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,8"
+                              ToolTip="Runs xpe_bone_suppress (xpe_ai.dll, worker process) after the other stages. Needs the native backend and a model in the AI model directory. On failure the original image is shown." />
+
                     <TextBlock Text="Exposure kVp" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <TextBox AutomationProperties.AutomationId="ExposureKvpInput"
                              Text="{Binding Settings.ExposureKvp, UpdateSourceTrigger=PropertyChanged}"

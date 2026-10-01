@@ -155,6 +155,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
+        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
         ZoomInCommand = new RelayCommand(ZoomIn);
@@ -516,6 +517,19 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public RelayCommand RunPreprocessingCommand { get; }
 
+    /// <summary>
+    /// #225 row 10 (GUI-C-184): switches AI bone suppression on and renders again, as Run Preprocessing does for its
+    /// stage. The result is the chain's: Applied only when the module returned 0.
+    /// </summary>
+    public RelayCommand RunAiBoneSuppressionCommand { get; }
+
+    /// <summary>
+    /// "AI-processed: bone suppression" when the last chain's AI stage was Applied (the module returned 0 AND the
+    /// pixels changed); empty otherwise. Never set for a stage that was refused or failed, nor for one that returned 0
+    /// with an unchanged image.
+    /// </summary>
+    public string AiProcessedLabel { get; private set; } = string.Empty;
+
     private ChainResult? _lastChain;
     private float _renderedLaneBWidth;
     private string _renderedLaneBAlgorithm = string.Empty;
@@ -800,6 +814,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     private static bool ChainInputsDiffer(AppSettings a, AppSettings b) =>
         a.PreprocessInChain != b.PreprocessInChain
+        || a.AiBoneSuppressionInChain != b.AiBoneSuppressionInChain
+        || !string.Equals(a.AiModelDirectory, b.AiModelDirectory, StringComparison.Ordinal)
         || !string.Equals(a.GsvgMode, b.GsvgMode, StringComparison.Ordinal)
         || !string.Equals(a.GsvgTablePath, b.GsvgTablePath, StringComparison.Ordinal)
         || a.GsvgGridRatio != b.GsvgGridRatio
@@ -2194,6 +2210,28 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>#225 row 10 (GUI-C-184): AI bone suppression is a stage of the pixel chain; the menu entry switches it on and renders again.</summary>
+    private async void RunAiBoneSuppression()
+    {
+        if (ActiveImageFrame is null)
+        {
+            StatusText = "Load a raw image before running AI bone suppression.";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            Settings.AiBoneSuppressionInChain = true;
+            await ApplyDisplayPipelineAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI bone suppression failed: {ex.Message}";
+            Log(StatusText);
+        }
+    }
+
     /// <summary>
     /// Publishes a chain result (#180, GUI-C-99): status bar summary, the preprocess fields the automation
     /// report reads, a log line per stage, and an alert for every requested stage that did not apply. A
@@ -2208,7 +2246,13 @@ public sealed class MainWindowViewModel : ObservableObject
             .Where(st => st.Status == StageStatus.RequestedNotApplied)
             .Select(st => $"{st.StageId}: {st.Reason}")
             .ToArray();
+        // #225 row 10 (GUI-C-184): the label is derived from the stage's STATUS, which the chain derives from the module's
+        // return code and a pixel comparison. It is not read from an alert or from a message, and a refused, failed or
+        // unchanged AI stage never gets it.
+        AiProcessedLabel = AiBoneSuppressionStage.LabelFor(chain);
+        OnPropertyChanged(nameof(AiProcessedLabel));
         ChainStatus = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
+            + (AiProcessedLabel.Length == 0 ? string.Empty : $" — {AiProcessedLabel}")
             + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));
 
         foreach (var stage in chain.Stages)

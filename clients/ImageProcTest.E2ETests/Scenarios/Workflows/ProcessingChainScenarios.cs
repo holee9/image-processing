@@ -330,6 +330,91 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         }
     }
 
+    /// <summary>
+    /// C-08 (#225 row 10, GUI-C-184): the AI menu entry on a build where the module cannot succeed. Mock has no AI
+    /// module and says so. The Native job stages xpe_ai.dll and its worker (the post-binaries artifact, ci.yml) and builds
+    /// the module as a stub (no inference runtime), so there the stage must have REACHED the module: the reason carries a
+    /// return code that came from it. "xpe_ai.dll was not found" is NOT accepted on Native: it would let a job that
+    /// forgot to stage the DLL pass as the failure path it is meant to pin. In both cases the stage must be
+    /// RequestedNotApplied, the drawn pixels must be the ones from before, and nothing may say "AI-processed". A failed call returns the input unchanged, so "the pixels did not change" alone cannot
+    /// tell a failure from a success on a flat image; the STATUS is what is asserted, and the hash is asserted too
+    /// (the image on screen is the original).
+    ///
+    /// <para>This pins the failure path. It is red on purpose if the Native job ever stages an inference build: the
+    /// success path then needs a case of its own with a model, which this card does not have.</para>
+    /// </summary>
+    [SkippableFact]
+    public void C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        try
+        {
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+            var before = WaitForChain(window, "ai_bone_suppress=NotRequested");
+            var beforeHash = DrawnHash(window);
+            output.WriteLine($"C08 before: chain='{before}' hash={beforeHash}");
+            Assert.NotEqual("-", beforeHash);
+
+            InvokeAiMenuItem(window);
+
+            var after = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+            var afterHash = DrawnHash(window);
+            output.WriteLine($"C08 after (backend {app.BackendMode}): chain='{after}' hash={afterHash}");
+
+            Assert.DoesNotContain("AI-processed", after, StringComparison.Ordinal);
+            Assert.Equal(beforeHash, afterHash);
+
+            if (app.BackendMode == "Native")
+            {
+                // The module answered: the DLL loaded and xpe_bone_suppress returned a code (a stub build: -3). The message
+                // text is pinned by AiBoneSuppressionStageTests.TheMessagesOfAModuleAnswer_MatchTheNativeCasePattern.
+                Assert.DoesNotContain("was not found", after, StringComparison.Ordinal);
+                Assert.Matches(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+", after);
+            }
+            else
+            {
+                Assert.Contains("ai_bone_suppress: AI bone suppression requires the native backend", after, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+        }
+    }
+
+    private static void InvokeAiMenuItem(Window window)
+    {
+        var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
+        Assert.True(menu is not null, "PipelineMenu was not found.");
+        menu!.AsMenuItem().Expand();
+
+        FlaUI.Core.AutomationElements.AutomationElement? item = null;
+        for (var attempt = 0; attempt < 20 && item is null; attempt++)
+        {
+            item = window.FindFirstDescendant(cf => cf.ByAutomationId("RunFullPipelineMenuItem"));
+            if (item is null) Thread.Sleep(100);
+        }
+
+        Assert.True(item is not null, "RunFullPipelineMenuItem did not appear under PipelineMenu.");
+        item!.AsMenuItem().Invoke();
+        try { menu.AsMenuItem().Collapse(); } catch (Exception) { /* already closed */ }
+        Thread.Sleep(400);
+    }
+
+    private static void SetAiStage(Window window, bool on)
+    {
+        OpenParameters(window);
+        var box = window.FindFirstDescendant(cf => cf.ByAutomationId("AiBoneSuppressionInChainCheckBox"));
+        Assert.True(box is not null, "AiBoneSuppressionInChainCheckBox is not in the Parameters tab.");
+        box!.AsCheckBox().IsChecked = on;
+        Thread.Sleep(200);
+    }
+
     private static FlaUI.Core.AutomationElements.RadioButton Radio(Window window, string automationId)
     {
         OpenParameters(window);

@@ -25,6 +25,7 @@ internal static class GuiNativeLibraryResolver
     private const string DisplayDll = "xpe_display.dll";
     private const string PreprocessDll = "xpe_preprocess.dll";
     private const string GsvgDll = "gsvg.dll";
+    private const string AiDll = "xpe_ai.dll";
 
     private static readonly object Gate = new();
     private static bool _installed;
@@ -127,6 +128,9 @@ internal static class GuiNativeLibraryResolver
             // #180 (GUI-C-101): gsvg has no locator of its own in clients; it follows the same
             // module policy as xpe_display.
             _ when Is(libraryName, GsvgDll) => NativeModuleLibraryLocator.GetDllCandidates(GsvgDll, "image-processing"),
+            // #225 row 10 (GUI-C-184): xpe_ai.dll follows the same module policy. Its worker executable is looked for
+            // beside THIS dll by the module itself, so the two have to be staged together.
+            _ when Is(libraryName, AiDll) => NativeModuleLibraryLocator.GetDllCandidates(AiDll, "image-processing"),
             _ => null,
         };
 
