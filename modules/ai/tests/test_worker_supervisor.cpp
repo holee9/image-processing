@@ -74,6 +74,13 @@ namespace {
 
 /** The supervisor's budget in the stall test. Short, so a pass is quick. */
 constexpr uint32_t kStallBudgetMs = 800;
+/**
+ * The stall test spends its budget twice: the FIRST Ping starts a worker (a cold start, measured at up to
+ * about 730 ms in a full build, QA-B-171C), and only then is the worker frozen so the next call can time
+ * out. A budget of 800 ms left no margin for the first and failed once in a full-suite run on a busy
+ * machine; this one is 2.7 times the worst cold start seen.
+ */
+constexpr uint32_t kStallTestBudgetMs = 2000;
 /** Everywhere else: generous, because worker start-up is what is being timed. */
 constexpr uint32_t kBudgetMs = 3000;
 /** Slack for process noise on a loaded machine. */
@@ -226,7 +233,7 @@ TEST(WorkerSupervisor, ARequestedExitIsCleanAndReadAsExitCodeZero) {
 // --- REQ-AI-092 + HAZ-008: a worker that stalls ----------------------------------------
 
 TEST(WorkerSupervisor, AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne) {
-    WorkerSupervisor sup(Cfg(kStallBudgetMs));
+    WorkerSupervisor sup(Cfg(kStallTestBudgetMs));
     ASSERT_EQ(XPE_OK, sup.Ping());
     const uint32_t stalled = sup.WorkerPid();
     Proc p(stalled);
@@ -240,8 +247,8 @@ TEST(WorkerSupervisor, AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAF
 
     // The call FAILS: the supervisor does not hide the fault by re-running it.
     EXPECT_NE(XPE_OK, rc);
-    EXPECT_GE(took, kStallBudgetMs - 100) << "returned before the budget: it did not wait";
-    EXPECT_LE(took, kStallBudgetMs + kSlackMs) << "took " << took << " ms";
+    EXPECT_GE(took, kStallTestBudgetMs - 100) << "returned before the budget: it did not wait";
+    EXPECT_LE(took, kStallTestBudgetMs + kSlackMs) << "took " << took << " ms";
 
     // The stalled worker is gone: killed by the supervisor, not left running.
     EXPECT_TRUE(p.GoneWithin(3000)) << "the stalled worker is still running (a leaked process)";

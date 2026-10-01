@@ -95,8 +95,19 @@ XPE_API const char* xpe_ai_version(void);
  * session raises at most 3 worker alerts. A success resets the count. The
  * ceiling of 3 and the alert rule are values the user approved on 2026-10-01
  * (docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3), not ones the requirements
- * state. SDD-002 names the alert's SRS item as SRS-SAFE-008; the SRS table has
- * no row for the failure itself.
+ * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
+ * the failure itself.
+ *
+ * EVERY non-OK result of the worker path counts toward the 3, including an error
+ * reply that a healthy worker sends on purpose because the model refused the
+ * request (a missing or unloadable model, an input length it rejects). A model
+ * that refuses three times in a row means AI is unusable for the session, so a
+ * healthy worker is switched off too; xpe_ai_shutdown() followed by
+ * xpe_ai_init() recovers it.
+ *
+ * An image too large for one worker message (about 64 MB of pixels; 4096 x 4096
+ * float32 is just above it) is refused with XPE_ERR_UNSUPPORTED_FORMAT without
+ * trying a worker, without an alert and without counting toward the 3.
  *
  * REQ-AI-001: Only xpe_common dependency.
  * REQ-AI-003: Worker process isolation.
@@ -278,7 +289,8 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  *         for width*height floats, or the model rejected the input length.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if either image is not XPE_PIXEL_FLOAT32.
  *         The session speaks float32; reinterpreting 16-bit pixels as floats
- *         would return numbers instead of an error.
+ *         would return numbers instead of an error. Also returned, with
+ *         "use_worker" set, for an image too large for one worker message.
  * @return XPE_ERR_IO_FAILED if `<modelDir>/bone_suppress.onnx` is not there.
  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
  *         model. Distinct from IO_FAILED on purpose: "install the model" and

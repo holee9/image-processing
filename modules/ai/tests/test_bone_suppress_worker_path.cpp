@@ -315,7 +315,10 @@ TEST_F(WorkerPathFixture, InAStubBuildTheWorkersErrorIsReportedAndTheInputIsRetu
     int32_t sev = -1;
     EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "a failed worker call must raise exactly one alert";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
-    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+    EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+    EXPECT_EQ(0, CountAlerts("SRS-SAFE-008")) << "SRS-SAFE-008 is the AI-processed LABEL requirement, "
+                                                 "the success side: the wrong trace for a failure";
     EXPECT_EQ(0, CountAlerts("disabled")) << "one failure is below the ceiling: the worker is not off";
     EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
 }
@@ -348,7 +351,10 @@ TEST_F(WorkerPathFixture, ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCal
     int32_t sev = -1;
     EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "the silent worker was not reported (once)";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
-    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+    EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+    EXPECT_EQ(0, CountAlerts("SRS-SAFE-008")) << "SRS-SAFE-008 is the AI-processed LABEL requirement, "
+                                                 "the success side: the wrong trace for a failure";
     EXPECT_EQ(0, CountAlerts("disabled")) << "one failure is below the ceiling: the worker is not off";
     EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
     EXPECT_GE(took, 1800u) << "returned before the budget: it did not wait for the worker";
@@ -371,7 +377,15 @@ TEST_F(WorkerPathFixture, ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCal
 
 // --- the ceiling and the state-change alert (user-approved policy) ------------------------------------
 
-TEST_F(WorkerPathFixture, EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession) {
+// WHAT COUNTS AS A FAILURE (leader decision, Codex audit #12): EVERY non-OK result of the worker path,
+// including an ERROR frame a perfectly HEALTHY worker sent on purpose because the MODEL refused the
+// request. Here that is a model directory with no model: the worker is alive and answers each request
+// with an error frame, and the third such answer still switches the worker off for the session. That is
+// intended: a model that refuses three times in a row means AI is unusable for this session, and
+// counting model refusals separately would bring back an unbounded alert stream. Recovery is
+// xpe_ai_shutdown() followed by xpe_ai_init() (see the next test).
+TEST_F(WorkerPathFixture,
+       EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession) {
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     xpe_clear_alerts();
 
@@ -382,6 +396,8 @@ TEST_F(WorkerPathFixture, EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTh
         EXPECT_TRUE(OutputIsTheInput(c.out)) << "call " << call << ": the output must be the input";
         EXPECT_EQ(call, CountAlerts(kFailureNeedle)) << "call " << call << ": one alert per failure";
         EXPECT_EQ(0, CountAlerts("disabled")) << "call " << call << ": below the ceiling";
+        // The worker is HEALTHY: alive, and what failed is the model request it answered.
+        EXPECT_EQ(1u, ChildWorkers().size()) << "call " << call << ": the worker should be up and answering";
     }
 
     // Failure 3 crosses the ceiling: its alert is the third, and it says the worker is switched off.
@@ -391,7 +407,10 @@ TEST_F(WorkerPathFixture, EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTh
     int32_t sev = -1;
     EXPECT_EQ(3, CountAlerts(kFailureNeedle, &sev)) << "three failures, three alerts";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
-    EXPECT_EQ(3, CountAlerts("SRS-SAFE-008")) << "every alert cites the SRS item the SDD names";
+    EXPECT_EQ(3, CountAlerts("REQ-AI-092")) << "every alert cites REQ-AI-092";
+    EXPECT_EQ(3, CountAlerts("REQ-AI-002")) << "every alert cites REQ-AI-002";
+    EXPECT_EQ(0, CountAlerts("SRS-SAFE-008")) << "SRS-SAFE-008 is the AI-processed LABEL requirement, "
+                                                 "the success side: the wrong trace for a failure";
     EXPECT_EQ(1, CountAlerts("disabled")) << "exactly the 3rd alert says the worker is switched off";
     EXPECT_TRUE(WaitForChildWorkers(0, 3000)) << "switching the worker off must end its process";
 
@@ -405,7 +424,7 @@ TEST_F(WorkerPathFixture, EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTh
     }
 }
 
-TEST_F(WorkerPathFixture, AFreshInitReEnablesTheWorker) {
+TEST_F(WorkerPathFixture, ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors) {
     // "For the session" means until xpe_ai_shutdown/xpe_ai_init: a new session starts with a clean count.
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     for (int i = 0; i < 3; ++i) CallOnce();
@@ -475,4 +494,121 @@ TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndK
                 unrelated ? "yes" : "NO (evicted)");
     EXPECT_EQ(3, worker_alerts) << "a session raises at most three worker alerts";
     EXPECT_EQ(1, unrelated) << "the failure flood evicted an unrelated warning";
+}
+
+// --- Codex audit #12 (high): a declared size that overflows --------------------------------------------
+//
+// width * height * sizeof(float) wraps to 0 in 64-bit arithmetic for 2^31 x 2^31 (and the validator's own
+// width * height * bpp wraps the same way). The check "dataSize is at least that many bytes" then passes
+// for ANY dataSize, the fallback copy moves 0 bytes, and the call returns an error with an output that is
+// not the input. The size is now computed once, overflow-checked, and shared by the checks and the copy.
+
+namespace {
+constexpr uint32_t kHuge = 0x80000000u;   // 2^31: kHuge * kHuge * 4 == 2^64, which is 0 in 64 bits
+
+XpeImageBuffer Declared(uint32_t w, uint32_t h, float* data, size_t data_size) {
+    XpeImageBuffer b{};
+    b.width = w;
+    b.height = h;
+    b.bitsAllocated = 32;
+    b.bitsStored = 32;
+    b.format = XPE_PIXEL_FLOAT32;
+    b.data = data;
+    b.dataSize = data_size;
+    return b;
+}
+}  // namespace
+
+TEST_F(WorkerPathFixture, AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true}"));
+    xpe_clear_alerts();
+    float in_px[4] = {1, 2, 3, 4};
+    float out_px[4] = {kSentinel, kSentinel, kSentinel, kSentinel};
+    XpeImageBuffer in = Declared(kHuge, kHuge, in_px, sizeof(in_px));
+    XpeImageBuffer out = Declared(kHuge, kHuge, out_px, sizeof(out_px));
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bone_suppress(&in, &out, nullptr));
+    EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "a refused input is not a worker failure";
+    EXPECT_EQ(0u, ChildWorkers().size()) << "a worker was started for an input that cannot be real";
+    for (float v : out_px) EXPECT_EQ(kSentinel, v) << "a refused call must leave the output alone";
+}
+
+TEST_F(WorkerPathFixture, AnImageTooLargeForTheWorkerProtocolIsUnsupportedAndIsNotAWorkerFailure) {
+    // 4096 x 4096 float32 is the module maximum (64 MB) and cannot travel in one worker message
+    // (the payload also carries a length prefix and metadata). That is a property of the worker path,
+    // not a fault of the worker: it must not alert, must not count toward the ceiling, and must not
+    // start a process, however many times it is asked.
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true}"));
+    xpe_clear_alerts();
+    constexpr uint32_t kSide = 4096;
+    std::vector<float> in_px(static_cast<size_t>(kSide) * kSide, 1.0f);
+    std::vector<float> out_px(in_px.size(), kSentinel);
+    XpeImageBuffer in = Declared(kSide, kSide, in_px.data(), in_px.size() * sizeof(float));
+    XpeImageBuffer out = Declared(kSide, kSide, out_px.data(), out_px.size() * sizeof(float));
+    for (int call = 1; call <= 5; ++call) {
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_bone_suppress(&in, &out, nullptr)) << "call " << call;
+    }
+    EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "an oversize image raised a worker-failure alert";
+    EXPECT_EQ(0u, ChildWorkers().size()) << "a worker was started for an image it cannot be sent";
+    EXPECT_EQ(kSentinel, out_px[0]);
+    EXPECT_EQ(kSentinel, out_px.back());
+}
+
+// A different function proves the fix is in the SHARED validator, not only in xpe_bone_suppress.
+TEST(HugeDimensions, TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction) {
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init("dummy_model_dir", nullptr));
+    float px[4] = {1, 2, 3, 4};
+    XpeImageBuffer img = Declared(kHuge, kHuge, px, sizeof(px));
+    char label[32] = {0};
+    float confidence = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bodypart_recognize(&img, label, sizeof(label), &confidence));
+    xpe_ai_shutdown();
+}
+
+TEST(HugeDimensions, ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified) {
+    // dataSize == 0 means "unspecified" and is accepted by the validator (api-spec #123). Dimensions that
+    // imply more than the module maximum (4096 x 4096 x 4 bytes) cannot describe a valid buffer whatever
+    // dataSize says, so they are refused rather than trusted.
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init("dummy_model_dir", nullptr));
+    float px[4] = {1, 2, 3, 4};
+    XpeImageBuffer img = Declared(65536u, 65536u, px, 0);   // 2^32 pixels, no wrap, unspecified size
+    char label[32] = {0};
+    float confidence = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bodypart_recognize(&img, label, sizeof(label), &confidence));
+    xpe_ai_shutdown();
+}
+
+// A GUARD, not a reproduction. Measured before the fix (x64, both builds): the size check PASSED for this
+// input (dataSize 16 against a required byte count that wrapped to 0), and the call still returned
+// INVALID_INPUT -- but from a layer further down, by accident, not from the check that exists to say so.
+// It does not crash. What this pins is that the refusal stays, now from the size check itself.
+TEST(HugeDimensions, AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo) {
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), nullptr));
+    float in_px[4] = {1, 2, 3, 4};
+    float out_px[4] = {kSentinel, kSentinel, kSentinel, kSentinel};
+    XpeImageBuffer in = Declared(kHuge, kHuge, in_px, sizeof(in_px));
+    XpeImageBuffer out = Declared(kHuge, kHuge, out_px, sizeof(out_px));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bone_suppress(&in, &out, nullptr));
+    for (float v : out_px) EXPECT_EQ(kSentinel, v);
+    xpe_ai_shutdown();
+}
+
+// --- Codex audit #12 (low): the same buffer as input and output ---------------------------------------------
+
+TEST_F(WorkerPathFixture, InPlaceFailureOfTheWorkerLeavesEveryInputByte) {
+    // softTissueOut == img: the fallback "copy the input to the output" is a copy onto itself and must
+    // not disturb the pixels, and the failed call must not have written anything else into them.
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    xpe_clear_alerts();
+    Img io(1.0f);
+    const std::vector<float> original = io.px;
+    const XpeErrorCode rc = xpe_bone_suppress(&io.buf, &io.buf, nullptr);
+    EXPECT_NE(XPE_OK, rc);
+    ASSERT_EQ(original.size(), io.px.size());
+    EXPECT_EQ(0, std::memcmp(original.data(), io.px.data(), original.size() * sizeof(float)))
+        << "an in-place call that failed changed the pixels";
+    EXPECT_EQ(1, CountAlerts(kFailureNeedle));
 }

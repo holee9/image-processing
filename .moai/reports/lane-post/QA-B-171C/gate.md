@@ -261,3 +261,81 @@ The ceiling-removed arm of section 9 was not repeated: the ceiling code and its 
 - ci-ai: cfg 0, build 0, ctest 0. Header 320 of 320 (5 skipped), DISABLED 0. `g171c-j-ai-ctest.txt`
 - Same counts as the previous commit (7618bde): the tests were rewritten, none added. Cache vs preset: `g171c-j-cache.txt`.
   Stray xpe_ai_worker.exe after the runs: 0.
+
+## 13. Codex audit #12 (read against 7618bde; the alert rule it flagged was already replaced in 6bc0063)
+
+### 13.1 [high] an overflowing declared size
+
+**Measured before the fix (x64, both builds).** `xpe_ai.dll` is x64 (PE machine 0x8664). For a 2^31 x 2^31 float32 image with a
+tiny `dataSize`, `width * height * 4` is 2^64, which is 0 in 64 bits: **two** places wrapped — `validateImageBuffer`
+(`width * height * bpp` in uint64) and `xpe_bone_suppress` (`count * sizeof(float)` in size_t) — so "dataSize is at least the
+required size" passed for any `dataSize`. A diagnostic print in the function (removed again) confirmed the size check was
+passed. What happened next differs by path:
+- **worker path (use_worker on):** the worker was started, the bridge refused the request, and the refusal was counted as a
+  worker failure: one alert, a process, and a step toward the ceiling, for an input that cannot be real.
+- **in-process path:** the call still returned INVALID_INPUT, **by accident, from a layer further down** (rc -1 in the stub and in
+  the full build, in 0 and 41 ms), not from the size check. I did not observe a crash on x64. The audit's "memmove of 0 bytes"
+  scenario is reached on the worker path.
+
+**Fix.** The validator now bounds the pixel count by DIVISION (`pixels > maxBytes / bpp`) before multiplying, and applies the
+module maximum (4096 x 4096 x 4 bytes) to the DECLARED image whatever `dataSize` says — `dataSize == 0` ("unspecified",
+api-spec #123) is still accepted for a normal image but no longer lets implausible dimensions through. `xpe_bone_suppress`
+computes the byte count ONCE with `pixels > SIZE_MAX / sizeof(float)` checked first, and the buffer checks, the fallback copy
+and the final copy all use that same `bytes`. An image the worker protocol cannot carry (above `XPE_AI_MAX_PAYLOAD_SIZE - 512`
+bytes; 4096 x 4096 float32 is just above it) is refused as XPE_ERR_UNSUPPORTED_FORMAT before any worker is tried — no alert, no
+count, output untouched — because it is a property of the worker path, not a fault of the worker. **That is a behaviour for
+use_worker only; the in-process path still accepts a full 4096 x 4096 image.**
+
+**Evidence.** Before (pre-fix `ai.cpp`, new tests, build exit 0, `before_audit12_ci_post.txt`): 6 red — the two shared-validator
+tests, the worker-path overflow test (alert and a started worker), the too-large-for-the-protocol test, and the two tests that
+assert the alert text (they now require REQ-AI-002/092 and forbid SRS-SAFE-008, see 13.2). After: 36 pass in `ci-post`, 38 in
+`ci-ai` (`after_audit12_ci_post.txt`, `after_audit12_ci_ai.txt`).
+- `HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo` is a **guard, not a reproduction**: it passed before the
+  fix for the reason above.
+- Arms: **R1** validator cap removed (`arm_R1NoValidatorCap.txt`): the two shared-validator tests RED. **R2** function-level
+  guard removed (`arm_R2NoFunctionGuard.txt`): **no test goes red**, because the validator refuses first — the two defences
+  overlap on purpose, and the pre-fix run above is the arm with both missing. So the function-level guard is not separately
+  proven by a failing test; it is there so the function stays correct if the validator is ever loosened.
+
+### 13.2 [leader decision] the alert no longer cites SRS-SAFE-008
+
+SRS-SAFE-008 is the "AI-processed label" requirement, the success side, so it is the wrong trace for a failure. The alert text,
+the `ai.cpp` comment, the `ai_api.h` paragraph and the tests now cite only REQ-AI-002 and REQ-AI-092, and the tests assert that
+SRS-SAFE-008 is **absent**. I also corrected an older comment in `ai.cpp` (the SRS-ALERT-004 block, from QA-B-168) that said
+"failure is SAFE-008"; it now says ALERT-004 is the success alert and a worker failure is not ALERT-004. **Left alone, for the
+leader's SDD/RTM pass:** `ai_worker_supervisor.h` still quotes the SDD line tying "Worker crash -> restart" to SRS-SAFE-008 /
+HAZ-008, which is a quotation of the SDD, not a claim of mine.
+
+### 13.3 [leader decision] what the counter counts — stated, not changed
+
+Every non-OK result counts, including an error reply a HEALTHY worker sent on purpose because the model refused. The intent is now
+written in `ai_api.h` and in the `ai.cpp` comment, and the test carries it in its name:
+`EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession` (it also asserts the worker process
+is alive after failures 1 and 2, i.e. healthy), and `ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors` pins the recovery.
+
+### 13.4 [low] in-place buffers and a failed or partial reply
+
+- Product level: `InPlaceFailureOfTheWorkerLeavesEveryInputByte` (the same buffer as input and output, a failing worker): not OK,
+  every byte equal to the original, one alert.
+- Bridge level (`IpcDeadline`): a control first (a good reply DOES land in an in-place buffer), then a wrong-pixel-length reply, a
+  reply cut off half way, and a stalled worker, each leaving the in-place buffer byte for byte intact.
+- Arm **R4** — the bridge copies the reply into the output before validating its length (`arm_R4EarlyWrite.txt`): RED on
+  `AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact` and on the non-aliased wrong-length test (the half-way
+  and stall tests stay green: those replies fail before any pixels are available to copy).
+
+### 13.5 A flaky test found on the way, and its fix
+
+The first full run of the final tree failed one `ci-ai` test (`flake_stall_test_cold_start_ai_ctest.txt`):
+`WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`, on its FIRST `Ping` (rc -3, a timeout). That
+test used an 800 ms budget both for starting the worker and for the stall; the cold start of a full-build worker was measured at up
+to about 730 ms in section 1, so there was no margin and a busy machine crossed it. It had passed in six earlier full runs. It was
+not rerun until green: the stall test now uses its own 2000 ms budget (2.7 times the worst cold start seen). Other
+supervisor tests start workers with 3000 ms. **If CI runners are slower than this machine, a tight budget in any test that also
+starts a worker is the first place to look.**
+
+### 13.6 Full suites after this commit (presets, /WX, exit codes without a pipe)
+
+- ci-post: cfg 0, build 0, ctest 0. Header 966 of 966 (22 skipped in a stub build), DISABLED 1. `g171c-m-post-ctest.txt`
+- ci-ai: cfg 0, build 0, ctest 0. Header 330 of 330 (5 skipped), DISABLED 0. `g171c-m-ai-ctest.txt`
+- Previous commit 6bc0063: 956 / 320; +10 = 3 worker-path, 3 `HugeDimensions`, 4 in-place bridge tests. Cache vs preset:
+  `g171c-m-cache.txt`. Stray xpe_ai_worker.exe after the runs: 0.

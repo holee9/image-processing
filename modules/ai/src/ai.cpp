@@ -215,11 +215,18 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
         uint32_t bpp = 0u;
         if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
         else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
-        if (bpp != 0u && img->dataSize != 0u) {
-            const uint64_t required = static_cast<uint64_t>(img->width) *
-                                      static_cast<uint64_t>(img->height) *
-                                      static_cast<uint64_t>(bpp);
-            if (static_cast<uint64_t>(img->dataSize) < required) {
+        if (bpp != 0u) {
+            // width * height cannot overflow 64 bits (each is below 2^32); width * height * bpp CAN:
+            // 2^31 x 2^31 x 4 is 2^64, which is 0, and a required size of 0 is satisfied by any dataSize
+            // (Codex audit #12). So the product is bounded by DIVISION first. The bound is the module
+            // maximum applied to the DECLARED image, whatever dataSize says: dimensions that imply more
+            // than 4096 x 4096 x 4 bytes cannot describe a valid buffer, and "unspecified" (dataSize 0)
+            // is not a licence to trust them.
+            const uint64_t pixels = static_cast<uint64_t>(img->width) *
+                                    static_cast<uint64_t>(img->height);
+            if (pixels > static_cast<uint64_t>(maxBytes) / bpp) return XPE_ERR_INVALID_INPUT;
+            const uint64_t required = pixels * bpp;
+            if (img->dataSize != 0u && static_cast<uint64_t>(img->dataSize) < required) {
                 return XPE_ERR_INVALID_INPUT;
             }
         }
@@ -380,6 +387,13 @@ static std::string workerExePath() {
     if (cut == std::string::npos) return std::string();
     return path.substr(0, cut + 1) + "xpe_ai_worker.exe";
 }
+
+/**
+ * Largest pixel payload one worker request can carry: the protocol maximum less the room the
+ * request needs for its length prefix and metadata (ai_ipc_bridge.cpp keeps the same 512 bytes).
+ * A 4096 x 4096 float image, the module maximum, is just above it.
+ */
+static constexpr size_t kWorkerMaxPixelBytes = static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE) - 512u;
 
 /**
  * @brief xpe_bone_suppress through the worker process (opt-in). Caller holds state->mtx.
@@ -716,18 +730,24 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     auto* state = g_aiState;
     if (!state) return XPE_ERR_NOT_INITIALIZED;
 
-    const size_t count = static_cast<size_t>(img->width) * img->height;
-    if (count == 0) return XPE_ERR_INVALID_INPUT;
-    if (img->dataSize < count * sizeof(float) ||
-        softTissueOut->dataSize < count * sizeof(float)) {
+    // The declared size, computed ONCE and overflow-checked; the buffer checks below and every copy use
+    // this same number (Codex audit #12). width and height are each below 2^32, so their product fits
+    // 64 bits; it is the BYTE count that can wrap, so the pixel count is bounded by division first.
+    // (xpe_ai validateImageBuffer already refuses an image above the module maximum; this is the
+    // function's own guarantee, and it holds without it.)
+    const uint64_t pixels = static_cast<uint64_t>(img->width) * img->height;
+    if (pixels == 0 || pixels > SIZE_MAX / sizeof(float)) return XPE_ERR_INVALID_INPUT;
+    const size_t count = static_cast<size_t>(pixels);
+    const size_t bytes = count * sizeof(float);
+    if (img->dataSize < bytes || softTissueOut->dataSize < bytes) {
         return XPE_ERR_INVALID_INPUT;
     }
 
     std::lock_guard<std::mutex> lock(state->mtx);
 
-    // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged +
-    // SRS-SAFE-008"): opt-in worker path. A failure of any kind -- budget exceeded, a worker that died
-    // or went silent, an answer that was not one -- returns the INPUT, unchanged, with a non-OK code.
+    // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
+    // opt-in worker path. A failure of any kind -- budget exceeded, a worker that died or went silent,
+    // an answer that was not one -- returns the INPUT, unchanged, with a non-OK code.
     //
     // WHY THE INPUT AND NOT THE IN-PROCESS RESULT. REQ-AI-003 runs inference in a separate process so
     // the main process is crash-immune. A worker that failed because of the MODEL would, re-run
@@ -740,6 +760,13 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
     // the output buffer anyway: it holds the input, never stale or half-written pixels.
     //
+    // WHAT COUNTS (leader decision, Codex audit #12): EVERY non-OK result of the worker path counts toward
+    // the ceiling, including an ERROR frame that a perfectly HEALTHY worker sent on purpose because the
+    // model refused the request. A model that refuses three times in a row means AI is unusable for this
+    // session, and counting such refusals separately would bring back an unbounded alert stream. A healthy
+    // worker whose model keeps failing is therefore switched off after 3; xpe_ai_shutdown() followed by
+    // xpe_ai_init() recovers it.
+    //
     // THE POLICY AROUND IT (user-approved 2026-10-01, REQ-CHANGE-LOG-P3-AI.md row 3, which replaced
     // row 2): EVERY failure raises one Warning alert -- a budget overrun must alert, REQ-AI-092 -- and
     // after kWorkerFailureCeiling CONSECUTIVE failures the worker is switched off for the rest of the
@@ -749,8 +776,13 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // kWorkerFailureCeiling worker alerts. A success resets the count. xpe_ai_shutdown/xpe_ai_init begin a
     // new session with a clean count.
     if (state->useWorker) {
+        // An image the worker protocol cannot carry is a property of the worker PATH, not a fault of the
+        // worker: it is refused as unsupported dimensions, without trying a worker, without an alert and
+        // without counting toward the ceiling (Codex audit #12). The output is left alone, as for every
+        // other validation refusal.
+        if (bytes > kWorkerMaxPixelBytes) return XPE_ERR_UNSUPPORTED_FORMAT;
         if (state->workerDisabled) {
-            std::memmove(softTissueOut->data, img->data, count * sizeof(float));
+            std::memmove(softTissueOut->data, img->data, bytes);
             return XPE_ERR_PROCESSING_FAILED;
         }
         const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
@@ -759,7 +791,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
             pushAiProcessedAlert();
             return XPE_OK;
         }
-        std::memmove(softTissueOut->data, img->data, count * sizeof(float));
+        std::memmove(softTissueOut->data, img->data, bytes);
         ++state->workerConsecutiveFailures;
         AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged "
                     "(%u of %u consecutive failures)",
@@ -771,14 +803,13 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
             state->workerSupervisor.reset();   // ends the worker process
             std::snprintf(msg, sizeof(msg),
                           "AI worker failed (code %d, failure %u of %u) and is disabled for this "
-                          "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092, "
-                          "SRS-SAFE-008)",
+                          "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
                           static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
                           static_cast<unsigned>(kWorkerFailureCeiling));
         } else {
             std::snprintf(msg, sizeof(msg),
                           "AI worker failed (code %d, failure %u of %u): the input image is returned "
-                          "unchanged (REQ-AI-002, REQ-AI-092, SRS-SAFE-008)",
+                          "unchanged (REQ-AI-002, REQ-AI-092)",
                           static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
                           static_cast<unsigned>(kWorkerFailureCeiling));
         }
@@ -836,7 +867,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
         return XPE_ERR_PROCESSING_FAILED;
     }
 
-    std::memcpy(softTissueOut->data, out.value.data(), count * sizeof(float));
+    std::memcpy(softTissueOut->data, out.value.data(), bytes);
 
     // SRS-ALERT-004 (QA-B-168, #130): DL processing was applied -- Info,
     // "AI-processed".
@@ -851,10 +882,11 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // pin this position.
     //
     // WHY Info AND WHY HERE. SRS-ALERT-004 reads "DL processing 적용됨 / Info /
-    // AI-processed label" (XPE-SRS-001:102). SDD:874 used to attribute it to
-    // worker failure; that line was corrected to SRS-SAFE-008 in a3330d9 --
-    // failure is SAFE-008, success is ALERT-004. Severity settles it on its
-    // own: every failure row in the SRS alert table is Warning or Error.
+    // AI-processed label" (XPE-SRS-001:102). It is the DL-applied, i.e. SUCCESS,
+    // alert; a worker failure is not ALERT-004 (the failure alert cites
+    // REQ-AI-002 and REQ-AI-092, see the use_worker path above). Severity
+    // settles it on its own: every failure row in the SRS alert table is
+    // Warning or Error.
     //
     // The module raises it, not the GUI: all 20 product xpe_alert_push call
     // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
