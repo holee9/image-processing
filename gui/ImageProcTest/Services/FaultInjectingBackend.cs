@@ -74,7 +74,7 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public bool SupportsPreprocessing => _inner.SupportsPreprocessing;
 
     // GUI-C-185: the wrapper adds no fault of its own to the AI session; it passes the question to the backend it wraps.
-    AiWorkerStatus? IAiSessionBackend.GetAiWorkerStatus() =>
+    AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() =>
         _inner is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
 
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>

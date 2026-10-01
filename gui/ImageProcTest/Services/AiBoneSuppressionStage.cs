@@ -29,8 +29,9 @@ internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailu
 
 /// <summary>
 /// The one lock around the AI session (GUI-C-186b). A re-entrant monitor: a frame that holds it can call the session's own init
-/// from inside, and a restart can call shutdown then init under the one acquisition. <see cref="TryWithLock{T}"/> is for the
-/// status read, which must not freeze the UI thread behind a frame that is waiting on a silent worker.
+/// from inside, and a restart can call shutdown then init under the one acquisition. Every caller waits for it with no limit; the
+/// status read does so on a background thread (<see cref="AiStatusRefresher"/>), so a frame that is waiting on a silent worker
+/// never freezes the UI thread (GUI-C-186d).
 /// </summary>
 internal sealed class AiSessionGate
 {
@@ -42,32 +43,6 @@ internal sealed class AiSessionGate
         lock (_gate)
         {
             return action();
-        }
-    }
-
-    /// <summary>Runs <paramref name="action"/> under the lock if it can be had within <paramref name="wait"/>; false (and default) when a frame holds it.</summary>
-    public bool TryWithLock<T>(TimeSpan wait, Func<T> action, out T? result)
-    {
-        ArgumentNullException.ThrowIfNull(action);
-        var taken = false;
-        try
-        {
-            System.Threading.Monitor.TryEnter(_gate, wait, ref taken);
-            if (!taken)
-            {
-                result = default;
-                return false;
-            }
-
-            result = action();
-            return true;
-        }
-        finally
-        {
-            if (taken)
-            {
-                System.Threading.Monitor.Exit(_gate);
-            }
         }
     }
 }
@@ -189,47 +164,106 @@ internal sealed record AiRestartResult(bool Ok, string Message);
 internal sealed class AiInitException(string reason, Exception inner) : Exception(reason, inner);
 
 /// <summary>
-/// Reads the worker status and, when the read gave up (null: a frame was holding the session gate longer than the bounded wait),
-/// asks again after a short delay, up to <see cref="MaxRetries"/> times. A newer <see cref="Refresh"/> cancels the retries of an older
-/// one, so the state after the LAST event is the one that eventually reaches the screen (GUI-C-186c, Codex #28 A2).
-/// Everything runs on one thread (the UI's): the caller supplies a <c>schedule</c> that runs its action there after the delay.
-/// The numbers are not measured: <see cref="MaxRetries"/> and <see cref="RetryDelay"/> are chosen, not derived from any timing.
+/// Keeps the screen's copy of the worker status current without ever making the UI thread wait (GUI-C-186d, Codex #31).
+/// The read waits for the session gate with no time limit, so it runs in the BACKGROUND (<c>runInBackground</c>); a frame that waits
+/// on a silent worker only delays the read, and when the frame ends the read completes, with no event and no retry count needed.
+/// The result comes back through <c>postToUi</c> and is applied only if no newer <see cref="Reset"/> or <see cref="Stop"/> happened
+/// meanwhile (generation) and the backend is still the one the read was made for (identity). At most one read is in flight; requests
+/// that arrive meanwhile collapse into ONE more read afterwards.
+/// All members except <c>read</c> run on the UI thread, so no field needs a lock.
 /// </summary>
-internal sealed class AiStatusRefresher(Func<AiWorkerStatus?> read, Action<AiWorkerStatus> apply, Action<TimeSpan, Action> schedule)
+internal sealed class AiStatusRefresher(
+    Func<object?> currentBackend,
+    Func<object?, AiWorkerStatus?> read,
+    Action<AiWorkerStatus> apply,
+    Action<Action> runInBackground,
+    Action<Action> postToUi)
 {
-    public const int MaxRetries = 6;
-
-    public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(500);
-
     private int _generation;
+    private bool _inFlight;
+    private bool _another;
+    private bool _stopped;
 
-    /// <summary>Reads now; if the read gave up, retries later. A status that was read is handed to <c>apply</c> once, then no more retries.</summary>
-    public void Refresh()
+    /// <summary>Asks for a fresh read. Returns at once; the status reaches <c>apply</c> later, on the UI thread.</summary>
+    public void Request()
     {
-        _generation++;
-        Attempt(_generation, 0);
-    }
-
-    private void Attempt(int generation, int retriesDone)
-    {
-        if (generation != _generation)
+        if (_stopped)
         {
-            return; // a newer refresh took over
-        }
-
-        var status = read();
-        if (status is not null)
-        {
-            apply(status);
             return;
         }
 
-        if (retriesDone >= MaxRetries)
+        if (_inFlight)
         {
-            return; // gave up: what is shown stays, and the next refresh (the end of the next render) tries again
+            _another = true; // not a second parallel read: one more after the running one
+            return;
         }
 
-        schedule(RetryDelay, () => Attempt(generation, retriesDone + 1));
+        Start();
+    }
+
+    /// <summary>The backend is being replaced or shut down: whatever is being read is stale, and the screen shows Unknown until a new read says otherwise.</summary>
+    public void Reset()
+    {
+        if (_stopped)
+        {
+            return;
+        }
+
+        _generation++;
+        apply(AiWorkerStatus.Unknown);
+    }
+
+    /// <summary>The application is closing: nothing started or running now may touch the screen again.</summary>
+    public void Stop()
+    {
+        _stopped = true;
+        _generation++;
+        _another = false;
+    }
+
+    private void Start()
+    {
+        _inFlight = true;
+        var generation = _generation;
+        var backend = currentBackend();
+        runInBackground(() =>
+        {
+            AiWorkerStatus? status;
+            try
+            {
+                status = read(backend);
+            }
+            catch (Exception)
+            {
+                status = null; // nothing was read: what is shown stays
+            }
+
+            postToUi(() => Complete(generation, backend, status));
+        });
+    }
+
+    private void Complete(int generation, object? backend, AiWorkerStatus? status)
+    {
+        _inFlight = false;
+        if (_stopped)
+        {
+            return;
+        }
+
+        if (generation != _generation || !ReferenceEquals(backend, currentBackend()))
+        {
+            _another = true; // the answer is for something that no longer exists: drop it and read what exists now
+        }
+        else if (status is not null)
+        {
+            apply(status);
+        }
+
+        if (_another)
+        {
+            _another = false;
+            Start();
+        }
     }
 }
 

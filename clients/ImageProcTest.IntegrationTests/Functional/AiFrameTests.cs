@@ -184,11 +184,11 @@ public sealed class AiFrameTests
     }
 
     /// <summary>
-    /// The status read shares the gate but must not freeze its caller behind a frame that is waiting on a worker: it gives up after
-    /// the wait it is given and says so (false), and works as soon as the frame is done.
+    /// The status read shares the gate and waits for a running frame with no limit (GUI-C-186d: it runs in the background, so the
+    /// wait costs the UI thread nothing); it gets through as soon as the real <see cref="AiFrame"/> is done.
     /// </summary>
     [Fact]
-    public void TheStatusRead_GivesUpWhileAFrameIsRunning_AndWorksAfterwards()
+    public void TheStatusRead_WaitsForARunningFrame_AndGetsThroughWhenItIsDone()
     {
         var gate = new AiSessionGate();
         var inCall = new ManualResetEventSlim();
@@ -202,16 +202,13 @@ public sealed class AiFrameTests
         var frame = Task.Run(() => AiFrame.Run(gate, ops, Directory_));
         Assert.True(inCall.Wait(Long));
 
-        var started = DateTime.UtcNow;
-        var got = gate.TryWithLock(TimeSpan.FromMilliseconds(100), () => 7, out var busy);
-        Assert.False(got);
-        Assert.Equal(0, busy);
-        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(3), "the read waited far longer than it was told to");
+        var read = Task.Run(() => gate.WithLock(() => 7));
+        Assert.False(read.Wait(Short), "the read got through while the frame held the gate");
 
         releaseCall.Set();
         Assert.True(frame.Wait(Long));
-        Assert.True(gate.TryWithLock(TimeSpan.FromMilliseconds(100), () => 7, out var free));
-        Assert.Equal(7, free);
+        Assert.True(read.Wait(Long));
+        Assert.Equal(7, read.Result);
     }
 
     [Fact]

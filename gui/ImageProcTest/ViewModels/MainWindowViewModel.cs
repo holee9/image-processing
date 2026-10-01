@@ -556,27 +556,36 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RestartAiSessionCommand { get; }
 
     /// <summary>
-    /// Reads the worker state again and tells the screen when it changed. Cheap and never blocks on a running call (the
-    /// module answers from the last completed one); a backend without an AI session answers Unknown, which shows nothing.
+    /// Asks for the worker state to be read again and shown when it changed. Returns at once: the read waits for the session gate
+    /// in the background (a frame waiting on a silent worker holds it) and the result is applied on the UI thread when it is
+    /// still current (GUI-C-186d). A backend without an AI session answers Unknown, which shows nothing.
     /// </summary>
-    private void RefreshAiWorkerStatus() => (_aiStatusRefresher ??= new AiStatusRefresher(ReadAiWorkerStatus, ApplyAiWorkerStatus, ScheduleOnUiThread)).Refresh();
+    private void RefreshAiWorkerStatus() => AiStatus.Request();
 
     private AiStatusRefresher? _aiStatusRefresher;
 
-    /// <summary>No AI session in this backend: Unknown. A frame is running and the read gave up: null, and the refresher asks again later (GUI-C-186c).</summary>
-    private AiWorkerStatus? ReadAiWorkerStatus() => _backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+    private readonly System.Windows.Threading.Dispatcher _uiDispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
 
-    /// <summary>Runs <paramref name="action"/> on this (the UI) thread after <paramref name="delay"/>, without blocking it.</summary>
-    private static void ScheduleOnUiThread(TimeSpan delay, Action action)
+    private AiStatusRefresher AiStatus => _aiStatusRefresher ??=
+        new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+
+    /// <summary>Runs on a background thread, for the backend that was current when the read was requested.</summary>
+    private static AiWorkerStatus? ReadAiWorkerStatus(object? backend) =>
+        backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+
+    /// <summary>Hands <paramref name="action"/> to the UI thread; dropped when the dispatcher is already shutting down (a closed screen is not updated).</summary>
+    private void PostToUi(Action action)
     {
-        var timer = new System.Windows.Threading.DispatcherTimer { Interval = delay };
-        timer.Tick += (_, _) =>
+        if (_uiDispatcher.HasShutdownStarted)
         {
-            timer.Stop();
-            action();
-        };
-        timer.Start();
+            return;
+        }
+
+        _uiDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, action);
     }
+
+    /// <summary>The application is closing: no status read, started or running, may update the screen after this.</summary>
+    public void StopAiStatusUpdates() => AiStatus.Stop();
 
     private void ApplyAiWorkerStatus(AiWorkerStatus status)
     {
@@ -1208,6 +1217,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public void ShutdownBackend()
     {
+        AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown (below) says what is left
         _backend.Shutdown();
         RuntimeInfo = _backend.GetRuntimeInfo();
         DrainBackendTelemetry();
@@ -1700,6 +1710,10 @@ public sealed class MainWindowViewModel : ObservableObject
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand
     private void InitializeBackend()
     {
+        // GUI-C-186d: the status on screen belongs to the backend being replaced. Raise the generation and show Unknown NOW, so a
+        // read still running for the old backend cannot be applied; the read for the new one is requested after the
+        // initialisation has finished, whether it worked or not (below).
+        AiStatus.Reset();
         try
         {
             // #198 (GUI-C-126, lead decision): the record the user has seen is kept and a boundary is
@@ -1743,6 +1757,8 @@ public sealed class MainWindowViewModel : ObservableObject
             StatusText = $"Backend initialization failed: {ex.Message}";
             Log(StatusText);
         }
+
+        RefreshAiWorkerStatus();
     }
 
     /// <summary>

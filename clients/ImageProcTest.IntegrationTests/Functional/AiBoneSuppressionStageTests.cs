@@ -406,10 +406,9 @@ public sealed class AiBoneSuppressionStageTests
     {
         var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
         Assert.Matches(@"public static AiRestartResult Restart\(string modelDirectory\) =>\s*WithLock\(", runner);
-        // The status read takes the same gate, bounded (a frame that waits on a worker must not freeze the UI thread behind it),
-        // and does its work under the lock once it has it.
-        Assert.Contains("Gate.TryWithLock(StateReadWait, ReadWorkerStateLocked", runner, StringComparison.Ordinal);
-        Assert.Matches(@"ReadWorkerStateLocked\(\) =>\s*WithLock\(", runner);
+        // The status read takes the same gate and does its work under it. It waits with no limit: the caller is the background
+        // read of AiStatusRefresher, never the UI thread (GUI-C-186d).
+        Assert.Matches(@"public static AiWorkerStatus QueryWorkerState\(\) =>\s*WithLock\(", runner);
     }
 
     [Fact]

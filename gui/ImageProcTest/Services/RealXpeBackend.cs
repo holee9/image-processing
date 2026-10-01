@@ -343,8 +343,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     private StageExecution RunAiStage(ushort[] input, int width, int height, AppSettings settings) =>
         InvokeNative(() => Native.GuiAiRunner.Run(input, width, height, settings.AiModelDirectory));
 
-    /// <summary>GUI-C-185: read-only, under the session lock; no alert drain (the call raises none). Explicit: the types are internal.</summary>
-    AiWorkerStatus? IAiSessionBackend.GetAiWorkerStatus() => Native.GuiAiSession.QueryWorkerState();
+    /// <summary>GUI-C-185: read-only, under the session lock (no time limit: the caller is off the UI thread, GUI-C-186d); no alert drain (the call raises none). Explicit: the types are internal.</summary>
+    AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() => Native.GuiAiSession.QueryWorkerState();
 
     /// <summary>GUI-C-185: InvokeNative so any alert the restart raises reaches the list.</summary>
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>

@@ -63,9 +63,6 @@ internal static class GuiAiSession
 
     private static readonly AiSessionTracker Tracker = new();
 
-    /// <summary>How long a status read waits for a frame that is running before it gives up and leaves what is shown as it is.</summary>
-    private static readonly TimeSpan StateReadWait = TimeSpan.FromMilliseconds(250);
-
     /// <summary>Runs <paramref name="action"/> while no other frame, init, shutdown or state call can run.</summary>
     public static T WithLock<T>(Func<T> action) => Gate.WithLock(action);
 
@@ -130,13 +127,11 @@ internal static class GuiAiSession
     /// <summary>
     /// The worker's status, read under the same lock as init and shutdown: the module documents that the state call must
     /// not run with either (they free or create what it reads). Not started here, or an older DLL without the export,
-    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL. Null when a frame holds the gate longer
-    /// than <see cref="StateReadWait"/>: the caller keeps what it shows rather than freezing behind a call that is waiting on a worker.
+    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL. It waits for the gate with no time
+    /// limit — a frame waiting on a silent worker holds it for up to the module's time budget — so it is called OFF the UI
+    /// thread (<see cref="AiStatusRefresher"/>, GUI-C-186d).
     /// </summary>
-    public static AiWorkerStatus? QueryWorkerState() =>
-        Gate.TryWithLock(StateReadWait, ReadWorkerStateLocked, out var status) ? status : null;
-
-    private static AiWorkerStatus ReadWorkerStateLocked() =>
+    public static AiWorkerStatus QueryWorkerState() =>
         WithLock(() =>
         {
             var own = Tracker.OwnStatus();
