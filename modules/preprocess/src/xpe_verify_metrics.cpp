@@ -764,6 +764,15 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
     metrics->measured_mask |= XPE_METRIC_SNR;
 
     // Pass/fail determination
+    //
+    // NO REQUIREMENT BASIS (#218, QA-A-187): neither the canonical protocol nor the SRS defines an
+    // "SNR improvement" metric or a 2.0 dB line. The protocol's only SNR quantity is PSNR against a
+    // reference image (Preprocessing-E2E-Automated-Evaluation-Protocol.md:194), and
+    // SRS-CALIB-FUNC-015/-021 (which RTM-CALIB-001 maps this function to) ask for a report schema and
+    // a CES score, not this gate. The centre used above is the median, with an RMS spread about it --
+    // not the arithmetic mean the protocol uses for its own metrics; QA-A-187 measured the two
+    // disagreeing on this gate for inputs just below 2.0 dB. The value and the line are kept as they
+    // were: this comment changes no behaviour.
     metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
 
     return XPE_OK;

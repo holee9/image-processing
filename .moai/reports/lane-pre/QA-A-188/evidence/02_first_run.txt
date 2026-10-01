@@ -1,0 +1,20 @@
+Note: Google Test filter = DefectOracle.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from DefectOracle
+[ RUN      ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+[oracle] seed=1 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=2 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=3 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[       OK ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines (7632 ms)
+[ RUN      ] DefectOracle.ControlOneMissedDefectBreaksRecall
+[       OK ] DefectOracle.ControlOneMissedDefectBreaksRecall (27 ms)
+[ RUN      ] DefectOracle.ControlOneFalseAlarmShowsInFpr
+[       OK ] DefectOracle.ControlOneFalseAlarmShowsInFpr (26 ms)
+[ RUN      ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta
+[       OK ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta (35 ms)
+[----------] 4 tests from DefectOracle (7721 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (7722 ms total)
+[  PASSED  ] 4 tests.

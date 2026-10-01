@@ -1,0 +1,36 @@
+Note: Google Test filter = DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DefectOracle
+[ RUN      ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+[oracle] seed=1 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=20642 recall=100.0000% FPR=31.559796% GoodPixelDeltaP99=322.7125 ADU
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(222): error: Expected: (100.0 * m.fpr) < (0.001), actual: 31.559795737394126 vs 0.001
+seed 1: DefectFPR must be < 0.001% (FP=20642)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(223): error: Expected: (p99) <= (1.0), actual: 322.71249999999782 vs 1
+seed 1: GoodPixelDeltaP99 must be <= 1 ADU
+
+[oracle] seed=2 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=20642 recall=100.0000% FPR=31.559796% GoodPixelDeltaP99=322.0000 ADU
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(222): error: Expected: (100.0 * m.fpr) < (0.001), actual: 31.559795737394126 vs 0.001
+seed 2: DefectFPR must be < 0.001% (FP=20642)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(223): error: Expected: (p99) <= (1.0), actual: 322 vs 1
+seed 2: GoodPixelDeltaP99 must be <= 1 ADU
+
+[oracle] seed=3 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=20493 recall=100.0000% FPR=31.331988% GoodPixelDeltaP99=321.0000 ADU
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(222): error: Expected: (100.0 * m.fpr) < (0.001), actual: 31.331987891019175 vs 0.001
+seed 3: DefectFPR must be < 0.001% (FP=20493)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_oracle.cpp(223): error: Expected: (p99) <= (1.0), actual: 321 vs 1
+seed 3: GoodPixelDeltaP99 must be <= 1 ADU
+
+[  FAILED  ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines (7633 ms)
+[----------] 1 test from DefectOracle (7633 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7633 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+
+ 1 FAILED TEST
