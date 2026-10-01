@@ -494,7 +494,7 @@ Calibration is a **two-step, load-then-correct** model; the correction functions
 
 The store is guarded by a module-internal mutex (`g_calib_mutex`). Loaders take the lock to write; correction calls take it only to read the map they need, then release it before running the pixel kernel. Concurrent correction calls are therefore safe against each other; a load concurrent with a correction is serialised but the ordering between them is the caller's responsibility.
 
-**`xpe_calib_state_load` contract.** `xpe_calib_state_load(state, calibPath)` is a compatibility wrapper: it composes `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath` and calls the three single-path loaders, so **the maps land in the global store, not in the caller's struct**. It sets only the three `*Loaded` boolean flags on `XpeCalibrationState`; the `offsetMap` / `gainMap` / `defectMap` buffer fields are **not required to be filled** and callers must not read them as if they were. Missing files are skipped (that map's flag stays `false`) and the call still returns `XPE_OK`. `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` correspondingly takes offset and gain from the global store; it consults `calibState` only for a defect map, and passing `NULL` for `calibState` is valid.
+**`xpe_calib_state_load` contract.** `xpe_calib_state_load(state, calibPath)` is a compatibility wrapper: it composes `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath` and calls the three single-path loaders, so **the maps land in the global store, not in the caller's struct**. It sets only the three `*Loaded` boolean flags on `XpeCalibrationState`; the `offsetMap` / `gainMap` / `defectMap` buffer fields are **not required to be filled** and callers must not read them as if they were. Missing files are skipped (that map's flag stays `false`) and the call still returns `XPE_OK`. `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` correspondingly takes **all three** maps from the global store and does not read `calibState` at all; passing `NULL` for `calibState` is valid (REQ-P1A-105, 2026-10-02 — the earlier wording here said `calibState` was consulted for a defect map, which the code does not do).
 
 **Cached loaders — ownership (normative, 2026-09-10, #127).** `xpe_calib_load_offset_cached` / `xpe_calib_load_gain_cached` / `xpe_calib_load_defect_cached` return a *cache-owned view*: the returned `XpeImageBuffer.data` belongs to the calibration cache on both the hit and the miss path. Callers MUST NOT free it, and it stays valid only until `xpe_calib_cache_clear()`, eviction by `xpe_calib_cache_set_max_size()`, or module shutdown. A caller that needs a longer-lived map takes a copy with `xpe_copy_image`. (The miss path did not follow this rule before QA-A-22.)
 
@@ -757,6 +757,55 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
 **Traceability**: PRE-09, SRS-PERF-001  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_PROCESSING_FAILED`
+
+---
+
+### 6.19 2026-10-02 계약 보강 (pre 체인 병합 `af21f669`, #216 · #220 · #233 · #234)
+
+이 절은 QA-A-192~208e 가 바꾸거나 처음 적은 계약을 모은다. 각 항의 원문과 근거는 `dev/preprocess` 의 `.moai/reports/lane-pre/<카드>/verdict.md` 에 있다. 공개 헤더 `modules/preprocess/include/xpe/preprocess_api.h` 의 해당 함수 설명이 같은 내용을 담는다.
+
+**(1) `xpe_verify_gain` — ABI 변경 (QA-A-192·194, #220).** 시그니처가 4인자에서 5인자로 바뀌었다.
+
+```c
+XpeErrorCode xpe_verify_gain(const XpeImageBuffer* before_gain, const XpeImageBuffer* after_gain,
+                             const XpeImageBuffer* gain_map, XpeGainSemantics gain_semantics,
+                             XpeCalibrationMetrics* metrics);
+```
+
+- 새 열거형 `XpeGainSemantics { XPE_GAIN_SEMANTICS_UNKNOWN = 0, _NORMALIZED = 1, _RECIPROCAL = 2 }` (C ABI 에서 int32). 열거형 밖의 값은 `XPE_ERR_INVALID_INPUT` 이고 `metrics` 는 건드리지 않는다.
+- **수출 이름이 그대로라 링크·로드는 된다.** 옛 4인자 호출은 `metrics` 자리에 열거형 값이 들어가 오동작한다. 호출자는 모두 다시 빌드해 함께 배포한다. 저장소 안의 호출자는 시험뿐이었다(QA-A-189 검색 범위; 그 밖은 검색하지 않았다).
+- 인자는 문턱만 고른다: 의미를 알면 `FlatResidualPct <= 0.5%`, `UNKNOWN` 이면 `<= 1.0%` (SRS-CALIB-FUNC-017). 측정값은 인자와 무관하다.
+- 치수 0 인 프레임은 형식 검사보다 먼저 `XPE_ERR_INVALID_INPUT`.
+- `overall_pass` 는 Phase 1 판정일 뿐 단독으로 릴리스 승인이 아니다 — 릴리스 게이트는 `gain_semantics != UNKNOWN` 을 따로 요구한다 (SRS-CALIB-FUNC-018).
+
+**(2) 설정 JSON 의 숫자 (QA-A-202b, #233).** 설정 문자열의 숫자(파이프라인의 `detectorTempC`·`binningMode`, 고스트의 `tier`·`alpha1`·`tau1`·`alpha2`·`tau2`·`tier2Threshold`·`nlcscBeta`)는 선택적 앞 공백(공백, 탭, 개행, 수직 탭, 폼 피드, 캐리지 리턴), 선택적 단일 `+`(다른 부호가 바로 뒤따르지 않을 것), 그리고 값의 나머지를 모두 채우는 십진수로 이루어진다. 정수 칸은 정수만, 실수 칸은 유한한 수(소수점과 지수 허용)를 받는다. 값의 일부만 숫자인 경우(`25 `, `2x`), `+-1`·`++1`·`+ 1`, `nan`·`inf`, 16진수, `int`/`float`/`double` 범위를 넘는 값은 `XPE_ERR_CONFIG_INVALID` 이며 이때 영상·메타데이터·교정 저장소·핸들은 바뀌지 않는다. 빈 값은 키가 없는 것으로 보아 기본값을 쓴다(GUI 가 미설정 옵션을 `""` 로 보낼 수 있다). 변환은 로케일과 무관하다(`1,5` 는 거부). 경계 표: QA-A-202b 보고서 4절.
+
+**(3) 파이프라인 출력 용량 (QA-A-205b, #234).** 파이프라인 세 진입점(`xpe_preprocess_pipeline`, `_ex`, `_batch`)은 결과를 입력과 같은 버퍼(`img->data`)에 쓰므로 `img->dataSize` 는 입력 크기이면서 결과를 위한 용량이다. 최종 프레임은 게인·비닝(binningMode>1)·결함·고스트(핸들 있음) 중 하나라도 돌면 float32(`width×height×4` 바이트), 아니면 uint16(`width×height×2`)이다.
+
+- `dataSize` 가 최종 프레임보다 작으면 — **0 을 포함해서** — `XPE_ERR_BUFFER_TOO_SMALL` 이고, 읽기·쓰기·플래그 설정은 일어나지 않는다. **변화:** 이 세 진입점에서 `dataSize == 0` 은 더 이상 "크기 미지정"(#123, 입력 전용 버퍼의 규칙)이 아니다. 개별 단계 API 의 입력 규칙은 그대로다.
+- `0 < dataSize < width×height×2`(입력이 버퍼에 없음)는 `XPE_ERR_INVALID_INPUT`. 폭·높이가 0이거나 바이트 수가 `size_t` 에 들어가지 않는 프레임도 `XPE_ERR_INVALID_INPUT`.
+- 더 큰 `dataSize` 는 받아들이고, 최종 프레임 뒤의 바이트는 쓰지 않는다. 배치는 프레임마다 검사하고, 거부된 프레임은 그대로 둔 채 다음 프레임을 처리하며 첫 오류를 돌려준다.
+- 세 진입점 모두 예외가 C ABI 밖으로 나가지 않는다(QA-A-202b).
+
+**(4) XCal 게인 품질 필드 (QA-A-205b·208·208c·208d·208e, #233).** 설정 블록의 `fit_r_squared`, `polynomial_degree`, `actual_dose_levels`, `calibration_mode` 는 키가 없을 때만 "주어지지 않음"이다. 설정 블록은 JSON 한 객체여야 하고 길이 전체를 검사하며 중간의 NUL 은 거부한다. 키가 있으면:
+
+| 필드 | 받는 범위 |
+|---|---|
+| `fit_r_squared` | 유한한 실수, ≤ 1.0. **음수 가능**(생성기가 `1 - SS_res/SS_tot` 를 그대로 쓴다), 정확히 -1.0 도 실제 값 |
+| `polynomial_degree` | 0..4 (4 = quartic, MULTI_POINT_10) |
+| `actual_dose_levels` | 1..10 |
+| `calibration_mode` | 0..4 (`XpeCalibrationMode` SINGLE..MULTI_POINT_10, 저장되는 것은 풀린 모드) |
+
+빈 값·스칼라가 아닌 값·닫히지 않은 문자열·잘못된 숫자·범위 밖의 값은 `XPE_ERR_CONFIG_INVALID` 이며 게인 맵과 품질 메타데이터는 그대로 남는다. 예전에 `atoi/atof` 로 읽히던 `"2x"`·`"3 "`·정수 칸의 `"1e2"` 는 이제 파일을 거부한다(의도된 호환성 변화). 파이프라인 설정 JSON 의 "빈 값 = 키 없음"(2)과 다른 이유: XCal 은 생성기가 만든 서명된 데이터라 빈 필드는 미설정이 아니라 결함이다.
+
+**R² 의 존재는 값이 아니라 플래그다.** `XpeCalibQualityMeta` 에 `uint8_t has_r_squared`(오프셋 4)와 `uint8_t has_previous_r_squared`(오프셋 73)가 생겼다. 둘 다 옛 패딩 자리여서 `sizeof` 88 과 다른 모든 오프셋은 같다.
+
+- `xpe_calib_get_quality_meta` 의 호출자는 `r_squared` 보다 `has_r_squared` 를 먼저 본다. -1.0 은 "없음" 일 때의 채움 값이지만 실제 값일 수도 있어 값으로 판별하지 않는다.
+- 품질 없는 기록은 `valid = 0` 이고 현재 기록을 설명하는 필드(`has_r_squared` 포함)가 0 이며, 이력(`previous_r_squared`, `has_previous_r_squared`)은 직전 기록에서 유지된다. `fit_r_squared` 없는 부분 기록은 `valid = 1`, `has_r_squared = 0`.
+- 이력은 `valid` 이고 `has_r_squared = 1` 인 마지막 기록의 R² 이고, 존재는 `has_previous_r_squared` 로 표시한다.
+- **같은 빌드로만 쓴다 (`BUILD-MATCHED USE`).** 옛 헤더 호출자 + 새 DLL 은 안전하다(두 바이트를 보지 않는다). 새 헤더 호출자 + 옛 DLL 은 안전하지 않다 — 오프셋 4·73 이 옛 DLL 에서는 패딩이라 값이 정해지지 않는다. 헤더와 모듈을 한 묶음으로 배포한다. 모듈에는 둘을 런타임에 구분할 수단이 없다: `xpe_preprocess_version()` 은 첫 커밋 이후 바뀌지 않은 소스 상수 `"0.1.0"` 을 돌려준다(REQ-P1A-106 은 값을 고정하지 않는다). 버전을 올려 판별 수단으로 삼을지는 정하지 않았다(2026-10-02 리더 결정: 지금은 한 묶음 배포 문서로 둔다).
+
+**(5) 캐시 로더와 `_ex` (QA-A-191~200, #216).** 캐시된 세 로더의 적중·미스 판정, 오류 코드, 알려진 한계(같은 크기·같은 수정 시각의 변경은 감지하지 못함), 동시 쓰기 미지원, 다항식 게인 파일(`XPE_OK` + 비운 버퍼, 캐시하지 않음), 그리고 `xpe_preprocess_pipeline_ex` 와 `xpe_preprocess_version` 의 계약은 SPEC-XPE-P1A `REQ-P1A-102`~`106` 이 정본이다.
 
 ---
 
