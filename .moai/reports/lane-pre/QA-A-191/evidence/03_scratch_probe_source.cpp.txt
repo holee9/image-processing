@@ -1,0 +1,73 @@
+// QA-A-191 TEMPORARY scratch probe (not committed): observe the cached loaders' hit path and shutdown.
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <cstdio>
+#include <cstring>
+#include <vector>
+
+namespace {
+constexpr uint32_t W = 4, H = 4;
+void writeOffset(const char* path, float v) {
+    std::vector<float> m(W * H, v);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_OFFSET; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = m.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, nullptr, 0, reinterpret_cast<const uint8_t*>(m.data()), hdr.payload_len));
+}
+XpeErrorCode correct() {
+    std::vector<uint16_t> in(W * H, 1000), out(W * H, 0);
+    XpeImageBuffer i{}, o{};
+    i.data = in.data(); i.width = W; i.height = H; i.bitsAllocated = 16; i.bitsStored = 16; i.format = XPE_PIXEL_UINT16; i.dataSize = in.size() * 2;
+    o = i; o.data = out.data();
+    XpeImageMetadata m{};
+    return xpe_offset_correct(&i, &o, &m);
+}
+}
+
+TEST(A191Scratch, DISABLED_CachedLoaderHitAndShutdown) {
+    const char* path = "a191_offset.xcal";
+    writeOffset(path, 100.0f);
+    xpe_calib_cache_clear();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    std::printf("[a191] correct before any load                      -> %d (CALIB_NOT_LOADED=%d)\n", (int)correct(), (int)XPE_ERR_CALIB_NOT_LOADED);
+
+    XpeImageBuffer a{}, b{};
+    std::printf("[a191] cached load #1 (miss)                        -> %d\n", (int)xpe_calib_load_offset_cached(path, &a));
+    std::printf("[a191]   buffer: %ux%u fmt=%d bits=%u dataSize=%llu data=%p\n", a.width, a.height, (int)a.format, a.bitsAllocated, (unsigned long long)a.dataSize, (void*)a.data);
+    std::printf("[a191] correct after cached load #1                 -> %d\n", (int)correct());
+    std::printf("[a191] cached load #2 (hit)                         -> %d\n", (int)xpe_calib_load_offset_cached(path, &b));
+    std::printf("[a191]   same pointer on hit: %s\n", a.data == b.data ? "yes" : "no");
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    std::printf("[a191] after shutdown+init: correct                 -> %d (global store cleared)\n", (int)correct());
+    XpeImageBuffer c{};
+    std::printf("[a191] cached load #3 (after shutdown)              -> %d\n", (int)xpe_calib_load_offset_cached(path, &c));
+    std::printf("[a191]   pointer still the cache's old one: %s\n", c.data == a.data ? "yes (cache survived shutdown)" : "no");
+    std::printf("[a191] correct after cached load #3                 -> %d (CALIB_NOT_LOADED=%d)\n", (int)correct(), (int)XPE_ERR_CALIB_NOT_LOADED);
+
+    // file changed on disk, cache key is the path string
+    writeOffset(path, 300.0f);
+    XpeImageBuffer d{};
+    std::printf("[a191] file rewritten (100 -> 300), cached load #4   -> %d\n", (int)xpe_calib_load_offset_cached(path, &d));
+    std::printf("[a191]   first float of returned map: %.1f (100=stale cache, 300=reread)\n", static_cast<const float*>(d.data)[0]);
+    xpe_calib_cache_clear();
+    XpeImageBuffer e{};
+    std::printf("[a191] after cache_clear, cached load #5            -> %d\n", (int)xpe_calib_load_offset_cached(path, &e));
+    std::printf("[a191]   first float: %.1f\n", static_cast<const float*>(e.data)[0]);
+
+    // errors
+    std::printf("[a191] null path                                     -> %d\n", (int)xpe_calib_load_offset_cached(nullptr, &e));
+    std::printf("[a191] null out                                      -> %d\n", (int)xpe_calib_load_offset_cached(path, nullptr));
+    XpeImageBuffer f{};
+    std::printf("[a191] missing file                                  -> %d\n", (int)xpe_calib_load_offset_cached("a191_missing.xcal", &f));
+    std::printf("[a191] version string: \"%s\"\n", xpe_preprocess_version());
+    xpe_calib_cache_clear();
+    xpe_preprocess_shutdown();
+    std::remove(path);
+}

@@ -221,6 +221,12 @@ FPN_Reduction_dB = 20 * log10(std(R_flat_roi) / max(std(Y_flat_roi), epsilon))
 LineArtifactScore = max(std(row_mean(Y)), std(col_mean(Y))) / max(std(tile_mean(Y)), epsilon)
 ```
 
+`Y_flat_roi` / `R_flat_roi` — the flat-field ROI is **every valid pixel** of the frame, where a pixel is
+valid when its gain-map value is finite and greater than zero; pixels with a non-finite or non-positive gain
+are excluded and counted separately. No centre crop and no edge exclusion is applied. (Defined 2026-10-01,
+user-approved, issue #220; this is what `xpe_verify_gain` in `modules/preprocess/src/xpe_verify_metrics.cpp`
+already does. Before this note the ROI was named but not defined anywhere in `docs/` or `.moai/specs/`.)
+
 Acceptance defaults:
 
 - Phase 1 target: `FlatResidualPct <= 1.0%`;

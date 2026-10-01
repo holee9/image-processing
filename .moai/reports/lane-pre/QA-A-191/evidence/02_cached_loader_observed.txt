@@ -1,0 +1,29 @@
+Note: Google Test filter = A191Scratch.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A191Scratch
+[ RUN      ] A191Scratch.DISABLED_CachedLoaderHitAndShutdown
+[a191] correct before any load                      -> -16 (CALIB_NOT_LOADED=-16)
+[a191] cached load #1 (miss)                        -> 0
+[a191]   buffer: 4x4 fmt=1 bits=32 dataSize=64 data=0000021576F3DA10
+[a191] correct after cached load #1                 -> 0
+[a191] cached load #2 (hit)                         -> 0
+[a191]   same pointer on hit: yes
+[a191] after shutdown+init: correct                 -> -16 (global store cleared)
+[a191] cached load #3 (after shutdown)              -> 0
+[a191]   pointer still the cache's old one: yes (cache survived shutdown)
+[a191] correct after cached load #3                 -> -16 (CALIB_NOT_LOADED=-16)
+[a191] file rewritten (100 -> 300), cached load #4   -> 0
+[a191]   first float of returned map: 100.0 (100=stale cache, 300=reread)
+[a191] after cache_clear, cached load #5            -> 0
+[a191]   first float: 300.0
+[a191] null path                                     -> -1
+[a191] null out                                      -> -1
+[a191] missing file                                  -> -9
+[a191] version string: "0.1.0"
+[       OK ] A191Scratch.DISABLED_CachedLoaderHitAndShutdown (15 ms)
+[----------] 1 test from A191Scratch (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 1 test.
