@@ -71,4 +71,16 @@
 
 `falsification_arms.txt` · `local_runs.txt` · `text_lint.txt`
 
+
+---
+
+## 추가 지시(리더) — C-08 의 Native 갈래를 좁힌다
+
+리더가 아티팩트를 직접 받아 `xpe-ci-post-binaries` 에 `xpe_ai.dll`·`xpe_ai_worker.exe` 가 있고 그대로 `build/e2e-native-dlls` 로 스테이징됨(ci.yml 772)을 확인했다. 따라서 위 §5-1 의 "ci.yml 에서 스테이징 줄을 못 찾았다"는 **틀린 추정이었고(검색 범위가 이름 한 번이었다)**, Native 에서는 DLL 이 로드되고 스텁이라 `-3` 이 관측될 것이다. 그러면 C-08 이 "DLL 없음"도 통과시키던 갈래는 DLL 스테이징을 빠뜨린 잡을 **실패 경로로 통과**시킬 수 있다.
+
+- C-08 Native: 사유에 **모듈이 돌려준 반환 코드**가 있어야 한다 — `AI bone suppression (NOT applied|not attempted) (code N`. `was not found`(DLL 없음)와 `not started`(init 거절)는 받지 않는다. Mock 은 그대로(`requires the native backend`).
+- 그 문구를 시험으로 고정: `TheMessagesOfAModuleAnswer_MatchTheNativeCasePattern` — 반환 코드 6종(-3 -4 -9 -1 -6 -7)의 메시지는 패턴에 맞고, init 거절과 DLL 없음 문구는 맞지 않는다(패턴은 C-08 에 복사돼 있고, DLL 없음 문구는 이 프로젝트가 링크할 수 없는 `GuiAiRunner.cs` 에서 복사했다고 시험 주석에 적음).
+- 반증: 모듈 응답 메시지의 `(code N)` 를 `[code N]` 으로 바꾸면 위 시험과 `NotAttempted_IsSaidApartFromFailed` 가 빨강, 복구 확인.
+- 로컬: `AiBoneSuppressionStageTests` 23/23, C-08 은 Mock 에서 통과(`requires the native backend`). **Native 갈래는 이 트리에서 실행하지 못했다** — CI 의 `gui-e2e-native` 가 처음 실행한다. 정말 `-3` 이 나오는지(스텁이 `init` 을 통과시키는지, 워커 경로가 스텁에서 어떻게 답하는지)는 그때 관측된다.
+
 🗿 MoAI

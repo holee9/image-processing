@@ -125,6 +125,28 @@ public sealed class AiBoneSuppressionStageTests
         Assert.False(withoutOutput.Ran);
     }
 
+    /// <summary>
+    /// The Native E2E case (C-08) accepts only a reason that carries a return code from xpe_bone_suppress, so a job that
+    /// did not stage xpe_ai.dll cannot pass as "the failure path". This pins the module-answer messages to that pattern
+    /// and the messages of everything else (DLL not found, init refused) to NOT match it. The pattern is copied into
+    /// C-08; the DLL-missing text is copied from GuiAiRunner.cs, which this project cannot link.
+    /// </summary>
+    [Fact]
+    public void TheMessagesOfAModuleAnswer_MatchTheNativeCasePattern()
+    {
+        var pattern = new System.Text.RegularExpressions.Regex(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+");
+
+        foreach (var code in new[] { -3, -4, -9, -1, -6, -7 })
+        {
+            var message = "ai_bone_suppress: " + AiBoneSuppressionStage.Interpret(code, null).Message;
+            Assert.Matches(pattern, message);
+        }
+
+        Assert.DoesNotMatch(pattern, "ai_bone_suppress: " + AiBoneSuppressionStage.InterpretInit(-9).Message);
+        Assert.DoesNotMatch(pattern,
+            "ai_bone_suppress: AI bone suppression not started: xpe_ai.dll was not found beside the other native modules; the original image is shown.");
+    }
+
     [Fact]
     public void AnInitFailure_IsSaidAsNotStarted()
     {
