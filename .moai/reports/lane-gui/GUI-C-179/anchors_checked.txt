@@ -1,0 +1,122 @@
+# GUI-C-179 — every citation in report.md, as checked by the generator (row, file, first line found, occurrences of the anchor in that file, anchor)
+
+A1	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1485	x1	$"{label} needs the repository; this build is not running from a checkout."
+A1	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1423	x1	"Benchmark runner needs the repository; this build is not running
+A1	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2747	x1	"API reference needs the repository; this build is not running
+A1	gui/ImageProcTest/Services/GuiFixtureManifestService.cs:15	x1	"docs", "project", "sprint-plan.md"
+A2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1493	x1	$"{label} runner is not built."
+A2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1494	x1	does not exist. Build gui/{projectDirectory} first.
+A2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1480	x1	"gui", projectDirectory, "bin", "Debug", "net8.0-windows"
+A3	gui/ImageProcTest/Services/BenchmarkRunnerService.cs:67	x1	$"Benchmark runner is not built: {TestDirectoryRelativePath} has no {TreeMarkerFile}. {BuildHint}"
+A3	gui/ImageProcTest/Services/BenchmarkRunnerService.cs:54	x1	"Build it first: 'cmake --preset ci-post' and then 'cmake --build --preset ci-post --parallel' "
+A4	gui/ImageProcTest/Services/RunnerProcess.cs:112	x1	did not run: '{exePath}' could not be started
+A4	gui/ImageProcTest/Services/RunnerProcess.cs:123	x1	the file was not found; a bare name such as 'ctest' has to be on PATH
+A5	gui/ImageProcTest/Services/RunnerProcess.cs:117	x1	FAILED (exit {outcome.ExitCode})
+A5	gui/ImageProcTest/Services/RunnerProcess.cs:94	x1	.Select(line => line.Trim()).FirstOrDefault(line => line.Length > 0)
+A5	gui/ImageProcTest/Services/RunnerProcess.cs:92	x1	.Select(line => line.Trim()).LastOrDefault(line => line.Length > 0)
+A6	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1536	x1	$"{label} ended abnormally: {ex.Message}"
+A7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1329	x1	"Self-check is already running."
+A7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1365	x1	"GUI E2E is already running."
+A7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1408	x1	"Benchmark runner is already running."
+A8	gui/ImageProcTest/Services/BuildFreshnessGuard.cs:65	x1	is older than its sources, so this run would test the PREVIOUS build.
+A8	gui/ImageProcTest/Services/RunnerBuildFreshness.cs:46	x1	$"Build the RUNNER, not the app: dotnet build gui/{runnerName}/{runnerName}.csproj -c Debug. "
+A8	gui/ImageProcTest/Services/RunnerBuildFreshness.cs:47	x1	"Building gui/ImageProcTest alone does not refresh this copy."
+A9	gui/ImageProcTest/Services/ApiReferenceService.cs:69	x1	$"API reference has not been generated. {GenerationHint}"
+A9	gui/ImageProcTest/Services/ApiReferenceService.cs:45	x1	Generate it: in docs/help/doxygen run
+A9	gui/ImageProcTest/Services/ApiReferenceService.cs:34	x1	public const string DoxygenIndexRelativePath = "docs/help/generated/doxygen/html/index.html"
+A10	gui/ImageProcTest/Services/ApiReferenceService.cs:68	x1	$"API reference is incomplete: {DoxygenOutputRelativePath} exists but has no html/index.html. {GenerationHint}"
+A11	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2784	x1	$"API reference could not be opened: {ex.Message}"
+A11	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2867	x1	$"Evidence folder could not be opened: {ex.Message}"
+A11	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1841	x1	$"Runtime logs could not be exported: {ex.Message}"
+A11	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2919	x1	$"Export failed: {ex.Message}"
+A12	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1813	x1	"Runtime logs not exported: no run set has started."
+A12	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2828	x1	"No evidence folder to open: no run set has started."
+A12	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2893	x1	"Export failed: no run set has started."
+A12	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2892	x1	// #178: an empty id would zip evidence/ into a file inside it.
+A13	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1820	x1	"Runtime logs not exported: the log is empty."
+A14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2836	x1	$"No evidence folder yet for this run set: {directory}"
+A14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2901	x1	"No evidence directory found for current run-set."
+A14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1826	x4	Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId)
+B1	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1999	x1	$"Load failed: {ex.Message}"
+B1	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2004	x1	Code = "LOAD_FAILED"
+B1	gui/ImageProcTest/Services/RawImageLoader.cs:28	x1	"Raw width and height must be positive."
+B1	gui/ImageProcTest/Services/RawImageLoader.cs:35	x1	Raw file is too small. Expected at least
+B2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2036	x1	"Display pipeline requires a loaded raw image."
+B2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2041	x1	Code = "DISPLAY_NO_IMAGE"
+B2	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2177	x1	"Load a raw image before running preprocessing."
+B3	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2120	x1	$"Display pipeline failed: {ex.Message}"
+B3	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2125	x1	Code = "DISPLAY_PIPELINE_FAILED"
+B3	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:727	x1	"STALE — the display pipeline failed; the image shown is from before the failed attempt."
+B3	gui/ImageProcTest/Services/RealXpeBackend.cs:422	x1	failed with XPE error code {code}.
+B4	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:719	x1	"STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it."
+B5	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1269	x1	"Stop requested; the render in flight will be discarded."
+B5	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2088	x1	$"Render stopped; the result was discarded after {workMs:0} ms of work."
+B5	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1263	x1	"Stop: no render is in flight."
+B6	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2189	x1	$"Preprocessing failed: {ex.Message}"
+B6	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2259	x1	$"VOI preset failed: {ex.Message}"
+B6	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2264	x1	Code = "VOI_PRESET_FAILED"
+B6	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1634	x1	$"Backend initialization failed: {ex.Message}"
+B7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2227	x1	was requested and not applied; the display used its input.
+B7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2226	x1	"PREPROCESS_NOT_RUN"
+B7	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2226	x1	"CHAIN_STAGE_NOT_APPLIED"
+B8	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:55	x1	Preprocessing skipped: calibration file(s) not found
+B8	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:56	x1	Generate a set with xpe_calib_fixture_gen --out <dir>
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:64	x1	xpe_preprocess_init failed ({initCode})
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:79	x1	Loading {name} calibration failed ({code})
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:128	x1	xpe_offset_correct failed ({offsetCode})
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:146	x1	xpe_nonlinearity_correct failed ({nonlinearityCode})
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:152	x1	xpe_gain_correct failed ({gainCode})
+B9	gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:158	x1	xpe_defect_correct failed ({defectCode})
+B10	gui/ImageProcTest/Services/MockXpeBackend.cs:332	x1	"Preprocessing requires the native backend (xpe_preprocess.dll)."
+B10	gui/ImageProcTest/Services/MockXpeBackend.cs:333	x1	"Grid correction requires the native backend (gsvg.dll)."
+B10	gui/ImageProcTest/Services/MockXpeBackend.cs:334	x1	is not available in the mock backend.
+B10	gui/ImageProcTest/Services/RealXpeBackend.cs:297	x1	is not available in the native backend.
+B11	gui/ImageProcTest/Services/ProcessingChainRunner.cs:61	x1	$"{request.StageId} threw: {ex.Message}"
+B11	gui/ImageProcTest/Services/ProcessingChainRunner.cs:75	x1	$"{request.StageId} returned {execution.Pixels.Length} pixels for an input of {current.Length}."
+B12	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:95	x1	The virtual grid needs a parameter table; none was configured and none was found beside gsvg.dll.
+B12	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:100	x1	$"The virtual-grid table was not found: {tablePath}"
+B12	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:133	x1	xpe_gsvg_init refused the configuration ({initCode}). See the alerts for the reason.
+B12	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:168	x1	$"GSVG refused this image: {detail}"
+B13	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:180	x1	GSVG was requested but no correction was enabled in its config — check the key names.
+B13	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:181	x1	$"The image is too small for GSVG: {detail}"
+B13	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:183	x1	GSVG saw a grid peak but no sub-band confirmed it; nothing was filtered and a grid may remain.
+B13	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:185	x1	The virtual grid refused this exposure or these settings; the module restored the original.
+B13	gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs:186	x1	$"GSVG returned a reason this build does not know: {detail}"
+B14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:220	x2	"Your saved settings could not be read, so this session started from defaults. "
+B14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:223	x1	$"The original file was kept at '{preservedPath}'."
+B14	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:228	x1	Code = "SETTINGS_UNREADABLE"
+B15	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1708	x1	$"Recent file is not available: {path}"
+B15	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:1706	x1	a file on a disconnected share comes back
+B17	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2682	x1	Code = "VERDICT_WRITE_FAILED"
+B17	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2678	x1	$"Failed to write verdict file: {ex.Message}"
+B16	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:348	x1	$"Could not copy the log line: {ex.Message}"
+B16	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:346	x1	The clipboard can be held by another process.
+B16	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:2365	x1	$"Detached comparison viewer failed to open: {ex.GetType().Name}."
+C1	clients/ImageProcTest/Services/AlertDisplayFormatter.cs:53	x1	? "1 alert was dropped because the alert queue overflowed."
+C1	clients/ImageProcTest/Services/AlertDisplayFormatter.cs:54	x1	: $"{dropped} alerts were dropped because the alert queue overflowed."
+C1	gui/ImageProcTest/Services/NativeAlertDrain.cs:26	x1	public const string OverflowCode = "ALERT_QUEUE_OVERFLOW"
+C1	docs/post-processing/xpe/XPE-SRS-001_Software_Requirements_Specification.md:105	x1	Alert queue 오버플로 (용량 64 초과 push)
+C2	gui/ImageProcTest/Services/NativeAlertDrain.cs:20	x1	public const string UnreadableMessage = "[unreadable alert]"
+C2	gui/ImageProcTest/Services/NativeAlertDrain.cs:32	x1	public const int RetryBufferLength = 8192;
+C3	modules/preprocess/src/gain_correct.cpp:395	x1	"ALL %zu pixel(s) fell outside the gain polynomial's "
+C3	modules/preprocess/src/gain_correct.cpp:399	x1	"dose levels are in pixel values (ADU): a file fitted "
+C4	modules/preprocess/src/gain_correct.cpp:405	x1	"%zu pixel(s) fell outside the gain polynomial's fitted "
+C5	modules/preprocess/src/xpe_calib_load_gain.cpp:195	x1	"gain polynomial dose levels span [%.3f, %.3f], far "
+C5	modules/preprocess/src/xpe_calib_load_gain.cpp:197	x1	"CHECK THE UNIT OF THIS CALIBRATION'S dose_levels: "
+C5	modules/preprocess/src/xpe_calib_load_gain.cpp:201	x1	"simply very dark, this warning can be ignored. This "
+C6	modules/preprocess/src/xpe_calib_load_gain.cpp:214	x1	"gain polynomial loaded without a dose range: this file "
+C6	modules/preprocess/src/xpe_calib_load_gain.cpp:231	x1	"gain polynomial carries an inverted dose range "
+C7	modules/preprocess/src/nonlinearity_correct.cpp:65	x1	"panel.nonlinearity_mode selects the polynomial method but no "
+C7	modules/preprocess/src/nonlinearity_correct.cpp:74	x1	"nonlinearity polynomial has a non-finite coefficient; "
+C7	modules/preprocess/src/nonlinearity_correct.cpp:107	x1	"nonlinearity polynomial is non-monotone in [0, ADC_max]; "
+C8	modules/preprocess/src/nonlinearity_correct.cpp:238	x1	"panel.linear is false but no nonlinearity LUT is loaded; "
+C8	modules/preprocess/src/nonlinearity_correct.cpp:356	x1	"nonlinearity correction did nothing: no LUT is loaded and "
+C9	modules/gsvg/src/gsvg.cpp:131	x1	"gsvg config key '%s' is not read by this module and "
+C10	modules/gsvg/src/gsvg.cpp:240	x1	"gsvg virtual grid: %s"
+C10	modules/gsvg/src/gsvg.cpp:463	x1	"gsvg virtual grid: no collimation field mask; scatter outside "
+C10	modules/gsvg/src/gsvg.cpp:483	x1	"gsvg virtual grid: thickness above the table in %.2f%% of the pixels "
+INTRO	gui/ImageProcTest/Services/NativeAlertDrain.cs:130	x1	0 => "INFO",
+INTRO	gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:3046	x1	_alertLogLines.Add(Log($"ALERT {alert.Severity} {alert.Code}: {alert.Message}"));
+INTRO	gui/ImageProcTest/Services/NativeAlertDrain.cs:23	x1	public const string NativeAlertCode = "NATIVE_ALERT";
+
+rows: A=14 B=17 C=10 total=41; citations checked=118; anchors missing=0
