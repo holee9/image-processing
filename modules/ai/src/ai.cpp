@@ -388,12 +388,12 @@ static std::string workerExePath() {
     return path.substr(0, cut + 1) + "xpe_ai_worker.exe";
 }
 
-/**
- * Largest pixel payload one worker request can carry: the protocol maximum less the room the
- * request needs for its length prefix and metadata (ai_ipc_bridge.cpp keeps the same 512 bytes).
- * A 4096 x 4096 float image, the module maximum, is just above it.
- */
-static constexpr size_t kWorkerMaxPixelBytes = static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE) - 512u;
+// Every image validateImageBuffer accepts (at most 4096 x 4096 x 4 bytes) must fit ONE worker request
+// together with its length prefix and metadata (ai_ipc_bridge.cpp reserves 512 bytes for those). With
+// that true the worker path needs no size exception of its own: the validator is the only gate, and
+// there is no accepted image the worker path cannot carry (Codex audit #13).
+static_assert(static_cast<size_t>(4096) * 4096 * 4 + 512u <= static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE),
+              "the module maximum image must fit one worker message");
 
 /**
  * @brief xpe_bone_suppress through the worker process (opt-in). Caller holds state->mtx.
@@ -776,11 +776,6 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // kWorkerFailureCeiling worker alerts. A success resets the count. xpe_ai_shutdown/xpe_ai_init begin a
     // new session with a clean count.
     if (state->useWorker) {
-        // An image the worker protocol cannot carry is a property of the worker PATH, not a fault of the
-        // worker: it is refused as unsupported dimensions, without trying a worker, without an alert and
-        // without counting toward the ceiling (Codex audit #12). The output is left alone, as for every
-        // other validation refusal.
-        if (bytes > kWorkerMaxPixelBytes) return XPE_ERR_UNSUPPORTED_FORMAT;
         if (state->workerDisabled) {
             std::memmove(softTissueOut->data, img->data, bytes);
             return XPE_ERR_PROCESSING_FAILED;

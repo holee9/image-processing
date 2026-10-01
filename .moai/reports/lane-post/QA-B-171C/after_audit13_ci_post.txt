@@ -1,0 +1,691 @@
+Note: Google Test filter = WorkerPathFixture.*:HugeDimensions.*:IpcDeadline.*:AiWorkerIsolationTest.*
+[==========] Running 57 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 16 tests from AiWorkerIsolationTest
+[ RUN      ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully
+[2026-10-01 19:59:02.519] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.519] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully
+[2026-10-01 19:59:02.519] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.520] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully
+[2026-10-01 19:59:02.520] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.520] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully
+[2026-10-01 19:59:02.520] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.520] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent
+[2026-10-01 19:59:02.520] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.520] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe
+[2026-10-01 19:59:02.520] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.521] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe (1 ms)
+[ RUN      ] AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe
+[2026-10-01 19:59:02.521] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.521] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] Fallback mode %s
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ProtocolVersionIsDefined
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.ProtocolVersionIsDefined (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MessageMagicIsValid
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.MessageMagicIsValid (0 ms)
+[ RUN      ] AiWorkerIsolationTest.TimeoutDefaultIsPositive
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.TimeoutDefaultIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxPayloadSizeIsReasonable
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.MaxPayloadSizeIsReasonable (0 ms)
+[ RUN      ] AiWorkerIsolationTest.PipeBufferSizeIsPositive
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.PipeBufferSizeIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxModelIdLengthIsPositive
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.MaxModelIdLengthIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash (0 ms)
+[ RUN      ] AiWorkerIsolationTest.InitShutdownWithInferenceInBetween
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:02.522] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:02.522] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiWorkerIsolationTest.InitShutdownWithInferenceInBetween (0 ms)
+[----------] 16 tests from AiWorkerIsolationTest (3 ms total)
+
+[----------] 24 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (13 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[       OK ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (417 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[       OK ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (1549 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+[       OK ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (432 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (417 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (16 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (94 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (77 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (793 ms)
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+[       OK ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (892 ms)
+[ RUN      ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+[       OK ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+[       OK ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AWrongMagicDropsTheConnection
+[       OK ] IpcDeadline.AWrongMagicDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+[       OK ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+[       OK ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+[       OK ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer
+[       OK ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact (416 ms)
+[----------] 24 tests from IpcDeadline (5124 ms total)
+
+[----------] 14 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (28 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 19:59:07.676] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.676] [info] Creating ONNX session in STUB mode
+[2026-10-01 19:59:07.676] [error] bone_suppress: run failed: %s
+[2026-10-01 19:59:07.681] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:07.681] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.681] [info] Creating ONNX session in STUB mode
+[2026-10-01 19:59:07.681] [error] bone_suppress: run failed: %s
+[2026-10-01 19:59:07.686] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (15 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(273): Skipped
+a stub worker has no model to run; see the stub-build test below
+
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (4 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[2026-10-01 19:59:07.696] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.696] [info] Creating ONNX session in STUB mode
+[2026-10-01 19:59:07.696] [error] bone_suppress: run failed: %s
+[2026-10-01 19:59:07.696] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:07.696] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.740] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.741] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (51 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(328): Skipped
+needs a worker that can serve a model: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (4 ms)
+[ RUN      ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession
+[2026-10-01 19:59:07.752] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.786] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.791] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.796] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.824] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession (76 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors
+[2026-10-01 19:59:07.828] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.864] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.864] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.864] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.865] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:07.865] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.894] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.899] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors (77 ms)
+[ RUN      ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(445): Skipped
+needs a worker that can succeed: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (4 ms)
+[ RUN      ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(486): Skipped
+needs a worker that can succeed: full build only
+
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked (4 ms)
+[ RUN      ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings
+[2026-10-01 19:59:07.915] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.957] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.957] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.957] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:07.958] [info] xpe_ai shutdown: worker_pid=%u
+[alert-volume] 80 failing calls: queue holds 4 alerts, 3 of them worker alerts, unrelated earlier warning still queued: yes
+[       OK ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings (48 ms)
+[ RUN      ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried
+[2026-10-01 19:59:07.964] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:07.968] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried (9 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage
+[2026-10-01 19:59:07.998] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.009] [info] Creating ONNX session in STUB mode
+[2026-10-01 19:59:08.019] [error] bone_suppress: run failed: %s
+[2026-10-01 19:59:08.021] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 19:59:08.021] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.123] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:08.139] [info] xpe_ai shutdown: worker_pid=%u
+[measure] 4096x4096 float32 through the worker: rc -3, 93 ms, worker peak working set 132 MiB
+[       OK ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage (173 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff
+[2026-10-01 19:59:08.147] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.191] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:08.191] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:08.191] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:08.246] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff (104 ms)
+[ RUN      ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte
+[2026-10-01 19:59:08.251] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.314] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 19:59:08.314] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte (69 ms)
+[----------] 14 tests from WorkerPathFixture (673 ms total)
+
+[----------] 3 tests from HugeDimensions
+[ RUN      ] HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction
+[2026-10-01 19:59:08.321] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.321] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction (0 ms)
+[ RUN      ] HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified
+[2026-10-01 19:59:08.321] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.321] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified (0 ms)
+[ RUN      ] HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo
+[2026-10-01 19:59:08.321] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 19:59:08.321] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo (0 ms)
+[----------] 3 tests from HugeDimensions (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 57 tests from 4 test suites ran. (5801 ms total)
+[  PASSED  ] 53 tests.
+[  SKIPPED ] 4 tests, listed below:
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked

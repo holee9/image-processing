@@ -222,7 +222,7 @@ The consequence flagged in section 9 — failures 1 and 2 alert nobody, so a sin
 - The 3rd consecutive failure's alert also says the worker is switched off: `AI worker failed (code N, failure 3 of 3) and is
   disabled for this session: ...`. The worker process is ended at that point.
 - After the switch-off every call returns the input with XPE_ERR_PROCESSING_FAILED, starts no worker and raises **no** alert.
-  A session therefore raises at most 3 worker alerts. A success resets the count; `xpe_ai_shutdown` / `xpe_ai_init` start a new
+  **[WRONG as written, corrected in 14.1: the 3 bounds CONSECUTIVE failures only.]** A success resets the count; `xpe_ai_shutdown` / `xpe_ai_init` start a new
   session.
 
 **Evidence.**
@@ -235,7 +235,7 @@ The consequence flagged in section 9 — failures 1 and 2 alert nobody, so a sin
 | EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession | failures 1, 2, 3 raise 1, 2, 3 alerts (cumulative), none of the first two says "disabled", the 3rd does (exactly one alert in all contains it), every alert cites SRS-SAFE-008, the worker process is ended; calls 4-8: input back, non-OK, no worker started, the count stays 3 |
 | AFreshInitReEnablesTheWorker | a new session tries the worker again and its first failure alerts once, without "disabled" |
 | ASuccessResetsTheConsecutiveFailureCount | full build: F, F, success, silent-worker failure = 3 alerts in all and none says "disabled"; the next call succeeds. Without the reset the third failure in a row would say "disabled" |
-| AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings | 80 failing calls: 3 worker alerts and the unrelated earlier Warning still queued (`alert_volume_after_policy3.txt`; before any ceiling: 63 alerts and it was evicted) |
+| AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings (renamed in 14.1; was ...AtMostThreeAlerts...) | 80 failing calls: 3 worker alerts and the unrelated earlier Warning still queued (`alert_volume_after_policy3.txt`; before any ceiling: 63 alerts and it was evicted) |
 | the two single-failure tests (stub build, silent worker in a full build) | one failure = one Warning, citing SRS-SAFE-008, no "disabled", no AI-processed label |
 
 **Falsification** (build exit 0 each; `ai.cpp` restored and byte-compared after each, no INJECTED text left):
@@ -339,3 +339,79 @@ starts a worker is the first place to look.**
 - ci-ai: cfg 0, build 0, ctest 0. Header 330 of 330 (5 skipped), DISABLED 0. `g171c-m-ai-ctest.txt`
 - Previous commit 6bc0063: 956 / 320; +10 = 3 worker-path, 3 `HugeDimensions`, 4 in-place bridge tests. Cache vs preset:
   `g171c-m-cache.txt`. Stray xpe_ai_worker.exe after the runs: 0.
+
+## 14. Codex audit #13 (read against 5c3588e)
+
+### 14.1 [leader decision, no code change] "at most 3 alerts per session" was a wrong description
+
+A success resets the consecutive count, so fail, fail, succeed, repeated, is never blocked and raises one alert for EVERY failure
+with no upper bound. The policy is unchanged (an alert per failure; a block after 3 consecutive ones). What changed is the
+description: `ai_api.h` now says the limit of 3 alerts applies only to failures that follow one another, that intermittent
+failures alert every time, and that a full queue is SRS-ALERT-007's concern. Section 12's "a session therefore raises at most 3
+worker alerts" (marked in place) and the alert-volume test's old name and message ("at most three") said otherwise; the test is now
+`AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings`. The 80-call measurement in section 1 (64 full,
+63 of them this failure) is for a worker that fails on EVERY call; it says nothing about intermittent failure, which the
+three-alert bound does not cover.
+
+**Pinned by** `IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked` (full build; skipped in a stub build because it needs a
+worker that can succeed): fail (no model), fail, succeed, fail (a frozen worker, killed), fail (a fresh worker, model removed),
+succeed. Four failures, never more than two in a row: **4 alerts, no "disabled", and the next call still uses the worker.**
+**Arm A1** — the success no longer resets the count (`arm_A1NoReset.txt`): RED on this test AND on
+`ASuccessResetsTheConsecutiveFailureCount`, which is what the reset was already pinned by. (My first A1 attempt did not change the
+source — the replaced text did not match — and ran unmodified; that run was discarded, not used.)
+
+### 14.2 [high] the module maximum image was excluded from the worker path — fixed by raising the limit, so the exception is gone
+
+**What was wrong.** `XPE_AI_MAX_PAYLOAD_SIZE` was a bare 64 MiB. The largest image the module accepts, 4096 x 4096 float32, is
+exactly 64 MiB, and a request also carries a 4-byte length prefix and metadata, so it could never fit. Commit 5c3588e answered
+that with an exception: `XPE_ERR_UNSUPPORTED_FORMAT`, output untouched, ahead of the switched-off check. The format was
+correct, so the code was wrong, the output was not the input, and the contract differed after switch-off.
+
+**Option checked first (leader's preferred one): raise the limit.** Possible and cheap. Every use of the constant was read:
+header validation in the bridge and in the worker, the bridge's own size check, the reply buffer. The limit is now
+`64 MiB + 4096` (room for the prefix and metadata, with 512 already reserved in the bridge). Nothing else depends on the number
+except the SDD row below and one test that pinned the old value.
+- **Cost, measured** (`after_audit13_ci_ai.txt`, `after_audit13_ci_post.txt`; first call after init, so it includes starting the
+  worker): full build, x2 toy model, 4096 x 4096 float32: **rc 0, 204 ms, worker peak working set 350 MiB**, output equal to the
+  in-process result and to 2 x input. Stub build: the worker answers with its error, **93 ms, 132 MiB**, same rc as the in-process
+  stub. Not measured, read from the code: the bridge holds a request vector and a reply vector of about 64 MiB each while a call is
+  in flight, in addition to the caller's two image buffers. A real model with real latency will take longer than the toy; **this
+  measurement says nothing about the real model's inference time.**
+- A header may now make a worker allocate up to 64 MiB + 4096 (it allocated up to 64 MiB before); the isolation test asserts
+  the purpose (>= module maximum + 512) and an upper bound under 65 MiB.
+- **To update, not mine: `docs/project/sdd_ai.md:176`** lists `XPE_AI_MAX_PAYLOAD_SIZE | 64 MB`. The leader owns that row.
+  The header comment already said "64 MB = max image buffer", which the old value could not deliver.
+
+**The exception is removed.** `validateImageBuffer` caps every accepted image at 4096 x 4096 x 4 bytes and a `static_assert` in
+`ai.cpp` ties that to the protocol limit, so there is no accepted image the worker path cannot carry: the `kWorkerMaxPixelBytes`
+check, its `XPE_ERR_UNSUPPORTED_FORMAT` and the `ai_api.h` paragraph about it are gone. One contract for every size.
+
+**Tests.** Replaced the old "too large is UNSUPPORTED" test:
+- `TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage` — same rc as the in-process path for 4096 x 4096; on success the
+  bytes equal the in-process result and 2 x input; on failure the output is the input, every pixel, and one alert. The same code
+  runs in both builds (a stub worker fails as the stub in-process path does). The assertion is the output equal to the input,
+  not a sentinel.
+- `TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff` — after three failures on small images, the largest image
+  gets the same non-OK code as a small one, its output equals the input in every pixel, no new alert, no worker restarted.
+- Before the fix (`before_audit13_ci_post.txt`, `before_audit13_ci_ai.txt`): both RED in both builds. After
+  (`after_audit13_ci_post.txt`: 53 pass, 4 skipped as stub-only; `after_audit13_ci_ai.txt`: 56 pass, 1 skipped as stub-only).
+- **Arm A2** — limit back to a bare 64 MiB and the `static_assert` dropped (`arm_A2BareLimit.txt`, full build): RED on
+  `TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage` and on `MaxPayloadSizeIsReasonable`. The switched-off test stays
+  green there, correctly: after switch-off no worker is called, so the limit is not involved. With the `static_assert` kept, the
+  same revert should not compile (4096 x 4096 x 4 + 512 is 67109376, above 67108864); **I did not build that arm**, so this is
+  arithmetic, not an observation.
+
+### 14.3 [med] remaining SRS-SAFE-008 citations
+
+Removed from `test_bone_suppress_worker_path.cpp`'s header (the tests that assert its ABSENCE from alert text stay) and from
+`ai_worker_supervisor.h`, which now says the SDD lists the restart as the HAZ-008 mitigation with its requirement trace still to
+be settled, and cites REQ-AI-002 / REQ-AI-092 for what the class implements. Sections 1-12 of this file still quote SAFE-008 as
+they described the code at the time; 13.2 and this section supersede them. `grep -rn SAFE-008 modules/ai` now lists only the
+tests that assert it is absent.
+
+### 14.4 Full suites after this commit (presets, /WX, exit codes without a pipe)
+
+- ci-post: cfg 0, build 0, ctest 0. Header 968 of 968 (23 skipped in a stub build), DISABLED 1. `g171c-n-post-ctest.txt`
+- ci-ai: cfg 0, build 0, ctest 0. Header 332 of 332 (5 skipped), DISABLED 0. `g171c-n-ai-ctest.txt`
+- Previous commit 5c3588e: 966 / 330; +2 each = two maximum-image tests and the intermittent test, minus the replaced
+  too-large test. Doxygen non-CSS errors: 0 (`doxygen_after_audit13.txt`). Stray xpe_ai_worker.exe after the runs: 0.

@@ -47,8 +47,12 @@ extern "C" {
  * IPC Constants
  * -------------------------------------------------------------------------- */
 
-/** Maximum payload size per message (64 MB = max image buffer). */
-#define XPE_AI_MAX_PAYLOAD_SIZE    (64 * 1024 * 1024)
+/**
+ * Maximum payload size per message: the module's maximum image buffer (4096 x 4096 float32 =
+ * 64 MiB) plus 4 KiB for the request's length prefix and metadata. A bare 64 MiB left no room for
+ * either, so the largest image the module accepts could not travel in one message (Codex audit #13).
+ */
+#define XPE_AI_MAX_PAYLOAD_SIZE    (64 * 1024 * 1024 + 4096)
 
 /** Default IPC timeout in milliseconds. */
 #define XPE_AI_DEFAULT_TIMEOUT_MS  5000

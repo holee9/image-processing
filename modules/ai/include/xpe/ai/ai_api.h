@@ -91,8 +91,11 @@ XPE_API const char* xpe_ai_version(void);
  * After 3 CONSECUTIVE failures the worker is switched off for the rest of the
  * session (until xpe_ai_shutdown): the alert of the 3rd failure says so, its
  * process is ended, and later calls return the input at once with
- * XPE_ERR_PROCESSING_FAILED, start no worker and raise no further alert -- a
- * session raises at most 3 worker alerts. A success resets the count. The
+ * XPE_ERR_PROCESSING_FAILED, start no worker and raise no further alert.
+ * A success resets the count, so the limit of 3 alerts applies only to failures
+ * that follow one another: a worker that fails intermittently (fail, fail,
+ * succeed, repeat) is never switched off and raises one alert for EVERY failure.
+ * A full alert queue is SRS-ALERT-007's concern, not this policy's. The
  * ceiling of 3 and the alert rule are values the user approved on 2026-10-01
  * (docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3), not ones the requirements
  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
@@ -105,9 +108,10 @@ XPE_API const char* xpe_ai_version(void);
  * healthy worker is switched off too; xpe_ai_shutdown() followed by
  * xpe_ai_init() recovers it.
  *
- * An image too large for one worker message (about 64 MB of pixels; 4096 x 4096
- * float32 is just above it) is refused with XPE_ERR_UNSUPPORTED_FORMAT without
- * trying a worker, without an alert and without counting toward the 3.
+ * Every image the module accepts, up to 4096 x 4096 float32 (64 MiB), travels in one
+ * worker message; the worker path has no size limit of its own, and the contract
+ * above (output = input on failure, also once the worker is switched off) holds for
+ * the largest image exactly as for a small one.
  *
  * REQ-AI-001: Only xpe_common dependency.
  * REQ-AI-003: Worker process isolation.
@@ -289,8 +293,7 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  *         for width*height floats, or the model rejected the input length.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if either image is not XPE_PIXEL_FLOAT32.
  *         The session speaks float32; reinterpreting 16-bit pixels as floats
- *         would return numbers instead of an error. Also returned, with
- *         "use_worker" set, for an image too large for one worker message.
+ *         would return numbers instead of an error.
  * @return XPE_ERR_IO_FAILED if `<modelDir>/bone_suppress.onnx` is not there.
  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
  *         model. Distinct from IO_FAILED on purpose: "install the model" and

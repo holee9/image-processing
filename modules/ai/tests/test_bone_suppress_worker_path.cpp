@@ -7,7 +7,7 @@
  * went silent, a wrong answer -- the failure is REPORTED (an alert) and the OUTPUT IS THE INPUT,
  * unchanged, with a non-OK code: REQ-AI-092 "exceeding the budget shall trigger fallback and alert",
  * REQ-AI-002 "deterministic fallback path that maintains clinical usability when AI fails", and
- * SDD-002 "AI worker failure -> return input unchanged + SRS-SAFE-008".
+ * SDD-002 "AI worker failure -> return input unchanged".
  *
  * WHY NOT RE-RUN THE SAME INFERENCE IN-PROCESS. (QA-B-171C first draft did, and was corrected.) REQ-AI-003
  * puts inference in a separate process so that the main process is crash-immune. A worker that failed
@@ -42,6 +42,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <windows.h>
+#include <psapi.h>
 #include <tlhelp32.h>
 
 #include <cctype>
@@ -477,10 +478,50 @@ TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
     RemoveDirectoryA(flip.c_str());
 }
 
+// Codex audit #13: "at most 3 alerts per session" was a wrong description. A success resets the
+// consecutive count, so a worker that fails twice, succeeds, fails twice, succeeds... is never blocked
+// and raises one alert per failure, without limit. The bound of 3 holds only for CONSECUTIVE failures
+// (and a queue overflow is SRS-ALERT-007's business). This pins what actually happens.
+TEST_F(WorkerPathFixture, IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked) {
+    if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed: full build only";
+    char tmp[MAX_PATH] = {0};
+    GetTempPathA(sizeof(tmp), tmp);
+    const std::string dir = std::string(tmp) + "xpe_ai_ffs_" + std::to_string(GetCurrentProcessId());
+    CreateDirectoryA(dir.c_str(), nullptr);
+    const std::string model = dir + "/bone_suppress.onnx";
+    DeleteFileA(model.c_str());
+    ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true, \"timeout_ms\": 2000}"));
+    xpe_clear_alerts();
+    const std::string good = kDirX2 + "/bone_suppress.onnx";
+
+    EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: no model
+    EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F
+    ASSERT_TRUE(CopyFileA(good.c_str(), model.c_str(), FALSE) != 0);
+    EXPECT_EQ(XPE_OK, CallOnce().rc);                                    // S
+    const auto first = ChildWorkers();
+    ASSERT_EQ(1u, first.size());
+    Freeze(first[0]);
+    EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: a silent worker, killed
+    ASSERT_TRUE(DeleteFileA(model.c_str()) != 0);
+    EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: a fresh worker, no model
+    ASSERT_TRUE(CopyFileA(good.c_str(), model.c_str(), FALSE) != 0);
+    EXPECT_EQ(XPE_OK, CallOnce().rc);                                    // S
+
+    EXPECT_EQ(4, CountAlerts(kFailureNeedle))
+        << "four failures, none of them consecutive more than twice: four alerts, more than 3";
+    EXPECT_EQ(0, CountAlerts("disabled")) << "intermittent failures must never block the worker";
+    EXPECT_EQ(XPE_OK, CallOnce().rc) << "the worker must still be in use";
+
+    xpe_ai_shutdown();
+    DeleteFileA(model.c_str());
+    RemoveDirectoryA(dir.c_str());
+}
+
 // QA-B-171C, alert volume: before the policy a worker that failed on every call raised one alert per
-// call, filled the 64-entry queue and evicted unrelated warnings. Measured then; the ceiling of 3
-// bounds it now, and that bound is pinned: three alerts, the unrelated warning still queued.
-TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings) {
+// call, filled the 64-entry queue and evicted unrelated warnings. Measured then. The ceiling of 3 bounds
+// CONSECUTIVE failures only (see IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked): a worker
+// that fails on every call is switched off after three alerts and the unrelated warning stays queued.
+TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings) {
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     xpe_clear_alerts();
     xpe_alert_push("an unrelated warning raised before the failures", XPE_ALERT_WARNING);
@@ -492,7 +533,7 @@ TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndK
                 "unrelated earlier warning still queued: %s\n",
                 kCalls, static_cast<int>(xpe_get_pending_alert_count()), worker_alerts,
                 unrelated ? "yes" : "NO (evicted)");
-    EXPECT_EQ(3, worker_alerts) << "a session raises at most three worker alerts";
+    EXPECT_EQ(3, worker_alerts) << "consecutive failures raise three worker alerts, then the worker is off";
     EXPECT_EQ(1, unrelated) << "the failure flood evicted an unrelated warning";
 }
 
@@ -533,25 +574,79 @@ TEST_F(WorkerPathFixture, AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEve
     for (float v : out_px) EXPECT_EQ(kSentinel, v) << "a refused call must leave the output alone";
 }
 
-TEST_F(WorkerPathFixture, AnImageTooLargeForTheWorkerProtocolIsUnsupportedAndIsNotAWorkerFailure) {
-    // 4096 x 4096 float32 is the module maximum (64 MB) and cannot travel in one worker message
-    // (the payload also carries a length prefix and metadata). That is a property of the worker path,
-    // not a fault of the worker: it must not alert, must not count toward the ceiling, and must not
-    // start a process, however many times it is asked.
+/** The largest image the module accepts: 4096 x 4096 float32, 64 MiB. */
+constexpr uint32_t kMaxSide = 4096;
+
+struct MaxImage {
+    std::vector<float> px;
+    XpeImageBuffer buf{};
+    explicit MaxImage(bool fill) : px(static_cast<size_t>(kMaxSide) * kMaxSide, kSentinel) {
+        if (fill) for (size_t i = 0; i < px.size(); ++i) px[i] = 0.25f * static_cast<float>(i % 4001);
+        buf = Declared(kMaxSide, kMaxSide, px.data(), px.size() * sizeof(float));
+    }
+};
+
+bool SameBytes(const std::vector<float>& a, const std::vector<float>& b) {
+    return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * sizeof(float)) == 0;
+}
+
+// Codex audit #13: a 4096 x 4096 float32 image is the module maximum and the validator accepts it, but
+// the worker message limit was a bare 64 MiB with no room for the length prefix and metadata, so the
+// largest valid image could not use the worker path at all. It now travels like any other: the worker
+// path gives the same answer as the in-process path for it, and when the worker fails the output is the
+// input. (Same code in both builds: a stub worker fails exactly as the stub in-process path does.)
+TEST_F(WorkerPathFixture, TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage) {
+    MaxImage in(true);
+
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": false}"));
+    MaxImage ref_out(false);
+    const XpeErrorCode ref_rc = xpe_bone_suppress(&in.buf, &ref_out.buf, nullptr);
+    xpe_ai_shutdown();
+
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true}"));
     xpe_clear_alerts();
-    constexpr uint32_t kSide = 4096;
-    std::vector<float> in_px(static_cast<size_t>(kSide) * kSide, 1.0f);
-    std::vector<float> out_px(in_px.size(), kSentinel);
-    XpeImageBuffer in = Declared(kSide, kSide, in_px.data(), in_px.size() * sizeof(float));
-    XpeImageBuffer out = Declared(kSide, kSide, out_px.data(), out_px.size() * sizeof(float));
-    for (int call = 1; call <= 5; ++call) {
-        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_bone_suppress(&in, &out, nullptr)) << "call " << call;
+    MaxImage out(false);
+    const auto t0 = GetTickCount64();
+    const XpeErrorCode rc = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+    const auto took = static_cast<unsigned long long>(GetTickCount64() - t0);
+
+    EXPECT_EQ(ref_rc, rc) << "the worker path must answer the maximum image as the in-process path does";
+    const auto workers = ChildWorkers();
+    ASSERT_EQ(1u, workers.size()) << "the call never reached a worker";
+    HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, workers[0]);
+    PROCESS_MEMORY_COUNTERS pmc{};
+    if (h) { GetProcessMemoryInfo(h, &pmc, sizeof(pmc)); CloseHandle(h); }
+    std::printf("[measure] 4096x4096 float32 through the worker: rc %d, %llu ms, worker peak working set "
+                "%.0f MiB\n",
+                static_cast<int>(rc), took, static_cast<double>(pmc.PeakWorkingSetSize) / (1024.0 * 1024.0));
+
+    if (rc == XPE_OK) {
+        EXPECT_TRUE(SameBytes(ref_out.px, out.px)) << "the worker path answered differently";
+        EXPECT_EQ(2.0f * in.px[1000], out.px[1000]);
+        EXPECT_EQ(2.0f * in.px.back(), out.px.back());
+        EXPECT_EQ(0, CountAlerts(kFailureNeedle));
+    } else {
+        EXPECT_TRUE(SameBytes(in.px, out.px)) << "a failed call must return the input, every pixel";
+        EXPECT_EQ(1, CountAlerts(kFailureNeedle));
     }
-    EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "an oversize image raised a worker-failure alert";
-    EXPECT_EQ(0u, ChildWorkers().size()) << "a worker was started for an image it cannot be sent";
-    EXPECT_EQ(kSentinel, out_px[0]);
-    EXPECT_EQ(kSentinel, out_px.back());
+}
+
+// After the ceiling the contract is the same for the largest image: input back, a non-OK code that is
+// the same as for any other image, no new alert, no worker.
+TEST_F(WorkerPathFixture, TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    xpe_clear_alerts();
+    for (int i = 0; i < 3; ++i) EXPECT_NE(XPE_OK, CallOnce().rc);
+    ASSERT_EQ(1, CountAlerts("disabled")) << "the third failure should have switched the worker off";
+    const int alerts_before = CountAlerts(kFailureNeedle);
+
+    MaxImage in(true), out(false);
+    const XpeErrorCode small_rc = CallOnce().rc;
+    EXPECT_EQ(small_rc, xpe_bone_suppress(&in.buf, &out.buf, nullptr))
+        << "the contract after switch-off must not depend on the image size";
+    EXPECT_TRUE(SameBytes(in.px, out.px)) << "switched-off call must return the input, every pixel";
+    EXPECT_EQ(alerts_before, CountAlerts(kFailureNeedle)) << "no new alert after the switch-off";
+    EXPECT_EQ(0u, ChildWorkers().size()) << "a switched-off worker must not be restarted";
 }
 
 // A different function proves the fix is in the SHARED validator, not only in xpe_bone_suppress.
