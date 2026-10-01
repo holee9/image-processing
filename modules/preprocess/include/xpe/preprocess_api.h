@@ -842,10 +842,16 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
- *                  tampered file is refused with the loader's code).
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
  * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -860,7 +866,11 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
  *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
  *         XPE_ERR_NOT_INITIALIZED if the load left no offset map in the store
- *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut);
@@ -883,10 +893,16 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
- *                  tampered file is refused with the loader's code).
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
  * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -907,7 +923,11 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
  *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
  *         XPE_ERR_NOT_INITIALIZED if the load left neither a scalar gain map nor a polynomial in the store
- *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
                                                   XpeImageBuffer* gainMapOut);
@@ -929,10 +949,16 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
- *                  tampered file is refused with the loader's code).
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
  * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -948,7 +974,11 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
  *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
  *         XPE_ERR_NOT_INITIALIZED if the load left no defect map in the store
- *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut);

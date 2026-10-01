@@ -33,6 +33,19 @@
 #include <thread>
 #include <vector>
 
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <windows.h>
+#else
+#  include <sys/stat.h>
+#  include <unistd.h>
+#endif
+
 namespace fs = std::filesystem;
 
 namespace {
@@ -458,4 +471,94 @@ TEST_F(CacheSameVerdict, AScalarGainHitTakesOverFromAPolynomialInTheStore) {
     float g = 0.0f;
     ASSERT_EQ(XPE_OK, gainCorrect(&g));
     EXPECT_NEAR(500.0f, g, 0.01f) << "a scalar hit must put its map in the store, as a scalar load does (1000 / 2)";
+}
+
+// (9) a file whose attributes are visible but whose content cannot be opened ----------------------
+// Reading the size and the write time succeeding does not mean the file can be read. A miss opens
+// the file and gets IO_FAILED; a hit that only compared the attributes returned OK (Codex #20).
+// Windows: a handle that denies every other reader (share mode 0) leaves the attributes readable.
+// POSIX: mode 000 (not for root, which ignores it).
+namespace {
+class ReadDenied {
+public:
+    explicit ReadDenied(const char* path) : path_(path) {
+#ifdef _WIN32
+        h_ = CreateFileA(path, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        ok_ = (h_ != INVALID_HANDLE_VALUE);
+#else
+        struct stat st {};
+        if (geteuid() != 0 && ::stat(path, &st) == 0) {
+            mode_ = st.st_mode & 07777;
+            ok_ = (::chmod(path, 0) == 0);
+        }
+#endif
+    }
+    ~ReadDenied() { release(); }
+    ReadDenied(const ReadDenied&) = delete;
+    ReadDenied& operator=(const ReadDenied&) = delete;
+    bool ok() const { return ok_; }
+    void release() {
+        if (!ok_) return;
+#ifdef _WIN32
+        CloseHandle(h_);
+#else
+        ::chmod(path_.c_str(), static_cast<mode_t>(mode_));
+#endif
+        ok_ = false;
+    }
+private:
+    std::string path_;
+    bool ok_{false};
+#ifdef _WIN32
+    HANDLE h_{INVALID_HANDLE_VALUE};
+#else
+    unsigned mode_{0};
+#endif
+};
+}  // namespace
+
+TEST_F(CacheSameVerdict, AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss) {
+    for (Kind k : {OFFSET, GAIN, DEFECT}) {
+        SCOPED_TRACE(kindName[k]);
+        xpe_calib_cache_clear();
+        writeKind(k, "csv_x.xcal");
+        writeOffset("csv_oq.xcal", 300.0f);
+        writeGain("csv_gq.xcal", 4.0f);
+        writeDefect("csv_dq.xcal", false);
+
+        XpeImageBuffer first{};
+        ASSERT_EQ(XPE_OK, kCached[k]("csv_x.xcal", &first));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset("csv_oq.xcal"));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_gq.xcal"));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("csv_dq.xcal"));
+
+        ReadDenied denied("csv_x.xcal");
+        if (!denied.ok()) GTEST_SKIP() << "cannot deny read access on this platform / account";
+
+        // Controls: the attributes are still readable, and the plain loader (the miss path) fails to open.
+        std::error_code ec1, ec2;
+        (void)fs::file_size("csv_x.xcal", ec1);
+        (void)fs::last_write_time("csv_x.xcal", ec2);
+        ASSERT_FALSE(ec1) << "control: the size must stay readable: " << ec1.message();
+        ASSERT_FALSE(ec2) << "control: the write time must stay readable: " << ec2.message();
+        const XpeErrorCode miss = kPlain[k]("csv_x.xcal");
+        ASSERT_EQ(XPE_ERR_IO_FAILED, miss) << "control: the plain loader cannot open the file";
+
+        XpeImageBuffer refused{};
+        EXPECT_EQ(miss, kCached[k]("csv_x.xcal", &refused));
+
+        uint16_t o = 0; float g = 0.0f, d = 0.0f;
+        ASSERT_EQ(XPE_OK, offsetCorrect(&o));
+        ASSERT_EQ(XPE_OK, gainCorrect(&g));
+        ASSERT_EQ(XPE_OK, defectCorrect(&d));
+        EXPECT_EQ(700, o) << "the refused call must leave the offset Q map in the store";
+        EXPECT_NEAR(250.0f, g, 0.01f) << "the refused call must leave the gain Q map in the store";
+        EXPECT_NEAR(5000.0f, d, 0.01f) << "the refused call must leave the defect Q map in the store";
+
+        // The refusal does not evict the entry: once the file can be read again, the hit is back.
+        denied.release();
+        XpeImageBuffer again{};
+        ASSERT_EQ(XPE_OK, kCached[k]("csv_x.xcal", &again));
+        EXPECT_EQ(first.data, again.data) << "the entry must survive the refused call";
+    }
 }

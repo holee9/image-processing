@@ -93,7 +93,38 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         // is loaded clears the other, so a scalar map left over from an earlier
         // file is never applied to frames the operator calibrated with a
         // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
-        bool poly_loaded = false;
+        const bool poly_loaded = is_poly;
+
+        // Everything that allocates, and so can throw, is done HERE, before the commit below. The
+        // commit only moves pointers and copies plain values, and nothing after it may throw: a
+        // throw once the first field was written reported OUT_OF_MEMORY for a store that had already
+        // changed (QA-A-200, found by the allocation-failure sweep in test_oom_injection.cpp).
+        const std::string config_copy(config_json.begin(), config_json.end());
+
+        // FUNC-033 (5): the quality metadata the file carries, so xpe_calib_get_quality_meta()
+        // describes the calibration now in use. A file written before QA-A-35 has no such fields
+        // and is loaded unchanged -- the call simply reports that it found none.
+        XpeCalibQualityMeta quality{};
+        const bool quality_found = xpe_calib_parse_quality_meta_json(config_copy.c_str(), &quality);
+
+        // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything.
+        // Absence is detected by asking twice with different defaults rather than by matching text --
+        // a key that is genuinely present answers the same both times.
+        double lo_a = -1.0, hi_a = -1.0;
+        bool present = false, usable = false;
+        if (is_poly) {
+            lo_a = xpe_json_get_double(config_copy.c_str(), "dose_min", -1.0);
+            const double lo_b = xpe_json_get_double(config_copy.c_str(), "dose_min", -2.0);
+            hi_a = xpe_json_get_double(config_copy.c_str(), "dose_max", -1.0);
+            const double hi_b = xpe_json_get_double(config_copy.c_str(), "dose_max", -2.0);
+            present = (lo_a == lo_b) && (hi_a == hi_b);
+            usable  = present && (hi_a > lo_a);
+        }
+
+        // Commit under mutex. The two gain models are alternatives: whichever
+        // is loaded clears the other, so a scalar map left over from an earlier
+        // file is never applied to frames the operator calibrated with a
+        // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
             if (is_poly) {
@@ -105,18 +136,17 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                 g_calib.gain_poly_coeffs.reset();
                 g_calib.gain_poly_num_coeffs = 0;
             }
-            // The range belongs to whichever polynomial is current; clearing
-            // it on every load keeps a previous file's bounds from surviving
-            // into the next one (QA-A-123, #194).
-            g_calib.gain_poly_has_range = false;
-            g_calib.gain_poly_dose_min = 0.0;
-            g_calib.gain_poly_dose_max = 0.0;
+            // The range belongs to whichever polynomial is current; setting it on every load keeps
+            // a previous file's bounds from surviving into the next one (QA-A-123, #194).
+            g_calib.gain_poly_has_range = (is_poly && usable);
+            g_calib.gain_poly_dose_min  = (is_poly && usable) ? lo_a : 0.0;
+            g_calib.gain_poly_dose_max  = (is_poly && usable) ? hi_a : 0.0;
             g_calib.gain_width  = hdr.width;
             g_calib.gain_height = hdr.height;
             g_calib.gain_timestamp = hdr.created_epoch_ms;
             g_calib.gain_expiry_ms = hdr.expiry_epoch_ms;
-            g_calib.gain_config_json.assign(config_json.begin(), config_json.end());
-            poly_loaded = is_poly;
+            g_calib.gain_quality     = quality;
+            g_calib.gain_has_quality = quality_found;
 
             std::memset(g_calib.gain_session_id, 0, sizeof(g_calib.gain_session_id));
             std::memcpy(g_calib.gain_session_id, hdr.session_id,
@@ -125,34 +155,14 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                             : sizeof(g_calib.gain_session_id) - 1);
         }
 
-        // FUNC-033 (5): restore the quality metadata the file carries, so
-        // xpe_calib_get_quality_meta() describes the calibration now in use.
-        // A file written before QA-A-35 has no such fields and is loaded
-        // unchanged -- the call simply reports that it found none.
-        {
-            std::string json(config_json.begin(), config_json.end());
-            xpe_calib_apply_quality_meta_json(json.c_str());
+        // Committed from here on; nothing below may fail the load. The metadata copy cannot throw.
+        if (quality_found) xpe_calib_commit_quality_meta(quality);
 
-            // QA-A-123 (#194): read the fitted dose range, which bounds where
-            // the polynomial means anything. Absence is detected by asking
-            // twice with different defaults rather than by matching text -- a
-            // key that is genuinely present answers the same both times.
+        // The alerts are advisory: raising one allocates, and an allocation failure there must not
+        // turn a load that has succeeded and been committed into an error.
+        try {
             if (poly_loaded) {
-                const double lo_a = xpe_json_get_double(json.c_str(), "dose_min", -1.0);
-                const double lo_b = xpe_json_get_double(json.c_str(), "dose_min", -2.0);
-                const double hi_a = xpe_json_get_double(json.c_str(), "dose_max", -1.0);
-                const double hi_b = xpe_json_get_double(json.c_str(), "dose_max", -2.0);
-                const bool present = (lo_a == lo_b) && (hi_a == hi_b);
-                const bool usable  = present && (hi_a > lo_a);
-
                 if (usable) {
-                    {
-                        std::lock_guard<std::mutex> lock(g_calib_mutex);
-                        g_calib.gain_poly_has_range = true;
-                        g_calib.gain_poly_dose_min = lo_a;
-                        g_calib.gain_poly_dose_max = hi_a;
-                    }
-
                     // QA-A-143 (#194 item 2): THE UNIT IS DOCUMENTED, SO SAY
                     // SOMETHING WHEN THE NUMBERS DISAGREE WITH IT.
                     //
@@ -241,6 +251,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
                     xpe_alert_push(msg, XPE_ALERT_WARNING);
                 }
             }
+        } catch (...) {
+            // The warning is lost under memory pressure; the calibration itself is loaded.
         }
 
         // QA-A-107 (#187) raised a warning here saying the coefficients were

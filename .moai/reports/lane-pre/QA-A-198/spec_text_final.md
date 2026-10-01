@@ -1,6 +1,6 @@
 # QA-A-198 (#216) — REQ-P1A-102~106 최종 문안 (spec.md 에 붙일 수 있는 형태)
 
-기준: 코드는 `ab8deba8` (QA-A-197) 의 현재 동작. 이 파일의 `####` 블록 다섯 개가 `spec.md` 의 기존 항목(`#### REQ-P1A-014: …`)과 같은 모양이다. 붙이기 전에 아래 "붙이기 전 확인"을 본다. 이 카드는 `spec.md` 를 건드리지 않았다.
+기준: 코드는 QA-A-200 까지 반영된 현재 동작 (`ab8deba8` 에 QA-A-199·200 이 더해짐; 시험 대상 SHA 는 QA-A-200 커밋). 이 파일의 `####` 블록 다섯 개가 `spec.md` 의 기존 항목(`#### REQ-P1A-014: …`)과 같은 모양이다. 붙이기 전에 아래 "붙이기 전 확인"을 본다. 이 카드는 `spec.md` 를 건드리지 않았다.
 
 ## 붙이기 전 확인 (리더)
 
@@ -16,12 +16,14 @@
 
 #### REQ-P1A-102: Cached Offset Map Loader
 
-**When** `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is called with non-NULL arguments, the module **shall** return in `offsetMapOut` a cache-owned view of the offset map of `filePath`, leave the module-global calibration store holding that map, and reach the verdict that loading the file through `xpe_calib_load_offset(filePath)` would reach, as follows. When the calibration cache holds an entry for that path string, made by this loader, whose recorded file size and last-write time equal the file's current ones, the module **shall** refuse the call with `XPE_ERR_CALIBRATION_EXPIRED`, leaving the store unchanged, if the entry's recorded expiry has passed, and otherwise **shall** return that entry without reading the file and install its map (with the file's timestamp and session id) into the store. In every other case — no entry, an entry whose recorded size or last-write time differs from the file's, a file whose size or last-write time cannot be read, or an entry made by a cached loader of another kind — the module **shall** load the file through `xpe_calib_load_offset(filePath)`, return that call's error code unchanged if it fails, and otherwise copy the loaded map into the cache and return the cache's view of the copy; an entry whose size or last-write time differs, or whose expiry has passed, **shall** be dropped, and an entry made by another kind of loader **shall** be kept. The module **shall not** re-hash the file on a cache hit.
+**When** `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is called with non-NULL arguments, the module **shall** return in `offsetMapOut` a cache-owned view of the offset map of `filePath`, leave the module-global calibration store holding that map, and reach the verdict that loading the file through `xpe_calib_load_offset(filePath)` would reach, as follows. When the calibration cache holds an entry for that path string, made by this loader, whose recorded file size and last-write time equal the file's current ones, the module **shall** refuse the call with `XPE_ERR_CALIBRATION_EXPIRED`, leaving the store unchanged, if the entry's recorded expiry has passed; otherwise, if the file cannot be opened for reading, **shall** refuse the call with `XPE_ERR_IO_FAILED`, leaving the store and the entry unchanged; and otherwise **shall** return that entry without reading the file's content and install its map (with the file's timestamp and session id) into the store. In every other case — no entry, an entry whose recorded size or last-write time differs from the file's, a file whose size or last-write time cannot be read, or an entry made by a cached loader of another kind — the module **shall** load the file through `xpe_calib_load_offset(filePath)`, return that call's error code unchanged if it fails, and otherwise copy the loaded map into the cache and return the cache's view of the copy; an entry whose size or last-write time differs, or whose expiry has passed, **shall** be dropped, and an entry made by another kind of loader **shall** be kept. The module **shall not** re-hash the file on a cache hit, and **shall not** let an exception leave the function: an allocation failure is reported as `XPE_ERR_OUT_OF_MEMORY` (or `XPE_ERR_PROCESSING_FAILED` for any other exception).
 
 - **계약**:
   - `filePath` 또는 `offsetMapOut` 이 NULL 이면 `XPE_ERR_INVALID_INPUT`.
   - 반환 버퍼: `XPE_PIXEL_FLOAT32`, `bitsAllocated = bitsStored = 32`, `dataSize = width × height × 4`. `data` 포인터는 캐시의 것이며 호출자가 해제하지 않는다. 포인터는 `xpe_calib_cache_clear()`, 퇴출(캐시가 가득 찼을 때, 또는 `xpe_calib_cache_set_max_size()`), `xpe_preprocess_shutdown()`, 파일 변경·만료로 엔트리가 지워질 때까지 유효하다.
-  - 오류 코드: `XPE_ERR_INVALID_INPUT`; 미스나 취소된 적중에서는 `xpe_calib_load_offset` 의 코드(`XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`(헤더·무결성·XCal 타입 불일치), `XPE_ERR_CALIBRATION_EXPIRED` 등); 만료된 엔트리의 적중에서 `XPE_ERR_CALIBRATION_EXPIRED`; 적재 뒤 저장소에 오프셋 맵이 없으면 `XPE_ERR_NOT_INITIALIZED`; 캐시에 넣지 못하면 `XPE_ERR_OUT_OF_MEMORY` 또는 `XPE_ERR_PROCESSING_FAILED`.
+  - 오류 코드: `XPE_ERR_INVALID_INPUT`; 적중에서 파일을 열 수 없으면 `XPE_ERR_IO_FAILED`(파일의 속성은 읽히는데 내용을 열 수 없는 경우 — 열기만 하고 읽지 않는다); 미스나 취소된 적중에서는 `xpe_calib_load_offset` 의 코드(`XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`(헤더·무결성·XCal 타입 불일치), `XPE_ERR_CALIBRATION_EXPIRED` 등); 만료된 엔트리의 적중에서 `XPE_ERR_CALIBRATION_EXPIRED`; 적재 뒤 저장소에 오프셋 맵이 없으면 `XPE_ERR_NOT_INITIALIZED`; 캐시에 넣지 못하면 `XPE_ERR_OUT_OF_MEMORY` 또는 `XPE_ERR_PROCESSING_FAILED`.
+  - **동시 쓰기는 지원하지 않는다**: 보정 파일을 적재하는 동안 그 파일을 쓰거나 바꾸지 않는다. 크기·수정 시각은 조회 앞에서 한 번 읽을 뿐이고, 설치 직전에 다시 읽어도 모든 동시 재작성을 잡지 못하므로 재확인은 넣지 않았다 (리더 결정, QA-A-200).
+  - 예외는 함수 밖으로 나가지 않는다 (할당 실패는 `XPE_ERR_OUT_OF_MEMORY`). 미스에서 캐시에 넣지 못해 오류가 나도 저장소에는 이미 파일의 맵이 올라가 있을 수 있다(평범한 로더는 이미 성공한 뒤다); 실패한 적중은 저장소를 바꾸지 않는다.
   - 적중의 만료 판정은 파일 읽기와 같은 식(`지금 > 만료 시각`, 만료 시각 0 = 만료 없음)과 같은 시계(`system_clock`)를 쓴다.
   - **알려진 한계**: 적중은 파일을 다시 해시하지 않는다. 같은 크기·같은 수정 시각으로 바뀐 파일(수정 시각의 해상도 안에서의 쓰기, 수정 시각을 보존하는 도구로 바뀐 파일 포함)은 감지하지 못하며, `xpe_calib_cache_clear()` 또는 `xpe_preprocess_shutdown()` 뒤에야 새 파일을 읽는다. 적중은 SHA-256 과 세션 검사를 반복하지 않는다.
   - 캐시는 오프셋·게인·결함 세 캐시 로더가 **하나**를 공유한다. 키는 호출자가 준 경로 문자열 그대로, 기본 용량 4, 가득 차면 가장 오래 쓰지 않은 항목을 퇴출한다. 엔트리는 어느 캐시 로더가 만들었는지(맵 종류)를 기록하며, 다른 종류의 로더가 같은 경로를 부르면 그 종류의 평범한 로더가 파일을 거절하는 코드를 받고 저장소는 그대로다.
@@ -30,14 +32,15 @@
   - 적중 비용(3072×3072 FLOAT32 맵, 30회 중앙값): 약 6.8 ms, 미스 약 70 ms (`QA-A-196/evidence/08_hit_cost_with_stat.txt`). 이 값은 요구가 아니라 측정이다.
 - **SRS**: SRS-CALIB-NFR-003-CACHE. 캐시된 적재의 입출력 계약 자체를 정하는 SRS 요구는 없다.
 - **Traceability**: SUP-01
-- **Verification**: Test (`test_calibration_cache.cpp`, `test_calib_cache_ownership.cpp`, `test_calib_cache_concurrency.cpp`, `test_calib_cache_global_store.cpp`, `test_calib_cache_same_verdict.cpp`)
+- **Verification**: Test (`test_calibration_cache.cpp`, `test_calib_cache_ownership.cpp`, `test_calib_cache_concurrency.cpp`, `test_calib_cache_global_store.cpp`, `test_calib_cache_same_verdict.cpp`; 할당 실패 주입은 별도 실행 파일 `xpe_preprocess_oom_tests` 의 `test_oom_injection.cpp`)
 
 #### REQ-P1A-103: Cached Gain Map Loader
 
-**When** `xpe_calib_load_gain_cached(filePath, gainMapOut)` is called with non-NULL arguments, the module **shall** behave as REQ-P1A-102 with `xpe_calib_load_gain` as the plain loader and the scalar gain map as the cached map; **shall**, on a cache hit, apply the gain quality metadata of the file (kept in the entry as its config JSON) again exactly as the load applies it, so that `xpe_calib_get_quality_meta` reports what it would report after a miss; and, when the file loaded is a gain polynomial file (`XCAL_TYPE_GAIN_POLY`), **shall** return `XPE_OK` with `gainMapOut` zeroed (`data` NULL, `dataSize` 0) and cache nothing, the polynomial being held in the module-global store for `xpe_gain_correct`.
+**When** `xpe_calib_load_gain_cached(filePath, gainMapOut)` is called with non-NULL arguments, the module **shall** behave as REQ-P1A-102 with `xpe_calib_load_gain` as the plain loader and the scalar gain map as the cached map; **shall**, on a cache hit, make the gain quality metadata of the file (kept parsed in the entry) the current metadata again exactly as the load does, so that `xpe_calib_get_quality_meta` reports what it would report after a miss; and, when the file loaded is a gain polynomial file (`XCAL_TYPE_GAIN_POLY`), **shall** return `XPE_OK` with `gainMapOut` zeroed (`data` NULL, `dataSize` 0) and cache nothing, the polynomial being held in the module-global store for `xpe_gain_correct`.
 
 - **계약**:
   - 반환 버퍼(스칼라 맵): `XPE_PIXEL_FLOAT32`, `bitsAllocated = bitsStored = 32`, `dataSize = width × height × 4`. 소유권·유효 범위·오류 코드·한계·캐시 규칙은 REQ-P1A-102 와 같다.
+  - 평범한 게인 로더는 던질 수 있는 일(설정 JSON 복사·품질 메타 해석·용량 범위 해석)을 **커밋 앞에서 모두** 끝내고 커밋은 던지지 않는다. 할당 실패는 `XPE_ERR_OUT_OF_MEMORY` 이고 그 경우 저장소는 바뀌지 않는다. 다항식 파일의 경고 알림은 커밋 뒤라서 알림을 올리다 실패해도 적재는 성공으로 남는다(경고만 유실).
   - 적중의 설치는 평범한 게인 로더와 같이 스칼라 맵을 올리고 다항식 계수·적합 범위를 지운다(둘은 택일이다). 게인 값 범위 [0.1, 10.0] 검사는 적재 때 한 번 일어나고 캐시에는 그 검사를 통과한 맵만 들어간다.
   - 다항식 파일은 캐시하지 않으므로 호출마다 파일을 다시 읽고 검사하며(만료·무결성 포함), 호출자는 반환 버퍼가 아니라 `xpe_gain_correct` 로 다항식을 쓴다. 적재 뒤 저장소에 스칼라 맵도 다항식도 없으면 `XPE_ERR_NOT_INITIALIZED`.
 - **SRS**: SRS-CALIB-NFR-003-CACHE. 캐시된 적재 계약 자체는 SRS 에 없다.
@@ -99,6 +102,8 @@
 
 | 문안의 주장 | 확인한 곳 |
 |---|---|
+| 적중이 파일을 열 수 있는지 확인한다 (속성은 읽히고 내용은 못 여는 파일 → 미스와 같은 `IO_FAILED`, 저장소 불변, 엔트리 유지) | 시험 `AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss` (Windows: 공유 모드 0 핸들; POSIX: mode 000, root 는 건너뜀). 반증 팔 QA-A-200 W1 |
+| 예외가 C ABI 밖으로 나가지 않는다 / 실패한 적재가 저장소를 반쯤 바꾸지 않는다 | `xpe_preprocess_oom_tests` (`test_oom_injection.cpp`): K번째 할당을 실패시키는 스윕 13건(평범한 로더 5, 캐시 로더 미스 4·적중 3, 다항식 포함). 반증 팔 QA-A-200 W2b(가드 제거: 캐시 로더 7건 빨강)·W3(커밋 뒤 할당: 평범한 게인 로더 3건 빨강) |
 | 적중이 만료를 다시 검사한다 | 시험 `CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled` (반증 팔 QA-A-196 A1) |
 | 크기·수정 시각이 다르면 적중 취소 → 재적재 → 변조는 거절 | `…WasTamperedWith…`, `AFileWhoseWriteTimeChangedIsReloaded`, `AFileWhoseSizeChanged…`, `AHeaderCorruptedAfterCaching…` (반증 팔 QA-A-196 A2·A2b·A2c, QA-A-197 B3) |
 | 같은 크기·같은 수정 시각은 감지하지 못한다 | `AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear` |
@@ -111,6 +116,8 @@
 | 적중이 다항식 필드를 지운다 | **시험이 가르지 못한다** (QA-A-197 B4/B4b). 문안은 "지운다"고 쓰지만 근거는 코드 읽기(`install_gain`)뿐 |
 | 적중이 타임스탬프·세션 id 를 설치한다 | 코드 읽기만 (읽는 공개 API 없음) |
 | 압축(RLE) 파일에서도 같다 | **미관측** — 문안은 압축을 언급하지 않는다 |
+| 경고 알림 생성 실패가 적재를 실패로 만들지 않는다 | **시험이 못 가른다** (QA-A-200 W4): 알림 큐는 `xpe_common` DLL 안에서 할당해 주입이 닿지 않는다. 코드 읽기(`try/catch`)뿐 |
+| 동시 쓰기 시 한 번은 옛 맵이 설치될 수 있다 | 문안은 이를 막는다고 쓰지 않고 "지원하지 않는다"로 쓴다 (리더 결정). 시험 없음 |
 | `_ex` 가 `calibState` 를 읽지 않는다 | 코드 읽기 + 시험 `PipelineExNullStateSkipsCalibration` (모든 단계 우회에서만) |
 | `xpe_preprocess_version` 이 비-NULL·정적·초기화와 무관·모양이 `숫자.숫자.숫자` | 시험 `PreprocessVersion.*` 4건 (QA-A-199). 도착 때 초록(계약을 고정하는 시험이라 구현 전 빨강은 없음); 반증 팔 5개 — init 따라 값이 다름, init 전 NULL, 호출마다 다른 포인터, 모양 깨짐(`v0.1.0`), 빈 문자열 — 가 각자 맞는 시험을 빨갛게 함 |
 

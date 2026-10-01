@@ -269,9 +269,9 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     return passed;
 }
 
-bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept
+bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out)
 {
-    if (configJson == nullptr) return false;
+    if (configJson == nullptr || out == nullptr) return false;
 
     // A file from before QA-A-35 has none of these keys. Each absent field
     // keeps its no-data value instead of failing the load.
@@ -309,10 +309,15 @@ bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept
     meta.calibration_pass =
         (meta.r_squared >= XPE_CALIB_R_SQUARED_GATE) ? 1u : 0u;
 
-    const double previous = g_quality_meta.r_squared;
-    g_quality_meta = meta;
-    g_quality_meta.previous_r_squared = previous;
+    *out = meta;
     return true;
+}
+
+void xpe_calib_commit_quality_meta(const XpeCalibQualityMeta& parsed) noexcept
+{
+    const double previous = g_quality_meta.r_squared;
+    g_quality_meta = parsed;
+    g_quality_meta.previous_r_squared = previous;
 }
 
 /* =============================================================================

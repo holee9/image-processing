@@ -1,0 +1,85 @@
+Note: Google Test filter = CacheSameVerdict.*
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1116 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (111 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (65 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (108 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (7 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(548): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(554): error: Expected equality of these values:
+  700
+  o
+    Which is: 900
+the refused call must leave the offset Q map in the store
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(548): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(555): error: The difference between 250.0f and g is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+g evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused call must leave the gain Q map in the store
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(548): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): defect
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(556): error: The difference between 5000.0f and d is 4000, which exceeds 0.01f, where
+5000.0f evaluates to 5000,
+d evaluates to 1000, and
+0.01f evaluates to 0.0099999997764825821.
+the refused call must leave the defect Q map in the store
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(522): defect
+
+[  FAILED  ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (26 ms)
+[----------] 12 tests from CacheSameVerdict (1485 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (1485 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+
+ 1 FAILED TEST

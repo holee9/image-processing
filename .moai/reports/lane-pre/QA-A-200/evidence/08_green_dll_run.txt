@@ -1,0 +1,91 @@
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*:*Cache*
+[==========] Running 34 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from CalibrationCacheTest
+[ RUN      ] CalibrationCacheTest.CacheMissLoadsFromFile
+[       OK ] CalibrationCacheTest.CacheMissLoadsFromFile (6 ms)
+[ RUN      ] CalibrationCacheTest.CacheHitReturnsSameData
+[       OK ] CalibrationCacheTest.CacheHitReturnsSameData (6 ms)
+[ RUN      ] CalibrationCacheTest.GainCacheMissAndHit
+[       OK ] CalibrationCacheTest.GainCacheMissAndHit (8 ms)
+[ RUN      ] CalibrationCacheTest.DefectCacheMissAndHit
+[       OK ] CalibrationCacheTest.DefectCacheMissAndHit (6 ms)
+[ RUN      ] CalibrationCacheTest.NullPathReturnsError
+[       OK ] CalibrationCacheTest.NullPathReturnsError (3 ms)
+[ RUN      ] CalibrationCacheTest.NullOutReturnsError
+[       OK ] CalibrationCacheTest.NullOutReturnsError (3 ms)
+[ RUN      ] CalibrationCacheTest.ClearEvictsAllEntries
+[       OK ] CalibrationCacheTest.ClearEvictsAllEntries (6 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeEvictsExcess
+[       OK ] CalibrationCacheTest.SetMaxSizeEvictsExcess (9 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne
+[       OK ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne (7 ms)
+[----------] 9 tests from CalibrationCacheTest (66 ms total)
+
+[----------] 6 tests from CalibCacheOwnershipTest
+[ RUN      ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer
+[       OK ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated
+[       OK ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers
+[       OK ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers (16 ms)
+[ RUN      ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry
+[       OK ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity
+[       OK ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract
+[       OK ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract (11 ms)
+[----------] 6 tests from CalibCacheOwnershipTest (41 ms total)
+
+[----------] 2 tests from CalibCacheConcurrencyTest
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure
+[QA-A-31] iterations=50000 ok=50000 spurious_PROCESSING_FAILED=0 other_failures=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure (2379 ms)
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure
+[QA-A-31] eviction race: iterations=25000 spurious_PROCESSING_FAILED=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure (1205 ms)
+[----------] 2 tests from CalibCacheConcurrencyTest (3585 ms total)
+
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (13 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (6 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (2 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (1 ms)
+[----------] 5 tests from CacheGlobalStore (29 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1118 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (122 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (11 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (8 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (7 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (5 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (45 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (4 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (119 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (5 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (28 ms)
+[----------] 12 tests from CacheSameVerdict (1482 ms total)
+
+[----------] Global test environment tear-down
+[==========] 34 tests from 5 test suites ran. (5205 ms total)
+[  PASSED  ] 34 tests.

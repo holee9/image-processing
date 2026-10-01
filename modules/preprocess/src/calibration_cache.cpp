@@ -10,9 +10,14 @@
  *  - the file's size and last-write time are compared with what the entry recorded, and a
  *    difference (or a file that cannot be examined) cancels the hit so the miss path reloads
  *    and re-hashes it;
- *  - the gain quality metadata is applied again from the entry's stored config JSON.
+ *  - the file is opened for reading once (opening only): a file whose attributes are visible but
+ *    whose content cannot be opened is refused with IO_FAILED, as a miss would;
+ *  - the gain quality metadata of the file, kept parsed in the entry, is made current again.
  * A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is
  * not noticed until xpe_calib_cache_clear() (or module shutdown, which empties the cache).
+ * Concurrent writers are not supported: the file must not be written while a calibration load is in
+ * progress (a second look at the attributes just before the install would not close every such race,
+ * so none is made -- QA-A-200).
  * Thread-safety: all LRU/index mutations are protected by an internal mutex (IEC 62304 Class B).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0
@@ -26,6 +31,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -76,6 +82,21 @@ FileStamp stamp_of(const char* path) noexcept
     return st;
 }
 
+/**
+ * Whether the file can be opened for reading, the way the XCal reader opens it. Reading the size and
+ * the write time succeeding does not imply this (a file can show its attributes and refuse its
+ * content), and a miss would report IO_FAILED, so a hit has to try the open too (QA-A-200).
+ */
+bool can_open_for_read(const char* path) noexcept
+{
+    try {
+        std::ifstream f(path, std::ios::binary);
+        return f.is_open();
+    } catch (...) {
+        return false;
+    }
+}
+
 int64_t now_epoch_ms() noexcept
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -85,7 +106,7 @@ int64_t now_epoch_ms() noexcept
 /**
  * What the plain loader and the file record next to the pixels. Kept in the entry so that a hit
  * can put the global store back exactly as the loader did and judge the file as the read would.
- * timestamp / sessionId are zero for a defect map; configJson is kept for gain only.
+ * timestamp / sessionId are zero for a defect map; the quality metadata is kept for gain only.
  * `kind` records the map kind the plain loader validated (QA-A-197): the key is the path alone, and a
  * file holds one kind of map, so a hit from a loader of another kind must be refused as a miss would.
  */
@@ -97,7 +118,8 @@ struct EntryMeta {
     char        sessionId[64]{};
     int64_t     expiryMs{0};   ///< file's expiry_epoch_ms, 0 = never expires
     FileStamp   stamp;         ///< size and last-write time taken before the file was read
-    std::string configJson;
+    XpeCalibQualityMeta quality{};   ///< gain only: the parsed FUNC-033 metadata of the file
+    bool        hasQuality{false};
 };
 
 enum class HitState { Miss, Hit, Expired };
@@ -441,6 +463,7 @@ void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
 // @MX:SPEC: REQ-P1A-014
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut)
+try
 {
     if (!filePath || !offsetMapOut) return XPE_ERR_INVALID_INPUT;
 
@@ -460,6 +483,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
+            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -498,12 +522,23 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 
     return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut, meta);
 }
+catch (const std::bad_alloc&)
+{
+    // No exception may leave a C ABI function (QA-A-200): the strings, vectors and the cache's own
+    // containers all allocate.
+    return XPE_ERR_OUT_OF_MEMORY;
+}
+catch (...)
+{
+    return XPE_ERR_PROCESSING_FAILED;
+}
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_gain_cached — cached gain map loader
 // @MX:REASON: Pipeline calls this per-frame; caching eliminates repeated file I/O
 // @MX:SPEC: REQ-P1A-016
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
                                                   XpeImageBuffer* gainMapOut)
+try
 {
     if (!filePath || !gainMapOut) return XPE_ERR_INVALID_INPUT;
 
@@ -519,9 +554,10 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
+            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId);
-            // The quality metadata a miss parses from the file: applied again, the same way.
-            xpe_calib_apply_quality_meta_json(meta.configJson.c_str());
+            // The quality metadata a load makes current: made current again, the same way (nothrow).
+            if (meta.hasQuality) xpe_calib_commit_quality_meta(meta.quality);
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -561,11 +597,22 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
         std::memcpy(staging.data(), g_calib.gain_map.get(), staging.size());
         meta.timestamp  = g_calib.gain_timestamp;
         meta.expiryMs   = g_calib.gain_expiry_ms;
-        meta.configJson = g_calib.gain_config_json;
+        meta.quality    = g_calib.gain_quality;
+        meta.hasQuality = g_calib.gain_has_quality;
         std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut, meta);
+}
+catch (const std::bad_alloc&)
+{
+    // No exception may leave a C ABI function (QA-A-200): the strings, vectors and the cache's own
+    // containers all allocate.
+    return XPE_ERR_OUT_OF_MEMORY;
+}
+catch (...)
+{
+    return XPE_ERR_PROCESSING_FAILED;
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_defect_cached — cached defect map loader
@@ -580,6 +627,7 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 // tools/docs/check_req_citations.py.)
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut)
+try
 {
     if (!filePath || !defectMapOut) return XPE_ERR_INVALID_INPUT;
 
@@ -595,6 +643,7 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
+            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_defect(std::move(pixels), view);
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -630,6 +679,16 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);
+}
+catch (const std::bad_alloc&)
+{
+    // No exception may leave a C ABI function (QA-A-200): the strings, vectors and the cache's own
+    // containers all allocate.
+    return XPE_ERR_OUT_OF_MEMORY;
+}
+catch (...)
+{
+    return XPE_ERR_PROCESSING_FAILED;
 }
 
 XPE_API void xpe_calib_cache_clear(void)

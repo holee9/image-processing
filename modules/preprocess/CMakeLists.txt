@@ -522,4 +522,37 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_preprocess_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    # QA-A-200 (#216): allocation-failure injection. The replacement operator new in
+    # tests/test_oom_injection.cpp only reaches code built into the same executable -- the
+    # xpe_preprocess DLL binds to its own runtime's allocator -- so this target compiles the product
+    # sources into itself instead of linking the DLL.
+    add_executable(xpe_preprocess_oom_tests
+        tests/test_oom_injection.cpp
+        ${XPE_PREPROCESS_SOURCES}
+    )
+    target_include_directories(xpe_preprocess_oom_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+    )
+    target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT)
+    target_link_libraries(xpe_preprocess_oom_tests
+        PRIVATE xpe_common
+                GTest::gtest_main
+    )
+    if(WIN32)
+        target_link_libraries(xpe_preprocess_oom_tests PRIVATE bcrypt)
+    endif()
+    target_compile_features(xpe_preprocess_oom_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_preprocess_oom_tests PRIVATE /W4 /arch:AVX2)
+    else()
+        target_compile_options(xpe_preprocess_oom_tests PRIVATE -Wall -Wextra -mavx2)
+    endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_oom_tests)
+
+    gtest_discover_tests(xpe_preprocess_oom_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()

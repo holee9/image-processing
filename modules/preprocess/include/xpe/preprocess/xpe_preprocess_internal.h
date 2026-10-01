@@ -299,7 +299,10 @@ struct CalibrationData {
     int64_t  gain_timestamp{0};
     char     gain_session_id[64]{};
     int64_t  gain_expiry_ms{0};
-    std::string gain_config_json;
+    // The gain file's FUNC-033 quality metadata, parsed before the commit and kept so that a cache
+    // hit applies the very same values as the load did (QA-A-200).
+    XpeCalibQualityMeta gain_quality{};
+    bool     gain_has_quality{false};
 
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
@@ -404,10 +407,23 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  * (r_squared / previous_r_squared -1.0, the rest 0) rather than failing the
  * load.
  *
+ * Parsing allocates and may throw std::bad_alloc; nothing is changed until
+ * xpe_calib_commit_quality_meta().
+ *
  * @param configJson NUL-terminated config JSON, or nullptr for none.
+ * @param out        Receives the parsed metadata when the result is true.
  * @return true when at least one FUNC-033 field was present.
  */
-bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
+bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out);
+
+/**
+ * @brief Make parsed FUNC-033 metadata the one xpe_calib_get_quality_meta() serves.
+ *
+ * Never throws: it copies a plain struct. Split from the parse so a loader can do everything that
+ * allocates before it commits anything (QA-A-200); previous_r_squared is chained from the metadata
+ * being replaced, as a load always did.
+ */
+void xpe_calib_commit_quality_meta(const XpeCalibQualityMeta& parsed) noexcept;
 
 /**
  * @brief Scalar reference implementation of the gain-correction inner loop.
