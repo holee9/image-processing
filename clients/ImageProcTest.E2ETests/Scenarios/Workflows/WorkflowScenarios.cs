@@ -234,6 +234,7 @@ public sealed class WorkflowScenarios
             if (combo.SelectedItem?.Text == "Lung")
             {
                 combo.Select("Bone");
+                CloseTheDropDown(combo);
                 Thread.Sleep(1500);
             }
 
@@ -246,6 +247,7 @@ public sealed class WorkflowScenarios
             Assert.Contains("W=4321", moved, StringComparison.Ordinal);
 
             combo.Select("Lung");
+            CloseTheDropDown(combo);
             Thread.Sleep(1500);
 
             // The expected numbers ARE backend-specific, and the first version of this scenario

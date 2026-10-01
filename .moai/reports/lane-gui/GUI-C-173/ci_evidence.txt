@@ -1,0 +1,47 @@
+# GUI-C-173 — CI evidence for R01 (excerpts, verbatim; trailing whitespace removed)
+
+## Run 36830802666 (dev/gui 841dce29) — Mock job gui-automation, R01 FAILED, failure message with the probes
+A real mouse click on the View menu did not open it: 'ShowLogsPanelMenuItem' was not visible within 2 s. [GUI-C-173] before the click: the app was already the foreground window. After the first click: ViewMenu ExpandCollapseState=Collapsed; keyboard focus: 'BodyPartSelector' pid 4604. A SECOND real click on a closed menu opened it: True. ESC then a real click opened it: True. UI Automation Expand opened it: True. [GUI-C-171] foreground: hwnd=0x150150 pid=4604 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0'; app main window: hwnd=0x150150 pid=4604 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=False offscreen=False rect={X=104,Y=104,Width=1280,Height=788}; under the View menu's centre: (222,284) -> hwnd=0x150150 pid=4604 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0'
+
+Same run, Native job gui-e2e-native, R01 line 655 of its log (probe summary):
+[xUnit.net 00:06:43.09]       A real mouse click on the View menu did not open it: 'ShowLogsPanelMenuItem' was not visible within 2 s. [GUI-C-173] before the click: the app was already the foreground window. After the first click: ViewMenu ExpandCollapseState=Collapsed; keyboard focus: 'BodyPartSelector' pid 8172. A SECOND real click on a closed menu opened it: True. ESC then a real click opened it: True. UI Automation Expand opened it: True. [GUI-C-171] foreground: hwnd=0x70144 pid=8172 proc=ImageProcTest title='ImageProcTest GUI-S0'; app main window: hwnd=0x70144 pid=8172 proc=ImageProcTest title='ImageProcTest GUI-S0' iconic=False keyboardFocus=False offscreen=False rect={X=156,Y=156,Width=1280,Height=788}; under the View menu's centre: (274,308) -> hwnd=0x70144 pid=8172 proc=ImageProcTest title='ImageProcTest GUI-S0'
+
+## Run 36834211832 (dev/gui 17fd7f01) — R01 and R02 PASSED
+Mock TRX (artifact xpe-gui-e2e-smoke-results): R01_TheViewMenu_OpensWithARealMouseClick  outcome=Passed
+    R01 expanded before the click, closed through UI Automation: ComboBox:BodyPartSelector
+    R01 before the click: the app was already the foreground window
+    R01 item after the click: present
+    R01: 2987 ms
+Mock TRX (artifact xpe-gui-e2e-smoke-results): R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn  outcome=Passed
+    R02 after typing: box='4321' indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
+    R02: 7027 ms
+
+Mock log: Passed!  - Failed:     0, Passed:   145, Skipped:    34, Total:   179, Duration: 11 m 13 s - ImageProcTest.E2ETests.dll (net8.0)
+Mock log: results=179 skipped=34 input-gated-skips=0
+
+Native log: Passed ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [5 s]
+Native log: Passed ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [2 s]
+
+## Native job time, run 36834211832 — PARTIAL, the job was cancelled by its 20-minute budget
+test step started 08:17:35Z, cancelled 08:36:32Z (about 19 minutes)
+dev/gui .github/workflows/ci.yml gui-e2e-native timeout-minutes: 20   (main raised it to 30 in 6c56a25f; not on dev/gui)
+tests with a result line before the cancel: 124 of 179 (passed 121, skipped 3, failed 0)
+sum of the reported test durations: 757 s (12.6 min); the rest of the step is app start-up and fixtures
+top classes by reported time (partial; GsvgWristSliceScenarios was still running when the job was cancelled):
+    GsvgWristSliceScenarios                 164 s  (9 tests)
+    AutomationReportBackendTests            158 s  (13 tests)
+    SelectionVisibilityObservation           87 s  (3 tests)
+    ProcessingChainScenarios                 73 s  (6 tests)
+    ViewStateRenderScenarios                 35 s  (7 tests)
+    EvidenceBundleScenarios                  30 s  (5 tests)
+    ViewportTruthScenarios                   29 s  (6 tests)
+    LogAlertDiscriminabilityObservation      23 s  (2 tests)
+slowest scenarios seen:
+       54 s  GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread
+       42 s  SelectionVisibilityObservation.A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAbo
+       40 s  SelectionVisibilityObservation.A2_WithTheLogScrolled_IsTheMovedRowStillWhereTheUserCanSeeIt
+       30 s  AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold
+       22 s  GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot
+       21 s  GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels
+       20 s  AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependO
+       19 s  AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess
