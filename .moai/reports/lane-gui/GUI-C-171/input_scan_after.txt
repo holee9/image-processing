@@ -3,7 +3,7 @@
 clients/ImageProcTest/MainWindow.xaml.cs:79:            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
 (count: 1)
 
-# the product-side hit that is a READ of modifier state, not input: 
+# the product-side hit that is a READ of modifier state, not input:
 79:            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
 
 # the ONLY file that calls the input APIs:
@@ -30,7 +30,7 @@ Workflows/ViewStateRenderScenarios.cs:318:        GlobalInput.MoveTo(new System.
 Workflows/ViewStateRenderScenarios.cs:322:            GlobalInput.Scroll(1);
 Workflows/ViewStateRenderScenarios.cs:330:        GlobalInput.MoveTo(from);
 Workflows/ViewStateRenderScenarios.cs:332:        GlobalInput.Down(button);
-Workflows/ViewStateRenderScenarios.cs:336:            GlobalInput.MoveTo(new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y 
+Workflows/ViewStateRenderScenarios.cs:336:            GlobalInput.MoveTo(new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y
 Workflows/ViewStateRenderScenarios.cs:340:        GlobalInput.Up(button);
 
 # focus APIs that remain (NOT input; they bring a window forward or move focus inside the app, and send nothing):
