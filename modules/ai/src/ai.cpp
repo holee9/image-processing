@@ -41,6 +41,9 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#ifdef XPE_AI_TEST_HOOKS
+#include <thread>   // the before-state-delete probe (test hook only)
+#endif
 #include <string>
 #include <vector>
 
@@ -476,6 +479,17 @@ static std::atomic<void (*)(void)> g_testMutexHeldHook{nullptr};
 extern "C" XPE_API void xpe_ai_test_set_mutex_held_hook(void (*hook)(void)) {
     g_testMutexHeldHook.store(hook, std::memory_order_release);
 }
+
+// TEST-ONLY (QA-B-178). Called by xpe_ai_shutdown immediately BEFORE it deletes the module state, with
+// whether the state's mutex is still locked at that moment. A locked mutex means a lock_guard that is still
+// in scope will unlock it AFTER the delete (undefined behaviour, even single-threaded). The probe runs on a
+// helper thread because try_lock by the owning thread is itself undefined for std::mutex. Compiled only with
+// the same XPE_AI_TEST_HOOKS option as the hook above.
+static std::atomic<void (*)(int)> g_testBeforeStateDeleteHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_before_state_delete_hook(void (*hook)(int mutexStillHeld)) {
+    g_testBeforeStateDeleteHook.store(hook, std::memory_order_release);
+}
 #endif
 
 /** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
@@ -586,6 +600,8 @@ XPE_API void xpe_ai_shutdown(void)
     if (!g_aiState) return;
 
     auto* state = g_aiState;
+    {   // The lock's scope ENDS before the state is deleted: a lock_guard still alive at `delete state` would
+        // unlock a destroyed mutex when the function returns (QA-B-178, Codex #25).
     std::lock_guard<std::mutex> lock(state->mtx);
 
     // Mark as not initialized first (prevents new calls)
@@ -614,8 +630,21 @@ XPE_API void xpe_ai_shutdown(void)
     state->pipeHandle = nullptr;
     state->workerPid = 0;
 
-    // Free state and null the global pointer
+    // Null the global pointer while still locked (nothing can reach the state through it any more) ...
     g_aiState = nullptr;
+    }   // ... release the lock, and only then destroy the mutex that guarded it.
+
+#ifdef XPE_AI_TEST_HOOKS
+    if (auto* hook = g_testBeforeStateDeleteHook.load(std::memory_order_acquire)) {
+        int held = 0;
+        std::thread probe([state, &held] {
+            held = state->mtx.try_lock() ? 0 : 1;
+            if (!held) state->mtx.unlock();
+        });
+        probe.join();
+        hook(held);
+    }
+#endif
     delete state;
 }
 

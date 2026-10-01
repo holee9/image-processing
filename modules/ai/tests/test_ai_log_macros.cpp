@@ -92,3 +92,34 @@ TEST(AiLogMacrosPrintf, ACallIsOneStatementAfterAnUnbracedIf) {
         AI_LOG_INFO("else");
     EXPECT_EQ("[AI INFO] then\n", cap.Finish());
 }
+
+// QA-B-177c: AI_LOG_TEXT in the build WITHOUT spdlog. It was defined only in the spdlog branch, so a call
+// compiled only because the one caller (ai_onnx_session.cpp) has its own no-op LOG_* in that branch. This
+// translation unit is that branch (it undefines XPE_AI_USE_SPDLOG before including ai_log.h): the test
+// compiles the macro exactly as a future caller would use it. `spdlog::level::err` is deliberately written
+// although spdlog is not included in this branch -- the macro must discard it unevaluated and uncompiled.
+namespace {
+int g_textArgEvaluations = 0;
+std::string SideEffectText() {
+    ++g_textArgEvaluations;
+    return "text";
+}
+}  // namespace
+
+TEST(AiLogMacrosPrintf, LogTextCompilesWithoutSpdlogAndEvaluatesNothing) {
+    StdoutCapture cap;
+    g_textArgEvaluations = 0;
+    AI_LOG_TEXT(spdlog::level::err, std::string("session failed: ") + SideEffectText());
+    EXPECT_EQ(0, g_textArgEvaluations) << "the message argument must not be evaluated without a logger";
+    EXPECT_EQ("", cap.Finish()) << "and nothing is printed";
+}
+
+TEST(AiLogMacrosPrintf, LogTextIsOneStatementAfterAnUnbracedIf) {
+    const bool yes = true;
+    int taken = 0;
+    if (yes)
+        AI_LOG_TEXT(spdlog::level::warn, std::string("a"));
+    else
+        taken = 1;
+    EXPECT_EQ(0, taken);
+}
