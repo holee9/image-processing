@@ -91,7 +91,7 @@ registered in `XPE_TEST_SOURCES` (`modules/preprocess/CMakeLists.txt`) and there
 | REQ-SIMD-004 | `test_runtime_detection_avx2_parity.cpp` | 11 registered, 11/11 PASS (re-counted 2026-10-01, `QA-A-175`; this row read 4 — VERIFIED 2026-05-09) | Yes |
 | BP-01~05 DegradedMode | `test_preprocess_degraded.cpp` | 6 — 6/6 PASS (Frozen 2026-04-22) | Yes |
 | REQ-P1A-041~042 | `test_readout_validate.cpp` | 9 | Yes |
-| REQ-P1A-066 | `test_req_p1a_066.cpp` | 4 | Yes |
+| REQ-P1A-066 ⚠ | `test_req_p1a_066.cpp` | 4 | Yes — *2026-10-01 (`QA-A-183`): 현재 SPEC 에 066 정의 없음. 옛 정의(ghost 핸들 공유 금지)와도 다른 오류 경로 4종(곱셈 오버플로, 디렉터리 경로, SHA-256 0, 독립 핸들 동시 사용)을 시험한다. 번호는 이름표이고 요구 근거가 아니다 — 이 행은 요구 추적이 아니다 (#232)* |
 | **Directory total** | 40 files | **457** | **32 files / 308 cases registered** |
 
 The per-REQ rows above are a **mapping, not a partition**: they name the suites each requirement
