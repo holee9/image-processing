@@ -1,0 +1,4 @@
+IDENTICAL after comment strip: modules/preprocess/src/binning_correct.cpp
+IDENTICAL after comment strip: modules/preprocess/include/xpe/preprocess_api.h
+control (one injected code-token change) is detected: True
+ALL_COMMENT_ONLY = True
