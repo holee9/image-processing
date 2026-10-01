@@ -644,15 +644,25 @@ XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
 /**
  * @brief Apply piecewise linear or polynomial correction to linearize detector response
  *
- * REQ-P1A-012: Apply nonlinearity correction
- * REQ-P1A-013: No-op when no config supplied
- * REQ-P1A-014: Unknown mode -> XPE_ERR_CONFIG_INVALID
- * REQ-P1A-015: Identity polynomial for baseline
+ * Requirement: SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), not a REQ-P1A-
+ * number. SPEC-XPE-P1A puts nonlinearity out of its scope (spec.md:55, PRE-08)
+ * and the SPEC-XPE-P1D it names does not exist.
+ *   - Apply the loaded LUT (6a) or polynomial (6b): SRS-CALIB-FUNC-006-EXT.
+ *   - No LUT and no coefficients: no-op with an alert, XPE_OK (QA-A-127,
+ *     QA-A-140, #196). No requirement states this sentence; the nearest text
+ *     is SRS-CALIB-FUNC-006 (the profile supplies f_nonlin) and
+ *     SRS-CALIB-SAFE-001 (nonlinearity is optional and conditional).
+ *   - An unrecognised "mode" is not an error: the stage reads no meaning
+ *     from it (QA-A-127, #196).
+ * The numbers REQ-P1A-012..015 this block used to cite are the pre-bc22093
+ * ones and now name other requirements. Its "identity polynomial for
+ * baseline" line has no counterpart in SRS 6b or in the implementation.
  *
  * @param img [in/out] Image to correct (uint16 format)
  * @param configJsonOrNull Optional detector mode/coefficient override JSON
  * @return XPE_OK on success
- *         XPE_ERR_CONFIG_INVALID if unknown detector mode
+ *         XPE_ERR_CALIB_NOT_LOADED if the panel is declared non-linear and no
+ *         LUT is loaded
  *         XPE_ERR_INVALID_INPUT if NULL img
  */
 XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,

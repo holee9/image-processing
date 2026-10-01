@@ -154,7 +154,7 @@ TEST(BinningCorrect, NullImgReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_binning_correct(nullptr, 2, nullptr));
 }
 
-// REQ-P1A-020: binningMode == 1 is no-op, must return XPE_OK
+// REQ-P1A-091: binningMode == 1 is no-op, must return XPE_OK
 TEST(BinningCorrect, Binning1x1IsNoOp) {
     std::vector<float> data(16, 100.0f);
     XpeImageBuffer buf = make_float32_buf(data, 4, 4);
@@ -162,7 +162,7 @@ TEST(BinningCorrect, Binning1x1IsNoOp) {
     EXPECT_NEAR(100.0f, *static_cast<const float*>(buf.data), 1e-6f);
 }
 
-// REQ-P1A-021: unknown binning mode -> XPE_ERR_CONFIG_INVALID
+// REQ-P1A-091: unknown binning mode (not 1, 2 or 4) -> XPE_ERR_CONFIG_INVALID
 TEST(BinningCorrect, UnknownBinningModeReturnsError) {
     std::vector<float> data(16, 100.0f);
     XpeImageBuffer buf = make_float32_buf(data, 4, 4);
