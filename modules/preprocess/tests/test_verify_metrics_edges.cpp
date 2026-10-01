@@ -117,7 +117,7 @@ TEST_F(VerifyMetricsEdgeTest, VerifyGainHandlesPerfectlyUniformOutput) {
     XpeImageBuffer b = u16Buf(before), a = f32Buf(after), g = f32Buf(gain);
     XpeCalibrationMetrics metrics{};
 
-    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &a, &g, &metrics));
+    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics));
 }
 
 // A varied corrected frame drives the histogram/entropy path instead.
@@ -130,7 +130,7 @@ TEST_F(VerifyMetricsEdgeTest, VerifyGainComputesFlatnessOverVariedOutput) {
     XpeImageBuffer b = u16Buf(before), a = f32Buf(after), g = f32Buf(gain);
     XpeCalibrationMetrics metrics{};
 
-    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &a, &g, &metrics));
+    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics));
 }
 
 // Wrong format on the gain map is rejected as such.
@@ -140,7 +140,7 @@ TEST_F(VerifyMetricsEdgeTest, VerifyGainRejectsWrongGainMapFormat) {
     XpeImageBuffer b = u16Buf(before), a = f32Buf(after), g = u16Buf(gainU16);
     XpeCalibrationMetrics metrics{};
 
-    EXPECT_NE(XPE_OK, xpe_verify_gain(&b, &a, &g, &metrics))
+    EXPECT_NE(XPE_OK, xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics))
         << "a UINT16 gain map is not the FLOAT32 the metric expects";
 }
 

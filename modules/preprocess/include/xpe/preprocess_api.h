@@ -997,6 +997,22 @@ typedef struct {
 } XpeCalibrationMetrics;
 
 /**
+ * @brief What a gain map means, as SRS-CALIB-FUNC-018 records it.
+ *
+ * "System shall record calibration gain semantics as `normalized_gain`,
+ * `reciprocal_gain`, or `unknown`. Unknown semantics may run exploratory
+ * validation but shall not pass release gates."
+ *
+ * Values are the int32 the C ABI carries for a C enum; any other value is
+ * rejected by xpe_verify_gain with XPE_ERR_INVALID_INPUT.
+ */
+typedef enum {
+    XPE_GAIN_SEMANTICS_UNKNOWN    = 0,  ///< `unknown`
+    XPE_GAIN_SEMANTICS_NORMALIZED = 1,  ///< `normalized_gain`
+    XPE_GAIN_SEMANTICS_RECIPROCAL = 2   ///< `reciprocal_gain`
+} XpeGainSemantics;
+
+/**
  * @brief Per-metric "was this actually measured" flags for `measured_mask`
  *
  * SRS-CALIB-FUNC-036. A set bit means the field was computed from data; a clear
@@ -1056,15 +1072,27 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @param before_gain Offset-corrected image (UINT16)
  * @param after_gain Gain-corrected image (FLOAT32)
  * @param gain_map Gain map used (FLOAT32)
+ * @param gain_semantics What the gain map means (SRS-CALIB-FUNC-018). It selects the
+ *        FlatResidualPct line that `overall_pass` is held to, and changes no measured value:
+ *        `XPE_GAIN_SEMANTICS_NORMALIZED` or `XPE_GAIN_SEMANTICS_RECIPROCAL` (known) -> 0.5%;
+ *        `XPE_GAIN_SEMANTICS_UNKNOWN` -> 1.0%. SRS-CALIB-FUNC-017: "Phase 1 acceptance shall
+ *        require `FlatResidualPct <= 1.0%` and target `<= 0.5%` for release-hardening fixtures
+ *        where gain semantics are known."
  * @param metrics Output metrics
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, a `gain_semantics` value outside the
+ *                               enumeration, or a pixel count of zero
+ *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
  *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
+ *
+ * @note ABI: the 5-argument form (QA-A-192, #220) replaced the 4-argument form, which had no
+ *       caller outside the tests (QA-A-189). `gain_semantics` sits before `metrics`.
  */
 XPE_API XpeErrorCode xpe_verify_gain(
     const XpeImageBuffer* before_gain,
     const XpeImageBuffer* after_gain,
     const XpeImageBuffer* gain_map,
+    XpeGainSemantics gain_semantics,
     XpeCalibrationMetrics* metrics);
 
 /**

@@ -60,7 +60,7 @@ Row measure(const std::vector<float>& after, uint32_t w, uint32_t h) {
     g.data = gain.data(); g.width = w; g.height = h; g.bitsAllocated = 32; g.bitsStored = 32;
     g.format = XPE_PIXEL_FLOAT32; g.dataSize = static_cast<uint32_t>(gain.size() * 4);
     XpeCalibrationMetrics m{};
-    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &f, &g, &m));
+    EXPECT_EQ(XPE_OK, xpe_verify_gain(&b, &f, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &m));
 
     std::vector<double> v(after.begin(), after.end());
     const double mu = meanOf(v), md = medianOf(v);
