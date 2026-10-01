@@ -608,7 +608,7 @@ constexpr float XPE_CALIB_GAIN_MAX = 10.0f;
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 
-/** The r_squared of a quality record whose file gave none (QA-A-208c): the no-data value. A file may not carry it. */
+/** The fill value of r_squared / previous_r_squared when there is none -- NOT the indicator: that is has_r_squared (QA-A-208d). */
 constexpr double XPE_R_SQUARED_NOT_GIVEN = -1.0;
 
 /**

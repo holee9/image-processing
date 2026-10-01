@@ -683,8 +683,11 @@ TEST_F(ConfigStrictParse, AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreCom
 // QA-A-208c (Codex #43): the config block of an XCal file is read to its stored LENGTH, and the quality parser must
 // read all of it. It used to be handed over as a C string, so the first NUL byte ended the text: everything behind
 // it went unchecked and "{}<NUL>{\"fit_r_squared\":\"bad\"}" hid a bad quality key (the file's SHA-256 covers the
-// whole block, so the hash does not catch it). nlohmann's strict mode refuses a NUL outside a string (a token error)
-// and inside one (a control character), so no NUL check of our own is added -- these rows are what shows it.
+// whole block, so the hash does not catch it). Passing the real length is NOT enough, and neither does nlohmann's strict
+// mode help: its lexer reads a NUL outside a string as the END of the input (token end_of_input, lexer.hpp), which
+// strict accepts after the value and never reads past -- so "{}<NUL>{bad}" parsed. Inside a string a NUL is already a
+// control-character error. helpers.cpp therefore refuses any NUL byte before parsing (memchr); the rows below that
+// put a NUL outside a string fail without it (QA-A-208c; the first version of this comment said the opposite, QA-A-208d).
 // The same rows cover what was never run before: a byte-order mark and malformed UTF-8.
 TEST_F(ConfigStrictParse, AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte) {
     writeGainWithConfig("csp_gq.xcal", 4.0f,
@@ -757,10 +760,11 @@ TEST_F(ConfigStrictParse, AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulB
 }
 
 // QA-A-208c: a quality field outside the range it has by definition is refused, and the ends of the range are
-// accepted. The ranges are what no generation can step outside of (xpe_calib_mode.cpp): fit_r_squared at most 1 and
-// never the record's own no-data value -1.0; polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4.
-// fit_r_squared has no lower bound of its own: the generator reports a NEGATIVE one when the fit is worse than the
-// mean (-0.0766 for the ladder of the poly-fixture tests), and a file it wrote must load.
+// accepted. The ranges are what no generation can step outside of (xpe_calib_mode.cpp): fit_r_squared at most 1;
+// polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4.
+// fit_r_squared has no lower bound: the generator reports a NEGATIVE one when the fit is worse than the mean
+// (-0.0766 for the ladder of the poly-fixture tests), and a file it wrote must load -- exactly -1.0 included
+// (QA-A-208d: its presence is has_r_squared, not a marker value; the generator prints it as -1.000000000).
 TEST_F(ConfigStrictParse, AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted) {
     writeGainWithConfig("csp_gq.xcal", 4.0f,
         "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
@@ -770,8 +774,9 @@ TEST_F(ConfigStrictParse, AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRa
 
     struct Case { const char* field; const char* value; bool accepted; };
     const Case cases[] = {
-        {"fit_r_squared", "1.0001", false}, {"fit_r_squared", "2", false}, {"fit_r_squared", "-1.0", false},
-        {"fit_r_squared", "-1", false}, {"fit_r_squared", "1", true}, {"fit_r_squared", "1.0", true},
+        {"fit_r_squared", "1.0001", false}, {"fit_r_squared", "2", false}, {"fit_r_squared", "-1.0", true},
+        {"fit_r_squared", "-1", true}, {"fit_r_squared", "-1.000000000", true}, {"fit_r_squared", "1", true},
+        {"fit_r_squared", "1.0", true},
         {"fit_r_squared", "0", true}, {"fit_r_squared", "0.0", true}, {"fit_r_squared", "-0.01", true},
         {"fit_r_squared", "-0.076637433", true}, {"fit_r_squared", "-1.0001", true},
         {"polynomial_degree", "-1", false}, {"polynomial_degree", "5", false}, {"polynomial_degree", "0", true},
@@ -803,6 +808,8 @@ TEST_F(ConfigStrictParse, AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRa
                 ASSERT_EQ(XPE_OK, rc);
                 EXPECT_EQ(1u, after.valid);
                 const std::string f = cs.field;
+                EXPECT_EQ(f == "fit_r_squared" ? 1u : 0u, static_cast<unsigned>(after.has_r_squared))
+                    << "the flag says whether the file gave an R2 -- the key is there, whatever the value";
                 const double got = f == "fit_r_squared" ? after.r_squared : f == "polynomial_degree" ? after.polynomial_degree
                                  : f == "actual_dose_levels" ? after.num_points : after.calibration_mode;
                 EXPECT_DOUBLE_EQ(std::stod(cs.value), got);

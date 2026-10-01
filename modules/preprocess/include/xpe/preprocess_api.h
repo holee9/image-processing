@@ -1555,15 +1555,20 @@ typedef enum XpeCalibrationMode {
  *
  * Fields:
  * - calibration_mode: Active calibration mode (XpeCalibrationMode)
- * - polynomial_degree: Fitted polynomial degree (0-3)
+ * - polynomial_degree: Fitted polynomial degree (0-4; 4 is MULTI_POINT_10)
  * - num_points: Number of dose points used (1-10)
- * - r_squared: Coefficient of determination (0.0 to 1.0)
+ * - r_squared: Coefficient of determination: at most 1.0, and NEGATIVE for a fit worse than the mean (the
+ *   generator reports such values). Any finite value up to 1.0 is a real one, -1.0 included; whether there
+ *   is one is has_r_squared, not the value. When has_r_squared is 0, r_squared holds the fill value -1.0.
+ * - has_r_squared: 1 when r_squared is a value (the file gave fit_r_squared, or a generation produced one);
+ *   0 when it was not given (a file with other quality fields but no fit_r_squared)
  * - calibration_timestamp: Unix epoch milliseconds
  * - detector_serial: Detector identifier (null-terminated)
  * - firmware_version: Firmware version string (null-terminated)
  * - calibration_pass: Quality gate result (0=fail, 1=pass)
- * - previous_r_squared: R² of the last earlier record that had one (-1.0 if none); records without an R²
- *   (valid = 0, or r_squared = -1.0 because the file did not give fit_r_squared) are skipped
+ * - previous_r_squared: R² of the last earlier record that had one; records without an R² (valid = 0, or
+ *   has_r_squared = 0) are skipped. Whether there is one is has_previous_r_squared; with none it holds -1.0
+ * - has_previous_r_squared: 1 when previous_r_squared is a value, 0 when no earlier record had an R²
  * - valid: 1 when the record describes a calibration; 0 when there is no quality metadata for the
  *   current one (every field but previous_r_squared then holds its no-data value, zero)
  */
@@ -1573,12 +1578,17 @@ typedef struct XpeCalibQualityMeta {
     uint8_t  num_points;            ///< Number of dose levels (1-10)
     uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
                                     ///< Sits in what was padding: sizeof and every other offset are unchanged.
-    double   r_squared;             ///< Coefficient of determination: at most 1.0, negative for a fit worse than the mean; -1.0 = not given
+    uint8_t  has_r_squared;         ///< 1 = r_squared is a value (any finite value <= 1.0, -1.0 included); 0 = not given.
+                                    ///< Offset 4, in what was padding: sizeof and every other offset are unchanged.
+    double   r_squared;             ///< Coefficient of determination: at most 1.0, negative for a fit worse than the mean;
+                                    ///< meaningful when has_r_squared is 1 (the fill value is -1.0)
     uint64_t calibration_timestamp; ///< Unix epoch milliseconds
     char     detector_serial[32];   ///< Detector serial number (null-terminated)
     char     firmware_version[16];  ///< Firmware version (null-terminated)
     uint8_t  calibration_pass;      ///< 0=failed R² gate, 1=passed
-    double   previous_r_squared;    ///< Previous calibration R² (-1.0 if none)
+    uint8_t  has_previous_r_squared;///< 1 = previous_r_squared is a value; 0 = no earlier record had an R².
+                                    ///< Offset 73, in what was padding: sizeof and every other offset are unchanged.
+    double   previous_r_squared;    ///< R² of the last earlier record that had one (-1.0 fill when none)
 } XpeCalibQualityMeta;
 
 /**

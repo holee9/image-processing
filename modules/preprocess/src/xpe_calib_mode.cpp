@@ -255,16 +255,21 @@ uint32_t xpe_calib_get_poly_degree(void) {
  * ============================================================================ */
 
 /**
- * The R2 history after the record `replaced` is replaced: its own R2 when that is KNOWN -- the record is valid and
- * its R2 is not the no-data value -1.0 (a real R2 may be negative: a fit worse than the mean) -- otherwise the
- * history it carried.
- * A record with other quality fields but no fit_r_squared, and the "no quality" record, therefore pass the last
- * known R2 on instead of turning it into -1.0 (QA-A-202f, Codex #41). At start-up it is -1.0 ("none").
+ * The R2 history after the record `replaced` is replaced: its own R2 when it HAS one -- the record is valid and
+ * has_r_squared is set, whatever the value (a real R2 may be negative, and -1.0 is a possible one) -- otherwise the
+ * history it carried. A record with other quality fields but no fit_r_squared, and the "no quality" record, therefore
+ * pass the last known R2 on (QA-A-202f, Codex #41). With nothing known the value is the fill -1.0 and the flag 0
+ * (QA-A-208d: the flag, not a marker value, says whether there is one).
  */
-static double r2_history_after(const XpeCalibQualityMeta& replaced) noexcept
+static void r2_history_after(const XpeCalibQualityMeta& replaced, double* value, uint8_t* has) noexcept
 {
-    return (replaced.valid != 0 && replaced.r_squared != XPE_R_SQUARED_NOT_GIVEN) ? replaced.r_squared
-                                                                                      : replaced.previous_r_squared;
+    if (replaced.valid != 0 && replaced.has_r_squared != 0) {
+        *value = replaced.r_squared;
+        *has = 1;
+    } else {
+        *value = replaced.previous_r_squared;
+        *has = replaced.has_previous_r_squared;
+    }
 }
 
 bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
@@ -272,13 +277,17 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     std::lock_guard<std::mutex> lock(g_calib_mutex);
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
     // The history: the R2 of the record being replaced when it has one, otherwise the history it carried.
-    const double previous = r2_history_after(qm);
+    double previous = XPE_R_SQUARED_NOT_GIVEN;
+    uint8_t hasPrevious = 0;
+    r2_history_after(qm, &previous, &hasPrevious);
 
     qm = meta;
     qm.valid = 1;
+    qm.has_r_squared = 1;              // a generation always produces an R2, whatever its value
     // calibration_mode is the mode the generator resolved (never AUTO); the
     // caller sets it from xpe_calib_resolve_mode (#169).
     qm.previous_r_squared = previous;
+    qm.has_previous_r_squared = hasPrevious;
 
     using namespace std::chrono;
     qm.calibration_timestamp = static_cast<uint64_t>(
@@ -329,8 +338,8 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t le
     // The range of each field is what no generation can step outside of (xpe_calib_generate_gain.cpp):
     //   fit_r_squared      <= 1  (1 - SS_res / SS_tot, so never above 1. NOT bounded below: the generator reports a
     //                             negative value when the fit is worse than the mean -- -0.0766 for the poly-fixture
-    //                             ladder -- and a file it wrote must load. The record's own no-data value, -1.0,
-    //                             is the one value a file may not carry, so "not given" and a real R2 never mix)
+    //                             ladder, and exactly -1.0 is possible -- and a file it wrote must load. Whether the
+    //                             file gave one is has_r_squared (the key is there), never the value)
     //   polynomial_degree  0..4  (the fitted degree: constant .. the quartic MULTI_POINT_10 allows)
     //   actual_dose_levels 1..10 (the points of the mode used: SINGLE_POINT 1 .. MULTI_POINT_10 10)
     //   calibration_mode   0..4  (SINGLE_POINT .. MULTI_POINT_10: the mode that ran, never AUTO)
@@ -339,7 +348,8 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t le
     if (r2State != XpeJsonTop::Absent && r2State != XpeJsonTop::Scalar) return XPE_ERR_CONFIG_INVALID;
     if (r2State == XpeJsonTop::Scalar) {
         if (!xpe_strict::parse_double(r2, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
-        if (!(meta.r_squared <= 1.0) || meta.r_squared == XPE_R_SQUARED_NOT_GIVEN) return XPE_ERR_CONFIG_INVALID;
+        if (!(meta.r_squared <= 1.0)) return XPE_ERR_CONFIG_INVALID;
+        meta.has_r_squared = 1;
         anyPresent = true;
     }
     if (!read_u8_field(configJson, len, "polynomial_degree", 0, 4, &meta.polynomial_degree, &anyPresent) ||
@@ -353,7 +363,7 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t le
     // The gate verdict is derived, never read from the file: a file claiming it
     // passed does not make it so.
     meta.calibration_pass =
-        (meta.r_squared >= XPE_CALIB_R_SQUARED_GATE) ? 1u : 0u;
+        (meta.has_r_squared != 0 && meta.r_squared >= XPE_CALIB_R_SQUARED_GATE) ? 1u : 0u;
 
     meta.valid = 1;
     *out = meta;
@@ -364,18 +374,24 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t le
 void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noexcept
 {
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
-    const double previous = r2_history_after(qm);
+    double previous = XPE_R_SQUARED_NOT_GIVEN;
+    uint8_t hasPrevious = 0;
+    r2_history_after(qm, &previous, &hasPrevious);
     qm = parsed;
     qm.valid = 1;
     qm.previous_r_squared = previous;
+    qm.has_previous_r_squared = hasPrevious;
 }
 
 void xpe_calib_commit_no_quality_locked() noexcept
 {
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
-    const double previous = r2_history_after(qm);
+    double previous = XPE_R_SQUARED_NOT_GIVEN;
+    uint8_t hasPrevious = 0;
+    r2_history_after(qm, &previous, &hasPrevious);
     qm = XpeCalibQualityMeta{};          // valid = 0 and every field zero: nothing is known about the current gain
     qm.previous_r_squared = previous;    // ...except the history, which stays apart from the current record
+    qm.has_previous_r_squared = hasPrevious;
 }
 
 /* =============================================================================

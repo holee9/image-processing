@@ -1700,8 +1700,10 @@ TEST_F(OomPipeline, EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsP
 // with the "no quality" record (valid = 0, every field zero, previous_r_squared still the history). The same for
 // a cache hit, which also keeps the file-quality copy beside the map (gain_quality / gain_has_quality) in step.
 
-static_assert(sizeof(XpeCalibQualityMeta) == 88, "the validity byte must fit in the old padding");
+static_assert(sizeof(XpeCalibQualityMeta) == 88, "the validity and presence bytes must fit in the old padding");
 static_assert(offsetof(XpeCalibQualityMeta, valid) == 3, "valid sits right after num_points");
+static_assert(offsetof(XpeCalibQualityMeta, has_r_squared) == 4, "has_r_squared sits in the padding before r_squared (QA-A-208d)");
+static_assert(offsetof(XpeCalibQualityMeta, has_previous_r_squared) == 73, "has_previous_r_squared sits in the padding after calibration_pass (QA-A-208d)");
 static_assert(offsetof(XpeCalibQualityMeta, r_squared) == 8, "r_squared did not move");
 static_assert(offsetof(XpeCalibQualityMeta, calibration_timestamp) == 16, "calibration_timestamp did not move");
 static_assert(offsetof(XpeCalibQualityMeta, detector_serial) == 24, "detector_serial did not move");
@@ -1720,6 +1722,7 @@ const char* const kDirNone = "oom_pipe_calibQN";   // gain 4.0, no quality metad
 const char* const kDirC = "oom_pipe_calibQC";      // gain 3.0, quality C
 const char* const kDirP = "oom_pipe_calibQP";      // gain 5.0, a PARTIAL quality: polynomial_degree only, no R2
 const char* const kDirN2 = "oom_pipe_calibQM";     // gain 6.0, no quality metadata (a second one)
+const char* const kDirM1 = "oom_pipe_calibQZ";     // gain 7.0, fit_r_squared exactly -1.0 (QA-A-208d)
 
 void writeSetDir(const char* dir, float gain, const std::string& gainJson) {
     std::filesystem::create_directories(dir);
@@ -1733,10 +1736,11 @@ void writeAll() {
     writeSetDir(kDirC, 3.0f, kJsonC);
     writeSetDir(kDirP, 5.0f, "{\"polynomial_degree\":\"2\"}");
     writeSetDir(kDirN2, 6.0f, "{}");
+    writeSetDir(kDirM1, 7.0f, "{\"fit_r_squared\":-1.000000000,\"polynomial_degree\":\"2\"}");
 }
 void removeAll() {
     std::error_code ec;
-    for (const char* d : {kDirA, kDirNone, kDirC, kDirP, kDirN2}) std::filesystem::remove_all(d, ec);
+    for (const char* d : {kDirA, kDirNone, kDirC, kDirP, kDirN2, kDirM1}) std::filesystem::remove_all(d, ec);
 }
 
 XpeCalibQualityMeta current() {
@@ -1917,8 +1921,12 @@ TEST_F(OomPipeline, APartialQualityRecordDoesNotInterruptTheR2History_AThenParti
         EXPECT_EQ(2u, b.polynomial_degree);
         EXPECT_DOUBLE_EQ(-1.0, b.r_squared) << "there is no R2 in that file";
         EXPECT_DOUBLE_EQ(0.91, b.previous_r_squared) << "the history is A's R2";
+        EXPECT_EQ(0u, b.has_r_squared) << "the file gave no fit_r_squared: there is no R2 (the -1.0 is the fill value)";
+        EXPECT_EQ(1u, b.has_previous_r_squared);
         ASSERT_EQ(XPE_OK, way.load(qcur::kDirC));
         const XpeCalibQualityMeta c = qcur::current();
+        EXPECT_EQ(1u, c.has_r_squared);
+        EXPECT_EQ(1u, c.has_previous_r_squared);
         EXPECT_DOUBLE_EQ(0.97, c.r_squared);
         EXPECT_DOUBLE_EQ(0.91, c.previous_r_squared) << "the partial record in between must not turn the history into -1.0";
     }
@@ -1983,5 +1991,72 @@ TEST_F(OomPipeline, ANegativeGeneratedR2IsKnownAndBecomesTheHistory) {
     q = qcur::current();
     EXPECT_DOUBLE_EQ(0.97, q.r_squared);
     EXPECT_DOUBLE_EQ(-0.25, q.previous_r_squared) << "-0.25 is a real R2, not the no-data value";
+    qcur::removeAll();
+}
+
+// QA-A-208d (Codex #45): whether a record has an R2 is a flag, not a value. A fit worse than the mean by exactly the
+// SS_tot (SS_res = 2 * SS_tot) is -1.0, and the generator prints it as -1.000000000: the file loads, the record
+// has an R2, and the history chain passes it on as a real value. The first form of the rule used -1.0 as the "not
+// given" marker, so such a file could not be loaded and the history could not tell it from "none".
+TEST_F(OomPipeline, AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne) {
+    qcur::writeAll();
+    for (const auto& way : qcur::ways()) {
+        SCOPED_TRACE(way.name);
+        qhist::startFromA(way, {qcur::kDirM1, qcur::kDirC, qcur::kDirNone, qcur::kDirP});
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirM1));
+        const XpeCalibQualityMeta b = qcur::current();
+        EXPECT_EQ(1u, b.valid);
+        EXPECT_EQ(1u, b.has_r_squared) << "the key is there: the file gave an R2, and it is -1.0";
+        EXPECT_DOUBLE_EQ(-1.0, b.r_squared);
+        EXPECT_DOUBLE_EQ(0.91, b.previous_r_squared);
+        EXPECT_EQ(1u, b.has_previous_r_squared);
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirC));
+        const XpeCalibQualityMeta c = qcur::current();
+        EXPECT_DOUBLE_EQ(0.97, c.r_squared);
+        EXPECT_DOUBLE_EQ(-1.0, c.previous_r_squared) << "B's R2 is -1.0 and it is a real value: C's history";
+        EXPECT_EQ(1u, c.has_previous_r_squared) << "...and the flag says it is one";
+        // through a record with no quality at all, and through a partial one
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirM1));
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirNone));
+        const XpeCalibQualityMeta d = qcur::current();
+        EXPECT_EQ(0u, d.valid);
+        EXPECT_DOUBLE_EQ(-1.0, d.previous_r_squared);
+        EXPECT_EQ(1u, d.has_previous_r_squared);
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirM1));
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirP));
+        const XpeCalibQualityMeta e = qcur::current();
+        EXPECT_EQ(0u, e.has_r_squared);
+        EXPECT_DOUBLE_EQ(-1.0, e.previous_r_squared);
+        EXPECT_EQ(1u, e.has_previous_r_squared);
+    }
+    qcur::removeAll();
+}
+
+TEST_F(OomPipeline, WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne) {
+    qcur::writeAll();
+    pipe::setup();
+    XpeCalibQualityMeta q = qcur::current();
+    EXPECT_EQ(0u, q.has_previous_r_squared) << "start-up: no record at all";
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQZ/gain.xcal"));            // the first record: R2 -1.0
+    q = qcur::current();
+    EXPECT_EQ(1u, q.has_r_squared);
+    EXPECT_EQ(0u, q.has_previous_r_squared) << "nothing earlier had an R2";
+    EXPECT_DOUBLE_EQ(-1.0, q.previous_r_squared) << "the fill value";
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQC/gain.xcal"));            // C: R2 0.97
+    q = qcur::current();
+    EXPECT_EQ(1u, q.has_previous_r_squared) << "B had one: -1.0";
+    EXPECT_DOUBLE_EQ(-1.0, q.previous_r_squared);
+    // a generation of exactly -1.0 chains the same way
+    XpeCalibQualityMeta g{};
+    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = -1.0;
+    xpe_calib_record_quality_meta(g);
+    q = qcur::current();
+    EXPECT_EQ(1u, q.has_r_squared);
+    EXPECT_DOUBLE_EQ(-1.0, q.r_squared);
+    EXPECT_DOUBLE_EQ(0.97, q.previous_r_squared);
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));
+    q = qcur::current();
+    EXPECT_DOUBLE_EQ(-1.0, q.previous_r_squared) << "the generation's -1.0 is a real R2";
+    EXPECT_EQ(1u, q.has_previous_r_squared);
     qcur::removeAll();
 }
