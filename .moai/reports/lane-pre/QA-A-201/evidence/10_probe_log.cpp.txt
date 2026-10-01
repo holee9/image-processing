@@ -1,0 +1,5 @@
+// QA-A-201 TEMPORARY audit probe (not committed): xpe_logging.cpp compiled into the probe executable so
+// that its static mutex can be inspected from the probe.
+#include "../../common/src/xpe_logging.cpp"
+
+std::mutex& audit_log_mutex() { return g_logMutex; }

@@ -1,0 +1,183 @@
+"""QA-A-201 first-cut static survey of the exported extern "C" functions.
+
+For each exported C name: find its definition, report whether it is guarded (function-try-block or a
+whole-body try with a catch-all), whether it takes a lock itself, which allocating constructs it uses
+itself, and which helper functions defined in the same module it calls (with their own lock / allocation
+usage, one level deep). The output is a worklist for reading the code, not a verdict.
+"""
+import glob
+import json
+import os
+import re
+import sys
+
+ROOT = 'D:/workspace-github/xpe-pre'
+MODS = {'common': 'modules/common/src', 'preprocess': 'modules/preprocess/src'}
+NAMES = {
+    'common': open(f'{ROOT}/.moai/reports/lane-pre/QA-A-201/evidence/02_common_names.txt').read().split(),
+    'preprocess': [n for n in open(f'{ROOT}/.moai/reports/lane-pre/QA-A-201/evidence/02_preprocess_names.txt').read().split()
+                   if not n.startswith('?')],
+}
+CPP_MANGLED = [n for n in open(f'{ROOT}/.moai/reports/lane-pre/QA-A-201/evidence/02_preprocess_names.txt').read().split()
+               if n.startswith('?')]
+
+ALLOC = [r'std::string', r'std::vector', r'std::map', r'std::unordered_map', r'std::set', r'std::list', r'std::deque',
+         r'make_unique', r'make_shared', r'\bnew\b', r'push_back', r'emplace', r'\.resize\(', r'\.reserve\(',
+         r'\.assign\(', r'\.insert\(', r'ostringstream', r'stringstream', r'ifstream', r'ofstream', r'to_string',
+         r'std::function', r'std::thread', r'std::async', r'std::filesystem', r'\.append\(', r'\+= *"', r'std::sort',
+         r'std::stable_sort', r'std::nth_element', r'std::partial_sort']
+LOCK = r'lock_guard|unique_lock|scoped_lock|shared_lock|\.lock\(\)|std::call_once'
+KEYWORDS = set('if for while switch return sizeof catch static_cast reinterpret_cast const_cast dynamic_cast alignof '
+               'decltype defined throw new delete else do case'.split())
+
+
+def strip(src):
+    """Blank out comments, string and char literals (keep length/newlines)."""
+    out = []
+    i, n = 0, len(src)
+    while i < n:
+        c = src[i]
+        if src.startswith('//', i):
+            j = src.find('\n', i)
+            j = n if j < 0 else j
+            out.append(' ' * (j - i))
+            i = j
+        elif src.startswith('/*', i):
+            j = src.find('*/', i + 2)
+            j = n if j < 0 else j + 2
+            out.append(re.sub(r'[^\n]', ' ', src[i:j]))
+            i = j
+        elif c == '"' or c == "'":
+            q = c
+            j = i + 1
+            while j < n and src[j] != q:
+                j += 2 if src[j] == '\\' else 1
+            j = min(j + 1, n)
+            out.append(q + re.sub(r'[^\n]', ' ', src[i + 1:j - 1]) + q)
+            i = j
+        else:
+            out.append(c)
+            i += 1
+    return ''.join(out)
+
+
+def match_close(s, i, o, c):
+    d = 0
+    for j in range(i, len(s)):
+        if s[j] == o:
+            d += 1
+        elif s[j] == c:
+            d -= 1
+            if d == 0:
+                return j
+    return -1
+
+
+files = {}
+for mod, d in MODS.items():
+    for p in glob.glob(f'{ROOT}/{d}/*.cpp'):
+        files[p] = strip(open(p, encoding='utf-8', errors='replace').read())
+
+
+def find_defs(name):
+    """All (file, start_of_signature_line, sig_end, body_start, body_end) definitions of `name`."""
+    res = []
+    for p, s in files.items():
+        for m in re.finditer(r'\b' + re.escape(name) + r'\s*\(', s):
+            po = m.end() - 1
+            pc = match_close(s, po, '(', ')')
+            if pc < 0:
+                continue
+            k = pc + 1
+            tail = re.match(r'\s*(?:const\s*)?(?:noexcept\s*)?(try\s*)?(?:\{)', s[k:])
+            if not tail:
+                continue
+            is_try = bool(tail.group(1))
+            bo = s.index('{', k)
+            # the text before the name on the same statement must look like a declaration, not a call
+            ls = max(s.rfind(';', 0, m.start()), s.rfind('}', 0, m.start()), s.rfind('{', 0, m.start()))
+            head = s[ls + 1:m.start()]
+            if not re.search(r'[A-Za-z_>\*&]\s*$', head.rstrip()) or re.search(r'[=(,]\s*$', head.rstrip()):
+                continue
+            bc = match_close(s, bo, '{', '}')
+            if bc < 0:
+                continue
+            handlers = ''
+            if is_try:
+                h = bc + 1
+                # handlers: one or more catch (...) { ... }
+                while True:
+                    mh = re.match(r'\s*catch\s*\(', s[h:])
+                    if not mh:
+                        break
+                    hp = s.index('(', h)
+                    hpc = match_close(s, hp, '(', ')')
+                    hb = s.index('{', hpc)
+                    hbc = match_close(s, hb, '{', '}')
+                    handlers += s[h:hbc + 1]
+                    h = hbc + 1
+            res.append(dict(file=p, line=s.count('\n', 0, m.start()) + 1, body=s[bo:bc + 1], is_try=is_try,
+                            handlers=handlers, sig=s[ls + 1:pc + 1].strip()))
+    return res
+
+
+def features(body):
+    allocs = sorted({a.strip('\\b').replace('\\', '') for a in ALLOC if re.search(a, body)})
+    locks = re.findall(LOCK, body)
+    calls = {c for c in re.findall(r'\b([A-Za-z_][A-Za-z_0-9:]*)\s*\(', body) if c.split('::')[-1] not in KEYWORDS}
+    return allocs, locks, calls
+
+
+def whole_try(body):
+    t = body.strip()[1:].lstrip()
+    return t.startswith('try')
+
+
+helper_cache = {}
+
+
+def helper(name):
+    short = name.split('::')[-1]
+    if short in helper_cache:
+        return helper_cache[short]
+    ds = find_defs(short)
+    info = None
+    if ds:
+        allocs, locks, calls = features(ds[0]['body'])
+        info = dict(allocs=allocs, locks=len(locks), file=os.path.basename(ds[0]['file']),
+                    guarded=ds[0]['is_try'] or whole_try(ds[0]['body']), calls=calls)
+    helper_cache[short] = info
+    return info
+
+
+rows = []
+for mod in MODS:
+    for name in NAMES[mod]:
+        ds = find_defs(name)
+        if not ds:
+            rows.append(dict(mod=mod, name=name, found=False))
+            continue
+        d = ds[0]
+        allocs, locks, calls = features(d['body'])
+        guarded = d['is_try'] or whole_try(d['body'])
+        catchall = bool(re.search(r'catch\s*\(\s*\.\.\.\s*\)', d['handlers'] + d['body']))
+        hs = {}
+        for c in sorted(calls):
+            if c == name:
+                continue
+            h = helper(c)
+            if h and (h['allocs'] or h['locks']):
+                hs[c] = dict(allocs=h['allocs'][:6], locks=h['locks'], guarded=h['guarded'], file=h['file'])
+        rows.append(dict(mod=mod, name=name, found=True, file=os.path.basename(d['file']), line=d['line'],
+                         guarded=guarded, catchall=catchall, locks_here=len(locks), allocs_here=allocs,
+                         helpers=hs, lines=d['body'].count('\n') + 1))
+
+json.dump(rows, open(f'{ROOT}/.moai/reports/lane-pre/QA-A-201/evidence/03_survey.json', 'w'), indent=1)
+for r in rows:
+    if not r['found']:
+        print(f"{r['mod']:10} {r['name']:34} NOT FOUND")
+        continue
+    hs = ';'.join(f"{k}[{'L' if v['locks'] else ''}{'A' if v['allocs'] else ''}{'G' if v['guarded'] else ''}]" for k, v in r['helpers'].items())
+    print(f"{r['mod']:10} {r['name']:34} {r['file']}:{r['line']:<4} lines={r['lines']:<4} guard={'Y' if r['guarded'] else '-'} "
+          f"catchAll={'Y' if r['catchall'] else '-'} lockHere={r['locks_here']} allocHere={len(r['allocs_here'])} helpers={hs[:150]}")
+print('C++-linkage exports (not extern "C"):', CPP_MANGLED)

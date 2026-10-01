@@ -1,0 +1,17 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+unknown file: error: C++ exception with description "invalid stof argument" thrown in the test body.
+
+[  FAILED  ] AuditProbe.Sweep (2 ms)
+[----------] 1 test from AuditProbe (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AuditProbe.Sweep
+
+ 1 FAILED TEST

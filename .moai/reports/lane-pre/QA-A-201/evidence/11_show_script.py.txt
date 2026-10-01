@@ -1,0 +1,26 @@
+import re
+import sys
+
+sys.path.insert(0, 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad')
+import importlib.util
+
+spec = importlib.util.spec_from_file_location('an', 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/analyze201.py')
+# reuse helpers without re-running the survey: copy the few functions we need
+src = open(spec.origin, encoding='utf-8').read().split("rows = []")[0]
+ns = {}
+exec(src, ns)
+find_defs = ns['find_defs']
+
+PAT = re.compile(r'lock_guard|unique_lock|scoped_lock|\.lock\(|std::string|std::vector|std::map|make_unique|make_shared|\bnew\b|push_back|emplace|\.resize\(|\.assign\(|\.reserve\(|\.insert\(|sort|stringstream|std::function|std::thread|std::async|g_calib\w*\s*[.=]|g_\w+\s*=|\btry\b|\bcatch\b|\bthrow\b|std::move|\.reset\(|return ')
+
+for name in sys.argv[1:]:
+    ds = find_defs(name)
+    if not ds:
+        print(f'## {name}: NOT FOUND')
+        continue
+    d = ds[0]
+    print(f"## {name}  {d['file'].split('/')[-1]}:{d['line']}  try={d['is_try']}")
+    body = d['body'].split('\n')
+    for i, ln in enumerate(body):
+        if PAT.search(ln):
+            print(f'  {i:3d}: {ln.strip()[:150]}')

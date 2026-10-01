@@ -1,0 +1,9 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/2] Building CXX object modules\preprocess\CMakeFiles\xpe_audit_probe.dir\tests\audit_probe_main.cpp.obj
+cl : 명령줄 warning D9025 : '/W4'을(를) '/W3'(으)로 재정의합니다.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\audit_probe_main.cpp(100): warning C4996: 'getenv': This function or variable may be unsafe. Consider using _dupenv_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\audit_probe_main.cpp(296): warning C4996: 'getenv': This function or variable may be unsafe. Consider using _dupenv_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+D:\workspace-github\xpe-pre\modules\preprocess\tests\audit_probe_main.cpp(328): warning C4996: 'getenv': This function or variable may be unsafe. Consider using _dupenv_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+[2/2] Linking CXX executable bin\xpe_audit_probe.exe
+BUILD_EXIT=0
