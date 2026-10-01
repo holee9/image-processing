@@ -473,11 +473,15 @@
                           Header="_API Reference (Doxygen)"
                           Command="{Binding OpenApiReferenceCommand}"
                           ToolTip="Open the generated native API reference from docs/help/generated. If it has not been generated, the status bar says how. DocFX is not offered: its generated output currently has no API pages." />
+                <!-- #225 (GUI-C-181, row 21). Opens the page DocFX renders from docs/help/content/troubleshooting.md, the
+                     way row 20 opens Doxygen's. The old header said "(Phase 1b)" and the old tooltip waited for
+                     "deterministic baseline troubleshooting pages"; the page that exists is the operator troubleshooting
+                     guide, and the tooltip now says what the item does. -->
                 <MenuItem x:Name="OpenTroubleshootingMenuItem"
                           AutomationProperties.AutomationId="OpenTroubleshootingMenuItem"
-                          Header="_Troubleshooting (Phase 1b)"
-                          IsEnabled="False"
-                          ToolTip="Enabled when deterministic baseline troubleshooting pages are packaged." />
+                          Header="_Troubleshooting"
+                          Command="{Binding OpenTroubleshootingCommand}"
+                          ToolTip="Open the generated Troubleshooting page (DocFX output under docs/help/generated/docfx). If it has not been generated, the status bar says how." />
                 <Separator />
                 <MenuItem x:Name="AboutBuildInfoMenuItem"
                           AutomationProperties.AutomationId="AboutBuildInfoMenuItem"
