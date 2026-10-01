@@ -42,6 +42,20 @@ extern "C" {
  * Allocated by xpe_dicom_open(), freed by xpe_dicom_close().
  * Never allocate or inspect this struct directly.
  *
+ * THREAD SAFETY (QA-B-182, #235):
+ *  - Different handles may be used from different threads at the same time: each owns its own parsed
+ *    dataset, and the only module-wide state (registering the JPEG codecs with DCMTK) is done once under
+ *    std::call_once. Measured: 8 threads, each opening and reading its own handle, 1440 reads, no mismatch.
+ *  - ONE handle must not be used by two threads at the same time -- xpe_dicom_read_image,
+ *    xpe_dicom_get_metadata and xpe_dicom_close on the same handle are serialised by the caller. Measured: 8
+ *    threads calling xpe_dicom_read_image on one shared handle returned an intermittent
+ *    XPE_ERR_DICOM_INVALID (2 of 7040 reads, 2 of 11 runs). That code comes from one of the two return
+ *    paths in the reader that log nothing (the Rows/Columns lookup or the PixelData lookup; the logged
+ *    "PixelData is short" path is ruled out). Which of the two was not determined. Both are DCMTK findAndGet*
+ *    lookups on the handle's one dataset, and such lookups are not guaranteed read-only (DCMTK may load element
+ *    values lazily), so a race inside the shared dataset is the likely cause. The module does not lock a handle.
+ *  - xpe_dicom_cancel is the one call that may be made from any thread at any time (below).
+ *
  * @ingroup xpe_dicom
  */
 typedef struct XpeDicomHandle XpeDicomHandle;
@@ -98,6 +112,21 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *         dimension claim, so they stay a success; a surplus DIMENSION
  *         contradicts Rows / Columns, so it does not.
  * @return XPE_ERR_PROCESSING_FAILED if decompression fails.
+ * @return XPE_ERR_UNSUPPORTED_FORMAT (QA-B-182, #235) if the dataset describes pixels this function cannot return
+ *         faithfully as ONE plane of UNSIGNED 16-bit words: NumberOfFrames greater than 1, SamplesPerPixel other
+ *         than 1 (RGB and the like), PixelRepresentation 1 (signed pixels), or BitsAllocated 8 on the uncompressed
+ *         and JPEG Lossless paths (the J2K path is not judged by BitsAllocated). Judged before anything is
+ *         decoded, allocated or written: @p outImg and the handle are untouched, and xpe_dicom_get_metadata still
+ *         works on the same handle. Before this, such files were returned as XPE_OK with wrong pixels (the
+ *         8-bit case as XPE_ERR_DICOM_INVALID "short").
+ * @return XPE_ERR_DICOM_INVALID if NumberOfFrames, SamplesPerPixel or PixelRepresentation is PRESENT but cannot
+ *         be read as the number it must be (empty or not numeric), or NumberOfFrames is below 1.
+ *
+ * @note Absent attributes take their default: no NumberOfFrames is one frame, no SamplesPerPixel is one sample,
+ *       no PixelRepresentation is unsigned.
+ * @note NOT judged, and returned as stored (#235 awaits a design decision): PhotometricInterpretation
+ *       MONOCHROME1 (no inversion, no indication), RescaleSlope / RescaleIntercept (not applied, not reported),
+ *       and bits above BitsStored (not masked).
  *
  * @note Transfer-Syntax support is decided in xpe_dicom_open(), not here: an
  *       unsupported syntax has already been rejected before a handle exists.

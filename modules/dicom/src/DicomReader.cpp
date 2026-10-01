@@ -259,6 +259,49 @@ XpeErrorCode DicomReader::open() {
     return XPE_OK;
 }
 
+// QA-B-182 (#235, QA-B-180): what the reader can hand back is ONE plane of UNSIGNED 16-bit words, copied as stored.
+// A dataset that says otherwise used to be copied anyway and come back as OK with wrong pixels: a signed pixel
+// became a large unsigned one, a 3-frame image became its first frame, an RGB image became byte pairs read as 16-bit
+// words, an 8-bit image was refused as "short" (a corrupt file) when it is merely unsupported. They are refused
+// here, before anything is allocated or written, so outImg and the handle are untouched (the QA-B-48 contract).
+//
+// Missing attributes take the value DICOM gives their absence or this reader's long-standing default: no
+// NumberOfFrames is a single frame, no SamplesPerPixel is one sample, no PixelRepresentation is unsigned. An
+// attribute that IS present but cannot be read as the number it must be (empty, not numeric) is a malformed
+// file, not a default.
+//
+// MONOCHROME1, RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a
+// design decision still open in #235, and they keep their current behaviour (stored words, unchanged).
+//
+// BitsAllocated == 8 is refused for the NATIVE paths (uncompressed, JPEG Lossless), where the pixel data is
+// copied as 16-bit words. The J2K path decodes through OpenJPEG into 16-bit samples itself and is not judged by
+// it: an 8-bit codestream may be a working case, and nothing here measured it.
+static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, Uint16 bitsAlloc, bool isJ2K) {
+    long frames = 1;
+    if (ds->tagExists(DCM_NumberOfFrames)) {
+        Sint32 v = 0;
+        if (ds->findAndGetSint32(DCM_NumberOfFrames, v).bad() || v < 1) return XPE_ERR_DICOM_INVALID;
+        frames = v;
+    }
+    if (frames > 1) return XPE_ERR_UNSUPPORTED_FORMAT;
+
+    Uint16 samples = 1;
+    if (ds->tagExists(DCM_SamplesPerPixel) && ds->findAndGetUint16(DCM_SamplesPerPixel, samples).bad()) {
+        return XPE_ERR_DICOM_INVALID;
+    }
+    if (samples != 1) return XPE_ERR_UNSUPPORTED_FORMAT;
+
+    Uint16 pixelRepresentation = 0;
+    if (ds->tagExists(DCM_PixelRepresentation) &&
+        ds->findAndGetUint16(DCM_PixelRepresentation, pixelRepresentation).bad()) {
+        return XPE_ERR_DICOM_INVALID;
+    }
+    if (pixelRepresentation != 0) return XPE_ERR_UNSUPPORTED_FORMAT;
+
+    if (!isJ2K && bitsAlloc == 8) return XPE_ERR_UNSUPPORTED_FORMAT;
+    return XPE_OK;
+}
+
 XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     spdlog::debug("[DicomReader] readImage");
     if (!outImg) return XPE_ERR_INVALID_INPUT;
@@ -284,6 +327,12 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     // on a .57 dataset finds nothing and the size guard below would silently do
     // no work.
     bool isJPEGLL = (m_tsUID == TS_JPEG_LL) || (m_tsUID == TS_JPEG_LL_P14);
+
+    // QA-B-182 (#235): refuse what this reader cannot return faithfully, before any decode or allocation.
+    {
+        const XpeErrorCode scope = checkSupportedImageModule(ds, bitsAlloc, isJ2K);
+        if (scope != XPE_OK) return scope;
+    }
 
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG

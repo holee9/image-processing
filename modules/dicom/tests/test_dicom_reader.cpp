@@ -2912,3 +2912,236 @@ TEST_F(DicomReaderTest, ReadJpegLosslessProcess14AllPredictors_PixelExactAndDist
 
     xpe_free_image(&expected);
 }
+
+// ===========================================================================
+// QA-B-182 (#235, QA-B-180): what readImage refuses, and what it deliberately still returns as stored
+//
+// QA-B-180 measured that the reader copied the 16-bit words of any dataset as they were and answered OK, so a
+// signed, multi-frame or RGB file came back as wrong pixels with no signal (and an 8-bit file was refused as a
+// corrupt "short" file). The datasets below are derived from the module's own valid file with DCMTK inside the
+// test; no .dcm is committed.
+// ===========================================================================
+namespace {
+
+template <class F>
+fs::path MakeScopeVariant(const fs::path& src, const char* name, F mutate) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(src.string().c_str()).good());
+    mutate(ff.getDataset());
+    const fs::path out = src.parent_path() / (std::string("scope_") + name + ".dcm");
+    EXPECT_TRUE(ff.saveFile(out.string().c_str(), EXS_LittleEndianExplicit).good());
+    return out;
+}
+
+struct ScopeRead {
+    XpeErrorCode open = XPE_OK;
+    XpeErrorCode read = XPE_OK;
+    XpeErrorCode metaAfter = XPE_OK;
+    std::vector<uint16_t> words;
+    bool outUntouchedOnFailure = true;
+};
+
+/** Opens, reads (into a sentinel-filled buffer), then asks for the metadata on the SAME handle. */
+ScopeRead ReadScope(const fs::path& p) {
+    ScopeRead r;
+    XpeDicomHandle* h = nullptr;
+    r.open = xpe_dicom_open(p.string().c_str(), &h);
+    if (r.open != XPE_OK) return r;
+    XpeImageBuffer img{};
+    img.width = 7;
+    img.height = 9;
+    img.bitsAllocated = 99;
+    img.bitsStored = 98;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.data = nullptr;
+    img.dataSize = 5;
+    r.read = xpe_dicom_read_image(h, &img);
+    if (r.read == XPE_OK) {
+        const size_t n = static_cast<size_t>(img.width) * img.height;
+        const uint16_t* d = static_cast<const uint16_t*>(img.data);
+        r.words.assign(d, d + n);
+        xpe_free_image(&img);
+    } else {
+        r.outUntouchedOnFailure = img.width == 7 && img.height == 9 && img.bitsAllocated == 99 &&
+                                  img.bitsStored == 98 && img.format == XPE_PIXEL_FLOAT32 &&
+                                  img.data == nullptr && img.dataSize == 5;
+    }
+    XpeImageMetadata m{};
+    r.metaAfter = xpe_dicom_get_metadata(h, &m);
+    xpe_dicom_close(h);
+    return r;
+}
+
+std::vector<uint16_t> Words(const fs::path& p) {
+    return ReadScope(p).words;
+}
+
+void PutWords(DcmDataset* ds, const std::vector<uint16_t>& w) {
+    EXPECT_TRUE(ds->putAndInsertUint16Array(DCM_PixelData, w.data(), static_cast<unsigned long>(w.size())).good());
+}
+
+}  // namespace
+
+// The control: the module's own file reads as before, and spelling out the defaults changes nothing.
+TEST_F(DicomReaderTest, Scope_OrdinaryUnsignedSingleFrame16BitStillReads) {
+    const ScopeRead r = ReadScope(s_validDcm);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(256u * 256u, r.words.size());
+    const fs::path explicitDefaults = MakeScopeVariant(s_validDcm, "explicit_defaults", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_NumberOfFrames, "1");
+        ds->putAndInsertUint16(DCM_SamplesPerPixel, 1);
+        ds->putAndInsertUint16(DCM_PixelRepresentation, 0);
+        ds->putAndInsertUint16(DCM_BitsAllocated, 16);
+    });
+    const ScopeRead e = ReadScope(explicitDefaults);
+    EXPECT_EQ(XPE_OK, e.read);
+    EXPECT_EQ(r.words, e.words) << "stating the defaults must not change the pixels";
+}
+
+// Absent attributes take their defaults (no NumberOfFrames = one frame, no SamplesPerPixel = one, no
+// PixelRepresentation = unsigned): a file that omits them is not refused.
+TEST_F(DicomReaderTest, Scope_AbsentAttributesTakeTheirDefaults) {
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    const fs::path stripped = MakeScopeVariant(s_validDcm, "absent_attributes", [](DcmDataset* ds) {
+        delete ds->remove(DCM_NumberOfFrames);
+        delete ds->remove(DCM_SamplesPerPixel);
+        delete ds->remove(DCM_PixelRepresentation);
+    });
+    const ScopeRead r = ReadScope(stripped);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(baseline, r.words);
+}
+
+TEST_F(DicomReaderTest, Scope_MultiFrameIsUnsupportedNotTheFirstFrame) {
+    const std::vector<uint16_t> one = Words(s_validDcm);
+    std::vector<uint16_t> three;
+    for (int k = 0; k < 3; ++k) three.insert(three.end(), one.begin(), one.end());
+    const fs::path p = MakeScopeVariant(s_validDcm, "three_frames", [&](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_NumberOfFrames, "3");
+        PutWords(ds, three);
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_OK, r.open);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read);
+    EXPECT_TRUE(r.outUntouchedOnFailure) << "the output buffer must not be touched";
+    EXPECT_EQ(XPE_OK, r.metaAfter) << "the same handle still serves its metadata";
+}
+
+TEST_F(DicomReaderTest, Scope_RgbIsUnsupportedNotByteSoup) {
+    // 16-bit samples so only SamplesPerPixel can be the reason
+    const std::vector<uint16_t> rgb(256u * 256u * 3u, 1000);
+    const fs::path p16 = MakeScopeVariant(s_validDcm, "rgb16", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_SamplesPerPixel, 3);
+        ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB");
+        ds->putAndInsertUint16(DCM_PlanarConfiguration, 0);
+        PutWords(ds, rgb);
+    });
+    const ScopeRead r16 = ReadScope(p16);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r16.read);
+    EXPECT_TRUE(r16.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r16.metaAfter);
+    // and the ordinary 8-bit RGB the measurement used
+    const fs::path p8 = MakeScopeVariant(s_validDcm, "rgb8", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_SamplesPerPixel, 3);
+        ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB");
+        ds->putAndInsertUint16(DCM_PlanarConfiguration, 0);
+        ds->putAndInsertUint16(DCM_BitsAllocated, 8);
+        ds->putAndInsertUint16(DCM_BitsStored, 8);
+        ds->putAndInsertUint16(DCM_HighBit, 7);
+        std::vector<uint8_t> bytes(256u * 256u * 3u, 7);
+        ds->putAndInsertUint8Array(DCM_PixelData, bytes.data(), static_cast<unsigned long>(bytes.size()));
+    });
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ReadScope(p8).read);
+}
+
+TEST_F(DicomReaderTest, Scope_SignedPixelsAreUnsupportedNotReinterpreted) {
+    std::vector<uint16_t> w = Words(s_validDcm);
+    w[1] = static_cast<uint16_t>(static_cast<int16_t>(-1000));   // a negative stored value
+    const fs::path p = MakeScopeVariant(s_validDcm, "signed", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_PixelRepresentation, 1);
+        PutWords(ds, w);
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read);
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r.metaAfter);
+}
+
+TEST_F(DicomReaderTest, Scope_EightBitIsUnsupportedNotACorruptFile) {
+    const fs::path p = MakeScopeVariant(s_validDcm, "gray8", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsAllocated, 8);
+        ds->putAndInsertUint16(DCM_BitsStored, 8);
+        ds->putAndInsertUint16(DCM_HighBit, 7);
+        std::vector<uint8_t> bytes(256u * 256u, 9);
+        ds->putAndInsertUint8Array(DCM_PixelData, bytes.data(), static_cast<unsigned long>(bytes.size()));
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "it used to be XPE_ERR_DICOM_INVALID ('PixelData is short')";
+    EXPECT_NE(XPE_ERR_DICOM_INVALID, r.read);
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r.metaAfter);
+}
+
+// A present attribute that cannot be read as the number it must be is a malformed file, not a default.
+TEST_F(DicomReaderTest, Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted) {
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(MakeScopeVariant(s_validDcm, "frames_not_numeric", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_NumberOfFrames, "abc");
+    })).read);
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(MakeScopeVariant(s_validDcm, "frames_zero", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_NumberOfFrames, "0");
+    })).read);
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(MakeScopeVariant(s_validDcm, "frames_empty", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_NumberOfFrames, "");
+    })).read);
+}
+
+// The refusal does not change the handle: the same handle refuses the same way again.
+TEST_F(DicomReaderTest, Scope_ARefusedHandleRefusesTheSameWayAgain) {
+    const fs::path p = MakeScopeVariant(s_validDcm, "refuse_twice", [](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_PixelRepresentation, 1);
+    });
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(p.string().c_str(), &h));
+    XpeImageBuffer a{}, b{};
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_dicom_read_image(h, &a));
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_dicom_read_image(h, &b));
+    xpe_dicom_close(h);
+}
+
+// ---- PINNED, NOT ENDORSED: #235 awaits a design decision on these three ------------------------------------
+// They are returned as stored today. When #235 decides (normalise MONOCHROME1 to MONOCHROME2, report or apply the
+// rescale, mask above BitsStored), THESE TESTS MUST CHANGE with it: each one fails the day the behaviour does.
+
+TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored) {
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    const fs::path p = MakeScopeVariant(s_validDcm, "mono1", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1");
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(baseline, r.words) << "no inversion, and no signal that the data is inverted";
+}
+
+TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported) {
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    const fs::path p = MakeScopeVariant(s_validDcm, "rescale", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_RescaleSlope, "2");
+        ds->putAndInsertString(DCM_RescaleIntercept, "-1024");
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(baseline, r.words) << "stored values, neither rescaled nor flagged";
+}
+
+TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked) {
+    std::vector<uint16_t> w = Words(s_validDcm);
+    for (size_t i = 0; i < w.size(); ++i) w[i] = static_cast<uint16_t>((w[i] & 0x0FFF) | 0xF000);
+    const fs::path p = MakeScopeVariant(s_validDcm, "high_bits", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsStored, 12);
+        ds->putAndInsertUint16(DCM_HighBit, 11);
+        PutWords(ds, w);
+    });
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(w, r.words) << "the 4 bits above BitsStored are returned, not masked";
+}
