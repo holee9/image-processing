@@ -167,8 +167,10 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
 
     int num_tiles_x = p->tile_width;
     int num_tiles_y = p->tile_height;
-    int tile_w = (w + num_tiles_x - 1) / num_tiles_x;
-    int tile_h = (h + num_tiles_y - 1) / num_tiles_y;
+    // QA-B-181b (Codex #35): divide first. `(w + num_tiles_x - 1) / num_tiles_x` leaves int when w is near INT32_MAX
+    // (w = INT32_MAX, tile_width = 2 passes the window check above): undefined behaviour no guard can catch.
+    int tile_w = xpe_ceil_div(w, num_tiles_x);
+    int tile_h = xpe_ceil_div(h, num_tiles_y);
 
     // Build per-tile LUTs with local min/max quantization.
     // REQ-ENH-013: each tile's histogram covers its actual value range,
@@ -179,12 +181,16 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
 
     for (int ty = 0; ty < num_tiles_y; ++ty) {
         for (int tx = 0; tx < num_tiles_x; ++tx) {
-            int x0 = tx * tile_w;
-            int y0 = ty * tile_h;
-            int x1 = std::min(x0 + tile_w, w);
-            int y1 = std::min(y0 + tile_h, h);
+            // 64-bit: tx * tile_w can exceed INT32_MAX for the trailing tiles of a very wide image. A start past the
+            // edge is clamped to it, which gives the same empty range the unclamped arithmetic gave.
+            const int64_t x0w = static_cast<int64_t>(tx) * tile_w;
+            const int64_t y0w = static_cast<int64_t>(ty) * tile_h;
+            int x0 = static_cast<int>(std::min<int64_t>(x0w, w));
+            int y0 = static_cast<int>(std::min<int64_t>(y0w, h));
+            int x1 = static_cast<int>(std::min<int64_t>(x0w + tile_w, w));
+            int y1 = static_cast<int>(std::min<int64_t>(y0w + tile_h, h));
             build_tile_lut(px, w, x0, y0, x1, y1, p->clip_limit,
-                           tiles[static_cast<size_t>(ty * num_tiles_x + tx)]);
+                           tiles[static_cast<size_t>(ty) * static_cast<size_t>(num_tiles_x) + static_cast<size_t>(tx)]);
         }
     }
 
@@ -205,7 +211,8 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
             int tx_idx = std::min(x / tile_w, num_tiles_x - 1);
 
             float v = px[static_cast<int64_t>(y) * w + x];
-            float frac = tile_lookup(tiles[static_cast<size_t>(ty_idx * num_tiles_x + tx_idx)], v);
+            float frac = tile_lookup(tiles[static_cast<size_t>(ty_idx) * static_cast<size_t>(num_tiles_x) +
+                                           static_cast<size_t>(tx_idx)], v);
 
             // Map CDF fraction back to global value range
             output[static_cast<int64_t>(y) * w + x] = val_min + frac * val_range;

@@ -76,6 +76,16 @@ inline XpeErrorCode xpe_guarded_call(F&& body) noexcept {
     }
 }
 
+/**
+ * @brief ceil(size / parts) for size >= 1 and parts >= 1, without overflow (QA-B-181b, Codex #35).
+ *
+ * The usual `(size + parts - 1) / parts` adds before it divides: for size near INT32_MAX the sum leaves int,
+ * which is undefined behaviour no exception guard can catch. Divide first, then round up by the remainder.
+ */
+static inline int xpe_ceil_div(int size, int parts) {
+    return size / parts + (size % parts != 0 ? 1 : 0);
+}
+
 inline float* float_pixels(XpeImageBuffer* img) {
     return static_cast<float*>(img->data);
 }

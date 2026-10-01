@@ -1,0 +1,167 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard.*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 14 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BadAllocBecomesOutOfMemory
+[       OK ] ExceptionGuard.BadAllocBecomesOutOfMemory (0 ms)
+[ RUN      ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed
+[       OK ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed
+[       OK ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANormalReturnPassesThroughUnchanged
+[       OK ] ExceptionGuard.ANormalReturnPassesThroughUnchanged (0 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException (4 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+[       OK ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 536870912
+  xpe_ceil_div(s, p)
+    Which is: -536870912
+size=2147483645 parts=4
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 429496729
+  xpe_ceil_div(s, p)
+    Which is: -429496729
+size=2147483645 parts=5
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 268435456
+  xpe_ceil_div(s, p)
+    Which is: -268435455
+size=2147483645 parts=8
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 2147484
+  xpe_ceil_div(s, p)
+    Which is: -2147482
+size=2147483645 parts=1000
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 715827882
+  xpe_ceil_div(s, p)
+    Which is: -715827882
+size=2147483646 parts=3
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 536870912
+  xpe_ceil_div(s, p)
+    Which is: -536870911
+size=2147483646 parts=4
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 429496730
+  xpe_ceil_div(s, p)
+    Which is: -429496729
+size=2147483646 parts=5
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 268435456
+  xpe_ceil_div(s, p)
+    Which is: -268435455
+size=2147483646 parts=8
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 2147484
+  xpe_ceil_div(s, p)
+    Which is: -2147482
+size=2147483646 parts=1000
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 2
+  xpe_ceil_div(s, p)
+    Which is: -1
+size=2147483646 parts=1073741823
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 1073741824
+  xpe_ceil_div(s, p)
+    Which is: -1073741824
+size=2147483647 parts=2
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 715827883
+  xpe_ceil_div(s, p)
+    Which is: -715827882
+size=2147483647 parts=3
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 536870912
+  xpe_ceil_div(s, p)
+    Which is: -536870911
+size=2147483647 parts=4
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 429496730
+  xpe_ceil_div(s, p)
+    Which is: -429496729
+size=2147483647 parts=5
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 268435456
+  xpe_ceil_div(s, p)
+    Which is: -268435455
+size=2147483647 parts=8
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 2147484
+  xpe_ceil_div(s, p)
+    Which is: -2147482
+size=2147483647 parts=1000
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(219): error: Expected equality of these values:
+  CeilDiv64(s, p)
+    Which is: 3
+  xpe_ceil_div(s, p)
+    Which is: -1
+size=2147483647 parts=1073741823
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(222): error: Expected equality of these values:
+  1073741824
+  xpe_ceil_div(0x7FFFFFFF, 2)
+    Which is: -1073741824
+Codex's example: w = INT32_MAX, tile_width = 2
+
+[  FAILED  ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries
+[       OK ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour
+[       OK ] ExceptionGuard.ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour (102 ms)
+[----------] 14 tests from ExceptionGuard (108 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test suite ran. (108 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax
+
+ 1 FAILED TEST

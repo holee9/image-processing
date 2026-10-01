@@ -177,3 +177,78 @@ TEST(ExceptionGuard, EveryEntryPointRejectsADimensionAboveIntMax) {
     XpeImageBuffer widest = Declared(0x7FFFFFFFu, 1, &one, 0);
     EXPECT_EQ(XPE_OK, validate_float32_image(&widest)) << "INT32_MAX itself stays valid";
 }
+
+// ---- QA-B-181b: the tile-size arithmetic of xpe_contrast_enhance (Codex #35) --------------------------------
+
+namespace {
+
+/** The reference: the same quotient computed where the sum cannot overflow. */
+int CeilDiv64(int size, int parts) {
+    return static_cast<int>((static_cast<int64_t>(size) + parts - 1) / parts);
+}
+
+uint64_t Fnv1a(const std::vector<float>& v) {
+    uint64_t h = 1469598103934665603ull;
+    const unsigned char* b = reinterpret_cast<const unsigned char*>(v.data());
+    for (size_t i = 0; i < v.size() * sizeof(float); ++i) {
+        h ^= b[i];
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
+std::vector<float> Pattern(int w, int h) {
+    std::vector<float> px(static_cast<size_t>(w) * h);
+    uint32_t s = 12345u;
+    for (size_t i = 0; i < px.size(); ++i) {
+        s = s * 1664525u + 1013904223u;
+        px[i] = static_cast<float>(s >> 20) + static_cast<float>(i % 97);
+    }
+    return px;
+}
+
+}  // namespace
+
+// The boundary Codex named (w = INT32_MAX, 2 tiles) and its neighbourhood, no allocation, no image.
+TEST(ExceptionGuard, CeilDivMatchesTheWideReferenceNearIntMax) {
+    const int sizes[] = {1, 2, 3, 7, 1000, 0x3FFFFFFF, 0x40000000, 0x40000001, 0x7FFFFFFD, 0x7FFFFFFE, 0x7FFFFFFF};
+    const int parts[] = {1, 2, 3, 4, 5, 8, 1000, 0x3FFFFFFF, 0x40000000};
+    for (int s : sizes) {
+        for (int p : parts) {
+            if (p > s / 2) continue;   // the window check admits only parts <= size / 2
+            EXPECT_EQ(CeilDiv64(s, p), xpe_ceil_div(s, p)) << "size=" << s << " parts=" << p;
+        }
+    }
+    EXPECT_EQ(1073741824, xpe_ceil_div(0x7FFFFFFF, 2)) << "Codex's example: w = INT32_MAX, tile_width = 2";
+    EXPECT_EQ(0x7FFFFFFF, xpe_ceil_div(0x7FFFFFFF, 1));
+}
+
+TEST(ExceptionGuard, CeilDivIsExactAtTheOrdinaryBoundaries) {
+    EXPECT_EQ(3, xpe_ceil_div(9, 3));
+    EXPECT_EQ(4, xpe_ceil_div(10, 3));
+    EXPECT_EQ(1, xpe_ceil_div(1, 1));
+    EXPECT_EQ(512, xpe_ceil_div(4096, 8));
+    EXPECT_EQ(385, xpe_ceil_div(3072 + 8, 8));   // 3080 / 8 = 385 exactly
+    EXPECT_EQ(386, xpe_ceil_div(3081, 8));
+}
+
+// The rewrite of the tile-size and tile-index arithmetic must not change one output bit. The expected values
+// were taken from the code BEFORE the rewrite (same build, same machine) and are pinned here.
+TEST(ExceptionGuard, ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour) {
+    struct Case { int w, h, tw, th; uint64_t expected; };
+    const Case cases[] = {
+        {101, 67, 8, 8, 0x229DE8749741D30Dull},      // sizes not divisible by the tile counts
+        {64, 64, 4, 4, 0x8FBE1CD7F07C2A45ull},       // divisible
+        {17, 9, 2, 2, 0x8BEBE1B1FBE154F1ull},        // small, uneven
+        {5, 8, 2, 4, 0xD5831760FDB2011Full},         // w = 5 with 2 tiles: the last tile is short
+        {3072, 3072, 8, 8, 0x1EDF0E316336B714ull},   // a full detector frame
+    };
+    for (const Case& c : cases) {
+        std::vector<float> px = Pattern(c.w, c.h);
+        XpeImageBuffer img = Declared(static_cast<uint32_t>(c.w), static_cast<uint32_t>(c.h), px.data(), px.size() * sizeof(float));
+        XpeClaheParams p{3.0f, c.tw, c.th};
+        ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &p)) << c.w << "x" << c.h;
+        const uint64_t h = Fnv1a(px);
+        EXPECT_EQ(c.expected, h) << c.w << "x" << c.h << " tiles " << c.tw << "x" << c.th;
+    }
+}

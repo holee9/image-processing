@@ -584,7 +584,8 @@ Plane Resample(const Plane& p, int w, int h, const Taps& tx, const Taps& ty) {
 }
 
 Plane Reduce(const Plane& p) {
-    const int w = (p.w + 1) / 2, h = (p.h + 1) / 2;
+    // QA-B-181b: ceil(n / 2) as n / 2 + n % 2. `(n + 1) / 2` leaves int for n == INT_MAX (undefined behaviour).
+    const int w = p.w / 2 + p.w % 2, h = p.h / 2 + p.h % 2;
     return Resample(p, w, h, ReduceTaps(p.w, w), ReduceTaps(p.h, h));
 }
 
