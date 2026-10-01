@@ -1,0 +1,8 @@
+# the one change in the investigation copy of xpe_calib_fixture_gen.cpp (everything else identical):
+604,607c604
+<     for (const std::string& tmp : scratchFiles) {
+<         std::remove(tmp.c_str());
+<         std::remove((tmp + ".tmp").c_str());
+<     }
+---
+>     for (const std::string& tmp : scratchFiles) { (void)tmp; }   // QA-A-210 investigation copy: the per-level maps are KEPT
