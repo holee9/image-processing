@@ -1,0 +1,42 @@
+## Y_flat_roi occurrences (docs/, .moai/specs/)
+docs/project/Algorithm-Evaluation-Protocol.md:68:| `PRNU_CV` | `std(Y_flat_roi) / mean(Y_flat_roi)` | flat-field residual |
+docs/project/Algorithm-Evaluation-Protocol.md:69:| `FPN_Reduction_dB` | `20 * log10(std(R_flat_roi) / std(Y_flat_roi))` | before/after fixed-pattern improvement |
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:218:PRNU_CV = std(Y_flat_roi) / max(mean(Y_flat_roi), epsilon)
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:220:FPN_Reduction_dB = 20 * log10(std(R_flat_roi) / max(std(Y_flat_roi), epsilon))
+
+## 'flat' + 'ROI' on one line (docs/, .moai/specs/)
+docs/calibration/xray-detector-calibration-prd.md:2066:nps_rois = ExtractROIs(flat_mean, roi_size=256, n_rois=5)
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:1147:- **GainMean** $\bar{I}_{\text{flat}}$: ROI 내 `(Flood - Offset)` 의 spatial mean
+docs/project/XPE-PreProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical
+
+## ROI-defining phrases: central/center N% / edge exclusion / margin
+docs/ai-module/SHA-AI-001_Software_Hazard_Analysis.md:87:| **위험 이벤트** | AI가 정상 해부학적 구조를 ROI에서 제외 (과도한 축소) |
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md:466:| **SRS-CALIB-FUNC-035** | **Dark-ROI selection shall be explicit and its failure shall be visible.** `Y_dark_roi` (`FUNC-016`
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md:468:| **SRS-CALIB-FUNC-037** | **The verification metrics structure shall carry every value its gates decide on, under the canonic
+docs/design/prototype/roi-local.jsx:33:// Pre-drawn ROI definitions (positions in % of viewport)
+docs/design/prototype/roi-local.jsx:130:          <ROIEdgeRail side="left" label="Tools & ROIs" count={ROIS.length} onClick={() => setLeftOpen(true)} />
+docs/design/prototype/roi-local.jsx:224:          <ROIEdgeRail side="right" label="Measurements" hint="CNR · Δ" onClick={() => setRightOpen(true)} />
+docs/design/prototype/roi-local.jsx:375:function ROIEdgeRail({ side, label, hint, count, onClick }) {
+docs/design/prototype/variant-c.jsx:499:      <input placeholder="Notes (e.g. ROI artifacts in lower-left, ringing on edges...)"
+docs/enhance-advanced/IAP-ENHANCE-ADV-001_Image_Acquisition_Protocol.md:197:Validate that ROI-masked EI matches true exposure within ±5%.
+docs/enhance-advanced/SAD-ENHANCE-ADV-001_Software_Architecture_Document.md:443:    log_message("DI_roi=%.2f, confidence=%.2f, roi_box=[%d,%d,%d,%d]",
+docs/enhance-advanced/SAD-ENHANCE-ADV-001_Software_Architecture_Document.md:650:| SWU-2.11 (ROI Detection) | test_hough_transform, test_confidence_scoring | 100% |
+docs/enhance-advanced/SAD-ENHANCE-ADV-001_Software_Architecture_Document.md:651:| SWU-2.10 (EI Correction) | test_ei_roi_computation, test_fallback_logic | 100% |
+docs/enhance-advanced/SHA-ENHANCE-ADV-001_Software_Hazard_Analysis.md:103:| **CTL-ADV-003.2** | Fallback is logged: "ROI confidence (%.2f) below 0.7. Using full-image EI." Operator sees reason for fal
+docs/enhance-advanced/SHA-ENHANCE-ADV-001_Software_Hazard_Analysis.md:104:| **CTL-ADV-003.3** | Full-image EI is less accurate than ROI-masked (includes shielded area) but valid and safe. EI error fro
+docs/enhance-advanced/SHA-ENHANCE-ADV-001_Software_Hazard_Analysis.md:136:| **CTL-ADV-004.3** | Integration test: real phantom with known exposure. Verify EI_roi within ±5% of expected value. If EI_r
+docs/enhance-advanced/SHA-ENHANCE-ADV-001_Software_Hazard_Analysis.md:216:Sidecar JSON file generation fails (disk full, permissions error) or corruption occurs during write. ROI sidecar is never crea
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:126:| **FR-1100.1** | System shall detect collimation borders using Hough line transform: (1) compute edge map via Cann
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:136:| **FR-1200.2** | Confidence score shall be reported in ROI sidecar JSON. If confidence < 0.7, system shall automat
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:164:| **FR-1500.3** | System shall log DI value, confidence, and alert status in diagnostic output and frame metadata.
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:249:- Detected ROI: within ± 5 pixels of true edge
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:396:| EI ROI Correction | Error ≤ ±5%, DI accuracy ±0.05 |
+docs/ghost-correction/sdd_ghost_correction.md:465:  2. ROI 기반: 사전 정의된 2개 ROI (중앙, 가장자리)의 mean 차이
+docs/post-processing/xpe/README.md:105:| §7.2 | EI ROI Central Method 수학 수정 (√0.1 계수) | GAP-F |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:33:| GAP-F | EI ROI Central Method √0.1 오류 | §7.2 | v1.1 |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:1174:    # Compute GainMean from ROI (avoid detector edge artefacts)
+
+## control: files in docs/ and .moai/specs/ mentioning ROI at all
+109
+## control: files containing Y_dark_roi
+7
