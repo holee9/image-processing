@@ -55,7 +55,20 @@ CI 로그(run 36903101428, 리더가 카드에 인용): 시도 1 뒤 읽기 `fai
 - 반증 7팔(실제 소스, 빌드 성공, 바이트 동일 복구): `falsification_arms.txt`(패널을 원래 레이아웃으로 되돌림 → 레이아웃 시험 4건 빨강 / 레인 뒤 읽기 제거 → 시나리오 5 빨강, 요약이 `worker=Active; failures=1` 로 남음 / C-09 최소 너비 제거 → 빨강 / 실패 문구가 다시 모듈 탓 → 빨강), `falsification_arms_skip_rule.txt`(모든 갈래 건너뜀 → 3건 빨강 / 느린 러너가 건너뜀에 합류 → 1건 빨강 / 게이트가 아무거나 건너뜀 → 소스 대조 빨강).
 - 빌드: 오류 0, xUnit1031 경고 0. `Category=Functional` **360 통과 · 건너뜀 1(기존) · 실패 0**. SelfCheck: 11 시나리오, **12회 연속 0 실패**(1.8–2.1 초, 평균 1.9). Mock E2E(+TwoLane·AlertVisibility 포함): 종료 0, **41 통과 · 건너뜀 9 · 실패 0**(건너뜀 9 = Native 전용 7 + 레인 시험 L04·L06 — "프리셋이 체인 단계가 달라 Mock 이 거절"이라는 기존 사유; 앞선 카드의 실행 범위 밖이었다).
 
-### 2-6. `gui-e2e-native` 잡 시간 (적기만, 범위 밖)
+### 2-6. 스크린샷 — 새 행의 가독성 (리더 요청, 커밋 후 추가)
+
+`screens/`: **실제 `MainWindow`** 를 같은 프로세스에서 그린 이미지(`RenderTargetBitmap`), 상태는 `Disabled(3,3)` 로 고정(임시 패치와 임시 코드, 둘 다 되돌리고 삭제). FlaUI 의 화면 복사와 `PrintWindow` 는 이 환경에서 창 안쪽이 하얗게만 나와 쓰지 못했다(그 시도의 이미지는 버렸다).
+
+| 파일 | 레이아웃 | 너비 | 창 안에서 읽은 값 |
+|---|---|---|---|
+| `before-1560.png` | a120c547 (ToolBar 항목) | 1560 | 배너 보임(폭 555 px) |
+| `before-1280.png` | a120c547 | **1280** | 배너 **보이지 않음**(`IsVisible=False`); 툴바 오른쪽 끝에 오버플로 화살표만 있다 |
+| `after-1560.png` | 이 카드 (별도 행) | 1560 | 배너 보임(폭 1449 px) |
+| `after-1280.png` | 이 카드 | **1280** | 배너 보임(폭 1169 px) |
+
+`after-1280.png` 를 눈으로 봤다: 툴바 바로 아래 주황색 한 줄에 "AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted." 가 한 줄로 다 보이고 오른쪽 끝에 Restart AI 버튼이 있다. 줄바꿈 없이 들어가므로 이 문구에서 행 높이는 늘지 않는다(§5 의 "두 줄" 우려는 현재 문구와 최소 너비에서는 해당 없음). `InitFailed` 문구(`AI session is not running: <사유> …`)는 사유 길이에 따라 길어질 수 있어 이 이미지로는 보지 않았다.
+
+### 2-7. `gui-e2e-native` 잡 시간 (적기만, 범위 밖)
 
 이 잡의 `timeout-minutes` 는 **30**(`ci.yml:737`)이다 — 카드의 "45분"이 아니다. 오늘의 실행: 성공 21–26 분(8d9c2185, 8bec255c, b659829b …), 53ec370a 25.5 분(실패), 82692af9 약 30 분(타임아웃으로 실패), 12f18398 30 분에 취소(= 같은 한도). 12f18398 의 로그에 소요가 찍힌 시험 114건의 합이 약 25.6 분이고, 앱을 새로 띄우는 시험(A07–A17 등)이 하나에 약 40 초, 최장 A12 135 초였다. **무엇이 늘렸는지는 가르지 않았다** — 시험이 늘고 앱 기동 비용이 시험마다 드는 것이 큰 몫이라는 정황이다. 시험별 시간표는 `gui_e2e_native_durations.txt`.
 
@@ -68,19 +81,19 @@ CI 로그(run 36903101428, 리더가 카드에 인용): 시도 1 뒤 읽기 `fai
 1. **C-09 를 Native 로 돌리지 못했다**(#98). 카드가 요구한 "로컬 5회 + CPU 부하"는 불가능하다. 대신 같은 레이아웃·너비를 Mock 앱에 상태를 고정해 관측했다(§2-1). 네이티브에서 마크가 보이는지와 C-09 전체 통과는 다음 CI 가 말한다.
 2. **CI 러너의 창 너비**를 관측하지 않았다(§1-1). C-09 가 이제 너비를 로그에 찍는다(`C09 window width before: …`).
 3. **CI 에서 시도 중 레인이 달랐는지**를 직접 보지 않았다(§1-2). 공유 앱이 앞 시험의 Lane B 설정을 가진 채 C-09 를 시작했다는 것이 설명의 전제다.
-4. 레이아웃 시험은 XAML 구조를 읽는다(렌더링 아님). 렌더링은 §2-1 의 일회성 관측과 C-09 가 본다. 패널이 새 행에서 **좁은 창의 사용자에게 충분히 읽히는지**(줄바꿈 높이 등)는 눈으로 보지 않았다.
+4. 레이아웃 시험은 XAML 구조를 읽는다(렌더링 아님). 렌더링은 §2-1 의 일회성 관측, §2-6 의 이미지, C-09 가 본다. `Disabled` 문구가 1280 에서 한 줄에 들어가는 것은 이미지로 봤다. `InitFailed` 문구(사유가 길 수 있음)의 모습은 보지 않았다.
 5. C-09 의 창 너비 복원이 공유 앱의 이후 시험에 영향을 주지 않는지는 Native 에서 확인하지 못했다(복원은 `finally` 에서 한다).
-6. `gui-e2e-native` 시간 증가의 원인(§2-6)은 가르지 않았다.
+6. `gui-e2e-native` 시간 증가의 원인(§2-7)은 가르지 않았다.
 
 ## 5. 잔여 위험
 
-- 배너가 길어져 두 줄이 되면 행 높이가 늘어 아래 작업 영역이 조금 줄어든다(끔 상태일 때만).
+- `InitFailed` 처럼 사유가 긴 문구는 줄바꿈으로 행 높이가 늘어 아래 작업 영역이 조금 줄 수 있다(마크가 보일 때만). `Disabled` 문구는 1280 에서 한 줄이다(§2-6).
 - 하위 레인이 AI 호출을 하는 것은 의도이지만, **레인 하나로 실패 한도가 두 배로 빨리 찬다**는 점은 사용자에게 설명되지 않는다(마크의 숫자 "3 of 3" 만 보인다). 설계 결정 사항이라 건드리지 않았다.
 - `InternalsVisibleTo` 로 SelfCheck 가 내부 타입을 본다(시험용 친구 어셈블리).
 - 건너뜀을 실패로 올려서, 로컬에서 러너 실행이 느리거나 못 뜨는 환경의 A04·A06 은 이제 빨갛다(의도).
 
 ## 증거 파일
 
-`falsification_arms.txt` · `falsification_arms_skip_rule.txt` · `observation_width_before.txt` · `observation_width_after.txt` · `observation_before.txt` · `observation_after_move.txt` · `gui_e2e_native_durations.txt` · `selfcheck_runs.txt` · `local_runs.txt` · `text_lint.txt`
+`falsification_arms.txt` · `falsification_arms_skip_rule.txt` · `observation_width_before.txt` · `observation_width_after.txt` · `observation_before.txt` · `observation_after_move.txt` · `screens/*.png`(4) · `gui_e2e_native_durations.txt` · `selfcheck_runs.txt` · `local_runs.txt` · `text_lint.txt`
 
 🗿 MoAI
