@@ -1,0 +1,22 @@
+# allocation-failure sweep: allocation points covered, before and after the parser replacement
+# (every point passed: no exception left the C ABI function, and the state was as the call found it)
+
+== before: QA-A-202e/evidence/26_pre_oom.txt  (hand-written scanner)
+[sweep] xpe_calib_load_gain                           12 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, range)       12 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, no range)    12 allocation points covered
+[sweep] xpe_calib_load_gain_cached (miss)             22 allocation points covered
+[sweep] xpe_calib_load_gain_cached (polynomial)       14 allocation points covered
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[sweep] xpe_preprocess_pipeline                       32 allocation points covered
+[sweep] xpe_preprocess_pipeline                       27 allocation points covered
+
+== after:  QA-A-208b/evidence/26_pre_oom.txt  (nlohmann-json SAX)
+[sweep] xpe_calib_load_gain                           91 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, range)       91 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, no range)    99 allocation points covered
+[sweep] xpe_calib_load_gain_cached (miss)            101 allocation points covered
+[sweep] xpe_calib_load_gain_cached (polynomial)       93 allocation points covered
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[sweep] xpe_preprocess_pipeline                       43 allocation points covered
+[sweep] xpe_preprocess_pipeline                       74 allocation points covered

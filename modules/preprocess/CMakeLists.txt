@@ -66,6 +66,10 @@ target_include_directories(xpe_preprocess
 
 target_link_libraries(xpe_preprocess
     PUBLIC xpe_common
+    # nlohmann-json parses the config of a calibration file (helpers.cpp, QA-A-208b). Header-only, the same
+    # dependency and version as xpe_common's (third_party/common/vcpkg.json); it already reached this target
+    # through xpe_common's PUBLIC link -- stated here so that it is a declared dependency, not an accident.
+    PRIVATE nlohmann_json::nlohmann_json
 )
 
 if(WIN32)
@@ -543,6 +547,7 @@ if(_XPE_BUILD_TESTS)
     target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
     target_link_libraries(xpe_preprocess_oom_tests
         PRIVATE xpe_common
+                nlohmann_json::nlohmann_json
                 GTest::gtest_main
     )
     if(WIN32)

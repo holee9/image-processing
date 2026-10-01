@@ -803,6 +803,12 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * boundary, so a bypassed gain stage means "gain = 1" -- when a float stage follows (binning with binningMode > 1,
  * defect, or ghost with a handle) the frame is converted to float32 explicitly and the result is the one a gain
  * map of ones gives (QA-A-208). With no float stage the frame stays uint16.
+ *
+ * A call that fails AFTER some stages have run -- a stage's own error, or one of the internal consistency checks
+ * that return XPE_ERR_PROCESSING_FAILED -- leaves the frame in img as the caller gave it (the result is written
+ * back only after the last stage). It does not undo the stage-completion flags in the metadata: the flags of the
+ * stages that finished stay set, as for every error other than XPE_ERR_OUT_OF_MEMORY. (A refusal before any stage
+ * runs -- the capacity and dimension checks -- sets none.)
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from

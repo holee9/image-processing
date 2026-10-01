@@ -140,14 +140,18 @@ enum class XpeJsonTop {
 };
 
 /**
- * The top-level key `key` of the JSON OBJECT `json`, found by walking the object: member by member, skipping
- * strings (escapes included), nested objects and nested arrays. xpe_json_find_scalar looks for the first
- * occurrence of the quoted name anywhere in the text, so it reads a nested object's key (or the tail of a string
- * value that happens to end in the name) in place of the real one, and can pass over a malformed top-level value
- * (QA-A-208, Codex #34 B2). This is the lookup for signed data -- the quality fields of a calibration file. The
- * pipeline CONFIGURATION is still read by xpe_json_get_string, with that first-occurrence rule, unchanged.
- * `*value` is set for Scalar only: the text of the string between its quotes (escapes left as written), or the
- * bare token.
+ * The top-level key `key` of the JSON OBJECT `json`, read from a PARSED text: nlohmann-json (the parser the
+ * repository already carries, third_party/common/vcpkg.json) in its SAX mode, strict -- the whole text must be one
+ * valid JSON object, with nothing after it. Keys are compared after their escapes are interpreted ("fit\u005fr_squared"
+ * is fit_r_squared); the members of nested objects and arrays are not top-level keys; a key given twice at the top level
+ * is Duplicate. An empty or all-white-space text is Absent; anything that is not valid JSON, or whose top level
+ * is not an object, is Malformed. No exception for a malformed text; std::bad_alloc can still escape (the callers'
+ * guards turn it into XPE_ERR_OUT_OF_MEMORY). xpe_json_find_scalar looks for the first occurrence of the quoted
+ * name anywhere in the text and reads a nested object's key (QA-A-208, Codex #34 B2); this is the lookup for signed
+ * data -- the quality fields of a calibration file. The pipeline CONFIGURATION is still read by xpe_json_get_string,
+ * with that first-occurrence rule, unchanged (QA-A-209 is to change it).
+ * `*value` is set for Scalar only: the string's text with its escapes interpreted, or the number/true/false/null
+ * token (a float as written, an integer in decimal).
  */
 XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value);
 

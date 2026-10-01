@@ -1,0 +1,73 @@
+Note: Google Test filter = ConfigStrictParse.*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 14 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (12 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (13 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (21 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (3 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(548): error: Expected equality of these values:
+  0u
+    Which is: 0
+  after.valid
+    Which is: '\x1' (1)
+a value that is not a top-level key was read
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(549): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  after.r_squared
+    Which is: 2
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":7},"other":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(536): error: Expected equality of these values:
+  0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(521): fit_r_squared: in a nested array of objects only: not given  {"list":[{"fit_r_squared":7},{"fit_r_squared":8}]}
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (11 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(650): error: Expected equality of these values:
+  0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(635): fit_r_squared: a nested object with the same key is not it  {"nested":{"fit_r_squared":"bad"},"fit_r_squared":7}
+
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (39 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[----------] 14 tests from ConfigStrictParse (104 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test suite ran. (104 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+
+ 2 FAILED TESTS

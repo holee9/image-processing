@@ -10,6 +10,9 @@
 #include <cstdio>
 #include <algorithm>
 #include <cstdlib>
+#include <string>
+
+#include <nlohmann/json.hpp>
 
 /* =========================================================================
  * Edge-aware bilinear interpolation
@@ -104,109 +107,109 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
 
 namespace {
 
-void json_skip_ws(const char*& p) {
-    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
-}
+/**
+ * The events of one pass of nlohmann::json's SAX parser over a config text, reduced to what
+ * xpe_json_top_level_scalar needs: how many times the wanted key appears among the members of the top-level
+ * object, and what the first such member's value is. nlohmann hands over keys with their escapes already
+ * interpreted (so "fit\u005fr_squared" arrives as fit_r_squared) and rejects everything that is not JSON; a
+ * callback that returns false stops the parse.
+ */
+class TopLevelProbe final : public nlohmann::json::json_sax_t {
+public:
+    using Json = nlohmann::json;
 
-/** `p` is at an opening quote. Returns the position after the closing quote, or nullptr if there is none. */
-const char* json_skip_string(const char* p) {
-    ++p;
-    while (*p) {
-        if (*p == '\\') {
-            if (!p[1]) return nullptr;
-            p += 2;
-            continue;
-        }
-        if (*p == '"') return p + 1;
-        ++p;
-    }
-    return nullptr;
-}
+    explicit TopLevelProbe(const char* wanted) : wanted_(wanted) {}
 
-/** `p` is at '{' or '['. Returns the position after the matching closer, or nullptr if it never closes. */
-const char* json_skip_nested(const char* p) {
-    int depth = 0;
-    while (*p) {
-        if (*p == '"') {
-            p = json_skip_string(p);
-            if (!p) return nullptr;
-            continue;
-        }
-        if (*p == '{' || *p == '[') {
-            ++depth;
-        } else if (*p == '}' || *p == ']') {
-            if (--depth == 0) return p + 1;
-        }
-        ++p;
+    bool topIsObject() const { return topIsObject_; }
+    int found() const { return found_; }
+    XpeJsonTop firstKind() const { return firstKind_; }
+    std::string takeFirstValue() { return std::move(firstValue_); }
+
+    bool null() override { return scalar("null"); }
+    bool boolean(bool v) override { return scalar(v ? "true" : "false"); }
+    bool number_integer(Json::number_integer_t v) override { return scalar(std::to_string(v)); }
+    bool number_unsigned(Json::number_unsigned_t v) override { return scalar(std::to_string(v)); }
+    bool number_float(Json::number_float_t, const Json::string_t& text) override { return scalar(text); }
+    bool string(Json::string_t& v) override { return scalar(v); }
+    bool binary(Json::binary_t&) override { return false; }   // binary is not JSON text
+
+    bool start_object(std::size_t) override {
+        if (depth_ == 0) topIsObject_ = true;
+        else nested();
+        ++depth_;
+        return true;
     }
-    return nullptr;
-}
+    bool end_object() override { --depth_; return true; }
+    bool start_array(std::size_t) override {
+        if (depth_ == 0) return false;        // the top level must be an object
+        nested();
+        ++depth_;
+        return true;
+    }
+    bool end_array() override { --depth_; return true; }
+    bool key(Json::string_t& k) override {
+        if (depth_ == 1 && k == wanted_) {
+            ++found_;
+            pending_ = true;
+        }
+        return true;
+    }
+    bool parse_error(std::size_t, const std::string&, const nlohmann::detail::exception&) override { return false; }
+
+private:
+    /** A scalar event: at the top level that is not an object; at depth 1 it is the value of a top-level member. */
+    bool scalar(std::string text) {
+        if (depth_ == 0) return false;
+        if (depth_ == 1 && pending_) {
+            pending_ = false;
+            if (found_ == 1) {
+                firstKind_ = XpeJsonTop::Scalar;
+                firstValue_ = std::move(text);
+            }
+        }
+        return true;
+    }
+    /** An object or array that opens as the value of a top-level member. */
+    void nested() {
+        if (depth_ == 1 && pending_) {
+            pending_ = false;
+            if (found_ == 1) firstKind_ = XpeJsonTop::NotScalar;
+        }
+    }
+
+    std::string wanted_;
+    int depth_ = 0;
+    bool topIsObject_ = false;
+    bool pending_ = false;     // the key just seen is the wanted one and its value is next
+    int found_ = 0;
+    XpeJsonTop firstKind_ = XpeJsonTop::Absent;
+    std::string firstValue_;
+};
 
 }  // namespace
 
 XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value) {
     if (!json || !key) return XpeJsonTop::Absent;
-    const char* p = json;
-    json_skip_ws(p);
-    if (!*p) return XpeJsonTop::Absent;            // an empty config has no keys
-    if (*p != '{') return XpeJsonTop::Malformed;
-    ++p;
-    json_skip_ws(p);
-    if (*p == '}') return XpeJsonTop::Absent;      // {}
 
-    const size_t keyLen = std::strlen(key);
-    int found = 0;
-    XpeJsonTop firstKind = XpeJsonTop::Absent;
-    std::string firstValue;
-    for (;;) {
-        json_skip_ws(p);
-        if (*p != '"') return XpeJsonTop::Malformed;
-        const char* nameBegin = p + 1;
-        const char* afterName = json_skip_string(p);
-        if (!afterName) return XpeJsonTop::Malformed;
-        const bool match = static_cast<size_t>(afterName - 1 - nameBegin) == keyLen &&
-                           std::strncmp(nameBegin, key, keyLen) == 0;
-        p = afterName;
-        json_skip_ws(p);
-        if (*p != ':') return XpeJsonTop::Malformed;
-        ++p;
-        json_skip_ws(p);
+    // An empty (or all-white-space) config has no keys; it is not malformed. Everything else must parse.
+    const char* first = json;
+    while (*first == ' ' || *first == '\t' || *first == '\n' || *first == '\r') ++first;
+    if (!*first) return XpeJsonTop::Absent;
 
-        XpeJsonTop kind = XpeJsonTop::Scalar;
-        std::string text;
-        if (*p == '"') {
-            const char* end = json_skip_string(p);
-            if (!end) return XpeJsonTop::Malformed;
-            text.assign(p + 1, end - 1);
-            p = end;
-        } else if (*p == '{' || *p == '[') {
-            const char* end = json_skip_nested(p);
-            if (!end) return XpeJsonTop::Malformed;
-            kind = XpeJsonTop::NotScalar;
-            p = end;
-        } else {
-            // A bare token (number, true, false, null) -- or nothing at all, which is an empty scalar.
-            const char* end = p;
-            while (*end && *end != ',' && *end != '}' && *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r') ++end;
-            if (!*end) return XpeJsonTop::Malformed;
-            text.assign(p, end);
-            p = end;
-        }
-        if (match) {
-            if (++found == 1) {
-                firstKind = kind;
-                firstValue = std::move(text);
-            }
-        }
-        json_skip_ws(p);
-        if (*p == ',') { ++p; continue; }
-        if (*p == '}') break;
-        return XpeJsonTop::Malformed;
-    }
-    if (found == 0) return XpeJsonTop::Absent;
-    if (found > 1) return XpeJsonTop::Duplicate;
-    if (firstKind == XpeJsonTop::Scalar && value) *value = std::move(firstValue);
-    return firstKind;
+    // QA-A-208b (Codex #40): the text is parsed by nlohmann-json -- the parser the repository already carries
+    // (third_party/common/vcpkg.json) -- through its SAX interface, with `strict` (nothing may follow the value)
+    // and no comments. The parse reports errors by returning false: no exception for a malformed text. (An
+    // allocation failure is a std::bad_alloc, which the callers' guards turn into XPE_ERR_OUT_OF_MEMORY.)
+    TopLevelProbe probe(key);
+    const bool ok = nlohmann::json::sax_parse(json, json + std::strlen(json), &probe,
+                                              nlohmann::json::input_format_t::json,
+                                              /*strict=*/true, /*ignore_comments=*/false);
+    if (!ok || !probe.topIsObject()) return XpeJsonTop::Malformed;
+
+    if (probe.found() == 0) return XpeJsonTop::Absent;
+    if (probe.found() > 1) return XpeJsonTop::Duplicate;
+    if (probe.firstKind() == XpeJsonTop::Scalar && value) *value = probe.takeFirstValue();
+    return probe.firstKind();
 }
 
 /**
