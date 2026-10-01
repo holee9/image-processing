@@ -218,7 +218,13 @@ static void RunWpfE2E()
         Assert(applyDisplayPipelineMenuItem.Command is not null, "Apply Display Pipeline menu command missing.");
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
         Assert(!runDeterministicBaselineMenuItem.IsEnabled, "Deterministic baseline menu must be disabled until Phase 1b.");
-        Assert(!runFullPipelineMenuItem.IsEnabled, "Full pipeline menu must be disabled until Phase 2/3.");
+        // #225 row 10 landed (GUI-C-184): the item runs AI bone suppression now and says so in its header. Like the
+        // rows before it this line moved forward rather than staying as a "must be disabled" wait. The item stays
+        // enabled unconditionally: whether the module can succeed (backend, DLL, model) is answered on the status line.
+        Assert(runFullPipelineMenuItem.IsEnabled, "AI bone suppression menu is disabled; #225 row 10 wired it.");
+        Assert(runFullPipelineMenuItem.Command is not null, "AI bone suppression menu item has no command bound.");
+        Assert(runFullPipelineMenuItem.Header?.ToString()?.Contains("AI Bone Suppression", StringComparison.Ordinal) == true,
+            "The row 10 menu item must say what it runs (AI Bone Suppression), not Full Pipeline.");
         // #225 row 13 landed (GUI-C-168), so this moves forward like the batches before it. The traces the
         // old line waited for turned out to be what the last render already records (LastChain,
         // IsPreviewStale) — the condition was met before the row was built.
