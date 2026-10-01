@@ -1,0 +1,20 @@
+Note: Google Test filter = P1A066*
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from P1A066
+[ RUN      ] P1A066.T1_GainCorrect_HugeDimension_RejectsBeforeAllocation
+[       OK ] P1A066.T1_GainCorrect_HugeDimension_RejectsBeforeAllocation (0 ms)
+[ RUN      ] P1A066.T3_LoadOffset_WrongSha256_ReturnsConfigInvalid
+[       OK ] P1A066.T3_LoadOffset_WrongSha256_ReturnsConfigInvalid (2 ms)
+[ RUN      ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError
+[       OK ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError (0 ms)
+[----------] 3 tests from P1A066 (3 ms total)
+
+[----------] 1 test from P1A066IoTest
+[ RUN      ] P1A066IoTest.T2_LoadOffset_DirectoryPath_ReturnsIoFailed
+[       OK ] P1A066IoTest.T2_LoadOffset_DirectoryPath_ReturnsIoFailed (0 ms)
+[----------] 1 test from P1A066IoTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (4 ms total)
+[  PASSED  ] 4 tests.
