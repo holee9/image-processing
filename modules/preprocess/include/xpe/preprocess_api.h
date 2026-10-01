@@ -1128,12 +1128,22 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @param metrics Output metrics
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers, a `gain_semantics` value outside the
- *                               enumeration, or a pixel count of zero
+ *                               enumeration, or a width or height of zero (checked before
+ *                               the format, after the dimension match)
  *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
- *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
+ *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch of a non-empty frame
  *
- * @note ABI: the 5-argument form (QA-A-192, #220) replaced the 4-argument form, which had no
- *       caller outside the tests (QA-A-189). `gain_semantics` sits before `metrics`.
+ * @note `overall_pass` is the Phase 1 verdict. It does not on its own mean a release is
+ *       approved: the release gate separately requires `gain_semantics != UNKNOWN`
+ *       (SRS-CALIB-FUNC-018: unknown semantics "shall not pass release gates").
+ *
+ * @warning ABI break (QA-A-192, #220): the 5-argument form replaced the 4-argument form under
+ *       the SAME exported name, so a binary built against the old header still links and
+ *       loads, and then calls with four arguments: `metrics` is read from the wrong register
+ *       or stack slot and the call misbehaves, with no error at link or load time. Rebuild
+ *       every caller and deploy them together with this library. No caller outside the tests
+ *       was found in the repository search range (QA-A-189); callers elsewhere were not
+ *       searched. `gain_semantics` sits before `metrics`.
  */
 XPE_API XpeErrorCode xpe_verify_gain(
     const XpeImageBuffer* before_gain,

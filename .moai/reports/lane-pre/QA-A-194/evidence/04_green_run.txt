@@ -1,0 +1,19 @@
+Note: Google Test filter = GainSemantics.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from GainSemantics
+[ RUN      ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+[       OK ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown (2 ms)
+[ RUN      ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics
+[       OK ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics (0 ms)
+[ RUN      ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput
+[       OK ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput (0 ms)
+[ RUN      ] GainSemantics.AZeroDimensionIsInvalidInputNotUnsupportedFormat
+[       OK ] GainSemantics.AZeroDimensionIsInvalidInputNotUnsupportedFormat (0 ms)
+[ RUN      ] GainSemantics.AFormatMismatchOnANonEmptyFrameStaysUnsupportedFormat
+[       OK ] GainSemantics.AFormatMismatchOnANonEmptyFrameStaysUnsupportedFormat (0 ms)
+[----------] 5 tests from GainSemantics (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (12 ms total)
+[  PASSED  ] 5 tests.

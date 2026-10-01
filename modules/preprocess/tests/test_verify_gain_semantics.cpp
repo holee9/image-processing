@@ -125,3 +125,38 @@ TEST_F(GainSemantics, AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutpu
         EXPECT_EQ(0, std::memcmp(&before, &m, sizeof m)) << "metrics were modified for value " << bad;
     }
 }
+
+// A zero dimension is INVALID_INPUT, whatever the pixel format says. The format check used to run
+// first and reject width or height 0 as UNSUPPORTED_FORMAT, which left the pixel-count-zero branch
+// unreachable and the documented @return wrong (Codex #16 on QA-A-192).
+TEST_F(GainSemantics, AZeroDimensionIsInvalidInputNotUnsupportedFormat) {
+    uint16_t u16 = 0;
+    float f32 = 0.0f;
+    const uint32_t dims[][2] = {{0, 1}, {1, 0}, {0, 0}};
+    for (const auto& d : dims) {
+        for (XpeGainSemantics s : {XPE_GAIN_SEMANTICS_UNKNOWN, XPE_GAIN_SEMANTICS_NORMALIZED,
+                                   XPE_GAIN_SEMANTICS_RECIPROCAL}) {
+            XpeImageBuffer b{}, a{}, g{};
+            b.data = &u16; b.width = d[0]; b.height = d[1]; b.bitsAllocated = 16; b.bitsStored = 16;
+            b.format = XPE_PIXEL_UINT16; b.dataSize = 0;
+            a.data = &f32; a.width = d[0]; a.height = d[1]; a.bitsAllocated = 32; a.bitsStored = 32;
+            a.format = XPE_PIXEL_FLOAT32; a.dataSize = 0;
+            g = a;
+            XpeCalibrationMetrics m;
+            std::memset(&m, 0xAB, sizeof m);
+            EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_gain(&b, &a, &g, s, &m))
+                << d[0] << "x" << d[1] << " semantics " << static_cast<int>(s);
+        }
+    }
+}
+
+// A genuine format mismatch on a non-empty frame is still UNSUPPORTED_FORMAT: the new early check
+// must catch only the zero dimension.
+TEST_F(GainSemantics, AFormatMismatchOnANonEmptyFrameStaysUnsupportedFormat) {
+    Case c(0.40);
+    XpeImageBuffer b = buf(c.before.data(), XPE_PIXEL_UINT16, 16), a = buf(c.after.data(), XPE_PIXEL_FLOAT32, 32),
+                   g = buf(c.gain.data(), XPE_PIXEL_FLOAT32, 32);
+    a.format = XPE_PIXEL_UINT16;  // after-gain frame must be FLOAT32
+    XpeCalibrationMetrics m;
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &m));
+}

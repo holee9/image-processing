@@ -472,7 +472,10 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @param gain_map Gain map used (FLOAT32)
  * @param metrics Output metrics
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, an out-of-range gain_semantics, or a zero
+ *                               width or height
+ *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
+ *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
  */
 XPE_API XpeErrorCode xpe_verify_gain(
     const XpeImageBuffer* before_gain,
@@ -501,16 +504,18 @@ XPE_API XpeErrorCode xpe_verify_gain(
         return XPE_ERR_BUFFER_TOO_SMALL;
     }
 
+    // A zero dimension is a caller error, not a format problem. xpe_buffer_has_format() rejects
+    // width or height 0, so this has to come first or the call reports UNSUPPORTED_FORMAT.
+    if (before_gain->width == 0 || before_gain->height == 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     // Validate formats
     size_t pixel_count = 0;
     if (!xpe_buffer_has_format(before_gain, XPE_PIXEL_UINT16, &pixel_count) ||
         !xpe_buffer_has_format(after_gain, XPE_PIXEL_FLOAT32) ||
         !xpe_buffer_has_format(gain_map, XPE_PIXEL_FLOAT32)) {
         return XPE_ERR_UNSUPPORTED_FORMAT;
-    }
-
-    if (pixel_count == 0) {
-        return XPE_ERR_INVALID_INPUT;
     }
 
     const uint16_t* before = static_cast<const uint16_t*>(before_gain->data);
