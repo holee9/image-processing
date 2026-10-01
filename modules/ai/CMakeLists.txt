@@ -392,6 +392,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_log_macros_spdlog.cpp
         # QA-B-178: xpe_ai_shutdown ends its lock before deleting the state
         test_ai_shutdown_lifetime.cpp
+        # QA-B-181: no exception leaves xpe_bone_suppress / xpe_ai_get_model_card; the module lock is released
+        test_ai_exception_guard.cpp
         test_ai_fallback.cpp
         test_ai_model_card.cpp
         test_ai_worker_isolation.cpp

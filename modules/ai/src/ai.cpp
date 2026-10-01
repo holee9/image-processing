@@ -41,6 +41,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <new>
 #ifdef XPE_AI_TEST_HOOKS
 #include <thread>   // the before-state-delete probe (test hook only)
 #endif
@@ -471,8 +472,9 @@ extern "C" XPE_API void xpe_ai_test_set_log_capture(void (*cb)(int level, const 
 // tests are built, and every preset builds them, so a build whose DLL is DELIVERED must turn it OFF
 // (-DXPE_AI_TEST_HOOKS=OFF, e.g. set in the release preset). With the option OFF the DLL has neither this
 // variable, nor the call in xpe_bone_suppress, nor the exported setter.
-// A test registers a callback that xpe_bone_suppress calls on the calling thread immediately after it has
-// locked the module mutex, so the test KNOWS a call is inside its critical section (and, with a frozen
+// A test registers a callback that xpe_bone_suppress and xpe_ai_get_model_card call on the calling thread
+// immediately after they have locked the module mutex (QA-B-181: a hook that THROWS places an exception inside the
+// critical section deterministically, with no dependence on the allocator or the code page), so the test KNOWS a call is inside its critical section (and, with a frozen
 // worker, stuck there) rather than inferring it from timing.
 static std::atomic<void (*)(void)> g_testMutexHeldHook{nullptr};
 
@@ -515,6 +517,22 @@ static void pushAiProcessedAlert() {
 // @MX:REASON: Module identity function; called by orchestrator for readiness check
 
 extern "C" {
+
+// QA-B-181 (QA-B-179, #233): no exception may leave an exported function, and a lock held when one is thrown must
+// be released. Under /EHsc an `extern "C"` function that has no try region of its own is compiled as if it never
+// throws: when a callee throws, the unwinder does not run that function's destructors, so a std::lock_guard in
+// it stays LOCKED for the life of the process (measured: eh_exp, QA-B-181 report 4; the same function with ANY
+// try/catch in it, or built with /EHs, releases the lock). The body therefore lives in an ordinary C++ function
+// that owns the lock, and the exported function is only a try/catch around the call: the lock is released while
+// the exception travels from the helper to the catch. The handlers are empty of work on purpose -- they only
+// return a code and allocate nothing.
+// The helpers MUST be declared `extern "C++"`: a function declared inside this extern "C" block has C language
+// linkage even when it is static, gets the same "never throws" treatment, and the try/catch around a call to it
+// is optimised away (measured: with plain `static` helpers the exception still escaped and the lock stayed held).
+extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* img,
+                                                         XpeImageBuffer* softTissueOut,
+                                                         const char* configJsonOrNull);
+extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId, char* buf, size_t bufSize);
 
 XPE_API const char* xpe_ai_version(void)
 {
@@ -789,6 +807,19 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
                                         XpeImageBuffer* softTissueOut,
                                         const char* configJsonOrNull)
 {
+    try {
+        return xpe_bone_suppress_impl(img, softTissueOut, configJsonOrNull);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* img,
+                                                         XpeImageBuffer* softTissueOut,
+                                                         const char* configJsonOrNull)
+{
     // Pre-conditions
     // Required-pointer NULL checks run before the initialisation guard, per
     // the api-spec error-code precedence contract (#119). Order only; the
@@ -1038,6 +1069,17 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
 XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
                                              char* buf, size_t bufSize)
 {
+    try {
+        return xpe_ai_get_model_card_impl(modelId, buf, bufSize);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId, char* buf, size_t bufSize)
+{
     // Pre-conditions
     // Required-pointer NULL checks run before the initialisation guard, per
     // the api-spec error-code precedence contract (#119). Order only; the
@@ -1053,6 +1095,9 @@ XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
     // Look up model in loaded models list
     auto* state = g_aiState;
     std::lock_guard<std::mutex> lock(state->mtx);
+#ifdef XPE_AI_TEST_HOOKS
+    if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
+#endif
 
     bool found = false;
     for (const auto& id : state->loadedModels) {
