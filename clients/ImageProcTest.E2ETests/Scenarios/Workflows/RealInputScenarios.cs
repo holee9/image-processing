@@ -37,9 +37,17 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     /// <summary>
     /// R01: a real mouse click on the View menu opens it.
     ///
-    /// <para>The click is <see cref="GlobalInput.Click"/> — a real mouse event at the menu's position — and not an
+    /// <para>The click is <see cref="GlobalInput.Click"/> — a real mouse event at the menu position — and not an
     /// Expand. Control: the menu is shown closed first (its items are not in the tree), so an item that is there
     /// afterwards came from the click.</para>
+    ///
+    /// <para><b>Precondition (GUI-C-173).</b> The app must be the foreground window before the click, as it is for
+    /// a person who is using it. If it cannot be made so the scenario fails with that, not with "the click did not
+    /// open the menu". What it claims is therefore: <i>with the app active, a real click opens the View menu.</i>
+    /// It does not claim anything about a first click on an INACTIVE window.</para>
+    ///
+    /// <para>The first CI run failed here with the app in front and under the pointer (GUI-C-172). If the first click
+    /// still does not open the menu, the failure message carries three probes that only explain it.</para>
     /// </summary>
     [SkippableFact]
     public void R01_TheViewMenu_OpensWithARealMouseClick()
@@ -53,7 +61,15 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 ViewMenuItem(window) is null,
                 $"'{AlwaysInTheViewMenu}' was already visible before the click, so the click cannot be shown to be what opened the menu.");
 
-            window.SetForeground();
+            // The state a person starts from: the app window is the active window. If it cannot be made so, the
+            // run says that, instead of blaming a click that had no chance of reaching an inactive window.
+            var activation = MakeTheAppTheForegroundWindow(window);
+            output.WriteLine($"R01 before the click: {activation ?? "the app could not be made the foreground window"}");
+            Assert.True(
+                activation is not null,
+                "The app window could not be made the foreground window within 2 s, so a click cannot be expected to open its menu. " +
+                PanelToggleScenarios.DescribeWhatIsInFront(window));
+
             var viewMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"));
             Assert.True(viewMenu is not null, "ViewMenu is not in the automation tree.");
 
@@ -63,10 +79,14 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
                 var item = WaitFor(() => ViewMenuItem(window));
                 output.WriteLine($"R01 item after the click: {(item is null ? "(absent)" : "present")}");
-                Assert.True(
-                    item is not null,
-                    $"A real mouse click on the View menu did not open it: '{AlwaysInTheViewMenu}' was not visible within 2 s. " +
-                    PanelToggleScenarios.DescribeWhatIsInFront(window));
+                if (item is null)
+                {
+                    // The verdict is already decided: the FIRST click did not open the menu. What follows only
+                    // explains why, and nothing in it can make this scenario pass.
+                    Assert.Fail(
+                        $"A real mouse click on the View menu did not open it: '{AlwaysInTheViewMenu}' was not visible within 2 s. " +
+                        ExplainAMenuThatDidNotOpen(window, viewMenu!, activation!));
+                }
             }
             finally
             {
@@ -210,6 +230,107 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
     private static string Describe(FocusInfo? info) =>
         info is { } i ? $"'{i.AutomationId}' (name '{i.Name}', pid {i.ProcessId})" : "(nothing, or it could not be read)";
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+
+    /// <summary>True when the window that holds the system foreground belongs to the app under test.</summary>
+    private static bool AppIsForeground(Window window)
+    {
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        GetWindowThreadProcessId(foreground, out var processId);
+        return processId == (uint)window.Properties.ProcessId.ValueOrDefault;
+    }
+
+    /// <summary>
+    /// Makes the app the foreground window and says how, or returns null when it could not within 2 s. It does
+    /// not click: that is what is under test.
+    /// </summary>
+    private static string? MakeTheAppTheForegroundWindow(Window window)
+    {
+        if (AppIsForeground(window))
+        {
+            return "the app was already the foreground window";
+        }
+
+        window.SetForeground();
+        var waited = Stopwatch.StartNew();
+        while (waited.ElapsedMilliseconds < 2000)
+        {
+            if (AppIsForeground(window))
+            {
+                return $"the app became the foreground window through SetForeground, after {waited.ElapsedMilliseconds} ms";
+            }
+
+            Thread.Sleep(50);
+        }
+
+        return null;
+    }
+
+    private static string StateOf(AutomationElement menu)
+    {
+        try
+        {
+            var pattern = menu.Patterns.ExpandCollapse.PatternOrDefault;
+            return pattern is null ? "has no ExpandCollapse pattern" : $"ExpandCollapseState={pattern.ExpandCollapseState.ValueOrDefault}";
+        }
+        catch (Exception ex)
+        {
+            return $"state unreadable ({ex.GetType().Name})";
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-173: why the first real click did not open the View menu. Runs only after the verdict is decided,
+    /// and only describes. Each probe starts from a closed menu (collapsed through UI Automation) and reports
+    /// whether its own attempt opened it, so the failure message separates the candidate causes: a menu that is
+    /// stuck open or half-open, a click that was spent on activating the window, state left by an earlier
+    /// scenario that an ESC clears, and a menu that does not open at all.
+    /// </summary>
+    private string ExplainAMenuThatDidNotOpen(Window window, AutomationElement viewMenu, string activation)
+    {
+        var report = new System.Text.StringBuilder();
+        var focus = FocusedInfo(window);
+        report.Append($"[GUI-C-173] before the click: {activation}. After the first click: ViewMenu {StateOf(viewMenu)}; ");
+        report.Append($"keyboard focus: {(focus is { } f ? $"'{f.AutomationId}' pid {f.ProcessId}" : "unreadable")}. ");
+
+        void Settle()
+        {
+            UiaMenu.CollapseAll(window);
+            Thread.Sleep(300);
+        }
+
+        Settle();
+        GlobalInput.Click(viewMenu);
+        var second = WaitFor(() => ViewMenuItem(window)) is not null;
+        report.Append($"A SECOND real click on a closed menu opened it: {second}. ");
+
+        Settle();
+        GlobalInput.Press(VirtualKeyShort.ESCAPE);
+        Thread.Sleep(120);
+        GlobalInput.Click(viewMenu);
+        var afterEscape = WaitFor(() => ViewMenuItem(window)) is not null;
+        report.Append($"ESC then a real click opened it: {afterEscape}. ");
+
+        Settle();
+        UiaMenu.Open(window, "ViewMenu");
+        var viaAutomation = WaitFor(() => ViewMenuItem(window)) is not null;
+        report.Append($"UI Automation Expand opened it: {viaAutomation}. ");
+        Settle();
+
+        report.Append(PanelToggleScenarios.DescribeWhatIsInFront(window));
+        output.WriteLine(report.ToString());
+        return report.ToString();
+    }
 
     private static AutomationElement? ViewMenuItem(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId(AlwaysInTheViewMenu));
