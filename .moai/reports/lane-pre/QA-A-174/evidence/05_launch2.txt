@@ -1,0 +1,51 @@
+Note: Google Test filter = A174Floor.DISABLED_SameSessionFloor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A174Floor
+[ RUN      ] A174Floor.DISABLED_SameSessionFloor
+
+[a174] 3072x3072 FLOAT32, AVX2, single thread, 20 rounds, 1 warm-up discarded; order forward on even rounds, reversed on odd
+| # | term | provenance | min ms | median | max ms |
+|---|---|---|---|---|---|
+| 0 | SHIPPED whole path (xpe_defect_detect_runtime) | shipped | 93.64 | 96.09 | 105.87 |
+| 1 | shipped stage: tile sigma (BuildFrameConfig) | shipped | 71.91 | 75.32 | 82.08 |
+| 2 | shipped stage: memset of map | shipped | 0.40 | 0.52 | 0.71 |
+| 3 | shipped stage: row traversal (DetectRowRange) | shipped | 18.74 | 19.50 | 22.50 |
+| 4 | floor: detection network 2 x N x ns/net | independent kernel x computed count | 7.37 | 7.78 | 10.50 |
+| 5 | floor: tile differences (loop copy) | independent | 5.13 | 5.52 | 7.61 |
+| 6 | floor: per-tile copy only (subtracted from the 3 selection loops) | independent | 1.15 | 1.19 | 1.28 |
+| 7 | floor: selection, SHIPPED algorithm in an isolated loop (incl. copy) | isolated loop, shipped algorithm | 69.01 | 72.75 | 79.15 |
+| 8 | alt: selection, histogram reused (incl. copy) | isolated loop, other algorithm | 115.35 | 123.05 | 129.66 |
+| 9 | alt: selection, std::nth_element (incl. copy) | isolated loop, other algorithm | 243.92 | 250.80 | 254.39 |
+| 10 | floor: memcpy 37.75 MB (bandwidth reference) | independent | 2.11 | 2.18 | 2.65 |
+
+[a174] per-round observations (ms), same index as above
+[a174] #0 obs: 105.87 96.44 93.92 95.06 94.74 98.47 94.63 99.83 96.30 94.35 95.35 96.31 94.03 96.07 96.42 93.64 93.64 96.30 96.09 100.19
+[a174] #1 obs: 72.65 74.85 71.91 76.63 73.32 75.54 73.20 82.08 75.19 79.40 74.07 75.43 72.81 75.42 78.19 75.32 76.76 74.91 75.77 74.64
+[a174] #2 obs: 0.49 0.59 0.57 0.51 0.50 0.58 0.56 0.71 0.50 0.55 0.50 0.40 0.50 0.49 0.54 0.41 0.51 0.53 0.52 0.54
+[a174] #3 obs: 21.47 20.45 18.90 19.43 18.74 19.59 19.54 22.50 19.34 19.95 19.45 19.37 19.20 19.28 20.25 19.62 19.42 19.50 19.63 19.26
+[a174] #4 obs: 7.37 7.56 7.48 7.59 7.61 7.78 7.81 8.04 7.80 8.78 8.31 7.69 7.75 8.17 7.72 7.66 7.96 8.38 7.67 10.50
+[a174] #5 obs: 7.61 5.25 5.27 5.38 5.13 6.46 5.27 5.27 5.47 5.75 6.15 5.34 5.32 5.65 5.52 5.30 6.13 5.79 6.78 6.67
+[a174] #6 obs: 1.19 1.16 1.19 1.15 1.28 1.19 1.17 1.22 1.22 1.18 1.19 1.18 1.16 1.19 1.20 1.17 1.24 1.21 1.18 1.27
+[a174] #7 obs: 74.10 71.52 69.01 71.03 73.43 72.75 71.52 71.47 73.05 74.97 70.96 72.70 73.07 71.60 73.26 70.71 71.82 73.12 73.52 79.15
+[a174] #8 obs: 116.25 119.55 115.35 122.83 116.28 117.28 123.91 123.05 129.66 128.35 124.94 123.69 124.08 124.97 121.88 126.44 122.83 121.96 120.81 128.89
+[a174] #9 obs: 249.19 254.38 243.92 249.45 245.65 249.38 250.29 252.56 249.24 251.61 249.90 250.80 247.75 251.39 248.04 251.89 251.56 254.39 252.44 251.86
+[a174] #10 obs: 2.65 2.63 2.51 2.17 2.12 2.26 2.30 2.12 2.20 2.18 2.19 2.11 2.18 2.16 2.23 2.16 2.14 2.16 2.32 2.15
+
+[a174] session minima: shipped 93.64 | tile-sigma stage 71.91 | memset 0.40 | rows 18.74 | stage sum 91.05
+[a174] bound terms:  detection net 7.37 | differences 5.13 | memory 2.38 (35.8 GB/s)
+[a174] selection:    in-situ (stage - differences) 66.78 | isolated shipped 67.86 | histogram reused 114.20 | nth_element 242.77
+[a174] FLOOR (old definition, in-situ selection)     = 7.37 + 5.13 + 66.78 = 79.28 ms
+[a174] FLOOR (isolated-loop shipped selection)       = 7.37 + 5.13 + 67.86 = 80.36 ms
+[a174] FLOOR (fastest measured selector)             = 80.36 ms
+[a174] R1  shipped / floor(old def)      = 1.181
+[a174] R2  shipped / floor(isolated sel) = 1.165
+[a174] R3  shipped / floor(fastest sel)  = 1.165
+[a174] R'  selection removed from BOTH   = (93.64 - 66.78) / (7.37 + 5.13) = 2.149
+[a174] per-round R1: min 1.070 median 1.159 max 1.323 | per-round R2: min 1.054 median 1.134 max 1.205
+[       OK ] A174Floor.DISABLED_SameSessionFloor (15493 ms)
+[----------] 1 test from A174Floor (15502 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15502 ms total)
+[  PASSED  ] 1 test.

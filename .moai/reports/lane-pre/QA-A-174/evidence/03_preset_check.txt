@@ -1,0 +1,5 @@
+preset ci-preprocess  vs  build/ci-preprocess\CMakeCache.txt
+  source dir (from cache): D:/workspace-github/xpe-pre
+  12 declared, 12 compared, 0 not comparable
+  OK      every declared variable matches
+EXIT=0

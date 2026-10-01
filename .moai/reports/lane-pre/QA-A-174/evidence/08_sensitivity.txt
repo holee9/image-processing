@@ -1,0 +1,10 @@
+computed sensitivity (NOT a measurement): R(s)=W/(dn+df+s) for a hypothetical selection floor s = f * shipped selection
+launch | R f=1.00 | f=0.75 | f=0.50 | f=0.25 | s* where R=1.30 (ms) | s*/shipped-sel
+1 | 1.187 | 1.495 | 2.017 | 3.101 | 51.2 | 0.895
+2 | 1.181 | 1.496 | 2.041 | 3.207 | 59.5 | 0.891
+3 | 1.188 | 1.494 | 2.013 | 3.083 | 52.1 | 0.895
+
+gap decomposition of (shipped - floor_old), minima per launch (stage terms are shipped minima):
+1: shipped-floor = 13.04 ms ; rows-detnet = 11.26 ; memset = 0.38 ; remainder(whole-stagesum etc) = 1.40
+2: shipped-floor = 14.36 ms ; rows-detnet = 11.37 ; memset = 0.40 ; remainder(whole-stagesum etc) = 2.59
+3: shipped-floor = 13.37 ms ; rows-detnet = 11.62 ; memset = 0.45 ; remainder(whole-stagesum etc) = 1.30
