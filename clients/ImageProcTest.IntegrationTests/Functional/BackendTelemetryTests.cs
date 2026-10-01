@@ -1,5 +1,4 @@
 // #225 row 10 (GUI-C-186f, Codex #36 finding 4): the backend's log and alert lists are written from several threads.
-#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using ImageProcTest.Models;
 using ImageProcTest.Services;
 
@@ -129,9 +128,13 @@ public sealed class BackendTelemetryTests
                 }
             });
 
+            #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
             Assert.True(Task.WaitAll(writing, TimeSpan.FromSeconds(30)), "the writers did not finish");
+            #pragma warning restore xUnit1031
             Volatile.Write(ref done, true);
+            #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
             Assert.True(drain.Wait(TimeSpan.FromSeconds(30)), "the drain did not finish");
+            #pragma warning restore xUnit1031
 
             Assert.True(errors.Count == 0, $"round {round}: {string.Join("; ", errors.Take(3))}");
             Assert.Equal(writers * logsPerWriter, seenLogs.Count);

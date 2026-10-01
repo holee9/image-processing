@@ -1311,6 +1311,12 @@ public sealed class MainWindowViewModel : ObservableObject
     // further, and changes neither the screen nor the lanes when the answer is no.
     private BackendTicket TakeTicket() => Lifecycle.Take(_backend);
 
+    private BackendTicket TakeRequestTicket() => Lifecycle.TakeRequest(_backend);
+
+    /// <summary>The reason a ticket is no longer current, for the log: a newer Apply started, or the backend was shut down or replaced.</summary>
+    private string WhyStale(BackendTicket ticket) =>
+        Lifecycle.IsSuperseded(ticket) ? "a newer Apply started meanwhile." : "the backend was shut down or replaced meanwhile.";
+
     private bool IsCurrent(BackendTicket ticket) => Lifecycle.IsCurrent(ticket, _backend);
 
     /// <summary>A processing request while the backend is shutting down is refused with a line, not queued behind it.</summary>
@@ -2280,7 +2286,8 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var ticket = TakeTicket();
+        // GUI-C-190: an Apply takes a new request number too, so a result that arrives after a NEWER Apply started is dropped.
+        var ticket = TakeRequestTicket();
         var backend = (IXpeBackend)ticket.Backend!;
 
         if (ActiveImageFrame is null)
@@ -2334,7 +2341,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
             if (!IsCurrent(ticket))
             {
-                Log($"Display pipeline result dropped after {workMs:0} ms: the backend was shut down or replaced meanwhile.");
+                Log($"Display pipeline result dropped after {workMs:0} ms: {WhyStale(ticket)}");
                 return;
             }
 
@@ -3350,7 +3357,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 var candidateImage = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
                 if (!IsCurrent(ticket))
                 {
-                    Log("Lane B result dropped: the backend was replaced or is shutting down.");
+                    Log($"Lane B result dropped: {WhyStale(ticket)}");
                     return;
                 }
 

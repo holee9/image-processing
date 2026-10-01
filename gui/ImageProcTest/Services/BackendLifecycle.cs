@@ -1,8 +1,11 @@
 ﻿// #225 row 10 (GUI-C-186e, Codex #33): ending a backend waits for the AI session gate, so it is done off the UI thread.
 namespace ImageProcTest.Services;
 
-/// <summary>A backend and the lifetime generation at the moment a piece of work took it. See <see cref="BackendLifecycle.IsCurrent"/>.</summary>
-internal readonly record struct BackendTicket(object? Backend, int Generation);
+/// <summary>
+/// A backend, the lifetime generation, and (for an Apply) the request number at the moment a piece of work took it. A request number of
+/// 0 means "not an Apply": only the lifetime is asked. See <see cref="BackendLifecycle.IsCurrent"/>.
+/// </summary>
+internal readonly record struct BackendTicket(object? Backend, int Generation, int Request = 0);
 
 /// <summary>
 /// One backend lifecycle transition at a time (today: shutdown, from the Shutdown button and from closing the window).
@@ -29,15 +32,30 @@ internal sealed class BackendLifecycle(Action<Action> runInBackground, Action<Ac
     /// <summary>The backend is being replaced: everything started for the old one is now stale.</summary>
     public void Bump() => Generation++;
 
+    /// <summary>
+    /// The Apply request number (GUI-C-190, Codex #42): raised by every new Apply, whatever the backend. The lifetime generation only
+    /// separates "this backend" from "a shutdown or a replacement"; two Applies on the SAME backend share it, so the later-finishing
+    /// one would overwrite the screen the later-STARTED one drew. A native call cannot be cut short, so an older request is not
+    /// stopped: its result is discarded when it arrives (<see cref="IsCurrent"/>).
+    /// </summary>
+    public int Request { get; private set; }
+
     /// <summary>What a piece of backend work captures when it starts.</summary>
     public BackendTicket Take(object? backend) => new(backend, Generation);
 
+    /// <summary>What an Apply captures when it starts: the lifetime AND a new request number, which makes every earlier Apply stale.</summary>
+    public BackendTicket TakeRequest(object? backend) => new(backend, Generation, ++Request);
+
     /// <summary>
     /// True while the ticket's work may still change the screen or start more work: no shutdown or replacement began since it was
-    /// taken, the backend in place is the one it was taken for, and no transition is running.
+    /// taken, the backend in place is the one it was taken for, no transition is running, and (for an Apply) no newer Apply started.
     /// </summary>
     public bool IsCurrent(BackendTicket ticket, object? currentBackend) =>
-        !IsTransitioning && ticket.Generation == Generation && ReferenceEquals(ticket.Backend, currentBackend);
+        !IsTransitioning && ticket.Generation == Generation && ReferenceEquals(ticket.Backend, currentBackend)
+        && (ticket.Request == 0 || ticket.Request == Request);
+
+    /// <summary>True when a NEWER Apply started after this ticket's (the one reason, besides the lifetime, a result is dropped).</summary>
+    public bool IsSuperseded(BackendTicket ticket) => ticket.Request != 0 && ticket.Request != Request;
 
     /// <summary>
     /// Starts <paramref name="backgroundWork"/> off the UI thread and returns at once. False (and nothing started) when a transition is
