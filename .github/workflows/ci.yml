@@ -492,13 +492,44 @@ jobs:
       # FlaUI smoke S-01..S-05 (GUI-C-29, XPE-GUI-E2E-001 4.1). The fixture walks up
       # from the test bin dir to gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe
       # (built above) and launches it with --automation-backend Mock. Gate < 30 s; local 584 ms.
+      #
+      # XPE_E2E_ALLOW_GLOBAL_INPUT (GUI-C-171, 2026-10-01): the 13 scenarios that need real
+      # mouse/keyboard input (key gestures, wheel, drag, a click on a disabled button) now
+      # SKIP unless this is "1". On a developer machine their input went to whatever window
+      # was in front - a Claude Code terminal, where ESC interrupted the session. A hosted
+      # runner's desktop has nothing else on it, and these scenarios sent the same input here
+      # and passed before C-171, so CI opts in. Without it they would skip silently in this
+      # job (no skip gate here) and fail the Native job's unexplained-skip gate.
       - name: Run FlaUI E2E smoke (Mock)
         shell: pwsh
+        env:
+          XPE_E2E_ALLOW_GLOBAL_INPUT: "1"
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
           --logger "trx;LogFileName=e2e-smoke.trx"
           --results-directory build/e2e-test-results
+
+      # The opt-in above is only worth something if those scenarios actually ran. This job has
+      # no general skip gate (by-design Mock backend skips would need their own token first),
+      # so this checks the one thing C-171 can make go missing: a scenario skipped because the
+      # input gate was closed. Zero is required; the count of all skips is printed so a change
+      # in the by-design skips stays visible.
+      - name: Assert no input-gated E2E case was skipped (Mock)
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem build/e2e-test-results -Filter *.trx -Recurse | Select-Object -First 1
+          if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
+          [xml]$x = Get-Content $trx.FullName
+          $results = @($x.TestRun.Results.UnitTestResult)
+          $skipped = @($results | Where-Object { $_.outcome -ne 'Passed' -and $_.outcome -ne 'Failed' })
+          $gated = @($skipped | Where-Object { ([string]$_.Output.ErrorInfo.Message) -match 'XPE_E2E_ALLOW_GLOBAL_INPUT' })
+          Write-Host ("results={0} skipped={1} input-gated-skips={2}" -f $results.Count, $skipped.Count, $gated.Count)
+          foreach ($g in $gated) { Write-Host ("INPUT GATE CLOSED: {0}" -f $g.testName) }
+          if ($gated.Count -gt 0) {
+            Write-Error ('{0} input scenario(s) skipped although CI opted in - the opt-in did not reach the test process' -f $gated.Count)
+            exit 1
+          }
 
       - name: Upload E2E smoke results
         if: always()
@@ -611,6 +642,10 @@ jobs:
           XPE_E2E_BACKEND: Native
           XPE_NATIVE_DIR: ${{ github.workspace }}/build/e2e-native-dlls
           XPE_NATIVE_DIR_EXCLUSIVE: "1"
+          # GUI-C-171 opt-in, same reason as the Mock job. The unexplained-skip gate below is
+          # deliberately NOT given an allow-list entry for these: an input-gated skip here
+          # means the opt-in failed, and that should stay red.
+          XPE_E2E_ALLOW_GLOBAL_INPUT: "1"
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
