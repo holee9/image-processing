@@ -14,13 +14,13 @@
  * because of the MODEL would, re-run in-process, bring that same risk into the process the isolation
  * exists to protect. The fallback is deterministic and cannot crash: copy the input.
  *
- * FAILURE POLICY (user-approved 2026-10-01, docs/project/REQ-CHANGE-LOG-P3-AI.md, row 2): a failure of
- * the worker path returns the input unchanged and a non-OK code; the alert is raised on a STATE CHANGE,
- * not per call. After N = 3 CONSECUTIVE failures the worker is switched off for the rest of the session
- * (its process is ended), later calls return the input at once WITHOUT starting a worker, and exactly
- * one alert says so. A success resets the count. The first two failures of a run therefore raise no
- * alert: only the return code and a log line. Failures that are deterministic in both builds come from a
- * model directory with no model: the worker answers every request with an error frame.
+ * FAILURE POLICY (user-approved 2026-10-01, docs/project/REQ-CHANGE-LOG-P3-AI.md, row 3, which replaced
+ * row 2): a failure of the worker path returns the input unchanged and a non-OK code AND raises one
+ * Warning alert, every time. After N = 3 CONSECUTIVE failures the worker is switched off for the rest
+ * of the session (its process is ended): the 3rd failure's alert says so ("disabled"), and later calls
+ * return the input at once WITHOUT starting a worker and WITHOUT further alerts. So a session raises at
+ * most 3 worker alerts. A success resets the count. Failures that are deterministic in both builds come
+ * from a model directory with no model: the worker answers every request with an error frame.
  *
  * WHAT THE TESTS HOLD FIXED
  *   - Off: bit-identical to the old behaviour, and no worker process exists.
@@ -312,8 +312,11 @@ TEST_F(WorkerPathFixture, InAStubBuildTheWorkersErrorIsReportedAndTheInputIsRetu
         EXPECT_FLOAT_EQ(1.0f + static_cast<float>(i), r.out[i])
             << "the output must be the input, unchanged, at " << i;
     }
-    EXPECT_EQ(0, CountAlerts(kFailureNeedle))
-        << "alerts are raised on a state change, not per failed call: one failure is below the ceiling";
+    int32_t sev = -1;
+    EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "a failed worker call must raise exactly one alert";
+    EXPECT_EQ(XPE_ALERT_WARNING, sev);
+    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(0, CountAlerts("disabled")) << "one failure is below the ceiling: the worker is not off";
     EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
 }
 
@@ -342,8 +345,11 @@ TEST_F(WorkerPathFixture, ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCal
             << "the output must be the INPUT, unchanged, at " << i << " (not the model's answer, "
                "not the sentinel the buffer started with)";
     }
-    EXPECT_EQ(0, CountAlerts(kFailureNeedle))
-        << "one failure is below the ceiling of 3: no alert yet (the return code and the input say it)";
+    int32_t sev = -1;
+    EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "the silent worker was not reported (once)";
+    EXPECT_EQ(XPE_ALERT_WARNING, sev);
+    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(0, CountAlerts("disabled")) << "one failure is below the ceiling: the worker is not off";
     EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
     EXPECT_GE(took, 1800u) << "returned before the budget: it did not wait for the worker";
     EXPECT_LE(took, 2000u + 3000u) << "took " << took << " ms";
@@ -365,27 +371,28 @@ TEST_F(WorkerPathFixture, ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCal
 
 // --- the ceiling and the state-change alert (user-approved policy) ------------------------------------
 
-TEST_F(WorkerPathFixture, ThreeConsecutiveFailuresSwitchTheWorkerOffForTheSessionWithOneAlert) {
+TEST_F(WorkerPathFixture, EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession) {
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     xpe_clear_alerts();
 
-    // Failures 1 and 2: the input comes back, a non-OK code, no alert, a worker was tried.
+    // Failures 1 and 2: the input comes back, a non-OK code, one Warning each, the worker is not off.
     for (int call = 1; call <= 2; ++call) {
         const OneCall c = CallOnce();
         EXPECT_NE(XPE_OK, c.rc) << "call " << call;
         EXPECT_TRUE(OutputIsTheInput(c.out)) << "call " << call << ": the output must be the input";
-        EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "call " << call << ": below the ceiling, no alert";
+        EXPECT_EQ(call, CountAlerts(kFailureNeedle)) << "call " << call << ": one alert per failure";
+        EXPECT_EQ(0, CountAlerts("disabled")) << "call " << call << ": below the ceiling";
     }
 
-    // Failure 3 crosses the ceiling: the worker is switched off and exactly one alert says so.
+    // Failure 3 crosses the ceiling: its alert is the third, and it says the worker is switched off.
     const OneCall third = CallOnce();
     EXPECT_NE(XPE_OK, third.rc);
     EXPECT_TRUE(OutputIsTheInput(third.out));
     int32_t sev = -1;
-    EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "the switch-off raised no (or more than one) alert";
+    EXPECT_EQ(3, CountAlerts(kFailureNeedle, &sev)) << "three failures, three alerts";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
-    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
-    EXPECT_EQ(1, CountAlerts("disabled")) << "the alert must say the worker is switched off";
+    EXPECT_EQ(3, CountAlerts("SRS-SAFE-008")) << "every alert cites the SRS item the SDD names";
+    EXPECT_EQ(1, CountAlerts("disabled")) << "exactly the 3rd alert says the worker is switched off";
     EXPECT_TRUE(WaitForChildWorkers(0, 3000)) << "switching the worker off must end its process";
 
     // From here no worker is started and no further alert is raised.
@@ -394,15 +401,15 @@ TEST_F(WorkerPathFixture, ThreeConsecutiveFailuresSwitchTheWorkerOffForTheSessio
         EXPECT_NE(XPE_OK, c.rc) << "call " << call;
         EXPECT_TRUE(OutputIsTheInput(c.out)) << "call " << call << ": the output must be the input";
         EXPECT_EQ(0u, ChildWorkers().size()) << "call " << call << ": a worker was started after the switch-off";
+        EXPECT_EQ(3, CountAlerts(kFailureNeedle)) << "call " << call << ": no alert after the switch-off";
     }
-    EXPECT_EQ(1, CountAlerts(kFailureNeedle)) << "the alert must be raised once, not per call";
 }
 
 TEST_F(WorkerPathFixture, AFreshInitReEnablesTheWorker) {
     // "For the session" means until xpe_ai_shutdown/xpe_ai_init: a new session starts with a clean count.
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     for (int i = 0; i < 3; ++i) CallOnce();
-    ASSERT_EQ(1, CountAlerts(kFailureNeedle));
+    ASSERT_EQ(3, CountAlerts(kFailureNeedle));
     xpe_ai_shutdown();
     xpe_clear_alerts();
 
@@ -410,14 +417,16 @@ TEST_F(WorkerPathFixture, AFreshInitReEnablesTheWorker) {
     xpe_clear_alerts();
     CallOnce();
     EXPECT_EQ(1u, ChildWorkers().size()) << "a new session must try the worker again";
-    EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "and one failure of it is below the ceiling again";
+    EXPECT_EQ(1, CountAlerts(kFailureNeedle)) << "and its first failure alerts once, below the ceiling again";
+    EXPECT_EQ(0, CountAlerts("disabled"));
 }
 
 TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
     if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed: full build only";
     // Two failures, a success, then one more failure. With the count reset the last one is the FIRST
-    // of a new run (no switch-off, no alert) and the call after it works again. Without the reset it
-    // would be the third in a row: switched off, one alert, and no worker for the next call.
+    // of a new run (an alert, but no switch-off) and the call after it works again. Without the reset
+    // it would be the third in a row: switched off ("disabled" in its alert) and no worker for the
+    // next call.
     // A directory under the system temp path, never inside the source tree: a test that writes into
     // the tree it is built from can confuse the next build, and CI checks the tree for strays.
     char tmp[MAX_PATH] = {0};
@@ -439,7 +448,8 @@ TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
     ASSERT_EQ(1u, workers.size());
     Freeze(workers[0]);
     EXPECT_NE(XPE_OK, CallOnce().rc);   // a silent worker: the first failure of a NEW run
-    EXPECT_EQ(0, CountAlerts(kFailureNeedle)) << "the count was not reset by the success in between";
+    EXPECT_EQ(3, CountAlerts(kFailureNeedle)) << "one alert per failure: two before the success, one after";
+    EXPECT_EQ(0, CountAlerts("disabled")) << "the count was not reset by the success in between";
     const OneCall after = CallOnce();   // would be input-only if the worker had been switched off
     EXPECT_EQ(XPE_OK, after.rc) << "the worker was switched off although the failures were not consecutive";
 
@@ -449,8 +459,9 @@ TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
 }
 
 // QA-B-171C, alert volume: before the policy a worker that failed on every call raised one alert per
-// call, filled the 64-entry queue and evicted unrelated warnings. Measured then, pinned now.
-TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesOneAlertAndKeepsOtherWarnings) {
+// call, filled the 64-entry queue and evicted unrelated warnings. Measured then; the ceiling of 3
+// bounds it now, and that bound is pinned: three alerts, the unrelated warning still queued.
+TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings) {
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
     xpe_clear_alerts();
     xpe_alert_push("an unrelated warning raised before the failures", XPE_ALERT_WARNING);
@@ -462,6 +473,6 @@ TEST_F(WorkerPathFixture, AWorkerThatFailsOnEveryCallRaisesOneAlertAndKeepsOther
                 "unrelated earlier warning still queued: %s\n",
                 kCalls, static_cast<int>(xpe_get_pending_alert_count()), worker_alerts,
                 unrelated ? "yes" : "NO (evicted)");
-    EXPECT_EQ(1, worker_alerts);
+    EXPECT_EQ(3, worker_alerts) << "a session raises at most three worker alerts";
     EXPECT_EQ(1, unrelated) << "the failure flood evicted an unrelated warning";
 }
