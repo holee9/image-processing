@@ -1,0 +1,28 @@
+# QA-B-179 probe results: input-only paths. 5 runs per scenario, one process per run, tally of identical outcomes.
+# Process ACP=949. Binaries: build/ci-post/bin (ci-dicom for dicom). Probe source is deliberately NOT in the repository.
+=== ai_nonexistent_dir_control
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_access_denied_dir
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_overlong_dir
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_invalid_utf8_dir
+  5x  exit=0x0 | ESCAPED std::exception type=class std::system_error what=No mapping for the Unicode character exists in the target multi-byte code page. ## post-call shutdown LOCK_STUCK(hung 5s)
+=== enh_clahe_control
+  5x  exit=0x0 | returned 0
+=== enh_clahe_tile_overflow
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== enh_nlm_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::bad_alloc what=bad allocation
+=== enh_edge_width_2pow31
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== enh_bilateral_width_2pow31
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== dicom_write_j2k_huge_declared
+  5x  exit=0x0 | returned -3
+=== gsvg_control_small
+  5x  exit=0x0 | returned 0
+=== gsvg_grid_suppression_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== gsvg_virtual_grid_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::bad_alloc what=bad allocation

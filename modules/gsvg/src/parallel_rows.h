@@ -19,6 +19,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <thread>
 #include <vector>
 
@@ -40,10 +41,10 @@ inline int ResolveThreads(int requested, int rows) {
     int n = requested;
     if (n <= 0) {
         const unsigned hw = std::thread::hardware_concurrency();
-        n = (hw == 0) ? 1 : std::min(4, static_cast<int>(hw / 2));
+        n = (hw == 0) ? 1 : (std::min)(4, static_cast<int>(hw / 2));
     }
-    n = std::max(1, n);
-    return std::min(n, std::max(1, rows));
+    n = (std::max)(1, n);
+    return (std::min)(n, (std::max)(1, rows));
 }
 
 /**
@@ -57,16 +58,20 @@ void ForRows(int rows, int threads, Body body) {
     if (rows <= 0) return;
     if (threads <= 1) { body(0, rows); return; }
 
-    const int band = (rows + threads - 1) / threads;
+    // QA-B-181c (Codex #37): `(rows + threads - 1) / threads` adds before it divides and leaves int for rows near
+    // INT32_MAX; t * band and y0 + band can too. Divide first, take the products in 64 bits, and never plan more
+    // bands than there are rows (a caller-supplied thread count is not trusted to be small).
+    if (threads > rows) threads = rows;
+    const int band = rows / threads + (rows % threads != 0 ? 1 : 0);
     std::vector<std::thread> pool;
     pool.reserve(static_cast<size_t>(threads) - 1);
     for (int t = 1; t < threads; ++t) {
-        const int y0 = std::min(rows, t * band);
-        const int y1 = std::min(rows, y0 + band);
+        const int y0 = static_cast<int>((std::min<int64_t>)(rows, static_cast<int64_t>(t) * band));
+        const int y1 = static_cast<int>((std::min<int64_t>)(rows, static_cast<int64_t>(y0) + band));
         if (y0 >= y1) break;
         pool.emplace_back([&body, y0, y1] { body(y0, y1); });
     }
-    body(0, std::min(rows, band));
+    body(0, (std::min)(rows, band));
     for (std::thread& t : pool) t.join();
 }
 

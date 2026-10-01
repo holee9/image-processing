@@ -1,0 +1,8 @@
+1    0 00002CC0 xpe_gsvg_get_max_threads = @ILT+7355(xpe_gsvg_get_max_threads)
+2    1 0000275C xpe_gsvg_init = @ILT+5975(xpe_gsvg_init)
+3    2 00002BF8 xpe_gsvg_process = @ILT+7155(xpe_gsvg_process)
+4    3 000017E4 xpe_gsvg_process_ex = @ILT+2015(xpe_gsvg_process_ex)
+5    4 00001672 xpe_gsvg_process_masked = @ILT+1645(xpe_gsvg_process_masked)
+6    5 00002B71 xpe_gsvg_set_max_threads = @ILT+7020(xpe_gsvg_set_max_threads)
+7    6 00002923 xpe_gsvg_shutdown = @ILT+6430(xpe_gsvg_shutdown)
+8    7 00002DC4 xpe_gsvg_version = @ILT+7615(xpe_gsvg_version)

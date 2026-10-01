@@ -1,0 +1,31 @@
+### CONTROL: the same pattern on the commit before QA-B-181b (213d4dbd~1) must find the two contrast lines
+213d4dbd~1:modules/enhance_advanced/src/detail/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+213d4dbd~1:modules/enhance_basic/src/contrast_enhance.cpp:170:    int tile_w = (w + num_tiles_x - 1) / num_tiles_x;
+213d4dbd~1:modules/enhance_basic/src/contrast_enhance.cpp:171:    int tile_h = (h + num_tiles_y - 1) / num_tiles_y;
+213d4dbd~1:modules/enhance_basic/src/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+213d4dbd~1:modules/gsvg/src/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+213d4dbd~1:modules/gsvg/src/virtual_grid.cpp:733:    const int cw = (width + f - 1) / f, ch = (height + f - 1) / f;
+
+### AFTER, working tree, real sources of every module (comments excluded)
+--- pattern: \(\s*[A-Za-z_][A-Za-z_0-9.>-]*\s*\+\s*[A-Za-z_][A-Za-z_0-9.>()-]*\s*-\s*1\s*\)\s*/
+(matches above: 0)
+--- pattern: \+\s*\(\s*[A-Za-z_][A-Za-z_0-9]*\s*-\s*1\s*\)\s*\)\s*/
+(matches above: 0)
+--- pattern: \(\s*[A-Za-z_][A-Za-z_0-9.>-]*\s*\+\s*[0-9]+\s*\)\s*(/|>>)\s*[0-9]+
+(matches above: 0)
+--- pattern: \(\s*-\s*\(\s*-
+(matches above: 0)
+--- float-to-int conversions of ceil/floor/round results in real sources
+modules/display/src/presentation_lut.cpp:264:            xpe_clamp(static_cast<int32_t>(std::lround(ddl_f)), 0, 65535));
+modules/enhance_advanced/src/detail/hough_transform.cpp:68:                int rhoBin = static_cast<int>(std::lround(rho / rhoStep_)) + maxRho_;
+modules/enhance_advanced/src/detail/hough_transform.cpp:159:    const int p = static_cast<int>(std::lround(pos));
+modules/enhance_advanced/src/detail/hough_transform.cpp:274:        result.y0 = std::max(0, static_cast<int>(std::lround(a->pos)));
+modules/enhance_advanced/src/detail/hough_transform.cpp:275:        result.y1 = std::min(imageHeight - 1, static_cast<int>(std::lround(b->pos)));
+modules/enhance_advanced/src/detail/hough_transform.cpp:276:        result.x0 = std::max(0, static_cast<int>(std::lround(c->pos)));
+modules/enhance_advanced/src/detail/hough_transform.cpp:277:        result.x1 = std::min(imageWidth - 1, static_cast<int>(std::lround(d->pos)));
+modules/enhance_advanced/src/mfp_scalar.cpp:236:            int x0 = std::max(0, std::min(width - 1, static_cast<int>(std::floor(srcX))));
+modules/enhance_advanced/src/mfp_scalar.cpp:237:            int y0 = std::max(0, std::min(height - 1, static_cast<int>(std::floor(srcY))));
+modules/enhance_basic/src/edge_enhance.cpp:100:    int krad = static_cast<int>(std::ceil(2.0f * sigma));
+modules/enhance_basic/src/noise_reduce.cpp:185:    int radius = static_cast<int>(std::ceil(2.0f * sigma_space));
+modules/preprocess/src/xpe_calib_generate_offset_methods.cpp:145:    return static_cast<size_t>(std::floor(pos + 0.5));
+modules/display/include/xpe/display/display_internal.h:67:    return static_cast<int32_t>(std::roundf(v));

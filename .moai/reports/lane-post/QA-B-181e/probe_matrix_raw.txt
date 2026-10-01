@@ -1,0 +1,75 @@
+## probe=fast group=contrast
+contrast:71,:111	one pixel = NaN	returned	rc=0	output nonfinite=0, outside input range=0, poisoned pixel out=2103
+contrast:71,:111	one pixel = +inf	returned	rc=0	output nonfinite=4096, outside input range=0, poisoned pixel out=inf
+contrast:71,:111	one pixel = -inf	returned	rc=0	output nonfinite=4096, outside input range=0, poisoned pixel out=-nan(ind)
+contrast:71,:111	one pixel = 1e10	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=1e+10
+contrast:71,:111	one pixel = -1e10	returned	rc=0	output nonfinite=0, outside input range=3825, poisoned pixel out=-9.92187e+09
+contrast:71,:111	one pixel = 3e38	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=3e+38
+contrast:71,:111	one pixel = -3e38	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=-2.97656e+38
+contrast:71,:111	pixels -3e38 and 3e38 (finite, range overflows float)	returned	rc=0	output nonfinite=4096
+## probe=fast group=hough
+hough:55	clean image (control)	returned	rc=0	box=(30,30)-(97,97)
+hough:55	one pixel = NaN	returned	rc=0	box=(30,30)-(97,97)	same as control
+hough:55	one pixel = +inf	returned	rc=0	box=(0,0)-(127,127)	DIFFERS from control
+hough:55	one pixel = -inf	returned	rc=0	box=(30,30)-(97,97)	same as control
+hough:55	one pixel = 1e10	returned	rc=0	box=(30,30)-(97,97)	same as control
+hough:55	one pixel = -1e10	returned	rc=0	box=(30,30)-(97,97)	same as control
+hough:55	one pixel = 3e38	returned	rc=0	box=(30,30)-(97,97)	same as control
+hough:55	one pixel = -3e38	returned	rc=0	box=(30,30)-(97,97)	same as control
+## probe=fast group=display
+display:67 <- presentation_lut:46	one pixel = NaN	returned	rc=0	pixel out=0, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = +inf	returned	rc=0	pixel out=65472, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = -inf	returned	rc=0	pixel out=0, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = 1e10	returned	rc=0	pixel out=65472, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = -1e10	returned	rc=0	pixel out=0, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = 3e38	returned	rc=0	pixel out=65472, ordinary pixel out=32768
+display:67 <- presentation_lut:46	one pixel = -3e38	returned	rc=0	pixel out=0, ordinary pixel out=32768
+display:67 <- modality_lut:62 (TABLE)	one pixel = NaN	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = +inf	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = -inf	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = 1e10	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = -1e10	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = 3e38	returned	rc=0	pixel out=0, ordinary pixel out=100
+display:67 <- modality_lut:62 (TABLE)	one pixel = -3e38	returned	rc=0	pixel out=0, ordinary pixel out=100
+display chain modality LINEAR -> presentation	slope=1 intercept=0	returned	modality rc=0 (pixel0 after: 0.25)	presentation rc=0 pixel0 out=16384
+display chain modality LINEAR -> presentation	slope=nan intercept=0	returned	modality rc=0 (pixel0 after: nan)	presentation rc=0 pixel0 out=0
+display chain modality LINEAR -> presentation	slope=inf intercept=0	returned	modality rc=0 (pixel0 after: inf)	presentation rc=0 pixel0 out=65472
+display chain modality LINEAR -> presentation	slope=1e+38 intercept=0	returned	modality rc=0 (pixel0 after: 2.5e+37)	presentation rc=0 pixel0 out=65472
+display chain modality LINEAR -> presentation	slope=1 intercept=nan	returned	modality rc=0 (pixel0 after: nan)	presentation rc=0 pixel0 out=0
+display chain modality LINEAR -> presentation	slope=1 intercept=inf	returned	modality rc=0 (pixel0 after: inf)	presentation rc=0 pixel0 out=65472
+## probe=fast group=gsvg
+gsvg:497 virtual grid output	control (tests' Config())	returned	init rc=0 process rc=0	output min=24008 max=28720, zeros=0, 65535s=0
+gsvg:497 virtual grid output	vg_pyramid_gain 1e30	returned	init rc=0 process rc=0	output min=4302 max=65535, zeros=0, 65535s=1934
+gsvg:497 virtual grid output	vg_pyramid_gain 1e308	returned	init rc=0 process rc=0	output min=0 max=65535, zeros=3348, 65535s=147
+gsvg:497 virtual grid output	vg_denoise_k 1e308	returned	init rc=0 process rc=0	output min=24008 max=28633, zeros=0, 65535s=0
+gsvg:497 virtual grid output	vg_pyramid_gain 1e308 + vg_denoise_k 1e308	returned	init rc=0 process rc=0	output min=0 max=65535, zeros=3348, 65535s=147
+gsvg:497 virtual grid output	vg_air_signal 1e300 (second key wins?)	returned	init rc=0 process rc=0	output min=14980 max=22799, zeros=0, 65535s=0
+gsvg:497 virtual grid output	vg_air_signal 1e-300	returned	init rc=0 process rc=0	output min=29969 max=31015, zeros=0, 65535s=0
+grid_dwt:511 grid suppression	all 0	returned	rc=0	pixels changed=0, output min=0 max=0
+grid_dwt:511 grid suppression	all 65535	returned	rc=0	pixels changed=0, output min=65535 max=65535
+grid_dwt:511 grid suppression	columns 0/65535 alternating	returned	rc=0	pixels changed=16384, output min=32767 max=32767
+grid_dwt:511 grid suppression	random	returned	rc=0	pixels changed=0, output min=2 max=65527
+grid_dwt:511 grid suppression	period-4 stripes 60000/1	returned	rc=0	pixels changed=16384, output min=30000 max=30000
+## probe=fast group=reach
+reach: log_inverse -> contrast	control: pixel 2.0, normFactor 1	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+reach: log_inverse -> contrast	finite pixel 1000, normFactor 1	returned	log_inverse rc=0 nonfinite px=1	contrast rc=0 nonfinite px=4096 of 4096
+reach: log_inverse -> contrast	finite pixel 100, normFactor 1	returned	log_inverse rc=0 nonfinite px=1	contrast rc=0 nonfinite px=4096 of 4096
+reach: log_inverse -> contrast	finite pixel 38.5, normFactor 1	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+reach: log_inverse -> contrast	pixel 2.0, normFactor NaN	returned	log_inverse rc=-1 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+reach: log_inverse -> contrast	pixel 2.0, normFactor +inf	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+## probe=precise group=contrast
+contrast:71,:111	one pixel = NaN	returned	rc=0	output nonfinite=0, outside input range=0, poisoned pixel out=51.5625
+contrast:71,:111	one pixel = +inf	returned	rc=0	output nonfinite=4096, outside input range=0, poisoned pixel out=inf
+contrast:71,:111	one pixel = -inf	returned	rc=0	output nonfinite=4096, outside input range=0, poisoned pixel out=-nan(ind)
+contrast:71,:111	one pixel = 1e10	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=1e+10
+contrast:71,:111	one pixel = -1e10	returned	rc=0	output nonfinite=0, outside input range=3825, poisoned pixel out=-9.92187e+09
+contrast:71,:111	one pixel = 3e38	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=3e+38
+contrast:71,:111	one pixel = -3e38	returned	rc=0	output nonfinite=0, outside input range=4095, poisoned pixel out=-2.97656e+38
+contrast:71,:111	pixels -3e38 and 3e38 (finite, range overflows float)	returned	rc=0	output nonfinite=4096
+## probe=precise group=reach
+reach: log_inverse -> contrast	control: pixel 2.0, normFactor 1	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+reach: log_inverse -> contrast	finite pixel 1000, normFactor 1	returned	log_inverse rc=0 nonfinite px=1	contrast rc=0 nonfinite px=4096 of 4096
+reach: log_inverse -> contrast	finite pixel 100, normFactor 1	returned	log_inverse rc=0 nonfinite px=1	contrast rc=0 nonfinite px=4096 of 4096
+reach: log_inverse -> contrast	finite pixel 38.5, normFactor 1	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096
+reach: log_inverse -> contrast	pixel 2.0, normFactor NaN	returned	log_inverse rc=0 nonfinite px=4096	contrast rc=0 nonfinite px=4096 of 4096
+reach: log_inverse -> contrast	pixel 2.0, normFactor +inf	returned	log_inverse rc=0 nonfinite px=0	contrast rc=0 nonfinite px=0 of 4096

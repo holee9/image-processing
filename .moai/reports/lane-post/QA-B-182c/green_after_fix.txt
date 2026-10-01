@@ -1,0 +1,102 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_*:DicomReaderTest.J2kScope_*
+[==========] Running 20 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 20 tests from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[       OK ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads (7 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+[2026-10-02 04:55:54.416] [warning] [DicomReader] dicom read refused: SamplesPerPixel (0028,0002) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.423] [warning] [DicomReader] dicom read refused: SamplesPerPixel (0028,0002) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.429] [warning] [DicomReader] dicom read refused: PixelRepresentation (0028,0103) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.435] [warning] [DicomReader] dicom read refused: PixelRepresentation (0028,0103) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.441] [warning] [DicomReader] dicom read refused: BitsAllocated (0028,0100) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.448] [warning] [DicomReader] dicom read refused: BitsAllocated (0028,0100) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[       OK ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed (39 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+[       OK ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame (6 ms)
+[ RUN      ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+[2026-10-02 04:55:54.465] [warning] [DicomReader] dicom read refused: BitsAllocated 1 (only 16 is supported for uncompressed and JPEG Lossless data)
+[2026-10-02 04:55:54.470] [warning] [DicomReader] dicom read refused: BitsAllocated 8 (only 16 is supported for uncompressed and JPEG Lossless data)
+[2026-10-02 04:55:54.480] [warning] [DicomReader] dicom read refused: BitsAllocated 12 (only 16 is supported for uncompressed and JPEG Lossless data)
+[2026-10-02 04:55:54.502] [warning] [DicomReader] dicom read refused: BitsAllocated 32 (only 16 is supported for uncompressed and JPEG Lossless data)
+[2026-10-02 04:55:54.510] [warning] [DicomReader] dicom read refused: BitsAllocated 32 (only 16 is supported for uncompressed and JPEG Lossless data)
+[       OK ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData (55 ms)
+[ RUN      ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+[2026-10-02 04:55:54.538] [warning] [DicomReader] dicom read refused: BitsStored 12 with HighBit 15 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+[2026-10-02 04:55:54.542] [warning] [DicomReader] dicom read refused: BitsStored 12 with HighBit 12 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+[2026-10-02 04:55:54.547] [warning] [DicomReader] dicom read refused: BitsStored 16 with HighBit 14 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+[2026-10-02 04:55:54.553] [warning] [DicomReader] dicom read refused: BitsStored 17 with HighBit 16 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+[2026-10-02 04:55:54.559] [warning] [DicomReader] dicom read refused: BitsStored 0 with HighBit 65535 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+[       OK ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord (49 ms)
+[ RUN      ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+[       OK ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit (4 ms)
+[ RUN      ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit
+[       OK ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit (14 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision
+[       OK ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision (15 ms)
+[ RUN      ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+[2026-10-02 04:55:54.610] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream carries 2 components, the dataset says 1 (SamplesPerPixel)
+[2026-10-02 04:55:54.621] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream is signed, the dataset says unsigned pixels (PixelRepresentation 0)
+[2026-10-02 04:55:54.632] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 12 does not match the dataset (BitsStored 16, BitsAllocated 16)
+[2026-10-02 04:55:54.640] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 8 does not match the dataset (BitsStored 16, BitsAllocated 16)
+[2026-10-02 04:55:54.650] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 12, BitsAllocated 16)
+[2026-10-02 04:55:54.662] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 20 exceeds the 16 bits this reader returns
+[       OK ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused (68 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+[2026-10-02 04:55:54.673] [warning] [DicomReader] dicom read refused: BitsAllocated 32 for JPEG 2000 (8 or 16 are supported)
+[2026-10-02 04:55:54.678] [warning] [DicomReader] dicom read refused: BitsAllocated 1 for JPEG 2000 (8 or 16 are supported)
+[2026-10-02 04:55:54.682] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[2026-10-02 04:55:54.687] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[2026-10-02 04:55:54.692] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 16, BitsAllocated 8)
+[       OK ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix (29 ms)
+[ RUN      ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+[       OK ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack (7 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+[2026-10-02 04:55:54.710] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.715] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.719] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.723] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.733] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.737] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.744] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.750] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.765] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.770] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.775] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.779] [warning] [DicomReader] dicom read refused: HighBit (0028,0102) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[       OK ] DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath (80 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+[2026-10-02 04:55:54.784] [warning] [DicomReader] dicom read refused: BitsStored (0028,0101) is absent, empty or not a number (it is a Type 1 attribute and has no default)
+[2026-10-02 04:55:54.788] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[       OK ] DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause (9 ms)
+[ RUN      ] DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+[2026-10-02 04:55:54.798] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 12, BitsAllocated 16)
+[       OK ] DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy (9 ms)
+[ RUN      ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+[2026-10-02 04:55:54.803] [warning] [DicomReader] dicom read refused: NumberOfFrames 3 (only single-frame images are supported)
+[       OK ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame (4 ms)
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[2026-10-02 04:55:54.808] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[2026-10-02 04:55:54.813] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (9 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[2026-10-02 04:55:54.818] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[       OK ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (5 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[2026-10-02 04:55:54.823] [warning] [DicomReader] dicom read refused: BitsAllocated 8 (only 16 is supported for uncompressed and JPEG Lossless data)
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (4 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[2026-10-02 04:55:54.827] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:55:54.831] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:55:54.835] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (12 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[2026-10-02 04:55:54.844] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[2026-10-02 04:55:54.844] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (8 ms)
+[----------] 20 tests from DicomReaderTest (444 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 1 test suite ran. (467 ms total)
+[  PASSED  ] 20 tests.

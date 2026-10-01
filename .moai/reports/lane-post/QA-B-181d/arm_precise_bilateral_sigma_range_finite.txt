@@ -1,0 +1,6 @@
+MODE precise ARM bilateral_sigma_range_finite: build_ok=True failed=1
+ExceptionGuard.BilateralRefusesANaNRangeSigma
+
+[  FAILED  ] ExceptionGuard.BilateralRefusesANaNRangeSigma (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.BilateralRefusesANaNRangeSigma

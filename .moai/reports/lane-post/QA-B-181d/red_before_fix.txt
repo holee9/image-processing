@@ -1,0 +1,50 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard.Bilateral*:ExceptionGuard.EdgeEnhanceRefuses*:ExceptionGuard.ContrastEnhanceRefusesA*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(549): error: Expected equality of these values:
+  -1
+  RunBilateral(s, 50.0f).rc
+    Which is: 0
+sigma_space=inf
+
+[  FAILED  ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt (0 ms)
+[ RUN      ] ExceptionGuard.BilateralRefusesANaNRangeSigma
+[       OK ] ExceptionGuard.BilateralRefusesANaNRangeSigma (0 ms)
+[ RUN      ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius
+[       OK ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius (1 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(574): error: Expected equality of these values:
+  -1
+  RunUsm(1.0f, 2.0f, kNaN).rc
+    Which is: 0
+threshold=NaN
+
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(589): error: Expected equality of these values:
+  -1
+  RunClahe(c).rc
+    Which is: 0
+clip_limit=inf
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(589): error: Expected equality of these values:
+  -1
+  RunClahe(c).rc
+    Which is: 0
+clip_limit=nan
+
+[  FAILED  ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 5 tests from ExceptionGuard (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[  FAILED  ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+
+ 3 FAILED TESTS

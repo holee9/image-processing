@@ -1,0 +1,38 @@
+# QA-B-181 probe results AFTER the fix. Same 13 input scenarios as QA-B-179 (5 runs each, one process per run) + the gsvg masked/ex scenarios.
+# Before the fix every scenario below that is not a control ESCAPED (see QA-B-179/probe_results_input_paths.txt and before_fix_gsvg_probe.txt).
+=== ai_nonexistent_dir_control
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_access_denied_dir
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_overlong_dir
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== ai_invalid_utf8_dir
+  5x  exit=0x0 | returned -9 ## post-call shutdown LOCK_RELEASED(returned)
+=== enh_clahe_control
+  5x  exit=0x0 | returned 0
+=== enh_clahe_tile_overflow
+  5x  exit=0x0 | returned -1
+=== enh_nlm_huge_declared
+  5x  exit=0x0 | returned -2
+=== enh_edge_width_2pow31
+  5x  exit=0x0 | returned -1
+=== enh_bilateral_width_2pow31
+  5x  exit=0x0 | returned -1
+=== dicom_write_j2k_huge_declared
+  5x  exit=0x0 | returned -3
+=== gsvg_control_small
+  5x  exit=0x0 | returned 0
+=== gsvg_grid_suppression_huge_declared
+  5x  exit=0x0 | returned -1
+=== gsvg_virtual_grid_huge_declared
+  5x  exit=0x0 | returned -1
+=== gsvg_masked_grid_suppression_huge_declared
+  5x  exit=0x0 | returned -1
+=== gsvg_ex_grid_suppression_huge_declared
+  5x  exit=0x0 | returned -1
+=== gsvg_grid_suppression_1e9_declared
+  5x  exit=0x0 | returned -2
+=== gsvg_masked_1e9_declared
+  5x  exit=0x0 | returned -2
+=== gsvg_ex_1e9_declared
+  5x  exit=0x0 | returned -2

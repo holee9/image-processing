@@ -182,10 +182,17 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
 
     // 2σ truncation: ksize=13 for sigma_space=3 — retains 95.4% of Gaussian mass.
     // 3σ (ksize=19) adds negligible denoising quality for 31% extra compute cost.
-    int radius = static_cast<int>(std::ceil(2.0f * sigma_space));
+    //
+    // QA-B-181d (Codex #48): the radius is limited BEFORE it becomes an int. Converting ceil(2 * sigma) first and
+    // limiting afterwards made an out-of-range float -> int conversion (undefined behaviour) of any large sigma;
+    // 2 * sigma also overflows float for sigma above FLT_MAX / 2. sigma_space is finite here (checked by the
+    // caller), and a sigma of at least maxRad / 2 reaches the limit anyway: ceil(2 * sigma) >= maxRad.
     int maxRad = std::min(15, std::min(w, h) / 2 - 1);
     if (maxRad < 1) maxRad = 1;
-    if (radius > maxRad) radius = maxRad;
+    const float radiusF = sigma_space >= 0.5f * static_cast<float>(maxRad)
+                              ? static_cast<float>(maxRad)
+                              : std::ceil(2.0f * sigma_space);
+    int radius = static_cast<int>(radiusF);   // 0 .. maxRad, an exact small integer
     if (radius < 1) radius = 1;
     int ksize = 2 * radius + 1;
 
@@ -288,9 +295,21 @@ static XpeErrorCode apply_nlm(XpeImageBuffer* img,
 
 extern "C" {
 
+// QA-B-181 (QA-B-179, #233): no exception may leave an exported function. The body lives in an `extern "C++"`
+// function (a helper declared inside this extern "C" block would get C linkage and the "never throws" treatment,
+// which optimises the catch away -- see modules/ai/src/ai.cpp for the measurement) and the exported function is a
+// try/catch around it. The handlers allocate nothing.
+extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, const XpeNoiseReduceParams* params);
+
+
 // @MX:ANCHOR: xpe_noise_reduce applies bilateral or NLM denoising in-place.
 // @MX:REASON: [AUTO] Public API boundary, key pipeline stage. REQ-ENH-007..012.
 XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceParams* params)
+{
+    return xpe_guarded_call([&] { return xpe_noise_reduce_impl(img, params); });
+}
+
+extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, const XpeNoiseReduceParams* params)
 {
     // REQ-ENH-009: NULL params check
     if (!params) return XPE_ERR_INVALID_INPUT;
@@ -300,8 +319,13 @@ XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceP
 
 
     if (params->mode == XPE_NOISE_BILATERAL) {
-        // REQ-ENH-010: sigma_space and sigma_range must be positive
-        if (params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+        // REQ-ENH-010: sigma_space and sigma_range must be positive.
+        // QA-B-181d: and finite. `x <= 0` is false for NaN under IEEE semantics, and true or false for it depending on
+        // the build's floating-point mode (measured: /fp:precise lets NaN through, the /fp:fast this module is built
+        // with rejects it), so NaN and +infinity were accepted or refused by accident and +infinity reached an int
+        // conversion. Finiteness is its own explicit test.
+        if (!std::isfinite(params->sigma_space) || !std::isfinite(params->sigma_range) ||
+            params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
             return XPE_ERR_INVALID_INPUT;
         }
         return apply_bilateral(img, params->sigma_space, params->sigma_range);

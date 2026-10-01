@@ -1,0 +1,52 @@
+Note: Google Test filter = GuardFixture*:AiExceptionGuard*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from GuardFixture
+[ RUN      ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[2026-10-02 01:18:33.350] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+[2026-10-02 01:18:33.350] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+[2026-10-02 01:18:33.351] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+unknown file: error: C++ exception with description "injected inside the critical section" thrown in the test body.
+
+[2026-10-02 01:18:33.351] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[2026-10-02 01:18:33.351] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+[2026-10-02 01:18:33.351] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+[2026-10-02 01:18:33.351] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+[2026-10-02 01:18:33.351] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] GuardFixture.TheModuleStaysUsableAfterAFailedCall (0 ms)
+[----------] 4 tests from GuardFixture (1 ms total)
+
+[----------] 2 tests from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+[2026-10-02 01:18:33.351] [info] xpe_ai initialized: model_dir=C:\xpe_probe_�(, ep=0, timeout=5000 ms
+[2026-10-02 01:18:33.351] [error] Model file not found: C:\xpe_probe_�(/bone_suppress.onnx
+[2026-10-02 01:18:33.351] [error] bone_suppress: no model at C:\xpe_probe_�(/bone_suppress.onnx
+[2026-10-02 01:18:33.351] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException (0 ms)
+[ RUN      ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+[2026-10-02 01:18:33.351] [error] Model file not found: C:\xpe_probe_�(\bone_suppress.onnx
+[       OK ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath (0 ms)
+[----------] 2 tests from AiExceptionGuard (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (1 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[  FAILED  ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+[  FAILED  ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[  FAILED  ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+
+ 4 FAILED TESTS

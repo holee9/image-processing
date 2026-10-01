@@ -1,0 +1,12 @@
+### search at HEAD (before QA-B-181c edits), real sources only (src/ include/), all modules
+--- pattern: \(\s*[A-Za-z_][A-Za-z_0-9.>-]*\s*\+\s*[A-Za-z_][A-Za-z_0-9.>()-]*\s*-\s*1\s*\)\s*/
+modules/enhance_advanced/src/detail/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+modules/enhance_basic/src/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+modules/gsvg/src/parallel_rows.h:60:    const int band = (rows + threads - 1) / threads;
+modules/gsvg/src/virtual_grid.cpp:734:    const int cw = (width + f - 1) / f, ch = (height + f - 1) / f;
+--- pattern: \+\s*\(\s*[A-Za-z_][A-Za-z_0-9]*\s*-\s*1\s*\)\s*\)\s*/
+--- pattern: \(\s*[A-Za-z_][A-Za-z_0-9.>-]*\s*\+\s*[0-9]+\s*\)\s*(/|>>)\s*[0-9]+
+--- pattern: (div_?up|ceil_?div|CeilDiv|DivUp)
+modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_internal.h:85:static inline int xpe_ceil_div(int size, int parts) {
+modules/enhance_basic/src/contrast_enhance.cpp:172:    int tile_w = xpe_ceil_div(w, num_tiles_x);
+modules/enhance_basic/src/contrast_enhance.cpp:173:    int tile_h = xpe_ceil_div(h, num_tiles_y);

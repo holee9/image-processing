@@ -1,0 +1,66 @@
+ARM j2k_precision_match: build_ok=True
+failed tests: 2
+DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+
+--- run output (tail)
+[ RUN      ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision
+[       OK ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision (16 ms)
+[ RUN      ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+[2026-10-02 04:03:32.776] [error] [DicomReader] J2K codestream carries 2 components, the dataset says 1
+[2026-10-02 04:03:32.788] [error] [DicomReader] J2K codestream is signed, the dataset says unsigned pixels
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_12_tags_say_16
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_8_tags_say_16
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_16_tags_say_12
+
+[2026-10-02 04:03:32.844] [warning] [DicomReader] J2K codestream precision 20 exceeds the 16 bits this reader returns
+[  FAILED  ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused (90 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3309): error: Expected equality of these values:
+  -13
+  read("tags_stored_above_alloc", 1, 0, 8, 16, 15)
+    Which is: 0
+
+[  FAILED  ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix (35 ms)
+[ RUN      ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+[       OK ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack (5 ms)
+[ RUN      ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+[       OK ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame (4 ms)
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (9 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[       OK ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (4 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (5 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (13 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (4 ms)
+[----------] 17 tests from DicomReaderTest (354 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 1 test suite ran. (377 ms total)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+[  FAILED  ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+
+ 2 FAILED TESTS
+

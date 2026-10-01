@@ -416,11 +416,28 @@ double ThicknessFromLogAtten(double L, double w0, double a, double b, double tMa
     return 0.5 * (lo + hi);
 }
 
+int DerivedReductionFactor(double sMin, double pitchCm) {
+    const double ratio = std::floor(0.5 * sMin / pitchCm);
+    if (!(ratio <= static_cast<double>(kMaxReductionFactor))) return 0;   // also NaN
+    return ratio < 1.0 ? 1 : static_cast<int>(ratio);
+}
+
+bool GaussKernelRadius(double sigmaPx, int& radius) {
+    if (!std::isfinite(sigmaPx) || !(sigmaPx > 0.0)) return false;
+    const double r = std::ceil(4.0 * sigmaPx);
+    if (r > static_cast<double>(kMaxGaussRadius)) return false;
+    radius = r < 1.0 ? 1 : static_cast<int>(r);
+    return true;
+}
+
 namespace {
 
-// Normalised 1D Gaussian taps (sum 1), support +-4 sigma.
+// Normalised 1D Gaussian taps (sum 1), support +-4 sigma. Empty when the sigma is not a usable kernel (not a
+// positive finite number, or a radius above kMaxGaussRadius): converting such a radius to int is undefined, and
+// 2 * r + 1 could leave int (QA-B-181c, Codex #37).
 std::vector<double> GaussTaps(double sigmaPx) {
-    const int r = std::max(1, static_cast<int>(std::ceil(4.0 * sigmaPx)));
+    int r = 0;
+    if (!GaussKernelRadius(sigmaPx, r)) return {};
     std::vector<double> g(static_cast<size_t>(2 * r + 1));
     double sum = 0;
     for (int i = -r; i <= r; ++i) {
@@ -502,8 +519,9 @@ std::vector<double> ScatterEstimate(const std::vector<double>& primary,
             const KernelNode& node = table.kernels[m * table.kKvp.size() + static_cast<size_t>(kk)];
             for (int i = 0; i < node.terms; ++i) {
                 if (node.a[i] <= 0) continue;
-                AddGaussConv(weighted, width, height, GaussTaps(node.s[i] / pitchCm),
-                             wkk * node.a[i], acc, tmp);
+                const std::vector<double> taps = GaussTaps(node.s[i] / pitchCm);
+                if (taps.empty()) return {};   // a kernel width that is no kernel: the estimate failed
+                AddGaussConv(weighted, width, height, taps, wkk * node.a[i], acc, tmp);
             }
         }
     }
@@ -584,7 +602,8 @@ Plane Resample(const Plane& p, int w, int h, const Taps& tx, const Taps& ty) {
 }
 
 Plane Reduce(const Plane& p) {
-    const int w = (p.w + 1) / 2, h = (p.h + 1) / 2;
+    // QA-B-181b: ceil(n / 2) as n / 2 + n % 2. `(n + 1) / 2` leaves int for n == INT_MAX (undefined behaviour).
+    const int w = p.w / 2 + p.w % 2, h = p.h / 2 + p.h % 2;
     return Resample(p, w, h, ReduceTaps(p.w, w), ReduceTaps(p.h, h));
 }
 
@@ -728,9 +747,18 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
             for (int i = 0; i < n.terms; ++i) sMin = std::min(sMin, n.s[i]);
         }
     const double pitchCm = st.pixelPitchMm / 10.0;
-    const int f = sw.reductionFactor > 0 ? sw.reductionFactor
-                                         : std::max(1, static_cast<int>(std::floor(0.5 * sMin / pitchCm)));
-    const int cw = (width + f - 1) / f, ch = (height + f - 1) / f;
+    // QA-B-181c (Codex #37): the factor is bounded before any arithmetic uses it. A caller-set factor above the limit,
+    // or a derived one that is not an int (pixel pitch far below the kernel widths, or no kernel term at all), was
+    // used unchecked: `(width + f - 1)` leaves int, 2 * f + 1 in the min filter too.
+    int f = 0;
+    if (sw.reductionFactor > 0) {
+        if (sw.reductionFactor > kMaxReductionFactor) return fail("reduction factor above the supported maximum");
+        f = sw.reductionFactor;
+    } else {
+        f = DerivedReductionFactor(sMin, pitchCm);
+        if (f == 0) return fail("derived reduction factor is out of range (pixel pitch too small for the kernel table)");
+    }
+    const int cw = CeilDivInt(width, f), ch = CeilDivInt(height, f);
     rep.factor = f;
     rep.coarseW = cw;
     rep.coarseH = ch;
@@ -811,7 +839,7 @@ VgReport RunVirtualGrid(std::vector<double>& io, int width, int height,
             for (size_t i = 0; i < T.size(); ++i) if (P[i] > 0) T[i] = mean;
         }
         const std::vector<double> S = ScatterEstimate(P, T, cw, ch, table, st.kvp, pitchCm * f);
-        if (S.empty()) return fail("estimated thickness above the table range");
+        if (S.empty()) return fail("scatter estimate failed (thickness above the table range, or a kernel width out of range)");
         for (size_t i = 0; i < P.size(); ++i) {
             cap[i] = capFor(i, T[i]);
             double r = P[i] > 0 ? S[i] / P[i] : 0.0;

@@ -1,0 +1,7 @@
+ARM ai_stitch_limit_before_cast: build_ok=True failed=1
+AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+
+    Which is: 512
+[  FAILED  ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue

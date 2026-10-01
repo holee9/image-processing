@@ -1,0 +1,8 @@
+MODE precise ARM bilateral_sigma_space_finite: build_ok=True failed=1
+ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+
+sigma_space=inf
+sigma_space=nan
+[  FAILED  ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt (2 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt

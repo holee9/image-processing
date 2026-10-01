@@ -1,0 +1,7 @@
+MODE precise ARM edge_radius_finite: build_ok=True failed=1
+ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+
+radius=nan
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries

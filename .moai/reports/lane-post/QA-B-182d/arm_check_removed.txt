@@ -1,0 +1,9 @@
+hb_16_12_15
+hb_16_12_15: the refusal names HighBit
+hb_8_8_6
+hb_8_8_6: the refusal names HighBit
+[  FAILED  ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne (138 ms)
+[  PASSED  ] 82 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne
+ 1 FAILED TEST

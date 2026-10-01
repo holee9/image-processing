@@ -1,0 +1,40 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgVirtualGridChecked.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from GsvgVirtualGridChecked
+[ RUN      ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax
+[       OK ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel
+[       OK ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable
+[       OK ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1174): error: Value of: wide.empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit (139 ms)
+[ RUN      ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1194): error: Expected: ("") != (RunSmall(Settings(1), sw).error), actual: "" vs ""
+
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused (8 ms)
+[ RUN      ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1203): error: Expected: ("") != (RunSmall(st, vg::VgSwitches{}).error), actual: "" vs ""
+
+[  FAILED  ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused (3 ms)
+[----------] 6 tests from GsvgVirtualGridChecked (151 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (151 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit
+[  FAILED  ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused
+[  FAILED  ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused
+
+ 3 FAILED TESTS

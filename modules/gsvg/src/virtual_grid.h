@@ -227,6 +227,31 @@ std::vector<double> MinFilter2D(const std::vector<double>& img, int w, int h, in
 // solution lies above tMax.
 double ThicknessFromLogAtten(double L, double w0, double a, double b, double tMax);
 
+// QA-B-181c (Codex #37): checked integer arithmetic for the reduced grid and the Gaussian kernels.
+//
+// ceil(size / parts) for size >= 0 and parts >= 1. The usual `(size + parts - 1) / parts` adds before it divides
+// and leaves int for sizes near INT32_MAX.
+inline int CeilDivInt(int size, int parts) { return size / parts + (size % parts != 0 ? 1 : 0); }
+
+// Largest reduction factor the chain accepts. A factor is a block edge in pixels; 2^20 is about 75 times the widest
+// detector axis in use (14000 px), so no real setting comes near it, and it keeps 2 * f + 1 (the min-filter
+// window) and every block index far from int overflow.
+constexpr int kMaxReductionFactor = 1 << 20;
+
+// The reduction factor derived from the narrowest kernel term: floor(0.5 * sMin / pitchCm), at least 1. Returns 0
+// when the value is not representable (NaN, or above kMaxReductionFactor) -- a double-to-int conversion of such
+// a value is undefined.
+int DerivedReductionFactor(double sMin, double pitchCm);
+
+// Largest Gaussian kernel radius [px] accepted: the taps are 2 * r + 1 doubles (16 MiB at this limit), and a
+// kernel that wide in pixels is a unit mix-up, not a detector (the widest term in the tables is a few cm, i.e.
+// hundreds of pixels at the finest pitch in use).
+constexpr int kMaxGaussRadius = 1 << 20;
+
+// Radius of the +-4 sigma support. False (radius untouched) when sigmaPx is not a positive finite number or the
+// radius would exceed kMaxGaussRadius.
+bool GaussKernelRadius(double sigmaPx, int& radius);
+
 // Runs the full chain on img (width*height DN values, in place).
 // On error img is left untouched and report.error says why.
 //

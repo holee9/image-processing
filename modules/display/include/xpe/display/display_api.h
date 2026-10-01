@@ -321,8 +321,9 @@ XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 
  *                              separately -- this function computes the LUT only.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL,
- *         count < 2, or the array is not non-decreasing (REQ-DISP-029; equal
- *         neighbours are allowed, a fall is not). outParams is untouched.
+ *         count < 2, any entry is NaN or infinite (QA-B-181d), or the array is not
+ *         non-decreasing (REQ-DISP-029; equal neighbours are allowed, a fall is
+ *         not). outParams is untouched.
  *
  * @note Only half of the REQ-DISP-029 contract is checked. The ordering is; the
  *       "measured at equally spaced driving levels" half is NOT, because no

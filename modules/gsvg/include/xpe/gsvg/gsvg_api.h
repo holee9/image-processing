@@ -167,6 +167,9 @@ XPE_API XpeErrorCode xpe_gsvg_init(void** handleOut, const char* configJsonOrNul
  *         the post modules, never a silent no-op. gsvg takes loose dimensions
  *         rather than an XpeImageBuffer, so it rejects NEGATIVE dimensions too,
  *         a shape the struct-based modules cannot express.
+ * @return XPE_ERR_INVALID_INPUT when the vignette step is on and any of the
+ *         first width * height gainMap entries is NaN or infinite (QA-B-181d);
+ *         dst is not written. A large FINITE gain is legal and clamps to 65535.
  * @return XPE_ERR_INVALID_INPUT when a supplied buffer is SHORTER than
  *         width * height elements (#152). QA-B-52 measured what the absence of
  *         this check cost: a src half the promised length was read past its end

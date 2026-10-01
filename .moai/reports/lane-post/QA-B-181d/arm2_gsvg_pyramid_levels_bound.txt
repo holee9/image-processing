@@ -1,0 +1,11 @@
+ARM gsvg_pyramid_levels_bound: build_ok=True failed=1
+GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+
+vg_pyramid_levels=1e10
+vg_pyramid_levels=-1e10
+vg_pyramid_levels=4294967296
+vg_pyramid_levels=1e300
+vg_pyramid_levels=9
+[  FAILED  ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig (1 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig

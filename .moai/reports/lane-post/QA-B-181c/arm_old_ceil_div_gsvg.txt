@@ -1,0 +1,212 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgVirtualGridChecked.CeilDiv*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GsvgVirtualGridChecked
+[ RUN      ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=3 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=255 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=256 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=257 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=1073741823 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=1073741824 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 536870912
+  vg::CeilDivInt(s, p)
+    Which is: -536870912
+size=2147483645 parts=4
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 306783378
+  vg::CeilDivInt(s, p)
+    Which is: -306783377
+size=2147483645 parts=7
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 21474837
+  vg::CeilDivInt(s, p)
+    Which is: -21474835
+size=2147483645 parts=100
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 2
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483645 parts=1073741823
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 2
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483645 parts=1073741824
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=2147483645 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 715827882
+  vg::CeilDivInt(s, p)
+    Which is: -715827882
+size=2147483646 parts=3
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 536870912
+  vg::CeilDivInt(s, p)
+    Which is: -536870911
+size=2147483646 parts=4
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 306783378
+  vg::CeilDivInt(s, p)
+    Which is: -306783377
+size=2147483646 parts=7
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 21474837
+  vg::CeilDivInt(s, p)
+    Which is: -21474835
+size=2147483646 parts=100
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 2
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483646 parts=1073741823
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 2
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483646 parts=1073741824
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=2147483646 parts=2147483647
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1073741824
+  vg::CeilDivInt(s, p)
+    Which is: -1073741824
+size=2147483647 parts=2
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 715827883
+  vg::CeilDivInt(s, p)
+    Which is: -715827882
+size=2147483647 parts=3
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 536870912
+  vg::CeilDivInt(s, p)
+    Which is: -536870911
+size=2147483647 parts=4
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 306783379
+  vg::CeilDivInt(s, p)
+    Which is: -306783377
+size=2147483647 parts=7
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 21474837
+  vg::CeilDivInt(s, p)
+    Which is: -21474835
+size=2147483647 parts=100
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 3
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483647 parts=1073741823
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 2
+  vg::CeilDivInt(s, p)
+    Which is: -1
+size=2147483647 parts=1073741824
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_virtual_grid.cpp(1127): error: Expected equality of these values:
+  want
+    Which is: 1
+  vg::CeilDivInt(s, p)
+    Which is: 0
+size=2147483647 parts=2147483647
+
+[  FAILED  ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax (0 ms)
+[----------] 1 test from GsvgVirtualGridChecked (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax
+
+ 1 FAILED TEST

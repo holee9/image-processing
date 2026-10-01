@@ -1,0 +1,88 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *J2kScope_HighBit*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_16_12_15
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_16_12_15: the refusal names HighBit
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_16_12_12
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_16_12_12: the refusal names HighBit
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_16_16_14
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_16_16_14: the refusal names HighBit
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_8_8_6
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_8_8_6: the refusal names HighBit
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_8_8_15
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_8_8_15: the refusal names HighBit
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3340): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+hb_16_12_0xFFFF
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3350): error: Value of: named
+  Actual: false
+Expected: true
+hb_16_12_0xFFFF: the refusal names HighBit
+
+[  FAILED  ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne (161 ms)
+[----------] 1 test from DicomReaderTest (161 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (181 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne
+
+ 1 FAILED TEST

@@ -1,0 +1,41 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BadAllocBecomesOutOfMemory
+[       OK ] ExceptionGuard.BadAllocBecomesOutOfMemory (0 ms)
+[ RUN      ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed
+[       OK ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed
+[       OK ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANormalReturnPassesThroughUnchanged
+[       OK ] ExceptionGuard.ANormalReturnPassesThroughUnchanged (0 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException (4 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(154): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+
+[  FAILED  ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+[       OK ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax (0 ms)
+[----------] 11 tests from ExceptionGuard (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 10 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+
+ 1 FAILED TEST

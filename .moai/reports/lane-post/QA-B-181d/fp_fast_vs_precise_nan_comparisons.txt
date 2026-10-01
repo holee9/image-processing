@@ -1,0 +1,6 @@
+fp:precise
+NaN: edge rejects=0 bil rejects=0 clip rejects=0 | std::isfinite(NaN)=0 bits(NaN)=0 | +inf: bil rejects=0 clip rejects=0 isfinite(inf)=0 bits(inf)=0
+fp:fast
+NaN: edge rejects=1 bil rejects=1 clip rejects=1 | std::isfinite(NaN)=0 bits(NaN)=0 | +inf: bil rejects=0 clip rejects=0 isfinite(inf)=0 bits(inf)=0
+arch:AVX2 fp:fast  (the enhance_basic flags)
+NaN: edge rejects=1 bil rejects=1 clip rejects=1 | std::isfinite(NaN)=0 bits(NaN)=0 | +inf: bil rejects=0 clip rejects=0 isfinite(inf)=0 bits(inf)=0

@@ -1,0 +1,159 @@
+== gsvg
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgExceptionGuard.AVirtual*:GsvgExceptionGuard.AVignette*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(215): error: Expected equality of these values:
+  -4
+  InitWith(VgConfigWithLevels(bad))
+    Which is: 0
+vg_pyramid_levels=1e10
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(215): error: Expected equality of these values:
+  -4
+  InitWith(VgConfigWithLevels(bad))
+    Which is: 0
+vg_pyramid_levels=-1e10
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(215): error: Expected equality of these values:
+  -4
+  InitWith(VgConfigWithLevels(bad))
+    Which is: 0
+vg_pyramid_levels=4294967296
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(215): error: Expected equality of these values:
+  -4
+  InitWith(VgConfigWithLevels(bad))
+    Which is: 0
+vg_pyramid_levels=1e300
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(215): error: Expected equality of these values:
+  -4
+  InitWith(VgConfigWithLevels(bad))
+    Which is: 0
+vg_pyramid_levels=9
+
+[  FAILED  ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig (1 ms)
+[ RUN      ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(237): error: Expected equality of these values:
+  -1
+  xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, g.data(), g.size())
+    Which is: 0
+gain=nan
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(239): error: Expected equality of these values:
+  std::vector<uint16_t>(w * hgt, 7)
+    Which is: { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, ... }
+  out
+    Which is: { 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ... }
+a refused call must not write the output, gain=nan
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(237): error: Expected equality of these values:
+  -1
+  xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, g.data(), g.size())
+    Which is: 0
+gain=inf
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(239): error: Expected equality of these values:
+  std::vector<uint16_t>(w * hgt, 7)
+    Which is: { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, ... }
+  out
+    Which is: { 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ... }
+a refused call must not write the output, gain=inf
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(237): error: Expected equality of these values:
+  -1
+  xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, g.data(), g.size())
+    Which is: 0
+gain=-inf
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(239): error: Expected equality of these values:
+  std::vector<uint16_t>(w * hgt, 7)
+    Which is: { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, ... }
+  out
+    Which is: { 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ... }
+a refused call must not write the output, gain=-inf
+
+[  FAILED  ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput (0 ms)
+[----------] 2 tests from GsvgExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+[  FAILED  ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+
+ 2 FAILED TESTS
+== ai
+Note: Google Test filter = AiExceptionGuard.Stitch*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_exception_guard.cpp(246): error: Expected equality of these values:
+  4096u
+    Which is: 4096
+  w
+    Which is: 512
+estimate 4294967808 must come out as the limit, not wrapped
+
+[  FAILED  ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue (0 ms)
+[----------] 1 test from AiExceptionGuard (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+
+ 1 FAILED TEST
+== display
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *181d*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GsdfCharacterization
+[ RUN      ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d
+D:\workspace-github\xpe-post\modules\display\tests\test_gsdf_characterization.cpp(863): error: Expected equality of these values:
+  -1
+  xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out)
+    Which is: 0
+case 0
+
+D:\workspace-github\xpe-post\modules\display\tests\test_gsdf_characterization.cpp(863): error: Expected equality of these values:
+  -1
+  xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out)
+    Which is: 0
+case 1
+
+D:\workspace-github\xpe-post\modules\display\tests\test_gsdf_characterization.cpp(863): error: Expected equality of these values:
+  -1
+  xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out)
+    Which is: 0
+case 2
+
+D:\workspace-github\xpe-post\modules\display\tests\test_gsdf_characterization.cpp(863): error: Expected equality of these values:
+  -1
+  xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out)
+    Which is: 0
+case 3
+
+D:\workspace-github\xpe-post\modules\display\tests\test_gsdf_characterization.cpp(863): error: Expected equality of these values:
+  -1
+  xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out)
+    Which is: 0
+case 4
+
+[  FAILED  ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d (0 ms)
+[----------] 1 test from GsdfCharacterization (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d
+
+ 1 FAILED TEST

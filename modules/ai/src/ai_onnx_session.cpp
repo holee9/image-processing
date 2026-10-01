@@ -46,6 +46,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <system_error>
 #include <algorithm>
 
 // Optional dependencies
@@ -106,7 +107,19 @@ namespace {
  * @brief Check if a file exists
  */
 bool FileExists(const std::string& path) {
-    return fs::exists(path) && fs::is_regular_file(path);
+    // QA-B-181 (QA-B-179, #233): converting the std::string to an fs::path uses the process ANSI code page and
+    // THROWS std::system_error for bytes it cannot convert, and the overloads without an error_code throw on
+    // stat failures too. A path that cannot name a file is simply "not found" here, so it takes the same
+    // kInvalidModelPath route as a missing file (the caller reports XPE_ERR_IO_FAILED either way). Only
+    // system_error (which includes filesystem_error) is turned into false: bad_alloc is not "not found" and
+    // still propagates to the exported function's guard.
+    try {
+        const fs::path p(path);
+        std::error_code ec;
+        return fs::exists(p, ec) && fs::is_regular_file(p, ec);
+    } catch (const std::system_error&) {
+        return false;
+    }
 }
 
 /**

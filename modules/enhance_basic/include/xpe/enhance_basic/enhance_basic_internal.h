@@ -5,7 +5,9 @@
 
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
+#include <algorithm>
 #include <cstdint>
+#include <new>
 
 /* Validate that img is non-null, format==FLOAT32, and data is non-null. */
 /**
@@ -42,12 +44,65 @@ inline XpeErrorCode validate_float32_image(const XpeImageBuffer* img) {
     // descriptor rather than of the pixel type -- an empty UINT16 image is
     // reported as empty, not as the wrong format.
     if (img->width == 0 || img->height == 0) return XPE_ERR_INVALID_INPUT;
+    // QA-B-181: the module indexes with int. A dimension above INT32_MAX became NEGATIVE in
+    // `static_cast<int>(img->width)`, and the size computed from it was a huge size_t, so the allocation threw
+    // (QA-B-179 measured width = 0x80000000 in xpe_edge_enhance and the bilateral xpe_noise_reduce).
+    if (img->width > 0x7FFFFFFFu || img->height > 0x7FFFFFFFu) return XPE_ERR_INVALID_INPUT;
     if (img->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
     // api-spec "XpeImageBuffer.dataSize on input" (#123). Every enhance_basic
     // entry point routes through here, so the module keeps one definition of
     // the check rather than seven copies.
     if (!xpe_data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     return XPE_OK;
+}
+
+/**
+ * @brief The outermost guard of an exported function (QA-B-181, QA-B-179, #233).
+ *
+ * No exception may leave an `extern "C"` function. Run the body through this: std::bad_alloc becomes
+ * XPE_ERR_OUT_OF_MEMORY and anything else XPE_ERR_PROCESSING_FAILED. noexcept is safe only because of the
+ * catch-all, and the handlers allocate nothing. The body must be an `extern "C++"` function (not one declared
+ * inside the extern "C" block: that gets C linkage and the "never throws" treatment, which lets the compiler
+ * drop the catch and leaves a lock_guard in the body locked -- measured, modules/ai/src/ai.cpp). Header-inline so
+ * that the test executable can exercise it directly.
+ */
+template <class F>
+inline XpeErrorCode xpe_guarded_call(F&& body) noexcept {
+    try {
+        return body();
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+/**
+ * @brief ceil(size / parts) for size >= 1 and parts >= 1, without overflow (QA-B-181b, Codex #35).
+ *
+ * The usual `(size + parts - 1) / parts` adds before it divides: for size near INT32_MAX the sum leaves int,
+ * which is undefined behaviour no exception guard can catch. Divide first, then round up by the remainder.
+ */
+static inline int xpe_ceil_div(int size, int parts) {
+    return size / parts + (size % parts != 0 ? 1 : 0);
+}
+
+/**
+ * @brief Bounds [start, end) of tile @p t on an axis of length @p size, clamped to the axis (QA-B-181c).
+ *
+ * The product t * tile_size is taken in 64 bits (it can pass INT32_MAX for the trailing tiles of a very wide
+ * image). A tile that starts at or past the edge comes out EMPTY (start == end == size); callers must not read
+ * a pixel for it.
+ */
+static inline void xpe_tile_bounds(int t, int tile_size, int size, int& start, int& end) {
+    const int64_t s = static_cast<int64_t>(t) * tile_size;
+    start = static_cast<int>((std::min<int64_t>)(s, size));
+    end = static_cast<int>((std::min<int64_t>)(s + tile_size, size));
+}
+
+/** The tile holding position @p pos (0 <= pos < size) when the axis is cut into @p tiles tiles of @p tile_size. */
+static inline int xpe_tile_of(int pos, int tile_size, int tiles) {
+    return (std::min)(pos / tile_size, tiles - 1);
 }
 
 inline float* float_pixels(XpeImageBuffer* img) {

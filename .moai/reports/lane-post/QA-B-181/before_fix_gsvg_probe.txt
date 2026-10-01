@@ -1,0 +1,14 @@
+=== gsvg_control_small
+  5x  exit=0x0 | returned 0
+=== gsvg_grid_suppression_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== gsvg_masked_grid_suppression_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== gsvg_ex_grid_suppression_huge_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::length_error what=vector too long
+=== gsvg_grid_suppression_1e9_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::bad_alloc what=bad allocation
+=== gsvg_masked_1e9_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::bad_alloc what=bad allocation
+=== gsvg_ex_1e9_declared
+  5x  exit=0x0 | ESCAPED std::exception type=class std::bad_alloc what=bad allocation

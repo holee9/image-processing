@@ -1,0 +1,57 @@
+Note: Google Test filter = GuardFixture*:AiExceptionGuard*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from GuardFixture
+[ RUN      ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[2026-10-02 01:18:48.514] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+[2026-10-02 01:18:48.515] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+[2026-10-02 01:18:48.515] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+[2026-10-02 01:18:48.515] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[2026-10-02 01:18:48.515] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+[2026-10-02 01:18:48.515] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+[2026-10-02 01:18:48.515] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+[2026-10-02 01:18:48.515] [error] Model file not found: C:/xpe_exception_guard_probe/bone_suppress.onnx
+[2026-10-02 01:18:48.515] [error] bone_suppress: no model at C:/xpe_exception_guard_probe/bone_suppress.onnx
+[2026-10-02 01:18:48.515] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] GuardFixture.TheModuleStaysUsableAfterAFailedCall (0 ms)
+[----------] 4 tests from GuardFixture (1 ms total)
+
+[----------] 2 tests from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+[2026-10-02 01:18:48.516] [info] xpe_ai initialized: model_dir=C:\xpe_probe_�(, ep=0, timeout=5000 ms
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_exception_guard.cpp(199): error: Expected equality of these values:
+  -9
+  rc
+    Which is: -3
+an unusable path is reported like a missing model
+
+[2026-10-02 01:18:48.516] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException (0 ms)
+[ RUN      ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_exception_guard.cpp(217): error: Value of: threw
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_exception_guard.cpp(218): error: Expected equality of these values:
+  xpe::ai::OnnxErrorCode::kInvalidModelPath
+    Which is: 4-byte object <01-00 00-00>
+  code
+    Which is: 4-byte object <00-00 00-00>
+
+[  FAILED  ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath (0 ms)
+[----------] 2 tests from AiExceptionGuard (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (1 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+[  FAILED  ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+
+ 2 FAILED TESTS

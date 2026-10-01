@@ -81,6 +81,12 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     if (!outParams)       return XPE_ERR_INVALID_INPUT;
     if (count < 2)        return XPE_ERR_INVALID_INPUT;
 
+    // QA-B-181d (Codex #48 census): every measurement must be finite. The monotone check below is false whenever a
+    // side is NaN, so NaN passed it and reached std::lround(NaN) -> int32 (undefined) at the end of the maths.
+    for (uint32_t i = 0; i < count; ++i) {
+        if (!std::isfinite(luminanceValues[i])) return XPE_ERR_INVALID_INPUT;
+    }
+
     // REQ-DISP-026 + REQ-DISP-029 (#155, QA-B-146): the array is the display's
     // characteristic curve, so it must be non-decreasing. Until QA-B-145 the
     // order carried no meaning -- only the minimum and maximum were read -- and

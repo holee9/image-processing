@@ -1,0 +1,29 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgExceptionGuard*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+[  FAILED  ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+[  FAILED  ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall
+[       OK ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound
+[       OK ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound (0 ms)
+[----------] 5 tests from GsvgExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint
+[  FAILED  ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint
+
+ 2 FAILED TESTS

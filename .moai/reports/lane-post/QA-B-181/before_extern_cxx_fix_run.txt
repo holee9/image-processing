@@ -1,0 +1,54 @@
+Note: Google Test filter = GuardFixture*:AiExceptionGuard*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from GuardFixture
+[ RUN      ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[2026-10-02 01:10:06.358] [info] xpe_ai initialized: model_dir=C:/xpe_exception_guard_probe, ep=0, timeout=5000 ms
+unknown file: error: C++ exception with description "bad allocation" thrown in the test body.
+
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in TearDown().
+
+[  FAILED  ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (1 ms)
+[ RUN      ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in SetUp().
+
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in TearDown().
+
+[  FAILED  ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in SetUp().
+
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in TearDown().
+
+[  FAILED  ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in SetUp().
+
+unknown file: error: C++ exception with description "resource deadlock would occur: resource deadlock would occur" thrown in TearDown().
+
+[  FAILED  ] GuardFixture.TheModuleStaysUsableAfterAFailedCall (0 ms)
+[----------] 4 tests from GuardFixture (1 ms total)
+
+[----------] 2 tests from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException (0 ms)
+[ RUN      ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+[2026-10-02 01:10:06.359] [error] Model file not found: C:\xpe_probe_�(\bone_suppress.onnx
+[       OK ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath (0 ms)
+[----------] 2 tests from AiExceptionGuard (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[  FAILED  ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+[  FAILED  ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[  FAILED  ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+[  FAILED  ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+
+ 5 FAILED TESTS

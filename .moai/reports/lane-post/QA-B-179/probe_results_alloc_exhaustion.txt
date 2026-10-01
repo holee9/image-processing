@@ -1,0 +1,10 @@
+# QA-B-179 probe results: allocation exhaustion. The process commit limit (job object) is set to current private bytes + 4 MB
+# after warm-up, the headroom is filled with malloc until it fails, then ONE call with a normal-sized valid input is made.
+# Main-thread stack is pre-committed first (otherwise ~50% of runs died with 0xC00000FD STATUS_STACK_OVERFLOW: a probe artifact).
+# 10 runs per scenario.
+=== alloc_ai_get_model_card
+  10x  exit=0x0 | ESCAPED std::exception type=(null) what=bad allocation ## post-call shutdown LOCK_STUCK(hung 5s)
+=== alloc_ea_init
+  10x  exit=0x0 | ESCAPED std::exception type=(null) what=bad allocation ## post-call init LOCK_RELEASED(returned)
+=== alloc_enh_clahe
+  10x  exit=0x0 | ESCAPED std::exception type=(null) what=bad allocation

@@ -1,0 +1,199 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomReaderTest.Scope_*:DicomReaderTest.J2kScope_*
+[==========] Running 17 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 17 tests from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[       OK ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads (5 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3021): error: Expected equality of these values:
+  -13
+  a.read
+    Which is: 0
+samples_per_pixel absent
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3021): error: Expected equality of these values:
+  -13
+  a.read
+    Which is: 0
+pixel_representation absent
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3021): error: Expected equality of these values:
+  -13
+  a.read
+    Which is: 0
+bits_allocated absent
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3028): error: Expected equality of these values:
+  -13
+  e.read
+    Which is: 0
+bits_allocated empty
+
+[  FAILED  ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed (47 ms)
+[ RUN      ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+[       OK ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame (6 ms)
+[ RUN      ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3061): error: Expected equality of these values:
+  -7
+  r.read
+    Which is: 0
+BitsAllocated=1
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3061): error: Expected equality of these values:
+  -7
+  r.read
+    Which is: 0
+BitsAllocated=12
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3061): error: Expected equality of these values:
+  -7
+  r.read
+    Which is: 0
+BitsAllocated=32
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3074): error: Expected equality of these values:
+  -7
+  ReadScope(p32).read
+    Which is: 0
+
+[  FAILED  ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData (48 ms)
+[ RUN      ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3095): error: Expected equality of these values:
+  c.ok ? 0 : -7
+    Which is: -7
+  r.read
+    Which is: 0
+BitsStored=12 HighBit=15
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3095): error: Expected equality of these values:
+  c.ok ? 0 : -7
+    Which is: -7
+  r.read
+    Which is: 0
+BitsStored=12 HighBit=12
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3095): error: Expected equality of these values:
+  c.ok ? 0 : -7
+    Which is: -7
+  r.read
+    Which is: 0
+BitsStored=16 HighBit=14
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3095): error: Expected equality of these values:
+  c.ok ? 0 : -7
+    Which is: -7
+  r.read
+    Which is: 0
+BitsStored=17 HighBit=16
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3095): error: Expected equality of these values:
+  c.ok ? 0 : -7
+    Which is: -7
+  r.read
+    Which is: 0
+BitsStored=0 HighBit=65535
+
+[  FAILED  ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord (56 ms)
+[ RUN      ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+[       OK ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit (5 ms)
+[ RUN      ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3240): error: Expected equality of these values:
+  16u
+    Which is: 16
+  r.bitsAllocated
+    Which is: 8
+a UINT16 buffer holds 16 allocated bits whatever the file allocated
+
+[  FAILED  ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit (12 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision
+[       OK ] DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision (18 ms)
+[ RUN      ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+two_components_tags_say_one
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+signed_codestream_tags_say_unsigned
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_12_tags_say_16
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_8_tags_say_16
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: 0
+precision_16_tags_say_12
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3289): error: Expected equality of these values:
+  c.want
+    Which is: -7
+  r.read
+    Which is: 0
+precision_20_beyond_the_16_bit_output
+
+[  FAILED  ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused (112 ms)
+[ RUN      ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3305): error: Expected equality of these values:
+  -7
+  read("tags_alloc_32", 1, 0, 32, 16, 15)
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3306): error: Expected equality of these values:
+  -7
+  read("tags_alloc_1", 1, 0, 1, 1, 0)
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3309): error: Expected equality of these values:
+  -13
+  read("tags_stored_above_alloc", 1, 0, 8, 16, 15)
+    Which is: 0
+
+[  FAILED  ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix (46 ms)
+[ RUN      ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+[       OK ] DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack (5 ms)
+[ RUN      ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+[       OK ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame (5 ms)
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (9 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[       OK ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (5 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (4 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (14 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (5 ms)
+[----------] 17 tests from DicomReaderTest (410 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 1 test suite ran. (440 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+[  FAILED  ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+[  FAILED  ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+[  FAILED  ] DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit
+[  FAILED  ] DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+[  FAILED  ] DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+
+ 6 FAILED TESTS

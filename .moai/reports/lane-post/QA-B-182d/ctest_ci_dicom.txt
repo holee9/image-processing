@@ -1,0 +1,4 @@
+207/218 Test #207: DicomNetworkTest.CancelCStore_TerminatesOperation ........................................***Skipped   0.57 sec
+100% tests passed, 0 tests failed out of 218
+Total Test time (real) =  33.35 sec
+	207 - DicomNetworkTest.CancelCStore_TerminatesOperation (Skipped)

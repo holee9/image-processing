@@ -1,0 +1,60 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard.*Ceil*:ExceptionGuard.ContrastEnhanceOutput*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax
+[       OK ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries
+[       OK ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour
+PINNED 101x67 tiles 8x8: 0x229DE8749741D30Dull
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(254): error: Expected equality of these values:
+  c.expected
+    Which is: 0
+  h
+    Which is: 2494405356084646669
+101x67 tiles 8x8
+
+PINNED 64x64 tiles 4x4: 0x8FBE1CD7F07C2A45ull
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(254): error: Expected equality of these values:
+  c.expected
+    Which is: 0
+  h
+    Which is: 10357747906776934981
+64x64 tiles 4x4
+
+PINNED 17x9 tiles 2x2: 0x8BEBE1B1FBE154F1ull
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(254): error: Expected equality of these values:
+  c.expected
+    Which is: 0
+  h
+    Which is: 10082400345350296817
+17x9 tiles 2x2
+
+PINNED 5x8 tiles 2x4: 0xD5831760FDB2011Full
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(254): error: Expected equality of these values:
+  c.expected
+    Which is: 0
+  h
+    Which is: 15385166457368346911
+5x8 tiles 2x4
+
+PINNED 3072x3072 tiles 8x8: 0x1EDF0E316336B714ull
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(254): error: Expected equality of these values:
+  c.expected
+    Which is: 0
+  h
+    Which is: 2224512346225030932
+3072x3072 tiles 8x8
+
+[  FAILED  ] ExceptionGuard.ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour (101 ms)
+[----------] 3 tests from ExceptionGuard (101 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (101 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.ContrastEnhanceOutputIsBitIdenticalToItsPreRewriteBehaviour
+
+ 1 FAILED TEST

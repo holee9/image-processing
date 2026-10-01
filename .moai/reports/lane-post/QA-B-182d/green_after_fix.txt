@@ -1,0 +1,18 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *J2kScope_HighBit*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne
+[2026-10-02 05:42:33.443] [warning] [DicomReader] dicom read refused: BitsStored 12 with HighBit 15 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 16)
+[2026-10-02 05:42:33.454] [warning] [DicomReader] dicom read refused: BitsStored 12 with HighBit 12 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 16)
+[2026-10-02 05:42:33.474] [warning] [DicomReader] dicom read refused: BitsStored 16 with HighBit 14 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 16)
+[2026-10-02 05:42:33.485] [warning] [DicomReader] dicom read refused: BitsStored 8 with HighBit 6 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 8)
+[2026-10-02 05:42:33.495] [warning] [DicomReader] dicom read refused: BitsStored 8 with HighBit 15 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 8)
+[2026-10-02 05:42:33.507] [warning] [DicomReader] dicom read refused: BitsStored 12 with HighBit 65535 for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated 16)
+[       OK ] DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne (133 ms)
+[----------] 1 test from DicomReaderTest (133 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (151 ms total)
+[  PASSED  ] 1 test.
