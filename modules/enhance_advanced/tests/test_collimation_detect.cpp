@@ -392,18 +392,23 @@ TEST_F(CollimationDetectTest, BenchmarkFreeze_BP07_CollimationDetectionBaseline)
     int32_t x1 = 0;
     int32_t y1 = 0;
 
-    auto start = std::chrono::steady_clock::now();
-    XpeErrorCode result = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start);
+    // Judged by the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-176,
+    // #179), not one wall-clock reading. Collimation detection only reads the image.
+    //
+    // WHERE 500 ms COMES FROM: SPEC-BENCH-POST REQ-BPOST-002 ("512x512 collimation < 500 ms"), frozen on
+    // 2026-04-22 (measured 10 ms then). The number equals the 3072x3072 product requirement (PERF-ADV-003,
+    // 500 ms scalar, reference hardware) applied unscaled to a much smaller image. REQ-BPOST-006 makes
+    // this test a CI gate. QA-B-176 changed HOW the time is judged, not the value.
+    const auto m = perf_budget::Measure("BP07_collimation_512", [] {}, [&] {
+        return xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
+    });
 
-    EXPECT_EQ(XPE_OK, result);
     EXPECT_NEAR(x0, 64, 10);
     EXPECT_NEAR(y0, 72, 10);
     EXPECT_NEAR(x1, 448, 10);
     EXPECT_NEAR(y1, 440, 10);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-07 collimation detection baseline exceeded.";
+    EXPECT_LT(m.medianUs, kMaxMs * 1000)
+        << "BP-07 collimation detection baseline exceeded: " << perf_budget::Describe(m);
     RecordProperty("BP", "BP-07");
     RecordProperty("baseline_ms_max", kMaxMs);
     RecordProperty("pixels", kWidth * kHeight);

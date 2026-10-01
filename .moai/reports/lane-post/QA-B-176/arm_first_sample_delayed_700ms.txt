@@ -1,0 +1,55 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from BenchmarkFreeze
+[ RUN      ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+PERFBUDGET BP06_gsvg_version_probe_1024 median=0 min=0 max=701774 us (runs=5)
+[       OK ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline (701 ms)
+[----------] 1 test from BenchmarkFreeze (701 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (702 ms total)
+[  PASSED  ] 1 test.
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline:ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from ExposureIndex
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+PERFBUDGET BP08_ei_calc_512 median=69 min=35 max=704338 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline (705 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+PERFBUDGET BP09_di_calc_512 median=33 min=24 max=715366 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline (716 ms)
+[----------] 2 tests from ExposureIndex (1421 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (1421 ms total)
+[  PASSED  ] 2 tests.
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline:IntegrationTest.T602_DiagnosticLogging
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CollimationDetectTest
+[ RUN      ] CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+[XPE][INFO ] xpe_init: library initialised
+[2026-10-01 23:29:42.004] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":6,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:42.718] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":7,"hough_time_ms":1,"total_time_ms":10,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:42.725] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":6,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:42.731] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":6,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:42.737] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":6,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:42.743] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":6,"confidence":1.00,"roi":[64,72,448,440]}
+PERFBUDGET BP07_collimation_512 median=6461 min=6160 max=713288 us (runs=5)
+[       OK ] CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline (746 ms)
+[----------] 1 test from CollimationDetectTest (746 ms total)
+
+[----------] 1 test from IntegrationTest
+[ RUN      ] IntegrationTest.T602_DiagnosticLogging
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] IntegrationTest.T602_DiagnosticLogging (7 ms)
+[----------] 1 test from IntegrationTest (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (753 ms total)
+[  PASSED  ] 2 tests.

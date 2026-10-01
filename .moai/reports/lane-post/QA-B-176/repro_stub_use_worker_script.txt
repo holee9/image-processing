@@ -1,0 +1,56 @@
+# QA-B-176 (leader fact check on GUI-C-184): what does xpe_bone_suppress return in a STUB build with
+# use_worker=true, depending on the model directory and on whether the worker exe sits beside the DLL?
+# Loads the ci-post xpe_ai.dll (stub build) by P/Invoke; changes nothing in the repository.
+param([string]$Bin = 'D:\workspace-github\xpe-post\build\ci-post\bin')
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Sequential)]
+public struct XpeImageBuffer {
+    public uint width, height, bitsAllocated, bitsStored;
+    public int format;
+    public IntPtr data;
+    public UIntPtr dataSize;
+}
+public static class K32 {
+    [DllImport("kernel32.dll", SetLastError=true)] public static extern bool SetDllDirectory(string p);
+}
+public static class Ai {
+    [DllImport("xpe_ai.dll", CallingConvention=CallingConvention.Cdecl)] public static extern int xpe_ai_init(string modelDir, string cfg);
+    [DllImport("xpe_ai.dll", CallingConvention=CallingConvention.Cdecl)] public static extern void xpe_ai_shutdown();
+    [DllImport("xpe_ai.dll", CallingConvention=CallingConvention.Cdecl)] public static extern int xpe_bone_suppress(ref XpeImageBuffer i, ref XpeImageBuffer o, string cfg);
+}
+'@
+
+function Invoke-Case([string]$label, [string]$modelDir, [string]$cfg) {
+    [Ai]::xpe_ai_shutdown()
+    $initRc = [Ai]::xpe_ai_init($modelDir, $cfg)
+    $n = 9
+    $inPx = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($n * 4); $outPx = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($n * 4)
+    for ($k = 0; $k -lt $n; $k++) { [System.Runtime.InteropServices.Marshal]::WriteInt32($inPx, $k * 4, [BitConverter]::ToInt32([BitConverter]::GetBytes([single]($k + 1)), 0)); [System.Runtime.InteropServices.Marshal]::WriteInt32($outPx, $k * 4, 0) }
+    $a = New-Object XpeImageBuffer; $a.width = 3; $a.height = 3; $a.bitsAllocated = 32; $a.bitsStored = 32; $a.format = 1; $a.data = $inPx; $a.dataSize = [UIntPtr][uint64]($n * 4)
+    $b = New-Object XpeImageBuffer; $b.width = 3; $b.height = 3; $b.bitsAllocated = 32; $b.bitsStored = 32; $b.format = 1; $b.data = $outPx; $b.dataSize = [UIntPtr][uint64]($n * 4)
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $rc = [Ai]::xpe_bone_suppress([ref]$a, [ref]$b, $null)
+    $sw.Stop()
+    $same = $true
+    for ($k = 0; $k -lt $n; $k++) { if ([System.Runtime.InteropServices.Marshal]::ReadInt32($outPx, $k * 4) -ne [System.Runtime.InteropServices.Marshal]::ReadInt32($inPx, $k * 4)) { $same = $false } }
+    [Ai]::xpe_ai_shutdown()
+    [System.Runtime.InteropServices.Marshal]::FreeHGlobal($inPx); [System.Runtime.InteropServices.Marshal]::FreeHGlobal($outPx)
+    '{0,-62} init={1,2}  bone_suppress rc={2,3}  {3,5} ms  output==input: {4}' -f $label, $initRc, $rc, $sw.ElapsedMilliseconds, $same
+}
+
+[K32]::SetDllDirectory($Bin) | Out-Null
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ('xpe_ai_repro_' + $PID)
+New-Item -ItemType Directory -Path $tmp | Out-Null
+$withModel = Join-Path $tmp 'models_present'; New-Item -ItemType Directory -Path $withModel | Out-Null
+New-Item -ItemType File -Path (Join-Path $withModel 'bone_suppress.onnx') | Out-Null     # empty file: a stub build never reads it
+$missing = Join-Path $tmp 'models_missing'                                                  # never created
+
+"xpe_ai.dll: $Bin\xpe_ai.dll  (ci-post STUB build);  worker exe beside it: $(Test-Path (Join-Path $Bin 'xpe_ai_worker.exe'))"
+Invoke-Case 'use_worker=true , model dir MISSING   (the GUI CI case)'   $missing   '{"use_worker": true}'
+Invoke-Case 'use_worker=true , model file PRESENT  (empty file)'          $withModel '{"use_worker": true}'
+Invoke-Case 'use_worker=false, model dir MISSING   (in-process)'          $missing   '{"use_worker": false}'
+Invoke-Case 'use_worker=false, model file PRESENT  (in-process)'          $withModel '{"use_worker": false}'
+Remove-Item -Recurse -Force $tmp

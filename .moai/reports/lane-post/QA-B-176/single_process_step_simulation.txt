@@ -1,0 +1,9 @@
+== gsvg_tests
+[==========] 162 tests from 33 test suites ran. (62897 ms total)
+[  PASSED  ] 162 tests.
+== xpe_enhance_basic_tests
+[==========] 105 tests from 14 test suites ran. (702 ms total)
+[  PASSED  ] 105 tests.
+== test_xpe_enhance_advanced
+[==========] 243 tests from 26 test suites ran. (8142 ms total)
+[  PASSED  ] 243 tests.
