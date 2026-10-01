@@ -10,7 +10,7 @@ CI log of main 0d16fca: 40 diagnostics, all modules/ai (`ci_doxygen_before.log`,
 |---|---|---:|
 | pure origin/main | doxygen Doxyfile (CI Doxyfile) | 41 = 38 ai + 3 env (doxygen-awesome files absent locally; CI fetches them) — `before_on_main_tree.txt` |
 | origin/main + my 3 headers | same | **0 ai**; only the same 3 env lines — `after_on_main_tree.txt` |
-| injection control: delete the `OnnxResult::message` comment | same | back to red: exactly 1 error, `ai_onnx_session.h:109 Member message ... not documented` — `local_injected_message_comment_removed.txt` |
+| injection control: delete the `OnnxResult::message` comment | same | back to red: 1 added AI error (CSS 3 and the old preprocess 8 excluded), `ai_onnx_session.h:109 Member message ... not documented` — `local_injected_message_comment_removed.txt` |
 
 The pure-main run reproduces CI (38 vs CI's 38 ai-shaped lines + 2 duplicates) so the tool really reads these files;
 the control shows the 0 is not "tool did not read the file".
@@ -34,3 +34,21 @@ Cache vs preset: post STUB=ON/ONNX=OFF, ai STUB=OFF/ONNX=ON — `g172-f-cache.tx
 ## Gaps / residual
 - CI itself not run on this commit (not pushed). The Doxygen result is local with the CI version and Doxyfile, minus the 3 css assets.
 - Stray xpe_ai_worker.exe left after run: 0.
+
+## Fixup after Codex audit #5 (separate commit, Refs #225)
+- med1: `ai_onnx_session.h` had no `@ingroup xpe_ai` (only ai_api.h:30, ai_worker_protocol.h:26) — added.
+  Proof is the *file table* of `group__xpe__ai.html` (rows of `file`), not a text search: the group's own
+  description names the three headers in prose, so a plain grep would have passed either way (it did, in my
+  first attempt — the control did not react, which is how that was found).
+  | run | file rows in the group page |
+  |---|---|
+  | control: `@ingroup` removed from ai_onnx_session.h | 2 (ai_api.h, ai_worker_protocol.h) — `control_group__xpe__ai.html` |
+  | fixed | **3** (ai_api.h, ai_onnx_session.h, ai_worker_protocol.h) — `group__xpe__ai.html` |
+  Doxygen errors after the fix: 0 AI (only the 3 css lines) — `after_on_main_tree.txt`. `group_file_rows.txt` has the counts.
+- med2: `IsValid()` no longer says "holds a loaded model": the stub sets is_valid=true with no model
+  (ai_onnx_session.cpp:258), so it is "session object in a valid state; true in a stub build too; does not promise
+  inference can run". `GetActualExecutionProvider()` "really running" replaced the same way: recorded EP after
+  fallback, bookkeeping in a stub build.
+- low: injection-control wording above corrected.
+- ci-ai after the fixup: cfg 0, build 0 (rebuilt: ai_onnx_session.cpp/ai.cpp recompiled), ctest 0 — executed 273, passed 273,
+  DISABLED 0 — `g172-g-ai-ctest.txt`; stray xpe_ai_worker.exe left: 0.

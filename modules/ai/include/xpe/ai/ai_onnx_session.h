@@ -11,6 +11,8 @@
  * Build modes:
  *   XPE_AI_STUB_BUILD=ON  -- Stub implementation (default)
  *   XPE_AI_USE_ONNXRUNTIME=ON -- Full ONNX Runtime integration
+ *
+ * @ingroup xpe_ai
  */
 
 #ifndef XPE_AI_ONNX_SESSION_H
@@ -169,7 +171,9 @@ public:
 
     /**
      * @brief Check if session is valid
-     * @return true when the session holds a loaded model (false after being moved from)
+     * @return true when the session object is in a valid state; false after being moved from.
+     *         It is true in a stub build too, where no model is loaded, so it does not
+     *         promise that inference can run (see IsStubBuild() and Run()).
      */
     bool IsValid() const;
 
@@ -178,7 +182,8 @@ public:
      *
      * May differ from requested if fallback occurred.
      *
-     * @return The EP the session is really running on
+     * @return The EP recorded for the session after any fallback. In a stub build
+     *         nothing runs, so this is bookkeeping, not evidence of a running provider.
      */
     ExecutionProvider GetActualExecutionProvider() const;
 
