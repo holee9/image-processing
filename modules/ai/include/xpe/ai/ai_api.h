@@ -461,8 +461,18 @@ XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable);
  *         called, or xpe_ai_shutdown since); the outputs are left untouched.
  * @return XPE_ERR_INVALID_INPUT if stateOut is NULL.
  *
- * Thread safety: Thread-safe and lock-free against running calls. Like every
- * function here it must not race xpe_ai_init / xpe_ai_shutdown.
+ * The state it reports is published as ONE snapshot (the flag and the count
+ * together) only when a call has finished everything it does, including ending
+ * the worker process and raising the alert. While the third failure is still in
+ * progress it therefore keeps reporting the previous completed call (active, 2),
+ * not DISABLED.
+ *
+ * Thread safety: Thread-safe and lock-free against running calls to
+ * xpe_bone_suppress and the other inference functions. It MUST NOT run
+ * concurrently with xpe_ai_init or xpe_ai_shutdown, which the module documents
+ * as not thread-safe (they free or create the state this reads): a call that
+ * races them is a use-after-free, not a stale answer. A client serialises it
+ * with its own init / shutdown / recover logic.
  * REQ-AI-002, REQ-AI-092.
  */
 XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,

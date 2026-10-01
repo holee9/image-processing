@@ -139,13 +139,23 @@ struct AiModuleState {
      * Consecutive failures of the worker path (QA-B-171C policy, user-approved 2026-10-01,
      * docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3). A success resets it to 0.
      */
-    std::atomic<uint32_t> workerConsecutiveFailures{0};
+    uint32_t workerConsecutiveFailures{0};
 
     /** Set at kWorkerFailureCeiling consecutive failures: the worker is off for the rest of the session. */
-    std::atomic<bool> workerDisabled{false};
-    // Both are written only with mtx held (inside a call) but READ without it by xpe_ai_worker_state:
-    // a call holds mtx for its whole time budget, and a status query that waited for it would freeze
-    // the client's UI thread for that long (QA-B-173).
+    bool workerDisabled{false};
+
+    /**
+     * What xpe_ai_worker_state reports: the two fields above as of the last COMPLETED call, packed in ONE
+     * word (bit 31 = disabled, bits 0..30 = consecutive failures) and stored only when a call is done
+     * with everything it does -- the count, the switch-off, ending the worker process and raising the
+     * alert (Codex audit #17). The two fields above are working state, written inside a call with mtx
+     * held and never read by a client. They are kept apart from this word for two reasons: a status query
+     * must not wait for mtx (a call holds it for its whole time budget on a silent worker, which would
+     * freeze the client's UI thread for that long), and a query that read them directly would see the
+     * third failure's switch-off while that call was still running and its worker still alive. One word
+     * also means a reader can never combine a count from one moment with a flag from another (QA-B-173).
+     */
+    std::atomic<uint32_t> workerPublished{0};
 
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
@@ -437,6 +447,16 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
  */
 static constexpr uint32_t kWorkerFailureCeiling = 3;
 
+/** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
+static constexpr uint32_t kWorkerPublishedDisabledBit = 0x80000000u;
+
+/** Publishes the working worker state as the one snapshot xpe_ai_worker_state reads. Caller holds mtx. */
+static void publishWorkerState(AiModuleState* state) {
+    const uint32_t word = (state->workerConsecutiveFailures & ~kWorkerPublishedDisabledBit) |
+                          (state->workerDisabled ? kWorkerPublishedDisabledBit : 0u);
+    state->workerPublished.store(word, std::memory_order_release);
+}
+
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
 static void pushAiProcessedAlert() {
     xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
@@ -513,18 +533,16 @@ XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
     XpeErrorCode ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
-    // Deliberately NO lock_guard on state->mtx: see AiModuleState::workerDisabled. The two fields are
-    // read disabled-first, then the count. The writer sets the count to the ceiling BEFORE it sets
-    // disabled, so a reader that sees disabled == false and a count at the ceiling has caught the
-    // switch-off half way: that is reported as DISABLED, never as "active, 3 of 3".
+    // Deliberately NO lock_guard on state->mtx: see AiModuleState::workerPublished. One load of one word:
+    // the count and the flag in it were stored together, so they always belong to the same completed call.
     const AiModuleState* state = g_aiState;
-    const bool disabled = state->workerDisabled.load(std::memory_order_acquire);
-    const uint32_t failures = state->workerConsecutiveFailures.load(std::memory_order_acquire);
+    const uint32_t word = state->workerPublished.load(std::memory_order_acquire);
+    const bool disabled = (word & kWorkerPublishedDisabledBit) != 0u;
+    const uint32_t failures = word & ~kWorkerPublishedDisabledBit;
 
     int32_t st = XPE_AI_WORKER_NOT_USED;
     if (state->useWorker) {
-        st = (disabled || failures >= kWorkerFailureCeiling) ? XPE_AI_WORKER_DISABLED
-                                                             : XPE_AI_WORKER_ACTIVE;
+        st = disabled ? XPE_AI_WORKER_DISABLED : XPE_AI_WORKER_ACTIVE;
     }
     *stateOut = st;
     if (consecutiveFailuresOut) *consecutiveFailuresOut = failures;
@@ -815,6 +833,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
         if (wrc == XPE_OK) {
             state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
+            publishWorkerState(state);   // after everything the call does: the snapshot is of a finished call
             return XPE_OK;
         }
         std::memmove(softTissueOut->data, img->data, bytes);
@@ -840,6 +859,9 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
                           static_cast<unsigned>(kWorkerFailureCeiling));
         }
         xpe_alert_push(msg, XPE_ALERT_WARNING);
+        // Published only now: the count, the switch-off, the end of the worker process and the alert are
+        // all done. A status query before this point still reports the previous completed call.
+        publishWorkerState(state);
         return wrc;
     }
 

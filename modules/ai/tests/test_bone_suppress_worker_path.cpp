@@ -44,6 +44,7 @@
 
 #include <thread>
 #include <atomic>
+#include <memory>
 #include <windows.h>
 #include <psapi.h>
 #include <tlhelp32.h>
@@ -751,38 +752,155 @@ TEST_F(WorkerPathFixture, ShutdownThenInitGivesAFreshWorkerState) {
     EXPECT_EQ(0u, w.failures);
 }
 
+/**
+ * A std::thread that joins in its destructor (this project builds as C++17, which has no std::jthread).
+ * A joinable std::thread destroyed by an ASSERT that returns early calls std::terminate and takes the
+ * whole test process, and every other test's result, down with it.
+ */
+class JoiningThread {
+public:
+    template <class F>
+    explicit JoiningThread(F&& f) : t_(std::forward<F>(f)) {}
+    JoiningThread(JoiningThread&&) noexcept = default;
+    JoiningThread(const JoiningThread&) = delete;
+    JoiningThread& operator=(const JoiningThread&) = delete;
+    ~JoiningThread() { if (t_.joinable()) t_.join(); }
+
+private:
+    std::thread t_;
+};
+
+/**
+ * Proof that a call is INSIDE the module holding its mutex, not merely started: a probe thread asks for a
+ * model card, which takes the same mutex. If the probe has not come back after 150 ms, the mutex is held
+ * by the call (a free mutex answers in microseconds). Probes that did come back are discarded; a probe
+ * that blocked stays blocked until the call ends and is joined with the other threads at scope exit.
+ * Returns true once the held mutex has been observed, false after 100 attempts.
+ */
+bool WaitUntilTheModuleIsHeld(std::vector<JoiningThread>& threads) {
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        auto done = std::make_shared<std::atomic<bool>>(false);
+        threads.emplace_back([done] {
+            char card[4096];
+            xpe_ai_get_model_card("bone_suppress_unet_v1", card, sizeof(card));
+            done->store(true);
+        });
+        for (int i = 0; i < 15 && !done->load(); ++i) Sleep(10);
+        if (!done->load()) return true;
+    }
+    return false;
+}
+
 // The property the GUI depends on: a status query returns promptly even while a call is stuck on a
 // silent worker (a call can hold the module for its whole time budget). A query that waited for the
 // call would freeze the UI thread for that long.
 //
-// WHY 250 ms (measured on the development machine, QA-B-173): the query took 0 ms in three runs (the
-// tick counter's resolution is about 16 ms, so "under 16 ms"), while the stuck call it did not wait for
-// lasted about 3 s (timeout_ms 3000). With the query taking the module mutex instead (arm B1) it
-// waited 2922 ms. The bound sits between the two, 15 times above the measured value and 12 times below
-// the failure mode. It is a machine-measured number, not a requirement: if a slow CI runner makes this
-// test flaky, widen it (anything well under timeout_ms still separates "did not wait" from "waited").
+// The call is proven to be INSIDE the module (WaitUntilTheModuleIsHeld) before the query, so the test
+// cannot pass vacuously by querying before the call has taken the mutex. Its threads are JoiningThread in
+// a vector declared after the state they use: they are joined at scope exit even if an ASSERT returns
+// early, where a joinable std::thread would call std::terminate and take the whole test process down.
+//
+// WHY 1000 ms (measured on the development machine, QA-B-173): the query took 0 ms in three runs (the
+// tick counter's resolution is about 16 ms, so "under 16 ms"). With the query taking the module mutex
+// instead (arm B1) it waited the stuck call's whole budget: 2922 ms of 3000 under the old 3000 ms
+// budget, 4985 ms of 5000 under this one (measured). That failure mode is 5 times the bound, and the
+// bound tolerates a CI machine a full second slower than this one. It is a machine-measured number, not
+// a requirement; if a slow runner still makes this test flaky, widen it -- anything well under
+// timeout_ms separates "did not wait" from "waited".
 TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker) {
     if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed before it is frozen: full build only";
-    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true, \"timeout_ms\": 3000}"));
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true, \"timeout_ms\": 5000}"));
     ASSERT_EQ(XPE_OK, CallOnce().rc);
     const auto workers = ChildWorkers();
     ASSERT_EQ(1u, workers.size());
     Freeze(workers[0]);
 
     std::atomic<bool> done{false};
-    std::thread caller([&] { CallOnce(); done = true; });
-    Sleep(300);   // the call is now waiting on the frozen worker
+    std::vector<JoiningThread> threads;
+    threads.emplace_back([&] { CallOnce(); done = true; });
+    ASSERT_TRUE(WaitUntilTheModuleIsHeld(threads)) << "the call never took the module mutex";
     ASSERT_FALSE(done.load()) << "the call finished early: the worker was not silent";
+
     const ULONGLONG t0 = GetTickCount64();
     const WState w = QueryState();
     const auto took = static_cast<unsigned long long>(GetTickCount64() - t0);
     std::printf("[measure] xpe_ai_worker_state while a call waits on a frozen worker: %llu ms\n", took);
     EXPECT_EQ(XPE_OK, w.rc);
     EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
-    EXPECT_LT(took, 250ull) << "the status query waited " << took << " ms for the stuck call";
+    EXPECT_LT(took, 1000ull) << "the status query waited " << took << " ms for the stuck call";
     EXPECT_FALSE(done.load()) << "the call was still stuck while the query returned";
-    caller.join();
+    threads.clear();   // joins: the call times out, fails, and its probe threads return
     EXPECT_EQ(1u, QueryState().failures) << "the stuck call's failure shows once it ends";
+}
+
+// Codex audit #17: "the state as of the last COMPLETED call" must hold through the call that changes it,
+// not just until the module starts changing it. The third failure stores its count, switches the worker
+// off, ends the worker process and raises its alert BEFORE it returns; a query that saw DISABLED / 3 in
+// the middle of that saw a call that had not finished and a worker that was still running. The state is
+// published as ONE snapshot after all of that.
+//
+// What is asserted is observable from outside and does not depend on when the calling thread gets
+// around to noting that the call returned: until the first DISABLED, every query shows exactly the
+// previous completed state (ACTIVE, 2); and at the moment a query FIRST shows DISABLED, the call's other
+// effects are already there -- its alert is queued and its worker process is gone. (A flag set after the
+// call returns would be wrong for this: the snapshot is correctly published a few microseconds before
+// that flag, as the last thing the call does.)
+//
+// Both builds: a model directory with no model fails every call deterministically, and a frozen worker
+// makes the third failure take its whole budget, so the poll runs for about a second against the real
+// code. Limit, stated honestly: the window the unmodified old code left open was tens of microseconds
+// (measured below), so the unmodified old code is only caught sometimes by the alert/worker check; the
+// reliable proof is the arm that widens that window (see the report).
+TEST_F(WorkerPathFixture, WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true, \"timeout_ms\": 1000}"));
+    CallOnce();   // failure 1
+    CallOnce();   // failure 2: a worker is up (it refused, it did not die)
+    ASSERT_EQ(2u, QueryState().failures);
+    const auto workers = ChildWorkers();
+    ASSERT_EQ(1u, workers.size());
+    Freeze(workers[0]);
+    xpe_clear_alerts();
+
+    std::vector<JoiningThread> threads;
+    threads.emplace_back([] { CallOnce(); });   // failure 3: stalls on the frozen worker, then switches off
+
+    unsigned long long active_seen = 0, wrong = 0;
+    std::string first_wrong;
+    bool saw_disabled = false;
+    const ULONGLONG give_up = GetTickCount64() + 15000;
+    while (!saw_disabled && GetTickCount64() < give_up) {
+        const WState w = QueryState();
+        if (w.state == XPE_AI_WORKER_ACTIVE) {
+            ++active_seen;
+            if (w.failures != 2u && wrong++ == 0) {
+                first_wrong = "ACTIVE with " + std::to_string(w.failures) + " failures";
+            }
+        } else if (w.state == XPE_AI_WORKER_DISABLED) {
+            saw_disabled = true;
+            // Checked in this order, cheapest first, immediately: by the time DISABLED is reported the
+            // call must have raised its alert and ended its worker.
+            const int alerts = CountAlerts("disabled");
+            const size_t live = ChildWorkers().size();
+            if (w.failures != 3u || alerts != 1 || live != 0u) {
+                ++wrong;
+                first_wrong = "DISABLED with " + std::to_string(w.failures) + " failures, " +
+                              std::to_string(alerts) + " disabled-alerts, " + std::to_string(live) +
+                              " live workers";
+            }
+        } else {
+            if (wrong++ == 0) first_wrong = "state " + std::to_string(w.state);
+        }
+        std::this_thread::yield();
+    }
+    threads.clear();   // joins
+    std::printf("[measure] state queries while the third failure was in progress: %llu showing ACTIVE, "
+                "wrong: %llu\n", active_seen, wrong);
+    EXPECT_TRUE(saw_disabled) << "the third failure never switched the worker off within the poll";
+    EXPECT_GT(active_seen, 100ull) << "the poll saw too little of the call to prove anything";
+    EXPECT_EQ(0ull, wrong) << "first wrong observation: " << first_wrong;
+    const WState after = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_DISABLED, after.state);
+    EXPECT_EQ(3u, after.failures);
 }
 
 // --- QA-B-173 (2): no scaling anywhere; the caller supplies the scale the model expects ----------------

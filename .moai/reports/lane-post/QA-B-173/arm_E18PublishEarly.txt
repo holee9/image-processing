@@ -1,0 +1,54 @@
+Note: Google Test filter = WorkerPathFixture.WorkerState*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+[       OK ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+[2026-10-01 22:02:07.521] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:02:07.521] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+[2026-10-01 22:02:07.527] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:02:07.527] [info] Creating ONNX session in STUB mode
+[2026-10-01 22:02:07.527] [error] bone_suppress: run failed: %s
+[2026-10-01 22:02:07.527] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff (4 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+[2026-10-01 22:02:07.531] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:02:07.578] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:02:07.578] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:02:07.579] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:02:07.895] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling (369 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(811): Skipped
+needs a worker that can succeed before it is frozen: full build only
+
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+[2026-10-01 22:02:07.906] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:02:07.937] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:02:07.937] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:02:09.183] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[measure] state queries while the third failure was in progress: 16082262 showing ACTIVE, wrong: 1
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(900): error: Expected equality of these values:
+  0ull
+    Which is: 0
+  wrong
+    Which is: 1
+first wrong observation: DISABLED with 3 failures, 0 disabled-alerts, 0 live workers
+
+[2026-10-01 22:02:09.497] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished (1596 ms)
+[----------] 6 tests from WorkerPathFixture (1987 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (1987 ms total)
+[  PASSED  ] 4 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+
+ 1 FAILED TEST
