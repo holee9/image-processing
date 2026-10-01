@@ -447,6 +447,20 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
  */
 static constexpr uint32_t kWorkerFailureCeiling = 3;
 
+#ifdef XPE_AI_TEST_HOOKS
+// TEST-ONLY (QA-B-173, Codex audit #19). Compiled only when modules/ai/CMakeLists.txt defines
+// XPE_AI_TEST_HOOKS, which it does only for a build that builds this module's tests; a shipped build
+// (BUILD_TESTS off) has neither this variable, nor the call in xpe_bone_suppress, nor the exported setter.
+// A test registers a callback that xpe_bone_suppress calls on the calling thread immediately after it has
+// locked the module mutex, so the test KNOWS a call is inside its critical section (and, with a frozen
+// worker, stuck there) rather than inferring it from timing.
+static std::atomic<void (*)(void)> g_testMutexHeldHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_mutex_held_hook(void (*hook)(void)) {
+    g_testMutexHeldHook.store(hook, std::memory_order_release);
+}
+#endif
+
 /** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
 static constexpr uint32_t kWorkerPublishedDisabledBit = 0x80000000u;
 
@@ -792,6 +806,9 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     }
 
     std::lock_guard<std::mutex> lock(state->mtx);
+#ifdef XPE_AI_TEST_HOOKS
+    if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
+#endif
 
     // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
     // opt-in worker path. A failure of any kind -- budget exceeded, a worker that died or went silent,

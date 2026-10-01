@@ -120,3 +120,46 @@ XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,                 /* �
 - `ci-post`: cfg 0, build 0, ctest 0, 헤더 **977 / 977** (skipped 25, DISABLED 1) — 두 번째 실행 (`g171c-r-post-ctest.txt`).
 - `ci-ai`: cfg 0, build 0, ctest 0, 헤더 **341 / 341** (skipped 5) (`g171c-r-ai-ctest.txt`).
 - 이전 976 / 340 → 각 +1 (세 번째 실패 중 조회 시험). Doxygen 비-CSS 오류 0 (`doxygen_after_audit17.txt`), 잔여 `xpe_ai_worker.exe` 0.
+
+---
+
+# Codex #19 — 탐침 추론의 비결정성 (9c12f29 위)
+
+## 지적
+
+`WaitUntilTheModuleIsHeld` 는 "탐침 스레드가 150 ms 동안 돌아오지 않았다" 로 뮤텍스 보유를 **추론**했다. 탐침 스레드가 아직 스케줄되지 않았거나 호출이 아직 `state->mtx` 를 잡기 전이어도 똑같이 보이므로, 뮤텍스를 잡는 조회(B1)가 1000 ms 안에 통과할 수 있다. 맞는 지적이다.
+
+## 수정: 추론 대신 신호
+
+시험 전용 훅. `xpe_bone_suppress` 가 `state->mtx` 를 잡은 **직후, 같은 스레드에서, 워커를 기다리기 전에** 시험이 등록한 콜백을 부른다. 시험은 이 신호를 받은 뒤에만 조회한다 — 호출이 잠금을 쥐었다는 사실이 순서로 보장된다(탐침 스레드와 150 ms 추정은 삭제).
+- 제품: `ai.cpp` 의 `g_testMutexHeldHook` 과 `xpe_ai_test_set_mutex_held_hook`(export), 호출 지점 한 줄. 전부 `#ifdef XPE_AI_TEST_HOOKS` 안.
+- 시험: `MutexHeldHook` RAII 가 훅을 설치하고, 조기 ASSERT 에서도 제거한다(스레드보다 먼저 선언해 스레드가 join 된 뒤 소멸). 훅이 없는 빌드에서는 `GTEST_SKIP`.
+- **red 증거(TDD):** 시험과 CMake 정의만 넣고 제품 훅이 없을 때 `LNK2019`(`xpe_ai_test_set_mutex_held_hook` 미해결, `before_audit19_link_red.txt`).
+- green: 조회 0 ms, 시험 통과 (`WorkerState*` 6 통과). **반증 B1**(조회가 뮤텍스를 잡음, `arm_B1LockedQuery_hook_test.txt`): 빨강 — 조회가 **5203 ms** 기다림(예산 5000 ms), 1000 ms 상한의 5배.
+
+## ★ 훅이 제품 빌드에 들어가는가 — 내 첫 조건이 틀렸고, 지금 상태를 그대로 적는다
+
+**첫 시도**는 "모듈의 시험 빌드(`_XPE_AI_BUILD_TESTS`)에서만 훅을 켠다" 였다. `BUILD_TESTS=OFF` 로 빌드한 DLL 을 `dumpbin /exports` 로 확인했더니 **훅이 export 되어 있었다.** 이유: 모듈의 시험 조건은 `BUILD_TESTING OR BUILD_TESTS` 이고 `BUILD_TESTING` 이 기본 ON 이다. 또한 `CMakePresets.json` 의 `default` 와 `release`(default 상속)를 포함한 **모든 프리셋이 `BUILD_TESTS=ON`** 이라, "시험 빌드면 켠다" 는 조건으로는 배포 빌드와 시험 빌드를 가를 수 없다. 저장소 안에는 배포용 `xpe_ai.dll` 을 빌드하는 파이프라인도 없다(`delivery-bundle.yml`·`New-ReleaseBundle.ps1` 에 CMake 호출이 없음).
+
+**그래서 명시 옵션으로 바꿨다:** `modules/ai/CMakeLists.txt` 의 `option(XPE_AI_TEST_HOOKS … ${_XPE_AI_BUILD_TESTS})`.
+- 기본: 모듈의 시험을 빌드하면 ON. **즉 지금 어떤 프리셋으로 빌드해도(`release` 포함) 이 DLL 에는 훅이 들어 있다.**
+- 배포 빌드는 **`-DXPE_AI_TEST_HOOKS=OFF`** 를 줘야 한다 (또는 `BUILD_TESTS=OFF` 와 `BUILD_TESTING=OFF` 둘 다).
+- 검증 (`dumpbin /exports`, 같은 이름의 export 목록을 증거로 보존):
+  - 기본(ci-ai DLL): `xpe_ai_test_set_mutex_held_hook` **있음** (`exports_default_hook_on_line.txt`).
+  - 시험 ON + `XPE_AI_TEST_HOOKS=OFF`: 훅 export **0건**, 제품 export 정상(11개), 훅 의존 시험은 링크 실패 없이 **SKIP** — "built without XPE_AI_TEST_HOOKS" (`exports_tests_on_hook_off.txt`, `hook_off_test_skips.txt`).
+  - 시험 없음(`BUILD_TESTS=OFF`, `BUILD_TESTING=OFF`): 훅 export **0건**, 제품 export 정상(11개) (`exports_no_tests_build.txt`).
+
+**리더 결정 요청:** `CMakePresets.json`(리더 소유)의 `release` 프리셋에 `"XPE_AI_TEST_HOOKS": "OFF"` 를 넣을지. 넣지 않으면 `release` 프리셋으로 만든 DLL 이 훅을 export 한다. 훅의 위험은 작지만(호출자가 임의 콜백을 등록할 수 있는 export 하나, 제품 경로에서는 `nullptr` 이면 호출 안 함) 배포물에 시험 전용 표면이 남는다. 나는 프리셋을 수정하지 않았다.
+
+## 이 변경의 Gaps
+
+- 훅이 제품 빌드에서 **자동으로** 꺼지는 것은 아니다(위). 꺼짐을 강제하는 자동 검사는 없다 — 예: 배포 빌드에서 `xpe_ai_test_*` export 가 없음을 단언하는 CI 단계는 이 카드 밖이다.
+- 훅은 `xpe_bone_suppress` 에만 있다. 다른 함수가 같은 뮤텍스를 잡는 순간의 신호는 필요 없어 만들지 않았다.
+- "호출이 뮤텍스를 쥐었다" 는 신호는 보장되지만, 호출이 **그 뒤에 워커 응답을 기다리고 있는 중**이라는 것은 워커를 얼린 구성(`Freeze`)과 `done == false` 단언으로 확인한 것이다 — 훅이 직접 보장하지는 않는다.
+- B1 반증은 전체 빌드(`ci-ai`)에서만 돌린다(스텁 빌드는 이 시험이 건너뜀).
+
+## 전체 스위트 (최종 트리)
+
+- `ci-post`: cfg 0, build 0, ctest 0, 헤더 **977 / 977** (skipped 25, DISABLED 1) (`g171c-s-post-ctest.txt`).
+- `ci-ai`: cfg 0, build 0, ctest 0, 헤더 **341 / 341** (skipped 5) (`g171c-s-ai-ctest.txt`).
+- 시험 수는 9c12f29 와 같다(시험 하나를 고쳤고 늘리지 않음). 잔여 `xpe_ai_worker.exe` 0.

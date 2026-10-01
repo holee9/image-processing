@@ -770,35 +770,55 @@ private:
     std::thread t_;
 };
 
-/**
- * Proof that a call is INSIDE the module holding its mutex, not merely started: a probe thread asks for a
- * model card, which takes the same mutex. If the probe has not come back after 150 ms, the mutex is held
- * by the call (a free mutex answers in microseconds). Probes that did come back are discarded; a probe
- * that blocked stays blocked until the call ends and is joined with the other threads at scope exit.
- * Returns true once the held mutex has been observed, false after 100 attempts.
- */
-bool WaitUntilTheModuleIsHeld(std::vector<JoiningThread>& threads) {
-    for (int attempt = 0; attempt < 100; ++attempt) {
-        auto done = std::make_shared<std::atomic<bool>>(false);
-        threads.emplace_back([done] {
-            char card[4096];
-            xpe_ai_get_model_card("bone_suppress_unet_v1", card, sizeof(card));
-            done->store(true);
-        });
-        for (int i = 0; i < 15 && !done->load(); ++i) Sleep(10);
-        if (!done->load()) return true;
-    }
-    return false;
+#ifdef XPE_AI_TEST_HOOKS
+// Test-only hook of xpe_ai.dll (compiled only when XPE_AI_TEST_HOOKS is defined, see ai.cpp and
+// modules/ai/CMakeLists.txt): the module calls it on the calling thread right after xpe_bone_suppress has
+// locked the module mutex. Not declared in any public header on purpose.
+extern "C" __declspec(dllimport) void xpe_ai_test_set_mutex_held_hook(void (*hook)(void));
+
+namespace {
+HANDLE g_mutexHeldEvent = nullptr;
+void OnMutexHeld() {
+    if (g_mutexHeldEvent) SetEvent(g_mutexHeldEvent);
 }
+
+/** Installs the hook for its lifetime; removes it again (also when an ASSERT returns early). */
+class MutexHeldHook {
+public:
+    MutexHeldHook() {
+        g_mutexHeldEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        xpe_ai_test_set_mutex_held_hook(&OnMutexHeld);
+    }
+    ~MutexHeldHook() {
+        xpe_ai_test_set_mutex_held_hook(nullptr);
+        HANDLE h = g_mutexHeldEvent;
+        g_mutexHeldEvent = nullptr;
+        if (h) CloseHandle(h);
+    }
+    MutexHeldHook(const MutexHeldHook&) = delete;
+    MutexHeldHook& operator=(const MutexHeldHook&) = delete;
+    bool WaitUntilHeld(DWORD ms) const {
+        return g_mutexHeldEvent && WaitForSingleObject(g_mutexHeldEvent, ms) == WAIT_OBJECT_0;
+    }
+};
+}  // namespace
+#endif
 
 // The property the GUI depends on: a status query returns promptly even while a call is stuck on a
 // silent worker (a call can hold the module for its whole time budget). A query that waited for the
 // call would freeze the UI thread for that long.
 //
-// The call is proven to be INSIDE the module (WaitUntilTheModuleIsHeld) before the query, so the test
-// cannot pass vacuously by querying before the call has taken the mutex. Its threads are JoiningThread in
-// a vector declared after the state they use: they are joined at scope exit even if an ASSERT returns
-// early, where a joinable std::thread would call std::terminate and take the whole test process down.
+// The call is proven to HOLD the module mutex before the query, by a test-only hook (below) that the
+// product calls on the calling thread immediately after it has locked the mutex and before it waits on
+// the worker. That is a signal, not an inference: an earlier version inferred "held" from a probe thread
+// that had not come back after 150 ms, which looks identical when the probe was merely not scheduled yet
+// or the call had not reached its lock yet, so a query that DID take the mutex could still pass inside
+// the bound (Codex audit #19). The hook exists only in a build with XPE_AI_TEST_HOOKS, which
+// modules/ai/CMakeLists.txt defines when the module's tests are built; a build without tests (the
+// shipped one) contains neither the hook call nor the exported setter, and this test then skips.
+//
+// Its thread is a JoiningThread, joined at scope exit even if an ASSERT returns early, where a joinable
+// std::thread would call std::terminate and take the whole test process down.
 //
 // WHY 1000 ms (measured on the development machine, QA-B-173): the query took 0 ms in three runs (the
 // tick counter's resolution is about 16 ms, so "under 16 ms"). With the query taking the module mutex
@@ -808,6 +828,9 @@ bool WaitUntilTheModuleIsHeld(std::vector<JoiningThread>& threads) {
 // a requirement; if a slow runner still makes this test flaky, widen it -- anything well under
 // timeout_ms separates "did not wait" from "waited".
 TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker) {
+#ifndef XPE_AI_TEST_HOOKS
+    GTEST_SKIP() << "built without XPE_AI_TEST_HOOKS: no way to know the call holds the mutex";
+#else
     if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed before it is frozen: full build only";
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true, \"timeout_ms\": 5000}"));
     ASSERT_EQ(XPE_OK, CallOnce().rc);
@@ -815,10 +838,11 @@ TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWo
     ASSERT_EQ(1u, workers.size());
     Freeze(workers[0]);
 
+    MutexHeldHook hook;   // declared before the thread: destroyed after it has been joined
     std::atomic<bool> done{false};
     std::vector<JoiningThread> threads;
     threads.emplace_back([&] { CallOnce(); done = true; });
-    ASSERT_TRUE(WaitUntilTheModuleIsHeld(threads)) << "the call never took the module mutex";
+    ASSERT_TRUE(hook.WaitUntilHeld(5000)) << "the call never reported holding the module mutex";
     ASSERT_FALSE(done.load()) << "the call finished early: the worker was not silent";
 
     const ULONGLONG t0 = GetTickCount64();
@@ -829,8 +853,9 @@ TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWo
     EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
     EXPECT_LT(took, 1000ull) << "the status query waited " << took << " ms for the stuck call";
     EXPECT_FALSE(done.load()) << "the call was still stuck while the query returned";
-    threads.clear();   // joins: the call times out, fails, and its probe threads return
+    threads.clear();   // joins: the call times out and fails
     EXPECT_EQ(1u, QueryState().failures) << "the stuck call's failure shows once it ends";
+#endif
 }
 
 // Codex audit #17: "the state as of the last COMPLETED call" must hold through the call that changes it,
