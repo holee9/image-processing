@@ -830,7 +830,10 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *
  * Returns a cache-owned view of the map: XPE_PIXEL_FLOAT32, 32 bits, dataSize = width * height * 4.
  *
- * - Cache key: @p filePath compared as a string, exactly.
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:
@@ -868,7 +871,10 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  * Returns a cache-owned view of the scalar gain map: XPE_PIXEL_FLOAT32, 32 bits,
  * dataSize = width * height * 4.
  *
- * - Cache key: @p filePath compared as a string, exactly.
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:
@@ -911,7 +917,10 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *
  * Returns a cache-owned view of the map: XPE_PIXEL_UINT8, 8 bits, dataSize = width * height.
  *
- * - Cache key: @p filePath compared as a string, exactly.
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:

@@ -86,8 +86,13 @@ int64_t now_epoch_ms() noexcept
  * What the plain loader and the file record next to the pixels. Kept in the entry so that a hit
  * can put the global store back exactly as the loader did and judge the file as the read would.
  * timestamp / sessionId are zero for a defect map; configJson is kept for gain only.
+ * `kind` records the map kind the plain loader validated (QA-A-197): the key is the path alone, and a
+ * file holds one kind of map, so a hit from a loader of another kind must be refused as a miss would.
  */
+enum class MapKind { None, Offset, Gain, Defect };
+
 struct EntryMeta {
+    MapKind     kind{MapKind::None};  ///< which cached loader published it = which XCal type was validated
     int64_t     timestamp{0};
     char        sessionId[64]{};
     int64_t     expiryMs{0};   ///< file's expiry_epoch_ms, 0 = never expires
@@ -156,10 +161,11 @@ public:
      * QA-A-196 (#216): a hit must reach the verdict a miss would. `now` is the file's current
      * size and write time: when it differs from the entry's (or either could not be read), the entry
      * is dropped and the result is Miss, so the caller reloads the file. When the entry's expiry has
-     * passed, the entry is dropped and the result is Expired.
+     * passed, the entry is dropped and the result is Expired. When the entry holds a map of another
+     * kind than `kind` (QA-A-197), the result is Miss and the entry stays.
      */
     template <typename T>
-    XpeErrorCode get_copy(const std::string& path, const FileStamp& now, int64_t nowMs,
+    XpeErrorCode get_copy(const std::string& path, MapKind kind, const FileStamp& now, int64_t nowMs,
                           XpeImageBuffer* view, std::unique_ptr<T[]>* pixels, EntryMeta* meta,
                           HitState* state) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -171,6 +177,10 @@ public:
             erase_locked(it);
             return XPE_OK;
         }
+        // Another kind of loader asked for a path whose entry holds a different kind of map: the plain
+        // loader of the asking kind would refuse that file (wrong XCal type), so this is a miss for it.
+        // The entry is left alone -- its own loader still hits it.
+        if (it->second->meta.kind != kind) return XPE_OK;
         if (it->second->meta.expiryMs != 0 && nowMs > it->second->meta.expiryMs) {
             erase_locked(it);
             *state = HitState::Expired;
@@ -445,7 +455,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
         std::unique_ptr<float[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), stamp, now_epoch_ms(),
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), MapKind::Offset, stamp, now_epoch_ms(),
                                                            &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
@@ -465,6 +475,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
     EntryMeta meta;
+    meta.kind = MapKind::Offset;
     meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
@@ -503,7 +514,7 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
         std::unique_ptr<float[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), stamp, now_epoch_ms(),
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), MapKind::Gain, stamp, now_epoch_ms(),
                                                            &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
@@ -525,6 +536,7 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
     EntryMeta meta;
+    meta.kind = MapKind::Gain;
     meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
@@ -578,7 +590,7 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
         std::unique_ptr<uint8_t[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), stamp, now_epoch_ms(),
+        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), MapKind::Defect, stamp, now_epoch_ms(),
                                                            &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
@@ -598,6 +610,7 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
     EntryMeta meta;
+    meta.kind = MapKind::Defect;
     meta.stamp = stamp;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);

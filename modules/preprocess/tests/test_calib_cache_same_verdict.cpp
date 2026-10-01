@@ -113,7 +113,7 @@ XpeErrorCode defectCorrect(float* spikePixel) {
 }
 
 const char* kFiles[] = {"csv_oe.xcal", "csv_ge.xcal", "csv_de.xcal", "csv_oq.xcal", "csv_gq.xcal",
-                        "csv_dq.xcal", "csv_a.xcal", "csv_poly.xcal"};
+                        "csv_dq.xcal", "csv_a.xcal", "csv_poly.xcal", "csv_x.xcal"};
 
 class CacheSameVerdict : public ::testing::Test {
 protected:
@@ -327,4 +327,135 @@ TEST_F(CacheSameVerdict, AGainPolynomialFileLoadsAndTheCachedLoaderReportsSucces
         float px = 0.0f;
         EXPECT_EQ(XPE_OK, gainCorrect(&px)) << "the polynomial is in the store, so the correction works (call " << call << ")";
     }
+}
+
+// (7) a map cached by one loader is not served to another --------------------------------------
+// The cache key is the path string only. A file holds one kind of map, and the plain loader of
+// another kind refuses it (wrong XCal type). A hit used to look at the byte count only, so a float
+// offset map cached through xpe_calib_load_offset_cached went into the gain store when the same path
+// was passed to xpe_calib_load_gain_cached -- past the type check and past the [0.1, 10.0] gain range.
+namespace {
+enum Kind { OFFSET = 0, GAIN = 1, DEFECT = 2 };
+const char* kindName[] = {"offset", "gain", "defect"};
+using Cached = XpeErrorCode (*)(const char*, XpeImageBuffer*);
+using Plain = XpeErrorCode (*)(const char*);
+const Cached kCached[] = {xpe_calib_load_offset_cached, xpe_calib_load_gain_cached, xpe_calib_load_defect_cached};
+const Plain kPlain[] = {xpe_calib_load_offset, xpe_calib_load_gain, xpe_calib_load_defect_map};
+void writeKind(Kind k, const char* path) {
+    // Offset 100 and gain 2 on purpose: 100 is outside the gain range [0.1, 10.0].
+    if (k == OFFSET) writeOffset(path, 100.0f);
+    else if (k == GAIN) writeGain(path, 2.0f);
+    else writeDefect(path, true);
+}
+}  // namespace
+
+TEST_F(CacheSameVerdict, AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss) {
+    for (Kind owner : {OFFSET, GAIN, DEFECT}) {
+        for (Kind other : {OFFSET, GAIN, DEFECT}) {
+            if (owner == other) continue;
+            SCOPED_TRACE(std::string("cached by ") + kindName[owner] + ", asked by " + kindName[other]);
+            xpe_calib_cache_clear();
+            writeKind(owner, "csv_x.xcal");
+            writeOffset("csv_oq.xcal", 300.0f);
+            writeGain("csv_gq.xcal", 4.0f);
+            writeDefect("csv_dq.xcal", false);
+
+            XpeImageBuffer first{};
+            ASSERT_EQ(XPE_OK, kCached[owner]("csv_x.xcal", &first));
+
+            // Control: the plain loader of the other kind refuses this file; its code is the miss verdict.
+            const XpeErrorCode missVerdict = kPlain[other]("csv_x.xcal");
+            ASSERT_NE(XPE_OK, missVerdict) << "control: the file is the wrong kind for this loader";
+
+            // The store holds the Q maps, so "not installed" is observable.
+            ASSERT_EQ(XPE_OK, xpe_calib_load_offset("csv_oq.xcal"));
+            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_gq.xcal"));
+            ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("csv_dq.xcal"));
+
+            XpeImageBuffer wrong{};
+            EXPECT_EQ(missVerdict, kCached[other]("csv_x.xcal", &wrong));
+
+            uint16_t o = 0; float g = 0.0f, d = 0.0f;
+            ASSERT_EQ(XPE_OK, offsetCorrect(&o));
+            ASSERT_EQ(XPE_OK, gainCorrect(&g));
+            ASSERT_EQ(XPE_OK, defectCorrect(&d));
+            EXPECT_EQ(700, o) << "the refused call must leave the offset Q map in the store";
+            EXPECT_NEAR(250.0f, g, 0.01f) << "the refused call must leave the gain Q map in the store";
+            EXPECT_NEAR(5000.0f, d, 0.01f) << "the refused call must leave the defect Q map in the store";
+
+            // The refusal does not evict the entry: its own loader still gets a hit.
+            XpeImageBuffer again{};
+            ASSERT_EQ(XPE_OK, kCached[owner]("csv_x.xcal", &again));
+            EXPECT_EQ(first.data, again.data) << "the owner's entry must survive the refused call";
+        }
+    }
+}
+
+// (8) other checks the miss path makes, reproduced on a hit ---------------------------------------
+// These three pass on arrival: they pin the table in QA-A-197's verdict (every check the plain loader
+// makes, and how a hit reproduces it) so a later change cannot drop a row without a test turning red.
+TEST_F(CacheSameVerdict, AFileDeletedAfterCachingIsRefusedLikeAMiss) {
+    writeOffset("csv_oe.xcal", 100.0f);
+    writeOffset("csv_oq.xcal", 300.0f);
+    XpeImageBuffer v{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_oe.xcal", &v));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("csv_oq.xcal"));
+    ASSERT_EQ(0, std::remove("csv_oe.xcal"));
+
+    const XpeErrorCode miss = xpe_calib_load_offset("csv_oe.xcal");
+    ASSERT_EQ(XPE_ERR_IO_FAILED, miss) << "control: the plain loader cannot open a deleted file";
+    XpeImageBuffer hit{};
+    EXPECT_EQ(miss, xpe_calib_load_offset_cached("csv_oe.xcal", &hit));
+    uint16_t o = 0;
+    ASSERT_EQ(XPE_OK, offsetCorrect(&o));
+    EXPECT_EQ(700, o) << "the refused call must leave the Q map in the store";
+}
+
+TEST_F(CacheSameVerdict, AHeaderCorruptedAfterCachingIsRefusedLikeAMiss) {
+    writeGain("csv_ge.xcal", 2.0f);
+    writeGain("csv_gq.xcal", 4.0f);
+    XpeImageBuffer v{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_ge.xcal", &v));
+    std::this_thread::sleep_for(std::chrono::milliseconds(80));
+    {
+        std::fstream f("csv_ge.xcal", std::ios::in | std::ios::out | std::ios::binary);
+        char c = 0;
+        f.read(&c, 1);
+        c = static_cast<char>(c ^ 0x5A);   // the first byte of the magic
+        f.seekp(0);
+        f.write(&c, 1);
+    }
+    const XpeErrorCode miss = xpe_calib_load_gain("csv_ge.xcal");
+    ASSERT_NE(XPE_OK, miss) << "control: a broken magic is refused by the plain loader";
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_gq.xcal"));
+    XpeImageBuffer hit{};
+    EXPECT_EQ(miss, xpe_calib_load_gain_cached("csv_ge.xcal", &hit));
+    float g = 0.0f;
+    ASSERT_EQ(XPE_OK, gainCorrect(&g));
+    EXPECT_NEAR(250.0f, g, 0.01f) << "the refused call must leave the Q map in the store";
+}
+
+// What this pins: a scalar hit takes over from a polynomial in the store. It does NOT pin that the
+// hit also clears the polynomial fields (as install_gain does, mirroring the plain loader):
+// xpe_gain_correct() uses the scalar map whenever there is one, so a stale polynomial cannot be seen
+// through the public API (QA-A-197 arm B4b: removing those two lines leaves every test green).
+TEST_F(CacheSameVerdict, AScalarGainHitTakesOverFromAPolynomialInTheStore) {
+    std::vector<float> coeffs(N * 2);
+    for (size_t p = 0; p < N; ++p) { coeffs[p * 2] = 1.0f; coeffs[p * 2 + 1] = 0.0f; }
+    writeFile("csv_poly.xcal", XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float));
+    writeGain("csv_ge.xcal", 2.0f);
+
+    XpeImageBuffer v{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_ge.xcal", &v));      // cached scalar map (gain 2)
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_poly.xcal"));               // the store now holds the polynomial
+    float poly = 0.0f;
+    ASSERT_EQ(XPE_OK, gainCorrect(&poly));
+    ASSERT_NE(500.0f, poly) << "control: with the polynomial in the store the result is not the scalar map's";
+
+    XpeImageBuffer hit{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_ge.xcal", &hit));
+    ASSERT_EQ(v.data, hit.data) << "precondition: this was a cache hit";
+    float g = 0.0f;
+    ASSERT_EQ(XPE_OK, gainCorrect(&g));
+    EXPECT_NEAR(500.0f, g, 0.01f) << "a scalar hit must put its map in the store, as a scalar load does (1000 / 2)";
 }

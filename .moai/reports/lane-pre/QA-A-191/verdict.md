@@ -3,6 +3,8 @@
 > **갱신 (QA-A-193, 2026-10-01).** 사용자가 아래 ⚠1·⚠2 를 "고친 뒤 요구 작성"으로 결정했고 QA-A-193 이 두 가지를 고쳤다. REQ-P1A-102~104 의 문안은 **고친 동작**에 맞게 아래에서 다시 썼다. 처음 초안(고치기 전)에 있던 ⚠1·⚠2 줄은 지웠고, 그 내용은 "해결 내역"에 남겼다. REQ-P1A-105·106 은 바뀌지 않았다. 줄 번호는 QA-A-193 이후의 `calibration_cache.cpp`·`preprocess.cpp` 기준이다.
 >
 > **재갱신 (QA-A-196, 2026-10-01).** QA-A-195 의 실측(캐시 적중이 만료되었거나 변조된 파일의 맵을 올린다)에 대해 리더가 "적중은 미스와 같은 판정을 내야 한다"를 결정했고 QA-A-196 이 구현했다. REQ-P1A-102~104 의 문안은 다시 썼다: 적중마다 만료를 재검사하고, 파일 크기·수정 시각이 달라지면 적중을 취소해 미스 경로로 재적재하며, 게인 품질 메타데이터를 적중에서도 같게 적용하고, 게인 다항식 파일은 성공을 돌려준다. 같은 크기·같은 수정 시각으로 바뀐 파일은 감지하지 못하는 한계를 문안에 적었다. 줄 번호는 QA-A-196 이후 기준이다.
+>
+> **QA-A-197 보강.** Codex #18 이 찾은 교차 로더 결함(같은 경로를 다른 종류의 캐시 로더로 부르면 다른 종류의 맵이 저장소에 들어감)을 고쳤고, REQ-P1A-102 에 "종류" 규칙을 더했다. 줄 번호는 QA-A-197 이후 기준이 아니라 QA-A-196 기준이다(이 카드의 변경은 `get_copy` 비교 한 줄과 `MapKind` 선언).
 
 시작 HEAD `7004b93f` (`evidence/00_head.txt`). 코드·`spec.md` 변경 없음. 이 카드가 추가한 것은 이 보고서와 증거 파일뿐이다.
 
@@ -37,7 +39,7 @@ QA-A-193 이후 QA-A-195 가 발견하고 QA-A-196 이 고친 것:
 
 ### REQ-P1A-102: Cached Offset Map Loader
 
-**When** `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is called with non-NULL arguments, the module **shall** return in `offsetMapOut` a cache-owned view of the offset map of `filePath`, leave the module-global calibration store holding that map, and reach the verdict that loading the file through `xpe_calib_load_offset(filePath)` would reach, as follows: when the calibration cache holds an entry keyed by that path string whose recorded file size and last-write time equal the file's current ones, the module **shall** refuse the call with `XPE_ERR_CALIBRATION_EXPIRED`, leaving the store unchanged, if the entry's recorded expiry has passed, and otherwise **shall** return that entry without reading the file and install its map (with the file's timestamp and session id) into the store; in every other case (no entry, or an entry whose recorded size or last-write time differs from the file's, or a file whose size or last-write time cannot be read) it **shall** drop any such entry, load the file through `xpe_calib_load_offset(filePath)`, return that call's error code unchanged if it fails, and otherwise copy the loaded map into the cache and return the cache's view of the copy. The module **shall not** re-hash the file on a cache hit.
+**When** `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is called with non-NULL arguments, the module **shall** return in `offsetMapOut` a cache-owned view of the offset map of `filePath`, leave the module-global calibration store holding that map, and reach the verdict that loading the file through `xpe_calib_load_offset(filePath)` would reach, as follows: when the calibration cache holds an entry keyed by that path string whose recorded file size and last-write time equal the file's current ones, the module **shall** refuse the call with `XPE_ERR_CALIBRATION_EXPIRED`, leaving the store unchanged, if the entry's recorded expiry has passed, and otherwise **shall** return that entry without reading the file and install its map (with the file's timestamp and session id) into the store; in every other case (no entry, or an entry whose recorded size or last-write time differs from the file's, or a file whose size or last-write time cannot be read) it **shall** drop any such entry, load the file through `xpe_calib_load_offset(filePath)`, return that call's error code unchanged if it fails, and otherwise copy the loaded map into the cache and return the cache's view of the copy. The module **shall not** re-hash the file on a cache hit. When the entry was made by a cached loader of another kind (offset, gain, defect) than the one called, the module **shall** treat the call as a miss for this loader without dropping the entry: it loads through this loader's plain loader, which refuses the file (wrong XCal type), returns that code and leaves the store unchanged.
 
 - **측정된 계약**:
   - `filePath` 또는 `offsetMapOut` 이 NULL 이면 `XPE_ERR_INVALID_INPUT` (`calibration_cache.cpp:435`).
@@ -45,6 +47,7 @@ QA-A-193 이후 QA-A-195 가 발견하고 QA-A-196 이 고친 것:
   - 적중 판정 (`get_copy`, `:162`): 엔트리의 크기·수정 시각이 지금 값과 같지 않거나 둘 중 하나를 읽지 못했으면 엔트리를 지우고 미스로 처리 (`:171`); 같으면 엔트리의 만료 시각 `!= 0 && 지금 > 만료` 일 때 엔트리를 지우고 만료로 처리 (`:174`, 시각 비교는 `xcal_reader.cpp` 의 만료 검사와 같은 식과 시계 `system_clock`); 아니면 적중.
   - 만료: `XPE_ERR_CALIBRATION_EXPIRED`(-5), 저장소는 건드리지 않는다 (`:451`; 시험 `AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled`).
   - 변조: 크기나 수정 시각이 달라지면 미스 경로가 평범한 로더를 불러 SHA-256 을 다시 검사하고 로더의 코드를 그대로 돌려준다 (관측: `-4`; 시험 `AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss`, 반증 팔: 비교를 빼면 이 시험과 두 재적재 시험이 빨강).
+  - **종류**: 엔트리는 어느 캐시 로더가 만들었는지(오프셋·게인·결함)를 기록한다 (`MapKind`, `get_copy` 의 종류 비교). 같은 경로를 다른 종류의 로더로 부르면 엔트리를 두고 미스로 취급해, 그 종류의 평범한 로더가 파일을 거절하는 코드(관측: `-4`)를 돌려주고 저장소는 그대로다. 이 검사가 없던 시기(QA-A-196 까지)에는 오프셋으로 캐시한 경로를 게인 캐시 로더로 부르면 `OK` 와 함께 오프셋 화소가 게인 저장소에 들어갔고(게인 범위 [0.1, 10.0] 검사도 건너뜀), 반대 방향은 게인 맵이 오프셋 저장소에 들어갔다. 시험 `AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss` 가 6개 조합 전부와 "거절이 엔트리를 지우지 않는다"를 고정한다.
   - **한계**: 적중은 파일을 다시 해시하지 않는다. 같은 크기·같은 수정 시각으로 바뀐 파일은 감지하지 못하고, `xpe_calib_cache_clear()` 또는 shutdown 뒤에야 새 파일을 읽는다 (시험 `AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear`가 이 한계를 고정한다). 수정 시각의 해상도 안에서 일어난 쓰기도 같은 한계에 든다.
   - 적중: 같은 잠금 안에서 픽셀을 곧바로 전역 저장소가 소유할 배열로 **한 번** 복사하고 메타데이터를 받은 뒤 잠금 밖에서 전역 저장소에 설치한다 (`install_offset` `:388`, 호출 `:452`). 캐시 잠금과 `g_calib_mutex` 는 함께 잡지 않는다. `data` 포인터는 캐시의 것이며 호출자가 해제하지 않는다 (소유권 규칙 `api-spec.md:499`).
   - 설치되는 것: 오프셋 맵, 너비·높이, 파일의 `created_epoch_ms`, 세션 id — 평범한 로더가 쓰는 같은 필드 (`xpe_calib_load_offset.cpp:55-67`).
@@ -90,7 +93,7 @@ QA-A-193 이후 QA-A-195 가 발견하고 QA-A-196 이 고친 것:
 - **Traceability**: SUP-01
 - **Verification**: Test (REQ-P1A-102 와 같은 파일)
 
-> **세 요구가 공유하는 캐시 규칙.** 캐시는 세 적재 함수가 **하나**를 공유한다 (`g_calibCache`, `calibration_cache.cpp:333`). 키가 경로 문자열뿐이라 세 종류의 맵이 같은 경로로 호출되면 같은 항목을 가리킨다. 다른 종류 파일을 다른 로더로 부르면 적재 단계에서 오류가 나므로 한 경로가 한 종류로만 캐시되는 것이 보통이지만, 이 점은 관측하지 않았다 (Gaps). `xpe_calib_cache_clear` · `xpe_calib_cache_set_max_size` 의 계약은 SRS-CALIB-FUNC-038 (`SRS-CALIB-001:469`) 이 이름으로 묶는다 — 여기서는 다루지 않는다. 헤더 문서(`preprocess_api.h`)는 QA-A-196 에서 위 규칙에 맞게 다시 썼다.
+> **세 요구가 공유하는 캐시 규칙.** 캐시는 세 적재 함수가 **하나**를 공유한다 (`g_calibCache`, `calibration_cache.cpp:333`). 키가 경로 문자열뿐이라 세 종류의 맵이 같은 경로로 호출되면 같은 항목을 가리키지만, 엔트리가 만든 로더의 종류를 기록하므로 다른 종류의 로더는 그 항목을 받지 못하고 평범한 로더의 거절 코드를 받는다 (QA-A-197). `xpe_calib_cache_clear` · `xpe_calib_cache_set_max_size` 의 계약은 SRS-CALIB-FUNC-038 (`SRS-CALIB-001:469`) 이 이름으로 묶는다 — 여기서는 다루지 않는다. 헤더 문서(`preprocess_api.h`)는 QA-A-196 에서 위 규칙에 맞게 다시 썼다.
 
 ### REQ-P1A-105: Pipeline Execution on the Loaded Calibration
 
@@ -181,7 +184,7 @@ QA-A-193 이후 QA-A-195 가 발견하고 QA-A-196 이 고친 것:
 - (해소) 적중의 만료 재검사는 QA-A-196 에서 구현되고 시험으로 고정됐다. 남은 것: 만료 경계(만료 시각과 같은 밀리초)의 동작은 관측하지 않았다 (코드는 읽기 검사와 같은 `지금 > 만료`).
 - 파일 크기·수정 시각의 해상도, 시계가 거꾸로 가는 경우, 네트워크 드라이브에서의 수정 시각 신뢰성은 관측하지 않았다.
 - 다항식 파일과 결함 맵의 변조·만료는 (결함 맵은 시험이 확인, 다항식은 캐시하지 않으므로 해당 없음) — 다항식 파일이 만료·변조일 때의 반환은 평범한 로더의 코드를 그대로 쓴다는 코드 읽기만 있다.
-- 같은 경로를 서로 다른 종류의 `*_cached` 로 부를 때(공유 캐시·경로 키)의 동작은 관측하지 않았다.
+- (해소) 같은 경로를 서로 다른 종류의 `*_cached` 로 부를 때의 동작은 QA-A-197 에서 6개 조합 전부 관측하고 고쳤다.
 - NULL `calibState` 로 단계를 실제로 돌리는 경우(우회 없음)는 시험도 관측도 하지 않았다. 코드가 `calibState` 를 읽지 않는다는 것(`pipeline.cpp:439`)에 근거한다.
 - `_ex` 가 `xpe_preprocess_pipeline` 과 같은 결과를 내는지는 같은 `pipeline_core` 를 부른다는 코드 읽기로 적었다. 같은 입력으로 두 진입점을 나란히 돌려 비교하지는 않았다.
 - `Traceability` 칸의 SWU 번호는 기존 REQ-P1A-014~016a 의 `SUP-01` 을 따랐을 뿐 SWU 정의 문서와 대조하지 않았다.
