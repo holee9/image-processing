@@ -1,0 +1,6 @@
+IDENTICAL after comment strip: modules/preprocess/include/xpe/preprocess_api.h
+IDENTICAL after comment strip: modules/preprocess/src/nonlinearity_correct.cpp
+IDENTICAL after comment strip: modules/preprocess/tests/test_temp_nonlinearity_binning.cpp
+IDENTICAL after comment strip: modules/preprocess/CMakeLists.txt
+control (one injected code-token change) is detected: True
+ALL_COMMENT_ONLY = True
